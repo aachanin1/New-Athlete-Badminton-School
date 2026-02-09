@@ -110,7 +110,7 @@ export function PublicNavbar() {
               height={40}
               className="rounded-full"
             />
-            <span className="font-bold text-[#153c85] text-lg hidden sm:inline">
+            <span className="font-bold text-[#153c85] text-lg whitespace-nowrap">
               New Athlete School
             </span>
           </button>
