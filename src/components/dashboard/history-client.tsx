@@ -144,7 +144,8 @@ export function HistoryClient({ bookings, payments, userId }: HistoryClientProps
         .upload(fileName, slipFile)
 
       if (uploadErr) {
-        setError('อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่')
+        console.error('Upload error:', uploadErr)
+        setError(`อัปโหลดสลิปไม่สำเร็จ: ${uploadErr.message}`)
         setLoading(false)
         return
       }

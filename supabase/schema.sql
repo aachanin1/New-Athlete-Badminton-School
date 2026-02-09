@@ -632,5 +632,19 @@ WHERE ct.name = 'private';
 
 INSERT INTO storage.buckets (id, name, public) VALUES
   ('avatars', 'avatars', true),
-  ('payment-slips', 'payment-slips', false),
-  ('coach-checkins', 'coach-checkins', false);
+  ('payment-slips', 'payment-slips', true),
+  ('coach-checkins', 'coach-checkins', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS policies
+CREATE POLICY "Users can upload payment slips" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'payment-slips' AND auth.uid() IS NOT NULL);
+
+CREATE POLICY "Users can view payment slips" ON storage.objects
+  FOR SELECT USING (bucket_id = 'payment-slips');
+
+CREATE POLICY "Users can upload avatars" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
+
+CREATE POLICY "Anyone can view avatars" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
