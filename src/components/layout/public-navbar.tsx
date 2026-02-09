@@ -21,11 +21,11 @@ type AuthMode = 'login' | 'register'
 
 const NAV_SECTIONS = [
   { id: 'hero', label: 'หน้าแรก' },
-  { id: 'pricing', label: 'คอร์สเรียน & ราคา' },
-  { id: 'levels', label: 'Level พัฒนาการ' },
+  { id: 'pricing', label: 'คอร์สเรียน & ราคา', shortLabel: 'คอร์ส' },
+  { id: 'levels', label: 'Level พัฒนาการ', shortLabel: 'Level' },
   { id: 'branches', label: 'สาขาต่างๆ' },
-  { id: 'contact', label: 'ติดต่อสอบถาม' },
-  { href: '/ranking', label: 'อันดับนักเรียน' },
+  { id: 'contact', label: 'ติดต่อสอบถาม', shortLabel: 'ติดต่อ' },
+  { href: '/ranking', label: 'อันดับนักเรียน', shortLabel: 'อันดับ' },
 ]
 
 export function PublicNavbar() {
@@ -123,7 +123,8 @@ export function PublicNavbar() {
                 onClick={() => handleNavClick(item)}
                 className="text-sm font-medium text-gray-600 hover:text-[#2748bf] transition-colors"
               >
-                {item.label}
+                <span className="hidden xl:inline">{item.label}</span>
+                <span className="xl:hidden">{item.shortLabel || item.label}</span>
               </button>
             ))}
 
