@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -24,12 +24,13 @@ const NAV_SECTIONS = [
   { id: 'pricing', label: 'คอร์สเรียน & ราคา' },
   { id: 'levels', label: 'Level พัฒนาการ' },
   { id: 'branches', label: 'สาขาต่างๆ' },
-  { href: '/ranking', label: 'อันดับนักเรียน' },
   { id: 'contact', label: 'ติดต่อสอบถาม' },
+  { href: '/ranking', label: 'อันดับนักเรียน' },
 ]
 
 export function PublicNavbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
@@ -73,6 +74,11 @@ export function PublicNavbar() {
   }
 
   const scrollToSection = (id: string) => {
+    if (pathname !== '/') {
+      router.push(`/#${id}`)
+      setSheetOpen(false)
+      return
+    }
     const el = document.getElementById(id)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })

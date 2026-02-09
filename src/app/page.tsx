@@ -3,12 +3,12 @@ import Link from 'next/link'
 import { PublicNavbar } from '@/components/layout/public-navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { RegisterButton } from '@/components/shared/register-button'
 import {
   MapPin,
   Users,
   Trophy,
   GraduationCap,
-  ArrowRight,
   Star,
   Clock,
   CheckCircle2,
@@ -85,12 +85,7 @@ export default function LandingPage() {
               พัฒนาทักษะตั้งแต่พื้นฐานจนถึงระดับนักกีฬาทีมชาติ
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/auth/register">
-                <Button size="lg" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white text-lg px-8 py-6 w-[220px]">
-                  สมัครเรียนเลย
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <RegisterButton variant="hero" />
               <Link href="/ranking">
                 <Button size="lg" className="bg-white text-[#153c85] border-2 border-white hover:bg-white/90 text-lg px-8 py-6 font-semibold w-[220px]">
                   <Trophy className="mr-2 h-5 w-5" />
@@ -340,12 +335,7 @@ export default function LandingPage() {
 
           <div className="text-center">
             <p className="text-blue-100 mb-6">พร้อมเริ่มต้นเส้นทางแบดมินตัน?</p>
-            <Link href="/auth/register">
-              <Button size="lg" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white text-lg px-10 py-6">
-                สมัครสมาชิกฟรี
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <RegisterButton variant="cta" />
           </div>
         </div>
       </section>

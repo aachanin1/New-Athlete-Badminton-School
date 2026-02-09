@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +28,12 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
   const router = useRouter()
   const [mode, setMode] = useState<AuthMode>(defaultMode)
   const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      setMode(defaultMode)
+    }
+  }, [open, defaultMode])
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
