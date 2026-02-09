@@ -7,6 +7,7 @@ import type { Child, Branch, CourseTypeName } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -73,6 +74,15 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
   const [sessions, setSessions] = useState(4)
   const [childSessions, setChildSessions] = useState<Record<string, number>>({})
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    id: string; code: string; discount_type: 'fixed' | 'percent'; discount_value: number
+  } | null>(null)
+  const [discountAmount, setDiscountAmount] = useState(0)
+
   const currentStepIndex = STEPS.findIndex((s) => s.key === step)
 
   const goNext = () => {
@@ -131,6 +141,71 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
   const pricing = getPricing()
   const selectedBranch = branches.find((b) => b.id === branchId)
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    setCouponLoading(true)
+    setCouponError(null)
+
+    const supabase = createClient()
+    const { data: coupon, error: err } = await (supabase
+      .from('coupons') as any)
+      .select('*')
+      .eq('code', couponCode.trim().toUpperCase())
+      .eq('is_active', true)
+      .single()
+
+    if (err || !coupon) {
+      setCouponError('ไม่พบคูปองนี้ หรือคูปองหมดอายุแล้ว')
+      setCouponLoading(false)
+      return
+    }
+
+    // Check expiry
+    const now = new Date()
+    if (coupon.valid_from && new Date(coupon.valid_from) > now) {
+      setCouponError('คูปองนี้ยังไม่เริ่มใช้งาน')
+      setCouponLoading(false)
+      return
+    }
+    if (coupon.valid_to && new Date(coupon.valid_to) < now) {
+      setCouponError('คูปองนี้หมดอายุแล้ว')
+      setCouponLoading(false)
+      return
+    }
+
+    // Check usage limit
+    if (coupon.max_uses && coupon.current_uses >= coupon.max_uses) {
+      setCouponError('คูปองนี้ถูกใช้ครบจำนวนแล้ว')
+      setCouponLoading(false)
+      return
+    }
+
+    // Check min purchase
+    const totalPrice = pricing?.package_price || 0
+    if (coupon.min_purchase && totalPrice < coupon.min_purchase) {
+      setCouponError(`ยอดขั้นต่ำ ฿${coupon.min_purchase.toLocaleString()} สำหรับคูปองนี้`)
+      setCouponLoading(false)
+      return
+    }
+
+    // Calculate discount
+    let discount = 0
+    if (coupon.discount_type === 'fixed') {
+      discount = Math.min(coupon.discount_value, totalPrice)
+    } else {
+      discount = Math.floor(totalPrice * coupon.discount_value / 100)
+    }
+
+    setAppliedCoupon({
+      id: coupon.id,
+      code: coupon.code,
+      discount_type: coupon.discount_type,
+      discount_value: coupon.discount_value,
+    })
+    setDiscountAmount(discount)
+    setCouponLoading(false)
+  }
+
   const handleSubmitBooking = async () => {
     setLoading(true)
     setError(null)
@@ -140,39 +215,67 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
     const month = now.getMonth() + 1
     const year = now.getFullYear()
 
+    const finalPrice = (pricing?.package_price || 0) - discountAmount
+
     try {
+      let bookingId: string | null = null
+
       if (courseType === 'kids_group') {
         // Create one booking per child
         for (const childId of selectedChildren) {
           const childSess = childSessions[childId] || 4
-          const singleChildPricing = calculateKidsGroupPrice([{ childId, sessions: childSess }])
 
-          await (supabase.from('bookings') as any).insert({
+          const { data: bookingData } = await (supabase.from('bookings') as any)
+            .insert({
+              user_id: userId,
+              learner_type: 'child',
+              child_id: childId,
+              branch_id: branchId,
+              course_type_id: courseType,
+              month,
+              year,
+              total_sessions: childSess,
+              total_price: finalPrice,
+              status: 'pending_payment',
+            })
+            .select('id')
+            .single()
+
+          if (bookingData) bookingId = bookingData.id
+        }
+      } else {
+        const { data: bookingData } = await (supabase.from('bookings') as any)
+          .insert({
             user_id: userId,
-            learner_type: 'child',
-            child_id: childId,
+            learner_type: learnerType || 'self',
+            child_id: null,
             branch_id: branchId,
             course_type_id: courseType,
             month,
             year,
-            total_sessions: childSess,
-            total_price: pricing?.package_price || singleChildPricing.package_price,
+            total_sessions: sessions,
+            total_price: finalPrice,
             status: 'pending_payment',
           })
-        }
-      } else {
-        await (supabase.from('bookings') as any).insert({
+          .select('id')
+          .single()
+
+        if (bookingData) bookingId = bookingData.id
+      }
+
+      // Record coupon usage
+      if (appliedCoupon && bookingId) {
+        await (supabase.from('coupon_usages') as any).insert({
+          coupon_id: appliedCoupon.id,
           user_id: userId,
-          learner_type: learnerType || 'self',
-          child_id: null,
-          branch_id: branchId,
-          course_type_id: courseType,
-          month,
-          year,
-          total_sessions: sessions,
-          total_price: pricing?.package_price || 0,
-          status: 'pending_payment',
+          booking_id: bookingId,
+          discount_amount: discountAmount,
+          used_at: new Date().toISOString(),
         })
+        // Increment coupon usage count
+        await (supabase.from('coupons') as any)
+          .update({ current_uses: appliedCoupon ? 1 : 0 })
+          .eq('id', appliedCoupon.id)
       }
 
       router.push('/dashboard/history')
@@ -565,11 +668,65 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
                 </div>
               </div>
 
+              {/* Coupon Section */}
               <div className="border-t pt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">คูปองส่วนลด</p>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">
+                        {appliedCoupon.code} — ลด {appliedCoupon.discount_type === 'fixed'
+                          ? `฿${appliedCoupon.discount_value.toLocaleString()}`
+                          : `${appliedCoupon.discount_value}%`}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 h-7 px-2"
+                      onClick={() => { setAppliedCoupon(null); setDiscountAmount(0); setCouponCode('') }}
+                    >
+                      ยกเลิก
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="กรอกรหัสคูปอง"
+                      value={couponCode}
+                      onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(null) }}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleApplyCoupon}
+                      disabled={!couponCode.trim() || couponLoading}
+                    >
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ใช้คูปอง'}
+                    </Button>
+                  </div>
+                )}
+                {couponError && (
+                  <p className="text-xs text-red-500 mt-1">{couponError}</p>
+                )}
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>ราคาเต็ม</span>
+                  <span>฿{(pricing?.package_price || 0).toLocaleString()}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-green-600">
+                    <span>ส่วนลดคูปอง</span>
+                    <span>-฿{discountAmount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
-                  <p className="text-lg font-medium">ยอดรวม</p>
+                  <p className="text-lg font-medium">ยอดชำระ</p>
                   <p className="text-3xl font-bold text-[#2748bf]">
-                    ฿{(pricing?.package_price || 0).toLocaleString()}
+                    ฿{((pricing?.package_price || 0) - discountAmount).toLocaleString()}
                   </p>
                 </div>
               </div>
