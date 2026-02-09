@@ -43,6 +43,7 @@ interface BookingWithRelations {
   created_at: string
   branches?: { name: string } | null
   children?: { full_name: string; nickname: string | null } | null
+  course_types?: { name: string } | null
 }
 
 interface PaymentRow {
@@ -212,7 +213,7 @@ export function HistoryClient({ bookings, payments, userId }: HistoryClientProps
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className={status.color}>{status.label}</Badge>
-                      <Badge variant="outline">{COURSE_LABELS[booking.course_type_id] || booking.course_type_id}</Badge>
+                      <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">

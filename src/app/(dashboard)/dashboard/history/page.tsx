@@ -11,7 +11,7 @@ export default async function HistoryPage() {
   // Fetch bookings with related data
   const { data: bookings } = await (supabase
     .from('bookings') as any)
-    .select('*, branches(name), children(full_name, nickname)')
+    .select('*, branches(name), children(full_name, nickname), course_types(name)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 

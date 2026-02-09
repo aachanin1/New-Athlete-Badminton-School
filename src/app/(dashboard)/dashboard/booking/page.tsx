@@ -22,6 +22,11 @@ export default async function BookingPage() {
     .eq('is_active', true)
     .order('name')
 
+  // Fetch course types to get UUIDs
+  const { data: courseTypes } = await supabase
+    .from('course_types')
+    .select('id, name')
+
   // Fetch user profile
   const { data: profile } = await (supabase
     .from('profiles') as any)
@@ -40,6 +45,7 @@ export default async function BookingPage() {
         userName={(profile as any)?.full_name || ''}
         children={children || []}
         branches={branches || []}
+        courseTypes={(courseTypes as any) || []}
       />
     </div>
   )

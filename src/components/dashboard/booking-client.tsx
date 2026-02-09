@@ -37,11 +37,17 @@ import {
   Plus,
 } from 'lucide-react'
 
+interface CourseTypeRow {
+  id: string
+  name: string
+}
+
 interface BookingClientProps {
   userId: string
   userName: string
   children: Child[]
   branches: Branch[]
+  courseTypes: CourseTypeRow[]
 }
 
 type Step = 'type' | 'learner' | 'branch' | 'sessions' | 'summary'
@@ -60,7 +66,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
   { value: 'private', label: 'Private', desc: 'เด็ก & ผู้ใหญ่ • 1 ชม.', icon: Star },
 ]
 
-export function BookingClient({ userId, userName, children, branches }: BookingClientProps) {
+export function BookingClient({ userId, userName, children, branches, courseTypes }: BookingClientProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('type')
   const [loading, setLoading] = useState(false)
@@ -217,6 +223,15 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
 
     const finalPrice = (pricing?.package_price || 0) - discountAmount
 
+    // Resolve course_type_id UUID from name
+    const courseTypeRow = courseTypes.find((ct) => ct.name === courseType)
+    if (!courseTypeRow) {
+      setError('ไม่พบประเภทคอร์สในระบบ กรุณาติดต่อแอดมิน')
+      setLoading(false)
+      return
+    }
+    const courseTypeUUID = courseTypeRow.id
+
     try {
       let bookingId: string | null = null
 
@@ -225,13 +240,13 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
         for (const childId of selectedChildren) {
           const childSess = childSessions[childId] || 4
 
-          const { data: bookingData } = await (supabase.from('bookings') as any)
+          const { data: bookingData, error: insertErr } = await (supabase.from('bookings') as any)
             .insert({
               user_id: userId,
               learner_type: 'child',
               child_id: childId,
               branch_id: branchId,
-              course_type_id: courseType,
+              course_type_id: courseTypeUUID,
               month,
               year,
               total_sessions: childSess,
@@ -241,16 +256,22 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
             .select('id')
             .single()
 
+          if (insertErr) {
+            console.error('Booking insert error:', insertErr)
+            setError(`เกิดข้อผิดพลาดในการจอง: ${insertErr.message}`)
+            setLoading(false)
+            return
+          }
           if (bookingData) bookingId = bookingData.id
         }
       } else {
-        const { data: bookingData } = await (supabase.from('bookings') as any)
+        const { data: bookingData, error: insertErr } = await (supabase.from('bookings') as any)
           .insert({
             user_id: userId,
             learner_type: learnerType || 'self',
             child_id: null,
             branch_id: branchId,
-            course_type_id: courseType,
+            course_type_id: courseTypeUUID,
             month,
             year,
             total_sessions: sessions,
@@ -260,6 +281,12 @@ export function BookingClient({ userId, userName, children, branches }: BookingC
           .select('id')
           .single()
 
+        if (insertErr) {
+          console.error('Booking insert error:', insertErr)
+          setError(`เกิดข้อผิดพลาดในการจอง: ${insertErr.message}`)
+          setLoading(false)
+          return
+        }
         if (bookingData) bookingId = bookingData.id
       }
 
