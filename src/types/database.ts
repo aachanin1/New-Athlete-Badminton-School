@@ -21,121 +21,145 @@ export interface Database {
         Row: Profile
         Insert: Omit<Profile, 'created_at' | 'updated_at'>
         Update: Partial<Omit<Profile, 'id' | 'created_at'>>
+        Relationships: []
       }
       branches: {
         Row: Branch
         Insert: Omit<Branch, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Branch, 'id' | 'created_at'>>
+        Relationships: []
       }
       children: {
         Row: Child
         Insert: Omit<Child, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Child, 'id' | 'created_at'>>
+        Relationships: []
       }
       course_types: {
         Row: CourseType
         Insert: Omit<CourseType, 'id'>
         Update: Partial<Omit<CourseType, 'id'>>
+        Relationships: []
       }
       schedule_templates: {
         Row: ScheduleTemplate
         Insert: Omit<ScheduleTemplate, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<ScheduleTemplate, 'id' | 'created_at'>>
+        Relationships: []
       }
       schedule_slots: {
         Row: ScheduleSlot
         Insert: Omit<ScheduleSlot, 'id' | 'created_at'>
         Update: Partial<Omit<ScheduleSlot, 'id' | 'created_at'>>
+        Relationships: []
       }
       pricing_tiers: {
         Row: PricingTier
         Insert: Omit<PricingTier, 'id' | 'created_at'>
         Update: Partial<Omit<PricingTier, 'id' | 'created_at'>>
+        Relationships: []
       }
       levels: {
         Row: Level
         Insert: Level
         Update: Partial<Level>
+        Relationships: []
       }
       bookings: {
         Row: Booking
         Insert: Omit<Booking, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Booking, 'id' | 'created_at'>>
+        Relationships: []
       }
       booking_sessions: {
         Row: BookingSession
         Insert: Omit<BookingSession, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<BookingSession, 'id' | 'created_at'>>
+        Relationships: []
       }
       payments: {
         Row: Payment
         Insert: Omit<Payment, 'id' | 'created_at'>
         Update: Partial<Omit<Payment, 'id' | 'created_at'>>
+        Relationships: []
       }
       coupons: {
         Row: Coupon
         Insert: Omit<Coupon, 'id' | 'created_at'>
         Update: Partial<Omit<Coupon, 'id' | 'created_at'>>
+        Relationships: []
       }
       coupon_usages: {
         Row: CouponUsage
         Insert: Omit<CouponUsage, 'id'>
         Update: Partial<Omit<CouponUsage, 'id'>>
+        Relationships: []
       }
       coach_branches: {
         Row: CoachBranch
         Insert: Omit<CoachBranch, 'id' | 'created_at'>
         Update: Partial<Omit<CoachBranch, 'id' | 'created_at'>>
+        Relationships: []
       }
       coach_assignments: {
         Row: CoachAssignment
         Insert: Omit<CoachAssignment, 'id' | 'created_at'>
         Update: Partial<Omit<CoachAssignment, 'id' | 'created_at'>>
+        Relationships: []
       }
       attendance: {
         Row: Attendance
         Insert: Omit<Attendance, 'id'>
         Update: Partial<Omit<Attendance, 'id'>>
+        Relationships: []
       }
       coach_checkins: {
         Row: CoachCheckin
         Insert: Omit<CoachCheckin, 'id' | 'created_at'>
         Update: Partial<Omit<CoachCheckin, 'id' | 'created_at'>>
+        Relationships: []
       }
       teaching_programs: {
         Row: TeachingProgram
         Insert: Omit<TeachingProgram, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<TeachingProgram, 'id' | 'created_at'>>
+        Relationships: []
       }
       student_levels: {
         Row: StudentLevel
         Insert: Omit<StudentLevel, 'id' | 'created_at'>
         Update: Partial<Omit<StudentLevel, 'id' | 'created_at'>>
+        Relationships: []
       }
       coach_teaching_hours: {
         Row: CoachTeachingHours
         Insert: Omit<CoachTeachingHours, 'id' | 'created_at'>
         Update: Partial<Omit<CoachTeachingHours, 'id' | 'created_at'>>
+        Relationships: []
       }
       notifications: {
         Row: Notification
         Insert: Omit<Notification, 'id' | 'created_at'>
         Update: Partial<Omit<Notification, 'id' | 'created_at'>>
+        Relationships: []
       }
       complaints: {
         Row: Complaint
         Insert: Omit<Complaint, 'id' | 'created_at'>
         Update: Partial<Omit<Complaint, 'id' | 'created_at'>>
+        Relationships: []
       }
       activity_logs: {
         Row: ActivityLog
         Insert: Omit<ActivityLog, 'id' | 'created_at'>
         Update: Partial<Omit<ActivityLog, 'id' | 'created_at'>>
+        Relationships: []
       }
       system_settings: {
         Row: SystemSetting
         Insert: Omit<SystemSetting, 'id'>
         Update: Partial<Omit<SystemSetting, 'id'>>
+        Relationships: []
       }
     }
     Views: Record<string, never>
