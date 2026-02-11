@@ -146,6 +146,7 @@ CREATE TABLE booking_sessions (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   branch_id UUID NOT NULL REFERENCES branches(id),
+  child_id UUID REFERENCES children(id) ON DELETE SET NULL,
   status session_status NOT NULL DEFAULT 'scheduled',
   rescheduled_from_id UUID REFERENCES booking_sessions(id) ON DELETE SET NULL,
   is_makeup BOOLEAN NOT NULL DEFAULT false,

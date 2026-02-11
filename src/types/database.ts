@@ -296,6 +296,7 @@ export interface BookingSession {
   start_time: string
   end_time: string
   branch_id: string
+  child_id: string | null
   status: SessionStatus
   rescheduled_from_id: string | null
   is_makeup: boolean

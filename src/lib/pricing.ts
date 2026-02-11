@@ -105,6 +105,50 @@ export function calculatePrivatePrice(hours: number) {
   }
 }
 
+// ─── Session Status Labels ─────────────────────────────────────
+export const SESSION_STATUS_LABELS: { min: number; label: string; emoji: string }[] = [
+  { min: 24, label: 'เป็นนักกีฬาระดับประเทศ', emoji: '🏆' },
+  { min: 19, label: 'เป็นนักกีฬา', emoji: '🥇' },
+  { min: 16, label: 'เป็นนักกีฬา', emoji: '💪' },
+  { min: 12, label: 'การเริ่มต้นเป็นนักกีฬา', emoji: '🏸' },
+  { min: 8, label: 'การออกกำลังกาย', emoji: '🏃' },
+  { min: 4, label: 'การเรียนขั้นต่ำ', emoji: '📚' },
+]
+
+export function getSessionStatusLabel(sessions: number): { label: string; emoji: string; warning?: string } {
+  if (sessions < 4) {
+    return { label: 'ต่ำกว่าขั้นต่ำ', emoji: '⚠️', warning: 'ควรหาวันเรียนเพิ่ม เพื่อความต่อเนื่องของทักษะแบดมินตัน' }
+  }
+  const status = SESSION_STATUS_LABELS.find((s) => sessions >= s.min)
+  return status || { label: 'การเรียนขั้นต่ำ', emoji: '📚' }
+}
+
+/**
+ * Simple price calculation: total = per_session × sessions
+ */
+export function getKidsGroupTotal(totalSessions: number): { total: number; perSession: number; tierLabel: string } {
+  const KIDS_TIERS = [
+    { min: 1, max: 1, per_session: 700 },
+    { min: 2, max: 6, per_session: 625 },
+    { min: 7, max: 10, per_session: 500 },
+    { min: 11, max: 14, per_session: 433 },
+    { min: 15, max: 18, per_session: 406 },
+    { min: 19, max: 999, per_session: 350 },
+  ]
+  const tier = KIDS_TIERS.find((t) => totalSessions >= t.min && totalSessions <= t.max) || KIDS_TIERS[KIDS_TIERS.length - 1]
+  return {
+    total: tier.per_session * totalSessions,
+    perSession: tier.per_session,
+    tierLabel: tier.max === 999 ? `${tier.min}+ ครั้ง` : tier.min === tier.max ? `${tier.min} ครั้ง` : `${tier.min}-${tier.max} ครั้ง`,
+  }
+}
+
+export function getAdultGroupTotal(totalSessions: number): { total: number; perSession: number; tierLabel: string } {
+  if (totalSessions >= 16) return { total: 8000, perSession: 500, tierLabel: '16 ครั้ง' }
+  if (totalSessions >= 10) return { total: 5500, perSession: 550, tierLabel: '10 ครั้ง' }
+  return { total: totalSessions * 600, perSession: 600, tierLabel: 'รายครั้ง' }
+}
+
 /**
  * Get all pricing tiers for display
  */

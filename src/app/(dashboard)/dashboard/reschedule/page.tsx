@@ -8,20 +8,21 @@ export default async function ReschedulePage() {
 
   if (!user) redirect('/auth/login')
 
-  // Fetch upcoming scheduled sessions (only future, status=scheduled)
+  // Fetch upcoming scheduled sessions (only future, status=scheduled, booking verified)
   const today = new Date().toISOString().split('T')[0]
   const { data: sessions } = await (supabase
     .from('booking_sessions') as any)
-    .select('*, bookings!inner(user_id, course_type_id, children(full_name)), branches(name)')
+    .select('*, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name)')
     .eq('bookings.user_id', user.id)
+    .eq('bookings.status', 'verified')
     .eq('status', 'scheduled')
     .gte('date', today)
     .order('date', { ascending: true })
 
-  // Fetch branches for rescheduling target
+  // Fetch branches for rescheduling target (include slug for schedule lookup)
   const { data: branches } = await supabase
     .from('branches')
-    .select('id, name')
+    .select('id, name, slug')
     .eq('is_active', true)
     .order('name')
 
