@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtTime } from '@/lib/utils'
+import { getKidsGroupTotal, getAdultGroupTotal } from '@/lib/pricing'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   CalendarDays,
   MapPin,
@@ -128,6 +139,21 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
   const [error, setError] = useState<string | null>(null)
   const [selectedDates, setSelectedDates] = useState<{ date: string; startTime: string; endTime: string }[]>([])
 
+  // Alert dialog state (replaces browser confirm)
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertTitle, setAlertTitle] = useState('')
+  const [alertDesc, setAlertDesc] = useState('')
+  const [alertAction, setAlertAction] = useState<(() => void) | null>(null)
+  const [alertVariant, setAlertVariant] = useState<'danger' | 'warning'>('danger')
+
+  const showConfirm = useCallback((title: string, desc: string, action: () => void, variant: 'danger' | 'warning' = 'danger') => {
+    setAlertTitle(title)
+    setAlertDesc(desc)
+    setAlertAction(() => action)
+    setAlertVariant(variant)
+    setAlertOpen(true)
+  }, [])
+
   // Group pending bookings for combined payment
   const pendingBookings = bookings.filter((b) => b.status === 'pending_payment')
   const pendingTotal = pendingBookings.reduce((sum, b) => sum + b.total_price, 0)
@@ -229,51 +255,77 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
     setDetailDialogOpen(true)
   }
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm('ยืนยันยกเลิกการจองนี้? การจองที่ยกเลิกแล้วจะไม่สามารถกู้คืนได้')) return
-    setLoading(true)
-    setError(null)
-    const supabase = createClient()
+  const handleCancelBooking = (bookingId: string) => {
+    showConfirm(
+      'ยืนยันยกเลิกการจอง',
+      'การจองที่ยกเลิกแล้วจะไม่สามารถกู้คืนได้ คุณต้องการยกเลิกหรือไม่?',
+      async () => {
+        setLoading(true)
+        setError(null)
+        const supabase = createClient()
 
-    // Delete associated sessions
-    await (supabase.from('booking_sessions') as any).delete().eq('booking_id', bookingId)
+        await (supabase.from('booking_sessions') as any).delete().eq('booking_id', bookingId)
 
-    // Update booking status to cancelled
-    const { error: updateErr } = await (supabase.from('bookings') as any)
-      .update({ status: 'cancelled' })
-      .eq('id', bookingId)
+        const { error: updateErr } = await (supabase.from('bookings') as any)
+          .update({ status: 'cancelled' })
+          .eq('id', bookingId)
 
-    if (updateErr) {
-      setError('ยกเลิกไม่สำเร็จ กรุณาลองใหม่')
-    }
+        if (updateErr) {
+          setError('ยกเลิกไม่สำเร็จ กรุณาลองใหม่')
+        }
 
-    setLoading(false)
-    setDetailDialogOpen(false)
-    router.refresh()
+        setLoading(false)
+        setDetailDialogOpen(false)
+        router.refresh()
+      },
+      'danger'
+    )
   }
 
-  const handleDeleteSession = async (sessionId: string, bookingId: string) => {
-    if (!confirm('ยืนยันลบวันเรียนนี้?')) return
-    setLoading(true)
-    const supabase = createClient()
+  const handleDeleteSession = (sessionId: string, bookingId: string) => {
+    showConfirm(
+      'ยืนยันลบวันเรียน',
+      'คุณต้องการลบวันเรียนนี้หรือไม่? ระบบจะคำนวณราคาใหม่ให้อัตโนมัติ',
+      async () => {
+        setLoading(true)
+        const supabase = createClient()
 
-    const { error: delErr } = await (supabase.from('booking_sessions') as any).delete().eq('id', sessionId)
+        const { error: delErr } = await (supabase.from('booking_sessions') as any).delete().eq('id', sessionId)
 
-    if (delErr) {
-      setError('ลบไม่สำเร็จ กรุณาลองใหม่')
-      setLoading(false)
-      return
-    }
+        if (delErr) {
+          setError('ลบไม่สำเร็จ กรุณาลองใหม่')
+          setLoading(false)
+          return
+        }
 
-    // Update booking total_sessions count
-    const remaining = (bookingSessionsMap[bookingId] || []).filter((s) => s.id !== sessionId)
-    await (supabase.from('bookings') as any)
-      .update({ total_sessions: remaining.length })
-      .eq('id', bookingId)
+        // Recalculate price based on remaining sessions
+        const remaining = (bookingSessionsMap[bookingId] || []).filter((s) => s.id !== sessionId)
+        const booking = bookings.find((b) => b.id === bookingId)
+        const courseTypeName = booking?.course_types?.name || ''
+        let newPrice = 0
 
-    setLoading(false)
-    setDetailDialogOpen(false)
-    router.refresh()
+        if (remaining.length === 0) {
+          newPrice = 0
+        } else if (courseTypeName === 'kids_group') {
+          newPrice = getKidsGroupTotal(remaining.length).total
+        } else if (courseTypeName === 'adult_group') {
+          newPrice = getAdultGroupTotal(remaining.length).total
+        } else if (courseTypeName === 'private') {
+          newPrice = remaining.length * 900
+        } else {
+          newPrice = remaining.length * 700
+        }
+
+        await (supabase.from('bookings') as any)
+          .update({ total_sessions: remaining.length, total_price: newPrice })
+          .eq('id', bookingId)
+
+        setLoading(false)
+        setDetailDialogOpen(false)
+        router.refresh()
+      },
+      'warning'
+    )
   }
 
   const openPayDialog = (booking: BookingWithRelations) => {
@@ -316,53 +368,51 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
     reader.readAsDataURL(file)
   }
 
+  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; slipData?: any; notes?: string } | null>(null)
+
   const handleSubmitPayment = async () => {
     if (payBookingIds.length === 0 || !slipFile) return
     setLoading(true)
     setError(null)
-
-    const supabase = createClient()
+    setVerifyResult(null)
 
     try {
-      // Upload slip to Supabase Storage
-      const fileExt = slipFile.name.split('.').pop()
-      const fileName = `${userId}/${payBookingIds[0]}-${Date.now()}.${fileExt}`
+      const expectedAmount = payBookingIds.reduce((sum, id) => {
+        const b = bookings.find((bk) => bk.id === id)
+        return sum + (b?.total_price || 0)
+      }, 0)
 
-      const { data: uploadData, error: uploadErr } = await supabase
-        .storage
-        .from('payment-slips')
-        .upload(fileName, slipFile)
+      const formData = new FormData()
+      formData.append('file', slipFile)
+      formData.append('bookingIds', JSON.stringify(payBookingIds))
+      formData.append('expectedAmount', String(expectedAmount))
 
-      if (uploadErr) {
-        console.error('Upload error:', uploadErr)
-        setError(`อัปโหลดสลิปไม่สำเร็จ: ${uploadErr.message}`)
+      const res = await fetch('/api/verify-slip', { method: 'POST', body: formData })
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json.error || 'เกิดข้อผิดพลาดในการตรวจสอบสลิป')
         setLoading(false)
         return
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('payment-slips').getPublicUrl(fileName)
+      setVerifyResult({ verified: json.verified, slipData: json.slipData, notes: json.notes })
 
-      // Create payment record for each booking in the group
-      for (const bookingId of payBookingIds) {
-        const booking = bookings.find((b) => b.id === bookingId)
-        await (supabase.from('payments') as any).insert({
-          booking_id: bookingId,
-          user_id: userId,
-          amount: booking?.total_price || 0,
-          method: 'transfer',
-          slip_image_url: publicUrl,
-          status: 'pending',
-        })
+      if (json.verified) {
+        // Auto-verified — close after short delay to show result
+        setTimeout(() => {
+          setPayDialogOpen(false)
+          setLoading(false)
+          router.refresh()
+        }, 2000)
+      } else {
+        // Slip uploaded but not auto-verified — stays as 'paid' waiting for admin
+        setLoading(false)
+        setTimeout(() => {
+          setPayDialogOpen(false)
+          router.refresh()
+        }, 3000)
       }
-
-      // Update all booking statuses to 'paid'
-      await (supabase.from('bookings') as any)
-        .update({ status: 'paid' })
-        .in('id', payBookingIds)
-
-      setPayDialogOpen(false)
-      setLoading(false)
-      router.refresh()
     } catch {
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
       setLoading(false)
@@ -372,6 +422,39 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
   const getBookingPayments = (bookingId: string) => {
     return payments.filter((p) => p.booking_id === bookingId)
   }
+
+  // Group bookings by month/year for display
+  const groupedBookings = useMemo(() => {
+    const groups: { key: string; label: string; year: number; month: number; bookings: BookingWithRelations[]; total: number }[] = []
+    const map = new Map<string, BookingWithRelations[]>()
+
+    bookings.forEach((b) => {
+      const key = `${b.year}-${String(b.month).padStart(2, '0')}`
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(b)
+    })
+
+    // Sort by key descending (newest first)
+    const sortedKeys = Array.from(map.keys()).sort((a, b) => b.localeCompare(a))
+
+    sortedKeys.forEach((key) => {
+      const items = map.get(key)!
+      const first = items[0]
+      const total = items
+        .filter((b) => b.status !== 'cancelled')
+        .reduce((sum, b) => sum + b.total_price, 0)
+      groups.push({
+        key,
+        label: `${MONTH_NAMES[first.month]} ${first.year}`,
+        year: first.year,
+        month: first.month,
+        bookings: items,
+        total,
+      })
+    })
+
+    return groups
+  }, [bookings])
 
   if (bookings.length === 0) {
     return (
@@ -408,7 +491,28 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
             <div>
               <p className="font-medium text-[#153c85]">รอชำระเงิน {pendingBookings.length} รายการ</p>
               <p className="text-sm text-gray-600">
-                {pendingBookings.map((b) => bookingChildNamesMap[b.id]?.join(', ') || b.children?.full_name || 'ตัวเอง').join(', ')} — รวม ฿{pendingTotal.toLocaleString()}
+                {(() => {
+                  const nameCountMap: Record<string, number> = {}
+                  pendingBookings.forEach((b) => {
+                    const sessions = bookingSessionsMap[b.id] || []
+                    if (sessions.length > 0) {
+                      const childCounts: Record<string, number> = {}
+                      sessions.forEach((s: any) => {
+                        const name = s.children?.nickname || s.children?.full_name || 'ตัวเอง'
+                        childCounts[name] = (childCounts[name] || 0) + 1
+                      })
+                      Object.entries(childCounts).forEach(([name, count]) => {
+                        nameCountMap[name] = (nameCountMap[name] || 0) + count
+                      })
+                    } else {
+                      const names = bookingChildNamesMap[b.id] || [b.children?.full_name || 'ตัวเอง']
+                      names.forEach((n) => {
+                        nameCountMap[n] = (nameCountMap[n] || 0) + b.total_sessions
+                      })
+                    }
+                  })
+                  return Object.entries(nameCountMap).map(([name, count]) => `${name} = ${count} ครั้ง`).join(', ')
+                })()} — รวม ฿{pendingTotal.toLocaleString()}
               </p>
             </div>
             <Button className="bg-[#f57e3b] hover:bg-[#e06a2a] whitespace-nowrap" onClick={openGroupPayDialog}>
@@ -418,150 +522,180 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
         </Card>
       )}
 
-      <div className="space-y-4">
-        {bookings.map((booking) => {
-          const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_payment
-          const bookingPayments = getBookingPayments(booking.id)
+      <div className="space-y-8">
+        {groupedBookings.map((group) => (
+          <div key={group.key}>
+            {/* Month header with summary */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-1 bg-[#2748bf] rounded-full" />
+                <h2 className="text-lg font-bold text-[#153c85]">{group.label}</h2>
+                <Badge variant="outline" className="text-xs">{group.bookings.length} รายการ</Badge>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">ยอดรวมเดือนนี้</p>
+                <p className="text-lg font-bold text-[#2748bf]">฿{group.total.toLocaleString()}</p>
+              </div>
+            </div>
 
-          return (
-            <Card key={booking.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={status.color}>{status.label}</Badge>
-                      <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
-                    </div>
+            <div className="space-y-3">
+              {group.bookings.map((booking) => {
+                const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_payment
+                const bookingPayments = getBookingPayments(booking.id)
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
-                        <span>{MONTH_NAMES[booking.month]} {booking.year}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                        <span>{booking.branches?.name || '-'}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <Clock className="h-3.5 w-3.5 text-gray-400" />
-                        <span>{booking.total_sessions} ครั้ง</span>
-                      </div>
-                      {(bookingChildNamesMap[booking.id]?.length > 0 || booking.children) && (
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                          <span>👦 {bookingChildNamesMap[booking.id]?.join(', ') || booking.children?.full_name || '-'}</span>
-                        </div>
-                      )}
-                    </div>
-                    {isAdmin && booking.profiles && (
-                      <p className="text-xs text-gray-400 mt-1">ผู้จอง: {booking.profiles.full_name} ({booking.profiles.email})</p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-end gap-3">
-                    <p className="text-xl font-bold text-[#2748bf]">฿{booking.total_price.toLocaleString()}</p>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {booking.status !== 'cancelled' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-[#153c85] border-[#153c85]/30 hover:bg-[#153c85]/5"
-                          onClick={() => openDetailDialog(booking)}
-                        >
-                          <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                          ดูรายละเอียด
-                        </Button>
-                      )}
-                      {!isAdmin && booking.status === 'pending_payment' && pendingBookings.length <= 1 && (
-                        <Button
-                          size="sm"
-                          className="bg-[#f57e3b] hover:bg-[#e06a2a]"
-                          onClick={() => openPayDialog(booking)}
-                        >
-                          <Upload className="h-3.5 w-3.5 mr-1" />
-                          แนบสลิป
-                        </Button>
-                      )}
-                      {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) < booking.total_sessions && (
-                        <Button
-                          size="sm"
-                          className="bg-[#2748bf] hover:bg-[#153c85]"
-                          onClick={() => openPickDatesDialog(booking)}
-                        >
-                          <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                          เลือกวันเรียน ({sessionCountMap[booking.id] || 0}/{booking.total_sessions})
-                        </Button>
-                      )}
-                    </div>
-                    {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) >= booking.total_sessions && (
-                      <p className="text-xs text-green-600">เลือกวันเรียนครบแล้ว</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Payment info */}
-                {bookingPayments.length > 0 && (
-                  <div className="mt-3 border-t pt-3">
-                    {bookingPayments.map((payment) => {
-                      const pStatus = PAYMENT_STATUS_MAP[payment.status] || PAYMENT_STATUS_MAP.pending
-                      return (
-                        <div key={payment.id} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            {payment.status === 'approved' ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                            ) : payment.status === 'rejected' ? (
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            ) : (
-                              <AlertCircle className="h-4 w-4 text-yellow-500" />
-                            )}
-                            <span className="text-gray-600">สลิปโอนเงิน</span>
-                            <Badge className={pStatus.color} variant="outline">{pStatus.label}</Badge>
+                return (
+                  <Card key={booking.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-5">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge className={status.color}>{status.label}</Badge>
+                            <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {payment.slip_image_url && (
-                              <a
-                                href={payment.slip_image_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#2748bf] hover:underline flex items-center gap-1"
-                              >
-                                <ImageIcon className="h-3.5 w-3.5" />
-                                ดูสลิป
-                              </a>
-                            )}
-                            {isAdmin && payment.status === 'pending' && (
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-green-600 border-green-300 hover:bg-green-50"
-                                  onClick={() => handleApprovePayment(payment.id, booking.id, 'approved')}
-                                  disabled={loading}
-                                >
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  อนุมัติ
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-red-600 border-red-300 hover:bg-red-50"
-                                  onClick={() => handleApprovePayment(payment.id, booking.id, 'rejected')}
-                                  disabled={loading}
-                                >
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  ปฏิเสธ
-                                </Button>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                            <div className="flex items-center gap-1.5 text-gray-600">
+                              <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
+                              <span>{MONTH_NAMES[booking.month]} {booking.year}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-600">
+                              <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                              <span>{booking.branches?.name || '-'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-600">
+                              <Clock className="h-3.5 w-3.5 text-gray-400" />
+                              <span>{booking.total_sessions} ครั้ง</span>
+                            </div>
+                            {(bookingChildNamesMap[booking.id]?.length > 0 || booking.children) && (
+                              <div className="flex items-center gap-1.5 text-gray-600 col-span-2 md:col-span-4">
+                                <span>👦 {(() => {
+                                  const sessions = bookingSessionsMap[booking.id] || []
+                                  if (sessions.length > 0) {
+                                    const childCounts: Record<string, number> = {}
+                                    sessions.forEach((s: any) => {
+                                      const name = s.children?.nickname || s.children?.full_name || 'ตัวเอง'
+                                      childCounts[name] = (childCounts[name] || 0) + 1
+                                    })
+                                    return Object.entries(childCounts).map(([name, count]) => `${name} (${count} ครั้ง)`).join(', ')
+                                  }
+                                  return bookingChildNamesMap[booking.id]?.join(', ') || booking.children?.full_name || '-'
+                                })()}</span>
                               </div>
                             )}
                           </div>
+                          {isAdmin && booking.profiles && (
+                            <p className="text-xs text-gray-400 mt-1">ผู้จอง: {booking.profiles.full_name} ({booking.profiles.email})</p>
+                          )}
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
+
+                        <div className="flex flex-col items-end gap-3">
+                          <p className="text-xl font-bold text-[#2748bf]">฿{booking.total_price.toLocaleString()}</p>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {booking.status !== 'cancelled' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-[#153c85] border-[#153c85]/30 hover:bg-[#153c85]/5"
+                                onClick={() => openDetailDialog(booking)}
+                              >
+                                <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                                ดูรายละเอียด
+                              </Button>
+                            )}
+                            {!isAdmin && booking.status === 'pending_payment' && pendingBookings.length <= 1 && (
+                              <Button
+                                size="sm"
+                                className="bg-[#f57e3b] hover:bg-[#e06a2a]"
+                                onClick={() => openPayDialog(booking)}
+                              >
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                                แนบสลิป
+                              </Button>
+                            )}
+                            {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) < booking.total_sessions && (
+                              <Button
+                                size="sm"
+                                className="bg-[#2748bf] hover:bg-[#153c85]"
+                                onClick={() => openPickDatesDialog(booking)}
+                              >
+                                <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                                เลือกวันเรียน ({sessionCountMap[booking.id] || 0}/{booking.total_sessions})
+                              </Button>
+                            )}
+                          </div>
+                          {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) >= booking.total_sessions && (
+                            <p className="text-xs text-green-600">เลือกวันเรียนครบแล้ว</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Payment info */}
+                      {bookingPayments.length > 0 && (
+                        <div className="mt-3 border-t pt-3">
+                          {bookingPayments.map((payment) => {
+                            const pStatus = PAYMENT_STATUS_MAP[payment.status] || PAYMENT_STATUS_MAP.pending
+                            return (
+                              <div key={payment.id} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  {payment.status === 'approved' ? (
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  ) : payment.status === 'rejected' ? (
+                                    <XCircle className="h-4 w-4 text-red-500" />
+                                  ) : (
+                                    <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                  )}
+                                  <span className="text-gray-600">สลิปโอนเงิน</span>
+                                  <Badge className={pStatus.color} variant="outline">{pStatus.label}</Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {payment.slip_image_url && (
+                                    <a
+                                      href={payment.slip_image_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[#2748bf] hover:underline flex items-center gap-1"
+                                    >
+                                      <ImageIcon className="h-3.5 w-3.5" />
+                                      ดูสลิป
+                                    </a>
+                                  )}
+                                  {isAdmin && payment.status === 'pending' && (
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-green-600 border-green-300 hover:bg-green-50"
+                                        onClick={() => handleApprovePayment(payment.id, booking.id, 'approved')}
+                                        disabled={loading}
+                                      >
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        อนุมัติ
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-red-600 border-red-300 hover:bg-red-50"
+                                        onClick={() => handleApprovePayment(payment.id, booking.id, 'rejected')}
+                                        disabled={loading}
+                                      >
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                        ปฏิเสธ
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Payment Dialog */}
@@ -584,10 +718,10 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
             )}
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-              <p className="font-medium text-blue-700 mb-2">ข้อมูลการโอนเงิน</p>
+              <p className="font-medium text-blue-700 mb-2">ข้อมูลการโอนเงิน (ทดสอบระบบ)</p>
               <p className="text-blue-600">ธนาคาร: กสิกรไทย</p>
-              <p className="text-blue-600">เลขบัญชี: XXX-X-XXXXX-X</p>
-              <p className="text-blue-600">ชื่อบัญชี: New Athlete School</p>
+              <p className="text-blue-600">เลขบัญชี: 136-1-188736</p>
+              <p className="text-blue-600">ชื่อบัญชี: ชนินทร์ พรมฤทธิ์</p>
             </div>
 
             <div className="space-y-2">
@@ -607,33 +741,59 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
               </div>
             )}
 
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setPayDialogOpen(false)}
-                disabled={loading}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                className="flex-1 bg-[#2748bf] hover:bg-[#153c85]"
-                onClick={handleSubmitPayment}
-                disabled={!slipFile || loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    กำลังส่ง...
-                  </>
+            {verifyResult && (
+              <div className={`p-3 rounded-lg text-sm ${verifyResult.verified ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                {verifyResult.verified ? (
+                  <div className="flex items-start gap-2 text-green-700">
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">ยืนยันสลิปสำเร็จ!</p>
+                      {verifyResult.slipData && (
+                        <p className="text-xs mt-1">Ref: {verifyResult.slipData.transRef} • ฿{verifyResult.slipData.amount?.toLocaleString()} • {verifyResult.slipData.sender || '-'}</p>
+                      )}
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    ส่งสลิปชำระเงิน
-                  </>
+                  <div className="flex items-start gap-2 text-yellow-700">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">อัปโหลดสลิปแล้ว — รอตรวจสอบเพิ่มเติม</p>
+                      <p className="text-xs mt-1">{verifyResult.notes}</p>
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </div>
+              </div>
+            )}
+
+            {!verifyResult && (
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setPayDialogOpen(false)}
+                  disabled={loading}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  className="flex-1 bg-[#2748bf] hover:bg-[#153c85]"
+                  onClick={handleSubmitPayment}
+                  disabled={!slipFile || loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      กำลังตรวจสอบสลิป...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      ส่งสลิปชำระเงิน
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -849,6 +1009,25 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Alert Dialog */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{alertDesc}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              className={alertVariant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-[#f57e3b] hover:bg-[#e06a2a]'}
+              onClick={() => alertAction?.()}
+            >
+              ยืนยัน
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

@@ -126,20 +126,54 @@ export function getSessionStatusLabel(sessions: number): { label: string; emoji:
 /**
  * Simple price calculation: total = per_session × sessions
  */
+const KIDS_TIERS = [
+  { min: 1, max: 1, per_session: 700 },
+  { min: 2, max: 6, per_session: 625 },
+  { min: 7, max: 10, per_session: 500 },
+  { min: 11, max: 14, per_session: 433 },
+  { min: 15, max: 18, per_session: 406 },
+  { min: 19, max: 999, per_session: 350 },
+]
+
 export function getKidsGroupTotal(totalSessions: number): { total: number; perSession: number; tierLabel: string } {
-  const KIDS_TIERS = [
-    { min: 1, max: 1, per_session: 700 },
-    { min: 2, max: 6, per_session: 625 },
-    { min: 7, max: 10, per_session: 500 },
-    { min: 11, max: 14, per_session: 433 },
-    { min: 15, max: 18, per_session: 406 },
-    { min: 19, max: 999, per_session: 350 },
-  ]
   const tier = KIDS_TIERS.find((t) => totalSessions >= t.min && totalSessions <= t.max) || KIDS_TIERS[KIDS_TIERS.length - 1]
   return {
     total: tier.per_session * totalSessions,
     perSession: tier.per_session,
     tierLabel: tier.max === 999 ? `${tier.min}+ ครั้ง` : tier.min === tier.max ? `${tier.min} ครั้ง` : `${tier.min}-${tier.max} ครั้ง`,
+  }
+}
+
+/**
+ * Calculate incremental price for kids group.
+ * Ensures total paid is always consistent regardless of booking order.
+ * newPrice = (totalSessionsForMonth × tierRate) - alreadyPaidThisMonth
+ */
+export function getKidsGroupIncremental(
+  existingSessionsThisMonth: number,
+  existingPaidThisMonth: number,
+  newSessions: number
+): {
+  incrementalPrice: number
+  perSession: number
+  tierLabel: string
+  totalSessionsForMonth: number
+  totalCostForMonth: number
+  effectivePerSession: number
+} {
+  const totalSessionsForMonth = existingSessionsThisMonth + newSessions
+  const { perSession, tierLabel } = getKidsGroupTotal(totalSessionsForMonth)
+  const totalCostForMonth = perSession * totalSessionsForMonth
+  const incrementalPrice = Math.max(0, totalCostForMonth - existingPaidThisMonth)
+  const effectivePerSession = newSessions > 0 ? Math.round(incrementalPrice / newSessions) : 0
+
+  return {
+    incrementalPrice,
+    perSession,
+    tierLabel,
+    totalSessionsForMonth,
+    totalCostForMonth,
+    effectivePerSession,
   }
 }
 

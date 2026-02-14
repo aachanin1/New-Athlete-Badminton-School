@@ -1,9 +1,12 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, TrendingUp, CreditCard, Bell, Clock, MapPin } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CalendarDays, TrendingUp, CreditCard, Bell, Clock, MapPin, ArrowRight, Upload, BookOpen } from 'lucide-react'
 import { fmtTime } from '@/lib/utils'
+import { DashboardCalendar } from '@/components/dashboard/dashboard-calendar'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -36,14 +39,23 @@ export default async function DashboardPage() {
 
   const totalSessions = (verifiedBookings || []).reduce((sum: number, b: any) => sum + (b.total_sessions || 0), 0)
 
-  // Pending payment amount
+  // Pending payment bookings (full data for guidance)
   const { data: pendingBookings } = await (supabase
     .from('bookings') as any)
-    .select('total_price')
+    .select('id, total_price, total_sessions, status')
     .eq('user_id', user.id)
     .eq('status', 'pending_payment')
 
   const pendingAmount = (pendingBookings || []).reduce((sum: number, b: any) => sum + (b.total_price || 0), 0)
+  const hasPending = (pendingBookings || []).length > 0
+
+  // Paid but not yet verified
+  const { data: paidBookings } = await (supabase
+    .from('bookings') as any)
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('status', 'paid')
+  const hasPaidWaiting = (paidBookings || []).length > 0
 
   // Unread notifications
   const { count: unreadCount } = await (supabase
@@ -52,15 +64,31 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .eq('is_read', false)
 
-  // Upcoming sessions (next 5)
+  // Upcoming sessions (from verified bookings) — all this month and next
   const { data: upcomingSessions } = await (supabase
     .from('booking_sessions') as any)
-    .select('*, bookings!inner(user_id), branches(name)')
+    .select('*, bookings!inner(user_id, status), branches(name), children(full_name, nickname)')
     .eq('bookings.user_id', user.id)
+    .eq('bookings.status', 'verified')
     .eq('status', 'scheduled')
     .gte('date', today)
     .order('date', { ascending: true })
-    .limit(5)
+
+  // Fetch children for color mapping
+  const { data: childrenData } = await supabase
+    .from('children')
+    .select('id, full_name, nickname')
+    .eq('parent_id', user.id)
+
+  // Fetch user profile
+  const { data: profile } = await (supabase
+    .from('profiles') as any)
+    .select('full_name')
+    .eq('id', user.id)
+    .single()
+
+  const hasVerifiedSessions = (upcomingSessions || []).length > 0
+  const hasAnyBooking = (bookingCount || 0) > 0
 
   return (
     <div className="space-y-6">
@@ -121,45 +149,73 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Guidance section — show when user has pending actions */}
+      {(hasPending || hasPaidWaiting || (!hasAnyBooking && !hasVerifiedSessions)) && (
+        <Card className="border-[#f57e3b]/30 bg-gradient-to-r from-[#f57e3b]/5 to-transparent">
+          <CardContent className="p-5 space-y-3">
+            <h3 className="font-bold text-[#153c85] flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              สิ่งที่ต้องทำต่อ
+            </h3>
+
+            {!hasAnyBooking && !hasPending && !hasPaidWaiting && (
+              <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                <div>
+                  <p className="font-medium text-sm">1. จองคอร์สเรียน</p>
+                  <p className="text-xs text-gray-500">เลือกประเภทคอร์ส ผู้เรียน สาขา และวันเรียน</p>
+                </div>
+                <Link href="/dashboard/booking">
+                  <Button size="sm" className="bg-[#2748bf] hover:bg-[#153c85]">
+                    จองเลย <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {hasPending && (
+              <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-yellow-200">
+                <div>
+                  <p className="font-medium text-sm text-yellow-700">
+                    {hasAnyBooking ? '' : '2. '}ชำระเงิน — รอชำระ {(pendingBookings || []).length} รายการ (฿{pendingAmount.toLocaleString()})
+                  </p>
+                  <p className="text-xs text-gray-500">แนบสลิปโอนเงินเพื่อให้ระบบตรวจสอบอัตโนมัติ</p>
+                </div>
+                <Link href="/dashboard/history">
+                  <Button size="sm" className="bg-[#f57e3b] hover:bg-[#e06a2a]">
+                    <Upload className="h-3.5 w-3.5 mr-1" /> แนบสลิป
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {hasPaidWaiting && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="font-medium text-sm text-blue-700">กำลังตรวจสอบสลิป...</p>
+                <p className="text-xs text-blue-600">ระบบกำลังตรวจสอบสลิปของคุณ ตารางเรียนจะแสดงหลังยืนยันการชำระเงินแล้ว</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Calendar section — only show when there are verified sessions */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">ตารางเรียนที่กำลังจะถึง</CardTitle>
         </CardHeader>
         <CardContent>
-          {!upcomingSessions || upcomingSessions.length === 0 ? (
+          {!hasVerifiedSessions ? (
             <div className="text-center py-8 text-gray-400">
               <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>ยังไม่มีตารางเรียน</p>
-              <p className="text-sm mt-1">จองคอร์สเรียนเพื่อเริ่มต้น</p>
+              <p className="text-sm mt-1">ตารางจะแสดงหลังจากชำระเงินและยืนยันแล้ว</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {upcomingSessions.map((session: any) => (
-                <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-[#2748bf]/10 rounded-xl flex flex-col items-center justify-center">
-                      <span className="text-[10px] text-[#2748bf] font-medium">
-                        {new Date(session.date).toLocaleDateString('th-TH', { weekday: 'short' })}
-                      </span>
-                      <span className="text-lg font-bold text-[#2748bf] leading-none">
-                        {new Date(session.date).getDate()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Clock className="h-3.5 w-3.5 text-gray-400" />
-                        {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {session.branches?.name || '-'}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className="bg-blue-100 text-blue-700">นัดหมาย</Badge>
-                </div>
-              ))}
-            </div>
+            <DashboardCalendar
+              sessions={(upcomingSessions || []) as any}
+              children={(childrenData || []) as any}
+              userName={(profile as any)?.full_name || ''}
+            />
           )}
         </CardContent>
       </Card>

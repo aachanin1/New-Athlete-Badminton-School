@@ -34,12 +34,23 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
     .eq('id', user.id)
     .single()
 
-  // Fetch existing bookings for sibling pricing calculation
+  // Fetch existing bookings for sibling pricing calculation (include total_price for incremental pricing)
   const { data: existingBookings } = await (supabase
     .from('bookings') as any)
-    .select('id, child_id, course_type_id, month, year, total_sessions, status')
+    .select('id, child_id, course_type_id, month, year, total_sessions, total_price, status')
     .eq('user_id', user.id)
     .in('status', ['pending_payment', 'paid', 'verified'])
+
+  // Fetch existing booking sessions for calendar display (prevent double-booking)
+  const existingBookingIds = (existingBookings || []).map((b: any) => b.id)
+  let existingSessionsData: any[] = []
+  if (existingBookingIds.length > 0) {
+    const { data: sessions } = await (supabase.from('booking_sessions') as any)
+      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, status')
+      .in('booking_id', existingBookingIds)
+      .neq('status', 'rescheduled')
+    existingSessionsData = sessions || []
+  }
 
   // If editing an existing booking, fetch its data + sessions
   let editBookingData: any = null
@@ -80,6 +91,7 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
         branches={branches || []}
         courseTypes={(courseTypes as any) || []}
         existingBookings={(existingBookings as any) || []}
+        existingBookingSessions={existingSessionsData}
         editBooking={editBookingData}
       />
     </div>

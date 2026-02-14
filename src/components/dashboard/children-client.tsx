@@ -30,6 +30,7 @@ import {
   Loader2,
   Calendar,
   Baby,
+  Camera,
 } from 'lucide-react'
 
 interface ChildrenClientProps {
@@ -74,12 +75,16 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
   const [nickname, setNickname] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   const resetForm = () => {
     setFullName('')
     setNickname('')
     setDateOfBirth('')
     setGender('')
+    setAvatarFile(null)
+    setAvatarPreview(null)
     setError(null)
     setEditingChild(null)
   }
@@ -95,6 +100,8 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
     setNickname(child.nickname || '')
     setDateOfBirth(child.date_of_birth || '')
     setGender((child.gender as Gender) || '')
+    setAvatarFile(null)
+    setAvatarPreview(child.avatar_url || null)
     setError(null)
     setDialogOpen(true)
   }
@@ -123,11 +130,31 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
       return
     }
 
+    // Upload avatar if selected
+    let avatarUrl: string | null = editingChild?.avatar_url || null
+    if (avatarFile) {
+      const fileExt = avatarFile.name.split('.').pop() || 'jpg'
+      const fileName = `children/${user.id}/${Date.now()}.${fileExt}`
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, avatarFile, { contentType: avatarFile.type, upsert: true })
+
+      if (uploadErr) {
+        setError(`อัปโหลดรูปไม่สำเร็จ: ${uploadErr.message}`)
+        setLoading(false)
+        return
+      }
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName)
+      avatarUrl = urlData.publicUrl
+    }
+
     const payload = {
       full_name: fullName.trim(),
       nickname: nickname.trim() || null,
       date_of_birth: dateOfBirth || null,
       gender: (gender as Gender) || null,
+      avatar_url: avatarUrl,
     }
 
     if (editingChild) {
@@ -222,8 +249,12 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-[#2748bf]/10 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-[#2748bf]" />
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-[#2748bf]/10">
+                        {child.avatar_url ? (
+                          <img src={child.avatar_url} alt={child.full_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="h-6 w-6 text-[#2748bf]" />
+                        )}
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">{child.full_name}</h3>
@@ -322,6 +353,39 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
                 value={dateOfBirth}
                 onChange={(e) => setDateOfBirth(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>รูปโปรไฟล์</Label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="text-sm"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      if (file.size > 2 * 1024 * 1024) {
+                        setError('ไฟล์ต้องมีขนาดไม่เกิน 2MB')
+                        return
+                      }
+                      setAvatarFile(file)
+                      const reader = new FileReader()
+                      reader.onload = (ev) => setAvatarPreview(ev.target?.result as string)
+                      reader.readAsDataURL(file)
+                    }}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG ไม่เกิน 2MB</p>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">

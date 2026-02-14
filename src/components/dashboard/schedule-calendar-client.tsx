@@ -133,6 +133,24 @@ export function ScheduleCalendarClient({ sessions, children, userName }: Schedul
     }).length
   }, [sessions, month, year])
 
+  // Per-learner session count breakdown for current month
+  const perLearnerCount = useMemo(() => {
+    const monthSessions = sessions.filter((s) => {
+      const d = new Date(s.date)
+      return d.getMonth() === month && d.getFullYear() === year
+    })
+    const map: Record<string, { name: string; count: number }> = {}
+    monthSessions.forEach((s) => {
+      const key = s.child_id || 'self'
+      if (!map[key]) {
+        const name = s.children ? (s.children.nickname || s.children.full_name) : userName
+        map[key] = { name, count: 0 }
+      }
+      map[key].count++
+    })
+    return Object.values(map)
+  }, [sessions, month, year, userName])
+
   return (
     <div className="space-y-4">
       {/* Month nav */}
@@ -152,8 +170,19 @@ export function ScheduleCalendarClient({ sessions, children, userName }: Schedul
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-        <Badge variant="outline" className="text-sm">รวม {totalThisMonth} ครั้งเดือนนี้</Badge>
+        <Badge variant="outline" className="text-sm">รวม {totalThisMonth} ครั้ง</Badge>
       </div>
+
+      {/* Per-learner count breakdown */}
+      {perLearnerCount.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-sm">
+          {perLearnerCount.map((item) => (
+            <span key={item.name} className="px-2.5 py-1 bg-gray-100 rounded-lg text-gray-700">
+              {item.name} = <strong>{item.count} ครั้ง</strong>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Legend */}
       {children.length > 0 && (

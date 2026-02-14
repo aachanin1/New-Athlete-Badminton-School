@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" fill="none">
+  <path d="M0 0h100v100H0z" fill="none"/>
+  <path d="M100 0v100M0 100h100" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <path d="M50 0v100M0 50h100" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+  <path d="M25 0v100M75 0v100M0 25h100M0 75h100" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+</svg>
