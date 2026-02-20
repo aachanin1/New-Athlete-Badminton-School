@@ -548,7 +548,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COURSE_TYPES.map((ct) => (
               <Card key={ct.value} className={`cursor-pointer transition-all hover:shadow-md ${courseType === ct.value ? 'border-2 border-[#2748bf] shadow-md' : 'border hover:border-[#2748bf]/30'}`}
-                onClick={() => { setCourseType(ct.value); setLearnerType(ct.value === 'kids_group' ? 'child' : ct.value === 'adult_group' ? 'self' : null) }}>
+                onClick={() => { setCourseType(ct.value); setLearnerType(ct.value === 'kids_group' ? 'child' : 'self') }}>
                 <CardContent className="p-6 text-center">
                   <div className="w-14 h-14 bg-[#2748bf]/10 rounded-xl flex items-center justify-center mx-auto mb-3"><ct.icon className="h-7 w-7 text-[#2748bf]" /></div>
                   <h3 className="font-bold text-lg mb-1">{ct.label}</h3>
@@ -688,24 +688,22 @@ export function BookingClient({ userId, userName, children, branches, courseType
             </div>
           ) : courseType === 'private' ? (
             <div>
-              <h3 className="font-bold text-lg mb-4 text-[#153c85]">ใครจะเรียน?</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Card className={`cursor-pointer transition-all ${learnerType === 'self' ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`} onClick={() => { setLearnerType('self'); setSelectedChildIds([]) }}>
-                  <CardContent className="p-5 flex items-center gap-3"><User className="h-6 w-6 text-[#2748bf]" /><div><p className="font-medium">ตัวเอง</p><p className="text-xs text-gray-500">{userName}</p></div></CardContent>
-                </Card>
-                <Card className={`cursor-pointer transition-all ${learnerType === 'child' ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`} onClick={() => setLearnerType('child')}>
-                  <CardContent className="p-5 flex items-center gap-3"><Users className="h-6 w-6 text-[#2748bf]" /><div><p className="font-medium">ลูก/บุตรหลาน</p><p className="text-xs text-gray-500">{children.length} คน</p></div></CardContent>
-                </Card>
+              <h3 className="font-bold text-lg mb-4 text-[#153c85]">Private (แบบครอบครัว)</h3>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 mb-4 space-y-1">
+                <p className="font-medium">คอร์ส Private</p>
+                <p>• เรียนกี่คนก็ได้ในครอบครัว (เด็กและผู้ใหญ่)</p>
+                <p>• ครั้งละ 1 ชั่วโมง ตามรอบเรียนของสาขา</p>
+                <p>• ราคา 900 บาท/ชม. หรือซื้อ 10 ชม. = 8,000 บาท (800 บาท/ชม.)</p>
               </div>
-              {learnerType === 'child' && children.length > 0 && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {children.map((c) => (
-                    <Card key={c.id} className={`cursor-pointer ${selectedChildIds.includes(c.id) ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : ''}`} onClick={() => setSelectedChildIds([c.id])}>
-                      <CardContent className="p-3"><p className="font-medium text-sm">{c.full_name}</p></CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              <Card className="border-2 border-[#2748bf] bg-[#2748bf]/5">
+                <CardContent className="p-5 flex items-center gap-3">
+                  <Users className="h-6 w-6 text-[#2748bf]" />
+                  <div>
+                    <p className="font-medium">ครอบครัว {userName}</p>
+                    <p className="text-xs text-gray-500">เรียนร่วมกันได้ทุกคน — เด็กและผู้ใหญ่</p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <div>

@@ -26,6 +26,14 @@ export default async function ReschedulePage() {
     .eq('is_active', true)
     .order('name')
 
+  // Check if user is admin
+  const { data: profile } = await (supabase
+    .from('profiles') as any)
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,6 +43,7 @@ export default async function ReschedulePage() {
       <RescheduleClient
         sessions={sessions || []}
         branches={(branches as any) || []}
+        isAdmin={isAdmin}
       />
     </div>
   )

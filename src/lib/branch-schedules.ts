@@ -168,7 +168,32 @@ export const ALL_BRANCH_SCHEDULES: BranchSchedule[] = [
 ]
 
 /**
+ * Break a time range into 1-hour slots (for private courses)
+ */
+function expandToHourlySlots(slots: TimeSlot[]): TimeSlot[] {
+  const result: TimeSlot[] = []
+  for (const slot of slots) {
+    const [startH, startM] = slot.start.split(':').map(Number)
+    const [endH, endM] = slot.end.split(':').map(Number)
+    const startMin = startH * 60 + startM
+    const endMin = endH * 60 + endM
+    for (let m = startMin; m + 60 <= endMin; m += 60) {
+      const h1 = Math.floor(m / 60)
+      const m1 = m % 60
+      const h2 = Math.floor((m + 60) / 60)
+      const m2 = (m + 60) % 60
+      result.push({
+        start: `${String(h1).padStart(2, '0')}:${String(m1).padStart(2, '0')}`,
+        end: `${String(h2).padStart(2, '0')}:${String(m2).padStart(2, '0')}`,
+      })
+    }
+  }
+  return result
+}
+
+/**
  * Get available time slots for a specific branch, course type, and day of week
+ * For private courses, big time ranges are broken into 1-hour slots automatically.
  */
 export function getAvailableSlots(
   branchSlug: string,
@@ -178,7 +203,12 @@ export function getAvailableSlots(
   const schedule = ALL_BRANCH_SCHEDULES.find(
     (s) => s.branchSlug === branchSlug && s.courseType === courseType && s.dayOfWeek === dayOfWeek
   )
-  return schedule?.slots || []
+  if (!schedule) return []
+  // Private courses: expand ranges to 1-hour slots
+  if (courseType === 'private') {
+    return expandToHourlySlots(schedule.slots)
+  }
+  return schedule.slots
 }
 
 /**

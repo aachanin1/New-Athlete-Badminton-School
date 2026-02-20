@@ -138,6 +138,8 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedDates, setSelectedDates] = useState<{ date: string; startTime: string; endTime: string }[]>([])
+  // Track locally deleted session IDs so the detail modal updates immediately
+  const [deletedSessionIds, setDeletedSessionIds] = useState<Set<string>>(new Set())
 
   // Alert dialog state (replaces browser confirm)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -251,6 +253,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
 
   const openDetailDialog = (booking: BookingWithRelations) => {
     setSelectedBooking(booking)
+    setDeletedSessionIds(new Set())
     setError(null)
     setDetailDialogOpen(true)
   }
@@ -320,8 +323,14 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
           .update({ total_sessions: remaining.length, total_price: newPrice })
           .eq('id', bookingId)
 
+        // Update local state immediately so modal reflects the change
+        setDeletedSessionIds((prev) => new Set(prev).add(sessionId))
+        if (selectedBooking) {
+          setSelectedBooking({ ...selectedBooking, total_sessions: remaining.length, total_price: newPrice })
+        }
+
         setLoading(false)
-        setDetailDialogOpen(false)
+        // Refresh server data in background
         router.refresh()
       },
       'warning'
@@ -937,10 +946,10 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
               {/* Session list */}
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-700">วันเรียนที่จอง:</p>
-                {(bookingSessionsMap[selectedBooking.id] || []).length === 0 ? (
+                {(bookingSessionsMap[selectedBooking.id] || []).filter((s) => !deletedSessionIds.has(s.id)).length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-4">ยังไม่มีวันเรียน</p>
                 ) : (
-                  (bookingSessionsMap[selectedBooking.id] || []).map((session) => {
+                  (bookingSessionsMap[selectedBooking.id] || []).filter((s) => !deletedSessionIds.has(s.id)).map((session) => {
                     const sessionDate = new Date(session.date + 'T00:00:00')
                     const dayLabel = sessionDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
                     const isPending = selectedBooking.status === 'pending_payment'

@@ -51,6 +51,7 @@ interface BranchOption {
 interface RescheduleClientProps {
   sessions: SessionRow[]
   branches: BranchOption[]
+  isAdmin?: boolean
 }
 
 interface PickedSlot {
@@ -82,7 +83,7 @@ function formatDateThai(dateStr: string) {
   })
 }
 
-export function RescheduleClient({ sessions, branches }: RescheduleClientProps) {
+export function RescheduleClient({ sessions, branches, isAdmin = false }: RescheduleClientProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null)
@@ -139,6 +140,12 @@ export function RescheduleClient({ sessions, branches }: RescheduleClientProps) 
     return branches.some((b) => hasAvailableSlots(b.slug, courseType, date))
   }
 
+  // Derive booking month/year from the session's date
+  const getSessionMonth = (session: SessionRow) => {
+    const d = new Date(session.date)
+    return { month: d.getMonth(), year: d.getFullYear() }
+  }
+
   const openDialog = (session: SessionRow) => {
     setSelectedSession(session)
     setPickedSlot(null)
@@ -146,9 +153,9 @@ export function RescheduleClient({ sessions, branches }: RescheduleClientProps) 
     setError(null)
     setSuccess(false)
     // Start calendar at the session's month
-    const d = new Date(session.date)
-    setCalMonth(d.getMonth())
-    setCalYear(d.getFullYear())
+    const { month: m, year: y } = getSessionMonth(session)
+    setCalMonth(m)
+    setCalYear(y)
     setDialogOpen(true)
   }
 
@@ -175,6 +182,16 @@ export function RescheduleClient({ sessions, branches }: RescheduleClientProps) 
     if (!canReschedule(selectedSession.date, selectedSession.start_time)) {
       setError('ไม่สามารถเปลี่ยนได้ — ต้องเปลี่ยนล่วงหน้าอย่างน้อย 24 ชั่วโมง')
       return
+    }
+
+    // Validate same month (non-admin)
+    if (!isAdmin) {
+      const { month: origMonth, year: origYear } = getSessionMonth(selectedSession)
+      const pickedDate = new Date(pickedSlot.date + 'T00:00:00')
+      if (pickedDate.getMonth() !== origMonth || pickedDate.getFullYear() !== origYear) {
+        setError('ไม่สามารถเปลี่ยนไปเดือนอื่นได้ — เปลี่ยนได้เฉพาะภายในเดือนที่จองเท่านั้น')
+        return
+      }
     }
 
     setLoading(true)
@@ -251,6 +268,7 @@ export function RescheduleClient({ sessions, branches }: RescheduleClientProps) 
         <div>
           <p className="font-medium">กฎการเปลี่ยนวัน/สาขา</p>
           <p>• ต้องเปลี่ยนล่วงหน้าอย่างน้อย <strong>24 ชั่วโมง</strong> ก่อนเวลาเรียน</p>
+          <p>• เปลี่ยนได้เฉพาะ<strong>ภายในเดือนที่จอง</strong>เท่านั้น ข้ามเดือนได้เฉพาะ Admin ทำให้</p>
           <p>• เลือกวันใหม่จากปฏิทิน แล้วเลือกรอบเรียนที่ต้องการ</p>
         </div>
       </div>
@@ -348,19 +366,23 @@ export function RescheduleClient({ sessions, branches }: RescheduleClientProps) 
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-700">เลือกวันใหม่</p>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
-                        if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) } else setCalMonth(calMonth - 1)
-                        setExpandedDate(null); setPickedSlot(null)
-                      }} disabled={calMonth === now.getMonth() && calYear === now.getFullYear()}>
-                        <ArrowLeft className="h-3.5 w-3.5" />
-                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
+                          if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) } else setCalMonth(calMonth - 1)
+                          setExpandedDate(null); setPickedSlot(null)
+                        }} disabled={calMonth === now.getMonth() && calYear === now.getFullYear()}>
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <span className="text-xs font-medium w-28 text-center">{MONTH_NAMES_TH[calMonth]} {calYear + 543}</span>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
-                        if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1)
-                        setExpandedDate(null); setPickedSlot(null)
-                      }}>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
+                          if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1)
+                          setExpandedDate(null); setPickedSlot(null)
+                        }}>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium text-gray-400 mb-0.5">
