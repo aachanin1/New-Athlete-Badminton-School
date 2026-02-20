@@ -140,6 +140,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
     isEditMode ? (editBooking.learner_type === 'child' ? 'child' : 'self') : null
   )
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>(editBooking?.childIds || [])
+  const [privateSelfAttend, setPrivateSelfAttend] = useState(false)
   const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(editBranchId ? [editBranchId] : [])
 
   // Calendar state — per-child sessions map
@@ -386,6 +387,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
       case 'type': return !!courseType
       case 'learner':
         if (courseType === 'kids_group') return selectedChildIds.length > 0
+        if (courseType === 'private') return privateSelfAttend || selectedChildIds.length > 0
         return !!learnerType
       case 'branch': return selectedBranchIds.length > 0
       case 'calendar': return allSelectedSessions.length > 0
@@ -419,6 +421,17 @@ export function BookingClient({ userId, userName, children, branches, courseType
           const childSessions = sessionsMap[childId] || []
           childSessions.forEach((s) => allSessions.push({ ...s, childId }))
         }
+      } else if (courseType === 'private') {
+        // Private: create one session per attendee per time slot
+        const slots = sessionsMap['self'] || []
+        for (const s of slots) {
+          if (privateSelfAttend) {
+            allSessions.push({ ...s, childId: null })
+          }
+          for (const childId of selectedChildIds) {
+            allSessions.push({ ...s, childId })
+          }
+        }
       } else {
         const selfSessions = sessionsMap['self'] || []
         selfSessions.forEach((s) => allSessions.push({ ...s, childId: null }))
@@ -430,13 +443,18 @@ export function BookingClient({ userId, userName, children, branches, courseType
         return
       }
 
+      // For private: total_sessions = unique time slots (not per-attendee records)
+      const bookingTotalSessions = courseType === 'private'
+        ? (sessionsMap['self'] || []).length
+        : allSessions.length
+
       if (isEditMode && editBooking) {
         // Edit mode: delete old sessions and insert new ones, update booking
         await (supabase.from('booking_sessions') as any).delete().eq('booking_id', editBooking.id)
 
         const { error: updateErr } = await (supabase.from('bookings') as any)
           .update({
-            total_sessions: allSessions.length,
+            total_sessions: bookingTotalSessions,
             total_price: finalPrice,
             branch_id: primaryBranchId,
           })
@@ -470,7 +488,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
             course_type_id: courseTypeRow.id,
             month: calMonth + 1,
             year: calYear,
-            total_sessions: allSessions.length,
+            total_sessions: bookingTotalSessions,
             total_price: finalPrice,
             status: 'pending_payment',
           }).select('id').single()
@@ -548,7 +566,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {COURSE_TYPES.map((ct) => (
               <Card key={ct.value} className={`cursor-pointer transition-all hover:shadow-md ${courseType === ct.value ? 'border-2 border-[#2748bf] shadow-md' : 'border hover:border-[#2748bf]/30'}`}
-                onClick={() => { setCourseType(ct.value); setLearnerType(ct.value === 'kids_group' ? 'child' : 'self') }}>
+                onClick={() => { setCourseType(ct.value); setLearnerType(ct.value === 'kids_group' ? 'child' : 'self'); setSelectedChildIds([]); setPrivateSelfAttend(false); setSessionsMap({}) }}>
                 <CardContent className="p-6 text-center">
                   <div className="w-14 h-14 bg-[#2748bf]/10 rounded-xl flex items-center justify-center mx-auto mb-3"><ct.icon className="h-7 w-7 text-[#2748bf]" /></div>
                   <h3 className="font-bold text-lg mb-1">{ct.label}</h3>
@@ -688,22 +706,44 @@ export function BookingClient({ userId, userName, children, branches, courseType
             </div>
           ) : courseType === 'private' ? (
             <div>
-              <h3 className="font-bold text-lg mb-4 text-[#153c85]">Private (แบบครอบครัว)</h3>
+              <h3 className="font-bold text-lg mb-4 text-[#153c85]">ใครจะเรียน Private?</h3>
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 mb-4 space-y-1">
                 <p className="font-medium">คอร์ส Private</p>
-                <p>• เรียนกี่คนก็ได้ในครอบครัว (เด็กและผู้ใหญ่)</p>
+                <p>• เลือกได้หลายคน — ทุกคนเรียนรอบเวลาเดียวกัน</p>
                 <p>• ครั้งละ 1 ชั่วโมง ตามรอบเรียนของสาขา</p>
-                <p>• ราคา 900 บาท/ชม. หรือซื้อ 10 ชม. = 8,000 บาท (800 บาท/ชม.)</p>
+                <p>• ราคา 900 บาท/ชม. หรือซื้อ 10 ชม. = 8,000 บาท</p>
               </div>
-              <Card className="border-2 border-[#2748bf] bg-[#2748bf]/5">
-                <CardContent className="p-5 flex items-center gap-3">
-                  <Users className="h-6 w-6 text-[#2748bf]" />
-                  <div>
-                    <p className="font-medium">ครอบครัว {userName}</p>
-                    <p className="text-xs text-gray-500">เรียนร่วมกันได้ทุกคน — เด็กและผู้ใหญ่</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <p className="text-sm font-medium text-gray-600 mb-2">เลือกผู้เรียน (เลือกได้หลายคน)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <Card className={`cursor-pointer transition-all ${privateSelfAttend ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
+                  onClick={() => setPrivateSelfAttend(!privateSelfAttend)}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${privateSelfAttend ? 'bg-[#2748bf] border-[#2748bf]' : 'border-gray-300'}`}>
+                      {privateSelfAttend && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                    </div>
+                    <User className="h-5 w-5 text-[#2748bf]" />
+                    <div><p className="font-medium text-sm">{userName}</p><p className="text-xs text-gray-500">ตัวเอง</p></div>
+                  </CardContent>
+                </Card>
+                {children.map((c) => {
+                  const isSelected = selectedChildIds.includes(c.id)
+                  return (
+                    <Card key={c.id} className={`cursor-pointer transition-all ${isSelected ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
+                      onClick={() => setSelectedChildIds((prev) => isSelected ? prev.filter((id) => id !== c.id) : [...prev, c.id])}>
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-[#2748bf] border-[#2748bf]' : 'border-gray-300'}`}>
+                          {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                        </div>
+                        <Users className="h-5 w-5 text-[#2748bf]" />
+                        <div><p className="font-medium text-sm">{c.full_name}</p><p className="text-xs text-gray-500">{c.nickname || 'ลูก/บุตรหลาน'}</p></div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+              {(privateSelfAttend || selectedChildIds.length > 0) && (
+                <p className="mt-3 text-sm text-green-600 font-medium">เลือกแล้ว {(privateSelfAttend ? 1 : 0) + selectedChildIds.length} คน — เรียนรอบเวลาเดียวกัน</p>
+              )}
             </div>
           ) : (
             <div>

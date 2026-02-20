@@ -53,9 +53,19 @@ const chaengwattana_adult: BranchSchedule[] = [
   { branchSlug: 'chaengwattana', courseType: 'adult_group', dayOfWeek: 0, slots: [{ start: '12:00', end: '14:00' }, { start: '18:00', end: '20:00' }] },
 ]
 
-const chaengwattana_private: BranchSchedule[] = [
-  { branchSlug: 'chaengwattana', courseType: 'private', dayOfWeek: 1, slots: [{ start: '09:00', end: '17:00' }, { start: '21:00', end: '23:00' }] },
-]
+// ─── Private (ทุกสาขา เหมือนกัน) ─────────────────────
+// รอบ Private: จ-อา, 09:00-17:00 + 21:00-23:00 → แบ่ง 1 ชม. อัตโนมัติ
+const PRIVATE_SLOTS: TimeSlot[] = [{ start: '09:00', end: '17:00' }, { start: '21:00', end: '23:00' }]
+const ALL_BRANCH_SLUGS = ['chaengwattana', 'rama2', 'ram-intra', 'suvarnabhumi', 'theparak', 'ratchada', 'ratchaphruek-talingchan'] as const
+
+const all_private: BranchSchedule[] = ALL_BRANCH_SLUGS.flatMap((slug) =>
+  [0, 1, 2, 3, 4, 5, 6].map((day) => ({
+    branchSlug: slug,
+    courseType: 'private' as const,
+    dayOfWeek: day,
+    slots: PRIVATE_SLOTS,
+  }))
+)
 
 // ─── พระราม 2 ─────────────────────────────────────────
 const rama2_kids: BranchSchedule[] = [
@@ -158,13 +168,14 @@ const ratchaphruek_adult: BranchSchedule[] = [
 
 // ─── ALL SCHEDULES ────────────────────────────────────
 export const ALL_BRANCH_SCHEDULES: BranchSchedule[] = [
-  ...chaengwattana_kids, ...chaengwattana_adult, ...chaengwattana_private,
+  ...chaengwattana_kids, ...chaengwattana_adult,
   ...rama2_kids, ...rama2_adult,
   ...ramintra_kids, ...ramintra_adult,
   ...suvarnabhumi_kids, ...suvarnabhumi_adult,
   ...theparak_kids, ...theparak_adult,
   ...ratchada_kids,
   ...ratchaphruek_kids, ...ratchaphruek_adult,
+  ...all_private,
 ]
 
 /**
