@@ -15,9 +15,20 @@
 
 ---
 
+## สถานะภาพรวม
+
+| ส่วน | มี Logic จริง | Placeholder (เปล่า) | สถานะ |
+|------|:---:|:---:|--------|
+| **User (Dashboard)** | 11 หน้า | 0 | ✅ ครบสมบูรณ์ |
+| **Admin** | 1 จุด (approve/reject payment ฝังใน history) | 15 หน้า | ⚠️ ต้องสร้าง Logic ทั้งหมด |
+| **Coach** | 0 | 8 หน้า | ⚠️ ต้องสร้าง Logic ทั้งหมด |
+| **API** | 3 (verify-slip, validate-coupon, health) | 0 | ✅ ทำงานได้ |
+
+---
+
 ## Development Phases
 
-### Phase 1 — Foundation & User Booking ✅ เสร็จแล้ว
+### Phase 1 — Foundation & User Booking ✅ เสร็จสมบูรณ์
 
 | # | Feature | Status | Files หลัก |
 |---|---------|--------|-----------|
@@ -40,36 +51,11 @@
 | 1.17 | **Notifications** — ระบบแจ้งเตือนในแดชบอร์ด | ✅ Done | `src/app/(dashboard)/dashboard/notifications/` |
 | 1.18 | **Ranking** — ดู Ranking นักเรียน แยกเด็ก/ผู้ใหญ่ แยกสาขา/รวม | ✅ Done | `src/app/ranking/` |
 
-**สรุป Phase 1:** ระบบผู้ใช้ (User/ผู้ปกครอง) ครบสมบูรณ์ — จองเรียน, ชำระเงิน, ดูตาราง, เปลี่ยนวัน, ดูพัฒนาการ, ร้องเรียน
+**สรุป Phase 1:** ระบบผู้ใช้ (User/ผู้ปกครอง) ครบสมบูรณ์ — มี Logic จริง ใช้งานได้ทุกหน้า
 
 ---
 
-### Phase 2 — Admin & Payment Management ✅ เสร็จแล้ว (โครงสร้าง)
-
-| # | Feature | Status | Files หลัก |
-|---|---------|--------|-----------|
-| 2.1 | **Admin Dashboard** — หน้าหลัก Admin สรุปภาพรวม | ✅ Done | `src/app/(admin)/admin/page.tsx` |
-| 2.2 | **จัดการ Booking** — ดู/จัดการจองทั้งหมดในระบบ | ✅ Done | `src/app/(admin)/admin/booking/` |
-| 2.3 | **จัดการ Payment** — ตรวจสอบสลิป, อนุมัติ/ปฏิเสธ | ✅ Done | `src/app/(admin)/admin/payments/` |
-| 2.4 | **จัดการ Users** — ดูข้อมูลผู้ใช้ทั้งหมด, เปลี่ยน role | ✅ Done | `src/app/(admin)/admin/users/` |
-| 2.5 | **จัดการ Branches** — ดู/แก้ไขสาขา | ✅ Done | `src/app/(admin)/admin/branches/` |
-| 2.6 | **จัดการ Coupons** — สร้าง/แก้ไข คูปองส่วนลด | ✅ Done | `src/app/(admin)/admin/coupons/` |
-| 2.7 | **จัดการ Schedules** — ดูตารางรอบเรียนทุกสาขา | ✅ Done | `src/app/(admin)/admin/schedules/` |
-| 2.8 | **วันชดเชย (Makeup)** — Admin เลือกวันชดเชยให้นักเรียน ไม่คิดเงิน | ✅ Done | `src/app/(admin)/admin/makeup/` |
-| 2.9 | **Complaints** — ดู/จัดการเรื่องร้องเรียน | ✅ Done | `src/app/(admin)/admin/complaints/` |
-| 2.10 | **Notifications** — ส่งแจ้งเตือนถึง User | ✅ Done | `src/app/(admin)/admin/notifications/` |
-| 2.11 | **Activity Logs** — ดู Log ทั้งระบบ | ✅ Done | `src/app/(admin)/admin/logs/` |
-| 2.12 | **Settings** — ตั้งค่าระบบ | ✅ Done | `src/app/(admin)/admin/settings/` |
-| 2.13 | **Finance** — สรุปรายรับ-รายจ่าย | ✅ Done | `src/app/(admin)/admin/finance/` |
-| 2.14 | **Payroll** — คำนวณเงินเดือนโค้ช | ✅ Done | `src/app/(admin)/admin/payroll/` |
-| 2.15 | **Coach Checkins** — ดูการเช็คอินโค้ช | ✅ Done | `src/app/(admin)/admin/coach-checkins/` |
-| 2.16 | **จัดการ Coaches** — เพิ่ม/แก้ไข โค้ช, กำหนด role, สาขา | ✅ Done | `src/app/(admin)/admin/coaches/` |
-
-**สรุป Phase 2:** หน้า Admin ครบทุกเมนู — แต่ **บาง Feature อาจต้องปรับปรุง/เติมเต็ม Logic** ตาม CMS requirement
-
----
-
-### Phase 2.5 — Refinements (ปรับปรุงที่ทำเพิ่ม) ✅ เสร็จแล้ว
+### Phase 1.5 — User Refinements ✅ เสร็จสมบูรณ์
 
 | # | Feature | Status | รายละเอียด |
 |---|---------|--------|-----------|
@@ -85,88 +71,96 @@
 
 ---
 
-### Phase 3 — Coach Portal 🔲 ยังไม่ทำ (โครงสร้างหน้ามีแล้ว ต้องเติม Logic)
+### Phase 2A — Admin Core ⬅️ กำลังทำ (ต้องทำก่อน Coach เพราะ Admin สร้าง account โค้ช)
+
+> ⚠️ **หมายเหตุ:** ทุกหน้า Admin (15 หน้า) ปัจจุบันเป็น **Placeholder เปล่า** ไม่มี Logic จริง
+> มีเพียง approve/reject payment ที่ฝังอยู่ใน `history-client.tsx` (ใช้ร่วมกับ User)
+
+| # | Feature | Status | Files หลัก | ความสำคัญ |
+|---|---------|--------|-----------|-----------|
+| 2A.1 | **จัดการ Coaches** — สร้าง account โค้ช, กำหนด role (coach/head_coach), กำหนดสาขา | 🔲 TODO | `admin/coaches/page.tsx` | 🔴 ต้องทำก่อน Coach Portal |
+| 2A.2 | **จัดการ Users** — ดูรายชื่อผู้ใช้ทั้งหมด, เปลี่ยน role, ดูข้อมูลลูก | 🔲 TODO | `admin/users/page.tsx` | 🔴 |
+| 2A.3 | **Payments** — ดูสลิปทั้งหมด, approve/reject กรณี SlipOK ไม่ผ่าน, ดูรูปสลิป | 🔲 TODO | `admin/payments/page.tsx` | 🔴 |
+| 2A.4 | **จองแทนผู้ใช้** — เลือก User → จองให้ → ผู้ใช้เห็นในระบบ | 🔲 TODO | `admin/booking/page.tsx` | 🔴 |
+| 2A.5 | **Coupons** — สร้าง/แก้ไข/ปิดคูปอง, ดูการใช้งาน | 🔲 TODO | `admin/coupons/page.tsx` | 🟡 |
+| 2A.6 | **Complaints** — ดูเรื่องร้องเรียน, ตอบกลับ, เปลี่ยนสถานะ | 🔲 TODO | `admin/complaints/page.tsx` | 🟡 |
+| 2A.7 | **Admin Dashboard** — สรุปภาพรวม: จองใหม่, รอชำระ, ร้องเรียน, จำนวนนักเรียน | 🔲 TODO | `admin/page.tsx` | 🟡 |
+
+---
+
+### Phase 2B — Admin Advanced 🔲 ทำหลัง Phase 3
+
+| # | Feature | Status | Files หลัก | ความสำคัญ |
+|---|---------|--------|-----------|-----------|
+| 2B.1 | **Finance** — สรุปรายรับ/รายจ่าย รายเดือน-ปี, กราฟ | 🔲 TODO | `admin/finance/page.tsx` | 🟡 |
+| 2B.2 | **Payroll** — คำนวณเงินเดือนโค้ช, เช็คเกิน 25 ชม./สัปดาห์, OT | 🔲 TODO | `admin/payroll/page.tsx` | 🟡 |
+| 2B.3 | **Coach Checkins** — ดูการเช็คอินโค้ช + รูปถ่าย | 🔲 TODO | `admin/coach-checkins/page.tsx` | 🟡 |
+| 2B.4 | **Schedules** — ดูตารางรอบเรียนทุกสาขา (อ่านจาก branch-schedules) | 🔲 TODO | `admin/schedules/page.tsx` | 🟢 |
+| 2B.5 | **Branches** — ดู/แก้ไขข้อมูลสาขา | 🔲 TODO | `admin/branches/page.tsx` | 🟢 |
+| 2B.6 | **Makeup (วันชดเชย)** — Admin เลือกวันชดเชยให้นักเรียน ไม่คิดเงิน | 🔲 TODO | `admin/makeup/page.tsx` | 🟡 |
+| 2B.7 | **Notifications** — ส่งแจ้งเตือนถึง User | 🔲 TODO | `admin/notifications/page.tsx` | 🟡 |
+| 2B.8 | **Notifly** — แจ้งเตือน: ไม่ต่อคอร์ส (สี), ยังไม่จ่าย, ร้องเรียน | 🔲 TODO | — | 🟡 |
+| 2B.9 | **แจ้งเตือนคลาส** — สีเหลือง 2 คน, สีแดง 1 คน, สีเขียว >2 คน | 🔲 TODO | — | 🟡 |
+| 2B.10 | **Settings** — กำหนดเวลาเรียนผ่าน CMS (ปัจจุบันอยู่ใน code) | 🔲 TODO | `admin/settings/page.tsx` | 🟢 |
+| 2B.11 | **Activity Logs** — ดู Log ทั้งระบบ ว่าใครทำอะไร | 🔲 TODO | `admin/logs/page.tsx` | 🟢 |
+
+---
+
+### Phase 3 — Coach Portal 🔲 ทำหลัง Phase 2A
+
+> ⚠️ **หมายเหตุ:** ทุกหน้า Coach (8 หน้า) ปัจจุบันเป็น **Placeholder เปล่า** ไม่มี Logic จริง
+> ต้องทำ Phase 2A ก่อน เพราะ Admin ต้องสร้าง account โค้ช + กำหนด role + สาขา ก่อนที่โค้ชจะใช้งานได้
 
 | # | Feature | Status | Files หลัก |
 |---|---------|--------|-----------|
-| 3.1 | **Coach Dashboard** — ตารางสอนวันนี้, สรุปชั่วโมง | 🔲 TODO | `src/app/(coach)/coach/page.tsx` |
-| 3.2 | **ตารางสอนวันนี้ (Today)** — ดูรอบสอนวันนี้, รายชื่อนักเรียน | 🔲 TODO | `src/app/(coach)/coach/today/` |
-| 3.3 | **เช็คชื่อนักเรียน (Attendance)** — เช็คชื่อแต่ละรอบ (มา/ขาด/สาย) | 🔲 TODO | `src/app/(coach)/coach/attendance/` |
-| 3.4 | **เช็คอินโค้ช (Checkin)** — ถ่ายรูป + เช็คอิน ป้องกันทุจริต | 🔲 TODO | `src/app/(coach)/coach/checkin/` |
-| 3.5 | **แบ่งกลุ่มนักเรียน (Assign Groups)** — หัวหน้าโค้ช แบ่งเด็กให้โค้ชแต่ละคน | 🔲 TODO | `src/app/(coach)/coach/assign-groups/` |
-| 3.6 | **กรอก LV/พัฒนาการ (Levels)** — บันทึก LV นักเรียนที่รับผิดชอบ | 🔲 TODO | `src/app/(coach)/coach/levels/` |
-| 3.7 | **โปรแกรมสอน (Programs)** — ส่งโปรแกรมสอนให้ Super Admin ตรวจ | 🔲 TODO | `src/app/(coach)/coach/programs/` |
-| 3.8 | **ดูรายชื่อนักเรียน (Students)** — ดูนักเรียนทั้งหมด + LV | 🔲 TODO | `src/app/(coach)/coach/students/` |
-| 3.9 | **ชั่วโมงสอน (Hours)** — ดูสรุปชั่วโมง (วัน/สัปดาห์/เดือน) แยกกลุ่ม/Private | 🔲 TODO | `src/app/(coach)/coach/hours/` |
+| 3.1 | **Coach Dashboard** — ตารางสอนวันนี้, สรุปชั่วโมง | 🔲 TODO | `coach/page.tsx` |
+| 3.2 | **ตารางสอนวันนี้ (Today)** — ดูรอบสอนวันนี้, รายชื่อนักเรียน | 🔲 TODO | `coach/today/` |
+| 3.3 | **เช็คชื่อนักเรียน (Attendance)** — เช็คชื่อแต่ละรอบ (มา/ขาด/สาย) | 🔲 TODO | `coach/attendance/` |
+| 3.4 | **เช็คอินโค้ช (Checkin)** — ถ่ายรูป + เช็คอิน ป้องกันทุจริต | 🔲 TODO | `coach/checkin/` |
+| 3.5 | **แบ่งกลุ่มนักเรียน (Assign Groups)** — หัวหน้าโค้ช แบ่งเด็กให้โค้ชแต่ละคน | 🔲 TODO | `coach/assign-groups/` |
+| 3.6 | **กรอก LV/พัฒนาการ (Levels)** — บันทึก LV นักเรียนที่รับผิดชอบ | 🔲 TODO | `coach/levels/` |
+| 3.7 | **โปรแกรมสอน (Programs)** — ส่งโปรแกรมสอนให้ Super Admin ตรวจ | 🔲 TODO | `coach/programs/` |
+| 3.8 | **ดูรายชื่อนักเรียน (Students)** — ดูนักเรียนทั้งหมด + LV | 🔲 TODO | `coach/students/` |
+| 3.9 | **ชั่วโมงสอน (Hours)** — ดูสรุปชั่วโมง (วัน/สัปดาห์/เดือน) แยกกลุ่ม/Private | 🔲 TODO | `coach/hours/` |
 
 ---
 
-### Phase 4 — Admin Advanced Features 🔲 ยังไม่ทำ (ต้องเติม Logic)
+### Phase 4 — Future Features � วางแผนอนาคต
 
 | # | Feature | Status | รายละเอียด |
 |---|---------|--------|-----------|
-| 4.1 | **Admin จองแทนผู้ใช้** — เลือกผู้ใช้ → จองให้ → ผู้ใช้เห็นในระบบ | 🔲 TODO | CMS: Super User ทำแทน |
-| 4.2 | **Finance — สรุปรายรับ/รายจ่ายรายเดือน-ปี** — กราฟ + ตาราง | 🔲 TODO | รายรับจากคอร์ส, รายจ่ายโค้ช |
-| 4.3 | **Payroll — คำนวณเงินเดือนโค้ช** — เช็คเกิน 25 ชม./สัปดาห์, เรท OT | 🔲 TODO | กลุ่ม 200/ชม., Private 400/ชม. |
-| 4.4 | **Notifly แจ้งเตือน** — ไม่ต่อคอร์ส (สี), ยังไม่จ่ายเงิน, ร้องเรียน | 🔲 TODO | สีแดง ≥85%, เหลือง ≥80% |
-| 4.5 | **แจ้งเตือนคลาส** — สีเหลือง 2 คน, สีแดง 1 คน, สีเขียว >2 คน | 🔲 TODO | |
-| 4.6 | **Admin กำหนดเวลาเรียนผ่าน Settings** — CMS สาขา/รอบเรียน | 🔲 TODO | ปัจจุบันอยู่ใน code |
-| 4.7 | **Activity Logs — ดู Log ทั้งระบบ ว่าใครทำอะไร** | 🔲 TODO | DB table มี, ต้องเขียน log |
+| 4.1 | **ระบบแนะนำ** — คำนวณว่าลูกต้องเรียนกี่ครั้งถึง LV ไหน | � Future | CMS Requirement เพิ่มเติม 3 |
+| 4.2 | **ผู้ใหญ่ 10 เดือน** — ซื้อ 10/16 ครั้ง ใช้ได้ภายใน 10 เดือน | 🔮 Future | ต้องออกแบบ Logic ใหม่ |
+| 4.3 | **ระบบจองสนาม** — จองสนามแบดมินตัน | 🔮 Future | |
+| 4.4 | **ร้านขายอุปกรณ์** — สต๊อกสินค้า, ลูกแบด, เสื้อ, อุปกรณ์ | 🔮 Future | |
+| 4.5 | **Application ก๊วนแบต** — ระบบหาคู่ตี | 🔮 Future | |
 
 ---
 
-### Phase 5 — Future Features 🔮 วางแผนอนาคต
+## ลำดับการทำงาน (Execution Order)
 
-| # | Feature | Status | รายละเอียด |
-|---|---------|--------|-----------|
-| 5.1 | **ระบบแนะนำ** — คำนวณว่าลูกต้องเรียนกี่ครั้งถึง LV ไหน | 🔮 Future | CMS Requirement เพิ่มเติม 3 |
-| 5.2 | **ระบบจองสนาม** — จองสนามแบดมินตัน | 🔮 Future | |
-| 5.3 | **ร้านขายอุปกรณ์** — สต๊อกสินค้า, ลูกแบด, เสื้อ, อุปกรณ์ | 🔮 Future | |
-| 5.4 | **Application ก๊วนแบต** — ระบบหาคู่ตี | 🔮 Future | |
-| 5.5 | **ผู้ใหญ่ 10 เดือน** — ซื้อ 10/16 ครั้ง ใช้ได้ภายใน 10 เดือน | 🔮 Future | ต้องออกแบบ Logic ใหม่ |
+```
+Phase 2A (Admin Core) ← ⬅️ ทำตอนนี้
+├── 1. จัดการ Coaches — สร้าง account โค้ช, กำหนด role, สาขา
+├── 2. จัดการ Users — ดูข้อมูลผู้ใช้ทั้งหมด
+├── 3. Payments — ตรวจสอบสลิป approve/reject (หน้าเฉพาะ Admin)
+├── 4. จองแทนผู้ใช้ — Super Admin จองให้ลูกค้า
+├── 5. Coupons — สร้าง/จัดการคูปอง
+├── 6. Complaints — จัดการเรื่องร้องเรียน
+└── 7. Admin Dashboard — สรุปภาพรวม
 
----
+Phase 3 (Coach Portal) ← ทำหลัง Admin Core
+├── 1. Dashboard + Today — ตารางสอนวันนี้
+├── 2. Attendance — เช็คชื่อนักเรียน
+├── 3. Checkin — เช็คอินโค้ช + ถ่ายรูป
+├── 4. Levels — กรอก LV นักเรียน
+├── 5. Students — ดูรายชื่อนักเรียน
+├── 6. Hours — ดูชั่วโมงสอน
+├── 7. Programs — ส่งโปรแกรมสอน
+└── 8. Assign Groups — แบ่งกลุ่ม (หัวหน้าโค้ช)
 
-## สิ่งที่ทำเสร็จแล้ว (Summary)
-
-### ฝั่ง User (ผู้ปกครอง/ผู้เรียน) — ✅ ครบ
-- สมัครสมาชิก / เข้าสู่ระบบ
-- จัดการข้อมูลลูก (เพิ่ม/แก้ไข/รูปโปรไฟล์)
-- จองเรียน 3 ประเภท: เด็กกลุ่ม, ผู้ใหญ่กลุ่ม, Private
-- เลือกวันจากปฏิทิน ตามรอบเรียนจริงของสาขา
-- ระบบราคาอัตโนมัติ + กฎพี่น้อง + คูปอง
-- ชำระเงิน (อัปโหลดสลิป → SlipOK ตรวจอัตโนมัติ)
-- ดูตารางเรียน (ปฏิทินรายเดือน)
-- เปลี่ยนวัน/สาขา (ภายในเดือน, 24 ชม.ล่วงหน้า)
-- ดูพัฒนาการ / LV
-- ร้องเรียน
-- Ranking แยกเด็ก/ผู้ใหญ่
-
-### ฝั่ง Admin — ✅ โครงสร้างครบ (ต้องเติม Logic บางจุด)
-- Dashboard สรุปภาพรวม
-- จัดการจอง / ชำระเงิน / ผู้ใช้ / สาขา / คูปอง
-- ดูตารางรอบเรียน / วันชดเชย
-- จัดการเรื่องร้องเรียน / แจ้งเตือน
-- Activity Logs / Settings / Finance / Payroll / Coach Checkins / Coaches
-
-### ฝั่ง Coach — 🔲 มีหน้าแล้ว ต้องเติม Logic
-- ตารางสอนวันนี้ / เช็คชื่อ / เช็คอิน / แบ่งกลุ่ม / กรอก LV / โปรแกรมสอน / ชั่วโมงสอน
-
----
-
-## สิ่งที่ต้องทำต่อ (Priority Order)
-
-### 🔴 Priority High — ควรทำเลย
-1. **Phase 3: Coach Portal Logic** — โค้ชต้องใช้งานจริง (เช็คชื่อ, ดูตาราง, กรอก LV)
-2. **Phase 4.1: Admin จองแทนผู้ใช้** — Super Admin ทำแทนลูกค้าได้
-3. **Phase 4.3: Payroll คำนวณเงินเดือนโค้ช** — เกิน 25 ชม./สัปดาห์ คิด OT
-4. **Phase 4.2: Finance สรุปรายรับ-รายจ่าย** — รายเดือน/ปี
-
-### 🟡 Priority Medium — ทำหลัง High เสร็จ
-5. **Phase 4.4: Notifly แจ้งเตือน** — ไม่ต่อคอร์ส, ยังไม่จ่าย
-6. **Phase 4.5: แจ้งเตือนคลาส** — จำนวนคนในคลาส
-7. **Phase 4.6: Settings กำหนดเวลาเรียนผ่าน CMS** — ย้ายจาก code → DB
-8. **Phase 4.7: Activity Logs** — เขียน log เมื่อมี action
-
-### 🟢 Priority Low — ทำเมื่อพร้อม
-9. **Phase 5: Future Features** — ระบบแนะนำ, จองสนาม, ร้านค้า
+Phase 2B (Admin Advanced) ← ทำหลัง Coach เพราะต้องมีข้อมูลโค้ชก่อน
+├── Finance, Payroll, Coach Checkins
+├── Makeup, Notifications, Notifly
+└── Settings, Branches, Schedules, Logs
+```
