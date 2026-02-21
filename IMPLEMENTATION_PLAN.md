@@ -1,6 +1,6 @@
 # New Athlete Badminton School — Implementation Plan
 
-> อัปเดตล่าสุด: 21 ก.พ. 2569 (หลัง Phase 2A + Phase 3 เสร็จ)
+> อัปเดตล่าสุด: 21 ก.พ. 2569 (หลัง Phase 2B เสร็จ — Admin ครบ 16 หน้า, Coach 9 หน้า, User 11 หน้า)
 
 ---
 
@@ -22,9 +22,9 @@
 |------|:---:|:---:|--------|
 | **User (Dashboard)** | 11 หน้า | 0 | ✅ ครบสมบูรณ์ |
 | **Admin Core** | 7 หน้า (Dashboard, Coaches, Users, Payments, Booking, Coupons, Complaints) | 0 | ✅ ครบสมบูรณ์ |
-| **Admin Advanced** | 0 | 9 หน้า (Finance, Payroll, Coach Checkins, Makeup, Branches, Schedules, Notifications, Logs, Settings) | ⚠️ ต้องสร้าง Logic |
+| **Admin Advanced** | 9 หน้า (Finance, Payroll, Coach Checkins, Makeup, Branches, Schedules, Notifications, Logs, Settings) | 0 | ✅ ครบสมบูรณ์ |
 | **Coach** | 9 หน้า (Dashboard, Today, Attendance, Checkin, Levels, Programs, Students, Hours, Assign Groups) | 0 | ✅ ครบสมบูรณ์ |
-| **API** | 13 routes | 0 | ✅ ทำงานได้ |
+| **API** | 17 routes | 0 | ✅ ทำงานได้ |
 
 ### API Routes ที่มี
 
@@ -43,6 +43,10 @@
 | `api/coach/checkin` | เช็คอินโค้ช + อัปโหลดรูป + GPS |
 | `api/coach/levels` | กรอก LV นักเรียน (1-60) |
 | `api/coach/programs` | สร้าง/ส่งโปรแกรมสอน |
+| `api/admin/branches` | CRUD สาขา |
+| `api/admin/makeup` | สร้างวันชดเชย (ฟรี) |
+| `api/admin/notifications` | ส่งแจ้งเตือนถึง User |
+| `api/admin/settings` | CRUD System Settings |
 
 ---
 
@@ -119,25 +123,23 @@
 
 ---
 
-### Phase 2B — Admin Advanced ⬅️ ทำตอนนี้
+### Phase 2B — Admin Advanced ✅ เสร็จสมบูรณ์
 
-> ⚠️ **หมายเหตุ:** 9 หน้ายังเป็น **Placeholder เปล่า** ต้องสร้าง Logic จริง
-
-| # | Feature | Status | Requirement ที่เกี่ยวข้อง | ความสำคัญ |
-|---|---------|--------|--------------------------|-----------|
-| 2B.1 | **Finance** — สรุปรายรับ-รายจ่าย รายเดือน-ปี (รายรับจากคอร์ส, รายจ่ายให้โค้ช) | 🔲 TODO | "สรุปรายรับ-รายจ่ายทั้งหมดได้ รายเดือน-ปี" | 🔴 |
-| 2B.2 | **Payroll** — คำนวณเงินเดือนโค้ช: รวมชั่วโมง, เช็คเกิน 25 ชม./สัปดาห์, OT Private 400/ชม., OT Group 200/ชม. | 🔲 TODO | "คำนวณชั่วโมงการสอนของโค้ชแต่ละคน" | 🔴 |
-| 2B.3 | **Coach Checkins** — Admin ดูการเช็คอินโค้ชทั้งหมด + รูปถ่าย, ป้องกันทุจริตรอบสอน | 🔲 TODO | "เช็คว่าโค้ชมาทำงานจริง ถ่ายรูป+เช็คอิน" | 🔴 |
-| 2B.4 | **Makeup (วันชดเชย)** — Super Admin เลือกวันชดเชยให้นักเรียนโดยไม่คิดเงิน | 🔲 TODO | "Super User เลือกวันชดเชยไม่คิดเงินสักบาท" | 🔴 |
-| 2B.5 | **Schedules** — ดู/แก้ไขตารางรอบเรียนทุกสาขาผ่าน CMS (ปัจจุบัน hardcode ใน code) | 🔲 TODO | "กำหนดเวลาเรียนของแต่ละสาขาผ่านระบบผ่านหน้า Setting" | 🟡 |
-| 2B.6 | **Branches** — ดู/แก้ไขข้อมูลสาขา (ชื่อ, ที่อยู่, is_active) | 🔲 TODO | — | 🟡 |
-| 2B.7 | **Notifications** — Admin ส่งแจ้งเตือนถึง User, Notification Center | 🔲 TODO | "มี notify ผ่านระบบแจ้งเตือนต่างๆ" | 🟡 |
-| 2B.8 | **Activity Logs** — Super Admin ดู Log ทั้งระบบ ว่าใครทำอะไร | 🔲 TODO | "Super User สามารถดู Log ทั้งระบบได้" | 🟡 |
-| 2B.9 | **Settings** — System settings (ปัจจุบัน key-value ใน DB) | 🔲 TODO | — | 🟢 |
+| # | Feature | Status | Files หลัก |
+|---|---------|--------|------------|
+| 2B.1 | **Finance** — สรุปรายรับ-รายจ่าย รายเดือน-ปี, แยกสาขา, แยกคอร์ส, กราฟแท่ง | ✅ Done | `admin/finance/page.tsx`, `components/admin/finance-client.tsx` |
+| 2B.2 | **Payroll** — คำนวณเงินเดือนโค้ช: รวมชั่วโมง, เช็คเกิน 25 ชม./สัปดาห์, OT Private 400/ชม., OT Group 200/ชม., Weekly breakdown | ✅ Done | `admin/payroll/page.tsx`, `components/admin/payroll-client.tsx` |
+| 2B.3 | **Coach Checkins** — Admin ดูเช็คอินโค้ช + รูปถ่าย + GPS, กรองสาขา/วันที่, ดูรูปขยาย + Google Maps | ✅ Done | `admin/coach-checkins/page.tsx`, `components/admin/coach-checkins-client.tsx` |
+| 2B.4 | **Makeup (วันชดเชย)** — Super Admin เลือกวันชดเชยให้นักเรียน ไม่คิดเงิน, เปลี่ยนสาขาได้ | ✅ Done | `admin/makeup/page.tsx`, `api/admin/makeup/route.ts`, `components/admin/makeup-client.tsx` |
+| 2B.5 | **Schedules** — ดูตารางรอบเรียนทุกสาขา แยกประเภทคอร์ส, แสดง time slots ทุกวัน | ✅ Done | `admin/schedules/page.tsx`, `components/admin/schedules-client.tsx` |
+| 2B.6 | **Branches** — ดู/แก้ไข/เพิ่มสาขา, toggle is_active, แสดงจำนวนโค้ชและจอง | ✅ Done | `admin/branches/page.tsx`, `api/admin/branches/route.ts`, `components/admin/branches-client.tsx` |
+| 2B.7 | **Notifications** — ดูแจ้งเตือนทั้งระบบ, ส่งแจ้งเตือนถึง User เฉพาะหรือทุกคน, กรองประเภท | ✅ Done | `admin/notifications/page.tsx`, `api/admin/notifications/route.ts`, `components/admin/notifications-admin-client.tsx` |
+| 2B.8 | **Activity Logs** — ดู Log ทั้งระบบ, กรอง entity/วันที่, ดู JSON details | ✅ Done | `admin/logs/page.tsx`, `components/admin/logs-client.tsx` |
+| 2B.9 | **Settings** — ดู/แก้ไข/เพิ่ม System Settings (key-value JSON) | ✅ Done | `admin/settings/page.tsx`, `api/admin/settings/route.ts`, `components/admin/settings-client.tsx` |
 
 ---
 
-### Phase 5 — Notification & Alerts System 🔲 ทำหลัง Phase 2B
+### Phase 5 — Notification & Alerts System ⬅️ ทำตอนนี้
 
 > ตาม Requirement เพิ่มเติม — ระบบแจ้งเตือนอัจฉริยะ
 
@@ -212,18 +214,9 @@ Phase 1.5 (User Refinements)                 ✅ เสร็จ
 Phase 2A (Admin Core)                        ✅ เสร็จ
 Phase 3 (Coach Portal)                       ✅ เสร็จ
 
-Phase 2B (Admin Advanced)                    ⬅️ ทำตอนนี้
-├── 1. Finance — รายรับ-รายจ่าย 🔴
-├── 2. Payroll — คำนวณเงินเดือนโค้ช + OT 🔴
-├── 3. Coach Checkins — ตรวจเช็คอินโค้ช 🔴
-├── 4. Makeup — วันชดเชย ไม่คิดเงิน 🔴
-├── 5. Schedules — จัดการตารางรอบเรียน
-├── 6. Branches — จัดการสาขา
-├── 7. Notifications — ส่งแจ้งเตือน
-├── 8. Activity Logs — ดู Log ทั้งระบบ
-└── 9. Settings — System Settings
+Phase 2B (Admin Advanced)                    ✅ เสร็จ
 
-Phase 5 (Notification & Alerts)
+Phase 5 (Notification & Alerts)              ⬅️ ทำตอนนี้
 ├── Notifly สี (ไม่ต่อคอร์ส/คลาสคนน้อย)
 ├── แจ้งเตือนลูกค้าเก่ากลับมา
 └── Notification events ครบทุก event
@@ -298,16 +291,16 @@ Phase 8 (Testing & Deploy)
 |-------------|-------|----------|
 | ทำทุกอย่างเหมือน User | ✅ | admin booking |
 | จองแทนผู้ใช้ (เลือกชื่อผู้ใช้ก่อน) | ✅ | admin booking wizard |
-| วันชดเชยไม่คิดเงิน (เฉพาะ Super User) | ❌ ขาด | Phase 2B.4 — Makeup |
+| วันชดเชยไม่คิดเงิน (เฉพาะ Super User) | ✅ | admin makeup |
 | ทำทุกอย่างเหมือนโค้ช (แบ่งกลุ่ม, เช็คชื่อ) | ✅ | admin role check |
-| คำนวณชั่วโมงสอนโค้ช (สัปดาห์ก่อน, เกิน 25 ชม.) | ❌ ขาด | Phase 2B.2 — Payroll |
-| เห็นชั่วโมงสอนโค้ช (ทั้งหมด/เดือน/สัปดาห์/วัน) | ❌ ขาด | Phase 2B.2 — Payroll |
+| คำนวณชั่วโมงสอนโค้ช (สัปดาห์ก่อน, เกิน 25 ชม.) | ✅ | admin payroll (OT detection) |
+| เห็นชั่วโมงสอนโค้ช (ทั้งหมด/เดือน/สัปดาห์/วัน) | ✅ | admin payroll (weekly breakdown) |
 | สร้างคูปองส่วนลด | ✅ | admin coupons |
 | สร้าง Username/Password ให้โค้ช + กำหนดหัวหน้าโค้ช | ✅ | admin coaches |
-| สรุปรายรับ-รายจ่าย รายเดือน-ปี | ❌ ขาด | Phase 2B.1 — Finance |
-| กำหนดเวลาเรียนแต่ละสาขาผ่าน Setting | ❌ ขาด | Phase 2B.5 — Schedules |
-| ดู Log ทั้งระบบ | ❌ ขาด | Phase 2B.8 — Logs |
-| เช็คอินโค้ช (ตรวจสอบ) | ❌ ขาด | Phase 2B.3 — Coach Checkins |
+| สรุปรายรับ-รายจ่าย รายเดือน-ปี | ✅ | admin finance |
+| กำหนดเวลาเรียนแต่ละสาขาผ่าน Setting | ⚠️ อ่านอย่างเดียว | admin schedules (แสดงจาก code, ยังไม่แก้ผ่าน CMS) |
+| ดู Log ทั้งระบบ | ✅ | admin logs |
+| เช็คอินโค้ช (ตรวจสอบ) | ✅ | admin coach-checkins |
 | Notifly แดชบอร์ด (ไม่ต่อคอร์ส, คลาสคนน้อย, ร้องเรียน) | ❌ ขาด | Phase 5 |
 | แจ้งเตือนลูกค้าเดือนก่อนไม่ลง | ❌ ขาด | Phase 5 |
 
