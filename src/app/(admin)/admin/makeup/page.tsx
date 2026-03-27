@@ -8,10 +8,10 @@ export default async function MakeupPage() {
     supabase
       .from('booking_sessions')
       .select(`
-        id, booking_id, date, start_time, end_time, status, is_makeup,
-        bookings(user_id, learner_type, child_id,
+        id, booking_id, date, start_time, end_time, status, is_makeup, child_id,
+        children(full_name, nickname),
+        bookings(user_id, learner_type,
           profiles!bookings_user_id_fkey(full_name),
-          children(full_name, nickname),
           branches(name),
           course_types(name)
         )
@@ -27,8 +27,8 @@ export default async function MakeupPage() {
   ])
 
   const sessionList = (sessions || []).map((s: any) => {
-    const learnerName = s.bookings?.learner_type === 'child'
-      ? (s.bookings?.children?.nickname || s.bookings?.children?.full_name || 'ไม่ทราบ')
+    const learnerName = s.child_id
+      ? (s.children?.nickname || s.children?.full_name || 'ไม่ทราบ')
       : (s.bookings?.profiles?.full_name || 'ไม่ทราบ')
     return {
       id: s.id,

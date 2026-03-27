@@ -68,6 +68,37 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
     makeups: sessions.filter((s) => s.is_makeup).length,
   }), [sessions])
 
+  const groupedEligibleSessions = useMemo(() => {
+    return Object.values(eligibleSessions.reduce((groups: Record<string, {
+      learnerKey: string
+      learner_name: string
+      user_name: string
+      branchNames: string[]
+      sessions: BookingSessionData[]
+    }>, session) => {
+      const learnerKey = `${session.user_name}::${session.learner_name}`
+      if (!groups[learnerKey]) {
+        groups[learnerKey] = {
+          learnerKey,
+          learner_name: session.learner_name,
+          user_name: session.user_name,
+          branchNames: [],
+          sessions: [],
+        }
+      }
+
+      if (!groups[learnerKey].branchNames.includes(session.branch_name)) {
+        groups[learnerKey].branchNames.push(session.branch_name)
+      }
+
+      groups[learnerKey].sessions.push(session)
+      return groups
+    }, {})).map((group) => ({
+      ...group,
+      sessions: group.sessions.sort((a, b) => `${b.date} ${b.start_time}`.localeCompare(`${a.date} ${a.start_time}`)),
+    }))
+  }, [eligibleSessions])
+
   const formatDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
 
   const openMakeupDialog = (session: BookingSessionData) => {
@@ -149,42 +180,57 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
       </div>
 
       {/* Session list */}
-      {eligibleSessions.length === 0 ? (
+      {groupedEligibleSessions.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-gray-400">
           <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
           <p className="font-medium">ไม่พบข้อมูล</p>
         </CardContent></Card>
       ) : (
-        <div className="space-y-2">
-          {eligibleSessions.map((session) => (
-            <Card key={session.id} className={`overflow-hidden ${session.status === 'absent' ? 'border-red-200' : session.is_makeup ? 'border-green-200' : ''}`}>
-              <CardContent className="p-0">
-                <div className="flex items-center gap-3 p-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${session.is_makeup ? 'bg-green-100' : session.status === 'absent' ? 'bg-red-100' : 'bg-gray-100'}`}>
-                    {session.is_makeup ? <Gift className="h-5 w-5 text-green-600" /> : <Calendar className="h-5 w-5 text-gray-500" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
+        <div className="space-y-4">
+          {groupedEligibleSessions.map((group) => (
+            <Card key={group.learnerKey}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-sm">{session.learner_name}</p>
-                      <Badge className={`text-[10px] ${session.status === 'absent' ? 'bg-red-100 text-red-700' : session.is_makeup ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {session.is_makeup ? 'ชดเชย' : session.status === 'absent' ? 'ขาดเรียน' : session.status}
-                      </Badge>
-                      <Badge className="text-[10px] bg-blue-100 text-blue-700">{session.course_type}</Badge>
+                      <p className="font-semibold text-base text-[#153c85]">{group.learner_name}</p>
+                      <Badge variant="outline">{group.sessions.length} รายการ</Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400 flex-wrap">
-                      <span className="flex items-center gap-1"><User className="h-3 w-3" />{session.user_name}</span>
-                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{session.branch_name}</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(session.date)} {session.start_time}-{session.end_time}</span>
+                    <div className="mt-1 flex items-center gap-3 text-[11px] text-gray-500 flex-wrap">
+                      <span className="flex items-center gap-1"><User className="h-3 w-3" />{group.user_name}</span>
+                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{group.branchNames.join(', ')}</span>
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    {session.status === 'absent' && !session.is_makeup && (
-                      <Button size="sm" className="bg-[#f57e3b] hover:bg-[#e06d2e] text-white h-8" onClick={() => openMakeupDialog(session)}>
-                        <CalendarPlus className="h-3.5 w-3.5 mr-1" />ชดเชย
-                      </Button>
-                    )}
-                    {session.is_makeup && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-                  </div>
+                </div>
+
+                <div className="space-y-2 border-t pt-3">
+                  {group.sessions.map((session) => (
+                    <div key={session.id} className={`flex items-center gap-3 rounded-lg border p-3 ${session.status === 'absent' ? 'border-red-200 bg-red-50/40' : session.is_makeup ? 'border-green-200 bg-green-50/40' : 'border-gray-200 bg-gray-50'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${session.is_makeup ? 'bg-green-100' : session.status === 'absent' ? 'bg-red-100' : 'bg-gray-100'}`}>
+                        {session.is_makeup ? <Gift className="h-5 w-5 text-green-600" /> : <Calendar className="h-5 w-5 text-gray-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className={`text-[10px] ${session.status === 'absent' ? 'bg-red-100 text-red-700' : session.is_makeup ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {session.is_makeup ? 'ชดเชย' : session.status === 'absent' ? 'ขาดเรียน' : session.status}
+                          </Badge>
+                          <Badge className="text-[10px] bg-blue-100 text-blue-700">{session.course_type}</Badge>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400 flex-wrap">
+                          <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{session.branch_name}</span>
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(session.date)} {session.start_time}-{session.end_time}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {session.status === 'absent' && !session.is_makeup && (
+                          <Button size="sm" className="bg-[#f57e3b] hover:bg-[#e06d2e] text-white h-8" onClick={() => openMakeupDialog(session)}>
+                            <CalendarPlus className="h-3.5 w-3.5 mr-1" />ชดเชย
+                          </Button>
+                        )}
+                        {session.is_makeup && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

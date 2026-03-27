@@ -372,10 +372,11 @@ CREATE TRIGGER tr_teaching_programs_updated_at BEFORE UPDATE ON teaching_program
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, email, role)
+  INSERT INTO public.profiles (id, full_name, phone, email, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'phone', NULL),
     NEW.email,
     'user'
   );

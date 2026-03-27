@@ -1,39 +1,65 @@
 import { createClient } from '@/lib/supabase/server'
 import { SchedulesClient } from '@/components/admin/schedules-client'
-import { ALL_BRANCH_SCHEDULES, DAY_LABELS_FULL } from '@/lib/branch-schedules'
 
 export default async function SchedulesPage() {
   const supabase = createClient()
-  const { data: branches } = await (supabase.from('branches').select('id, name, slug, is_active').order('name') as any)
+  const [{ data: sessions }, { data: branches }] = await Promise.all([
+    supabase
+      .from('booking_sessions')
+      .select(`
+        id, date, start_time, end_time, status, is_makeup, child_id, schedule_slot_id, branch_id,
+        branches(name),
+        children(full_name, nickname),
+        bookings!inner(
+          id, user_id, learner_type, status,
+          profiles!bookings_user_id_fkey(full_name),
+          course_types(name)
+        )
+      `)
+      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
+      .neq('status', 'rescheduled')
+      .order('date', { ascending: true }) as any,
+    supabase.from('branches').select('id, name').eq('is_active', true).order('name') as any,
+  ])
 
-  // Group schedules by branch
-  const branchSchedules = (branches || []).map((b: any) => {
-    const schedules = ALL_BRANCH_SCHEDULES.filter((s) => s.branchSlug === b.slug)
-    const byType: Record<string, { dayOfWeek: number; dayLabel: string; slots: { start: string; end: string }[] }[]> = {}
+  const slotIds = Array.from(new Set((sessions || []).map((session: any) => session.schedule_slot_id).filter(Boolean))) as string[]
 
-    for (const s of schedules) {
-      const typeKey = s.courseType
-      if (!byType[typeKey]) byType[typeKey] = []
-      byType[typeKey].push({
-        dayOfWeek: s.dayOfWeek,
-        dayLabel: DAY_LABELS_FULL[s.dayOfWeek] || `${s.dayOfWeek}`,
-        slots: s.slots,
-      })
+  let coachAssignments: any[] = []
+  if (slotIds.length > 0) {
+    const { data } = await (supabase
+      .from('coach_assignments')
+      .select('schedule_slot_id, profiles!coach_assignments_coach_id_fkey(full_name)')
+      .in('schedule_slot_id', slotIds) as any)
+    coachAssignments = data || []
+  }
+
+  const coachMap = coachAssignments.reduce((map: Record<string, string[]>, item: any) => {
+    if (!map[item.schedule_slot_id]) map[item.schedule_slot_id] = []
+    const coachName = item.profiles?.full_name
+    if (coachName && !map[item.schedule_slot_id].includes(coachName)) {
+      map[item.schedule_slot_id].push(coachName)
     }
+    return map
+  }, {})
 
-    // Sort by dayOfWeek
-    for (const key in byType) {
-      byType[key].sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-    }
+  const scheduleSessions = (sessions || []).map((session: any) => ({
+    id: session.id,
+    date: session.date,
+    start_time: session.start_time,
+    end_time: session.end_time,
+    status: session.status,
+    is_makeup: session.is_makeup || false,
+    child_id: session.child_id,
+    branch_id: session.branch_id,
+    branch_name: session.branches?.name || 'ไม่ทราบ',
+    learner_name: session.child_id
+      ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
+      : (session.bookings?.profiles?.full_name || 'ไม่ทราบ'),
+    parent_name: session.child_id ? (session.bookings?.profiles?.full_name || 'ไม่ทราบ') : null,
+    course_type: session.bookings?.course_types?.name || '',
+    booking_status: session.bookings?.status || '',
+    coach_names: coachMap[session.schedule_slot_id] || [],
+  }))
 
-    return {
-      id: b.id,
-      name: b.name,
-      slug: b.slug,
-      is_active: b.is_active,
-      schedules: byType,
-    }
-  })
-
-  return <SchedulesClient branches={branchSchedules} />
+  return <SchedulesClient sessions={scheduleSessions} branches={branches || []} />
 }

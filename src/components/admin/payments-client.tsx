@@ -1,19 +1,15 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import {
-  Search, CreditCard, CheckCircle2, XCircle, Clock, Eye, ThumbsUp, ThumbsDown, AlertCircle, Receipt, User, Calendar, Building2, ImageIcon,
+  Search, CreditCard, CheckCircle2, XCircle, Clock, Eye, Receipt, User, Building2, ImageIcon,
 } from 'lucide-react'
 
 interface PaymentData {
@@ -58,19 +54,12 @@ const COURSE_LABELS: Record<string, string> = {
 }
 
 export function PaymentsClient({ payments }: PaymentsClientProps) {
-  const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [detailPayment, setDetailPayment] = useState<PaymentData | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [slipOpen, setSlipOpen] = useState(false)
   const [slipUrl, setSlipUrl] = useState('')
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject'>('approve')
-  const [confirmPayment, setConfirmPayment] = useState<PaymentData | null>(null)
-  const [rejectNotes, setRejectNotes] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [actionResult, setActionResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const filtered = useMemo(() => {
     return payments.filter((p) => {
@@ -102,7 +91,6 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
   const openDetail = (payment: PaymentData) => {
     setDetailPayment(payment)
     setDetailOpen(true)
-    setActionResult(null)
   }
 
   const openSlipImage = (url: string) => {
@@ -110,63 +98,16 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
     setSlipOpen(true)
   }
 
-  const startAction = (payment: PaymentData, action: 'approve' | 'reject') => {
-    setConfirmPayment(payment)
-    setConfirmAction(action)
-    setRejectNotes('')
-    setConfirmOpen(true)
-  }
-
-  const executeAction = async () => {
-    if (!confirmPayment) return
-    setLoading(true)
-    setActionResult(null)
-
-    try {
-      const res = await fetch('/api/admin/payments', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentId: confirmPayment.id,
-          action: confirmAction,
-          notes: confirmAction === 'reject' ? (rejectNotes || 'Admin ปฏิเสธ') : 'Admin อนุมัติ',
-        }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setActionResult({ type: 'error', message: json.error || 'เกิดข้อผิดพลาด' })
-        setLoading(false)
-        return
-      }
-
-      setActionResult({
-        type: 'success',
-        message: confirmAction === 'approve' ? 'อนุมัติการชำระเงินสำเร็จ!' : 'ปฏิเสธการชำระเงินแล้ว',
-      })
-      setLoading(false)
-      setConfirmOpen(false)
-      setDetailOpen(false)
-      setTimeout(() => router.refresh(), 800)
-    } catch {
-      setActionResult({ type: 'error', message: 'เกิดข้อผิดพลาด กรุณาลองใหม่' })
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">ตรวจสอบการชำระเงิน</h1>
-        <p className="text-gray-500 text-sm mt-1">ตรวจสอบสลิป อนุมัติหรือปฏิเสธการชำระเงิน</p>
+        <p className="text-gray-500 text-sm mt-1">ติดตามผลการตรวจสอบสลิปอัตโนมัติจาก SlipOK และดูหลักฐานการโอน</p>
       </div>
 
-      {/* Action result toast */}
-      {actionResult && (
-        <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${actionResult.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-          {actionResult.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          {actionResult.message}
-        </div>
-      )}
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        สถานะการชำระเงินหน้านี้อัปเดตจากระบบตรวจสลิปอัตโนมัติ โดย admin ใช้สำหรับตรวจดูรายละเอียดและติดตามผลเท่านั้น
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -250,18 +191,6 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {payment.status === 'pending' && (
-                        <>
-                          <Button size="sm" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50 h-8 px-2.5"
-                            onClick={() => startAction(payment, 'approve')}>
-                            <ThumbsUp className="h-3.5 w-3.5 mr-1" />อนุมัติ
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 h-8 px-2.5"
-                            onClick={() => startAction(payment, 'reject')}>
-                            <ThumbsDown className="h-3.5 w-3.5 mr-1" />ปฏิเสธ
-                          </Button>
-                        </>
-                      )}
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openDetail(payment)}>
                         <Eye className="h-4 w-4 text-gray-400" />
                       </Button>
@@ -345,19 +274,11 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                 </p>
               )}
 
-              <p className="text-xs text-gray-400">สร้างเมื่อ: {formatDate(detailPayment.created_at)}</p>
-
-              {/* Action buttons */}
-              {detailPayment.status === 'pending' && (
-                <div className="flex gap-2 pt-2">
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => startAction(detailPayment, 'approve')}>
-                    <ThumbsUp className="h-4 w-4 mr-2" />อนุมัติ
-                  </Button>
-                  <Button variant="outline" className="flex-1 text-red-500 border-red-200 hover:bg-red-50" onClick={() => startAction(detailPayment, 'reject')}>
-                    <ThumbsDown className="h-4 w-4 mr-2" />ปฏิเสธ
-                  </Button>
-                </div>
+              {!detailPayment.verified_by_name && detailPayment.status === 'pending' && (
+                <p className="text-xs text-amber-600">ระบบกำลังรอผลตรวจสอบสลิปอัตโนมัติจาก SlipOK</p>
               )}
+
+              <p className="text-xs text-gray-400">สร้างเมื่อ: {formatDate(detailPayment.created_at)}</p>
             </div>
           )}
         </DialogContent>
@@ -376,47 +297,6 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* ===== Confirm Action Dialog ===== */}
-      <AlertDialog open={confirmOpen} onOpenChange={(v) => { if (!loading) setConfirmOpen(v) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction === 'approve' ? 'ยืนยันอนุมัติการชำระเงิน' : 'ยืนยันปฏิเสธการชำระเงิน'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmPayment && (
-                <span>
-                  {confirmPayment.user_name} — {formatMoney(confirmPayment.amount)} — {confirmPayment.branch_name}
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {confirmAction === 'reject' && (
-            <div className="space-y-2 py-2">
-              <Label>เหตุผลที่ปฏิเสธ (ไม่บังคับ)</Label>
-              <Textarea
-                placeholder="เช่น สลิปไม่ชัด, ยอดเงินไม่ตรง..."
-                value={rejectNotes}
-                onChange={(e) => setRejectNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
-          )}
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading}>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction
-              className={confirmAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}
-              disabled={loading}
-              onClick={(e) => { e.preventDefault(); executeAction() }}
-            >
-              {loading ? 'กำลังดำเนินการ...' : confirmAction === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

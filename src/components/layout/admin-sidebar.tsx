@@ -14,7 +14,6 @@ import {
   Building2,
   CalendarDays,
   Users,
-  CalendarPlus,
   CalendarClock,
   UserCog,
   CreditCard,
@@ -32,9 +31,8 @@ import {
 const ADMIN_NAV = [
   { href: '/admin', label: 'ภาพรวม', icon: LayoutDashboard },
   { href: '/admin/branches', label: 'จัดการสาขา', icon: Building2 },
-  { href: '/admin/schedules', label: 'จัดการรอบเรียน', icon: CalendarDays },
+  { href: '/admin/schedules', label: 'ตารางเรียน', icon: CalendarDays },
   { href: '/admin/users', label: 'จัดการนักเรียน/ผู้ปกครอง', icon: Users },
-  { href: '/admin/booking', label: 'จองคอร์สแทน', icon: CalendarPlus },
   { href: '/admin/makeup', label: 'วันชดเชย', icon: CalendarClock },
   { href: '/admin/coaches', label: 'จัดการโค้ช', icon: UserCog },
   { href: '/admin/payments', label: 'ตรวจสอบการชำระเงิน', icon: CreditCard },
