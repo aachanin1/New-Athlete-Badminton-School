@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Athlete Badminton School</title>
+    <meta
+      name="description"
+      content="New Athlete Badminton School - ระบบบริหารโรงเรียนแบดมินตัน พร้อมหน้า GitHub Pages สำหรับ public site"
+    />
+    <style>
+      :root {
+        --blue-900: #153c85;
+        --blue-700: #2748bf;
+        --orange-500: #f57e3b;
+        --slate-900: #0f172a;
+        --slate-700: #334155;
+        --slate-500: #64748b;
+        --slate-200: #e2e8f0;
+        --white: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--slate-900);
+        background: #f8fafc;
+        line-height: 1.6;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--blue-900), var(--blue-700));
+        color: var(--white);
+        padding: 72px 24px 88px;
+      }
+
+      .container {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      h1 {
+        margin: 16px 0 12px;
+        font-size: clamp(2.25rem, 5vw, 4.5rem);
+        line-height: 1.05;
+      }
+
+      .hero p {
+        max-width: 760px;
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 18px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 28px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 22px;
+        border-radius: 12px;
+        font-weight: 700;
+        border: 2px solid transparent;
+      }
+
+      .btn-primary {
+        background: var(--orange-500);
+        color: var(--white);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--white);
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+
+      .section {
+        padding: 56px 24px;
+      }
+
+      .section-title {
+        font-size: 32px;
+        margin: 0 0 12px;
+        color: var(--blue-900);
+      }
+
+      .section-subtitle {
+        margin: 0 0 28px;
+        color: var(--slate-500);
+        max-width: 760px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .card {
+        background: var(--white);
+        border: 1px solid var(--slate-200);
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      }
+
+      .card h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        color: var(--slate-900);
+      }
+
+      .card p,
+      .card li {
+        color: var(--slate-700);
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(39, 72, 191, 0.1);
+        color: var(--blue-700);
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .notice {
+        border-left: 4px solid var(--orange-500);
+        background: #fff7ed;
+      }
+
+      ul {
+        padding-left: 20px;
+        margin: 0;
+      }
+
+      footer {
+        padding: 28px 24px 40px;
+        color: var(--slate-500);
+      }
+
+      @media (max-width: 640px) {
+        .hero {
+          padding-top: 56px;
+          padding-bottom: 72px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container">
+        <span class="eyebrow">GitHub Pages Ready</span>
+        <h1>New Athlete Badminton School</h1>
+        <p>
+          หน้า GitHub Pages สำหรับ public site ของโปรเจกต์นี้ ใช้สำหรับแสดงข้อมูลโรงเรียน,
+          tech stack, และสถานะความพร้อมของระบบ ก่อนเชื่อมต่อกับ deployment หลักของแอปเต็มรูปแบบ
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://www.facebook.com/profile.php?id=100063472047226" target="_blank" rel="noopener noreferrer">ติดต่อผ่าน Facebook</a>
+          <a class="btn btn-secondary" href="https://line.me/R/ti/p/@newathlete" target="_blank" rel="noopener noreferrer">คุยผ่าน LINE</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container">
+          <h2 class="section-title">ภาพรวมโปรเจกต์</h2>
+          <p class="section-subtitle">
+            ระบบนี้พัฒนาด้วย Next.js 14, TypeScript และ Supabase เพื่อรองรับการจัดการนักเรียน,
+            การจองเรียน, ระบบโค้ช, ฝั่งแอดมิน, การชำระเงิน และการติดตามพัฒนาการ
+          </p>
+          <div class="grid grid-3">
+            <article class="card">
+              <div class="badge">Frontend</div>
+              <h3>Next.js 14</h3>
+              <p>ใช้ App Router, React 18, TypeScript และ TailwindCSS สำหรับ UI หลักของระบบ</p>
+            </article>
+            <article class="card">
+              <div class="badge">Backend</div>
+              <h3>Supabase</h3>
+              <p>ใช้ Auth, PostgreSQL, Storage และ RLS สำหรับ business logic และข้อมูลจริง</p>
+            </article>
+            <article class="card">
+              <div class="badge">Deployment</div>
+              <h3>GitHub Pages + Server Host</h3>
+              <p>GitHub Pages ใช้สำหรับ public/static page ส่วนระบบเต็มยังต้องอยู่บนโฮสต์ที่รองรับ Next.js server features</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2 class="section-title">ฟีเจอร์หลักของระบบ</h2>
+          <div class="grid grid-3">
+            <article class="card">
+              <h3>สำหรับผู้ใช้</h3>
+              <ul>
+                <li>สมัครสมาชิกและเข้าสู่ระบบ</li>
+                <li>จองเรียนและดูประวัติการเรียน</li>
+                <li>ติดตามพัฒนาการและอันดับ</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>สำหรับโค้ช</h3>
+              <ul>
+                <li>เช็คชื่อและเช็คอิน</li>
+                <li>บันทึก Level และโปรแกรมสอน</li>
+                <li>ติดตามชั่วโมงงาน</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3>สำหรับแอดมิน</h3>
+              <ul>
+                <li>จัดการผู้ใช้ โค้ช และสาขา</li>
+                <li>จัดการการเงิน คูปอง และการจอง</li>
+                <li>ตรวจสลิปและตั้งค่าระบบ</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="card notice">
+            <h2 class="section-title">ข้อจำกัดของ GitHub Pages</h2>
+            <p class="section-subtitle">
+              GitHub Pages เป็น static hosting จึงยังไม่สามารถรัน middleware, API routes,
+              server-side authentication callback หรือ logic ฝั่งเซิร์ฟเวอร์ของ Next.js แอปนี้ได้โดยตรง
+            </p>
+            <ul>
+              <li>หน้า public/static แสดงบน GitHub Pages ได้</li>
+              <li>ระบบ login, dashboard, admin, coach และ API ยังควรรันบน Vercel หรือโฮสต์ที่รองรับ Next.js</li>
+              <li>หน้านี้จึงถูกเตรียมไว้เป็น public entry page ของ repository</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">
+        <strong>New Athlete Badminton School</strong><br />
+        Public GitHub Pages site prepared for this repository.
+      </div>
+    </footer>
+  </body>
+</html>
