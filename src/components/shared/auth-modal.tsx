@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { getHomePathForRole } from '@/lib/auth/redirects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -64,7 +65,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
     setError(null)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
@@ -72,9 +73,15 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
       return
     }
 
+    const { data: profile } = await (supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single() as any)
+
     onOpenChange(false)
     resetForm()
-    router.push('/dashboard')
+    router.replace(getHomePathForRole(profile?.role))
     router.refresh()
   }
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { getHomePathForRole } from '@/lib/auth/redirects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,7 +25,7 @@ export default function LoginPage() {
     setError(null)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -35,7 +36,13 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    const { data: profile } = await (supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single() as any)
+
+    router.replace(getHomePathForRole(profile?.role))
     router.refresh()
   }
 

@@ -47,7 +47,7 @@ export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
             ? 'bg-[#2748bf] hover:bg-[#153c85] text-white text-lg px-8 py-6 w-[220px]'
             : 'bg-white/20 hover:bg-white/30 text-white text-lg px-10 py-6'
         }
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push('/auth')}
       >
         {variant === 'hero' ? (
           <>

@@ -139,7 +139,7 @@ export function PublicNavbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                  <DropdownMenuItem onClick={() => router.push('/auth')}>
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     แดชบอร์ด
                   </DropdownMenuItem>
