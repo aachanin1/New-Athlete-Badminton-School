@@ -528,6 +528,16 @@ export function BookingClient({ userId, userName, children, branches, courseType
                 .eq('id', appliedCoupon.id)
             }
           }
+
+          await fetch('/api/notifications/events/booking-created', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId: bookingData.id,
+              totalSessions: bookingTotalSessions,
+              totalPrice: finalPrice,
+            }),
+          }).catch(() => null)
         }
 
         router.push('/dashboard/history')

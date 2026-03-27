@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
 
 // POST — send notification to user(s)
 export async function POST(req: NextRequest) {
+  const admin = await requireAdminUser()
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
+    const supabaseAdmin = getServiceRoleClient()
     const body = await req.json()
     const { user_id, title, message, type } = body
 

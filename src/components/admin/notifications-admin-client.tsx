@@ -32,9 +32,23 @@ interface UserOption {
   email: string
 }
 
+interface AlertInsight {
+  id: string
+  title: string
+  description: string
+  level: 'red' | 'yellow' | 'green'
+  userId?: string
+  notificationTitle?: string
+  notificationMessage?: string
+  notificationType?: string
+}
+
 interface NotificationsAdminClientProps {
   notifications: NotificationData[]
   users: UserOption[]
+  nonRenewalAlerts: AlertInsight[]
+  lowEnrollmentAlerts: AlertInsight[]
+  customerFollowUpAlerts: AlertInsight[]
 }
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
@@ -45,12 +59,19 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   system: { label: 'ระบบ', color: 'bg-gray-100 text-gray-700' },
 }
 
-export function NotificationsAdminClient({ notifications, users }: NotificationsAdminClientProps) {
+const ALERT_LEVEL_CONFIG: Record<AlertInsight['level'], string> = {
+  red: 'border-red-200 bg-red-50 text-red-700',
+  yellow: 'border-yellow-200 bg-yellow-50 text-yellow-700',
+  green: 'border-green-200 bg-green-50 text-green-700',
+}
+
+export function NotificationsAdminClient({ notifications, users, nonRenewalAlerts, lowEnrollmentAlerts, customerFollowUpAlerts }: NotificationsAdminClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Form
   const [formUserId, setFormUserId] = useState<string>('')
@@ -76,6 +97,7 @@ export function NotificationsAdminClient({ notifications, users }: Notifications
   const formatDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 
   const openNew = () => {
+    setError(null)
     setFormUserId('')
     setFormTitle('')
     setFormMessage('')
@@ -83,11 +105,21 @@ export function NotificationsAdminClient({ notifications, users }: Notifications
     setDialogOpen(true)
   }
 
+  const openSuggestedNotification = (alert: AlertInsight) => {
+    setError(null)
+    setFormUserId(alert.userId || '')
+    setFormTitle(alert.notificationTitle || alert.title)
+    setFormMessage(alert.notificationMessage || alert.description)
+    setFormType(alert.notificationType || 'reminder')
+    setDialogOpen(true)
+  }
+
   const sendNotification = async () => {
     if (!formTitle.trim() || !formMessage.trim()) return
     setLoading(true)
+    setError(null)
     try {
-      await fetch('/api/admin/notifications', {
+      const res = await fetch('/api/admin/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,10 +129,17 @@ export function NotificationsAdminClient({ notifications, users }: Notifications
           type: formType,
         }),
       })
+
+      const result = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(result?.error || 'ส่งแจ้งเตือนไม่สำเร็จ')
+        return
+      }
+
       setDialogOpen(false)
       router.refresh()
     } catch {
-      // silent
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setLoading(false)
     }
@@ -129,6 +168,81 @@ export function NotificationsAdminClient({ notifications, users }: Notifications
         <Card><CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-green-600">{stats.today}</p><p className="text-xs text-gray-500">วันนี้</p>
         </CardContent></Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <p className="font-semibold text-[#153c85]">Notifly: นักเรียนไม่ต่อคอร์ส</p>
+              <p className="text-xs text-gray-500">แจ้งเตือนตามเปอร์เซ็นต์การใช้คอร์สและยังไม่จองเดือนถัดไป</p>
+            </div>
+            {nonRenewalAlerts.length === 0 ? (
+              <p className="text-sm text-gray-400">ยังไม่มีรายการที่ต้องติดตาม</p>
+            ) : (
+              <div className="space-y-2">
+                {nonRenewalAlerts.map((alert) => (
+                  <div key={alert.id} className={`rounded-md border px-3 py-2 text-sm ${ALERT_LEVEL_CONFIG[alert.level]}`}>
+                    <p className="font-medium">{alert.title}</p>
+                    <p className="text-xs opacity-90 mt-0.5">{alert.description}</p>
+                    {alert.userId && (
+                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => openSuggestedNotification(alert)}>
+                        ส่งแจ้งเตือน
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <p className="font-semibold text-[#153c85]">Notifly: คลาสคนน้อย</p>
+              <p className="text-xs text-gray-500">ดูคลาสที่มีผู้เรียน 1-2 คน หรือมากกว่า</p>
+            </div>
+            {lowEnrollmentAlerts.length === 0 ? (
+              <p className="text-sm text-gray-400">ยังไม่มีข้อมูลคลาสที่ต้องจับตา</p>
+            ) : (
+              <div className="space-y-2">
+                {lowEnrollmentAlerts.map((alert) => (
+                  <div key={alert.id} className={`rounded-md border px-3 py-2 text-sm ${ALERT_LEVEL_CONFIG[alert.level]}`}>
+                    <p className="font-medium">{alert.title}</p>
+                    <p className="text-xs opacity-90 mt-0.5">{alert.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <p className="font-semibold text-[#153c85]">ติดตามลูกค้าเก่า</p>
+              <p className="text-xs text-gray-500">ลูกค้าเดือนก่อนไม่ลงเรียน และลูกค้าเก่าที่ควรชวนกลับมา</p>
+            </div>
+            {customerFollowUpAlerts.length === 0 ? (
+              <p className="text-sm text-gray-400">ยังไม่มีรายการติดตามเพิ่มเติม</p>
+            ) : (
+              <div className="space-y-2">
+                {customerFollowUpAlerts.map((alert) => (
+                  <div key={alert.id} className={`rounded-md border px-3 py-2 text-sm ${ALERT_LEVEL_CONFIG[alert.level]}`}>
+                    <p className="font-medium">{alert.title}</p>
+                    <p className="text-xs opacity-90 mt-0.5">{alert.description}</p>
+                    {alert.userId && (
+                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={() => openSuggestedNotification(alert)}>
+                        ส่งแจ้งเตือน
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -194,6 +308,11 @@ export function NotificationsAdminClient({ notifications, users }: Notifications
             <DialogTitle className="text-[#153c85]">ส่งแจ้งเตือน</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {error && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </div>
+            )}
             <div>
               <Label>ส่งถึง</Label>
               <Select value={formUserId} onValueChange={setFormUserId}>

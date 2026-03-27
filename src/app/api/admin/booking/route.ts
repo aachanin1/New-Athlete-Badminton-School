@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { notifyRoles, notifyUser } from '@/lib/notifications'
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -101,6 +102,22 @@ export async function POST(request: NextRequest) {
         notes: `Admin จองแทนและอนุมัติ โดย ${admin.id}`,
       })
     }
+
+    await notifyRoles(adminSupabase as any, {
+      roles: ['admin', 'super_admin'],
+      title: 'มีการจองใหม่',
+      message: `Admin สร้างการจองใหม่ ${totalSessions} ครั้ง • ฿${Number(totalPrice || 0).toLocaleString('th-TH')}`,
+      type: 'schedule',
+      link_url: '/admin',
+    })
+
+    await notifyUser(adminSupabase as any, {
+      user_id: targetUserId,
+      title: 'มีการจองใหม่ในระบบ',
+      message: `ผู้ดูแลได้สร้างการจองให้คุณ ${totalSessions} ครั้ง`,
+      type: 'schedule',
+      link_url: '/dashboard/history',
+    })
 
     return NextResponse.json({ success: true, bookingId: bookingData.id })
   } catch (err: any) {

@@ -45,6 +45,7 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailComplaint, setDetailComplaint] = useState<ComplaintData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     return complaints.filter((c) => {
@@ -66,16 +67,26 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
 
   const updateStatus = async (complaint: ComplaintData, newStatus: string) => {
     setLoading(true)
+    setError(null)
     try {
-      await fetch('/api/admin/complaints', {
+      const res = await fetch('/api/admin/complaints', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ complaintId: complaint.id, status: newStatus }),
       })
+
+      const result = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(result?.error || 'อัปเดตสถานะไม่สำเร็จ')
+        setLoading(false)
+        return
+      }
+
       setLoading(false)
       setDetailOpen(false)
       router.refresh()
     } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
       setLoading(false)
     }
   }
@@ -86,6 +97,12 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
         <h1 className="text-2xl font-bold text-[#153c85]">เรื่องร้องเรียน</h1>
         <p className="text-gray-500 text-sm mt-1">ดูและจัดการเรื่องร้องเรียนจากผู้ใช้</p>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

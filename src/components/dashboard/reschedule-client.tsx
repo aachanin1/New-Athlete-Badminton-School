@@ -239,6 +239,18 @@ export function RescheduleClient({ sessions, branches, isAdmin = false }: Resche
       return
     }
 
+    await fetch('/api/notifications/events/reschedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: selectedSession.id,
+        oldBranchId: selectedSession.branch_id,
+        newBranchId: pickedSlot.branchId,
+        newDate: pickedSlot.date,
+        newStartTime: pickedSlot.start,
+      }),
+    }).catch(() => null)
+
     setSuccess(true)
     setLoading(false)
     setTimeout(() => {

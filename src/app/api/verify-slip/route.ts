@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { notifyRoles, notifyUser } from '@/lib/notifications'
 import { verifySlip, validateSlipData } from '@/lib/slipok'
 
 export async function POST(request: NextRequest) {
@@ -123,6 +125,25 @@ export async function POST(request: NextRequest) {
       await (supabase.from('bookings') as any)
         .update({ status: 'paid' })
         .in('id', bookingIds)
+    }
+
+    const adminSupabase = getServiceRoleClient()
+    await notifyRoles(adminSupabase as any, {
+      roles: ['admin', 'super_admin'],
+      title: 'มีการแนบสลิปชำระเงิน',
+      message: `${bookingIds.length} รายการ • ยอด ${expectedAmount.toLocaleString('th-TH')} บาท`,
+      type: 'payment',
+      link_url: '/admin/payments',
+    })
+
+    if (verificationStatus === 'approved') {
+      await notifyUser(adminSupabase as any, {
+        user_id: user.id,
+        title: 'ยืนยันการชำระเงินสำเร็จ',
+        message: `ระบบยืนยันสลิปของคุณแล้ว สำหรับ ${bookingIds.length} รายการ`,
+        type: 'payment',
+        link_url: '/dashboard/history',
+      })
     }
 
     return NextResponse.json({

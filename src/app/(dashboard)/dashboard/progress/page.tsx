@@ -5,18 +5,19 @@ import { Badge } from '@/components/ui/badge'
 import { TrendingUp, Trophy, User } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { LEVEL_RANGES } from '@/constants/levels'
 
 const LEVEL_CATEGORIES: Record<string, { label: string; color: string }> = {
-  basic: { label: 'ชุดพื้นฐาน', color: 'bg-blue-100 text-blue-700' },
-  athlete_1: { label: 'ชุดนักกีฬา 1', color: 'bg-orange-100 text-orange-700' },
-  athlete_2: { label: 'ชุดนักกีฬา 2', color: 'bg-purple-100 text-purple-700' },
-  athlete_3: { label: 'ชุดนักกีฬา 3', color: 'bg-red-100 text-red-700' },
+  basic: { label: LEVEL_RANGES[0].label, color: 'bg-blue-100 text-blue-700' },
+  athlete_1: { label: `${LEVEL_RANGES[1].label} 1`, color: 'bg-orange-100 text-orange-700' },
+  athlete_2: { label: `${LEVEL_RANGES[2].label} 2`, color: 'bg-purple-100 text-purple-700' },
+  athlete_3: { label: `${LEVEL_RANGES[3].label} 3`, color: 'bg-red-100 text-red-700' },
 }
 
 function getLevelCategory(lv: number) {
-  if (lv <= 30) return 'basic'
-  if (lv <= 39) return 'athlete_1'
-  if (lv <= 43) return 'athlete_2'
+  if (lv <= LEVEL_RANGES[0].maxLevel) return 'basic'
+  if (lv <= LEVEL_RANGES[1].maxLevel) return 'athlete_1'
+  if (lv <= LEVEL_RANGES[2].maxLevel) return 'athlete_2'
   return 'athlete_3'
 }
 

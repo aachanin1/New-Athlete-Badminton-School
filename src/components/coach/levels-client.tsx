@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { LEVEL_RANGES } from '@/constants/levels'
 import {
   Search, BarChart3, Baby, User, TrendingUp, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react'
@@ -26,10 +27,10 @@ interface LevelsClientProps {
 }
 
 const LEVEL_CATEGORIES = [
-  { label: 'Basic', min: 1, max: 15, color: 'bg-gray-100 text-gray-700' },
-  { label: 'Athlete 1', min: 16, max: 30, color: 'bg-blue-100 text-blue-700' },
-  { label: 'Athlete 2', min: 31, max: 45, color: 'bg-purple-100 text-purple-700' },
-  { label: 'Athlete 3', min: 46, max: 60, color: 'bg-amber-100 text-amber-700' },
+  { label: LEVEL_RANGES[0].label, min: LEVEL_RANGES[0].minLevel, max: LEVEL_RANGES[0].maxLevel, color: 'bg-gray-100 text-gray-700' },
+  { label: `${LEVEL_RANGES[1].label} 1`, min: LEVEL_RANGES[1].minLevel, max: LEVEL_RANGES[1].maxLevel, color: 'bg-blue-100 text-blue-700' },
+  { label: `${LEVEL_RANGES[2].label} 2`, min: LEVEL_RANGES[2].minLevel, max: LEVEL_RANGES[2].maxLevel, color: 'bg-purple-100 text-purple-700' },
+  { label: `${LEVEL_RANGES[3].label} 3`, min: LEVEL_RANGES[3].minLevel, max: LEVEL_RANGES[3].maxLevel, color: 'bg-amber-100 text-amber-700' },
 ]
 
 function getLevelCategory(level: number) {

@@ -1,13 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, Baby, User, Search } from 'lucide-react'
+import { Users, Baby, User } from 'lucide-react'
+import { LEVEL_RANGES } from '@/constants/levels'
 
 const LEVEL_CATEGORIES = [
-  { label: 'Basic', min: 1, max: 15, color: 'bg-gray-100 text-gray-700' },
-  { label: 'Athlete 1', min: 16, max: 30, color: 'bg-blue-100 text-blue-700' },
-  { label: 'Athlete 2', min: 31, max: 45, color: 'bg-purple-100 text-purple-700' },
-  { label: 'Athlete 3', min: 46, max: 60, color: 'bg-amber-100 text-amber-700' },
+  { label: LEVEL_RANGES[0].label, min: LEVEL_RANGES[0].minLevel, max: LEVEL_RANGES[0].maxLevel, color: 'bg-gray-100 text-gray-700' },
+  { label: `${LEVEL_RANGES[1].label} 1`, min: LEVEL_RANGES[1].minLevel, max: LEVEL_RANGES[1].maxLevel, color: 'bg-blue-100 text-blue-700' },
+  { label: `${LEVEL_RANGES[2].label} 2`, min: LEVEL_RANGES[2].minLevel, max: LEVEL_RANGES[2].maxLevel, color: 'bg-purple-100 text-purple-700' },
+  { label: `${LEVEL_RANGES[3].label} 3`, min: LEVEL_RANGES[3].minLevel, max: LEVEL_RANGES[3].maxLevel, color: 'bg-amber-100 text-amber-700' },
 ]
 
 function getLevelCategory(level: number) {
@@ -34,7 +35,7 @@ export default async function StudentsPage() {
     // Adult students
     const { data: adultBookings } = await (supabase
       .from('bookings')
-      .select('user_id, branch_id, profiles!bookings_user_id_fkey(id, full_name, phone), course_types(name)')
+      .select('user_id, branch_id, total_sessions, profiles!bookings_user_id_fkey(id, full_name, phone), course_types(name, duration_hours)')
       .eq('learner_type', 'self')
       .in('branch_id', branchIds)
       .in('status', ['paid', 'verified']) as any)
@@ -50,14 +51,20 @@ export default async function StudentsPage() {
           parentName: null,
           branchName: branchMap[b.branch_id] || '',
           courseType: b.course_types?.name || '',
+          totalHours: 0,
         })
+      }
+
+      if (adultMap.has(b.user_id)) {
+        const current = adultMap.get(b.user_id)
+        current.totalHours += (b.total_sessions || 0) * Number(b.course_types?.duration_hours || 0)
       }
     })
 
     // Child students
     const { data: childBookings } = await (supabase
       .from('bookings')
-      .select('child_id, user_id, branch_id, profiles!bookings_user_id_fkey(full_name, phone), course_types(name)')
+      .select('child_id, user_id, branch_id, total_sessions, profiles!bookings_user_id_fkey(full_name, phone), course_types(name, duration_hours)')
       .eq('learner_type', 'child')
       .not('child_id', 'is', null)
       .in('branch_id', branchIds)
@@ -80,6 +87,9 @@ export default async function StudentsPage() {
           parentName: parentBooking?.profiles?.full_name || null,
           branchName: branchMap[parentBooking?.branch_id] || '',
           courseType: parentBooking?.course_types?.name || '',
+          totalHours: (childBookings || [])
+            .filter((b: any) => b.child_id === c.id)
+            .reduce((sum: number, b: any) => sum + ((b.total_sessions || 0) * Number(b.course_types?.duration_hours || 0)), 0),
         })
       })
     }
@@ -101,7 +111,7 @@ export default async function StudentsPage() {
     })
   }
 
-  const students = studentList.map((s) => ({ ...s, level: levelMap[s.id] || null }))
+  const students = studentList.map((s) => ({ ...s, level: levelMap[s.id] || null, totalHours: s.totalHours || 0 }))
   students.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'))
 
   const COURSE_LABELS: Record<string, string> = { kids_group: 'เด็กกลุ่ม', adult_group: 'ผู้ใหญ่กลุ่ม', private: 'Private' }
@@ -136,6 +146,7 @@ export default async function StudentsPage() {
                     <div className="flex items-center gap-2 text-[11px] text-gray-400 flex-wrap">
                       {s.parentName && <span>ผู้ปกครอง: {s.parentName}</span>}
                       {s.branchName && <span>• {s.branchName}</span>}
+                      <span>• เรียนแล้ว {Number(s.totalHours || 0).toLocaleString('th-TH', { maximumFractionDigits: 1 })} ชม.</span>
                       {s.courseType && <Badge className="bg-blue-50 text-blue-600 text-[10px]">{COURSE_LABELS[s.courseType] || s.courseType}</Badge>}
                       {cat && <Badge className={`${cat.color} text-[10px]`}>{cat.label}</Badge>}
                     </div>

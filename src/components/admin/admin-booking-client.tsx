@@ -13,7 +13,7 @@ import {
   AlertCircle, MapPin, CalendarDays, Clock, Baby, Shield,
 } from 'lucide-react'
 import { getAvailableSlots, hasAvailableSlots, DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
-import { getKidsGroupTotal, getKidsGroupIncremental, getAdultGroupTotal } from '@/lib/pricing'
+import { getKidsGroupTotal, getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 import type { Branch, CourseTypeName } from '@/types/database'
 
@@ -166,6 +166,8 @@ export function AdminBookingClient({ users, branches, courseTypes, existingBooki
     if (courseType === 'kids_group' && kidsIncremental) return kidsIncremental.incrementalPrice
     return pricing.perSession * allSelectedSessions.length
   }, [pricing, courseType, kidsIncremental, allSelectedSessions.length])
+
+  const sessionStatus = allSelectedSessions.length > 0 ? getSessionStatusLabel(allSelectedSessions.length) : null
 
   // Calendar helpers
   const calendarDays = useMemo(() => {
@@ -632,8 +634,18 @@ export function AdminBookingClient({ users, branches, courseTypes, existingBooki
           {/* Pricing preview */}
           {pricing && (
             <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4 text-sm">
-                <div className="flex justify-between"><span>จำนวนครั้ง</span><span className="font-bold">{allSelectedSessions.length} ครั้ง</span></div>
+              <CardContent className="p-4 text-sm space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex justify-between flex-1"><span>จำนวนครั้ง</span><span className="font-bold">{allSelectedSessions.length} ครั้ง</span></div>
+                  {sessionStatus && (
+                    <Badge className={sessionStatus.warning ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}>
+                      {sessionStatus.emoji} {sessionStatus.label}
+                    </Badge>
+                  )}
+                </div>
+                {sessionStatus?.warning && (
+                  <p className="rounded bg-yellow-50 p-2 text-xs text-yellow-600">{sessionStatus.warning}</p>
+                )}
                 <div className="flex justify-between"><span>เรท</span><span>{pricing.tierLabel} ({formatMoney(pricing.perSession)}/ครั้ง)</span></div>
                 <div className="flex justify-between font-bold text-lg mt-1 text-[#2748bf]"><span>รวม</span><span>{formatMoney(totalPrice)}</span></div>
               </CardContent>

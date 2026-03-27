@@ -1,27 +1,14 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
-import type { UserRole } from '@/types/database'
+import { requireAdminPageAccess } from '@/lib/auth/admin'
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { profile, role } = await requireAdminPageAccess()
 
-  if (!user) {
-    redirect('/auth/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role')
-    .eq('id', user.id)
-    .single() as { data: { full_name: string; role: UserRole } | null }
-
-  const isSuperAdmin = profile?.role === 'super_admin'
+  const isSuperAdmin = role === 'super_admin'
 
   return (
     <div className="min-h-screen bg-gray-50">

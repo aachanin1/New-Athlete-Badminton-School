@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { UsersClient } from '@/components/admin/users-client'
+import { requireAdminPageAccess } from '@/lib/auth/admin'
 
 export default async function UsersPage() {
+  const { role } = await requireAdminPageAccess()
   const supabase = createClient()
 
   // Fetch all profiles
@@ -36,5 +38,5 @@ export default async function UsersPage() {
     booking_count: bookingCountMap[p.id] || 0,
   }))
 
-  return <UsersClient users={users} />
+  return <UsersClient users={users} currentAdminRole={role || 'admin'} />
 }

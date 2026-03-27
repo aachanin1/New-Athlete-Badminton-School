@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { SettingsClient } from '@/components/admin/settings-client'
+import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
 
 export default async function SettingsPage() {
+  await requireSuperAdminPageAccess()
   const supabase = createClient()
 
   const { data: settings } = await (supabase

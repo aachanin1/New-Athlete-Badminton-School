@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { notifyUser } from '@/lib/notifications'
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -35,7 +36,7 @@ export async function PATCH(request: NextRequest) {
     // Get payment to find booking_id
     const { data: payment, error: fetchErr } = await adminSupabase
       .from('payments')
-      .select('id, booking_id, status')
+      .select('id, booking_id, user_id, status')
       .eq('id', paymentId)
       .single() as any
 
@@ -78,6 +79,16 @@ export async function PATCH(request: NextRequest) {
         .update({ status: 'pending_payment' })
         .eq('id', payment.booking_id)
     }
+
+    await notifyUser(adminSupabase as any, {
+      user_id: payment.user_id,
+      title: action === 'approve' ? 'ยืนยันการชำระเงินแล้ว' : 'การชำระเงินต้องตรวจสอบใหม่',
+      message: action === 'approve'
+        ? 'ผู้ดูแลได้ยืนยันการชำระเงินของคุณแล้ว'
+        : 'ผู้ดูแลปฏิเสธการชำระเงินครั้งนี้ กรุณาตรวจสอบและแนบสลิปใหม่',
+      type: 'payment',
+      link_url: '/dashboard/history',
+    })
 
     return NextResponse.json({ success: true, status: newStatus })
   } catch (err: any) {

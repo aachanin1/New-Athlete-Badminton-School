@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { notifyRoles } from '@/lib/notifications'
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -47,6 +49,23 @@ export async function POST(request: NextRequest) {
       if (insertErr) {
         return NextResponse.json({ error: `สร้างไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
       }
+    }
+
+    if (status === 'submitted') {
+      const adminSupabase = getServiceRoleClient()
+      const { data: profile } = await ((adminSupabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', coach.id)
+        .single()) as any)
+
+      await notifyRoles(adminSupabase as any, {
+        roles: ['super_admin'],
+        title: 'โปรแกรมสอนรอตรวจ',
+        message: `${profile?.full_name || 'โค้ช'} ส่งโปรแกรมสอนเข้าตรวจแล้ว`,
+        type: 'system',
+        link_url: '/admin/logs',
+      })
     }
 
     return NextResponse.json({ success: true })

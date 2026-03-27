@@ -44,6 +44,7 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
   const [filterBranch, setFilterBranch] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Form state for creating makeup session
   const [selectedSession, setSelectedSession] = useState<BookingSessionData | null>(null)
@@ -70,6 +71,7 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
 
   const openMakeupDialog = (session: BookingSessionData) => {
+    setError(null)
     setSelectedSession(session)
     setMakeupDate('')
     setMakeupBranch('')
@@ -80,8 +82,9 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
   const createMakeup = async () => {
     if (!selectedSession || !makeupDate) return
     setLoading(true)
+    setError(null)
     try {
-      await fetch('/api/admin/makeup', {
+      const res = await fetch('/api/admin/makeup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,10 +95,17 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
           notes: makeupNote || undefined,
         }),
       })
+
+      const result = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(result?.error || 'สร้างวันชดเชยไม่สำเร็จ')
+        return
+      }
+
       setDialogOpen(false)
       router.refresh()
     } catch {
-      // silent
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setLoading(false)
     }
@@ -105,7 +115,7 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">วันชดเชย</h1>
-        <p className="text-gray-500 text-sm mt-1">เลือกวันชดเชยให้นักเรียนโดยไม่คิดค่าใช้จ่าย (Super Admin เท่านั้น)</p>
+        <p className="text-gray-500 text-sm mt-1">เลือกวันชดเชยให้นักเรียนโดยไม่คิดค่าใช้จ่าย</p>
       </div>
 
       {/* Stats */}
@@ -190,6 +200,11 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
           </DialogHeader>
           {selectedSession && (
             <div className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
               <div className="p-3 bg-gray-50 rounded-lg text-sm">
                 <p className="font-medium">{selectedSession.learner_name}</p>
                 <p className="text-gray-500 text-xs">วันเดิม: {formatDate(selectedSession.date)} {selectedSession.start_time}-{selectedSession.end_time}</p>

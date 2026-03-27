@@ -39,6 +39,7 @@ export function BranchesClient({ branches }: BranchesClientProps) {
   const [formActive, setFormActive] = useState(true)
   const [loading, setLoading] = useState(false)
   const [isNew, setIsNew] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     return branches.filter((b) => {
@@ -57,6 +58,7 @@ export function BranchesClient({ branches }: BranchesClientProps) {
   }), [branches])
 
   const openEdit = (branch: BranchData) => {
+    setError(null)
     setEditBranch(branch)
     setFormName(branch.name)
     setFormAddress(branch.address || '')
@@ -66,6 +68,7 @@ export function BranchesClient({ branches }: BranchesClientProps) {
   }
 
   const openNew = () => {
+    setError(null)
     setEditBranch(null)
     setFormName('')
     setFormAddress('')
@@ -77,8 +80,9 @@ export function BranchesClient({ branches }: BranchesClientProps) {
   const saveBranch = async () => {
     if (!formName.trim()) return
     setLoading(true)
+    setError(null)
     try {
-      await fetch('/api/admin/branches', {
+      const res = await fetch('/api/admin/branches', {
         method: isNew ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,10 +92,17 @@ export function BranchesClient({ branches }: BranchesClientProps) {
           is_active: formActive,
         }),
       })
+
+      const result = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(result?.error || 'บันทึกข้อมูลสาขาไม่สำเร็จ')
+        return
+      }
+
       setEditOpen(false)
       router.refresh()
     } catch {
-      // silent
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setLoading(false)
     }
@@ -190,6 +201,11 @@ export function BranchesClient({ branches }: BranchesClientProps) {
             <DialogTitle className="text-[#153c85]">{isNew ? 'เพิ่มสาขาใหม่' : 'แก้ไขสาขา'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {error && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </div>
+            )}
             <div>
               <Label>ชื่อสาขา</Label>
               <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="เช่น สาขาเมืองทองธานี" />

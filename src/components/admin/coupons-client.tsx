@@ -121,15 +121,27 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
 
   const toggleActive = async (coupon: CouponData) => {
     setLoading(true)
+    setError(null)
+    setSuccess(null)
     try {
-      await fetch('/api/admin/coupons', {
+      const res = await fetch('/api/admin/coupons', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ couponId: coupon.id, isActive: !coupon.is_active }),
       })
+
+      const json = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(json?.error || 'อัปเดตสถานะคูปองไม่สำเร็จ')
+        setLoading(false)
+        return
+      }
+
+      setSuccess(`${coupon.code} ${coupon.is_active ? 'ถูกปิดใช้งานแล้ว' : 'ถูกเปิดใช้งานแล้ว'}`)
       setLoading(false)
       router.refresh()
     } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
       setLoading(false)
     }
   }

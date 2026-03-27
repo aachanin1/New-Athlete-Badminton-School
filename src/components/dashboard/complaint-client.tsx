@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -90,18 +89,20 @@ export function ComplaintClient({ complaints, branches, userId }: ComplaintClien
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-
-    const { error: err } = await (supabase.from('complaints') as any).insert({
-      user_id: userId,
-      branch_id: branchId,
-      subject: subject.trim(),
-      message: message.trim(),
-      status: 'open',
+    const res = await fetch('/api/complaints', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        branch_id: branchId,
+        subject: subject.trim(),
+        message: message.trim(),
+      }),
     })
 
-    if (err) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
+    const result = await res.json().catch(() => null)
+
+    if (!res.ok) {
+      setError(result?.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่')
       setLoading(false)
       return
     }

@@ -31,6 +31,7 @@ export function SettingsClient({ settings }: SettingsClientProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isNew, setIsNew] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [formId, setFormId] = useState<string>('')
   const [formKey, setFormKey] = useState('')
@@ -39,6 +40,7 @@ export function SettingsClient({ settings }: SettingsClientProps) {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 
   const openEdit = (setting: SettingData) => {
+    setError(null)
     setFormId(setting.id)
     setFormKey(setting.key)
     setFormValue(JSON.stringify(setting.value, null, 2))
@@ -47,6 +49,7 @@ export function SettingsClient({ settings }: SettingsClientProps) {
   }
 
   const openNew = () => {
+    setError(null)
     setFormId('')
     setFormKey('')
     setFormValue('{}')
@@ -64,8 +67,9 @@ export function SettingsClient({ settings }: SettingsClientProps) {
     }
 
     setLoading(true)
+    setError(null)
     try {
-      await fetch('/api/admin/settings', {
+      const res = await fetch('/api/admin/settings', {
         method: isNew ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -74,10 +78,17 @@ export function SettingsClient({ settings }: SettingsClientProps) {
           value: parsedValue,
         }),
       })
+
+      const result = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(result?.error || 'บันทึกการตั้งค่าไม่สำเร็จ')
+        return
+      }
+
       setEditOpen(false)
       router.refresh()
     } catch {
-      // silent
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setLoading(false)
     }
@@ -138,6 +149,11 @@ export function SettingsClient({ settings }: SettingsClientProps) {
             <DialogTitle className="text-[#153c85]">{isNew ? 'เพิ่มการตั้งค่า' : 'แก้ไขการตั้งค่า'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {error && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </div>
+            )}
             <div>
               <Label>Key</Label>
               <Input value={formKey} onChange={(e) => setFormKey(e.target.value)} placeholder="setting_key" disabled={!isNew} className="font-mono" />

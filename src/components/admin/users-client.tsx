@@ -33,6 +33,7 @@ interface UserData {
 
 interface UsersClientProps {
   users: UserData[]
+  currentAdminRole: UserRole
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -51,7 +52,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'super_admin', label: 'Super Admin' },
 ]
 
-export function UsersClient({ users }: UsersClientProps) {
+export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
@@ -62,6 +63,13 @@ export function UsersClient({ users }: UsersClientProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  const isSuperAdmin = currentAdminRole === 'super_admin'
+
+  const editableRoleOptions = useMemo(() => {
+    if (isSuperAdmin) return ROLE_OPTIONS
+    return ROLE_OPTIONS.filter((option) => !['admin', 'super_admin'].includes(option.value))
+  }, [isSuperAdmin])
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
@@ -84,6 +92,12 @@ export function UsersClient({ users }: UsersClientProps) {
   }), [users])
 
   const openEditRole = (user: UserData) => {
+    if (!isSuperAdmin && ['admin', 'super_admin'].includes(user.role)) {
+      setError('เฉพาะ Super Admin เท่านั้นที่แก้ไข role ของ Admin และ Super Admin ได้')
+      setSuccess(null)
+      return
+    }
+
     setEditUser(user)
     setEditRole(user.role)
     setError(null)
@@ -235,7 +249,7 @@ export function UsersClient({ users }: UsersClientProps) {
                       )}
 
                       <div className="flex justify-end">
-                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openEditRole(user) }}>
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openEditRole(user) }} disabled={!isSuperAdmin && ['admin', 'super_admin'].includes(user.role)}>
                           <Shield className="h-3.5 w-3.5 mr-1.5" />เปลี่ยน Role
                         </Button>
                       </div>
@@ -272,12 +286,16 @@ export function UsersClient({ users }: UsersClientProps) {
                 <Select value={editRole} onValueChange={(v) => setEditRole(v as UserRole)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {ROLE_OPTIONS.map((r) => (
+                    {editableRoleOptions.map((r) => (
                       <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {!isSuperAdmin && (
+                <p className="text-xs text-gray-500">Admin สามารถจัดการได้เฉพาะ user, coach และ head coach</p>
+              )}
 
               {editRole !== editUser.role && (
                 <p className="text-xs text-orange-600 flex items-center gap-1">

@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { LogsClient } from '@/components/admin/logs-client'
+import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
 
 export default async function LogsPage() {
+  await requireSuperAdminPageAccess()
   const supabase = createClient()
 
   const { data: logs } = await (supabase

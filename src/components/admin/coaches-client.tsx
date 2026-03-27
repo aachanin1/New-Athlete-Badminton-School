@@ -185,13 +185,30 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
     setConfirmDesc(`ต้องการเปลี่ยน "${coach.full_name}" กลับเป็น User ธรรมดาหรือไม่? จะลบสาขาที่ผูกไว้ทั้งหมด`)
     setConfirmAction(() => async () => {
       setLoading(true)
-      await fetch('/api/admin/coaches', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coachId: coach.id, role: 'user', branchIds: [] }),
-      })
-      setLoading(false)
-      router.refresh()
+      setError(null)
+      setSuccess(null)
+
+      try {
+        const res = await fetch('/api/admin/coaches', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coachId: coach.id, role: 'user', branchIds: [] }),
+        })
+
+        const result = await res.json().catch(() => null)
+        if (!res.ok) {
+          setError(result?.error || 'ปลดจากโค้ชไม่สำเร็จ')
+          setLoading(false)
+          return
+        }
+
+        setSuccess(`เปลี่ยน "${coach.full_name}" กลับเป็น User แล้ว`)
+        setLoading(false)
+        router.refresh()
+      } catch {
+        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+        setLoading(false)
+      }
     })
     setConfirmOpen(true)
   }
