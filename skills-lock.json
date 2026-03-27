@@ -4,7 +4,7 @@
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
-      "computedHash": "94d3dfb9c0a88a5ee8eb5b398143b081097c4c31a4fe81ae0e9b7d8f6a3325ab"
+      "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
     }
   }
 }
