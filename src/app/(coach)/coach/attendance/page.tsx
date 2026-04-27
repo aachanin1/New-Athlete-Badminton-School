@@ -18,15 +18,31 @@ export default async function AttendancePage() {
   const branchMap: Record<string, string> = {}
   ;(coachBranches || []).forEach((cb: any) => { branchMap[cb.branch_id] = cb.branches?.name || '' })
 
-  // Get today's sessions at coach's branches
+  const { data: assignments } = await (supabase
+    .from('coach_assignments')
+    .select('schedule_slot_id')
+    .eq('coach_id', user.id) as any)
+  const assignedSlotIds = (assignments || []).map((assignment: any) => assignment.schedule_slot_id).filter(Boolean)
+
   let sessions: any[] = []
-  if (branchIds.length > 0) {
+  if (assignedSlotIds.length > 0) {
     const { data } = await (supabase
       .from('booking_sessions')
-      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, status, bookings(user_id, learner_type, course_type_id, profiles!bookings_user_id_fkey(full_name), course_types(name))')
+      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status, bookings!inner(user_id, learner_type, course_type_id, status, profiles!bookings_user_id_fkey(full_name), course_types(name))')
+      .eq('date', today)
+      .in('status', ['scheduled', 'completed'])
+      .in('schedule_slot_id', assignedSlotIds)
+      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
+      .order('start_time') as any)
+    sessions = data || []
+  } else if (branchIds.length > 0) {
+    const { data } = await (supabase
+      .from('booking_sessions')
+      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status, bookings!inner(user_id, learner_type, course_type_id, status, profiles!bookings_user_id_fkey(full_name), course_types(name))')
       .eq('date', today)
       .in('status', ['scheduled', 'completed'])
       .in('branch_id', branchIds)
+      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
       .order('start_time') as any)
     sessions = data || []
   }

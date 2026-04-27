@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { logActivity } from '@/lib/activity-log'
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -53,6 +54,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `บันทึกไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
       }
     }
+
+    await logActivity({
+      userId: coach.id,
+      action: 'mark_attendance',
+      entityType: 'attendance',
+      details: {
+        bookingSessionId,
+        studentId,
+        studentType,
+        status,
+      },
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

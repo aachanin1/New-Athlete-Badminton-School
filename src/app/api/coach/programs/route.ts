@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles } from '@/lib/notifications'
+import { logActivity } from '@/lib/activity-log'
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -38,17 +39,35 @@ export async function POST(request: NextRequest) {
       if (updateErr) {
         return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${updateErr.message}` }, { status: 500 })
       }
+
+      await logActivity({
+        userId: coach.id,
+        action: 'update_teaching_program',
+        entityType: 'program',
+        entityId: programId,
+        details: { status: status || 'draft' },
+        ipAddress: request.headers.get('x-forwarded-for'),
+      })
     } else {
       // Create new (without schedule_slot_id for now — general program)
-      const { error: insertErr } = await (supabase.from('teaching_programs') as any).insert({
+      const { data: insertedProgram, error: insertErr } = await (supabase.from('teaching_programs') as any).insert({
         coach_id: coach.id,
         program_content: programContent,
         status: status || 'draft',
-      })
+      }).select('id').single()
 
       if (insertErr) {
         return NextResponse.json({ error: `สร้างไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
       }
+
+      await logActivity({
+        userId: coach.id,
+        action: 'create_teaching_program',
+        entityType: 'program',
+        entityId: insertedProgram?.id || null,
+        details: { status: status || 'draft' },
+        ipAddress: request.headers.get('x-forwarded-for'),
+      })
     }
 
     if (status === 'submitted') {

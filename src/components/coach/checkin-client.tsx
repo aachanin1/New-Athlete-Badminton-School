@@ -1,35 +1,50 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  Camera, MapPin, CheckCircle2, AlertCircle, Loader2, ImageIcon,
+  Camera, MapPin, CheckCircle2, AlertCircle, Loader2, ImageIcon, Clock,
 } from 'lucide-react'
+import { fmtTime } from '@/lib/utils'
 
-interface BranchOption {
+interface SlotOption {
   id: string
-  name: string
+  branchId: string
+  branchName: string
+  courseType: string
+  startTime: string
+  endTime: string
 }
 
 interface CheckinHistory {
   id: string
+  scheduleSlotId: string
   branchName: string
+  courseType: string
+  startTime: string
+  endTime: string
   checkinTime: string
   photoUrl: string | null
 }
 
 interface CheckinClientProps {
-  branches: BranchOption[]
+  slots: SlotOption[]
   todayCheckins: CheckinHistory[]
 }
 
-export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
+const COURSE_LABELS: Record<string, string> = {
+  kids_group: 'เด็กกลุ่ม',
+  adult_group: 'ผู้ใหญ่กลุ่ม',
+  private: 'Private',
+}
+
+export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [selectedBranch, setSelectedBranch] = useState(branches.length === 1 ? branches[0].id : '')
+  const [selectedSlotId, setSelectedSlotId] = useState(slots.length === 1 ? slots[0].id : '')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -37,6 +52,8 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
   const [success, setSuccess] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  const checkedSlotIds = useMemo(() => new Set(todayCheckins.map((checkin) => checkin.scheduleSlotId)), [todayCheckins])
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -68,8 +85,8 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
   }
 
   const handleSubmit = async () => {
-    if (!selectedBranch) {
-      setError('กรุณาเลือกสาขา')
+    if (!selectedSlotId) {
+      setError('กรุณาเลือกรอบสอน')
       return
     }
     setLoading(true)
@@ -77,7 +94,7 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
 
     try {
       const formData = new FormData()
-      formData.append('branchId', selectedBranch)
+      formData.append('scheduleSlotId', selectedSlotId)
       if (photo) formData.append('photo', photo)
       if (location) {
         formData.append('lat', location.lat.toString())
@@ -100,13 +117,13 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
     }
   }
 
-  const fmtTime = (t: string) => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+  const fmtCheckinTime = (t: string) => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">เช็คอิน</h1>
-        <p className="text-gray-500 text-sm mt-1">เช็คอินก่อนเริ่มสอน พร้อมถ่ายรูป</p>
+        <p className="text-gray-500 text-sm mt-1">เช็คอินเป็นรายรอบสอนของตัวเอง พร้อมถ่ายรูป</p>
       </div>
 
       {success ? (
@@ -125,17 +142,29 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
               </div>
             )}
 
-            {/* Branch selection */}
+            {/* Slot selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">เลือกสาขา</label>
-              <div className="grid grid-cols-2 gap-2">
-                {branches.map((b) => (
-                  <button key={b.id} onClick={() => setSelectedBranch(b.id)}
-                    className={`p-3 rounded-lg border text-sm font-medium text-left transition-all ${selectedBranch === b.id ? 'border-[#2748bf] bg-[#2748bf]/5 text-[#2748bf]' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <MapPin className="h-4 w-4 mb-1" />{b.name}
-                  </button>
-                ))}
-              </div>
+              <label className="text-sm font-medium">เลือกรอบสอนของตัวเอง</label>
+              {slots.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">วันนี้ยังไม่มีรอบสอนที่ถูกมอบหมายให้คุณ</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {slots.map((slot) => {
+                    const isChecked = checkedSlotIds.has(slot.id)
+                    return (
+                      <button key={slot.id} onClick={() => setSelectedSlotId(slot.id)}
+                        className={`rounded-lg border p-3 text-left text-sm font-medium transition-all ${selectedSlotId === slot.id ? 'border-[#2748bf] bg-[#2748bf]/5 text-[#2748bf]' : 'border-gray-200 hover:border-gray-300'} ${isChecked ? 'opacity-70' : ''}`}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{fmtTime(slot.startTime)} - {fmtTime(slot.endTime)}</span>
+                          <Badge className="bg-blue-100 text-blue-700">{COURSE_LABELS[slot.courseType] || slot.courseType}</Badge>
+                          {isChecked && <Badge variant="outline">เช็คอินแล้ว</Badge>}
+                        </div>
+                        <p className="mt-1 flex items-center gap-1 text-xs text-gray-500"><MapPin className="h-3 w-3" />{slot.branchName}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Photo */}
@@ -171,7 +200,7 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
               )}
             </div>
 
-            <Button onClick={handleSubmit} disabled={loading || !selectedBranch} className="w-full bg-[#2748bf] hover:bg-[#153c85]">
+            <Button onClick={handleSubmit} disabled={loading || !selectedSlotId || checkedSlotIds.has(selectedSlotId)} className="w-full bg-[#2748bf] hover:bg-[#153c85]">
               {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />กำลังเช็คอิน...</> : <><Camera className="h-4 w-4 mr-2" />เช็คอิน</>}
             </Button>
           </CardContent>
@@ -191,8 +220,8 @@ export function CheckinClient({ branches, todayCheckins }: CheckinClientProps) {
                   <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><ImageIcon className="h-5 w-5 text-gray-300" /></div>
                 )}
                 <div>
-                  <p className="font-medium text-sm">{ci.branchName}</p>
-                  <p className="text-xs text-gray-500">{fmtTime(ci.checkinTime)}</p>
+                  <p className="font-medium text-sm">{fmtTime(ci.startTime)} - {fmtTime(ci.endTime)} • {ci.branchName}</p>
+                  <p className="text-xs text-gray-500">{COURSE_LABELS[ci.courseType] || ci.courseType} • เช็คอิน {fmtCheckinTime(ci.checkinTime)}</p>
                 </div>
                 <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto" />
               </CardContent>

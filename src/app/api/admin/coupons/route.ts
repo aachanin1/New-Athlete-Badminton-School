@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { logActivity } from '@/lib/activity-log'
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -64,6 +65,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `สร้างคูปองไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
     }
 
+    await logActivity({
+      userId: admin.id,
+      action: 'create_coupon',
+      entityType: 'coupon',
+      entityId: data.id,
+      details: {
+        code: code.trim().toUpperCase(),
+        discountType,
+        discountValue,
+        minPurchase: minPurchase || null,
+        maxUses: maxUses || null,
+      },
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
+
     return NextResponse.json({ success: true, couponId: data.id })
   } catch (err: any) {
     console.error('Create coupon error:', err)
@@ -103,6 +119,15 @@ export async function PATCH(request: NextRequest) {
     if (updateErr) {
       return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${updateErr.message}` }, { status: 500 })
     }
+
+    await logActivity({
+      userId: admin.id,
+      action: 'update_coupon',
+      entityType: 'coupon',
+      entityId: couponId,
+      details: updates,
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

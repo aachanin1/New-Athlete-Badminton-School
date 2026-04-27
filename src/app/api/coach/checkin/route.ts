@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { logActivity } from '@/lib/activity-log'
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,14 +18,62 @@ export async function POST(request: NextRequest) {
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
+    const adminSupabase = getServiceRoleClient()
     const formData = await request.formData()
-    const branchId = formData.get('branchId') as string
+    const scheduleSlotId = formData.get('scheduleSlotId') as string
     const lat = formData.get('lat') as string | null
     const lng = formData.get('lng') as string | null
     const photo = formData.get('photo') as File | null
 
-    if (!branchId) {
-      return NextResponse.json({ error: 'กรุณาเลือกสาขา' }, { status: 400 })
+    if (!scheduleSlotId) {
+      return NextResponse.json({ error: 'กรุณาเลือกรอบสอน' }, { status: 400 })
+    }
+
+    const { data: assignment } = await (adminSupabase
+      .from('coach_assignments')
+      .select('schedule_slot_id')
+      .eq('coach_id', coach.id)
+      .eq('schedule_slot_id', scheduleSlotId)
+      .maybeSingle() as any)
+
+    if (!assignment) {
+      return NextResponse.json({ error: 'คุณไม่มีสิทธิ์เช็คอินรอบนี้' }, { status: 403 })
+    }
+
+    const { data: slot, error: slotError } = await (adminSupabase
+      .from('schedule_slots')
+      .select('id, branch_id, date, start_time, end_time')
+      .eq('id', scheduleSlotId)
+      .single() as any)
+
+    if (slotError || !slot) {
+      return NextResponse.json({ error: 'ไม่พบข้อมูลรอบสอน' }, { status: 404 })
+    }
+
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    if (slot.date !== today) {
+      return NextResponse.json({ error: 'เช็คอินได้เฉพาะรอบสอนของวันนี้' }, { status: 400 })
+    }
+
+    const startDate = new Date(`${slot.date}T${slot.start_time}`)
+    const endDate = new Date(`${slot.date}T${slot.end_time}`)
+    const earliestCheckin = new Date(startDate.getTime() - (120 * 60 * 1000))
+    const latestCheckin = new Date(endDate.getTime() + (15 * 60 * 1000))
+
+    if (now < earliestCheckin || now > latestCheckin) {
+      return NextResponse.json({ error: 'เช็คอินได้เฉพาะช่วงก่อนเริ่มสอนและระหว่างรอบสอนของตัวเอง' }, { status: 400 })
+    }
+
+    const { data: existingCheckin } = await (adminSupabase
+      .from('coach_checkins')
+      .select('id')
+      .eq('coach_id', coach.id)
+      .eq('schedule_slot_id', scheduleSlotId)
+      .maybeSingle() as any)
+
+    if (existingCheckin) {
+      return NextResponse.json({ error: 'คุณเช็คอินรอบนี้ไปแล้ว' }, { status: 400 })
     }
 
     let photoUrl: string | null = null
@@ -31,10 +81,10 @@ export async function POST(request: NextRequest) {
     // Upload photo if provided
     if (photo && photo.size > 0) {
       const ext = photo.name.split('.').pop() || 'jpg'
-      const fileName = `checkins/${coach.id}/${Date.now()}.${ext}`
+      const fileName = `checkins/${coach.id}/${scheduleSlotId}-${Date.now()}.${ext}`
       const buffer = Buffer.from(await photo.arrayBuffer())
 
-      const { data: uploadData, error: uploadErr } = await supabase.storage
+      const { error: uploadErr } = await adminSupabase.storage
         .from('coach-checkins')
         .upload(fileName, buffer, {
           contentType: photo.type,
@@ -45,23 +95,36 @@ export async function POST(request: NextRequest) {
         console.error('Upload error:', uploadErr)
         // Continue without photo
       } else {
-        const { data: urlData } = supabase.storage.from('coach-checkins').getPublicUrl(fileName)
+        const { data: urlData } = adminSupabase.storage.from('coach-checkins').getPublicUrl(fileName)
         photoUrl = urlData?.publicUrl || null
       }
     }
 
-    const { error: insertErr } = await (supabase.from('coach_checkins') as any).insert({
+    const { data: checkinRow, error: insertErr } = await (adminSupabase.from('coach_checkins') as any).insert({
       coach_id: coach.id,
-      branch_id: branchId,
+      schedule_slot_id: scheduleSlotId,
+      branch_id: slot.branch_id,
       checkin_time: new Date().toISOString(),
       photo_url: photoUrl,
       location_lat: lat ? parseFloat(lat) : null,
       location_lng: lng ? parseFloat(lng) : null,
-    })
+    }).select('id').single()
 
     if (insertErr) {
       return NextResponse.json({ error: `เช็คอินไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
     }
+
+    await logActivity({
+      userId: coach.id,
+      action: 'coach_checkin',
+      entityType: 'coach_checkin',
+      entityId: checkinRow?.id || null,
+      details: {
+        scheduleSlotId,
+        branchId: slot.branch_id,
+      },
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
 
     return NextResponse.json({ success: true, photoUrl })
   } catch (err: any) {

@@ -20,10 +20,24 @@ export default async function CoachDashboardPage() {
     .select('branch_id, is_head_coach, branches(name)')
     .eq('coach_id', user.id) as any)
 
-  // Today's sessions: booking_sessions for today at coach's branches
   const branchIds = (coachBranches || []).map((cb: any) => cb.branch_id)
+  const { data: assignments } = await (supabase
+    .from('coach_assignments')
+    .select('schedule_slot_id, schedule_slots!inner(id, date)')
+    .eq('coach_id', user.id)
+    .eq('schedule_slots.date', today) as any)
+  const assignedSlotIds = (assignments || []).map((assignment: any) => assignment.schedule_slot_id).filter(Boolean)
+
   let todaySessions: any[] = []
-  if (branchIds.length > 0) {
+  if (assignedSlotIds.length > 0) {
+    const { data } = await (supabase
+      .from('booking_sessions')
+      .select('id')
+      .eq('date', today)
+      .eq('status', 'scheduled')
+      .in('schedule_slot_id', assignedSlotIds) as any)
+    todaySessions = data || []
+  } else if (branchIds.length > 0) {
     const { data } = await (supabase
       .from('booking_sessions')
       .select('id')
@@ -53,15 +67,17 @@ export default async function CoachDashboardPage() {
 
   const monthTotal = (monthHours || []).reduce((s: number, h: any) => s + (parseFloat(h.total_hours) || 0), 0)
 
-  // Today's checkin
-  const { data: todayCheckin } = await (supabase
-    .from('coach_checkins')
-    .select('id')
-    .eq('coach_id', user.id)
-    .gte('created_at', today + 'T00:00:00')
-    .limit(1) as any)
+  const { data: todayCheckins } = assignedSlotIds.length > 0
+    ? await (supabase
+      .from('coach_checkins')
+      .select('id, schedule_slot_id')
+      .eq('coach_id', user.id)
+      .in('schedule_slot_id', assignedSlotIds) as any)
+    : { data: [] }
 
-  const hasCheckedIn = (todayCheckin || []).length > 0
+  const checkedSlotCount = (todayCheckins || []).length
+  const totalAssignedSlots = assignedSlotIds.length
+  const hasPendingCheckin = totalAssignedSlots > 0 && checkedSlotCount < totalAssignedSlots
 
   return (
     <div className="space-y-6">
@@ -78,9 +94,9 @@ export default async function CoachDashboardPage() {
         <Link href="/coach/attendance" className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
           <UserCheck className="h-4 w-4" />เช็คชื่อ
         </Link>
-        {!hasCheckedIn && (
+        {hasPendingCheckin && (
           <Link href="/coach/checkin" className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors animate-pulse">
-            <Camera className="h-4 w-4" />เช็คอินวันนี้
+            <Camera className="h-4 w-4" />เช็คอินรอบสอน
           </Link>
         )}
       </div>
@@ -133,12 +149,18 @@ export default async function CoachDashboardPage() {
       </div>
 
       {/* Checkin status */}
-      <Card className={hasCheckedIn ? 'border-green-200 bg-green-50/50' : 'border-orange-200 bg-orange-50/50'}>
+      <Card className={!hasPendingCheckin ? 'border-green-200 bg-green-50/50' : 'border-orange-200 bg-orange-50/50'}>
         <CardContent className="p-4 flex items-center gap-3">
-          <Camera className={`h-5 w-5 ${hasCheckedIn ? 'text-green-600' : 'text-orange-500'}`} />
+          <Camera className={`h-5 w-5 ${!hasPendingCheckin ? 'text-green-600' : 'text-orange-500'}`} />
           <div>
-            <p className="font-medium text-sm">{hasCheckedIn ? 'เช็คอินวันนี้แล้ว ✓' : 'ยังไม่ได้เช็คอินวันนี้'}</p>
-            {!hasCheckedIn && <p className="text-xs text-gray-500">กรุณาเช็คอินก่อนเริ่มสอน</p>}
+            <p className="font-medium text-sm">
+              {totalAssignedSlots === 0
+                ? 'วันนี้ยังไม่มีรอบสอนที่ถูกมอบหมาย'
+                : hasPendingCheckin
+                  ? `เช็คอินแล้ว ${checkedSlotCount}/${totalAssignedSlots} รอบ`
+                  : `เช็คอินครบแล้ว ${checkedSlotCount}/${totalAssignedSlots} รอบ ✓`}
+            </p>
+            {hasPendingCheckin && <p className="text-xs text-gray-500">กรุณาเช็คอินก่อนเริ่มสอนในแต่ละรอบของตัวเอง</p>}
           </div>
         </CardContent>
       </Card>

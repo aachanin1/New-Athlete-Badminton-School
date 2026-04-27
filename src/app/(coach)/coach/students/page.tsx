@@ -30,69 +30,75 @@ export default async function StudentsPage() {
   const branchMap: Record<string, string> = {}
   ;(coachBranches || []).forEach((cb: any) => { branchMap[cb.branch_id] = cb.branches?.name || '' })
 
+  const { data: assignments } = await (supabase
+    .from('coach_assignments')
+    .select('schedule_slot_id')
+    .eq('coach_id', user.id) as any)
+  const assignedSlotIds = (assignments || []).map((assignment: any) => assignment.schedule_slot_id).filter(Boolean)
+
   let studentList: any[] = []
-  if (branchIds.length > 0) {
-    // Adult students
-    const { data: adultBookings } = await (supabase
-      .from('bookings')
-      .select('user_id, branch_id, total_sessions, profiles!bookings_user_id_fkey(id, full_name, phone), course_types(name, duration_hours)')
-      .eq('learner_type', 'self')
+  let visibleSessions: any[] = []
+  if (assignedSlotIds.length > 0) {
+    const { data } = await (supabase
+      .from('booking_sessions')
+      .select('id, booking_id, child_id, branch_id, schedule_slot_id, bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name, phone), course_types(name, duration_hours)), children(id, full_name, nickname)')
+      .in('schedule_slot_id', assignedSlotIds)
+      .neq('status', 'rescheduled')
+      .in('bookings.status', ['pending_payment', 'paid', 'verified']) as any)
+    visibleSessions = data || []
+  } else if (branchIds.length > 0) {
+    const { data } = await (supabase
+      .from('booking_sessions')
+      .select('id, booking_id, child_id, branch_id, schedule_slot_id, bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name, phone), course_types(name, duration_hours)), children(id, full_name, nickname)')
       .in('branch_id', branchIds)
-      .in('status', ['paid', 'verified']) as any)
+      .neq('status', 'rescheduled')
+      .in('bookings.status', ['pending_payment', 'paid', 'verified']) as any)
+    visibleSessions = data || []
+  }
+
+  if (visibleSessions.length > 0) {
+    const adultBookings = visibleSessions.filter((session: any) => !session.child_id)
 
     const adultMap = new Map<string, any>()
-    ;(adultBookings || []).forEach((b: any) => {
-      if (b.profiles && !adultMap.has(b.user_id)) {
-        adultMap.set(b.user_id, {
-          id: b.user_id,
-          name: b.profiles.full_name,
+    ;(adultBookings || []).forEach((session: any) => {
+      const booking = session.bookings
+      if (booking?.profiles && !adultMap.has(booking.user_id)) {
+        adultMap.set(booking.user_id, {
+          id: booking.user_id,
+          name: booking.profiles.full_name,
           type: 'adult',
-          phone: b.profiles.phone,
+          phone: booking.profiles.phone,
           parentName: null,
-          branchName: branchMap[b.branch_id] || '',
-          courseType: b.course_types?.name || '',
+          branchName: branchMap[session.branch_id] || '',
+          courseType: booking.course_types?.name || '',
           totalHours: 0,
         })
       }
 
-      if (adultMap.has(b.user_id)) {
-        const current = adultMap.get(b.user_id)
-        current.totalHours += (b.total_sessions || 0) * Number(b.course_types?.duration_hours || 0)
+      if (adultMap.has(booking?.user_id)) {
+        const current = adultMap.get(booking.user_id)
+        current.totalHours += Number(booking.course_types?.duration_hours || 0)
       }
     })
 
-    // Child students
-    const { data: childBookings } = await (supabase
-      .from('bookings')
-      .select('child_id, user_id, branch_id, total_sessions, profiles!bookings_user_id_fkey(full_name, phone), course_types(name, duration_hours)')
-      .eq('learner_type', 'child')
-      .not('child_id', 'is', null)
-      .in('branch_id', branchIds)
-      .in('status', ['paid', 'verified']) as any)
-
-    const childIds = Array.from(new Set((childBookings || []).map((b: any) => b.child_id).filter(Boolean)))
     const childMap = new Map<string, any>()
-    if (childIds.length > 0) {
-      const { data: children } = await (supabase
-        .from('children')
-        .select('id, full_name, nickname')
-        .in('id', childIds) as any)
-      ;(children || []).forEach((c: any) => {
-        const parentBooking = (childBookings || []).find((b: any) => b.child_id === c.id)
-        childMap.set(c.id, {
-          id: c.id,
-          name: c.nickname ? `${c.full_name} (${c.nickname})` : c.full_name,
+    visibleSessions.filter((session: any) => session.child_id).forEach((session: any) => {
+      const child = session.children
+      const booking = session.bookings
+      if (!child || childMap.has(child.id)) return
+      childMap.set(child.id, {
+          id: child.id,
+          name: child.nickname ? `${child.full_name} (${child.nickname})` : child.full_name,
           type: 'child',
-          phone: parentBooking?.profiles?.phone || '',
-          parentName: parentBooking?.profiles?.full_name || null,
-          branchName: branchMap[parentBooking?.branch_id] || '',
-          courseType: parentBooking?.course_types?.name || '',
-          totalHours: (childBookings || [])
-            .filter((b: any) => b.child_id === c.id)
-            .reduce((sum: number, b: any) => sum + ((b.total_sessions || 0) * Number(b.course_types?.duration_hours || 0)), 0),
+          phone: booking?.profiles?.phone || '',
+          parentName: booking?.profiles?.full_name || null,
+          branchName: branchMap[session.branch_id] || '',
+          courseType: booking?.course_types?.name || '',
+          totalHours: visibleSessions
+            .filter((s: any) => s.child_id === child.id)
+            .reduce((sum: number, s: any) => sum + Number(s.bookings?.course_types?.duration_hours || 0), 0),
         })
-      })
-    }
+    })
 
     studentList = [...Array.from(adultMap.values()), ...Array.from(childMap.values())]
   }

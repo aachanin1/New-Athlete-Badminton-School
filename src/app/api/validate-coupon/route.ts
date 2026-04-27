@@ -37,8 +37,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'คูปองหมดอายุแล้ว' }, { status: 400 })
     }
 
+    const { count: usageCount } = await (supabase
+      .from('coupon_usages') as any)
+      .select('*', { count: 'exact', head: true })
+      .eq('coupon_id', coupon.id)
+
     // Check max uses
-    if (coupon.max_uses && coupon.current_uses >= coupon.max_uses) {
+    if (coupon.max_uses && (usageCount || 0) >= coupon.max_uses) {
       return NextResponse.json({ error: 'คูปองถูกใช้งานครบจำนวนแล้ว' }, { status: 400 })
     }
 

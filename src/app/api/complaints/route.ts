@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles } from '@/lib/notifications'
+import { logActivity } from '@/lib/activity-log'
 
 export async function POST(request: NextRequest) {
   const supabase = createClient()
@@ -49,6 +50,18 @@ export async function POST(request: NextRequest) {
       message: `${profile?.full_name || 'ผู้ใช้'} ส่งเรื่องร้องเรียน: ${subject.trim()}`,
       type: 'complaint',
       link_url: '/admin/complaints',
+    })
+
+    await logActivity({
+      userId: user.id,
+      action: 'create_complaint',
+      entityType: 'complaint',
+      entityId: complaint.id,
+      details: {
+        branch_id,
+        subject: subject.trim(),
+      },
+      ipAddress: request.headers.get('x-forwarded-for'),
     })
 
     return NextResponse.json({ success: true, complaintId: complaint.id })
