@@ -21,7 +21,8 @@ import {
   CalendarDays,
   Clock,
 } from 'lucide-react'
-import { getAvailableSlots, hasAvailableSlots, DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
+import { DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
+import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 
@@ -140,6 +141,7 @@ interface BookingClientProps {
   children: Child[]
   branches: Branch[]
   courseTypes: CourseTypeRow[]
+  scheduleTemplates: ScheduleTemplateOption[]
   existingBookings: ExistingBooking[]
   existingBookingSessions?: ExistingBookingSession[]
   editBooking?: EditBookingData | null
@@ -163,7 +165,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-export function BookingClient({ userId, userName, children, branches, courseTypes, existingBookings, existingBookingSessions = [], editBooking }: BookingClientProps) {
+export function BookingClient({ userId, userName, children, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
 
@@ -390,7 +392,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
   const getBookableSlots = (branchSlug: string, day: number) => {
     if (!courseType) return []
     const date = new Date(calYear, calMonth, day)
-    const slots = getAvailableSlots(branchSlug, courseType, date.getDay())
+    const slots = getTemplateSlots(scheduleTemplates, branchSlug, courseType, date.getDay())
     return slots.filter((slot) => isSlotBookable(day, slot))
   }
 
@@ -411,7 +413,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
     const date = new Date(calYear, calMonth, day)
     const today = getTodayStart()
     if (date < today) return false
-    return selectedBranches.some((b) => hasAvailableSlots(b.slug, courseType, date) && getBookableSlots(b.slug, day).length > 0)
+    return selectedBranches.some((b) => hasTemplateSlots(scheduleTemplates, b.slug, courseType, date) && getBookableSlots(b.slug, day).length > 0)
   }
 
   const isDateSelected = (day: number) => {

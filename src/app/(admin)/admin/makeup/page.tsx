@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { MakeupClient } from '@/components/admin/makeup-client'
+import type { CourseTypeName } from '@/types/database'
 
 interface MakeupSessionRow {
   id: string
@@ -26,10 +27,23 @@ interface BranchRow {
   slug: string
 }
 
+interface ScheduleTemplateRow {
+  id: string
+  branch_id: string
+  course_type_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active: boolean
+  notes: string | null
+  branches?: { slug: string | null } | null
+  course_types?: { name: CourseTypeName | null } | null
+}
+
 export default async function MakeupPage() {
   const supabase = createClient()
 
-  const [{ data: sessions }, { data: branches }] = await Promise.all([
+  const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }] = await Promise.all([
     supabase
       .from('booking_sessions')
       .select(`
@@ -49,6 +63,14 @@ export default async function MakeupPage() {
       .select('id, name, slug')
       .eq('is_active', true)
       .order('name') as unknown as PromiseLike<{ data: BranchRow[] | null }>,
+    supabase
+      .from('schedule_templates')
+      .select(`
+        id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active, notes,
+        branches(slug),
+        course_types(name)
+      `)
+      .eq('is_active', true) as unknown as PromiseLike<{ data: ScheduleTemplateRow[] | null }>,
   ])
 
   const sessionList = (sessions || []).map((session) => {
@@ -73,5 +95,22 @@ export default async function MakeupPage() {
     }
   })
 
-  return <MakeupClient sessions={sessionList} branches={branches || []} />
+  return (
+    <MakeupClient
+      sessions={sessionList}
+      branches={branches || []}
+      scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+        id: template.id,
+        branch_id: template.branch_id,
+        branch_slug: template.branches?.slug || '',
+        course_type_id: template.course_type_id,
+        course_type_name: template.course_types?.name || 'kids_group',
+        day_of_week: template.day_of_week,
+        start_time: template.start_time.slice(0, 5),
+        end_time: template.end_time.slice(0, 5),
+        is_active: template.is_active,
+        notes: template.notes,
+      }))}
+    />
+  )
 }

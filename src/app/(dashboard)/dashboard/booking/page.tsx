@@ -1,6 +1,20 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingClient } from '@/components/dashboard/booking-client'
+import type { CourseTypeName } from '@/types/database'
+
+interface ScheduleTemplateRow {
+  id: string
+  branch_id: string
+  course_type_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active: boolean
+  notes: string | null
+  branches?: { slug: string | null } | null
+  course_types?: { name: CourseTypeName | null } | null
+}
 
 export default async function BookingPage({ searchParams }: { searchParams: { editBookingId?: string } }) {
   const supabase = createClient()
@@ -26,6 +40,15 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
   const { data: courseTypes } = await supabase
     .from('course_types')
     .select('id, name')
+
+  const { data: scheduleTemplates } = await supabase
+    .from('schedule_templates')
+    .select(`
+      id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active, notes,
+      branches(slug),
+      course_types(name)
+    `)
+    .eq('is_active', true) as unknown as { data: ScheduleTemplateRow[] | null }
 
   // Fetch user profile
   const { data: profile } = await (supabase
@@ -90,6 +113,18 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
         children={children || []}
         branches={branches || []}
         courseTypes={(courseTypes as any) || []}
+        scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+          id: template.id,
+          branch_id: template.branch_id,
+          branch_slug: template.branches?.slug || '',
+          course_type_id: template.course_type_id,
+          course_type_name: template.course_types?.name || 'kids_group',
+          day_of_week: template.day_of_week,
+          start_time: template.start_time.slice(0, 5),
+          end_time: template.end_time.slice(0, 5),
+          is_active: template.is_active,
+          notes: template.notes,
+        }))}
         existingBookings={(existingBookings as any) || []}
         existingBookingSessions={existingSessionsData}
         editBooking={editBookingData}

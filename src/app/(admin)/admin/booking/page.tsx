@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { AdminBookingClient } from '@/components/admin/admin-booking-client'
+import type { CourseTypeName } from '@/types/database'
 
 interface ProfileRow {
   id: string
@@ -28,7 +29,7 @@ interface BranchRow {
 
 interface CourseTypeRow {
   id: string
-  name: string
+  name: CourseTypeName
 }
 
 interface BookingRow {
@@ -39,6 +40,19 @@ interface BookingRow {
   year: number
   total_sessions: number
   total_price: number
+}
+
+interface ScheduleTemplateRow {
+  id: string
+  branch_id: string
+  course_type_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active: boolean
+  notes: string | null
+  branches?: { slug: string | null } | null
+  course_types?: { name: CourseTypeName | null } | null
 }
 
 export default async function AdminBookingPage() {
@@ -73,6 +87,15 @@ export default async function AdminBookingPage() {
     .select('id, user_id, course_type_id, month, year, total_sessions, total_price')
     .in('status', ['paid', 'verified']) as unknown as { data: BookingRow[] | null }
 
+  const { data: scheduleTemplates } = await supabase
+    .from('schedule_templates')
+    .select(`
+      id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active, notes,
+      branches(slug),
+      course_types(name)
+    `)
+    .eq('is_active', true) as unknown as { data: ScheduleTemplateRow[] | null }
+
   // Build user list with children
   const users = (profiles || []).map((p) => ({
     id: p.id,
@@ -92,6 +115,18 @@ export default async function AdminBookingPage() {
       users={users}
       branches={(branches || []).map((branch) => ({ ...branch, slug: branch.slug || '', updated_at: branch.updated_at || branch.created_at }))}
       courseTypes={courseTypes || []}
+      scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+        id: template.id,
+        branch_id: template.branch_id,
+        branch_slug: template.branches?.slug || '',
+        course_type_id: template.course_type_id,
+        course_type_name: template.course_types?.name || 'kids_group',
+        day_of_week: template.day_of_week,
+        start_time: template.start_time.slice(0, 5),
+        end_time: template.end_time.slice(0, 5),
+        is_active: template.is_active,
+        notes: template.notes,
+      }))}
       existingBookings={bookings || []}
     />
   )

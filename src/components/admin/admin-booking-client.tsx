@@ -11,7 +11,8 @@ import {
   Search, ArrowLeft, ArrowRight, Users, User, Star, CheckCircle2, Loader2,
   AlertCircle, MapPin, Clock, Baby, Shield,
 } from 'lucide-react'
-import { getAvailableSlots, hasAvailableSlots, DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
+import { DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
+import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 import type { Branch, CourseTypeName } from '@/types/database'
@@ -52,6 +53,7 @@ interface AdminBookingClientProps {
   users: UserOption[]
   branches: Branch[]
   courseTypes: CourseTypeRow[]
+  scheduleTemplates: ScheduleTemplateOption[]
   existingBookings: ExistingBooking[]
 }
 
@@ -74,7 +76,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-export function AdminBookingClient({ users, branches, courseTypes, existingBookings }: AdminBookingClientProps) {
+export function AdminBookingClient({ users, branches, courseTypes, scheduleTemplates, existingBookings }: AdminBookingClientProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('user')
   const [loading, setLoading] = useState(false)
@@ -177,7 +179,7 @@ export function AdminBookingClient({ users, branches, courseTypes, existingBooki
   const isDateSelectable = (day: number) => {
     if (!selectedBranch || !courseType) return false
     const date = new Date(calYear, calMonth, day)
-    return hasAvailableSlots(selectedBranch.slug, courseType, date)
+    return hasTemplateSlots(scheduleTemplates, selectedBranch.slug, courseType, date)
   }
 
   const isDateSelected = (day: number) => {
@@ -501,10 +503,7 @@ export function AdminBookingClient({ users, branches, courseTypes, existingBooki
         <div className="space-y-4">
           <h3 className="font-bold text-lg text-[#153c85]">เลือกสาขา</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {branches.filter((b) => {
-              if (!courseType) return true
-              return hasAvailableSlots(b.slug, courseType, new Date()) || true // Show all but indicate which have slots
-            }).map((b) => {
+            {branches.map((b) => {
               const isActive = b.id === selectedBranchId
               return (
                 <Card key={b.id} className={`cursor-pointer transition-all ${isActive ? 'border-2 border-[#2748bf] shadow-md' : 'hover:border-[#2748bf]/30'}`}
@@ -583,7 +582,7 @@ export function AdminBookingClient({ users, branches, courseTypes, existingBooki
           {expandedDate && selectedBranch && courseType && (() => {
             const day = parseInt(expandedDate.split('-')[2])
             const date = new Date(calYear, calMonth, day)
-            const slots = getAvailableSlots(selectedBranch.slug, courseType, date.getDay())
+            const slots = getTemplateSlots(scheduleTemplates, selectedBranch.slug, courseType, date.getDay())
             return (
               <Card>
                 <CardContent className="p-4">

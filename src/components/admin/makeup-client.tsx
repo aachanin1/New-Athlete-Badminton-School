@@ -8,7 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getAvailableSlots, DAY_LABELS } from '@/lib/branch-schedules'
+import { DAY_LABELS } from '@/lib/branch-schedules'
+import { getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import {
   AlertCircle,
   Building2,
@@ -50,6 +51,7 @@ interface BranchOption {
 interface MakeupClientProps {
   sessions: BookingSessionData[]
   branches: BranchOption[]
+  scheduleTemplates: ScheduleTemplateOption[]
 }
 
 interface MonthGroup {
@@ -171,7 +173,7 @@ function toDateInput(value: Date) {
   return `${y}-${m}-${d}`
 }
 
-function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[]): AvailableDay[] {
+function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], scheduleTemplates: ScheduleTemplateOption[]): AvailableDay[] {
   if (!month) return []
   const range = getMonthRange(month.sourceSession.date)
   const courseType = normalizeCourseType(month.sourceSession.course_type)
@@ -182,7 +184,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[]):
       const slotsByBranch = branches
         .map((branch) => ({
           branch,
-          slots: getAvailableSlots(branch.slug, courseType, dayOfWeek),
+          slots: getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayOfWeek),
         }))
         .filter((item) => item.slots.length > 0)
 
@@ -196,7 +198,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[]):
     .filter((day) => day.slotsByBranch.length > 0)
 }
 
-export function MakeupClient({ sessions, branches }: MakeupClientProps) {
+export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterBranch, setFilterBranch] = useState('all')
@@ -320,7 +322,7 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
     learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
   }), [monthGroups])
 
-  const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches), [branches, selectedMonth])
+  const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates), [branches, scheduleTemplates, selectedMonth])
   const selectedDay = useMemo(
     () => availableDays.find((day) => day.dateInput === selectedDate) || null,
     [availableDays, selectedDate]
@@ -345,7 +347,7 @@ export function MakeupClient({ sessions, branches }: MakeupClientProps) {
   }, [availableDays, selectedMonth])
 
   const openMakeupDialog = (month: MonthGroup) => {
-    const days = buildAvailableDays(month, branches)
+    const days = buildAvailableDays(month, branches, scheduleTemplates)
     setError(null)
     setSelectedMonth(month)
     setSelectedDate(days[0]?.dateInput || '')

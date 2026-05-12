@@ -1,10 +1,13 @@
 'use client'
 
+import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   ArrowLeft,
@@ -13,17 +16,28 @@ import {
   Calendar,
   CalendarDays,
   Clock,
+  Loader2,
+  Plus,
   RotateCcw,
   Search,
+  Settings2,
+  Trash2,
   User,
   UserCog,
   Users,
 } from 'lucide-react'
 import { fmtTime } from '@/lib/utils'
+import type { CourseTypeName } from '@/types/database'
 
 interface BranchOption {
   id: string
   name: string
+  slug: string
+}
+
+interface CourseTypeOption {
+  id: string
+  name: CourseTypeName
 }
 
 interface ScheduleSession {
@@ -46,6 +60,23 @@ interface ScheduleSession {
 interface SchedulesClientProps {
   sessions: ScheduleSession[]
   branches: BranchOption[]
+  courseTypes: CourseTypeOption[]
+  templates: ScheduleTemplateData[]
+  canManageTemplates: boolean
+}
+
+interface ScheduleTemplateData {
+  id: string
+  branch_id: string
+  branch_slug: string
+  branch_name: string
+  course_type_id: string
+  course_type_name: CourseTypeName
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active: boolean
+  notes: string | null
 }
 
 const COURSE_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
@@ -84,6 +115,21 @@ const MONTH_NAMES_TH = [
 ]
 
 const DAY_HEADERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+const DAY_OPTIONS = [
+  { value: 0, label: 'อาทิตย์' },
+  { value: 1, label: 'จันทร์' },
+  { value: 2, label: 'อังคาร' },
+  { value: 3, label: 'พุธ' },
+  { value: 4, label: 'พฤหัสบดี' },
+  { value: 5, label: 'ศุกร์' },
+  { value: 6, label: 'เสาร์' },
+]
+
+const COURSE_LABELS: Record<CourseTypeName, string> = {
+  kids_group: 'เด็กกลุ่ม',
+  adult_group: 'ผู้ใหญ่กลุ่ม',
+  private: 'Private',
+}
 
 function getDateString(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -106,7 +152,8 @@ function formatShortDate(date: string) {
   })
 }
 
-export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
+export function SchedulesClient({ sessions, branches, courseTypes, templates, canManageTemplates }: SchedulesClientProps) {
+  const router = useRouter()
   const now = new Date()
   const today = now.toISOString().split('T')[0]
   const [month, setMonth] = useState(now.getMonth())
@@ -115,6 +162,17 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
   const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [selectedDate, setSelectedDate] = useState<string | null>(today)
+  const [templateForm, setTemplateForm] = useState({
+    branchId: branches[0]?.id || '',
+    courseTypeId: courseTypes[0]?.id || '',
+    dayOfWeek: '1',
+    startTime: '17:00',
+    endTime: '19:00',
+    notes: '',
+  })
+  const [savingTemplate, setSavingTemplate] = useState(false)
+  const [templateError, setTemplateError] = useState<string | null>(null)
+  const [updatingTemplateId, setUpdatingTemplateId] = useState<string | null>(null)
 
   const filteredMonthSessions = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -175,6 +233,18 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
   const totalBranches = new Set(filteredMonthSessions.map((session) => session.branch_id)).size
   const totalSlots = new Set(filteredMonthSessions.map((session) => `${session.date}:${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`)).size
   const unassignedSessions = filteredMonthSessions.filter((session) => session.coach_names.length === 0).length
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((template) => {
+      if (selectedBranch !== 'all' && template.branch_id !== selectedBranch) return false
+      if (selectedCourse !== 'all' && template.course_type_name !== selectedCourse) return false
+      return true
+    })
+  }, [selectedBranch, selectedCourse, templates])
+
+  const templateStats = useMemo(() => ({
+    active: templates.filter((template) => template.is_active).length,
+    inactive: templates.filter((template) => !template.is_active).length,
+  }), [templates])
 
   const goToPreviousMonth = () => {
     if (month === 0) {
@@ -200,6 +270,76 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
     setMonth(now.getMonth())
     setYear(now.getFullYear())
     setSelectedDate(today)
+  }
+
+  const createTemplate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!canManageTemplates) return
+    setSavingTemplate(true)
+    setTemplateError(null)
+
+    try {
+      const response = await fetch('/api/admin/schedule-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId: templateForm.branchId,
+          courseTypeId: templateForm.courseTypeId,
+          dayOfWeek: Number(templateForm.dayOfWeek),
+          startTime: templateForm.startTime,
+          endTime: templateForm.endTime,
+          notes: templateForm.notes,
+          isActive: true,
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'สร้างรอบเรียนไม่สำเร็จ')
+
+      setTemplateForm((current) => ({ ...current, notes: '' }))
+      router.refresh()
+    } catch (error) {
+      setTemplateError(error instanceof Error ? error.message : 'สร้างรอบเรียนไม่สำเร็จ')
+    } finally {
+      setSavingTemplate(false)
+    }
+  }
+
+  const updateTemplate = async (templateId: string, updates: { isActive?: boolean }) => {
+    if (!canManageTemplates) return
+    setUpdatingTemplateId(templateId)
+    setTemplateError(null)
+
+    try {
+      const response = await fetch('/api/admin/schedule-templates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: templateId, ...updates }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'อัปเดตรอบเรียนไม่สำเร็จ')
+      router.refresh()
+    } catch (error) {
+      setTemplateError(error instanceof Error ? error.message : 'อัปเดตรอบเรียนไม่สำเร็จ')
+    } finally {
+      setUpdatingTemplateId(null)
+    }
+  }
+
+  const deleteTemplate = async (templateId: string) => {
+    if (!canManageTemplates || !confirm('ลบรอบเรียนนี้ใช่ไหม? การจองเดิมจะไม่ถูกลบ')) return
+    setUpdatingTemplateId(templateId)
+    setTemplateError(null)
+
+    try {
+      const response = await fetch(`/api/admin/schedule-templates?id=${templateId}`, { method: 'DELETE' })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'ลบรอบเรียนไม่สำเร็จ')
+      router.refresh()
+    } catch (error) {
+      setTemplateError(error instanceof Error ? error.message : 'ลบรอบเรียนไม่สำเร็จ')
+    } finally {
+      setUpdatingTemplateId(null)
+    }
   }
 
   return (
@@ -314,6 +454,181 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="border-gray-200">
+          <CardContent className="p-4">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
+                  <Settings2 className="h-4 w-4" />
+                  Schedule Templates
+                </div>
+                <h3 className="mt-1 font-bold text-[#153c85]">ตั้งค่ารอบเรียนประจำ</h3>
+                <p className="mt-1 text-xs text-gray-500">รอบที่เพิ่มในนี้จะถูกใช้กับหน้าจองเรียนก่อนข้อมูล hardcoded เดิม</p>
+              </div>
+              <Badge variant="outline" className="shrink-0">
+                เปิด {templateStats.active} / ปิด {templateStats.inactive}
+              </Badge>
+            </div>
+
+            {!canManageTemplates ? (
+              <div className="rounded-lg border border-dashed bg-gray-50 p-4 text-sm text-gray-500">
+                เฉพาะ Super Admin เท่านั้นที่แก้รอบเรียนประจำได้
+              </div>
+            ) : (
+              <form onSubmit={createTemplate} className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>สาขา</Label>
+                    <Select value={templateForm.branchId} onValueChange={(value) => setTemplateForm((current) => ({ ...current, branchId: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map((branch) => (
+                          <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>คอร์ส</Label>
+                    <Select value={templateForm.courseTypeId} onValueChange={(value) => setTemplateForm((current) => ({ ...current, courseTypeId: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courseTypes.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>{COURSE_LABELS[course.name]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label>วัน</Label>
+                    <Select value={templateForm.dayOfWeek} onValueChange={(value) => setTemplateForm((current) => ({ ...current, dayOfWeek: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAY_OPTIONS.map((day) => (
+                          <SelectItem key={day.value} value={String(day.value)}>{day.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="template-start">เริ่ม</Label>
+                    <Input
+                      id="template-start"
+                      type="time"
+                      value={templateForm.startTime}
+                      onChange={(event) => setTemplateForm((current) => ({ ...current, startTime: event.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="template-end">จบ</Label>
+                    <Input
+                      id="template-end"
+                      type="time"
+                      value={templateForm.endTime}
+                      onChange={(event) => setTemplateForm((current) => ({ ...current, endTime: event.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="template-notes">หมายเหตุ</Label>
+                  <Input
+                    id="template-notes"
+                    value={templateForm.notes}
+                    onChange={(event) => setTemplateForm((current) => ({ ...current, notes: event.target.value }))}
+                    placeholder="เช่น รอบเด็กหลังเลิกเรียน"
+                  />
+                </div>
+
+                {templateError && (
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{templateError}</div>
+                )}
+
+                <Button type="submit" className="bg-[#2748bf] hover:bg-[#153c85]" disabled={savingTemplate || !templateForm.branchId || !templateForm.courseTypeId}>
+                  {savingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                  เพิ่มรอบเรียน
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-gray-200">
+          <CardContent className="p-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-[#153c85]">รอบเรียนจากระบบ</h3>
+                <p className="text-xs text-gray-500">กรองตามสาขา/คอร์สเดียวกับปฏิทินด้านบน</p>
+              </div>
+              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">{filteredTemplates.length} รอบ</Badge>
+            </div>
+
+            {filteredTemplates.length === 0 ? (
+              <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">
+                ยังไม่มี template ใน DB สำหรับตัวกรองนี้ ระบบจะใช้ตารางเดิมเป็น fallback
+              </div>
+            ) : (
+              <div className="max-h-[27rem] space-y-2 overflow-y-auto pr-1">
+                {filteredTemplates.map((template) => (
+                  <div key={template.id} className={template.is_active ? 'rounded-lg border bg-white p-3' : 'rounded-lg border bg-gray-50 p-3 opacity-70'}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={COURSE_CONFIG[template.course_type_name]?.badge || 'bg-gray-100 text-gray-700'}>
+                            {COURSE_LABELS[template.course_type_name]}
+                          </Badge>
+                          <span className="text-sm font-semibold text-gray-950">{DAY_OPTIONS.find((day) => day.value === template.day_of_week)?.label}</span>
+                          <span className="text-sm font-semibold text-[#2748bf]">{fmtTime(template.start_time)}-{fmtTime(template.end_time)}</span>
+                          {!template.is_active && <Badge variant="outline">ปิดใช้งาน</Badge>}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">{template.branch_name}{template.notes ? ` • ${template.notes}` : ''}</p>
+                      </div>
+                      {canManageTemplates && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateTemplate(template.id, { isActive: !template.is_active })}
+                            disabled={updatingTemplateId === template.id}
+                          >
+                            {updatingTemplateId === template.id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                            {template.is_active ? 'ปิด' : 'เปิด'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => deleteTemplate(template.id)}
+                            disabled={updatingTemplateId === template.id}
+                            aria-label="ลบรอบเรียน"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 2xl:grid-cols-[minmax(560px,.95fr)_minmax(560px,1.05fr)]">
         <Card className="border-gray-200">
