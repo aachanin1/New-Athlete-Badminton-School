@@ -1,6 +1,20 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { RescheduleClient } from '@/components/dashboard/reschedule-client'
+import type { CourseTypeName } from '@/types/database'
+
+interface ScheduleTemplateRow {
+  id: string
+  branch_id: string
+  course_type_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  is_active: boolean
+  notes: string | null
+  branches?: { slug: string | null } | null
+  course_types?: { name: CourseTypeName | null } | null
+}
 
 export default async function ReschedulePage() {
   const supabase = createClient()
@@ -20,11 +34,20 @@ export default async function ReschedulePage() {
     .order('date', { ascending: true })
 
   // Fetch branches for rescheduling target (include slug for schedule lookup)
-  const { data: branches } = await supabase
-    .from('branches')
-    .select('id, name, slug')
-    .eq('is_active', true)
-    .order('name')
+  const [{ data: branches }, { data: scheduleTemplates }] = await Promise.all([
+    supabase
+      .from('branches')
+      .select('id, name, slug')
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('schedule_templates')
+      .select(`
+        id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active, notes,
+        branches(slug),
+        course_types(name)
+      `) as unknown as Promise<{ data: ScheduleTemplateRow[] | null }>,
+  ])
 
   // Check if user is admin
   const { data: profile } = await (supabase
@@ -43,6 +66,18 @@ export default async function ReschedulePage() {
       <RescheduleClient
         sessions={sessions || []}
         branches={(branches as any) || []}
+        scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+          id: template.id,
+          branch_id: template.branch_id,
+          branch_slug: template.branches?.slug || '',
+          course_type_id: template.course_type_id,
+          course_type_name: template.course_types?.name || 'kids_group',
+          day_of_week: template.day_of_week,
+          start_time: template.start_time,
+          end_time: template.end_time,
+          is_active: template.is_active,
+          notes: template.notes,
+        }))}
         isAdmin={isAdmin}
       />
     </div>

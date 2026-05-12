@@ -24,7 +24,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react'
-import { hasAvailableSlots, getAvailableSlots, type TimeSlot } from '@/lib/branch-schedules'
+import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import { fmtTime } from '@/lib/utils'
 
 interface SessionRow {
@@ -51,6 +51,7 @@ interface BranchOption {
 interface RescheduleClientProps {
   sessions: SessionRow[]
   branches: BranchOption[]
+  scheduleTemplates: ScheduleTemplateOption[]
   isAdmin?: boolean
 }
 
@@ -83,7 +84,7 @@ function formatDateThai(dateStr: string) {
   })
 }
 
-export function RescheduleClient({ sessions, branches, isAdmin = false }: RescheduleClientProps) {
+export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmin = false }: RescheduleClientProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null)
@@ -97,18 +98,6 @@ export function RescheduleClient({ sessions, branches, isAdmin = false }: Resche
   const [calMonth, setCalMonth] = useState(now.getMonth())
   const [calYear, setCalYear] = useState(now.getFullYear())
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
-
-  // Build branch slug map
-  const branchSlugMap = useMemo(() => {
-    const m: Record<string, string> = {}
-    branches.forEach((b) => { m[b.id] = b.slug })
-    return m
-  }, [branches])
-  const branchNameMap = useMemo(() => {
-    const m: Record<string, string> = {}
-    branches.forEach((b) => { m[b.id] = b.name })
-    return m
-  }, [branches])
 
   // Derive course type from session
   const getCourseType = (session: SessionRow | null): 'kids_group' | 'adult_group' | 'private' => {
@@ -137,7 +126,7 @@ export function RescheduleClient({ sessions, branches, isAdmin = false }: Resche
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
     if (date < tomorrow) return false
     // Check if any branch has slots for this day
-    return branches.some((b) => hasAvailableSlots(b.slug, courseType, date))
+    return branches.some((b) => hasTemplateSlots(scheduleTemplates, b.slug, courseType, date))
   }
 
   // Derive booking month/year from the session's date
@@ -433,7 +422,7 @@ export function RescheduleClient({ sessions, branches, isAdmin = false }: Resche
                         {DAY_LABELS[dow]} {day} {MONTH_NAMES_TH[calMonth]} — เลือกรอบเรียน:
                       </p>
                       {branches.map((branch) => {
-                        const slots = getAvailableSlots(branch.slug, courseType, dow)
+                        const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dow)
                         if (slots.length === 0) return null
                         return (
                           <div key={branch.id}>

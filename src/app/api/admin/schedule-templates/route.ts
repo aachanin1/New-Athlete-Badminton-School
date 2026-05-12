@@ -56,6 +56,21 @@ export async function POST(request: NextRequest) {
     if (errorMessage) return NextResponse.json({ error: errorMessage }, { status: 400 })
 
     const supabaseAdmin = getServiceRoleClient()
+    const { data: duplicate } = await supabaseAdmin
+      .from('schedule_templates')
+      .select('id')
+      .eq('branch_id', payload.branchId)
+      .eq('course_type_id', payload.courseTypeId)
+      .eq('day_of_week', payload.dayOfWeek)
+      .eq('start_time', payload.startTime)
+      .eq('end_time', payload.endTime)
+      .limit(1)
+      .maybeSingle() as unknown as { data: { id: string } | null }
+
+    if (duplicate) {
+      return NextResponse.json({ error: 'มีรอบเรียนนี้อยู่แล้ว' }, { status: 409 })
+    }
+
     const { data, error } = await supabaseAdmin
       .from('schedule_templates')
       .insert({
