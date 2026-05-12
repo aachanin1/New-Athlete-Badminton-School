@@ -2,6 +2,70 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { HistoryClient } from '@/components/dashboard/history-client'
 
+interface HistoryBookingRow {
+  id: string
+  user_id: string
+  learner_type: string
+  child_id: string | null
+  branch_id: string
+  course_type_id: string
+  month: number
+  year: number
+  total_sessions: number
+  total_price: number
+  status: string
+  created_at: string
+  branches?: { name: string } | null
+  children?: { full_name: string; nickname: string | null } | null
+  course_types?: { name: string } | null
+  profiles?: { full_name: string; email: string } | null
+}
+
+interface ProfileRow {
+  role: string
+}
+
+interface PaymentRow {
+  id: string
+  booking_id: string
+  user_id: string
+  amount: number
+  method: string
+  slip_image_url: string | null
+  status: string
+  verified_by: string | null
+  verified_at: string | null
+  notes: string | null
+  created_at: string
+}
+
+interface SessionRow {
+  id: string
+  booking_id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+  status: string
+  is_makeup: boolean
+  children?: { full_name: string; nickname: string | null } | null
+  branches?: { name: string } | null
+}
+
+interface CouponUsageRow {
+  id: string
+  coupon_id: string
+  booking_id: string
+  discount_amount: number
+  used_at: string
+  coupons?: {
+    code: string
+    discount_type: string
+    discount_value: number
+  } | null
+}
+
 export default async function HistoryPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -9,41 +73,69 @@ export default async function HistoryPage() {
   if (!user) redirect('/auth/login')
 
   // Check if user is admin/super_admin
-  const { data: profile } = await (supabase
-    .from('profiles') as any)
+  const { data: profile } = await supabase
+    .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .single() as unknown as { data: ProfileRow | null }
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
   // Admin sees all bookings, user sees only own
-  let bookingsQuery = (supabase.from('bookings') as any)
-    .select('*, branches(name), children(full_name, nickname), course_types(name), profiles!bookings_user_id_fkey(full_name, email)')
+  const bookingsResult = isAdmin
+    ? await supabase
+      .from('bookings')
+      .select('*, branches(name), children(full_name, nickname), course_types(name), profiles!bookings_user_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false }) as unknown as { data: HistoryBookingRow[] | null }
+    : await supabase
+      .from('bookings')
+      .select('*, branches(name), children(full_name, nickname), course_types(name), profiles!bookings_user_id_fkey(full_name, email)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }) as unknown as { data: HistoryBookingRow[] | null }
 
-  if (!isAdmin) {
-    bookingsQuery = bookingsQuery.eq('user_id', user.id)
-  }
-
-  const { data: bookings } = await bookingsQuery.order('created_at', { ascending: false })
+  const bookings = bookingsResult.data || []
 
   // Same for payments
-  let paymentsQuery = (supabase.from('payments') as any).select('*')
-  if (!isAdmin) {
-    paymentsQuery = paymentsQuery.eq('user_id', user.id)
+  const paymentsResult = isAdmin
+    ? await supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false }) as unknown as { data: PaymentRow[] | null }
+    : await supabase
+      .from('payments')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }) as unknown as { data: PaymentRow[] | null }
+
+  const payments = paymentsResult.data || []
+
+  const bookingIds = bookings.map((booking) => booking.id)
+  let couponUsageMap: Record<string, CouponUsageRow[]> = {}
+
+  if (bookingIds.length > 0) {
+    const { data: couponUsages } = await supabase
+      .from('coupon_usages')
+      .select('id, coupon_id, booking_id, discount_amount, used_at, coupons(code, discount_type, discount_value)')
+      .in('booking_id', bookingIds)
+      .order('used_at', { ascending: false }) as unknown as { data: CouponUsageRow[] | null }
+
+    couponUsageMap = (couponUsages || []).reduce<Record<string, CouponUsageRow[]>>((map, usage) => {
+      if (!map[usage.booking_id]) map[usage.booking_id] = []
+      map[usage.booking_id].push(usage)
+      return map
+    }, {})
   }
-  const { data: payments } = await paymentsQuery.order('created_at', { ascending: false })
 
   // Fetch all sessions per booking (with child names, branch names)
-  const { data: sessionRows } = await (supabase
-    .from('booking_sessions') as any)
+  const { data: sessionRows } = await supabase
+    .from('booking_sessions')
     .select('id, booking_id, date, start_time, end_time, branch_id, child_id, status, is_makeup, children(full_name, nickname), branches(name)')
-    .order('date', { ascending: true })
+    .order('date', { ascending: true }) as unknown as { data: SessionRow[] | null }
 
   const sessionCountMap: Record<string, number> = {}
   const bookingChildNamesMap: Record<string, string[]> = {}
-  const bookingSessionsMap: Record<string, any[]> = {}
-  ;(sessionRows || []).forEach((s: any) => {
+  const bookingSessionsMap: Record<string, SessionRow[]> = {}
+  ;(sessionRows || []).forEach((s) => {
     sessionCountMap[s.booking_id] = (sessionCountMap[s.booking_id] || 0) + 1
     if (s.children?.full_name && !bookingChildNamesMap[s.booking_id]?.includes(s.children.full_name)) {
       if (!bookingChildNamesMap[s.booking_id]) bookingChildNamesMap[s.booking_id] = []
@@ -52,9 +144,6 @@ export default async function HistoryPage() {
     if (!bookingSessionsMap[s.booking_id]) bookingSessionsMap[s.booking_id] = []
     bookingSessionsMap[s.booking_id].push(s)
   })
-
-  // Fetch branches for date picker
-  const { data: branches } = await (supabase.from('branches') as any).select('id, name')
 
   return (
     <div className="space-y-6">
@@ -67,14 +156,14 @@ export default async function HistoryPage() {
         </p>
       </div>
       <HistoryClient
-        bookings={bookings || []}
-        payments={payments || []}
+        bookings={bookings}
+        payments={payments}
         userId={user.id}
         isAdmin={isAdmin}
         sessionCountMap={sessionCountMap}
         bookingChildNamesMap={bookingChildNamesMap}
         bookingSessionsMap={bookingSessionsMap}
-        branches={branches || []}
+        couponUsageMap={couponUsageMap}
       />
     </div>
   )

@@ -40,6 +40,7 @@ import {
   AlertCircle,
   Plus,
   Trash2,
+  Ticket,
 } from 'lucide-react'
 
 interface BookingWithRelations {
@@ -75,11 +76,6 @@ interface PaymentRow {
   created_at: string
 }
 
-interface BranchRow {
-  id: string
-  name: string
-}
-
 interface SessionDetail {
   id: string
   booking_id: string
@@ -94,6 +90,39 @@ interface SessionDetail {
   branches?: { name: string } | null
 }
 
+interface DbMutationResult {
+  error: { message?: string } | null
+}
+
+interface EqMutationQuery {
+  eq: (column: string, value: string) => Promise<DbMutationResult>
+}
+
+interface MutationTable {
+  update: (values: Record<string, unknown>) => EqMutationQuery
+  delete: () => EqMutationQuery
+  insert: (values: Record<string, unknown>[]) => Promise<DbMutationResult>
+}
+
+interface SlipVerifyData {
+  transRef?: string
+  amount?: number
+  sender?: string
+}
+
+interface CouponUsageDetail {
+  id: string
+  coupon_id: string
+  booking_id: string
+  discount_amount: number
+  used_at: string
+  coupons?: {
+    code: string
+    discount_type: string
+    discount_value: number
+  } | null
+}
+
 interface HistoryClientProps {
   bookings: BookingWithRelations[]
   payments: PaymentRow[]
@@ -102,7 +131,7 @@ interface HistoryClientProps {
   sessionCountMap?: Record<string, number>
   bookingChildNamesMap?: Record<string, string[]>
   bookingSessionsMap?: Record<string, SessionDetail[]>
-  branches?: BranchRow[]
+  couponUsageMap?: Record<string, CouponUsageDetail[]>
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -126,7 +155,11 @@ const COURSE_LABELS: Record<string, string> = {
 
 const MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
-export function HistoryClient({ bookings, payments, userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, branches = [] }: HistoryClientProps) {
+function mutationTable(supabase: ReturnType<typeof createClient>, tableName: string) {
+  return supabase.from(tableName) as unknown as MutationTable
+}
+
+export function HistoryClient({ bookings, payments, userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {} }: HistoryClientProps) {
   const router = useRouter()
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [pickDatesOpen, setPickDatesOpen] = useState(false)
@@ -165,13 +198,13 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
     const supabase = createClient()
 
     // Update payment status
-    await (supabase.from('payments') as any)
+    await mutationTable(supabase, 'payments')
       .update({ status: action, verified_by: userId, verified_at: new Date().toISOString() })
       .eq('id', paymentId)
 
     // Update booking status
     if (action === 'approved') {
-      await (supabase.from('bookings') as any)
+      await mutationTable(supabase, 'bookings')
         .update({ status: 'verified' })
         .eq('id', bookingId)
     }
@@ -237,7 +270,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
       is_makeup: false,
     }))
 
-    const { error: insertErr } = await (supabase.from('booking_sessions') as any).insert(sessionsToCreate)
+    const { error: insertErr } = await mutationTable(supabase, 'booking_sessions').insert(sessionsToCreate)
 
     if (insertErr) {
       console.error('Insert sessions error:', insertErr)
@@ -267,9 +300,9 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
         setError(null)
         const supabase = createClient()
 
-        await (supabase.from('booking_sessions') as any).delete().eq('booking_id', bookingId)
+        await mutationTable(supabase, 'booking_sessions').delete().eq('booking_id', bookingId)
 
-        const { error: updateErr } = await (supabase.from('bookings') as any)
+        const { error: updateErr } = await mutationTable(supabase, 'bookings')
           .update({ status: 'cancelled' })
           .eq('id', bookingId)
 
@@ -293,7 +326,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
         setLoading(true)
         const supabase = createClient()
 
-        const { error: delErr } = await (supabase.from('booking_sessions') as any).delete().eq('id', sessionId)
+        const { error: delErr } = await mutationTable(supabase, 'booking_sessions').delete().eq('id', sessionId)
 
         if (delErr) {
           setError('ลบไม่สำเร็จ กรุณาลองใหม่')
@@ -319,7 +352,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
           newPrice = remaining.length * 700
         }
 
-        await (supabase.from('bookings') as any)
+        await mutationTable(supabase, 'bookings')
           .update({ total_sessions: remaining.length, total_price: newPrice })
           .eq('id', bookingId)
 
@@ -377,7 +410,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
     reader.readAsDataURL(file)
   }
 
-  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; slipData?: any; notes?: string } | null>(null)
+  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; slipData?: SlipVerifyData; notes?: string } | null>(null)
 
   const handleSubmitPayment = async () => {
     if (payBookingIds.length === 0 || !slipFile) return
@@ -506,7 +539,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                     const sessions = bookingSessionsMap[b.id] || []
                     if (sessions.length > 0) {
                       const childCounts: Record<string, number> = {}
-                      sessions.forEach((s: any) => {
+                      sessions.forEach((s) => {
                         const name = s.children?.nickname || s.children?.full_name || 'ตัวเอง'
                         childCounts[name] = (childCounts[name] || 0) + 1
                       })
@@ -551,6 +584,8 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
               {group.bookings.map((booking) => {
                 const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_payment
                 const bookingPayments = getBookingPayments(booking.id)
+                const couponUsages = couponUsageMap[booking.id] || []
+                const couponDiscount = couponUsages.reduce((sum, usage) => sum + Number(usage.discount_amount || 0), 0)
 
                 return (
                   <Card key={booking.id} className="hover:shadow-md transition-shadow">
@@ -581,7 +616,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                                   const sessions = bookingSessionsMap[booking.id] || []
                                   if (sessions.length > 0) {
                                     const childCounts: Record<string, number> = {}
-                                    sessions.forEach((s: any) => {
+                                    sessions.forEach((s) => {
                                       const name = s.children?.nickname || s.children?.full_name || 'ตัวเอง'
                                       childCounts[name] = (childCounts[name] || 0) + 1
                                     })
@@ -599,6 +634,12 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
 
                         <div className="flex flex-col items-end gap-3">
                           <p className="text-xl font-bold text-[#2748bf]">฿{booking.total_price.toLocaleString()}</p>
+                          {couponUsages.length > 0 && (
+                            <div className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-orange-200">
+                              <Ticket className="h-3 w-3" />
+                              {couponUsages[0].coupons?.code || 'COUPON'} ลด ฿{couponDiscount.toLocaleString()}
+                            </div>
+                          )}
                           <div className="flex flex-wrap justify-end gap-2">
                             {booking.status !== 'cancelled' && (
                               <Button
@@ -944,6 +985,26 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
               </div>
 
               {/* Session list */}
+              {(couponUsageMap[selectedBooking.id] || []).length > 0 && (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm">
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-orange-700">
+                    <Ticket className="h-4 w-4" />
+                    ประวัติการใช้คูปอง
+                  </div>
+                  <div className="space-y-1.5">
+                    {(couponUsageMap[selectedBooking.id] || []).map((usage) => (
+                      <div key={usage.id} className="flex items-center justify-between gap-3 rounded-md bg-white/70 px-3 py-2">
+                        <div>
+                          <p className="font-mono font-semibold text-[#153c85]">{usage.coupons?.code || 'COUPON'}</p>
+                          <p className="text-xs text-gray-500">{new Date(usage.used_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</p>
+                        </div>
+                        <p className="font-bold text-orange-700">-฿{Number(usage.discount_amount || 0).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-700">วันเรียนที่จอง:</p>
                 {(bookingSessionsMap[selectedBooking.id] || []).filter((s) => !deletedSessionIds.has(s.id)).length === 0 ? (
