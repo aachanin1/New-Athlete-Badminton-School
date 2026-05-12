@@ -120,5 +120,5 @@ export default async function AssignGroupsPage() {
     return map
   }, {} as Record<string, any>)).sort((a: any, b: any) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
 
-  return <AssignGroupsClient coaches={coaches} groups={groups as any} />
+  return <AssignGroupsClient coaches={coaches} groups={groups as any} currentUserId={user.id} />
 }

@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Building2, CalendarDays, Clock, Loader2, User, UserCog, Users } from 'lucide-react'
+import { Building2, CalendarDays, Loader2, User, UserCog, Users } from 'lucide-react'
 import { fmtTime } from '@/lib/utils'
 
 interface CoachOption {
@@ -41,6 +41,7 @@ interface AssignmentGroup {
 interface AssignGroupsClientProps {
   coaches: CoachOption[]
   groups: AssignmentGroup[]
+  currentUserId?: string
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -56,7 +57,7 @@ const COURSE_LABELS: Record<string, string> = {
   private: 'Private',
 }
 
-export function AssignGroupsClient({ coaches, groups }: AssignGroupsClientProps) {
+export function AssignGroupsClient({ coaches, groups, currentUserId }: AssignGroupsClientProps) {
   const router = useRouter()
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [errorKey, setErrorKey] = useState<string | null>(null)
@@ -200,9 +201,14 @@ export function AssignGroupsClient({ coaches, groups }: AssignGroupsClientProps)
                         <SelectTrigger className="w-full lg:w-80"><SelectValue placeholder="เลือกโค้ช" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="unassigned">ยังไม่มอบหมาย</SelectItem>
-                          {coaches.map((coach) => (
-                            <SelectItem key={coach.id} value={coach.id}>{coach.name} • {ROLE_LABELS[coach.role] || coach.role}</SelectItem>
-                          ))}
+                          {coaches.map((coach) => {
+                            const isSelf = coach.id === currentUserId
+                            return (
+                              <SelectItem key={coach.id} value={coach.id}>
+                                {coach.name}{isSelf ? ' (ตนเอง)' : ''} • {ROLE_LABELS[coach.role] || coach.role}
+                              </SelectItem>
+                            )
+                          })}
                         </SelectContent>
                       </Select>
 

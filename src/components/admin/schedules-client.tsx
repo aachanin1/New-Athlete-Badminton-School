@@ -1,12 +1,24 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, ArrowRight, Calendar, CalendarDays, Clock, Users, User, Building2, Search, UserCog } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Calendar,
+  CalendarDays,
+  Clock,
+  RotateCcw,
+  Search,
+  User,
+  UserCog,
+  Users,
+} from 'lucide-react'
 import { fmtTime } from '@/lib/utils'
 
 interface BranchOption {
@@ -36,240 +48,410 @@ interface SchedulesClientProps {
   branches: BranchOption[]
 }
 
-const COURSE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  kids_group: { label: 'เด็กกลุ่ม', color: 'bg-blue-100 text-blue-700' },
-  adult_group: { label: 'ผู้ใหญ่กลุ่ม', color: 'bg-green-100 text-green-700' },
-  private: { label: 'Private', color: 'bg-orange-100 text-orange-700' },
+const COURSE_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
+  kids_group: { label: 'เด็กกลุ่ม', dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
+  adult_group: { label: 'ผู้ใหญ่กลุ่ม', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+  private: { label: 'Private', dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
 }
 
 const BOOKING_STATUS_LABELS: Record<string, string> = {
   pending_payment: 'รอชำระเงิน',
-  paid: 'ชำระแล้ว',
-  verified: 'ยืนยันแล้ว',
+  paid: 'แนบสลิปแล้ว',
+  verified: 'จองสำเร็จ',
+  cancelled: 'ยกเลิก',
 }
 
-const SESSION_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'นัดหมาย',
-  completed: 'เรียนแล้ว',
-  absent: 'ขาดเรียน',
+const SESSION_STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
+  scheduled: { label: 'นัดหมาย', badge: 'bg-blue-100 text-blue-700' },
+  completed: { label: 'เรียนแล้ว', badge: 'bg-emerald-100 text-emerald-700' },
+  absent: { label: 'ขาดเรียน', badge: 'bg-rose-100 text-rose-700' },
+  cancelled: { label: 'ยกเลิก', badge: 'bg-gray-100 text-gray-600' },
 }
 
-const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+const MONTH_NAMES_TH = [
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
+]
+
 const DAY_HEADERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+
+function getDateString(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function formatDisplayDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function formatShortDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+  })
+}
 
 export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
   const now = new Date()
+  const today = now.toISOString().split('T')[0]
   const [month, setMonth] = useState(now.getMonth())
   const [year, setYear] = useState(now.getFullYear())
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
+  const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [search, setSearch] = useState('')
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(today)
 
-  const monthSessions = useMemo(() => {
+  const filteredMonthSessions = useMemo(() => {
+    const q = search.trim().toLowerCase()
+
     return sessions.filter((session) => {
-      const d = new Date(session.date + 'T00:00:00')
-      return d.getMonth() === month && d.getFullYear() === year
-    })
-  }, [sessions, month, year])
-
-  const filteredSessions = useMemo(() => {
-    return monthSessions.filter((session) => {
+      const date = new Date(`${session.date}T00:00:00`)
+      if (date.getMonth() !== month || date.getFullYear() !== year) return false
       if (selectedBranch !== 'all' && session.branch_id !== selectedBranch) return false
-      if (!search) return true
-      const q = search.toLowerCase()
-      return session.learner_name.toLowerCase().includes(q)
-        || (session.parent_name || '').toLowerCase().includes(q)
-        || session.branch_name.toLowerCase().includes(q)
-        || session.course_type.toLowerCase().includes(q)
-        || session.coach_names.some((name) => name.toLowerCase().includes(q))
+      if (selectedCourse !== 'all' && session.course_type !== selectedCourse) return false
+
+      if (!q) return true
+
+      return [
+        session.learner_name,
+        session.parent_name || '',
+        session.branch_name,
+        session.course_type,
+        session.booking_status,
+        ...session.coach_names,
+      ].some((value) => value.toLowerCase().includes(q))
     })
-  }, [monthSessions, selectedBranch, search])
+  }, [sessions, month, year, selectedBranch, selectedCourse, search])
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, ScheduleSession[]> = {}
-    filteredSessions.forEach((session) => {
+
+    filteredMonthSessions.forEach((session) => {
       if (!map[session.date]) map[session.date] = []
       map[session.date].push(session)
     })
+
+    Object.values(map).forEach((items) => {
+      items.sort((a, b) => a.start_time.localeCompare(b.start_time))
+    })
+
     return map
-  }, [filteredSessions])
+  }, [filteredMonthSessions])
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    const startDow = firstDay.getDay()
-    const totalDays = lastDay.getDate()
     const days: (number | null)[] = []
-    for (let i = 0; i < startDow; i++) days.push(null)
-    for (let d = 1; d <= totalDays; d++) days.push(d)
+
+    for (let index = 0; index < firstDay.getDay(); index++) {
+      days.push(null)
+    }
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      days.push(day)
+    }
+
     return days
   }, [month, year])
 
-  const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-  const selectedSessions = selectedDate ? (sessionsByDate[selectedDate] || []) : []
-  const totalBranches = new Set(filteredSessions.map((session) => session.branch_id)).size
-  const totalLearners = new Set(filteredSessions.map((session) => `${session.parent_name || ''}::${session.learner_name}`)).size
+  const selectedSessions = selectedDate ? sessionsByDate[selectedDate] || [] : []
+  const listSessions = selectedDate ? selectedSessions : filteredMonthSessions
+  const totalLearners = new Set(filteredMonthSessions.map((session) => `${session.parent_name || ''}:${session.learner_name}`)).size
+  const totalBranches = new Set(filteredMonthSessions.map((session) => session.branch_id)).size
+  const totalSlots = new Set(filteredMonthSessions.map((session) => `${session.date}:${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`)).size
+  const unassignedSessions = filteredMonthSessions.filter((session) => session.coach_names.length === 0).length
+
+  const goToPreviousMonth = () => {
+    if (month === 0) {
+      setMonth(11)
+      setYear(year - 1)
+    } else {
+      setMonth(month - 1)
+    }
+    setSelectedDate(null)
+  }
+
+  const goToNextMonth = () => {
+    if (month === 11) {
+      setMonth(0)
+      setYear(year + 1)
+    } else {
+      setMonth(month + 1)
+    }
+    setSelectedDate(null)
+  }
+
+  const goToToday = () => {
+    setMonth(now.getMonth())
+    setYear(now.getFullYear())
+    setSelectedDate(today)
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#153c85]">ตารางเรียน</h1>
-        <p className="text-gray-500 text-sm mt-1">ดูตารางเรียนที่มีการจองจริง แยกตามวัน ผู้เรียน สาขา และโค้ช</p>
-      </div>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-medium text-[#2748bf]">
+            <CalendarDays className="h-4 w-4" />
+            Operation Calendar
+          </div>
+          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตารางเรียน</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            ดูภาพรวมรอบเรียนรายเดือน เลือกวันเพื่อดูผู้เรียน สาขา คอร์ส และโค้ชที่รับผิดชอบ
+          </p>
+        </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-[#2748bf]">{filteredSessions.length}</p><p className="text-xs text-gray-500">รายการในเดือนนี้</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{totalLearners}</p><p className="text-xs text-gray-500">ผู้เรียน</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-orange-500">{totalBranches}</p><p className="text-xs text-gray-500">สาขาที่มีตาราง</p>
-        </CardContent></Card>
-      </div>
-
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => {
-            if (month === 0) { setMonth(11); setYear(year - 1) } else setMonth(month - 1)
-            setSelectedDate(null)
-          }}>
+          <Button variant="outline" size="sm" onClick={goToToday}>
+            วันนี้
+          </Button>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <span className="w-48 text-center text-lg font-bold text-[#153c85]">{MONTH_NAMES_TH[month]} {year + 543}</span>
-          <Button variant="outline" size="sm" onClick={() => {
-            if (month === 11) { setMonth(0); setYear(year + 1) } else setMonth(month + 1)
-            setSelectedDate(null)
-          }}>
+          <div className="w-48 text-center text-base font-bold text-[#153c85]">
+            {MONTH_NAMES_TH[month]} {year + 543}
+          </div>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToNextMonth}>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาผู้เรียน, ผู้ปกครอง, โค้ช..." className="pl-10" />
-          </div>
-          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="เลือกสาขา" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทุกสาขา</SelectItem>
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 mb-2">
-            {DAY_HEADERS.map((day, idx) => <div key={day} className={`py-1 ${idx === 0 ? 'text-red-500' : ''}`}>{day}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, i) => {
-              if (day === null) return <div key={`e-${i}`} />
-              const dateStr = getDateStr(day)
-              const daySessions = sessionsByDate[dateStr] || []
-              const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear()
-              const isSelected = selectedDate === dateStr
-              const hasSessions = daySessions.length > 0
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+        <Card className="border-gray-200">
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">รอบเรียน</p>
+              <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{totalSlots}</p>
+            </div>
+            <Calendar className="h-5 w-5 text-[#2748bf]" />
+          </CardContent>
+        </Card>
+        <Card className="border-gray-200">
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">รายการจอง</p>
+              <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{filteredMonthSessions.length}</p>
+            </div>
+            <Users className="h-5 w-5 text-emerald-500" />
+          </CardContent>
+        </Card>
+        <Card className="border-gray-200">
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">ผู้เรียน</p>
+              <p className="mt-1 text-xl font-bold text-orange-500 sm:text-2xl">{totalLearners}</p>
+            </div>
+            <User className="h-5 w-5 text-orange-500" />
+          </CardContent>
+        </Card>
+        <Card className={unassignedSessions > 0 ? 'border-amber-300 bg-amber-50/40' : 'border-gray-200'}>
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">ยังไม่ assign โค้ช</p>
+              <p className="mt-1 text-xl font-bold text-amber-600 sm:text-2xl">{unassignedSessions}</p>
+            </div>
+            <UserCog className="h-5 w-5 text-amber-500" />
+          </CardContent>
+        </Card>
+      </div>
 
-              return (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                  className={`min-h-[4rem] rounded-lg p-1 text-sm transition-all ${isToday ? 'ring-2 ring-[#f57e3b]' : ''} ${isSelected ? 'bg-[#2748bf]/10 ring-2 ring-[#2748bf]' : ''} ${hasSessions ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'}`}
-                >
-                  <div className={`text-xs font-medium ${isToday ? 'text-[#f57e3b]' : i % 7 === 0 ? 'text-red-500' : hasSessions ? 'text-[#153c85]' : 'text-gray-400'}`}>{day}</div>
-                  {hasSessions && (
-                    <div className="mt-1 flex flex-wrap justify-center gap-0.5">
-                      {daySessions.slice(0, 6).map((session) => (
-                        <span key={session.id} className={`h-2 w-2 rounded-full ${session.is_makeup ? 'bg-orange-500' : session.child_id ? 'bg-emerald-500' : 'bg-blue-500'}`} title={session.learner_name} />
-                      ))}
-                      {daySessions.length > 6 && <span className="text-[10px] text-gray-400">+{daySessions.length - 6}</span>}
-                    </div>
-                  )}
-                </button>
-              )
-            })}
+      <Card className="border-gray-200">
+        <CardContent className="p-4">
+          <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_220px_180px_auto] xl:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="ค้นหาผู้เรียน ผู้ปกครอง โค้ช สาขา..."
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+              <SelectTrigger>
+                <SelectValue placeholder="ทุกสาขา" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสาขา</SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <SelectTrigger>
+                <SelectValue placeholder="ทุกคอร์ส" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกคอร์ส</SelectItem>
+                <SelectItem value="kids_group">เด็กกลุ่ม</SelectItem>
+                <SelectItem value="adult_group">ผู้ใหญ่กลุ่ม</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <p className="text-sm text-gray-500 xl:text-right">
+              {filteredMonthSessions.length} รายการ · {totalBranches} สาขา
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {selectedDate && selectedSessions.length > 0 && (
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <p className="font-medium text-[#153c85]">
-              <CalendarDays className="mr-1 inline h-4 w-4" />
-              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-            {selectedSessions.map((session) => {
-              const course = COURSE_TYPE_LABELS[session.course_type] || { label: session.course_type, color: 'bg-gray-100 text-gray-700' }
-              return (
-                <div key={session.id} className="rounded-lg border bg-gray-50 p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-[#153c85]">{session.learner_name}</p>
-                        <Badge className={`${course.color} text-[10px]`}>{course.label}</Badge>
-                        <Badge variant="outline" className="text-[10px]">{BOOKING_STATUS_LABELS[session.booking_status] || session.booking_status}</Badge>
-                        <Badge className={`text-[10px] ${session.status === 'completed' ? 'bg-green-100 text-green-700' : session.status === 'absent' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{SESSION_STATUS_LABELS[session.status] || session.status}</Badge>
-                        {session.is_makeup && <Badge variant="outline" className="border-orange-200 text-[10px] text-orange-600">ชดเชย</Badge>}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{fmtTime(session.start_time)} - {fmtTime(session.end_time)}</span>
-                        <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{session.branch_name}</span>
-                        {session.parent_name && <span className="flex items-center gap-1"><User className="h-3 w-3" />ผู้ปกครอง: {session.parent_name}</span>}
-                        <span className="flex items-center gap-1"><UserCog className="h-3 w-3" />{session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}</span>
-                      </div>
+      <div className="grid gap-4 2xl:grid-cols-[minmax(560px,.95fr)_minmax(560px,1.05fr)]">
+        <Card className="border-gray-200">
+          <CardContent className="p-4">
+            <div className="mb-3 grid grid-cols-7 text-center text-xs font-medium text-gray-500">
+              {DAY_HEADERS.map((day, index) => (
+                <div key={day} className={`py-1 ${index === 0 ? 'text-rose-500' : ''}`}>{day}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((day, index) => {
+                if (day === null) return <div key={`empty-${index}`} className="min-h-[5.25rem]" />
+
+                const date = getDateString(year, month, day)
+                const daySessions = sessionsByDate[date] || []
+                const isToday = date === today
+                const isSelected = selectedDate === date
+                const daySlots = new Set(daySessions.map((session) => `${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`)).size
+
+                return (
+                  <button
+                    key={date}
+                    type="button"
+                    onClick={() => setSelectedDate(isSelected ? null : date)}
+                    className={`min-h-[5.25rem] rounded-md border p-2 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 ${
+                      isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'
+                    } ${isToday ? 'shadow-[inset_0_0_0_1px_#f57e3b]' : ''}`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className={`text-xs font-semibold ${isToday ? 'text-[#f57e3b]' : index % 7 === 0 ? 'text-rose-500' : 'text-gray-700'}`}>
+                        {day}
+                      </span>
+                      {daySessions.length > 0 && (
+                        <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-500">{daySessions.length}</span>
+                      )}
                     </div>
-                  </div>
-                </div>
-              )
-            })}
+
+                    {daySessions.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex flex-wrap gap-1">
+                          {daySessions.slice(0, 10).map((session) => {
+                            const course = COURSE_CONFIG[session.course_type] || { dot: 'bg-gray-400' }
+                            return <span key={session.id} className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
+                          })}
+                        </div>
+                        <p className="text-[10px] text-gray-500">{daySlots} รอบ</p>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </CardContent>
         </Card>
-      )}
 
-      {!selectedDate && filteredSessions.length > 0 && (
-        <div className="space-y-2">
-          {filteredSessions.slice(0, 20).map((session) => {
-            const course = COURSE_TYPE_LABELS[session.course_type] || { label: session.course_type, color: 'bg-gray-100 text-gray-700' }
-            return (
-              <Card key={session.id}>
-                <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-[#153c85]">{session.learner_name}</p>
-                      <Badge className={`${course.color} text-[10px]`}>{course.label}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{session.branch_name}</Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                      <span>{new Date(session.date + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</span>
-                      <span>{fmtTime(session.start_time)} - {fmtTime(session.end_time)}</span>
-                      {session.parent_name && <span>ผู้ปกครอง: {session.parent_name}</span>}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <Badge className={`text-[10px] ${session.status === 'completed' ? 'bg-green-100 text-green-700' : session.status === 'absent' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{SESSION_STATUS_LABELS[session.status] || session.status}</Badge>
-                    <Badge variant="outline" className="text-[10px]">{session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      )}
+        <Card className="border-gray-200">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div>
+                <p className="font-semibold text-[#153c85]">
+                  {selectedDate ? formatDisplayDate(selectedDate) : `รายการทั้งหมดใน${MONTH_NAMES_TH[month]}`}
+                </p>
+                <p className="text-xs text-gray-500">{listSessions.length} รายการ</p>
+              </div>
+              {selectedDate && (
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
+                  ดูทั้งเดือน
+                </Button>
+              )}
+            </div>
 
-      {filteredSessions.length === 0 && (
-        <Card><CardContent className="py-12 text-center text-gray-400">
-          <Calendar className="mx-auto mb-3 h-12 w-12 opacity-40" />
-          <p className="font-medium">ไม่พบตารางเรียนในเงื่อนไขที่เลือก</p>
-        </CardContent></Card>
-      )}
+            {listSessions.length === 0 ? (
+              <div className="flex min-h-[28rem] items-center justify-center text-sm text-gray-400">
+                ไม่พบตารางเรียนในเงื่อนไขที่เลือก
+              </div>
+            ) : (
+              <div className="max-h-[44rem] overflow-y-auto p-3">
+                <div className="space-y-2">
+                  {listSessions.map((session) => {
+                    const course = COURSE_CONFIG[session.course_type] || { label: session.course_type, badge: 'bg-gray-100 text-gray-700' }
+                    const status = SESSION_STATUS_CONFIG[session.status] || { label: session.status, badge: 'bg-gray-100 text-gray-600' }
+
+                    return (
+                      <div key={session.id} className="rounded-lg border bg-white p-3 transition-colors hover:bg-gray-50">
+                        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-[#153c85]">{session.learner_name}</p>
+                              <Badge className={`text-[10px] ${course.badge}`}>{course.label}</Badge>
+                              <Badge className={`text-[10px] ${status.badge}`}>{status.label}</Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                {BOOKING_STATUS_LABELS[session.booking_status] || session.booking_status || '-'}
+                              </Badge>
+                              {session.is_makeup && (
+                                <Badge variant="outline" className="border-orange-200 text-[10px] text-orange-600">
+                                  <RotateCcw className="mr-1 h-3 w-3" />
+                                  ชดเชย
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" />
+                                {formatShortDate(session.date)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {session.branch_name}
+                              </span>
+                              {session.parent_name && (
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  ผู้ปกครอง: {session.parent_name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
+                            <UserCog className="h-3 w-3" />
+                            {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

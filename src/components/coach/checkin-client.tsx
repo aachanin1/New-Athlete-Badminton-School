@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -89,6 +90,10 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
       setError('กรุณาเลือกรอบสอน')
       return
     }
+    if (!photo) {
+      setError('กรุณาถ่ายรูปเซลฟี่หรือแนบรูปตัวเองก่อนเช็คอิน')
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -169,18 +174,19 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
 
             {/* Photo */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">ถ่ายรูป (ไม่บังคับ)</label>
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+              <label className="text-sm font-medium">รูปเซลฟี่ / รูปตัวเอง *</label>
+              <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handlePhotoChange} className="hidden" />
               {photoPreview ? (
                 <div className="relative">
-                  <img src={photoPreview} alt="preview" className="w-full max-h-64 object-cover rounded-lg" />
+                  <Image src={photoPreview} alt="preview" width={720} height={420} unoptimized className="w-full max-h-64 object-cover rounded-lg" />
                   <Button size="sm" variant="outline" className="absolute top-2 right-2" onClick={() => { setPhoto(null); setPhotoPreview(null) }}>เปลี่ยน</Button>
                 </div>
               ) : (
                 <button onClick={() => fileRef.current?.click()}
                   className="w-full border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-[#2748bf] transition-colors">
                   <Camera className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm text-gray-400">กดเพื่อถ่ายรูปหรือเลือกไฟล์</p>
+                  <p className="text-sm text-gray-500">กดเพื่อถ่ายรูปเซลฟี่หรือแนบรูปตัวเอง</p>
+                  <p className="mt-1 text-xs text-gray-400">จำเป็นสำหรับการตรวจรอบสอนและเงินเดือนโค้ช</p>
                 </button>
               )}
             </div>
@@ -200,7 +206,7 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
               )}
             </div>
 
-            <Button onClick={handleSubmit} disabled={loading || !selectedSlotId || checkedSlotIds.has(selectedSlotId)} className="w-full bg-[#2748bf] hover:bg-[#153c85]">
+            <Button onClick={handleSubmit} disabled={loading || !selectedSlotId || !photo || checkedSlotIds.has(selectedSlotId)} className="w-full bg-[#2748bf] hover:bg-[#153c85]">
               {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />กำลังเช็คอิน...</> : <><Camera className="h-4 w-4 mr-2" />เช็คอิน</>}
             </Button>
           </CardContent>
@@ -215,7 +221,7 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
             <Card key={ci.id}>
               <CardContent className="p-3 flex items-center gap-3">
                 {ci.photoUrl ? (
-                  <img src={ci.photoUrl} alt="checkin" className="w-12 h-12 object-cover rounded-lg" />
+                  <Image src={ci.photoUrl} alt="checkin" width={48} height={48} className="h-12 w-12 rounded-lg object-cover" />
                 ) : (
                   <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><ImageIcon className="h-5 w-5 text-gray-300" /></div>
                 )}
