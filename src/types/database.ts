@@ -161,6 +161,12 @@ export interface Database {
         Update: Partial<Omit<SystemSetting, 'id'>>
         Relationships: []
       }
+      finance_expenses: {
+        Row: FinanceExpense
+        Insert: Omit<FinanceExpense, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<FinanceExpense, 'id' | 'created_at'>>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -445,6 +451,18 @@ export interface ActivityLog {
   details: Record<string, unknown> | null
   ip_address: string | null
   created_at: string
+}
+
+export interface FinanceExpense {
+  id: string
+  expense_date: string
+  category: string
+  description: string | null
+  amount: number
+  branch_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface SystemSetting {

@@ -36,6 +36,7 @@ Notes:
 - [x] Admin makeup sessions dashboard with overdue detection and one-time next-month makeup creation flow.
 - [x] Admin coach check-in audit by teaching slot with mandatory selfie/photo evidence.
 - [x] Admin coach payroll review based on assigned teaching slots, verified check-in evidence, and weekly OT rules.
+- [x] Admin finance manual expenses for real monthly/yearly net income tracking.
 - [ ] Fix any auth/session/profile issues.
 - [ ] Fix any booking/session/payment data issues.
 - [ ] Fix any Storage upload or public URL issues.

@@ -43,6 +43,23 @@ interface CheckinRow {
   photo_url: string | null
 }
 
+interface ExpenseRow {
+  id: string
+  expense_date: string
+  category: string
+  description: string | null
+  amount: number
+  branch_id: string | null
+  created_at: string
+  branches?: { name: string | null } | null
+  profiles?: { full_name: string | null; email: string | null } | null
+}
+
+interface BranchOptionRow {
+  id: string
+  name: string | null
+}
+
 function getYearRange() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 1)
@@ -61,7 +78,7 @@ export default async function FinancePage() {
   const supabase = createClient()
   const range = getYearRange()
 
-  const [{ data: payments }, { data: assignments }, { data: checkins }] = await Promise.all([
+  const [{ data: payments }, { data: assignments }, { data: checkins }, { data: expenses }, { data: branches }] = await Promise.all([
     supabase
       .from('payments')
       .select(`
@@ -95,6 +112,22 @@ export default async function FinancePage() {
       .lt('checkin_time', `${range.end}T00:00:00`)
       .order('checkin_time', { ascending: false })
       .limit(2000) as unknown as PromiseLike<{ data: CheckinRow[] | null }>,
+    supabase
+      .from('finance_expenses')
+      .select(`
+        id, expense_date, category, description, amount, branch_id, created_at,
+        branches(name),
+        profiles!finance_expenses_created_by_fkey(full_name, email)
+      `)
+      .gte('expense_date', range.start)
+      .lt('expense_date', range.end)
+      .order('expense_date', { ascending: false })
+      .limit(2000) as unknown as PromiseLike<{ data: ExpenseRow[] | null }>,
+    supabase
+      .from('branches')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name') as unknown as PromiseLike<{ data: BranchOptionRow[] | null }>,
   ])
 
   const checkinMap = new Map<string, CheckinRow>()
@@ -138,11 +171,30 @@ export default async function FinancePage() {
       }
     })
 
+  const expenseList = (expenses || []).map((expense) => ({
+    id: expense.id,
+    expense_date: expense.expense_date,
+    category: expense.category,
+    description: expense.description || '',
+    amount: Number(expense.amount || 0),
+    branch_id: expense.branch_id,
+    branch_name: expense.branches?.name || '',
+    created_at: expense.created_at,
+    created_by_name: expense.profiles?.full_name || expense.profiles?.email || '',
+  }))
+
+  const branchOptions = (branches || []).map((branch) => ({
+    id: branch.id,
+    name: branch.name || 'ไม่ทราบสาขา',
+  }))
+
   const now = new Date()
   return (
     <FinanceClient
       payments={paymentList}
       payrollRows={payrollRows}
+      expenses={expenseList}
+      branches={branchOptions}
       currentMonth={now.getMonth() + 1}
       currentYear={now.getFullYear()}
     />

@@ -326,6 +326,19 @@ CREATE TABLE system_settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Finance Expenses (manual operating expenses)
+CREATE TABLE finance_expenses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  expense_date DATE NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT,
+  amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+  branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ─── INDEXES ────────────────────────────────────────────────
 
 CREATE INDEX idx_profiles_role ON profiles(role);
@@ -348,6 +361,8 @@ CREATE INDEX idx_complaints_branch ON complaints(branch_id);
 CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_created ON activity_logs(created_at);
 CREATE INDEX idx_coach_teaching_hours_coach_date ON coach_teaching_hours(coach_id, date);
+CREATE INDEX idx_finance_expenses_date ON finance_expenses(expense_date);
+CREATE INDEX idx_finance_expenses_branch ON finance_expenses(branch_id);
 
 -- ─── TRIGGERS ───────────────────────────────────────────────
 
@@ -367,6 +382,7 @@ CREATE TRIGGER tr_schedule_templates_updated_at BEFORE UPDATE ON schedule_templa
 CREATE TRIGGER tr_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_booking_sessions_updated_at BEFORE UPDATE ON booking_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_teaching_programs_updated_at BEFORE UPDATE ON teaching_programs FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_finance_expenses_updated_at BEFORE UPDATE ON finance_expenses FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Auto-create profile on auth.users insert
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -414,6 +430,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE finance_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Helper: check user role
 CREATE OR REPLACE FUNCTION auth_role()
@@ -557,6 +574,12 @@ CREATE POLICY "System can create logs" ON activity_logs FOR INSERT WITH CHECK (t
 -- system_settings
 CREATE POLICY "Anyone can view settings" ON system_settings FOR SELECT USING (true);
 CREATE POLICY "Super admin can manage settings" ON system_settings FOR ALL USING (auth_role() = 'super_admin');
+
+-- finance_expenses
+CREATE POLICY "Admins can view finance expenses" ON finance_expenses FOR SELECT USING (is_admin_or_super());
+CREATE POLICY "Admins can insert finance expenses" ON finance_expenses FOR INSERT WITH CHECK (is_admin_or_super());
+CREATE POLICY "Admins can update finance expenses" ON finance_expenses FOR UPDATE USING (is_admin_or_super()) WITH CHECK (is_admin_or_super());
+CREATE POLICY "Admins can delete finance expenses" ON finance_expenses FOR DELETE USING (is_admin_or_super());
 
 -- ─── SEED DATA ──────────────────────────────────────────────
 
