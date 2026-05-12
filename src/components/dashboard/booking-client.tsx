@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Child, Branch, CourseTypeName } from '@/types/database'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   ArrowLeft,
@@ -22,7 +22,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { getAvailableSlots, hasAvailableSlots, DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
-import { getKidsGroupTotal, getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers } from '@/lib/pricing'
+import { getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 
 interface CourseTypeRow {
@@ -58,6 +58,55 @@ interface SelectedSession {
   start: string      // "17:00"
   end: string        // "19:00"
   branchId: string
+}
+
+interface BookingSessionInsert {
+  booking_id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+  status: 'scheduled'
+  is_makeup: false
+}
+
+interface BookingInsert {
+  user_id: string
+  learner_type: 'self' | 'child'
+  child_id: string | null
+  branch_id: string | null
+  course_type_id: string
+  month: number
+  year: number
+  total_sessions: number
+  total_price: number
+  status: 'pending_payment'
+}
+
+interface BookingUpdate {
+  total_sessions: number
+  total_price: number
+  branch_id: string | null
+}
+
+interface BookingInsertResult {
+  id: string
+}
+
+interface CouponUsageInsert {
+  coupon_id: string
+  user_id: string
+  booking_id: string
+  discount_amount: number
+}
+
+interface CouponCurrentUses {
+  current_uses: number | null
+}
+
+interface DbError {
+  message: string
 }
 
 interface EditBookingSession {
@@ -315,12 +364,54 @@ export function BookingClient({ userId, userName, children, branches, courseType
     return days
   }, [calMonth, calYear])
 
+  const getDateString = (day: number) => {
+    return `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  }
+
+  const getTodayStart = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }
+
+  const getSlotStart = (day: number, startTime: string) => {
+    const [hour, minute] = startTime.split(':').map(Number)
+    return new Date(calYear, calMonth, day, hour || 0, minute || 0, 0, 0)
+  }
+
+  const isSlotBookable = (day: number, slot: TimeSlot) => {
+    const date = new Date(calYear, calMonth, day)
+    const today = getTodayStart()
+    if (date < today) return false
+    if (date > today) return true
+    return getSlotStart(day, slot.start).getTime() > Date.now()
+  }
+
+  const getBookableSlots = (branchSlug: string, day: number) => {
+    if (!courseType) return []
+    const date = new Date(calYear, calMonth, day)
+    const slots = getAvailableSlots(branchSlug, courseType, date.getDay())
+    return slots.filter((slot) => isSlotBookable(day, slot))
+  }
+
+  const isSelectedSessionStillBookable = (session: { date: string; start: string }) => {
+    const [year, month, day] = session.date.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    const today = getTodayStart()
+    if (date < today) return false
+    if (date > today) return true
+
+    const [hour, minute] = session.start.split(':').map(Number)
+    const slotStart = new Date(year, month - 1, day, hour || 0, minute || 0, 0, 0)
+    return slotStart.getTime() > Date.now()
+  }
+
   const isDateSelectable = (day: number) => {
     if (selectedBranchIds.length === 0 || !courseType) return false
     const date = new Date(calYear, calMonth, day)
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    if (date <= today) return false
-    return selectedBranches.some((b) => hasAvailableSlots(b.slug, courseType, date))
+    const today = getTodayStart()
+    if (date < today) return false
+    return selectedBranches.some((b) => hasAvailableSlots(b.slug, courseType, date) && getBookableSlots(b.slug, day).length > 0)
   }
 
   const isDateSelected = (day: number) => {
@@ -335,12 +426,13 @@ export function BookingClient({ userId, userName, children, branches, courseType
 
   const handleDayClick = (day: number) => {
     if (!isDateSelectable(day)) return
-    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dateStr = getDateString(day)
     setExpandedDate(expandedDate === dateStr ? null : dateStr)
   }
 
   const handleSlotSelect = (day: number, slot: TimeSlot, slotBranchId: string) => {
-    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    if (!isSlotBookable(day, slot)) return
+    const dateStr = getDateString(day)
     const date = new Date(calYear, calMonth, day)
     const key = activeChildTab
     const current = sessionsMap[key] || []
@@ -399,6 +491,31 @@ export function BookingClient({ userId, userName, children, branches, courseType
     setLoading(true)
     setError(null)
     const supabase = createClient()
+    const bookingSessionsTable = supabase.from('booking_sessions') as unknown as {
+      delete: () => { eq: (column: string, value: string) => Promise<{ error: DbError | null }> }
+      insert: (rows: BookingSessionInsert[]) => Promise<{ error: DbError | null }>
+    }
+    const bookingsTable = supabase.from('bookings') as unknown as {
+      update: (values: BookingUpdate) => { eq: (column: string, value: string) => Promise<{ error: DbError | null }> }
+      insert: (values: BookingInsert) => {
+        select: (columns: string) => {
+          single: () => Promise<{ data: BookingInsertResult | null; error: DbError | null }>
+        }
+      }
+    }
+    const couponUsagesTable = supabase.from('coupon_usages') as unknown as {
+      insert: (values: CouponUsageInsert) => Promise<{ error: DbError | null }>
+    }
+    const couponsTable = supabase.from('coupons') as unknown as {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          single: () => Promise<{ data: CouponCurrentUses | null; error: DbError | null }>
+        }
+      }
+      update: (values: { current_uses: number }) => {
+        eq: (column: string, value: string) => Promise<{ error: DbError | null }>
+      }
+    }
 
     const courseTypeRow = courseTypes.find((ct) => ct.name === courseType)
     if (!courseTypeRow) {
@@ -443,6 +560,13 @@ export function BookingClient({ userId, userName, children, branches, courseType
         return
       }
 
+      const expiredSession = allSessions.find((session) => !isSelectedSessionStillBookable(session))
+      if (expiredSession) {
+        setError(`รอบ ${fmtTime(expiredSession.start)}-${fmtTime(expiredSession.end)} วันที่ ${expiredSession.date} เริ่มไปแล้ว กรุณาเลือกรอบเรียนใหม่`)
+        setLoading(false)
+        return
+      }
+
       // For private: total_sessions = unique time slots (not per-attendee records)
       const bookingTotalSessions = courseType === 'private'
         ? (sessionsMap['self'] || []).length
@@ -450,9 +574,9 @@ export function BookingClient({ userId, userName, children, branches, courseType
 
       if (isEditMode && editBooking) {
         // Edit mode: delete old sessions and insert new ones, update booking
-        await (supabase.from('booking_sessions') as any).delete().eq('booking_id', editBooking.id)
+        await bookingSessionsTable.delete().eq('booking_id', editBooking.id)
 
-        const { error: updateErr } = await (supabase.from('bookings') as any)
+        const { error: updateErr } = await bookingsTable
           .update({
             total_sessions: bookingTotalSessions,
             total_price: finalPrice,
@@ -462,7 +586,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
 
         if (updateErr) { setError(`เกิดข้อผิดพลาด: ${updateErr.message}`); setLoading(false); return }
 
-        await (supabase.from('booking_sessions') as any).insert(
+        await bookingSessionsTable.insert(
           allSessions.map((s) => ({
             booking_id: editBooking.id,
             date: s.date,
@@ -479,7 +603,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
         router.refresh()
       } else {
         // New booking mode
-        const { data: bookingData, error: insertErr } = await (supabase.from('bookings') as any)
+        const { data: bookingData, error: insertErr } = await bookingsTable
           .insert({
             user_id: userId,
             learner_type: isKids ? 'child' : (learnerType || 'self'),
@@ -496,7 +620,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
         if (insertErr) { setError(`เกิดข้อผิดพลาด: ${insertErr.message}`); setLoading(false); return }
 
         if (bookingData) {
-          await (supabase.from('booking_sessions') as any).insert(
+          await bookingSessionsTable.insert(
             allSessions.map((s) => ({
               booking_id: bookingData.id,
               date: s.date,
@@ -511,19 +635,19 @@ export function BookingClient({ userId, userName, children, branches, courseType
 
           // Record coupon usage if applied
           if (appliedCoupon) {
-            await (supabase.from('coupon_usages') as any).insert({
+            await couponUsagesTable.insert({
               coupon_id: appliedCoupon.id,
               user_id: userId,
               booking_id: bookingData.id,
               discount_amount: appliedCoupon.discountAmount,
             })
             // Increment coupon usage count
-            const { data: couponData } = await (supabase.from('coupons') as any)
+            const { data: couponData } = await couponsTable
               .select('current_uses')
               .eq('id', appliedCoupon.id)
               .single()
             if (couponData) {
-              await (supabase.from('coupons') as any)
+              await couponsTable
                 .update({ current_uses: (couponData.current_uses || 0) + 1 })
                 .eq('id', appliedCoupon.id)
             }
@@ -921,6 +1045,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
                 const date = new Date(calYear, calMonth, day)
                 const dow = date.getDay()
                 const existingHere = getExistingSessionsForDate(day)
+                const hasAnyBookableSlot = selectedBranches.some((branch) => getBookableSlots(branch.slug, day).length > 0)
                 return (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg border space-y-3">
                     <p className="text-sm font-medium">
@@ -941,7 +1066,7 @@ export function BookingClient({ userId, userName, children, branches, courseType
                       </div>
                     )}
                     {selectedBranches.map((branch) => {
-                      const slots = getAvailableSlots(branch.slug, courseType, dow)
+                      const slots = getBookableSlots(branch.slug, day)
                       if (slots.length === 0) return null
                       return (
                         <div key={branch.id}>
@@ -964,6 +1089,11 @@ export function BookingClient({ userId, userName, children, branches, courseType
                         </div>
                       )
                     })}
+                    {!hasAnyBookableSlot && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+                        รอบเรียนของวันนี้เริ่มไปแล้ว กรุณาเลือกรอบถัดไปหรือวันอื่น
+                      </div>
+                    )}
                   </div>
                 )
               })()}
