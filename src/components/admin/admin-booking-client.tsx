@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
 import {
   Search, ArrowLeft, ArrowRight, Users, User, Star, CheckCircle2, Loader2,
-  AlertCircle, MapPin, CalendarDays, Clock, Baby, Shield,
+  AlertCircle, MapPin, Clock, Baby, Shield,
 } from 'lucide-react'
 import { getAvailableSlots, hasAvailableSlots, DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
-import { getKidsGroupTotal, getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel } from '@/lib/pricing'
+import { getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 import type { Branch, CourseTypeName } from '@/types/database'
 
@@ -104,12 +103,6 @@ export function AdminBookingClient({ users, branches, courseTypes, existingBooki
 
   const currentStepIndex = STEPS.findIndex((s) => s.key === step)
   const selectedBranch = branches.find((b) => b.id === selectedBranchId)
-
-  const branchNameMap = useMemo(() => {
-    const m: Record<string, string> = {}
-    branches.forEach((b) => { m[b.id] = b.name })
-    return m
-  }, [branches])
 
   // Filtered users for search
   const filteredUsers = useMemo(() => {

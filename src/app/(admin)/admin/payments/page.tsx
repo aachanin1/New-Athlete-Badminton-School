@@ -1,11 +1,43 @@
 import { createClient } from '@/lib/supabase/server'
 import { PaymentsClient } from '@/components/admin/payments-client'
 
+type PaymentStatus = 'pending' | 'approved' | 'rejected'
+
+interface PaymentRow {
+  id: string
+  booking_id: string
+  user_id: string
+  amount: number
+  method: string
+  slip_image_url: string | null
+  status: PaymentStatus
+  verified_by: string | null
+  verified_at: string | null
+  notes: string | null
+  created_at: string
+  bookings?: {
+    month: number | null
+    year: number | null
+    status: string | null
+    total_sessions: number | null
+    branch_id: string | null
+    course_type_id: string | null
+    branches?: { name: string | null } | null
+    course_types?: { name: string | null } | null
+  } | null
+  profiles?: { full_name: string | null; email: string | null } | null
+}
+
+interface VerifierRow {
+  id: string
+  full_name: string | null
+}
+
 export default async function PaymentsPage() {
   const supabase = createClient()
 
   // Fetch payments with booking + user + branch data
-  const { data: payments } = await (supabase
+  const { data: payments } = await supabase
     .from('payments')
     .select(`
       id, booking_id, user_id, amount, method, slip_image_url,
@@ -16,31 +48,31 @@ export default async function PaymentsPage() {
       ),
       profiles!payments_user_id_fkey(full_name, email)
     `)
-    .order('created_at', { ascending: false }) as any)
+    .order('created_at', { ascending: false }) as unknown as { data: PaymentRow[] | null }
 
   // Fetch verifier names
-  const verifierIds = Array.from(new Set((payments || []).map((p: any) => p.verified_by).filter(Boolean))) as string[]
+  const verifierIds = Array.from(new Set((payments || []).map((p) => p.verified_by).filter(Boolean))) as string[]
   let verifierMap: Record<string, string> = {}
   if (verifierIds.length > 0) {
-    const { data: verifiers } = await (supabase
+    const { data: verifiers } = await supabase
       .from('profiles')
       .select('id, full_name')
-      .in('id', verifierIds) as any)
-    verifierMap = (verifiers || []).reduce((m: Record<string, string>, v: any) => {
-      m[v.id] = v.full_name
+      .in('id', verifierIds) as unknown as { data: VerifierRow[] | null }
+    verifierMap = (verifiers || []).reduce((m: Record<string, string>, v) => {
+      m[v.id] = v.full_name || ''
       return m
     }, {})
   }
 
   // Transform data
-  const paymentList = (payments || []).map((p: any) => ({
+  const paymentList = (payments || []).map((p) => ({
     id: p.id,
     booking_id: p.booking_id,
     user_id: p.user_id,
     amount: p.amount,
     method: p.method,
     slip_image_url: p.slip_image_url,
-    status: p.status,
+    status: ['pending', 'approved', 'rejected'].includes(p.status) ? p.status : 'pending',
     verified_by: p.verified_by,
     verified_at: p.verified_at,
     notes: p.notes,

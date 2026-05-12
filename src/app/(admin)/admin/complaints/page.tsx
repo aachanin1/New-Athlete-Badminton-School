@@ -1,33 +1,54 @@
 import { createClient } from '@/lib/supabase/server'
 import { ComplaintsClient } from '@/components/admin/complaints-client'
 
+type ComplaintStatus = 'open' | 'in_progress' | 'resolved'
+
+interface ComplaintRow {
+  id: string
+  user_id: string
+  branch_id: string | null
+  subject: string
+  message: string
+  status: ComplaintStatus
+  resolved_by: string | null
+  resolved_at: string | null
+  created_at: string
+  profiles?: { full_name: string | null; email: string | null } | null
+  branches?: { name: string | null } | null
+}
+
+interface ResolverRow {
+  id: string
+  full_name: string | null
+}
+
 export default async function ComplaintsPage() {
   const supabase = createClient()
 
   // Fetch complaints with user and branch info
-  const { data: complaints } = await (supabase
+  const { data: complaints } = await supabase
     .from('complaints')
     .select('id, user_id, branch_id, subject, message, status, resolved_by, resolved_at, created_at, profiles!complaints_user_id_fkey(full_name, email), branches(name)')
-    .order('created_at', { ascending: false }) as any)
+    .order('created_at', { ascending: false }) as unknown as { data: ComplaintRow[] | null }
 
   // Fetch resolver names
-  const resolverIds = Array.from(new Set((complaints || []).map((c: any) => c.resolved_by).filter(Boolean))) as string[]
+  const resolverIds = Array.from(new Set((complaints || []).map((c) => c.resolved_by).filter(Boolean))) as string[]
   let resolverMap: Record<string, string> = {}
   if (resolverIds.length > 0) {
-    const { data: resolvers } = await (supabase
+    const { data: resolvers } = await supabase
       .from('profiles')
       .select('id, full_name')
-      .in('id', resolverIds) as any)
-    resolverMap = (resolvers || []).reduce((m: Record<string, string>, v: any) => {
-      m[v.id] = v.full_name
+      .in('id', resolverIds) as unknown as { data: ResolverRow[] | null }
+    resolverMap = (resolvers || []).reduce((m: Record<string, string>, v) => {
+      m[v.id] = v.full_name || ''
       return m
     }, {})
   }
 
-  const complaintList = (complaints || []).map((c: any) => ({
+  const complaintList = (complaints || []).map((c) => ({
     id: c.id,
     user_id: c.user_id,
-    branch_id: c.branch_id,
+    branch_id: c.branch_id || '',
     subject: c.subject,
     message: c.message,
     status: c.status,

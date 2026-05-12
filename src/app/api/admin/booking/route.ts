@@ -3,6 +3,35 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
 
+interface ProfileRole {
+  role: string
+}
+
+interface AdminBookingSession {
+  scheduleSlotId?: string
+  date: string
+  startTime: string
+  endTime: string
+  branchId?: string
+  childId?: string | null
+}
+
+interface AdminBookingPayload {
+  targetUserId?: string
+  learnerType?: string
+  childId?: string | null
+  branchId?: string
+  courseTypeId?: string
+  month?: number
+  year?: number
+  totalSessions?: number
+  totalPrice?: number
+  sessions?: AdminBookingSession[]
+  autoVerify?: boolean
+}
+
+type NotificationSupabase = Parameters<typeof notifyUser>[0]
+
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,7 +42,7 @@ function getAdminSupabase() {
 async function requireAdmin(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as any
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
   if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
   return user
 }
@@ -25,7 +54,7 @@ export async function POST(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const body = await request.json()
+    const body = await request.json() as AdminBookingPayload
     const {
       targetUserId,
       learnerType,
@@ -63,14 +92,18 @@ export async function POST(request: NextRequest) {
         status: bookingStatus,
       })
       .select('id')
-      .single() as any
+      .single() as unknown as { data: { id: string } | null; error: { message: string } | null }
 
     if (insertErr) {
       return NextResponse.json({ error: `สร้างการจองไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
     }
 
+    if (!bookingData) {
+      return NextResponse.json({ error: 'Create booking returned no data' }, { status: 500 })
+    }
+
     // Insert booking sessions
-    const sessionRows = sessions.map((s: any) => ({
+    const sessionRows = sessions.map((s) => ({
       booking_id: bookingData.id,
       schedule_slot_id: s.scheduleSlotId || bookingData.id, // fallback
       date: s.date,
@@ -103,7 +136,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    await notifyRoles(adminSupabase as any, {
+    await notifyRoles(adminSupabase as unknown as NotificationSupabase, {
       roles: ['admin', 'super_admin'],
       title: 'มีการจองใหม่',
       message: `Admin สร้างการจองใหม่ ${totalSessions} ครั้ง • ฿${Number(totalPrice || 0).toLocaleString('th-TH')}`,
@@ -111,7 +144,7 @@ export async function POST(request: NextRequest) {
       link_url: '/admin',
     })
 
-    await notifyUser(adminSupabase as any, {
+    await notifyUser(adminSupabase as unknown as NotificationSupabase, {
       user_id: targetUserId,
       title: 'มีการจองใหม่ในระบบ',
       message: `ผู้ดูแลได้สร้างการจองให้คุณ ${totalSessions} ครั้ง`,
@@ -120,6 +153,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, bookingId: bookingData.id })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Admin create booking error:', err)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })

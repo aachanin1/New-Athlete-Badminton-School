@@ -15,7 +15,7 @@ interface LogData {
   action: string
   entity_type: string
   entity_id: string | null
-  details: any
+  details: Record<string, unknown> | null
   ip_address: string | null
   created_at: string
   user_name: string

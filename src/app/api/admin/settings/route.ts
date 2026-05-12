@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
 // POST — create new setting
 export async function POST(req: NextRequest) {
   const admin = await requireSuperAdminUser()
@@ -26,8 +30,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }
 
@@ -60,7 +64,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }

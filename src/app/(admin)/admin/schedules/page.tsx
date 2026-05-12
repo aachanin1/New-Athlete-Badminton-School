@@ -1,6 +1,38 @@
 import { createClient } from '@/lib/supabase/server'
 import { SchedulesClient } from '@/components/admin/schedules-client'
 
+interface ScheduleSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  status: string
+  is_makeup: boolean | null
+  child_id: string | null
+  schedule_slot_id: string | null
+  branch_id: string
+  branches?: { name: string | null } | null
+  children?: { full_name: string | null; nickname: string | null } | null
+  bookings?: {
+    id: string
+    user_id: string
+    learner_type: string
+    status: string
+    profiles?: { full_name: string | null } | null
+    course_types?: { name: string | null } | null
+  } | null
+}
+
+interface BranchRow {
+  id: string
+  name: string
+}
+
+interface CoachAssignmentRow {
+  schedule_slot_id: string
+  profiles?: { full_name: string | null } | null
+}
+
 export default async function SchedulesPage() {
   const supabase = createClient()
   const [{ data: sessions }, { data: branches }] = await Promise.all([
@@ -18,22 +50,22 @@ export default async function SchedulesPage() {
       `)
       .in('bookings.status', ['pending_payment', 'paid', 'verified'])
       .neq('status', 'rescheduled')
-      .order('date', { ascending: true }) as any,
-    supabase.from('branches').select('id, name').eq('is_active', true).order('name') as any,
+      .order('date', { ascending: true }) as unknown as Promise<{ data: ScheduleSessionRow[] | null }>,
+    supabase.from('branches').select('id, name').eq('is_active', true).order('name') as unknown as Promise<{ data: BranchRow[] | null }>,
   ])
 
-  const slotIds = Array.from(new Set((sessions || []).map((session: any) => session.schedule_slot_id).filter(Boolean))) as string[]
+  const slotIds = Array.from(new Set((sessions || []).map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
 
-  let coachAssignments: any[] = []
+  let coachAssignments: CoachAssignmentRow[] = []
   if (slotIds.length > 0) {
-    const { data } = await (supabase
+    const { data } = await supabase
       .from('coach_assignments')
       .select('schedule_slot_id, profiles!coach_assignments_coach_id_fkey(full_name)')
-      .in('schedule_slot_id', slotIds) as any)
+      .in('schedule_slot_id', slotIds) as unknown as { data: CoachAssignmentRow[] | null }
     coachAssignments = data || []
   }
 
-  const coachMap = coachAssignments.reduce((map: Record<string, string[]>, item: any) => {
+  const coachMap = coachAssignments.reduce((map: Record<string, string[]>, item) => {
     if (!map[item.schedule_slot_id]) map[item.schedule_slot_id] = []
     const coachName = item.profiles?.full_name
     if (coachName && !map[item.schedule_slot_id].includes(coachName)) {
@@ -42,7 +74,7 @@ export default async function SchedulesPage() {
     return map
   }, {})
 
-  const scheduleSessions = (sessions || []).map((session: any) => ({
+  const scheduleSessions = (sessions || []).map((session) => ({
     id: session.id,
     date: session.date,
     start_time: session.start_time,
@@ -58,7 +90,7 @@ export default async function SchedulesPage() {
     parent_name: session.child_id ? (session.bookings?.profiles?.full_name || 'ไม่ทราบ') : null,
     course_type: session.bookings?.course_types?.name || '',
     booking_status: session.bookings?.status || '',
-    coach_names: coachMap[session.schedule_slot_id] || [],
+    coach_names: session.schedule_slot_id ? coachMap[session.schedule_slot_id] || [] : [],
   }))
 
   return <SchedulesClient sessions={scheduleSessions} branches={branches || []} />

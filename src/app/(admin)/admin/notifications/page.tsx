@@ -1,6 +1,60 @@
 import { createClient } from '@/lib/supabase/server'
 import { NotificationsAdminClient } from '@/components/admin/notifications-admin-client'
 
+type AlertLevel = 'red' | 'yellow' | 'green'
+
+interface NotificationRow {
+  id: string
+  user_id: string
+  title: string
+  message: string
+  type: string
+  is_read: boolean
+  link_url: string | null
+  created_at: string
+  profiles?: { full_name: string | null } | null
+}
+
+interface UserRow {
+  id: string
+  full_name: string | null
+  email: string | null
+}
+
+interface BookingRow {
+  id: string
+  user_id: string
+  total_sessions: number
+  month: number
+  year: number
+  status: string
+  profiles?: { full_name: string | null } | null
+  course_types?: { name: string | null } | null
+  branches?: { name: string | null } | null
+}
+
+interface SessionRow {
+  id: string
+  booking_id: string
+  date: string
+  start_time: string
+  status: string
+  branch_id: string
+  branches?: { name: string | null } | null
+  bookings?: { id: string; course_types?: { name: string | null } | null; month: number; year: number } | null
+}
+
+interface AlertInsight {
+  id: string
+  title: string
+  description: string
+  level: AlertLevel
+  userId?: string
+  notificationTitle?: string
+  notificationMessage?: string
+  notificationType?: string
+}
+
 export default async function AdminNotificationsPage() {
   const supabase = createClient()
   const now = new Date()
@@ -19,20 +73,20 @@ export default async function AdminNotificationsPage() {
       .from('notifications')
       .select('id, user_id, title, message, type, is_read, link_url, created_at, profiles!notifications_user_id_fkey(full_name)')
       .order('created_at', { ascending: false })
-      .limit(200) as any,
+      .limit(200) as unknown as Promise<{ data: NotificationRow[] | null }>,
     supabase
       .from('profiles')
       .select('id, full_name, email')
-      .order('full_name') as any,
+      .order('full_name') as unknown as Promise<{ data: UserRow[] | null }>,
     supabase
       .from('bookings')
-      .select('id, user_id, total_sessions, month, year, status, profiles!bookings_user_id_fkey(full_name), course_types(name), branches(name)') as any,
+      .select('id, user_id, total_sessions, month, year, status, profiles!bookings_user_id_fkey(full_name), course_types(name), branches(name)') as unknown as Promise<{ data: BookingRow[] | null }>,
     supabase
       .from('booking_sessions')
-      .select('id, booking_id, date, start_time, status, branch_id, branches(name), bookings!inner(id, course_types(name), month, year)') as any,
+      .select('id, booking_id, date, start_time, status, branch_id, branches(name), bookings!inner(id, course_types(name), month, year)') as unknown as Promise<{ data: SessionRow[] | null }>,
   ])
 
-  const notifList = (notifications || []).map((n: any) => ({
+  const notifList = (notifications || []).map((n) => ({
     id: n.id,
     user_id: n.user_id,
     title: n.title,
@@ -44,18 +98,18 @@ export default async function AdminNotificationsPage() {
     user_name: n.profiles?.full_name || 'ไม่ทราบ',
   }))
 
-  const currentMonthBookings = (bookings || []).filter((booking: any) => booking.month === currentMonth && booking.year === currentYear && ['paid', 'verified'].includes(booking.status))
+  const currentMonthBookings = (bookings || []).filter((booking) => booking.month === currentMonth && booking.year === currentYear && ['paid', 'verified'].includes(booking.status))
   const nextMonthUserIds = new Set(
     (bookings || [])
-      .filter((booking: any) => booking.month === nextMonth && booking.year === nextYear && ['pending_payment', 'paid', 'verified'].includes(booking.status))
-      .map((booking: any) => booking.user_id)
+      .filter((booking) => booking.month === nextMonth && booking.year === nextYear && ['pending_payment', 'paid', 'verified'].includes(booking.status))
+      .map((booking) => booking.user_id)
   )
 
-  const currentBookingIds = new Set(currentMonthBookings.map((booking: any) => booking.id))
+  const currentBookingIds = new Set(currentMonthBookings.map((booking) => booking.id))
   const usedSessionCountByBookingId: Record<string, number> = {}
-  const futureSessions = (sessions || []).filter((session: any) => session.date >= today && session.status === 'scheduled')
+  const futureSessions = (sessions || []).filter((session) => session.date >= today && session.status === 'scheduled')
 
-  ;(sessions || []).forEach((session: any) => {
+  ;(sessions || []).forEach((session) => {
     if (!currentBookingIds.has(session.booking_id)) return
     const sessionDate = session.date
     const isUsed = sessionDate <= today || ['completed', 'rescheduled', 'absent'].includes(session.status)
@@ -65,8 +119,8 @@ export default async function AdminNotificationsPage() {
   })
 
   const nonRenewalAlerts = currentMonthBookings
-    .filter((booking: any) => !nextMonthUserIds.has(booking.user_id))
-    .map((booking: any) => {
+    .filter((booking) => !nextMonthUserIds.has(booking.user_id))
+    .map((booking): AlertInsight | null => {
       const progress = booking.total_sessions > 0
         ? Math.min(100, Math.round(((usedSessionCountByBookingId[booking.id] || 0) / booking.total_sessions) * 100))
         : 0
@@ -85,11 +139,11 @@ export default async function AdminNotificationsPage() {
         notificationType: 'reminder',
       }
     })
-    .filter(Boolean)
-    .sort((a: any, b: any) => a.title.localeCompare(b.title, 'th'))
+    .filter((alert): alert is AlertInsight => Boolean(alert))
+    .sort((a, b) => a.title.localeCompare(b.title, 'th'))
 
   const groupedSessionMap = new Map<string, { count: number; branchName: string; courseName: string; date: string; startTime: string }>()
-  ;futureSessions.forEach((session: any) => {
+  ;futureSessions.forEach((session) => {
     const key = `${session.date}-${session.start_time}-${session.branch_id}-${session.bookings?.course_types?.name || ''}`
     const existing = groupedSessionMap.get(key)
     if (existing) {
@@ -105,31 +159,31 @@ export default async function AdminNotificationsPage() {
     }
   })
 
-  const lowEnrollmentAlerts = Array.from(groupedSessionMap.entries()).map(([key, item]) => ({
+  const lowEnrollmentAlerts: AlertInsight[] = Array.from(groupedSessionMap.entries()).map(([key, item]) => ({
     id: key,
     title: `${item.branchName} • ${item.courseName}`,
     description: `${item.date} ${item.startTime.slice(0, 5)} • มีผู้เรียน ${item.count} คน`,
-    level: item.count === 1 ? 'red' : item.count === 2 ? 'yellow' : 'green',
+    level: (item.count === 1 ? 'red' : item.count === 2 ? 'yellow' : 'green') as AlertLevel,
   }))
 
   const prevMonthUserMap = new Map<string, string>()
   ;(bookings || [])
-    .filter((booking: any) => booking.month === prevMonth && booking.year === prevYear && ['paid', 'verified'].includes(booking.status))
-    .forEach((booking: any) => {
+    .filter((booking) => booking.month === prevMonth && booking.year === prevYear && ['paid', 'verified'].includes(booking.status))
+    .forEach((booking) => {
       if (!prevMonthUserMap.has(booking.user_id)) {
         prevMonthUserMap.set(booking.user_id, booking.profiles?.full_name || 'ผู้ใช้')
       }
     })
 
-  const currentUserIds = new Set(currentMonthBookings.map((booking: any) => booking.user_id))
+  const currentUserIds = new Set(currentMonthBookings.map((booking) => booking.user_id))
   const oldBookingUserIds = new Set(
     (bookings || [])
-      .filter((booking: any) => {
+      .filter((booking) => {
         const monthKey = booking.year * 12 + booking.month
         const currentKey = currentYear * 12 + currentMonth
         return monthKey <= currentKey - 2 && ['paid', 'verified'].includes(booking.status)
       })
-      .map((booking: any) => booking.user_id)
+      .map((booking) => booking.user_id)
   )
 
   const customerFollowUpAlerts = [
@@ -148,7 +202,7 @@ export default async function AdminNotificationsPage() {
     ...Array.from(oldBookingUserIds)
       .filter((userId) => !currentUserIds.has(userId as string) && !prevMonthUserMap.has(userId as string))
       .map((userId) => {
-        const user = (users || []).find((item: any) => item.id === (userId as string))
+        const user = (users || []).find((item) => item.id === (userId as string))
         return {
           id: `old-${userId as string}`,
           title: `${user?.full_name || 'ลูกค้าเก่า'} หายไปเกิน 1 เดือน`,
@@ -165,10 +219,14 @@ export default async function AdminNotificationsPage() {
   return (
     <NotificationsAdminClient
       notifications={notifList}
-      users={users || []}
-      nonRenewalAlerts={nonRenewalAlerts as any}
-      lowEnrollmentAlerts={lowEnrollmentAlerts as any}
-      customerFollowUpAlerts={customerFollowUpAlerts as any}
+      users={(users || []).map((user) => ({
+        id: user.id,
+        full_name: user.full_name || 'ไม่ทราบชื่อ',
+        email: user.email || '',
+      }))}
+      nonRenewalAlerts={nonRenewalAlerts}
+      lowEnrollmentAlerts={lowEnrollmentAlerts}
+      customerFollowUpAlerts={customerFollowUpAlerts}
     />
   )
 }

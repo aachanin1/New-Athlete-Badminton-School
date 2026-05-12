@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
 
+interface TargetProfileRow {
+  role: string
+}
+
 // PATCH: Update user role
 export async function PATCH(request: NextRequest) {
   const admin = await requireAdminUser()
@@ -29,7 +33,7 @@ export async function PATCH(request: NextRequest) {
       .from('profiles')
       .select('role')
       .eq('id', userId)
-      .single() as any
+      .single() as unknown as { data: TargetProfileRow | null; error: { message: string } | null }
 
     if (targetErr || !targetProfile) {
       return NextResponse.json({ error: 'ไม่พบผู้ใช้ที่ต้องการแก้ไข' }, { status: 404 })
@@ -53,6 +57,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Update user role error:', err)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })

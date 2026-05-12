@@ -9,10 +9,14 @@ function getAdminSupabase() {
   return createAdminClient(url, serviceKey)
 }
 
+interface ProfileRole {
+  role: string
+}
+
 async function requireAdmin(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as any
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
   if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
   return user
 }
@@ -37,7 +41,7 @@ export async function PATCH(request: NextRequest) {
 
     const adminSupabase = getAdminSupabase()
 
-    const updates: Record<string, any> = { status }
+    const updates: Record<string, string> = { status }
     if (status === 'resolved') {
       updates.resolved_by = admin.id
       updates.resolved_at = new Date().toISOString()
@@ -53,6 +57,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Update complaint error:', err)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })

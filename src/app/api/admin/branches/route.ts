@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
 // POST — create new branch
 export async function POST(req: NextRequest) {
   const admin = await requireAdminUser()
@@ -29,8 +33,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }
 
@@ -48,7 +52,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'ไม่พบ branch ID' }, { status: 400 })
     }
 
-    const updates: any = {}
+    const updates: Record<string, string | boolean | null> = {}
     if (name !== undefined) updates.name = name.trim()
     if (address !== undefined) updates.address = address
     if (is_active !== undefined) updates.is_active = is_active
@@ -65,7 +69,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }

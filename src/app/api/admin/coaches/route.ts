@@ -5,6 +5,10 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 // Admin-only API: create coach account, update role, manage coach_branches
 // Uses service_role key to create auth users
 
+interface ProfileRole {
+  role: string
+}
+
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -15,7 +19,7 @@ function getAdminSupabase() {
 async function requireAdmin(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as any
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
   if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
   return user
 }
@@ -74,6 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, userId })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Create coach error:', err)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })
@@ -97,7 +102,7 @@ export async function PATCH(request: NextRequest) {
     const adminSupabase = getAdminSupabase()
 
     // Update profile
-    const updates: Record<string, any> = {}
+    const updates: Record<string, string | null> = {}
     if (role && ['coach', 'head_coach', 'user'].includes(role)) updates.role = role
     if (phone !== undefined) updates.phone = phone || null
 
@@ -122,6 +127,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Update coach error:', err)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })

@@ -1,42 +1,86 @@
 import { createClient } from '@/lib/supabase/server'
 import { AdminBookingClient } from '@/components/admin/admin-booking-client'
 
+interface ProfileRow {
+  id: string
+  full_name: string | null
+  email: string | null
+  phone: string | null
+  role: string | null
+}
+
+interface ChildRow {
+  id: string
+  parent_id: string
+  full_name: string
+  nickname: string | null
+}
+
+interface BranchRow {
+  id: string
+  name: string
+  slug: string
+  address: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string | null
+}
+
+interface CourseTypeRow {
+  id: string
+  name: string
+}
+
+interface BookingRow {
+  id: string
+  user_id: string
+  course_type_id: string
+  month: number
+  year: number
+  total_sessions: number
+  total_price: number
+}
+
 export default async function AdminBookingPage() {
   const supabase = createClient()
 
   // Fetch all users (role = user primarily, but allow all)
-  const { data: profiles } = await (supabase
+  const { data: profiles } = await supabase
     .from('profiles')
     .select('id, full_name, email, phone, role')
-    .order('full_name') as any)
+    .order('full_name') as unknown as { data: ProfileRow[] | null }
 
   // Fetch all children
-  const { data: children } = await (supabase
+  const { data: children } = await supabase
     .from('children')
-    .select('id, parent_id, full_name, nickname') as any)
+    .select('id, parent_id, full_name, nickname') as unknown as { data: ChildRow[] | null }
 
   // Fetch branches
-  const { data: branches } = await (supabase
+  const { data: branches } = await supabase
     .from('branches')
     .select('id, name, slug, address, is_active, created_at, updated_at')
     .eq('is_active', true)
-    .order('name') as any)
+    .order('name') as unknown as { data: BranchRow[] | null }
 
   // Fetch course types
-  const { data: courseTypes } = await (supabase
+  const { data: courseTypes } = await supabase
     .from('course_types')
-    .select('id, name') as any)
+    .select('id, name') as unknown as { data: CourseTypeRow[] | null }
 
   // Fetch existing bookings for incremental pricing
-  const { data: bookings } = await (supabase
+  const { data: bookings } = await supabase
     .from('bookings')
     .select('id, user_id, course_type_id, month, year, total_sessions, total_price')
-    .in('status', ['paid', 'verified']) as any)
+    .in('status', ['paid', 'verified']) as unknown as { data: BookingRow[] | null }
 
   // Build user list with children
-  const users = (profiles || []).map((p: any) => ({
-    ...p,
-    children: (children || []).filter((c: any) => c.parent_id === p.id).map((c: any) => ({
+  const users = (profiles || []).map((p) => ({
+    id: p.id,
+    full_name: p.full_name || 'ไม่ทราบชื่อ',
+    email: p.email || '',
+    phone: p.phone,
+    role: p.role || 'user',
+    children: (children || []).filter((c) => c.parent_id === p.id).map((c) => ({
       id: c.id,
       full_name: c.full_name,
       nickname: c.nickname,
@@ -46,7 +90,7 @@ export default async function AdminBookingPage() {
   return (
     <AdminBookingClient
       users={users}
-      branches={branches || []}
+      branches={(branches || []).map((branch) => ({ ...branch, slug: branch.slug || '', updated_at: branch.updated_at || branch.created_at }))}
       courseTypes={courseTypes || []}
       existingBookings={bookings || []}
     />

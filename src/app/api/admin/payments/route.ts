@@ -3,6 +3,19 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notifyUser } from '@/lib/notifications'
 
+interface ProfileRole {
+  role: string
+}
+
+interface PaymentRow {
+  id: string
+  booking_id: string
+  user_id: string
+  status: string
+}
+
+type NotificationSupabase = Parameters<typeof notifyUser>[0]
+
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,7 +26,7 @@ function getAdminSupabase() {
 async function requireAdmin(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as any
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
   if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
   return user
 }
@@ -38,7 +51,7 @@ export async function PATCH(request: NextRequest) {
       .from('payments')
       .select('id, booking_id, user_id, status')
       .eq('id', paymentId)
-      .single() as any
+      .single() as unknown as { data: PaymentRow | null; error: { message: string } | null }
 
     if (fetchErr || !payment) {
       return NextResponse.json({ error: 'ไม่พบรายการชำระเงิน' }, { status: 404 })
@@ -80,7 +93,7 @@ export async function PATCH(request: NextRequest) {
         .eq('id', payment.booking_id)
     }
 
-    await notifyUser(adminSupabase as any, {
+    await notifyUser(adminSupabase as unknown as NotificationSupabase, {
       user_id: payment.user_id,
       title: action === 'approve' ? 'ยืนยันการชำระเงินแล้ว' : 'การชำระเงินต้องตรวจสอบใหม่',
       message: action === 'approve'
@@ -91,6 +104,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, status: newStatus })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Admin payment action error:', err)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })

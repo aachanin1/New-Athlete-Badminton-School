@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+/* eslint-disable react/no-unescaped-entities */
+
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,7 +17,7 @@ import {
 interface SettingData {
   id: string
   key: string
-  value: any
+  value: unknown
   updated_by: string | null
   updated_at: string
   updated_by_name: string | null
@@ -59,7 +60,7 @@ export function SettingsClient({ settings }: SettingsClientProps) {
 
   const saveSetting = async () => {
     if (!formKey.trim()) return
-    let parsedValue: any
+    let parsedValue: unknown
     try {
       parsedValue = JSON.parse(formValue)
     } catch {

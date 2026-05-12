@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
 
+interface NotificationUserRow {
+  id: string
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
 // POST — send notification to user(s)
 export async function POST(req: NextRequest) {
   const admin = await requireAdminUser()
@@ -21,9 +29,9 @@ export async function POST(req: NextRequest) {
     if (!user_id || user_id === 'all') {
       const { data: users } = await supabaseAdmin
         .from('profiles')
-        .select('id')
+        .select('id') as unknown as { data: NotificationUserRow[] | null }
 
-      const inserts = (users || []).map((u: any) => ({
+      const inserts = (users || []).map((u) => ({
         user_id: u.id,
         title: title.trim(),
         message: message.trim(),
@@ -60,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 })
   }
 }

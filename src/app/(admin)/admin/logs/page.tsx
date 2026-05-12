@@ -2,19 +2,31 @@ import { createClient } from '@/lib/supabase/server'
 import { LogsClient } from '@/components/admin/logs-client'
 import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
 
+interface ActivityLogRow {
+  id: string
+  user_id: string | null
+  action: string
+  entity_type: string
+  entity_id: string | null
+  details: Record<string, unknown> | null
+  ip_address: string | null
+  created_at: string
+  profiles?: { full_name: string | null } | null
+}
+
 export default async function LogsPage() {
   await requireSuperAdminPageAccess()
   const supabase = createClient()
 
-  const { data: logs } = await (supabase
+  const { data: logs } = await supabase
     .from('activity_logs')
     .select('id, user_id, action, entity_type, entity_id, details, ip_address, created_at, profiles!activity_logs_user_id_fkey(full_name)')
     .order('created_at', { ascending: false })
-    .limit(300) as any)
+    .limit(300) as unknown as { data: ActivityLogRow[] | null }
 
-  const logList = (logs || []).map((l: any) => ({
+  const logList = (logs || []).map((l) => ({
     id: l.id,
-    user_id: l.user_id,
+    user_id: l.user_id || '',
     action: l.action,
     entity_type: l.entity_type,
     entity_id: l.entity_id,
