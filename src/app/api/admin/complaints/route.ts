@@ -1,65 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
+import { logActivity } from '@/lib/activity-log'
+import type { ComplaintStatus } from '@/types/database'
 
-function getAdminSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set')
-  return createAdminClient(url, serviceKey)
+interface ComplaintPayload {
+  complaintId?: string
+  status?: ComplaintStatus
+  adminNote?: string | null
 }
 
-interface ProfileRole {
-  role: string
+interface DbError {
+  message: string
 }
 
-async function requireAdmin(supabase: ReturnType<typeof createClient>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
-  if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
-  return user
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
 }
 
-// PATCH: Update complaint status (open → in_progress → resolved)
 export async function PATCH(request: NextRequest) {
-  const supabase = createClient()
-  const admin = await requireAdmin(supabase)
+  const admin = await requireAdminUser()
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { complaintId, status } = await request.json()
+    const { complaintId, status, adminNote } = await request.json() as ComplaintPayload
 
     if (!complaintId || !status) {
       return NextResponse.json({ error: 'complaintId and status are required' }, { status: 400 })
     }
 
-    const validStatuses = ['open', 'in_progress', 'resolved']
+    const validStatuses: ComplaintStatus[] = ['open', 'in_progress', 'resolved']
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     }
 
-    const adminSupabase = getAdminSupabase()
-
-    const updates: Record<string, string> = { status }
-    if (status === 'resolved') {
-      updates.resolved_by = admin.id
-      updates.resolved_at = new Date().toISOString()
+    const now = new Date().toISOString()
+    const updates: Record<string, string | null> = {
+      status,
+      admin_note: adminNote?.trim() || null,
+      last_updated_by: admin.user.id,
+      updated_at: now,
+      resolved_by: status === 'resolved' ? admin.user.id : null,
+      resolved_at: status === 'resolved' ? now : null,
     }
 
-    const { error: updateErr } = await adminSupabase
+    const supabaseAdmin = getServiceRoleClient()
+    const { error } = await supabaseAdmin
       .from('complaints')
       .update(updates)
-      .eq('id', complaintId)
+      .eq('id', complaintId) as unknown as { error: DbError | null }
 
-    if (updateErr) {
-      return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${updateErr.message}` }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${error.message}` }, { status: 500 })
     }
 
+    await logActivity({
+      userId: admin.user.id,
+      action: 'update_complaint',
+      entityType: 'complaint',
+      entityId: complaintId,
+      details: { status, adminNote: updates.admin_note },
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
+
     return NextResponse.json({ success: true })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    console.error('Update complaint error:', err)
-    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })
+  } catch (error) {
+    console.error('Update complaint error:', error)
+    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }
 }

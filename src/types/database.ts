@@ -145,7 +145,7 @@ export interface Database {
       }
       complaints: {
         Row: Complaint
-        Insert: Omit<Complaint, 'id' | 'created_at'>
+        Insert: Omit<Complaint, 'id' | 'status' | 'resolved_by' | 'resolved_at' | 'admin_note' | 'last_updated_by' | 'updated_at' | 'created_at'> & Partial<Pick<Complaint, 'status' | 'resolved_by' | 'resolved_at' | 'admin_note' | 'last_updated_by' | 'updated_at'>>
         Update: Partial<Omit<Complaint, 'id' | 'created_at'>>
         Relationships: []
       }
@@ -439,6 +439,9 @@ export interface Complaint {
   status: ComplaintStatus
   resolved_by: string | null
   resolved_at: string | null
+  admin_note: string | null
+  last_updated_by: string | null
+  updated_at: string
   created_at: string
 }
 

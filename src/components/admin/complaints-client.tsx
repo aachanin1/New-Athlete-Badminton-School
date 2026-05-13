@@ -1,16 +1,29 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { LucideIcon } from 'lucide-react'
 import {
-  Search, MessageSquareWarning, AlertCircle, CheckCircle2, Clock, Loader2, User, Building2, Eye,
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  Clock,
+  Eye,
+  Loader2,
+  MessageSquareWarning,
+  Search,
+  User,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+
+type ComplaintStatus = 'open' | 'in_progress' | 'resolved'
 
 interface ComplaintData {
   id: string
@@ -18,239 +31,380 @@ interface ComplaintData {
   branch_id: string
   subject: string
   message: string
-  status: 'open' | 'in_progress' | 'resolved'
+  status: ComplaintStatus
   resolved_by: string | null
   resolved_at: string | null
+  admin_note: string | null
+  last_updated_by: string | null
+  updated_at: string
   created_at: string
   user_name: string
   user_email: string
   branch_name: string
   resolved_by_name: string | null
+  last_updated_by_name: string | null
 }
 
 interface ComplaintsClientProps {
   complaints: ComplaintData[]
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
-  open: { label: 'เปิด', color: 'bg-red-100 text-red-700', icon: AlertCircle },
-  in_progress: { label: 'กำลังดำเนินการ', color: 'bg-yellow-100 text-yellow-700', icon: Loader2 },
-  resolved: { label: 'แก้ไขแล้ว', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
+const STATUS_CONFIG: Record<ComplaintStatus, { label: string; badge: string; icon: LucideIcon; tone: string }> = {
+  open: {
+    label: 'เปิดเคส',
+    badge: 'bg-red-100 text-red-700 hover:bg-red-100',
+    icon: AlertCircle,
+    tone: 'border-red-200 bg-red-50/30',
+  },
+  in_progress: {
+    label: 'กำลังดำเนินการ',
+    badge: 'bg-amber-100 text-amber-700 hover:bg-amber-100',
+    icon: Clock,
+    tone: 'border-amber-200 bg-amber-50/30',
+  },
+  resolved: {
+    label: 'ปิดเคสแล้ว',
+    badge: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
+    icon: CheckCircle2,
+    tone: 'border-emerald-200 bg-emerald-50/30',
+  },
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [detailOpen, setDetailOpen] = useState(false)
   const [detailComplaint, setDetailComplaint] = useState<ComplaintData | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [formStatus, setFormStatus] = useState<ComplaintStatus>('open')
+  const [adminNote, setAdminNote] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
-    return complaints.filter((c) => {
-      if (filterStatus !== 'all' && c.status !== filterStatus) return false
-      if (!search) return true
-      const q = search.toLowerCase()
-      return c.subject.toLowerCase().includes(q) || c.user_name.toLowerCase().includes(q) || c.branch_name.toLowerCase().includes(q)
+    const query = search.trim().toLowerCase()
+
+    return complaints.filter((complaint) => {
+      if (filterStatus !== 'all' && complaint.status !== filterStatus) return false
+      if (!query) return true
+
+      return [
+        complaint.subject,
+        complaint.message,
+        complaint.user_name,
+        complaint.user_email,
+        complaint.branch_name,
+        complaint.admin_note || '',
+      ].some((value) => value.toLowerCase().includes(query))
     })
-  }, [complaints, search, filterStatus])
+  }, [complaints, filterStatus, search])
 
   const stats = useMemo(() => ({
     total: complaints.length,
-    open: complaints.filter((c) => c.status === 'open').length,
-    inProgress: complaints.filter((c) => c.status === 'in_progress').length,
-    resolved: complaints.filter((c) => c.status === 'resolved').length,
+    open: complaints.filter((complaint) => complaint.status === 'open').length,
+    inProgress: complaints.filter((complaint) => complaint.status === 'in_progress').length,
+    resolved: complaints.filter((complaint) => complaint.status === 'resolved').length,
   }), [complaints])
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
-
-  const updateStatus = async (complaint: ComplaintData, newStatus: string) => {
-    setLoading(true)
+  const openDetail = (complaint: ComplaintData) => {
+    setDetailComplaint(complaint)
+    setFormStatus(complaint.status)
+    setAdminNote(complaint.admin_note || '')
     setError(null)
+  }
+
+  const updateComplaint = async (
+    complaint: ComplaintData,
+    status: ComplaintStatus,
+    note = complaint.admin_note || ''
+  ) => {
+    setSavingId(complaint.id)
+    setError(null)
+
     try {
-      const res = await fetch('/api/admin/complaints', {
+      const response = await fetch('/api/admin/complaints', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ complaintId: complaint.id, status: newStatus }),
+        body: JSON.stringify({
+          complaintId: complaint.id,
+          status,
+          adminNote: note,
+        }),
       })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(result?.error || 'อัปเดตเรื่องร้องเรียนไม่สำเร็จ')
 
-      const result = await res.json().catch(() => null)
-      if (!res.ok) {
-        setError(result?.error || 'อัปเดตสถานะไม่สำเร็จ')
-        setLoading(false)
-        return
-      }
-
-      setLoading(false)
-      setDetailOpen(false)
+      setDetailComplaint(null)
       router.refresh()
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-      setLoading(false)
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'อัปเดตเรื่องร้องเรียนไม่สำเร็จ')
+    } finally {
+      setSavingId(null)
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#153c85]">เรื่องร้องเรียน</h1>
-        <p className="text-gray-500 text-sm mt-1">ดูและจัดการเรื่องร้องเรียนจากผู้ใช้</p>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
+            <MessageSquareWarning className="h-4 w-4" />
+            Complaint Desk
+          </div>
+          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ร้องเรียน</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            ติดตามเรื่องร้องเรียนจากผู้ปกครองและผู้เรียน พร้อมบันทึกผลการดำเนินการของแอดมิน
+          </p>
+        </div>
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-[#2748bf]">{stats.total}</p><p className="text-xs text-gray-500">ทั้งหมด</p>
-        </CardContent></Card>
-        <Card className={stats.open > 0 ? 'ring-2 ring-red-400' : ''}><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-red-600">{stats.open}</p><p className="text-xs text-gray-500">เปิด</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-yellow-600">{stats.inProgress}</p><p className="text-xs text-gray-500">กำลังดำเนินการ</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{stats.resolved}</p><p className="text-xs text-gray-500">แก้ไขแล้ว</p>
-        </CardContent></Card>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+        <Card className="border-gray-200">
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-gray-500">ทั้งหมด</p>
+            <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card className={stats.open > 0 ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-gray-500">เปิดเคส</p>
+            <p className="mt-1 text-xl font-bold text-red-600 sm:text-2xl">{stats.open}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-gray-200">
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-gray-500">กำลังดำเนินการ</p>
+            <p className="mt-1 text-xl font-bold text-amber-600 sm:text-2xl">{stats.inProgress}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-gray-200">
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs text-gray-500">ปิดเคสแล้ว</p>
+            <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{stats.resolved}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="ค้นหาหัวข้อ, ชื่อผู้ใช้, สาขา..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">ทุกสถานะ</SelectItem>
-            <SelectItem value="open">เปิด</SelectItem>
-            <SelectItem value="in_progress">กำลังดำเนินการ</SelectItem>
-            <SelectItem value="resolved">แก้ไขแล้ว</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Card className="border-gray-200">
+        <CardContent className="p-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_220px_auto] lg:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="ค้นหาหัวข้อ รายละเอียด ผู้แจ้ง สาขา หรือบันทึกแอดมิน..."
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="ทุกสถานะ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสถานะ</SelectItem>
+                <SelectItem value="open">เปิดเคส</SelectItem>
+                <SelectItem value="in_progress">กำลังดำเนินการ</SelectItem>
+                <SelectItem value="resolved">ปิดเคสแล้ว</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-gray-500 lg:text-right">{filtered.length} รายการ</p>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Complaint list */}
       {filtered.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-gray-400">
-          <MessageSquareWarning className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">{search || filterStatus !== 'all' ? 'ไม่พบเรื่องร้องเรียน' : 'ยังไม่มีเรื่องร้องเรียน'}</p>
-        </CardContent></Card>
+        <Card className="border-gray-200">
+          <CardContent className="flex min-h-[22rem] flex-col items-center justify-center text-center text-sm text-gray-400">
+            <MessageSquareWarning className="mb-3 h-10 w-10 opacity-40" />
+            <p className="font-medium">ไม่พบเรื่องร้องเรียน</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((complaint) => {
-            const statusCfg = STATUS_CONFIG[complaint.status]
-            const StatusIcon = statusCfg.icon
-            return (
-              <Card key={complaint.id} className={`overflow-hidden ${complaint.status === 'open' ? 'border-red-200' : ''}`}>
-                <CardContent className="p-0">
-                  <div className="flex items-start gap-3 p-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${complaint.status === 'open' ? 'bg-red-100' : complaint.status === 'in_progress' ? 'bg-yellow-100' : 'bg-green-100'}`}>
-                      <StatusIcon className={`h-5 w-5 ${complaint.status === 'open' ? 'text-red-600' : complaint.status === 'in_progress' ? 'text-yellow-600' : 'text-green-600'}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-sm">{complaint.subject}</p>
-                        <Badge className={`text-[10px] ${statusCfg.color}`}>{statusCfg.label}</Badge>
+        <Card className="overflow-hidden border-gray-200">
+          <CardContent className="p-0">
+            <div className="hidden grid-cols-[minmax(260px,1.3fr)_180px_160px_170px] border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 lg:grid">
+              <span>เรื่องร้องเรียน</span>
+              <span>ผู้แจ้ง/สาขา</span>
+              <span>สถานะ</span>
+              <span className="text-right">จัดการ</span>
+            </div>
+
+            <div className="divide-y">
+              {filtered.map((complaint) => {
+                const status = STATUS_CONFIG[complaint.status]
+                const StatusIcon = status.icon
+
+                return (
+                  <div key={complaint.id} className={`grid gap-3 px-4 py-4 lg:grid-cols-[minmax(260px,1.3fr)_180px_160px_170px] lg:items-center ${complaint.status === 'open' ? 'bg-red-50/20' : 'bg-white'}`}>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-[#153c85]">{complaint.subject}</p>
+                        <Badge className={status.badge}>{status.label}</Badge>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{complaint.message}</p>
-                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400 flex-wrap">
-                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{complaint.user_name}</span>
-                        <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{complaint.branch_name}</span>
-                        <span>{formatDate(complaint.created_at)}</span>
-                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{complaint.message}</p>
+                      {complaint.admin_note && (
+                        <p className="mt-2 line-clamp-1 text-xs text-amber-700">
+                          บันทึกแอดมิน: {complaint.admin_note}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+
+                    <div className="space-y-1 text-xs text-gray-500">
+                      <p className="flex items-center gap-1 font-medium text-gray-700">
+                        <User className="h-3.5 w-3.5" />
+                        {complaint.user_name}
+                      </p>
+                      <p className="flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {complaint.branch_name}
+                      </p>
+                      <p>{formatDate(complaint.created_at)}</p>
+                    </div>
+
+                    <div className={`flex items-center gap-2 rounded-md border px-2 py-2 text-xs ${status.tone}`}>
+                      <StatusIcon className="h-4 w-4" />
+                      <span className="font-medium">{status.label}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                       {complaint.status === 'open' && (
-                        <Button size="sm" variant="outline" className="h-8 text-yellow-600 border-yellow-200" onClick={() => updateStatus(complaint, 'in_progress')} disabled={loading}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                          onClick={() => updateComplaint(complaint, 'in_progress')}
+                          disabled={savingId === complaint.id}
+                        >
+                          {savingId === complaint.id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
                           รับเรื่อง
                         </Button>
                       )}
                       {complaint.status === 'in_progress' && (
-                        <Button size="sm" variant="outline" className="h-8 text-green-600 border-green-200" onClick={() => updateStatus(complaint, 'resolved')} disabled={loading}>
-                          แก้ไขแล้ว
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                          onClick={() => updateComplaint(complaint, 'resolved')}
+                          disabled={savingId === complaint.id}
+                        >
+                          {savingId === complaint.id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                          ปิดเคส
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setDetailComplaint(complaint); setDetailOpen(true) }}>
-                        <Eye className="h-4 w-4 text-gray-400" />
+                      <Button type="button" size="sm" variant="outline" onClick={() => openDetail(complaint)}>
+                        <Eye className="mr-1 h-3.5 w-3.5" />
+                        รายละเอียด
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Detail Dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <Dialog open={Boolean(detailComplaint)} onOpenChange={(open) => !open && setDetailComplaint(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">รายละเอียดเรื่องร้องเรียน</DialogTitle>
           </DialogHeader>
+
           {detailComplaint && (
             <div className="space-y-4">
-              {(() => {
-                const cfg = STATUS_CONFIG[detailComplaint.status]
-                const Icon = cfg.icon
-                return (
-                  <div className={`p-3 rounded-lg flex items-center gap-2 ${cfg.color}`}>
-                    <Icon className="h-5 w-5" /><span className="font-medium">{cfg.label}</span>
-                  </div>
-                )
-              })()}
-
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2"><User className="h-4 w-4 text-gray-400" /><span className="font-medium">{detailComplaint.user_name}</span></div>
-                <p className="text-sm text-gray-500 ml-6">{detailComplaint.user_email}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="p-2.5 bg-gray-50 rounded-lg">
-                  <p className="text-gray-400 text-xs">สาขา</p>
-                  <p className="font-medium">{detailComplaint.branch_name}</p>
-                </div>
-                <div className="p-2.5 bg-gray-50 rounded-lg">
-                  <p className="text-gray-400 text-xs">วันที่แจ้ง</p>
-                  <p className="font-medium">{formatDate(detailComplaint.created_at)}</p>
+              <div className={`rounded-lg border p-3 ${STATUS_CONFIG[detailComplaint.status].tone}`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className={STATUS_CONFIG[detailComplaint.status].badge}>
+                    {STATUS_CONFIG[detailComplaint.status].label}
+                  </Badge>
+                  <span className="text-xs text-gray-500">แจ้งเมื่อ {formatDate(detailComplaint.created_at)}</span>
                 </div>
               </div>
 
               <div>
-                <p className="font-bold text-sm mb-1">{detailComplaint.subject}</p>
-                <div className="p-3 bg-gray-50 rounded-lg text-sm whitespace-pre-wrap">{detailComplaint.message}</div>
+                <h2 className="text-lg font-bold text-[#153c85]">{detailComplaint.subject}</h2>
+                <p className="mt-2 whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+                  {detailComplaint.message}
+                </p>
               </div>
 
-              {detailComplaint.resolved_by_name && (
-                <p className="text-xs text-gray-400">
-                  แก้ไขโดย: {detailComplaint.resolved_by_name} • {detailComplaint.resolved_at ? formatDate(detailComplaint.resolved_at) : ''}
-                </p>
-              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg bg-gray-50 p-3 text-sm">
+                  <p className="text-xs text-gray-400">ผู้แจ้ง</p>
+                  <p className="mt-1 font-semibold text-gray-900">{detailComplaint.user_name}</p>
+                  <p className="text-gray-500">{detailComplaint.user_email || '-'}</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3 text-sm">
+                  <p className="text-xs text-gray-400">สาขา</p>
+                  <p className="mt-1 font-semibold text-gray-900">{detailComplaint.branch_name}</p>
+                </div>
+              </div>
 
-              <div className="flex gap-2 pt-2">
-                {detailComplaint.status === 'open' && (
-                  <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600" onClick={() => updateStatus(detailComplaint, 'in_progress')} disabled={loading}>
-                    รับเรื่อง (กำลังดำเนินการ)
-                  </Button>
-                )}
-                {detailComplaint.status === 'in_progress' && (
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => updateStatus(detailComplaint, 'resolved')} disabled={loading}>
-                    แก้ไขเสร็จแล้ว
-                  </Button>
-                )}
-                {detailComplaint.status === 'resolved' && (
-                  <Button variant="outline" className="flex-1" onClick={() => updateStatus(detailComplaint, 'open')} disabled={loading}>
-                    เปิดใหม่
-                  </Button>
-                )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>สถานะ</Label>
+                  <Select value={formStatus} onValueChange={(value) => setFormStatus(value as ComplaintStatus)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">เปิดเคส</SelectItem>
+                      <SelectItem value="in_progress">กำลังดำเนินการ</SelectItem>
+                      <SelectItem value="resolved">ปิดเคสแล้ว</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
+                  <p>อัปเดตล่าสุด: {formatDate(detailComplaint.updated_at || detailComplaint.created_at)}</p>
+                  <p>โดย: {detailComplaint.last_updated_by_name || '-'}</p>
+                  {detailComplaint.resolved_by_name && (
+                    <p>ปิดเคสโดย: {detailComplaint.resolved_by_name} {detailComplaint.resolved_at ? `• ${formatDate(detailComplaint.resolved_at)}` : ''}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-note">บันทึกผลการติดตาม</Label>
+                <Textarea
+                  id="admin-note"
+                  value={adminNote}
+                  onChange={(event) => setAdminNote(event.target.value)}
+                  placeholder="เช่น โทรกลับผู้ปกครองแล้ว / แจ้งหัวหน้าโค้ชตรวจสอบ / แก้ไขเรียบร้อย"
+                  className="min-h-28"
+                />
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setDetailComplaint(null)}>
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  onClick={() => updateComplaint(detailComplaint, formStatus, adminNote)}
+                  disabled={savingId === detailComplaint.id}
+                >
+                  {savingId === detailComplaint.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  บันทึก
+                </Button>
               </div>
             </div>
           )}
