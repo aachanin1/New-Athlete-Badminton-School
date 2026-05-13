@@ -48,7 +48,7 @@ Notes:
 
 **Current source of truth for the next Admin/System work.** Work through this queue one item at a time. Do enough checking to confirm the touched flow still works, but do not loop into broad redesigns or repeated QA before the main process/function tasks are complete.
 
-- [ ] 1. User Profile Settings for every role
+- [x] 1. User Profile Settings for every role
   - Users can edit their own name, phone, avatar, and password.
   - Email must not be editable because it is the login username.
   - Avatar should update `profiles.avatar_url` and be reused by sidebar/ranking/profile surfaces.

@@ -17,9 +17,9 @@ export default async function CoachLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, role')
+    .select('full_name, role, avatar_url')
     .eq('id', user.id)
-    .single() as { data: { full_name: string; role: UserRole } | null }
+    .single() as { data: { full_name: string; role: UserRole; avatar_url: string | null } | null }
 
   const isHeadCoach = profile?.role === 'head_coach' || profile?.role === 'super_admin'
   const { count: unreadNotificationCount } = await supabase
@@ -32,6 +32,7 @@ export default async function CoachLayout({
     <div className="min-h-screen bg-gray-50">
       <CoachSidebar
         userName={profile?.full_name}
+        userAvatarUrl={profile?.avatar_url}
         isHeadCoach={isHeadCoach}
         notificationUnreadCount={unreadNotificationCount || 0}
       />

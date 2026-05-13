@@ -29,7 +29,7 @@ export async function getCurrentUserWithRole() {
 
   const { data: profile } = await (supabase
     .from('profiles')
-    .select('id, full_name, role')
+    .select('id, full_name, role, avatar_url')
     .eq('id', user.id)
     .single() as any)
 

@@ -10,11 +10,11 @@ import {
 const PUBLIC_ROUTES = ['/', '/ranking', '/auth', '/auth/callback', '/auth/login', '/auth/register', '/api']
 
 const ROLE_ROUTES: Record<string, string[]> = {
-  user: ['/dashboard'],
-  coach: ['/coach', '/dashboard'],
-  head_coach: ['/coach', '/dashboard'],
-  admin: ['/admin', '/coach', '/dashboard'],
-  super_admin: ['/admin', '/coach', '/dashboard'],
+  user: ['/dashboard', '/profile'],
+  coach: ['/coach', '/dashboard', '/profile'],
+  head_coach: ['/coach', '/dashboard', '/profile'],
+  admin: ['/admin', '/coach', '/dashboard', '/profile'],
+  super_admin: ['/admin', '/coach', '/dashboard', '/profile'],
 }
 
 const ROLE_HOME: Record<string, string> = {

@@ -14,8 +14,10 @@ import {
   Menu,
   MessageSquareWarning,
   TrendingUp,
+  UserCircle,
   Users,
 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
@@ -35,11 +37,13 @@ const USER_NAV = [
 
 interface DashboardSidebarProps {
   userName?: string
+  userAvatarUrl?: string | null
   notificationUnreadCount?: number
 }
 
 function SidebarContent({
   userName,
+  userAvatarUrl,
   notificationUnreadCount = 0,
   onNavigate,
 }: DashboardSidebarProps & {
@@ -54,6 +58,8 @@ function SidebarContent({
     router.push('/')
     router.refresh()
   }
+
+  const isProfileActive = pathname === '/profile'
 
   return (
     <div className="flex h-full flex-col">
@@ -108,6 +114,25 @@ function SidebarContent({
       </nav>
 
       <div className="border-t p-3">
+        <Link
+          href="/profile"
+          onClick={onNavigate}
+          className={cn(
+            'mb-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isProfileActive
+              ? 'bg-[#2748bf] text-white'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]'
+          )}
+        >
+          <Avatar className="h-6 w-6">
+            {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={userName || 'Profile'} className="object-cover" />}
+            <AvatarFallback className={cn('text-[10px] font-bold', isProfileActive ? 'bg-white text-[#2748bf]' : 'bg-[#2748bf]/10 text-[#153c85]')}>
+              {(userName || 'NA').slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="min-w-0 flex-1 truncate">โปรไฟล์ของฉัน</span>
+          <UserCircle className="h-4 w-4 shrink-0" />
+        </Link>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
@@ -120,7 +145,7 @@ function SidebarContent({
   )
 }
 
-export function DashboardSidebar({ userName, notificationUnreadCount = 0 }: DashboardSidebarProps) {
+export function DashboardSidebar({ userName, userAvatarUrl, notificationUnreadCount = 0 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -135,6 +160,7 @@ export function DashboardSidebar({ userName, notificationUnreadCount = 0 }: Dash
           <SheetContent side="left" className="w-72 p-0">
             <SidebarContent
               userName={userName}
+              userAvatarUrl={userAvatarUrl}
               notificationUnreadCount={notificationUnreadCount}
               onNavigate={() => setOpen(false)}
             />
@@ -149,7 +175,7 @@ export function DashboardSidebar({ userName, notificationUnreadCount = 0 }: Dash
       </div>
 
       <aside className="hidden border-r bg-white lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <SidebarContent userName={userName} notificationUnreadCount={notificationUnreadCount} />
+        <SidebarContent userName={userName} userAvatarUrl={userAvatarUrl} notificationUnreadCount={notificationUnreadCount} />
       </aside>
     </>
   )

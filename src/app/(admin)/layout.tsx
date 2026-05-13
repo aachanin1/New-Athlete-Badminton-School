@@ -32,6 +32,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar
         userName={profile?.full_name}
+        userAvatarUrl={profile?.avatar_url}
         isSuperAdmin={isSuperAdmin}
         notificationUnreadCount={unreadNotificationCount || 0}
         allowedMenuKeys={allowedMenuKeys}
