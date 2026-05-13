@@ -35,6 +35,12 @@ A badminton school management system in Thailand with 3 user portals:
 - Head coach can assign coaches to specific teaching slots
 - Coach pages use assignments when available, with branch fallback
 
+### Critical Local Dev Guardrails
+- **After running `npm run build`, do not leave the dev server as-is.** Next.js writes production artifacts into `.next`; an already-running dev server/browser can then request stale `_next/static/*` files and the app appears unstyled with 404s. Before handing back to the user, stop the dev server on port 3000, delete only the generated `.next` folder inside this repo, and restart `npm run dev -- --hostname 127.0.0.1 --port 3000`.
+- **Verify localhost after build-related work.** Check `http://127.0.0.1:3000` and confirm referenced `_next/static/*` assets return 200 before saying the UI is ready.
+- **Do not rebuild completed flows from scratch.** Many Admin flows already work. Before editing a User/Coach/Admin flow, inspect the current behavior, preserve confirmed requirements, and make the smallest change that closes the next gap.
+- **Record confirmed requirements in this file when a bug repeats.** This avoids future agents reintroducing old assumptions such as manual payment approval despite SlipOK auto-verification, daily coach check-in instead of per-slot check-in, or stale dev artifacts after build.
+
 ---
 
 ## Project Overview
