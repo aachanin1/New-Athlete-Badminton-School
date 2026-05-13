@@ -72,38 +72,10 @@ interface BookingSessionInsert {
   is_makeup: false
 }
 
-interface BookingInsert {
-  user_id: string
-  learner_type: 'self' | 'child'
-  child_id: string | null
-  branch_id: string | null
-  course_type_id: string
-  month: number
-  year: number
-  total_sessions: number
-  total_price: number
-  status: 'pending_payment'
-}
-
 interface BookingUpdate {
   total_sessions: number
   total_price: number
   branch_id: string | null
-}
-
-interface BookingInsertResult {
-  id: string
-}
-
-interface CouponUsageInsert {
-  coupon_id: string
-  user_id: string
-  booking_id: string
-  discount_amount: number
-}
-
-interface CouponCurrentUses {
-  current_uses: number | null
 }
 
 interface DbError {
@@ -165,7 +137,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-export function BookingClient({ userId, userName, children, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking }: BookingClientProps) {
+export function BookingClient({ userName, children, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
 
@@ -499,24 +471,6 @@ export function BookingClient({ userId, userName, children, branches, courseType
     }
     const bookingsTable = supabase.from('bookings') as unknown as {
       update: (values: BookingUpdate) => { eq: (column: string, value: string) => Promise<{ error: DbError | null }> }
-      insert: (values: BookingInsert) => {
-        select: (columns: string) => {
-          single: () => Promise<{ data: BookingInsertResult | null; error: DbError | null }>
-        }
-      }
-    }
-    const couponUsagesTable = supabase.from('coupon_usages') as unknown as {
-      insert: (values: CouponUsageInsert) => Promise<{ error: DbError | null }>
-    }
-    const couponsTable = supabase.from('coupons') as unknown as {
-      select: (columns: string) => {
-        eq: (column: string, value: string) => {
-          single: () => Promise<{ data: CouponCurrentUses | null; error: DbError | null }>
-        }
-      }
-      update: (values: { current_uses: number }) => {
-        eq: (column: string, value: string) => Promise<{ error: DbError | null }>
-      }
     }
 
     const courseTypeRow = courseTypes.find((ct) => ct.name === courseType)
@@ -605,65 +559,38 @@ export function BookingClient({ userId, userName, children, branches, courseType
         router.refresh()
       } else {
         // New booking mode
-        const { data: bookingData, error: insertErr } = await bookingsTable
-          .insert({
-            user_id: userId,
-            learner_type: isKids ? 'child' : (learnerType || 'self'),
-            child_id: singleChildId,
-            branch_id: primaryBranchId,
-            course_type_id: courseTypeRow.id,
+        const response = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            learnerType: isKids ? 'child' : (learnerType || 'self'),
+            childId: singleChildId,
+            branchId: primaryBranchId,
+            courseTypeId: courseTypeRow.id,
             month: calMonth + 1,
             year: calYear,
-            total_sessions: bookingTotalSessions,
-            total_price: finalPrice,
-            status: 'pending_payment',
-          }).select('id').single()
-
-        if (insertErr) { setError(`เกิดข้อผิดพลาด: ${insertErr.message}`); setLoading(false); return }
-
-        if (bookingData) {
-          await bookingSessionsTable.insert(
-            allSessions.map((s) => ({
-              booking_id: bookingData.id,
+            totalSessions: bookingTotalSessions,
+            totalAmount: totalBatchPrice,
+            expectedTotalPrice: finalPrice,
+            sessions: allSessions.map((s) => ({
               date: s.date,
-              start_time: s.start,
-              end_time: s.end,
-              branch_id: s.branchId,
-              child_id: s.childId,
-              status: 'scheduled',
-              is_makeup: false,
-            }))
-          )
+              startTime: s.start,
+              endTime: s.end,
+              branchId: s.branchId,
+              childId: s.childId,
+            })),
+            coupon: appliedCoupon ? {
+              id: appliedCoupon.id,
+              code: appliedCoupon.code,
+            } : null,
+          }),
+        })
 
-          // Record coupon usage if applied
-          if (appliedCoupon) {
-            await couponUsagesTable.insert({
-              coupon_id: appliedCoupon.id,
-              user_id: userId,
-              booking_id: bookingData.id,
-              discount_amount: appliedCoupon.discountAmount,
-            })
-            // Increment coupon usage count
-            const { data: couponData } = await couponsTable
-              .select('current_uses')
-              .eq('id', appliedCoupon.id)
-              .single()
-            if (couponData) {
-              await couponsTable
-                .update({ current_uses: (couponData.current_uses || 0) + 1 })
-                .eq('id', appliedCoupon.id)
-            }
-          }
-
-          await fetch('/api/notifications/events/booking-created', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              bookingId: bookingData.id,
-              totalSessions: bookingTotalSessions,
-              totalPrice: finalPrice,
-            }),
-          }).catch(() => null)
+        const result = await response.json()
+        if (!response.ok) {
+          setError(result.error || 'สร้างการจองไม่สำเร็จ กรุณาลองใหม่')
+          setLoading(false)
+          return
         }
 
         router.push('/dashboard/history')
