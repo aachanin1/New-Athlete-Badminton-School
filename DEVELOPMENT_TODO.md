@@ -47,6 +47,8 @@ Notes:
 ## Phase 3 - Build & Deploy Readiness
 
 - [ ] Make `npm run build` pass.
+- [x] Add mojibake guard: run `npm run check:mojibake` before committing Thai UI/copy changes.
+- [x] Add local verification note: after `npm run build`, restart the dev server before checking localhost to avoid stale Next CSS chunks.
 - [ ] Reduce lint blockers: unused imports, unused variables, JSX escaping, and high-risk `any` usage.
 - [ ] Review dependency vulnerabilities and update safely.
 - [ ] Prepare production environment variables.
