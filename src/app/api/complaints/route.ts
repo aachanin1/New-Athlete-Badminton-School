@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
-import { notifyRoles } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
+import { notifyRoles } from '@/lib/notifications'
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
 
 export async function POST(request: NextRequest) {
   const supabase = createClient()
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, complaintId: complaint.id })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

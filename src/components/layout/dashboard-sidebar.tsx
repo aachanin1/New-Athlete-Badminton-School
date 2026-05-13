@@ -1,25 +1,25 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
 import {
-  Menu,
-  Home,
-  Users,
+  ArrowLeftRight,
+  Bell,
   CalendarDays,
   History,
-  ArrowLeftRight,
-  TrendingUp,
-  MessageSquareWarning,
-  Bell,
+  Home,
   LogOut,
+  Menu,
+  MessageSquareWarning,
+  TrendingUp,
+  Users,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 const USER_NAV = [
   { href: '/dashboard', label: 'หน้าหลัก', icon: Home },
@@ -35,9 +35,16 @@ const USER_NAV = [
 
 interface DashboardSidebarProps {
   userName?: string
+  notificationUnreadCount?: number
 }
 
-function SidebarContent({ userName, onNavigate }: { userName?: string; onNavigate?: () => void }) {
+function SidebarContent({
+  userName,
+  notificationUnreadCount = 0,
+  onNavigate,
+}: DashboardSidebarProps & {
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -49,8 +56,8 @@ function SidebarContent({ userName, onNavigate }: { userName?: string; onNavigat
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
+    <div className="flex h-full flex-col">
+      <div className="border-b p-4">
         <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
           <Image
             src="/logo new-athlete-school.jpg"
@@ -59,39 +66,51 @@ function SidebarContent({ userName, onNavigate }: { userName?: string; onNavigat
             height={36}
             className="rounded-full"
           />
-          <span className="font-bold text-[#153c85] text-sm">New Athlete School</span>
+          <span className="text-sm font-bold text-[#153c85]">New Athlete School</span>
         </Link>
         {userName && (
-          <p className="text-xs text-gray-500 mt-2 truncate">สวัสดี, {userName}</p>
+          <p className="mt-2 truncate text-xs text-gray-500">สวัสดี, {userName}</p>
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {USER_NAV.map((item) => {
           const isActive = pathname === item.href
+          const showBadge = item.href === '/dashboard/notifications' && notificationUnreadCount > 0
+
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-[#2748bf] text-white'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]'
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {showBadge && (
+                <span
+                  className={cn(
+                    'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none',
+                    isActive ? 'bg-white text-[#2748bf]' : 'bg-red-500 text-white'
+                  )}
+                >
+                  {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                </span>
+              )}
             </Link>
           )
         })}
       </nav>
 
-      <div className="p-3 border-t">
+      <div className="border-t p-3">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 w-full transition-colors"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
         >
           <LogOut className="h-4 w-4" />
           ออกจากระบบ
@@ -101,13 +120,12 @@ function SidebarContent({ userName, onNavigate }: { userName?: string; onNavigat
   )
 }
 
-export function DashboardSidebar({ userName }: DashboardSidebarProps) {
+export function DashboardSidebar({ userName, notificationUnreadCount = 0 }: DashboardSidebarProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
-      {/* Mobile trigger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b h-14 flex items-center px-4">
+      <div className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center border-b bg-white px-4 lg:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -115,15 +133,23 @@ export function DashboardSidebar({ userName }: DashboardSidebarProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
-            <SidebarContent userName={userName} onNavigate={() => setOpen(false)} />
+            <SidebarContent
+              userName={userName}
+              notificationUnreadCount={notificationUnreadCount}
+              onNavigate={() => setOpen(false)}
+            />
           </SheetContent>
         </Sheet>
-        <span className="font-bold text-[#153c85] text-sm ml-2">New Athlete School</span>
+        <span className="ml-2 text-sm font-bold text-[#153c85]">New Athlete School</span>
+        {notificationUnreadCount > 0 && (
+          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">
+            {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+          </span>
+        )}
       </div>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-white border-r">
-        <SidebarContent userName={userName} />
+      <aside className="hidden border-r bg-white lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+        <SidebarContent userName={userName} notificationUnreadCount={notificationUnreadCount} />
       </aside>
     </>
   )

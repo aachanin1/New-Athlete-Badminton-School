@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const {
@@ -30,7 +34,7 @@ export async function POST(request: NextRequest) {
     await notifyRoles(adminSupabase as any, {
       roles: ['admin', 'super_admin'],
       title: 'มีการจองใหม่',
-      message: `${profile?.full_name || 'ผู้ใช้'} สร้างการจองใหม่${totalSessions ? ` ${totalSessions} ครั้ง` : ''}${totalPrice ? ` • ฿${Number(totalPrice).toLocaleString('th-TH')}` : ''}`,
+      message: `${profile?.full_name || 'ผู้ใช้'} สร้างการจองใหม่${totalSessions ? ` ${totalSessions} ครั้ง` : ''}${totalPrice ? ` · ฿${Number(totalPrice).toLocaleString('th-TH')}` : ''}`,
       type: 'schedule',
       link_url: '/admin',
     })
@@ -46,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

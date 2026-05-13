@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const {
@@ -23,7 +27,7 @@ export async function POST(request: NextRequest) {
     } else if (notificationId) {
       query = query.eq('id', notificationId)
     } else {
-      return NextResponse.json({ error: 'notificationId หรือ markAll จำเป็นต้องส่งมา' }, { status: 400 })
+      return NextResponse.json({ error: 'ต้องส่ง notificationId หรือ markAll' }, { status: 400 })
     }
 
     const { error } = await query
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

@@ -21,9 +21,18 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single() as { data: { full_name: string; role: UserRole } | null }
 
+  const { count: unreadNotificationCount } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('is_read', false)
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardSidebar userName={profile?.full_name} />
+      <DashboardSidebar
+        userName={profile?.full_name}
+        notificationUnreadCount={unreadNotificationCount || 0}
+      />
       <main className="lg:pl-64 pt-14 lg:pt-0">
         <div className="p-4 md:p-6 lg:p-8">
           {children}
