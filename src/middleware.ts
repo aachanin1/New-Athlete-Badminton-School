@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import {
+  ADMIN_MENU_PERMISSION_SETTING_KEY,
+  getAdminMenuFallbackHref,
+  getAllowedAdminMenuKeys,
+  isAdminMenuPathAllowed,
+} from '@/lib/admin-navigation'
 
 const PUBLIC_ROUTES = ['/', '/ranking', '/auth', '/auth/callback', '/auth/login', '/auth/register', '/api']
 
@@ -65,6 +71,21 @@ export async function middleware(request: NextRequest) {
   if (!hasAccess) {
     const homeUrl = new URL(ROLE_HOME[role] || '/dashboard', request.url)
     return NextResponse.redirect(homeUrl)
+  }
+
+  if (role === 'admin' && pathname.startsWith('/admin')) {
+    const { data: permissionSetting } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', ADMIN_MENU_PERMISSION_SETTING_KEY)
+      .maybeSingle()
+
+    const allowedMenuKeys = getAllowedAdminMenuKeys(permissionSetting?.value)
+
+    if (!isAdminMenuPathAllowed(pathname, allowedMenuKeys)) {
+      const fallbackUrl = new URL(getAdminMenuFallbackHref(allowedMenuKeys), request.url)
+      return NextResponse.redirect(fallbackUrl)
+    }
   }
 
   return supabaseResponse

@@ -27,37 +27,40 @@ import {
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
+import { ADMIN_MENU_ITEMS, getAllowedAdminMenuKeys, type AdminMenuKey } from '@/lib/admin-navigation'
 import { cn } from '@/lib/utils'
 
-const ADMIN_NAV = [
-  { href: '/admin', label: 'ภาพรวม', icon: LayoutDashboard },
-  { href: '/admin/branches', label: 'จัดการสาขา', icon: Building2 },
-  { href: '/admin/schedules', label: 'ตารางเรียน', icon: CalendarDays },
-  { href: '/admin/schedule-templates', label: 'รอบเรียนประจำ', icon: Clock, superAdminOnly: true },
-  { href: '/admin/users', label: 'จัดการนักเรียน/ผู้ปกครอง', icon: Users },
-  { href: '/admin/makeup', label: 'วันชดเชย', icon: CalendarClock },
-  { href: '/admin/coaches', label: 'จัดการโค้ช', icon: UserCog },
-  { href: '/admin/payments', label: 'ตรวจสอบการชำระเงิน', icon: CreditCard },
-  { href: '/admin/coupons', label: 'คูปองส่วนลด', icon: Ticket },
-  { href: '/admin/payroll', label: 'เงินเดือนโค้ช', icon: Wallet },
-  { href: '/admin/finance', label: 'รายรับ-รายจ่าย', icon: PieChart },
-  { href: '/admin/coach-checkins', label: 'เช็คอินโค้ช', icon: Camera },
-  { href: '/admin/complaints', label: 'ร้องเรียน', icon: MessageSquareWarning },
-  { href: '/admin/notifications', label: 'แจ้งเตือน', icon: Bell },
-  { href: '/admin/logs', label: 'Activity Log', icon: ScrollText, superAdminOnly: true },
-  { href: '/admin/settings', label: 'ตั้งค่าระบบ', icon: Settings, superAdminOnly: true },
-]
+const ADMIN_MENU_ICONS: Record<AdminMenuKey, typeof LayoutDashboard> = {
+  dashboard: LayoutDashboard,
+  branches: Building2,
+  schedules: CalendarDays,
+  schedule_templates: Clock,
+  users: Users,
+  makeup: CalendarClock,
+  coaches: UserCog,
+  payments: CreditCard,
+  coupons: Ticket,
+  payroll: Wallet,
+  finance: PieChart,
+  coach_checkins: Camera,
+  complaints: MessageSquareWarning,
+  notifications: Bell,
+  logs: ScrollText,
+  settings: Settings,
+}
 
 interface AdminSidebarProps {
   userName?: string
   isSuperAdmin?: boolean
   notificationUnreadCount?: number
+  allowedMenuKeys?: AdminMenuKey[]
 }
 
 function SidebarContent({
   userName,
   isSuperAdmin,
   notificationUnreadCount = 0,
+  allowedMenuKeys,
   onNavigate,
 }: AdminSidebarProps & {
   onNavigate?: () => void
@@ -72,7 +75,12 @@ function SidebarContent({
     router.refresh()
   }
 
-  const filteredNav = ADMIN_NAV.filter((item) => !item.superAdminOnly || isSuperAdmin)
+  const adminAllowedKeys = allowedMenuKeys || getAllowedAdminMenuKeys(null)
+  const filteredNav = ADMIN_MENU_ITEMS.filter((item) => {
+    if (isSuperAdmin) return true
+    if (item.superAdminOnly) return false
+    return adminAllowedKeys.includes(item.key)
+  })
 
   return (
     <div className="flex h-full flex-col">
@@ -98,6 +106,7 @@ function SidebarContent({
         {filteredNav.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(`${item.href}/`))
           const showBadge = item.href === '/admin/notifications' && notificationUnreadCount > 0
+          const Icon = ADMIN_MENU_ICONS[item.key]
 
           return (
             <Link
@@ -111,7 +120,7 @@ function SidebarContent({
                   : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]'
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               {showBadge && (
                 <span
@@ -141,7 +150,7 @@ function SidebarContent({
   )
 }
 
-export function AdminSidebar({ userName, isSuperAdmin, notificationUnreadCount = 0 }: AdminSidebarProps) {
+export function AdminSidebar({ userName, isSuperAdmin, notificationUnreadCount = 0, allowedMenuKeys }: AdminSidebarProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -158,6 +167,7 @@ export function AdminSidebar({ userName, isSuperAdmin, notificationUnreadCount =
               userName={userName}
               isSuperAdmin={isSuperAdmin}
               notificationUnreadCount={notificationUnreadCount}
+              allowedMenuKeys={allowedMenuKeys}
               onNavigate={() => setOpen(false)}
             />
           </SheetContent>
@@ -175,6 +185,7 @@ export function AdminSidebar({ userName, isSuperAdmin, notificationUnreadCount =
           userName={userName}
           isSuperAdmin={isSuperAdmin}
           notificationUnreadCount={notificationUnreadCount}
+          allowedMenuKeys={allowedMenuKeys}
         />
       </aside>
     </>

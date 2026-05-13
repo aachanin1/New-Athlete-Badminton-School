@@ -3,6 +3,7 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Settings, Plus, Pencil, Save, Key, Clock,
+  Settings, Plus, Pencil, Save, Key, Clock, ShieldCheck, BarChart3, Tags, Wallet,
 } from 'lucide-react'
 
 interface SettingData {
@@ -105,6 +106,37 @@ export function SettingsClient({ settings }: SettingsClientProps) {
         <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={openNew}>
           <Plus className="h-4 w-4 mr-1" />เพิ่มการตั้งค่า
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Link href="/admin/settings/admin-menus" className="group rounded-lg border bg-white p-4 shadow-sm transition hover:border-[#2748bf]/40 hover:shadow-md">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#2748bf]/10 text-[#2748bf]">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <p className="font-semibold text-[#153c85]">สิทธิ์เมนู Admin</p>
+          <p className="mt-1 text-xs text-gray-500">กำหนดว่า Admin ธรรมดาเห็นเมนูใดได้บ้าง</p>
+        </Link>
+        <div className="rounded-lg border border-dashed bg-white p-4 text-gray-400">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+            <BarChart3 className="h-5 w-5" />
+          </div>
+          <p className="font-semibold text-gray-600">ตั้งค่า Level</p>
+          <p className="mt-1 text-xs">ขั้นถัดไป: นำข้อมูล level.md เข้า DB</p>
+        </div>
+        <div className="rounded-lg border border-dashed bg-white p-4 text-gray-400">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+            <Tags className="h-5 w-5" />
+          </div>
+          <p className="font-semibold text-gray-600">ราคาค่าเรียน</p>
+          <p className="mt-1 text-xs">ขั้นถัดไป: แก้ pricing tiers ผ่านระบบ</p>
+        </div>
+        <div className="rounded-lg border border-dashed bg-white p-4 text-gray-400">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <p className="font-semibold text-gray-600">เรทโค้ช/OT</p>
+          <p className="mt-1 text-xs">ขั้นถัดไป: ตั้งค่า 25 ชม. และเรท OT</p>
+        </div>
       </div>
 
       {/* Settings list */}
