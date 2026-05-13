@@ -50,41 +50,41 @@ interface SchedulesClientProps {
 }
 
 const COURSE_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  kids_group: { label: 'เน€เธ”เนเธเธเธฅเธธเนเธก', dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
-  adult_group: { label: 'เธเธนเนเนเธซเธเนเธเธฅเธธเนเธก', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+  kids_group: { label: 'เด็กกลุ่ม', dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
+  adult_group: { label: 'ผู้ใหญ่กลุ่ม', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
   private: { label: 'Private', dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
 }
 
 const BOOKING_STATUS_LABELS: Record<string, string> = {
-  pending_payment: 'เธฃเธญเธเธณเธฃเธฐเน€เธเธดเธ',
-  paid: 'เนเธเธเธชเธฅเธดเธเนเธฅเนเธง',
-  verified: 'เธเธญเธเธชเธณเน€เธฃเนเธ',
-  cancelled: 'เธขเธเน€เธฅเธดเธ',
+  pending_payment: 'รอชำระเงิน',
+  paid: 'แนบสลิปแล้ว',
+  verified: 'จองสำเร็จ',
+  cancelled: 'ยกเลิก',
 }
 
 const SESSION_STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
-  scheduled: { label: 'เธเธฑเธ”เธซเธกเธฒเธข', badge: 'bg-blue-100 text-blue-700' },
-  completed: { label: 'เน€เธฃเธตเธขเธเนเธฅเนเธง', badge: 'bg-emerald-100 text-emerald-700' },
-  absent: { label: 'เธเธฒเธ”เน€เธฃเธตเธขเธ', badge: 'bg-rose-100 text-rose-700' },
-  cancelled: { label: 'เธขเธเน€เธฅเธดเธ', badge: 'bg-gray-100 text-gray-600' },
+  scheduled: { label: 'นัดหมาย', badge: 'bg-blue-100 text-blue-700' },
+  completed: { label: 'เรียนแล้ว', badge: 'bg-emerald-100 text-emerald-700' },
+  absent: { label: 'ขาดเรียน', badge: 'bg-rose-100 text-rose-700' },
+  cancelled: { label: 'ยกเลิก', badge: 'bg-gray-100 text-gray-600' },
 }
 
 const MONTH_NAMES_TH = [
-  'เธกเธเธฃเธฒเธเธก',
-  'เธเธธเธกเธ เธฒเธเธฑเธเธเน',
-  'เธกเธตเธเธฒเธเธก',
-  'เน€เธกเธฉเธฒเธขเธ',
-  'เธเธคเธฉเธ เธฒเธเธก',
-  'เธกเธดเธ–เธธเธเธฒเธขเธ',
-  'เธเธฃเธเธเธฒเธเธก',
-  'เธชเธดเธเธซเธฒเธเธก',
-  'เธเธฑเธเธขเธฒเธขเธ',
-  'เธ•เธธเธฅเธฒเธเธก',
-  'เธเธคเธจเธเธดเธเธฒเธขเธ',
-  'เธเธฑเธเธงเธฒเธเธก',
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
 ]
 
-const DAY_HEADERS = ['เธญเธฒ', 'เธ', 'เธญ', 'เธ', 'เธเธค', 'เธจ', 'เธช']
+const DAY_HEADERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 function getDateString(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
@@ -209,15 +209,15 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
             <CalendarDays className="h-4 w-4" />
             Operation Calendar
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">เธ•เธฒเธฃเธฒเธเน€เธฃเธตเธขเธ</h1>
+          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตารางเรียน</h1>
           <p className="mt-1 text-sm text-gray-500">
-            เธ”เธนเธ เธฒเธเธฃเธงเธกเธฃเธญเธเน€เธฃเธตเธขเธเธฃเธฒเธขเน€เธ”เธทเธญเธ เน€เธฅเธทเธญเธเธงเธฑเธเน€เธเธทเนเธญเธ”เธนเธเธนเนเน€เธฃเธตเธขเธ เธชเธฒเธเธฒ เธเธญเธฃเนเธช เนเธฅเธฐเนเธเนเธเธ—เธตเนเธฃเธฑเธเธเธดเธ”เธเธญเธ
+            ดูภาพรวมรอบเรียนรายเดือน เลือกวันเพื่อดูผู้เรียน สาขา คอร์ส และโค้ชที่รับผิดชอบ
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={goToToday}>
-            เธงเธฑเธเธเธตเน
+            วันนี้
           </Button>
           <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth}>
             <ArrowLeft className="h-4 w-4" />
@@ -235,7 +235,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">เธฃเธญเธเน€เธฃเธตเธขเธ</p>
+              <p className="text-xs text-gray-500">รอบเรียน</p>
               <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{totalSlots}</p>
             </div>
             <Calendar className="h-5 w-5 text-[#2748bf]" />
@@ -244,7 +244,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">เธฃเธฒเธขเธเธฒเธฃเธเธญเธ</p>
+              <p className="text-xs text-gray-500">รายการจอง</p>
               <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{filteredMonthSessions.length}</p>
             </div>
             <Users className="h-5 w-5 text-emerald-500" />
@@ -253,7 +253,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">เธเธนเนเน€เธฃเธตเธขเธ</p>
+              <p className="text-xs text-gray-500">ผู้เรียน</p>
               <p className="mt-1 text-xl font-bold text-orange-500 sm:text-2xl">{totalLearners}</p>
             </div>
             <User className="h-5 w-5 text-orange-500" />
@@ -262,7 +262,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
         <Card className={unassignedSessions > 0 ? 'border-amber-300 bg-amber-50/40' : 'border-gray-200'}>
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">เธขเธฑเธเนเธกเน assign เนเธเนเธ</p>
+              <p className="text-xs text-gray-500">ยังไม่ assign โค้ช</p>
               <p className="mt-1 text-xl font-bold text-amber-600 sm:text-2xl">{unassignedSessions}</p>
             </div>
             <UserCog className="h-5 w-5 text-amber-500" />
@@ -278,17 +278,17 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="เธเนเธเธซเธฒเธเธนเนเน€เธฃเธตเธขเธ เธเธนเนเธเธเธเธฃเธญเธ เนเธเนเธ เธชเธฒเธเธฒ..."
+                placeholder="ค้นหาผู้เรียน ผู้ปกครอง โค้ช สาขา..."
                 className="pl-10"
               />
             </div>
 
             <Select value={selectedBranch} onValueChange={setSelectedBranch}>
               <SelectTrigger>
-                <SelectValue placeholder="เธ—เธธเธเธชเธฒเธเธฒ" />
+                <SelectValue placeholder="ทุกสาขา" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">เธ—เธธเธเธชเธฒเธเธฒ</SelectItem>
+                <SelectItem value="all">ทุกสาขา</SelectItem>
                 {branches.map((branch) => (
                   <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
                 ))}
@@ -297,18 +297,18 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
 
             <Select value={selectedCourse} onValueChange={setSelectedCourse}>
               <SelectTrigger>
-                <SelectValue placeholder="เธ—เธธเธเธเธญเธฃเนเธช" />
+                <SelectValue placeholder="ทุกคอร์ส" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">เธ—เธธเธเธเธญเธฃเนเธช</SelectItem>
-                <SelectItem value="kids_group">เน€เธ”เนเธเธเธฅเธธเนเธก</SelectItem>
-                <SelectItem value="adult_group">เธเธนเนเนเธซเธเนเธเธฅเธธเนเธก</SelectItem>
+                <SelectItem value="all">ทุกคอร์ส</SelectItem>
+                <SelectItem value="kids_group">เด็กกลุ่ม</SelectItem>
+                <SelectItem value="adult_group">ผู้ใหญ่กลุ่ม</SelectItem>
                 <SelectItem value="private">Private</SelectItem>
               </SelectContent>
             </Select>
 
             <p className="text-sm text-gray-500 xl:text-right">
-              {filteredMonthSessions.length} เธฃเธฒเธขเธเธฒเธฃ ยท {totalBranches} เธชเธฒเธเธฒ
+              {filteredMonthSessions.length} รายการ • {totalBranches} สาขา
             </p>
           </div>
         </CardContent>
@@ -359,7 +359,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                             return <span key={session.id} className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
                           })}
                         </div>
-                        <p className="text-[10px] text-gray-500">{daySlots} เธฃเธญเธ</p>
+                        <p className="text-[10px] text-gray-500">{daySlots} รอบ</p>
                       </div>
                     )}
                   </button>
@@ -374,20 +374,20 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
                 <p className="font-semibold text-[#153c85]">
-                  {selectedDate ? formatDisplayDate(selectedDate) : `เธฃเธฒเธขเธเธฒเธฃเธ—เธฑเนเธเธซเธกเธ”เนเธ${MONTH_NAMES_TH[month]}`}
+                  {selectedDate ? formatDisplayDate(selectedDate) : `รายการทั้งหมดใน${MONTH_NAMES_TH[month]}`}
                 </p>
-                <p className="text-xs text-gray-500">{listSessions.length} เธฃเธฒเธขเธเธฒเธฃ</p>
+                <p className="text-xs text-gray-500">{listSessions.length} รายการ</p>
               </div>
               {selectedDate && (
                 <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
-                  เธ”เธนเธ—เธฑเนเธเน€เธ”เธทเธญเธ
+                  ดูทั้งเดือน
                 </Button>
               )}
             </div>
 
             {listSessions.length === 0 ? (
               <div className="flex min-h-[28rem] items-center justify-center text-sm text-gray-400">
-                เนเธกเนเธเธเธ•เธฒเธฃเธฒเธเน€เธฃเธตเธขเธเนเธเน€เธเธทเนเธญเธเนเธเธ—เธตเนเน€เธฅเธทเธญเธ
+                ไม่พบตารางเรียนในเงื่อนไขที่เลือก
               </div>
             ) : (
               <div className="max-h-[44rem] overflow-y-auto p-3">
@@ -410,7 +410,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                               {session.is_makeup && (
                                 <Badge variant="outline" className="border-orange-200 text-[10px] text-orange-600">
                                   <RotateCcw className="mr-1 h-3 w-3" />
-                                  เธเธ”เน€เธเธข
+                                  ชดเชย
                                 </Badge>
                               )}
                             </div>
@@ -431,7 +431,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                               {session.parent_name && (
                                 <span className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
-                                  เธเธนเนเธเธเธเธฃเธญเธ: {session.parent_name}
+                                  ผู้ปกครอง: {session.parent_name}
                                 </span>
                               )}
                             </div>
@@ -439,7 +439,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
 
                           <div className="flex shrink-0 items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
                             <UserCog className="h-3 w-3" />
-                            {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'เธขเธฑเธเนเธกเนเนเธ”เน assign เนเธเนเธ'}
+                            {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}
                           </div>
                         </div>
                       </div>
