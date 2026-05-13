@@ -5,15 +5,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { BarChart3, Clock, Key, Pencil, Plus, Save, Settings, ShieldCheck, Tags, Wallet } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Settings, Plus, Pencil, Save, Key, Clock, ShieldCheck, BarChart3, Tags, Wallet,
-} from 'lucide-react'
 
 interface SettingData {
   id: string
@@ -34,12 +33,17 @@ export function SettingsClient({ settings }: SettingsClientProps) {
   const [loading, setLoading] = useState(false)
   const [isNew, setIsNew] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const [formId, setFormId] = useState<string>('')
+  const [formId, setFormId] = useState('')
   const [formKey, setFormKey] = useState('')
   const [formValue, setFormValue] = useState('')
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+  const formatDate = (date: string) => new Date(date).toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 
   const openEdit = (setting: SettingData) => {
     setError(null)
@@ -61,6 +65,7 @@ export function SettingsClient({ settings }: SettingsClientProps) {
 
   const saveSetting = async () => {
     if (!formKey.trim()) return
+
     let parsedValue: unknown
     try {
       parsedValue = JSON.parse(formValue)
@@ -71,7 +76,7 @@ export function SettingsClient({ settings }: SettingsClientProps) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/settings', {
+      const response = await fetch('/api/admin/settings', {
         method: isNew ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -81,8 +86,8 @@ export function SettingsClient({ settings }: SettingsClientProps) {
         }),
       })
 
-      const result = await res.json().catch(() => null)
-      if (!res.ok) {
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
         setError(result?.error || 'บันทึกการตั้งค่าไม่สำเร็จ')
         return
       }
@@ -98,13 +103,14 @@ export function SettingsClient({ settings }: SettingsClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#153c85]">ตั้งค่าระบบ</h1>
-          <p className="text-gray-500 text-sm mt-1">System Settings (Super Admin เท่านั้น)</p>
+          <p className="mt-1 text-sm text-gray-500">System Settings สำหรับ Super Admin เท่านั้น</p>
         </div>
         <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" />เพิ่มการตั้งค่า
+          <Plus className="mr-1 h-4 w-4" />
+          เพิ่มการตั้งค่า
         </Button>
       </div>
 
@@ -116,13 +122,13 @@ export function SettingsClient({ settings }: SettingsClientProps) {
           <p className="font-semibold text-[#153c85]">สิทธิ์เมนู Admin</p>
           <p className="mt-1 text-xs text-gray-500">กำหนดว่า Admin ธรรมดาเห็นเมนูใดได้บ้าง</p>
         </Link>
-        <div className="rounded-lg border border-dashed bg-white p-4 text-gray-400">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+        <Link href="/admin/settings/levels" className="group rounded-lg border bg-white p-4 shadow-sm transition hover:border-[#2748bf]/40 hover:shadow-md">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#2748bf]/10 text-[#2748bf]">
             <BarChart3 className="h-5 w-5" />
           </div>
-          <p className="font-semibold text-gray-600">ตั้งค่า Level</p>
-          <p className="mt-1 text-xs">ขั้นถัดไป: นำข้อมูล level.md เข้า DB</p>
-        </div>
+          <p className="font-semibold text-[#153c85]">ตั้งค่า Level</p>
+          <p className="mt-1 text-xs text-gray-500">แก้ LV 1-70, เงื่อนไขทดสอบ และสถานะใช้งาน</p>
+        </Link>
         <div className="rounded-lg border border-dashed bg-white p-4 text-gray-400">
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
             <Tags className="h-5 w-5" />
@@ -139,33 +145,37 @@ export function SettingsClient({ settings }: SettingsClientProps) {
         </div>
       </div>
 
-      {/* Settings list */}
       {settings.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-gray-400">
-          <Settings className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">ยังไม่มีการตั้งค่า</p>
-          <p className="text-xs mt-1">กดปุ่ม "เพิ่มการตั้งค่า" เพื่อเริ่มต้น</p>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="py-12 text-center text-gray-400">
+            <Settings className="mx-auto mb-3 h-12 w-12 opacity-40" />
+            <p className="font-medium">ยังไม่มีการตั้งค่า</p>
+            <p className="mt-1 text-xs">กดปุ่ม "เพิ่มการตั้งค่า" เพื่อเริ่มต้น</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-2">
           {settings.map((setting) => (
             <Card key={setting.id} className="overflow-hidden">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Key className="h-4 w-4 text-[#2748bf]" />
-                      <p className="font-semibold text-sm font-mono text-[#153c85]">{setting.key}</p>
+                      <p className="font-mono text-sm font-semibold text-[#153c85]">{setting.key}</p>
                     </div>
-                    <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-auto max-h-32 text-gray-700">
+                    <pre className="mt-2 max-h-32 overflow-auto rounded bg-gray-50 p-2 text-xs text-gray-700">
                       {JSON.stringify(setting.value, null, 2)}
                     </pre>
-                    <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
+                    <div className="mt-2 flex items-center gap-3 text-[11px] text-gray-400">
                       {setting.updated_by_name && <span>แก้ไขโดย: {setting.updated_by_name}</span>}
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(setting.updated_at)}</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(setting.updated_at)}
+                      </span>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 shrink-0" onClick={() => openEdit(setting)}>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 shrink-0 p-0" onClick={() => openEdit(setting)}>
                     <Pencil className="h-4 w-4 text-gray-400" />
                   </Button>
                 </div>
@@ -175,7 +185,6 @@ export function SettingsClient({ settings }: SettingsClientProps) {
         </div>
       )}
 
-      {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -189,14 +198,15 @@ export function SettingsClient({ settings }: SettingsClientProps) {
             )}
             <div>
               <Label>Key</Label>
-              <Input value={formKey} onChange={(e) => setFormKey(e.target.value)} placeholder="setting_key" disabled={!isNew} className="font-mono" />
+              <Input value={formKey} onChange={(event) => setFormKey(event.target.value)} placeholder="setting_key" disabled={!isNew} className="font-mono" />
             </div>
             <div>
               <Label>Value (JSON)</Label>
-              <Textarea value={formValue} onChange={(e) => setFormValue(e.target.value)} rows={6} className="font-mono text-sm" placeholder='{"key": "value"}' />
+              <Textarea value={formValue} onChange={(event) => setFormValue(event.target.value)} rows={6} className="font-mono text-sm" placeholder='{"key": "value"}' />
             </div>
             <Button className="w-full bg-[#2748bf] hover:bg-[#153c85]" onClick={saveSetting} disabled={loading || !formKey.trim()}>
-              <Save className="h-4 w-4 mr-1" />{loading ? 'กำลังบันทึก...' : 'บันทึก'}
+              <Save className="mr-1 h-4 w-4" />
+              {loading ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </div>
         </DialogContent>

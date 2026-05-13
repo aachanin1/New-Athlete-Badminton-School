@@ -1,135 +1,121 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { TrendingUp, Trophy, User } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { LEVEL_RANGES } from '@/constants/levels'
+import { Trophy, User } from 'lucide-react'
 
-const LEVEL_CATEGORIES: Record<string, { label: string; color: string }> = {
-  basic: { label: LEVEL_RANGES[0].label, color: 'bg-blue-100 text-blue-700' },
-  athlete_1: { label: `${LEVEL_RANGES[1].label} 1`, color: 'bg-orange-100 text-orange-700' },
-  athlete_2: { label: `${LEVEL_RANGES[2].label} 2`, color: 'bg-purple-100 text-purple-700' },
-  athlete_3: { label: `${LEVEL_RANGES[3].label} 3`, color: 'bg-red-100 text-red-700' },
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { getLevelDisplay } from '@/constants/levels'
+import { createClient } from '@/lib/supabase/server'
+
+interface ChildRow {
+  id: string
+  full_name: string
+  nickname: string | null
 }
 
-function getLevelCategory(lv: number) {
-  if (lv <= LEVEL_RANGES[0].maxLevel) return 'basic'
-  if (lv <= LEVEL_RANGES[1].maxLevel) return 'athlete_1'
-  if (lv <= LEVEL_RANGES[2].maxLevel) return 'athlete_2'
-  return 'athlete_3'
+interface StudentLevelRow {
+  student_id: string
+  level: number
+  notes: string | null
+  created_at: string
+}
+
+interface ProgressStudent {
+  id: string
+  name: string
+  type: 'self' | 'child'
+  level: number
+  notes: string | null
 }
 
 export default async function ProgressPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
 
-  // Fetch student levels for user and their children
   const { data: children } = await (supabase
     .from('children') as any)
     .select('id, full_name, nickname')
-    .eq('parent_id', user.id) as { data: { id: string; full_name: string; nickname: string | null }[] | null }
+    .eq('parent_id', user.id) as { data: ChildRow[] | null }
 
-  const studentIds = [user.id, ...(children?.map(c => c.id) || [])]
+  const studentIds = [user.id, ...(children?.map((child) => child.id) || [])]
 
   const { data: levels } = await (supabase
     .from('student_levels') as any)
-    .select('*')
+    .select('student_id, level, notes, created_at')
     .in('student_id', studentIds)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) as { data: StudentLevelRow[] | null }
 
-  // Get latest level per student
-  const latestLevels: Record<string, any> = {}
-  for (const lv of (levels || [])) {
-    if (!latestLevels[lv.student_id]) {
-      latestLevels[lv.student_id] = lv
-    }
+  const latestLevels: Record<string, StudentLevelRow> = {}
+  for (const level of levels || []) {
+    if (!latestLevels[level.student_id]) latestLevels[level.student_id] = level
   }
+
+  const students: ProgressStudent[] = [
+    {
+      id: user.id,
+      name: 'ตัวเอง',
+      type: 'self',
+      level: latestLevels[user.id]?.level ?? 0,
+      notes: latestLevels[user.id]?.notes || null,
+    },
+    ...(children || []).map((child) => ({
+      id: child.id,
+      name: child.nickname ? `${child.full_name} (${child.nickname})` : child.full_name,
+      type: 'child' as const,
+      level: latestLevels[child.id]?.level ?? 0,
+      notes: latestLevels[child.id]?.notes || null,
+    })),
+  ]
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#153c85]">พัฒนาการ & Ranking</h1>
-          <p className="text-gray-500 text-sm mt-1">ดู Level และอันดับของคุณ</p>
+          <p className="mt-1 text-sm text-gray-500">ดู Level ล่าสุดของผู้เรียน เริ่มต้นทุกคนที่ LV 0 จนกว่า Coach จะประเมิน</p>
         </div>
         <Link href="/ranking">
           <Button variant="outline" className="border-[#2748bf]/30 text-[#2748bf]">
-            <Trophy className="h-4 w-4 mr-2" />
+            <Trophy className="mr-2 h-4 w-4" />
             ดู Ranking ทั้งหมด
           </Button>
         </Link>
       </div>
 
-      {Object.keys(latestLevels).length === 0 ? (
-        <Card>
-          <CardContent className="py-16">
-            <div className="text-center text-gray-400">
-              <TrendingUp className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">ยังไม่มีข้อมูล Level</p>
-              <p className="text-sm mt-1">Level จะถูกอัปเดตโดยโค้ชหลังจากเรียน</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* User's own level */}
-          {latestLevels[user.id] && (() => {
-            const lv = latestLevels[user.id]
-            const cat = getLevelCategory(lv.level)
-            const catInfo = LEVEL_CATEGORIES[cat]
-            return (
-              <Card key={user.id} className="border-2 border-[#2748bf]/20">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-[#2748bf]/10 rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-[#2748bf]" />
-                    </div>
-                    <div>
-                      <p className="font-bold">ตัวเอง</p>
-                      <Badge className={catInfo.color}>{catInfo.label}</Badge>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-5xl font-bold text-[#2748bf]">LV {lv.level}</p>
-                    {lv.notes && <p className="text-sm text-gray-500 mt-2">{lv.notes}</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })()}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {students.map((student) => {
+          const levelInfo = getLevelDisplay(student.level)
 
-          {/* Children levels */}
-          {children?.map((child) => {
-            const lv = latestLevels[child.id]
-            if (!lv) return null
-            const cat = getLevelCategory(lv.level)
-            const catInfo = LEVEL_CATEGORIES[cat]
-            return (
-              <Card key={child.id}>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-[#f57e3b]/10 rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-[#f57e3b]" />
-                    </div>
-                    <div>
-                      <p className="font-bold">{child.full_name}</p>
-                      <Badge className={catInfo.color}>{catInfo.label}</Badge>
-                    </div>
+          return (
+            <Card key={student.id} className={student.type === 'self' ? 'border-2 border-[#2748bf]/20' : ''}>
+              <CardContent className="p-5">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-full ${student.type === 'self' ? 'bg-[#2748bf]/10' : 'bg-[#f57e3b]/10'}`}>
+                    <User className={`h-6 w-6 ${student.type === 'self' ? 'text-[#2748bf]' : 'text-[#f57e3b]'}`} />
                   </div>
-                  <div className="text-center">
-                    <p className="text-5xl font-bold text-[#2748bf]">LV {lv.level}</p>
-                    {lv.notes && <p className="text-sm text-gray-500 mt-2">{lv.notes}</p>}
+                  <div>
+                    <p className="font-bold">{student.name}</p>
+                    <Badge className={levelInfo.color}>{levelInfo.label}</Badge>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      )}
+                </div>
+                <div className="text-center">
+                  <p className="text-5xl font-bold text-[#2748bf]">LV {levelInfo.level}</p>
+                  {student.notes ? (
+                    <p className="mt-2 text-sm text-gray-500">{student.notes}</p>
+                  ) : (
+                    <p className="mt-2 text-sm text-gray-400">รอ Coach ประเมินหรืออัปเดต Level</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
     </div>
   )
 }

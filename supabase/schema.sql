@@ -260,7 +260,7 @@ CREATE TABLE student_levels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL,
   student_type student_type NOT NULL,
-  level INT NOT NULL CHECK (level BETWEEN 1 AND 60),
+  level INT NOT NULL CHECK (level BETWEEN 0 AND 70),
   updated_by UUID NOT NULL REFERENCES profiles(id),
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()

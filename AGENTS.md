@@ -12,7 +12,7 @@ A badminton school management system in Thailand with 3 user portals:
 
 ### Critical Business Rules (Must Know)
 1. **Pricing**: Kids group uses sibling discount (combine all children's sessions for tier pricing)
-2. **Level Categories**: 1-30 (Basic), 31-39 (Athlete 1), 40-43 (Athlete 2), 44-60 (Athlete 3) - DO NOT use old ranges
+2. **Level System**: Learners start at LV 0 until evaluated by a coach. Evaluated levels run from LV 1-70. Current ranges are LV 1-34 (Basic), LV 35-58 (Athlete C), LV 59-70 (Athlete B). DO NOT reintroduce the old LV 1-60 ranges.
 3. **Coach Assignment**: Coaches are assigned to specific teaching slots (`schedule_slots`), not just branches
 4. **Check-in**: Per teaching slot, not daily. Requires photo and GPS.
 5. **Payment**: SlipOK auto-verifies slips. `SLIPOK_TEST_MODE=true` bypasses API calls.
@@ -34,12 +34,14 @@ A badminton school management system in Thailand with 3 user portals:
 - Coach check-in changed to per-slot (not daily) with photo/GPS
 - Head coach can assign coaches to specific teaching slots
 - Coach pages use assignments when available, with branch fallback
+- Level/ranking requirement confirmed: Level is attached to each learner, and coaches are responsible for evaluating which Level a learner is currently at. This feeds the public/student ranking page, so coach responsibilities include teaching, attendance/check-in, learner assignment where allowed, and progress evaluation/ranking updates.
 
 ### Critical Local Dev Guardrails
 - **After running `npm run build`, do not leave the dev server as-is.** Next.js writes production artifacts into `.next`; an already-running dev server/browser can then request stale `_next/static/*` files and the app appears unstyled with 404s. Before handing back to the user, stop the dev server on port 3000, delete only the generated `.next` folder inside this repo, and restart `npm run dev -- --hostname 127.0.0.1 --port 3000`.
 - **Verify localhost after build-related work.** Check `http://127.0.0.1:3000` and confirm referenced `_next/static/*` assets return 200 before saying the UI is ready.
 - **Do not rebuild completed flows from scratch.** Many Admin flows already work. Before editing a User/Coach/Admin flow, inspect the current behavior, preserve confirmed requirements, and make the smallest change that closes the next gap.
 - **Record confirmed requirements in this file when a bug repeats.** This avoids future agents reintroducing old assumptions such as manual payment approval despite SlipOK auto-verification, daily coach check-in instead of per-slot check-in, or stale dev artifacts after build.
+- **Do not let QA loops replace feature completion.** Checking touched flows is good, but the project must keep moving through the main process/function queue in `DEVELOPMENT_TODO.md` under "Phase 2.5 - Admin/System Execution Queue". Finish the next queued item, verify only the affected flow plus obvious regressions, then move to the next item instead of repeatedly redesigning or rechecking already confirmed work.
 
 ---
 

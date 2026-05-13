@@ -80,7 +80,7 @@ export default async function LevelsPage() {
 
   const students = studentList.map((s) => ({
     ...s,
-    currentLevel: levelMap[s.id]?.level || null,
+    currentLevel: levelMap[s.id]?.level ?? 0,
     lastUpdated: levelMap[s.id]?.created_at || null,
   }))
 

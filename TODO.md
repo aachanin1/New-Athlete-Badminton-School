@@ -1,4 +1,7 @@
-# TODO.md - Current Tasks, Known Bugs, and Planned Features
+# TODO.md - Legacy Backlog, Known Bugs, and Planned Features
+
+> Active execution tracking is in `DEVELOPMENT_TODO.md`.
+> Use this file only as an old backlog/reference list. Some items below may be stale and must be checked against current code and `DEVELOPMENT_TODO.md` before acting.
 
 ## Current Tasks (High Priority)
 

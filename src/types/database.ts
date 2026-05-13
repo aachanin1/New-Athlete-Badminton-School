@@ -276,6 +276,10 @@ export interface Level {
   name: string
   description: string | null
   category: LevelCategory
+  program_name: string | null
+  requirements: string | null
+  is_active: boolean
+  updated_at: string
 }
 
 export interface Booking {

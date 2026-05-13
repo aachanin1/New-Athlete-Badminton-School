@@ -40,7 +40,7 @@ const FEATURES = [
   },
   {
     icon: Trophy,
-    title: '60 ระดับพัฒนาการ',
+    title: '70 ระดับพัฒนาการ',
     description: 'ระบบ Level ชัดเจน ตั้งแต่พื้นฐานจนถึงระดับทีมชาติ',
   },
   {
@@ -51,10 +51,9 @@ const FEATURES = [
 ]
 
 const LEVEL_RANGES = [
-  { emoji: '👶', range: 'LV 1-30', label: 'ชุดพื้นฐาน', desc: 'ฝึกวิธีการรับลูกจากคู่แข่ง', color: 'bg-blue-50 border-blue-200' },
-  { emoji: '🔨', range: 'LV 31-39', label: 'ชุดนักกีฬา', desc: 'ฝึกวิธีการตีลูกทำแต้ม', color: 'bg-orange-50 border-orange-200' },
-  { emoji: '🧠', range: 'LV 40-43', label: 'ชุดนักกีฬา', desc: 'ฝึกวิสัยทัศน์การเล่นเกม + แข่งระดับสโมสร', color: 'bg-purple-50 border-purple-200' },
-  { emoji: '💪', range: 'LV 44-60', label: 'ชุดนักกีฬา', desc: 'เทคนิคขั้นสูง ระดับทีมชาติ', color: 'bg-red-50 border-red-200' },
+  { emoji: '👶', range: 'LV 1-34', label: 'ชุดพื้นฐาน', desc: 'ฝึกพื้นฐานการรับ ตี และเคลื่อนตัว', color: 'bg-blue-50 border-blue-200' },
+  { emoji: '🔨', range: 'LV 35-58', label: 'ชุดเตรียมนักกีฬา C', desc: 'แก้ท่า วางรูปเกม และเตรียมทักษะแข่งขัน', color: 'bg-orange-50 border-orange-200' },
+  { emoji: '💪', range: 'LV 59-70', label: 'ชุดนักกีฬา B', desc: 'เทคนิคและแทคติกขั้นสูง', color: 'bg-red-50 border-red-200' },
 ]
 
 export default function LandingPage() {
@@ -242,9 +241,9 @@ export default function LandingPage() {
             <h2 className="text-3xl md:text-4xl font-bold text-[#153c85] mb-4">
               ระบบ Level พัฒนาการ
             </h2>
-            <p className="text-gray-500">60 ระดับ แบ่งเป็น 4 ชุดหลัก</p>
+            <p className="text-gray-500">70 ระดับ แบ่งเป็นชุดพื้นฐาน เตรียมนักกีฬา และนักกีฬา</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {LEVEL_RANGES.map((level) => (
               <Card key={level.range} className={`border-2 ${level.color}`}>
                 <CardContent className="p-6 text-center">
