@@ -7,6 +7,7 @@ interface CoachProfileRow {
   email: string | null
   phone: string | null
   role: string | null
+  coach_employment_type: string | null
   created_at: string
 }
 
@@ -33,7 +34,7 @@ export default async function CoachesPage() {
   // Fetch all coaches (role = coach or head_coach)
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, email, phone, role, created_at')
+    .select('id, full_name, email, phone, role, coach_employment_type, created_at')
     .in('role', ['coach', 'head_coach'])
     .order('created_at', { ascending: false }) as unknown as { data: CoachProfileRow[] | null }
 
@@ -58,6 +59,7 @@ export default async function CoachesPage() {
       email: p.email || '',
       phone: p.phone,
       role: p.role || 'coach',
+      employment_type: p.coach_employment_type,
       created_at: p.created_at,
       branches: cbs.map((cb) => ({
         branch_id: cb.branch_id,

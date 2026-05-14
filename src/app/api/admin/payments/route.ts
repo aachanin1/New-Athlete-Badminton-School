@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { notifyUser } from '@/lib/notifications'
-
-interface ProfileRole {
-  role: string
-}
 
 interface PaymentRow {
   id: string
@@ -16,26 +11,11 @@ interface PaymentRow {
 
 type NotificationSupabase = Parameters<typeof notifyUser>[0]
 
-function getAdminSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set')
-  return createAdminClient(url, serviceKey)
-}
-
-async function requireAdmin(supabase: ReturnType<typeof createClient>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
-  if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
-  return user
-}
-
 // PATCH: Approve or Reject a payment
 export async function PATCH(request: NextRequest) {
-  const supabase = createClient()
-  const admin = await requireAdmin(supabase)
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('payments')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx.user
 
   try {
     const { paymentId, action, notes } = await request.json()
@@ -44,7 +24,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'paymentId and action (approve/reject) are required' }, { status: 400 })
     }
 
-    const adminSupabase = getAdminSupabase()
+    const adminSupabase = getServiceRoleClient()
 
     // Get payment to find booking_id
     const { data: payment, error: fetchErr } = await adminSupabase

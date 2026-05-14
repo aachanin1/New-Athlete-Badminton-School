@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 
 interface TargetProfileRow {
   role: string
@@ -7,8 +7,9 @@ interface TargetProfileRow {
 
 // PATCH: Update user role
 export async function PATCH(request: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('users')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx
 
   try {
     const { userId, role } = await request.json()

@@ -30,7 +30,7 @@ const SECTIONS: Array<{
   {
     key: 'levels',
     title: 'ตั้งค่า Level',
-    description: 'แก้ LV 0-70, เงื่อนไขประเมิน และสถานะใช้งาน',
+    description: 'แก้ LV 0-70 เงื่อนไขประเมิน และสถานะใช้งาน',
     href: '/admin/settings?section=levels',
     icon: BarChart3,
   },
@@ -43,8 +43,8 @@ const SECTIONS: Array<{
   },
   {
     key: 'coach-ot',
-    title: 'เรทโค้ช/OT',
-    description: 'ตั้งค่าเกณฑ์ชั่วโมงต่อสัปดาห์และเรท OT',
+    title: 'กฎชั่วโมงสอนโค้ช',
+    description: 'ดูเกณฑ์ Full-Time, Half-Time, Part-Time ที่ใช้คำนวณรายสัปดาห์',
     href: '/admin/settings?section=coach-ot',
     icon: Wallet,
   },
@@ -55,7 +55,9 @@ export function SettingsClient({ activeSection, children }: SettingsClientProps)
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">ตั้งค่าระบบ</h1>
-        <p className="mt-1 text-sm text-gray-500">พื้นที่ตั้งค่าสำหรับ Super Admin โดยไม่ต้องแก้ Key / Value JSON เอง</p>
+        <p className="mt-1 text-sm text-gray-500">
+          พื้นที่ตั้งค่าสำหรับ Super Admin โดยไม่ต้องแก้ Key / Value JSON เอง
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">

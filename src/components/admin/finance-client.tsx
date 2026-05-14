@@ -10,13 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import type { CoachOtSettings } from '@/lib/coach-ot-settings'
 import {
   Banknote,
   Building2,
   Calendar,
   CheckCircle2,
-  Clock,
   CreditCard,
   LineChart,
   Loader2,
@@ -42,19 +40,28 @@ interface PaymentData {
   total_sessions: number
 }
 
-interface PayrollSourceRow {
-  assignment_id: string
+interface CoachWeeklySummaryData {
+  id: string
   coach_id: string
   coach_name: string
-  schedule_slot_id: string
-  branch_name: string
-  course_type: string
-  date: string
-  start_time: string
-  end_time: string
-  checkin_id: string | null
-  checkin_time: string | null
-  photo_url: string | null
+  week_start: string
+  week_end: string
+  employment_type: string
+  threshold_hours: number
+  group_hours: number
+  private_hours: number
+  total_hours: number
+  regular_hours: number
+  payable_group_hours: number
+  payable_private_hours: number
+  payable_hours: number
+  payable_amount: number
+  payable_session_count: number
+  missing_checkin_count: number
+  missing_photo_count: number
+  status: string
+  notes: string | null
+  closed_at: string
 }
 
 interface ExpenseData {
@@ -74,79 +81,29 @@ interface BranchOption {
   name: string
 }
 
-interface PayableEntry {
-  row: PayrollSourceRow
-  hours: number
-  otHours: number
-  otPay: number
-  isPrivate: boolean
-  weekKey: string
-}
-
 interface FinanceClientProps {
   payments: PaymentData[]
-  payrollRows: PayrollSourceRow[]
+  coachSummaries: CoachWeeklySummaryData[]
   expenses: ExpenseData[]
   branches: BranchOption[]
   currentMonth: number
   currentYear: number
-  otSettings: CoachOtSettings
 }
 
 const MONTH_LABELS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const EXPENSE_CATEGORIES = ['ค่าเช่าสนาม', 'ค่าอุปกรณ์', 'ค่าการตลาด', 'ค่าเดินทาง', 'ค่าสาธารณูปโภค', 'เงินเดือน/ค่าแรง', 'อื่นๆ']
+
+const EMPLOYMENT_LABELS: Record<string, string> = {
+  full_time: 'Full-Time',
+  half_time: 'Half-Time',
+  part_time: 'Part-Time',
+}
 
 function formatInputDate(value: Date) {
   const year = value.getFullYear()
   const month = String(value.getMonth() + 1).padStart(2, '0')
   const day = String(value.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-function getHours(row: PayrollSourceRow) {
-  const start = new Date(`${row.date}T${row.start_time}`)
-  const end = new Date(`${row.date}T${row.end_time}`)
-  return Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60))
-}
-
-function isPayable(row: PayrollSourceRow) {
-  return Boolean(row.checkin_id && row.photo_url)
-}
-
-function isPrivateCourse(courseType: string) {
-  const value = courseType.toLowerCase()
-  return value.includes('private') || value.includes('ส่วน')
-}
-
-function getWeekKey(dateValue: string) {
-  const date = new Date(`${dateValue}T00:00:00`)
-  const start = new Date(date)
-  start.setDate(date.getDate() - date.getDay())
-  const year = start.getFullYear()
-  const month = String(start.getMonth() + 1).padStart(2, '0')
-  const day = String(start.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function buildPayableEntries(payableRows: PayrollSourceRow[], otSettings: CoachOtSettings) {
-  const weeklyHours = new Map<string, number>()
-
-  return [...payableRows]
-    .sort((a, b) => `${a.date}T${a.start_time}`.localeCompare(`${b.date}T${b.start_time}`))
-    .map<PayableEntry>((row) => {
-      const hours = getHours(row)
-      const weekKey = getWeekKey(row.date)
-      const usedHours = weeklyHours.get(weekKey) || 0
-      const regularCapacity = Math.max(0, otSettings.weeklyThreshold - usedHours)
-      const regularHours = Math.min(hours, regularCapacity)
-      const otHours = Math.max(0, hours - regularHours)
-      const isPrivate = isPrivateCourse(row.course_type)
-      const otPay = otHours * (isPrivate ? otSettings.privateRate : otSettings.groupRate)
-
-      weeklyHours.set(weekKey, usedHours + hours)
-
-      return { row, hours, otHours, otPay, isPrivate, weekKey }
-    })
 }
 
 function formatNumber(value: number, fractionDigits = 0) {
@@ -165,7 +122,11 @@ function getCourseLabel(courseType: string) {
   return courseType || 'ไม่ระบุ'
 }
 
-export function FinanceClient({ payments, payrollRows, expenses, branches, currentMonth, currentYear, otSettings }: FinanceClientProps) {
+function getPeriodDate(value: string) {
+  return new Date(`${value}T00:00:00`)
+}
+
+export function FinanceClient({ payments, coachSummaries, expenses, branches, currentMonth, currentYear }: FinanceClientProps) {
   const router = useRouter()
   const [viewMonth, setViewMonth] = useState(currentMonth)
   const [viewYear, setViewYear] = useState(currentYear)
@@ -195,20 +156,20 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
     })
   }, [payments, viewMode, viewMonth, viewYear])
 
-  const filteredPayrollRows = useMemo(() => {
-    return payrollRows.filter((row) => {
-      const date = new Date(`${row.date}T00:00:00`)
+  const filteredCoachSummaries = useMemo(() => {
+    return coachSummaries.filter((summary) => {
+      const date = getPeriodDate(summary.week_start)
       if (viewMode === 'month') {
         return date.getMonth() + 1 === viewMonth && date.getFullYear() === viewYear
       }
 
       return date.getFullYear() === viewYear
     })
-  }, [payrollRows, viewMode, viewMonth, viewYear])
+  }, [coachSummaries, viewMode, viewMonth, viewYear])
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((expense) => {
-      const date = new Date(`${expense.expense_date}T00:00:00`)
+      const date = getPeriodDate(expense.expense_date)
       if (viewMode === 'month') {
         return date.getMonth() + 1 === viewMonth && date.getFullYear() === viewYear
       }
@@ -224,26 +185,17 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
     const revenue = approvedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
     const pendingRevenue = pendingPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
     const sessionsSold = approvedPayments.reduce((sum, payment) => sum + Number(payment.total_sessions || 0), 0)
-
-    const payableRows = filteredPayrollRows.filter(isPayable)
-    const payableEntriesByCoach = new Map<string, PayrollSourceRow[]>()
-    payableRows.forEach((row) => {
-      if (!payableEntriesByCoach.has(row.coach_id)) payableEntriesByCoach.set(row.coach_id, [])
-      payableEntriesByCoach.get(row.coach_id)?.push(row)
-    })
-
-    const payableEntries = Array.from(payableEntriesByCoach.values()).flatMap((rows) => buildPayableEntries(rows, otSettings))
-    const payableHours = payableEntries.reduce((sum, entry) => sum + entry.hours, 0)
-    const otHours = payableEntries.reduce((sum, entry) => sum + entry.otHours, 0)
-    const otPay = payableEntries.reduce((sum, entry) => sum + entry.otPay, 0)
+    const coachPay = filteredCoachSummaries.reduce((sum, summary) => sum + Number(summary.payable_amount || 0), 0)
+    const coachPayableHours = filteredCoachSummaries.reduce((sum, summary) => sum + Number(summary.payable_hours || 0), 0)
+    const coachTotalHours = filteredCoachSummaries.reduce((sum, summary) => sum + Number(summary.total_hours || 0), 0)
     const manualExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0)
-    const totalExpenses = otPay + manualExpenses
+    const totalExpenses = coachPay + manualExpenses
     const netAfterKnownCosts = revenue - totalExpenses
 
     const byBranch = new Map<string, { revenue: number; count: number }>()
     const byCourse = new Map<string, { revenue: number; count: number }>()
-    const byMonth = new Map<number, { revenue: number; otPay: number; manualExpenses: number }>()
-    const coachCosts = new Map<string, { coach: string; hours: number; otHours: number; otPay: number }>()
+    const byMonth = new Map<number, { revenue: number; coachPay: number; manualExpenses: number }>()
+    const coachCosts = new Map<string, { coach: string; employmentType: string; hours: number; payableHours: number; payableAmount: number; weeks: number }>()
     const expensesByCategory = new Map<string, { amount: number; count: number }>()
 
     approvedPayments.forEach((payment) => {
@@ -258,26 +210,29 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
       courseData.count += 1
       byCourse.set(course, courseData)
 
-      const monthData = byMonth.get(payment.booking_month) || { revenue: 0, otPay: 0, manualExpenses: 0 }
+      const monthData = byMonth.get(payment.booking_month) || { revenue: 0, coachPay: 0, manualExpenses: 0 }
       monthData.revenue += payment.amount
       byMonth.set(payment.booking_month, monthData)
     })
 
-    payableEntries.forEach((entry) => {
-      const current = coachCosts.get(entry.row.coach_id) || {
-        coach: entry.row.coach_name,
+    filteredCoachSummaries.forEach((summary) => {
+      const current = coachCosts.get(summary.coach_id) || {
+        coach: summary.coach_name,
+        employmentType: summary.employment_type,
         hours: 0,
-        otHours: 0,
-        otPay: 0,
+        payableHours: 0,
+        payableAmount: 0,
+        weeks: 0,
       }
-      current.hours += entry.hours
-      current.otHours += entry.otHours
-      current.otPay += entry.otPay
-      coachCosts.set(entry.row.coach_id, current)
+      current.hours += summary.total_hours
+      current.payableHours += summary.payable_hours
+      current.payableAmount += summary.payable_amount
+      current.weeks += 1
+      coachCosts.set(summary.coach_id, current)
 
-      const month = new Date(`${entry.row.date}T00:00:00`).getMonth() + 1
-      const monthData = byMonth.get(month) || { revenue: 0, otPay: 0, manualExpenses: 0 }
-      monthData.otPay += entry.otPay
+      const month = getPeriodDate(summary.week_start).getMonth() + 1
+      const monthData = byMonth.get(month) || { revenue: 0, coachPay: 0, manualExpenses: 0 }
+      monthData.coachPay += summary.payable_amount
       byMonth.set(month, monthData)
     })
 
@@ -287,8 +242,8 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
       category.count += 1
       expensesByCategory.set(expense.category, category)
 
-      const month = new Date(`${expense.expense_date}T00:00:00`).getMonth() + 1
-      const monthData = byMonth.get(month) || { revenue: 0, otPay: 0, manualExpenses: 0 }
+      const month = getPeriodDate(expense.expense_date).getMonth() + 1
+      const monthData = byMonth.get(month) || { revenue: 0, coachPay: 0, manualExpenses: 0 }
       monthData.manualExpenses += expense.amount
       byMonth.set(month, monthData)
     })
@@ -300,9 +255,10 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
       rejectedCount: rejectedPayments.length,
       approvedCount: approvedPayments.length,
       sessionsSold,
-      payableHours,
-      otHours,
-      otPay,
+      coachPay,
+      coachPayableHours,
+      coachTotalHours,
+      coachClosedWeeks: filteredCoachSummaries.length,
       manualExpenses,
       totalExpenses,
       netAfterKnownCosts,
@@ -310,25 +266,28 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
       byBranch: Array.from(byBranch.entries()).map(([branch, data]) => ({ branch, ...data })).sort((a, b) => b.revenue - a.revenue),
       byCourse: Array.from(byCourse.entries()).map(([course, data]) => ({ course, ...data })).sort((a, b) => b.revenue - a.revenue),
       byMonth,
-      coachCosts: Array.from(coachCosts.values()).sort((a, b) => b.otPay - a.otPay || b.hours - a.hours),
+      coachCosts: Array.from(coachCosts.values()).sort((a, b) => b.payableAmount - a.payableAmount || b.hours - a.hours),
       expensesByCategory: Array.from(expensesByCategory.entries()).map(([category, data]) => ({ category, ...data })).sort((a, b) => b.amount - a.amount),
     }
-  }, [filteredExpenses, filteredPayments, filteredPayrollRows, otSettings])
+  }, [filteredCoachSummaries, filteredExpenses, filteredPayments])
 
   const years = useMemo(() => {
     const values = new Set<number>()
     payments.forEach((payment) => {
       if (payment.booking_year) values.add(payment.booking_year)
     })
-    payrollRows.forEach((row) => {
-      if (row.date) values.add(new Date(`${row.date}T00:00:00`).getFullYear())
+    coachSummaries.forEach((summary) => {
+      if (summary.week_start) values.add(getPeriodDate(summary.week_start).getFullYear())
+    })
+    expenses.forEach((expense) => {
+      if (expense.expense_date) values.add(getPeriodDate(expense.expense_date).getFullYear())
     })
     values.add(currentYear)
     return Array.from(values).sort((a, b) => b - a)
-  }, [currentYear, payments, payrollRows])
+  }, [coachSummaries, currentYear, expenses, payments])
 
   const maxMonthlyValue = useMemo(() => {
-    const values = Array.from(finance.byMonth.values()).map((month) => Math.max(month.revenue, month.otPay + month.manualExpenses))
+    const values = Array.from(finance.byMonth.values()).map((month) => Math.max(month.revenue, month.coachPay + month.manualExpenses))
     return Math.max(...values, 1)
   }, [finance.byMonth])
 
@@ -388,13 +347,13 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
           </div>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">รายรับ-รายจ่าย</h1>
           <p className="mt-1 max-w-3xl text-sm text-gray-500">
-            สรุปเงินรับจากรายการชำระที่ยืนยันแล้ว เทียบกับค่า OT โค้ชและรายจ่ายจริงที่บันทึกเพิ่ม เพื่อดูยอดสุทธิรายเดือนหรือรายปี
+            สรุปรายรับจากรายการชำระที่ยืนยันแล้ว เทียบกับรายจ่ายโค้ชจากสัปดาห์ที่ปิดแล้ว และรายจ่ายจริงที่บันทึกเอง
           </p>
         </div>
 
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-          <p className="font-semibold">หมายเหตุ</p>
-          <p>รายจ่ายโค้ชอัตโนมัติยังนับเฉพาะ OT ส่วนค่าใช้จ่ายอื่นให้บันทึกในฟอร์มด้านล่าง</p>
+          <p className="font-semibold">แหล่งข้อมูลรายจ่ายโค้ช</p>
+          <p>ใช้เฉพาะข้อมูลจากหน้า “คำนวณชั่วโมงสอน” ที่ปิดสัปดาห์แล้ว</p>
         </div>
       </div>
 
@@ -402,12 +361,14 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
         <CardContent className="grid gap-3 p-4 sm:grid-cols-[auto_150px_130px] sm:items-center lg:w-fit">
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
             <button
+              type="button"
               className={`rounded-md px-3 py-2 text-sm font-semibold transition ${viewMode === 'month' ? 'bg-white text-[#2748bf] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
               onClick={() => setViewMode('month')}
             >
               รายเดือน
             </button>
             <button
+              type="button"
               className={`rounded-md px-3 py-2 text-sm font-semibold transition ${viewMode === 'year' ? 'bg-white text-[#2748bf] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
               onClick={() => setViewMode('year')}
             >
@@ -454,8 +415,9 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
         <Card className="border-orange-200 bg-orange-50/50">
           <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-xs text-gray-500">รายจ่าย OT</p>
-              <p className="mt-1 text-xl font-bold text-orange-600">฿{formatNumber(finance.otPay)}</p>
+              <p className="text-xs text-gray-500">รายจ่ายโค้ช</p>
+              <p className="mt-1 text-xl font-bold text-orange-600">฿{formatNumber(finance.coachPay)}</p>
+              <p className="text-xs text-gray-500">{finance.coachClosedWeeks} สัปดาห์</p>
             </div>
             <TrendingDown className="h-5 w-5 text-orange-500" />
           </CardContent>
@@ -469,11 +431,12 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
             <ReceiptText className="h-5 w-5 text-red-500" />
           </CardContent>
         </Card>
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className={finance.netAfterKnownCosts >= 0 ? 'border-blue-200 bg-blue-50/50' : 'border-red-200 bg-red-50/50'}>
           <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-xs text-gray-500">สุทธิหลังรายจ่าย</p>
-              <p className="mt-1 text-xl font-bold text-[#2748bf]">฿{formatNumber(finance.netAfterKnownCosts)}</p>
+              <p className="text-xs text-gray-500">สุทธิ</p>
+              <p className={`mt-1 text-xl font-bold ${finance.netAfterKnownCosts >= 0 ? 'text-[#2748bf]' : 'text-red-600'}`}>฿{formatNumber(finance.netAfterKnownCosts)}</p>
+              <p className="text-xs text-gray-500">{formatNumber(finance.marginPercent, 1)}%</p>
             </div>
             <Wallet className="h-5 w-5 text-[#2748bf]" />
           </CardContent>
@@ -481,7 +444,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-xs text-gray-500">รายการรับเงิน</p>
+              <p className="text-xs text-gray-500">รับเงินแล้ว</p>
               <p className="mt-1 text-xl font-bold text-gray-900">{finance.approvedCount}</p>
             </div>
             <ReceiptText className="h-5 w-5 text-gray-500" />
@@ -490,7 +453,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-xs text-gray-500">รอชำระ/ตรวจ</p>
+              <p className="text-xs text-gray-500">รอตรวจ</p>
               <p className="mt-1 text-xl font-bold text-amber-600">{finance.pendingCount}</p>
               <p className="text-xs text-gray-500">฿{formatNumber(finance.pendingRevenue)}</p>
             </div>
@@ -500,10 +463,11 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-xs text-gray-500">ชม. โค้ชพร้อมจ่าย</p>
-              <p className="mt-1 text-xl font-bold text-gray-900">{formatNumber(finance.payableHours, 1)} ชม.</p>
+              <p className="text-xs text-gray-500">ชม. จ่ายโค้ช</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{formatNumber(finance.coachPayableHours, 1)}</p>
+              <p className="text-xs text-gray-500">จาก {formatNumber(finance.coachTotalHours, 1)} ชม.</p>
             </div>
-            <Clock className="h-5 w-5 text-gray-500" />
+            <Banknote className="h-5 w-5 text-gray-500" />
           </CardContent>
         </Card>
       </div>
@@ -513,7 +477,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
           <CardContent className="p-4">
             <div className="mb-4">
               <h3 className="font-bold text-[#153c85]">บันทึกรายจ่าย</h3>
-              <p className="text-xs text-gray-500">ใช้เก็บค่าใช้จ่ายจริงที่ไม่ใช่ OT เช่น ค่าเช่าสนาม อุปกรณ์ หรือค่าใช้จ่ายสาขา</p>
+              <p className="text-xs text-gray-500">ใช้เก็บค่าใช้จ่ายจริงที่ไม่ใช่รายจ่ายโค้ชจากระบบ เช่น ค่าเช่าสนาม อุปกรณ์ หรือค่าใช้จ่ายสาขา</p>
             </div>
 
             <form onSubmit={handleCreateExpense} className="grid gap-3">
@@ -730,22 +694,27 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
         <Card className="border-gray-200">
           <CardContent className="p-4">
             <div className="mb-4">
-              <h3 className="font-bold text-[#153c85]">ต้นทุนโค้ชที่ระบบคำนวณได้</h3>
-              <p className="text-xs text-gray-500">OT เกิน {otSettings.weeklyThreshold} ชม./สัปดาห์: Private {otSettings.privateRate} บาท/ชม. • กลุ่ม {otSettings.groupRate} บาท/ชม.</p>
+              <h3 className="font-bold text-[#153c85]">รายจ่ายโค้ชจากสัปดาห์ที่ปิดแล้ว</h3>
+              <p className="text-xs text-gray-500">ดึงจากตารางสรุปชั่วโมงสอนรายสัปดาห์ ไม่คำนวณ OT ซ้ำในหน้านี้</p>
             </div>
 
             {finance.coachCosts.length === 0 ? (
-              <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">ยังไม่มีรอบสอนที่พร้อมคิดเงิน</div>
+              <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">ยังไม่มีสัปดาห์ที่ปิดในช่วงนี้</div>
             ) : (
               <div className="space-y-2">
-                {finance.coachCosts.slice(0, 8).map((coach) => (
+                {finance.coachCosts.slice(0, 10).map((coach) => (
                   <div key={coach.coach} className="rounded-lg border bg-white p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{coach.coach}</p>
-                        <p className="text-xs text-gray-500">รวม {formatNumber(coach.hours, 1)} ชม. • OT {formatNumber(coach.otHours, 1)} ชม.</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900">{coach.coach}</p>
+                          <Badge variant="outline" className="text-xs">{EMPLOYMENT_LABELS[coach.employmentType] || coach.employmentType}</Badge>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          รวม {formatNumber(coach.hours, 1)} ชม. • จ่าย {formatNumber(coach.payableHours, 1)} ชม. • {coach.weeks} สัปดาห์
+                        </p>
                       </div>
-                      <p className="text-sm font-bold text-orange-600">฿{formatNumber(coach.otPay)}</p>
+                      <p className="text-sm font-bold text-orange-600">฿{formatNumber(coach.payableAmount)}</p>
                     </div>
                   </div>
                 ))}
@@ -760,15 +729,15 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
               <Calendar className="h-4 w-4 text-[#2748bf]" />
               <div>
                 <h3 className="font-bold text-[#153c85]">แนวโน้มรายเดือน</h3>
-                <p className="text-xs text-gray-500">เปรียบเทียบรายรับกับค่า OT ในปี {viewYear + 543}</p>
+                <p className="text-xs text-gray-500">เปรียบเทียบรายรับกับรายจ่ายรวมในปี {viewYear + 543}</p>
               </div>
             </div>
 
             <div className="space-y-2">
               {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => {
-                const data = finance.byMonth.get(month) || { revenue: 0, otPay: 0, manualExpenses: 0 }
+                const data = finance.byMonth.get(month) || { revenue: 0, coachPay: 0, manualExpenses: 0 }
                 const revenueWidth = (data.revenue / maxMonthlyValue) * 100
-                const expenseTotal = data.otPay + data.manualExpenses
+                const expenseTotal = data.coachPay + data.manualExpenses
                 const expenseWidth = (expenseTotal / maxMonthlyValue) * 100
                 return (
                   <div key={month} className="grid grid-cols-[3.5rem_1fr_5.5rem] items-center gap-2">
@@ -793,7 +762,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
             <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-500">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />รายรับ</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-400" />รายจ่ายรวม</span>
-              <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />เฉพาะข้อมูลที่ตรวจยืนยันแล้ว</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />เฉพาะข้อมูลที่ยืนยัน/ปิดรอบแล้ว</span>
             </div>
           </CardContent>
         </Card>

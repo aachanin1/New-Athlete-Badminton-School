@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 
 interface OriginalSessionRow {
   id: string
@@ -52,8 +52,8 @@ function isPastSession(date: string, endTime: string | null) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('makeup')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
   try {
     const supabaseAdmin = getServiceRoleClient()

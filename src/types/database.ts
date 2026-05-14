@@ -13,13 +13,14 @@ export type DiscountType = 'fixed' | 'percent'
 export type LevelCategory = 'basic' | 'athlete_1' | 'athlete_2' | 'athlete_3'
 export type StudentType = 'adult' | 'child'
 export type Gender = 'male' | 'female' | 'other'
+export type CoachEmploymentType = 'full_time' | 'half_time' | 'part_time'
 
 export interface Database {
   public: {
     Tables: {
       profiles: {
         Row: Profile
-        Insert: Omit<Profile, 'created_at' | 'updated_at'>
+        Insert: Omit<Profile, 'created_at' | 'updated_at' | 'coach_employment_type'> & Partial<Pick<Profile, 'coach_employment_type'>>
         Update: Partial<Omit<Profile, 'id' | 'created_at'>>
         Relationships: []
       }
@@ -131,10 +132,28 @@ export interface Database {
         Update: Partial<Omit<StudentLevel, 'id' | 'created_at'>>
         Relationships: []
       }
+      student_achievements: {
+        Row: StudentAchievement
+        Insert: Omit<StudentAchievement, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StudentAchievement, 'id' | 'created_at'>>
+        Relationships: []
+      }
       coach_teaching_hours: {
         Row: CoachTeachingHours
         Insert: Omit<CoachTeachingHours, 'id' | 'created_at'>
         Update: Partial<Omit<CoachTeachingHours, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      coach_payouts: {
+        Row: CoachPayout
+        Insert: Omit<CoachPayout, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CoachPayout, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      coach_weekly_teaching_summaries: {
+        Row: CoachWeeklyTeachingSummary
+        Insert: Omit<CoachWeeklyTeachingSummary, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CoachWeeklyTeachingSummary, 'id' | 'created_at'>>
         Relationships: []
       }
       notifications: {
@@ -198,6 +217,7 @@ export interface Profile {
   email: string
   avatar_url: string | null
   role: UserRole
+  coach_employment_type: CoachEmploymentType | null
   created_at: string
   updated_at: string
 }
@@ -413,6 +433,20 @@ export interface StudentLevel {
   created_at: string
 }
 
+export interface StudentAchievement {
+  id: string
+  student_id: string
+  student_type: StudentType
+  emoji: string
+  title: string
+  description: string | null
+  awarded_at: string | null
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface CoachTeachingHours {
   id: string
   coach_id: string
@@ -421,6 +455,59 @@ export interface CoachTeachingHours {
   private_hours: number
   total_hours: number
   created_at: string
+}
+
+export interface CoachPayout {
+  id: string
+  coach_id: string
+  period_month: number
+  period_year: number
+  group_hours: number
+  private_hours: number
+  total_hours: number
+  regular_hours: number
+  ot_group_hours: number
+  ot_private_hours: number
+  ot_hours: number
+  ot_pay: number
+  payout_amount: number
+  payable_session_count: number
+  status: string
+  notes: string | null
+  snapshot: Record<string, unknown>
+  paid_by: string | null
+  paid_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CoachWeeklyTeachingSummary {
+  id: string
+  coach_id: string
+  week_start: string
+  week_end: string
+  coach_employment_type: CoachEmploymentType
+  threshold_hours: number
+  group_hours: number
+  private_hours: number
+  total_hours: number
+  regular_hours: number
+  payable_group_hours: number
+  payable_private_hours: number
+  payable_hours: number
+  private_rate: number
+  group_rate: number
+  payable_amount: number
+  payable_session_count: number
+  missing_checkin_count: number
+  missing_photo_count: number
+  status: string
+  notes: string | null
+  snapshot: Record<string, unknown>
+  closed_by: string | null
+  closed_at: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Notification {

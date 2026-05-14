@@ -21,8 +21,8 @@ import {
   CalendarDays,
   Clock,
 } from 'lucide-react'
-import { DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
-import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
+import { DAY_LABELS } from '@/lib/branch-schedules'
+import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption, type TimeSlot } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 

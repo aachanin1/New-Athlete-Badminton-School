@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertCircle,
+  BriefcaseBusiness,
   Building2,
   CheckCircle2,
   Edit2,
@@ -24,7 +25,8 @@ import {
   UserCog,
   UserPlus,
 } from 'lucide-react'
-import type { Branch } from '@/types/database'
+import type { Branch, CoachEmploymentType } from '@/types/database'
+import { COACH_EMPLOYMENT_OPTIONS, normalizeCoachEmploymentType } from '@/lib/coach-teaching-rules'
 
 interface CoachData {
   id: string
@@ -32,6 +34,7 @@ interface CoachData {
   email: string
   phone: string | null
   role: string
+  employment_type: string | null
   created_at: string
   branches: { branch_id: string; is_head_coach: boolean; branch_name: string }[]
 }
@@ -54,6 +57,12 @@ const ROLE_LABELS: Record<string, { label: string; badge: string; description: s
   },
 }
 
+const EMPLOYMENT_LABELS: Record<CoachEmploymentType, { label: string; badge: string }> = {
+  full_time: { label: 'Full-Time', badge: 'bg-emerald-100 text-emerald-700' },
+  half_time: { label: 'Half-Time', badge: 'bg-blue-100 text-blue-700' },
+  part_time: { label: 'Part-Time', badge: 'bg-orange-100 text-orange-700' },
+}
+
 function getInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || '?'
 }
@@ -74,6 +83,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
   const [formPassword, setFormPassword] = useState('')
   const [formPhone, setFormPhone] = useState('')
   const [formRole, setFormRole] = useState<string>('coach')
+  const [formEmploymentType, setFormEmploymentType] = useState<string>('unset')
   const [formBranches, setFormBranches] = useState<string[]>([])
 
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -84,6 +94,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
   const stats = useMemo(() => {
     const headCoaches = initialCoaches.filter((coach) => coach.role === 'head_coach')
     const regularCoaches = initialCoaches.filter((coach) => coach.role === 'coach')
+    const missingEmploymentType = initialCoaches.filter((coach) => !normalizeCoachEmploymentType(coach.employment_type)).length
     const assignedBranchIds = new Set(initialCoaches.flatMap((coach) => coach.branches.map((branch) => branch.branch_id)))
     const headCoachBranchIds = new Set(headCoaches.flatMap((coach) => coach.branches.map((branch) => branch.branch_id)))
 
@@ -94,6 +105,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
       activeBranches: branches.length,
       branchesWithCoach: assignedBranchIds.size,
       branchesWithoutHeadCoach: branches.filter((branch) => !headCoachBranchIds.has(branch.id)).length,
+      missingEmploymentType,
     }
   }, [initialCoaches, branches])
 
@@ -120,6 +132,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
     setFormPassword('')
     setFormPhone('')
     setFormRole('coach')
+    setFormEmploymentType('unset')
     setFormBranches([])
     setError(null)
     setSuccess(null)
@@ -154,6 +167,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
           full_name: formName.trim(),
           phone: formPhone.trim() || null,
           role: formRole,
+          employmentType: formEmploymentType === 'unset' ? null : formEmploymentType,
           branchIds: formBranches,
         }),
       })
@@ -184,6 +198,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
     setFormEmail(coach.email)
     setFormPhone(coach.phone || '')
     setFormRole(coach.role)
+    setFormEmploymentType(normalizeCoachEmploymentType(coach.employment_type) || 'unset')
     setFormBranches(coach.branches.map((branch) => branch.branch_id))
     setFormPassword('')
     setError(null)
@@ -204,6 +219,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
           coachId: editCoach.id,
           role: formRole,
           phone: formPhone.trim() || null,
+          employmentType: formEmploymentType === 'unset' ? null : formEmploymentType,
           branchIds: formBranches,
         }),
       })
@@ -398,20 +414,23 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
         </Card>
       ) : (
         <div className="overflow-hidden rounded-lg border bg-white">
-          <div className="hidden grid-cols-[minmax(260px,1.2fr)_minmax(220px,1fr)_minmax(260px,1.2fr)_150px_110px] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 xl:grid">
+          <div className="hidden grid-cols-[minmax(240px,1.1fr)_minmax(190px,0.9fr)_minmax(220px,1fr)_130px_130px_110px] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 xl:grid">
             <span>โค้ช</span>
             <span>ติดต่อ</span>
             <span>สาขาที่สอน</span>
             <span>บทบาท</span>
+            <span>ประเภทโค้ช</span>
             <span className="text-right">จัดการ</span>
           </div>
 
           <div className="divide-y">
             {filtered.map((coach) => {
               const roleInfo = ROLE_LABELS[coach.role] || { label: coach.role, badge: 'bg-gray-100 text-gray-700', description: '' }
+              const employmentType = normalizeCoachEmploymentType(coach.employment_type)
+              const employmentInfo = employmentType ? EMPLOYMENT_LABELS[employmentType] : null
 
               return (
-                <div key={coach.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-gray-50 xl:grid-cols-[minmax(260px,1.2fr)_minmax(220px,1fr)_minmax(260px,1.2fr)_150px_110px] xl:items-center xl:gap-4">
+                <div key={coach.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-gray-50 xl:grid-cols-[minmax(240px,1.1fr)_minmax(190px,0.9fr)_minmax(220px,1fr)_130px_130px_110px] xl:items-center xl:gap-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2748bf]/10 font-bold text-[#2748bf]">
                       {getInitial(coach.full_name)}
@@ -453,6 +472,20 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
 
                   <div>
                     <Badge className={`text-xs ${roleInfo.badge}`}>{roleInfo.label}</Badge>
+                  </div>
+
+                  <div>
+                    {employmentInfo ? (
+                      <Badge className={`text-xs ${employmentInfo.badge}`}>
+                        <BriefcaseBusiness className="mr-1 h-3 w-3" />
+                        {employmentInfo.label}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-xs text-amber-700">
+                        <AlertCircle className="mr-1 h-3 w-3" />
+                        ยังไม่ตั้งประเภท
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="flex gap-2 xl:justify-end">
@@ -513,6 +546,24 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
             </div>
 
             <div className="space-y-2">
+              <Label>ประเภทโค้ชสำหรับคำนวณชั่วโมงสอน</Label>
+              <Select value={formEmploymentType} onValueChange={setFormEmploymentType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">ยังไม่กำหนด</SelectItem>
+                  {COACH_EMPLOYMENT_OPTIONS.map((option) => (
+                    <SelectItem key={option.employmentType} value={option.employmentType}>
+                      {option.label} - เกณฑ์ {option.thresholdHours} ชม./สัปดาห์
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                ประเภทนี้ใช้เฉพาะการคำนวณชั่วโมงสอน/OT ไม่เกี่ยวกับสิทธิ์ Head Coach หรือ Coach
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label>สาขาที่สอน</Label>
               {renderBranchPicker()}
             </div>
@@ -564,6 +615,24 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
                   หัวหน้าโค้ชยังคงเป็นผู้สอนได้ และจะปรากฏเป็นตัวเลือกในหน้ามอบหมายรอบเรียนของสาขาที่ผูกไว้
                 </p>
               )}
+
+              <div className="space-y-2">
+                <Label>ประเภทโค้ชสำหรับคำนวณชั่วโมงสอน</Label>
+                <Select value={formEmploymentType} onValueChange={setFormEmploymentType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unset">ยังไม่กำหนด</SelectItem>
+                    {COACH_EMPLOYMENT_OPTIONS.map((option) => (
+                      <SelectItem key={option.employmentType} value={option.employmentType}>
+                        {option.label} - เกณฑ์ {option.thresholdHours} ชม./สัปดาห์
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  ประเภทนี้ใช้เฉพาะการคำนวณชั่วโมงสอน/OT ไม่เกี่ยวกับสิทธิ์ Head Coach หรือ Coach
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <Label>สาขาที่สอน</Label>

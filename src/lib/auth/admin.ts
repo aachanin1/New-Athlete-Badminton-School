@@ -1,6 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import {
+  ADMIN_MENU_PERMISSION_SETTING_KEY,
+  getAllowedAdminMenuKeys,
+  type AdminMenuKey,
+} from '@/lib/admin-navigation'
 import { getHomePathForRole } from '@/lib/auth/redirects'
 import type { UserRole } from '@/types/database'
 
@@ -49,6 +54,40 @@ export async function requireAdminUser() {
   }
 
   return { supabase, user, role, profile }
+}
+
+export async function requireAdminMenuAccess(menuKey: AdminMenuKey) {
+  const ctx = await requireAdminUser()
+
+  if (!ctx) {
+    return {
+      ok: false as const,
+      status: 401,
+      message: 'Unauthorized',
+    }
+  }
+
+  if (ctx.role === 'super_admin') {
+    return { ok: true as const, ctx }
+  }
+
+  const { data: permissionSetting } = await ctx.supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', ADMIN_MENU_PERMISSION_SETTING_KEY)
+    .maybeSingle() as unknown as { data: { value: unknown } | null }
+
+  const allowedMenuKeys = getAllowedAdminMenuKeys(permissionSetting?.value)
+
+  if (!allowedMenuKeys.includes(menuKey)) {
+    return {
+      ok: false as const,
+      status: 403,
+      message: 'ไม่มีสิทธิ์เข้าใช้เมนูนี้',
+    }
+  }
+
+  return { ok: true as const, ctx }
 }
 
 export async function requireSuperAdminUser() {

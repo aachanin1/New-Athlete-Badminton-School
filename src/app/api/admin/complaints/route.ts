@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
 import type { ComplaintStatus } from '@/types/database'
 
@@ -18,8 +18,9 @@ function getErrorMessage(error: unknown) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('complaints')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx
 
   try {
     const { complaintId, status, adminNote } = await request.json() as ComplaintPayload

@@ -186,7 +186,7 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
                   className="w-full border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-[#2748bf] transition-colors">
                   <Camera className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                   <p className="text-sm text-gray-500">กดเพื่อถ่ายรูปเซลฟี่หรือแนบรูปตัวเอง</p>
-                  <p className="mt-1 text-xs text-gray-400">จำเป็นสำหรับการตรวจรอบสอนและเงินเดือนโค้ช</p>
+                  <p className="mt-1 text-xs text-gray-400">จำเป็นสำหรับการตรวจรอบสอนและคำนวณชั่วโมงสอนโค้ช</p>
                 </button>
               )}
             </div>

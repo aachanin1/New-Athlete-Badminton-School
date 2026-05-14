@@ -6,7 +6,7 @@ import { PricingSettingsClient } from '@/components/admin/pricing-settings-clien
 import { SettingsClient, type SettingsSection } from '@/components/admin/settings-client'
 import { ADMIN_MENU_ITEMS, ADMIN_MENU_PERMISSION_SETTING_KEY, getAllowedAdminMenuKeys } from '@/lib/admin-navigation'
 import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
-import { COACH_OT_SETTING_KEY, normalizeCoachOtSettings } from '@/lib/coach-ot-settings'
+import { COACH_OT_SETTING_KEY } from '@/lib/coach-ot-settings'
 import type { CourseCategory } from '@/lib/pricing'
 import type { LevelCategory } from '@/types/database'
 
@@ -134,7 +134,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
     sectionContent = (
       <CoachOtSettingsClient
-        settings={normalizeCoachOtSettings(setting?.value)}
         updatedAt={setting?.updated_at || null}
       />
     )

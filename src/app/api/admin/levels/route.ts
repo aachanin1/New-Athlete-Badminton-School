@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { MAX_LEVEL } from '@/constants/levels'
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
-import { MAX_LEVEL } from '@/constants/levels'
 import type { LevelCategory } from '@/types/database'
 
 const LEVEL_CATEGORIES: LevelCategory[] = ['basic', 'athlete_1', 'athlete_2', 'athlete_3']

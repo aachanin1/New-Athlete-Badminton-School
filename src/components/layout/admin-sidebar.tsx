@@ -178,6 +178,8 @@ function SidebarContent({
 
 export function AdminSidebar({ userName, userAvatarUrl, isSuperAdmin, notificationUnreadCount = 0, allowedMenuKeys }: AdminSidebarProps) {
   const [open, setOpen] = useState(false)
+  const adminAllowedKeys = allowedMenuKeys || getAllowedAdminMenuKeys(null)
+  const canShowNotificationBadge = Boolean(isSuperAdmin || adminAllowedKeys.includes('notifications'))
 
   return (
     <>
@@ -194,13 +196,13 @@ export function AdminSidebar({ userName, userAvatarUrl, isSuperAdmin, notificati
               userAvatarUrl={userAvatarUrl}
               isSuperAdmin={isSuperAdmin}
               notificationUnreadCount={notificationUnreadCount}
-              allowedMenuKeys={allowedMenuKeys}
+              allowedMenuKeys={adminAllowedKeys}
               onNavigate={() => setOpen(false)}
             />
           </SheetContent>
         </Sheet>
         <span className="ml-2 text-sm font-bold text-[#153c85]">Admin - New Athlete</span>
-        {notificationUnreadCount > 0 && (
+        {canShowNotificationBadge && notificationUnreadCount > 0 && (
           <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">
             {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
           </span>
@@ -213,7 +215,7 @@ export function AdminSidebar({ userName, userAvatarUrl, isSuperAdmin, notificati
           userAvatarUrl={userAvatarUrl}
           isSuperAdmin={isSuperAdmin}
           notificationUnreadCount={notificationUnreadCount}
-          allowedMenuKeys={allowedMenuKeys}
+          allowedMenuKeys={adminAllowedKeys}
         />
       </aside>
     </>

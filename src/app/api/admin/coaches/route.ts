@@ -1,38 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
+import { normalizeCoachEmploymentType } from '@/lib/coach-teaching-rules'
 
 // Admin-only API: create coach account, update role, manage coach_branches
 // Uses service_role key to create auth users
 
-interface ProfileRole {
-  role: string
-}
-
-function getAdminSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set')
-  return createAdminClient(url, serviceKey)
-}
-
-async function requireAdmin(supabase: ReturnType<typeof createClient>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as unknown as { data: ProfileRole | null }
-  if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
-  return user
-}
-
 // POST: Create a new coach account
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-  const admin = await requireAdmin(supabase)
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('coaches')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
   try {
     const body = await request.json()
-    const { email, password, full_name, phone, role, branchIds } = body
+    const { email, password, full_name, phone, role, branchIds, employmentType } = body
 
     if (!email || !password || !full_name) {
       return NextResponse.json({ error: 'กรุณากรอกข้อมูลให้ครบ (email, password, ชื่อ)' }, { status: 400 })
@@ -42,7 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'role ต้องเป็น coach หรือ head_coach' }, { status: 400 })
     }
 
-    const adminSupabase = getAdminSupabase()
+    const coachEmploymentType = normalizeCoachEmploymentType(employmentType)
+    const adminSupabase = getServiceRoleClient()
 
     // Create auth user
     const { data: authData, error: authErr } = await adminSupabase.auth.admin.createUser({
@@ -64,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Update profile role & phone (profile auto-created by trigger)
     await adminSupabase
       .from('profiles')
-      .update({ role, phone: phone || null })
+      .update({ role, phone: phone || null, coach_employment_type: coachEmploymentType })
       .eq('id', userId)
 
     // Insert coach_branches
@@ -87,24 +68,25 @@ export async function POST(request: NextRequest) {
 
 // PATCH: Update coach role or branches
 export async function PATCH(request: NextRequest) {
-  const supabase = createClient()
-  const admin = await requireAdmin(supabase)
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('coaches')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
   try {
     const body = await request.json()
-    const { coachId, role, phone, branchIds } = body
+    const { coachId, role, phone, branchIds, employmentType } = body
 
     if (!coachId) {
       return NextResponse.json({ error: 'coachId is required' }, { status: 400 })
     }
 
-    const adminSupabase = getAdminSupabase()
+    const adminSupabase = getServiceRoleClient()
 
     // Update profile
     const updates: Record<string, string | null> = {}
     if (role && ['coach', 'head_coach', 'user'].includes(role)) updates.role = role
     if (phone !== undefined) updates.phone = phone || null
+    if (employmentType !== undefined) updates.coach_employment_type = normalizeCoachEmploymentType(employmentType)
+    if (role === 'user') updates.coach_employment_type = null
 
     if (Object.keys(updates).length > 0) {
       await adminSupabase.from('profiles').update(updates).eq('id', coachId)

@@ -158,7 +158,7 @@ export function LevelsSettingsClient({ levels }: LevelsSettingsClientProps) {
             Level System
           </p>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตั้งค่า Level นักเรียน</h1>
-          <p className="mt-1 text-sm text-gray-500">แก้ชื่อ Level, รายละเอียดการทดสอบ และเปิด/ปิด Level ที่ใช้ในระบบ</p>
+          <p className="mt-1 text-sm text-gray-500">แก้ชื่อ Level รายละเอียด เงื่อนไขการทดสอบ และเปิด/ปิด Level ที่ให้ Coach ใช้ประเมิน</p>
         </div>
         <Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">
           <ShieldCheck className="mr-1 h-3.5 w-3.5" />
@@ -205,7 +205,7 @@ export function LevelsSettingsClient({ levels }: LevelsSettingsClientProps) {
               <div className="flex flex-col gap-2 border-b bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold text-[#153c85]">{group.label}</p>
-                  <p className="text-xs text-gray-500">LV {group.minLevel}-{group.maxLevel} • {group.description}</p>
+                  <p className="text-xs text-gray-500">LV {group.minLevel}-{group.maxLevel} - {group.description}</p>
                 </div>
                 <Badge className={`${group.color} w-fit`}>{group.levels.length} รายการ</Badge>
               </div>
@@ -214,7 +214,7 @@ export function LevelsSettingsClient({ levels }: LevelsSettingsClientProps) {
                   const levelRange = getLevelRange(level.id)
 
                   return (
-                    <div key={level.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[90px_minmax(260px,1fr)_minmax(260px,1.1fr)_150px_90px] lg:items-center">
+                    <div key={level.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[90px_minmax(220px,1fr)_minmax(260px,1.2fr)_150px_90px] lg:items-center">
                       <div className="flex items-center gap-2">
                         <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${levelRange.color}`}>LV {level.id}</div>
                         {!level.is_active && <EyeOff className="h-4 w-4 text-gray-400" />}
@@ -285,7 +285,7 @@ export function LevelsSettingsClient({ levels }: LevelsSettingsClientProps) {
 
             <label className="flex items-center gap-3 rounded-lg border p-3 text-sm">
               <Checkbox checked={form.isActive} onCheckedChange={(checked) => setForm((current) => ({ ...current, isActive: checked === true }))} />
-              เปิดใช้งาน Level นี้
+              เปิดใช้งาน Level นี้ให้ Coach เลือกประเมิน
             </label>
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

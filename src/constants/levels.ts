@@ -13,7 +13,7 @@ export interface LevelRange {
 export const LEVEL_RANGES: LevelRange[] = [
   {
     category: 'basic',
-    label: 'ชุดพื้นฐาน',
+    label: 'พื้นฐาน',
     emoji: 'LV',
     minLevel: 1,
     maxLevel: 34,
@@ -22,7 +22,7 @@ export const LEVEL_RANGES: LevelRange[] = [
   },
   {
     category: 'athlete_1',
-    label: 'ชุดเตรียมนักกีฬา C',
+    label: 'เตรียมนักกีฬา C',
     emoji: 'C',
     minLevel: 35,
     maxLevel: 58,
@@ -31,11 +31,11 @@ export const LEVEL_RANGES: LevelRange[] = [
   },
   {
     category: 'athlete_2',
-    label: 'ชุดนักกีฬา B',
+    label: 'นักกีฬา B',
     emoji: 'B',
     minLevel: 59,
     maxLevel: 70,
-    description: 'เทคนิคและแทคติกขั้นสูงเพื่อเสียแต้มน้อยลงและทำแต้มได้มากขึ้น',
+    description: 'เทคนิคและแทคติกขั้นสูงเพื่อลดแต้มเสียและทำแต้มได้มากขึ้น',
     color: 'bg-purple-100 text-purple-700',
   },
 ]
@@ -43,7 +43,6 @@ export const LEVEL_RANGES: LevelRange[] = [
 export const MAX_LEVEL = 70
 export const MIN_LEVEL = 0
 export const UNASSESSED_LEVEL = 0
-
 export const UNASSESSED_LEVEL_LABEL = 'ยังไม่ประเมิน'
 
 export function getLevelRange(level: number) {

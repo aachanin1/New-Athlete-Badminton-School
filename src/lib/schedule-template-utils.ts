@@ -1,5 +1,9 @@
-import { getAvailableSlots as getFallbackSlots, hasAvailableSlots as hasFallbackSlots, type TimeSlot } from '@/lib/branch-schedules'
 import type { CourseTypeName } from '@/types/database'
+
+export interface TimeSlot {
+  start: string
+  end: string
+}
 
 export interface ScheduleTemplateOption {
   id: string
@@ -57,10 +61,6 @@ export function getTemplateSlots(
     )
     .sort((a, b) => a.start_time.localeCompare(b.start_time))
 
-  if (matches.length === 0) {
-    return getFallbackSlots(branchSlug, courseType, dayOfWeek)
-  }
-
   return matches.flatMap((template) => {
     const slot = { start: toShortTime(template.start_time), end: toShortTime(template.end_time) }
     return courseType === 'private' ? expandPrivateSlot(slot) : [slot]
@@ -74,13 +74,5 @@ export function hasTemplateSlots(
   date: Date
 ) {
   const dayOfWeek = date.getDay()
-  const hasDbTemplate = templates.some((template) =>
-    template.is_active &&
-    template.branch_slug === branchSlug &&
-    template.course_type_name === courseType &&
-    template.day_of_week === dayOfWeek
-  )
-
-  if (!hasDbTemplate) return hasFallbackSlots(branchSlug, courseType, date)
   return getTemplateSlots(templates, branchSlug, courseType, dayOfWeek).length > 0
 }

@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { FinanceClient } from '@/components/admin/finance-client'
-import { COACH_OT_SETTING_KEY, normalizeCoachOtSettings } from '@/lib/coach-ot-settings'
 
 interface PaymentRow {
   id: string
-  amount: number
+  amount: number | string
   status: string
   created_at: string
   bookings?: {
@@ -20,36 +19,12 @@ interface PaymentRow {
   profiles?: { full_name: string | null; email: string | null } | null
 }
 
-interface AssignmentRow {
-  id: string
-  coach_id: string
-  schedule_slot_id: string
-  profiles?: { full_name: string | null } | null
-  schedule_slots?: {
-    id: string
-    branch_id: string
-    date: string
-    start_time: string
-    end_time: string
-    branches?: { name: string | null } | null
-    course_types?: { name: string | null } | null
-  } | null
-}
-
-interface CheckinRow {
-  id: string
-  coach_id: string
-  schedule_slot_id: string
-  checkin_time: string
-  photo_url: string | null
-}
-
 interface ExpenseRow {
   id: string
   expense_date: string
   category: string
   description: string | null
-  amount: number
+  amount: number | string
   branch_id: string | null
   created_at: string
   branches?: { name: string | null } | null
@@ -61,8 +36,28 @@ interface BranchOptionRow {
   name: string | null
 }
 
-interface CoachOtSettingRow {
-  value: unknown
+interface WeeklyTeachingSummaryRow {
+  id: string
+  coach_id: string
+  week_start: string
+  week_end: string
+  coach_employment_type: string
+  threshold_hours: number | string
+  group_hours: number | string
+  private_hours: number | string
+  total_hours: number | string
+  regular_hours: number | string
+  payable_group_hours: number | string
+  payable_private_hours: number | string
+  payable_hours: number | string
+  payable_amount: number | string
+  payable_session_count: number
+  missing_checkin_count: number
+  missing_photo_count: number
+  status: string
+  notes: string | null
+  closed_at: string
+  profiles?: { full_name: string | null; email: string | null } | null
 }
 
 function getYearRange() {
@@ -85,11 +80,9 @@ export default async function FinancePage() {
 
   const [
     { data: payments },
-    { data: assignments },
-    { data: checkins },
+    { data: coachSummaries },
     { data: expenses },
     { data: branches },
-    { data: otSetting },
   ] = await Promise.all([
     supabase
       .from('payments')
@@ -105,25 +98,18 @@ export default async function FinancePage() {
       .order('created_at', { ascending: false })
       .limit(2000) as unknown as PromiseLike<{ data: PaymentRow[] | null }>,
     supabase
-      .from('coach_assignments')
+      .from('coach_weekly_teaching_summaries')
       .select(`
-        id, coach_id, schedule_slot_id,
-        profiles!coach_assignments_coach_id_fkey(full_name),
-        schedule_slots!inner(id, branch_id, date, start_time, end_time,
-          branches(name),
-          course_types(name)
-        )
+        id, coach_id, week_start, week_end, coach_employment_type, threshold_hours,
+        group_hours, private_hours, total_hours, regular_hours, payable_group_hours,
+        payable_private_hours, payable_hours, payable_amount, payable_session_count,
+        missing_checkin_count, missing_photo_count, status, notes, closed_at,
+        profiles!coach_weekly_teaching_summaries_coach_id_fkey(full_name, email)
       `)
-      .gte('schedule_slots.date', range.start)
-      .lt('schedule_slots.date', range.end)
-      .limit(2000) as unknown as PromiseLike<{ data: AssignmentRow[] | null }>,
-    supabase
-      .from('coach_checkins')
-      .select('id, coach_id, schedule_slot_id, checkin_time, photo_url')
-      .gte('checkin_time', `${range.start}T00:00:00`)
-      .lt('checkin_time', `${range.end}T00:00:00`)
-      .order('checkin_time', { ascending: false })
-      .limit(2000) as unknown as PromiseLike<{ data: CheckinRow[] | null }>,
+      .gte('week_start', range.start)
+      .lt('week_start', range.end)
+      .order('week_start', { ascending: false })
+      .limit(2000) as unknown as PromiseLike<{ data: WeeklyTeachingSummaryRow[] | null }>,
     supabase
       .from('finance_expenses')
       .select(`
@@ -140,18 +126,7 @@ export default async function FinancePage() {
       .select('id, name')
       .eq('is_active', true)
       .order('name') as unknown as PromiseLike<{ data: BranchOptionRow[] | null }>,
-    supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', COACH_OT_SETTING_KEY)
-      .maybeSingle() as unknown as PromiseLike<{ data: CoachOtSettingRow | null }>,
   ])
-
-  const checkinMap = new Map<string, CheckinRow>()
-  ;(checkins || []).forEach((checkin) => {
-    const key = `${checkin.coach_id}:${checkin.schedule_slot_id}`
-    if (!checkinMap.has(key)) checkinMap.set(key, checkin)
-  })
 
   const paymentList = (payments || []).map((payment) => ({
     id: payment.id,
@@ -166,27 +141,29 @@ export default async function FinancePage() {
     total_sessions: payment.bookings?.total_sessions || 0,
   }))
 
-  const payrollRows = (assignments || [])
-    .filter((assignment) => assignment.schedule_slots)
-    .map((assignment) => {
-      const slot = assignment.schedule_slots
-      const checkin = checkinMap.get(`${assignment.coach_id}:${assignment.schedule_slot_id}`)
-
-      return {
-        assignment_id: assignment.id,
-        coach_id: assignment.coach_id,
-        coach_name: assignment.profiles?.full_name || 'ไม่ทราบชื่อ',
-        schedule_slot_id: assignment.schedule_slot_id,
-        branch_name: slot?.branches?.name || 'ไม่ทราบสาขา',
-        course_type: slot?.course_types?.name || '',
-        date: slot?.date || '',
-        start_time: slot?.start_time || '',
-        end_time: slot?.end_time || '',
-        checkin_id: checkin?.id || null,
-        checkin_time: checkin?.checkin_time || null,
-        photo_url: checkin?.photo_url || null,
-      }
-    })
+  const coachSummaryList = (coachSummaries || []).map((summary) => ({
+    id: summary.id,
+    coach_id: summary.coach_id,
+    coach_name: summary.profiles?.full_name || summary.profiles?.email || 'ไม่ทราบชื่อ',
+    week_start: summary.week_start,
+    week_end: summary.week_end,
+    employment_type: summary.coach_employment_type,
+    threshold_hours: Number(summary.threshold_hours || 0),
+    group_hours: Number(summary.group_hours || 0),
+    private_hours: Number(summary.private_hours || 0),
+    total_hours: Number(summary.total_hours || 0),
+    regular_hours: Number(summary.regular_hours || 0),
+    payable_group_hours: Number(summary.payable_group_hours || 0),
+    payable_private_hours: Number(summary.payable_private_hours || 0),
+    payable_hours: Number(summary.payable_hours || 0),
+    payable_amount: Number(summary.payable_amount || 0),
+    payable_session_count: summary.payable_session_count || 0,
+    missing_checkin_count: summary.missing_checkin_count || 0,
+    missing_photo_count: summary.missing_photo_count || 0,
+    status: summary.status,
+    notes: summary.notes,
+    closed_at: summary.closed_at,
+  }))
 
   const expenseList = (expenses || []).map((expense) => ({
     id: expense.id,
@@ -209,12 +186,11 @@ export default async function FinancePage() {
   return (
     <FinanceClient
       payments={paymentList}
-      payrollRows={payrollRows}
+      coachSummaries={coachSummaryList}
       expenses={expenseList}
       branches={branchOptions}
       currentMonth={now.getMonth() + 1}
       currentYear={now.getFullYear()}
-      otSettings={normalizeCoachOtSettings(otSetting?.value)}
     />
   )
 }

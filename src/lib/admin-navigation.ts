@@ -39,7 +39,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: 'coaches', href: '/admin/coaches', label: 'จัดการโค้ช', description: 'ดูข้อมูลโค้ชและสาขาที่รับผิดชอบ' },
   { key: 'payments', href: '/admin/payments', label: 'ตรวจสอบการชำระเงิน', description: 'ตรวจ SlipOK หลักฐานโอน และสถานะ payment' },
   { key: 'coupons', href: '/admin/coupons', label: 'คูปองส่วนลด', description: 'ดูคูปองและประวัติการใช้งาน' },
-  { key: 'payroll', href: '/admin/payroll', label: 'เงินเดือนโค้ช', description: 'ตรวจชั่วโมงสอนและรายการจ่ายโค้ช' },
+  { key: 'payroll', href: '/admin/payroll', label: 'คำนวณชั่วโมงสอน', description: 'สรุปชั่วโมงสอนรายสัปดาห์และยอดจ่ายโค้ช' },
   { key: 'finance', href: '/admin/finance', label: 'รายรับ-รายจ่าย', description: 'ดูรายได้ รายจ่าย และภาพรวมการเงิน' },
   { key: 'coach_checkins', href: '/admin/coach-checkins', label: 'เช็คอินโค้ช', description: 'ตรวจรูปและสถานะเช็คอินรายรอบสอน' },
   { key: 'complaints', href: '/admin/complaints', label: 'ร้องเรียน', description: 'ติดตามและตอบกลับเรื่องร้องเรียน' },

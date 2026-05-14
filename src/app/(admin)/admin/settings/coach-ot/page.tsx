@@ -1,6 +1,6 @@
 import { CoachOtSettingsClient } from '@/components/admin/coach-ot-settings-client'
 import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
-import { COACH_OT_SETTING_KEY, normalizeCoachOtSettings } from '@/lib/coach-ot-settings'
+import { COACH_OT_SETTING_KEY } from '@/lib/coach-ot-settings'
 
 interface CoachOtSettingRow {
   value: unknown
@@ -18,7 +18,6 @@ export default async function CoachOtSettingsPage() {
 
   return (
     <CoachOtSettingsClient
-      settings={normalizeCoachOtSettings(setting?.value)}
       updatedAt={setting?.updated_at || null}
     />
   )

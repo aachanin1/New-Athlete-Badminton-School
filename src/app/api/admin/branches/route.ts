@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient, requireAdminUser } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
@@ -7,8 +7,8 @@ function getErrorMessage(error: unknown) {
 
 // POST — create new branch
 export async function POST(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('branches')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
   try {
     const supabaseAdmin = getServiceRoleClient()
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
 
 // PATCH — update branch
 export async function PATCH(req: NextRequest) {
-  const admin = await requireAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('branches')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
   try {
     const supabaseAdmin = getServiceRoleClient()

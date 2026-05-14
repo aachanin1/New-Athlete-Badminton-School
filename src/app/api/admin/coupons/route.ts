@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { requireAdminMenuAccess } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
 
 type DiscountType = 'fixed' | 'percent'
-
-interface ProfileRole {
-  role: string
-}
 
 interface CouponPayload {
   code?: string
@@ -33,20 +29,6 @@ function getAdminSupabase() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !serviceKey) throw new Error('Supabase admin env is not configured')
   return createAdminClient(url, serviceKey)
-}
-
-async function requireAdmin(supabase: ReturnType<typeof createClient>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single() as unknown as { data: ProfileRole | null }
-
-  if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
-  return user
 }
 
 function normalizeCode(code?: string) {
@@ -94,9 +76,9 @@ function getErrorMessage(error: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-  const admin = await requireAdmin(supabase)
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('coupons')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx.user
 
   try {
     const payload = await request.json() as CouponPayload
@@ -145,9 +127,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const supabase = createClient()
-  const admin = await requireAdmin(supabase)
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await requireAdminMenuAccess('coupons')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+  const admin = access.ctx.user
 
   try {
     const payload = await request.json() as PatchPayload

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Baby, BarChart3, CheckCircle2, Loader2, Search, TrendingUp, User } from 'lucide-react'
+import { AlertCircle, Award, Baby, BarChart3, CheckCircle2, Loader2, Search, TrendingUp, User } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,26 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { LEVEL_RANGES, MAX_LEVEL, MIN_LEVEL, getLevelDisplay } from '@/constants/levels'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  StudentAchievementManager,
+  StudentAchievementPills,
+  type AchievementStudentRef,
+  type ManagedStudentAchievement,
+} from '@/components/shared/student-achievement-manager'
+import { LEVEL_RANGES, MAX_LEVEL, MIN_LEVEL, getLevelDisplay, getLevelRange } from '@/constants/levels'
+import type { LevelCategory } from '@/types/database'
+
+interface LevelOption {
+  id: number
+  name: string
+  description: string | null
+  category: LevelCategory
+  program_name: string | null
+  requirements: string | null
+  is_active: boolean
+}
 
 interface StudentData {
   id: string
@@ -19,22 +38,30 @@ interface StudentData {
   parentName: string | null
   currentLevel: number | null
   lastUpdated: string | null
+  achievements: ManagedStudentAchievement[]
 }
 
 interface LevelsClientProps {
   students: StudentData[]
+  levels: LevelOption[]
 }
 
 function formatDate(date: string | null) {
   if (!date) return null
-  return new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+  return new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
 }
 
-export function LevelsClient({ students }: LevelsClientProps) {
+function getLevelName(levels: LevelOption[], level: number | null | undefined) {
+  if (!level || level <= 0) return null
+  return levels.find((item) => item.id === level)?.name || null
+}
+
+export function LevelsClient({ students, levels }: LevelsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [editOpen, setEditOpen] = useState(false)
   const [editStudent, setEditStudent] = useState<StudentData | null>(null)
+  const [achievementStudent, setAchievementStudent] = useState<AchievementStudentRef | null>(null)
   const [newLevel, setNewLevel] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,18 +77,34 @@ export function LevelsClient({ students }: LevelsClientProps) {
     ))
   }, [students, search])
 
+  const selectedLevel = useMemo(() => {
+    const levelId = Number(newLevel)
+    return levels.find((level) => level.id === levelId) || null
+  }, [levels, newLevel])
+
   const openEdit = (student: StudentData) => {
+    const currentLevel = student.currentLevel || 0
+    const activeCurrentLevel = levels.some((level) => level.id === currentLevel)
     setEditStudent(student)
-    setNewLevel((student.currentLevel ?? MIN_LEVEL).toString())
+    setNewLevel(activeCurrentLevel ? String(currentLevel) : '')
     setNotes('')
     setError(null)
     setSuccess(null)
     setEditOpen(true)
   }
 
+  const openAchievements = (student: StudentData) => {
+    setAchievementStudent({
+      id: student.id,
+      name: student.name,
+      studentType: student.type,
+      achievements: student.achievements,
+    })
+  }
+
   const handleSubmit = async () => {
     if (!editStudent || !newLevel) {
-      setError('กรุณาระบุ Level')
+      setError('กรุณาเลือก Level')
       return
     }
 
@@ -107,9 +150,20 @@ export function LevelsClient({ students }: LevelsClientProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#153c85]">กรอก LV นักเรียน</h1>
-        <p className="mt-1 text-sm text-gray-500">อัปเดต Level พัฒนาการนักเรียน (LV {MIN_LEVEL}-{MAX_LEVEL})</p>
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-semibold text-[#2748bf]">
+            <BarChart3 className="h-4 w-4" />
+            Coach Evaluation
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ประเมิน Level นักเรียน</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            เลือก Level จากค่าที่ Super Admin เปิดใช้งาน นักเรียนทุกคนเริ่มที่ Level 0 จนกว่า Coach จะประเมิน
+          </p>
+        </div>
+        <Badge variant="outline" className="w-fit border-blue-200 bg-blue-50 px-3 py-2 text-[#2748bf]">
+          ใช้ข้อมูลจาก DB: {levels.length} Level
+        </Badge>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -120,10 +174,10 @@ export function LevelsClient({ students }: LevelsClientProps) {
         ))}
       </div>
 
-      <div className="relative max-w-sm">
+      <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
-          placeholder="ค้นหาชื่อนักเรียน..."
+          placeholder="ค้นหาชื่อนักเรียนหรือผู้ปกครอง..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           className="pl-10"
@@ -142,28 +196,38 @@ export function LevelsClient({ students }: LevelsClientProps) {
           {filtered.map((student) => {
             const levelInfo = getLevelDisplay(student.currentLevel)
             const updatedText = formatDate(student.lastUpdated)
+            const levelName = getLevelName(levels, student.currentLevel)
 
             return (
               <Card key={`${student.id}-${student.type}`} className="transition-shadow hover:shadow-sm">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${levelInfo.color}`}>
+                <CardContent className="grid gap-3 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${levelInfo.color}`}>
                     <span className="text-sm font-bold">{levelInfo.level}</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
+
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       {student.type === 'child' ? <Baby className="h-3.5 w-3.5 text-pink-500" /> : <User className="h-3.5 w-3.5 text-blue-500" />}
-                      <span className="truncate text-sm font-medium">{student.name}</span>
+                      <span className="truncate text-sm font-semibold text-[#153c85]">{student.name}</span>
+                      <StudentAchievementPills achievements={student.achievements} />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
                       {student.parentName && <span>ผู้ปกครอง: {student.parentName}</span>}
-                      <Badge className={`${levelInfo.color} text-[10px]`}>{levelInfo.label}</Badge>
+                      <Badge className={`${levelInfo.color} text-[10px]`}>{levelName || levelInfo.label}</Badge>
                       {updatedText && <span>อัปเดต: {updatedText}</span>}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="h-8 text-[#2748bf]" onClick={() => openEdit(student)}>
-                    <TrendingUp className="mr-1 h-3.5 w-3.5" />
-                    กรอก LV
-                  </Button>
+
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                    <Button size="sm" variant="outline" className="h-8 text-[#f57e3b]" onClick={() => openAchievements(student)}>
+                      <Award className="mr-1 h-3.5 w-3.5" />
+                      รางวัล
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-[#2748bf]" onClick={() => openEdit(student)}>
+                      <TrendingUp className="mr-1 h-3.5 w-3.5" />
+                      กรอก LV
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )
@@ -172,7 +236,7 @@ export function LevelsClient({ students }: LevelsClientProps) {
       )}
 
       <Dialog open={editOpen} onOpenChange={(open) => { if (!loading) setEditOpen(open) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">อัปเดต Level</DialogTitle>
           </DialogHeader>
@@ -190,23 +254,49 @@ export function LevelsClient({ students }: LevelsClientProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Level ใหม่ ({MIN_LEVEL}-{MAX_LEVEL})</Label>
-                <Input type="number" min={MIN_LEVEL} max={MAX_LEVEL} value={newLevel} onChange={(event) => setNewLevel(event.target.value)} placeholder={`${MIN_LEVEL}-${MAX_LEVEL}`} />
-                {newLevel !== '' && Number(newLevel) >= MIN_LEVEL && Number(newLevel) <= MAX_LEVEL && (
-                  <Badge className={`${getLevelDisplay(Number(newLevel)).color} text-xs`}>
-                    {getLevelDisplay(Number(newLevel)).label}
-                  </Badge>
+                <Label>Level ใหม่</Label>
+                <Select value={newLevel} onValueChange={setNewLevel} disabled={levels.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={levels.length === 0 ? 'ยังไม่มี Level ที่เปิดใช้งาน' : 'เลือก Level'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {levels.map((level) => {
+                      const range = getLevelRange(level.id)
+                      return (
+                        <SelectItem key={level.id} value={String(level.id)}>
+                          LV {level.id} - {level.name || range.label}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+                {selectedLevel && (
+                  <div className="rounded-lg border bg-blue-50/60 p-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className={getLevelDisplay(selectedLevel.id).color}>LV {selectedLevel.id}</Badge>
+                      <span className="font-semibold text-[#153c85]">{selectedLevel.name}</span>
+                      <span className="text-xs text-gray-500">{selectedLevel.program_name || getLevelRange(selectedLevel.id).label}</span>
+                    </div>
+                    {(selectedLevel.requirements || selectedLevel.description) && (
+                      <p className="mt-2 text-gray-600">{selectedLevel.requirements || selectedLevel.description}</p>
+                    )}
+                  </div>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label>หมายเหตุ (ไม่บังคับ)</Label>
-                <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="เช่น พัฒนาดี, ต้องฝึก backhand เพิ่ม" />
+                <Textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="เช่น พัฒนาดี, ต้องฝึก backhand เพิ่ม"
+                  rows={3}
+                />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row">
                 <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)} disabled={loading}>ยกเลิก</Button>
-                <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" onClick={handleSubmit} disabled={loading}>
+                <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" onClick={handleSubmit} disabled={loading || !newLevel}>
                   {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
                   บันทึก Level
                 </Button>
@@ -215,6 +305,14 @@ export function LevelsClient({ students }: LevelsClientProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      <StudentAchievementManager
+        student={achievementStudent}
+        open={Boolean(achievementStudent)}
+        onOpenChange={(open) => {
+          if (!open) setAchievementStudent(null)
+        }}
+      />
     </div>
   )
 }

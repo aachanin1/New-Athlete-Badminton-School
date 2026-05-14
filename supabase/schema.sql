@@ -30,6 +30,7 @@ CREATE TABLE profiles (
   email TEXT NOT NULL,
   avatar_url TEXT,
   role user_role NOT NULL DEFAULT 'user',
+  coach_employment_type TEXT CHECK (coach_employment_type IS NULL OR coach_employment_type IN ('full_time', 'half_time', 'part_time')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -266,6 +267,20 @@ CREATE TABLE student_levels (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE student_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL,
+  student_type student_type NOT NULL,
+  emoji TEXT NOT NULL CHECK (char_length(emoji) BETWEEN 1 AND 8),
+  title TEXT NOT NULL,
+  description TEXT,
+  awarded_at DATE,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Coach Teaching Hours (สรุปชั่วโมงสอน)
 CREATE TABLE coach_teaching_hours (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -279,6 +294,62 @@ CREATE TABLE coach_teaching_hours (
 );
 
 -- ─── SYSTEM TABLES ──────────────────────────────────────────
+
+CREATE TABLE coach_payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  period_month INTEGER NOT NULL CHECK (period_month >= 1 AND period_month <= 12),
+  period_year INTEGER NOT NULL,
+  group_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  private_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  total_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  regular_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  ot_group_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  ot_private_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  ot_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  ot_pay NUMERIC(12,2) NOT NULL DEFAULT 0,
+  payout_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  payable_session_count INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'paid',
+  notes TEXT,
+  snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+  paid_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  paid_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(coach_id, period_year, period_month)
+);
+
+CREATE TABLE coach_weekly_teaching_summaries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,
+  week_end DATE NOT NULL,
+  coach_employment_type TEXT NOT NULL CHECK (coach_employment_type IN ('full_time', 'half_time', 'part_time')),
+  threshold_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  group_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  private_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  total_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  regular_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  payable_group_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  payable_private_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  payable_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+  private_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
+  group_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
+  payable_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  payable_session_count INTEGER NOT NULL DEFAULT 0,
+  missing_checkin_count INTEGER NOT NULL DEFAULT 0,
+  missing_photo_count INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'closed' CHECK (status IN ('closed')),
+  notes TEXT,
+  snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+  closed_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  closed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (week_end >= week_start),
+  UNIQUE(coach_id, week_start)
+);
 
 -- Notifications
 CREATE TABLE notifications (
@@ -356,11 +427,18 @@ CREATE INDEX idx_coach_branches_coach ON coach_branches(coach_id);
 CREATE INDEX idx_coach_assignments_slot ON coach_assignments(schedule_slot_id);
 CREATE INDEX idx_attendance_session ON attendance(booking_session_id);
 CREATE INDEX idx_student_levels_student ON student_levels(student_id);
+CREATE INDEX idx_student_achievements_student ON student_achievements(student_id, student_type);
+CREATE INDEX idx_student_achievements_active ON student_achievements(is_active);
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 CREATE INDEX idx_complaints_branch ON complaints(branch_id);
 CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_created ON activity_logs(created_at);
 CREATE INDEX idx_coach_teaching_hours_coach_date ON coach_teaching_hours(coach_id, date);
+CREATE INDEX idx_coach_payouts_period ON coach_payouts(period_year, period_month);
+CREATE INDEX idx_coach_payouts_coach ON coach_payouts(coach_id);
+CREATE INDEX idx_profiles_coach_employment_type ON profiles(coach_employment_type);
+CREATE INDEX idx_coach_weekly_teaching_summaries_week ON coach_weekly_teaching_summaries(week_start, week_end);
+CREATE INDEX idx_coach_weekly_teaching_summaries_coach ON coach_weekly_teaching_summaries(coach_id);
 CREATE INDEX idx_finance_expenses_date ON finance_expenses(expense_date);
 CREATE INDEX idx_finance_expenses_branch ON finance_expenses(branch_id);
 
@@ -382,6 +460,8 @@ CREATE TRIGGER tr_schedule_templates_updated_at BEFORE UPDATE ON schedule_templa
 CREATE TRIGGER tr_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_booking_sessions_updated_at BEFORE UPDATE ON booking_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_teaching_programs_updated_at BEFORE UPDATE ON teaching_programs FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_coach_payouts_updated_at BEFORE UPDATE ON coach_payouts FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_coach_weekly_teaching_summaries_updated_at BEFORE UPDATE ON coach_weekly_teaching_summaries FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_finance_expenses_updated_at BEFORE UPDATE ON finance_expenses FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Auto-create profile on auth.users insert
@@ -425,7 +505,10 @@ ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coach_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teaching_programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_levels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coach_teaching_hours ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coach_payouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coach_weekly_teaching_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
@@ -552,10 +635,24 @@ CREATE POLICY "Users can view own levels" ON student_levels FOR SELECT
   ));
 CREATE POLICY "Anyone can view levels for ranking" ON student_levels FOR SELECT USING (true);
 
+-- student_achievements
+CREATE POLICY "Anyone can view active student achievements" ON student_achievements FOR SELECT USING (is_active = true OR is_staff());
+CREATE POLICY "Staff can manage student achievements" ON student_achievements FOR ALL USING (is_staff()) WITH CHECK (is_staff());
+
 -- coach_teaching_hours
 CREATE POLICY "Coaches can view own hours" ON coach_teaching_hours FOR SELECT USING (coach_id = auth.uid());
 CREATE POLICY "Admins can view all hours" ON coach_teaching_hours FOR SELECT USING (is_admin_or_super());
 CREATE POLICY "System can manage hours" ON coach_teaching_hours FOR ALL USING (is_admin_or_super());
+
+-- coach_payouts
+CREATE POLICY "Admins can view coach payouts" ON coach_payouts FOR SELECT USING (is_admin_or_super());
+CREATE POLICY "Admins can insert coach payouts" ON coach_payouts FOR INSERT WITH CHECK (is_admin_or_super());
+CREATE POLICY "Admins can update coach payouts" ON coach_payouts FOR UPDATE USING (is_admin_or_super()) WITH CHECK (is_admin_or_super());
+
+-- coach_weekly_teaching_summaries
+CREATE POLICY "Admins can view weekly teaching summaries" ON coach_weekly_teaching_summaries FOR SELECT USING (is_admin_or_super());
+CREATE POLICY "Admins can insert weekly teaching summaries" ON coach_weekly_teaching_summaries FOR INSERT WITH CHECK (is_admin_or_super());
+CREATE POLICY "Admins can update weekly teaching summaries" ON coach_weekly_teaching_summaries FOR UPDATE USING (is_admin_or_super()) WITH CHECK (is_admin_or_super());
 
 -- notifications
 CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (user_id = auth.uid());
