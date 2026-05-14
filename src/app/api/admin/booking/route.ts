@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { calculateBookingBasePrice } from '@/lib/booking-pricing'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
+import type { CourseTypeName } from '@/types/database'
 
 interface ProfileRole {
   role: string
@@ -75,6 +77,31 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = getAdminSupabase()
 
+    const { data: courseType } = await adminSupabase
+      .from('course_types')
+      .select('id, name')
+      .eq('id', courseTypeId)
+      .single() as unknown as { data: { id: string; name: CourseTypeName } | null }
+
+    if (!courseType) {
+      return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
+    }
+
+    const calculatedTotalPrice = await calculateBookingBasePrice({
+      supabase: adminSupabase,
+      userId: targetUserId,
+      courseTypeId,
+      courseTypeName: courseType.name,
+      month,
+      year,
+      newSessions: Number(totalSessions || sessions.length),
+      existingStatuses: ['paid', 'verified'],
+    })
+
+    if (!Number.isFinite(Number(totalPrice)) || Math.abs(calculatedTotalPrice - Number(totalPrice)) > 1) {
+      return NextResponse.json({ error: 'ราคาค่าเรียนมีการเปลี่ยนแปลง กรุณารีเฟรชหน้าแล้วตรวจสอบยอดอีกครั้ง' }, { status: 400 })
+    }
+
     // Create booking
     const bookingStatus = autoVerify ? 'verified' : 'pending_payment'
     const { data: bookingData, error: insertErr } = await adminSupabase
@@ -88,7 +115,7 @@ export async function POST(request: NextRequest) {
         month,
         year,
         total_sessions: totalSessions,
-        total_price: totalPrice,
+        total_price: calculatedTotalPrice,
         status: bookingStatus,
       })
       .select('id')
@@ -127,7 +154,7 @@ export async function POST(request: NextRequest) {
       await adminSupabase.from('payments').insert({
         booking_id: bookingData.id,
         user_id: targetUserId,
-        amount: totalPrice,
+        amount: calculatedTotalPrice,
         method: 'admin_bypass',
         status: 'approved',
         verified_by: admin.id,
@@ -139,7 +166,7 @@ export async function POST(request: NextRequest) {
     await notifyRoles(adminSupabase as unknown as NotificationSupabase, {
       roles: ['admin', 'super_admin'],
       title: 'มีการจองใหม่',
-      message: `Admin สร้างการจองใหม่ ${totalSessions} ครั้ง • ฿${Number(totalPrice || 0).toLocaleString('th-TH')}`,
+      message: `Admin สร้างการจองใหม่ ${totalSessions} ครั้ง • ฿${Number(calculatedTotalPrice || 0).toLocaleString('th-TH')}`,
       type: 'schedule',
       link_url: '/admin',
     })

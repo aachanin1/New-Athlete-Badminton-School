@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
+import { calculateBookingBasePrice } from '@/lib/booking-pricing'
 import { notifyRoles } from '@/lib/notifications'
-import type { Coupon, LearnerType } from '@/types/database'
+import type { Coupon, CourseTypeName, LearnerType } from '@/types/database'
 
 interface BookingSessionPayload {
   date: string
@@ -207,26 +208,41 @@ export async function POST(request: NextRequest) {
 
     const { data: courseType } = await (adminSupabase
       .from('course_types') as any)
-      .select('id')
+      .select('id, name')
       .eq('id', courseTypeId)
-      .single()
+      .single() as { data: { id: string; name: CourseTypeName } | null }
 
     if (!courseType) {
       return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
+    }
+
+    const calculatedTotalAmount = await calculateBookingBasePrice({
+      supabase: adminSupabase,
+      userId: user.id,
+      courseTypeId,
+      courseTypeName: courseType.name,
+      month,
+      year,
+      newSessions: totalSessions,
+      existingStatuses: ['pending_payment', 'paid', 'verified'],
+    })
+
+    if (Math.abs(calculatedTotalAmount - totalAmount) > 1) {
+      return NextResponse.json({ error: 'ราคาค่าเรียนมีการเปลี่ยนแปลง กรุณารีเฟรชหน้าแล้วตรวจสอบยอดอีกครั้ง' }, { status: 400 })
     }
 
     const { coupon, discountAmount, error: couponError } = await validateCoupon(
       adminSupabase,
       user.id,
       couponInput,
-      totalAmount
+      calculatedTotalAmount
     )
 
     if (couponError) {
       return NextResponse.json({ error: couponError }, { status: 400 })
     }
 
-    const finalPrice = Math.max(0, totalAmount - discountAmount)
+    const finalPrice = Math.max(0, calculatedTotalAmount - discountAmount)
     if (Math.abs(finalPrice - expectedTotalPrice) > 1) {
       return NextResponse.json({ error: 'ยอดชำระไม่ตรงกับข้อมูลล่าสุด กรุณาตรวจสอบคูปองและราคาอีกครั้ง' }, { status: 400 })
     }

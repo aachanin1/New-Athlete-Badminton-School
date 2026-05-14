@@ -16,6 +16,19 @@ interface ScheduleTemplateRow {
   course_types?: { name: CourseTypeName | null } | null
 }
 
+interface PricingTierRow {
+  id: string
+  course_type_id: string
+  min_sessions: number
+  max_sessions: number | null
+  price_per_session: number | string
+  package_price: number | string
+  valid_from: string
+  valid_to: string | null
+  created_at: string | null
+  course_types?: { name: CourseTypeName | null } | null
+}
+
 export default async function BookingPage({ searchParams }: { searchParams: { editBookingId?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -40,6 +53,14 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
   const { data: courseTypes } = await supabase
     .from('course_types')
     .select('id, name')
+
+  const { data: pricingTiers } = await supabase
+    .from('pricing_tiers')
+    .select(`
+      id, course_type_id, min_sessions, max_sessions, price_per_session, package_price, valid_from, valid_to, created_at,
+      course_types(name)
+    `)
+    .order('min_sessions', { ascending: true }) as unknown as { data: PricingTierRow[] | null }
 
   const { data: scheduleTemplates } = await supabase
     .from('schedule_templates')
@@ -128,6 +149,18 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
         existingBookings={(existingBookings as any) || []}
         existingBookingSessions={existingSessionsData}
         editBooking={editBookingData}
+        pricingTiers={(pricingTiers || []).map((tier) => ({
+          id: tier.id,
+          course_type_id: tier.course_type_id,
+          course_type_name: tier.course_types?.name || 'kids_group',
+          min_sessions: tier.min_sessions,
+          max_sessions: tier.max_sessions,
+          price_per_session: Number(tier.price_per_session),
+          package_price: Number(tier.package_price),
+          valid_from: tier.valid_from,
+          valid_to: tier.valid_to,
+          created_at: tier.created_at,
+        }))}
       />
     </div>
   )

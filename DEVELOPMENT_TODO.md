@@ -52,29 +52,34 @@ Notes:
   - Users can edit their own name, phone, avatar, and password.
   - Email must not be editable because it is the login username.
   - Avatar should update `profiles.avatar_url` and be reused by sidebar/ranking/profile surfaces.
-- [ ] 2. Pricing Settings
+- [x] 2. Pricing Settings
   - Super Admin can edit course price tiers through the system.
   - Booking/Admin Booking should use DB settings as the source of truth, not hardcoded pricing.
-- [ ] 3. Coach OT Settings
+- [x] 3. Coach OT Settings
   - Super Admin can edit weekly OT threshold and OT rates.
   - Payroll and Finance should read these settings instead of constants.
-- [ ] 4. Schedule Templates as DB Source of Truth
+- [x] 4. Settings Workspace UX
+  - Replace the raw Key/Value JSON settings list with user-friendly section panels.
+  - Default section should be Admin Menu Permissions.
+  - Reuse existing Admin Menu Permissions, Level Settings, Pricing Settings, and Coach OT Settings UI.
+  - Keep raw JSON settings hidden from the normal Super Admin workflow; reserve it for developer/debug use only if needed.
+- [ ] 5. Schedule Templates as DB Source of Truth
   - Confirm every branch/course/day/time template is stored in DB.
   - Remove or minimize hardcoded schedule fallback after DB data is trusted.
-- [ ] 5. Admin Booking Flow QA and Completion
+- [ ] 6. Admin Booking Flow QA and Completion
   - Verify Admin can book for user/child, select valid template slots, calculate price, apply coupon, and create correct booking/payment/session data.
-- [ ] 6. Payroll Payout Closing
+- [ ] 7. Payroll Payout Closing
   - Add/complete workflow for marking coach payout periods as paid/closed and keeping payout history.
-- [ ] 7. Finance Business Overview Completion
+- [ ] 8. Finance Business Overview Completion
   - Improve monthly/yearly business view with revenue, expenses, OT, net result, branch/course breakdown, and export-ready summaries if needed.
-- [ ] 8. Admin Menu Permissions QA
+- [ ] 9. Admin Menu Permissions QA
   - Verify regular Admin sees only menus allowed by Super Admin and cannot access hidden routes directly.
-- [ ] 9. Admin Ranking QA and Useful Filters
+- [ ] 10. Admin Ranking QA and Useful Filters
   - Verify Ranking data, avatars, Level 0/default state, child/adult tabs, and add branch/type/level filters only if needed for real admin use.
-- [ ] 10. Level Settings to Coach Evaluation Flow
+- [ ] 11. Level Settings to Coach Evaluation Flow
   - Confirm Super Admin Level settings feed Coach level evaluation and public/admin ranking consistently.
-- [ ] 11. Admin Regression and Responsive Pass
-  - After items 1-10 are completed, run a focused pass on Admin desktop/mobile layout and critical flows.
+- [ ] 12. Admin Regression and Responsive Pass
+  - After items 1-11 are completed, run a focused pass on Admin desktop/mobile layout and critical flows.
 
 ## Phase 3 - Build & Deploy Readiness
 

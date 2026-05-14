@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { PayrollClient } from '@/components/admin/payroll-client'
+import { COACH_OT_SETTING_KEY, normalizeCoachOtSettings } from '@/lib/coach-ot-settings'
 
 interface AssignmentRow {
   id: string
@@ -25,6 +26,10 @@ interface CheckinRow {
   photo_url: string | null
 }
 
+interface CoachOtSettingRow {
+  value: unknown
+}
+
 function getYearRange() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 1)
@@ -43,7 +48,7 @@ export default async function PayrollPage() {
   const supabase = createClient()
   const range = getYearRange()
 
-  const [{ data: assignments }, { data: checkins }] = await Promise.all([
+  const [{ data: assignments }, { data: checkins }, { data: otSetting }] = await Promise.all([
     supabase
       .from('coach_assignments')
       .select(`
@@ -64,6 +69,11 @@ export default async function PayrollPage() {
       .lt('checkin_time', `${range.end}T00:00:00`)
       .order('checkin_time', { ascending: false })
       .limit(2000) as unknown as PromiseLike<{ data: CheckinRow[] | null }>,
+    supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', COACH_OT_SETTING_KEY)
+      .maybeSingle() as unknown as PromiseLike<{ data: CoachOtSettingRow | null }>,
   ])
 
   const checkinMap = new Map<string, CheckinRow>()
@@ -95,5 +105,12 @@ export default async function PayrollPage() {
     })
 
   const now = new Date()
-  return <PayrollClient rows={payrollRows} currentMonth={now.getMonth() + 1} currentYear={now.getFullYear()} />
+  return (
+    <PayrollClient
+      rows={payrollRows}
+      currentMonth={now.getMonth() + 1}
+      currentYear={now.getFullYear()}
+      otSettings={normalizeCoachOtSettings(otSetting?.value)}
+    />
+  )
 }

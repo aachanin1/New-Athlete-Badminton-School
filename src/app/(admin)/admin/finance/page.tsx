@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { FinanceClient } from '@/components/admin/finance-client'
+import { COACH_OT_SETTING_KEY, normalizeCoachOtSettings } from '@/lib/coach-ot-settings'
 
 interface PaymentRow {
   id: string
@@ -60,6 +61,10 @@ interface BranchOptionRow {
   name: string | null
 }
 
+interface CoachOtSettingRow {
+  value: unknown
+}
+
 function getYearRange() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 1)
@@ -78,7 +83,14 @@ export default async function FinancePage() {
   const supabase = createClient()
   const range = getYearRange()
 
-  const [{ data: payments }, { data: assignments }, { data: checkins }, { data: expenses }, { data: branches }] = await Promise.all([
+  const [
+    { data: payments },
+    { data: assignments },
+    { data: checkins },
+    { data: expenses },
+    { data: branches },
+    { data: otSetting },
+  ] = await Promise.all([
     supabase
       .from('payments')
       .select(`
@@ -128,6 +140,11 @@ export default async function FinancePage() {
       .select('id, name')
       .eq('is_active', true)
       .order('name') as unknown as PromiseLike<{ data: BranchOptionRow[] | null }>,
+    supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', COACH_OT_SETTING_KEY)
+      .maybeSingle() as unknown as PromiseLike<{ data: CoachOtSettingRow | null }>,
   ])
 
   const checkinMap = new Map<string, CheckinRow>()
@@ -197,6 +214,7 @@ export default async function FinancePage() {
       branches={branchOptions}
       currentMonth={now.getMonth() + 1}
       currentYear={now.getFullYear()}
+      otSettings={normalizeCoachOtSettings(otSetting?.value)}
     />
   )
 }

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
-import { getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel } from '@/lib/pricing'
+import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 import type { Branch, CourseTypeName } from '@/types/database'
 
@@ -41,6 +41,19 @@ interface ExistingBooking {
   total_price: number
 }
 
+interface PricingTierData {
+  id: string
+  course_type_id: string
+  course_type_name: CourseCategory
+  min_sessions: number
+  max_sessions: number | null
+  price_per_session: number
+  package_price: number
+  valid_from: string
+  valid_to: string | null
+  created_at: string | null
+}
+
 interface SelectedSession {
   date: string
   dayOfWeek: number
@@ -55,6 +68,7 @@ interface AdminBookingClientProps {
   courseTypes: CourseTypeRow[]
   scheduleTemplates: ScheduleTemplateOption[]
   existingBookings: ExistingBooking[]
+  pricingTiers?: PricingTierData[]
 }
 
 type Step = 'user' | 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
@@ -76,7 +90,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-export function AdminBookingClient({ users, branches, courseTypes, scheduleTemplates, existingBookings }: AdminBookingClientProps) {
+export function AdminBookingClient({ users, branches, courseTypes, scheduleTemplates, existingBookings, pricingTiers = [] }: AdminBookingClientProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('user')
   const [loading, setLoading] = useState(false)
@@ -144,23 +158,23 @@ export function AdminBookingClient({ users, branches, courseTypes, scheduleTempl
 
   const kidsIncremental = useMemo(() => {
     if (courseType !== 'kids_group' || allSelectedSessions.length === 0) return null
-    return getKidsGroupIncremental(existingMonthData.sessions, existingMonthData.paid, allSelectedSessions.length)
-  }, [courseType, allSelectedSessions.length, existingMonthData])
+    return getKidsGroupIncremental(existingMonthData.sessions, existingMonthData.paid, allSelectedSessions.length, pricingTiers as PricingTierInput[])
+  }, [courseType, allSelectedSessions.length, existingMonthData, pricingTiers])
 
   const pricing = useMemo(() => {
     if (!courseType || allSelectedSessions.length === 0) return null
     if (courseType === 'kids_group' && kidsIncremental) {
       return { total: kidsIncremental.incrementalPrice, perSession: kidsIncremental.perSession, tierLabel: kidsIncremental.tierLabel }
     }
-    if (courseType === 'adult_group') return getAdultGroupTotal(allSelectedSessions.length)
-    return { total: allSelectedSessions.length * 900, perSession: 900, tierLabel: 'รายชั่วโมง' }
-  }, [courseType, allSelectedSessions.length, kidsIncremental])
+    if (courseType === 'adult_group') return getAdultGroupTotal(allSelectedSessions.length, pricingTiers as PricingTierInput[])
+    return getPrivateTotal(allSelectedSessions.length, pricingTiers as PricingTierInput[])
+  }, [courseType, allSelectedSessions.length, kidsIncremental, pricingTiers])
 
   const totalPrice = useMemo(() => {
     if (!pricing) return 0
     if (courseType === 'kids_group' && kidsIncremental) return kidsIncremental.incrementalPrice
-    return pricing.perSession * allSelectedSessions.length
-  }, [pricing, courseType, kidsIncremental, allSelectedSessions.length])
+    return pricing.total
+  }, [pricing, courseType, kidsIncremental])
 
   const sessionStatus = allSelectedSessions.length > 0 ? getSessionStatusLabel(allSelectedSessions.length) : null
 

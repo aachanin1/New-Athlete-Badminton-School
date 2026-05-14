@@ -1,51 +1,148 @@
-import { createClient } from '@/lib/supabase/server'
-import { SettingsClient } from '@/components/admin/settings-client'
+import type { ReactNode } from 'react'
+import { AdminMenuPermissionsClient } from '@/components/admin/admin-menu-permissions-client'
+import { CoachOtSettingsClient } from '@/components/admin/coach-ot-settings-client'
+import { LevelsSettingsClient } from '@/components/admin/levels-settings-client'
+import { PricingSettingsClient } from '@/components/admin/pricing-settings-client'
+import { SettingsClient, type SettingsSection } from '@/components/admin/settings-client'
+import { ADMIN_MENU_ITEMS, ADMIN_MENU_PERMISSION_SETTING_KEY, getAllowedAdminMenuKeys } from '@/lib/admin-navigation'
 import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
+import { COACH_OT_SETTING_KEY, normalizeCoachOtSettings } from '@/lib/coach-ot-settings'
+import type { CourseCategory } from '@/lib/pricing'
+import type { LevelCategory } from '@/types/database'
 
-interface SettingRow {
-  id: string
-  key: string
-  value: unknown
-  updated_by: string | null
+interface LevelRow {
+  id: number
+  name: string
+  description: string | null
+  category: LevelCategory
+  program_name: string | null
+  requirements: string | null
+  is_active: boolean | null
   updated_at: string | null
 }
 
-interface UpdaterRow {
+interface PricingTierRow {
   id: string
-  full_name: string | null
+  course_type_id: string
+  min_sessions: number
+  max_sessions: number | null
+  price_per_session: number | string
+  package_price: number | string
+  valid_from: string
+  valid_to: string | null
+  created_at: string | null
+  course_types?: { name: CourseCategory | null } | null
 }
 
-export default async function SettingsPage() {
-  await requireSuperAdminPageAccess()
-  const supabase = createClient()
+interface CoachOtSettingRow {
+  value: unknown
+  updated_at: string | null
+}
 
-  const { data: settings } = await supabase
-    .from('system_settings')
-    .select('id, key, value, updated_by, updated_at')
-    .order('key') as unknown as { data: SettingRow[] | null }
+interface SettingsPageProps {
+  searchParams?: {
+    section?: string
+  }
+}
 
-  // Fetch updater names
-  const updaterIds = Array.from(new Set((settings || []).map((s) => s.updated_by).filter(Boolean))) as string[]
-  let updaterMap: Record<string, string> = {}
-  if (updaterIds.length > 0) {
-    const { data: updaters } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', updaterIds) as unknown as { data: UpdaterRow[] | null }
-    updaterMap = (updaters || []).reduce((m: Record<string, string>, v) => {
-      m[v.id] = v.full_name || ''
-      return m
-    }, {})
+const VALID_SECTIONS: SettingsSection[] = ['admin-menus', 'levels', 'pricing', 'coach-ot']
+
+function getActiveSection(value?: string): SettingsSection {
+  return value && VALID_SECTIONS.includes(value as SettingsSection) ? value as SettingsSection : 'admin-menus'
+}
+
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const { supabase } = await requireSuperAdminPageAccess()
+  const activeSection = getActiveSection(searchParams?.section)
+
+  let sectionContent: ReactNode = null
+
+  if (activeSection === 'admin-menus') {
+    const { data: permissionSetting } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', ADMIN_MENU_PERMISSION_SETTING_KEY)
+      .maybeSingle() as unknown as { data: { value: unknown } | null }
+
+    sectionContent = (
+      <AdminMenuPermissionsClient
+        menuItems={ADMIN_MENU_ITEMS}
+        initialAllowedMenuKeys={getAllowedAdminMenuKeys(permissionSetting?.value)}
+        hasSetting={!!permissionSetting}
+      />
+    )
   }
 
-  const settingList = (settings || []).map((s) => ({
-    id: s.id,
-    key: s.key,
-    value: s.value,
-    updated_by: s.updated_by,
-    updated_at: s.updated_at || new Date(0).toISOString(),
-    updated_by_name: s.updated_by ? (updaterMap[s.updated_by] || null) : null,
-  }))
+  if (activeSection === 'levels') {
+    const { data: levels } = await supabase
+      .from('levels')
+      .select('id, name, description, category, program_name, requirements, is_active, updated_at')
+      .order('id', { ascending: true }) as { data: LevelRow[] | null }
 
-  return <SettingsClient settings={settingList} />
+    sectionContent = (
+      <LevelsSettingsClient
+        levels={(levels || []).map((level) => ({
+          id: level.id,
+          name: level.name,
+          description: level.description,
+          category: level.category,
+          program_name: level.program_name,
+          requirements: level.requirements,
+          is_active: level.is_active ?? true,
+          updated_at: level.updated_at,
+        }))}
+      />
+    )
+  }
+
+  if (activeSection === 'pricing') {
+    const { data: tiers } = await supabase
+      .from('pricing_tiers')
+      .select(`
+        id, course_type_id, min_sessions, max_sessions, price_per_session, package_price, valid_from, valid_to, created_at,
+        course_types(name)
+      `)
+      .order('course_type_id')
+      .order('min_sessions', { ascending: true }) as unknown as { data: PricingTierRow[] | null }
+
+    sectionContent = (
+      <PricingSettingsClient
+        tiers={(tiers || [])
+          .filter((tier) => tier.course_types?.name)
+          .map((tier) => ({
+            id: tier.id,
+            course_type_id: tier.course_type_id,
+            course_type_name: tier.course_types!.name!,
+            min_sessions: tier.min_sessions,
+            max_sessions: tier.max_sessions,
+            price_per_session: Number(tier.price_per_session),
+            package_price: Number(tier.package_price),
+            valid_from: tier.valid_from,
+            valid_to: tier.valid_to,
+            created_at: tier.created_at,
+          }))}
+      />
+    )
+  }
+
+  if (activeSection === 'coach-ot') {
+    const { data: setting } = await supabase
+      .from('system_settings')
+      .select('value, updated_at')
+      .eq('key', COACH_OT_SETTING_KEY)
+      .maybeSingle() as unknown as { data: CoachOtSettingRow | null }
+
+    sectionContent = (
+      <CoachOtSettingsClient
+        settings={normalizeCoachOtSettings(setting?.value)}
+        updatedAt={setting?.updated_at || null}
+      />
+    )
+  }
+
+  return (
+    <SettingsClient activeSection={activeSection}>
+      {sectionContent}
+    </SettingsClient>
+  )
 }

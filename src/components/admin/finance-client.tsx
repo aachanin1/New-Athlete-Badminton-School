@@ -3,7 +3,6 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { COACH_OVERTIME } from '@/constants/pricing'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { CoachOtSettings } from '@/lib/coach-ot-settings'
 import {
   Banknote,
   Building2,
@@ -90,12 +90,10 @@ interface FinanceClientProps {
   branches: BranchOption[]
   currentMonth: number
   currentYear: number
+  otSettings: CoachOtSettings
 }
 
 const MONTH_LABELS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-const OT_THRESHOLD_WEEKLY = COACH_OVERTIME.weeklyThreshold
-const OT_RATE_PRIVATE = COACH_OVERTIME.privateRate
-const OT_RATE_GROUP = COACH_OVERTIME.groupRate
 const EXPENSE_CATEGORIES = ['ค่าเช่าสนาม', 'ค่าอุปกรณ์', 'ค่าการตลาด', 'ค่าเดินทาง', 'ค่าสาธารณูปโภค', 'เงินเดือน/ค่าแรง', 'อื่นๆ']
 
 function formatInputDate(value: Date) {
@@ -130,7 +128,7 @@ function getWeekKey(dateValue: string) {
   return `${year}-${month}-${day}`
 }
 
-function buildPayableEntries(payableRows: PayrollSourceRow[]) {
+function buildPayableEntries(payableRows: PayrollSourceRow[], otSettings: CoachOtSettings) {
   const weeklyHours = new Map<string, number>()
 
   return [...payableRows]
@@ -139,11 +137,11 @@ function buildPayableEntries(payableRows: PayrollSourceRow[]) {
       const hours = getHours(row)
       const weekKey = getWeekKey(row.date)
       const usedHours = weeklyHours.get(weekKey) || 0
-      const regularCapacity = Math.max(0, OT_THRESHOLD_WEEKLY - usedHours)
+      const regularCapacity = Math.max(0, otSettings.weeklyThreshold - usedHours)
       const regularHours = Math.min(hours, regularCapacity)
       const otHours = Math.max(0, hours - regularHours)
       const isPrivate = isPrivateCourse(row.course_type)
-      const otPay = otHours * (isPrivate ? OT_RATE_PRIVATE : OT_RATE_GROUP)
+      const otPay = otHours * (isPrivate ? otSettings.privateRate : otSettings.groupRate)
 
       weeklyHours.set(weekKey, usedHours + hours)
 
@@ -167,7 +165,7 @@ function getCourseLabel(courseType: string) {
   return courseType || 'ไม่ระบุ'
 }
 
-export function FinanceClient({ payments, payrollRows, expenses, branches, currentMonth, currentYear }: FinanceClientProps) {
+export function FinanceClient({ payments, payrollRows, expenses, branches, currentMonth, currentYear, otSettings }: FinanceClientProps) {
   const router = useRouter()
   const [viewMonth, setViewMonth] = useState(currentMonth)
   const [viewYear, setViewYear] = useState(currentYear)
@@ -234,7 +232,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
       payableEntriesByCoach.get(row.coach_id)?.push(row)
     })
 
-    const payableEntries = Array.from(payableEntriesByCoach.values()).flatMap(buildPayableEntries)
+    const payableEntries = Array.from(payableEntriesByCoach.values()).flatMap((rows) => buildPayableEntries(rows, otSettings))
     const payableHours = payableEntries.reduce((sum, entry) => sum + entry.hours, 0)
     const otHours = payableEntries.reduce((sum, entry) => sum + entry.otHours, 0)
     const otPay = payableEntries.reduce((sum, entry) => sum + entry.otPay, 0)
@@ -315,7 +313,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
       coachCosts: Array.from(coachCosts.values()).sort((a, b) => b.otPay - a.otPay || b.hours - a.hours),
       expensesByCategory: Array.from(expensesByCategory.entries()).map(([category, data]) => ({ category, ...data })).sort((a, b) => b.amount - a.amount),
     }
-  }, [filteredExpenses, filteredPayments, filteredPayrollRows])
+  }, [filteredExpenses, filteredPayments, filteredPayrollRows, otSettings])
 
   const years = useMemo(() => {
     const values = new Set<number>()
@@ -733,7 +731,7 @@ export function FinanceClient({ payments, payrollRows, expenses, branches, curre
           <CardContent className="p-4">
             <div className="mb-4">
               <h3 className="font-bold text-[#153c85]">ต้นทุนโค้ชที่ระบบคำนวณได้</h3>
-              <p className="text-xs text-gray-500">OT เกิน {OT_THRESHOLD_WEEKLY} ชม./สัปดาห์: Private {OT_RATE_PRIVATE} บาท/ชม. • กลุ่ม {OT_RATE_GROUP} บาท/ชม.</p>
+              <p className="text-xs text-gray-500">OT เกิน {otSettings.weeklyThreshold} ชม./สัปดาห์: Private {otSettings.privateRate} บาท/ชม. • กลุ่ม {otSettings.groupRate} บาท/ชม.</p>
             </div>
 
             {finance.coachCosts.length === 0 ? (

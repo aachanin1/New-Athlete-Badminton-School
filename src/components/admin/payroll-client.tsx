@@ -1,11 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { COACH_OVERTIME } from '@/constants/pricing'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { CoachOtSettings } from '@/lib/coach-ot-settings'
 import {
   AlertCircle,
   Banknote,
@@ -85,12 +85,10 @@ interface PayrollClientProps {
   rows: PayrollSourceRow[]
   currentMonth: number
   currentYear: number
+  otSettings: CoachOtSettings
 }
 
 const MONTH_LABELS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-const OT_THRESHOLD_WEEKLY = COACH_OVERTIME.weeklyThreshold
-const OT_RATE_PRIVATE = COACH_OVERTIME.privateRate
-const OT_RATE_GROUP = COACH_OVERTIME.groupRate
 
 function getHours(row: PayrollSourceRow) {
   const start = new Date(`${row.date}T${row.start_time}`)
@@ -147,7 +145,7 @@ function formatCurrency(value: number) {
   return value.toLocaleString('th-TH', { maximumFractionDigits: 0 })
 }
 
-function buildPayrollEntries(payableRows: PayrollSourceRow[]) {
+function buildPayrollEntries(payableRows: PayrollSourceRow[], otSettings: CoachOtSettings) {
   const weeklyHours = new Map<string, number>()
 
   return [...payableRows]
@@ -156,11 +154,11 @@ function buildPayrollEntries(payableRows: PayrollSourceRow[]) {
       const hours = getHours(row)
       const week = getWeekInfo(row.date)
       const usedHours = weeklyHours.get(week.key) || 0
-      const regularCapacity = Math.max(0, OT_THRESHOLD_WEEKLY - usedHours)
+      const regularCapacity = Math.max(0, otSettings.weeklyThreshold - usedHours)
       const regularHours = Math.min(hours, regularCapacity)
       const otHours = Math.max(0, hours - regularHours)
       const isPrivate = isPrivateCourse(row.course_type)
-      const otPay = otHours * (isPrivate ? OT_RATE_PRIVATE : OT_RATE_GROUP)
+      const otPay = otHours * (isPrivate ? otSettings.privateRate : otSettings.groupRate)
 
       weeklyHours.set(week.key, usedHours + hours)
 
@@ -218,7 +216,7 @@ function buildWeeklyBreakdown(entries: PayableEntry[]) {
   return Array.from(weeks.values()).sort((a, b) => a.key.localeCompare(b.key))
 }
 
-export function PayrollClient({ rows, currentMonth, currentYear }: PayrollClientProps) {
+export function PayrollClient({ rows, currentMonth, currentYear, otSettings }: PayrollClientProps) {
   const [search, setSearch] = useState('')
   const [viewMonth, setViewMonth] = useState(currentMonth)
   const [viewYear, setViewYear] = useState(currentYear)
@@ -256,7 +254,7 @@ export function PayrollClient({ rows, currentMonth, currentYear }: PayrollClient
         const payableRows = entries.filter(isPayable)
         const missingRows = entries.filter((row) => !row.checkin_id && isPastSlot(row))
         const noPhotoRows = entries.filter((row) => row.checkin_id && !row.photo_url)
-        const payableEntries = buildPayrollEntries(payableRows)
+        const payableEntries = buildPayrollEntries(payableRows, otSettings)
         const weeklyBreakdown = buildWeeklyBreakdown(payableEntries)
 
         return payableEntries.reduce<CoachSummary>((summary, entry) => {
@@ -293,7 +291,7 @@ export function PayrollClient({ rows, currentMonth, currentYear }: PayrollClient
         })
       })
       .sort((a, b) => b.otPay - a.otPay || b.totalHours - a.totalHours || b.assignedRows.length - a.assignedRows.length)
-  }, [monthRows])
+  }, [monthRows, otSettings])
 
   const stats = useMemo(() => {
     const payable = monthRows.filter(isPayable)
@@ -331,8 +329,8 @@ export function PayrollClient({ rows, currentMonth, currentYear }: PayrollClient
         </div>
 
         <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800">
-          <p className="font-semibold">กฎ OT: เกิน {OT_THRESHOLD_WEEKLY} ชม./สัปดาห์</p>
-          <p>Private {formatCurrency(OT_RATE_PRIVATE)} บาท/ชม. • กลุ่ม {formatCurrency(OT_RATE_GROUP)} บาท/ชม.</p>
+          <p className="font-semibold">กฎ OT: เกิน {otSettings.weeklyThreshold} ชม./สัปดาห์</p>
+          <p>Private {formatCurrency(otSettings.privateRate)} บาท/ชม. • กลุ่ม {formatCurrency(otSettings.groupRate)} บาท/ชม.</p>
         </div>
       </div>
 
@@ -522,11 +520,11 @@ export function PayrollClient({ rows, currentMonth, currentYear }: PayrollClient
                           <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
                             <div
                               className={week.otHours > 0 ? 'h-full rounded-full bg-orange-400' : 'h-full rounded-full bg-emerald-400'}
-                              style={{ width: `${Math.min(100, (week.totalHours / OT_THRESHOLD_WEEKLY) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (week.totalHours / otSettings.weeklyThreshold) * 100)}%` }}
                             />
                           </div>
                           <p className="mt-1 text-[11px] text-gray-400">
-                            ปกติ {formatNumber(week.regularHours)} ชม. • เกณฑ์ {OT_THRESHOLD_WEEKLY} ชม./สัปดาห์
+                            ปกติ {formatNumber(week.regularHours)} ชม. • เกณฑ์ {otSettings.weeklyThreshold} ชม./สัปดาห์
                           </p>
                         </div>
                       ))}

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Save, ShieldCheck } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -26,6 +27,7 @@ export function AdminMenuPermissionsClient({
   const [error, setError] = useState<string | null>(null)
 
   const editableItems = useMemo(() => menuItems.filter((item) => !item.superAdminOnly), [menuItems])
+  const enabledCount = editableItems.filter((item) => allowedKeys.includes(item.key)).length
 
   const toggleMenu = (key: AdminMenuKey, checked: boolean) => {
     if (key === 'dashboard') return
@@ -75,10 +77,10 @@ export function AdminMenuPermissionsClient({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#2748bf]">
+          <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-[#2748bf]">
             <ShieldCheck className="h-4 w-4" />
             Super Admin Settings
           </p>
@@ -87,10 +89,16 @@ export function AdminMenuPermissionsClient({
             เลือกเมนูที่ Admin ธรรมดาสามารถเห็นและเข้าใช้งานได้ ส่วนเมนูตั้งค่าหลักยังเป็นของ Super Admin เท่านั้น
           </p>
         </div>
-        <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={savePermissions} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? 'กำลังบันทึก...' : 'บันทึกสิทธิ์'}
-        </Button>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="rounded-lg border bg-white px-3 py-2 text-sm text-gray-500">
+            เปิดใช้งาน <span className="font-bold text-[#153c85]">{enabledCount}</span>/<span>{editableItems.length}</span> เมนู
+          </div>
+          <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={savePermissions} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? 'กำลังบันทึก...' : 'บันทึกสิทธิ์'}
+          </Button>
+        </div>
       </div>
 
       {message && (
@@ -104,32 +112,31 @@ export function AdminMenuPermissionsClient({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         {editableItems.map((item) => {
           const checked = allowedKeys.includes(item.key)
           const locked = item.lockedForAdmin
 
           return (
-            <Card key={item.key} className={checked ? 'border-[#2748bf]/30 bg-[#2748bf]/[0.02]' : ''}>
-              <CardContent className="flex gap-3 p-4">
+            <Card key={item.key} className={checked ? 'border-[#2748bf]/30 bg-[#2748bf]/[0.02]' : 'border-gray-200'}>
+              <CardContent className="flex items-center gap-3 p-3">
                 <Checkbox
                   id={`menu-${item.key}`}
                   checked={checked}
                   disabled={locked}
                   onCheckedChange={(value) => toggleMenu(item.key, value === true)}
-                  className="mt-1"
                 />
-                <label htmlFor={`menu-${item.key}`} className="min-w-0 flex-1 cursor-pointer">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-[#153c85]">{item.label}</span>
-                    {locked && (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
-                        ต้องเปิดไว้
-                      </span>
-                    )}
+                <label
+                  htmlFor={`menu-${item.key}`}
+                  className="grid min-w-0 flex-1 cursor-pointer gap-0.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#153c85]">{item.label}</p>
+                    <p className="truncate text-sm text-gray-500">{item.description}</p>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">{item.description}</p>
-                  <p className="mt-2 truncate text-xs text-gray-400">{item.href}</p>
+                  <span className={`w-fit rounded-full px-2 py-0.5 text-[11px] font-medium ${locked ? 'bg-gray-100 text-gray-500' : checked ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-50 text-gray-400'}`}>
+                    {locked ? 'บังคับเปิด' : checked ? 'เปิด' : 'ปิด'}
+                  </span>
                 </label>
               </CardContent>
             </Card>

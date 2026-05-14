@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { DAY_LABELS, type TimeSlot } from '@/lib/branch-schedules'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
-import { getKidsGroupIncremental, getAdultGroupTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers } from '@/lib/pricing'
+import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
 
 interface CourseTypeRow {
@@ -51,6 +51,19 @@ interface ExistingBookingSession {
   branch_id: string
   child_id: string | null
   status: string
+}
+
+interface PricingTierData {
+  id: string
+  course_type_id: string
+  course_type_name: CourseCategory
+  min_sessions: number
+  max_sessions: number | null
+  price_per_session: number
+  package_price: number
+  valid_from: string
+  valid_to: string | null
+  created_at: string | null
 }
 
 interface SelectedSession {
@@ -117,6 +130,7 @@ interface BookingClientProps {
   existingBookings: ExistingBooking[]
   existingBookingSessions?: ExistingBookingSession[]
   editBooking?: EditBookingData | null
+  pricingTiers?: PricingTierData[]
 }
 
 type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
@@ -137,7 +151,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-export function BookingClient({ userName, children, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking }: BookingClientProps) {
+export function BookingClient({ userName, children, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
 
@@ -233,24 +247,24 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
   // Incremental pricing for kids_group
   const kidsIncremental = useMemo(() => {
     if (courseType !== 'kids_group' || allSelectedSessions.length === 0) return null
-    return getKidsGroupIncremental(existingMonthData.sessions, existingMonthData.paid, allSelectedSessions.length)
-  }, [courseType, allSelectedSessions.length, existingMonthData])
+    return getKidsGroupIncremental(existingMonthData.sessions, existingMonthData.paid, allSelectedSessions.length, pricingTiers as PricingTierInput[])
+  }, [courseType, allSelectedSessions.length, existingMonthData, pricingTiers])
 
   const pricing = useMemo(() => {
     if (!courseType || allSelectedSessions.length === 0) return null
     if (courseType === 'kids_group' && kidsIncremental) {
       return { total: kidsIncremental.incrementalPrice, perSession: kidsIncremental.perSession, tierLabel: kidsIncremental.tierLabel }
     }
-    if (courseType === 'adult_group') return getAdultGroupTotal(allSelectedSessions.length)
-    return { total: allSelectedSessions.length * 900, perSession: 900, tierLabel: 'รายชั่วโมง' }
-  }, [courseType, allSelectedSessions.length, kidsIncremental])
+    if (courseType === 'adult_group') return getAdultGroupTotal(allSelectedSessions.length, pricingTiers as PricingTierInput[])
+    return getPrivateTotal(allSelectedSessions.length, pricingTiers as PricingTierInput[])
+  }, [courseType, allSelectedSessions.length, kidsIncremental, pricingTiers])
 
   // Total price for entire batch (incremental for kids, normal for others)
   const totalBatchPrice = useMemo(() => {
     if (!pricing) return 0
     if (courseType === 'kids_group' && kidsIncremental) return kidsIncremental.incrementalPrice
-    return pricing.perSession * allSelectedSessions.length
-  }, [pricing, courseType, kidsIncremental, allSelectedSessions.length])
+    return pricing.total
+  }, [pricing, courseType, kidsIncremental])
 
   // Per-child price breakdown (proportional based on session count)
   const childPriceBreakdown = useMemo(() => {
@@ -657,7 +671,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                           </tr>
                         </thead>
                         <tbody>
-                          {getKidsGroupTiers().map((t) => (
+                          {getKidsGroupTiers(pricingTiers as PricingTierInput[]).map((t) => (
                             <tr key={t.min} className="border-b last:border-0">
                               <td className="py-2 pr-4 font-medium">{t.label}</td>
                               <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.per_session} บาท</td>
@@ -683,7 +697,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                         </tr>
                       </thead>
                       <tbody>
-                        {getAdultGroupTiers().map((t) => (
+                        {getAdultGroupTiers(pricingTiers as PricingTierInput[]).map((t) => (
                           <tr key={t.min} className="border-b last:border-0">
                             <td className="py-2 pr-4 font-medium">{t.label}{t.expiry_months ? ` (หมดอายุ ${t.expiry_months} เดือน)` : ''}</td>
                             <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.package_price.toLocaleString()} บาท</td>
@@ -705,7 +719,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                         </tr>
                       </thead>
                       <tbody>
-                        {getPrivateTiers().map((t) => (
+                        {getPrivateTiers(pricingTiers as PricingTierInput[]).map((t) => (
                           <tr key={t.min} className="border-b last:border-0">
                             <td className="py-2 pr-4 font-medium">{t.label}</td>
                             <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.package_price.toLocaleString()} บาท</td>
@@ -774,7 +788,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                 <p className="font-medium">คอร์ส Private</p>
                 <p>• เลือกได้หลายคน — ทุกคนเรียนรอบเวลาเดียวกัน</p>
                 <p>• ครั้งละ 1 ชั่วโมง ตามรอบเรียนของสาขา</p>
-                <p>• ราคา 900 บาท/ชม. หรือซื้อ 10 ชม. = 8,000 บาท</p>
+                <p>• ราคาอ้างอิงจากตารางเรทปัจจุบันในระบบ</p>
               </div>
               <p className="text-sm font-medium text-gray-600 mb-2">เลือกผู้เรียน (เลือกได้หลายคน)</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
