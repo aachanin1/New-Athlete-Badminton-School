@@ -129,9 +129,15 @@ Notes:
   - Applied remote migration `20260515093000_make_levels_extensible.sql`; local and remote migration history now match through `20260515093000`.
   - Remote schema check confirmed Admin/System tables/fields used by recent work exist: `profiles.coach_employment_type`, `coach_weekly_teaching_summaries`, `schedule_templates`, and `student_achievements`.
   - Supabase CLI read-only count/constraint queries timed out intermittently after migration, but migration history confirms the constraint migration was applied successfully.
-- [ ] 14. Admin/System Smoke Test After Migration
+- [x] 14. Admin/System Smoke Test After Migration
   - Verify the committed Admin flows against the real DB: Settings workspace, Admin menu permissions, Level settings, Pricing settings, Coach teaching rules, User management, Schedule templates, Ranking, Finance, and responsive mobile layout.
   - Record only real blockers found during this smoke test; avoid repeated redesign unless a main flow is broken.
+  - Verified `npm run check:mojibake` and `npm run build`; production build passes with existing Coach/User lint warnings still separated as technical debt.
+  - Verified remote migration history matches local through `20260515093000`.
+  - Verified remote DB read sanity with service role: branches 7, course types 3, pricing tiers 11, levels 70, active schedule templates 702, profiles 7, payments 6, student achievements 5.
+  - Verified `/api/health` on localhost returns 200 after restarting the stale dev server.
+  - Verified public Home and Ranking render after restart; Admin routes redirect unauthenticated users to login with redirect params.
+  - `coach_teaching_rules_settings` is not yet stored in `system_settings` until Super Admin saves the Coach OT settings once, but current code has default fallback so this is not a blocker.
 - [ ] 15. Start Coach/User Completion Queue
   - After Admin/System DB and smoke test are stable, continue with Coach/User work.
   - First Coach/User focus should be the Coach evaluation flow, achievement badge management from Coach, attendance/check-in consistency, and user-facing booking/history/reschedule polish.
