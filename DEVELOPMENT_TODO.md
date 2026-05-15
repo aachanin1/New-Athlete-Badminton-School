@@ -140,7 +140,40 @@ Notes:
   - `coach_teaching_rules_settings` is not yet stored in `system_settings` until Super Admin saves the Coach OT settings once, but current code has default fallback so this is not a blocker.
 - [ ] 15. Start Coach/User Completion Queue
   - After Admin/System DB and smoke test are stable, continue with Coach/User work.
-  - First Coach/User focus should be the Coach evaluation flow, achievement badge management from Coach, attendance/check-in consistency, and user-facing booking/history/reschedule polish.
+  - Work through this queue in order. Admin/System is now the stable base; only touch Admin/System for real blockers found while connecting Coach/User flows.
+  - [ ] 15.1 Coach Level Evaluation + Achievement
+    - Coach must see all students they are responsible for.
+    - Coach can evaluate student Level from active master `levels`, not free text or hardcoded ranges.
+    - Coach can add/disable award emoji badges after student names.
+    - Public Ranking, Admin Ranking, and Coach Ranking/Level views must display the same latest Level and active achievements.
+  - Add coach-student memory: when a student has previously learned with a coach, the system should remember that relationship and use it as a suggested/default coach for future matching.
+  - Head Coach should still be able to override assignments, but should not need to reassign the same student to the same coach every round when the previous coach relationship is still appropriate.
+  - Coach-student memory should be based on real completed/assigned teaching history, not a manual-only preference, so it stays accurate as sessions happen.
+  - User booking must remain user-owned; this memory only helps Coach/Head Coach assignment after booking, not Admin booking on behalf of users.
+  - Surface the memory clearly in Coach/Head Coach views: "เคยเรียนกับโค้ชนี้", last taught date, total sessions together, and suggested coach confidence if practical.
+  - [ ] 15.2 Coach Teaching Flow
+    - Coach schedule must come from real assignments, not broad booking/session lists.
+    - Coach check-in is per teaching session/slot, not per workday, and must require photo evidence.
+    - Attendance must write against the real `booking_sessions` records and the correct student/child.
+    - Weekly teaching hours must connect to Admin "คำนวณชั่วโมงสอน" and use verified evidence only.
+  - [ ] 15.3 User Booking / Payment / History
+    - User booking must read available slots from DB `schedule_templates` only.
+    - Same-day booking is allowed only for future sessions that have not started yet.
+    - Booking price must use DB `pricing_tiers`.
+    - Coupon usage must decrement availability and appear in user history.
+    - SlipOK payment success must make booking/payment/history statuses consistent without manual admin approval.
+  - [ ] 15.4 User Schedule / Reschedule / Makeup
+    - User schedule must show month/day/session overview clearly.
+    - Absence/overdue session logic must connect to makeup rules.
+    - Reschedule and makeup choices must come from DB schedule templates.
+    - User must not see or perform Admin-only actions.
+  - [ ] 15.5 Notifications
+    - Notification badge counts must be correct per recipient user, coach, admin, or super admin.
+    - Important events should create notifications: booking created, payment verified, makeup granted, coach assigned, attendance/absence where useful.
+    - Admin broadcast notifications must appear as one unread notification per recipient, not as a global shared count.
+  - [ ] 15.6 Coach/User Regression Pass
+    - After 15.1-15.5 are done, run build, mobile responsive checks, and end-to-end smoke tests.
+    - Fix lint debt only in touched files or in areas that put the completed flow at risk.
   - Keep Admin/System changes limited to bug fixes only while this queue is active.
 
 ## Phase 3 - Build & Deploy Readiness
