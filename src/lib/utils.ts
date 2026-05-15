@@ -10,3 +10,19 @@ export function fmtTime(time: string | null | undefined): string {
   if (!time) return ''
   return time.slice(0, 5)
 }
+
+export function getBangkokDateString(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+
+  const values = parts.reduce((map, part) => {
+    if (part.type !== 'literal') map[part.type] = part.value
+    return map
+  }, {} as Record<string, string>)
+
+  return `${values.year}-${values.month}-${values.day}`
+}

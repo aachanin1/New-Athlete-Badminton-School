@@ -138,41 +138,100 @@ Notes:
   - Verified `/api/health` on localhost returns 200 after restarting the stale dev server.
   - Verified public Home and Ranking render after restart; Admin routes redirect unauthenticated users to login with redirect params.
   - `coach_teaching_rules_settings` is not yet stored in `system_settings` until Super Admin saves the Coach OT settings once, but current code has default fallback so this is not a blocker.
-- [ ] 15. Start Coach/User Completion Queue
+- [ ] 15. Start Coach-First / User-Last Completion Queue
   - After Admin/System DB and smoke test are stable, continue with Coach/User work.
-  - Work through this queue in order. Admin/System is now the stable base; only touch Admin/System for real blockers found while connecting Coach/User flows.
-  - [ ] 15.1 Coach Level Evaluation + Achievement
+  - Work through this queue in order: finish Coach flows and Coach QA first, then User flows last. Admin/System is now the stable base; only touch Admin/System for real blockers found while connecting Coach/User flows.
+  - Realistic Supabase seed data is available for development via `npm run seed:realistic`, with verification via `npm run seed:verify`. Seed accounts use `seed.nasc+...@example.com` and are tagged with `NASC_SEED` where tables support notes/details.
+  - [x] 15.1 Coach Level Evaluation + Achievement
     - Coach must see all students they are responsible for.
     - Coach can evaluate student Level from active master `levels`, not free text or hardcoded ranges.
     - Coach can add/disable award emoji badges after student names.
     - Public Ranking, Admin Ranking, and Coach Ranking/Level views must display the same latest Level and active achievements.
-  - Add coach-student memory: when a student has previously learned with a coach, the system should remember that relationship and use it as a suggested/default coach for future matching.
-  - Head Coach should still be able to override assignments, but should not need to reassign the same student to the same coach every round when the previous coach relationship is still appropriate.
-  - Coach-student memory should be based on real completed/assigned teaching history, not a manual-only preference, so it stays accurate as sessions happen.
-  - User booking must remain user-owned; this memory only helps Coach/Head Coach assignment after booking, not Admin booking on behalf of users.
-  - Surface the memory clearly in Coach/Head Coach views: "เคยเรียนกับโค้ชนี้", last taught date, total sessions together, and suggested coach confidence if practical.
-  - [ ] 15.2 Coach Teaching Flow
-    - Coach schedule must come from real assignments, not broad booking/session lists.
-    - Coach check-in is per teaching session/slot, not per workday, and must require photo evidence.
-    - Attendance must write against the real `booking_sessions` records and the correct student/child.
-    - Weekly teaching hours must connect to Admin "คำนวณชั่วโมงสอน" and use verified evidence only.
-  - [ ] 15.3 User Booking / Payment / History
+    - Implemented assignment-first coach student access: regular Coach sees assigned students only; Head Coach can fall back to branch students when no direct assignment exists.
+    - Level and achievement APIs now verify that Coach/Head Coach is allowed to manage the selected student; Admin/Super Admin keep all-access behavior.
+    - Active achievements continue to flow through shared `student_achievements`, so Public/Admin/Coach ranking surfaces use the same award source.
+  - [x] 15.2 Coach Teaching Flow
+    - [x] 15.2.0 Coach-Student Memory / Suggested Coach
+      - Read coach-student history from real `coach_assignments` + `booking_sessions`, not manual-only preference.
+      - Show Head Coach/Coach which coaches a learner has studied with, including last taught date and total sessions together.
+      - If a learner studied with multiple coaches, show all history; suggest the strongest/default coach without blocking Head Coach override.
+      - Keep User booking user-owned. This memory only helps assignment after booking, not Admin booking on behalf of users.
+      - Use this memory to reduce repeated manual assignment for learners who regularly study with the same coach.
+      - Implemented shared `getCoachStudentMemoryMap` helper and wired it into Head Coach assignment plus Coach student views.
+    - [x] 15.2.1 Coach Schedule from Real Assignments
+      - Coach dashboard, today schedule, attendance, and check-in pages now read from `coach_assignments` first.
+      - Removed branch-wide fallback from Coach schedule/attendance surfaces so Coach sees only assigned teaching slots.
+      - Added shared `getCoachAssignedTeachingDay` helper to keep assigned slot, student, attendance, and check-in context consistent.
+    - [x] 15.2.1.1 Coach Group Assignment by Student Level
+      - Upgrade Head Coach assignment from "assign coach to slot" into "group learners inside a slot, then assign one coach per group".
+      - Add DB migration for group assignment source of truth, likely `coach_assignment_groups` and `coach_assignment_group_students`.
+      - Store group membership per `booking_session_id` so the system knows exactly which coach is responsible for which learner in each teaching round.
+      - Show each learner with latest Level, learner type, parent/self context, coach history, and warning states such as no Level or mixed Level range.
+      - Auto-suggest groups by Level bands and coach-student history, but keep Head Coach manual control to move learners, rename groups, add/remove groups, and change coach.
+      - Keep User booking user-owned; grouping happens after booking/payment and is a Head Coach operation.
+      - Preserve compatibility with existing `coach_assignments` during transition, but group assignment should become the main source for learner responsibility.
+      - Implemented `coach_assignment_groups` and `coach_assignment_group_students`, pushed migration `20260515190000_add_coach_assignment_groups.sql` to Supabase, added Head Coach grouping UI, and added `/api/coach/assignment-groups`.
+      - Group saves still sync selected coaches back to `coach_assignments` for transitional compatibility with existing Coach schedule/check-in pages.
+    - [x] 15.2.2 Coach Check-in Per Assigned Slot + Required Photo QA
+      - Coach check-in is per teaching session/slot, not per workday, and must require photo evidence.
+      - Check-in should remain tied to the assigned slot while learner responsibility comes from assignment groups.
+      - Check-in API now validates the logged-in Coach/Head Coach, assigned slot/group responsibility, Bangkok current date, 30-minute-before to 30-minute-after-start check-in window, duplicate check-ins, and required image evidence.
+      - Coach check-in UI uses front-camera capture only, removes browse/file picker entry points, requires GPS permission, and sends a camera-capture source flag with the selfie.
+      - Check-in API requires valid GPS coordinates and rejects uploads that do not come through the camera-capture flow.
+      - Attendance is locked until the assigned Coach/Head Coach has checked in for that specific teaching slot, so check-in evidence becomes required before marking learners.
+      - Build and mojibake checks passed after the change.
+    - [x] 15.2.3 Attendance From Coach Assignment Groups
+      - Update Coach pages after the group model exists so `/coach/today`, `/coach/attendance`, `/coach/students`, and Level evaluation use learner-level group responsibility.
+      - Attendance must write against the real `booking_sessions` records and the correct student/child.
+      - Coach should only mark attendance for learners in their assigned group.
+      - `getCoachAssignedTeachingDay` now prefers `coach_assignment_groups` / `coach_assignment_group_students`; legacy slot assignment is used only when a slot has no group assignment yet.
+      - Attendance API validates the booking session, student identity, and coach group responsibility before writing attendance.
+      - Coach dashboard, Today, Students, Check-in, and Attendance copy touched in this flow were cleaned back to readable Thai.
+    - [x] 15.2.4 Weekly Teaching Hours Integration
+      - Weekly teaching hours now connect to Admin "คำนวณชั่วโมงสอน" and use verified evidence only.
+      - Added shared `getCoachTeachingHourSourceRows` source of truth: assignment groups first, legacy assignment fallback only when no group exists for the slot.
+      - A teaching slot is counted only when it has assigned learners, Coach check-in, selfie/photo evidence, GPS location, and attendance records.
+      - Admin payroll, weekly close API, Coach dashboard, and Coach hours page now read from the same verified source.
+      - Payroll UI shows missing evidence buckets: no check-in, no photo, no location, and no attendance.
+      - Build and mojibake guard passed; localhost smoke test for `/admin/payroll`, `/coach/hours`, and `/coach` returned 200 after restarting the dev server.
+  - [ ] 15.3 Coach Completion QA Gate
+    - Do this before any User feature work.
+    - Verify Coach pages end-to-end with realistic Supabase data: `/coach`, `/coach/today`, `/coach/students`, `/coach/levels`, `/coach/assign-groups`, `/coach/checkin`, `/coach/attendance`, `/coach/hours`, and `/coach/notifications`.
+    - Verify Head Coach can group learners by Level and coach history, assign coaches, and manually override suggestions.
+    - Verify regular Coach sees only assigned learners/groups, cannot evaluate unrelated learners, and cannot mark attendance outside their responsibility.
+    - Verify mobile responsive for Coach dashboard, group assignment, check-in camera/location, attendance, and hours.
+    - Verify stale Next dev cache is handled by restart after build before browser checks.
+    - Fix Coach-side mojibake, runtime errors, and warnings only in files that affect the Coach completion gate.
+    - QA progress:
+      - [x] Coach-side lint/mojibake pass: removed old `any`/mojibake debt from Coach programs and Coach assignment API without touching User flow.
+      - [x] `npm run check:mojibake` passed.
+      - [x] `npm run build` passed; remaining warnings are outside Coach scope and stay for the later User/shared debt pass.
+      - [x] Cleared stale `.next` dev cache, restarted dev server, and confirmed localhost loads again after the known CSS/chunk cache failure mode.
+      - [x] Unauthenticated route guard smoke passed for Coach routes: `/coach`, `/coach/today`, `/coach/students`, `/coach/levels`, `/coach/assign-groups`, `/coach/checkin`, `/coach/attendance`, `/coach/hours`, `/coach/notifications`, `/coach/programs`.
+      - [x] Realistic seed data verification passed against Supabase.
+      - [ ] Authenticated browser QA for Head Coach / Coach screens still needs a real logged-in browser session; current Browser automation cannot type into the email input because of a tool-side input bug, not an app runtime error.
+  - [ ] 15.4 Coach Notifications / Reminders
+    - Notify Coach when assigned to a teaching slot/group.
+    - Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.
+    - Notify Coach/Head Coach for attendance gaps that block weekly teaching hours.
+    - Badge counts must be per logged-in Coach, not global.
+  - [ ] 15.5 User Booking / Payment / History
     - User booking must read available slots from DB `schedule_templates` only.
     - Same-day booking is allowed only for future sessions that have not started yet.
     - Booking price must use DB `pricing_tiers`.
     - Coupon usage must decrement availability and appear in user history.
     - SlipOK payment success must make booking/payment/history statuses consistent without manual admin approval.
-  - [ ] 15.4 User Schedule / Reschedule / Makeup
+  - [ ] 15.6 User Schedule / Reschedule / Makeup
     - User schedule must show month/day/session overview clearly.
     - Absence/overdue session logic must connect to makeup rules.
     - Reschedule and makeup choices must come from DB schedule templates.
     - User must not see or perform Admin-only actions.
-  - [ ] 15.5 Notifications
+  - [ ] 15.7 Shared Notifications
     - Notification badge counts must be correct per recipient user, coach, admin, or super admin.
     - Important events should create notifications: booking created, payment verified, makeup granted, coach assigned, attendance/absence where useful.
     - Admin broadcast notifications must appear as one unread notification per recipient, not as a global shared count.
-  - [ ] 15.6 Coach/User Regression Pass
-    - After 15.1-15.5 are done, run build, mobile responsive checks, and end-to-end smoke tests.
+  - [ ] 15.8 Coach/User Regression Pass
+    - After 15.1-15.7 are done, run build, mobile responsive checks, and end-to-end smoke tests.
     - Fix lint debt only in touched files or in areas that put the completed flow at risk.
   - Keep Admin/System changes limited to bug fixes only while this queue is active.
 

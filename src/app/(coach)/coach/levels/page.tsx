@@ -1,39 +1,7 @@
 import { LevelsClient } from '@/components/coach/levels-client'
+import { getCoachVisibleStudents } from '@/lib/coach-student-access'
 import { createClient } from '@/lib/supabase/server'
 import type { LevelCategory } from '@/types/database'
-
-interface CoachBranchRow {
-  branch_id: string
-}
-
-interface AdultBookingRow {
-  user_id: string
-  profiles: {
-    id: string
-    full_name: string | null
-  } | null
-}
-
-interface ChildBookingRow {
-  child_id: string | null
-  user_id: string
-  profiles: {
-    full_name: string | null
-  } | null
-}
-
-interface ChildRow {
-  id: string
-  full_name: string
-  nickname: string | null
-}
-
-interface StudentListItem {
-  id: string
-  name: string
-  type: 'adult' | 'child'
-  parentName: string | null
-}
 
 interface StudentLevelRow {
   student_id: string
@@ -71,65 +39,7 @@ export default async function LevelsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: coachBranches } = await supabase
-    .from('coach_branches')
-    .select('branch_id')
-    .eq('coach_id', user.id) as unknown as { data: CoachBranchRow[] | null }
-
-  const branchIds = (coachBranches || []).map((branch) => branch.branch_id)
-  let studentList: StudentListItem[] = []
-
-  if (branchIds.length > 0) {
-    const { data: adultBookings } = await supabase
-      .from('bookings')
-      .select('user_id, profiles!bookings_user_id_fkey(id, full_name)')
-      .eq('learner_type', 'self')
-      .in('branch_id', branchIds)
-      .in('status', ['paid', 'verified']) as unknown as { data: AdultBookingRow[] | null }
-
-    const adultMap = new Map<string, StudentListItem>()
-    ;(adultBookings || []).forEach((booking) => {
-      if (booking.profiles && !adultMap.has(booking.user_id)) {
-        adultMap.set(booking.user_id, {
-          id: booking.user_id,
-          name: booking.profiles.full_name || 'นักเรียนผู้ใหญ่',
-          type: 'adult',
-          parentName: null,
-        })
-      }
-    })
-
-    const { data: childBookings } = await supabase
-      .from('bookings')
-      .select('child_id, user_id, profiles!bookings_user_id_fkey(full_name)')
-      .eq('learner_type', 'child')
-      .not('child_id', 'is', null)
-      .in('branch_id', branchIds)
-      .in('status', ['paid', 'verified']) as unknown as { data: ChildBookingRow[] | null }
-
-    const childIds = Array.from(new Set((childBookings || []).map((booking) => booking.child_id).filter(Boolean))) as string[]
-    const childMap = new Map<string, StudentListItem>()
-
-    if (childIds.length > 0) {
-      const { data: children } = await supabase
-        .from('children')
-        .select('id, full_name, nickname')
-        .in('id', childIds) as unknown as { data: ChildRow[] | null }
-
-      ;(children || []).forEach((child) => {
-        const parentBooking = (childBookings || []).find((booking) => booking.child_id === child.id)
-        childMap.set(child.id, {
-          id: child.id,
-          name: child.nickname ? `${child.full_name} (${child.nickname})` : child.full_name,
-          type: 'child',
-          parentName: parentBooking?.profiles?.full_name || null,
-        })
-      })
-    }
-
-    studentList = [...Array.from(adultMap.values()), ...Array.from(childMap.values())]
-  }
-
+  const studentList = await getCoachVisibleStudents(supabase, user)
   const allStudentIds = studentList.map((student) => student.id)
   const levelMap: Record<string, { level: number; created_at: string }> = {}
   const achievementMap: Record<string, StudentAchievementRow[]> = {}

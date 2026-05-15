@@ -1,141 +1,126 @@
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent } from '@/components/ui/card'
+import { Baby, CalendarCheck, Camera, CheckCircle2, Clock, Layers3, MapPin, User, Users } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
-import { CalendarCheck, Clock, MapPin, User, Baby, Users } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
+import { createClient } from '@/lib/supabase/server'
+import { fmtTime, getBangkokDateString } from '@/lib/utils'
+
+function formatDateLabel(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
 
 export default async function CoachTodayPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const today = new Date().toISOString().split('T')[0]
-  const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
-  const todayName = dayNames[new Date().getDay()]
-
-  // Get coach's branches
-  const { data: coachBranches } = await (supabase
-    .from('coach_branches')
-    .select('branch_id, branches(name)')
-    .eq('coach_id', user.id) as any)
-
-  const branchIds = (coachBranches || []).map((cb: any) => cb.branch_id)
-  const branchMap: Record<string, string> = {}
-  ;(coachBranches || []).forEach((cb: any) => { branchMap[cb.branch_id] = cb.branches?.name || '' })
-
-  const { data: assignments } = await (supabase
-    .from('coach_assignments')
-    .select('schedule_slot_id')
-    .eq('coach_id', user.id) as any)
-  const assignedSlotIds = (assignments || []).map((assignment: any) => assignment.schedule_slot_id).filter(Boolean)
-
-  let sessions: any[] = []
-  if (assignedSlotIds.length > 0) {
-    const { data } = await (supabase
-      .from('booking_sessions')
-      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status, bookings!inner(user_id, learner_type, course_type_id, status, profiles!bookings_user_id_fkey(full_name, phone), course_types(name))')
-      .eq('date', today)
-      .in('status', ['scheduled', 'completed'])
-      .in('schedule_slot_id', assignedSlotIds)
-      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
-      .order('start_time') as any)
-    sessions = data || []
-  } else if (branchIds.length > 0) {
-    const { data } = await (supabase
-      .from('booking_sessions')
-      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status, bookings!inner(user_id, learner_type, course_type_id, status, profiles!bookings_user_id_fkey(full_name, phone), course_types(name))')
-      .eq('date', today)
-      .in('status', ['scheduled', 'completed'])
-      .in('branch_id', branchIds)
-      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
-      .order('start_time') as any)
-    sessions = data || []
-  }
-
-  // Get children names
-  const childIds = sessions.filter((s: any) => s.child_id).map((s: any) => s.child_id)
-  let childMap: Record<string, string> = {}
-  if (childIds.length > 0) {
-    const { data: children } = await (supabase
-      .from('children')
-      .select('id, full_name, nickname')
-      .in('id', childIds) as any)
-    ;(children || []).forEach((c: any) => { childMap[c.id] = c.nickname ? `${c.full_name} (${c.nickname})` : c.full_name })
-  }
-
-  // Group sessions by time slot
-  const grouped: Record<string, any[]> = {}
-  sessions.forEach((s: any) => {
-    const key = `${s.branch_id}-${s.start_time}-${s.end_time}`
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(s)
-  })
-
-  const COURSE_LABELS: Record<string, string> = { kids_group: 'เด็กกลุ่ม', adult_group: 'ผู้ใหญ่กลุ่ม', private: 'Private' }
-
-  const fmtTime = (t: string) => t?.slice(0, 5) || ''
+  const today = getBangkokDateString()
+  const teachingDay = await getCoachAssignedTeachingDay(supabase, user.id, today)
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#153c85]">รอบสอนวันนี้</h1>
-        <p className="text-gray-500 text-sm mt-1">วัน{todayName}ที่ {new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#2748bf]">
+          <CalendarCheck className="h-4 w-4" />
+          Coach Schedule
+        </div>
+        <h1 className="mt-1 text-2xl font-bold text-[#153c85]">รอบสอนวันนี้</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          {formatDateLabel(today)} แสดงเฉพาะรอบและผู้เรียนในกลุ่มที่คุณรับผิดชอบ
+        </p>
       </div>
 
-      {Object.keys(grouped).length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-gray-400">
-          <CalendarCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">ไม่มีรอบสอนวันนี้</p>
-        </CardContent></Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-500">รอบที่ได้รับมอบหมาย</p>
+            <p className="mt-2 text-2xl font-bold text-[#153c85]">{teachingDay.slots.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-500">ผู้เรียนในกลุ่มของคุณ</p>
+            <p className="mt-2 text-2xl font-bold text-[#153c85]">{teachingDay.totalStudents}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-500">เช็คอินแล้ว</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-600">{teachingDay.checkedSlotCount}/{teachingDay.slots.length}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {teachingDay.slots.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-gray-400">
+            <CalendarCheck className="mx-auto mb-3 h-12 w-12 opacity-40" />
+            <p className="font-medium">ยังไม่มีรอบสอนที่ได้รับมอบหมายวันนี้</p>
+            <p className="mt-1 text-sm">ถ้ามีผู้เรียนในรอบแล้ว ให้หัวหน้าโค้ชจัดกลุ่มและมอบหมายโค้ชก่อน</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {Object.entries(grouped).map(([key, slotSessions]) => {
-            const first = slotSessions[0]
-            const branchName = branchMap[first.branch_id] || ''
-            const courseType = first.bookings?.course_types?.name || ''
-            return (
-              <Card key={key}>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#2748bf]/10 flex items-center justify-center">
-                        <Clock className="h-5 w-5 text-[#2748bf]" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-[#153c85]">{fmtTime(first.start_time)} - {fmtTime(first.end_time)}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{branchName}</span>
-                          <Badge className="text-[10px] bg-blue-100 text-blue-700">{COURSE_LABELS[courseType] || courseType}</Badge>
-                        </div>
+          {teachingDay.slots.map((slot) => (
+            <Card key={slot.id}>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2748bf]/10">
+                      <Clock className="h-5 w-5 text-[#2748bf]" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#153c85]">{fmtTime(slot.startTime)} - {fmtTime(slot.endTime)}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{slot.branchName}</span>
+                        <Badge className="bg-blue-100 text-[10px] text-blue-700">{slot.courseType || 'คอร์ส'}</Badge>
+                        <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" />{slot.students.length} คน</span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      <Users className="h-3 w-3 mr-1" />{slotSessions.length} คน
-                    </Badge>
                   </div>
+                  <Badge variant="outline" className={slot.checkin ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-orange-200 bg-orange-50 text-orange-700'}>
+                    {slot.checkin ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <Camera className="mr-1 h-3.5 w-3.5" />}
+                    {slot.checkin ? 'เช็คอินแล้ว' : 'รอเช็คอิน'}
+                  </Badge>
+                </div>
 
-                  <div className="border-t pt-2 space-y-1.5">
-                    {slotSessions.map((s: any) => {
-                      const studentName = s.child_id
-                        ? childMap[s.child_id] || 'เด็ก'
-                        : s.bookings?.profiles?.full_name || 'ผู้เรียน'
-                      const parentName = s.bookings?.profiles?.full_name || ''
-                      const isChild = !!s.child_id
-                      return (
-                        <div key={s.id} className="flex items-center gap-2 text-sm py-1 px-2 rounded bg-gray-50">
-                          {isChild ? <Baby className="h-3.5 w-3.5 text-pink-500 shrink-0" /> : <User className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
-                          <span className="font-medium">{studentName}</span>
-                          {isChild && parentName && <span className="text-xs text-gray-400">(ผู้ปกครอง: {parentName})</span>}
-                          <Badge className={`ml-auto text-[10px] ${s.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {s.status === 'completed' ? 'เสร็จ' : 'รอสอน'}
-                          </Badge>
-                        </div>
-                      )
-                    })}
+                {slot.students.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-4 text-center text-sm text-gray-400">
+                    รอบนี้ยังไม่มีผู้เรียนที่อยู่ในกลุ่มของคุณ
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+                ) : (
+                  <div className="space-y-2 border-t pt-3">
+                    {slot.students.map((student) => (
+                      <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                        {student.isChild ? <Baby className="h-4 w-4 shrink-0 text-pink-500" /> : <User className="h-4 w-4 shrink-0 text-blue-500" />}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-gray-900">{student.studentName}</p>
+                            {student.assignmentGroupName && (
+                              <Badge variant="outline" className="bg-white text-[10px] text-gray-600">
+                                <Layers3 className="mr-1 h-3 w-3" />
+                                {student.assignmentGroupName}
+                              </Badge>
+                            )}
+                          </div>
+                          {student.parentName && <p className="truncate text-xs text-gray-400">ผู้ปกครอง: {student.parentName}</p>}
+                        </div>
+                        <Badge className={`text-[10px] ${student.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {student.status === 'completed' ? 'เรียนแล้ว' : 'รอสอน'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

@@ -108,6 +108,18 @@ export interface Database {
         Update: Partial<Omit<CoachAssignment, 'id' | 'created_at'>>
         Relationships: []
       }
+      coach_assignment_groups: {
+        Row: CoachAssignmentGroup
+        Insert: Omit<CoachAssignmentGroup, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CoachAssignmentGroup, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      coach_assignment_group_students: {
+        Row: CoachAssignmentGroupStudent
+        Insert: Omit<CoachAssignmentGroupStudent, 'id' | 'created_at'>
+        Update: Partial<Omit<CoachAssignmentGroupStudent, 'id' | 'created_at'>>
+        Relationships: []
+      }
       attendance: {
         Row: Attendance
         Insert: Omit<Attendance, 'id'>
@@ -385,6 +397,29 @@ export interface CoachAssignment {
   coach_id: string
   schedule_slot_id: string
   assigned_by: string
+  created_at: string
+}
+
+export interface CoachAssignmentGroup {
+  id: string
+  schedule_slot_id: string
+  coach_id: string | null
+  name: string
+  level_min: number | null
+  level_max: number | null
+  sort_order: number
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CoachAssignmentGroupStudent {
+  id: string
+  group_id: string
+  booking_session_id: string
+  student_id: string
+  student_type: StudentType
   created_at: string
 }
 

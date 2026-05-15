@@ -1,14 +1,13 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle, Camera, CheckCircle2, Clock, ImageIcon, Loader2, MapPin, RefreshCw, Video } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
-import {
-  Camera, MapPin, CheckCircle2, AlertCircle, Loader2, ImageIcon, Clock,
-} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { fmtTime } from '@/lib/utils'
 
 interface SlotOption {
@@ -36,54 +35,125 @@ interface CheckinClientProps {
   todayCheckins: CheckinHistory[]
 }
 
-const COURSE_LABELS: Record<string, string> = {
-  kids_group: 'เด็กกลุ่ม',
-  adult_group: 'ผู้ใหญ่กลุ่ม',
-  private: 'Private',
-}
+type CameraState = 'idle' | 'requesting' | 'ready' | 'blocked'
+type LocationState = 'idle' | 'requesting' | 'ready' | 'blocked'
 
 export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
   const router = useRouter()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const [selectedSlotId, setSelectedSlotId] = useState(slots.length === 1 ? slots[0].id : '')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [gettingLocation, setGettingLocation] = useState(false)
+  const [cameraState, setCameraState] = useState<CameraState>('idle')
+  const [locationState, setLocationState] = useState<LocationState>('idle')
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   const checkedSlotIds = useMemo(() => new Set(todayCheckins.map((checkin) => checkin.scheduleSlotId)), [todayCheckins])
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setPhoto(file)
-      const reader = new FileReader()
-      reader.onload = () => setPhotoPreview(reader.result as string)
-      reader.readAsDataURL(file)
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+  }
+
+  const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraState('blocked')
+      setError('เบราว์เซอร์ไม่รองรับการเปิดกล้อง กรุณาใช้ Chrome/Safari/Edge เวอร์ชันล่าสุด')
+      return
+    }
+
+    setCameraState('requesting')
+    setError(null)
+
+    try {
+      stopCamera()
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      setCameraState('ready')
+    } catch {
+      setCameraState('blocked')
+      setError('กรุณาอนุญาตให้ระบบใช้กล้องหน้า เพื่อถ่ายเซลฟี่เช็คอิน')
     }
   }
 
-  const getLocation = () => {
+  const requestLocation = () => {
     if (!navigator.geolocation) {
+      setLocationState('blocked')
       setError('เบราว์เซอร์ไม่รองรับ GPS')
       return
     }
-    setGettingLocation(true)
+
+    setLocationState('requesting')
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setGettingLocation(false)
+      (position) => {
+        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
+        setLocationState('ready')
       },
       () => {
-        setError('ไม่สามารถดึงตำแหน่งได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง')
-        setGettingLocation(false)
+        setLocation(null)
+        setLocationState('blocked')
+        setError('กรุณาอนุญาตตำแหน่งที่ตั้งก่อนเช็คอิน ระบบต้องบันทึกพิกัดพร้อมรูปเซลฟี่')
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     )
   }
+
+  const captureSelfie = async () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || cameraState !== 'ready') {
+      setError('กรุณาเปิดกล้องหน้าก่อนถ่ายเซลฟี่')
+      return
+    }
+
+    const width = video.videoWidth || 720
+    const height = video.videoHeight || 720
+    canvas.width = width
+    canvas.height = height
+
+    const context = canvas.getContext('2d')
+    if (!context) {
+      setError('ไม่สามารถถ่ายภาพจากกล้องได้ กรุณาลองใหม่')
+      return
+    }
+
+    context.drawImage(video, 0, 0, width, height)
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+    if (!blob) {
+      setError('ไม่สามารถสร้างรูปเซลฟี่ได้ กรุณาลองใหม่')
+      return
+    }
+
+    const selfieFile = new File([blob], `coach-selfie-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    setPhoto(selfieFile)
+    setPhotoPreview(URL.createObjectURL(blob))
+    setError(null)
+  }
+
+  useEffect(() => {
+    requestLocation()
+    startCamera()
+
+    return () => {
+      stopCamera()
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    }
+    // The initial permission prompts should run once when the check-in page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async () => {
     if (!selectedSlotId) {
@@ -91,30 +161,40 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
       return
     }
     if (!photo) {
-      setError('กรุณาถ่ายรูปเซลฟี่หรือแนบรูปตัวเองก่อนเช็คอิน')
+      setError('กรุณาถ่ายเซลฟี่จากกล้องหน้าก่อนเช็คอิน')
       return
     }
+    if (!location) {
+      requestLocation()
+      setError('กรุณาอนุญาตตำแหน่งที่ตั้งก่อนเช็คอิน')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
       const formData = new FormData()
       formData.append('scheduleSlotId', selectedSlotId)
-      if (photo) formData.append('photo', photo)
-      if (location) {
-        formData.append('lat', location.lat.toString())
-        formData.append('lng', location.lng.toString())
-      }
+      formData.append('photo', photo)
+      formData.append('photoSource', 'camera_capture')
+      formData.append('lat', location.lat.toString())
+      formData.append('lng', location.lng.toString())
 
       const res = await fetch('/api/coach/checkin', {
         method: 'POST',
         body: formData,
       })
-      const json = await res.json()
-      if (!res.ok) { setError(json.error); setLoading(false); return }
+      const json = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(json?.error || 'เช็คอินไม่สำเร็จ')
+        setLoading(false)
+        return
+      }
 
       setSuccess(true)
       setLoading(false)
+      stopCamera()
       setTimeout(() => router.refresh(), 1500)
     } catch {
       setError('เกิดข้อผิดพลาด')
@@ -122,46 +202,55 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
     }
   }
 
-  const fmtCheckinTime = (t: string) => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+  const formatCheckinTime = (value: string) => new Date(value).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">เช็คอิน</h1>
-        <p className="text-gray-500 text-sm mt-1">เช็คอินเป็นรายรอบสอนของตัวเอง พร้อมถ่ายรูป</p>
+        <p className="mt-1 text-sm text-gray-500">เช็คอินรายรอบสอนด้วยกล้องหน้าเท่านั้น พร้อมพิกัดตำแหน่ง ก่อนเริ่ม 30 นาที ถึงหลังเริ่ม 30 นาที</p>
       </div>
 
       {success ? (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="py-8 text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-            <p className="font-bold text-green-700 text-lg">เช็คอินสำเร็จ!</p>
+            <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-green-500" />
+            <p className="text-lg font-bold text-green-700">เช็คอินสำเร็จ</p>
           </CardContent>
         </Card>
       ) : (
         <Card>
-          <CardContent className="p-4 space-y-4">
+          <CardContent className="space-y-4 p-4">
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0" />{error}
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
               </div>
             )}
 
-            {/* Slot selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">เลือกรอบสอนของตัวเอง</label>
               {slots.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">วันนี้ยังไม่มีรอบสอนที่ถูกมอบหมายให้คุณ</div>
+                <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">
+                  วันนี้ยังไม่มีรอบสอนที่ถูกมอบหมายให้คุณ
+                </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2">
                   {slots.map((slot) => {
                     const isChecked = checkedSlotIds.has(slot.id)
+                    const isSelected = selectedSlotId === slot.id
+
                     return (
-                      <button key={slot.id} onClick={() => setSelectedSlotId(slot.id)}
-                        className={`rounded-lg border p-3 text-left text-sm font-medium transition-all ${selectedSlotId === slot.id ? 'border-[#2748bf] bg-[#2748bf]/5 text-[#2748bf]' : 'border-gray-200 hover:border-gray-300'} ${isChecked ? 'opacity-70' : ''}`}>
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setSelectedSlotId(slot.id)}
+                        disabled={isChecked}
+                        className={`rounded-lg border p-3 text-left text-sm font-medium transition-all ${isSelected ? 'border-[#2748bf] bg-[#2748bf]/5 text-[#2748bf]' : 'border-gray-200 hover:border-gray-300'} ${isChecked ? 'cursor-not-allowed opacity-70' : ''}`}
+                      >
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{fmtTime(slot.startTime)} - {fmtTime(slot.endTime)}</span>
-                          <Badge className="bg-blue-100 text-blue-700">{COURSE_LABELS[slot.courseType] || slot.courseType}</Badge>
+                          <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" />{fmtTime(slot.startTime)} - {fmtTime(slot.endTime)}</span>
+                          <Badge className="bg-blue-100 text-blue-700">{slot.courseType || 'คอร์ส'}</Badge>
                           {isChecked && <Badge variant="outline">เช็คอินแล้ว</Badge>}
                         </div>
                         <p className="mt-1 flex items-center gap-1 text-xs text-gray-500"><MapPin className="h-3 w-3" />{slot.branchName}</p>
@@ -172,64 +261,116 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
               )}
             </div>
 
-            {/* Photo */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">รูปเซลฟี่ / รูปตัวเอง *</label>
-              <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handlePhotoChange} className="hidden" />
-              {photoPreview ? (
-                <div className="relative">
-                  <Image src={photoPreview} alt="preview" width={720} height={420} unoptimized className="w-full max-h-64 object-cover rounded-lg" />
-                  <Button size="sm" variant="outline" className="absolute top-2 right-2" onClick={() => { setPhoto(null); setPhotoPreview(null) }}>เปลี่ยน</Button>
-                </div>
-              ) : (
-                <button onClick={() => fileRef.current?.click()}
-                  className="w-full border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-[#2748bf] transition-colors">
-                  <Camera className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm text-gray-500">กดเพื่อถ่ายรูปเซลฟี่หรือแนบรูปตัวเอง</p>
-                  <p className="mt-1 text-xs text-gray-400">จำเป็นสำหรับการตรวจรอบสอนและคำนวณชั่วโมงสอนโค้ช</p>
-                </button>
-              )}
-            </div>
-
-            {/* Location */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">ตำแหน่ง GPS (ไม่บังคับ)</label>
-              {location ? (
-                <Badge className="bg-green-100 text-green-700">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-sm font-medium">กล้องหน้าเซลฟี่ *</label>
+                <Badge className={cameraState === 'ready' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}>
+                  <Camera className="mr-1 h-3 w-3" />
+                  {cameraState === 'ready' ? 'กล้องพร้อม' : 'รออนุญาตกล้อง'}
                 </Badge>
-              ) : (
-                <Button variant="outline" size="sm" onClick={getLocation} disabled={gettingLocation}>
-                  {gettingLocation ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />กำลังดึง...</> : <><MapPin className="h-4 w-4 mr-1" />ดึงตำแหน่ง</>}
+              </div>
+
+              <div className="overflow-hidden rounded-xl border bg-black">
+                {photoPreview ? (
+                  <Image src={photoPreview} alt="selfie preview" width={720} height={420} unoptimized className="max-h-72 w-full object-cover" />
+                ) : (
+                  <video ref={videoRef} playsInline muted className="max-h-72 w-full bg-black object-cover" />
+                )}
+              </div>
+              <canvas ref={canvasRef} className="hidden" />
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button type="button" variant="outline" onClick={startCamera} disabled={cameraState === 'requesting'}>
+                  {cameraState === 'requesting' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Video className="mr-2 h-4 w-4" />}
+                  เปิดกล้องหน้า
+                </Button>
+                <Button type="button" onClick={captureSelfie} disabled={cameraState !== 'ready'} className="bg-[#2748bf] hover:bg-[#153c85]">
+                  <Camera className="mr-2 h-4 w-4" />
+                  ถ่ายเซลฟี่
+                </Button>
+              </div>
+              {photoPreview && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPhoto(null)
+                    setPhotoPreview(null)
+                    startCamera()
+                  }}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  ถ่ายใหม่
                 </Button>
               )}
+              <p className="text-xs text-gray-400">ระบบไม่เปิดให้ browse หรือเลือกรูปจากเครื่อง เพื่อให้หลักฐานเช็คอินมาจากกล้องหน้าเท่านั้น</p>
             </div>
 
-            <Button onClick={handleSubmit} disabled={loading || !selectedSlotId || !photo || checkedSlotIds.has(selectedSlotId)} className="w-full bg-[#2748bf] hover:bg-[#153c85]">
-              {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />กำลังเช็คอิน...</> : <><Camera className="h-4 w-4 mr-2" />เช็คอิน</>}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">ตำแหน่ง GPS *</label>
+              {location ? (
+                <Badge className="bg-green-100 text-green-700">
+                  <MapPin className="mr-1 h-3 w-3" />
+                  {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+                </Badge>
+              ) : (
+                <Button variant="outline" size="sm" onClick={requestLocation} disabled={locationState === 'requesting'}>
+                  {locationState === 'requesting' ? (
+                    <>
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      กำลังขอตำแหน่ง...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="mr-1 h-4 w-4" />
+                      อนุญาตตำแหน่ง
+                    </>
+                  )}
+                </Button>
+              )}
+              <p className="text-xs text-gray-400">ถ้ายังไม่ได้เปิดตำแหน่ง เบราว์เซอร์จะแสดงคำขออนุญาตตำแหน่งให้อัตโนมัติ</p>
+            </div>
+
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !selectedSlotId || !photo || !location || checkedSlotIds.has(selectedSlotId)}
+              className="w-full bg-[#2748bf] hover:bg-[#153c85]"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  กำลังเช็คอิน...
+                </>
+              ) : (
+                <>
+                  <Camera className="mr-2 h-4 w-4" />
+                  เช็คอิน
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Today's checkin history */}
       {todayCheckins.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-lg font-bold text-[#153c85]">ประวัติเช็คอินวันนี้</h2>
-          {todayCheckins.map((ci) => (
-            <Card key={ci.id}>
-              <CardContent className="p-3 flex items-center gap-3">
-                {ci.photoUrl ? (
-                  <Image src={ci.photoUrl} alt="checkin" width={48} height={48} className="h-12 w-12 rounded-lg object-cover" />
+          {todayCheckins.map((checkin) => (
+            <Card key={checkin.id}>
+              <CardContent className="flex items-center gap-3 p-3">
+                {checkin.photoUrl ? (
+                  <Image src={checkin.photoUrl} alt="checkin" width={48} height={48} className="h-12 w-12 rounded-lg object-cover" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><ImageIcon className="h-5 w-5 text-gray-300" /></div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100">
+                    <ImageIcon className="h-5 w-5 text-gray-300" />
+                  </div>
                 )}
                 <div>
-                  <p className="font-medium text-sm">{fmtTime(ci.startTime)} - {fmtTime(ci.endTime)} • {ci.branchName}</p>
-                  <p className="text-xs text-gray-500">{COURSE_LABELS[ci.courseType] || ci.courseType} • เช็คอิน {fmtCheckinTime(ci.checkinTime)}</p>
+                  <p className="text-sm font-medium">{fmtTime(checkin.startTime)} - {fmtTime(checkin.endTime)} - {checkin.branchName}</p>
+                  <p className="text-xs text-gray-500">{checkin.courseType || 'คอร์ส'} - เช็คอิน {formatCheckinTime(checkin.checkinTime)}</p>
                 </div>
-                <CheckCircle2 className="h-5 w-5 text-green-500 ml-auto" />
+                <CheckCircle2 className="ml-auto h-5 w-5 text-green-500" />
               </CardContent>
             </Card>
           ))}

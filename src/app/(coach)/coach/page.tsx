@@ -1,167 +1,182 @@
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CalendarCheck, Users, Clock, BarChart3, MapPin, UserCheck, Camera } from 'lucide-react'
 import Link from 'next/link'
+import { BarChart3, CalendarCheck, Camera, Clock, MapPin, UserCheck } from 'lucide-react'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
+import { getHoursBetween, getWeekInfo } from '@/lib/coach-teaching-rules'
+import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
+import { createClient } from '@/lib/supabase/server'
+import { getBangkokDateString } from '@/lib/utils'
+
+interface CoachBranchRow {
+  branch_id: string
+  branches?: { name: string | null } | null
+}
+
+function formatNumber(value: number) {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(1)
+}
+
+function toInputDate(value: Date) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export default async function CoachDashboardPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getBangkokDateString()
   const now = new Date()
-  const startOfWeek = new Date(now)
-  startOfWeek.setDate(now.getDate() - now.getDay())
+  const currentWeek = getWeekInfo(today)
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-  // Get coach's branches
-  const { data: coachBranches } = await (supabase
-    .from('coach_branches')
-    .select('branch_id, is_head_coach, branches(name)')
-    .eq('coach_id', user.id) as any)
+  const [teachingDay, { data: coachBranches }, monthRows] = await Promise.all([
+    getCoachAssignedTeachingDay(supabase, user.id, today),
+    supabase
+      .from('coach_branches')
+      .select('branch_id, branches(name)')
+      .eq('coach_id', user.id) as unknown as PromiseLike<{ data: CoachBranchRow[] | null }>,
+    getCoachTeachingHourSourceRows(supabase, {
+      coachId: user.id,
+      startDate: toInputDate(startOfMonth),
+      endDateExclusive: toInputDate(nextMonthStart),
+    }),
+  ])
 
-  const branchIds = (coachBranches || []).map((cb: any) => cb.branch_id)
-  const { data: assignments } = await (supabase
-    .from('coach_assignments')
-    .select('schedule_slot_id, schedule_slots!inner(id, date)')
-    .eq('coach_id', user.id)
-    .eq('schedule_slots.date', today) as any)
-  const assignedSlotIds = (assignments || []).map((assignment: any) => assignment.schedule_slot_id).filter(Boolean)
-
-  let todaySessions: any[] = []
-  if (assignedSlotIds.length > 0) {
-    const { data } = await (supabase
-      .from('booking_sessions')
-      .select('id')
-      .eq('date', today)
-      .eq('status', 'scheduled')
-      .in('schedule_slot_id', assignedSlotIds) as any)
-    todaySessions = data || []
-  } else if (branchIds.length > 0) {
-    const { data } = await (supabase
-      .from('booking_sessions')
-      .select('id')
-      .eq('date', today)
-      .eq('status', 'scheduled')
-      .in('branch_id', branchIds) as any)
-    todaySessions = data || []
-  }
-
-  // Teaching hours this week
-  const { data: weekHours } = await (supabase
-    .from('coach_teaching_hours')
-    .select('total_hours')
-    .eq('coach_id', user.id)
-    .gte('date', startOfWeek.toISOString().split('T')[0])
-    .lte('date', today) as any)
-
-  const weekTotal = (weekHours || []).reduce((s: number, h: any) => s + (parseFloat(h.total_hours) || 0), 0)
-
-  // Teaching hours this month
-  const { data: monthHours } = await (supabase
-    .from('coach_teaching_hours')
-    .select('total_hours')
-    .eq('coach_id', user.id)
-    .gte('date', startOfMonth.toISOString().split('T')[0])
-    .lte('date', today) as any)
-
-  const monthTotal = (monthHours || []).reduce((s: number, h: any) => s + (parseFloat(h.total_hours) || 0), 0)
-
-  const { data: todayCheckins } = assignedSlotIds.length > 0
-    ? await (supabase
-      .from('coach_checkins')
-      .select('id, schedule_slot_id')
-      .eq('coach_id', user.id)
-      .in('schedule_slot_id', assignedSlotIds) as any)
-    : { data: [] }
-
-  const checkedSlotCount = (todayCheckins || []).length
-  const totalAssignedSlots = assignedSlotIds.length
-  const hasPendingCheckin = totalAssignedSlots > 0 && checkedSlotCount < totalAssignedSlots
+  const verifiedRows = monthRows.filter((row) => row.is_verified)
+  const weekTotal = verifiedRows
+    .filter((row) => row.date >= currentWeek.key && row.date <= currentWeek.end)
+    .reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
+  const monthTotal = verifiedRows.reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
+  const pendingEvidence = monthRows.filter((row) => !row.is_verified)
+  const hasPendingCheckin = teachingDay.slots.length > 0 && teachingDay.checkedSlotCount < teachingDay.slots.length
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">หน้าหลักโค้ช</h1>
-        <p className="text-gray-500 text-sm mt-1">ภาพรวมการสอนของคุณ</p>
+        <p className="mt-1 text-sm text-gray-500">
+          ภาพรวมรอบสอน กลุ่มผู้เรียน และชั่วโมงสอนที่มีหลักฐานครบ
+        </p>
       </div>
 
-      {/* Quick actions */}
       <div className="flex flex-wrap gap-2">
-        <Link href="/coach/today" className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2748bf] text-white text-sm font-medium rounded-lg hover:bg-[#153c85] transition-colors">
-          <CalendarCheck className="h-4 w-4" />รอบสอนวันนี้
+        <Link href="/coach/today" className="inline-flex items-center gap-1.5 rounded-lg bg-[#2748bf] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#153c85]">
+          <CalendarCheck className="h-4 w-4" />
+          รอบสอนวันนี้
         </Link>
-        <Link href="/coach/attendance" className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-          <UserCheck className="h-4 w-4" />เช็คชื่อ
+        <Link href="/coach/attendance" className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700">
+          <UserCheck className="h-4 w-4" />
+          เช็คชื่อ
         </Link>
         {hasPendingCheckin && (
-          <Link href="/coach/checkin" className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors animate-pulse">
-            <Camera className="h-4 w-4" />เช็คอินรอบสอน
+          <Link href="/coach/checkin" className="inline-flex animate-pulse items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600">
+            <Camera className="h-4 w-4" />
+            เช็คอินรอบสอน
           </Link>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-500">รอบสอนวันนี้</CardTitle>
             <CalendarCheck className="h-4 w-4 text-[#2748bf]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todaySessions.length} รอบ</div>
+            <div className="text-2xl font-bold">{teachingDay.slots.length} รอบ</div>
+            <p className="mt-1 text-xs text-gray-500">จาก assignment/group จริง</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">สาขาที่สอน</CardTitle>
-            <MapPin className="h-4 w-4 text-[#f57e3b]" />
+            <CardTitle className="text-sm font-medium text-gray-500">ผู้เรียนในกลุ่มวันนี้</CardTitle>
+            <UserCheck className="h-4 w-4 text-[#f57e3b]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(coachBranches || []).length} สาขา</div>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {(coachBranches || []).map((cb: any) => (
-                <span key={cb.branch_id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{cb.branches?.name}</span>
-              ))}
-            </div>
+            <div className="text-2xl font-bold">{teachingDay.totalStudents} คน</div>
+            <p className="mt-1 text-xs text-gray-500">เฉพาะกลุ่มที่รับผิดชอบ</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">ชั่วโมงสอนสัปดาห์นี้</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">ชั่วโมงสัปดาห์นี้</CardTitle>
             <Clock className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{weekTotal} ชม.</div>
+            <div className="text-2xl font-bold">{formatNumber(weekTotal)} ชม.</div>
+            <p className="mt-1 text-xs text-gray-500">นับเฉพาะหลักฐานครบ</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">ชั่วโมงสอนเดือนนี้</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">ชั่วโมงเดือนนี้</CardTitle>
             <BarChart3 className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{monthTotal} ชม.</div>
+            <div className="text-2xl font-bold">{formatNumber(monthTotal)} ชม.</div>
+            <p className="mt-1 text-xs text-gray-500">เช็คอิน + เช็คชื่อแล้ว</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Checkin status */}
       <Card className={!hasPendingCheckin ? 'border-green-200 bg-green-50/50' : 'border-orange-200 bg-orange-50/50'}>
-        <CardContent className="p-4 flex items-center gap-3">
+        <CardContent className="flex items-center gap-3 p-4">
           <Camera className={`h-5 w-5 ${!hasPendingCheckin ? 'text-green-600' : 'text-orange-500'}`} />
           <div>
-            <p className="font-medium text-sm">
-              {totalAssignedSlots === 0
-                ? 'วันนี้ยังไม่มีรอบสอนที่ถูกมอบหมาย'
+            <p className="text-sm font-medium">
+              {teachingDay.slots.length === 0
+                ? 'วันนี้ยังไม่มีรอบสอนที่ได้รับมอบหมาย'
                 : hasPendingCheckin
-                  ? `เช็คอินแล้ว ${checkedSlotCount}/${totalAssignedSlots} รอบ`
-                  : `เช็คอินครบแล้ว ${checkedSlotCount}/${totalAssignedSlots} รอบ ✓`}
+                  ? `เช็คอินแล้ว ${teachingDay.checkedSlotCount}/${teachingDay.slots.length} รอบ`
+                  : `เช็คอินครบแล้ว ${teachingDay.checkedSlotCount}/${teachingDay.slots.length} รอบ`}
             </p>
-            {hasPendingCheckin && <p className="text-xs text-gray-500">กรุณาเช็คอินก่อนเริ่มสอนในแต่ละรอบของตัวเอง</p>}
+            {hasPendingCheckin && (
+              <p className="text-xs text-gray-500">
+                กรุณาเช็คอินพร้อมรูปเซลฟี่และพิกัดในแต่ละรอบของตัวเอง ก่อนเช็คชื่อนักเรียน
+              </p>
+            )}
           </div>
+        </CardContent>
+      </Card>
+
+      {pendingEvidence.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="flex items-center gap-3 p-4">
+            <Clock className="h-5 w-5 text-amber-600" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">มี {pendingEvidence.length} รอบในเดือนนี้ที่หลักฐานยังไม่ครบ</p>
+              <p className="text-xs text-amber-700">รอบเหล่านี้จะยังไม่ถูกนับในชั่วโมงสอนจนกว่าจะมีเช็คอิน รูป พิกัด และการเช็คชื่อครบ</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-500">สาขาที่เกี่ยวข้อง</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(coachBranches || []).length === 0 ? (
+            <p className="text-sm text-gray-400">ยังไม่ได้ผูกสาขาให้โค้ชคนนี้</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(coachBranches || []).map((branch) => (
+                <span key={branch.branch_id} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
+                  <MapPin className="h-3 w-3" />
+                  {branch.branches?.name || 'ไม่ระบุสาขา'}
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

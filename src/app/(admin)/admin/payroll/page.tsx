@@ -1,33 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
 import { PayrollClient } from '@/components/admin/payroll-client'
 import { COACH_TEACHING_RULES_SETTING_KEY, normalizeCoachTeachingRulesSettings } from '@/lib/coach-teaching-rules'
-
-interface AssignmentRow {
-  id: string
-  coach_id: string
-  schedule_slot_id: string
-  profiles?: {
-    full_name: string | null
-    coach_employment_type: string | null
-  } | null
-  schedule_slots?: {
-    id: string
-    branch_id: string
-    date: string
-    start_time: string
-    end_time: string
-    branches?: { name: string | null } | null
-    course_types?: { name: string | null } | null
-  } | null
-}
-
-interface CheckinRow {
-  id: string
-  coach_id: string
-  schedule_slot_id: string
-  checkin_time: string
-  photo_url: string | null
-}
+import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
+import { createClient } from '@/lib/supabase/server'
 
 interface WeeklySummaryRow {
   id: string
@@ -78,27 +52,7 @@ export default async function PayrollPage() {
   const supabase = createClient()
   const range = getYearRange()
 
-  const [{ data: assignments }, { data: checkins }, { data: summaries }, { data: teachingRulesSetting }] = await Promise.all([
-    supabase
-      .from('coach_assignments')
-      .select(`
-        id, coach_id, schedule_slot_id,
-        profiles!coach_assignments_coach_id_fkey(full_name, coach_employment_type),
-        schedule_slots!inner(id, branch_id, date, start_time, end_time,
-          branches(name),
-          course_types(name)
-        )
-      `)
-      .gte('schedule_slots.date', range.start)
-      .lt('schedule_slots.date', range.end)
-      .limit(3000) as unknown as PromiseLike<{ data: AssignmentRow[] | null }>,
-    supabase
-      .from('coach_checkins')
-      .select('id, coach_id, schedule_slot_id, checkin_time, photo_url')
-      .gte('checkin_time', `${range.start}T00:00:00`)
-      .lt('checkin_time', `${range.end}T00:00:00`)
-      .order('checkin_time', { ascending: false })
-      .limit(3000) as unknown as PromiseLike<{ data: CheckinRow[] | null }>,
+  const [{ data: summaries }, { data: teachingRulesSetting }, payrollRows] = await Promise.all([
     supabase
       .from('coach_weekly_teaching_summaries')
       .select(`
@@ -117,36 +71,11 @@ export default async function PayrollPage() {
       .select('value')
       .eq('key', COACH_TEACHING_RULES_SETTING_KEY)
       .maybeSingle() as unknown as PromiseLike<{ data: CoachTeachingRulesSettingRow | null }>,
+    getCoachTeachingHourSourceRows(supabase, {
+      startDate: range.start,
+      endDateExclusive: range.end,
+    }),
   ])
-
-  const checkinMap = new Map<string, CheckinRow>()
-  ;(checkins || []).forEach((checkin) => {
-    const key = `${checkin.coach_id}:${checkin.schedule_slot_id}`
-    if (!checkinMap.has(key)) checkinMap.set(key, checkin)
-  })
-
-  const payrollRows = (assignments || [])
-    .filter((assignment) => assignment.schedule_slots)
-    .map((assignment) => {
-      const slot = assignment.schedule_slots
-      const checkin = checkinMap.get(`${assignment.coach_id}:${assignment.schedule_slot_id}`)
-
-      return {
-        assignment_id: assignment.id,
-        coach_id: assignment.coach_id,
-        coach_name: assignment.profiles?.full_name || 'ไม่ทราบชื่อ',
-        employment_type: assignment.profiles?.coach_employment_type || null,
-        schedule_slot_id: assignment.schedule_slot_id,
-        branch_name: slot?.branches?.name || 'ไม่ทราบสาขา',
-        course_type: slot?.course_types?.name || '',
-        date: slot?.date || '',
-        start_time: slot?.start_time || '',
-        end_time: slot?.end_time || '',
-        checkin_id: checkin?.id || null,
-        checkin_time: checkin?.checkin_time || null,
-        photo_url: checkin?.photo_url || null,
-      }
-    })
 
   const now = new Date()
   return (

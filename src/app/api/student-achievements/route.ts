@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { canManageStudentForCoach, getCoachRole } from '@/lib/coach-student-access'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { createClient } from '@/lib/supabase/server'
 import type { StudentType, UserRole } from '@/types/database'
@@ -21,14 +22,10 @@ async function requireStaff() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single() as unknown as { data: { role: UserRole } | null }
+  const role = await getCoachRole(supabase, user.id)
+  if (!role || !STAFF_ROLES.includes(role)) return null
 
-  if (!profile || !STAFF_ROLES.includes(profile.role)) return null
-  return user
+  return { user, role, supabase }
 }
 
 function getErrorMessage(error: unknown) {
@@ -47,8 +44,8 @@ function validatePayload(payload: AchievementPayload) {
   const description = payload.description?.trim() || null
   const awardedAt = payload.awardedAt || null
 
-  if (!studentId) return { error: 'ไม่พบนักเรียนที่ต้องการเพิ่มรางวัล' }
-  if (!studentType || !STUDENT_TYPES.includes(studentType)) return { error: 'ประเภทนักเรียนไม่ถูกต้อง' }
+  if (!studentId) return { error: 'ไม่พบผู้เรียนที่ต้องการเพิ่มรางวัล' }
+  if (!studentType || !STUDENT_TYPES.includes(studentType)) return { error: 'ประเภทผู้เรียนไม่ถูกต้อง' }
   if (!emoji || emoji.length > 8) return { error: 'กรุณากรอก emoji 1-8 ตัวอักษร' }
   if (!title) return { error: 'กรุณากรอกชื่อรางวัลหรือผลงาน' }
   if (awardedAt && !isDateInput(awardedAt)) return { error: 'วันที่ได้รับรางวัลไม่ถูกต้อง' }
@@ -74,6 +71,11 @@ export async function POST(request: NextRequest) {
     if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
 
     const data = parsed.value
+    const canManage = await canManageStudentForCoach(staff.supabase, staff.user.id, data.studentId, data.studentType)
+    if (!canManage) {
+      return NextResponse.json({ error: 'คุณยังไม่ได้รับผิดชอบผู้เรียนคนนี้ จึงไม่สามารถเพิ่มรางวัลได้' }, { status: 403 })
+    }
+
     const supabaseAdmin = getServiceRoleClient()
     const { data: achievement, error } = await supabaseAdmin
       .from('student_achievements')
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
         description: data.description,
         awarded_at: data.awardedAt,
         is_active: true,
-        created_by: staff.id,
+        created_by: staff.user.id,
       })
       .select('id, emoji, title, description, awarded_at')
       .single()
@@ -120,6 +122,24 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabaseAdmin = getServiceRoleClient()
+    const { data: achievement, error: achievementError } = await supabaseAdmin
+      .from('student_achievements')
+      .select('student_id, student_type')
+      .eq('id', id)
+      .single() as unknown as {
+        data: { student_id: string; student_type: StudentType } | null
+        error: { message: string } | null
+      }
+
+    if (achievementError || !achievement) {
+      return NextResponse.json({ error: achievementError?.message || 'ไม่พบข้อมูลรางวัล' }, { status: 404 })
+    }
+
+    const canManage = await canManageStudentForCoach(staff.supabase, staff.user.id, achievement.student_id, achievement.student_type)
+    if (!canManage) {
+      return NextResponse.json({ error: 'คุณยังไม่ได้รับผิดชอบผู้เรียนคนนี้ จึงไม่สามารถแก้รางวัลได้' }, { status: 403 })
+    }
+
     const { error } = await supabaseAdmin
       .from('student_achievements')
       .update({ is_active: isActive, updated_at: new Date().toISOString() })

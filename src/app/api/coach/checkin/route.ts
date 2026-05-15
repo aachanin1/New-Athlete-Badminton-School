@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getServiceRoleClient } from '@/lib/auth/admin'
+
 import { logActivity } from '@/lib/activity-log'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { createClient } from '@/lib/supabase/server'
+import { getBangkokDateString } from '@/lib/utils'
+import type { UserRole } from '@/types/database'
+
+const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024
+const CHECKIN_BUCKET = 'coach-checkins'
+const CHECKIN_WINDOW_MINUTES = 30
+const REQUIRED_PHOTO_SOURCE = 'camera_capture'
 
 interface ProfileRole {
-  role: string
-}
-
-interface CoachAssignmentRow {
-  schedule_slot_id: string
+  role: UserRole
 }
 
 interface ScheduleSlotRow {
@@ -27,8 +31,35 @@ interface CheckinInsertRow {
   id: string
 }
 
+interface GroupAssignmentRow {
+  id: string
+  coach_id: string | null
+}
+
+interface LegacyAssignmentRow {
+  schedule_slot_id: string
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
+function createBangkokDateTime(date: string, time: string) {
+  return new Date(`${date}T${time.slice(0, 8)}+07:00`)
+}
+
+function getSafeImageExtension(file: File) {
+  if (file.type === 'image/png') return 'png'
+  if (file.type === 'image/webp') return 'webp'
+  if (file.type === 'image/gif') return 'gif'
+  return 'jpg'
+}
+
+function parseCoordinate(value: string | null, min: number, max: number) {
+  if (!value) return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) return null
+  return parsed
 }
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
@@ -41,8 +72,57 @@ async function requireCoach(supabase: ReturnType<typeof createClient>) {
     .eq('id', user.id)
     .single() as unknown as { data: ProfileRole | null }
 
-  if (!profile || !['coach', 'head_coach', 'admin', 'super_admin'].includes(profile.role)) return null
-  return user
+  if (!profile || !['coach', 'head_coach'].includes(profile.role)) return null
+  return { user, role: profile.role }
+}
+
+async function canCoachCheckinSlot(
+  adminSupabase: ReturnType<typeof getServiceRoleClient>,
+  coachId: string,
+  scheduleSlotId: string,
+) {
+  const { data: groupRows } = await adminSupabase
+    .from('coach_assignment_groups')
+    .select('id, coach_id')
+    .eq('schedule_slot_id', scheduleSlotId) as unknown as { data: GroupAssignmentRow[] | null }
+
+  const groups = groupRows || []
+  if (groups.length > 0) {
+    return groups.some((group) => group.coach_id === coachId)
+  }
+
+  const { data: assignment } = await adminSupabase
+    .from('coach_assignments')
+    .select('schedule_slot_id')
+    .eq('coach_id', coachId)
+    .eq('schedule_slot_id', scheduleSlotId)
+    .maybeSingle<LegacyAssignmentRow>()
+
+  return Boolean(assignment)
+}
+
+function validatePhoto(photo: FormDataEntryValue | null) {
+  if (!(photo instanceof File) || photo.size <= 0) {
+    return { photo: null, error: 'กรุณาถ่ายเซลฟี่จากกล้องหน้าก่อนเช็คอิน' }
+  }
+
+  if (!photo.type.startsWith('image/')) {
+    return { photo: null, error: 'ไฟล์เช็คอินต้องเป็นรูปภาพเท่านั้น' }
+  }
+
+  if (photo.size > MAX_PHOTO_SIZE_BYTES) {
+    return { photo: null, error: 'รูปเช็คอินต้องมีขนาดไม่เกิน 10 MB' }
+  }
+
+  return { photo, error: null }
+}
+
+function validateCheckinWindow(now: Date, slot: ScheduleSlotRow) {
+  const startDate = createBangkokDateTime(slot.date, slot.start_time)
+  const earliestCheckin = new Date(startDate.getTime() - (CHECKIN_WINDOW_MINUTES * 60 * 1000))
+  const latestCheckin = new Date(startDate.getTime() + (CHECKIN_WINDOW_MINUTES * 60 * 1000))
+
+  return now >= earliestCheckin && now <= latestCheckin
 }
 
 export async function POST(request: NextRequest) {
@@ -50,34 +130,35 @@ export async function POST(request: NextRequest) {
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  let uploadedPath: string | null = null
+
   try {
     const adminSupabase = getServiceRoleClient()
     const formData = await request.formData()
     const scheduleSlotId = formData.get('scheduleSlotId') as string | null
-    const lat = formData.get('lat') as string | null
-    const lng = formData.get('lng') as string | null
-    const photo = formData.get('photo')
+    const lat = parseCoordinate(formData.get('lat') as string | null, -90, 90)
+    const lng = parseCoordinate(formData.get('lng') as string | null, -180, 180)
+    const photoSource = formData.get('photoSource') as string | null
+    const photoValidation = validatePhoto(formData.get('photo'))
 
     if (!scheduleSlotId) {
       return NextResponse.json({ error: 'กรุณาเลือกรอบสอน' }, { status: 400 })
     }
 
-    if (!(photo instanceof File) || photo.size <= 0) {
-      return NextResponse.json({ error: 'กรุณาแนบรูปเซลฟี่หรือรูปตัวเองก่อนเช็คอิน' }, { status: 400 })
+    if (photoSource !== REQUIRED_PHOTO_SOURCE) {
+      return NextResponse.json({ error: 'ต้องถ่ายเซลฟี่จากกล้องหน้าในระบบเท่านั้น ไม่สามารถเลือกไฟล์รูปจากเครื่องได้' }, { status: 400 })
     }
 
-    if (!photo.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'ไฟล์เช็คอินต้องเป็นรูปภาพเท่านั้น' }, { status: 400 })
+    if (lat === null || lng === null) {
+      return NextResponse.json({ error: 'กรุณาอนุญาตตำแหน่งที่ตั้งก่อนเช็คอิน' }, { status: 400 })
     }
 
-    const { data: assignment } = await adminSupabase
-      .from('coach_assignments')
-      .select('schedule_slot_id')
-      .eq('coach_id', coach.id)
-      .eq('schedule_slot_id', scheduleSlotId)
-      .maybeSingle<CoachAssignmentRow>()
+    if (photoValidation.error || !photoValidation.photo) {
+      return NextResponse.json({ error: photoValidation.error }, { status: 400 })
+    }
 
-    if (!assignment) {
+    const hasPermission = await canCoachCheckinSlot(adminSupabase, coach.user.id, scheduleSlotId)
+    if (!hasPermission) {
       return NextResponse.json({ error: 'คุณไม่มีสิทธิ์เช็คอินรอบนี้' }, { status: 403 })
     }
 
@@ -92,24 +173,19 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
-    const today = now.toISOString().split('T')[0]
+    const today = getBangkokDateString(now)
     if (slot.date !== today) {
       return NextResponse.json({ error: 'เช็คอินได้เฉพาะรอบสอนของวันนี้' }, { status: 400 })
     }
 
-    const startDate = new Date(`${slot.date}T${slot.start_time}`)
-    const endDate = new Date(`${slot.date}T${slot.end_time}`)
-    const earliestCheckin = new Date(startDate.getTime() - (120 * 60 * 1000))
-    const latestCheckin = new Date(endDate.getTime() + (15 * 60 * 1000))
-
-    if (now < earliestCheckin || now > latestCheckin) {
-      return NextResponse.json({ error: 'เช็คอินได้เฉพาะช่วงก่อนเริ่มสอนและระหว่างรอบสอนของตัวเอง' }, { status: 400 })
+    if (!validateCheckinWindow(now, slot)) {
+      return NextResponse.json({ error: 'เช็คอินได้ตั้งแต่ก่อนเริ่มสอน 30 นาที ถึงหลังเริ่มสอน 30 นาทีเท่านั้น' }, { status: 400 })
     }
 
     const { data: existingCheckin } = await adminSupabase
       .from('coach_checkins')
       .select('id')
-      .eq('coach_id', coach.id)
+      .eq('coach_id', coach.user.id)
       .eq('schedule_slot_id', scheduleSlotId)
       .maybeSingle<ExistingCheckinRow>()
 
@@ -117,14 +193,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'คุณเช็คอินรอบนี้ไปแล้ว' }, { status: 400 })
     }
 
-    const ext = photo.name.split('.').pop() || 'jpg'
-    const fileName = `checkins/${coach.id}/${scheduleSlotId}-${Date.now()}.${ext}`
-    const buffer = Buffer.from(await photo.arrayBuffer())
+    const ext = getSafeImageExtension(photoValidation.photo)
+    uploadedPath = `checkins/${coach.user.id}/${scheduleSlotId}-${Date.now()}.${ext}`
+    const buffer = Buffer.from(await photoValidation.photo.arrayBuffer())
 
     const { error: uploadError } = await adminSupabase.storage
-      .from('coach-checkins')
-      .upload(fileName, buffer, {
-        contentType: photo.type,
+      .from(CHECKIN_BUCKET)
+      .upload(uploadedPath, buffer, {
+        contentType: photoValidation.photo.type,
         upsert: false,
       })
 
@@ -132,33 +208,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}` }, { status: 500 })
     }
 
-    const { data: urlData } = adminSupabase.storage.from('coach-checkins').getPublicUrl(fileName)
+    const { data: urlData } = adminSupabase.storage.from(CHECKIN_BUCKET).getPublicUrl(uploadedPath)
     const photoUrl = urlData?.publicUrl || null
 
     if (!photoUrl) {
+      await adminSupabase.storage.from(CHECKIN_BUCKET).remove([uploadedPath])
+      uploadedPath = null
       return NextResponse.json({ error: 'ไม่สามารถสร้าง URL รูปเช็คอินได้' }, { status: 500 })
     }
 
     const { data: checkinRow, error: insertError } = await adminSupabase
       .from('coach_checkins')
       .insert({
-        coach_id: coach.id,
+        coach_id: coach.user.id,
         schedule_slot_id: scheduleSlotId,
         branch_id: slot.branch_id,
         checkin_time: now.toISOString(),
         photo_url: photoUrl,
-        location_lat: lat ? parseFloat(lat) : null,
-        location_lng: lng ? parseFloat(lng) : null,
+        location_lat: lat,
+        location_lng: lng,
       })
       .select('id')
       .single<CheckinInsertRow>()
 
     if (insertError) {
+      await adminSupabase.storage.from(CHECKIN_BUCKET).remove([uploadedPath])
+      uploadedPath = null
       return NextResponse.json({ error: `เช็คอินไม่สำเร็จ: ${insertError.message}` }, { status: 500 })
     }
 
     await logActivity({
-      userId: coach.id,
+      userId: coach.user.id,
       action: 'coach_checkin',
       entityType: 'coach_checkin',
       entityId: checkinRow?.id || null,
@@ -166,12 +246,26 @@ export async function POST(request: NextRequest) {
         scheduleSlotId,
         branchId: slot.branch_id,
         hasPhoto: true,
+        photoRequired: true,
+        photoSource,
+        locationRequired: true,
+        lat,
+        lng,
+        checkinWindowMinutes: CHECKIN_WINDOW_MINUTES,
+        source: 'assigned_slot_checkin',
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     })
 
     return NextResponse.json({ success: true, photoUrl })
   } catch (error) {
+    if (uploadedPath) {
+      try {
+        await getServiceRoleClient().storage.from(CHECKIN_BUCKET).remove([uploadedPath])
+      } catch {
+        // Best-effort cleanup only.
+      }
+    }
     console.error('Checkin error:', error)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }

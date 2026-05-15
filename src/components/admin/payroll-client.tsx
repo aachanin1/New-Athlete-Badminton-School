@@ -2,11 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertCircle,
   Banknote,
@@ -16,6 +11,7 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Loader2,
+  MapPin,
   ReceiptText,
   Search,
   ShieldCheck,
@@ -23,21 +19,29 @@ import {
   User,
   Wallet,
   XCircle,
+  type LucideIcon,
 } from 'lucide-react'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   calculateTeachingPayEntries,
   getCoachTeachingOptions,
   getCoachTeachingRule,
   getWeekInfo,
   normalizeCoachEmploymentType,
-  type CoachTeachingRules,
   type CoachEmploymentType,
+  type CoachTeachingRules,
   type TeachingPayEntry,
   type TeachingSlotForCalculation,
 } from '@/lib/coach-teaching-rules'
 
 interface PayrollSourceRow extends TeachingSlotForCalculation {
   assignment_id: string
+  assignment_source: 'group' | 'legacy'
   coach_id: string
   coach_name: string
   employment_type: string | null
@@ -46,6 +50,15 @@ interface PayrollSourceRow extends TeachingSlotForCalculation {
   checkin_id: string | null
   checkin_time: string | null
   photo_url: string | null
+  location_lat: number | null
+  location_lng: number | null
+  student_count: number
+  attendance_count: number
+  has_checkin: boolean
+  has_photo: boolean
+  has_location: boolean
+  has_attendance: boolean
+  is_verified: boolean
 }
 
 interface WeeklySummaryData {
@@ -83,6 +96,8 @@ interface WeekBreakdown {
   payableEntries: TeachingPayEntry<PayrollSourceRow>[]
   missingRows: PayrollSourceRow[]
   noPhotoRows: PayrollSourceRow[]
+  noLocationRows: PayrollSourceRow[]
+  noAttendanceRows: PayrollSourceRow[]
   groupHours: number
   privateHours: number
   totalHours: number
@@ -101,6 +116,8 @@ interface CoachSummary {
   payableEntries: TeachingPayEntry<PayrollSourceRow>[]
   missingRows: PayrollSourceRow[]
   noPhotoRows: PayrollSourceRow[]
+  noLocationRows: PayrollSourceRow[]
+  noAttendanceRows: PayrollSourceRow[]
   weeklyBreakdown: WeekBreakdown[]
   groupHours: number
   privateHours: number
@@ -133,7 +150,23 @@ function isPastSlot(row: PayrollSourceRow) {
 }
 
 function isPayable(row: PayrollSourceRow) {
-  return Boolean(row.checkin_id && row.photo_url)
+  return row.is_verified
+}
+
+function isMissingCheckin(row: PayrollSourceRow) {
+  return row.student_count > 0 && !row.has_checkin && isPastSlot(row)
+}
+
+function isMissingPhoto(row: PayrollSourceRow) {
+  return row.has_checkin && !row.has_photo
+}
+
+function isMissingLocation(row: PayrollSourceRow) {
+  return row.has_checkin && row.has_photo && !row.has_location
+}
+
+function isMissingAttendance(row: PayrollSourceRow) {
+  return row.has_checkin && row.has_photo && row.has_location && !row.has_attendance
 }
 
 function formatDate(value: string) {
@@ -174,6 +207,8 @@ function buildWeekBreakdown(
         payableEntries: [],
         missingRows: [],
         noPhotoRows: [],
+        noLocationRows: [],
+        noAttendanceRows: [],
         groupHours: 0,
         privateHours: 0,
         totalHours: 0,
@@ -188,8 +223,10 @@ function buildWeekBreakdown(
     const summary = weeks.get(week.key)
     if (!summary) return
     summary.assignedRows.push(row)
-    if (!row.checkin_id && isPastSlot(row)) summary.missingRows.push(row)
-    if (row.checkin_id && !row.photo_url) summary.noPhotoRows.push(row)
+    if (isMissingCheckin(row)) summary.missingRows.push(row)
+    if (isMissingPhoto(row)) summary.noPhotoRows.push(row)
+    if (isMissingLocation(row)) summary.noLocationRows.push(row)
+    if (isMissingAttendance(row)) summary.noAttendanceRows.push(row)
   })
 
   payableEntries.forEach((entry) => {
@@ -211,6 +248,42 @@ function buildWeekBreakdown(
   })
 
   return Array.from(weeks.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+}
+
+function getEvidenceBadge(row: PayrollSourceRow) {
+  if (row.is_verified) {
+    return {
+      label: 'ครบหลักฐาน',
+      className: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
+      icon: CheckCircle2,
+    }
+  }
+  if (!row.has_checkin) {
+    return {
+      label: 'ยังไม่เช็คอิน',
+      className: 'border-red-200 bg-red-50 text-red-700',
+      icon: XCircle,
+    }
+  }
+  if (!row.has_photo) {
+    return {
+      label: 'ไม่มีรูป',
+      className: 'border-orange-200 bg-orange-50 text-orange-700',
+      icon: ImageIcon,
+    }
+  }
+  if (!row.has_location) {
+    return {
+      label: 'ไม่มีพิกัด',
+      className: 'border-orange-200 bg-orange-50 text-orange-700',
+      icon: MapPin,
+    }
+  }
+  return {
+    label: 'ยังไม่เช็คชื่อ',
+    className: 'border-red-200 bg-red-50 text-red-700',
+    icon: XCircle,
+  }
 }
 
 export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, summaries }: PayrollClientProps) {
@@ -239,8 +312,10 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
       const employmentType = normalizeCoachEmploymentType(row.employment_type)
       if (filterEmployment !== 'all' && employmentType !== filterEmployment) return false
       if (filterStatus === 'payable' && !isPayable(row)) return false
-      if (filterStatus === 'missing' && (row.checkin_id || !isPastSlot(row))) return false
-      if (filterStatus === 'no_photo' && !(row.checkin_id && !row.photo_url)) return false
+      if (filterStatus === 'missing' && !isMissingCheckin(row)) return false
+      if (filterStatus === 'no_photo' && !isMissingPhoto(row)) return false
+      if (filterStatus === 'no_location' && !isMissingLocation(row)) return false
+      if (filterStatus === 'no_attendance' && !isMissingAttendance(row)) return false
       if (filterStatus === 'missing_employment' && employmentType) return false
       if (!search.trim()) return true
 
@@ -268,8 +343,10 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
       .map(([coachId, entries]) => {
         const employmentType = normalizeCoachEmploymentType(entries[0]?.employment_type)
         const payableRows = entries.filter(isPayable)
-        const missingRows = entries.filter((row) => !row.checkin_id && isPastSlot(row))
-        const noPhotoRows = entries.filter((row) => row.checkin_id && !row.photo_url)
+        const missingRows = entries.filter(isMissingCheckin)
+        const noPhotoRows = entries.filter(isMissingPhoto)
+        const noLocationRows = entries.filter(isMissingLocation)
+        const noAttendanceRows = entries.filter(isMissingAttendance)
         const payableEntries = employmentType
           ? calculateTeachingPayEntries(payableRows, getCoachTeachingRule(employmentType, teachingRules))
           : []
@@ -297,6 +374,8 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
           payableEntries,
           missingRows,
           noPhotoRows,
+          noLocationRows,
+          noAttendanceRows,
           weeklyBreakdown,
           groupHours: 0,
           privateHours: 0,
@@ -313,17 +392,13 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
 
   const stats = useMemo(() => {
     const payable = monthRows.filter(isPayable)
-    const missing = monthRows.filter((row) => !row.checkin_id && isPastSlot(row))
-    const noPhoto = monthRows.filter((row) => row.checkin_id && !row.photo_url)
+    const missing = monthRows.filter(isMissingCheckin)
+    const noPhoto = monthRows.filter(isMissingPhoto)
+    const noLocation = monthRows.filter(isMissingLocation)
+    const noAttendance = monthRows.filter(isMissingAttendance)
     const missingEmployment = coachSummaries.filter((coach) => !coach.employmentType).length
     const payableHours = coachSummaries.reduce((sum, coach) => sum + coach.payableHours, 0)
     const payableAmount = coachSummaries.reduce((sum, coach) => sum + coach.payableAmount, 0)
-    const closedAmount = Array.from(closedSummaryMap.values())
-      .filter((summary) => {
-        const date = new Date(`${summary.week_start}T00:00:00`)
-        return date.getMonth() + 1 === viewMonth && date.getFullYear() === viewYear
-      })
-      .reduce((sum, summary) => sum + summary.payable_amount, 0)
 
     return {
       coaches: coachSummaries.length,
@@ -331,16 +406,17 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
       payable: payable.length,
       missing: missing.length,
       noPhoto: noPhoto.length,
+      noLocation: noLocation.length,
+      noAttendance: noAttendance.length,
       missingEmployment,
       payableHours,
       payableAmount,
-      closedAmount,
     }
-  }, [coachSummaries, closedSummaryMap, monthRows, viewMonth, viewYear])
+  }, [coachSummaries, monthRows])
 
   const closeWeek = async (coach: CoachSummary, week: WeekBreakdown) => {
     if (!coach.employmentType || week.payableEntries.length === 0) return
-    const note = window.prompt(`ปิดสัปดาห์ ${coach.coach_name}\\n${week.label}\\nหมายเหตุ (เว้นว่างได้):`, '')
+    const note = window.prompt(`ปิดสัปดาห์ ${coach.coach_name}\n${week.label}\nหมายเหตุ (เว้นว่างได้):`, '')
     if (note === null) return
 
     const key = `${coach.coach_id}:${week.weekStart}`
@@ -378,7 +454,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
           </div>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">คำนวณชั่วโมงสอน</h1>
           <p className="mt-1 max-w-3xl text-sm text-gray-500">
-            สรุปชั่วโมงสอนรายสัปดาห์จากรอบที่ assign แล้ว โค้ชเช็คอิน และมีรูปหลักฐานครบ โดยไม่รวมเงินเดือนฐานของโค้ช
+            สรุปชั่วโมงสอนรายสัปดาห์จากรอบที่ assign แล้ว โค้ชเช็คอินพร้อมรูปเซลฟี่ พิกัด และเช็คชื่อนักเรียนครบ โดยไม่รวมเงินเดือนฐานของโค้ช
           </p>
         </div>
 
@@ -389,51 +465,23 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <Card className="border-gray-200">
-          <CardContent className="flex items-center justify-between p-3">
-            <div>
-              <p className="text-xs text-gray-500">โค้ช</p>
-              <p className="mt-1 text-xl font-bold text-[#2748bf]">{stats.coaches}</p>
-            </div>
-            <User className="h-5 w-5 text-[#2748bf]" />
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="flex items-center justify-between p-3">
-            <div>
-              <p className="text-xs text-gray-500">รอบมอบหมาย</p>
-              <p className="mt-1 text-xl font-bold text-blue-600">{stats.assigned}</p>
-            </div>
-            <CalendarDays className="h-5 w-5 text-blue-500" />
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="flex items-center justify-between p-3">
-            <div>
-              <p className="text-xs text-gray-500">รอบครบหลักฐาน</p>
-              <p className="mt-1 text-xl font-bold text-emerald-600">{stats.payable}</p>
-            </div>
-            <ShieldCheck className="h-5 w-5 text-emerald-500" />
-          </CardContent>
-        </Card>
-        <Card className={stats.missing + stats.noPhoto > 0 ? 'border-red-300 bg-red-50/40' : 'border-gray-200'}>
-          <CardContent className="flex items-center justify-between p-3">
-            <div>
-              <p className="text-xs text-gray-500">ยังไม่ครบ</p>
-              <p className="mt-1 text-xl font-bold text-red-600">{stats.missing + stats.noPhoto}</p>
-            </div>
-            <AlertCircle className="h-5 w-5 text-red-500" />
-          </CardContent>
-        </Card>
-        <Card className={stats.missingEmployment > 0 ? 'border-amber-300 bg-amber-50/40' : 'border-gray-200'}>
-          <CardContent className="flex items-center justify-between p-3">
-            <div>
-              <p className="text-xs text-gray-500">ยังไม่ตั้งประเภท</p>
-              <p className="mt-1 text-xl font-bold text-amber-600">{stats.missingEmployment}</p>
-            </div>
-            <BriefcaseBusiness className="h-5 w-5 text-amber-500" />
-          </CardContent>
-        </Card>
+        <StatCard label="โค้ช" value={stats.coaches} icon={User} valueClassName="text-[#2748bf]" />
+        <StatCard label="รอบมอบหมาย" value={stats.assigned} icon={CalendarDays} valueClassName="text-blue-600" />
+        <StatCard label="รอบครบหลักฐาน" value={stats.payable} icon={ShieldCheck} valueClassName="text-emerald-600" />
+        <StatCard
+          label="ยังไม่ครบ"
+          value={stats.missing + stats.noPhoto + stats.noLocation + stats.noAttendance}
+          icon={AlertCircle}
+          valueClassName="text-red-600"
+          className={stats.missing + stats.noPhoto + stats.noLocation + stats.noAttendance > 0 ? 'border-red-300 bg-red-50/40' : ''}
+        />
+        <StatCard
+          label="ยังไม่ตั้งประเภท"
+          value={stats.missingEmployment}
+          icon={BriefcaseBusiness}
+          valueClassName="text-amber-600"
+          className={stats.missingEmployment > 0 ? 'border-amber-300 bg-amber-50/40' : ''}
+        />
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3">
             <div>
@@ -503,6 +551,8 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
               <SelectItem value="payable">ครบหลักฐาน</SelectItem>
               <SelectItem value="missing">ยังไม่เช็คอิน</SelectItem>
               <SelectItem value="no_photo">ไม่มีรูป</SelectItem>
+              <SelectItem value="no_location">ไม่มีพิกัด</SelectItem>
+              <SelectItem value="no_attendance">ยังไม่เช็คชื่อ</SelectItem>
               <SelectItem value="missing_employment">ยังไม่ตั้งประเภทโค้ช</SelectItem>
             </SelectContent>
           </Select>
@@ -519,202 +569,271 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
         </Card>
       ) : (
         <div className="space-y-3">
-          {coachSummaries.map((coach) => {
-            const rule = coach.employmentType ? getCoachTeachingRule(coach.employmentType, teachingRules) : null
+          {coachSummaries.map((coach) => (
+            <CoachPayrollCard
+              key={coach.coach_id}
+              coach={coach}
+              teachingRules={teachingRules}
+              viewMonth={viewMonth}
+              viewYear={viewYear}
+              closedSummaryMap={closedSummaryMap}
+              closingKey={closingKey}
+              onCloseWeek={closeWeek}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  valueClassName,
+  className = '',
+}: {
+  label: string
+  value: number
+  icon: LucideIcon
+  valueClassName: string
+  className?: string
+}) {
+  return (
+    <Card className={`border-gray-200 ${className}`}>
+      <CardContent className="flex items-center justify-between p-3">
+        <div>
+          <p className="text-xs text-gray-500">{label}</p>
+          <p className={`mt-1 text-xl font-bold ${valueClassName}`}>{value}</p>
+        </div>
+        <Icon className="h-5 w-5 text-gray-500" />
+      </CardContent>
+    </Card>
+  )
+}
+
+function CoachPayrollCard({
+  coach,
+  teachingRules,
+  viewMonth,
+  viewYear,
+  closedSummaryMap,
+  closingKey,
+  onCloseWeek,
+}: {
+  coach: CoachSummary
+  teachingRules: CoachTeachingRules
+  viewMonth: number
+  viewYear: number
+  closedSummaryMap: Map<string, WeeklySummaryData>
+  closingKey: string | null
+  onCloseWeek: (coach: CoachSummary, week: WeekBreakdown) => void
+}) {
+  const rule = coach.employmentType ? getCoachTeachingRule(coach.employmentType, teachingRules) : null
+  const issueCount = coach.missingRows.length + coach.noPhotoRows.length + coach.noLocationRows.length + coach.noAttendanceRows.length
+
+  return (
+    <Card className={!coach.employmentType ? 'border-amber-200 bg-amber-50/20' : issueCount > 0 ? 'border-amber-200' : 'border-gray-200'}>
+      <CardContent className="p-4">
+        <div className="flex flex-col gap-3 border-b pb-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#2748bf]">
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold text-gray-950">{coach.coach_name}</p>
+                {coach.employmentType ? (
+                  <Badge className={`text-xs ${EMPLOYMENT_BADGES[coach.employmentType]}`}>
+                    {getEmploymentLabel(coach.employmentType, teachingRules)}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">ยังไม่ตั้งประเภท</Badge>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">{MONTH_LABELS[viewMonth]} {viewYear + 543}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
+            <MiniMetric label="กลุ่ม" value={`${formatNumber(coach.groupHours)} ชม.`} className="bg-blue-50 text-blue-600" />
+            <MiniMetric label="Private" value={`${formatNumber(coach.privateHours)} ชม.`} className="bg-orange-50 text-orange-600" />
+            <MiniMetric label="รวม" value={`${formatNumber(coach.totalHours)} ชม.`} className="bg-emerald-50 text-emerald-700" />
+            <MiniMetric label={rule?.paysAllHours ? 'ชั่วโมงจ่าย' : 'ชั่วโมง OT'} value={`${formatNumber(coach.payableHours)} ชม.`} className="bg-purple-50 text-purple-700" />
+            <MiniMetric label="ยอดจ่าย" value={`฿${formatCurrency(coach.payableAmount)}`} className="bg-gray-50 text-gray-900" />
+          </div>
+        </div>
+
+        {!coach.employmentType && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            ต้องกำหนดประเภทโค้ชในหน้า “จัดการโค้ช” ก่อน ระบบจึงจะคำนวณยอดรายสัปดาห์ได้
+          </div>
+        )}
+
+        {rule && (
+          <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            <p className="font-semibold">
+              {rule.label}: {rule.paysAllHours ? 'คิดค่าสอนทุกชั่วโมง' : `คิดเฉพาะส่วนเกิน ${rule.thresholdHours} ชม./สัปดาห์`}
+            </p>
+            <p>Private {formatCurrency(rule.privateRate)} บาท/ชม. · กลุ่ม {formatCurrency(rule.groupRate)} บาท/ชม.</p>
+          </div>
+        )}
+
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#153c85]">
+              <TrendingUp className="h-4 w-4" />
+              สรุปรายสัปดาห์
+            </div>
+          </div>
+
+          <div className="grid gap-2 xl:grid-cols-2">
+            {coach.weeklyBreakdown.map((week) => {
+              const closed = closedSummaryMap.get(`${coach.coach_id}:${week.weekStart}`)
+              const closingThisWeek = closingKey === `${coach.coach_id}:${week.weekStart}`
+              return (
+                <div key={week.weekStart} className={closed ? 'rounded-lg border border-emerald-200 bg-white p-3' : week.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-white p-3' : 'rounded-lg border bg-white p-3'}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{week.label}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        ครบหลักฐาน {week.payableEntries.length} รอบ · ยังไม่เช็คอิน {week.missingRows.length} · ไม่มีรูป {week.noPhotoRows.length} · ไม่มีพิกัด {week.noLocationRows.length} · ยังไม่เช็คชื่อ {week.noAttendanceRows.length}
+                      </p>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-sm font-bold text-gray-950">{formatNumber(week.totalHours)} ชม.</p>
+                      <p className={week.payableAmount > 0 ? 'text-xs font-semibold text-orange-600' : 'text-xs text-gray-400'}>
+                        จ่าย {formatNumber(week.payableHours)} ชม. / ฿{formatCurrency(week.payableAmount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                      <span>กลุ่ม {formatNumber(week.groupHours)} ชม.</span>
+                      <span>Private {formatNumber(week.privateHours)} ชม.</span>
+                      <span>ฐาน/ไม่จ่าย {formatNumber(week.regularHours)} ชม.</span>
+                    </div>
+                    {closed ? (
+                      <Badge className="w-fit bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                        ปิดแล้ว ฿{formatCurrency(closed.payable_amount)}
+                      </Badge>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full bg-[#2748bf] hover:bg-[#153c85] sm:w-auto"
+                        disabled={!coach.employmentType || week.payableEntries.length === 0 || closingThisWeek}
+                        onClick={() => onCloseWeek(coach, week)}
+                      >
+                        {closingThisWeek ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ReceiptText className="mr-2 h-4 w-4" />}
+                        ปิดสัปดาห์
+                      </Button>
+                    )}
+                  </div>
+
+                  {closed && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      ปิดเมื่อ {formatDate(closed.closed_at.slice(0, 10))} {closed.closed_by_name ? `โดย ${closed.closed_by_name}` : ''}
+                      {closed.notes ? ` · ${closed.notes}` : ''}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          <TeachingEvidenceList title="รอบครบหลักฐาน" type="verified" entries={coach.payableEntries} />
+          <TeachingIssueList rows={[...coach.missingRows, ...coach.noPhotoRows, ...coach.noLocationRows, ...coach.noAttendanceRows]} />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function MiniMetric({ label, value, className }: { label: string; value: string; className: string }) {
+  return (
+    <div className={`rounded-lg px-3 py-2 ${className}`}>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="font-bold">{value}</p>
+    </div>
+  )
+}
+
+function TeachingEvidenceList({
+  title,
+  entries,
+}: {
+  title: string
+  type: 'verified'
+  entries: TeachingPayEntry<PayrollSourceRow>[]
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
+        <CheckCircle2 className="h-4 w-4" />
+        {title}
+      </div>
+      {entries.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">ยังไม่มีรอบที่เช็คอินพร้อมรูป พิกัด และเช็คชื่อครบ</div>
+      ) : (
+        <div className="space-y-2">
+          {entries.slice(0, 8).map((entry) => (
+            <div key={entry.row.assignment_id} className={entry.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-orange-50/40 p-3 text-sm' : 'rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 text-sm'}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">ครบหลักฐาน</Badge>
+                {entry.payableAmount > 0 && (
+                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+                    จ่าย {formatNumber(entry.payableHours)} ชม.
+                  </Badge>
+                )}
+                <span className="font-medium">{formatDate(entry.row.date)} {formatTime(entry.row.start_time)}-{formatTime(entry.row.end_time)}</span>
+              </div>
+              <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500">
+                <Building2 className="h-3.5 w-3.5" />
+                {entry.row.branch_name} · {entry.row.course_type || '-'} · รวม {formatNumber(entry.hours)} ชม.
+                {entry.payableAmount > 0 && <span className="font-semibold text-orange-700">· ยอดจ่าย ฿{formatCurrency(entry.payableAmount)}</span>}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TeachingIssueList({ rows }: { rows: PayrollSourceRow[] }) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-700">
+        <AlertCircle className="h-4 w-4" />
+        รอบที่ต้องตรวจ
+      </div>
+      {rows.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">ไม่มีรอบค้างตรวจ</div>
+      ) : (
+        <div className="space-y-2">
+          {rows.slice(0, 8).map((row) => {
+            const badge = getEvidenceBadge(row)
+            const Icon = badge.icon
             return (
-              <Card key={coach.coach_id} className={!coach.employmentType ? 'border-amber-200 bg-amber-50/20' : coach.missingRows.length + coach.noPhotoRows.length > 0 ? 'border-amber-200' : 'border-gray-200'}>
-                <CardContent className="p-4">
-                  <div className="flex flex-col gap-3 border-b pb-3 md:flex-row md:items-start md:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#2748bf]">
-                        <User className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-gray-950">{coach.coach_name}</p>
-                          {coach.employmentType ? (
-                            <Badge className={`text-xs ${EMPLOYMENT_BADGES[coach.employmentType]}`}>
-                              {getEmploymentLabel(coach.employmentType, teachingRules)}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">ยังไม่ตั้งประเภท</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500">{MONTH_LABELS[viewMonth]} {viewYear + 543}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
-                      <div className="rounded-lg bg-blue-50 px-3 py-2">
-                        <p className="text-xs text-gray-500">กลุ่ม</p>
-                        <p className="font-bold text-blue-600">{formatNumber(coach.groupHours)} ชม.</p>
-                      </div>
-                      <div className="rounded-lg bg-orange-50 px-3 py-2">
-                        <p className="text-xs text-gray-500">Private</p>
-                        <p className="font-bold text-orange-600">{formatNumber(coach.privateHours)} ชม.</p>
-                      </div>
-                      <div className="rounded-lg bg-emerald-50 px-3 py-2">
-                        <p className="text-xs text-gray-500">รวม</p>
-                        <p className="font-bold text-emerald-700">{formatNumber(coach.totalHours)} ชม.</p>
-                      </div>
-                      <div className="rounded-lg bg-purple-50 px-3 py-2">
-                        <p className="text-xs text-gray-500">{rule?.paysAllHours ? 'ชั่วโมงจ่าย' : 'ชั่วโมง OT'}</p>
-                        <p className="font-bold text-purple-700">{formatNumber(coach.payableHours)} ชม.</p>
-                      </div>
-                      <div className="rounded-lg bg-gray-50 px-3 py-2">
-                        <p className="text-xs text-gray-500">ยอดจ่าย</p>
-                        <p className="font-bold text-gray-900">฿{formatCurrency(coach.payableAmount)}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {!coach.employmentType && (
-                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                      ต้องกำหนดประเภทโค้ชในหน้า “จัดการโค้ช” ก่อน ระบบจึงจะคำนวณยอดรายสัปดาห์ได้
-                    </div>
-                  )}
-
-                  {rule && (
-                    <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                      <p className="font-semibold">{rule.label}: {rule.paysAllHours ? 'คิดค่าสอนทุกชั่วโมง' : `คิดเฉพาะส่วนเกิน ${rule.thresholdHours} ชม./สัปดาห์`}</p>
-                      <p>Private {formatCurrency(rule.privateRate)} บาท/ชม. • กลุ่ม {formatCurrency(rule.groupRate)} บาท/ชม.</p>
-                    </div>
-                  )}
-
-                  <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-[#153c85]">
-                        <TrendingUp className="h-4 w-4" />
-                        สรุปรายสัปดาห์
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2 xl:grid-cols-2">
-                      {coach.weeklyBreakdown.map((week) => {
-                        const closed = closedSummaryMap.get(`${coach.coach_id}:${week.weekStart}`)
-                        const closingThisWeek = closingKey === `${coach.coach_id}:${week.weekStart}`
-                        return (
-                          <div key={week.weekStart} className={closed ? 'rounded-lg border border-emerald-200 bg-white p-3' : week.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-white p-3' : 'rounded-lg border bg-white p-3'}>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <p className="text-sm font-semibold text-gray-900">{week.label}</p>
-                                <p className="mt-0.5 text-xs text-gray-500">
-                                  ครบหลักฐาน {week.payableEntries.length} รอบ • ยังไม่เช็คอิน {week.missingRows.length} • ไม่มีรูป {week.noPhotoRows.length}
-                                </p>
-                              </div>
-                              <div className="text-left sm:text-right">
-                                <p className="text-sm font-bold text-gray-950">{formatNumber(week.totalHours)} ชม.</p>
-                                <p className={week.payableAmount > 0 ? 'text-xs font-semibold text-orange-600' : 'text-xs text-gray-400'}>
-                                  จ่าย {formatNumber(week.payableHours)} ชม. / ฿{formatCurrency(week.payableAmount)}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                                <span>กลุ่ม {formatNumber(week.groupHours)} ชม.</span>
-                                <span>Private {formatNumber(week.privateHours)} ชม.</span>
-                                <span>ฐาน/ไม่จ่าย {formatNumber(week.regularHours)} ชม.</span>
-                              </div>
-                              {closed ? (
-                                <Badge className="w-fit bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                                  <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                                  ปิดแล้ว ฿{formatCurrency(closed.payable_amount)}
-                                </Badge>
-                              ) : (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="w-full bg-[#2748bf] hover:bg-[#153c85] sm:w-auto"
-                                  disabled={!coach.employmentType || week.payableEntries.length === 0 || closingThisWeek}
-                                  onClick={() => closeWeek(coach, week)}
-                                >
-                                  {closingThisWeek ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ReceiptText className="mr-2 h-4 w-4" />}
-                                  ปิดสัปดาห์
-                                </Button>
-                              )}
-                            </div>
-
-                            {closed && (
-                              <p className="mt-2 text-xs text-gray-500">
-                                ปิดเมื่อ {formatDate(closed.closed_at.slice(0, 10))} {closed.closed_by_name ? `โดย ${closed.closed_by_name}` : ''}
-                                {closed.notes ? ` • ${closed.notes}` : ''}
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid gap-3 xl:grid-cols-2">
-                    <div>
-                      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                        <CheckCircle2 className="h-4 w-4" />
-                        รอบครบหลักฐาน
-                      </div>
-                      {coach.payableEntries.length === 0 ? (
-                        <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">ยังไม่มีรอบที่เช็คอินพร้อมรูป</div>
-                      ) : (
-                        <div className="space-y-2">
-                          {coach.payableEntries.slice(0, 8).map((entry) => (
-                            <div key={entry.row.assignment_id} className={entry.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-orange-50/40 p-3 text-sm' : 'rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 text-sm'}>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">ครบหลักฐาน</Badge>
-                                {entry.payableAmount > 0 && (
-                                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
-                                    จ่าย {formatNumber(entry.payableHours)} ชม.
-                                  </Badge>
-                                )}
-                                <span className="font-medium">{formatDate(entry.row.date)} {formatTime(entry.row.start_time)}-{formatTime(entry.row.end_time)}</span>
-                              </div>
-                              <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500">
-                                <Building2 className="h-3.5 w-3.5" />
-                                {entry.row.branch_name} • {entry.row.course_type || '-'} • รวม {formatNumber(entry.hours)} ชม.
-                                {entry.payableAmount > 0 && <span className="font-semibold text-orange-700">• ยอดจ่าย ฿{formatCurrency(entry.payableAmount)}</span>}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-700">
-                        <AlertCircle className="h-4 w-4" />
-                        รอบที่ต้องตรวจ
-                      </div>
-                      {[...coach.missingRows, ...coach.noPhotoRows].length === 0 ? (
-                        <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">ไม่มีรอบค้างตรวจ</div>
-                      ) : (
-                        <div className="space-y-2">
-                          {[...coach.missingRows, ...coach.noPhotoRows].slice(0, 8).map((row) => (
-                            <div key={row.assignment_id} className="rounded-lg border border-amber-100 bg-amber-50/40 p-3 text-sm">
-                              <div className="flex flex-wrap items-center gap-2">
-                                {row.checkin_id ? (
-                                  <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
-                                    <ImageIcon className="mr-1 h-3.5 w-3.5" />
-                                    ไม่มีรูป
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
-                                    <XCircle className="mr-1 h-3.5 w-3.5" />
-                                    ยังไม่เช็คอิน
-                                  </Badge>
-                                )}
-                                <span className="font-medium">{formatDate(row.date)} {formatTime(row.start_time)}-{formatTime(row.end_time)}</span>
-                              </div>
-                              <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                                <Building2 className="h-3.5 w-3.5" />
-                                {row.branch_name} • {row.course_type || '-'}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={row.assignment_id} className="rounded-lg border border-amber-100 bg-amber-50/40 p-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className={badge.className}>
+                    <Icon className="mr-1 h-3.5 w-3.5" />
+                    {badge.label}
+                  </Badge>
+                  <span className="font-medium">{formatDate(row.date)} {formatTime(row.start_time)}-{formatTime(row.end_time)}</span>
+                </div>
+                <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {row.branch_name} · {row.course_type || '-'}
+                </p>
+              </div>
             )
           })}
         </div>

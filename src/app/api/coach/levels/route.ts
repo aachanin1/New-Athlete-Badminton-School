@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { MIN_LEVEL } from '@/constants/levels'
+import { canManageStudentForCoach, getCoachRole } from '@/lib/coach-student-access'
 import { createClient } from '@/lib/supabase/server'
+import type { StudentType } from '@/types/database'
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single() as unknown as { data: { role: string } | null }
+  const role = await getCoachRole(supabase, user.id)
+  if (!role || !['coach', 'head_coach', 'admin', 'super_admin'].includes(role)) return null
 
-  if (!profile || !['coach', 'head_coach', 'admin', 'super_admin'].includes(profile.role)) return null
   return user
 }
 
@@ -25,7 +23,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as {
       studentId?: string
-      studentType?: string
+      studentType?: StudentType
       level?: string | number | null
       notes?: string | null
     }
@@ -38,6 +36,11 @@ export async function POST(request: NextRequest) {
 
     if (studentType !== 'adult' && studentType !== 'child') {
       return NextResponse.json({ error: 'ประเภทผู้เรียนไม่ถูกต้อง' }, { status: 400 })
+    }
+
+    const canManage = await canManageStudentForCoach(supabase, coach.id, studentId, studentType)
+    if (!canManage) {
+      return NextResponse.json({ error: 'คุณยังไม่ได้รับผิดชอบผู้เรียนคนนี้ จึงไม่สามารถประเมิน Level ได้' }, { status: 403 })
     }
 
     if (!Number.isInteger(numericLevel) || numericLevel <= MIN_LEVEL) {
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
     const studentLevels = supabase.from('student_levels') as unknown as {
       insert: (values: {
         student_id: string
-        student_type: 'adult' | 'child'
+        student_type: StudentType
         level: number
         updated_by: string
         notes: string | null

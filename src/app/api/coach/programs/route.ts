@@ -1,63 +1,129 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient, User } from '@supabase/supabase-js'
+
+import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles } from '@/lib/notifications'
-import { logActivity } from '@/lib/activity-log'
+import { createClient } from '@/lib/supabase/server'
+import type { ProgramStatus, UserRole } from '@/types/database'
+
+interface ProfileRoleRow {
+  role: UserRole
+}
+
+interface ProfileNameRow {
+  full_name: string | null
+}
+
+interface ProgramPayload {
+  programId?: string
+  programContent?: string
+  status?: ProgramStatus
+}
+
+interface DbError {
+  message: string
+}
+
+interface InsertedProgramRow {
+  id: string
+}
+
+type ProgramMutationChain = PromiseLike<{ data?: InsertedProgramRow | null; error: DbError | null }> & {
+  eq: (column: string, value: string) => ProgramMutationChain
+  select: (columns: string) => ProgramMutationChain
+  single: () => PromiseLike<{ data: InsertedProgramRow | null; error: DbError | null }>
+}
+
+type ProgramMutationTable = {
+  update: (values: Record<string, unknown>) => ProgramMutationChain
+  insert: (values: Record<string, unknown>) => ProgramMutationChain
+}
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single() as any
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single() as unknown as { data: ProfileRoleRow | null }
+
   if (!profile || !['coach', 'head_coach', 'admin', 'super_admin'].includes(profile.role)) return null
   return user
 }
 
-// POST: Create or update a teaching program
+function normalizeStatus(value: unknown): Extract<ProgramStatus, 'draft' | 'submitted'> {
+  return value === 'submitted' ? 'submitted' : 'draft'
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+}
+
+async function updateProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: Required<Pick<ProgramPayload, 'programId' | 'programContent'>> & { status: ProgramStatus }) {
+  const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
+  return table
+    .update({
+      program_content: payload.programContent,
+      status: payload.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', payload.programId)
+    .eq('coach_id', coach.id) as unknown as PromiseLike<{ error: DbError | null }>
+}
+
+async function insertProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: { programContent: string; status: ProgramStatus }) {
+  const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
+  return table
+    .insert({
+      coach_id: coach.id,
+      program_content: payload.programContent,
+      status: payload.status,
+    })
+    .select('id')
+    .single() as unknown as PromiseLike<{ data: InsertedProgramRow | null; error: DbError | null }>
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { programId, programContent, status } = await request.json()
+    const payload = await request.json() as ProgramPayload
+    const programContent = payload.programContent?.trim()
+    const status = normalizeStatus(payload.status)
 
     if (!programContent) {
       return NextResponse.json({ error: 'กรุณากรอกเนื้อหาโปรแกรม' }, { status: 400 })
     }
 
-    if (programId) {
-      // Update existing
-      const { error: updateErr } = await (supabase.from('teaching_programs') as any)
-        .update({
-          program_content: programContent,
-          status: status || 'draft',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', programId)
-        .eq('coach_id', coach.id)
+    if (payload.programId) {
+      const { error } = await updateProgram(supabase, coach, {
+        programId: payload.programId,
+        programContent,
+        status,
+      })
 
-      if (updateErr) {
-        return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${updateErr.message}` }, { status: 500 })
+      if (error) {
+        return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${error.message}` }, { status: 500 })
       }
 
       await logActivity({
         userId: coach.id,
         action: 'update_teaching_program',
         entityType: 'program',
-        entityId: programId,
-        details: { status: status || 'draft' },
+        entityId: payload.programId,
+        details: { status },
         ipAddress: request.headers.get('x-forwarded-for'),
       })
     } else {
-      // Create new (without schedule_slot_id for now — general program)
-      const { data: insertedProgram, error: insertErr } = await (supabase.from('teaching_programs') as any).insert({
-        coach_id: coach.id,
-        program_content: programContent,
-        status: status || 'draft',
-      }).select('id').single()
+      const { data: insertedProgram, error } = await insertProgram(supabase, coach, { programContent, status })
 
-      if (insertErr) {
-        return NextResponse.json({ error: `สร้างไม่สำเร็จ: ${insertErr.message}` }, { status: 500 })
+      if (error) {
+        return NextResponse.json({ error: `สร้างไม่สำเร็จ: ${error.message}` }, { status: 500 })
       }
 
       await logActivity({
@@ -65,20 +131,20 @@ export async function POST(request: NextRequest) {
         action: 'create_teaching_program',
         entityType: 'program',
         entityId: insertedProgram?.id || null,
-        details: { status: status || 'draft' },
+        details: { status },
         ipAddress: request.headers.get('x-forwarded-for'),
       })
     }
 
     if (status === 'submitted') {
       const adminSupabase = getServiceRoleClient()
-      const { data: profile } = await ((adminSupabase
+      const { data: profile } = await adminSupabase
         .from('profiles')
         .select('full_name')
         .eq('id', coach.id)
-        .single()) as any)
+        .single() as unknown as { data: ProfileNameRow | null }
 
-      await notifyRoles(adminSupabase as any, {
+      await notifyRoles(adminSupabase as SupabaseClient, {
         roles: ['super_admin'],
         title: 'โปรแกรมสอนรอตรวจ',
         message: `${profile?.full_name || 'โค้ช'} ส่งโปรแกรมสอนเข้าตรวจแล้ว`,
@@ -88,8 +154,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    console.error('Program error:', err)
-    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })
+  } catch (error) {
+    console.error('Program error:', error)
+    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }
 }
