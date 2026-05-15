@@ -122,6 +122,20 @@ Notes:
   - Adjusted Admin schedule calendars and dashboard schedule cards for mobile: compact month labels, shorter day cells, and desktop split layout only at very wide screens.
   - Moved heavy table/grid layouts on Payments, Users, Coaches, Complaints, Makeup, Payroll, and Level Settings to wider breakpoints so tablet/mobile use stacked cards instead of cramped pseudo-tables.
   - Verified `npm run check:mojibake`, `git diff --check`, and `npm run build`; build passes with existing lint warnings from Coach/User areas still tracked as separate technical debt.
+- [x] 13. Apply Admin/System DB Migrations
+  - Push/apply the committed Supabase migration for extensible Level constraints before relying on LV 71+ in the live DB.
+  - Confirm remote DB has the schema needed by recent Admin/System work, including Level extension and coach weekly teaching summary fields.
+  - Do this before continuing broad Coach/User feature work so app code and DB constraints do not drift.
+  - Applied remote migration `20260515093000_make_levels_extensible.sql`; local and remote migration history now match through `20260515093000`.
+  - Remote schema check confirmed Admin/System tables/fields used by recent work exist: `profiles.coach_employment_type`, `coach_weekly_teaching_summaries`, `schedule_templates`, and `student_achievements`.
+  - Supabase CLI read-only count/constraint queries timed out intermittently after migration, but migration history confirms the constraint migration was applied successfully.
+- [ ] 14. Admin/System Smoke Test After Migration
+  - Verify the committed Admin flows against the real DB: Settings workspace, Admin menu permissions, Level settings, Pricing settings, Coach teaching rules, User management, Schedule templates, Ranking, Finance, and responsive mobile layout.
+  - Record only real blockers found during this smoke test; avoid repeated redesign unless a main flow is broken.
+- [ ] 15. Start Coach/User Completion Queue
+  - After Admin/System DB and smoke test are stable, continue with Coach/User work.
+  - First Coach/User focus should be the Coach evaluation flow, achievement badge management from Coach, attendance/check-in consistency, and user-facing booking/history/reschedule polish.
+  - Keep Admin/System changes limited to bug fixes only while this queue is active.
 
 ## Phase 3 - Build & Deploy Readiness
 
