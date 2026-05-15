@@ -2,13 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertCircle,
   Baby,
@@ -16,14 +9,27 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LockKeyhole,
   Mail,
   Phone,
+  Save,
   Search,
   Shield,
   UserCheck,
   UserCog,
   Users,
 } from 'lucide-react'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { UserRole } from '@/types/database'
 
 interface ChildInfo {
@@ -48,7 +54,7 @@ interface UsersClientProps {
   currentAdminRole: UserRole
 }
 
-const ROLE_LABELS: Record<string, { label: string; badge: string; short: string }> = {
+const ROLE_LABELS: Record<UserRole, { label: string; badge: string; short: string }> = {
   user: { label: 'ผู้ใช้ทั่วไป', short: 'User', badge: 'bg-gray-100 text-gray-700' },
   coach: { label: 'โค้ช', short: 'Coach', badge: 'bg-blue-100 text-blue-700' },
   head_coach: { label: 'หัวหน้าโค้ช', short: 'Head Coach', badge: 'bg-violet-100 text-violet-700' },
@@ -72,8 +78,13 @@ function formatDate(dateStr: string) {
   })
 }
 
-function getInitial(name: string) {
-  return name.trim().charAt(0).toUpperCase() || '?'
+function getInitial(name: string, email: string) {
+  const source = name.trim() || email.trim()
+  return source.slice(0, 1).toUpperCase() || '?'
+}
+
+function isElevated(role: UserRole) {
+  return role === 'admin' || role === 'super_admin'
 }
 
 export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
@@ -81,10 +92,15 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
-  const [editUser, setEditUser] = useState<UserData | null>(null)
+  const [managedUser, setManagedUser] = useState<UserData | null>(null)
+  const [manageOpen, setManageOpen] = useState(false)
+  const [editFullName, setEditFullName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
   const [editRole, setEditRole] = useState<UserRole>('user')
-  const [editOpen, setEditOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loadingAction, setLoadingAction] = useState<'profile' | 'role' | 'password' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -92,7 +108,7 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
 
   const editableRoleOptions = useMemo(() => {
     if (isSuperAdmin) return ROLE_OPTIONS
-    return ROLE_OPTIONS.filter((option) => !['admin', 'super_admin'].includes(option.value))
+    return ROLE_OPTIONS.filter((option) => !isElevated(option.value))
   }, [isSuperAdmin])
 
   const filtered = useMemo(() => {
@@ -115,8 +131,8 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
   const stats = useMemo(() => {
     const parentUsers = users.filter((user) => user.role === 'user' && user.children.length > 0)
     const adultUsers = users.filter((user) => user.role === 'user' && user.children.length === 0)
-    const coaches = users.filter((user) => ['coach', 'head_coach'].includes(user.role))
-    const admins = users.filter((user) => ['admin', 'super_admin'].includes(user.role))
+    const coaches = users.filter((user) => user.role === 'coach' || user.role === 'head_coach')
+    const admins = users.filter((user) => user.role === 'admin' || user.role === 'super_admin')
 
     return {
       total: users.length,
@@ -129,48 +145,147 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
     }
   }, [users])
 
-  const openEditRole = (user: UserData) => {
-    if (!isSuperAdmin && ['admin', 'super_admin'].includes(user.role)) {
-      setError('เฉพาะ Super Admin เท่านั้นที่แก้ไข role ของ Admin และ Super Admin ได้')
+  const canManageUser = (user: UserData) => isSuperAdmin || !isElevated(user.role)
+  const canChangeRole = (user: UserData) => canManageUser(user)
+  const canResetPassword = (user: UserData) => canManageUser(user)
+
+  const openManageUser = (user: UserData) => {
+    if (!canManageUser(user)) {
+      setError('เฉพาะ Super Admin เท่านั้นที่จัดการผู้ใช้ระดับ Admin ได้')
       setSuccess(null)
       return
     }
 
-    setEditUser(user)
+    setManagedUser(user)
+    setEditFullName(user.full_name)
+    setEditPhone(user.phone || '')
     setEditRole(user.role)
+    setNewPassword('')
+    setConfirmPassword('')
+    setShowPassword(false)
     setError(null)
     setSuccess(null)
-    setEditOpen(true)
+    setManageOpen(true)
   }
 
-  const handleChangeRole = async () => {
-    if (!editUser) return
-    setLoading(true)
+  const closeManageDialog = (open: boolean) => {
+    if (loadingAction) return
+    setManageOpen(open)
+  }
+
+  const handleSaveProfile = async () => {
+    if (!managedUser) return
+    const fullName = editFullName.trim()
+
+    if (!fullName) {
+      setError('กรุณากรอกชื่อผู้ใช้')
+      setSuccess(null)
+      return
+    }
+
+    setLoadingAction('profile')
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: editUser.id, role: editRole }),
+        body: JSON.stringify({
+          action: 'update_profile',
+          userId: managedUser.id,
+          fullName,
+          phone: editPhone,
+        }),
       })
       const json = await response.json()
 
-      if (!response.ok) {
-        setError(json.error || 'เปลี่ยน role ไม่สำเร็จ')
-        setLoading(false)
-        return
-      }
+      if (!response.ok) throw new Error(json.error || 'บันทึกข้อมูลผู้ใช้ไม่สำเร็จ')
 
-      setSuccess(`เปลี่ยน role เป็น "${ROLE_LABELS[editRole]?.label || editRole}" สำเร็จ`)
-      setLoading(false)
-      setTimeout(() => {
-        setEditOpen(false)
-        router.refresh()
-      }, 1000)
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
-      setLoading(false)
+      setSuccess('บันทึกข้อมูลผู้ใช้เรียบร้อย')
+      router.refresh()
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'บันทึกข้อมูลผู้ใช้ไม่สำเร็จ')
+    } finally {
+      setLoadingAction(null)
+    }
+  }
+
+  const handleChangeRole = async () => {
+    if (!managedUser) return
+    setLoadingAction('role')
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_role',
+          userId: managedUser.id,
+          role: editRole,
+        }),
+      })
+      const json = await response.json()
+
+      if (!response.ok) throw new Error(json.error || 'เปลี่ยน role ไม่สำเร็จ')
+
+      setSuccess(`เปลี่ยน role เป็น "${ROLE_LABELS[editRole]?.label || editRole}" เรียบร้อย`)
+      router.refresh()
+    } catch (roleError) {
+      setError(roleError instanceof Error ? roleError.message : 'เปลี่ยน role ไม่สำเร็จ')
+    } finally {
+      setLoadingAction(null)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!managedUser) return
+
+    if (!newPassword || !confirmPassword) {
+      setError('กรุณากรอกรหัสผ่านใหม่และยืนยันรหัสผ่าน')
+      setSuccess(null)
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setError('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร')
+      setSuccess(null)
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('รหัสผ่านยืนยันไม่ตรงกัน')
+      setSuccess(null)
+      return
+    }
+
+    setLoadingAction('password')
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_password',
+          userId: managedUser.id,
+          password: newPassword,
+        }),
+      })
+      const json = await response.json()
+
+      if (!response.ok) throw new Error(json.error || 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ')
+
+      setNewPassword('')
+      setConfirmPassword('')
+      setSuccess('ตั้งรหัสผ่านใหม่เรียบร้อย แจ้งรหัสผ่านใหม่ให้ผู้ใช้ทราบได้เลย')
+    } catch (passwordError) {
+      setError(passwordError instanceof Error ? passwordError.message : 'ตั้งรหัสผ่านใหม่ไม่สำเร็จ')
+    } finally {
+      setLoadingAction(null)
     }
   }
 
@@ -184,7 +299,7 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
           </div>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">จัดการนักเรียน / ผู้ปกครอง</h1>
           <p className="mt-1 text-sm text-gray-500">
-            ดูข้อมูลผู้ใช้ เด็กในความดูแล ประวัติการจอง และจัดการ role ตามสิทธิ์ของ admin
+            ดูข้อมูลผู้ใช้ เด็กในความดูแล ประวัติการจอง แก้ข้อมูลพื้นฐาน และช่วยตั้งรหัสผ่านใหม่เมื่อผู้ใช้ลืมรหัสผ่าน
           </p>
         </div>
 
@@ -285,7 +400,7 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
         </CardContent>
       </Card>
 
-      {error && !editOpen && (
+      {error && !manageOpen && (
         <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <AlertCircle className="h-4 w-4" />
           {error}
@@ -302,7 +417,7 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
         </Card>
       ) : (
         <div className="overflow-hidden rounded-lg border bg-white">
-          <div className="hidden grid-cols-[minmax(260px,1.4fr)_minmax(220px,1fr)_160px_130px_120px] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 xl:grid">
+          <div className="hidden grid-cols-[minmax(260px,1.4fr)_minmax(220px,1fr)_160px_130px_120px] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 2xl:grid">
             <span>ผู้ใช้</span>
             <span>ติดต่อ</span>
             <span>เด็ก/ผู้เรียน</span>
@@ -312,20 +427,20 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
 
           <div className="divide-y">
             {filtered.map((user) => {
-              const roleInfo = ROLE_LABELS[user.role] || { label: user.role, short: user.role, badge: 'bg-gray-100 text-gray-700' }
+              const roleInfo = ROLE_LABELS[user.role]
               const isExpanded = expandedUser === user.id
-              const canEditRole = isSuperAdmin || !['admin', 'super_admin'].includes(user.role)
+              const canManage = canManageUser(user)
 
               return (
                 <div key={user.id} className="transition-colors hover:bg-gray-50">
-                  <div className="grid gap-3 px-4 py-4 xl:grid-cols-[minmax(260px,1.4fr)_minmax(220px,1fr)_160px_130px_120px] xl:items-center xl:gap-4">
+                  <div className="grid gap-3 px-4 py-4 2xl:grid-cols-[minmax(260px,1.4fr)_minmax(220px,1fr)_160px_130px_120px] 2xl:items-center 2xl:gap-4">
                     <button
                       type="button"
                       className="flex min-w-0 items-center gap-3 text-left"
                       onClick={() => setExpandedUser(isExpanded ? null : user.id)}
                     >
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2748bf]/10 font-bold text-[#2748bf]">
-                        {getInitial(user.full_name)}
+                        {getInitial(user.full_name, user.email)}
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -368,11 +483,11 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openEditRole(user)}
-                        disabled={!canEditRole}
-                        title={canEditRole ? 'เปลี่ยน role' : 'เฉพาะ Super Admin เท่านั้น'}
+                        onClick={() => openManageUser(user)}
+                        disabled={!canManage}
+                        title={canManage ? 'จัดการผู้ใช้' : 'เฉพาะ Super Admin เท่านั้น'}
                       >
-                        <Shield className="h-4 w-4" />
+                        <UserCog className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -434,14 +549,14 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
 
                           <Button
                             className="w-full bg-[#2748bf] hover:bg-[#153c85]"
-                            onClick={() => openEditRole(user)}
-                            disabled={!canEditRole}
+                            onClick={() => openManageUser(user)}
+                            disabled={!canManage}
                           >
-                            <Shield className="mr-2 h-4 w-4" />
-                            เปลี่ยน Role
+                            <UserCog className="mr-2 h-4 w-4" />
+                            จัดการผู้ใช้
                           </Button>
-                          {!canEditRole && (
-                            <p className="text-xs text-gray-500">เฉพาะ Super Admin เท่านั้นที่จัดการ role ระดับ Admin ได้</p>
+                          {!canManage && (
+                            <p className="text-xs text-gray-500">เฉพาะ Super Admin เท่านั้นที่จัดการผู้ใช้ระดับ Admin ได้</p>
                           )}
                         </div>
                       </div>
@@ -454,13 +569,16 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
         </div>
       )}
 
-      <Dialog open={editOpen} onOpenChange={(value) => { if (!loading) setEditOpen(value) }}>
-        <DialogContent className="max-w-md">
+      <Dialog open={manageOpen} onOpenChange={closeManageDialog}>
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#153c85]">เปลี่ยน Role</DialogTitle>
+            <DialogTitle className="text-[#153c85]">จัดการผู้ใช้</DialogTitle>
+            <DialogDescription>
+              แก้ข้อมูลพื้นฐานได้ ยกเว้นอีเมลที่ใช้เข้าสู่ระบบ และสามารถตั้งรหัสผ่านใหม่เมื่อผู้ใช้ลืมได้
+            </DialogDescription>
           </DialogHeader>
 
-          {editUser && (
+          {managedUser && (
             <div className="space-y-4">
               {error && (
                 <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-600">
@@ -475,49 +593,148 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
                 </div>
               )}
 
-              <div className="rounded-lg bg-gray-50 p-3">
-                <p className="font-medium">{editUser.full_name}</p>
-                <p className="text-sm text-gray-500">{editUser.email}</p>
-                <Badge className={`mt-2 text-xs ${ROLE_LABELS[editUser.role]?.badge}`}>
-                  ปัจจุบัน: {ROLE_LABELS[editUser.role]?.label || editUser.role}
-                </Badge>
+              <div className="rounded-lg border bg-gray-50 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2748bf]/10 font-bold text-[#2748bf]">
+                    {getInitial(managedUser.full_name, managedUser.email)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{managedUser.full_name}</p>
+                    <p className="truncate text-sm text-gray-500">{managedUser.email}</p>
+                    <Badge className={`mt-1 text-xs ${ROLE_LABELS[managedUser.role]?.badge}`}>
+                      {ROLE_LABELS[managedUser.role]?.label || managedUser.role}
+                    </Badge>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>เปลี่ยนเป็น</Label>
-                <Select value={editRole} onValueChange={(value) => setEditRole(value as UserRole)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {editableRoleOptions.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <section className="rounded-lg border bg-white p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-[#2748bf]" />
+                  <h3 className="font-semibold text-[#153c85]">ข้อมูลผู้ใช้</h3>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-user-fullname">ชื่อผู้ใช้</Label>
+                    <Input
+                      id="admin-user-fullname"
+                      value={editFullName}
+                      onChange={(event) => setEditFullName(event.target.value)}
+                      placeholder="ชื่อ-นามสกุล"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-user-phone">เบอร์โทร</Label>
+                    <Input
+                      id="admin-user-phone"
+                      value={editPhone}
+                      onChange={(event) => setEditPhone(event.target.value)}
+                      placeholder="08x-xxx-xxxx"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="admin-user-email">อีเมลเข้าสู่ระบบ</Label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <Input id="admin-user-email" value={managedUser.email} disabled readOnly className="pl-9" />
+                    </div>
+                    <p className="text-xs text-gray-500">อีเมลถูกล็อกไว้ เพราะใช้เป็น username สำหรับเข้าสู่ระบบ</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={handleSaveProfile} disabled={loadingAction !== null} className="bg-[#2748bf] hover:bg-[#153c85]">
+                    {loadingAction === 'profile' ? <Save className="mr-2 h-4 w-4 animate-pulse" /> : <Save className="mr-2 h-4 w-4" />}
+                    บันทึกข้อมูล
+                  </Button>
+                </div>
+              </section>
 
-              {!isSuperAdmin && (
-                <p className="text-xs text-gray-500">Admin จัดการได้เฉพาะ User, Coach และ Head Coach เท่านั้น</p>
-              )}
+              <section className="rounded-lg border bg-white p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-[#2748bf]" />
+                  <h3 className="font-semibold text-[#153c85]">สิทธิ์การใช้งาน</h3>
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={editRole} onValueChange={(value) => setEditRole(value as UserRole)} disabled={!canChangeRole(managedUser)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editableRoleOptions.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!isSuperAdmin && (
+                    <p className="text-xs text-gray-500">Admin จัดการได้เฉพาะ User, Coach และ Head Coach เท่านั้น</p>
+                  )}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={handleChangeRole}
+                    disabled={loadingAction !== null || editRole === managedUser.role || !canChangeRole(managedUser)}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    บันทึก Role
+                  </Button>
+                </div>
+              </section>
 
-              {editRole !== editUser.role && (
-                <p className="flex items-center gap-1 text-xs text-orange-600">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <span>
-                    จะเปลี่ยนจาก {ROLE_LABELS[editUser.role]?.label} เป็น {ROLE_LABELS[editRole]?.label}
-                  </span>
+              <section className="rounded-lg border border-orange-200 bg-orange-50/40 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <LockKeyhole className="h-4 w-4 text-[#f57e3b]" />
+                  <h3 className="font-semibold text-[#153c85]">ตั้งรหัสผ่านใหม่</h3>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-password">รหัสผ่านใหม่</Label>
+                    <div className="relative">
+                      <Input
+                        id="admin-new-password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder="อย่างน้อย 6 ตัวอักษร"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((value) => !value)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-confirm-password">ยืนยันรหัสผ่านใหม่</Label>
+                    <Input
+                      id="admin-confirm-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      placeholder="กรอกซ้ำอีกครั้ง"
+                    />
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-gray-600">
+                  หลังตั้งรหัสผ่านใหม่ ผู้ใช้สามารถนำรหัสนี้ไปเข้าสู่ระบบได้ทันที ควรแจ้งให้ผู้ใช้เปลี่ยนรหัสผ่านเองอีกครั้งในภายหลัง
                 </p>
-              )}
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditOpen(false)} disabled={loading}>
-                  ยกเลิก
-                </Button>
-                <Button onClick={handleChangeRole} disabled={loading || editRole === editUser.role} className="bg-[#2748bf] hover:bg-[#153c85]">
-                  {loading ? 'กำลังบันทึก...' : 'บันทึก'}
-                </Button>
-              </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    onClick={handleResetPassword}
+                    disabled={loadingAction !== null || !canResetPassword(managedUser)}
+                    variant="outline"
+                    className="border-[#f57e3b]/40 bg-white text-[#f57e3b] hover:bg-orange-50 hover:text-[#f57e3b]"
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    ตั้งรหัสผ่านใหม่
+                  </Button>
+                </div>
+              </section>
             </div>
           )}
         </DialogContent>

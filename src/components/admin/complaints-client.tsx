@@ -238,7 +238,7 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
       ) : (
         <Card className="overflow-hidden border-gray-200">
           <CardContent className="p-0">
-            <div className="hidden grid-cols-[minmax(260px,1.3fr)_180px_160px_170px] border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 lg:grid">
+            <div className="hidden grid-cols-[minmax(260px,1.3fr)_180px_160px_170px] border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 2xl:grid">
               <span>เรื่องร้องเรียน</span>
               <span>ผู้แจ้ง/สาขา</span>
               <span>สถานะ</span>
@@ -251,7 +251,7 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
                 const StatusIcon = status.icon
 
                 return (
-                  <div key={complaint.id} className={`grid gap-3 px-4 py-4 lg:grid-cols-[minmax(260px,1.3fr)_180px_160px_170px] lg:items-center ${complaint.status === 'open' ? 'bg-red-50/20' : 'bg-white'}`}>
+                  <div key={complaint.id} className={`grid gap-3 px-4 py-4 2xl:grid-cols-[minmax(260px,1.3fr)_180px_160px_170px] 2xl:items-center ${complaint.status === 'open' ? 'bg-red-50/20' : 'bg-white'}`}>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-[#153c85]">{complaint.subject}</p>

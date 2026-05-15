@@ -14,7 +14,7 @@ import {
   StudentAchievementPills,
   type ManagedStudentAchievement,
 } from '@/components/shared/student-achievement-manager'
-import { LEVEL_RANGES, getLevelDisplay } from '@/constants/levels'
+import { LEVEL_RANGES, formatLevelRange, getLevelDisplay } from '@/constants/levels'
 import { cn } from '@/lib/utils'
 
 export interface RankingBranch {
@@ -47,7 +47,7 @@ interface RankingBoardProps {
 }
 
 type LearnerTab = 'kids' | 'adults'
-type LevelFilter = 'all' | 'unassessed' | 'basic' | 'athlete_1' | 'athlete_2'
+type LevelFilter = 'all' | 'unassessed' | 'basic' | 'athlete_1' | 'athlete_2' | 'athlete_3'
 
 function getInitials(name: string) {
   return name.trim().slice(0, 2).toUpperCase()
@@ -232,7 +232,7 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
               <SelectItem value="unassessed">Level 0</SelectItem>
               {LEVEL_RANGES.map((range) => (
                 <SelectItem key={range.category} value={range.category}>
-                  {range.label} ({range.minLevel}-{range.maxLevel})
+                  {range.label} ({formatLevelRange(range)})
                 </SelectItem>
               ))}
             </SelectContent>

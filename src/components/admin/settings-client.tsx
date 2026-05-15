@@ -44,7 +44,7 @@ const SECTIONS: Array<{
   {
     key: 'coach-ot',
     title: 'กฎชั่วโมงสอนโค้ช',
-    description: 'ดูเกณฑ์ Full-Time, Half-Time, Part-Time ที่ใช้คำนวณรายสัปดาห์',
+    description: 'แก้เกณฑ์และเรทต่อชั่วโมงของ Full-Time, Half-Time, Part-Time',
     href: '/admin/settings?section=coach-ot',
     icon: Wallet,
   },

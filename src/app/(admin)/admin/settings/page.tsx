@@ -6,7 +6,7 @@ import { PricingSettingsClient } from '@/components/admin/pricing-settings-clien
 import { SettingsClient, type SettingsSection } from '@/components/admin/settings-client'
 import { ADMIN_MENU_ITEMS, ADMIN_MENU_PERMISSION_SETTING_KEY, getAllowedAdminMenuKeys } from '@/lib/admin-navigation'
 import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
-import { COACH_OT_SETTING_KEY } from '@/lib/coach-ot-settings'
+import { COACH_TEACHING_RULES_SETTING_KEY, normalizeCoachTeachingRulesSettings } from '@/lib/coach-teaching-rules'
 import type { CourseCategory } from '@/lib/pricing'
 import type { LevelCategory } from '@/types/database'
 
@@ -129,11 +129,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const { data: setting } = await supabase
       .from('system_settings')
       .select('value, updated_at')
-      .eq('key', COACH_OT_SETTING_KEY)
+      .eq('key', COACH_TEACHING_RULES_SETTING_KEY)
       .maybeSingle() as unknown as { data: CoachOtSettingRow | null }
 
     sectionContent = (
       <CoachOtSettingsClient
+        settings={normalizeCoachTeachingRulesSettings(setting?.value)}
         updatedAt={setting?.updated_at || null}
       />
     )

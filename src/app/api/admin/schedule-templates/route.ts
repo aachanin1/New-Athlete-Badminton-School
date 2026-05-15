@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
+
 import { logActivity } from '@/lib/activity-log'
+import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
 
 interface TemplatePayload {
   id?: string
   branchId?: string
   courseTypeId?: string
   dayOfWeek?: number
+  dayOfWeeks?: number[]
   startTime?: string
   endTime?: string
   isActive?: boolean
   notes?: string | null
+}
+
+interface ExistingTemplateRow {
+  id: string
+  day_of_week: number
+}
+
+interface InsertedTemplateRow {
+  id: string
+  day_of_week: number
 }
 
 interface DbError {
@@ -25,16 +37,34 @@ function isTime(value?: string) {
   return Boolean(value && /^\d{2}:\d{2}$/.test(value))
 }
 
+function normalizeDayOfWeeks(payload: TemplatePayload) {
+  const source = Array.isArray(payload.dayOfWeeks)
+    ? payload.dayOfWeeks
+    : payload.dayOfWeek !== undefined
+      ? [payload.dayOfWeek]
+      : []
+
+  return Array.from(new Set(source.map(Number))).sort((a, b) => a - b)
+}
+
+function validateDays(days: number[]) {
+  if (days.length === 0) return 'กรุณาเลือกอย่างน้อย 1 วัน'
+  if (days.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) return 'วันที่เลือกไม่ถูกต้อง'
+  return null
+}
+
 function validatePayload(payload: TemplatePayload, mode: 'create' | 'update') {
   if (mode === 'create') {
     if (!payload.branchId) return 'กรุณาเลือกสาขา'
     if (!payload.courseTypeId) return 'กรุณาเลือกคอร์ส'
-    if (payload.dayOfWeek === undefined) return 'กรุณาเลือกวัน'
+    const dayError = validateDays(normalizeDayOfWeeks(payload))
+    if (dayError) return dayError
     if (!isTime(payload.startTime) || !isTime(payload.endTime)) return 'กรุณากรอกเวลาให้ถูกต้อง'
   }
 
-  if (payload.dayOfWeek !== undefined && (payload.dayOfWeek < 0 || payload.dayOfWeek > 6)) {
-    return 'วันไม่ถูกต้อง'
+  if (payload.dayOfWeek !== undefined) {
+    const dayError = validateDays([payload.dayOfWeek])
+    if (dayError) return dayError
   }
 
   if (payload.startTime && !isTime(payload.startTime)) return 'เวลาเริ่มไม่ถูกต้อง'
@@ -56,47 +86,81 @@ export async function POST(request: NextRequest) {
     if (errorMessage) return NextResponse.json({ error: errorMessage }, { status: 400 })
 
     const supabaseAdmin = getServiceRoleClient()
-    const { data: duplicate } = await supabaseAdmin
-      .from('schedule_templates')
-      .select('id')
-      .eq('branch_id', payload.branchId)
-      .eq('course_type_id', payload.courseTypeId)
-      .eq('day_of_week', payload.dayOfWeek)
-      .eq('start_time', payload.startTime)
-      .eq('end_time', payload.endTime)
-      .limit(1)
-      .maybeSingle() as unknown as { data: { id: string } | null }
+    const branchId = payload.branchId as string
+    const courseTypeId = payload.courseTypeId as string
+    const startTime = payload.startTime as string
+    const endTime = payload.endTime as string
+    const dayOfWeeks = normalizeDayOfWeeks(payload)
 
-    if (duplicate) {
-      return NextResponse.json({ error: 'มีรอบเรียนนี้อยู่แล้ว' }, { status: 409 })
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('schedule_templates')
+      .select('id, day_of_week')
+      .eq('branch_id', branchId)
+      .eq('course_type_id', courseTypeId)
+      .eq('start_time', startTime)
+      .eq('end_time', endTime)
+      .in('day_of_week', dayOfWeeks) as unknown as { data: ExistingTemplateRow[] | null; error: DbError | null }
+
+    if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 })
+
+    const duplicateDays = new Set((existing || []).map((template) => template.day_of_week))
+    const daysToCreate = dayOfWeeks.filter((day) => !duplicateDays.has(day))
+
+    if (daysToCreate.length === 0) {
+      return NextResponse.json({
+        error: 'รอบเรียนที่เลือกมีอยู่แล้วทั้งหมด',
+        createdCount: 0,
+        skippedDays: dayOfWeeks,
+      }, { status: 409 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('schedule_templates')
-      .insert({
-        branch_id: payload.branchId,
-        course_type_id: payload.courseTypeId,
-        day_of_week: payload.dayOfWeek,
-        start_time: payload.startTime,
-        end_time: payload.endTime,
-        is_active: payload.isActive ?? true,
-        notes: payload.notes?.trim() || null,
-      })
-      .select('id')
-      .single() as unknown as { data: { id: string } | null; error: DbError | null }
+    const rows = daysToCreate.map((dayOfWeek) => ({
+      branch_id: branchId,
+      course_type_id: courseTypeId,
+      day_of_week: dayOfWeek,
+      start_time: startTime,
+      end_time: endTime,
+      is_active: payload.isActive ?? true,
+      notes: payload.notes?.trim() || null,
+    }))
+
+    const scheduleTemplates = supabaseAdmin.from('schedule_templates') as unknown as {
+      insert: (values: typeof rows) => {
+        select: (columns: string) => PromiseLike<{ data: InsertedTemplateRow[] | null; error: DbError | null }>
+      }
+    }
+
+    const { data, error } = await scheduleTemplates
+      .insert(rows)
+      .select('id, day_of_week')
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     await logActivity({
       userId: admin.user.id,
-      action: 'create_schedule_template',
+      action: 'create_schedule_templates',
       entityType: 'schedule_template',
-      entityId: data?.id || null,
-      details: { ...payload },
+      entityId: data?.[0]?.id || null,
+      details: {
+        branchId,
+        courseTypeId,
+        startTime,
+        endTime,
+        notes: payload.notes?.trim() || null,
+        dayOfWeeks,
+        createdDays: daysToCreate,
+        skippedDays: Array.from(duplicateDays).sort((a, b) => a - b),
+      },
       ipAddress: request.headers.get('x-forwarded-for'),
     })
 
-    return NextResponse.json({ success: true, templateId: data?.id })
+    return NextResponse.json({
+      success: true,
+      templateIds: (data || []).map((template) => template.id),
+      createdCount: data?.length || 0,
+      createdDays: daysToCreate,
+      skippedDays: Array.from(duplicateDays).sort((a, b) => a - b),
+    })
   } catch (error) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }

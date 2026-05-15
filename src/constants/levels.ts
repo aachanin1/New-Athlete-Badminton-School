@@ -10,6 +10,8 @@ export interface LevelRange {
   color: string
 }
 
+export const EXTENDED_LEVEL_MAX = Number.MAX_SAFE_INTEGER
+
 export const LEVEL_RANGES: LevelRange[] = [
   {
     category: 'basic',
@@ -38,15 +40,34 @@ export const LEVEL_RANGES: LevelRange[] = [
     description: 'เทคนิคและแทคติกขั้นสูงเพื่อลดแต้มเสียและทำแต้มได้มากขึ้น',
     color: 'bg-purple-100 text-purple-700',
   },
+  {
+    category: 'athlete_3',
+    label: 'นักกีฬา A',
+    emoji: 'A',
+    minLevel: 71,
+    maxLevel: EXTENDED_LEVEL_MAX,
+    description: 'ระดับต่อยอดหลัง LV 70 สำหรับเจ้าของระบบเพิ่ม Level ได้เองในอนาคต',
+    color: 'bg-rose-100 text-rose-700',
+  },
 ]
 
-export const MAX_LEVEL = 70
+export const DEFAULT_EXTENDED_LEVEL_CATEGORY: LevelCategory = 'athlete_3'
 export const MIN_LEVEL = 0
 export const UNASSESSED_LEVEL = 0
 export const UNASSESSED_LEVEL_LABEL = 'ยังไม่ประเมิน'
 
+export function formatLevelRange(range: LevelRange) {
+  return range.maxLevel === EXTENDED_LEVEL_MAX
+    ? `${range.minLevel}+`
+    : `${range.minLevel}-${range.maxLevel}`
+}
+
 export function getLevelRange(level: number) {
-  return LEVEL_RANGES.find((range) => level >= range.minLevel && level <= range.maxLevel) || LEVEL_RANGES[0]
+  return LEVEL_RANGES.find((range) => level >= range.minLevel && level <= range.maxLevel) || LEVEL_RANGES[LEVEL_RANGES.length - 1]
+}
+
+export function getLevelRangeByCategory(category: LevelCategory) {
+  return LEVEL_RANGES.find((range) => range.category === category) || LEVEL_RANGES[0]
 }
 
 export function getLevelDisplay(level: number | null | undefined) {

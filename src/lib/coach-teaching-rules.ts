@@ -1,5 +1,7 @@
 export type CoachEmploymentType = 'full_time' | 'half_time' | 'part_time'
 
+export const COACH_TEACHING_RULES_SETTING_KEY = 'coach_teaching_rules_settings'
+
 export interface CoachTeachingRule {
   employmentType: CoachEmploymentType
   label: string
@@ -9,6 +11,8 @@ export interface CoachTeachingRule {
   groupRate: number
   paysAllHours: boolean
 }
+
+export type CoachTeachingRules = Record<CoachEmploymentType, CoachTeachingRule>
 
 export interface TeachingSlotForCalculation {
   date: string
@@ -29,7 +33,7 @@ export interface TeachingPayEntry<TSlot extends TeachingSlotForCalculation> {
   weekLabel: string
 }
 
-export const COACH_TEACHING_RULES: Record<CoachEmploymentType, CoachTeachingRule> = {
+export const COACH_TEACHING_RULES: CoachTeachingRules = {
   full_time: {
     employmentType: 'full_time',
     label: 'Full-Time',
@@ -59,14 +63,55 @@ export const COACH_TEACHING_RULES: Record<CoachEmploymentType, CoachTeachingRule
   },
 }
 
+const COACH_EMPLOYMENT_ORDER: CoachEmploymentType[] = ['full_time', 'half_time', 'part_time']
+
 export const COACH_EMPLOYMENT_OPTIONS = Object.values(COACH_TEACHING_RULES)
 
 export function normalizeCoachEmploymentType(value: unknown): CoachEmploymentType | null {
   return value === 'full_time' || value === 'half_time' || value === 'part_time' ? value : null
 }
 
-export function getCoachTeachingRule(employmentType: CoachEmploymentType) {
-  return COACH_TEACHING_RULES[employmentType]
+function toNonNegativeNumber(value: unknown, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
+}
+
+function toPositiveNumber(value: unknown, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+export function normalizeCoachTeachingRulesSettings(value: unknown): CoachTeachingRules {
+  const source = value && typeof value === 'object'
+    ? (value as { rules?: unknown })
+    : {}
+  const rawRules = source.rules && typeof source.rules === 'object'
+    ? source.rules as Partial<Record<CoachEmploymentType, Partial<CoachTeachingRule>>>
+    : source as Partial<Record<CoachEmploymentType, Partial<CoachTeachingRule>>>
+
+  return COACH_EMPLOYMENT_ORDER.reduce<CoachTeachingRules>((rules, employmentType) => {
+    const defaults = COACH_TEACHING_RULES[employmentType]
+    const rawRule = rawRules[employmentType] || {}
+
+    rules[employmentType] = {
+      ...defaults,
+      thresholdHours: defaults.paysAllHours
+        ? toNonNegativeNumber(rawRule.thresholdHours, defaults.thresholdHours)
+        : toPositiveNumber(rawRule.thresholdHours, defaults.thresholdHours),
+      privateRate: toNonNegativeNumber(rawRule.privateRate, defaults.privateRate),
+      groupRate: toNonNegativeNumber(rawRule.groupRate, defaults.groupRate),
+    }
+
+    return rules
+  }, {} as CoachTeachingRules)
+}
+
+export function getCoachTeachingOptions(rules: CoachTeachingRules = COACH_TEACHING_RULES) {
+  return COACH_EMPLOYMENT_ORDER.map((employmentType) => rules[employmentType])
+}
+
+export function getCoachTeachingRule(employmentType: CoachEmploymentType, rules: CoachTeachingRules = COACH_TEACHING_RULES) {
+  return rules[employmentType] || COACH_TEACHING_RULES[employmentType]
 }
 
 export function getHoursBetween(date: string, startTime: string, endTime: string) {

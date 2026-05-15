@@ -37,8 +37,8 @@ export default async function AdminLayout({
         notificationUnreadCount={unreadNotificationCount || 0}
         allowedMenuKeys={allowedMenuKeys}
       />
-      <main className="lg:pl-64 pt-14 lg:pt-0">
-        <div className="p-4 md:p-6 lg:p-8">
+      <main className="min-w-0 pt-14 lg:pl-64 lg:pt-0">
+        <div className="mx-auto min-w-0 max-w-[1800px] p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </main>

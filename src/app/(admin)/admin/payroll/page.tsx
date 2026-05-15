@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { PayrollClient } from '@/components/admin/payroll-client'
+import { COACH_TEACHING_RULES_SETTING_KEY, normalizeCoachTeachingRulesSettings } from '@/lib/coach-teaching-rules'
 
 interface AssignmentRow {
   id: string
@@ -55,6 +56,10 @@ interface WeeklySummaryRow {
   profiles?: { full_name: string | null } | null
 }
 
+interface CoachTeachingRulesSettingRow {
+  value: unknown
+}
+
 function getYearRange() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 1)
@@ -73,7 +78,7 @@ export default async function PayrollPage() {
   const supabase = createClient()
   const range = getYearRange()
 
-  const [{ data: assignments }, { data: checkins }, { data: summaries }] = await Promise.all([
+  const [{ data: assignments }, { data: checkins }, { data: summaries }, { data: teachingRulesSetting }] = await Promise.all([
     supabase
       .from('coach_assignments')
       .select(`
@@ -107,6 +112,11 @@ export default async function PayrollPage() {
       .gte('week_start', range.start)
       .lt('week_start', range.end)
       .order('week_start', { ascending: false }) as unknown as PromiseLike<{ data: WeeklySummaryRow[] | null }>,
+    supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', COACH_TEACHING_RULES_SETTING_KEY)
+      .maybeSingle() as unknown as PromiseLike<{ data: CoachTeachingRulesSettingRow | null }>,
   ])
 
   const checkinMap = new Map<string, CheckinRow>()
@@ -144,6 +154,7 @@ export default async function PayrollPage() {
       rows={payrollRows}
       currentMonth={now.getMonth() + 1}
       currentYear={now.getFullYear()}
+      teachingRules={normalizeCoachTeachingRulesSettings(teachingRulesSetting?.value)}
       summaries={(summaries || []).map((summary) => ({
         id: summary.id,
         coach_id: summary.coach_id,

@@ -3,13 +3,14 @@
 import type { FormEvent } from 'react'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Building2, CalendarClock, CheckCircle2, Clock, Loader2, Plus, Power, Search, Trash2 } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Building2, CalendarClock, CheckCircle2, Clock, Loader2, Plus, Power, Search, Trash2 } from 'lucide-react'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
 
@@ -60,12 +61,34 @@ const COURSE_CONFIG: Record<CourseTypeName, { label: string; badge: string; text
   private: { label: 'Private', badge: 'bg-orange-100 text-orange-700 hover:bg-orange-100', text: 'text-orange-700' },
 }
 
+const WEEKDAY_PRESETS = [
+  { label: 'ทุกวัน', days: [0, 1, 2, 3, 4, 5, 6] },
+  { label: 'จ.-ศ.', days: [1, 2, 3, 4, 5] },
+  { label: 'ส.-อา.', days: [0, 6] },
+]
+
 function getDayLabel(dayOfWeek: number) {
   return DAY_OPTIONS.find((day) => day.value === dayOfWeek)?.label || '-'
 }
 
 function getGroupKey(template: ScheduleTemplateData) {
   return `${template.branch_id}:${template.course_type_name}`
+}
+
+function normalizeDays(days: number[]) {
+  return Array.from(new Set(days)).sort((a, b) => a - b)
+}
+
+function formatSelectedDays(days: number[]) {
+  const normalized = normalizeDays(days)
+  if (normalized.length === 0) return 'ยังไม่ได้เลือกวัน'
+  if (normalized.length === 7) return 'ทุกวัน'
+  if (normalized.join(',') === '1,2,3,4,5') return 'จันทร์-ศุกร์'
+  if (normalized.join(',') === '0,6') return 'เสาร์-อาทิตย์'
+
+  return normalized
+    .map((day) => DAY_OPTIONS.find((option) => option.value === day)?.short || String(day))
+    .join(' ')
 }
 
 export function ScheduleTemplatesClient({ branches, courseTypes, templates }: ScheduleTemplatesClientProps) {
@@ -77,7 +100,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
   const [form, setForm] = useState({
     branchId: branches[0]?.id || '',
     courseTypeId: courseTypes[0]?.id || '',
-    dayOfWeek: '1',
+    dayOfWeeks: [1] as number[],
     startTime: '17:00',
     endTime: '19:00',
     notes: '',
@@ -85,6 +108,11 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
   const [saving, setSaving] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const selectedBranch = branches.find((branch) => branch.id === form.branchId)
+  const selectedCourse = courseTypes.find((course) => course.id === form.courseTypeId)
+  const selectedCourseLabel = selectedCourse ? COURSE_CONFIG[selectedCourse.name].label : '-'
 
   const filteredTemplates = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -124,6 +152,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)?.push(template)
     })
+
     return Array.from(groups.entries()).map(([key, items]) => ({ key, items }))
   }, [filteredTemplates])
 
@@ -135,10 +164,27 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
     private: templates.filter((template) => template.course_type_name === 'private').length,
   }), [templates])
 
+  const toggleDay = (dayValue: number) => {
+    setForm((current) => {
+      const hasDay = current.dayOfWeeks.includes(dayValue)
+      return {
+        ...current,
+        dayOfWeeks: hasDay
+          ? current.dayOfWeeks.filter((day) => day !== dayValue)
+          : normalizeDays([...current.dayOfWeeks, dayValue]),
+      }
+    })
+  }
+
+  const setPresetDays = (days: number[]) => {
+    setForm((current) => ({ ...current, dayOfWeeks: normalizeDays(days) }))
+  }
+
   const createTemplate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSaving(true)
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch('/api/admin/schedule-templates', {
@@ -147,7 +193,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
         body: JSON.stringify({
           branchId: form.branchId,
           courseTypeId: form.courseTypeId,
-          dayOfWeek: Number(form.dayOfWeek),
+          dayOfWeeks: form.dayOfWeeks,
           startTime: form.startTime,
           endTime: form.endTime,
           notes: form.notes,
@@ -157,6 +203,9 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'สร้างรอบเรียนไม่สำเร็จ')
 
+      const createdCount = Number(result.createdCount || 0)
+      const skippedCount = Array.isArray(result.skippedDays) ? result.skippedDays.length : 0
+      setSuccess(`เพิ่มสำเร็จ ${createdCount} รอบ${skippedCount > 0 ? `, ข้ามรอบซ้ำ ${skippedCount} รอบ` : ''}`)
       setForm((current) => ({ ...current, notes: '' }))
       router.refresh()
     } catch (createError) {
@@ -169,6 +218,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
   const updateTemplate = async (templateId: string, updates: { isActive?: boolean }) => {
     setUpdatingId(templateId)
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch('/api/admin/schedule-templates', {
@@ -190,6 +240,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
     if (!confirm('ลบรอบเรียนนี้ใช่ไหม? การจองเดิมจะไม่ถูกลบ')) return
     setUpdatingId(templateId)
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch(`/api/admin/schedule-templates?id=${templateId}`, { method: 'DELETE' })
@@ -251,12 +302,14 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-4 xl:grid-cols-[440px_1fr]">
         <Card className="border-gray-200">
           <CardContent className="p-4">
             <div className="mb-4">
               <h2 className="font-bold text-[#153c85]">เพิ่มรอบเรียน</h2>
-              <p className="mt-1 text-xs text-gray-500">เพิ่มเฉพาะรอบที่เป็นมาตรฐานประจำ ไม่ใช่การจองรายคน</p>
+              <p className="mt-1 text-xs text-gray-500">
+                เลือกสาขา เลือกเวลา แล้วจิ้มวันได้หลายวันในครั้งเดียว เช่น ทุกวัน 08:00-09:00 หรือ จ.-พ.-ศ. 10:00-11:00
+              </p>
             </div>
 
             <form onSubmit={createTemplate} className="grid gap-3">
@@ -288,20 +341,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
                 </Select>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-                <div className="space-y-1.5">
-                  <Label>วัน</Label>
-                  <Select value={form.dayOfWeek} onValueChange={(value) => setForm((current) => ({ ...current, dayOfWeek: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DAY_OPTIONS.map((day) => (
-                        <SelectItem key={day.value} value={String(day.value)}>{day.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="template-start">เริ่ม</Label>
                   <Input
@@ -324,6 +364,49 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>วันที่เปิดรอบ</Label>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+                    onClick={() => setPresetDays([])}
+                  >
+                    ล้าง
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {DAY_OPTIONS.map((day) => {
+                    const isSelected = form.dayOfWeeks.includes(day.value)
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        className={`h-10 rounded-lg border text-xs font-semibold transition ${isSelected ? 'border-[#2748bf] bg-[#2748bf] text-white shadow-sm' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                        onClick={() => toggleDay(day.value)}
+                        aria-pressed={isSelected}
+                      >
+                        {day.short}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAY_PRESETS.map((preset) => (
+                    <Button key={preset.label} type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setPresetDays(preset.days)}>
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border bg-blue-50/60 px-3 py-2 text-sm text-[#153c85]">
+                <p className="font-semibold">ตัวอย่าง: เพิ่ม {form.dayOfWeeks.length} รอบ</p>
+                <p className="mt-1 text-xs text-gray-600">
+                  {selectedBranch?.name || '-'} / {selectedCourseLabel} / {formatSelectedDays(form.dayOfWeeks)} / {form.startTime}-{form.endTime}
+                </p>
+              </div>
+
               <div className="space-y-1.5">
                 <Label htmlFor="template-notes">หมายเหตุ</Label>
                 <Input
@@ -337,10 +420,13 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
               {error && (
                 <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
               )}
+              {success && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</div>
+              )}
 
-              <Button type="submit" className="bg-[#2748bf] hover:bg-[#153c85]" disabled={saving || !form.branchId || !form.courseTypeId}>
+              <Button type="submit" className="bg-[#2748bf] hover:bg-[#153c85]" disabled={saving || !form.branchId || !form.courseTypeId || form.dayOfWeeks.length === 0}>
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                เพิ่มรอบเรียน
+                เพิ่ม {form.dayOfWeeks.length || ''} รอบเรียน
               </Button>
             </form>
           </CardContent>

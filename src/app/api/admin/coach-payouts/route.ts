@@ -3,8 +3,10 @@ import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
 import {
   calculateTeachingPayEntries,
+  COACH_TEACHING_RULES_SETTING_KEY,
   getCoachTeachingRule,
   getHoursBetween,
+  normalizeCoachTeachingRulesSettings,
   normalizeCoachEmploymentType,
   type CoachEmploymentType,
   type TeachingSlotForCalculation,
@@ -58,6 +60,10 @@ interface DbError {
   message: string
 }
 
+interface CoachTeachingRulesSettingRow {
+  value: unknown
+}
+
 function isInputDate(value: unknown) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getServiceRoleClient()
-    const [{ data: assignments }, { data: checkins }] = await Promise.all([
+    const [{ data: assignments }, { data: checkins }, { data: teachingRulesSetting }] = await Promise.all([
       supabase
         .from('coach_assignments')
         .select(`
@@ -105,6 +111,11 @@ export async function POST(request: NextRequest) {
         .lt('checkin_time', `${weekEnd}T23:59:59`)
         .order('checkin_time', { ascending: false })
         .limit(1000) as unknown as PromiseLike<{ data: CheckinRow[] | null }>,
+      supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', COACH_TEACHING_RULES_SETTING_KEY)
+        .maybeSingle() as unknown as PromiseLike<{ data: CoachTeachingRulesSettingRow | null }>,
     ])
 
     const firstAssignment = assignments?.find((assignment) => assignment.profiles)
@@ -158,7 +169,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No verified teaching slots found for this coach and week' }, { status: 400 })
     }
 
-    const rule = getCoachTeachingRule(employmentType as CoachEmploymentType)
+    const teachingRules = normalizeCoachTeachingRulesSettings(teachingRulesSetting?.value)
+    const rule = getCoachTeachingRule(employmentType as CoachEmploymentType, teachingRules)
     const entries = calculateTeachingPayEntries(calculationRows, rule)
 
     const totals = entries.reduce((summary, entry) => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { MAX_LEVEL, MIN_LEVEL } from '@/constants/levels'
+import { MIN_LEVEL } from '@/constants/levels'
 import { createClient } from '@/lib/supabase/server'
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ประเภทผู้เรียนไม่ถูกต้อง' }, { status: 400 })
     }
 
-    if (!Number.isInteger(numericLevel) || numericLevel < MIN_LEVEL || numericLevel > MAX_LEVEL) {
-      return NextResponse.json({ error: `Level ต้องอยู่ระหว่าง ${MIN_LEVEL}-${MAX_LEVEL}` }, { status: 400 })
+    if (!Number.isInteger(numericLevel) || numericLevel <= MIN_LEVEL) {
+      return NextResponse.json({ error: 'กรุณาเลือก Level ที่เปิดใช้งานอยู่ในระบบ' }, { status: 400 })
     }
 
     const { data: levelDefinition, error: levelError } = await supabase

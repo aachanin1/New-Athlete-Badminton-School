@@ -18,7 +18,7 @@ import {
   type AchievementStudentRef,
   type ManagedStudentAchievement,
 } from '@/components/shared/student-achievement-manager'
-import { LEVEL_RANGES, MAX_LEVEL, MIN_LEVEL, getLevelDisplay, getLevelRange } from '@/constants/levels'
+import { LEVEL_RANGES, MIN_LEVEL, formatLevelRange, getLevelDisplay, getLevelRange } from '@/constants/levels'
 import type { LevelCategory } from '@/types/database'
 
 interface LevelOption {
@@ -109,8 +109,8 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
     }
 
     const level = Number(newLevel)
-    if (!Number.isInteger(level) || level < MIN_LEVEL || level > MAX_LEVEL) {
-      setError(`Level ต้องอยู่ระหว่าง ${MIN_LEVEL}-${MAX_LEVEL}`)
+    if (!Number.isInteger(level) || level <= MIN_LEVEL || !levels.some((item) => item.id === level)) {
+      setError('กรุณาเลือก Level ที่เปิดใช้งานอยู่ในระบบ')
       return
     }
 
@@ -169,7 +169,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
       <div className="flex flex-wrap gap-2">
         {LEVEL_RANGES.map((range) => (
           <Badge key={range.category} className={`${range.color} text-xs`}>
-            {range.label} (LV {range.minLevel}-{range.maxLevel})
+            {range.label} (LV {formatLevelRange(range)})
           </Badge>
         ))}
       </div>

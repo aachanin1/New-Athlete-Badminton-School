@@ -459,7 +459,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
       </div>
 
       <Card className="border-gray-200">
-        <CardContent className="grid gap-3 p-4 lg:grid-cols-[minmax(260px,1fr)_220px_220px_auto] lg:items-center">
+        <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_220px_220px_auto] 2xl:items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input

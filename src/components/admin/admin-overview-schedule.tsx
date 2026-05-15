@@ -198,7 +198,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToPreviousMonth}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="w-48 text-center text-base font-bold text-[#153c85]">
+            <div className="w-36 text-center text-sm font-bold text-[#153c85] sm:w-48 sm:text-base">
               {MONTH_NAMES_TH[month]} {year + 543}
             </div>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
@@ -245,7 +245,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
         </div>
       </CardHeader>
 
-      <CardContent className="grid gap-4 xl:grid-cols-[minmax(520px,0.9fr)_minmax(520px,1.1fr)]">
+      <CardContent className="grid gap-4 2xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="rounded-lg border p-3">
           <div className="mb-2 grid grid-cols-7 text-center text-xs font-medium text-gray-500">
             {DAY_HEADERS.map((day, index) => (
@@ -254,7 +254,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
           </div>
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((day, index) => {
-              if (day === null) return <div key={`empty-${index}`} className="min-h-[4.5rem]" />
+              if (day === null) return <div key={`empty-${index}`} className="min-h-14 sm:min-h-[4.5rem]" />
 
               const date = getDateString(year, month, day)
               const daySessions = sessionsByDate[date] || []
@@ -266,7 +266,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
                 <button
                   key={date}
                   onClick={() => setSelectedDate(isSelected ? null : date)}
-                  className={`min-h-[4.5rem] rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 ${isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'} ${isToday ? 'shadow-[inset_0_0_0_1px_#f57e3b]' : ''}`}
+                  className={`min-h-14 rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 sm:min-h-[4.5rem] ${isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'} ${isToday ? 'shadow-[inset_0_0_0_1px_#f57e3b]' : ''}`}
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className={`text-xs font-semibold ${isToday ? 'text-[#f57e3b]' : 'text-gray-700'}`}>{day}</span>

@@ -222,7 +222,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
           <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="w-48 text-center text-base font-bold text-[#153c85]">
+          <div className="w-36 text-center text-sm font-bold text-[#153c85] sm:w-48 sm:text-base">
             {MONTH_NAMES_TH[month]} {year + 543}
           </div>
           <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToNextMonth}>
@@ -325,7 +325,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
 
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, index) => {
-                if (day === null) return <div key={`empty-${index}`} className="min-h-[5.25rem]" />
+                if (day === null) return <div key={`empty-${index}`} className="min-h-14 sm:min-h-[5.25rem]" />
 
                 const date = getDateString(year, month, day)
                 const daySessions = sessionsByDate[date] || []
@@ -338,7 +338,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                     key={date}
                     type="button"
                     onClick={() => setSelectedDate(isSelected ? null : date)}
-                    className={`min-h-[5.25rem] rounded-md border p-2 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 ${
+                    className={`min-h-14 rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 sm:min-h-[5.25rem] sm:p-2 ${
                       isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'
                     } ${isToday ? 'shadow-[inset_0_0_0_1px_#f57e3b]' : ''}`}
                   >

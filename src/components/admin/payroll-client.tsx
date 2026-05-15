@@ -26,10 +26,11 @@ import {
 } from 'lucide-react'
 import {
   calculateTeachingPayEntries,
-  COACH_EMPLOYMENT_OPTIONS,
+  getCoachTeachingOptions,
   getCoachTeachingRule,
   getWeekInfo,
   normalizeCoachEmploymentType,
+  type CoachTeachingRules,
   type CoachEmploymentType,
   type TeachingPayEntry,
   type TeachingSlotForCalculation,
@@ -115,6 +116,7 @@ interface PayrollClientProps {
   rows: PayrollSourceRow[]
   currentMonth: number
   currentYear: number
+  teachingRules: CoachTeachingRules
   summaries: WeeklySummaryData[]
 }
 
@@ -150,9 +152,9 @@ function formatCurrency(value: number) {
   return value.toLocaleString('th-TH', { maximumFractionDigits: 0 })
 }
 
-function getEmploymentLabel(employmentType: CoachEmploymentType | null) {
+function getEmploymentLabel(employmentType: CoachEmploymentType | null, teachingRules: CoachTeachingRules) {
   if (!employmentType) return 'ยังไม่กำหนด'
-  return getCoachTeachingRule(employmentType).label
+  return getCoachTeachingRule(employmentType, teachingRules).label
 }
 
 function buildWeekBreakdown(
@@ -211,7 +213,7 @@ function buildWeekBreakdown(
   return Array.from(weeks.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart))
 }
 
-export function PayrollClient({ rows, currentMonth, currentYear, summaries }: PayrollClientProps) {
+export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, summaries }: PayrollClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [viewMonth, setViewMonth] = useState(currentMonth)
@@ -226,6 +228,8 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
     values.add(currentYear)
     return Array.from(values).sort((a, b) => b - a)
   }, [currentYear, rows])
+
+  const employmentOptions = useMemo(() => getCoachTeachingOptions(teachingRules), [teachingRules])
 
   const monthRows = useMemo(() => {
     return rows.filter((row) => {
@@ -267,7 +271,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
         const missingRows = entries.filter((row) => !row.checkin_id && isPastSlot(row))
         const noPhotoRows = entries.filter((row) => row.checkin_id && !row.photo_url)
         const payableEntries = employmentType
-          ? calculateTeachingPayEntries(payableRows, getCoachTeachingRule(employmentType))
+          ? calculateTeachingPayEntries(payableRows, getCoachTeachingRule(employmentType, teachingRules))
           : []
         const weeklyBreakdown = buildWeekBreakdown(entries, payableEntries)
 
@@ -305,7 +309,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
         })
       })
       .sort((a, b) => b.payableAmount - a.payableAmount || b.totalHours - a.totalHours || a.coach_name.localeCompare(b.coach_name))
-  }, [monthRows])
+  }, [monthRows, teachingRules])
 
   const stats = useMemo(() => {
     const payable = monthRows.filter(isPayable)
@@ -449,7 +453,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
       )}
 
       <Card className="border-gray-200">
-        <CardContent className="grid gap-3 p-4 lg:grid-cols-[minmax(260px,1fr)_150px_130px_160px_190px_auto] lg:items-center">
+        <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_150px_130px_160px_190px_auto] 2xl:items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
@@ -485,7 +489,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกประเภท</SelectItem>
-              {COACH_EMPLOYMENT_OPTIONS.map((option) => (
+              {employmentOptions.map((option) => (
                 <SelectItem key={option.employmentType} value={option.employmentType}>{option.label}</SelectItem>
               ))}
             </SelectContent>
@@ -516,7 +520,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
       ) : (
         <div className="space-y-3">
           {coachSummaries.map((coach) => {
-            const rule = coach.employmentType ? getCoachTeachingRule(coach.employmentType) : null
+            const rule = coach.employmentType ? getCoachTeachingRule(coach.employmentType, teachingRules) : null
             return (
               <Card key={coach.coach_id} className={!coach.employmentType ? 'border-amber-200 bg-amber-50/20' : coach.missingRows.length + coach.noPhotoRows.length > 0 ? 'border-amber-200' : 'border-gray-200'}>
                 <CardContent className="p-4">
@@ -530,7 +534,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, summaries }: Pa
                           <p className="font-semibold text-gray-950">{coach.coach_name}</p>
                           {coach.employmentType ? (
                             <Badge className={`text-xs ${EMPLOYMENT_BADGES[coach.employmentType]}`}>
-                              {getEmploymentLabel(coach.employmentType)}
+                              {getEmploymentLabel(coach.employmentType, teachingRules)}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">ยังไม่ตั้งประเภท</Badge>

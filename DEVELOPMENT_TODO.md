@@ -115,8 +115,13 @@ Notes:
   - Public/Admin Ranking now resolves the latest evaluated Level against `levels` so edited Level names are reflected in ranking display.
   - Added shared student achievement management for Admin Ranking and Coach Level flow, with preset trophy/medal emoji options ready for awards.
   - Repaired Thai copy in Level constants, Admin Level settings, Coach Level evaluation, and Ranking surfaces touched by this flow.
-- [ ] 12. Admin Regression and Responsive Pass
+  - Level settings must be extensible beyond LV 70: Super Admin can add LV 71+ rows, while Coach evaluation can only select active rows from `levels`.
+- [x] 12. Admin Regression and Responsive Pass
   - After items 1-11 are completed, run a focused pass on Admin desktop/mobile layout and critical flows.
+  - Added Admin shell width guards (`min-w-0`, max readable canvas) so wide tables/cards do not force horizontal overflow under the sidebar.
+  - Adjusted Admin schedule calendars and dashboard schedule cards for mobile: compact month labels, shorter day cells, and desktop split layout only at very wide screens.
+  - Moved heavy table/grid layouts on Payments, Users, Coaches, Complaints, Makeup, Payroll, and Level Settings to wider breakpoints so tablet/mobile use stacked cards instead of cramped pseudo-tables.
+  - Verified `npm run check:mojibake`, `git diff --check`, and `npm run build`; build passes with existing lint warnings from Coach/User areas still tracked as separate technical debt.
 
 ## Phase 3 - Build & Deploy Readiness
 

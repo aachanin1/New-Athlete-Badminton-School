@@ -285,7 +285,7 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
         </Card>
       ) : (
         <div className="overflow-hidden rounded-lg border bg-white">
-          <div className="hidden grid-cols-[72px_minmax(220px,1.2fr)_minmax(180px,.95fr)_minmax(130px,.7fr)_minmax(220px,.85fr)_minmax(178px,auto)] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 xl:grid">
+          <div className="hidden grid-cols-[72px_minmax(220px,1.2fr)_minmax(180px,.95fr)_minmax(130px,.7fr)_minmax(220px,.85fr)_minmax(178px,auto)] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 2xl:grid">
             <span>สลิป</span>
             <span>ผู้ชำระเงิน</span>
             <span>คอร์ส/สาขา</span>
@@ -303,7 +303,7 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
               return (
                 <div
                   key={payment.id}
-                  className="grid gap-3 px-4 py-4 transition-colors hover:bg-gray-50 xl:grid-cols-[72px_minmax(220px,1.2fr)_minmax(180px,.95fr)_minmax(130px,.7fr)_minmax(220px,.85fr)_minmax(178px,auto)] xl:items-center xl:gap-4"
+                  className="grid gap-3 px-4 py-4 transition-colors hover:bg-gray-50 2xl:grid-cols-[72px_minmax(220px,1.2fr)_minmax(180px,.95fr)_minmax(130px,.7fr)_minmax(220px,.85fr)_minmax(178px,auto)] 2xl:items-center 2xl:gap-4"
                 >
                   <button
                     type="button"
@@ -363,7 +363,7 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
                     )}
                   </div>
 
-                  <div className="flex min-w-[178px] gap-2 xl:justify-end">
+                  <div className="flex flex-wrap gap-2 2xl:min-w-[178px] 2xl:justify-end">
                     {payment.slip_image_url && (
                       <Button variant="outline" size="sm" onClick={() => openSlipImage(payment.slip_image_url!)}>
                         สลิป

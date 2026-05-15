@@ -414,7 +414,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
         </Card>
       ) : (
         <div className="overflow-hidden rounded-lg border bg-white">
-          <div className="hidden grid-cols-[minmax(240px,1.1fr)_minmax(190px,0.9fr)_minmax(220px,1fr)_130px_130px_110px] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 xl:grid">
+          <div className="hidden grid-cols-[minmax(240px,1.1fr)_minmax(190px,0.9fr)_minmax(220px,1fr)_130px_130px_110px] gap-4 border-b bg-gray-50 px-4 py-3 text-xs font-medium text-gray-500 2xl:grid">
             <span>โค้ช</span>
             <span>ติดต่อ</span>
             <span>สาขาที่สอน</span>
@@ -430,7 +430,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
               const employmentInfo = employmentType ? EMPLOYMENT_LABELS[employmentType] : null
 
               return (
-                <div key={coach.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-gray-50 xl:grid-cols-[minmax(240px,1.1fr)_minmax(190px,0.9fr)_minmax(220px,1fr)_130px_130px_110px] xl:items-center xl:gap-4">
+                <div key={coach.id} className="grid gap-3 px-4 py-4 transition-colors hover:bg-gray-50 2xl:grid-cols-[minmax(240px,1.1fr)_minmax(190px,0.9fr)_minmax(220px,1fr)_130px_130px_110px] 2xl:items-center 2xl:gap-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2748bf]/10 font-bold text-[#2748bf]">
                       {getInitial(coach.full_name)}
