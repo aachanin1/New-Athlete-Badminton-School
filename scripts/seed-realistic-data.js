@@ -250,6 +250,7 @@ async function cleanupSeed({ deleteAuthUsers = false } = {}) {
   await deleteWhereIn('coach_payouts', 'coach_id', seedUserIds)
   await deleteWhereIn('coach_teaching_hours', 'coach_id', seedUserIds)
   await deleteWhereIn('teaching_programs', 'coach_id', seedUserIds)
+  await deleteWhereIn('coach_program_templates', 'coach_id', seedUserIds)
   await deleteWhereIn('attendance', 'booking_session_id', seedSessionIds)
   await deleteWhereIn('attendance', 'coach_id', seedUserIds)
   await deleteWhereIn('coach_checkins', 'coach_id', seedUserIds)
@@ -550,11 +551,18 @@ async function seedBookingsTeachingAndGroups(ids, learnersByBranch, master, star
   const checkins = []
   const attendance = []
   const teachingPrograms = []
+  const programTemplates = []
 
   for (const [branchIndex, branch] of master.branches.entries()) {
     const slug = branchSlug(branch, branchIndex)
     const learners = learnersByBranch[slug]
     const branchSlots = []
+    programTemplates.push(
+      { coach_id: ids[`head_${slug}`], title: 'Adult group rally control', content: `${SEED_NOTE}: Warm up 10 minutes\nRally control 30 minutes\nServe receive and game pattern 40 minutes\nFeedback 10 minutes`, category: 'adult_group', is_active: true },
+      { coach_id: ids[`full_${slug}`], title: 'Kids beginner footwork', content: `${SEED_NOTE}: Warm up 10 minutes\nBasic footwork ladder 20 minutes\nGrip and clear drill 30 minutes\nLight rally 30 minutes`, category: 'kids_group', is_active: true },
+      { coach_id: ids[`half_${slug}`], title: 'Advanced match pattern', content: `${SEED_NOTE}: Dynamic warm up 10 minutes\nAttack transition drill 35 minutes\nMatch pattern and point play 40 minutes\nReview 10 minutes`, category: 'kids_group', is_active: true },
+      { coach_id: ids[`part_${slug}`], title: 'Private backhand correction', content: `${SEED_NOTE}: Stroke assessment 10 minutes\nBackhand correction 35 minutes\nTarget drill 35 minutes\nHomework 10 minutes`, category: 'private', is_active: true },
+    )
 
     for (let dayIndex = 0; dayIndex < SEED_DAYS; dayIndex += 1) {
       const date = addDays(startDate, dayIndex)
@@ -781,6 +789,7 @@ async function seedBookingsTeachingAndGroups(ids, learnersByBranch, master, star
   await expectNoError(await supabase.from('coach_checkins').insert(checkins), 'insert seed coach checkins')
   await expectNoError(await supabase.from('attendance').insert(attendance), 'insert seed attendance')
   await expectNoError(await supabase.from('teaching_programs').insert(teachingPrograms), 'insert seed teaching programs')
+  await expectNoError(await supabase.from('coach_program_templates').insert(programTemplates), 'insert seed coach program templates')
 
   return { allSessions, allSlots }
 }

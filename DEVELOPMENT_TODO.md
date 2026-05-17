@@ -297,7 +297,7 @@ Notes:
       - [x] Coach hours now uses weekly summaries and expandable evidence rows instead of an endless monthly list.
       - [x] Teaching program submission is now linked to real assigned slots and can reuse preset/previous content before saving draft or submitting.
       - [x] Realistic seed verification passed after reseed: 7 branches, 7 Head Coaches, 21 Coaches, 21 Users, 245 booking sessions, 196 assignment groups, 28 check-ins, 35 attendance rows, and 28 teaching programs.
-      - [ ] Optional follow-up: add a persistent per-coach program-template library if the owner wants templates to be managed separately from preset/previous program reuse.
+      - [x] Coach Program Template Library: add a persistent per-coach template table/API/UI so each Coach can create, edit, archive, and reuse their own teaching-program templates separately from per-slot submissions.
   - [x] 15.4 Coach Notifications / Reminders
     - [x] Notify Coach when assigned to a teaching slot/group.
     - [x] Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.

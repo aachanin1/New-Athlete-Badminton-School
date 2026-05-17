@@ -39,6 +39,16 @@ interface AssignedSlotRow {
   } | null
 }
 
+interface ProgramTemplateRow {
+  id: string
+  title: string
+  content: string
+  category: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 function formatSlotLabel(program: TeachingProgramRow) {
   const slot = program.schedule_slots
   if (!slot) return null
@@ -74,6 +84,14 @@ export default async function ProgramsPage() {
     .eq('coach_id', user.id)
     .gte('schedule_slots.date', new Date().toISOString().slice(0, 10))
     .limit(80) as unknown as { data: AssignedSlotRow[] | null }
+
+  const { data: templates } = await supabase
+    .from('coach_program_templates')
+    .select('id, title, content, category, is_active, created_at, updated_at')
+    .eq('coach_id', user.id)
+    .order('is_active', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(80) as unknown as { data: ProgramTemplateRow[] | null }
 
   const reviewerIds = Array.from(new Set((programs || []).map((program) => program.reviewed_by).filter((id): id is string => Boolean(id))))
   const reviewerMap: Record<string, string> = {}
@@ -129,5 +147,15 @@ export default async function ProgramsPage() {
 
   const assignedSlots = Array.from(slotMap.values()).sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
 
-  return <ProgramsClient programs={programList} assignedSlots={assignedSlots} />
+  const templateList = (templates || []).map((template) => ({
+    id: template.id,
+    title: template.title,
+    content: template.content,
+    category: template.category,
+    isActive: template.is_active,
+    createdAt: template.created_at,
+    updatedAt: template.updated_at,
+  }))
+
+  return <ProgramsClient programs={programList} assignedSlots={assignedSlots} templates={templateList} />
 }

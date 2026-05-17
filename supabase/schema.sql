@@ -256,6 +256,17 @@ CREATE TABLE teaching_programs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE coach_program_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(trim(title)) BETWEEN 1 AND 120),
+  content TEXT NOT NULL CHECK (char_length(trim(content)) > 0),
+  category TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Student Levels (พัฒนาการ/LV นักเรียน)
 CREATE TABLE student_levels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -426,6 +437,7 @@ CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_coach_branches_coach ON coach_branches(coach_id);
 CREATE INDEX idx_coach_assignments_slot ON coach_assignments(schedule_slot_id);
 CREATE INDEX idx_attendance_session ON attendance(booking_session_id);
+CREATE INDEX idx_coach_program_templates_coach ON coach_program_templates(coach_id, is_active, updated_at DESC);
 CREATE INDEX idx_student_levels_student ON student_levels(student_id);
 CREATE INDEX idx_student_achievements_student ON student_achievements(student_id, student_type);
 CREATE INDEX idx_student_achievements_active ON student_achievements(is_active);
@@ -460,6 +472,7 @@ CREATE TRIGGER tr_schedule_templates_updated_at BEFORE UPDATE ON schedule_templa
 CREATE TRIGGER tr_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_booking_sessions_updated_at BEFORE UPDATE ON booking_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_teaching_programs_updated_at BEFORE UPDATE ON teaching_programs FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_coach_program_templates_updated_at BEFORE UPDATE ON coach_program_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_coach_payouts_updated_at BEFORE UPDATE ON coach_payouts FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_coach_weekly_teaching_summaries_updated_at BEFORE UPDATE ON coach_weekly_teaching_summaries FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_finance_expenses_updated_at BEFORE UPDATE ON finance_expenses FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -504,6 +517,7 @@ ALTER TABLE coach_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coach_checkins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teaching_programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coach_program_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coach_teaching_hours ENABLE ROW LEVEL SECURITY;
@@ -626,6 +640,12 @@ CREATE POLICY "Admins can view all checkins" ON coach_checkins FOR SELECT USING 
 -- teaching_programs
 CREATE POLICY "Coaches can manage own programs" ON teaching_programs FOR ALL USING (coach_id = auth.uid() AND is_staff());
 CREATE POLICY "Admins can manage all programs" ON teaching_programs FOR ALL USING (is_admin_or_super());
+
+-- coach_program_templates
+CREATE POLICY "Coaches can view own program templates" ON coach_program_templates FOR SELECT USING (coach_id = auth.uid() OR is_admin_or_super());
+CREATE POLICY "Coaches can create own program templates" ON coach_program_templates FOR INSERT WITH CHECK (coach_id = auth.uid() AND is_staff());
+CREATE POLICY "Coaches can update own program templates" ON coach_program_templates FOR UPDATE USING (coach_id = auth.uid() OR is_admin_or_super()) WITH CHECK (coach_id = auth.uid() OR is_admin_or_super());
+CREATE POLICY "Coaches can delete own program templates" ON coach_program_templates FOR DELETE USING (coach_id = auth.uid() OR is_admin_or_super());
 
 -- student_levels
 CREATE POLICY "Staff can manage student levels" ON student_levels FOR ALL USING (is_staff());

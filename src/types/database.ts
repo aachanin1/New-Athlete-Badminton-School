@@ -138,6 +138,12 @@ export interface Database {
         Update: Partial<Omit<TeachingProgram, 'id' | 'created_at'>>
         Relationships: []
       }
+      coach_program_templates: {
+        Row: CoachProgramTemplate
+        Insert: Omit<CoachProgramTemplate, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CoachProgramTemplate, 'id' | 'created_at'>>
+        Relationships: []
+      }
       student_levels: {
         Row: StudentLevel
         Insert: Omit<StudentLevel, 'id' | 'created_at'>
@@ -454,6 +460,17 @@ export interface TeachingProgram {
   reviewed_by: string | null
   reviewed_at: string | null
   notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CoachProgramTemplate {
+  id: string
+  coach_id: string
+  title: string
+  content: string
+  category: string | null
+  is_active: boolean
   created_at: string
   updated_at: string
 }
