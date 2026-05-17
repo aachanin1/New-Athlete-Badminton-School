@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { AuthModal } from '@/components/shared/auth-modal'
 import { ArrowRight, LayoutDashboard, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getHomePathForRole } from '@/lib/auth/redirects'
+import type { UserRole } from '@/types/database'
 
 interface RegisterButtonProps {
   variant?: 'hero' | 'cta'
@@ -14,22 +16,42 @@ interface RegisterButtonProps {
 export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [role, setRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
+    let mounted = true
+
+    const loadRole = async (userId?: string) => {
+      if (!userId) {
+        if (mounted) setRole(null)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle() as { data: { role: UserRole } | null }
+
+      if (mounted) setRole(profile?.role || null)
+    }
+
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setIsLoggedIn(!!user)
-      setLoading(false)
+      const { data: { user }, error } = await supabase.auth.getUser()
+      await loadRole(error ? undefined : user?.id)
+      if (mounted) setLoading(false)
     }
     checkUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session)
+      void loadRole(session?.user?.id)
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (loading) {
@@ -38,7 +60,7 @@ export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
     )
   }
 
-  if (isLoggedIn) {
+  if (role) {
     return (
       <Button
         size="lg"
@@ -47,7 +69,7 @@ export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
             ? 'bg-[#2748bf] hover:bg-[#153c85] text-white text-lg px-8 py-6 w-[220px]'
             : 'bg-white/20 hover:bg-white/30 text-white text-lg px-10 py-6'
         }
-        onClick={() => router.push('/auth')}
+        onClick={() => router.push(getHomePathForRole(role))}
       >
         {variant === 'hero' ? (
           <>

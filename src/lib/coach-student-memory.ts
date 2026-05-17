@@ -63,6 +63,25 @@ interface CoachAssignmentMemoryRow {
   } | null
 }
 
+interface AssignmentGroupStudentMemoryRow {
+  booking_session_id: string
+  coach_assignment_groups?: {
+    coach_id: string | null
+    profiles?: {
+      full_name: string | null
+      role: UserRole | null
+    } | null
+  } | null
+}
+
+interface MemoryCoachAssignment {
+  coach_id: string
+  profiles?: {
+    full_name: string | null
+    role: UserRole | null
+  } | null
+}
+
 const LEARNED_BOOKING_STATUSES = ['paid', 'verified']
 const LEARNED_SESSION_STATUSES = ['completed', 'absent', 'scheduled']
 
@@ -148,6 +167,29 @@ export async function getCoachStudentMemoryMap(
 
   if (slotIds.length === 0) return emptyMap
 
+  const sessionIds = sessions.map((session) => session.id)
+  const { data: groupStudents } = await supabase
+    .from('coach_assignment_group_students')
+    .select(`
+      booking_session_id,
+      coach_assignment_groups!inner(
+        coach_id,
+        profiles!coach_assignment_groups_coach_id_fkey(full_name, role)
+      )
+    `)
+    .in('booking_session_id', sessionIds) as { data: AssignmentGroupStudentMemoryRow[] | null }
+
+  const groupStudentMap = new Map<string, MemoryCoachAssignment[]>()
+  ;(groupStudents || []).forEach((row) => {
+    const group = row.coach_assignment_groups
+    if (!group?.coach_id) return
+    if (!groupStudentMap.has(row.booking_session_id)) groupStudentMap.set(row.booking_session_id, [])
+    groupStudentMap.get(row.booking_session_id)?.push({
+      coach_id: group.coach_id,
+      profiles: group.profiles || null,
+    })
+  })
+
   const { data: assignments } = await supabase
     .from('coach_assignments')
     .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name, role)')
@@ -163,6 +205,35 @@ export async function getCoachStudentMemoryMap(
   const knownRefs = new Set(uniqueStudents.map((student) => getStudentKey(student.type, student.id)))
   const memory = { ...emptyMap }
 
+  const addCoachMemory = (
+    key: string,
+    assignment: MemoryCoachAssignment,
+    session: BookingSessionMemoryRow,
+  ) => {
+    const booking = session.bookings
+    const existing = memory[key].coaches.find((coach) => coach.coachId === assignment.coach_id)
+    const branchName = session.branches?.name || ''
+    const courseType = booking?.course_types?.name || ''
+
+    if (existing) {
+      existing.totalSessions += 1
+      if (session.date > existing.lastTaughtDate) existing.lastTaughtDate = session.date
+      existing.branchNames = unique([...existing.branchNames, branchName])
+      existing.courseTypes = unique([...existing.courseTypes, courseType])
+      return
+    }
+
+    memory[key].coaches.push({
+      coachId: assignment.coach_id,
+      coachName: assignment.profiles?.full_name || 'Coach',
+      coachRole: assignment.profiles?.role || null,
+      totalSessions: 1,
+      lastTaughtDate: session.date,
+      branchNames: unique([branchName]),
+      courseTypes: unique([courseType]),
+    })
+  }
+
   for (const session of sessions) {
     const booking = session.bookings
     const studentType: StudentType = session.child_id ? 'child' : 'adult'
@@ -171,28 +242,13 @@ export async function getCoachStudentMemoryMap(
     if (!session.schedule_slot_id) continue
 
     const key = getStudentKey(studentType, studentId)
-    const relatedAssignments = assignmentMap.get(session.schedule_slot_id) || []
-    for (const assignment of relatedAssignments) {
-      const existing = memory[key].coaches.find((coach) => coach.coachId === assignment.coach_id)
-      const branchName = session.branches?.name || ''
-      const courseType = booking?.course_types?.name || ''
+    const groupAssignments = groupStudentMap.get(session.id) || []
+    const relatedAssignments = groupAssignments.length > 0
+      ? groupAssignments
+      : assignmentMap.get(session.schedule_slot_id) || []
 
-      if (existing) {
-        existing.totalSessions += 1
-        if (session.date > existing.lastTaughtDate) existing.lastTaughtDate = session.date
-        existing.branchNames = unique([...existing.branchNames, branchName])
-        existing.courseTypes = unique([...existing.courseTypes, courseType])
-      } else {
-        memory[key].coaches.push({
-          coachId: assignment.coach_id,
-          coachName: assignment.profiles?.full_name || 'Coach',
-          coachRole: assignment.profiles?.role || null,
-          totalSessions: 1,
-          lastTaughtDate: session.date,
-          branchNames: unique([branchName]),
-          courseTypes: unique([courseType]),
-        })
-      }
+    for (const assignment of relatedAssignments) {
+      addCoachMemory(key, assignment, session)
     }
   }
 

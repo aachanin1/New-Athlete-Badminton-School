@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { AuthModal } from '@/components/shared/auth-modal'
 import { Menu, LogIn, UserPlus, User, LogOut, LayoutDashboard } from 'lucide-react'
+import { getHomePathForRole } from '@/lib/auth/redirects'
+import type { UserRole } from '@/types/database'
 
 type AuthMode = 'login' | 'register'
 
@@ -35,30 +37,53 @@ export function PublicNavbar() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [userName, setUserName] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', user.id)
-          .single() as { data: { full_name: string; role: string } | null }
-        setUserName(profile?.full_name || user.email || 'ผู้ใช้')
+    let mounted = true
+
+    const loadProfile = async (userId?: string, fallbackEmail?: string | null) => {
+      if (!userId) {
+        if (mounted) {
+          setUserName(null)
+          setUserRole(null)
+        }
+        return
       }
-      setLoading(false)
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', userId)
+        .maybeSingle() as { data: { full_name: string | null; role: UserRole } | null }
+
+      if (!mounted) return
+
+      if (profile?.role) {
+        setUserName(profile.full_name || fallbackEmail || 'ผู้ใช้')
+        setUserRole(profile.role)
+      } else {
+        setUserName(null)
+        setUserRole(null)
+      }
+    }
+
+    const getUser = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      await loadProfile(error ? undefined : user?.id, user?.email)
+      if (mounted) setLoading(false)
     }
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        setUserName(null)
-      }
+      void loadProfile(session?.user?.id, session?.user?.email)
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const openAuth = (mode: AuthMode) => {
@@ -70,6 +95,7 @@ export function PublicNavbar() {
     const supabase = createClient()
     await supabase.auth.signOut()
     setUserName(null)
+    setUserRole(null)
     router.refresh()
   }
 
@@ -130,7 +156,7 @@ export function PublicNavbar() {
 
             {loading ? (
               <div className="w-24 h-9 bg-gray-100 rounded-md animate-pulse" />
-            ) : userName ? (
+            ) : userName && userRole ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="border-[#2748bf]/30 text-[#153c85] gap-2">
@@ -139,7 +165,7 @@ export function PublicNavbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => router.push('/auth')}>
+                  <DropdownMenuItem onClick={() => router.push(getHomePathForRole(userRole))}>
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     แดชบอร์ด
                   </DropdownMenuItem>
@@ -192,13 +218,13 @@ export function PublicNavbar() {
 
                 <div className="border-t my-3" />
 
-                {userName ? (
+                {userName && userRole ? (
                   <>
                     <div className="px-3 py-2 text-sm text-gray-500">
                       สวัสดี, <span className="font-semibold text-[#153c85]">{userName}</span>
                     </div>
                     <Link
-                      href="/dashboard"
+                      href={getHomePathForRole(userRole)}
                       onClick={() => setSheetOpen(false)}
                       className="text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors flex items-center gap-2"
                     >

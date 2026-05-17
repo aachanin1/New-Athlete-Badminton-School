@@ -17,6 +17,7 @@ interface ProfileNameRow {
 
 interface ProgramPayload {
   programId?: string
+  scheduleSlotId?: string
   programContent?: string
   status?: ProgramStatus
 }
@@ -62,10 +63,33 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
 }
 
-async function updateProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: Required<Pick<ProgramPayload, 'programId' | 'programContent'>> & { status: ProgramStatus }) {
+async function isAssignedToSlot(supabase: ReturnType<typeof createClient>, coach: User, scheduleSlotId: string) {
+  const { data: group } = await supabase
+    .from('coach_assignment_groups')
+    .select('id')
+    .eq('coach_id', coach.id)
+    .eq('schedule_slot_id', scheduleSlotId)
+    .limit(1)
+    .maybeSingle()
+
+  if (group) return true
+
+  const { data: legacyAssignment } = await supabase
+    .from('coach_assignments')
+    .select('id')
+    .eq('coach_id', coach.id)
+    .eq('schedule_slot_id', scheduleSlotId)
+    .limit(1)
+    .maybeSingle()
+
+  return Boolean(legacyAssignment)
+}
+
+async function updateProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: Required<Pick<ProgramPayload, 'programId' | 'programContent' | 'scheduleSlotId'>> & { status: ProgramStatus }) {
   const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
   return table
     .update({
+      schedule_slot_id: payload.scheduleSlotId,
       program_content: payload.programContent,
       status: payload.status,
       updated_at: new Date().toISOString(),
@@ -74,11 +98,12 @@ async function updateProgram(supabase: ReturnType<typeof createClient>, coach: U
     .eq('coach_id', coach.id) as unknown as PromiseLike<{ error: DbError | null }>
 }
 
-async function insertProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: { programContent: string; status: ProgramStatus }) {
+async function insertProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: { scheduleSlotId: string; programContent: string; status: ProgramStatus }) {
   const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
   return table
     .insert({
       coach_id: coach.id,
+      schedule_slot_id: payload.scheduleSlotId,
       program_content: payload.programContent,
       status: payload.status,
     })
@@ -94,15 +119,26 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await request.json() as ProgramPayload
     const programContent = payload.programContent?.trim()
+    const scheduleSlotId = payload.scheduleSlotId?.trim()
     const status = normalizeStatus(payload.status)
+
+    if (!scheduleSlotId) {
+      return NextResponse.json({ error: 'กรุณาเลือกรอบสอนก่อนบันทึกโปรแกรม' }, { status: 400 })
+    }
 
     if (!programContent) {
       return NextResponse.json({ error: 'กรุณากรอกเนื้อหาโปรแกรม' }, { status: 400 })
     }
 
+    const assigned = await isAssignedToSlot(supabase, coach, scheduleSlotId)
+    if (!assigned) {
+      return NextResponse.json({ error: 'คุณไม่มีสิทธิ์ส่งโปรแกรมให้รอบสอนนี้' }, { status: 403 })
+    }
+
     if (payload.programId) {
       const { error } = await updateProgram(supabase, coach, {
         programId: payload.programId,
+        scheduleSlotId,
         programContent,
         status,
       })
@@ -120,7 +156,7 @@ export async function POST(request: NextRequest) {
         ipAddress: request.headers.get('x-forwarded-for'),
       })
     } else {
-      const { data: insertedProgram, error } = await insertProgram(supabase, coach, { programContent, status })
+      const { data: insertedProgram, error } = await insertProgram(supabase, coach, { scheduleSlotId, programContent, status })
 
       if (error) {
         return NextResponse.json({ error: `สร้างไม่สำเร็จ: ${error.message}` }, { status: 500 })

@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 
 const COACH_NAV = [
   { href: '/coach', label: 'หน้าหลัก', icon: Home },
-  { href: '/coach/today', label: 'รอบสอนวันนี้', icon: CalendarCheck },
+  { href: '/coach/today', label: 'ตารางสอนของฉัน', icon: CalendarCheck },
   { href: '/coach/attendance', label: 'เช็คชื่อนักเรียน', icon: UserCheck },
   { href: '/coach/checkin', label: 'เช็คอิน', icon: Camera },
   { href: '/coach/levels', label: 'กรอก LV นักเรียน', icon: BarChart3 },

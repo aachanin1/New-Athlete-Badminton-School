@@ -128,7 +128,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'มีผู้เรียนที่ไม่ได้อยู่ในรอบสอนนี้' }, { status: 400 })
     }
 
-    const coachIds = Array.from(new Set(groups.map((group) => group.coachId).filter(Boolean))) as string[]
+    const submittedCoachIds = groups.map((group) => group.coachId).filter(Boolean) as string[]
+    const coachIds = Array.from(new Set(submittedCoachIds))
+    if (coachIds.length !== submittedCoachIds.length) {
+      return NextResponse.json({ error: 'โค้ช 1 คนไม่สามารถรับผิดชอบหลายกลุ่มในรอบเวลาเดียวกันได้' }, { status: 400 })
+    }
+
     if (coachIds.length > 0) {
       const { data: coachBranches } = await adminSupabase
         .from('coach_branches')

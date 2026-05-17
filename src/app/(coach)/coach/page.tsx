@@ -6,7 +6,7 @@ import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { getHoursBetween, getWeekInfo } from '@/lib/coach-teaching-rules'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
 import { createClient } from '@/lib/supabase/server'
-import { getBangkokDateString } from '@/lib/utils'
+import { fmtTime, getBangkokDateString } from '@/lib/utils'
 
 interface CoachBranchRow {
   branch_id: string
@@ -22,6 +22,32 @@ function toInputDate(value: Date) {
   const month = String(value.getMonth() + 1).padStart(2, '0')
   const day = String(value.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function getMonthCalendarDays(monthStart: Date) {
+  const firstDay = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1)
+  const lastDay = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
+  const calendarStart = new Date(firstDay)
+  calendarStart.setDate(firstDay.getDate() - firstDay.getDay())
+
+  const calendarEnd = new Date(lastDay)
+  calendarEnd.setDate(lastDay.getDate() + (6 - lastDay.getDay()))
+
+  const days: Date[] = []
+  const cursor = new Date(calendarStart)
+  while (cursor <= calendarEnd) {
+    days.push(new Date(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return days
+}
+
+function formatMonthTitle(value: Date) {
+  return value.toLocaleDateString('th-TH', {
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 export default async function CoachDashboardPage() {
@@ -55,6 +81,13 @@ export default async function CoachDashboardPage() {
   const monthTotal = verifiedRows.reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
   const pendingEvidence = monthRows.filter((row) => !row.is_verified)
   const hasPendingCheckin = teachingDay.slots.length > 0 && teachingDay.checkedSlotCount < teachingDay.slots.length
+  const monthRowsByDate = monthRows.reduce((map, row) => {
+    if (!map[row.date]) map[row.date] = []
+    map[row.date].push(row)
+    return map
+  }, {} as Record<string, typeof monthRows>)
+  const calendarDays = getMonthCalendarDays(startOfMonth)
+  const weekDayLabels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 
   return (
     <div className="space-y-6">
@@ -127,6 +160,72 @@ export default async function CoachDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base font-bold text-[#153c85]">ตารางสอนทั้งเดือน</CardTitle>
+              <p className="text-xs text-gray-500">{formatMonthTitle(startOfMonth)} จาก assignment/group ที่บันทึกแล้ว</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-[#2748bf]/10 px-2.5 py-1 font-medium text-[#2748bf]">{monthRows.length} รอบ</span>
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700">{verifiedRows.length} หลักฐานครบ</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-gray-500 sm:gap-2">
+            {weekDayLabels.map((label) => (
+              <div key={label} className={label === 'อา' ? 'text-red-500' : ''}>{label}</div>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-2">
+            {calendarDays.map((day) => {
+              const dateKey = toInputDate(day)
+              const rows = monthRowsByDate[dateKey] || []
+              const isCurrentMonth = day.getMonth() === startOfMonth.getMonth()
+              const isToday = dateKey === today
+
+              return (
+                <Link
+                  key={dateKey}
+                  href={`/coach/today?date=${dateKey}`}
+                  className={`min-h-[88px] rounded-lg border p-1.5 text-xs sm:min-h-[112px] sm:p-2 ${
+                    isToday
+                      ? 'border-[#2748bf] bg-blue-50 ring-2 ring-[#2748bf]/10'
+                      : isCurrentMonth
+                        ? 'bg-white'
+                        : 'bg-gray-50 text-gray-300'
+                  }`}
+                >
+                  <div className={`font-bold ${day.getDay() === 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                    {day.getDate()}
+                  </div>
+                  <div className="mt-1 space-y-1">
+                    {rows.slice(0, 2).map((row) => (
+                      <div
+                        key={`${row.assignment_id}-${row.schedule_slot_id}`}
+                        className={`rounded-md px-1.5 py-1 text-left leading-tight ${
+                          row.is_verified ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700'
+                        }`}
+                      >
+                        <div className="font-semibold">{fmtTime(row.start_time)}</div>
+                        <div className="hidden truncate sm:block">{row.branch_name}</div>
+                      </div>
+                    ))}
+                    {rows.length > 2 && (
+                      <div className="rounded-md bg-gray-100 px-1.5 py-1 text-center text-[10px] text-gray-500">
+                        +{rows.length - 2} รอบ
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className={!hasPendingCheckin ? 'border-green-200 bg-green-50/50' : 'border-orange-200 bg-orange-50/50'}>
         <CardContent className="flex items-center gap-3 p-4">

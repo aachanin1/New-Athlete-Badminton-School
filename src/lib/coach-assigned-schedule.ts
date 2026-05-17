@@ -15,7 +15,7 @@ type SupabaseLike = {
 }
 
 const BOOKING_VISIBLE_STATUSES = ['pending_payment', 'paid', 'verified']
-const SESSION_VISIBLE_STATUSES: SessionStatus[] = ['scheduled', 'completed']
+const SESSION_VISIBLE_STATUSES: SessionStatus[] = ['scheduled', 'completed', 'absent']
 
 interface SlotRow {
   id: string

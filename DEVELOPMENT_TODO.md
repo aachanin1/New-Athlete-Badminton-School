@@ -172,6 +172,18 @@ Notes:
       - Preserve compatibility with existing `coach_assignments` during transition, but group assignment should become the main source for learner responsibility.
       - Implemented `coach_assignment_groups` and `coach_assignment_group_students`, pushed migration `20260515190000_add_coach_assignment_groups.sql` to Supabase, added Head Coach grouping UI, and added `/api/coach/assignment-groups`.
       - Group saves still sync selected coaches back to `coach_assignments` for transitional compatibility with existing Coach schedule/check-in pages.
+    - [x] 15.2.1.2 Coach Assignment UX: day/slot picker + duplicate coach prevention
+      - Head Coach assignment now uses a day picker first, then a slot picker, so one busy day does not render every teaching round and group editor at once.
+      - The selected slot is the only slot expanded for group editing; other rounds stay as compact selectable cards with student count, course type, saved status, and warning badges.
+      - Coach dropdown options are disabled/greyed when the same coach is already used by another non-empty group in the selected teaching round.
+      - Save is blocked when a draft still has the same coach assigned to multiple groups in the same slot, matching the server-side duplicate coach validation.
+      - Auto-group suggestions avoid assigning the same available coach to multiple Level groups in the same slot where possible.
+    - [x] 15.2.1.3 Auto-suggest Draft Confirmation
+      - Auto-suggest and manual grouping changes are shown as Draft until Head Coach clicks "บันทึก/ยืนยันกลุ่ม".
+      - Coach-facing schedule/check-in/attendance surfaces continue to read saved assignment groups only; unsaved draft changes remain local to the Head Coach assignment screen.
+      - Selected slot cards and the expanded editor show Draft versus saved assignment state clearly.
+      - The save button changes to a confirmation action and is disabled once the current grouping already matches saved assignment data.
+      - The "จัดตาม Level" action is labeled as Draft so Head Coach understands it is a suggestion, not an automatic assignment commit.
     - [x] 15.2.2 Coach Check-in Per Assigned Slot + Required Photo QA
       - Coach check-in is per teaching session/slot, not per workday, and must require photo evidence.
       - Check-in should remain tied to the assigned slot while learner responsibility comes from assignment groups.
@@ -194,6 +206,18 @@ Notes:
       - Admin payroll, weekly close API, Coach dashboard, and Coach hours page now read from the same verified source.
       - Payroll UI shows missing evidence buckets: no check-in, no photo, no location, and no attendance.
       - Build and mojibake guard passed; localhost smoke test for `/admin/payroll`, `/coach/hours`, and `/coach` returned 200 after restarting the dev server.
+    - [x] 15.2.4.1 Coach Schedule Calendar Detail
+      - `/coach/today` is now "ตารางสอนของฉัน" and accepts `?date=YYYY-MM-DD` to show any assigned teaching day.
+      - Added a monthly calendar/detail view for Coach using saved assignment/group source data only.
+      - Coach dashboard calendar days now link into `/coach/today?date=YYYY-MM-DD`.
+      - Coach sidebar label changed from "รอบสอนวันนี้" to "ตารางสอนของฉัน" to match the expanded monthly workflow.
+      - The selected day still shows the real assigned slots, assigned learner groups, check-in status, and learner list from `getCoachAssignedTeachingDay`.
+    - [x] 15.2.5 Attendance UX From Schedule
+      - `/coach/attendance` now accepts `?date=YYYY-MM-DD` and optional `?slot=...` so Coach can enter attendance from the selected teaching day/round.
+      - `/coach/today` adds a per-slot attendance action after the Coach has checked in; locked slots point Coach to check in first when it is the teaching day.
+      - Attendance UI clearly shows the selected date, selected slot state, all-day fallback, and a return path to "ตารางสอนของฉัน".
+      - Attendance remains locked without the specific slot check-in, matching the API rule that weekly teaching hours require check-in, selfie/photo, location, and attendance evidence.
+      - Coach schedule/attendance source now keeps `absent` sessions visible after marking a learner absent, so refresh does not make the learner disappear from the round.
   - [ ] 15.3 Coach Completion QA Gate
     - Do this before any User feature work.
     - Verify Coach pages end-to-end with realistic Supabase data: `/coach`, `/coach/today`, `/coach/students`, `/coach/levels`, `/coach/assign-groups`, `/coach/checkin`, `/coach/attendance`, `/coach/hours`, and `/coach/notifications`.
@@ -209,7 +233,71 @@ Notes:
       - [x] Cleared stale `.next` dev cache, restarted dev server, and confirmed localhost loads again after the known CSS/chunk cache failure mode.
       - [x] Unauthenticated route guard smoke passed for Coach routes: `/coach`, `/coach/today`, `/coach/students`, `/coach/levels`, `/coach/assign-groups`, `/coach/checkin`, `/coach/attendance`, `/coach/hours`, `/coach/notifications`, `/coach/programs`.
       - [x] Realistic seed data verification passed against Supabase.
+      - [x] Expanded realistic seed data for authenticated Coach QA: 7 active branches, 7 Head Coaches, 21 Coaches, 21 Users, 21 children, 35 bookings, 245 booking sessions, 147 schedule slots, 196 assignment groups, 28 check-ins, 35 attendance rows, and cleanup command `npm run seed:cleanup`.
+      - [x] QA note: first seed verification found stale seed state (`coach_assignments` expected 196, got 193). Reran `npm run seed:realistic`, then `npm run seed:verify` passed with 196 synced assignment groups and zero duplicate coach/group slots.
+      - [x] Authenticated HTTP QA passed on production server for Head Coach and Coach routes: `/coach`, `/coach/today?date=2026-05-17`, `/coach/today?date=2026-05-18`, `/coach/attendance?date=2026-05-17`, `/coach/checkin`, `/coach/students`, `/coach/levels`, `/coach/hours`, `/coach/notifications`, `/coach/programs`; Head Coach `/coach/assign-groups` returned 200 and regular Coach `/coach/assign-groups` redirected to `/coach`.
+      - [x] Attendance API guard passed with real seed data: assigned learner after check-in returned 200, unrelated learner returned 403, and assigned learner without slot check-in returned 403.
+      - [x] Reran `npm run seed:realistic` after the attendance write tests and confirmed `npm run seed:verify` returned canonical counts again, including 35 attendance rows.
+      - [x] Runtime note: production build/server was used for authenticated QA to avoid the known local dev stale `.next` chunk/CSS failure. No Coach route 500 was reproduced in production QA.
       - [ ] Authenticated browser QA for Head Coach / Coach screens still needs a real logged-in browser session; current Browser automation cannot type into the email input because of a tool-side input bug, not an app runtime error.
+  - [ ] 15.3.1 Head Coach / Coach UX Hardening From QA
+    - Do this before `15.4 Coach Notifications / Reminders`; these are still Coach-side completion issues, not User flow.
+    - Keep the existing assignment/check-in/attendance/hour source of truth intact. This pass should improve UX and workflow clarity without changing User booking ownership.
+    - Assignment wording and status states:
+      - Replace visible "Draft ยังไม่ยืนยัน" copy with "ยังไม่ได้มอบหมาย" where the round/group has not been saved into real assignment data.
+      - Use clear saved state copy: "มอบหมายแล้ว" with a green check for slots/groups already saved.
+      - If a saved assignment is edited locally before saving, do not call it "มอบหมายแล้ว"; show a separate "มีการแก้ไขยังไม่บันทึก" state so Head Coach does not confuse local changes with confirmed assignments.
+      - Keep auto-suggest as a local recommendation only until Head Coach clicks save/confirm.
+    - Head Coach assignment month-scale navigation:
+      - Replace the short 7-day-only day picker with a month-aware planner that can handle real booking volume for the whole current month and future months.
+      - Default to the current month, with previous/next month controls and quick filters for "ยังไม่ได้มอบหมาย", "มอบหมายแล้ว", branch, course type, and date range.
+      - Day cards should summarize total slots, total learners, unassigned slots, saved slots, and warning severity.
+      - Any day with at least one unassigned slot should show a red alert indicator; days with all booked slots assigned should show a green check.
+      - After choosing a day, show slot cards grouped by time/course/branch with red alert for unassigned slots and green check for assigned slots, so Head Coach does not need to open each slot to discover work.
+      - Keep only one selected slot expanded for group editing to avoid rendering a huge form for a busy month.
+    - Assignment slot list at high volume:
+      - Add status tabs or segmented control: "ต้องมอบหมาย", "มอบหมายแล้ว", "ทั้งหมด".
+      - Add compact slot rows/cards with time, branch, course type, learner count, Level range, saved/unassigned state, and responsible coach names.
+      - Preserve duplicate coach prevention: a coach already assigned to a non-empty group in the same slot must be disabled/greyed and blocked by server validation.
+    - Coach attendance UX for busy days:
+      - Attendance should group learners by teaching slot and assignment group, not show one long flat list.
+      - Add a sticky daily slot summary at the top: total slots, checked-in slots, completed attendance, missing attendance.
+      - Each slot card should show status: upcoming, open for attendance after check-in, completed, missing, or locked because Coach has not checked in.
+      - For a day with 3 slots and 18 learners, show collapsible slot sections; expand the selected/active slot first and keep completed slots collapsed by default.
+      - Past slots should not disappear. They should remain visible with their final status so Coach/Admin can audit attendance and weekly hours evidence.
+      - Attendance actions should remain locked when there is no check-in for that specific slot.
+    - Coach student list UX for more than 20 learners:
+      - Replace the simple card list with searchable/filterable student management.
+      - Add search by student name, parent name, phone, branch, Level, course type, and last taught date.
+      - Add filters for assigned now, previously taught, active this month, Level band, child/adult, and branch.
+      - Use pagination or incremental loading so the page does not become one huge scroll when a Coach has many historical learners.
+      - Keep the coach-student memory visible: total sessions together, last taught date, latest Level, and current responsible group/slot where applicable.
+    - Coach hours UX for many monthly rows:
+      - Add month/week filters and a weekly accordion/table so a busy month does not become an endless vertical list.
+      - Keep KPI cards compact, then show weekly summaries first; expand a week to see slot-level evidence.
+      - Add evidence filters: complete, missing check-in, missing photo/location, missing attendance, not yet taught.
+      - Keep the calculation source tied to verified assignment groups, check-in selfie/location, and attendance evidence.
+    - Teaching programs workflow:
+      - Split "โปรแกรมสอน" into reusable program templates and per-slot program submissions.
+      - Coach can create, edit, archive, and reuse their own program templates, such as warm up, footwork, rally, or Level-specific drills.
+      - When preparing for a real assigned slot, Coach selects one of their templates, can adjust details for that slot, then submits it to Super Admin/Admin review.
+      - Program submission must link to the real `schedule_slot_id`, assignment group, coach_id, branch, date, time, course type, and learner group.
+      - Coach should be able to see submission status: draft, submitted, reviewed/approved, returned for revision.
+      - Super Admin/Admin review UI can come after Coach submission source is stable, but the DB/API should not be hardcoded to free text only.
+      - All Coaches should submit teaching programs for all teaching systems/course types where they are assigned.
+    - Seed and QA requirements for this hardening pass:
+      - Expand or adjust realistic seed data to include at least one Head Coach day with 3 teaching slots and around 18 assigned learners, plus one Coach with more than 20 historical learners and a month with many teaching-hour rows.
+      - Keep `npm run seed:cleanup` able to remove all generated seed data before deployment.
+      - Verify `npm run check:mojibake`, `npm run build`, and authenticated Coach/Head Coach smoke tests after implementation.
+    - Implementation status on 2026-05-17:
+      - [x] Head Coach assignment now uses month-aware planning, status filters, red unassigned warnings, green saved checks, and clearer Thai status copy: unassigned, saved, and changed-but-unsaved.
+      - [x] Duplicate coach prevention remains active: the seed verifier confirms `duplicate_coach_group_slots = 0`, and the UI keeps already-used coaches unavailable for another non-empty group in the same slot.
+      - [x] Coach attendance now groups by assigned teaching slot and student group, adds daily summary cards, keeps past slots visible, and collapses busy days instead of rendering one long flat list.
+      - [x] Coach student list now supports search, filters, and pagination for larger history lists.
+      - [x] Coach hours now uses weekly summaries and expandable evidence rows instead of an endless monthly list.
+      - [x] Teaching program submission is now linked to real assigned slots and can reuse preset/previous content before saving draft or submitting.
+      - [x] Realistic seed verification passed after reseed: 7 branches, 7 Head Coaches, 21 Coaches, 21 Users, 245 booking sessions, 196 assignment groups, 28 check-ins, 35 attendance rows, and 28 teaching programs.
+      - [ ] Optional follow-up: add a persistent per-coach program-template library if the owner wants templates to be managed separately from preset/previous program reuse.
   - [ ] 15.4 Coach Notifications / Reminders
     - Notify Coach when assigned to a teaching slot/group.
     - Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.

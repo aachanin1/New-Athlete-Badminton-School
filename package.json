@@ -7,6 +7,7 @@
     "build": "next build",
     "check:mojibake": "node scripts/check-mojibake.js",
     "seed:realistic": "node scripts/seed-realistic-data.js",
+    "seed:cleanup": "node scripts/seed-realistic-data.js --cleanup",
     "seed:verify": "node scripts/verify-seed-data.js",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
