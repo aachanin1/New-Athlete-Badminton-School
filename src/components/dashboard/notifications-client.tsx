@@ -22,6 +22,8 @@ interface NotificationRow {
 
 interface NotificationsClientProps {
   notifications: NotificationRow[]
+  title?: string
+  description?: string
 }
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
@@ -32,7 +34,11 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   system: { label: 'ระบบ', color: 'bg-gray-100 text-gray-700' },
 }
 
-export function NotificationsClient({ notifications }: NotificationsClientProps) {
+export function NotificationsClient({
+  notifications,
+  title = 'แจ้งเตือนของฉัน',
+  description = 'ติดตามสถานะการจอง การชำระเงิน และข้อความจากระบบ',
+}: NotificationsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -101,8 +107,8 @@ export function NotificationsClient({ notifications }: NotificationsClientProps)
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#153c85]">แจ้งเตือนของฉัน</h1>
-          <p className="mt-1 text-sm text-gray-500">ติดตามสถานะการจอง การชำระเงิน และข้อความจากระบบ</p>
+          <h1 className="text-2xl font-bold text-[#153c85]">{title}</h1>
+          <p className="mt-1 text-sm text-gray-500">{description}</p>
         </div>
         <Button
           variant="outline"

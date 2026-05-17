@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { notifyCoachCheckinAttendanceReminder } from '@/lib/coach-notifications'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 import type { UserRole } from '@/types/database'
@@ -21,6 +22,8 @@ interface ScheduleSlotRow {
   date: string
   start_time: string
   end_time: string
+  branches?: { name: string | null } | null
+  course_types?: { name: string | null } | null
 }
 
 interface ExistingCheckinRow {
@@ -164,7 +167,15 @@ export async function POST(request: NextRequest) {
 
     const { data: slot, error: slotError } = await adminSupabase
       .from('schedule_slots')
-      .select('id, branch_id, date, start_time, end_time')
+      .select(`
+        id,
+        branch_id,
+        date,
+        start_time,
+        end_time,
+        branches(name),
+        course_types(name)
+      `)
       .eq('id', scheduleSlotId)
       .single<ScheduleSlotRow>()
 
@@ -256,6 +267,8 @@ export async function POST(request: NextRequest) {
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     })
+
+    await notifyCoachCheckinAttendanceReminder(adminSupabase, coach.user.id, slot)
 
     return NextResponse.json({ success: true, photoUrl })
   } catch (error) {

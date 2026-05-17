@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { notifyAssignedCoachesForSlot } from '@/lib/coach-notifications'
 import { createClient } from '@/lib/supabase/server'
 import type { StudentType } from '@/types/database'
 
@@ -24,6 +25,16 @@ interface BookingSessionForGroup {
     user_id: string
     learner_type: 'self' | 'child'
   } | null
+}
+
+interface ScheduleSlotForNotification {
+  id: string
+  branch_id: string
+  date: string
+  start_time: string
+  end_time: string
+  branches?: { name: string | null } | null
+  course_types?: { name: string | null } | null
 }
 
 async function requireAssignmentManager(supabase: ReturnType<typeof createClient>) {
@@ -105,9 +116,17 @@ export async function POST(request: NextRequest) {
 
     const { data: slot } = await adminSupabase
       .from('schedule_slots')
-      .select('id, branch_id')
+      .select(`
+        id,
+        branch_id,
+        date,
+        start_time,
+        end_time,
+        branches(name),
+        course_types(name)
+      `)
       .eq('id', scheduleSlotId)
-      .single() as unknown as { data: { id: string; branch_id: string } | null }
+      .single() as unknown as { data: ScheduleSlotForNotification | null }
 
     if (!slot || slot.branch_id !== branchId) {
       return NextResponse.json({ error: 'ไม่พบรอบสอนที่ต้องการจัดกลุ่ม' }, { status: 404 })
@@ -233,6 +252,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `sync coach_assignments ไม่สำเร็จ: ${assignmentError.message}` }, { status: 500 })
       }
     }
+
+    await Promise.all(assignedCoachIds.map((coachId) => {
+      const coachGroups = groups.filter((group) => group.coachId === coachId)
+      const coachStudentCount = coachGroups.reduce((sum, group) => sum + (group.studentSessionIds?.length || 0), 0)
+
+      return notifyAssignedCoachesForSlot(adminSupabase, {
+        coachIds: [coachId],
+        slot,
+        groupCount: coachGroups.length,
+        studentCount: coachStudentCount,
+      })
+    }))
 
     await logActivity({
       userId: manager.user.id,

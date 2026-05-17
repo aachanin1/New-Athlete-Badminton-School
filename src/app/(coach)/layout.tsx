@@ -1,6 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { CoachSidebar } from '@/components/layout/coach-sidebar'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import {
+  createCoachAttendanceGapNotifications,
+  createCoachCheckinWindowNotifications,
+} from '@/lib/coach-notifications'
 import type { UserRole } from '@/types/database'
 
 export default async function CoachLayout({
@@ -22,6 +27,16 @@ export default async function CoachLayout({
     .single() as { data: { full_name: string; role: UserRole; avatar_url: string | null } | null }
 
   const isHeadCoach = profile?.role === 'head_coach' || profile?.role === 'super_admin'
+  if (profile?.role === 'coach' || profile?.role === 'head_coach') {
+    try {
+      const adminSupabase = getServiceRoleClient()
+      await createCoachCheckinWindowNotifications(adminSupabase, user.id)
+      await createCoachAttendanceGapNotifications(adminSupabase, user.id)
+    } catch (error) {
+      console.error('Coach attendance gap notification error:', error)
+    }
+  }
+
   const { count: unreadNotificationCount } = await supabase
     .from('notifications')
     .select('id', { count: 'exact', head: true })

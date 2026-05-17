@@ -298,11 +298,17 @@ Notes:
       - [x] Teaching program submission is now linked to real assigned slots and can reuse preset/previous content before saving draft or submitting.
       - [x] Realistic seed verification passed after reseed: 7 branches, 7 Head Coaches, 21 Coaches, 21 Users, 245 booking sessions, 196 assignment groups, 28 check-ins, 35 attendance rows, and 28 teaching programs.
       - [ ] Optional follow-up: add a persistent per-coach program-template library if the owner wants templates to be managed separately from preset/previous program reuse.
-  - [ ] 15.4 Coach Notifications / Reminders
-    - Notify Coach when assigned to a teaching slot/group.
-    - Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.
-    - Notify Coach/Head Coach for attendance gaps that block weekly teaching hours.
-    - Badge counts must be per logged-in Coach, not global.
+  - [x] 15.4 Coach Notifications / Reminders
+    - [x] Notify Coach when assigned to a teaching slot/group.
+    - [x] Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.
+    - [x] Notify Coach/Head Coach for attendance gaps that block weekly teaching hours.
+    - [x] Badge counts must be per logged-in Coach, not global.
+    - Implementation status on 2026-05-17:
+      - Assignment group save now creates per-coach schedule notifications linked to `/coach/today?date=YYYY-MM-DD`.
+      - Coach check-in success now creates an attendance reminder linked to the assigned attendance page for that slot.
+      - Coach layout/notifications page now creates idempotent check-in-window reminders and attendance-gap reminders before unread badge/count rendering.
+      - Coach notification page now uses Coach-specific copy while reusing the shared notification list/read actions.
+      - Verified with `npm run build`, `npm run check:mojibake`, `npm run seed:verify`, and authenticated Head Coach/Coach smoke tests.
   - [ ] 15.5 User Booking / Payment / History
     - User booking must read available slots from DB `schedule_templates` only.
     - Same-day booking is allowed only for future sessions that have not started yet.
