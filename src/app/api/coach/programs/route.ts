@@ -242,11 +242,11 @@ export async function POST(request: NextRequest) {
         .single() as unknown as { data: ProfileNameRow | null }
 
       await notifyRoles(adminSupabase as SupabaseClient, {
-        roles: ['super_admin'],
+        roles: ['super_admin', 'admin'],
         title: 'โปรแกรมสอนรอตรวจ',
         message: `${profile?.full_name || 'โค้ช'} ส่งโปรแกรมสอนเข้าตรวจแล้ว`,
         type: 'system',
-        link_url: '/admin/logs',
+        link_url: '/admin/teaching-programs',
       })
     }
 

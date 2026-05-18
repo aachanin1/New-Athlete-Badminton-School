@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  Eye,
   Image as ImageIcon,
   Loader2,
   MapPin,
@@ -25,8 +26,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Textarea } from '@/components/ui/textarea'
 import {
   calculateTeachingPayEntries,
   getCoachTeachingOptions,
@@ -38,6 +42,7 @@ import {
   type TeachingPayEntry,
   type TeachingSlotForCalculation,
 } from '@/lib/coach-teaching-rules'
+import { cn } from '@/lib/utils'
 
 interface PayrollSourceRow extends TeachingSlotForCalculation {
   assignment_id: string
@@ -295,6 +300,9 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
   const [filterEmployment, setFilterEmployment] = useState('all')
   const [closingKey, setClosingKey] = useState<string | null>(null)
   const [closeError, setCloseError] = useState<string | null>(null)
+  const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null)
+  const [closeTarget, setCloseTarget] = useState<{ coach: CoachSummary; week: WeekBreakdown } | null>(null)
+  const [closeNotes, setCloseNotes] = useState('')
 
   const years = useMemo(() => {
     const values = new Set(rows.map((row) => new Date(`${row.date}T00:00:00`).getFullYear()))
@@ -414,10 +422,19 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
     }
   }, [coachSummaries, monthRows])
 
-  const closeWeek = async (coach: CoachSummary, week: WeekBreakdown) => {
+  const selectedCoach = useMemo(() => {
+    return coachSummaries.find((coach) => coach.coach_id === selectedCoachId) || null
+  }, [coachSummaries, selectedCoachId])
+
+  const openCloseWeekDialog = (coach: CoachSummary, week: WeekBreakdown) => {
     if (!coach.employmentType || week.payableEntries.length === 0) return
-    const note = window.prompt(`ปิดสัปดาห์ ${coach.coach_name}\n${week.label}\nหมายเหตุ (เว้นว่างได้):`, '')
-    if (note === null) return
+    setCloseTarget({ coach, week })
+    setCloseNotes('')
+    setCloseError(null)
+  }
+
+  const closeWeek = async (coach: CoachSummary, week: WeekBreakdown, note: string) => {
+    if (!coach.employmentType || week.payableEntries.length === 0) return
 
     const key = `${coach.coach_id}:${week.weekStart}`
     setClosingKey(key)
@@ -436,6 +453,8 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
       })
       const result = await response.json().catch(() => null)
       if (!response.ok) throw new Error(result?.error || 'ปิดสัปดาห์ไม่สำเร็จ')
+      setCloseTarget(null)
+      setCloseNotes('')
       router.refresh()
     } catch (error) {
       setCloseError(error instanceof Error ? error.message : 'ปิดสัปดาห์ไม่สำเร็จ')
@@ -568,22 +587,199 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {coachSummaries.map((coach) => (
-            <CoachPayrollCard
-              key={coach.coach_id}
-              coach={coach}
-              teachingRules={teachingRules}
-              viewMonth={viewMonth}
-              viewYear={viewYear}
-              closedSummaryMap={closedSummaryMap}
-              closingKey={closingKey}
-              onCloseWeek={closeWeek}
-            />
-          ))}
-        </div>
+        <CoachPayrollSummaryTable
+          coaches={coachSummaries}
+          teachingRules={teachingRules}
+          selectedCoachId={selectedCoachId}
+          onSelectCoach={setSelectedCoachId}
+        />
       )}
+
+      <Sheet open={Boolean(selectedCoach)} onOpenChange={(open) => !open && setSelectedCoachId(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-5xl">
+          <SheetHeader className="pr-8">
+            <SheetTitle className="text-[#153c85]">รายละเอียดชั่วโมงสอนโค้ช</SheetTitle>
+          </SheetHeader>
+          {selectedCoach && (
+            <div className="mt-4">
+              <CoachPayrollCard
+                coach={selectedCoach}
+                teachingRules={teachingRules}
+                viewMonth={viewMonth}
+                viewYear={viewYear}
+                closedSummaryMap={closedSummaryMap}
+                closingKey={closingKey}
+                onCloseWeek={openCloseWeekDialog}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={Boolean(closeTarget)} onOpenChange={(open) => !open && !closingKey && setCloseTarget(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">ปิดสัปดาห์สอน</DialogTitle>
+          </DialogHeader>
+          {closeTarget && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-gray-50 p-3 text-sm">
+                <p className="font-bold text-gray-950">{closeTarget.coach.coach_name}</p>
+                <p className="mt-1 text-gray-500">{closeTarget.week.label}</p>
+                <p className="mt-2 text-sm font-semibold text-orange-600">
+                  จ่าย {formatNumber(closeTarget.week.payableHours)} ชม. / ฿{formatCurrency(closeTarget.week.payableAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-gray-700">หมายเหตุ</p>
+                <Textarea
+                  value={closeNotes}
+                  onChange={(event) => setCloseNotes(event.target.value)}
+                  className="min-h-24"
+                  placeholder="เช่น ตรวจหลักฐานครบแล้ว / หมายเหตุการจ่ายประจำสัปดาห์"
+                />
+              </div>
+              {closeError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {closeError}
+                </div>
+              )}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="outline" disabled={Boolean(closingKey)} onClick={() => setCloseTarget(null)}>
+                  ยกเลิก
+                </Button>
+                <Button
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  disabled={Boolean(closingKey)}
+                  onClick={() => closeWeek(closeTarget.coach, closeTarget.week, closeNotes)}
+                >
+                  {closingKey ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ReceiptText className="mr-2 h-4 w-4" />}
+                  ยืนยันปิดสัปดาห์
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+function CoachPayrollSummaryTable({
+  coaches,
+  teachingRules,
+  selectedCoachId,
+  onSelectCoach,
+}: {
+  coaches: CoachSummary[]
+  teachingRules: CoachTeachingRules
+  selectedCoachId: string | null
+  onSelectCoach: (coachId: string) => void
+}) {
+  return (
+    <Card className="border-gray-200">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-1 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-bold text-[#153c85]">สรุปโค้ชรายเดือน</p>
+            <p className="text-xs text-gray-500">กดดูรายละเอียดเฉพาะโค้ชที่ต้องตรวจ ไม่ต้องเปิด card ยาวทุกคนพร้อมกัน</p>
+          </div>
+          <Badge variant="outline">{coaches.length} โค้ช</Badge>
+        </div>
+
+        <div className="hidden overflow-x-auto lg:block">
+          <table className="w-full min-w-[920px] text-sm">
+            <thead className="border-b bg-gray-50 text-xs text-gray-500">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold">โค้ช</th>
+                <th className="px-3 py-3 text-left font-semibold">ประเภท</th>
+                <th className="px-3 py-3 text-right font-semibold">รอบ assigned</th>
+                <th className="px-3 py-3 text-right font-semibold">ครบหลักฐาน</th>
+                <th className="px-3 py-3 text-right font-semibold">ต้องตรวจ</th>
+                <th className="px-3 py-3 text-right font-semibold">ชม.จ่าย</th>
+                <th className="px-3 py-3 text-right font-semibold">ยอดจ่าย</th>
+                <th className="px-4 py-3 text-right font-semibold">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {coaches.map((coach) => {
+                const issueCount = coach.missingRows.length + coach.noPhotoRows.length + coach.noLocationRows.length + coach.noAttendanceRows.length
+                const isSelected = selectedCoachId === coach.coach_id
+                return (
+                  <tr key={coach.coach_id} className={cn('transition hover:bg-blue-50/50', isSelected && 'bg-blue-50')}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#2748bf]">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-gray-950">{coach.coach_name}</p>
+                          <p className="text-xs text-gray-500">{coach.weeklyBreakdown.length} สัปดาห์</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      {coach.employmentType ? (
+                        <Badge className={`text-xs ${EMPLOYMENT_BADGES[coach.employmentType]}`}>
+                          {getEmploymentLabel(coach.employmentType, teachingRules)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">ยังไม่ตั้งประเภท</Badge>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right font-semibold">{coach.assignedRows.length}</td>
+                    <td className="px-3 py-3 text-right text-emerald-700">{coach.payableEntries.length}</td>
+                    <td className={cn('px-3 py-3 text-right font-semibold', issueCount > 0 ? 'text-red-600' : 'text-gray-400')}>{issueCount}</td>
+                    <td className="px-3 py-3 text-right font-semibold">{formatNumber(coach.payableHours)} ชม.</td>
+                    <td className="px-3 py-3 text-right font-bold text-orange-600">฿{formatCurrency(coach.payableAmount)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="outline" onClick={() => onSelectCoach(coach.coach_id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        ดูรายละเอียด
+                      </Button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="divide-y lg:hidden">
+          {coaches.map((coach) => {
+            const issueCount = coach.missingRows.length + coach.noPhotoRows.length + coach.noLocationRows.length + coach.noAttendanceRows.length
+            return (
+              <button
+                key={coach.coach_id}
+                type="button"
+                onClick={() => onSelectCoach(coach.coach_id)}
+                className="block w-full px-4 py-3 text-left transition hover:bg-blue-50/60"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-gray-950">{coach.coach_name}</p>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {coach.employmentType ? (
+                        <Badge className={`text-xs ${EMPLOYMENT_BADGES[coach.employmentType]}`}>
+                          {getEmploymentLabel(coach.employmentType, teachingRules)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">ยังไม่ตั้งประเภท</Badge>
+                      )}
+                      {issueCount > 0 && <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">ต้องตรวจ {issueCount}</Badge>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-orange-600">฿{formatCurrency(coach.payableAmount)}</p>
+                    <p className="text-xs text-gray-500">{formatNumber(coach.payableHours)} ชม.</p>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

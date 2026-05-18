@@ -14,6 +14,7 @@ export type AdminMenuKey =
   | 'payroll'
   | 'finance'
   | 'coach_checkins'
+  | 'teaching_programs'
   | 'complaints'
   | 'notifications'
   | 'logs'
@@ -42,6 +43,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: 'payroll', href: '/admin/payroll', label: 'คำนวณชั่วโมงสอน', description: 'สรุปชั่วโมงสอนรายสัปดาห์และยอดจ่ายโค้ช' },
   { key: 'finance', href: '/admin/finance', label: 'รายรับ-รายจ่าย', description: 'ดูรายได้ รายจ่าย และภาพรวมการเงิน' },
   { key: 'coach_checkins', href: '/admin/coach-checkins', label: 'เช็คอินโค้ช', description: 'ตรวจรูปและสถานะเช็คอินรายรอบสอน' },
+  { key: 'teaching_programs', href: '/admin/teaching-programs', label: 'ตรวจโปรแกรมสอน', description: 'ตรวจ อนุมัติ และส่งกลับโปรแกรมสอนที่โค้ชส่งมา' },
   { key: 'complaints', href: '/admin/complaints', label: 'ร้องเรียน', description: 'ติดตามและตอบกลับเรื่องร้องเรียน' },
   { key: 'notifications', href: '/admin/notifications', label: 'แจ้งเตือน', description: 'ส่งและตรวจประวัติการแจ้งเตือน' },
   { key: 'logs', href: '/admin/logs', label: 'Activity Log', description: 'ตรวจประวัติการทำงานของระบบ', superAdminOnly: true },

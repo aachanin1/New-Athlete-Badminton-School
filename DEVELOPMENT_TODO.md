@@ -299,7 +299,7 @@ Notes:
       - [x] Realistic seed verification passed after reseed: 7 branches, 7 Head Coaches, 21 Coaches, 21 Users, 245 booking sessions, 196 assignment groups, 28 check-ins, 35 attendance rows, and 28 teaching programs.
       - [x] Coach Program Template Library: add a persistent per-coach template table/API/UI so each Coach can create, edit, archive, and reuse their own teaching-program templates separately from per-slot submissions.
       - [ ] Follow-up debt: replace the old `window.prompt` in Admin Payroll weekly close with a proper shadcn/Radix dialog before touching that payroll flow again. Product UI must not use browser-native `alert`, `confirm`, or `prompt`.
-  - [ ] 15.3.2 Admin Teaching Program Review Page
+  - [x] 15.3.2 Admin Teaching Program Review Page
     - Keep this in the Coach completion queue before moving to User flow.
     - Add an Admin/Super Admin page/menu for reviewing teaching programs submitted by Coaches.
     - Filters: status, coach, branch, date range, course type, and assigned slot.
@@ -307,6 +307,34 @@ Notes:
     - Admin/Super Admin can approve or return for revision with notes; Coach should see the result and revise only returned/draft items.
     - Notifications for submitted teaching programs should link to this review page instead of a generic admin log page.
     - Do not allow duplicate per-slot submissions: one Coach can have only one teaching program per assigned schedule slot.
+    - Implementation status on 2026-05-18:
+      - [x] Added Admin menu/page `/admin/teaching-programs` for filtering submitted programs by status, coach, branch, course type, and date range.
+      - [x] Added detail view plus approve/return-for-revision actions using app dialogs, not browser-native alerts/prompts/confirms.
+      - [x] Added Admin review API with activity logs and per-coach notifications back to `/coach/programs`.
+      - [x] Coach submitted-program notifications now link directly to `/admin/teaching-programs`.
+      - [x] High-volume UX pass: changed the review page from long stacked cards into a compact work queue with detail panel and pagination.
+      - [x] Admin Ranking image runtime error from DiceBear seed avatars fixed by adding `api.dicebear.com` to the Next image allowlist.
+      - [x] Admin Payroll high-volume UX pass: changed the long all-coach card list into a summary table with detail drawer, and replaced the weekly-close `window.prompt` with an app dialog.
+  - [ ] 15.3.3 Admin List UX Scalability Pass
+    - Do this before closing Coach/Admin QA and before starting User flow, because Admin must monitor Coach workflow at realistic volume.
+    - Goal: remove long endless Admin lists where data can grow daily or monthly; use compact queue/table, filters, pagination, and detail drawer/dialog instead.
+    - Keep already-approved pages stable. Do not redesign pages that were recently accepted unless a real bug appears.
+    - Priority 1: `/admin/coach-checkins`.
+      - Default to today/week instead of dumping the whole month.
+      - Add summary by coach and status: total assigned rounds, checked in, late, missing, missing photo/location.
+      - Show abnormal items first and open slot/selfie/GPS evidence in a drawer.
+      - Support date range, branch, coach, and status filters without rendering every row as a large card.
+    - Priority 2: `/admin/logs`.
+      - Replace the long card stream with compact audit table, pagination, and JSON detail drawer.
+    - Priority 3: `/admin/notifications`.
+      - Add pagination or compact queue for Admin inbox/history so broadcasts and event notifications do not become endless scroll.
+    - Priority 4: `/admin/coupons`.
+      - Replace high-volume coupon cards with a compact summary table and detail drawer for usage history.
+    - Priority 5: `/admin/finance`.
+      - Compact manual expenses, coach payout summaries, and branch/course breakdowns.
+      - Replace remaining browser-native `confirm` with app dialog.
+    - Later pass: add pagination/page-size to Admin users, coaches, complaints, and other table-like pages if realistic data volume makes them too long.
+    - Verification required after each batch: `npm run check:mojibake`, `npm run build`, and smoke test the touched Admin pages after restarting/clearing stale Next dev cache when needed.
   - [x] 15.4 Coach Notifications / Reminders
     - [x] Notify Coach when assigned to a teaching slot/group.
     - [x] Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.

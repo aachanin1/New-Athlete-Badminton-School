@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   Bell,
+  BookOpenCheck,
   Building2,
   CalendarClock,
   CalendarDays,
@@ -47,6 +48,7 @@ const ADMIN_MENU_ICONS: Record<AdminMenuKey, typeof LayoutDashboard> = {
   payroll: Wallet,
   finance: PieChart,
   coach_checkins: Camera,
+  teaching_programs: BookOpenCheck,
   complaints: MessageSquareWarning,
   notifications: Bell,
   logs: ScrollText,
