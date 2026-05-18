@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   calculateTeachingPayEntries,
   getCoachTeachingOptions,
@@ -298,6 +299,8 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
   const [viewYear, setViewYear] = useState(currentYear)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterEmployment, setFilterEmployment] = useState('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [closingKey, setClosingKey] = useState<string | null>(null)
   const [closeError, setCloseError] = useState<string | null>(null)
   const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null)
@@ -426,6 +429,10 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
     return coachSummaries.find((coach) => coach.coach_id === selectedCoachId) || null
   }, [coachSummaries, selectedCoachId])
 
+  const totalPages = Math.max(1, Math.ceil(coachSummaries.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pagedCoachSummaries = coachSummaries.slice((safePage - 1) * pageSize, safePage * pageSize)
+
   const openCloseWeekDialog = (coach: CoachSummary, week: WeekBreakdown) => {
     if (!coach.employmentType || week.payableEntries.length === 0) return
     setCloseTarget({ coach, week })
@@ -527,10 +534,19 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
               className="pl-10"
               placeholder="ค้นหาโค้ช, สาขา, คอร์ส..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setPage(1)
+              }}
             />
           </div>
-          <Select value={String(viewMonth)} onValueChange={(value) => setViewMonth(Number(value))}>
+          <Select
+            value={String(viewMonth)}
+            onValueChange={(value) => {
+              setViewMonth(Number(value))
+              setPage(1)
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -540,7 +556,13 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
               ))}
             </SelectContent>
           </Select>
-          <Select value={String(viewYear)} onValueChange={(value) => setViewYear(Number(value))}>
+          <Select
+            value={String(viewYear)}
+            onValueChange={(value) => {
+              setViewYear(Number(value))
+              setPage(1)
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -550,7 +572,13 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterEmployment} onValueChange={setFilterEmployment}>
+          <Select
+            value={filterEmployment}
+            onValueChange={(value) => {
+              setFilterEmployment(value)
+              setPage(1)
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
@@ -561,7 +589,13 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select
+            value={filterStatus}
+            onValueChange={(value) => {
+              setFilterStatus(value)
+              setPage(1)
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="ทุกสถานะ" />
             </SelectTrigger>
@@ -587,12 +621,24 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
           </CardContent>
         </Card>
       ) : (
-        <CoachPayrollSummaryTable
-          coaches={coachSummaries}
-          teachingRules={teachingRules}
-          selectedCoachId={selectedCoachId}
-          onSelectCoach={setSelectedCoachId}
-        />
+        <div className="space-y-3">
+          <CoachPayrollSummaryTable
+            coaches={pagedCoachSummaries}
+            teachingRules={teachingRules}
+            selectedCoachId={selectedCoachId}
+            onSelectCoach={setSelectedCoachId}
+          />
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={coachSummaries.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value)
+              setPage(1)
+            }}
+          />
+        </div>
       )}
 
       <Sheet open={Boolean(selectedCoach)} onOpenChange={(open) => !open && setSelectedCoachId(null)}>

@@ -315,7 +315,7 @@ Notes:
       - [x] High-volume UX pass: changed the review page from long stacked cards into a compact work queue with detail panel and pagination.
       - [x] Admin Ranking image runtime error from DiceBear seed avatars fixed by adding `api.dicebear.com` to the Next image allowlist.
       - [x] Admin Payroll high-volume UX pass: changed the long all-coach card list into a summary table with detail drawer, and replaced the weekly-close `window.prompt` with an app dialog.
-  - [ ] 15.3.3 Admin List UX Scalability Pass
+  - [x] 15.3.3 Admin List UX Scalability Pass
     - Do this before closing Coach/Admin QA and before starting User flow, because Admin must monitor Coach workflow at realistic volume.
     - Goal: remove long endless Admin lists where data can grow daily or monthly; use compact queue/table, filters, pagination, and detail drawer/dialog instead.
     - Keep already-approved pages stable. Do not redesign pages that were recently accepted unless a real bug appears.
@@ -335,6 +335,17 @@ Notes:
       - Replace remaining browser-native `confirm` with app dialog.
     - Later pass: add pagination/page-size to Admin users, coaches, complaints, and other table-like pages if realistic data volume makes them too long.
     - Verification required after each batch: `npm run check:mojibake`, `npm run build`, and smoke test the touched Admin pages after restarting/clearing stale Next dev cache when needed.
+    - Implementation status on 2026-05-18:
+      - [x] Added shared Admin `ListPagination` control for consistent page-size and next/previous behavior.
+      - [x] `/admin/coach-checkins` now defaults to week scope, shows KPI/status summary, coach summary, abnormal-first rows, filters, pagination, and evidence detail dialog.
+      - [x] `/admin/logs` now uses compact audit table, filters, pagination, and JSON detail dialog instead of endless cards.
+      - [x] `/admin/notifications` inbox and history now paginate separately.
+      - [x] `/admin/coupons` now paginates coupon cards while keeping existing detail/edit flow intact.
+      - [x] `/admin/finance` manual expenses now paginate and delete through an app dialog instead of browser-native confirm.
+      - [x] Added pagination/page-size to `/admin/payments`, `/admin/users`, `/admin/coaches`, `/admin/complaints`, and `/admin/branches`.
+      - [x] Verified `npm run check:mojibake`, `npm run build`, and HTTP smoke checks for touched Admin pages.
+      - [x] Follow-up: added the same pagination/page-size pattern to `/admin/ranking`, `/admin/makeup`, and `/admin/payroll` where realistic data volume can still create very long pages.
+      - [x] Follow-up: added `/admin/payments/settings` for bank transfer display data shown to users on slip upload, with a clear warning that the displayed account must match SlipOK.
   - [x] 15.4 Coach Notifications / Reminders
     - [x] Notify Coach when assigned to a teaching slot/group.
     - [x] Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.

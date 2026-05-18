@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtTime } from '@/lib/utils'
 import { getKidsGroupTotal, getAdultGroupTotal } from '@/lib/pricing'
+import { hasPaymentTransferSettings, type PaymentTransferSettings } from '@/lib/payment-settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -132,6 +133,7 @@ interface HistoryClientProps {
   bookingChildNamesMap?: Record<string, string[]>
   bookingSessionsMap?: Record<string, SessionDetail[]>
   couponUsageMap?: Record<string, CouponUsageDetail[]>
+  paymentTransferSettings?: PaymentTransferSettings
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -159,7 +161,7 @@ function mutationTable(supabase: ReturnType<typeof createClient>, tableName: str
   return supabase.from(tableName) as unknown as MutationTable
 }
 
-export function HistoryClient({ bookings, payments, userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {} }: HistoryClientProps) {
+export function HistoryClient({ bookings, payments, userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {}, paymentTransferSettings }: HistoryClientProps) {
   const router = useRouter()
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [pickDatesOpen, setPickDatesOpen] = useState(false)
@@ -180,6 +182,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
   const [alertDesc, setAlertDesc] = useState('')
   const [alertAction, setAlertAction] = useState<(() => void) | null>(null)
   const [alertVariant, setAlertVariant] = useState<'danger' | 'warning'>('danger')
+  const showPaymentTransferSettings = paymentTransferSettings && hasPaymentTransferSettings(paymentTransferSettings)
 
   const showConfirm = useCallback((title: string, desc: string, action: () => void, variant: 'danger' | 'warning' = 'danger') => {
     setAlertTitle(title)
@@ -767,12 +770,24 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
               </div>
             )}
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-              <p className="font-medium text-blue-700 mb-2">ข้อมูลการโอนเงิน (ทดสอบระบบ)</p>
-              <p className="text-blue-600">ธนาคาร: กสิกรไทย</p>
-              <p className="text-blue-600">เลขบัญชี: 136-1-188736</p>
-              <p className="text-blue-600">ชื่อบัญชี: ชนินทร์ พรมฤทธิ์</p>
-            </div>
+            {showPaymentTransferSettings && paymentTransferSettings ? (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm">
+                <p className="mb-2 font-medium text-blue-700">ข้อมูลการโอนเงิน</p>
+                {paymentTransferSettings.bankName && <p className="text-blue-600">ธนาคาร: {paymentTransferSettings.bankName}</p>}
+                {paymentTransferSettings.accountNumber && <p className="text-blue-600">เลขบัญชี: {paymentTransferSettings.accountNumber}</p>}
+                {paymentTransferSettings.accountName && <p className="text-blue-600">ชื่อบัญชี: {paymentTransferSettings.accountName}</p>}
+                {paymentTransferSettings.branchName && <p className="text-blue-600">สาขาบัญชี: {paymentTransferSettings.branchName}</p>}
+                {paymentTransferSettings.promptPay && <p className="text-blue-600">PromptPay: {paymentTransferSettings.promptPay}</p>}
+                {paymentTransferSettings.instructions && <p className="mt-2 text-blue-700">{paymentTransferSettings.instructions}</p>}
+                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
+                  กรุณาโอนเข้าบัญชีที่แสดงเท่านั้น เลขบัญชีนี้ต้องตรงกับบัญชีที่ระบบ SlipOK ใช้ตรวจสอบ
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                ยังไม่ได้ตั้งค่าข้อมูลบัญชีรับโอน กรุณาติดต่อเจ้าหน้าที่ก่อนแนบสลิป
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="slip-upload">อัปโหลดสลิป</Label>

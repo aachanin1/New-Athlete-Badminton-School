@@ -8,6 +8,16 @@ import { Building2, CalendarClock, CheckCircle2, Clock, Loader2, Plus, Power, Se
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -107,6 +117,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
   })
   const [saving, setSaving] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [templateToDelete, setTemplateToDelete] = useState<ScheduleTemplateData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -237,7 +248,6 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
   }
 
   const deleteTemplate = async (templateId: string) => {
-    if (!confirm('ลบรอบเรียนนี้ใช่ไหม? การจองเดิมจะไม่ถูกลบ')) return
     setUpdatingId(templateId)
     setError(null)
     setSuccess(null)
@@ -246,6 +256,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
       const response = await fetch(`/api/admin/schedule-templates?id=${templateId}`, { method: 'DELETE' })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'ลบรอบเรียนไม่สำเร็จ')
+      setTemplateToDelete(null)
       router.refresh()
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'ลบรอบเรียนไม่สำเร็จ')
@@ -554,7 +565,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
                                     variant="outline"
                                     size="icon"
                                     className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                    onClick={() => deleteTemplate(template.id)}
+                                    onClick={() => setTemplateToDelete(template)}
                                     disabled={updatingId === template.id}
                                     aria-label="ลบรอบเรียน"
                                   >
@@ -574,6 +585,43 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={Boolean(templateToDelete)} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
+        <AlertDialogContent className="max-w-md rounded-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#153c85]">ลบรอบเรียนประจำนี้?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ระบบจะลบเฉพาะรอบเรียนประจำนี้ การจองเดิมที่เกิดขึ้นแล้วจะไม่ถูกลบ
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {templateToDelete && (
+            <div className="rounded-lg border bg-gray-50 p-3 text-sm">
+              <p className="font-semibold text-gray-900">{templateToDelete.branch_name}</p>
+              <p className="mt-1 text-gray-600">
+                {fmtTime(templateToDelete.start_time)} - {fmtTime(templateToDelete.end_time)} · {templateToDelete.course_type_name}
+              </p>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(updatingId)}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              disabled={!templateToDelete || updatingId === templateToDelete.id}
+              onClick={(event) => {
+                event.preventDefault()
+                if (templateToDelete) void deleteTemplate(templateToDelete.id)
+              }}
+            >
+              {templateToDelete && updatingId === templateToDelete.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              ลบรอบเรียน
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

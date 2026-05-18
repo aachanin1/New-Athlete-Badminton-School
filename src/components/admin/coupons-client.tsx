@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   AlertCircle,
   Banknote,
@@ -124,6 +125,8 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
   const [form, setForm] = useState<CouponFormState>(emptyForm)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
 
   const stats = useMemo(() => {
     const statusCounts = coupons.reduce<Record<CouponStatus, number>>((map, coupon) => {
@@ -150,6 +153,9 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
       return coupon.code.toLowerCase().includes(q) || coupon.created_by_name.toLowerCase().includes(q)
     })
   }, [coupons, filterStatus, search])
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const pagedCoupons = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const updateForm = (patch: Partial<CouponFormState>) => setForm((current) => ({ ...current, ...patch }))
 
@@ -328,9 +334,9 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
         <CardContent className="grid gap-3 p-4 md:grid-cols-[minmax(240px,1fr)_180px_auto] md:items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input className="pl-10" placeholder="ค้นหารหัสคูปองหรือผู้สร้าง..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <Input className="pl-10" placeholder="ค้นหารหัสคูปองหรือผู้สร้าง..." value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} />
           </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); setPage(1) }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกสถานะ</SelectItem>
@@ -354,7 +360,7 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
         </Card>
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">
-          {filtered.map((coupon) => {
+          {pagedCoupons.map((coupon) => {
             const status = getCouponStatus(coupon)
             const meta = STATUS_META[status]
             const isAutoClosed = status === 'expired' || status === 'maxed'
@@ -423,6 +429,18 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
             )
           })}
         </div>
+      )}
+      {filtered.length > 0 && (
+        <Card className="overflow-hidden border-gray-200">
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[6, 12, 24, 48]}
+          />
+        </Card>
       )}
 
       <Dialog open={formOpen} onOpenChange={(open) => { if (!loading) setFormOpen(open) }}>

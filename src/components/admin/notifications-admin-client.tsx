@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { ListPagination } from '@/components/admin/list-pagination'
 import type { NotificationType, UserRole } from '@/types/database'
 
 interface NotificationData {
@@ -152,6 +153,10 @@ export function NotificationsAdminClient({
   const [loading, setLoading] = useState(false)
   const [markingId, setMarkingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [inboxPage, setInboxPage] = useState(1)
+  const [inboxPageSize, setInboxPageSize] = useState(15)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyPageSize, setHistoryPageSize] = useState(15)
 
   const [targetMode, setTargetMode] = useState('students')
   const [formUserId, setFormUserId] = useState('')
@@ -187,6 +192,11 @@ export function NotificationsAdminClient({
       ].some((value) => value.toLowerCase().includes(query))
     })
   }, [filterAudience, filterType, notifications, search])
+
+  const safeInboxPage = Math.min(inboxPage, Math.max(1, Math.ceil(adminInbox.length / inboxPageSize)))
+  const pagedAdminInbox = adminInbox.slice((safeInboxPage - 1) * inboxPageSize, safeInboxPage * inboxPageSize)
+  const safeHistoryPage = Math.min(historyPage, Math.max(1, Math.ceil(filteredNotifications.length / historyPageSize)))
+  const pagedHistory = filteredNotifications.slice((safeHistoryPage - 1) * historyPageSize, safeHistoryPage * historyPageSize)
 
   const openNew = () => {
     setError(null)
@@ -447,8 +457,20 @@ export function NotificationsAdminClient({
             </Card>
           ) : (
             <div className="space-y-2">
-              {adminInbox.map((notification) => renderNotification(notification, true))}
+              {pagedAdminInbox.map((notification) => renderNotification(notification, true))}
             </div>
+          )}
+          {adminInbox.length > 0 && (
+            <Card className="overflow-hidden border-slate-200">
+              <ListPagination
+                page={safeInboxPage}
+                pageSize={inboxPageSize}
+                total={adminInbox.length}
+                onPageChange={setInboxPage}
+                onPageSizeChange={setInboxPageSize}
+                pageSizeOptions={[10, 15, 25]}
+              />
+            </Card>
           )}
         </TabsContent>
 
@@ -485,12 +507,18 @@ export function NotificationsAdminClient({
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => {
+                      setSearch(event.target.value)
+                      setHistoryPage(1)
+                    }}
                     placeholder="ค้นหาหัวข้อ, ข้อความ, ผู้รับ..."
                     className="pl-10"
                   />
                 </div>
-                <Select value={filterType} onValueChange={setFilterType}>
+                <Select value={filterType} onValueChange={(value) => {
+                  setFilterType(value)
+                  setHistoryPage(1)
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">ทุกประเภท</SelectItem>
@@ -499,7 +527,10 @@ export function NotificationsAdminClient({
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={filterAudience} onValueChange={setFilterAudience}>
+                <Select value={filterAudience} onValueChange={(value) => {
+                  setFilterAudience(value)
+                  setHistoryPage(1)
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">ผู้รับทั้งหมด</SelectItem>
@@ -520,8 +551,20 @@ export function NotificationsAdminClient({
             </Card>
           ) : (
             <div className="space-y-2">
-              {filteredNotifications.map((notification) => renderNotification(notification, true))}
+              {pagedHistory.map((notification) => renderNotification(notification, true))}
             </div>
+          )}
+          {filteredNotifications.length > 0 && (
+            <Card className="overflow-hidden border-slate-200">
+              <ListPagination
+                page={safeHistoryPage}
+                pageSize={historyPageSize}
+                total={filteredNotifications.length}
+                onPageChange={setHistoryPage}
+                onPageSizeChange={setHistoryPageSize}
+                pageSizeOptions={[10, 15, 25, 50]}
+              />
+            </Card>
           )}
           <p className="text-center text-xs text-slate-400">
             แสดง {filteredNotifications.length} จาก {notifications.length} รายการ

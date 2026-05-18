@@ -34,7 +34,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: 'branches', href: '/admin/branches', label: 'จัดการสาขา', description: 'ดูสถานะสาขา โค้ช และยอดจองรายสาขา' },
   { key: 'schedules', href: '/admin/schedules', label: 'ตารางเรียน', description: 'ดูตารางเรียนและรอบที่มีผู้จอง' },
   { key: 'schedule_templates', href: '/admin/schedule-templates', label: 'รอบเรียนประจำ', description: 'ตั้งค่ารอบเรียนหลักของแต่ละสาขา', superAdminOnly: true },
-  { key: 'users', href: '/admin/users', label: 'จัดการนักเรียน/ผู้ปกครอง', description: 'ดูข้อมูลผู้เรียนและการมอบหมายโค้ช' },
+  { key: 'users', href: '/admin/users', label: 'จัดการข้อมูลผู้ใช้', description: 'ดูข้อมูลผู้ใช้งานทั้งหมด' },
   { key: 'ranking', href: '/admin/ranking', label: 'อันดับนักเรียน', description: 'ดู Ranking จาก Level ล่าสุดที่ Coach ประเมิน' },
   { key: 'makeup', href: '/admin/makeup', label: 'วันชดเชย', description: 'ดูแลและจัดการสิทธิ์ชดเชย' },
   { key: 'coaches', href: '/admin/coaches', label: 'จัดการโค้ช', description: 'ดูข้อมูลโค้ชและสาขาที่รับผิดชอบ' },

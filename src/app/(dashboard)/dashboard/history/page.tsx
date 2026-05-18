@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { HistoryClient } from '@/components/dashboard/history-client'
+import {
+  PAYMENT_TRANSFER_SETTING_KEY,
+  normalizePaymentTransferSettings,
+} from '@/lib/payment-settings'
 
 interface HistoryBookingRow {
   id: string
@@ -109,6 +113,12 @@ export default async function HistoryPage() {
 
   const payments = paymentsResult.data || []
 
+  const { data: paymentSetting } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', PAYMENT_TRANSFER_SETTING_KEY)
+    .maybeSingle() as unknown as { data: { value: unknown } | null }
+
   const bookingIds = bookings.map((booking) => booking.id)
   let couponUsageMap: Record<string, CouponUsageRow[]> = {}
 
@@ -164,6 +174,7 @@ export default async function HistoryPage() {
         bookingChildNamesMap={bookingChildNamesMap}
         bookingSessionsMap={bookingSessionsMap}
         couponUsageMap={couponUsageMap}
+        paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
       />
     </div>
   )

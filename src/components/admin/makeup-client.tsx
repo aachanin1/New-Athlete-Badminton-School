@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ListPagination } from '@/components/admin/list-pagination'
 import { DAY_LABELS } from '@/lib/branch-schedules'
 import { getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import {
@@ -203,6 +204,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
   const [search, setSearch] = useState('')
   const [filterBranch, setFilterBranch] = useState('all')
   const [filterType, setFilterType] = useState('actionable')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -321,6 +324,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
     makeups: monthGroups.filter((group) => group.hasMakeup).length,
     learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
   }), [monthGroups])
+
+  const totalPages = Math.max(1, Math.ceil(learnerGroups.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pagedLearnerGroups = learnerGroups.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates), [branches, scheduleTemplates, selectedMonth])
   const selectedDay = useMemo(
@@ -466,10 +473,19 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
               className="pl-10"
               placeholder="ค้นหาผู้เรียน, ผู้ปกครอง, สาขา, เดือน..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setPage(1)
+              }}
             />
           </div>
-          <Select value={filterBranch} onValueChange={setFilterBranch}>
+          <Select
+            value={filterBranch}
+            onValueChange={(value) => {
+              setFilterBranch(value)
+              setPage(1)
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="ทุกสาขา" />
             </SelectTrigger>
@@ -480,7 +496,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterType} onValueChange={setFilterType}>
+          <Select
+            value={filterType}
+            onValueChange={(value) => {
+              setFilterType(value)
+              setPage(1)
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="สถานะ" />
             </SelectTrigger>
@@ -505,7 +527,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
         </Card>
       ) : (
         <div className="space-y-3">
-          {learnerGroups.map((group) => (
+          {pagedLearnerGroups.map((group) => (
             <Card key={group.key} className="border-gray-200">
               <CardContent className="p-4">
                 <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between">
@@ -579,6 +601,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
               </CardContent>
             </Card>
           ))}
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={learnerGroups.length}
+            onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value)
+              setPage(1)
+            }}
+          />
         </div>
       )}
 

@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ListPagination } from '@/components/admin/list-pagination'
 import type { UserRole } from '@/types/database'
 
 interface ChildInfo {
@@ -103,6 +104,8 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
   const [loadingAction, setLoadingAction] = useState<'profile' | 'role' | 'password' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
 
   const isSuperAdmin = currentAdminRole === 'super_admin'
 
@@ -127,6 +130,9 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
       ].some((value) => value.toLowerCase().includes(q))
     })
   }, [users, search, filterRole])
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const pagedUsers = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const stats = useMemo(() => {
     const parentUsers = users.filter((user) => user.role === 'user' && user.children.length > 0)
@@ -373,13 +379,22 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
               <Input
                 placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร, ชื่อลูก..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
                 className="pl-10"
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select value={filterRole} onValueChange={setFilterRole}>
+              <Select
+                value={filterRole}
+                onValueChange={(value) => {
+                  setFilterRole(value)
+                  setPage(1)
+                }}
+              >
                 <SelectTrigger className="w-full sm:w-52">
                   <SelectValue placeholder="ทุก role" />
                 </SelectTrigger>
@@ -426,7 +441,7 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
           </div>
 
           <div className="divide-y">
-            {filtered.map((user) => {
+            {pagedUsers.map((user) => {
               const roleInfo = ROLE_LABELS[user.role]
               const isExpanded = expandedUser === user.id
               const canManage = canManageUser(user)
@@ -566,6 +581,16 @@ export function UsersClient({ users, currentAdminRole }: UsersClientProps) {
               )
             })}
           </div>
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize)
+              setPage(1)
+            }}
+          />
         </div>
       )}
 

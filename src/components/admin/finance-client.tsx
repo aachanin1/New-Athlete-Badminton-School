@@ -6,10 +6,21 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   Banknote,
   Building2,
@@ -140,6 +151,9 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
   })
   const [isSavingExpense, setIsSavingExpense] = useState(false)
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null)
+  const [expenseToDelete, setExpenseToDelete] = useState<ExpenseData | null>(null)
+  const [expensePage, setExpensePage] = useState(1)
+  const [expensePageSize, setExpensePageSize] = useState(10)
   const [expenseError, setExpenseError] = useState<string | null>(null)
 
   const periodLabel = viewMode === 'month'
@@ -291,6 +305,15 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
     return Math.max(...values, 1)
   }, [finance.byMonth])
 
+  const safeExpensePage = Math.min(
+    expensePage,
+    Math.max(1, Math.ceil(filteredExpenses.length / expensePageSize))
+  )
+  const pagedExpenses = filteredExpenses.slice(
+    (safeExpensePage - 1) * expensePageSize,
+    safeExpensePage * expensePageSize
+  )
+
   const handleCreateExpense = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setExpenseError(null)
@@ -321,7 +344,6 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
   }
 
   const handleDeleteExpense = async (expenseId: string) => {
-    if (!confirm('ลบรายการรายจ่ายนี้ใช่ไหม?')) return
     setExpenseError(null)
     setDeletingExpenseId(expenseId)
 
@@ -329,6 +351,7 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
       const response = await fetch(`/api/admin/finance-expenses?id=${expenseId}`, { method: 'DELETE' })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'ลบรายจ่ายไม่สำเร็จ')
+      setExpenseToDelete(null)
       router.refresh()
     } catch (error) {
       setExpenseError(error instanceof Error ? error.message : 'ลบรายจ่ายไม่สำเร็จ')
@@ -576,7 +599,7 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
               <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">ยังไม่มีรายจ่ายที่บันทึกในช่วงนี้</div>
             ) : (
               <div className="space-y-2">
-                {filteredExpenses.map((expense) => (
+                {pagedExpenses.map((expense) => (
                   <div key={expense.id} className="flex flex-col gap-3 rounded-lg border bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -594,7 +617,7 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
                         variant="outline"
                         size="icon"
                         className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleDeleteExpense(expense.id)}
+                        onClick={() => setExpenseToDelete(expense)}
                         disabled={deletingExpenseId === expense.id}
                         aria-label="ลบรายจ่าย"
                       >
@@ -603,6 +626,16 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
                     </div>
                   </div>
                 ))}
+                <ListPagination
+                  page={safeExpensePage}
+                  pageSize={expensePageSize}
+                  total={filteredExpenses.length}
+                  onPageChange={setExpensePage}
+                  onPageSizeChange={(nextPageSize) => {
+                    setExpensePageSize(nextPageSize)
+                    setExpensePage(1)
+                  }}
+                />
               </div>
             )}
 
@@ -776,6 +809,45 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={Boolean(expenseToDelete)} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
+        <AlertDialogContent className="max-w-md rounded-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#153c85]">ลบรายจ่ายนี้?</AlertDialogTitle>
+            <AlertDialogDescription>
+              รายการนี้จะถูกลบออกจากภาพรวมรายรับ-รายจ่ายของช่วงเวลาที่เลือก แต่จะไม่กระทบข้อมูลการจ่ายโค้ชหรือประวัติ payment
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {expenseToDelete && (
+            <div className="rounded-lg border bg-gray-50 p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-semibold text-gray-900">{expenseToDelete.category}</span>
+                <span className="font-bold text-red-600">฿{formatNumber(expenseToDelete.amount)}</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">{formatDate(expenseToDelete.expense_date)}</p>
+              {expenseToDelete.description && <p className="mt-2 line-clamp-3 text-gray-600">{expenseToDelete.description}</p>}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(deletingExpenseId)}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              disabled={!expenseToDelete || deletingExpenseId === expenseToDelete.id}
+              onClick={(event) => {
+                event.preventDefault()
+                if (expenseToDelete) void handleDeleteExpense(expenseToDelete.id)
+              }}
+            >
+              {expenseToDelete && deletingExpenseId === expenseToDelete.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              ลบรายจ่าย
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

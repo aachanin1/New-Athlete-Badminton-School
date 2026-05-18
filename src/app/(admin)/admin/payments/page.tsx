@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { PaymentsClient } from '@/components/admin/payments-client'
+import {
+  PAYMENT_TRANSFER_SETTING_KEY,
+  normalizePaymentTransferSettings,
+} from '@/lib/payment-settings'
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected'
 
@@ -64,6 +68,12 @@ export default async function PaymentsPage() {
     }, {})
   }
 
+  const { data: paymentSetting } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', PAYMENT_TRANSFER_SETTING_KEY)
+    .maybeSingle() as unknown as { data: { value: unknown } | null }
+
   // Transform data
   const paymentList = (payments || []).map((p) => ({
     id: p.id,
@@ -88,5 +98,10 @@ export default async function PaymentsPage() {
     verified_by_name: p.verified_by ? (verifierMap[p.verified_by] || null) : null,
   }))
 
-  return <PaymentsClient payments={paymentList} />
+  return (
+    <PaymentsClient
+      payments={paymentList}
+      paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
+    />
+  )
 }

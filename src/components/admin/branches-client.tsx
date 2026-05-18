@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   AlertCircle,
   Building2,
@@ -59,6 +60,8 @@ export function BranchesClient({ branches }: BranchesClientProps) {
   const [loading, setLoading] = useState(false)
   const [isNew, setIsNew] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
 
   const stats = useMemo(() => {
     const activeBranches = branches.filter((branch) => branch.is_active)
@@ -94,6 +97,9 @@ export function BranchesClient({ branches }: BranchesClientProps) {
       ].some((value) => value.toLowerCase().includes(q))
     })
   }, [branches, filterActive, search])
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const pagedBranches = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const openEdit = (branch: BranchData) => {
     setError(null)
@@ -234,11 +240,20 @@ export function BranchesClient({ branches }: BranchesClientProps) {
               className="h-10 pl-10"
               placeholder="ค้นหาชื่อสาขา, slug, ที่อยู่..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setPage(1)
+              }}
             />
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Select value={filterActive} onValueChange={setFilterActive}>
+            <Select
+              value={filterActive}
+              onValueChange={(value) => {
+                setFilterActive(value)
+                setPage(1)
+              }}
+            >
               <SelectTrigger className="h-10 w-full sm:w-[190px]">
                 <SelectValue placeholder="สถานะ" />
               </SelectTrigger>
@@ -276,7 +291,7 @@ export function BranchesClient({ branches }: BranchesClientProps) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((branch) => (
+                pagedBranches.map((branch) => (
                   <tr key={branch.id} className="bg-white align-top hover:bg-gray-50/70">
                     <td className="px-4 py-4">
                       <div className="flex items-start gap-3">
@@ -340,6 +355,18 @@ export function BranchesClient({ branches }: BranchesClientProps) {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize)
+              setPage(1)
+            }}
+          />
+        )}
       </Card>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

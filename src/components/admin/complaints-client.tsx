@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ListPagination } from '@/components/admin/list-pagination'
 
 type ComplaintStatus = 'open' | 'in_progress' | 'resolved'
 
@@ -89,6 +90,8 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
   const [adminNote, setAdminNote] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -107,6 +110,9 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
       ].some((value) => value.toLowerCase().includes(query))
     })
   }, [complaints, filterStatus, search])
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const pagedComplaints = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const stats = useMemo(() => ({
     total: complaints.length,
@@ -207,12 +213,21 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
                 placeholder="ค้นหาหัวข้อ รายละเอียด ผู้แจ้ง สาขา หรือบันทึกแอดมิน..."
                 className="pl-10"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select
+              value={filterStatus}
+              onValueChange={(value) => {
+                setFilterStatus(value)
+                setPage(1)
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="ทุกสถานะ" />
               </SelectTrigger>
@@ -246,7 +261,7 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
             </div>
 
             <div className="divide-y">
-              {filtered.map((complaint) => {
+              {pagedComplaints.map((complaint) => {
                 const status = STATUS_CONFIG[complaint.status]
                 const StatusIcon = status.icon
 
@@ -318,6 +333,16 @@ export function ComplaintsClient({ complaints }: ComplaintsClientProps) {
                 )
               })}
             </div>
+            <ListPagination
+              page={safePage}
+              pageSize={pageSize}
+              total={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize)
+                setPage(1)
+              }}
+            />
           </CardContent>
         </Card>
       )}

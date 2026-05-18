@@ -8,6 +8,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ListPagination } from '@/components/admin/list-pagination'
+import { PaymentSettingsClient } from '@/components/admin/payment-settings-client'
+import type { PaymentTransferSettings } from '@/lib/payment-settings'
 import {
   AlertTriangle,
   Banknote,
@@ -21,6 +24,7 @@ import {
   ImageIcon,
   Receipt,
   Search,
+  Settings,
   ShieldCheck,
   User,
   XCircle,
@@ -52,6 +56,7 @@ interface PaymentData {
 
 interface PaymentsClientProps {
   payments: PaymentData[]
+  paymentTransferSettings: PaymentTransferSettings
 }
 
 const STATUS_CONFIG: Record<PaymentData['status'], { label: string; tone: string; icon: LucideIcon; help: string }> = {
@@ -118,14 +123,17 @@ function getShortId(id: string) {
   return id.length > 10 ? `${id.slice(0, 8)}...` : id
 }
 
-export function PaymentsClient({ payments }: PaymentsClientProps) {
+export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsClientProps) {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [detailPayment, setDetailPayment] = useState<PaymentData | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [slipOpen, setSlipOpen] = useState(false)
+  const [paymentSettingsOpen, setPaymentSettingsOpen] = useState(false)
   const [slipUrl, setSlipUrl] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -144,6 +152,9 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
       ].some((value) => value.toLowerCase().includes(q))
     })
   }, [payments, search, filterStatus])
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const pagedPayments = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const stats = useMemo(() => {
     const approved = payments.filter((payment) => payment.status === 'approved')
@@ -192,6 +203,13 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
           รายการที่ SlipOK ผ่านจะยืนยัน booking อัตโนมัติ
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setPaymentSettingsOpen(true)}>
+            <Settings className="mr-2 h-4 w-4" />
+            ตั้งค่าการชำระเงิน
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
@@ -250,13 +268,22 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
               <Input
                 placeholder="ค้นหาชื่อ, อีเมล, สาขา, payment id, booking id..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
                 className="pl-10"
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <Select
+                value={filterStatus}
+                onValueChange={(value) => {
+                  setFilterStatus(value)
+                  setPage(1)
+                }}
+              >
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="ทุกสถานะ" />
                 </SelectTrigger>
@@ -295,7 +322,7 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
           </div>
 
           <div className="divide-y">
-            {filtered.map((payment) => {
+            {pagedPayments.map((payment) => {
               const statusCfg = STATUS_CONFIG[payment.status]
               const StatusIcon = statusCfg.icon
               const source = getVerificationSource(payment)
@@ -378,8 +405,27 @@ export function PaymentsClient({ payments }: PaymentsClientProps) {
               )
             })}
           </div>
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize)
+              setPage(1)
+            }}
+          />
         </div>
       )}
+
+      <Dialog open={paymentSettingsOpen} onOpenChange={setPaymentSettingsOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">ตั้งค่าการชำระเงิน</DialogTitle>
+          </DialogHeader>
+          <PaymentSettingsClient settings={paymentTransferSettings} compact />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   StudentAchievementManager,
   StudentAchievementPills,
@@ -176,6 +177,8 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
   const [activeTab, setActiveTab] = useState<LearnerTab>('kids')
   const [selectedBranchId, setSelectedBranchId] = useState('all')
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [managingStudent, setManagingStudent] = useState<RankingStudent | null>(null)
 
   const activeStudents = activeTab === 'kids' ? kids : adults
@@ -201,17 +204,34 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
   const branchTop = selectedBranchId === 'all'
     ? overallTop
     : activeStudents.filter((student) => student.branchIds.includes(selectedBranchId))[0]
+  const totalPages = Math.max(1, Math.ceil(branchStudents.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pagedStudents = branchStudents.slice((safePage - 1) * pageSize, safePage * pageSize)
+
+  const resetPaging = () => setPage(1)
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as LearnerTab)}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value as LearnerTab)
+          resetPaging()
+        }}
+      >
         <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px] lg:items-center">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="kids">เด็ก ({kids.length})</TabsTrigger>
             <TabsTrigger value="adults">ผู้ใหญ่ ({adults.length})</TabsTrigger>
           </TabsList>
 
-          <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
+          <Select
+            value={selectedBranchId}
+            onValueChange={(value) => {
+              setSelectedBranchId(value)
+              resetPaging()
+            }}
+          >
             <SelectTrigger className="bg-white">
               <SelectValue placeholder="เลือกสาขา" />
             </SelectTrigger>
@@ -223,7 +243,13 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
             </SelectContent>
           </Select>
 
-          <Select value={levelFilter} onValueChange={(value) => setLevelFilter(value as LevelFilter)}>
+          <Select
+            value={levelFilter}
+            onValueChange={(value) => {
+              setLevelFilter(value as LevelFilter)
+              resetPaging()
+            }}
+          >
             <SelectTrigger className="bg-white">
               <SelectValue placeholder="ช่วง Level" />
             </SelectTrigger>
@@ -276,13 +302,27 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
             </CardHeader>
             <CardContent>
               <RankingList
-                students={branchStudents}
+                students={pagedStudents}
                 overallRankMap={overallRankMap}
                 branchRankMap={branchRankMap}
                 selectedBranchId={selectedBranchId}
                 canManageAchievements={canManageAchievements}
                 onManageAchievements={setManagingStudent}
               />
+              {branchStudents.length > 0 && (
+                <div className="mt-4">
+                  <ListPagination
+                    page={safePage}
+                    pageSize={pageSize}
+                    total={branchStudents.length}
+                    onPageChange={setPage}
+                    onPageSizeChange={(value) => {
+                      setPageSize(value)
+                      setPage(1)
+                    }}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -297,13 +337,27 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
             </CardHeader>
             <CardContent>
               <RankingList
-                students={branchStudents}
+                students={pagedStudents}
                 overallRankMap={overallRankMap}
                 branchRankMap={branchRankMap}
                 selectedBranchId={selectedBranchId}
                 canManageAchievements={canManageAchievements}
                 onManageAchievements={setManagingStudent}
               />
+              {branchStudents.length > 0 && (
+                <div className="mt-4">
+                  <ListPagination
+                    page={safePage}
+                    pageSize={pageSize}
+                    total={branchStudents.length}
+                    onPageChange={setPage}
+                    onPageSizeChange={(value) => {
+                      setPageSize(value)
+                      setPage(1)
+                    }}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

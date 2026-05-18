@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   AlertCircle,
   BriefcaseBusiness,
@@ -90,6 +91,8 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
   const [confirmTitle, setConfirmTitle] = useState('')
   const [confirmDesc, setConfirmDesc] = useState('')
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
 
   const stats = useMemo(() => {
     const headCoaches = initialCoaches.filter((coach) => coach.role === 'head_coach')
@@ -125,6 +128,9 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
       ].some((value) => value.toLowerCase().includes(q))
     })
   }, [initialCoaches, search, filterRole])
+
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const pagedCoaches = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const resetForm = () => {
     setFormName('')
@@ -374,12 +380,21 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
               <Input
                 placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร, สาขา..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
                 className="pl-10"
               />
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select value={filterRole} onValueChange={setFilterRole}>
+              <Select
+                value={filterRole}
+                onValueChange={(value) => {
+                  setFilterRole(value)
+                  setPage(1)
+                }}
+              >
                 <SelectTrigger className="w-full sm:w-52">
                   <SelectValue placeholder="ทุก role" />
                 </SelectTrigger>
@@ -424,7 +439,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
           </div>
 
           <div className="divide-y">
-            {filtered.map((coach) => {
+            {pagedCoaches.map((coach) => {
               const roleInfo = ROLE_LABELS[coach.role] || { label: coach.role, badge: 'bg-gray-100 text-gray-700', description: '' }
               const employmentType = normalizeCoachEmploymentType(coach.employment_type)
               const employmentInfo = employmentType ? EMPLOYMENT_LABELS[employmentType] : null
@@ -498,6 +513,16 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
               )
             })}
           </div>
+          <ListPagination
+            page={safePage}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize)
+              setPage(1)
+            }}
+          />
         </div>
       )}
 
