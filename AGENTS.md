@@ -42,6 +42,7 @@ A badminton school management system in Thailand with 3 user portals:
 - **Do not rebuild completed flows from scratch.** Many Admin flows already work. Before editing a User/Coach/Admin flow, inspect the current behavior, preserve confirmed requirements, and make the smallest change that closes the next gap.
 - **Record confirmed requirements in this file when a bug repeats.** This avoids future agents reintroducing old assumptions such as manual payment approval despite SlipOK auto-verification, daily coach check-in instead of per-slot check-in, or stale dev artifacts after build.
 - **Do not let QA loops replace feature completion.** Checking touched flows is good, but the project must keep moving through the main process/function queue in `DEVELOPMENT_TODO.md` under "Phase 2.5 - Admin/System Execution Queue". Finish the next queued item, verify only the affected flow plus obvious regressions, then move to the next item instead of repeatedly redesigning or rechecking already confirmed work.
+- **Do not use browser-native `alert`, `confirm`, or `prompt` for product UI.** Use the project's shadcn/Radix dialog, alert-dialog, form, and toast patterns so typography, spacing, colors, button states, and responsive behavior stay consistent with the design system.
 
 ---
 

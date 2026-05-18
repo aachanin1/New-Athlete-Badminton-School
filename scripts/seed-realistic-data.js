@@ -558,10 +558,98 @@ async function seedBookingsTeachingAndGroups(ids, learnersByBranch, master, star
     const learners = learnersByBranch[slug]
     const branchSlots = []
     programTemplates.push(
-      { coach_id: ids[`head_${slug}`], title: 'Adult group rally control', content: `${SEED_NOTE}: Warm up 10 minutes\nRally control 30 minutes\nServe receive and game pattern 40 minutes\nFeedback 10 minutes`, category: 'adult_group', is_active: true },
-      { coach_id: ids[`full_${slug}`], title: 'Kids beginner footwork', content: `${SEED_NOTE}: Warm up 10 minutes\nBasic footwork ladder 20 minutes\nGrip and clear drill 30 minutes\nLight rally 30 minutes`, category: 'kids_group', is_active: true },
-      { coach_id: ids[`half_${slug}`], title: 'Advanced match pattern', content: `${SEED_NOTE}: Dynamic warm up 10 minutes\nAttack transition drill 35 minutes\nMatch pattern and point play 40 minutes\nReview 10 minutes`, category: 'kids_group', is_active: true },
-      { coach_id: ids[`part_${slug}`], title: 'Private backhand correction', content: `${SEED_NOTE}: Stroke assessment 10 minutes\nBackhand correction 35 minutes\nTarget drill 35 minutes\nHomework 10 minutes`, category: 'private', is_active: true },
+      {
+        coach_id: ids[`head_${slug}`],
+        title: 'ตัวอย่างจริง: ดราฟ ชุด C แข่งขัน',
+        content: `${SEED_NOTE}: 📌 โปรแกรมดราฟ พระราม 2 วันนี้
+ชุด C แข่งขัน เป้าหมาย
+🎯 โปรแกรมเพิ่มเทคนิค และแก้ไขจุดบกพร่องน้องๆ
+
+🟢 เพิ่มเทคนิค
+🔎 เทคนิคหลอกล้องตัดแก้โฟร์ หลอกหน้าไม้
+🟢 เอาเทคนิคที่ฝึกไปข้างต้นไปใช้กับโปรแกรมการเคลื่อนตัว
+🔎 เซฟตัดไม่มีตบ 2/1 50 ลูก ผลัดกัน 3 ชุด
+🟢 เพิ่มลูกบุกให้น้องๆ จะได้มีโอกาสทำคะแนนได้มากขึ้น
+🏀 ตบคมๆ 10 ลูกพัก ข้างละ 4 ชุด อีกข้าง
+🟢 เอาเทคนิคที่ฝึกไปข้างต้นมาใช้กับการเคลื่อนตัวตบเร็ว
+🏀 วิ่งตบคมๆ เร็วๆ 2 มุม 10/8
+🏀 วิ่งตบแย็บ 10/8
+🟢 เอาเทคนิคไปตีโปรแกรม
+🔎 ตบหยอดงัด 10m
+🟢 เพิ่มเทคนิคลูกปั่น
+🏀 ปั่นอากาศ + ปั่นทีละมุม
+🔎 ตบปั่นงัด 10m
+🟢 เพิ่มรายละเอียดเล็กน้อยในการเริ่มคะแนน
+🔎 ฝึกเสิร์ฟหน้าบล็อก เลือกจุด จุดละ 10 ลูก`,
+        category: 'kids_group',
+        is_active: true,
+      },
+      {
+        coach_id: ids[`full_${slug}`],
+        title: 'ตัวอย่างจริง: ดราฟ ชุด C บน/ล่าง',
+        content: `${SEED_NOTE}: 📌 โปรแกรมดราฟ พระราม 2 วันนี้
+
+ชุด C บน / 💥 ล่าง
+- เลือกแก้หลัง เข้ามาวาง ทีละคน ทีละมุม 7m
+💥 วิ่งเซฟแลนดอม ให้ชำนาญขึ้น คนละ 3 นาที
+- เลือกหลังตีทุกเหลี่ยมทีละด้าน 15/5 วนกัน
+💥 ขึ้นเลือก เซฟตรงกันตบเฉียง ทีละมุม 20/4
+- ซ้ำ 4 มุมหน้า 14-2/4 / ซ้ำ 3 แบบ วิ่งคอร์ดก่อน
+- เลือกบุก เลือกบุก เข้ามาแจก เลือกฆ่าเข้ามาซ้ำ วน 20/4 + บุกเร็วๆ 20/4
+ตัด ตัด เข้ามาแจกหยอดงัด ตบเข้าแย็บ
+- ฝึกเปิดเกม อีกคนฝึกแก้ โค้ชเปิดลูกให้ 15/3
+💥 วิ่งแก้โฟร์เซฟ แล้วเข้ากลาง 20/3 + เอาไปใช้จริงเข้ามาแตะกรวย เปลี่ยน แบ็ค
+- ตีเกม`,
+        category: 'kids_group',
+        is_active: true,
+      },
+      {
+        coach_id: ids[`half_${slug}`],
+        title: 'ตัวอย่างจริง: ทีมผู้ใหญ่ ทำแต้ม',
+        content: `${SEED_NOTE}: 📁 โปรแกรมดราฟรอบบ่าย 3 วันนี้
+
+👨 ทีมผู้ใหญ่
+🎯 สอนลูกทำแต้ม ตบ+ดาด+เลี้ยว และทบทวนของเดิม
+✅
+ตีพู่ แบบเซฟ 15/2
+ยืนเซฟกัน 5m
+ตีพู่แบบตบ 15/2 สอนหน้าไม้ สอนตำแหน่งตีหัวลูก
+ตีลมตบ 15/2
+ยืนตบ 20/3
+ตบให้ดราฟรับ 30 ลูก
+วิ่งตบทีละมุม 20/3
+วิ่งคอร์ดหยอด 2 มุม
+ยืนหยอด 20/1
+พลิกเลี้ยวไป ลูก 20/3
+วิ่งเลี้ยว 2 มุม
+วิ่งคอร์ด 3 จังหวะ หลังหน้า เซฟลมเข้ามาเลี้ยว
+ดาด
+ตบเข้ามาดาด`,
+        category: 'adult_group',
+        is_active: true,
+      },
+      {
+        coach_id: ids[`part_${slug}`],
+        title: 'ตัวอย่างจริง: Private เทคนิคทำแต้ม',
+        content: `${SEED_NOTE}: 📌 โปรแกรม Private เทคนิคทำแต้ม
+🎯 เป้าหมาย: เพิ่มเทคนิค แก้จุดบกพร่อง และนำไปใช้ในเกมจริง
+
+🟢 เช็คพื้นฐานหน้าไม้และตำแหน่งตีหัวลูก
+🔎 ตีลมตบ 15/2
+🔎 ยืนตบ 20/3
+🏀 ตบให้โค้ชรับ 30 ลูก
+🟢 ฝึกเคลื่อนตัวเข้าทำแต้ม
+🏀 วิ่งตบทีละมุม 20/3
+🏀 วิ่งคอร์ดหยอด 2 มุม
+🔎 ยืนหยอด 20/1
+🟢 ฝึกเปลี่ยนจังหวะ
+🏀 พลิกเลี้ยวไป ลูก 20/3
+🏀 วิ่งเลี้ยว 2 มุม
+🔎 วิ่งคอร์ด 3 จังหวะ หลังหน้า เซฟลมเข้ามาเลี้ยว
+🟢 ปิดท้ายด้วยตีเกมและ feedback`,
+        category: 'private',
+        is_active: true,
+      },
     )
 
     for (let dayIndex = 0; dayIndex < SEED_DAYS; dayIndex += 1) {

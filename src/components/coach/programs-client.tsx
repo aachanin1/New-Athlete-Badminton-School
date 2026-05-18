@@ -19,6 +19,7 @@ import {
   Plus,
   Send,
   Sparkles,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -26,6 +27,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -70,6 +81,10 @@ interface ProgramsClientProps {
   templates: ProgramTemplate[]
 }
 
+type ConfirmAction =
+  | { type: 'template'; template: ProgramTemplate }
+  | { type: 'draft'; program: ProgramData }
+
 const STATUS_CONFIG: Record<ProgramStatus, { label: string; color: string; icon: LucideIcon }> = {
   draft: { label: 'แบบร่าง', color: 'bg-gray-100 text-gray-600', icon: FileText },
   submitted: { label: 'ส่งแล้ว', color: 'bg-blue-100 text-blue-700', icon: Clock },
@@ -79,19 +94,68 @@ const STATUS_CONFIG: Record<ProgramStatus, { label: string; color: string; icon:
 
 const PROGRAM_PRESETS = [
   {
-    id: 'beginner-footwork',
-    label: 'พื้นฐาน footwork',
-    content: 'Warm up 10 นาที\nFootwork หน้า-หลัง 20 นาที\nจับไม้/ท่ายืน/จังหวะตี 20 นาที\nRally เบา 30 นาที\nสรุปและการบ้าน 10 นาที',
+    id: 'draf-phraram2-competition-technique',
+    label: 'ดราฟ พระราม 2 - ชุด C แข่งขัน',
+    content: `📌 โปรแกรมดราฟ พระราม 2 วันนี้
+ชุด C แข่งขัน เป้าหมาย
+🎯 โปรแกรมเพิ่มเทคนิค และแก้ไขจุดบกพร่องน้องๆ
+
+🟢 เพิ่มเทคนิค
+🔎 เทคนิคหลอกล้องตัดแก้โฟร์ หลอกหน้าไม้
+🟢 เอาเทคนิคที่ฝึกไปข้างต้นไปใช้กับโปรแกรมการเคลื่อนตัว
+🔎 เซฟตัดไม่มีตบ 2/1 50 ลูก ผลัดกัน 3 ชุด
+🟢 เพิ่มลูกบุกให้น้องๆ จะได้มีโอกาสทำคะแนนได้มากขึ้น
+🏀 ตบคมๆ 10 ลูกพัก ข้างละ 4 ชุด อีกข้าง
+🟢 เอาเทคนิคที่ฝึกไปข้างต้นมาใช้กับการเคลื่อนตัวตบเร็ว
+🏀 วิ่งตบคมๆ เร็วๆ 2 มุม 10/8
+🏀 วิ่งตบแย็บ 10/8
+🟢 เอาเทคนิคไปตีโปรแกรม
+🔎 ตบหยอดงัด 10m
+🟢 เพิ่มเทคนิคลูกปั่น
+🏀 ปั่นอากาศ + ปั่นทีละมุม
+🔎 ตบปั่นงัด 10m
+🟢 เพิ่มรายละเอียดเล็กน้อยในการเริ่มคะแนน
+🔎 ฝึกเสิร์ฟหน้าบล็อก เลือกจุด จุดละ 10 ลูก`,
   },
   {
-    id: 'group-rally',
-    label: 'กลุ่ม rally + เกม',
-    content: 'Warm up 10 นาที\nRally คุมจังหวะ 30 นาที\nDrill รับ-ส่งลูกตาม Level 30 นาที\nเกมจำลองสถานการณ์ 30 นาที\nCool down และ feedback 10 นาที',
+    id: 'draf-phraram2-set-c-upper-lower',
+    label: 'ดราฟ พระราม 2 - ชุด C บน/ล่าง',
+    content: `📌 โปรแกรมดราฟ พระราม 2 วันนี้
+
+ชุด C บน / 💥 ล่าง
+- เลือกแก้หลัง เข้ามาวาง ทีละคน ทีละมุม 7m
+💥 วิ่งเซฟแลนดอม ให้ชำนาญขึ้น คนละ 3 นาที
+- เลือกหลังตีทุกเหลี่ยมทีละด้าน 15/5 วนกัน
+💥 ขึ้นเลือก เซฟตรงกันตบเฉียง ทีละมุม 20/4
+- ซ้ำ 4 มุมหน้า 14-2/4 / ซ้ำ 3 แบบ วิ่งคอร์ดก่อน
+- เลือกบุก เลือกบุก เข้ามาแจก เลือกฆ่าเข้ามาซ้ำ วน 20/4 + บุกเร็วๆ 20/4
+ตัด ตัด เข้ามาแจกหยอดงัด ตบเข้าแย็บ
+- ฝึกเปิดเกม อีกคนฝึกแก้ โค้ชเปิดลูกให้ 15/3
+💥 วิ่งแก้โฟร์เซฟ แล้วเข้ากลาง 20/3 + เอาไปใช้จริงเข้ามาแตะกรวย เปลี่ยน แบ็ค
+- ตีเกม`,
   },
   {
-    id: 'private-technique',
-    label: 'Private แก้เทคนิค',
-    content: 'ประเมินท่าตี 10 นาที\nแก้จุดอ่อนหลัก 30 นาที\nDrill เฉพาะบุคคล 40 นาที\nเล่นแต้มพร้อม feedback 30 นาที\nสรุปเป้าหมายครั้งต่อไป 10 นาที',
+    id: 'draf-afternoon-adult-scoring',
+    label: 'รอบบ่าย 3 - ทีมผู้ใหญ่ ทำแต้ม',
+    content: `📁 โปรแกรมดราฟรอบบ่าย 3 วันนี้
+
+👨 ทีมผู้ใหญ่
+🎯 สอนลูกทำแต้ม ตบ+ดาด+เลี้ยว และทบทวนของเดิม
+✅
+ตีพู่ แบบเซฟ 15/2
+ยืนเซฟกัน 5m
+ตีพู่แบบตบ 15/2 สอนหน้าไม้ สอนตำแหน่งตีหัวลูก
+ตีลมตบ 15/2
+ยืนตบ 20/3
+ตบให้ดราฟรับ 30 ลูก
+วิ่งตบทีละมุม 20/3
+วิ่งคอร์ดหยอด 2 มุม
+ยืนหยอด 20/1
+พลิกเลี้ยวไป ลูก 20/3
+วิ่งเลี้ยว 2 มุม
+วิ่งคอร์ด 3 จังหวะ หลังหน้า เซฟลมเข้ามาเลี้ยว
+ดาด
+ตบเข้ามาดาด`,
   },
 ]
 
@@ -132,7 +196,9 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
   const [detailOpen, setDetailOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
   const [detailProgram, setDetailProgram] = useState<ProgramData | null>(null)
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
   const [templateTitle, setTemplateTitle] = useState('')
   const [templateCategory, setTemplateCategory] = useState('')
   const [templateContent, setTemplateContent] = useState('')
@@ -140,6 +206,8 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
   const [scheduleSlotId, setScheduleSlotId] = useState('')
   const [loading, setLoading] = useState(false)
   const [templateLoading, setTemplateLoading] = useState(false)
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
+  const [deletingProgramId, setDeletingProgramId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [templateError, setTemplateError] = useState<string | null>(null)
@@ -149,10 +217,26 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
   const reusablePrograms = useMemo(() => {
     return programs.filter((program) => program.programContent.trim().length > 0).slice(0, 12)
   }, [programs])
+  const programBySlotId = useMemo(() => {
+    const map = new Map<string, ProgramData>()
+    programs.forEach((program) => {
+      if (program.scheduleSlotId) map.set(program.scheduleSlotId, program)
+    })
+    return map
+  }, [programs])
+  const availableSlotsForNewProgram = useMemo(() => {
+    return assignedSlots.filter((slot) => !programBySlotId.has(slot.id))
+  }, [assignedSlots, programBySlotId])
+  const selectableProgramSlots = editingProgramId ? assignedSlots : availableSlotsForNewProgram
+  const selectedProgramForSlot = scheduleSlotId ? programBySlotId.get(scheduleSlotId) : null
+  const blockingProgram = selectedProgramForSlot && selectedProgramForSlot.id !== editingProgramId ? selectedProgramForSlot : null
+  const cannotSubmitProgram = loading || selectableProgramSlots.length === 0 || Boolean(blockingProgram)
+  const confirmBusy = deletingTemplateId !== null || deletingProgramId !== null
 
   const resetProgramForm = () => {
+    setEditingProgramId(null)
     setContent('')
-    setScheduleSlotId(assignedSlots[0]?.id || '')
+    setScheduleSlotId(availableSlotsForNewProgram[0]?.id || '')
     setError(null)
     setSuccess(null)
   }
@@ -184,6 +268,15 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
   const openProgramFromTemplate = (template: ProgramTemplate) => {
     resetProgramForm()
     setContent(template.content)
+    setAddOpen(true)
+  }
+
+  const openEditProgram = (program: ProgramData) => {
+    setEditingProgramId(program.id)
+    setContent(program.programContent)
+    setScheduleSlotId(program.scheduleSlotId || availableSlotsForNewProgram[0]?.id || '')
+    setError(null)
+    setSuccess(null)
     setAddOpen(true)
   }
 
@@ -288,6 +381,36 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
     }
   }
 
+  const handleDeleteTemplate = async (template: ProgramTemplate) => {
+    if (deletingTemplateId || templateLoading) return
+    setConfirmAction({ type: 'template', template })
+  }
+
+  const deleteTemplate = async (template: ProgramTemplate) => {
+    setDeletingTemplateId(template.id)
+    setTemplateError(null)
+    setTemplateSuccess(null)
+
+    try {
+      const response = await fetch(`/api/coach/program-templates?id=${template.id}`, { method: 'DELETE' })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setTemplateError(result?.error || 'ลบ Template ไม่สำเร็จ')
+        return
+      }
+
+      setTemplateList((current) => current.filter((item) => item.id !== template.id))
+      setTemplateSuccess('ลบ Template แล้ว')
+      setConfirmAction(null)
+      router.refresh()
+    } catch {
+      setTemplateError('เกิดข้อผิดพลาด')
+    } finally {
+      setDeletingTemplateId(null)
+    }
+  }
+
   const handleSubmit = async (status: 'draft' | 'submitted') => {
     if (!scheduleSlotId) {
       setError('กรุณาเลือกรอบสอนก่อนบันทึกโปรแกรม')
@@ -299,6 +422,11 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
       return
     }
 
+    if (blockingProgram) {
+      setError('รอบนี้มีโปรแกรมสอนแล้ว กรุณาแก้ไขรายการเดิมแทน')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -306,7 +434,7 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
       const response = await fetch('/api/coach/programs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleSlotId, programContent: content.trim(), status }),
+        body: JSON.stringify({ programId: editingProgramId || undefined, scheduleSlotId, programContent: content.trim(), status }),
       })
       const result = await response.json().catch(() => null)
 
@@ -326,6 +454,44 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDeleteDraft = async (program: ProgramData) => {
+    if (program.status !== 'draft' || deletingProgramId) return
+    setConfirmAction({ type: 'draft', program })
+  }
+
+  const deleteDraft = async (program: ProgramData) => {
+    setDeletingProgramId(program.id)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/coach/programs?id=${program.id}`, { method: 'DELETE' })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setError(result?.error || 'ลบฉบับร่างไม่สำเร็จ')
+        return
+      }
+
+      setConfirmAction(null)
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด')
+    } finally {
+      setDeletingProgramId(null)
+    }
+  }
+
+  const executeConfirmAction = async () => {
+    if (!confirmAction) return
+
+    if (confirmAction.type === 'template') {
+      await deleteTemplate(confirmAction.template)
+      return
+    }
+
+    await deleteDraft(confirmAction.program)
   }
 
   return (
@@ -383,7 +549,7 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
             <div className="rounded-lg border border-dashed p-8 text-center text-gray-400">
               <Library className="mx-auto mb-3 h-10 w-10 opacity-40" />
               <p className="font-medium">ยังไม่มี template ส่วนตัว</p>
-              <p className="mt-1 text-sm">เริ่มจากสร้าง template หรือใช้ preset ตอนส่งโปรแกรมรอบสอนก่อนก็ได้</p>
+              <p className="mt-1 text-sm">เริ่มจากสร้าง template หรือใช้ตัวอย่างโปรแกรมตอนส่งโปรแกรมรอบสอนก่อนก็ได้</p>
             </div>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
@@ -418,6 +584,16 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
                       <Archive className="mr-1 h-4 w-4" />
                       {template.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => handleDeleteTemplate(template)}
+                      disabled={deletingTemplateId === template.id || templateLoading}
+                    >
+                      {deletingTemplateId === template.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+                      ลบ
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -436,13 +612,13 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
       )}
 
       <div>
-        <h2 className="mb-3 text-lg font-bold text-[#153c85]">โปรแกรมที่ส่งแล้ว</h2>
+        <h2 className="mb-3 text-lg font-bold text-[#153c85]">โปรแกรมรอบสอนของฉัน</h2>
         {programs.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-gray-400">
               <FileText className="mx-auto mb-3 h-12 w-12 opacity-40" />
               <p className="font-medium">ยังไม่มีโปรแกรมสอนที่ส่งเข้ารอบจริง</p>
-              <p className="mt-1 text-sm">เลือก template หรือ preset แล้วผูกกับรอบสอนที่ได้รับมอบหมาย</p>
+              <p className="mt-1 text-sm">เลือก template หรือตัวอย่างโปรแกรม แล้วผูกกับรอบสอนที่ได้รับมอบหมาย</p>
             </CardContent>
           </Card>
         ) : (
@@ -472,17 +648,41 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
                         <p className="line-clamp-2 whitespace-pre-wrap text-sm text-gray-700">{program.programContent}</p>
                         {program.notes && <p className="mt-1 text-xs text-orange-500">หมายเหตุ: {program.notes}</p>}
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 shrink-0 p-0"
-                        onClick={() => {
-                          setDetailProgram(program)
-                          setDetailOpen(true)
-                        }}
-                      >
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      </Button>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        {program.status === 'draft' && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => openEditProgram(program)}>
+                              <Edit3 className="mr-1 h-4 w-4" />
+                              แก้ไข
+                            </Button>
+                            <Button size="sm" className="bg-[#2748bf] hover:bg-[#153c85]" onClick={() => openEditProgram(program)}>
+                              <Send className="mr-1 h-4 w-4" />
+                              ตรวจแล้วส่ง
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => handleDeleteDraft(program)}
+                              disabled={deletingProgramId === program.id}
+                            >
+                              {deletingProgramId === program.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+                              ลบ
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            setDetailProgram(program)
+                            setDetailOpen(true)
+                          }}
+                        >
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -542,11 +742,15 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
         </DialogContent>
       </Dialog>
 
-      <Dialog open={addOpen} onOpenChange={(open) => { if (!loading) setAddOpen(open) }}>
+      <Dialog open={addOpen} onOpenChange={(open) => {
+        if (loading) return
+        setAddOpen(open)
+        if (!open) resetProgramForm()
+      }}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#153c85]">ส่งโปรแกรมรอบสอนจริง</DialogTitle>
-            <DialogDescription>เลือก template หรือ preset แล้วปรับรายละเอียดให้ตรงกับรอบสอนที่ได้รับมอบหมาย</DialogDescription>
+            <DialogTitle className="text-[#153c85]">{editingProgramId ? 'แก้ไขฉบับร่างโปรแกรมสอน' : 'ส่งโปรแกรมรอบสอนจริง'}</DialogTitle>
+            <DialogDescription>เลือก template หรือตัวอย่างโปรแกรม แล้วปรับรายละเอียดให้ตรงกับรอบสอนที่ได้รับมอบหมาย</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {error && (
@@ -564,14 +768,26 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
 
             <div className="space-y-2">
               <Label>เลือกรอบสอนของฉัน</Label>
-              <Select value={scheduleSlotId} onValueChange={setScheduleSlotId}>
+              <Select value={scheduleSlotId} onValueChange={setScheduleSlotId} disabled={selectableProgramSlots.length === 0}>
                 <SelectTrigger><SelectValue placeholder="เลือกรอบที่ต้องการส่งโปรแกรม" /></SelectTrigger>
                 <SelectContent>
-                  {assignedSlots.map((slot) => (
+                  {selectableProgramSlots.map((slot) => (
                     <SelectItem key={slot.id} value={slot.id}>{formatSlot(slot)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!editingProgramId && availableSlotsForNewProgram.length === 0 && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  ทุกรอบที่ได้รับมอบหมายมีโปรแกรมสอนแล้ว ถ้าต้องการปรับแก้ให้กดแก้ไขรายการเดิมด้านล่าง
+                </div>
+              )}
+              {blockingProgram && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  รอบนี้มีโปรแกรมสอนแล้ว ไม่สามารถส่งซ้ำได้
+                </div>
+              )}
               {scheduleSlotId && (
                 <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
                   <Layers3 className="mr-1 inline h-3.5 w-3.5" />
@@ -581,7 +797,7 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
             </div>
 
             <div className="space-y-2">
-              <Label>เลือก Template / Preset / โปรแกรมเดิม</Label>
+              <Label>เลือก Template / ตัวอย่างโปรแกรม / โปรแกรมเดิม</Label>
               <Select onValueChange={applyTemplate}>
                 <SelectTrigger><SelectValue placeholder="เลือกเพื่อเติมรายละเอียดอัตโนมัติ" /></SelectTrigger>
                 <SelectContent>
@@ -592,7 +808,7 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
                   ))}
                   {PROGRAM_PRESETS.map((preset) => (
                     <SelectItem key={preset.id} value={`preset:${preset.id}`}>
-                      Preset: {preset.label}
+                      ตัวอย่างโปรแกรม: {preset.label}
                     </SelectItem>
                   ))}
                   {reusablePrograms.map((program) => (
@@ -613,11 +829,11 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
             />
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button variant="outline" className="flex-1" onClick={() => handleSubmit('draft')} disabled={loading}>
+              <Button variant="outline" className="flex-1" onClick={() => handleSubmit('draft')} disabled={cannotSubmitProgram}>
                 <FileText className="mr-1 h-4 w-4" />
                 บันทึกแบบร่าง
               </Button>
-              <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" onClick={() => handleSubmit('submitted')} disabled={loading}>
+              <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" onClick={() => handleSubmit('submitted')} disabled={cannotSubmitProgram}>
                 {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
                 ส่งโปรแกรม
               </Button>
@@ -644,8 +860,9 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
               <p className="text-xs text-gray-400">สร้างเมื่อ: {formatDate(detailProgram.createdAt)}</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => {
+                  resetProgramForm()
                   setContent(detailProgram.programContent)
-                  setScheduleSlotId(detailProgram.scheduleSlotId || assignedSlots[0]?.id || '')
+                  setScheduleSlotId(availableSlotsForNewProgram[0]?.id || '')
                   setDetailOpen(false)
                   setAddOpen(true)
                 }}>
@@ -667,6 +884,37 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(confirmAction)} onOpenChange={(open) => {
+        if (!open && !confirmBusy) setConfirmAction(null)
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#153c85]">
+              {confirmAction?.type === 'template' ? 'ลบ Template นี้?' : 'ลบฉบับร่างนี้?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === 'template'
+                ? `Template "${confirmAction.template.title}" จะถูกลบออกจากคลังของคุณ แต่จะไม่กระทบโปรแกรมรอบสอนที่เคยส่งไปแล้ว`
+                : 'ฉบับร่างนี้จะถูกลบออกจากรายการโปรแกรมรอบสอนของคุณ และไม่สามารถย้อนกลับได้'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmBusy}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              disabled={confirmBusy}
+              onClick={(event) => {
+                event.preventDefault()
+                void executeConfirmAction()
+              }}
+            >
+              {confirmBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              ลบ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -30,6 +30,12 @@ interface InsertedProgramRow {
   id: string
 }
 
+interface ExistingProgramRow {
+  id: string
+  status: ProgramStatus
+  schedule_slot_id: string | null
+}
+
 type ProgramMutationChain = PromiseLike<{ data?: InsertedProgramRow | null; error: DbError | null }> & {
   eq: (column: string, value: string) => ProgramMutationChain
   select: (columns: string) => ProgramMutationChain
@@ -39,6 +45,7 @@ type ProgramMutationChain = PromiseLike<{ data?: InsertedProgramRow | null; erro
 type ProgramMutationTable = {
   update: (values: Record<string, unknown>) => ProgramMutationChain
   insert: (values: Record<string, unknown>) => ProgramMutationChain
+  delete: () => ProgramMutationChain
 }
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
@@ -83,6 +90,40 @@ async function isAssignedToSlot(supabase: ReturnType<typeof createClient>, coach
     .maybeSingle()
 
   return Boolean(legacyAssignment)
+}
+
+async function getOwnedProgram(supabase: ReturnType<typeof createClient>, coach: User, programId: string) {
+  const { data, error } = await supabase
+    .from('teaching_programs')
+    .select('id, status, schedule_slot_id')
+    .eq('id', programId)
+    .eq('coach_id', coach.id)
+    .single() as unknown as { data: ExistingProgramRow | null; error: DbError | null }
+
+  return { data, error }
+}
+
+async function getExistingProgramForSlot(
+  supabase: ReturnType<typeof createClient>,
+  coach: User,
+  scheduleSlotId: string,
+  exceptProgramId?: string,
+) {
+  let query = supabase
+    .from('teaching_programs')
+    .select('id, status, schedule_slot_id')
+    .eq('coach_id', coach.id)
+    .eq('schedule_slot_id', scheduleSlotId)
+
+  if (exceptProgramId) {
+    query = query.neq('id', exceptProgramId)
+  }
+
+  const { data } = await query
+    .limit(1)
+    .maybeSingle() as unknown as { data: ExistingProgramRow | null; error: DbError | null }
+
+  return data
 }
 
 async function updateProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: Required<Pick<ProgramPayload, 'programId' | 'programContent' | 'scheduleSlotId'>> & { status: ProgramStatus }) {
@@ -136,6 +177,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (payload.programId) {
+      const { data: currentProgram, error: fetchError } = await getOwnedProgram(supabase, coach, payload.programId)
+
+      if (fetchError || !currentProgram) {
+        return NextResponse.json({ error: 'ไม่พบโปรแกรมสอนของคุณ' }, { status: 404 })
+      }
+
+      if (!['draft', 'rejected'].includes(currentProgram.status)) {
+        return NextResponse.json({ error: 'รอบนี้ส่งโปรแกรมแล้ว ไม่สามารถแก้หรือส่งซ้ำได้' }, { status: 409 })
+      }
+
+      const duplicateProgram = await getExistingProgramForSlot(supabase, coach, scheduleSlotId, currentProgram.id)
+      if (duplicateProgram) {
+        return NextResponse.json({ error: 'รอบนี้มีโปรแกรมสอนแล้ว กรุณาแก้ไขรายการเดิมแทน' }, { status: 409 })
+      }
+
       const { error } = await updateProgram(supabase, coach, {
         programId: payload.programId,
         scheduleSlotId,
@@ -156,6 +212,11 @@ export async function POST(request: NextRequest) {
         ipAddress: request.headers.get('x-forwarded-for'),
       })
     } else {
+      const duplicateProgram = await getExistingProgramForSlot(supabase, coach, scheduleSlotId)
+      if (duplicateProgram) {
+        return NextResponse.json({ error: 'รอบนี้มีโปรแกรมสอนแล้ว กรุณาเลือกแก้ไขรายการเดิม หรือเลือกรอบอื่น' }, { status: 409 })
+      }
+
       const { data: insertedProgram, error } = await insertProgram(supabase, coach, { scheduleSlotId, programContent, status })
 
       if (error) {
@@ -192,6 +253,59 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Program error:', error)
+    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = createClient()
+  const coach = await requireCoach(supabase)
+  if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const programId = searchParams.get('id')?.trim()
+    if (!programId) {
+      return NextResponse.json({ error: 'ไม่พบโปรแกรมที่ต้องการลบ' }, { status: 400 })
+    }
+
+    const { data: program, error: fetchError } = await supabase
+      .from('teaching_programs')
+      .select('id, status')
+      .eq('id', programId)
+      .eq('coach_id', coach.id)
+      .single() as unknown as { data: ExistingProgramRow | null; error: DbError | null }
+
+    if (fetchError || !program) {
+      return NextResponse.json({ error: 'ไม่พบฉบับร่างของคุณ' }, { status: 404 })
+    }
+
+    if (program.status !== 'draft') {
+      return NextResponse.json({ error: 'ลบได้เฉพาะฉบับร่างเท่านั้น' }, { status: 400 })
+    }
+
+    const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
+    const { error } = await table
+      .delete()
+      .eq('id', programId)
+      .eq('coach_id', coach.id) as unknown as { error: DbError | null }
+
+    if (error) {
+      return NextResponse.json({ error: `ลบฉบับร่างไม่สำเร็จ: ${error.message}` }, { status: 500 })
+    }
+
+    await logActivity({
+      userId: coach.id,
+      action: 'delete_teaching_program_draft',
+      entityType: 'program',
+      entityId: programId,
+      details: { status: 'draft' },
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Program delete error:', error)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }
 }

@@ -663,7 +663,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
         </div>
       )}
 
-      {dateSummaries.length > 0 && (
+      {groupedByDateAll.length > 0 && (
         <Card className="shadow-sm">
           <CardContent className="space-y-4 p-4">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">

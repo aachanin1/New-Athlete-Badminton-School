@@ -298,6 +298,15 @@ Notes:
       - [x] Teaching program submission is now linked to real assigned slots and can reuse preset/previous content before saving draft or submitting.
       - [x] Realistic seed verification passed after reseed: 7 branches, 7 Head Coaches, 21 Coaches, 21 Users, 245 booking sessions, 196 assignment groups, 28 check-ins, 35 attendance rows, and 28 teaching programs.
       - [x] Coach Program Template Library: add a persistent per-coach template table/API/UI so each Coach can create, edit, archive, and reuse their own teaching-program templates separately from per-slot submissions.
+      - [ ] Follow-up debt: replace the old `window.prompt` in Admin Payroll weekly close with a proper shadcn/Radix dialog before touching that payroll flow again. Product UI must not use browser-native `alert`, `confirm`, or `prompt`.
+  - [ ] 15.3.2 Admin Teaching Program Review Page
+    - Keep this in the Coach completion queue before moving to User flow.
+    - Add an Admin/Super Admin page/menu for reviewing teaching programs submitted by Coaches.
+    - Filters: status, coach, branch, date range, course type, and assigned slot.
+    - Each row/card should show coach, branch, date/time, course type, learner group, submitted content, notes, and review status.
+    - Admin/Super Admin can approve or return for revision with notes; Coach should see the result and revise only returned/draft items.
+    - Notifications for submitted teaching programs should link to this review page instead of a generic admin log page.
+    - Do not allow duplicate per-slot submissions: one Coach can have only one teaching program per assigned schedule slot.
   - [x] 15.4 Coach Notifications / Reminders
     - [x] Notify Coach when assigned to a teaching slot/group.
     - [x] Notify Coach when a slot has learners but check-in has not happened near the allowed window, where technically feasible.

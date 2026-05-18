@@ -39,6 +39,7 @@ type TemplateMutationChain = {
 type TemplateMutationTable = {
   insert: (values: Record<string, unknown>) => TemplateMutationChain
   update: (values: Record<string, unknown>) => TemplateMutationChain
+  delete: () => TemplateMutationChain
 }
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
@@ -175,6 +176,46 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, template: mapTemplate(data) })
   } catch (error) {
     console.error('Program template update error:', error)
+    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = createClient()
+  const coach = await requireCoach(supabase)
+  if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const templateId = searchParams.get('id')?.trim()
+    if (!templateId) {
+      return NextResponse.json({ error: 'ไม่พบ Template ที่ต้องการลบ' }, { status: 400 })
+    }
+
+    const table = supabase.from('coach_program_templates') as unknown as TemplateMutationTable
+    const { data, error } = await table
+      .delete()
+      .eq('id', templateId)
+      .eq('coach_id', coach.id)
+      .select('id, title, content, category, is_active, created_at, updated_at')
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ error: `ลบ Template ไม่สำเร็จ: ${error?.message || 'not found'}` }, { status: 404 })
+    }
+
+    await logActivity({
+      userId: coach.id,
+      action: 'delete_coach_program_template',
+      entityType: 'coach_program_template',
+      entityId: data.id,
+      details: { title: data.title, category: data.category },
+      ipAddress: request.headers.get('x-forwarded-for'),
+    })
+
+    return NextResponse.json({ success: true, template: mapTemplate(data) })
+  } catch (error) {
+    console.error('Program template delete error:', error)
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }
 }
