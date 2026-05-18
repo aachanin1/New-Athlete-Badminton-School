@@ -27,7 +27,7 @@ interface StudentsClientProps {
   students: CoachStudentListItem[]
 }
 
-const PAGE_SIZE = 12
+const DEFAULT_PAGE_SIZE = 12
 
 function formatShortDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
@@ -61,6 +61,7 @@ export function StudentsClient({ students }: StudentsClientProps) {
   const [typeFilter, setTypeFilter] = useState('all')
   const [branchFilter, setBranchFilter] = useState('all')
   const [page, setPage] = useState(1)
+  const pageSize = DEFAULT_PAGE_SIZE
 
   const branches = useMemo(() => {
     return Array.from(new Set(students.map((student) => student.branchName).filter((value): value is string => Boolean(value)))).sort((a, b) => a.localeCompare(b, 'th'))
@@ -88,9 +89,9 @@ export function StudentsClient({ students }: StudentsClientProps) {
     })
   }, [branchFilter, levelFilter, query, sourceFilter, students, typeFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const visibleStudents = filteredStudents.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const visibleStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const updateFilter = (callback: () => void) => {
     callback()
@@ -123,7 +124,7 @@ export function StudentsClient({ students }: StudentsClientProps) {
               <SelectContent>
                 <SelectItem value="all">ทุกสถานะ</SelectItem>
                 <SelectItem value="assignment_group">รับผิดชอบตอนนี้</SelectItem>
-                <SelectItem value="legacy_assignment">เคยได้รับมอบหมาย</SelectItem>
+                <SelectItem value="assigned_slot">เคยได้รับมอบหมาย</SelectItem>
                 <SelectItem value="head_coach_branch">นักเรียนในสาขา</SelectItem>
               </SelectContent>
             </Select>
@@ -219,7 +220,7 @@ export function StudentsClient({ students }: StudentsClientProps) {
         </div>
       )}
 
-      {filteredStudents.length > PAGE_SIZE && (
+      {filteredStudents.length > pageSize && (
         <div className="flex items-center justify-between rounded-xl border bg-white p-2">
           <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
             <ChevronLeft className="mr-1 h-4 w-4" />

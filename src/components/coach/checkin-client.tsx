@@ -33,17 +33,46 @@ interface CheckinHistory {
 interface CheckinClientProps {
   slots: SlotOption[]
   todayCheckins: CheckinHistory[]
+  initialSlotId?: string | null
 }
 
 type CameraState = 'idle' | 'requesting' | 'ready' | 'blocked'
 type LocationState = 'idle' | 'requesting' | 'ready' | 'blocked'
+type CheckinWindowState = 'early' | 'open' | 'expired'
 
-export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
+function getCheckinWindowState(startTime: string, nowMs: number): CheckinWindowState {
+  const [hourText, minuteText] = startTime.split(':')
+  const hour = Number(hourText)
+  const minute = Number(minuteText)
+  const start = new Date(nowMs)
+  start.setHours(Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0, 0, 0)
+
+  const earliest = start.getTime() - (30 * 60 * 1000)
+  const latest = start.getTime() + (30 * 60 * 1000)
+
+  if (nowMs < earliest) return 'early'
+  if (nowMs > latest) return 'expired'
+  return 'open'
+}
+
+function getCheckinWindowLabel(state: CheckinWindowState) {
+  if (state === 'open') return 'เช็คอินได้'
+  if (state === 'early') return 'ยังไม่ถึงเวลา'
+  return 'หมดเวลาเช็คอิน'
+}
+
+export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: CheckinClientProps) {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const [selectedSlotId, setSelectedSlotId] = useState(slots.length === 1 ? slots[0].id : '')
+  const [selectedSlotId, setSelectedSlotId] = useState(() => {
+    const checkedIds = new Set(todayCheckins.map((checkin) => checkin.scheduleSlotId))
+    if (initialSlotId && slots.some((slot) => slot.id === initialSlotId) && !checkedIds.has(initialSlotId)) return initialSlotId
+    if (slots.length === 1 && !checkedIds.has(slots[0].id)) return slots[0].id
+    return slots.find((slot) => !checkedIds.has(slot.id))?.id || ''
+  })
+  const [nowMs, setNowMs] = useState(() => Date.now())
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -52,8 +81,13 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
   const [cameraState, setCameraState] = useState<CameraState>('idle')
   const [locationState, setLocationState] = useState<LocationState>('idle')
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [showAllCheckins, setShowAllCheckins] = useState(false)
 
   const checkedSlotIds = useMemo(() => new Set(todayCheckins.map((checkin) => checkin.scheduleSlotId)), [todayCheckins])
+  const selectedSlot = useMemo(() => slots.find((slot) => slot.id === selectedSlotId) || null, [selectedSlotId, slots])
+  const selectedSlotWindowState = selectedSlot ? getCheckinWindowState(selectedSlot.startTime, nowMs) : null
+  const visibleCheckins = showAllCheckins ? todayCheckins : todayCheckins.slice(0, 6)
+  const hiddenCheckinCount = Math.max(0, todayCheckins.length - visibleCheckins.length)
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -144,10 +178,12 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
   }
 
   useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60 * 1000)
     requestLocation()
     startCamera()
 
     return () => {
+      window.clearInterval(timer)
       stopCamera()
       if (photoPreview) URL.revokeObjectURL(photoPreview)
     }
@@ -167,6 +203,13 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
     if (!location) {
       requestLocation()
       setError('กรุณาอนุญาตตำแหน่งที่ตั้งก่อนเช็คอิน')
+      return
+    }
+
+    if (selectedSlotWindowState !== 'open') {
+      setError(selectedSlotWindowState === 'early'
+        ? 'ยังไม่ถึงเวลาเช็คอินรอบนี้ เช็คอินได้ตั้งแต่ก่อนเริ่มสอน 30 นาที'
+        : 'หมดเวลาเช็คอินรอบนี้แล้ว เช็คอินได้ถึงหลังเริ่มสอน 30 นาทีเท่านั้น')
       return
     }
 
@@ -239,6 +282,8 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
                   {slots.map((slot) => {
                     const isChecked = checkedSlotIds.has(slot.id)
                     const isSelected = selectedSlotId === slot.id
+                    const windowState = getCheckinWindowState(slot.startTime, nowMs)
+                    const isWindowOpen = windowState === 'open'
 
                     return (
                       <button
@@ -254,6 +299,12 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
                           {isChecked && <Badge variant="outline">เช็คอินแล้ว</Badge>}
                         </div>
                         <p className="mt-1 flex items-center gap-1 text-xs text-gray-500"><MapPin className="h-3 w-3" />{slot.branchName}</p>
+                        <Badge
+                          variant="outline"
+                          className={isWindowOpen ? 'mt-2 border-green-200 bg-green-50 text-green-700' : 'mt-2 border-orange-200 bg-orange-50 text-orange-700'}
+                        >
+                          {getCheckinWindowLabel(windowState)}
+                        </Badge>
                       </button>
                     )
                   })}
@@ -334,7 +385,7 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
 
             <Button
               onClick={handleSubmit}
-              disabled={loading || !selectedSlotId || !photo || !location || checkedSlotIds.has(selectedSlotId)}
+              disabled={loading || !selectedSlotId || !photo || !location || checkedSlotIds.has(selectedSlotId) || selectedSlotWindowState !== 'open'}
               className="w-full bg-[#2748bf] hover:bg-[#153c85]"
             >
               {loading ? (
@@ -356,7 +407,7 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
       {todayCheckins.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-lg font-bold text-[#153c85]">ประวัติเช็คอินวันนี้</h2>
-          {todayCheckins.map((checkin) => (
+          {visibleCheckins.map((checkin) => (
             <Card key={checkin.id}>
               <CardContent className="flex items-center gap-3 p-3">
                 {checkin.photoUrl ? (
@@ -374,6 +425,16 @@ export function CheckinClient({ slots, todayCheckins }: CheckinClientProps) {
               </CardContent>
             </Card>
           ))}
+          {hiddenCheckinCount > 0 && (
+            <Button variant="outline" className="w-full" onClick={() => setShowAllCheckins(true)}>
+              แสดงประวัติเพิ่มอีก {hiddenCheckinCount} รายการ
+            </Button>
+          )}
+          {showAllCheckins && todayCheckins.length > 6 && (
+            <Button variant="ghost" className="w-full" onClick={() => setShowAllCheckins(false)}>
+              ย่อรายการประวัติเช็คอิน
+            </Button>
+          )}
         </div>
       )}
     </div>

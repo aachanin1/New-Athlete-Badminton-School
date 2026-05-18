@@ -24,6 +24,10 @@ interface AttendanceRecord {
   checked_at: string
 }
 
+interface ExistingAttendanceRow {
+  id: string
+}
+
 interface BookingSessionAuthRow {
   id: string
   schedule_slot_id: string
@@ -187,7 +191,20 @@ export async function POST(request: NextRequest) {
     }
 
     const attendanceTable = supabase.from('attendance') as unknown as {
-      upsert: (values: AttendanceRecord, options: { onConflict: string }) => Promise<{ error: DbError | null }>
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          eq: (column: string, value: string) => {
+            order: (column: string, options: { ascending: boolean }) => {
+              limit: (count: number) => {
+                maybeSingle: () => Promise<{ data: ExistingAttendanceRow | null; error: DbError | null }>
+              }
+            }
+          }
+        }
+      }
+      update: (values: Pick<AttendanceRecord, 'coach_id' | 'status' | 'checked_at'>) => {
+        eq: (column: string, value: string) => Promise<{ error: DbError | null }>
+      }
       insert: (values: AttendanceRecord) => Promise<{ error: DbError | null }>
     }
     const sessionTable = supabase.from('booking_sessions') as unknown as {
@@ -204,9 +221,31 @@ export async function POST(request: NextRequest) {
       checked_at: new Date().toISOString(),
     }
 
-    const { error } = await attendanceTable.upsert(attendanceRecord, { onConflict: 'booking_session_id,student_id' })
+    const { data: existingAttendance, error: existingAttendanceError } = await attendanceTable
+      .select('id')
+      .eq('booking_session_id', bookingSessionId)
+      .eq('student_id', studentId)
+      .order('checked_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-    if (error) {
+    if (existingAttendanceError) {
+      return NextResponse.json({ error: `ตรวจสอบรายการเช็คชื่อไม่สำเร็จ: ${existingAttendanceError.message}` }, { status: 500 })
+    }
+
+    if (existingAttendance) {
+      const { error: updateError } = await attendanceTable
+        .update({
+          coach_id: actor.user.id,
+          status,
+          checked_at: attendanceRecord.checked_at,
+        })
+        .eq('id', existingAttendance.id)
+
+      if (updateError) {
+        return NextResponse.json({ error: `อัปเดตรายการเช็คชื่อไม่สำเร็จ: ${updateError.message}` }, { status: 500 })
+      }
+    } else {
       const { error: insertError } = await attendanceTable.insert(attendanceRecord)
 
       if (insertError) {

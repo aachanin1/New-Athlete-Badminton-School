@@ -17,6 +17,7 @@ import {
   Library,
   Loader2,
   Plus,
+  RotateCcw,
   Send,
   Sparkles,
   Trash2,
@@ -41,6 +42,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ListPagination } from '@/components/admin/list-pagination'
 import type { ProgramStatus } from '@/types/database'
 
 interface ProgramData {
@@ -84,6 +86,9 @@ interface ProgramsClientProps {
 type ConfirmAction =
   | { type: 'template'; template: ProgramTemplate }
   | { type: 'draft'; program: ProgramData }
+
+const TEMPLATE_PAGE_SIZE = 4
+const PROGRAM_PAGE_SIZE = 8
 
 const STATUS_CONFIG: Record<ProgramStatus, { label: string; color: string; icon: LucideIcon }> = {
   draft: { label: 'แบบร่าง', color: 'bg-gray-100 text-gray-600', icon: FileText },
@@ -197,6 +202,10 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
   const [templateOpen, setTemplateOpen] = useState(false)
   const [detailProgram, setDetailProgram] = useState<ProgramData | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
+  const [templatePage, setTemplatePage] = useState(1)
+  const [templatePageSize, setTemplatePageSize] = useState(TEMPLATE_PAGE_SIZE)
+  const [programPage, setProgramPage] = useState(1)
+  const [programPageSize, setProgramPageSize] = useState(PROGRAM_PAGE_SIZE)
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
   const [templateTitle, setTemplateTitle] = useState('')
@@ -214,6 +223,16 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
   const [templateSuccess, setTemplateSuccess] = useState<string | null>(null)
 
   const activeTemplates = useMemo(() => templateList.filter((template) => template.isActive), [templateList])
+  const templateTotalPages = Math.max(1, Math.ceil(templateList.length / templatePageSize))
+  const currentTemplatePage = Math.min(templatePage, templateTotalPages)
+  const visibleTemplates = templateList.slice((currentTemplatePage - 1) * templatePageSize, currentTemplatePage * templatePageSize)
+  const programTotalPages = Math.max(1, Math.ceil(programs.length / programPageSize))
+  const currentProgramPage = Math.min(programPage, programTotalPages)
+  const visiblePrograms = programs.slice((currentProgramPage - 1) * programPageSize, currentProgramPage * programPageSize)
+  const editingProgram = useMemo(() => {
+    return editingProgramId ? programs.find((program) => program.id === editingProgramId) || null : null
+  }, [editingProgramId, programs])
+  const isRevisionEdit = editingProgram?.status === 'rejected'
   const reusablePrograms = useMemo(() => {
     return programs.filter((program) => program.programContent.trim().length > 0).slice(0, 12)
   }, [programs])
@@ -444,11 +463,9 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
       }
 
       setSuccess(status === 'submitted' ? 'ส่งโปรแกรมสำเร็จ' : 'บันทึกแบบร่างสำเร็จ')
-      window.setTimeout(() => {
-        setAddOpen(false)
-        resetProgramForm()
-        router.refresh()
-      }, 800)
+      setAddOpen(false)
+      resetProgramForm()
+      router.refresh()
     } catch {
       setError('เกิดข้อผิดพลาด')
     } finally {
@@ -553,7 +570,7 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
             </div>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
-              {templateList.map((template) => (
+              {visibleTemplates.map((template) => (
                 <div
                   key={template.id}
                   className={`rounded-lg border p-4 ${template.isActive ? 'bg-white' : 'bg-gray-50 opacity-75'}`}
@@ -599,6 +616,21 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
               ))}
             </div>
           )}
+          {templateList.length > templatePageSize && (
+            <div className="mt-4">
+              <ListPagination
+                page={currentTemplatePage}
+                pageSize={templatePageSize}
+                total={templateList.length}
+                pageSizeOptions={[4, 8, 16]}
+                onPageChange={setTemplatePage}
+                onPageSizeChange={(value) => {
+                  setTemplatePageSize(value)
+                  setTemplatePage(1)
+                }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -623,7 +655,7 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
           </Card>
         ) : (
           <div className="space-y-2">
-            {programs.map((program) => {
+            {visiblePrograms.map((program) => {
               const config = STATUS_CONFIG[program.status]
               const StatusIcon = config.icon
 
@@ -671,6 +703,12 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
                             </Button>
                           </>
                         )}
+                        {program.status === 'rejected' && (
+                          <Button size="sm" className="bg-[#2748bf] hover:bg-[#153c85]" onClick={() => openEditProgram(program)}>
+                            <Edit3 className="mr-1 h-4 w-4" />
+                            แก้ไขแล้วส่งใหม่
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -688,6 +726,19 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
                 </Card>
               )
             })}
+            {programs.length > programPageSize && (
+              <ListPagination
+                page={currentProgramPage}
+                pageSize={programPageSize}
+                total={programs.length}
+                pageSizeOptions={[8, 16, 32]}
+                onPageChange={setProgramPage}
+                onPageSizeChange={(value) => {
+                  setProgramPageSize(value)
+                  setProgramPage(1)
+                }}
+              />
+            )}
           </div>
         )}
       </div>
@@ -763,6 +814,12 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
               <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 {success}
+              </div>
+            )}
+            {isRevisionEdit && (
+              <div className="flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-700">
+                <RotateCcw className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                รายการนี้ถูก Admin ส่งกลับให้แก้ไข ปรับรายละเอียดตามหมายเหตุแล้วกดส่งโปรแกรมเพื่อให้ตรวจใหม่
               </div>
             )}
 
@@ -859,6 +916,15 @@ export function ProgramsClient({ programs, assignedSlots, templates }: ProgramsC
               {detailProgram.notes && <p className="text-xs text-orange-500">หมายเหตุ: {detailProgram.notes}</p>}
               <p className="text-xs text-gray-400">สร้างเมื่อ: {formatDate(detailProgram.createdAt)}</p>
               <div className="flex flex-wrap gap-2">
+                {detailProgram.status === 'rejected' && (
+                  <Button variant="outline" size="sm" className="text-[#2748bf]" onClick={() => {
+                    openEditProgram(detailProgram)
+                    setDetailOpen(false)
+                  }}>
+                    <Edit3 className="mr-1 h-4 w-4" />
+                    แก้ไขแล้วส่งใหม่
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => {
                   resetProgramForm()
                   setContent(detailProgram.programContent)

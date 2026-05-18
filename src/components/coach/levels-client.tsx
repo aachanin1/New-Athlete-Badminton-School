@@ -7,11 +7,12 @@ import { AlertCircle, Award, Baby, BarChart3, CheckCircle2, Loader2, Search, Tre
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ListPagination } from '@/components/admin/list-pagination'
 import {
   StudentAchievementManager,
   StudentAchievementPills,
@@ -46,6 +47,8 @@ interface LevelsClientProps {
   levels: LevelOption[]
 }
 
+const DEFAULT_PAGE_SIZE = 12
+
 function formatDate(date: string | null) {
   if (!date) return null
   return new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
@@ -59,6 +62,8 @@ function getLevelName(levels: LevelOption[], level: number | null | undefined) {
 export function LevelsClient({ students, levels }: LevelsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [editOpen, setEditOpen] = useState(false)
   const [editStudent, setEditStudent] = useState<StudentData | null>(null)
   const [achievementStudent, setAchievementStudent] = useState<AchievementStudentRef | null>(null)
@@ -76,6 +81,9 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
       student.parentName?.toLowerCase().includes(q)
     ))
   }, [students, search])
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const visibleStudents = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const selectedLevel = useMemo(() => {
     const levelId = Number(newLevel)
@@ -179,7 +187,10 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
         <Input
           placeholder="ค้นหาชื่อนักเรียนหรือผู้ปกครอง..."
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setPage(1)
+          }}
           className="pl-10"
         />
       </div>
@@ -193,7 +204,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
         </Card>
       ) : (
         <div className="space-y-2">
-          {filtered.map((student) => {
+          {visibleStudents.map((student) => {
             const levelInfo = getLevelDisplay(student.currentLevel)
             const updatedText = formatDate(student.lastUpdated)
             const levelName = getLevelName(levels, student.currentLevel)
@@ -235,10 +246,27 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
         </div>
       )}
 
+      {filtered.length > pageSize && (
+        <ListPagination
+          page={currentPage}
+          pageSize={pageSize}
+          total={filtered.length}
+          pageSizeOptions={[12, 24, 48]}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value)
+            setPage(1)
+          }}
+        />
+      )}
+
       <Dialog open={editOpen} onOpenChange={(open) => { if (!loading) setEditOpen(open) }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">อัปเดต Level</DialogTitle>
+            <DialogDescription>
+              เลือก Level ใหม่จากค่าที่เปิดใช้งานในระบบ พร้อมบันทึกหมายเหตุการประเมินของผู้เรียน
+            </DialogDescription>
           </DialogHeader>
           {editStudent && (
             <div className="space-y-4">

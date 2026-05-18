@@ -182,9 +182,27 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                     <span className={`font-bold ${day.getDay() === 0 ? 'text-red-500' : 'text-gray-700'}`}>
                       {day.getDate()}
                     </span>
-                    {isToday && <span className="h-1.5 w-1.5 rounded-full bg-[#2748bf]" />}
+                    <span className="flex items-center gap-1">
+                      {rows.length > 0 && (
+                        <span className="rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold leading-5 text-gray-600 sm:hidden">
+                          {rows.length}
+                        </span>
+                      )}
+                      {isToday && <span className="h-1.5 w-1.5 rounded-full bg-[#2748bf]" />}
+                    </span>
                   </div>
-                  <div className="mt-1 space-y-1">
+                  {rows.length > 0 && (
+                    <div className="mt-2 flex min-h-4 items-center gap-1 sm:hidden">
+                      {rows.slice(0, 4).map((row) => (
+                        <span
+                          key={`${row.assignment_id}-${row.schedule_slot_id}-dot`}
+                          className={`h-1.5 w-1.5 rounded-full ${row.is_verified ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                        />
+                      ))}
+                      {rows.length > 4 && <span className="text-[10px] font-semibold text-gray-400">+</span>}
+                    </div>
+                  )}
+                  <div className="mt-1 hidden space-y-1 sm:block">
                     {rows.slice(0, 2).map((row) => (
                       <div
                         key={`${row.assignment_id}-${row.schedule_slot_id}`}

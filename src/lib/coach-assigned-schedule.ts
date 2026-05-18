@@ -83,6 +83,7 @@ interface AttendanceRow {
   booking_session_id: string
   student_id: string
   status: AttendanceStatus
+  checked_at: string
 }
 
 interface SessionGroupMeta {
@@ -289,8 +290,9 @@ export async function getCoachAssignedTeachingDay(
   if (sessionIds.length > 0) {
     const { data } = await supabase
       .from('attendance')
-      .select('booking_session_id, student_id, status')
-      .in('booking_session_id', sessionIds) as { data: AttendanceRow[] | null }
+      .select('booking_session_id, student_id, status, checked_at')
+      .in('booking_session_id', sessionIds)
+      .order('checked_at', { ascending: true }) as { data: AttendanceRow[] | null }
 
     attendanceRows = data || []
   }

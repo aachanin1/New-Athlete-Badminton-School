@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -167,6 +167,10 @@ export function CoachSidebar({ userName, userAvatarUrl, isHeadCoach, notificatio
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Coach navigation</SheetTitle>
+              <SheetDescription>Open the Coach menu to navigate between schedule, attendance, check-in, programs, and notifications.</SheetDescription>
+            </SheetHeader>
             <SidebarContent
               userName={userName}
               userAvatarUrl={userAvatarUrl}

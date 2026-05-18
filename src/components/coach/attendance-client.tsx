@@ -255,7 +255,7 @@ export function AttendanceClient({
 
                     {isLocked && isToday ? (
                       <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600">
-                        <Link href="/coach/checkin">
+                        <Link href={`/coach/checkin?slot=${slot.scheduleSlotId}`}>
                           <Camera className="mr-1.5 h-4 w-4" />
                           ไปเช็คอินก่อน
                         </Link>

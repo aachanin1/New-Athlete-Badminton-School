@@ -3,7 +3,13 @@ import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 
-export default async function CheckinPage() {
+interface CheckinPageProps {
+  searchParams?: {
+    slot?: string
+  }
+}
+
+export default async function CheckinPage({ searchParams }: CheckinPageProps) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -33,5 +39,7 @@ export default async function CheckinPage() {
       photoUrl: slot.checkin!.photoUrl,
     }))
 
-  return <CheckinClient slots={slots} todayCheckins={todayCheckins} />
+  const initialSlotId = slots.some((slot) => slot.id === searchParams?.slot) ? searchParams?.slot || null : null
+
+  return <CheckinClient slots={slots} todayCheckins={todayCheckins} initialSlotId={initialSlotId} />
 }

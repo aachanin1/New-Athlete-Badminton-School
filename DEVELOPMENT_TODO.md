@@ -220,6 +220,61 @@ Notes:
       - Coach schedule/attendance source now keeps `absent` sessions visible after marking a learner absent, so refresh does not make the learner disappear from the round.
   - [ ] 15.3 Coach Completion QA Gate
     - Do this before any User feature work.
+    - Recommended remaining execution order before starting User flow:
+      - [x] 15.3.4 Coach pages high-volume UX pass
+        - Goal: remove long endless Coach lists the same way Admin lists were cleaned up.
+        - Check and improve `/coach/today`, `/coach/checkin`, `/coach/attendance`, `/coach/students`, `/coach/hours`, and `/coach/programs`.
+        - Use compact summaries, filters, pagination, collapsible sections, and detail dialogs/drawers where needed.
+        - Do not change the existing assignment/check-in/attendance/hour source of truth unless a real bug requires it.
+        - Implemented: `/coach/programs` now paginates the template library and submitted program list; `/coach/levels` now paginates searchable learner evaluation rows; `/coach/checkin` now caps daily check-in history with expand/collapse controls; `/coach/students` keeps search/filter pagination capped at 12 learners per page.
+        - Verified existing `/coach/today`, `/coach/attendance`, and `/coach/hours` already use selected-day, collapsible slot, or weekly grouping patterns, so this pass did not change their business flow.
+      - [x] 15.3.5 Coach program flow final check
+        - Verify one assigned teaching slot can have only one active teaching-program submission per Coach.
+        - Verify draft/delete/revise/reuse template flows work correctly and do not create duplicate submissions.
+        - Verify Admin review status and returned notes appear correctly back on `/coach/programs`.
+        - Implemented/verified: Coach program API already blocks duplicate `coach_id + schedule_slot_id` submissions, only allows assigned slots, and only allows editing `draft`/`rejected` programs.
+        - Added Coach UI action for `rejected` programs so Coach can revise and resubmit the original slot instead of creating a duplicate.
+        - Program submit now closes the modal immediately and refreshes the server data, reducing accidental double-click resubmits while the server-side duplicate guard remains authoritative.
+        - Confirmed draft deletion uses the in-app `AlertDialog`, template reuse/preset/reuse-old flow still feeds the same single program form, and Admin review notes/status are shown in the Coach program list/detail.
+      - [x] 15.3.5.1 Coach Dialog Accessibility Cleanup
+        - Fix Coach-side Radix Dialog warnings before the Coach QA gate: every `DialogContent` must include a `DialogTitle`.
+        - Add a visible or visually-hidden `DialogDescription` / `aria-describedby` where needed so the console stays clean during authenticated browser QA.
+        - Scope this cleanup to Coach pages/components touched by the Coach completion queue; do not redesign dialog flows or change business logic.
+        - Implemented: Coach mobile sidebar `SheetContent` now includes an sr-only `SheetTitle` and `SheetDescription`, fixing the Radix Dialog title warning seen on `/coach`.
+        - Implemented: Coach Level evaluation dialog now includes `DialogDescription`; Coach program dialogs already had titles/descriptions and were rechecked.
+        - Verified with `npm run check:mojibake` and `npm run build`; remaining build warnings are existing User/Dashboard/API lint debt outside this Coach accessibility scope.
+      - [x] 15.3.6 Coach check-in + attendance end-to-end
+        - Verify the 30-minute before to 30-minute after teaching-start check-in window.
+        - Verify selfie/front-camera capture, GPS/location requirement, duplicate check-in prevention, and assigned-slot validation.
+        - Verify attendance remains locked when that specific slot has no valid Coach check-in.
+        - Verify attendance writes are tied to real assignment groups and only allowed for responsible Coach/Head Coach.
+        - Implemented: attendance now links locked slots directly to `/coach/checkin?slot=...`, and the check-in page preselects that exact assigned slot.
+        - Implemented: Coach check-in UI shows the per-slot check-in window and disables submit outside the allowed 30-minute-before to 30-minute-after range while the API remains the authoritative guard.
+        - Implemented: attendance updates the latest existing record instead of relying on `upsert` without a DB unique constraint, preventing duplicate attendance rows when Coach changes present/late/absent.
+        - Implemented: shared Coach schedule reads attendance ordered by `checked_at`, so if older duplicate rows already exist the latest status wins in Coach UI.
+        - Verified with `npm run check:mojibake`, `npm run build`, and unauthenticated browser route smoke for `/coach/checkin`, `/coach/attendance`, and `/coach/today`.
+      - [x] 15.3.7 Coach level/ranking/achievement final check
+        - Verify Coach can evaluate only learners they are responsible for.
+        - Verify Level evaluation feeds Coach/Admin/Public ranking consistently.
+        - Verify achievement emoji shows consistently on Coach/Admin/Public ranking and only authorized roles can manage it.
+        - Verified: `/api/coach/levels` requires Coach/Head Coach/Admin/Super Admin and checks `canManageStudentForCoach` before writing `student_levels`.
+        - Verified: `/api/student-achievements` uses the same `canManageStudentForCoach` guard for Coach/Head Coach, while Admin/Super Admin keep all-student access through the shared staff-all-access rule.
+        - Verified: Coach Level page loads only students from `getCoachVisibleStudents`, then reads latest Level and active `student_achievements` for that visible set.
+        - Verified: Public `/ranking` and Admin `/admin/ranking` share `RankingContent`/`RankingBoard`, read latest `student_levels`, active `student_achievements`, and dynamic branch filters from the same data source.
+        - Verified: Public ranking has no achievement management action; Admin ranking can open the shared achievement manager; Coach manages achievements only from visible students in `/coach/levels`.
+        - Verified with `npm run check:mojibake`, `npm run build`, and browser smoke for `/ranking`, `/admin/ranking`, and `/coach/levels`.
+      - [x] 15.3.8 Coach regression
+        - Run `npm run check:mojibake`, `npm run build`, and authenticated smoke tests for core Coach pages.
+        - Verify mobile responsive for Coach dashboard, schedule, assignment, check-in, attendance, hours, students, and programs.
+        - Commit and push after this gate passes.
+        - Verified: `npm run check:mojibake` passed after the Coach regression pass.
+        - Verified: Coach-scope scan found no native `alert/confirm/prompt`, no `<img>` usage, and no new `any` debt in Coach routes/components/libs.
+        - Verified: `npm run build` passed. Remaining warnings are existing User/Dashboard/API/Auth lint debt outside this Coach regression scope.
+        - Verified: unauthenticated route guard browser smoke still redirects Coach routes to login without console errors.
+        - Verified: Supabase seed auth works for Head Coach seed account; Browser form automation did not complete the login redirect even though direct Supabase sign-in passed, so this is recorded as a tool/browser-smoke limitation rather than a Coach runtime error.
+        - Fixed: Coach student list source filter now uses the real `assigned_slot` source value, so the "เคยได้รับมอบหมาย" filter can match students returned from assignment-slot history.
+        - Seed QA note: `npm run seed:verify` executed against Supabase and duplicate coach/group slots remained `0`; current QA data has a small non-blocking drift from extra test rows (`assignment_groups` 197 vs 196, `assignment_group_students` 246 vs 245, `notifications` 32 vs 29).
+      - After Coach is complete, start `15.5 User Booking / Payment / History` as the next major queue because User flow touches booking, pricing, coupon, SlipOK, schedule, and history together.
     - Verify Coach pages end-to-end with realistic Supabase data: `/coach`, `/coach/today`, `/coach/students`, `/coach/levels`, `/coach/assign-groups`, `/coach/checkin`, `/coach/attendance`, `/coach/hours`, and `/coach/notifications`.
     - Verify Head Coach can group learners by Level and coach history, assign coaches, and manually override suggestions.
     - Verify regular Coach sees only assigned learners/groups, cannot evaluate unrelated learners, and cannot mark attendance outside their responsibility.
