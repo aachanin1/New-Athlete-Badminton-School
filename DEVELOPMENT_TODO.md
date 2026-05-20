@@ -552,6 +552,38 @@ Notes:
       - Verified `npm run check:mojibake` and `npm run build`; build passes with existing lint warnings in older Dashboard/User/API files.
       - Browser smoke verified `/` section anchor fallback and `/auth/login` render with no console errors. Login modal could not be smoke-opened in the current browser session because the public navbar was already in an authenticated/loading state, but the modal code path was covered by build/type checks.
 
+## Next Stabilization Order Before Deploy
+
+- [ ] 17. TODO Housekeeping / Close Completed Planning Items
+  - Reconcile parent/child checklist status so `DEVELOPMENT_TODO.md` matches the real state of the system.
+  - Confirm `Phase 3 - Make npm run build pass` status after recent successful builds.
+  - Confirm `15. Start Coach-First / User-Last Completion Queue` parent status now that core children through `15.9` are completed.
+  - Keep only real remaining work open so future development does not loop back into completed flows.
+
+- [ ] 18. Real Login UAT By Role
+  - Super Admin: settings, payment settings, ranking, teaching program review, payroll, finance.
+  - Admin: allowed menu visibility, payment monitoring, complaints, notifications.
+  - Head Coach: assign groups, coach suggestion, calendar, student grouping.
+  - Coach: schedule, check-in, attendance, level/ranking, teaching program, hours.
+  - User: booking, coupon, slip upload, history, schedule, reschedule, notifications.
+
+- [ ] 19. User Payment / Booking Final UAT
+  - Verify same-day booking allows only slots that have not started.
+  - Verify coupon usage deducts usage count and appears in user history.
+  - Verify SlipOK success keeps booking, payment, and history statuses consistent.
+  - Verify user can view slip, booking history, schedule, and notification state correctly.
+
+- [ ] 20. Seed Data Cleanup / Production Readiness
+  - Prepare a safe cleanup plan for seed/demo data in Supabase before production.
+  - Separate master data that must remain, such as levels, pricing, schedule templates, branches, and system settings.
+  - Review Supabase buckets, storage policies, RLS behavior, and required production env vars.
+
+- [ ] 21. Phase 3 Deploy Readiness
+  - Review dependency vulnerabilities and update only when safe.
+  - Prepare production environment variables.
+  - Deploy staging.
+  - Smoke test staging across Super Admin, Admin, Head Coach, Coach, and User roles.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [ ] Make `npm run build` pass.
