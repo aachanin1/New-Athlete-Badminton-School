@@ -585,11 +585,19 @@ Notes:
       - User: `/dashboard`, `/dashboard/booking`, `/dashboard/history`, `/dashboard/schedule`, `/dashboard/reschedule`, `/dashboard/progress`, `/dashboard/notifications` returned `200`.
     - Note: in-app Browser client could open local pages, but Supabase client-side login was blocked by the test environment's external network path, so final UAT used real Supabase Auth sessions and Next route requests instead of UI form clicks.
 
-- [ ] 19. User Payment / Booking Final UAT
+- [x] 19. User Payment / Booking Final UAT
   - Verify same-day booking allows only slots that have not started.
   - Verify coupon usage deducts usage count and appears in user history.
   - Verify SlipOK success keeps booking, payment, and history statuses consistent.
   - Verify user can view slip, booking history, schedule, and notification state correctly.
+  - Completed 2026-05-20:
+    - Ran real authenticated UAT as `seed.nasc+adult.group.chaengwattana@example.com` against localhost + Supabase.
+    - Verified same-day started slot `13:00` was rejected and same-day future slot `19:00` was bookable.
+    - Created a one-use UAT coupon, confirmed `/api/validate-coupon`, booking usage row, `current_uses = 1`, and auto close after max use.
+    - Uploaded a UAT slip through `/api/verify-slip` with `SLIPOK_TEST_MODE=true`; confirmed `bookings.status = verified`, `payments.status = approved`, amount, slip URL, and user notification link.
+    - Confirmed `/dashboard/booking`, `/dashboard/history`, `/dashboard/schedule`, and `/dashboard/notifications` render with the authenticated user session.
+    - Cleaned up the temporary UAT booking, coupon, payment, coupon usage, slip file, sessions, and UAT notifications after verification.
+    - Tightened User history session loading so it fetches only `booking_sessions` for bookings visible on that page instead of scanning all sessions.
 
 - [ ] 20. Seed Data Cleanup / Production Readiness
   - Prepare a safe cleanup plan for seed/demo data in Supabase before production.

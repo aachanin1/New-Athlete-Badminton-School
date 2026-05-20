@@ -136,16 +136,21 @@ export default async function HistoryPage() {
     }, {})
   }
 
-  // Fetch all sessions per booking (with child names, branch names)
-  const { data: sessionRows } = await supabase
-    .from('booking_sessions')
-    .select('id, booking_id, date, start_time, end_time, branch_id, child_id, status, is_makeup, children(full_name, nickname), branches(name)')
-    .order('date', { ascending: true }) as unknown as { data: SessionRow[] | null }
+  // Fetch only sessions for the bookings visible on this page.
+  let sessionRows: SessionRow[] = []
+  if (bookingIds.length > 0) {
+    const { data } = await supabase
+      .from('booking_sessions')
+      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, status, is_makeup, children(full_name, nickname), branches(name)')
+      .in('booking_id', bookingIds)
+      .order('date', { ascending: true }) as unknown as { data: SessionRow[] | null }
+    sessionRows = data || []
+  }
 
   const sessionCountMap: Record<string, number> = {}
   const bookingChildNamesMap: Record<string, string[]> = {}
   const bookingSessionsMap: Record<string, SessionRow[]> = {}
-  ;(sessionRows || []).forEach((s) => {
+  sessionRows.forEach((s) => {
     sessionCountMap[s.booking_id] = (sessionCountMap[s.booking_id] || 0) + 1
     if (s.children?.full_name && !bookingChildNamesMap[s.booking_id]?.includes(s.children.full_name)) {
       if (!bookingChildNamesMap[s.booking_id]) bookingChildNamesMap[s.booking_id] = []
