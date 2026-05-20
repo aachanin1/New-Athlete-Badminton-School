@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
@@ -422,6 +422,7 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">ตั้งค่าการชำระเงิน</DialogTitle>
+            <DialogDescription className="sr-only">ตั้งค่าข้อมูลบัญชีที่แสดงให้ผู้ใช้เห็นในขั้นตอนแนบสลิป</DialogDescription>
           </DialogHeader>
           <PaymentSettingsClient settings={paymentTransferSettings} compact />
         </DialogContent>
@@ -431,6 +432,7 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">รายละเอียดการชำระเงิน</DialogTitle>
+            <DialogDescription className="sr-only">ตรวจข้อมูลการชำระเงิน สถานะ SlipOK และหลักฐานสลิปของรายการนี้</DialogDescription>
           </DialogHeader>
 
           {detailPayment && (
@@ -560,6 +562,7 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
         <DialogContent className="max-h-[95vh] max-w-3xl p-3">
           <DialogHeader>
             <DialogTitle className="text-sm text-[#153c85]">สลิปการโอนเงิน</DialogTitle>
+            <DialogDescription className="sr-only">แสดงรูปสลิปการโอนเงินแบบเต็มสำหรับตรวจสอบ</DialogDescription>
           </DialogHeader>
           {slipUrl && (
             <div className="flex items-center justify-center overflow-hidden rounded-lg bg-gray-50">

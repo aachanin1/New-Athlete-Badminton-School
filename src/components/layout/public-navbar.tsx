@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -308,6 +308,10 @@ export function PublicNavbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-72">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Website navigation</SheetTitle>
+                <SheetDescription>Open the New Athlete School website menu to navigate sections, ranking, login, and registration.</SheetDescription>
+              </SheetHeader>
               <div className="flex flex-col gap-1 mt-8">
                 {NAV_SECTIONS.map((item) => (
                   'href' in item && item.href ? (

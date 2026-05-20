@@ -34,6 +34,8 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   system: { label: 'ระบบ', color: 'bg-gray-100 text-gray-700' },
 }
 
+const NOTIFICATIONS_PER_PAGE = 10
+
 export function NotificationsClient({
   notifications,
   title = 'แจ้งเตือนของฉัน',
@@ -42,6 +44,7 @@ export function NotificationsClient({
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [localReadIds, setLocalReadIds] = useState<Set<string>>(new Set())
@@ -63,6 +66,10 @@ export function NotificationsClient({
   }, [mergedNotifications, filterType, search])
 
   const unreadCount = mergedNotifications.filter((notification) => !notification.is_read).length
+  const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE))
+  const safePage = Math.min(page, totalPages)
+  const startIndex = (safePage - 1) * NOTIFICATIONS_PER_PAGE
+  const paginatedNotifications = filtered.slice(startIndex, startIndex + NOTIFICATIONS_PER_PAGE)
 
   const formatDate = (date: string) => new Date(date).toLocaleDateString('th-TH', {
     day: 'numeric',
@@ -135,9 +142,23 @@ export function NotificationsClient({
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาหัวข้อหรือข้อความ..." className="pl-10" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            placeholder="ค้นหาหัวข้อหรือข้อความ..."
+            className="pl-10"
+          />
         </div>
-        <Select value={filterType} onValueChange={setFilterType}>
+        <Select
+          value={filterType}
+          onValueChange={(value) => {
+            setFilterType(value)
+            setPage(1)
+          }}
+        >
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">ทุกประเภท</SelectItem>
@@ -157,7 +178,7 @@ export function NotificationsClient({
         </Card>
       ) : (
         <div className="space-y-2">
-          {filtered.map((notification) => {
+          {paginatedNotifications.map((notification) => {
             const typeConfig = TYPE_CONFIG[notification.type] || TYPE_CONFIG.system
             const content = (
               <Card className={`overflow-hidden transition-colors ${!notification.is_read ? 'border-blue-200 bg-blue-50/30' : ''}`}>
@@ -193,6 +214,33 @@ export function NotificationsClient({
 
             return <div key={notification.id}>{content}</div>
           })}
+          {filtered.length > NOTIFICATIONS_PER_PAGE && (
+            <div className="flex flex-col gap-3 rounded-lg border bg-white p-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                แสดง {startIndex + 1}-{Math.min(startIndex + NOTIFICATIONS_PER_PAGE, filtered.length)} จาก {filtered.length} รายการ
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={safePage <= 1}
+                >
+                  ก่อนหน้า
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={safePage >= totalPages}
+                >
+                  ถัดไป
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

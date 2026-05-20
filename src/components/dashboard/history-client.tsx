@@ -146,6 +146,7 @@ const COURSE_LABELS: Record<string, string> = {
 }
 
 const MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+const BOOKINGS_PREVIEW_PER_MONTH = 4
 
 export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {}, paymentTransferSettings }: HistoryClientProps) {
   const router = useRouter()
@@ -157,6 +158,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   const [slipPreview, setSlipPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
 
   // Alert dialog state (replaces browser confirm)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -340,6 +342,18 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
     return groups
   }, [bookings])
 
+  const toggleMonthExpanded = (monthKey: string) => {
+    setExpandedMonthKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(monthKey)) {
+        next.delete(monthKey)
+      } else {
+        next.add(monthKey)
+      }
+      return next
+    })
+  }
+
   if (bookings.length === 0) {
     return (
       <Card>
@@ -407,7 +421,12 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
       )}
 
       <div className="space-y-8">
-        {groupedBookings.map((group) => (
+        {groupedBookings.map((group) => {
+          const isExpanded = expandedMonthKeys.has(group.key)
+          const visibleBookings = isExpanded ? group.bookings : group.bookings.slice(0, BOOKINGS_PREVIEW_PER_MONTH)
+          const hiddenCount = group.bookings.length - visibleBookings.length
+
+          return (
           <div key={group.key}>
             {/* Month header with summary */}
             <div className="flex items-center justify-between mb-3">
@@ -423,7 +442,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
             </div>
 
             <div className="space-y-3">
-              {group.bookings.map((booking) => {
+              {visibleBookings.map((booking) => {
                 const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_payment
                 const bookingPayments = getBookingPayments(booking.id)
                 const couponUsages = couponUsageMap[booking.id] || []
@@ -560,9 +579,22 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                   </Card>
                 )
               })}
+              {group.bookings.length > BOOKINGS_PREVIEW_PER_MONTH && (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleMonthExpanded(group.key)}
+                  >
+                    {isExpanded ? 'ย่อรายการ' : `ดูเพิ่มอีก ${hiddenCount} รายการ`}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Payment Dialog */}

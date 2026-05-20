@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_MENU_ITEMS, getAllowedAdminMenuKeys, type AdminMenuKey } from '@/lib/admin-navigation'
 import { cn } from '@/lib/utils'
@@ -193,6 +193,10 @@ export function AdminSidebar({ userName, userAvatarUrl, isSuperAdmin, notificati
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Admin navigation</SheetTitle>
+              <SheetDescription>Open the Admin menu to navigate between dashboard, schedules, payments, coach operations, settings, and notifications.</SheetDescription>
+            </SheetHeader>
             <SidebarContent
               userName={userName}
               userAvatarUrl={userAvatarUrl}

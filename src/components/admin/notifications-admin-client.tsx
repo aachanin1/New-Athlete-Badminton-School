@@ -23,7 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -576,6 +576,7 @@ export function NotificationsAdminClient({
         <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">ส่งแจ้งเตือน</DialogTitle>
+            <DialogDescription className="sr-only">สร้างและส่งแจ้งเตือนไปยังผู้ใช้ โค้ช หรือทั้งระบบ</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {error && (

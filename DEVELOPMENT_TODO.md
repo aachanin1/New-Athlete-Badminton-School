@@ -500,12 +500,19 @@ Notes:
       - User/Coach protected route smoke passed unauthenticated guards: `/dashboard/*` and `/coach/*` routes return redirects to login instead of 500/error HTML.
       - Browser automation could not open localhost in the in-app browser because the browser surface returned `ERR_BLOCKED_BY_CLIENT`; HTTP smoke was used as the fallback verification path.
       - No additional code changes were required during this regression pass.
-  - [ ] 15.9 User High-Volume UX Pass
+  - [x] 15.9 User High-Volume UX Pass
     - Audit User-facing pages for long vertical lists before production UAT.
     - Focus pages: history, notifications, children/learners, complaints, schedule, reschedule, and booking summaries.
     - Add compact grouping, pagination, filters, or detail dialogs only where real high-volume data can become hard to scan.
     - Keep booking/payment/business rules unchanged; this pass is layout and usability only.
     - Verify mobile and desktop after changes with `npm run check:mojibake`, `npm run lint`, and `npm run build`.
+    - Completed on 2026-05-20:
+      - Added pagination to User notifications so high-volume broadcasts and event messages do not render as one long page.
+      - Added learner search and pagination to the User children/learners page.
+      - Added status filtering and pagination to User complaints.
+      - Collapsed booking history and reschedule sessions by month with “show more” controls.
+      - Added a bounded scroll area to selected-date schedule details for days with many sessions.
+      - Verified `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
   - Keep Admin/System changes limited to bug fixes only while this queue is active.
 
   - [x] 16. Home Index Polish Before User Flow

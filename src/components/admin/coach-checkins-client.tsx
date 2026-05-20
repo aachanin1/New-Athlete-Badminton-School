@@ -20,7 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
@@ -479,6 +479,7 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">รายละเอียดเช็คอินรายรอบสอน</DialogTitle>
+            <DialogDescription className="sr-only">ตรวจหลักฐานเช็คอิน รูปถ่าย พิกัด และสถานะรอบสอนของโค้ช</DialogDescription>
           </DialogHeader>
           {selectedRow && (
             <div className="space-y-4">

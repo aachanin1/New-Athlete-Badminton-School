@@ -6,7 +6,7 @@ import { Activity, Clock, Eye, FileText, Search, Shield, User } from 'lucide-rea
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
@@ -228,6 +228,7 @@ export function LogsClient({ logs }: LogsClientProps) {
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">รายละเอียด Activity Log</DialogTitle>
+            <DialogDescription className="sr-only">ดูรายละเอียดกิจกรรม ผู้ทำรายการ และข้อมูลที่เกี่ยวข้องในระบบ</DialogDescription>
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-4">

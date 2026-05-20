@@ -84,6 +84,7 @@ const COURSE_LABELS: Record<CourseTypeName, string> = {
   adult_group: 'ผู้ใหญ่กลุ่ม',
   private: 'Private',
 }
+const RESCHEDULE_PREVIEW_PER_MONTH = 6
 
 function getStartDate(date: string, time: string) {
   return new Date(`${date}T${time.slice(0, 5)}:00`)
@@ -119,6 +120,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null)
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
+  const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -184,6 +186,18 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
       branchId: branch.id,
       branchName: branch.name,
       templateId,
+    })
+  }
+
+  const toggleMonthExpanded = (monthKey: string) => {
+    setExpandedMonthKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(monthKey)) {
+        next.delete(monthKey)
+      } else {
+        next.add(monthKey)
+      }
+      return next
     })
   }
 
@@ -255,6 +269,10 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
       <div className="space-y-4">
         {groupedSessions.map(({ monthKey, rows }) => {
           const [year, month] = monthKey.split('-').map(Number)
+          const isExpanded = expandedMonthKeys.has(monthKey)
+          const visibleRows = isExpanded ? rows : rows.slice(0, RESCHEDULE_PREVIEW_PER_MONTH)
+          const hiddenCount = rows.length - visibleRows.length
+
           return (
             <section key={monthKey} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -265,7 +283,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
               </div>
 
               <div className="grid gap-3 lg:grid-cols-2">
-                {rows.map((session) => {
+                {visibleRows.map((session) => {
                   const courseType = getCourseType(session)
                   const canChange = canReschedule(session.date, session.start_time) && !session.is_makeup
                   return (
@@ -320,6 +338,18 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                   )
                 })}
               </div>
+              {rows.length > RESCHEDULE_PREVIEW_PER_MONTH && (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleMonthExpanded(monthKey)}
+                  >
+                    {isExpanded ? 'ย่อรายการ' : `ดูเพิ่มอีก ${hiddenCount} รอบ`}
+                  </Button>
+                </div>
+              )}
             </section>
           )
         })}

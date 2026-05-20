@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -447,6 +447,7 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">{formMode === 'create' ? 'สร้างคูปองใหม่' : `แก้ไขคูปอง ${selectedCoupon?.code}`}</DialogTitle>
+            <DialogDescription className="sr-only">ตั้งค่ารหัสคูปอง ส่วนลด เงื่อนไขการใช้งาน และช่วงเวลาที่ใช้งานได้</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {message && (
@@ -532,6 +533,7 @@ export function CouponsClient({ coupons }: CouponsClientProps) {
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">รายละเอียดคูปอง</DialogTitle>
+            <DialogDescription className="sr-only">ดูรายละเอียดคูปอง สถานะ และประวัติการใช้งาน</DialogDescription>
           </DialogHeader>
           {selectedCoupon && (
             <div className="space-y-4">

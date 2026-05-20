@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -530,6 +530,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">เพิ่มโค้ชใหม่</DialogTitle>
+            <DialogDescription className="sr-only">สร้างบัญชีโค้ชใหม่ กำหนด role ประเภทการจ้าง และสาขาที่สอน</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {error && <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-600"><AlertCircle className="h-4 w-4 shrink-0" />{error}</div>}
@@ -607,6 +608,7 @@ export function CoachesClient({ coaches: initialCoaches, branches }: CoachesClie
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">แก้ไขข้อมูลโค้ช</DialogTitle>
+            <DialogDescription className="sr-only">แก้ไขข้อมูลโค้ช role ประเภทการจ้าง และสาขาที่สอน โดยไม่เปลี่ยนอีเมล</DialogDescription>
           </DialogHeader>
           {editCoach && (
             <div className="space-y-4">

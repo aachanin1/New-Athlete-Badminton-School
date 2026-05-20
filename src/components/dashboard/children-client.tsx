@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Child, Gender } from '@/types/database'
@@ -31,6 +31,7 @@ import {
   Calendar,
   Baby,
   Camera,
+  Search,
 } from 'lucide-react'
 
 interface ChildrenClientProps {
@@ -64,6 +65,8 @@ interface ChildrenTable {
   insert(values: ChildMutationPayload & { parent_id: string }): ChildInsertQuery
 }
 
+const CHILDREN_PER_PAGE = 9
+
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
@@ -94,6 +97,8 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingChild, setEditingChild] = useState<Child | null>(null)
   const [deletingChild, setDeletingChild] = useState<Child | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -104,6 +109,19 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
   const [gender, setGender] = useState<Gender | ''>('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+
+  const filteredChildren = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return children
+    return children.filter((child) => {
+      return child.full_name.toLowerCase().includes(query) || (child.nickname || '').toLowerCase().includes(query)
+    })
+  }, [children, search])
+
+  const totalPages = Math.max(1, Math.ceil(filteredChildren.length / CHILDREN_PER_PAGE))
+  const safePage = Math.min(page, totalPages)
+  const startIndex = (safePage - 1) * CHILDREN_PER_PAGE
+  const visibleChildren = filteredChildren.slice(startIndex, startIndex + CHILDREN_PER_PAGE)
 
   const resetForm = () => {
     setFullName('')
@@ -249,7 +267,19 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
 
   return (
     <>
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+            placeholder="ค้นหาชื่อหรือนickname..."
+            className="pl-10"
+          />
+        </div>
         <Button onClick={openAddDialog} className="bg-[#2748bf] hover:bg-[#153c85]">
           <UserPlus className="h-4 w-4 mr-2" />
           เพิ่มข้อมูลลูก
@@ -266,9 +296,19 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
             </div>
           </CardContent>
         </Card>
+      ) : filteredChildren.length === 0 ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-gray-400">
+              <Search className="mx-auto mb-3 h-10 w-10 opacity-50" />
+              <p className="font-medium">ไม่พบผู้เรียนที่ตรงกับคำค้นหา</p>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {children.map((child) => {
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {visibleChildren.map((child) => {
             const age = calculateAge(child.date_of_birth)
             return (
               <Card key={child.id} className="hover:shadow-md transition-shadow">
@@ -333,7 +373,23 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
               </Card>
             )
           })}
-        </div>
+          </div>
+          {filteredChildren.length > CHILDREN_PER_PAGE && (
+            <div className="mt-4 flex flex-col gap-3 rounded-lg border bg-white p-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                แสดง {startIndex + 1}-{Math.min(startIndex + CHILDREN_PER_PAGE, filteredChildren.length)} จาก {filteredChildren.length} คน
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={safePage <= 1}>
+                  ก่อนหน้า
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={safePage >= totalPages}>
+                  ถัดไป
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Add/Edit Dialog */}

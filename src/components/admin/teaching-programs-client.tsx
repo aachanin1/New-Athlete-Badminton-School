@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -415,6 +415,7 @@ export function TeachingProgramsClient({ programs }: TeachingProgramsClientProps
             <DialogTitle className="text-[#153c85]">
               {reviewAction === 'approved' ? 'อนุมัติโปรแกรมสอน' : 'ส่งกลับให้โค้ชแก้ไข'}
             </DialogTitle>
+            <DialogDescription className="sr-only">ตรวจรายละเอียดโปรแกรมสอนที่โค้ชส่ง อนุมัติ หรือส่งกลับให้แก้ไข</DialogDescription>
           </DialogHeader>
           {reviewItem && (
             <div className="space-y-4">

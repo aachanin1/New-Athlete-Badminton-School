@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -373,6 +373,7 @@ export function BranchesClient({ branches }: BranchesClientProps) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">{isNew ? 'เพิ่มสาขาใหม่' : 'แก้ไขสาขา'}</DialogTitle>
+            <DialogDescription className="sr-only">เพิ่มหรือแก้ไขข้อมูลสาขา สถานะ และจำนวนโค้ชประจำสาขา</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {error && (

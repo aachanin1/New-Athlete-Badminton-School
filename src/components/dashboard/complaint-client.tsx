@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -61,15 +61,29 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: typeof Cl
   resolved: { label: 'แก้ไขแล้ว', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
 }
 
+const COMPLAINTS_PER_PAGE = 6
+
 export function ComplaintClient({ complaints, branches }: ComplaintClientProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
   const [branchId, setBranchId] = useState('')
+
+  const filteredComplaints = useMemo(() => {
+    if (statusFilter === 'all') return complaints
+    return complaints.filter((complaint) => complaint.status === statusFilter)
+  }, [complaints, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredComplaints.length / COMPLAINTS_PER_PAGE))
+  const safePage = Math.min(page, totalPages)
+  const startIndex = (safePage - 1) * COMPLAINTS_PER_PAGE
+  const visibleComplaints = filteredComplaints.slice(startIndex, startIndex + COMPLAINTS_PER_PAGE)
 
   const resetForm = () => {
     setSubject('')
@@ -114,7 +128,24 @@ export function ComplaintClient({ complaints, branches }: ComplaintClientProps) 
 
   return (
     <>
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกสถานะ</SelectItem>
+            <SelectItem value="open">เปิดอยู่</SelectItem>
+            <SelectItem value="in_progress">กำลังดำเนินการ</SelectItem>
+            <SelectItem value="resolved">แก้ไขแล้ว</SelectItem>
+          </SelectContent>
+        </Select>
         <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="bg-[#2748bf] hover:bg-[#153c85]">
           <Plus className="h-4 w-4 mr-2" />
           แจ้งร้องเรียน
@@ -130,9 +161,18 @@ export function ComplaintClient({ complaints, branches }: ComplaintClientProps) 
             </div>
           </CardContent>
         </Card>
+      ) : filteredComplaints.length === 0 ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-gray-400">
+              <MessageSquareWarning className="mx-auto mb-3 h-10 w-10 opacity-50" />
+              <p className="font-medium">ไม่พบเรื่องร้องเรียนในสถานะนี้</p>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
-          {complaints.map((c) => {
+          {visibleComplaints.map((c) => {
             const status = STATUS_MAP[c.status] || STATUS_MAP.open
             const StatusIcon = status.icon
             return (
@@ -163,6 +203,21 @@ export function ComplaintClient({ complaints, branches }: ComplaintClientProps) 
               </Card>
             )
           })}
+          {filteredComplaints.length > COMPLAINTS_PER_PAGE && (
+            <div className="flex flex-col gap-3 rounded-lg border bg-white p-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                แสดง {startIndex + 1}-{Math.min(startIndex + COMPLAINTS_PER_PAGE, filteredComplaints.length)} จาก {filteredComplaints.length} เรื่อง
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={safePage <= 1}>
+                  ก่อนหน้า
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={safePage >= totalPages}>
+                  ถัดไป
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

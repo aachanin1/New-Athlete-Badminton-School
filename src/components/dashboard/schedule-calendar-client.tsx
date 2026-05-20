@@ -253,6 +253,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
               <CalendarDays className="inline h-4 w-4 mr-1" />
               {new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
+            <div className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
             {selectedSessions.map((s) => {
               const childId = s.child_id
               const colorClass = childId ? (childColorMap[childId] || '') : 'bg-gray-100 text-gray-700'
@@ -288,6 +289,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                 </div>
               )
             })}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -26,10 +26,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import {
@@ -645,6 +645,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
         <SheetContent className="w-full overflow-y-auto sm:max-w-5xl">
           <SheetHeader className="pr-8">
             <SheetTitle className="text-[#153c85]">รายละเอียดชั่วโมงสอนโค้ช</SheetTitle>
+            <SheetDescription className="sr-only">ดูรายละเอียดรอบสอน หลักฐานเช็คอิน และสรุปชั่วโมงรายสัปดาห์ของโค้ช</SheetDescription>
           </SheetHeader>
           {selectedCoach && (
             <div className="mt-4">
@@ -666,6 +667,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">ปิดสัปดาห์สอน</DialogTitle>
+            <DialogDescription className="sr-only">ยืนยันการปิดสัปดาห์และบันทึกหมายเหตุสำหรับการคำนวณชั่วโมงสอน</DialogDescription>
           </DialogHeader>
           {closeTarget && (
             <div className="space-y-4">

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -158,6 +158,10 @@ export function DashboardSidebar({ userName, userAvatarUrl, notificationUnreadCo
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>User navigation</SheetTitle>
+              <SheetDescription>Open the User menu to navigate between dashboard, learners, bookings, schedule, reschedule, complaints, and notifications.</SheetDescription>
+            </SheetHeader>
             <SidebarContent
               userName={userName}
               userAvatarUrl={userAvatarUrl}
