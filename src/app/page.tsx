@@ -65,9 +65,16 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section id="hero" className="relative overflow-hidden bg-gradient-to-br from-[#153c85] to-[#2748bf] text-white scroll-mt-16">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <span className="hero-shuttle hero-shuttle-one">🏸</span>
+          <span className="hero-shuttle hero-shuttle-two">🏸</span>
+          <span className="hero-racket-mark">⌁</span>
+          <span className="hero-motion-trail hero-motion-trail-one" />
+          <span className="hero-motion-trail hero-motion-trail-two" />
+        </div>
         <div className="container mx-auto px-4 py-20 md:py-32 relative">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="flex justify-center mb-8">
+          <div className="max-w-3xl mx-auto text-center hero-content-rise">
+            <div className="flex justify-center mb-8 hero-logo-float">
               <Image
                 src="/logo new-athlete-school.jpg"
                 alt="New Athlete School"

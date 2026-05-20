@@ -11,13 +11,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
+import type { UserRole } from '@/types/database'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const busy = loading || redirecting
+  const busyLabel = redirecting ? 'กำลังพาไปหน้าแดชบอร์ด...' : 'กำลังเข้าสู่ระบบ...'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,12 +40,14 @@ export default function LoginPage() {
       return
     }
 
-    const { data: profile } = await (supabase
+    const { data: profile } = (await supabase
       .from('profiles')
       .select('role')
       .eq('id', data.user.id)
-      .single() as any)
+      .maybeSingle()) as { data: { role: UserRole } | null }
 
+    setLoading(false)
+    setRedirecting(true)
     router.replace(getHomePathForRole(profile?.role))
     router.refresh()
   }
@@ -64,6 +70,16 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
+            {redirecting && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-[#153c85]">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  กำลังพาไปหน้าแดชบอร์ด...
+                </div>
+                <p className="mt-1 text-xs text-blue-700">ระบบกำลังตรวจสิทธิ์และเปิดหน้าที่เหมาะกับบัญชีของคุณ</p>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
                 {error}
@@ -78,6 +94,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={busy}
               />
             </div>
             <div className="space-y-2">
@@ -89,6 +106,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={busy}
               />
             </div>
           </CardContent>
@@ -96,12 +114,12 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full bg-[#2748bf] hover:bg-[#153c85]"
-              disabled={loading}
+              disabled={busy}
             >
-              {loading ? (
+              {busy ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  กำลังเข้าสู่ระบบ...
+                  {busyLabel}
                 </>
               ) : (
                 'เข้าสู่ระบบ'

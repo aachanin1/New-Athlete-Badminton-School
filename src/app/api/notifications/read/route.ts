@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+interface ReadNotificationPayload {
+  notificationId?: string
+  markAll?: boolean
+}
+
+interface DbError {
+  message: string
+}
+
+interface NotificationUpdateQuery extends PromiseLike<{ error: DbError | null }> {
+  eq(column: string, value: string | boolean): NotificationUpdateQuery
+}
+
+interface NotificationTable {
+  update(values: { is_read: boolean }): NotificationUpdateQuery
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
 }
@@ -16,9 +33,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { notificationId, markAll } = await request.json()
+    const { notificationId, markAll } = await request.json() as ReadNotificationPayload
 
-    let query = (supabase.from('notifications') as any)
+    const table = supabase.from('notifications') as unknown as NotificationTable
+    let query = table
       .update({ is_read: true })
       .eq('user_id', user.id)
 

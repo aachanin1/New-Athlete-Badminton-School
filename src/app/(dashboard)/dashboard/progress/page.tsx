@@ -37,15 +37,15 @@ export default async function ProgressPage() {
 
   if (!user) redirect('/auth/login')
 
-  const { data: children } = await (supabase
-    .from('children') as any)
+  const { data: children } = await supabase
+    .from('children')
     .select('id, full_name, nickname')
     .eq('parent_id', user.id) as { data: ChildRow[] | null }
 
   const studentIds = [user.id, ...(children?.map((child) => child.id) || [])]
 
-  const { data: levels } = await (supabase
-    .from('student_levels') as any)
+  const { data: levels } = await supabase
+    .from('student_levels')
     .select('student_id, level, notes, created_at')
     .in('student_id', studentIds)
     .order('created_at', { ascending: false }) as { data: StudentLevelRow[] | null }

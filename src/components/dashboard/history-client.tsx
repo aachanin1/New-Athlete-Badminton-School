@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { fmtTime } from '@/lib/utils'
-import { getKidsGroupTotal, getAdultGroupTotal } from '@/lib/pricing'
 import { hasPaymentTransferSettings, type PaymentTransferSettings } from '@/lib/payment-settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -39,8 +38,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Plus,
-  Trash2,
   Ticket,
 } from 'lucide-react'
 
@@ -91,20 +88,6 @@ interface SessionDetail {
   branches?: { name: string } | null
 }
 
-interface DbMutationResult {
-  error: { message?: string } | null
-}
-
-interface EqMutationQuery {
-  eq: (column: string, value: string) => Promise<DbMutationResult>
-}
-
-interface MutationTable {
-  update: (values: Record<string, unknown>) => EqMutationQuery
-  delete: () => EqMutationQuery
-  insert: (values: Record<string, unknown>[]) => Promise<DbMutationResult>
-}
-
 interface SlipVerifyData {
   transRef?: string
   amount?: number
@@ -137,16 +120,23 @@ interface HistoryClientProps {
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending_payment: { label: 'รอชำระเงิน', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  paid: { label: 'ชำระแล้ว รอตรวจสอบ', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  verified: { label: 'ยืนยันแล้ว', color: 'bg-green-100 text-green-700 border-green-200' },
+  pending_payment: { label: 'รอแนบสลิป', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  paid: { label: 'ส่งสลิปแล้ว', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  verified: { label: 'จองสำเร็จ', color: 'bg-green-100 text-green-700 border-green-200' },
   cancelled: { label: 'ยกเลิก', color: 'bg-red-100 text-red-700 border-red-200' },
 }
 
 const PAYMENT_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending: { label: 'รอตรวจสอบ', color: 'bg-yellow-100 text-yellow-700' },
-  approved: { label: 'อนุมัติ', color: 'bg-green-100 text-green-700' },
-  rejected: { label: 'ปฏิเสธ', color: 'bg-red-100 text-red-700' },
+  pending: { label: 'รอตรวจสอบเพิ่ม', color: 'bg-yellow-100 text-yellow-700' },
+  approved: { label: 'ยืนยันแล้ว', color: 'bg-green-100 text-green-700' },
+  rejected: { label: 'ไม่ผ่าน', color: 'bg-red-100 text-red-700' },
+}
+
+const STATUS_HELP: Record<string, string> = {
+  pending_payment: 'ยังไม่ส่งสลิป กรุณาโอนเงินและแนบสลิปเพื่อให้ระบบตรวจสอบ',
+  paid: 'ระบบรับสลิปแล้ว แต่ SlipOK ยังไม่ยืนยันอัตโนมัติ แอดมินจะตรวจสอบต่อ',
+  verified: 'ระบบยืนยันการชำระเงินแล้ว ตารางเรียนพร้อมใช้งาน',
+  cancelled: 'รายการนี้ถูกยกเลิกแล้ว',
 }
 
 const COURSE_LABELS: Record<string, string> = {
@@ -157,14 +147,9 @@ const COURSE_LABELS: Record<string, string> = {
 
 const MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
-function mutationTable(supabase: ReturnType<typeof createClient>, tableName: string) {
-  return supabase.from(tableName) as unknown as MutationTable
-}
-
-export function HistoryClient({ bookings, payments, userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {}, paymentTransferSettings }: HistoryClientProps) {
+export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {}, paymentTransferSettings }: HistoryClientProps) {
   const router = useRouter()
   const [payDialogOpen, setPayDialogOpen] = useState(false)
-  const [pickDatesOpen, setPickDatesOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null)
   const [payBookingIds, setPayBookingIds] = useState<string[]>([])
@@ -172,9 +157,6 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
   const [slipPreview, setSlipPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedDates, setSelectedDates] = useState<{ date: string; startTime: string; endTime: string }[]>([])
-  // Track locally deleted session IDs so the detail modal updates immediately
-  const [deletedSessionIds, setDeletedSessionIds] = useState<Set<string>>(new Set())
 
   // Alert dialog state (replaces browser confirm)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -196,100 +178,8 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
   const pendingBookings = bookings.filter((b) => b.status === 'pending_payment')
   const pendingTotal = pendingBookings.reduce((sum, b) => sum + b.total_price, 0)
 
-  const handleApprovePayment = async (paymentId: string, bookingId: string, action: 'approved' | 'rejected') => {
-    setLoading(true)
-    const supabase = createClient()
-
-    // Update payment status
-    await mutationTable(supabase, 'payments')
-      .update({ status: action, verified_by: userId, verified_at: new Date().toISOString() })
-      .eq('id', paymentId)
-
-    // Update booking status
-    if (action === 'approved') {
-      await mutationTable(supabase, 'bookings')
-        .update({ status: 'verified' })
-        .eq('id', bookingId)
-    }
-
-    setLoading(false)
-    router.refresh()
-  }
-
-  const openPickDatesDialog = (booking: BookingWithRelations) => {
-    setSelectedBooking(booking)
-    setSelectedDates([])
-    setError(null)
-    setPickDatesOpen(true)
-  }
-
-  const addDateRow = () => {
-    if (!selectedBooking) return
-    const existingSessions = sessionCountMap[selectedBooking.id] || 0
-    const maxNew = selectedBooking.total_sessions - existingSessions - selectedDates.length
-    if (maxNew <= 0) return
-    setSelectedDates([...selectedDates, { date: '', startTime: '17:00', endTime: '19:00' }])
-  }
-
-  const removeDateRow = (index: number) => {
-    setSelectedDates(selectedDates.filter((_, i) => i !== index))
-  }
-
-  const updateDateRow = (index: number, field: string, value: string) => {
-    const updated = [...selectedDates]
-    updated[index] = { ...updated[index], [field]: value }
-    setSelectedDates(updated)
-  }
-
-  const handleSubmitDates = async () => {
-    if (!selectedBooking || selectedDates.length === 0) return
-
-    // Validate all dates are filled
-    const hasEmpty = selectedDates.some((d) => !d.date)
-    if (hasEmpty) {
-      setError('กรุณาเลือกวันเรียนให้ครบทุกรายการ')
-      return
-    }
-
-    // Validate dates are in the future
-    const today = new Date().toISOString().split('T')[0]
-    const hasPast = selectedDates.some((d) => d.date <= today)
-    if (hasPast) {
-      setError('กรุณาเลือกวันที่ในอนาคตเท่านั้น')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-    const supabase = createClient()
-
-    const sessionsToCreate = selectedDates.map((d) => ({
-      booking_id: selectedBooking.id,
-      date: d.date,
-      start_time: d.startTime,
-      end_time: d.endTime,
-      branch_id: selectedBooking.branch_id,
-      status: 'scheduled',
-      is_makeup: false,
-    }))
-
-    const { error: insertErr } = await mutationTable(supabase, 'booking_sessions').insert(sessionsToCreate)
-
-    if (insertErr) {
-      console.error('Insert sessions error:', insertErr)
-      setError(`สร้างตารางเรียนไม่สำเร็จ: ${insertErr.message}`)
-      setLoading(false)
-      return
-    }
-
-    setPickDatesOpen(false)
-    setLoading(false)
-    router.refresh()
-  }
-
   const openDetailDialog = (booking: BookingWithRelations) => {
     setSelectedBooking(booking)
-    setDeletedSessionIds(new Set())
     setError(null)
     setDetailDialogOpen(true)
   }
@@ -301,16 +191,17 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
       async () => {
         setLoading(true)
         setError(null)
-        const supabase = createClient()
+        const response = await fetch('/api/bookings', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'cancel_pending_booking', bookingId }),
+        })
+        const result = await response.json()
 
-        await mutationTable(supabase, 'booking_sessions').delete().eq('booking_id', bookingId)
-
-        const { error: updateErr } = await mutationTable(supabase, 'bookings')
-          .update({ status: 'cancelled' })
-          .eq('id', bookingId)
-
-        if (updateErr) {
-          setError('ยกเลิกไม่สำเร็จ กรุณาลองใหม่')
+        if (!response.ok) {
+          setError(result.error || 'ยกเลิกไม่สำเร็จ กรุณาลองใหม่')
+          setLoading(false)
+          return
         }
 
         setLoading(false)
@@ -318,58 +209,6 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
         router.refresh()
       },
       'danger'
-    )
-  }
-
-  const handleDeleteSession = (sessionId: string, bookingId: string) => {
-    showConfirm(
-      'ยืนยันลบวันเรียน',
-      'คุณต้องการลบวันเรียนนี้หรือไม่? ระบบจะคำนวณราคาใหม่ให้อัตโนมัติ',
-      async () => {
-        setLoading(true)
-        const supabase = createClient()
-
-        const { error: delErr } = await mutationTable(supabase, 'booking_sessions').delete().eq('id', sessionId)
-
-        if (delErr) {
-          setError('ลบไม่สำเร็จ กรุณาลองใหม่')
-          setLoading(false)
-          return
-        }
-
-        // Recalculate price based on remaining sessions
-        const remaining = (bookingSessionsMap[bookingId] || []).filter((s) => s.id !== sessionId)
-        const booking = bookings.find((b) => b.id === bookingId)
-        const courseTypeName = booking?.course_types?.name || ''
-        let newPrice = 0
-
-        if (remaining.length === 0) {
-          newPrice = 0
-        } else if (courseTypeName === 'kids_group') {
-          newPrice = getKidsGroupTotal(remaining.length).total
-        } else if (courseTypeName === 'adult_group') {
-          newPrice = getAdultGroupTotal(remaining.length).total
-        } else if (courseTypeName === 'private') {
-          newPrice = remaining.length * 900
-        } else {
-          newPrice = remaining.length * 700
-        }
-
-        await mutationTable(supabase, 'bookings')
-          .update({ total_sessions: remaining.length, total_price: newPrice })
-          .eq('id', bookingId)
-
-        // Update local state immediately so modal reflects the change
-        setDeletedSessionIds((prev) => new Set(prev).add(sessionId))
-        if (selectedBooking) {
-          setSelectedBooking({ ...selectedBooking, total_sessions: remaining.length, total_price: newPrice })
-        }
-
-        setLoading(false)
-        // Refresh server data in background
-        router.refresh()
-      },
-      'warning'
     )
   }
 
@@ -599,6 +438,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                             <Badge className={status.color}>{status.label}</Badge>
                             <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                           </div>
+                          <p className="text-xs text-gray-500">{STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                             <div className="flex items-center gap-1.5 text-gray-600">
@@ -666,14 +506,9 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                               </Button>
                             )}
                             {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) < booking.total_sessions && (
-                              <Button
-                                size="sm"
-                                className="bg-[#2748bf] hover:bg-[#153c85]"
-                                onClick={() => openPickDatesDialog(booking)}
-                              >
-                                <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                                เลือกวันเรียน ({sessionCountMap[booking.id] || 0}/{booking.total_sessions})
-                              </Button>
+                              <div className="max-w-[260px] rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                รายการเก่ายังเลือกวันไม่ครบ กรุณาจองรอบใหม่จากหน้าจองคอร์สหรือแจ้งแอดมินให้ช่วยตรวจสอบ
+                              </div>
                             )}
                           </div>
                           {!isAdmin && booking.status === 'verified' && (sessionCountMap[booking.id] || 0) >= booking.total_sessions && (
@@ -713,28 +548,7 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                                     </a>
                                   )}
                                   {isAdmin && payment.status === 'pending' && (
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 text-green-600 border-green-300 hover:bg-green-50"
-                                        onClick={() => handleApprovePayment(payment.id, booking.id, 'approved')}
-                                        disabled={loading}
-                                      >
-                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                        อนุมัติ
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 text-red-600 border-red-300 hover:bg-red-50"
-                                        onClick={() => handleApprovePayment(payment.id, booking.id, 'rejected')}
-                                        disabled={loading}
-                                      >
-                                        <XCircle className="h-3 w-3 mr-1" />
-                                        ปฏิเสธ
-                                      </Button>
-                                    </div>
+                                    <span className="text-xs text-gray-500">ตรวจต่อที่เมนูตรวจสอบการชำระเงิน</span>
                                   )}
                                 </div>
                               </div>
@@ -801,8 +615,8 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
             </div>
 
             {slipPreview && (
-              <div className="border rounded-lg overflow-hidden">
-                <img src={slipPreview} alt="สลิป" className="w-full max-h-64 object-contain bg-gray-50" />
+              <div className="relative h-64 overflow-hidden rounded-lg border bg-gray-50">
+                <Image src={slipPreview} alt="สลิป" fill sizes="(max-width: 640px) 100vw, 448px" className="object-contain" />
               </div>
             )}
 
@@ -859,107 +673,6 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                 </Button>
               </div>
             )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Pick Dates Dialog */}
-      <Dialog open={pickDatesOpen} onOpenChange={setPickDatesOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-[#153c85]">เลือกวันเรียน</DialogTitle>
-            <DialogDescription>
-              เลือกวันเรียนได้ {selectedBooking ? selectedBooking.total_sessions - (sessionCountMap[selectedBooking.id] || 0) : 0} วัน
-              (สาขา: {selectedBooking?.branches?.name})
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 mt-2">
-            {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
-                {error}
-              </div>
-            )}
-
-            {selectedDates.map((row, index) => (
-              <div key={index} className="flex items-end gap-2 p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <Label className="text-xs">วันที่เรียน #{index + 1}</Label>
-                  <Input
-                    type="date"
-                    value={row.date}
-                    onChange={(e) => updateDateRow(index, 'date', e.target.value)}
-                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="w-24">
-                  <Label className="text-xs">เริ่ม</Label>
-                  <Input
-                    type="time"
-                    value={row.startTime}
-                    onChange={(e) => updateDateRow(index, 'startTime', e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="w-24">
-                  <Label className="text-xs">สิ้นสุด</Label>
-                  <Input
-                    type="time"
-                    value={row.endTime}
-                    onChange={(e) => updateDateRow(index, 'endTime', e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-9 w-9 text-red-500 hover:text-red-700"
-                  onClick={() => removeDateRow(index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {selectedBooking && selectedDates.length < (selectedBooking.total_sessions - (sessionCountMap[selectedBooking.id] || 0)) && (
-              <Button
-                variant="outline"
-                className="w-full border-dashed"
-                onClick={addDateRow}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                เพิ่มวันเรียน
-              </Button>
-            )}
-
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setPickDatesOpen(false)}
-                disabled={loading}
-              >
-                ยกเลิก
-              </Button>
-              <Button
-                className="flex-1 bg-[#2748bf] hover:bg-[#153c85]"
-                onClick={handleSubmitDates}
-                disabled={selectedDates.length === 0 || loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    กำลังบันทึก...
-                  </>
-                ) : (
-                  <>
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    บันทึกตารางเรียน ({selectedDates.length} วัน)
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1022,10 +735,10 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-700">วันเรียนที่จอง:</p>
-                {(bookingSessionsMap[selectedBooking.id] || []).filter((s) => !deletedSessionIds.has(s.id)).length === 0 ? (
+                {(bookingSessionsMap[selectedBooking.id] || []).length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-4">ยังไม่มีวันเรียน</p>
                 ) : (
-                  (bookingSessionsMap[selectedBooking.id] || []).filter((s) => !deletedSessionIds.has(s.id)).map((session) => {
+                  (bookingSessionsMap[selectedBooking.id] || []).map((session) => {
                     const sessionDate = new Date(session.date + 'T00:00:00')
                     const dayLabel = sessionDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
                     const isPending = selectedBooking.status === 'pending_payment'
@@ -1047,10 +760,9 @@ export function HistoryClient({ bookings, payments, userId, isAdmin = false, ses
                           </div>
                         </div>
                         {isPending && (
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
-                            onClick={() => handleDeleteSession(session.id, selectedBooking.id)} disabled={loading} title="ลบ">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                            แก้ไขผ่านปฏิทิน
+                          </span>
                         )}
                       </div>
                     )

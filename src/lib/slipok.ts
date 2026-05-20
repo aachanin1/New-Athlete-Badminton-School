@@ -1,4 +1,4 @@
-// SlipOK API helper — server-side only
+// SlipOK API helper - server-side only
 // Docs: https://docs.google.com/document/d/1l2ot68Pw3CL7JBeYfUIHLzeBC5F7jm2wzBfm84kwxBA
 
 export interface SlipOKResponse {
@@ -6,26 +6,31 @@ export interface SlipOKResponse {
   data?: {
     transRef: string
     date: string
-    time: string
-    sender: {
-      displayName: string
-      name: string
-      proxy: { type: string; value: string }
-      account: { type: string; value: string }
+    time?: string
+    sender?: {
+      displayName?: string
+      name?: string
+      proxy?: { type: string; value: string }
+      account?: { type: string; value: string }
     }
-    receiver: {
-      displayName: string
-      name: string
-      proxy: { type: string; value: string }
-      account: { type: string; value: string }
+    receiver?: {
+      displayName?: string
+      name?: string
+      proxy?: { type: string; value: string }
+      account?: { type: string; value: string }
     }
     amount: number
     ref1?: string
     ref2?: string
     ref3?: string
-    countryCode: string
+    countryCode?: string
     qrCode?: string
   }
+  message?: string
+  code?: string
+}
+
+interface SlipOKErrorResponse {
   message?: string
   code?: string
 }
@@ -56,7 +61,7 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string): Promise<
       body: formData,
     })
 
-    const json = await res.json()
+    const json = await res.json() as SlipOKResponse & SlipOKErrorResponse
 
     if (!res.ok) {
       return {
@@ -70,10 +75,11 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string): Promise<
       success: true,
       data: json?.data,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     return {
       success: false,
-      message: `SlipOK API request failed: ${err.message}`,
+      message: `SlipOK API request failed: ${message}`,
     }
   }
 }
@@ -91,21 +97,21 @@ export function validateSlipData(
     return { valid: false, reason: 'ไม่พบข้อมูลการโอนเงินในสลิป' }
   }
 
-  // Check amount matches (allow ±1 baht tolerance for rounding)
+  // Check amount matches (allow +/-1 baht tolerance for rounding).
   const amountDiff = Math.abs(slipData.amount - expectedAmount)
   if (amountDiff > 1) {
     return {
       valid: false,
-      reason: `ยอดเงินไม่ตรง: สลิป ฿${slipData.amount.toLocaleString()} ≠ ยอดจอง ฿${expectedAmount.toLocaleString()}`,
+      reason: `ยอดเงินไม่ตรง: สลิป ฿${slipData.amount.toLocaleString()} ไม่เท่ากับยอดจอง ฿${expectedAmount.toLocaleString()}`,
     }
   }
 
-  // If bookingRef provided, check it matches ref1/ref2/ref3
+  // If bookingRef provided, check it matches ref1/ref2/ref3.
   if (bookingRef) {
     const refs = [slipData.ref1, slipData.ref2, slipData.ref3].filter(Boolean)
-    if (refs.length > 0 && !refs.some((r) => r?.includes(bookingRef))) {
-      // Ref check is optional — only warn, don't block
-      // Some transfers may not have matching refs
+    if (refs.length > 0 && !refs.some((ref) => ref?.includes(bookingRef))) {
+      // Ref check is optional; only warn, don't block.
+      // Some transfers may not have matching refs.
     }
   }
 

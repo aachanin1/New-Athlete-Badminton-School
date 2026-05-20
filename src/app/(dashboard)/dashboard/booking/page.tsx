@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingClient } from '@/components/dashboard/booking-client'
-import type { CourseTypeName } from '@/types/database'
+import type { Branch, Child, CourseType, CourseTypeName, LearnerType } from '@/types/database'
 
 interface ScheduleTemplateRow {
   id: string
@@ -29,6 +29,57 @@ interface PricingTierRow {
   course_types?: { name: CourseTypeName | null } | null
 }
 
+interface ProfileRow {
+  full_name: string | null
+  phone: string | null
+}
+
+interface ExistingBookingRow {
+  id: string
+  child_id: string | null
+  course_type_id: string
+  month: number
+  year: number
+  total_sessions: number
+  total_price: number
+  status: string
+}
+
+interface ExistingBookingSessionRow {
+  id: string
+  booking_id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+  schedule_slot_id: string | null
+  status: string
+}
+
+interface EditBookingRow extends ExistingBookingRow {
+  user_id: string
+  learner_type: LearnerType
+  branch_id: string
+  total_price: number
+  course_types: { name: CourseTypeName } | null
+}
+
+interface EditBookingSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+  schedule_slot_id: string | null
+}
+
+interface EditBookingData extends EditBookingRow {
+  sessions: EditBookingSessionRow[]
+  childIds: string[]
+}
+
 export default async function BookingPage({ searchParams }: { searchParams: { editBookingId?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -40,19 +91,19 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
     .from('children')
     .select('*')
     .eq('parent_id', user.id)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) as unknown as { data: Child[] | null }
 
   // Fetch branches
   const { data: branches } = await supabase
     .from('branches')
     .select('*')
     .eq('is_active', true)
-    .order('name')
+    .order('name') as unknown as { data: Branch[] | null }
 
   // Fetch course types to get UUIDs
   const { data: courseTypes } = await supabase
     .from('course_types')
-    .select('id, name')
+    .select('id, name') as unknown as { data: Pick<CourseType, 'id' | 'name'>[] | null }
 
   const { data: pricingTiers } = await supabase
     .from('pricing_tiers')
@@ -72,47 +123,50 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
     .eq('is_active', true) as unknown as { data: ScheduleTemplateRow[] | null }
 
   // Fetch user profile
-  const { data: profile } = await (supabase
-    .from('profiles') as any)
+  const { data: profile } = await supabase
+    .from('profiles')
     .select('full_name, phone')
     .eq('id', user.id)
-    .single()
+    .single() as unknown as { data: ProfileRow | null }
 
   // Fetch existing bookings for sibling pricing calculation (include total_price for incremental pricing)
-  const { data: existingBookings } = await (supabase
-    .from('bookings') as any)
+  const { data: existingBookings } = await supabase
+    .from('bookings')
     .select('id, child_id, course_type_id, month, year, total_sessions, total_price, status')
     .eq('user_id', user.id)
-    .in('status', ['pending_payment', 'paid', 'verified'])
+    .in('status', ['pending_payment', 'paid', 'verified']) as unknown as { data: ExistingBookingRow[] | null }
 
   // Fetch existing booking sessions for calendar display (prevent double-booking)
-  const existingBookingIds = (existingBookings || []).map((b: any) => b.id)
-  let existingSessionsData: any[] = []
+  const existingBookingIds = (existingBookings || []).map((booking) => booking.id)
+  let existingSessionsData: ExistingBookingSessionRow[] = []
   if (existingBookingIds.length > 0) {
-    const { data: sessions } = await (supabase.from('booking_sessions') as any)
-      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, status')
+    const { data: sessions } = await supabase
+      .from('booking_sessions')
+      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status')
       .in('booking_id', existingBookingIds)
-      .neq('status', 'rescheduled')
+      .neq('status', 'rescheduled') as unknown as { data: ExistingBookingSessionRow[] | null }
     existingSessionsData = sessions || []
   }
 
   // If editing an existing booking, fetch its data + sessions
-  let editBookingData: any = null
+  let editBookingData: EditBookingData | null = null
   if (searchParams.editBookingId) {
-    const { data: booking } = await (supabase.from('bookings') as any)
+    const { data: booking } = await supabase
+      .from('bookings')
       .select('id, user_id, learner_type, child_id, branch_id, course_type_id, month, year, total_sessions, total_price, status, course_types(name)')
       .eq('id', searchParams.editBookingId)
       .eq('user_id', user.id)
-      .single()
+      .single() as unknown as { data: EditBookingRow | null }
 
     if (booking && booking.status === 'pending_payment') {
-      const { data: sessions } = await (supabase.from('booking_sessions') as any)
-        .select('id, date, start_time, end_time, branch_id, child_id')
+      const { data: sessions } = await supabase
+        .from('booking_sessions')
+        .select('id, date, start_time, end_time, branch_id, child_id, schedule_slot_id')
         .eq('booking_id', booking.id)
-        .order('date', { ascending: true })
+        .order('date', { ascending: true }) as unknown as { data: EditBookingSessionRow[] | null }
 
       // Get all child_ids from sessions for multi-child bookings
-      const childIds = Array.from(new Set((sessions || []).map((s: any) => s.child_id).filter(Boolean))) as string[]
+      const childIds = Array.from(new Set((sessions || []).map((session) => session.child_id).filter(Boolean))) as string[]
 
       editBookingData = { ...booking, sessions: sessions || [], childIds }
     }
@@ -130,10 +184,10 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
       </div>
       <BookingClient
         userId={user.id}
-        userName={(profile as any)?.full_name || ''}
-        children={children || []}
+        userName={profile?.full_name || ''}
+        learnerChildren={children || []}
         branches={branches || []}
-        courseTypes={(courseTypes as any) || []}
+        courseTypes={courseTypes || []}
         scheduleTemplates={(scheduleTemplates || []).map((template) => ({
           id: template.id,
           branch_id: template.branch_id,
@@ -146,7 +200,7 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
           is_active: template.is_active,
           notes: template.notes,
         }))}
-        existingBookings={(existingBookings as any) || []}
+        existingBookings={existingBookings || []}
         existingBookingSessions={existingSessionsData}
         editBooking={editBookingData}
         pricingTiers={(pricingTiers || []).map((tier) => ({

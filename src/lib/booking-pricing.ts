@@ -9,6 +9,7 @@ interface BookingPricingParams {
   year: number
   newSessions: number
   existingStatuses?: string[]
+  excludeBookingId?: string
 }
 
 interface SupabaseQueryClient {
@@ -19,6 +20,16 @@ interface ExistingBookingRow {
   id: string
   total_sessions: number
   total_price: number
+}
+
+interface ExistingBookingQuery extends PromiseLike<{ data: ExistingBookingRow[] | null }> {
+  eq(column: string, value: string | number): ExistingBookingQuery
+  in(column: string, values: string[]): ExistingBookingQuery
+  neq(column: string, value: string): ExistingBookingQuery
+}
+
+interface ExistingBookingTable {
+  select(columns: string): ExistingBookingQuery
 }
 
 export async function fetchPricingTiers(supabase: SupabaseQueryClient) {
@@ -47,31 +58,25 @@ export async function calculateBookingBasePrice({
   year,
   newSessions,
   existingStatuses = ['paid', 'verified'],
+  excludeBookingId,
 }: BookingPricingParams) {
   const pricingTiers = await fetchPricingTiers(supabase)
 
   if (courseTypeName === 'kids_group') {
-    const bookingsTable = supabase.from('bookings') as {
-      select(columns: string): {
-        eq(column: string, value: string | number): {
-          eq(column: string, value: string | number): {
-            eq(column: string, value: string | number): {
-              eq(column: string, value: string | number): {
-                in(column: string, values: string[]): Promise<{ data: ExistingBookingRow[] | null }>
-              }
-            }
-          }
-        }
-      }
-    }
-
-    const { data: existingBookings } = await bookingsTable
+    const bookingsTable = supabase.from('bookings') as ExistingBookingTable
+    let query = bookingsTable
       .select('id, total_sessions, total_price')
       .eq('user_id', userId)
       .eq('course_type_id', courseTypeId)
       .eq('month', month)
       .eq('year', year)
       .in('status', existingStatuses)
+
+    if (excludeBookingId) {
+      query = query.neq('id', excludeBookingId)
+    }
+
+    const { data: existingBookings } = await query as { data: ExistingBookingRow[] | null }
 
     const existing = (existingBookings || []) as ExistingBookingRow[]
     const existingSessions = existing.reduce((sum, booking) => sum + Number(booking.total_sessions || 0), 0)

@@ -19,9 +19,9 @@ interface SessionData {
   rescheduled_from?: { date: string; start_time: string; end_time: string } | null
   children: { full_name: string; nickname: string | null } | null
   bookings: {
-    course_types: { name: string } | null
-  }
-  branches: { name: string } | null
+    course_types: { name: string | null } | null
+  } | null
+  branches: { name: string | null } | null
 }
 
 interface ChildData {
@@ -32,7 +32,7 @@ interface ChildData {
 
 interface ScheduleCalendarClientProps {
   sessions: SessionData[]
-  children: ChildData[]
+  learnerChildren: ChildData[]
   userName: string
 }
 
@@ -72,7 +72,7 @@ const CHILD_DOT_COLORS = [
 ]
 const SELF_DOT_COLOR = 'bg-gray-500'
 
-export function ScheduleCalendarClient({ sessions, children, userName }: ScheduleCalendarClientProps) {
+export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: ScheduleCalendarClientProps) {
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth())
   const [year, setYear] = useState(now.getFullYear())
@@ -81,15 +81,15 @@ export function ScheduleCalendarClient({ sessions, children, userName }: Schedul
   // Build child color map (for badges) and dot color map (for calendar dots)
   const childColorMap = useMemo(() => {
     const map: Record<string, string> = {}
-    children.forEach((c, i) => { map[c.id] = CHILD_COLORS[i % CHILD_COLORS.length] })
+    learnerChildren.forEach((c, i) => { map[c.id] = CHILD_COLORS[i % CHILD_COLORS.length] })
     return map
-  }, [children])
+  }, [learnerChildren])
 
   const childDotColorMap = useMemo(() => {
     const map: Record<string, string> = {}
-    children.forEach((c, i) => { map[c.id] = CHILD_DOT_COLORS[i % CHILD_DOT_COLORS.length] })
+    learnerChildren.forEach((c, i) => { map[c.id] = CHILD_DOT_COLORS[i % CHILD_DOT_COLORS.length] })
     return map
-  }, [children])
+  }, [learnerChildren])
 
   // Group sessions by date
   const sessionsByDate = useMemo(() => {
@@ -185,9 +185,9 @@ export function ScheduleCalendarClient({ sessions, children, userName }: Schedul
       )}
 
       {/* Legend */}
-      {children.length > 0 && (
+      {learnerChildren.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {children.map((c) => (
+          {learnerChildren.map((c) => (
             <Badge key={c.id} className={childColorMap[c.id]} variant="outline">
               {c.nickname || c.full_name}
             </Badge>
@@ -210,6 +210,8 @@ export function ScheduleCalendarClient({ sessions, children, userName }: Schedul
               const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear()
               const isSelected = selectedDate === dateStr
               const hasSessions = daySessions.length > 0
+              const visibleSessions = daySessions.slice(0, 4)
+              const extraCount = daySessions.length - visibleSessions.length
 
               return (
                 <button
@@ -224,13 +226,16 @@ export function ScheduleCalendarClient({ sessions, children, userName }: Schedul
                   <span className={`text-xs font-medium ${isToday ? 'text-[#f57e3b]' : i % 7 === 0 ? 'text-red-500' : hasSessions ? 'text-[#153c85]' : 'text-gray-400'}`}>{day}</span>
                   {hasSessions && (
                     <div className="flex flex-wrap gap-0.5 mt-0.5 justify-center">
-                      {daySessions.map((s) => {
+                      {visibleSessions.map((s) => {
                         const childId = s.child_id
                         const dotColor = childId ? (childDotColorMap[childId] || SELF_DOT_COLOR) : SELF_DOT_COLOR
                         return (
                           <span key={s.id} className={`w-2 h-2 rounded-full ${dotColor}`} title={`${getLearnerName(s)} ${fmtTime(s.start_time)}`} />
                         )
                       })}
+                      {extraCount > 0 && (
+                        <span className="rounded-full bg-gray-100 px-1 text-[10px] font-medium text-gray-500">+{extraCount}</span>
+                      )}
                     </div>
                   )}
                 </button>

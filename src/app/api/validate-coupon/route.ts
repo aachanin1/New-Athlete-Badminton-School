@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Coupon } from '@/types/database'
+
+interface ValidateCouponPayload {
+  code?: string
+  totalAmount?: number
+}
 
 export async function POST(request: NextRequest) {
   const supabase = createClient()
@@ -10,53 +16,50 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { code, totalAmount } = await request.json()
+    const { code, totalAmount } = await request.json() as ValidateCouponPayload
 
-    if (!code || !totalAmount) {
+    if (!code?.trim() || !Number.isFinite(totalAmount) || Number(totalAmount) <= 0) {
       return NextResponse.json({ error: 'กรุณากรอกรหัสคูปอง' }, { status: 400 })
     }
 
-    // Find coupon by code
-    const { data: coupon, error: couponErr } = await (supabase
-      .from('coupons') as any)
+    const normalizedCode = code.toUpperCase().trim()
+    const { data: coupon, error: couponErr } = await supabase
+      .from('coupons')
       .select('*')
-      .eq('code', code.toUpperCase().trim())
+      .eq('code', normalizedCode)
       .eq('is_active', true)
-      .single()
+      .single() as unknown as { data: Coupon | null; error: { message: string } | null }
 
     if (couponErr || !coupon) {
       return NextResponse.json({ error: 'ไม่พบคูปองนี้ หรือคูปองไม่สามารถใช้งานได้' }, { status: 404 })
     }
 
-    // Check validity dates
-    const now = new Date().toISOString().split('T')[0]
-    if (coupon.valid_from && now < coupon.valid_from) {
+    const today = new Date().toISOString().split('T')[0]
+    if (coupon.valid_from && today < coupon.valid_from) {
       return NextResponse.json({ error: 'คูปองยังไม่เริ่มใช้งาน' }, { status: 400 })
     }
-    if (coupon.valid_to && now > coupon.valid_to) {
+
+    if (coupon.valid_to && today > coupon.valid_to) {
       return NextResponse.json({ error: 'คูปองหมดอายุแล้ว' }, { status: 400 })
     }
 
-    const { count: usageCount } = await (supabase
-      .from('coupon_usages') as any)
+    const { count: usageCount } = await supabase
+      .from('coupon_usages')
       .select('*', { count: 'exact', head: true })
       .eq('coupon_id', coupon.id)
 
-    // Check max uses
-    if (coupon.max_uses && (usageCount || 0) >= coupon.max_uses) {
+    if (coupon.max_uses !== null && (usageCount || 0) >= Number(coupon.max_uses)) {
       return NextResponse.json({ error: 'คูปองถูกใช้งานครบจำนวนแล้ว' }, { status: 400 })
     }
 
-    // Check min purchase
-    if (coupon.min_purchase && totalAmount < coupon.min_purchase) {
+    if (coupon.min_purchase !== null && Number(totalAmount) < Number(coupon.min_purchase)) {
       return NextResponse.json({
-        error: `ยอดขั้นต่ำสำหรับคูปองนี้คือ ฿${Number(coupon.min_purchase).toLocaleString()}`
+        error: `ยอดขั้นต่ำสำหรับคูปองนี้คือ ฿${Number(coupon.min_purchase).toLocaleString('th-TH')}`,
       }, { status: 400 })
     }
 
-    // Check if user already used this coupon (optional: limit per user)
-    const { data: existingUsage } = await (supabase
-      .from('coupon_usages') as any)
+    const { data: existingUsage } = await supabase
+      .from('coupon_usages')
       .select('id')
       .eq('coupon_id', coupon.id)
       .eq('user_id', user.id)
@@ -65,12 +68,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'คุณใช้คูปองนี้ไปแล้ว' }, { status: 400 })
     }
 
-    // Calculate discount
     let discountAmount = 0
     if (coupon.discount_type === 'fixed') {
-      discountAmount = Math.min(Number(coupon.discount_value), totalAmount)
+      discountAmount = Math.min(Number(coupon.discount_value), Number(totalAmount))
     } else if (coupon.discount_type === 'percent') {
-      discountAmount = Math.round(totalAmount * Number(coupon.discount_value) / 100)
+      discountAmount = Math.round(Number(totalAmount) * Number(coupon.discount_value) / 100)
     }
 
     return NextResponse.json({
@@ -82,9 +84,10 @@ export async function POST(request: NextRequest) {
         discount_value: Number(coupon.discount_value),
       },
       discountAmount,
-      finalAmount: totalAmount - discountAmount,
+      finalAmount: Number(totalAmount) - discountAmount,
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${message}` }, { status: 500 })
   }
 }

@@ -6,6 +6,143 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .hero-content-rise {
+    animation: hero-content-rise 700ms ease-out both;
+  }
+
+  .hero-logo-float {
+    animation: hero-logo-float 5.5s ease-in-out infinite;
+  }
+
+  .hero-shuttle {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(2rem, 5vw, 4.5rem);
+    filter: drop-shadow(0 14px 28px rgb(0 0 0 / 0.18));
+    opacity: 0.42;
+  }
+
+  .hero-shuttle-one {
+    top: 20%;
+    right: 12%;
+    animation: hero-shuttle-one 8s ease-in-out infinite;
+  }
+
+  .hero-shuttle-two {
+    left: 9%;
+    bottom: 18%;
+    font-size: clamp(1.7rem, 4vw, 3.8rem);
+    opacity: 0.24;
+    animation: hero-shuttle-two 9s ease-in-out infinite;
+  }
+
+  .hero-racket-mark {
+    position: absolute;
+    top: 34%;
+    left: 16%;
+    color: rgb(255 255 255 / 0.16);
+    font-size: clamp(5rem, 14vw, 12rem);
+    line-height: 1;
+    transform: rotate(-24deg);
+    animation: hero-racket-drift 10s ease-in-out infinite;
+  }
+
+  .hero-motion-trail {
+    position: absolute;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgb(245 126 59 / 0.72), transparent);
+    transform-origin: center;
+  }
+
+  .hero-motion-trail-one {
+    top: 34%;
+    right: 14%;
+    width: min(22rem, 35vw);
+    --trail-angle: -18deg;
+    transform: rotate(-18deg);
+    animation: hero-trail-pulse 4.8s ease-in-out infinite;
+  }
+
+  .hero-motion-trail-two {
+    left: 13%;
+    bottom: 28%;
+    width: min(16rem, 32vw);
+    --trail-angle: 16deg;
+    transform: rotate(16deg);
+    animation: hero-trail-pulse 5.6s ease-in-out infinite reverse;
+  }
+}
+
+@keyframes hero-content-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-logo-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes hero-shuttle-one {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-18deg);
+  }
+  50% {
+    transform: translate3d(-14px, 12px, 0) rotate(-8deg);
+  }
+}
+
+@keyframes hero-shuttle-two {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(17deg);
+  }
+  50% {
+    transform: translate3d(16px, -10px, 0) rotate(7deg);
+  }
+}
+
+@keyframes hero-racket-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-24deg);
+  }
+  50% {
+    transform: translate3d(10px, -6px, 0) rotate(-18deg);
+  }
+}
+
+@keyframes hero-trail-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateX(0) rotate(var(--trail-angle, -18deg));
+  }
+  50% {
+    opacity: 0.78;
+    transform: translateX(-10px) rotate(var(--trail-angle, -18deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-content-rise,
+  .hero-logo-float,
+  .hero-shuttle,
+  .hero-racket-mark,
+  .hero-motion-trail {
+    animation: none !important;
+  }
 }
 
 

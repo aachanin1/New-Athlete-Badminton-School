@@ -2,11 +2,45 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CalendarDays, TrendingUp, CreditCard, Bell, Clock, MapPin, ArrowRight, Upload, BookOpen } from 'lucide-react'
-import { fmtTime } from '@/lib/utils'
+import { CalendarDays, TrendingUp, CreditCard, Bell, ArrowRight, Upload, BookOpen } from 'lucide-react'
 import { DashboardCalendar } from '@/components/dashboard/dashboard-calendar'
+
+interface BookingTotalRow {
+  total_sessions: number | null
+}
+
+interface PendingBookingRow {
+  id: string
+  total_price: number | null
+  total_sessions: number | null
+  status: string
+}
+
+interface BookingIdRow {
+  id: string
+}
+
+interface DashboardSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  status: string
+  child_id: string | null
+  children: { full_name: string; nickname: string | null } | null
+  branches: { name: string } | null
+}
+
+interface DashboardChildRow {
+  id: string
+  full_name: string
+  nickname: string | null
+}
+
+interface ProfileNameRow {
+  full_name: string | null
+}
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -20,8 +54,8 @@ export default async function DashboardPage() {
   const today = now.toISOString().split('T')[0]
 
   // Booking count this month (verified)
-  const { count: bookingCount } = await (supabase
-    .from('bookings') as any)
+  const { count: bookingCount } = await supabase
+    .from('bookings')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('status', 'verified')
@@ -29,63 +63,63 @@ export default async function DashboardPage() {
     .eq('year', currentYear)
 
   // Total sessions this month
-  const { data: verifiedBookings } = await (supabase
-    .from('bookings') as any)
+  const { data: verifiedBookings } = await supabase
+    .from('bookings')
     .select('total_sessions')
     .eq('user_id', user.id)
     .eq('status', 'verified')
     .eq('month', currentMonth)
-    .eq('year', currentYear)
+    .eq('year', currentYear) as unknown as { data: BookingTotalRow[] | null }
 
-  const totalSessions = (verifiedBookings || []).reduce((sum: number, b: any) => sum + (b.total_sessions || 0), 0)
+  const totalSessions = (verifiedBookings || []).reduce((sum, booking) => sum + (booking.total_sessions || 0), 0)
 
   // Pending payment bookings (full data for guidance)
-  const { data: pendingBookings } = await (supabase
-    .from('bookings') as any)
+  const { data: pendingBookings } = await supabase
+    .from('bookings')
     .select('id, total_price, total_sessions, status')
     .eq('user_id', user.id)
-    .eq('status', 'pending_payment')
+    .eq('status', 'pending_payment') as unknown as { data: PendingBookingRow[] | null }
 
-  const pendingAmount = (pendingBookings || []).reduce((sum: number, b: any) => sum + (b.total_price || 0), 0)
+  const pendingAmount = (pendingBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
   const hasPending = (pendingBookings || []).length > 0
 
   // Paid but not yet verified
-  const { data: paidBookings } = await (supabase
-    .from('bookings') as any)
+  const { data: paidBookings } = await supabase
+    .from('bookings')
     .select('id')
     .eq('user_id', user.id)
-    .eq('status', 'paid')
+    .eq('status', 'paid') as unknown as { data: BookingIdRow[] | null }
   const hasPaidWaiting = (paidBookings || []).length > 0
 
   // Unread notifications
-  const { count: unreadCount } = await (supabase
-    .from('notifications') as any)
+  const { count: unreadCount } = await supabase
+    .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('is_read', false)
 
   // Upcoming sessions (from verified bookings) — all this month and next
-  const { data: upcomingSessions } = await (supabase
-    .from('booking_sessions') as any)
+  const { data: upcomingSessions } = await supabase
+    .from('booking_sessions')
     .select('*, bookings!inner(user_id, status), branches(name), children(full_name, nickname)')
     .eq('bookings.user_id', user.id)
     .eq('bookings.status', 'verified')
     .eq('status', 'scheduled')
     .gte('date', today)
-    .order('date', { ascending: true })
+    .order('date', { ascending: true }) as unknown as { data: DashboardSessionRow[] | null }
 
   // Fetch children for color mapping
   const { data: childrenData } = await supabase
     .from('children')
     .select('id, full_name, nickname')
-    .eq('parent_id', user.id)
+    .eq('parent_id', user.id) as unknown as { data: DashboardChildRow[] | null }
 
   // Fetch user profile
-  const { data: profile } = await (supabase
-    .from('profiles') as any)
+  const { data: profile } = await supabase
+    .from('profiles')
     .select('full_name')
     .eq('id', user.id)
-    .single()
+    .single() as unknown as { data: ProfileNameRow | null }
 
   const hasVerifiedSessions = (upcomingSessions || []).length > 0
   const hasAnyBooking = (bookingCount || 0) > 0
@@ -212,9 +246,9 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <DashboardCalendar
-              sessions={(upcomingSessions || []) as any}
-              children={(childrenData || []) as any}
-              userName={(profile as any)?.full_name || ''}
+              sessions={upcomingSessions || []}
+              learnerChildren={childrenData || []}
+              userName={profile?.full_name || ''}
             />
           )}
         </CardContent>

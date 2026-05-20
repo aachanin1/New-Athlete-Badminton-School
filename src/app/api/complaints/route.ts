@@ -4,6 +4,20 @@ import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
 import { notifyRoles } from '@/lib/notifications'
 
+interface ComplaintPayload {
+  branch_id?: string
+  subject?: string
+  message?: string
+}
+
+interface ComplaintInsertRow {
+  id: string
+}
+
+interface ProfileNameRow {
+  full_name: string | null
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
 }
@@ -19,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { branch_id, subject, message } = await request.json()
+    const { branch_id, subject, message } = await request.json() as ComplaintPayload
 
     if (!branch_id || !subject?.trim() || !message?.trim()) {
       return NextResponse.json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' }, { status: 400 })
@@ -27,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     const adminSupabase = getServiceRoleClient()
 
-    const { data: complaint, error } = await (adminSupabase.from('complaints') as any)
+    const { data: complaint, error } = await adminSupabase.from('complaints')
       .insert({
         user_id: user.id,
         branch_id,
@@ -36,19 +50,23 @@ export async function POST(request: NextRequest) {
         status: 'open',
       })
       .select('id')
-      .single()
+      .single() as unknown as { data: ComplaintInsertRow | null; error: { message: string } | null }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const { data: profile } = await ((adminSupabase
+    if (!complaint) {
+      return NextResponse.json({ error: 'ไม่พบข้อมูลเรื่องร้องเรียนที่สร้าง' }, { status: 500 })
+    }
+
+    const { data: profile } = await adminSupabase
       .from('profiles')
       .select('full_name')
       .eq('id', user.id)
-      .single()) as any)
+      .single() as unknown as { data: ProfileNameRow | null }
 
-    await notifyRoles(adminSupabase as any, {
+    await notifyRoles(adminSupabase, {
       roles: ['admin', 'super_admin'],
       title: 'มีเรื่องร้องเรียนใหม่',
       message: `${profile?.full_name || 'ผู้ใช้'} ส่งเรื่องร้องเรียน: ${subject.trim()}`,

@@ -1,8 +1,7 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import type { Child, Branch, CourseTypeName } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -50,6 +49,7 @@ interface ExistingBookingSession {
   end_time: string
   branch_id: string
   child_id: string | null
+  schedule_slot_id?: string | null
   status: string
 }
 
@@ -72,27 +72,8 @@ interface SelectedSession {
   start: string      // "17:00"
   end: string        // "19:00"
   branchId: string
-}
-
-interface BookingSessionInsert {
-  booking_id: string
-  date: string
-  start_time: string
-  end_time: string
-  branch_id: string
-  child_id: string | null
-  status: 'scheduled'
-  is_makeup: false
-}
-
-interface BookingUpdate {
-  total_sessions: number
-  total_price: number
-  branch_id: string | null
-}
-
-interface DbError {
-  message: string
+  scheduleTemplateId?: string | null
+  scheduleSlotId?: string | null
 }
 
 interface EditBookingSession {
@@ -102,6 +83,7 @@ interface EditBookingSession {
   end_time: string
   branch_id: string
   child_id: string | null
+  schedule_slot_id?: string | null
 }
 
 interface EditBookingData {
@@ -123,7 +105,7 @@ interface EditBookingData {
 interface BookingClientProps {
   userId: string
   userName: string
-  children: Child[]
+  learnerChildren: Child[]
   branches: Branch[]
   courseTypes: CourseTypeRow[]
   scheduleTemplates: ScheduleTemplateOption[]
@@ -151,7 +133,7 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-export function BookingClient({ userName, children, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
+export function BookingClient({ userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
 
@@ -199,6 +181,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
         start: s.start_time.slice(0, 5),
         end: s.end_time.slice(0, 5),
         branchId: s.branch_id,
+        scheduleSlotId: s.schedule_slot_id || null,
       })
     }
     return map
@@ -221,7 +204,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
   // For non-kids bookings, use 'self' as key in sessionsMap
   const activeSessions = sessionsMap[activeChildTab] || []
 
-  // Total sessions across all selected children (for this booking batch)
+  // Total sessions across all selected learnerChildren (for this booking batch)
   const allSelectedSessions = useMemo(() => {
     return Object.entries(sessionsMap).flatMap(([childId, sessions]) => {
       if (courseType === 'kids_group' && !selectedChildIds.includes(childId)) return []
@@ -428,7 +411,20 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
     if (existing) {
       setSessionsMap((prev) => ({ ...prev, [key]: current.filter((s) => !(s.date === dateStr && s.start === slot.start && s.branchId === slotBranchId)) }))
     } else {
-      setSessionsMap((prev) => ({ ...prev, [key]: [...current, { date: dateStr, dayOfWeek: date.getDay(), start: slot.start, end: slot.end, branchId: slotBranchId }] }))
+      setSessionsMap((prev) => ({
+        ...prev,
+        [key]: [
+          ...current,
+          {
+            date: dateStr,
+            dayOfWeek: date.getDay(),
+            start: slot.start,
+            end: slot.end,
+            branchId: slotBranchId,
+            scheduleTemplateId: slot.templateId || null,
+          },
+        ],
+      }))
     }
   }
 
@@ -478,14 +474,6 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
   const handleSubmitBooking = async () => {
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const bookingSessionsTable = supabase.from('booking_sessions') as unknown as {
-      delete: () => { eq: (column: string, value: string) => Promise<{ error: DbError | null }> }
-      insert: (rows: BookingSessionInsert[]) => Promise<{ error: DbError | null }>
-    }
-    const bookingsTable = supabase.from('bookings') as unknown as {
-      update: (values: BookingUpdate) => { eq: (column: string, value: string) => Promise<{ error: DbError | null }> }
-    }
 
     const courseTypeRow = courseTypes.find((ct) => ct.name === courseType)
     if (!courseTypeRow) {
@@ -497,12 +485,12 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
     try {
       const primaryBranchId = selectedBranchIds[0] || null
 
-      // Always create 1 booking = 1 bill regardless of number of children
+      // Always create 1 booking = 1 bill regardless of number of learnerChildren
       const isKids = courseType === 'kids_group'
       const singleChildId = isKids && selectedChildIds.length === 1 ? selectedChildIds[0] : null
 
       // Gather all sessions with child_id
-      const allSessions: { date: string; start: string; end: string; branchId: string; childId: string | null }[] = []
+      const allSessions: (SelectedSession & { childId: string | null })[] = []
       if (isKids) {
         for (const childId of selectedChildIds) {
           const childSessions = sessionsMap[childId] || []
@@ -543,31 +531,35 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
         : allSessions.length
 
       if (isEditMode && editBooking) {
-        // Edit mode: delete old sessions and insert new ones, update booking
-        await bookingSessionsTable.delete().eq('booking_id', editBooking.id)
+        const response = await fetch('/api/bookings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: editBooking.id,
+            branchId: primaryBranchId,
+            courseTypeId: courseTypeRow.id,
+            month: calMonth + 1,
+            year: calYear,
+            totalSessions: bookingTotalSessions,
+            totalAmount: finalPrice,
+            expectedTotalPrice: finalPrice,
+            sessions: allSessions.map((s) => ({
+              date: s.date,
+              startTime: s.start,
+              endTime: s.end,
+              branchId: s.branchId,
+              childId: s.childId,
+              scheduleTemplateId: s.scheduleTemplateId,
+            })),
+          }),
+        })
 
-        const { error: updateErr } = await bookingsTable
-          .update({
-            total_sessions: bookingTotalSessions,
-            total_price: finalPrice,
-            branch_id: primaryBranchId,
-          })
-          .eq('id', editBooking.id)
-
-        if (updateErr) { setError(`เกิดข้อผิดพลาด: ${updateErr.message}`); setLoading(false); return }
-
-        await bookingSessionsTable.insert(
-          allSessions.map((s) => ({
-            booking_id: editBooking.id,
-            date: s.date,
-            start_time: s.start,
-            end_time: s.end,
-            branch_id: s.branchId,
-            child_id: s.childId,
-            status: 'scheduled',
-            is_makeup: false,
-          }))
-        )
+        const result = await response.json()
+        if (!response.ok) {
+          setError(result.error || 'Update booking failed. Please try again.')
+          setLoading(false)
+          return
+        }
 
         router.push('/dashboard/history')
         router.refresh()
@@ -592,6 +584,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
               endTime: s.end,
               branchId: s.branchId,
               childId: s.childId,
+              scheduleTemplateId: s.scheduleTemplateId,
             })),
             coupon: appliedCoupon ? {
               id: appliedCoupon.id,
@@ -742,14 +735,14 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
           {courseType === 'kids_group' ? (
             <div>
               <h3 className="font-bold text-lg mb-4 text-[#153c85]">เลือกลูกที่จะเรียน (เลือกได้หลายคน)</h3>
-              {children.length === 0 ? (
+              {learnerChildren.length === 0 ? (
                 <Card><CardContent className="py-8 text-center text-gray-400">
                   <AlertCircle className="h-10 w-10 mx-auto mb-3 opacity-50" /><p>ยังไม่มีข้อมูลลูก</p>
                   <Button variant="outline" className="mt-3" onClick={() => router.push('/dashboard/children')}>เพิ่มข้อมูลลูก</Button>
                 </CardContent></Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {children.map((child) => {
+                  {learnerChildren.map((child) => {
                     const isSelected = selectedChildIds.includes(child.id)
                     return (
                       <Card key={child.id} className={`cursor-pointer transition-all ${isSelected ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
@@ -802,7 +795,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                     <div><p className="font-medium text-sm">{userName}</p><p className="text-xs text-gray-500">ตัวเอง</p></div>
                   </CardContent>
                 </Card>
-                {children.map((c) => {
+                {learnerChildren.map((c) => {
                   const isSelected = selectedChildIds.includes(c.id)
                   return (
                     <Card key={c.id} className={`cursor-pointer transition-all ${isSelected ? 'border-2 border-[#2748bf] bg-[#2748bf]/5' : 'hover:border-[#2748bf]/30'}`}
@@ -892,7 +885,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
           {courseType === 'kids_group' && selectedChildIds.length > 1 && (
             <div className="flex gap-2 border-b pb-2">
               {selectedChildIds.map((cid) => {
-                const child = children.find((c) => c.id === cid)
+                const child = learnerChildren.find((c) => c.id === cid)
                 const count = (sessionsMap[cid] || []).length
                 return (
                   <Button key={cid} size="sm"
@@ -908,7 +901,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
 
           {/* Active child label */}
           {courseType === 'kids_group' && (() => {
-            const child = children.find((c) => c.id === activeChildTab)
+            const child = learnerChildren.find((c) => c.id === activeChildTab)
             return child ? (
               <p className="text-sm text-gray-600">กำลังเลือกวันเรียนของ: <span className="font-medium text-[#153c85]">{child.full_name}</span></p>
             ) : null
@@ -942,9 +935,9 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                         {day}
                         <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                           {existingForDate.map((es, ei) => {
-                            const childName = es.child_id ? children.find(c => c.id === es.child_id)?.nickname || children.find(c => c.id === es.child_id)?.full_name || '' : 'ตัวเอง'
+                            const childName = es.child_id ? learnerChildren.find(c => c.id === es.child_id)?.nickname || learnerChildren.find(c => c.id === es.child_id)?.full_name || '' : 'ตัวเอง'
                             const dotColors = ['bg-emerald-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500']
-                            const childIdx = es.child_id ? children.findIndex(c => c.id === es.child_id) : -1
+                            const childIdx = es.child_id ? learnerChildren.findIndex(c => c.id === es.child_id) : -1
                             const dotColor = childIdx >= 0 ? dotColors[childIdx % dotColors.length] : 'bg-gray-500'
                             return <span key={`ex-${ei}`} className={`w-1.5 h-1.5 ${dotColor} rounded-full`} title={`${childName} จองแล้ว`} />
                           })}
@@ -967,9 +960,9 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                       const key = es.child_id || 'self'
                       if (seen.has(key)) return null
                       seen.add(key)
-                      const child = es.child_id ? children.find(c => c.id === es.child_id) : null
+                      const child = es.child_id ? learnerChildren.find(c => c.id === es.child_id) : null
                       const name = child ? (child.nickname || child.full_name) : 'ตัวเอง'
-                      const idx = child ? children.findIndex(c => c.id === es.child_id) : -1
+                      const idx = child ? learnerChildren.findIndex(c => c.id === es.child_id) : -1
                       const dotColor = idx >= 0 ? dotColors[idx % dotColors.length] : 'bg-gray-500'
                       return (
                         <span key={key} className="flex items-center gap-1">
@@ -999,7 +992,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                       <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 space-y-1">
                         <p className="font-medium">จองแล้วในวันนี้:</p>
                         {existingHere.map((es, ei) => {
-                          const child = es.child_id ? children.find(c => c.id === es.child_id) : null
+                          const child = es.child_id ? learnerChildren.find(c => c.id === es.child_id) : null
                           const name = child ? (child.nickname || child.full_name) : 'ตัวเอง'
                           const branch = branches.find(b => b.id === es.branch_id)
                           return (
@@ -1062,7 +1055,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
 
                 {/* Per-child session badges */}
                 {courseType === 'kids_group' ? selectedChildIds.map((cid) => {
-                  const child = children.find((c) => c.id === cid)
+                  const child = learnerChildren.find((c) => c.id === cid)
                   const childSess = (sessionsMap[cid] || []).sort((a: SelectedSession, b: SelectedSession) => a.date.localeCompare(b.date))
                   if (childSess.length === 0) return null
                   return (
@@ -1127,7 +1120,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
                 <div><p className="text-gray-500">สาขา</p><p className="font-medium">{selectedBranches.map((b) => b.name).join(', ')}</p></div>
                 <div><p className="text-gray-500">ผู้เรียน</p><p className="font-medium">
                   {courseType === 'kids_group'
-                    ? selectedChildIds.map((id) => children.find((c) => c.id === id)?.full_name).join(', ')
+                    ? selectedChildIds.map((id) => learnerChildren.find((c) => c.id === id)?.full_name).join(', ')
                     : userName}
                 </p></div>
                 <div><p className="text-gray-500">เดือน</p><p className="font-medium">{MONTH_NAMES_TH[calMonth]} {calYear + 543}</p></div>
@@ -1139,7 +1132,7 @@ export function BookingClient({ userName, children, branches, courseTypes, sched
               {courseType === 'kids_group' && selectedChildIds.length > 0 && (
                 <div className="border-t pt-3 space-y-2">
                   {selectedChildIds.map((cid) => {
-                    const child = children.find((c) => c.id === cid)
+                    const child = learnerChildren.find((c) => c.id === cid)
                     const childSess = (sessionsMap[cid] || []).sort((a: SelectedSession, b: SelectedSession) => a.date.localeCompare(b.date))
                     const childPrice = childPriceBreakdown[cid] || 0
                     return (

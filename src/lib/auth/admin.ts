@@ -7,7 +7,7 @@ import {
   type AdminMenuKey,
 } from '@/lib/admin-navigation'
 import { getHomePathForRole } from '@/lib/auth/redirects'
-import type { UserRole } from '@/types/database'
+import type { Profile, UserRole } from '@/types/database'
 
 const ADMIN_ROLES: UserRole[] = ['admin', 'super_admin']
 
@@ -32,11 +32,11 @@ export async function getCurrentUserWithRole() {
     return { supabase, user: null, role: null as UserRole | null, profile: null }
   }
 
-  const { data: profile } = await (supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id, full_name, role, avatar_url')
     .eq('id', user.id)
-    .single() as any)
+    .single() as unknown as { data: Pick<Profile, 'id' | 'full_name' | 'role' | 'avatar_url'> | null }
 
   return {
     supabase,

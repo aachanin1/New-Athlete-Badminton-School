@@ -3,6 +3,33 @@ import { createClient } from '@/lib/supabase/server'
 import { RescheduleClient } from '@/components/dashboard/reschedule-client'
 import type { CourseTypeName } from '@/types/database'
 
+interface RescheduleSessionRow {
+  id: string
+  booking_id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  status: string
+  is_makeup: boolean
+  child_id: string | null
+  schedule_slot_id: string | null
+  children?: { full_name: string; nickname: string | null } | null
+  bookings?: {
+    user_id: string
+    course_type_id: string
+    status: string
+    course_types?: { name: CourseTypeName | null } | null
+  } | null
+  branches?: { name: string } | null
+}
+
+interface BranchRow {
+  id: string
+  name: string
+  slug: string
+}
+
 interface ScheduleTemplateRow {
   id: string
   branch_id: string
@@ -18,54 +45,46 @@ interface ScheduleTemplateRow {
 
 export default async function ReschedulePage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
 
-  // Fetch upcoming scheduled sessions (only future, status=scheduled, booking verified)
   const today = new Date().toISOString().split('T')[0]
-  const { data: sessions } = await (supabase
-    .from('booking_sessions') as any)
-    .select('*, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name)')
-    .eq('bookings.user_id', user.id)
-    .eq('bookings.status', 'verified')
-    .eq('status', 'scheduled')
-    .gte('date', today)
-    .order('date', { ascending: true })
-
-  // Fetch branches for rescheduling target (include slug for schedule lookup)
-  const [{ data: branches }, { data: scheduleTemplates }] = await Promise.all([
+  const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }] = await Promise.all([
+    supabase
+      .from('booking_sessions')
+      .select('id, booking_id, date, start_time, end_time, branch_id, status, is_makeup, child_id, schedule_slot_id, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name, nickname)')
+      .eq('bookings.user_id', user.id)
+      .eq('bookings.status', 'verified')
+      .eq('status', 'scheduled')
+      .gte('date', today)
+      .order('date', { ascending: true }) as unknown as PromiseLike<{ data: RescheduleSessionRow[] | null }>,
     supabase
       .from('branches')
       .select('id, name, slug')
       .eq('is_active', true)
-      .order('name'),
+      .order('name') as unknown as PromiseLike<{ data: BranchRow[] | null }>,
     supabase
       .from('schedule_templates')
       .select(`
         id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active, notes,
         branches(slug),
         course_types(name)
-      `) as unknown as Promise<{ data: ScheduleTemplateRow[] | null }>,
+      `) as unknown as PromiseLike<{ data: ScheduleTemplateRow[] | null }>,
   ])
-
-  // Check if user is admin
-  const { data: profile } = await (supabase
-    .from('profiles') as any)
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">เปลี่ยนวัน/สาขา</h1>
-        <p className="text-gray-500 text-sm mt-1">เปลี่ยนวันเรียนหรือสาขาได้ล่วงหน้า 24 ชั่วโมง</p>
+        <p className="mt-1 text-sm text-gray-500">เปลี่ยนรอบเรียนจากรอบจริงในระบบ โดยต้องล่วงหน้าอย่างน้อย 24 ชั่วโมง</p>
       </div>
+
       <RescheduleClient
         sessions={sessions || []}
-        branches={(branches as any) || []}
+        branches={branches || []}
         scheduleTemplates={(scheduleTemplates || []).map((template) => ({
           id: template.id,
           branch_id: template.branch_id,
@@ -78,7 +97,6 @@ export default async function ReschedulePage() {
           is_active: template.is_active,
           notes: template.notes,
         }))}
-        isAdmin={isAdmin}
       />
     </div>
   )

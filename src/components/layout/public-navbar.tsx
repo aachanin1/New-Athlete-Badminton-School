@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, type MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
@@ -15,11 +15,52 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AuthModal } from '@/components/shared/auth-modal'
-import { Menu, LogIn, UserPlus, User, LogOut, LayoutDashboard } from 'lucide-react'
+import { Menu, LogIn, UserPlus, User, LogOut, LayoutDashboard, Loader2 } from 'lucide-react'
 import { getHomePathForRole } from '@/lib/auth/redirects'
 import type { UserRole } from '@/types/database'
 
 type AuthMode = 'login' | 'register'
+
+const HEADER_OFFSET = 80
+const SCROLL_DURATION_MS = 720
+const REDUCED_SCROLL_DURATION_MS = 220
+const SHEET_SCROLL_DELAY_MS = 180
+
+const easeInOutCubic = (progress: number) => (
+  progress < 0.5
+    ? 4 * progress * progress * progress
+    : 1 - Math.pow(-2 * progress + 2, 3) / 2
+)
+
+const prefersReducedMotion = () => (
+  typeof window !== 'undefined'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+)
+
+const scrollWindowTo = (targetTop: number) => {
+  const startTop = window.scrollY
+  const distance = targetTop - startTop
+
+  if (Math.abs(distance) < 8) {
+    window.scrollTo({ top: targetTop, behavior: 'auto' })
+    return
+  }
+
+  const startTime = window.performance.now()
+  const duration = prefersReducedMotion() ? REDUCED_SCROLL_DURATION_MS : SCROLL_DURATION_MS
+
+  const step = (currentTime: number) => {
+    const elapsed = currentTime - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    window.scrollTo(0, startTop + distance * easeInOutCubic(progress))
+
+    if (progress < 1) {
+      window.requestAnimationFrame(step)
+    }
+  }
+
+  window.requestAnimationFrame(step)
+}
 
 const NAV_SECTIONS = [
   { id: 'hero', label: 'หน้าแรก' },
@@ -39,6 +80,7 @@ export function PublicNavbar() {
   const [userName, setUserName] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dashboardNavigating, setDashboardNavigating] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -49,6 +91,7 @@ export function PublicNavbar() {
         if (mounted) {
           setUserName(null)
           setUserRole(null)
+          setDashboardNavigating(false)
         }
         return
       }
@@ -96,29 +139,57 @@ export function PublicNavbar() {
     await supabase.auth.signOut()
     setUserName(null)
     setUserRole(null)
+    setDashboardNavigating(false)
     router.refresh()
   }
 
-  const scrollToSection = (id: string) => {
+  const handleDashboardNavigation = () => {
+    if (!userRole || dashboardNavigating) return
+    setDashboardNavigating(true)
+    router.push(getHomePathForRole(userRole))
+  }
+
+  const scrollToSection = useCallback((id: string, options: { updateHash?: boolean } = {}) => {
+    const { updateHash = true } = options
     if (pathname !== '/') {
       router.push(`/#${id}`)
       setSheetOpen(false)
       return
     }
-    const el = document.getElementById(id)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    setSheetOpen(false)
-  }
+    const scroll = () => {
+      const el = document.getElementById(id)
+      if (!el) return
 
-  const handleNavClick = (item: typeof NAV_SECTIONS[number]) => {
-    if ('href' in item && item.href) {
-      setSheetOpen(false)
-      router.push(item.href)
-    } else if ('id' in item && item.id) {
-      scrollToSection(item.id)
+      const targetTop = Math.max(0, el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET)
+      scrollWindowTo(targetTop)
+      if (updateHash) {
+        window.history.replaceState(null, '', `#${id}`)
+      }
     }
+
+    if (sheetOpen) {
+      setSheetOpen(false)
+      window.setTimeout(scroll, SHEET_SCROLL_DELAY_MS)
+    } else {
+      scroll()
+    }
+  }, [pathname, router, sheetOpen])
+
+  useEffect(() => {
+    if (pathname !== '/') return
+    const hash = window.location.hash.replace('#', '')
+    if (!hash) return
+
+    window.requestAnimationFrame(() => {
+      scrollToSection(hash, { updateHash: false })
+    })
+  }, [pathname, scrollToSection])
+
+  const getSectionHref = (id: string) => pathname === '/' ? `#${id}` : `/#${id}`
+
+  const handleSectionAnchorClick = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
+    event.preventDefault()
+    scrollToSection(id)
   }
 
   return (
@@ -127,7 +198,7 @@ export function PublicNavbar() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <button
             onClick={() => scrollToSection('hero')}
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex items-center gap-2 rounded-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2748bf] focus-visible:ring-offset-4"
           >
             <Image
               src="/logo new-athlete-school.jpg"
@@ -143,16 +214,38 @@ export function PublicNavbar() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-5">
-            {NAV_SECTIONS.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => handleNavClick(item)}
-                className="text-sm font-medium text-gray-600 hover:text-[#2748bf] transition-colors"
-              >
-                <span className="hidden xl:inline">{item.label}</span>
-                <span className="xl:hidden">{item.shortLabel || item.label}</span>
-              </button>
-            ))}
+            {NAV_SECTIONS.map((item) => {
+              const linkClassName = 'rounded-md px-1 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-[#2748bf] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2748bf] focus-visible:ring-offset-4'
+              const label = (
+                <>
+                  <span className="hidden xl:inline">{item.label}</span>
+                  <span className="xl:hidden">{item.shortLabel || item.label}</span>
+                </>
+              )
+
+              if ('href' in item && item.href) {
+                return (
+                  <Link key={item.label} href={item.href} className={linkClassName}>
+                    {label}
+                  </Link>
+                )
+              }
+
+              if ('id' in item && item.id) {
+                return (
+                  <a
+                    key={item.label}
+                    href={getSectionHref(item.id)}
+                    onClick={(event) => handleSectionAnchorClick(event, item.id)}
+                    className={linkClassName}
+                  >
+                    {label}
+                  </a>
+                )
+              }
+
+              return null
+            })}
 
             {loading ? (
               <div className="w-24 h-9 bg-gray-100 rounded-md animate-pulse" />
@@ -165,8 +258,18 @@ export function PublicNavbar() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => router.push(getHomePathForRole(userRole))}>
-                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                  <DropdownMenuItem
+                    disabled={dashboardNavigating}
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      handleDashboardNavigation()
+                    }}
+                  >
+                    {dashboardNavigating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <LayoutDashboard className="h-4 w-4 mr-2" />
+                    )}
                     แดชบอร์ด
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -207,13 +310,30 @@ export function PublicNavbar() {
             <SheetContent side="right" className="w-72">
               <div className="flex flex-col gap-1 mt-8">
                 {NAV_SECTIONS.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => handleNavClick(item)}
-                    className="text-left text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors"
-                  >
-                    {item.label}
-                  </button>
+                  'href' in item && item.href ? (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => {
+                        setSheetOpen(false)
+                        if (userRole && item.href === getHomePathForRole(userRole)) {
+                          setDashboardNavigating(true)
+                        }
+                      }}
+                      className="text-left text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2748bf] focus-visible:ring-offset-2"
+                    >
+                      {item.label}
+                    </Link>
+                  ) : 'id' in item && item.id ? (
+                    <a
+                      key={item.label}
+                      href={getSectionHref(item.id)}
+                      onClick={(event) => handleSectionAnchorClick(event, item.id)}
+                      className="text-left text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2748bf] focus-visible:ring-offset-2"
+                    >
+                      {item.label}
+                    </a>
+                  ) : null
                 ))}
 
                 <div className="border-t my-3" />
@@ -225,10 +345,17 @@ export function PublicNavbar() {
                     </div>
                     <Link
                       href={getHomePathForRole(userRole)}
-                      onClick={() => setSheetOpen(false)}
+                      onClick={() => {
+                        setSheetOpen(false)
+                        setDashboardNavigating(true)
+                      }}
                       className="text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors flex items-center gap-2"
                     >
-                      <LayoutDashboard className="h-5 w-5" />
+                      {dashboardNavigating ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <LayoutDashboard className="h-5 w-5" />
+                      )}
                       แดชบอร์ด
                     </Link>
                     <button

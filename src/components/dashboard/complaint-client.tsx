@@ -53,7 +53,6 @@ interface BranchOption {
 interface ComplaintClientProps {
   complaints: ComplaintRow[]
   branches: BranchOption[]
-  userId: string
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: typeof Clock }> = {
@@ -62,7 +61,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: typeof Cl
   resolved: { label: 'แก้ไขแล้ว', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
 }
 
-export function ComplaintClient({ complaints, branches, userId }: ComplaintClientProps) {
+export function ComplaintClient({ complaints, branches }: ComplaintClientProps) {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)

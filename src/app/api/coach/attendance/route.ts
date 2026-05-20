@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
+import { notifyUserOnce } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
+import { fmtTime } from '@/lib/utils'
 import type { UserRole } from '@/types/database'
 
 type AttendanceStatus = 'present' | 'absent' | 'late'
@@ -35,6 +38,12 @@ interface BookingSessionAuthRow {
   bookings?: {
     user_id: string
   } | null
+  schedule_slots?: {
+    date: string
+    start_time: string
+    end_time: string
+    branches?: { name: string | null } | null
+  } | null
 }
 
 interface GroupAuthRow {
@@ -54,7 +63,11 @@ interface ExistingCheckinRow {
 interface AttendanceAuthContext {
   allowed: boolean
   scheduleSlotId: string | null
+  recipientUserId: string | null
+  slotLabel: string | null
 }
+
+type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
@@ -62,6 +75,19 @@ function getErrorMessage(error: unknown) {
 
 function isAdminRole(role: UserRole | null | undefined) {
   return role === 'admin' || role === 'super_admin'
+}
+
+function getSlotLabel(session: BookingSessionAuthRow | null) {
+  const slot = session?.schedule_slots
+  if (!slot) return null
+
+  const dateLabel = new Date(`${slot.date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+  })
+  const branchName = slot.branches?.name ? ` ที่${slot.branches.name}` : ''
+  return `${dateLabel} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}${branchName}`
 }
 
 async function requireCoach(supabase: ReturnType<typeof createClient>) {
@@ -87,17 +113,24 @@ async function getAttendanceAuthContext(
 ): Promise<AttendanceAuthContext> {
   const { data: session } = await supabase
     .from('booking_sessions')
-    .select('id, schedule_slot_id, child_id, bookings!inner(user_id)')
+    .select('id, schedule_slot_id, child_id, bookings!inner(user_id), schedule_slots(date, start_time, end_time, branches(name))')
     .eq('id', bookingSessionId)
     .single() as unknown as { data: BookingSessionAuthRow | null }
 
-  if (!session?.schedule_slot_id) return { allowed: false, scheduleSlotId: null }
+  if (!session?.schedule_slot_id) {
+    return { allowed: false, scheduleSlotId: null, recipientUserId: null, slotLabel: null }
+  }
 
   const expectedStudentId = studentType === 'child' ? session.child_id : session.bookings?.user_id
-  if (expectedStudentId !== studentId) return { allowed: false, scheduleSlotId: session.schedule_slot_id }
+  const recipientUserId = session.bookings?.user_id || null
+  const slotLabel = getSlotLabel(session)
+
+  if (expectedStudentId !== studentId) {
+    return { allowed: false, scheduleSlotId: session.schedule_slot_id, recipientUserId, slotLabel }
+  }
 
   if (isAdminRole(actor.role)) {
-    return { allowed: true, scheduleSlotId: session.schedule_slot_id }
+    return { allowed: true, scheduleSlotId: session.schedule_slot_id, recipientUserId, slotLabel }
   }
 
   const { data: groupRows } = await supabase
@@ -118,6 +151,8 @@ async function getAttendanceAuthContext(
     return {
       allowed: groups.some((group) => group.coach_id === actor.id && group.schedule_slot_id === session.schedule_slot_id),
       scheduleSlotId: session.schedule_slot_id,
+      recipientUserId,
+      slotLabel,
     }
   }
 
@@ -128,7 +163,7 @@ async function getAttendanceAuthContext(
     .eq('schedule_slot_id', session.schedule_slot_id)
     .maybeSingle() as unknown as { data: LegacyAssignmentRow | null }
 
-  return { allowed: Boolean(legacyAssignment), scheduleSlotId: session.schedule_slot_id }
+  return { allowed: Boolean(legacyAssignment), scheduleSlotId: session.schedule_slot_id, recipientUserId, slotLabel }
 }
 
 async function hasCheckedInForSlot(
@@ -275,6 +310,20 @@ export async function POST(request: NextRequest) {
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     })
+
+    if ((status === 'absent' || status === 'late') && authContext.recipientUserId) {
+      const statusLabel = status === 'absent' ? 'ขาดเรียน' : 'มาสาย'
+      const slotLabel = authContext.slotLabel ? ` รอบ ${authContext.slotLabel}` : ''
+      const adminSupabase = getServiceRoleClient()
+
+      await notifyUserOnce(adminSupabase as unknown as NotificationSupabase, {
+        user_id: authContext.recipientUserId,
+        title: `บันทึกสถานะ${statusLabel}`,
+        message: `Coach บันทึกสถานะ${statusLabel}${slotLabel} หากมีสิทธิ์ชดเชย Admin จะเป็นผู้จัดรอบชดเชยให้ตามกฎของระบบ`,
+        type: 'schedule',
+        link_url: '/dashboard/schedule',
+      }).catch(() => null)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

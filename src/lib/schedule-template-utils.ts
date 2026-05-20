@@ -3,6 +3,7 @@ import type { CourseTypeName } from '@/types/database'
 export interface TimeSlot {
   start: string
   end: string
+  templateId?: string
 }
 
 export interface ScheduleTemplateOption {
@@ -40,6 +41,7 @@ function expandPrivateSlot(slot: TimeSlot) {
     result.push({
       start: `${String(h1).padStart(2, '0')}:${String(m1).padStart(2, '0')}`,
       end: `${String(h2).padStart(2, '0')}:${String(m2).padStart(2, '0')}`,
+      templateId: slot.templateId,
     })
   }
 
@@ -62,7 +64,7 @@ export function getTemplateSlots(
     .sort((a, b) => a.start_time.localeCompare(b.start_time))
 
   return matches.flatMap((template) => {
-    const slot = { start: toShortTime(template.start_time), end: toShortTime(template.end_time) }
+    const slot = { start: toShortTime(template.start_time), end: toShortTime(template.end_time), templateId: template.id }
     return courseType === 'private' ? expandPrivateSlot(slot) : [slot]
   })
 }

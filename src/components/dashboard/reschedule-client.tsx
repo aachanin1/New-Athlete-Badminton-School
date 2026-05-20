@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,18 +13,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  ArrowLeft,
-  ArrowRight,
   ArrowLeftRight,
   CalendarDays,
-  MapPin,
+  CheckCircle2,
   Clock,
   Loader2,
-  AlertTriangle,
-  CheckCircle2,
+  MapPin,
+  ShieldAlert,
 } from 'lucide-react'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import { fmtTime } from '@/lib/utils'
+import type { CourseTypeName } from '@/types/database'
 
 interface SessionRow {
   id: string
@@ -37,8 +35,9 @@ interface SessionRow {
   status: string
   is_makeup: boolean
   child_id: string | null
-  children?: { full_name: string } | null
-  bookings?: { user_id: string; course_type_id: string; course_types?: { name: string } | null }
+  schedule_slot_id: string | null
+  children?: { full_name: string; nickname?: string | null } | null
+  bookings?: { user_id: string; course_type_id: string; status?: string; course_types?: { name: CourseTypeName | null } | null } | null
   branches?: { name: string } | null
 }
 
@@ -52,7 +51,6 @@ interface RescheduleClientProps {
   sessions: SessionRow[]
   branches: BranchOption[]
   scheduleTemplates: ScheduleTemplateOption[]
-  isAdmin?: boolean
 }
 
 interface PickedSlot {
@@ -62,21 +60,41 @@ interface PickedSlot {
   end: string
   branchId: string
   branchName: string
+  templateId?: string
 }
 
-const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
-const DAY_LABELS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']
+const MONTH_NAMES_TH = [
+  'มกราคม',
+  'กุมภาพันธ์',
+  'มีนาคม',
+  'เมษายน',
+  'พฤษภาคม',
+  'มิถุนายน',
+  'กรกฎาคม',
+  'สิงหาคม',
+  'กันยายน',
+  'ตุลาคม',
+  'พฤศจิกายน',
+  'ธันวาคม',
+]
 
-function canReschedule(sessionDate: string, sessionTime: string): boolean {
-  const sessionDateTime = new Date(`${sessionDate}T${sessionTime}`)
-  const now = new Date()
-  const diffMs = sessionDateTime.getTime() - now.getTime()
-  const diffHours = diffMs / (1000 * 60 * 60)
-  return diffHours >= 24
+const DAY_LABELS = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']
+const COURSE_LABELS: Record<CourseTypeName, string> = {
+  kids_group: 'เด็กกลุ่ม',
+  adult_group: 'ผู้ใหญ่กลุ่ม',
+  private: 'Private',
+}
+
+function getStartDate(date: string, time: string) {
+  return new Date(`${date}T${time.slice(0, 5)}:00`)
+}
+
+function canReschedule(sessionDate: string, sessionTime: string) {
+  return getStartDate(sessionDate, sessionTime).getTime() - Date.now() >= 24 * 60 * 60 * 1000
 }
 
 function formatDateThai(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('th-TH', {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('th-TH', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -84,55 +102,59 @@ function formatDateThai(dateStr: string) {
   })
 }
 
-export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmin = false }: RescheduleClientProps) {
+function getCourseType(session: SessionRow | null): CourseTypeName {
+  const name = session?.bookings?.course_types?.name
+  if (name === 'kids_group' || name === 'adult_group' || name === 'private') return name
+  return 'kids_group'
+}
+
+function getMonthKey(date: string) {
+  return date.slice(0, 7)
+}
+
+export function RescheduleClient({ sessions, branches, scheduleTemplates }: RescheduleClientProps) {
   const router = useRouter()
+  const now = new Date()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null)
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
+  const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  // Calendar state inside dialog
-  const now = new Date()
-  const [calMonth, setCalMonth] = useState(now.getMonth())
-  const [calYear, setCalYear] = useState(now.getFullYear())
-  const [expandedDate, setExpandedDate] = useState<string | null>(null)
+  const groupedSessions = useMemo(() => {
+    const map = new Map<string, SessionRow[]>()
+    sessions.forEach((session) => {
+      const key = getMonthKey(session.date)
+      map.set(key, [...(map.get(key) || []), session])
+    })
+    return Array.from(map.entries()).map(([monthKey, rows]) => ({ monthKey, rows }))
+  }, [sessions])
 
-  // Derive course type from session
-  const getCourseType = (session: SessionRow | null): 'kids_group' | 'adult_group' | 'private' => {
-    const name = session?.bookings?.course_types?.name
-    if (name === 'kids_group' || name === 'adult_group' || name === 'private') return name
-    return 'kids_group'
-  }
+  const selectedMonth = selectedSession ? new Date(`${selectedSession.date}T00:00:00`).getMonth() : now.getMonth()
+  const selectedYear = selectedSession ? new Date(`${selectedSession.date}T00:00:00`).getFullYear() : now.getFullYear()
 
-  // Calendar days for the dialog
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(calYear, calMonth, 1)
-    const lastDay = new Date(calYear, calMonth + 1, 0)
-    const startDow = firstDay.getDay()
-    const totalDays = lastDay.getDate()
+    const firstDay = new Date(selectedYear, selectedMonth, 1)
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0)
     const days: (number | null)[] = []
-    for (let i = 0; i < startDow; i++) days.push(null)
-    for (let d = 1; d <= totalDays; d++) days.push(d)
+    for (let i = 0; i < firstDay.getDay(); i++) days.push(null)
+    for (let day = 1; day <= lastDay.getDate(); day++) days.push(day)
     return days
-  }, [calMonth, calYear])
+  }, [selectedMonth, selectedYear])
+
+  const getDateStr = (day: number) => `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
   const isDateSelectable = (day: number) => {
     if (!selectedSession) return false
     const courseType = getCourseType(selectedSession)
-    const date = new Date(calYear, calMonth, day)
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
-    if (date < tomorrow) return false
-    // Check if any branch has slots for this day
-    return branches.some((b) => hasTemplateSlots(scheduleTemplates, b.slug, courseType, date))
-  }
+    const date = new Date(selectedYear, selectedMonth, day)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (date < today) return false
 
-  // Derive booking month/year from the session's date
-  const getSessionMonth = (session: SessionRow) => {
-    const d = new Date(session.date)
-    return { month: d.getMonth(), year: d.getFullYear() }
+    return branches.some((branch) => hasTemplateSlots(scheduleTemplates, branch.slug, courseType, date))
   }
 
   const openDialog = (session: SessionRow) => {
@@ -141,24 +163,28 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmi
     setExpandedDate(null)
     setError(null)
     setSuccess(false)
-    // Start calendar at the session's month
-    const { month: m, year: y } = getSessionMonth(session)
-    setCalMonth(m)
-    setCalYear(y)
     setDialogOpen(true)
   }
 
   const handleDayClick = (day: number) => {
     if (!isDateSelectable(day)) return
-    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dateStr = getDateStr(day)
     setExpandedDate(expandedDate === dateStr ? null : dateStr)
     setPickedSlot(null)
   }
 
-  const handleSlotPick = (day: number, start: string, end: string, branch: BranchOption) => {
-    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const date = new Date(calYear, calMonth, day)
-    setPickedSlot({ date: dateStr, dayOfWeek: date.getDay(), start, end, branchId: branch.id, branchName: branch.name })
+  const handleSlotPick = (day: number, start: string, end: string, branch: BranchOption, templateId?: string) => {
+    const dateStr = getDateStr(day)
+    const date = new Date(selectedYear, selectedMonth, day)
+    setPickedSlot({
+      date: dateStr,
+      dayOfWeek: date.getDay(),
+      start,
+      end,
+      branchId: branch.id,
+      branchName: branch.name,
+      templateId,
+    })
   }
 
   const handleSubmit = async () => {
@@ -167,95 +193,46 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmi
       return
     }
 
-    // Validate 24-hour rule
-    if (!canReschedule(selectedSession.date, selectedSession.start_time)) {
-      setError('ไม่สามารถเปลี่ยนได้ — ต้องเปลี่ยนล่วงหน้าอย่างน้อย 24 ชั่วโมง')
-      return
-    }
-
-    // Validate same month (non-admin)
-    if (!isAdmin) {
-      const { month: origMonth, year: origYear } = getSessionMonth(selectedSession)
-      const pickedDate = new Date(pickedSlot.date + 'T00:00:00')
-      if (pickedDate.getMonth() !== origMonth || pickedDate.getFullYear() !== origYear) {
-        setError('ไม่สามารถเปลี่ยนไปเดือนอื่นได้ — เปลี่ยนได้เฉพาะภายในเดือนที่จองเท่านั้น')
-        return
-      }
-    }
-
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-
-    // Create new session (rescheduled) — preserve child_id
-    const newSessionData: Record<string, any> = {
-      booking_id: selectedSession.booking_id,
-      date: pickedSlot.date,
-      start_time: pickedSlot.start,
-      end_time: pickedSlot.end,
-      branch_id: pickedSlot.branchId,
-      child_id: selectedSession.child_id || null,
-      status: 'scheduled',
-      rescheduled_from_id: selectedSession.id,
-      is_makeup: false,
-    }
-
-    // Mark old session as rescheduled
-    const { error: updateErr } = await (supabase
-      .from('booking_sessions') as any)
-      .update({ status: 'rescheduled' })
-      .eq('id', selectedSession.id)
-
-    if (updateErr) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
-      setLoading(false)
-      return
-    }
-
-    // Insert new rescheduled session
-    const { error: insertErr } = await (supabase
-      .from('booking_sessions') as any)
-      .insert(newSessionData)
-
-    if (insertErr) {
-      // Rollback: restore old session
-      await (supabase.from('booking_sessions') as any)
-        .update({ status: 'scheduled' })
-        .eq('id', selectedSession.id)
-      setError('เกิดข้อผิดพลาดในการสร้างรอบใหม่ กรุณาลองใหม่')
-      setLoading(false)
-      return
-    }
-
-    await fetch('/api/notifications/events/reschedule', {
+    const response = await fetch('/api/reschedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sessionId: selectedSession.id,
-        oldBranchId: selectedSession.branch_id,
-        newBranchId: pickedSlot.branchId,
-        newDate: pickedSlot.date,
-        newStartTime: pickedSlot.start,
+        targetDate: pickedSlot.date,
+        startTime: pickedSlot.start,
+        endTime: pickedSlot.end,
+        branchId: pickedSlot.branchId,
+        scheduleTemplateId: pickedSlot.templateId || null,
       }),
-    }).catch(() => null)
+    })
+
+    const result = await response.json() as { success?: boolean; error?: string }
+
+    if (!response.ok || !result.success) {
+      setError(result.error || 'เปลี่ยนวันเรียนไม่สำเร็จ กรุณาลองใหม่')
+      setLoading(false)
+      return
+    }
 
     setSuccess(true)
     setLoading(false)
     setTimeout(() => {
       setDialogOpen(false)
       router.refresh()
-    }, 1500)
+    }, 900)
   }
 
   if (sessions.length === 0) {
     return (
       <Card>
-        <CardContent className="py-16">
+        <CardContent className="py-14">
           <div className="text-center text-gray-400">
-            <ArrowLeftRight className="h-16 w-16 mx-auto mb-4 opacity-50" />
+            <ArrowLeftRight className="mx-auto mb-4 h-14 w-14 opacity-50" />
             <p className="text-lg font-medium">ไม่มีรอบเรียนที่สามารถเปลี่ยนได้</p>
-            <p className="text-sm mt-1">ตารางจะแสดงเฉพาะรอบที่ได้รับการยืนยันจาก Admin แล้ว</p>
+            <p className="mt-1 text-sm">จะแสดงเฉพาะรอบที่จองสำเร็จ ยังไม่เริ่ม และยังไม่ถูกเปลี่ยนวัน</p>
           </div>
         </CardContent>
       </Card>
@@ -264,144 +241,149 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmi
 
   return (
     <>
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700 flex items-start gap-2">
-        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-        <div>
-          <p className="font-medium">กฎการเปลี่ยนวัน/สาขา</p>
-          <p>• ต้องเปลี่ยนล่วงหน้าอย่างน้อย <strong>24 ชั่วโมง</strong> ก่อนเวลาเรียน</p>
-          <p>• เปลี่ยนได้เฉพาะ<strong>ภายในเดือนที่จอง</strong>เท่านั้น ข้ามเดือนได้เฉพาะ Admin ทำให้</p>
-          <p>• เลือกวันใหม่จากปฏิทิน แล้วเลือกรอบเรียนที่ต้องการ</p>
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+        <div className="flex items-start gap-2">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">กฎการเปลี่ยนวัน/สาขา</p>
+            <p>เปลี่ยนได้เฉพาะรอบที่ยังไม่เริ่ม ล่วงหน้าอย่างน้อย 24 ชั่วโมง และอยู่ภายในเดือนที่จองเท่านั้น</p>
+            <p className="mt-1 text-yellow-700">รอบชดเชยเป็นหน้าที่ Admin จัดการ ผู้เรียนจะเห็นในตารางเรียนหลัง Admin เพิ่มให้แล้ว</p>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {sessions.map((session) => {
-          const canChange = canReschedule(session.date, session.start_time)
+      <div className="space-y-4">
+        {groupedSessions.map(({ monthKey, rows }) => {
+          const [year, month] = monthKey.split('-').map(Number)
           return (
-            <Card key={session.id} className={!canChange ? 'opacity-60' : ''}>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#2748bf]/10 rounded-xl flex flex-col items-center justify-center">
-                    <span className="text-xs text-[#2748bf] font-medium">
-                      {new Date(session.date).toLocaleDateString('th-TH', { weekday: 'short' })}
-                    </span>
-                    <span className="text-lg font-bold text-[#2748bf]">
-                      {new Date(session.date).getDate()}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{formatDateThai(session.date)}</p>
-                    <div className="flex items-center gap-3 mt-0.5 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {session.branches?.name || '-'}
-                      </span>
-                    </div>
-                    {session.children && (
-                      <p className="text-xs text-gray-400 mt-0.5">👦 {session.children.full_name}</p>
-                    )}
-                  </div>
-                </div>
+            <section key={monthKey} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[#153c85]">
+                  {MONTH_NAMES_TH[month - 1]} {year + 543}
+                </h2>
+                <Badge variant="outline">{rows.length} รอบ</Badge>
+              </div>
 
-                <div>
-                  {canChange ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-[#2748bf] border-[#2748bf]/30 hover:bg-[#2748bf]/5"
-                      onClick={() => openDialog(session)}
-                    >
-                      <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-                      เปลี่ยน
-                    </Button>
-                  ) : (
-                    <Badge variant="outline" className="text-gray-400 border-gray-200">
-                      เปลี่ยนไม่ได้
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              <div className="grid gap-3 lg:grid-cols-2">
+                {rows.map((session) => {
+                  const courseType = getCourseType(session)
+                  const canChange = canReschedule(session.date, session.start_time) && !session.is_makeup
+                  return (
+                    <Card key={session.id} className={!canChange ? 'opacity-65' : ''}>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-[#2748bf]/10">
+                              <span className="text-xs font-medium text-[#2748bf]">
+                                {new Date(`${session.date}T00:00:00`).toLocaleDateString('th-TH', { weekday: 'short' })}
+                              </span>
+                              <span className="text-lg font-bold text-[#2748bf]">{new Date(`${session.date}T00:00:00`).getDate()}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900">{formatDateThai(session.date)}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  {session.branches?.name || '-'}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <Badge variant="outline">{COURSE_LABELS[courseType]}</Badge>
+                                {session.children && <Badge variant="secondary">{session.children.nickname || session.children.full_name}</Badge>}
+                                {session.is_makeup && <Badge className="bg-orange-50 text-orange-700">รอบชดเชย</Badge>}
+                              </div>
+                            </div>
+                          </div>
+
+                          {canChange ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-[#2748bf]/30 text-[#2748bf] hover:bg-[#2748bf]/5"
+                              onClick={() => openDialog(session)}
+                            >
+                              <ArrowLeftRight className="mr-1 h-3.5 w-3.5" />
+                              เปลี่ยน
+                            </Button>
+                          ) : (
+                            <Badge variant="outline" className="self-start text-gray-400 sm:self-center">
+                              เปลี่ยนไม่ได้
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </section>
           )
         })}
       </div>
 
-      {/* Reschedule Dialog — Calendar + Slot Picker */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           {success ? (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="py-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
-              <DialogTitle className="text-xl font-bold text-green-700 mb-2">
-                เปลี่ยนสำเร็จ!
-              </DialogTitle>
-              <DialogDescription>
-                รอบเรียนถูกเปลี่ยนเรียบร้อยแล้ว
-              </DialogDescription>
+              <DialogTitle className="mb-2 text-xl font-bold text-green-700">เปลี่ยนวันสำเร็จ</DialogTitle>
+              <DialogDescription>ตารางเรียนถูกอัปเดตแล้ว</DialogDescription>
             </div>
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle className="text-[#153c85]">เปลี่ยนวัน/สาขา</DialogTitle>
+                <DialogTitle className="text-[#153c85]">เลือกวันและรอบเรียนใหม่</DialogTitle>
                 <DialogDescription>
-                  รอบเดิม: {selectedSession && formatDateThai(selectedSession.date)} • {fmtTime(selectedSession?.start_time)} - {fmtTime(selectedSession?.end_time)}
-                  {selectedSession?.branches?.name && ` • ${selectedSession.branches.name}`}
+                  รอบเดิม: {selectedSession && formatDateThai(selectedSession.date)} · {fmtTime(selectedSession?.start_time)} - {fmtTime(selectedSession?.end_time)}
+                  {selectedSession?.branches?.name && ` · ${selectedSession.branches.name}`}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 mt-2">
+              <div className="space-y-4">
                 {error && (
-                  <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
                     {error}
                   </div>
                 )}
 
-                {/* Mini Calendar */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-700">เลือกวันใหม่</p>
-                    <div className="flex items-center gap-1">
-                      {isAdmin && (
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
-                          if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) } else setCalMonth(calMonth - 1)
-                          setExpandedDate(null); setPickedSlot(null)
-                        }} disabled={calMonth === now.getMonth() && calYear === now.getFullYear()}>
-                          <ArrowLeft className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <span className="text-xs font-medium w-28 text-center">{MONTH_NAMES_TH[calMonth]} {calYear + 543}</span>
-                      {isAdmin && (
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
-                          if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1)
-                          setExpandedDate(null); setPickedSlot(null)
-                        }}>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-700">เลือกวันใหม่ในเดือนเดิม</p>
+                    <span className="text-xs font-medium text-gray-500">
+                      {MONTH_NAMES_TH[selectedMonth]} {selectedYear + 543}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium text-gray-400 mb-0.5">
-                    {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d, idx) => <div key={d} className={idx === 0 ? 'text-red-500' : ''}>{d}</div>)}
+
+                  <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-400">
+                    {DAY_LABELS.map((day, index) => (
+                      <div key={day} className={index === 0 ? 'text-red-500' : ''}>{day}</div>
+                    ))}
                   </div>
-                  <div className="grid grid-cols-7 gap-0.5">
-                    {calendarDays.map((day, i) => {
-                      if (day === null) return <div key={`e-${i}`} />
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {calendarDays.map((day, index) => {
+                      if (day === null) return <div key={`empty-${index}`} />
                       const selectable = isDateSelectable(day)
-                      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      const dateStr = getDateStr(day)
                       const isExpanded = expandedDate === dateStr
                       const isPicked = pickedSlot?.date === dateStr
+
                       return (
-                        <button key={day} onClick={() => handleDayClick(day)} disabled={!selectable}
-                          className={`h-8 rounded text-xs font-medium transition-all
-                            ${!selectable ? 'text-gray-300 cursor-not-allowed' : i % 7 === 0 && !isPicked ? 'text-red-500 cursor-pointer hover:bg-[#2748bf]/10' : 'cursor-pointer hover:bg-[#2748bf]/10'}
-                            ${isPicked ? 'bg-[#2748bf] text-white' : ''}
-                            ${isExpanded && !isPicked ? 'ring-2 ring-[#f57e3b] bg-[#f57e3b]/5' : ''}`}>
+                        <button
+                          key={dateStr}
+                          type="button"
+                          onClick={() => handleDayClick(day)}
+                          disabled={!selectable}
+                          className={`h-9 rounded-md text-sm font-medium transition-all ${
+                            selectable ? 'hover:bg-[#2748bf]/10' : 'cursor-not-allowed text-gray-300'
+                          } ${isPicked ? 'bg-[#2748bf] text-white' : ''} ${isExpanded && !isPicked ? 'ring-2 ring-[#f57e3b]' : ''}`}
+                        >
                           {day}
                         </button>
                       )
@@ -409,33 +391,43 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmi
                   </div>
                 </div>
 
-                {/* Slot picker for expanded date */}
                 {expandedDate && selectedSession && (() => {
-                  const day = parseInt(expandedDate.split('-')[2])
-                  const date = new Date(calYear, calMonth, day)
-                  const dow = date.getDay()
+                  const day = Number(expandedDate.split('-')[2])
+                  const date = new Date(selectedYear, selectedMonth, day)
+                  const dayIndex = date.getDay()
                   const courseType = getCourseType(selectedSession)
+
                   return (
-                    <div className="p-3 bg-gray-50 rounded-lg border space-y-2">
-                      <p className="text-xs font-medium text-gray-600">
-                        <CalendarDays className="inline h-3.5 w-3.5 mr-1" />
-                        {DAY_LABELS[dow]} {day} {MONTH_NAMES_TH[calMonth]} — เลือกรอบเรียน:
+                    <div className="space-y-3 rounded-lg border bg-gray-50 p-3">
+                      <p className="text-sm font-semibold text-gray-700">
+                        <CalendarDays className="mr-1 inline h-4 w-4" />
+                        {DAY_LABELS[dayIndex]} {day} {MONTH_NAMES_TH[selectedMonth]} · เลือกรอบเรียน
                       </p>
+
                       {branches.map((branch) => {
-                        const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dow)
+                        const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayIndex)
                         if (slots.length === 0) return null
+
                         return (
                           <div key={branch.id}>
-                            <p className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><MapPin className="h-2.5 w-2.5" />{branch.name}</p>
-                            <div className="flex flex-wrap gap-1">
+                            <p className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                              <MapPin className="h-3 w-3" />
+                              {branch.name}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
                               {slots.map((slot) => {
-                                const isSlotPicked = pickedSlot?.date === expandedDate && pickedSlot?.start === slot.start && pickedSlot?.branchId === branch.id
+                                const isSlotPicked = pickedSlot?.date === expandedDate && pickedSlot.start === slot.start && pickedSlot.branchId === branch.id
                                 return (
-                                  <Button key={`${branch.id}-${slot.start}`} size="sm"
+                                  <Button
+                                    key={`${branch.id}-${slot.start}-${slot.end}`}
+                                    type="button"
+                                    size="sm"
                                     variant={isSlotPicked ? 'default' : 'outline'}
-                                    className={`h-7 text-xs ${isSlotPicked ? 'bg-[#2748bf]' : ''}`}
-                                    onClick={() => handleSlotPick(day, slot.start, slot.end, branch)}>
-                                    <Clock className="h-3 w-3 mr-1" />{fmtTime(slot.start)}-{fmtTime(slot.end)}
+                                    className={isSlotPicked ? 'bg-[#2748bf]' : ''}
+                                    onClick={() => handleSlotPick(day, slot.start, slot.end, branch, slot.templateId)}
+                                  >
+                                    <Clock className="mr-1 h-3.5 w-3.5" />
+                                    {fmtTime(slot.start)}-{fmtTime(slot.end)}
                                   </Button>
                                 )
                               })}
@@ -447,31 +439,20 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates, isAdmi
                   )
                 })()}
 
-                {/* Picked slot summary */}
                 {pickedSlot && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
-                    <p className="font-medium text-green-700 mb-1">รอบใหม่ที่เลือก:</p>
-                    <p className="text-green-600">
-                      {DAY_LABELS[pickedSlot.dayOfWeek]} {formatDateThai(pickedSlot.date)} • {fmtTime(pickedSlot.start)} - {fmtTime(pickedSlot.end)} • {pickedSlot.branchName}
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                    <p className="font-medium">รอบใหม่ที่เลือก</p>
+                    <p>
+                      {formatDateThai(pickedSlot.date)} · {fmtTime(pickedSlot.start)} - {fmtTime(pickedSlot.end)} · {pickedSlot.branchName}
                     </p>
                   </div>
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setDialogOpen(false)}
-                    disabled={loading}
-                  >
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setDialogOpen(false)} disabled={loading}>
                     ยกเลิก
                   </Button>
-                  <Button
-                    className="flex-1 bg-[#2748bf] hover:bg-[#153c85]"
-                    disabled={loading || !pickedSlot}
-                    onClick={handleSubmit}
-                  >
+                  <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" disabled={loading || !pickedSlot} onClick={handleSubmit}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

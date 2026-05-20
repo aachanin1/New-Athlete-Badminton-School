@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Loader2 } from 'lucide-react'
+import type { UserRole } from '@/types/database'
 
 type AuthMode = 'login' | 'register'
 
@@ -40,8 +41,15 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const busy = loading || redirecting
+  const busyLabel = redirecting
+    ? 'กำลังพาไปหน้าแดชบอร์ด...'
+    : mode === 'login'
+      ? 'กำลังเข้าสู่ระบบ...'
+      : 'กำลังสมัครสมาชิก...'
 
   const resetForm = () => {
     setEmail('')
@@ -52,6 +60,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
     setError(null)
     setSuccess(false)
     setLoading(false)
+    setRedirecting(false)
   }
 
   const switchMode = (newMode: AuthMode) => {
@@ -73,14 +82,14 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
       return
     }
 
-    const { data: profile } = await (supabase
+    const { data: profile } = (await supabase
       .from('profiles')
       .select('role')
       .eq('id', data.user.id)
-      .single() as any)
+      .maybeSingle()) as { data: { role: UserRole } | null }
 
-    onOpenChange(false)
-    resetForm()
+    setLoading(false)
+    setRedirecting(true)
     router.replace(getHomePathForRole(profile?.role))
     router.refresh()
   }
@@ -125,6 +134,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
   }
 
   const handleOpenChange = (v: boolean) => {
+    if (!v && busy) return
     if (!v) resetForm()
     onOpenChange(v)
   }
@@ -177,6 +187,16 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
         </DialogHeader>
 
         <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-4 mt-2">
+          {redirecting && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-[#153c85]">
+              <div className="flex items-center gap-2 font-semibold">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                กำลังพาไปหน้าแดชบอร์ด...
+              </div>
+              <p className="mt-1 text-xs text-blue-700">ระบบกำลังตรวจสิทธิ์และเปิดหน้าที่เหมาะกับบัญชีของคุณ</p>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
               {error}
@@ -194,6 +214,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
+                  disabled={busy}
                 />
               </div>
               <div className="space-y-2">
@@ -205,6 +226,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
+                  disabled={busy}
                 />
               </div>
             </>
@@ -219,6 +241,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={busy}
             />
           </div>
 
@@ -232,6 +255,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              disabled={busy}
             />
           </div>
 
@@ -246,6 +270,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
+                disabled={busy}
               />
             </div>
           )}
@@ -253,12 +278,12 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
           <Button
             type="submit"
             className="w-full bg-[#2748bf] hover:bg-[#153c85]"
-            disabled={loading}
+            disabled={busy}
           >
-            {loading ? (
+            {busy ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === 'login' ? 'กำลังเข้าสู่ระบบ...' : 'กำลังสมัครสมาชิก...'}
+                {busyLabel}
               </>
             ) : (
               mode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'
@@ -272,7 +297,8 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
                 <button
                   type="button"
                   onClick={() => switchMode('register')}
-                  className="text-[#2748bf] hover:underline font-medium"
+                  disabled={busy}
+                  className="text-[#2748bf] hover:underline font-medium disabled:pointer-events-none disabled:opacity-60"
                 >
                   สมัครสมาชิก
                 </button>
@@ -283,7 +309,8 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className="text-[#2748bf] hover:underline font-medium"
+                  disabled={busy}
+                  className="text-[#2748bf] hover:underline font-medium disabled:pointer-events-none disabled:opacity-60"
                 >
                   เข้าสู่ระบบ
                 </button>

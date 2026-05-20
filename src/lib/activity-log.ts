@@ -19,7 +19,7 @@ export async function logActivity({
 }: LogActivityInput) {
   try {
     const supabase = getServiceRoleClient()
-    const { error } = await (supabase.from('activity_logs') as any).insert({
+    const { error } = await supabase.from('activity_logs').insert({
       user_id: userId,
       action,
       entity_type: entityType,

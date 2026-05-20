@@ -24,7 +24,7 @@ interface ChildData {
 
 interface DashboardCalendarProps {
   sessions: SessionData[]
-  children: ChildData[]
+  learnerChildren: ChildData[]
   userName: string
 }
 
@@ -40,15 +40,15 @@ const CHILD_COLORS = [
 ]
 const SELF_COLOR = { badge: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' }
 
-export function DashboardCalendar({ sessions, children, userName }: DashboardCalendarProps) {
+export function DashboardCalendar({ sessions, learnerChildren, userName }: DashboardCalendarProps) {
   const now = new Date()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const childColorMap = useMemo(() => {
     const map: Record<string, typeof CHILD_COLORS[0]> = {}
-    children.forEach((c, i) => { map[c.id] = CHILD_COLORS[i % CHILD_COLORS.length] })
+    learnerChildren.forEach((c, i) => { map[c.id] = CHILD_COLORS[i % CHILD_COLORS.length] })
     return map
-  }, [children])
+  }, [learnerChildren])
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, SessionData[]> = {}
@@ -90,9 +90,9 @@ export function DashboardCalendar({ sessions, children, userName }: DashboardCal
   return (
     <div className="space-y-4">
       {/* Legend */}
-      {children.length > 0 && (
+      {learnerChildren.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {children.map((c) => {
+          {learnerChildren.map((c) => {
             const color = childColorMap[c.id]
             return (
               <Badge key={c.id} className={color?.badge} variant="outline">

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { AuthModal } from '@/components/shared/auth-modal'
-import { ArrowRight, LayoutDashboard, Calendar } from 'lucide-react'
+import { ArrowRight, LayoutDashboard, Calendar, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getHomePathForRole } from '@/lib/auth/redirects'
 import type { UserRole } from '@/types/database'
@@ -18,6 +18,7 @@ export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
   const [open, setOpen] = useState(false)
   const [role, setRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
+  const [navigating, setNavigating] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -25,7 +26,10 @@ export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
 
     const loadRole = async (userId?: string) => {
       if (!userId) {
-        if (mounted) setRole(null)
+        if (mounted) {
+          setRole(null)
+          setNavigating(false)
+        }
         return
       }
 
@@ -64,14 +68,24 @@ export function RegisterButton({ variant = 'hero' }: RegisterButtonProps) {
     return (
       <Button
         size="lg"
+        disabled={navigating}
+        aria-busy={navigating}
         className={
           variant === 'hero'
-            ? 'bg-[#2748bf] hover:bg-[#153c85] text-white text-lg px-8 py-6 w-[220px]'
-            : 'bg-white/20 hover:bg-white/30 text-white text-lg px-10 py-6'
+            ? 'bg-[#2748bf] hover:bg-[#153c85] text-white text-lg px-8 py-6 w-[220px] disabled:opacity-90'
+            : 'bg-white/20 hover:bg-white/30 text-white text-lg px-10 py-6 disabled:opacity-90'
         }
-        onClick={() => router.push(getHomePathForRole(role))}
+        onClick={() => {
+          setNavigating(true)
+          router.push(getHomePathForRole(role))
+        }}
       >
-        {variant === 'hero' ? (
+        {navigating ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            กำลังโหลด...
+          </>
+        ) : variant === 'hero' ? (
           <>
             <LayoutDashboard className="mr-2 h-5 w-5" />
             ไปแดชบอร์ด

@@ -37,6 +37,33 @@ interface ChildrenClientProps {
   initialChildren: Child[]
 }
 
+interface DbError {
+  message: string
+}
+
+interface ChildMutationPayload {
+  full_name: string
+  nickname: string | null
+  date_of_birth: string | null
+  gender: Gender | null
+  avatar_url: string | null
+}
+
+interface ChildUpdateQuery extends PromiseLike<{ error: DbError | null }> {
+  eq(column: string, value: string): ChildUpdateQuery
+}
+
+interface ChildInsertQuery {
+  select(): {
+    single(): PromiseLike<{ data: Child | null; error: DbError | null }>
+  }
+}
+
+interface ChildrenTable {
+  update(values: ChildMutationPayload): ChildUpdateQuery
+  insert(values: ChildMutationPayload & { parent_id: string }): ChildInsertQuery
+}
+
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
@@ -149,18 +176,18 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
       avatarUrl = urlData.publicUrl
     }
 
-    const payload = {
+    const payload: ChildMutationPayload = {
       full_name: fullName.trim(),
       nickname: nickname.trim() || null,
       date_of_birth: dateOfBirth || null,
       gender: (gender as Gender) || null,
       avatar_url: avatarUrl,
     }
+    const childrenTable = supabase.from('children') as unknown as ChildrenTable
 
     if (editingChild) {
       // Update
-      const { error: err } = await (supabase
-        .from('children') as any)
+      const { error: err } = await childrenTable
         .update(payload)
         .eq('id', editingChild.id)
 
@@ -175,8 +202,7 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
       )
     } else {
       // Insert
-      const { data, error: err } = await (supabase
-        .from('children') as any)
+      const { data, error: err } = await childrenTable
         .insert({ ...payload, parent_id: user.id })
         .select()
         .single()
@@ -251,7 +277,12 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-[#2748bf]/10">
                         {child.avatar_url ? (
-                          <img src={child.avatar_url} alt={child.full_name} className="w-full h-full object-cover" />
+                          <span
+                            aria-label={child.full_name}
+                            className="block h-full w-full bg-cover bg-center"
+                            role="img"
+                            style={{ backgroundImage: `url("${child.avatar_url}")` }}
+                          />
                         ) : (
                           <User className="h-6 w-6 text-[#2748bf]" />
                         )}
@@ -360,7 +391,12 @@ export function ChildrenClient({ initialChildren }: ChildrenClientProps) {
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <span
+                      aria-label="Preview"
+                      className="block h-full w-full bg-cover bg-center"
+                      role="img"
+                      style={{ backgroundImage: `url("${avatarPreview}")` }}
+                    />
                   ) : (
                     <Camera className="h-6 w-6 text-gray-400" />
                   )}

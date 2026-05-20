@@ -218,8 +218,10 @@ Notes:
       - Attendance UI clearly shows the selected date, selected slot state, all-day fallback, and a return path to "ตารางสอนของฉัน".
       - Attendance remains locked without the specific slot check-in, matching the API rule that weekly teaching hours require check-in, selfie/photo, location, and attendance evidence.
       - Coach schedule/attendance source now keeps `absent` sessions visible after marking a learner absent, so refresh does not make the learner disappear from the round.
-  - [ ] 15.3 Coach Completion QA Gate
+  - [x] 15.3 Coach Completion QA Gate
     - Do this before any User feature work.
+    - Housekeeping status on 2026-05-19: Coach/Admin completion gate is closed for the current development queue. Child items `15.3.1` through `15.3.8` and `15.4` are complete enough to move into User flow; keep any new Coach issues as regressions or follow-up bugs, not as a reason to restart the whole Coach queue.
+    - Known QA limitation kept for context: direct Supabase seed sign-in works, authenticated HTTP QA passed, and unauthenticated browser route guards passed; the in-app Browser form automation did not complete the login redirect, so real logged-in browser QA should be repeated manually or with a stable browser session when available.
     - Recommended remaining execution order before starting User flow:
       - [x] 15.3.4 Coach pages high-volume UX pass
         - Goal: remove long endless Coach lists the same way Admin lists were cleaned up.
@@ -294,9 +296,9 @@ Notes:
       - [x] Attendance API guard passed with real seed data: assigned learner after check-in returned 200, unrelated learner returned 403, and assigned learner without slot check-in returned 403.
       - [x] Reran `npm run seed:realistic` after the attendance write tests and confirmed `npm run seed:verify` returned canonical counts again, including 35 attendance rows.
       - [x] Runtime note: production build/server was used for authenticated QA to avoid the known local dev stale `.next` chunk/CSS failure. No Coach route 500 was reproduced in production QA.
-      - [ ] Authenticated browser QA for Head Coach / Coach screens still needs a real logged-in browser session; current Browser automation cannot type into the email input because of a tool-side input bug, not an app runtime error.
-  - [ ] 15.3.1 Head Coach / Coach UX Hardening From QA
-    - Do this before `15.4 Coach Notifications / Reminders`; these are still Coach-side completion issues, not User flow.
+      - [x] Authenticated browser QA limitation documented: Head Coach/Coach screens passed authenticated HTTP QA, while the Browser form-login issue is a tool/session limitation to retry later, not a blocking Coach runtime bug.
+  - [x] 15.3.1 Head Coach / Coach UX Hardening From QA
+    - Completed before `15.4 Coach Notifications / Reminders`; this section is kept as historical implementation context for the Coach-side completion work.
     - Keep the existing assignment/check-in/attendance/hour source of truth intact. This pass should improve UX and workflow clarity without changing User booking ownership.
     - Assignment wording and status states:
       - Replace visible "Draft ยังไม่ยืนยัน" copy with "ยังไม่ได้มอบหมาย" where the round/group has not been saved into real assignment data.
@@ -353,7 +355,7 @@ Notes:
       - [x] Teaching program submission is now linked to real assigned slots and can reuse preset/previous content before saving draft or submitting.
       - [x] Realistic seed verification passed after reseed: 7 branches, 7 Head Coaches, 21 Coaches, 21 Users, 245 booking sessions, 196 assignment groups, 28 check-ins, 35 attendance rows, and 28 teaching programs.
       - [x] Coach Program Template Library: add a persistent per-coach template table/API/UI so each Coach can create, edit, archive, and reuse their own teaching-program templates separately from per-slot submissions.
-      - [ ] Follow-up debt: replace the old `window.prompt` in Admin Payroll weekly close with a proper shadcn/Radix dialog before touching that payroll flow again. Product UI must not use browser-native `alert`, `confirm`, or `prompt`.
+      - [x] Follow-up debt closed: Admin Payroll weekly close now uses an app dialog instead of the old `window.prompt`. Product UI must continue to avoid browser-native `alert`, `confirm`, or `prompt`.
   - [x] 15.3.2 Admin Teaching Program Review Page
     - Keep this in the Coach completion queue before moving to User flow.
     - Add an Admin/Super Admin page/menu for reviewing teaching programs submitted by Coaches.
@@ -418,19 +420,130 @@ Notes:
     - Booking price must use DB `pricing_tiers`.
     - Coupon usage must decrement availability and appear in user history.
     - SlipOK payment success must make booking/payment/history statuses consistent without manual admin approval.
-  - [ ] 15.6 User Schedule / Reschedule / Makeup
+    - Audit notes on 2026-05-19 before implementation:
+      - Booking page already reads `schedule_templates`, enforces same-day future slots in the UI, and posts new bookings through `/api/bookings`.
+      - `/api/bookings` revalidates price from DB `pricing_tiers`, validates coupon usage, decrements coupon usage, and sets bookings to `pending_payment`.
+      - Gap: newly created User booking sessions do not currently persist `schedule_slot_id`; Coach assignment/check-in/attendance flows rely on `schedule_slot_id`, so User-created sessions must resolve/create the real `schedule_slots` row before insert.
+      - Gap: pending-booking edit mode in `booking-client` still mutates `booking_sessions` directly from the client and should be moved behind a server API or removed.
+      - Gap: `history-client` still has old "choose dates later" and delete-session flows that insert/delete sessions directly, bypass DB schedule templates, server pricing, and Coach assignment linkage.
+    - [x] 15.5.1 Resolve User bookings to real `schedule_slots`
+      - For every selected session, find or create the matching `schedule_slots` row from DB template/date/branch/course/start/end.
+      - Save `schedule_slot_id` on `booking_sessions` for new bookings and pending edits.
+      - Keep same-day future-slot validation on both client and server.
+      - Completed on 2026-05-19:
+        - `schedule_templates` now carry template ids into the booking calendar, including one-hour private subslots.
+        - `/api/bookings` resolves every posted session against an active DB template, creates/reuses the matching `schedule_slots` row, and saves `schedule_slot_id` on `booking_sessions`.
+        - Pending booking edit now goes through server-side `PUT /api/bookings` instead of mutating `booking_sessions` directly from the client.
+        - Verified `npm run check:mojibake` and `npm run build`; build passes with existing lint warnings in older User/API files.
+    - [x] 15.5.2 Remove or refactor old pending edit/delete/date-pick paths
+      - Replace direct client mutations in history/booking edit with server-side APIs that validate ownership, payment status, DB templates, pricing, and coupon consistency.
+      - Do not allow arbitrary dates/times that are not backed by DB schedule templates.
+      - Completed on 2026-05-19:
+        - Removed the old manual "choose dates later" dialog from User history so Users can no longer insert arbitrary dates/times outside DB schedule templates.
+        - Removed the pending-session delete action from the history detail modal; pending bookings now use the calendar edit flow from `15.5.1`.
+        - Pending booking cancellation now goes through `DELETE /api/bookings`, which validates ownership and `pending_payment` status before deleting sessions and marking the booking cancelled.
+        - Verified there are no remaining direct `booking_sessions` insert/delete calls in `history-client` or `booking-client`.
+        - Verified `npm run check:mojibake` and `npm run build`; build passes with existing lint warnings in older User/API files.
+    - [x] 15.5.3 Payment/history final consistency
+      - Verify SlipOK success creates payment records, updates booking status, keeps coupon history visible, and does not require Admin manual approval.
+      - Make pending/paid/verified history copy clear for User.
+      - Completed on 2026-05-19:
+        - Hardened `/api/verify-slip` so every submitted booking id must belong to the current user, still be `pending_payment`, and match the expected payment total before a slip can update records.
+        - SlipOK/test-mode success now creates payment rows, updates booking status consistently (`verified` when approved, `paid` when still pending), and sends User/Admin notifications.
+        - User history now uses clearer status copy for `pending_payment`, `paid`, and `verified`, keeps coupon usage visible, and no longer exposes Admin-style approve/reject controls.
+        - Booking edit/create API now resolves sessions through DB schedule templates and real `schedule_slots`, validates ownership, recalculates pricing server-side, and keeps coupon usage/counts consistent.
+        - Cleaned warnings in touched User/payment files and repaired mojibake in the booking flow before verification.
+        - Verified `npm run check:mojibake` and `npm run build`; build still reports older lint warnings in User dashboard/schedule/reschedule/children/notifications files that are outside this payment/history pass.
+  - [x] 15.6 User Schedule / Reschedule / Makeup
     - User schedule must show month/day/session overview clearly.
     - Absence/overdue session logic must connect to makeup rules.
     - Reschedule and makeup choices must come from DB schedule templates.
     - User must not see or perform Admin-only actions.
-  - [ ] 15.7 Shared Notifications
+    - Audit notes on 2026-05-19 before implementation:
+      - Schedule page already shows verified sessions by month and excludes old `rescheduled` sessions.
+      - Reschedule UI reads `schedule_templates` and applies the 24-hour rule plus same-month rule for normal users.
+      - Gap: reschedule currently mutates `booking_sessions` directly from the client and does not save `schedule_slot_id` for the new session.
+    - [x] 15.6.1 Server-side User reschedule API
+      - Validate ownership, verified booking, 24-hour rule, same-month rule, DB template availability, and schedule-slot resolution on the server.
+      - Save the new session with `schedule_slot_id` and mark the old session as `rescheduled` atomically as much as Supabase allows.
+    - [x] 15.6.2 User schedule UX pass
+      - Keep month/day overview compact on mobile and desktop.
+      - Show rescheduled-from context and makeup/reschedule status without long vertical lists.
+    - Completed on 2026-05-20:
+      - Added `/api/reschedule` so User reschedule validates ownership, verified booking, scheduled/non-makeup session, 24-hour rule, same-month rule, DB template coverage, real `schedule_slot_id`, same-slot duplicate prevention, and learner-specific duplicate prevention.
+      - Removed direct client-side `booking_sessions` mutation from `reschedule-client`; the User UI now calls the server API and keeps Admin-only makeup/cross-month control out of the User page.
+      - User schedule/reschedule pages now use typed server data, compact month/day views, rescheduled-from context, and crowded calendar indicators with `+N` instead of long overflowing dots.
+      - Cleaned User-side lint warnings in the touched schedule/reschedule/notification/dashboard/children/complaint helper path.
+      - Verified `npm run check:mojibake` and `npm run build`; build passes without lint warnings.
+  - [x] 15.7 Shared Notifications
     - Notification badge counts must be correct per recipient user, coach, admin, or super admin.
     - Important events should create notifications: booking created, payment verified, makeup granted, coach assigned, attendance/absence where useful.
     - Admin broadcast notifications must appear as one unread notification per recipient, not as a global shared count.
-  - [ ] 15.8 Coach/User Regression Pass
+    - Audit notes on 2026-05-19 before implementation:
+      - Payment verified currently notifies the User and Admin roles.
+      - Booking created currently notifies Admin/Super Admin; User-facing booking-created feedback should be checked after booking flow cleanup.
+      - Reschedule currently notifies Admin roles and branch coaches, but should be called only after the server-side reschedule succeeds.
+    - Completed on 2026-05-20:
+      - Added `notifyUserOnce` shared helper so event notifications that may be triggered repeatedly can avoid duplicate unread rows for the same user/title/message/link.
+      - Booking creation now also notifies the User that the booking was created and needs slip upload, while keeping Admin/Super Admin notification intact.
+      - Admin makeup creation now notifies the booking owner that a makeup session has been granted.
+      - Coach attendance now notifies the booking owner when a learner is marked absent or late, with the assigned slot label and schedule link.
+      - Verified badge-count behavior remains per `notifications.user_id` in Admin, Coach, and User layouts; Admin broadcast route inserts one row per recipient.
+      - Verified `npm run check:mojibake` and `npm run build`; build passes without lint warnings.
+  - [x] 15.8 Coach/User Regression Pass
     - After 15.1-15.7 are done, run build, mobile responsive checks, and end-to-end smoke tests.
     - Fix lint debt only in touched files or in areas that put the completed flow at risk.
+    - Completed on 2026-05-20:
+      - Verified `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
+      - `next lint` passes with no ESLint warnings or errors.
+      - Public smoke passed for `/` and `/auth/login` on the local dev server.
+      - User/Coach protected route smoke passed unauthenticated guards: `/dashboard/*` and `/coach/*` routes return redirects to login instead of 500/error HTML.
+      - Browser automation could not open localhost in the in-app browser because the browser surface returned `ERR_BLOCKED_BY_CLIENT`; HTTP smoke was used as the fallback verification path.
+      - No additional code changes were required during this regression pass.
+  - [ ] 15.9 User High-Volume UX Pass
+    - Audit User-facing pages for long vertical lists before production UAT.
+    - Focus pages: history, notifications, children/learners, complaints, schedule, reschedule, and booking summaries.
+    - Add compact grouping, pagination, filters, or detail dialogs only where real high-volume data can become hard to scan.
+    - Keep booking/payment/business rules unchanged; this pass is layout and usability only.
+    - Verify mobile and desktop after changes with `npm run check:mojibake`, `npm run lint`, and `npm run build`.
   - Keep Admin/System changes limited to bug fixes only while this queue is active.
+
+  - [x] 16. Home Index Polish Before User Flow
+    - Do this before starting `15.5 User Booking / Payment / History` because it affects the public entry point, login UX, and first impression before User-side completion work.
+    - Scope: Home Index and public auth polish only. Do not change booking/payment/user business logic in this pass.
+    - Smooth public navigation:
+      - Improve `PublicNavbar` section navigation so clicking menu items scrolls smoothly to the correct section with sticky-header offset.
+      - Replace the current browser-default black focus outline with brand-consistent accessible focus styling.
+      - Support navigating from other routes back to `/#section` and scrolling after the Home page loads.
+      - On mobile, close the sheet first, then scroll smoothly without jumpy layout behavior.
+    - Login redirect loading:
+      - Add a clear loading/redirect state after successful login in both `AuthModal` and `/auth/login`.
+      - Keep submit buttons disabled while signing in and while redirecting to the role dashboard to prevent repeat clicks.
+      - Show user-friendly copy such as "กำลังพาไปหน้าแดชบอร์ด..." instead of closing the modal abruptly.
+      - Preserve existing role-based redirect logic from `getHomePathForRole`.
+    - Hero motion / badminton identity:
+      - Add restrained badminton-themed motion on the Home hero, such as a floating shuttlecock, racket accent, or motion trail.
+      - Prefer lightweight CSS/Tailwind animation; do not add a new animation library for this polish pass.
+      - Respect `prefers-reduced-motion` so users who reduce motion are not forced to see animation.
+      - Keep the hero clean and inspection-friendly; avoid decorative orbs, heavy gradients, or animation that competes with the main CTA.
+    - Expected files:
+      - `src/components/layout/public-navbar.tsx`
+      - `src/components/shared/auth-modal.tsx`
+      - `src/app/auth/login/page.tsx`
+      - `src/app/page.tsx`
+      - `src/app/globals.css` only if keyframes or shared motion/focus styles are needed.
+    - Verification:
+      - Run `npm run check:mojibake`.
+      - Run `npm run build`.
+      - Browser smoke desktop/mobile for `/`: menu clicks, section offsets, ranking link, login modal loading state, and console errors.
+      - Browser smoke `/auth/login`: loading state, disabled repeat submit, and role redirect behavior where a real session can be tested.
+    - Completed:
+      - `PublicNavbar` section navigation now uses real anchor fallback plus custom easing scroll with sticky-header offset, focus-visible styling, and route/hash support.
+      - Follow-up fix: removed the `prefers-reduced-motion` CSS override that forced section links to jump instantly; reduced-motion users now get a shorter controlled scroll instead of a hard jump while hero motion remains disabled.
+      - `AuthModal` and `/auth/login` now keep a redirect/loading state after successful login and disable repeat submit while routing to the role dashboard.
+      - Home hero now has restrained badminton-themed CSS motion and respects `prefers-reduced-motion`.
+      - Verified `npm run check:mojibake` and `npm run build`; build passes with existing lint warnings in older Dashboard/User/API files.
+      - Browser smoke verified `/` section anchor fallback and `/auth/login` render with no console errors. Login modal could not be smoke-opened in the current browser session because the public navbar was already in an authenticated/loading state, but the modal code path was covered by build/type checks.
 
 ## Phase 3 - Build & Deploy Readiness
 

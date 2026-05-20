@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
+import { notifyUserOnce } from '@/lib/notifications'
+
+type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
 
 interface OriginalSessionRow {
   id: string
@@ -161,6 +164,16 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (originalSession.bookings?.user_id) {
+      await notifyUserOnce(supabaseAdmin as unknown as NotificationSupabase, {
+        user_id: originalSession.bookings.user_id,
+        title: 'ได้รับวันชดเชยแล้ว',
+        message: `Admin จัดวันชดเชยให้วันที่ ${makeupDate} เวลา ${startTime}-${endTime} เรียบร้อยแล้ว`,
+        type: 'schedule',
+        link_url: '/dashboard/schedule',
+      }).catch(() => null)
     }
 
     await supabaseAdmin
