@@ -10,7 +10,9 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { DAY_LABELS } from '@/lib/branch-schedules'
+import { isAttendanceGapReviewSession, isMakeupEligibleMissedSession } from '@/lib/session-attendance-status'
 import { getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
+import type { AttendanceStatus } from '@/types/database'
 import {
   AlertCircle,
   Building2,
@@ -31,11 +33,14 @@ interface BookingSessionData {
   id: string
   booking_id: string
   branch_id: string
+  schedule_slot_id?: string | null
   rescheduled_from_id: string | null
   date: string
   start_time: string
   end_time: string
   status: string
+  attendance_status?: AttendanceStatus | null
+  attendance_scope_count?: number
   user_name: string
   learner_name: string
   branch_name: string
@@ -106,7 +111,27 @@ function isOverdueSession(session: BookingSessionData) {
 }
 
 function isMissedSession(session: BookingSessionData) {
-  return !session.is_makeup && (session.status === 'absent' || isOverdueSession(session))
+  return isMakeupEligibleMissedSession({
+    status: session.status,
+    date: session.date,
+    startTime: session.start_time,
+    endTime: session.end_time,
+    isMakeup: session.is_makeup,
+    attendanceStatus: session.attendance_status || null,
+    scopeAttendanceCount: session.attendance_scope_count || 0,
+  })
+}
+
+function isAttendanceReviewSession(session: BookingSessionData) {
+  return isAttendanceGapReviewSession({
+    status: session.status,
+    date: session.date,
+    startTime: session.start_time,
+    endTime: session.end_time,
+    isMakeup: session.is_makeup,
+    attendanceStatus: session.attendance_status || null,
+    scopeAttendanceCount: session.attendance_scope_count || 0,
+  })
 }
 
 function getMonthKey(date: string) {
@@ -208,6 +233,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
   const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
@@ -317,13 +343,34 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
       .sort((a, b) => b.months.length - a.months.length || a.learnerName.localeCompare(b.learnerName))
   }, [filteredMonthGroups])
 
+  const reviewSessions = useMemo(() => {
+    const q = search.trim().toLowerCase()
+
+    return sessions
+      .filter(isAttendanceReviewSession)
+      .filter((session) => {
+        if (filterBranch !== 'all' && session.branch_id !== filterBranch) return false
+        if (!q) return true
+
+        return [
+          session.learner_name,
+          session.user_name,
+          session.branch_name,
+          session.course_type,
+          formatDate(session.date),
+        ].some((value) => value.toLowerCase().includes(q))
+      })
+      .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
+  }, [filterBranch, search, sessions])
+
   const stats = useMemo(() => ({
     total: monthGroups.length,
     actionable: monthGroups.filter((group) => group.canCreate).length,
     expired: monthGroups.filter((group) => group.isExpired && !group.hasMakeup).length,
     makeups: monthGroups.filter((group) => group.hasMakeup).length,
     learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
-  }), [monthGroups])
+    review: sessions.filter(isAttendanceReviewSession).length,
+  }), [monthGroups, sessions])
 
   const totalPages = Math.max(1, Math.ceil(learnerGroups.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -401,6 +448,34 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
     }
   }
 
+  const confirmAbsent = async (sessionId: string) => {
+    setReviewLoadingId(sessionId)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          action: 'confirm_absent',
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(result?.error || 'ยืนยันขาดเรียนไม่สำเร็จ')
+        return
+      }
+
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setReviewLoadingId(null)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -417,7 +492,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
         </Badge>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-6">
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
@@ -452,6 +527,15 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
               <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{stats.makeups}</p>
             </div>
             <CalendarCheck className="h-5 w-5 text-emerald-500" />
+          </CardContent>
+        </Card>
+        <Card className={stats.review > 0 ? 'border-orange-300 bg-orange-50/40' : 'border-gray-200'}>
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">ต้องตรวจเช็คชื่อ</p>
+              <p className="mt-1 text-xl font-bold text-orange-600 sm:text-2xl">{stats.review}</p>
+            </div>
+            <AlertCircle className="h-5 w-5 text-orange-500" />
           </CardContent>
         </Card>
         <Card className="border-gray-200 max-xl:col-span-2">
@@ -516,6 +600,60 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
           <p className="whitespace-nowrap text-sm text-gray-500">แสดง {filteredMonthGroups.length} เดือน จาก {monthGroups.length} เดือน</p>
         </CardContent>
       </Card>
+
+      {error && !dialogOpen && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {reviewSessions.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50/30">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-orange-700">
+                  <AlertCircle className="h-4 w-4" />
+                  ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน
+                </div>
+                <p className="mt-1 text-sm text-orange-700/80">
+                  รอบเหล่านี้เลยเวลาเรียนแล้ว แต่ยังไม่มี attendance ของทั้งรอบ ระบบจึงยังไม่สร้างสิทธิ์ชดเชยอัตโนมัติจนกว่า Admin/Coach จะตรวจสอบ
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit border-orange-200 bg-white text-orange-700">{reviewSessions.length} รายการ</Badge>
+            </div>
+            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+              {reviewSessions.slice(0, 30).map((session) => (
+                <div key={session.id} className="grid gap-2 rounded-lg border border-orange-100 bg-white p-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-gray-950">{session.learner_name}</span>
+                      <Badge variant="outline" className="bg-orange-50 text-orange-700">รอตรวจสอบ</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {session.user_name} · {session.branch_name} · {session.course_type || 'คอร์สเรียน'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:items-end">
+                    <div className="text-sm font-medium text-gray-800">
+                      {formatDate(session.date)} {formatTime(session.start_time, session.end_time)}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                      disabled={reviewLoadingId === session.id}
+                      onClick={() => confirmAbsent(session.id)}
+                    >
+                      {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาดเรียน'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {learnerGroups.length === 0 ? (
         <Card className="border-dashed">

@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useMemo, useState } from 'react'
+import { ArrowLeft, ArrowRight, AlertTriangle, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, MapPin, RotateCcw, ShieldCheck, UserRound } from 'lucide-react'
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight, CalendarDays, Clock, MapPin, RotateCcw } from 'lucide-react'
-import { fmtTime } from '@/lib/utils'
+import { Card, CardContent } from '@/components/ui/card'
+import { deriveSessionAttendanceStatus, type DerivedSessionStatus } from '@/lib/session-attendance-status'
+import { cn, fmtTime } from '@/lib/utils'
 
 interface SessionData {
   id: string
@@ -16,6 +19,16 @@ interface SessionData {
   is_makeup: boolean
   child_id: string | null
   rescheduled_from_id: string | null
+  assignment_group_id?: string | null
+  assignment_group_name?: string | null
+  coach_id?: string | null
+  coach_name?: string | null
+  coach_role?: string | null
+  coach_avatar_url?: string | null
+  assignment_status?: 'assigned' | 'pending_assignment'
+  attendance_status?: 'present' | 'absent' | 'late' | null
+  attendance_checked_at?: string | null
+  attendance_scope_count?: number
   rescheduled_from?: { date: string; start_time: string; end_time: string } | null
   children: { full_name: string; nickname: string | null } | null
   bookings: {
@@ -39,13 +52,6 @@ interface ScheduleCalendarClientProps {
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 const DAY_HEADERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 
-const STATUS_COLORS: Record<string, string> = {
-  scheduled: 'bg-blue-500',
-  completed: 'bg-green-500',
-  rescheduled: 'bg-yellow-500',
-  absent: 'bg-red-500',
-}
-
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'นัดหมาย',
   completed: 'เรียนแล้ว',
@@ -53,7 +59,51 @@ const STATUS_LABELS: Record<string, string> = {
   absent: 'ขาดเรียน',
 }
 
-// Generate distinct colors for children (badges + dots)
+const ATTENDANCE_BADGES: Record<DerivedSessionStatus, { label: string; className: string; dotClassName: string }> = {
+  present: {
+    label: 'มาเรียนแล้ว',
+    className: 'border-green-200 bg-green-50 text-green-700',
+    dotClassName: 'bg-green-500',
+  },
+  late: {
+    label: 'มาสาย',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    dotClassName: 'bg-amber-500',
+  },
+  absent: {
+    label: 'ขาดเรียน',
+    className: 'border-red-200 bg-red-50 text-red-700',
+    dotClassName: 'bg-red-500',
+  },
+  completed: {
+    label: 'เรียนแล้ว',
+    className: 'border-green-200 bg-green-50 text-green-700',
+    dotClassName: 'bg-green-500',
+  },
+  in_progress: {
+    label: 'กำลังเรียน',
+    className: 'border-blue-200 bg-blue-50 text-blue-700',
+    dotClassName: 'bg-blue-500',
+  },
+  upcoming: {
+    label: 'รอเรียน',
+    className: 'border-slate-200 bg-slate-50 text-slate-700',
+    dotClassName: 'bg-slate-400',
+  },
+  attendance_gap_review: {
+    label: 'รอตรวจสอบการเช็คชื่อ',
+    className: 'border-orange-200 bg-orange-50 text-orange-700',
+    dotClassName: 'bg-orange-500',
+  },
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  coach: 'โค้ช',
+  head_coach: 'หัวหน้าโค้ช',
+  admin: 'Admin',
+  super_admin: 'Super Admin',
+}
+
 const CHILD_COLORS = [
   'bg-green-100 text-green-700 border-green-200',
   'bg-purple-100 text-purple-700 border-purple-200',
@@ -62,15 +112,30 @@ const CHILD_COLORS = [
   'bg-orange-100 text-orange-700 border-orange-200',
 ]
 
-// Matching dot colors for calendar day markers
-const CHILD_DOT_COLORS = [
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-pink-500',
-  'bg-teal-500',
-  'bg-orange-500',
-]
+const CHILD_DOT_COLORS = ['bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500']
 const SELF_DOT_COLOR = 'bg-gray-500'
+
+function getInitial(name: string | null | undefined) {
+  return (name || 'Coach').trim().charAt(0).toUpperCase()
+}
+
+function getDerivedStatus(session: SessionData, now: Date) {
+  return deriveSessionAttendanceStatus({
+    status: session.status,
+    date: session.date,
+    startTime: session.start_time,
+    endTime: session.end_time,
+    isMakeup: session.is_makeup,
+    attendanceStatus: session.attendance_status || null,
+    scopeAttendanceCount: session.attendance_scope_count || 0,
+    now,
+  })
+}
+
+function getDisplayStatus(session: SessionData, now: Date) {
+  const status = getDerivedStatus(session, now)
+  return { key: status, ...ATTENDANCE_BADGES[status] }
+}
 
 export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: ScheduleCalendarClientProps) {
   const now = new Date()
@@ -78,133 +143,141 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
   const [year, setYear] = useState(now.getFullYear())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  // Build child color map (for badges) and dot color map (for calendar dots)
   const childColorMap = useMemo(() => {
     const map: Record<string, string> = {}
-    learnerChildren.forEach((c, i) => { map[c.id] = CHILD_COLORS[i % CHILD_COLORS.length] })
+    learnerChildren.forEach((child, index) => {
+      map[child.id] = CHILD_COLORS[index % CHILD_COLORS.length]
+    })
     return map
   }, [learnerChildren])
 
   const childDotColorMap = useMemo(() => {
     const map: Record<string, string> = {}
-    learnerChildren.forEach((c, i) => { map[c.id] = CHILD_DOT_COLORS[i % CHILD_DOT_COLORS.length] })
+    learnerChildren.forEach((child, index) => {
+      map[child.id] = CHILD_DOT_COLORS[index % CHILD_DOT_COLORS.length]
+    })
     return map
   }, [learnerChildren])
 
-  // Group sessions by date
   const sessionsByDate = useMemo(() => {
     const map: Record<string, SessionData[]> = {}
-    sessions.forEach((s) => {
-      if (!map[s.date]) map[s.date] = []
-      map[s.date].push(s)
+    sessions.forEach((session) => {
+      if (!map[session.date]) map[session.date] = []
+      map[session.date].push(session)
     })
+    Object.values(map).forEach((items) => items.sort((a, b) => a.start_time.localeCompare(b.start_time)))
     return map
   }, [sessions])
 
-  // Calendar days
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    const startDow = firstDay.getDay()
-    const totalDays = lastDay.getDate()
     const days: (number | null)[] = []
-    for (let i = 0; i < startDow; i++) days.push(null)
-    for (let d = 1; d <= totalDays; d++) days.push(d)
+    for (let index = 0; index < firstDay.getDay(); index++) days.push(null)
+    for (let day = 1; day <= lastDay.getDate(); day++) days.push(day)
     return days
   }, [month, year])
 
   const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-
   const getDateSessions = (day: number) => sessionsByDate[getDateStr(day)] || []
-
-  const selectedSessions = selectedDate ? (sessionsByDate[selectedDate] || []) : []
+  const selectedSessions = selectedDate ? sessionsByDate[selectedDate] || [] : []
 
   const getLearnerName = (session: SessionData) => {
-    if (session.children) {
-      return session.children.nickname || session.children.full_name
-    }
-    return userName
+    if (session.children) return session.children.nickname || session.children.full_name
+    return userName || 'ตัวเอง'
   }
 
   const totalThisMonth = useMemo(() => {
-    return sessions.filter((s) => {
-      const d = new Date(s.date)
-      return d.getMonth() === month && d.getFullYear() === year
+    return sessions.filter((session) => {
+      const date = new Date(`${session.date}T00:00:00+07:00`)
+      return date.getMonth() === month && date.getFullYear() === year
     }).length
   }, [sessions, month, year])
 
-  // Per-learner session count breakdown for current month
   const perLearnerCount = useMemo(() => {
-    const monthSessions = sessions.filter((s) => {
-      const d = new Date(s.date)
-      return d.getMonth() === month && d.getFullYear() === year
-    })
     const map: Record<string, { name: string; count: number }> = {}
-    monthSessions.forEach((s) => {
-      const key = s.child_id || 'self'
-      if (!map[key]) {
-        const name = s.children ? (s.children.nickname || s.children.full_name) : userName
-        map[key] = { name, count: 0 }
-      }
-      map[key].count++
+    sessions.forEach((session) => {
+      const date = new Date(`${session.date}T00:00:00+07:00`)
+      if (date.getMonth() !== month || date.getFullYear() !== year) return
+      const key = session.child_id || 'self'
+      const name = session.children ? session.children.nickname || session.children.full_name : userName || 'ตัวเอง'
+      if (!map[key]) map[key] = { name, count: 0 }
+      map[key].count += 1
     })
     return Object.values(map)
   }, [sessions, month, year, userName])
 
   return (
     <div className="space-y-4">
-      {/* Month nav */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => {
-            if (month === 0) { setMonth(11); setYear(year - 1) } else setMonth(month - 1)
-            setSelectedDate(null)
-          }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (month === 0) {
+                setMonth(11)
+                setYear(year - 1)
+              } else {
+                setMonth(month - 1)
+              }
+              setSelectedDate(null)
+            }}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <span className="text-lg font-bold text-[#153c85] w-48 text-center">{MONTH_NAMES_TH[month]} {year + 543}</span>
-          <Button variant="outline" size="sm" onClick={() => {
-            if (month === 11) { setMonth(0); setYear(year + 1) } else setMonth(month + 1)
-            setSelectedDate(null)
-          }}>
+          <span className="w-44 text-center text-lg font-bold text-[#153c85]">{MONTH_NAMES_TH[month]} {year + 543}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (month === 11) {
+                setMonth(0)
+                setYear(year + 1)
+              } else {
+                setMonth(month + 1)
+              }
+              setSelectedDate(null)
+            }}
+          >
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-        <Badge variant="outline" className="text-sm">รวม {totalThisMonth} ครั้ง</Badge>
+        <Badge variant="outline" className="w-fit text-sm">รวม {totalThisMonth} ครั้ง</Badge>
       </div>
 
-      {/* Per-learner count breakdown */}
       {perLearnerCount.length > 0 && (
         <div className="flex flex-wrap gap-2 text-sm">
           {perLearnerCount.map((item) => (
-            <span key={item.name} className="px-2.5 py-1 bg-gray-100 rounded-lg text-gray-700">
+            <span key={item.name} className="rounded-lg bg-gray-100 px-2.5 py-1 text-gray-700">
               {item.name} = <strong>{item.count} ครั้ง</strong>
             </span>
           ))}
         </div>
       )}
 
-      {/* Legend */}
       {learnerChildren.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {learnerChildren.map((c) => (
-            <Badge key={c.id} className={childColorMap[c.id]} variant="outline">
-              {c.nickname || c.full_name}
+          {learnerChildren.map((child) => (
+            <Badge key={child.id} className={childColorMap[child.id]} variant="outline">
+              {child.nickname || child.full_name}
             </Badge>
           ))}
-          <Badge className="bg-gray-100 text-gray-700 border-gray-200" variant="outline">{userName} (ตัวเอง)</Badge>
+          <Badge className="border-gray-200 bg-gray-100 text-gray-700" variant="outline">{userName || 'ตัวเอง'} (ตัวเอง)</Badge>
         </div>
       )}
 
-      {/* Calendar */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 mb-2">
-            {DAY_HEADERS.map((d, idx) => <div key={d} className={`py-1 ${idx === 0 ? 'text-red-500' : ''}`}>{d}</div>)}
+        <CardContent className="p-3 sm:p-4">
+          <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500">
+            {DAY_HEADERS.map((day, index) => (
+              <div key={`${day}-${index}`} className={cn('py-1', index === 0 && 'text-red-500')}>{day}</div>
+            ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, i) => {
-              if (day === null) return <div key={`e-${i}`} />
+            {calendarDays.map((day, index) => {
+              if (day === null) return <div key={`empty-${index}`} />
+
               const dateStr = getDateStr(day)
               const daySessions = getDateSessions(day)
               const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear()
@@ -215,27 +288,37 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
 
               return (
                 <button
-                  key={day}
+                  key={dateStr}
+                  type="button"
                   onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                  className={`min-h-[3.5rem] rounded-lg text-sm transition-all p-1 flex flex-col items-center
-                    ${isToday ? 'ring-2 ring-[#f57e3b]' : ''}
-                    ${isSelected ? 'bg-[#2748bf]/10 ring-2 ring-[#2748bf]' : ''}
-                    ${hasSessions ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'}
-                  `}
+                  className={cn(
+                    'flex min-h-[4rem] flex-col items-center rounded-lg p-1 text-sm transition-all sm:min-h-[4.5rem]',
+                    isToday && 'ring-2 ring-[#f57e3b]',
+                    isSelected && 'bg-[#2748bf]/10 ring-2 ring-[#2748bf]',
+                    hasSessions ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default',
+                  )}
                 >
-                  <span className={`text-xs font-medium ${isToday ? 'text-[#f57e3b]' : i % 7 === 0 ? 'text-red-500' : hasSessions ? 'text-[#153c85]' : 'text-gray-400'}`}>{day}</span>
+                  <span className={cn('text-xs font-medium', isToday ? 'text-[#f57e3b]' : index % 7 === 0 ? 'text-red-500' : hasSessions ? 'text-[#153c85]' : 'text-gray-400')}>
+                    {day}
+                  </span>
                   {hasSessions && (
-                    <div className="flex flex-wrap gap-0.5 mt-0.5 justify-center">
-                      {visibleSessions.map((s) => {
-                        const childId = s.child_id
-                        const dotColor = childId ? (childDotColorMap[childId] || SELF_DOT_COLOR) : SELF_DOT_COLOR
+                    <div className="mt-1 flex w-full flex-wrap justify-center gap-0.5">
+                      {visibleSessions.map((session) => {
+                        const childId = session.child_id
+                        const learnerDot = childId ? childDotColorMap[childId] || SELF_DOT_COLOR : SELF_DOT_COLOR
+                        const status = getDisplayStatus(session, now)
                         return (
-                          <span key={s.id} className={`w-2 h-2 rounded-full ${dotColor}`} title={`${getLearnerName(s)} ${fmtTime(s.start_time)}`} />
+                          <span
+                            key={session.id}
+                            className={cn('h-2 w-2 rounded-full ring-1 ring-white', status.dotClassName || learnerDot)}
+                            title={`${getLearnerName(session)} ${fmtTime(session.start_time)} ${status.label}`}
+                          />
                         )
                       })}
                       {extraCount > 0 && (
                         <span className="rounded-full bg-gray-100 px-1 text-[10px] font-medium text-gray-500">+{extraCount}</span>
                       )}
+                      <span className="mt-0.5 w-full truncate text-[10px] font-medium text-[#153c85]">{daySessions.length} รอบ</span>
                     </div>
                   )}
                 </button>
@@ -245,62 +328,137 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
         </CardContent>
       </Card>
 
-      {/* Selected date detail */}
       {selectedDate && selectedSessions.length > 0 && (
         <Card>
-          <CardContent className="p-4 space-y-3">
-            <p className="font-medium text-[#153c85]">
-              <CalendarDays className="inline h-4 w-4 mr-1" />
-              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-            <div className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
-            {selectedSessions.map((s) => {
-              const childId = s.child_id
-              const colorClass = childId ? (childColorMap[childId] || '') : 'bg-gray-100 text-gray-700'
-              return (
-                <div key={s.id} className="space-y-1">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-center">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{fmtTime(s.start_time)} - {fmtTime(s.end_time)}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <MapPin className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs text-gray-500">{s.branches?.name}</span>
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-medium text-[#153c85]">
+                <CalendarDays className="mr-1 inline h-4 w-4" />
+                {new Date(`${selectedDate}T00:00:00+07:00`).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              <span className="text-sm text-gray-500">{selectedSessions.length} รอบ</span>
+            </div>
+
+            <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1">
+              {selectedSessions.map((session) => {
+                const childId = session.child_id
+                const colorClass = childId ? childColorMap[childId] || '' : 'bg-gray-100 text-gray-700'
+                const displayStatus = getDisplayStatus(session, now)
+                const derivedStatus = getDerivedStatus(session, now)
+                const coachRoleLabel = session.coach_role ? ROLE_LABELS[session.coach_role] || session.coach_role : 'โค้ช'
+                const needsAttendanceReview = derivedStatus === 'attendance_gap_review'
+                const derivedAbsentFromPartialAttendance = derivedStatus === 'absent' && !session.attendance_status && (session.attendance_scope_count || 0) > 0
+
+                return (
+                  <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={cn('border text-xs', displayStatus.className)} variant="outline">
+                            <CircleDot className="mr-1 h-3 w-3" />
+                            {displayStatus.label}
+                          </Badge>
+                          <Badge className={colorClass} variant="outline">{getLearnerName(session)}</Badge>
+                          <Badge className="border-blue-100 bg-blue-50 text-xs text-blue-700" variant="outline">
+                            {session.bookings?.course_types?.name || 'คอร์สเรียน'}
+                          </Badge>
+                          {session.is_makeup && (
+                            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-xs text-orange-700">
+                              <RotateCcw className="mr-1 h-3 w-3" />
+                              รอบชดเชย
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+                          <span className="inline-flex items-center gap-2 font-medium text-gray-900">
+                            <Clock className="h-4 w-4 text-gray-400" />
+                            {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                          </span>
+                          <span className="inline-flex min-w-0 items-center gap-2">
+                            <MapPin className="h-4 w-4 shrink-0 text-gray-400" />
+                            <span className="truncate">{session.branches?.name || 'ไม่ระบุสาขา'}</span>
+                          </span>
                         </div>
                       </div>
+
+                      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 lg:w-80">
+                        {session.coach_id ? (
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 border border-white shadow-sm">
+                              <AvatarImage src={session.coach_avatar_url || undefined} alt={session.coach_name || 'Coach'} />
+                              <AvatarFallback className="bg-[#2748bf]/10 text-sm font-semibold text-[#153c85]">
+                                {getInitial(session.coach_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-gray-900">{session.coach_name || 'โค้ชผู้สอน'}</p>
+                              <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                                {session.coach_role === 'head_coach' ? <ShieldCheck className="h-3 w-3 text-[#2748bf]" /> : <UserRound className="h-3 w-3" />}
+                                {coachRoleLabel}
+                                {session.assignment_group_name ? ` · ${session.assignment_group_name}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-2 text-sm text-amber-700">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                            <div>
+                              <p className="font-semibold">ยังไม่ได้มอบหมายโค้ช</p>
+                              <p className="text-xs text-amber-600">จะแสดงชื่อโค้ชเมื่อหัวหน้าโค้ชจัดกลุ่มเรียบร้อย</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={colorClass} variant="outline">{getLearnerName(s)}</Badge>
-                      <Badge className={`text-xs ${STATUS_COLORS[s.status] === 'bg-green-500' ? 'bg-green-100 text-green-700' : STATUS_COLORS[s.status] === 'bg-red-500' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {STATUS_LABELS[s.status] || s.status}
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <Badge variant="outline" className="bg-white text-xs">
+                        <ClipboardCheck className="mr-1 h-3 w-3" />
+                        {STATUS_LABELS[session.status] || session.status}
                       </Badge>
-                      {s.is_makeup && <Badge variant="outline" className="text-orange-600 border-orange-200 text-xs">ชดเชย</Badge>}
+                      {session.attendance_checked_at && (
+                        <span className="inline-flex items-center gap-1 text-green-700">
+                          <CheckCircle2 className="h-3 w-3" />
+                          เช็คชื่อ {new Date(session.attendance_checked_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        </span>
+                      )}
+                      {derivedAbsentFromPartialAttendance && (
+                        <span className="inline-flex items-center gap-1 text-red-700">
+                          <AlertTriangle className="h-3 w-3" />
+                          เลยเวลาเรียนแล้ว ระบบนับเป็นขาดเรียนเพื่อส่งต่อกฎวันชดเชย
+                        </span>
+                      )}
+                      {needsAttendanceReview && (
+                        <span className="inline-flex items-center gap-1 text-orange-700">
+                          <AlertTriangle className="h-3 w-3" />
+                          เลยเวลาเรียนแล้ว แต่ยังไม่มีการเช็คชื่อทั้งรอบ ต้องรอ Admin/Coach ตรวจสอบก่อนสรุปสถานะ
+                        </span>
+                      )}
                     </div>
+
+                    {session.rescheduled_from && (
+                      <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-700">
+                        <RotateCcw className="h-3 w-3" />
+                        <span>
+                          ย้ายมาจากวันที่ {new Date(`${session.rescheduled_from.date}T00:00:00+07:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} {fmtTime(session.rescheduled_from.start_time)}-{fmtTime(session.rescheduled_from.end_time)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  {s.rescheduled_from && (
-                    <div className="flex items-center gap-1.5 px-3 text-xs text-orange-600">
-                      <RotateCcw className="h-3 w-3" />
-                      <span>ย้ายมาจากวันที่ {new Date(s.rescheduled_from.date + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} {fmtTime(s.rescheduled_from.start_time)}-{fmtTime(s.rescheduled_from.end_time)}</span>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Empty state */}
       {totalThisMonth === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-gray-400">
-            <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <CalendarDays className="mx-auto mb-3 h-12 w-12 opacity-50" />
             <p className="font-medium">ยังไม่มีตารางเรียนในเดือนนี้</p>
-            <p className="text-sm mt-1">ตารางจะแสดงหลังจากจองคอร์สเรียน</p>
+            <p className="mt-1 text-sm">ตารางจะแสดงหลังจากจองคอร์สเรียนและชำระเงินเรียบร้อย</p>
           </CardContent>
         </Card>
       )}

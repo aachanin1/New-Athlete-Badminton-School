@@ -187,3 +187,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  const access = await requireAdminMenuAccess('makeup')
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
+
+  try {
+    const supabaseAdmin = getServiceRoleClient()
+    const body = await req.json()
+    const { session_id: sessionId, action } = body as {
+      session_id?: string
+      action?: 'confirm_absent'
+    }
+
+    if (!sessionId || action !== 'confirm_absent') {
+      return NextResponse.json({ error: 'session_id and action are required' }, { status: 400 })
+    }
+
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('booking_sessions')
+      .select('id, date, end_time, status, is_makeup')
+      .eq('id', sessionId)
+      .single<{ id: string; date: string; end_time: string | null; status: string; is_makeup: boolean | null }>()
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: sessionError?.message || 'ไม่พบรอบเรียนนี้' }, { status: 404 })
+    }
+
+    if (session.is_makeup) {
+      return NextResponse.json({ error: 'รอบชดเชยไม่สามารถยืนยันเป็นขาดเรียนเพื่อสร้างสิทธิ์ชดเชยซ้ำได้' }, { status: 400 })
+    }
+
+    if (session.status === 'absent') {
+      return NextResponse.json({ success: true })
+    }
+
+    if (session.status !== 'scheduled' || !isPastSession(session.date, session.end_time)) {
+      return NextResponse.json({ error: 'ยืนยันขาดเรียนได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('booking_sessions')
+      .update({ status: 'absent' })
+      .eq('id', sessionId)
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+  }
+}

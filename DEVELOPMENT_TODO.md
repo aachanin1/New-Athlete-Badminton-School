@@ -599,7 +599,78 @@ Notes:
     - Cleaned up the temporary UAT booking, coupon, payment, coupon usage, slip file, sessions, and UAT notifications after verification.
     - Tightened User history session loading so it fetches only `booking_sessions` for bookings visible on that page instead of scanning all sessions.
 
-- [ ] 20. Seed Data Cleanup / Production Readiness
+  - [x] 19.1 User Schedule Coach / Attendance Context
+  - Improve `/dashboard/schedule` so User can understand each real class session, not only the date and time.
+  - Connect `booking_sessions.id` to `coach_assignment_group_students.booking_session_id`, then `coach_assignment_groups.coach_id`, then `profiles` so each session can show the assigned Coach/Head Coach name, avatar, and role when available.
+  - Connect `attendance` for each visible booking session so the User can see whether the learner is pending, present, late, absent, completed, rescheduled, or makeup.
+  - Extend the data shape passed into `ScheduleCalendarClient` with coach info, assignment status, attendance status, and a user-friendly session display status.
+  - Redesign the calendar cells and selected-day detail cards:
+    - Keep calendar cells compact with session counts/status indicators, especially on mobile.
+    - Show session cards below the calendar with time, branch, learner, course type, assigned coach, attendance status, makeup/reschedule context, and clear fallback text such as "ยังไม่ได้มอบหมายโค้ช".
+    - Avoid long overflowing day content; use bounded detail areas and concise badges.
+  - Regression checks:
+    - User with multiple children.
+    - Self/adult learner.
+    - Assigned coach versus not-yet-assigned coach.
+    - Checked attendance versus no attendance yet.
+    - Makeup and rescheduled sessions.
+    - Mobile and desktop layout.
+  - Completed:
+    - `/dashboard/schedule` now joins coach assignment groups and attendance rows for each real booking session.
+    - Selected-day session cards show learner, course, branch, assigned coach/head coach, assignment fallback, attendance/check-in status, makeup, and reschedule context.
+      - Calendar cells stay compact with session count and bounded status indicators for mobile and desktop.
+      - Checks passed: `npm run check:mojibake`, `npm run lint`, `npm run build`, `git diff --check`.
+
+  - [x] 19.2 Attendance Gap Review Rule Across User/Admin/Coach
+    - Replace the simple past-session display rule with a safer shared business rule for missing attendance.
+    - Core rule:
+      - If attendance exists for the learner, use the real attendance status: present, late, or absent.
+      - If `booking_sessions.status` is already `completed` or `absent`, use that persisted status.
+      - If the session is in progress, show "กำลังเรียน".
+      - If the session is in the future, show "รอเรียน".
+      - If the session has ended and the slot has attendance records for some students, any learner without attendance should be treated as "ขาดเรียน".
+      - If the session has ended and the entire slot/group has no attendance records at all, do not automatically mark every learner as absent; route the slot to Admin review as "ต้องตรวจสอบการเช็คชื่อ".
+    - User schedule behavior:
+      - Past slot with partial attendance and this learner missing/absent: show "ขาดเรียน".
+      - Past slot with no attendance for the whole slot/group: show "รอตรวจสอบการเช็คชื่อ" with a clear note that Admin/Coach must review.
+      - Once Admin confirms absence, show "ขาดเรียน" and allow the normal makeup rule to apply.
+    - Admin makeup behavior:
+      - Do not auto-list whole-slot attendance gaps as actionable makeup until Admin confirms or attendance is entered.
+      - Continue listing confirmed absent sessions and partial-attendance missed learners as makeup candidates.
+      - Add status visibility so Admin can distinguish "ขาดเรียน" from "ต้องตรวจสอบการเช็คชื่อ".
+    - Admin review UI:
+      - Add or extend an Admin screen, likely under `เช็คอินโค้ช` or `วันชดเชย`, for ended slots/groups with zero attendance records.
+      - Show date, time, branch, course type, assigned coach/group, student count, coach check-in status, selfie/location evidence, and current review status.
+      - Actions should include: request coach correction, enter attendance retrospectively, confirm all absent, close/ignore with reason.
+    - Coach workflow:
+      - Keep blocking attendance until the coach check-in requirement is satisfied.
+      - Add clear warnings for slots that ended without attendance so Coach/Head Coach can correct before Admin has to intervene.
+    - Teaching hours/payroll behavior:
+      - Do not automatically remove coach teaching hours only because all attendance is missing.
+      - Mark the slot as missing attendance evidence for Admin review; coach hours should require check-in/photo/location and review status before closing.
+    - Implementation notes:
+      - Prefer a shared helper/service for derived session status so User schedule, Admin makeup, Coach attendance, and payroll do not drift again.
+      - Existing quick UI change that labels all past unmarked sessions as "ขาดเรียน" must be revisited under this rule before final UAT.
+    - Regression checks:
+      - Past slot with no attendance for any student.
+      - Past slot with partial attendance.
+      - Past slot where this learner is explicitly absent.
+      - Past slot where this learner is present/late.
+      - Coach checked in but forgot attendance.
+      - Coach did not check in and no attendance exists.
+      - Admin confirms all absent and makeup eligibility appears.
+      - Admin enters retrospective attendance and User schedule updates.
+      - Mobile and desktop views for User schedule and Admin review.
+    - Completed:
+      - Added shared `src/lib/session-attendance-status.ts` so User/Admin screens derive class status from the same rule instead of each page guessing separately.
+      - `/dashboard/schedule` now counts attendance in the learner's assignment group or whole slot fallback, so a past class with partial attendance can mark the missing learner as absent, while a class with zero attendance for everyone becomes `attendance_gap_review`.
+      - User schedule now shows a separate orange review note for ended slots with no attendance records instead of saying the learner is absent immediately.
+      - `/admin/makeup` now uses the same rule, excludes whole-slot attendance gaps from actionable makeup, and adds a review queue with a compact list and a "confirm absent" action.
+      - Added `PATCH /api/admin/makeup` for Admin to confirm an ended normal session as absent, after which the normal makeup eligibility flow can apply.
+      - Payroll/teaching-hours behavior remains guarded by the existing `has_attendance` evidence check; the new rule does not remove coach hours automatically when attendance is missing.
+      - Checks passed: `npm run check:mojibake`, `npm run build`, `git diff --check`.
+
+  - [ ] 20. Seed Data Cleanup / Production Readiness
   - Prepare a safe cleanup plan for seed/demo data in Supabase before production.
   - Separate master data that must remain, such as levels, pricing, schedule templates, branches, and system settings.
   - Review Supabase buckets, storage policies, RLS behavior, and required production env vars.
