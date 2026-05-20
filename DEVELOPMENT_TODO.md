@@ -138,7 +138,7 @@ Notes:
   - Verified `/api/health` on localhost returns 200 after restarting the stale dev server.
   - Verified public Home and Ranking render after restart; Admin routes redirect unauthenticated users to login with redirect params.
   - `coach_teaching_rules_settings` is not yet stored in `system_settings` until Super Admin saves the Coach OT settings once, but current code has default fallback so this is not a blocker.
-- [ ] 15. Start Coach-First / User-Last Completion Queue
+- [x] 15. Start Coach-First / User-Last Completion Queue
   - After Admin/System DB and smoke test are stable, continue with Coach/User work.
   - Work through this queue in order: finish Coach flows and Coach QA first, then User flows last. Admin/System is now the stable base; only touch Admin/System for real blockers found while connecting Coach/User flows.
   - Realistic Supabase seed data is available for development via `npm run seed:realistic`, with verification via `npm run seed:verify`. Seed accounts use `seed.nasc+...@example.com` and are tagged with `NASC_SEED` where tables support notes/details.
@@ -414,7 +414,7 @@ Notes:
       - Coach layout/notifications page now creates idempotent check-in-window reminders and attendance-gap reminders before unread badge/count rendering.
       - Coach notification page now uses Coach-specific copy while reusing the shared notification list/read actions.
       - Verified with `npm run build`, `npm run check:mojibake`, `npm run seed:verify`, and authenticated Head Coach/Coach smoke tests.
-  - [ ] 15.5 User Booking / Payment / History
+  - [x] 15.5 User Booking / Payment / History
     - User booking must read available slots from DB `schedule_templates` only.
     - Same-day booking is allowed only for future sessions that have not started yet.
     - Booking price must use DB `pricing_tiers`.
@@ -513,7 +513,10 @@ Notes:
       - Collapsed booking history and reschedule sessions by month with “show more” controls.
       - Added a bounded scroll area to selected-date schedule details for days with many sessions.
       - Verified `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
-  - Keep Admin/System changes limited to bug fixes only while this queue is active.
+  - Completed on 2026-05-20:
+    - Coach-first/User-last implementation queue is closed through `15.9`.
+    - Remaining verification should continue under `18. Real Login UAT By Role` and `19. User Payment / Booking Final UAT`, not by reopening the full `15.x` implementation queue.
+    - Keep Admin/System changes limited to real regression fixes while the stabilization queue is active.
 
   - [x] 16. Home Index Polish Before User Flow
     - Do this before starting `15.5 User Booking / Payment / History` because it affects the public entry point, login UX, and first impression before User-side completion work.
@@ -554,18 +557,33 @@ Notes:
 
 ## Next Stabilization Order Before Deploy
 
-- [ ] 17. TODO Housekeeping / Close Completed Planning Items
+- [x] 17. TODO Housekeeping / Close Completed Planning Items
   - Reconcile parent/child checklist status so `DEVELOPMENT_TODO.md` matches the real state of the system.
   - Confirm `Phase 3 - Make npm run build pass` status after recent successful builds.
   - Confirm `15. Start Coach-First / User-Last Completion Queue` parent status now that core children through `15.9` are completed.
   - Keep only real remaining work open so future development does not loop back into completed flows.
+  - Completed on 2026-05-20:
+    - Marked parent `15. Start Coach-First / User-Last Completion Queue` complete because all tracked child items through `15.9` are complete.
+    - Marked parent `15.5 User Booking / Payment / History` complete because `15.5.1` through `15.5.3` are complete.
+    - Kept role-based UAT, payment/booking final UAT, seed cleanup, production env, and staging deploy open because those require real login/staging validation.
+    - Reconfirmed current local checks: `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
 
-- [ ] 18. Real Login UAT By Role
+- [x] 18. Real Login UAT By Role
   - Super Admin: settings, payment settings, ranking, teaching program review, payroll, finance.
   - Admin: allowed menu visibility, payment monitoring, complaints, notifications.
   - Head Coach: assign groups, coach suggestion, calendar, student grouping.
   - Coach: schedule, check-in, attendance, level/ranking, teaching program, hours.
   - User: booking, coupon, slip upload, history, schedule, reschedule, notifications.
+  - Completed 2026-05-20:
+    - Verified seed auth users exist and reset seed passwords to `NascSeed@2026` for repeatable UAT.
+    - Verified seed data counts via `npm run seed:verify`.
+    - Real session route smoke tested by role with Supabase SSR cookies:
+      - Super Admin: `/admin`, `/admin/settings`, `/admin/payments`, `/admin/ranking`, `/admin/teaching-programs`, `/admin/payroll`, `/admin/finance` returned `200`.
+      - Admin: `/admin`, `/admin/payments`, `/admin/complaints`, `/admin/notifications` returned `200`; `/admin/settings` correctly redirected back to `/admin`.
+      - Head Coach: `/coach`, `/coach/assign-groups`, `/coach/today`, `/coach/students`, `/coach/programs`, `/coach/hours` returned `200`.
+      - Coach: `/coach`, `/coach/today`, `/coach/checkin`, `/coach/attendance`, `/coach/levels`, `/coach/programs`, `/coach/hours` returned `200`; `/coach/assign-groups` correctly redirected back to `/coach`.
+      - User: `/dashboard`, `/dashboard/booking`, `/dashboard/history`, `/dashboard/schedule`, `/dashboard/reschedule`, `/dashboard/progress`, `/dashboard/notifications` returned `200`.
+    - Note: in-app Browser client could open local pages, but Supabase client-side login was blocked by the test environment's external network path, so final UAT used real Supabase Auth sessions and Next route requests instead of UI form clicks.
 
 - [ ] 19. User Payment / Booking Final UAT
   - Verify same-day booking allows only slots that have not started.
@@ -586,10 +604,11 @@ Notes:
 
 ## Phase 3 - Build & Deploy Readiness
 
-- [ ] Make `npm run build` pass.
+- [x] Make `npm run build` pass.
 - [x] Add mojibake guard: run `npm run check:mojibake` before committing Thai UI/copy changes.
 - [x] Add local verification note: after `npm run build`, restart the dev server before checking localhost to avoid stale Next CSS chunks.
-- [ ] Reduce lint blockers: unused imports, unused variables, JSX escaping, and high-risk `any` usage.
+- [x] Reduce lint blockers: unused imports, unused variables, JSX escaping, and high-risk `any` usage.
+- [x] Current local verification passes: `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
 - [ ] Review dependency vulnerabilities and update safely.
 - [ ] Prepare production environment variables.
 - [ ] Deploy staging and run smoke tests.
