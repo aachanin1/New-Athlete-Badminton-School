@@ -670,10 +670,16 @@ Notes:
       - Payroll/teaching-hours behavior remains guarded by the existing `has_attendance` evidence check; the new rule does not remove coach hours automatically when attendance is missing.
       - Checks passed: `npm run check:mojibake`, `npm run build`, `git diff --check`.
 
-  - [ ] 20. Seed Data Cleanup / Production Readiness
+  - [x] 20. Seed Data Cleanup / Production Readiness
   - Prepare a safe cleanup plan for seed/demo data in Supabase before production.
   - Separate master data that must remain, such as levels, pricing, schedule templates, branches, and system settings.
   - Review Supabase buckets, storage policies, RLS behavior, and required production env vars.
+  - Completed 2026-05-20:
+    - Added `npm run prod:check` as a read-only production readiness checker for Supabase env vars, seed/demo data, master data, required system settings, placeholder media URLs, and Storage buckets.
+    - Added `PRODUCTION_READINESS.md` with the safe order for backup, checking, seed verification, seed cleanup, and post-cleanup verification.
+    - Confirmed current remote master data is present: 7 active branches, 3 course types, 702 active schedule templates, 70 active levels, 11 pricing tiers, and required buckets `avatars`, `coach-checkins`, and `payment-slips`.
+    - Confirmed production warnings that must be resolved before deploy: 51 seed auth/profile users still exist, placeholder payment/check-in URLs still exist, `SLIPOK_TEST_MODE=true`, and `coach_teaching_rules_settings` has not been saved yet in `system_settings`.
+    - Checks passed: `node --check scripts/production-readiness-check.js`, `npm run check:mojibake`, `npm run lint`, `npm run prod:check`, and `git diff --check`.
 
 - [ ] 21. Phase 3 Deploy Readiness
   - Review dependency vulnerabilities and update only when safe.

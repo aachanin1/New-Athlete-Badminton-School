@@ -9,6 +9,7 @@
     "seed:realistic": "node scripts/seed-realistic-data.js",
     "seed:cleanup": "node scripts/seed-realistic-data.js --cleanup",
     "seed:verify": "node scripts/verify-seed-data.js",
+    "prod:check": "node scripts/production-readiness-check.js",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
