@@ -670,6 +670,59 @@ Notes:
       - Payroll/teaching-hours behavior remains guarded by the existing `has_attendance` evidence check; the new rule does not remove coach hours automatically when attendance is missing.
       - Checks passed: `npm run check:mojibake`, `npm run build`, `git diff --check`.
 
+  - [x] 19.3 Admin Attendance Gap Resolution
+    - Complete the Admin/Super Admin workflow for ended teaching rounds where Coach forgot all evidence: no attendance records, and possibly no coach check-in.
+    - This is a follow-up to `19.2`; do not treat every no-attendance round as automatic student absence.
+    - Admin review screen should show:
+      - Date, time, branch, course type, assigned coach/group, learner list, and booking/session status.
+      - Coach check-in status, selfie/photo evidence, location evidence, and check-in time if available.
+      - Clear severity:
+        - Attendance missing but coach checked in: likely Coach forgot attendance.
+        - Attendance missing and coach did not check in: evidence gap for both Coach and learners.
+    - Required Admin/Super Admin actions:
+      - Confirm all absent: write/update attendance as `absent`, make the normal makeup rule eligible, and add audit log.
+      - Enter retrospective attendance per learner: allow `present`, `late`, or `absent` with required reason/note.
+      - Send back to Coach/Head Coach for correction: create notification/task state without making makeup eligible yet.
+      - Close/ignore with reason: for cancelled/wrong data/no-action cases, without creating makeup.
+    - User schedule result:
+      - Confirmed `absent` shows as absent and can flow to makeup eligibility.
+      - Retrospective `present` or `late` shows as attended and must not create makeup.
+      - Pending coach/admin review stays as review status, not absent.
+    - Coach/payroll result:
+      - Student attendance correction must not automatically approve Coach teaching hours when Coach check-in/photo/location evidence is missing.
+      - Slots with missing Coach evidence should remain visible for Super Admin review before weekly teaching-hour closing.
+    - Audit requirements:
+      - Store who resolved the gap, when, what action was selected, and the reason/note.
+      - Avoid browser native `confirm`, `alert`, or `prompt`; use the project dialog design system.
+    - Regression checks:
+      - Coach checked in but forgot all attendance.
+      - Coach did not check in and no attendance exists.
+      - Mixed retrospective attendance: some present, some absent.
+      - Confirm all absent creates makeup candidates.
+      - Present/late retrospective attendance does not create makeup candidates.
+      - Send back to Coach keeps User/Admin status pending review.
+      - Mobile and desktop review layout.
+    - Completed 2026-05-21:
+      - `/admin/makeup` review queue now shows assigned coach/group, coach check-in time, and photo/location evidence state for ended sessions with zero attendance.
+      - Admin/Super Admin can resolve each attendance gap as confirmed absent, retrospective present/late/absent, send back to assigned Coach, or close the case with a required audit reason where needed.
+      - `PATCH /api/admin/makeup` now writes retrospective attendance, updates session status, sends user/coach notifications, and logs each resolution path to Activity Log.
+      - Confirmed absent flows back into normal makeup eligibility; retrospective present/late closes the gap without creating makeup eligibility.
+      - Close/ignore uses a completed session state plus Activity Log reason to keep the case out of makeup while preserving an audit trail.
+      - Coach can retroactively check in only for slots Admin returned via `attendance_gap_request_coach_review`; normal past slots remain blocked.
+      - `/coach/attendance` now exposes a "เช็คอินย้อนหลัง" path for Admin-returned gaps, then normal attendance can be recorded after selfie/location check-in exists.
+      - Checks passed: `npm run check:mojibake`, `npm run lint`, `npm run build`, `git diff --check`.
+    - [x] 19.3.1 Pre-commit UAT for Admin-returned attendance gap
+      - Find or create one disposable ended slot with assigned Coach, learner session, no attendance, and no/optional check-in.
+      - Admin action: send the gap back to Coach and verify notification + Activity Log.
+      - Coach action: open the returned slot, retroactively check in with selfie/location, then mark attendance.
+      - Verification: Admin makeup queue no longer shows the gap after attendance exists.
+      - Verification: User schedule shows absent/present/late correctly and makeup eligibility follows the same shared rule.
+      - Completed 2026-05-21:
+        - Added `npm run uat:attendance-gap`, a guarded disposable Supabase UAT that creates only `uat.nasc+attendance.gap.*@example.com` accounts and `NASC_UAT_ATTENDANCE_GAP` schedule data.
+        - UAT verifies Admin-returned attendance gap detection, Coach retroactive check-in permission, present/late/absent attendance outcomes, booking session status mapping, and gap queue closure after attendance exists.
+        - UAT auto-cleanup passed after the run: 3 profiles, 1 slot, and 3 sessions removed.
+        - Check passed: `npm run uat:attendance-gap`.
+
   - [x] 20. Seed Data Cleanup / Production Readiness
   - Prepare a safe cleanup plan for seed/demo data in Supabase before production.
   - Separate master data that must remain, such as levels, pricing, schedule templates, branches, and system settings.

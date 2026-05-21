@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { DAY_LABELS } from '@/lib/branch-schedules'
 import { isAttendanceGapReviewSession, isMakeupEligibleMissedSession } from '@/lib/session-attendance-status'
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react'
 
 type CourseKey = 'kids_group' | 'adult_group' | 'private'
+type ReviewAction = 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review'
 
 interface BookingSessionData {
   id: string
@@ -46,6 +48,11 @@ interface BookingSessionData {
   branch_name: string
   course_type: string
   is_makeup: boolean
+  group_name?: string | null
+  coach_name?: string | null
+  coach_checkin_time?: string | null
+  coach_checkin_photo_url?: string | null
+  coach_checkin_has_location?: boolean
 }
 
 interface BranchOption {
@@ -175,6 +182,30 @@ function formatTime(start: string, end: string) {
   return `${start.slice(0, 5)}-${end.slice(0, 5)}`
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function getReviewActionLabel(action: ReviewAction) {
+  if (action === 'mark_attendance') return 'บันทึกเช็คชื่อย้อนหลัง'
+  if (action === 'request_coach_review') return 'ส่งกลับให้โค้ชตรวจสอบ'
+  if (action === 'close_review') return 'ปิดเคสโดยไม่สร้างสิทธิ์ชดเชย'
+  return 'ยืนยันขาดเรียน'
+}
+
+function getAttendanceStatusLabel(status: AttendanceStatus) {
+  if (status === 'present') return 'มาเรียน'
+  if (status === 'late') return 'มาสาย'
+  return 'ขาดเรียน'
+}
+
 function normalizeCourseType(courseType: string): CourseKey {
   const value = courseType.toLowerCase()
   if (value.includes('private')) return 'private'
@@ -234,6 +265,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null)
+  const [reviewSession, setReviewSession] = useState<BookingSessionData | null>(null)
+  const [reviewAction, setReviewAction] = useState<ReviewAction>('confirm_absent')
+  const [reviewAttendanceStatus, setReviewAttendanceStatus] = useState<AttendanceStatus>('present')
+  const [reviewReason, setReviewReason] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
@@ -476,6 +512,53 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
     }
   }
 
+  const openReviewDialog = (session: BookingSessionData, action: ReviewAction) => {
+    setReviewSession(session)
+    setReviewAction(action)
+    setReviewAttendanceStatus(action === 'confirm_absent' ? 'absent' : 'present')
+    setReviewReason('')
+    setError(null)
+  }
+
+  const submitReviewAction = async () => {
+    if (!reviewSession) return
+    const reason = reviewReason.trim()
+
+    if ((reviewAction === 'mark_attendance' || reviewAction === 'request_coach_review' || reviewAction === 'close_review') && !reason) {
+      setError('กรุณาระบุเหตุผลก่อนบันทึกผลตรวจสอบ')
+      return
+    }
+
+    setReviewSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: reviewSession.id,
+          action: reviewAction,
+          attendance_status: reviewAction === 'mark_attendance' ? reviewAttendanceStatus : undefined,
+          reason,
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(result?.error || 'บันทึกผลตรวจสอบไม่สำเร็จ')
+        return
+      }
+
+      setReviewSession(null)
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -624,29 +707,70 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
             </div>
             <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
               {reviewSessions.slice(0, 30).map((session) => (
-                <div key={session.id} className="grid gap-2 rounded-lg border border-orange-100 bg-white p-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div key={session.id} className="grid gap-3 rounded-lg border border-orange-100 bg-white p-3 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-gray-950">{session.learner_name}</span>
                       <Badge variant="outline" className="bg-orange-50 text-orange-700">รอตรวจสอบ</Badge>
+                      <Badge
+                        variant="outline"
+                        className={session.coach_checkin_time ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}
+                      >
+                        {session.coach_checkin_time ? 'โค้ชเช็คอินแล้ว' : 'ไม่พบเช็คอินโค้ช'}
+                      </Badge>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">
                       {session.user_name} · {session.branch_name} · {session.course_type || 'คอร์สเรียน'}
                     </p>
+                    <div className="mt-2 grid gap-1 text-xs text-gray-500 sm:grid-cols-2">
+                      <p>กลุ่ม: <span className="font-medium text-gray-700">{session.group_name || '-'}</span></p>
+                      <p>โค้ช: <span className="font-medium text-gray-700">{session.coach_name || 'ยังไม่พบโค้ชในกลุ่ม'}</span></p>
+                      <p>เช็คอิน: <span className="font-medium text-gray-700">{formatDateTime(session.coach_checkin_time) || '-'}</span></p>
+                      <p>ตำแหน่ง/รูป: <span className="font-medium text-gray-700">{session.coach_checkin_time ? (session.coach_checkin_has_location ? 'มีหลักฐานครบ' : 'มีรูป แต่ไม่มีตำแหน่ง') : '-'}</span></p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2 sm:items-end">
+                  <div className="flex flex-col gap-2 xl:items-end">
                     <div className="text-sm font-medium text-gray-800">
                       {formatDate(session.date)} {formatTime(session.start_time, session.end_time)}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
-                      disabled={reviewLoadingId === session.id}
-                      onClick={() => confirmAbsent(session.id)}
-                    >
-                      {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาดเรียน'}
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                        disabled={reviewLoadingId === session.id}
+                        onClick={() => openReviewDialog(session, 'mark_attendance')}
+                      >
+                        บันทึกย้อนหลัง
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                        disabled={reviewLoadingId === session.id}
+                        onClick={() => confirmAbsent(session.id)}
+                      >
+                        {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
+                        disabled={reviewLoadingId === session.id}
+                        onClick={() => openReviewDialog(session, 'request_coach_review')}
+                      >
+                        ส่งให้โค้ช
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        disabled={reviewLoadingId === session.id}
+                        onClick={() => openReviewDialog(session, 'close_review')}
+                      >
+                        ปิดเคส
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -751,6 +875,111 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
           />
         </div>
       )}
+
+      <Dialog
+        open={Boolean(reviewSession)}
+        onOpenChange={(open) => {
+          if (!open && !reviewSubmitting) setReviewSession(null)
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">ตรวจสอบการเช็คชื่อย้อนหลัง</DialogTitle>
+            <DialogDescription>
+              ใช้เมื่อรอบเรียนผ่านไปแล้วแต่ยังไม่มี attendance ของรอบนั้น เพื่อให้ Admin ปิดผลได้โดยไม่ทำให้สิทธิ์ชดเชยผิดพลาด
+            </DialogDescription>
+          </DialogHeader>
+          {reviewSession && (
+            <div className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-950">{reviewSession.learner_name}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {formatDate(reviewSession.date)} {formatTime(reviewSession.start_time, reviewSession.end_time)} · {reviewSession.branch_name} · {reviewSession.course_type || 'คอร์สเรียน'}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="w-fit bg-white text-gray-700">
+                    {getReviewActionLabel(reviewAction)}
+                  </Badge>
+                </div>
+                <div className="mt-3 grid gap-2 text-xs text-gray-500 sm:grid-cols-2">
+                  <p>ผู้ปกครอง/ผู้ใช้: <span className="font-medium text-gray-700">{reviewSession.user_name}</span></p>
+                  <p>กลุ่ม: <span className="font-medium text-gray-700">{reviewSession.group_name || '-'}</span></p>
+                  <p>โค้ช: <span className="font-medium text-gray-700">{reviewSession.coach_name || 'ยังไม่พบโค้ชในกลุ่ม'}</span></p>
+                  <p>เช็คอินโค้ช: <span className="font-medium text-gray-700">{formatDateTime(reviewSession.coach_checkin_time) || 'ไม่พบหลักฐาน'}</span></p>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div>
+                  <label className="text-sm font-semibold text-gray-900">ผลที่ต้องการบันทึก</label>
+                  <Select value={reviewAction} onValueChange={(value) => setReviewAction(value as ReviewAction)}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mark_attendance">บันทึกเช็คชื่อย้อนหลัง</SelectItem>
+                      <SelectItem value="confirm_absent">ยืนยันขาดเรียน</SelectItem>
+                      <SelectItem value="request_coach_review">ส่งกลับให้โค้ชตรวจสอบ</SelectItem>
+                      <SelectItem value="close_review">ปิดเคสโดยไม่สร้างสิทธิ์ชดเชย</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {reviewAction === 'mark_attendance' && (
+                  <div>
+                    <label className="text-sm font-semibold text-gray-900">สถานะเช็คชื่อย้อนหลัง</label>
+                    <Select value={reviewAttendanceStatus} onValueChange={(value) => setReviewAttendanceStatus(value as AttendanceStatus)}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="present">{getAttendanceStatusLabel('present')}</SelectItem>
+                        <SelectItem value="late">{getAttendanceStatusLabel('late')}</SelectItem>
+                        <SelectItem value="absent">{getAttendanceStatusLabel('absent')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {reviewAction !== 'confirm_absent' && (
+                  <div>
+                    <label className="text-sm font-semibold text-gray-900">เหตุผล / หลักฐานประกอบ</label>
+                    <Textarea
+                      className="mt-2 min-h-24"
+                      value={reviewReason}
+                      onChange={(event) => setReviewReason(event.target.value)}
+                      placeholder="เช่น ผู้เรียนมาเรียนจริงแต่โค้ชลืมเช็คชื่อ / ส่งกลับให้โค้ชแนบหลักฐานเพิ่ม / ปิดเคสเพราะเป็นรายการทดสอบ"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">จำเป็นสำหรับ audit log และใช้ตามรอยย้อนหลัง</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" disabled={reviewSubmitting} onClick={() => setReviewSession(null)}>
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  disabled={reviewSubmitting}
+                  onClick={submitReviewAction}
+                >
+                  {reviewSubmitting ? 'กำลังบันทึก...' : getReviewActionLabel(reviewAction)}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="flex max-h-[92vh] max-w-5xl flex-col overflow-hidden">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { canCoachRetroCheckinFromAdminReview } from '@/lib/coach-attendance-review'
 import { notifyCoachCheckinAttendanceReminder } from '@/lib/coach-notifications'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
@@ -183,13 +184,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ไม่พบข้อมูลรอบสอน' }, { status: 404 })
     }
 
+    const canRetroCheckin = await canCoachRetroCheckinFromAdminReview(adminSupabase, coach.user.id, scheduleSlotId)
     const now = new Date()
     const today = getBangkokDateString(now)
-    if (slot.date !== today) {
-      return NextResponse.json({ error: 'เช็คอินได้เฉพาะรอบสอนของวันนี้' }, { status: 400 })
+    if (slot.date !== today && !canRetroCheckin) {
+      return NextResponse.json({ error: 'เช็คอินย้อนหลังได้เฉพาะกรณีที่ Admin ส่งกลับให้ตรวจสอบเท่านั้น' }, { status: 400 })
     }
 
-    if (!validateCheckinWindow(now, slot)) {
+    if (!canRetroCheckin && !validateCheckinWindow(now, slot)) {
       return NextResponse.json({ error: 'เช็คอินได้ตั้งแต่ก่อนเริ่มสอน 30 นาที ถึงหลังเริ่มสอน 30 นาทีเท่านั้น' }, { status: 400 })
     }
 
@@ -263,7 +265,8 @@ export async function POST(request: NextRequest) {
         lat,
         lng,
         checkinWindowMinutes: CHECKIN_WINDOW_MINUTES,
-        source: 'assigned_slot_checkin',
+        source: canRetroCheckin ? 'admin_returned_attendance_gap_checkin' : 'assigned_slot_checkin',
+        retroactiveFromAdminReview: canRetroCheckin,
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     })

@@ -15,8 +15,10 @@ interface SlotOption {
   branchId: string
   branchName: string
   courseType: string
+  date: string
   startTime: string
   endTime: string
+  canRetroactiveCheckin: boolean
 }
 
 interface CheckinHistory {
@@ -24,6 +26,7 @@ interface CheckinHistory {
   scheduleSlotId: string
   branchName: string
   courseType: string
+  date: string
   startTime: string
   endTime: string
   checkinTime: string
@@ -34,6 +37,8 @@ interface CheckinClientProps {
   slots: SlotOption[]
   todayCheckins: CheckinHistory[]
   initialSlotId?: string | null
+  selectedDate: string
+  today: string
 }
 
 type CameraState = 'idle' | 'requesting' | 'ready' | 'blocked'
@@ -61,7 +66,7 @@ function getCheckinWindowLabel(state: CheckinWindowState) {
   return 'หมดเวลาเช็คอิน'
 }
 
-export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: CheckinClientProps) {
+export function CheckinClient({ slots, todayCheckins, initialSlotId = null, selectedDate, today }: CheckinClientProps) {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -86,6 +91,8 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
   const checkedSlotIds = useMemo(() => new Set(todayCheckins.map((checkin) => checkin.scheduleSlotId)), [todayCheckins])
   const selectedSlot = useMemo(() => slots.find((slot) => slot.id === selectedSlotId) || null, [selectedSlotId, slots])
   const selectedSlotWindowState = selectedSlot ? getCheckinWindowState(selectedSlot.startTime, nowMs) : null
+  const selectedSlotCanSubmit = Boolean(selectedSlot && (selectedSlot.canRetroactiveCheckin || selectedSlotWindowState === 'open'))
+  const isSelectedDateToday = selectedDate === today
   const visibleCheckins = showAllCheckins ? todayCheckins : todayCheckins.slice(0, 6)
   const hiddenCheckinCount = Math.max(0, todayCheckins.length - visibleCheckins.length)
 
@@ -206,7 +213,7 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
       return
     }
 
-    if (selectedSlotWindowState !== 'open') {
+    if (!selectedSlot?.canRetroactiveCheckin && selectedSlotWindowState !== 'open') {
       setError(selectedSlotWindowState === 'early'
         ? 'ยังไม่ถึงเวลาเช็คอินรอบนี้ เช็คอินได้ตั้งแต่ก่อนเริ่มสอน 30 นาที'
         : 'หมดเวลาเช็คอินรอบนี้แล้ว เช็คอินได้ถึงหลังเริ่มสอน 30 นาทีเท่านั้น')
@@ -252,6 +259,11 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">เช็คอิน</h1>
         <p className="mt-1 text-sm text-gray-500">เช็คอินรายรอบสอนด้วยกล้องหน้าเท่านั้น พร้อมพิกัดตำแหน่ง ก่อนเริ่ม 30 นาที ถึงหลังเริ่ม 30 นาที</p>
+        {!isSelectedDateToday && (
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            โหมดเช็คอินย้อนหลังใช้ได้เฉพาะรอบที่ Admin ส่งกลับให้ตรวจสอบเท่านั้น และยังต้องถ่ายเซลฟี่พร้อมพิกัดเหมือนเดิม
+          </p>
+        )}
       </div>
 
       {success ? (
@@ -283,7 +295,7 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
                     const isChecked = checkedSlotIds.has(slot.id)
                     const isSelected = selectedSlotId === slot.id
                     const windowState = getCheckinWindowState(slot.startTime, nowMs)
-                    const isWindowOpen = windowState === 'open'
+                    const isWindowOpen = windowState === 'open' || slot.canRetroactiveCheckin
 
                     return (
                       <button
@@ -303,7 +315,7 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
                           variant="outline"
                           className={isWindowOpen ? 'mt-2 border-green-200 bg-green-50 text-green-700' : 'mt-2 border-orange-200 bg-orange-50 text-orange-700'}
                         >
-                          {getCheckinWindowLabel(windowState)}
+                          {slot.canRetroactiveCheckin ? 'Admin ส่งกลับให้เช็คย้อนหลัง' : getCheckinWindowLabel(windowState)}
                         </Badge>
                       </button>
                     )
@@ -385,7 +397,7 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
 
             <Button
               onClick={handleSubmit}
-              disabled={loading || !selectedSlotId || !photo || !location || checkedSlotIds.has(selectedSlotId) || selectedSlotWindowState !== 'open'}
+              disabled={loading || !selectedSlotId || !photo || !location || checkedSlotIds.has(selectedSlotId) || !selectedSlotCanSubmit}
               className="w-full bg-[#2748bf] hover:bg-[#153c85]"
             >
               {loading ? (
@@ -406,7 +418,7 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null }: Ch
 
       {todayCheckins.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-lg font-bold text-[#153c85]">ประวัติเช็คอินวันนี้</h2>
+          <h2 className="text-lg font-bold text-[#153c85]">{isSelectedDateToday ? 'ประวัติเช็คอินวันนี้' : 'ประวัติเช็คอินวันที่เลือก'}</h2>
           {visibleCheckins.map((checkin) => (
             <Card key={checkin.id}>
               <CardContent className="flex items-center gap-3 p-3">

@@ -1,4 +1,6 @@
 import { AttendanceClient } from '@/components/coach/attendance-client'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { getAdminReturnedAttendanceSlotIds } from '@/lib/coach-attendance-review'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
@@ -41,6 +43,11 @@ export default async function AttendancePage({ searchParams }: AttendancePagePro
   const selectedDate = isValidDateString(searchParams?.date) ? searchParams?.date as string : today
   const selectedSlotId = searchParams?.slot || null
   const teachingDay = await getCoachAssignedTeachingDay(supabase, user.id, selectedDate)
+  const adminReturnedSlotIds = await getAdminReturnedAttendanceSlotIds(
+    getServiceRoleClient(),
+    user.id,
+    teachingDay.slots.map((slot) => slot.id),
+  )
 
   const slots = teachingDay.slots
     .filter((slot) => slot.students.length > 0)
@@ -53,6 +60,7 @@ export default async function AttendancePage({ searchParams }: AttendancePagePro
       endTime: slot.endTime,
       courseType: slot.courseType,
       checkin: slot.checkin,
+      canRetroactiveCheckin: adminReturnedSlotIds.has(slot.id),
       students: slot.students.map((student) => ({
         bookingSessionId: student.bookingSessionId,
         studentId: student.studentId,

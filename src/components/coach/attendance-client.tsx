@@ -36,6 +36,7 @@ interface SlotGroup {
     checkinTime: string
     photoUrl: string | null
   } | null
+  canRetroactiveCheckin: boolean
   students: StudentSession[]
 }
 
@@ -253,11 +254,11 @@ export function AttendanceClient({
                       </div>
                     </div>
 
-                    {isLocked && isToday ? (
+                    {isLocked && (isToday || slot.canRetroactiveCheckin) ? (
                       <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600">
-                        <Link href={`/coach/checkin?slot=${slot.scheduleSlotId}`}>
+                        <Link href={`/coach/checkin?date=${selectedDate}&slot=${slot.scheduleSlotId}`}>
                           <Camera className="mr-1.5 h-4 w-4" />
-                          ไปเช็คอินก่อน
+                          {slot.canRetroactiveCheckin && !isToday ? 'เช็คอินย้อนหลัง' : 'ไปเช็คอินก่อน'}
                         </Link>
                       </Button>
                     ) : isLocked ? (
@@ -275,7 +276,9 @@ export function AttendanceClient({
 
                   {isLocked && (
                     <div className="rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm text-orange-700">
-                      {isToday
+                      {slot.canRetroactiveCheckin
+                        ? 'Admin ส่งรอบนี้กลับให้ตรวจสอบ โค้ชสามารถเช็คอินย้อนหลังด้วยเซลฟี่และพิกัดก่อนเช็คชื่อได้'
+                        : isToday
                         ? 'ต้องเช็คอินรอบนี้ก่อนจึงจะเช็คชื่อนักเรียนได้ เพื่อให้ชั่วโมงสอนและหลักฐานของโค้ชครบถ้วน'
                         : 'รอบนี้ยังไม่มีหลักฐานเช็คอิน จึงยังเช็คชื่อย้อนหลังไม่ได้'}
                     </div>

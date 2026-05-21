@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
-import { notifyUserOnce } from '@/lib/notifications'
+import { notifyUser, notifyUserOnce } from '@/lib/notifications'
+import { logActivity } from '@/lib/activity-log'
+import type { AttendanceStatus, StudentType } from '@/types/database'
 
 type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
 
@@ -17,6 +19,35 @@ interface OriginalSessionRow {
 interface SourceSessionRow {
   id: string
   status: string
+}
+
+interface ReviewSessionRow {
+  id: string
+  booking_id: string
+  schedule_slot_id: string | null
+  date: string
+  start_time: string | null
+  end_time: string | null
+  status: string
+  is_makeup: boolean | null
+  child_id: string | null
+  bookings?: {
+    user_id: string | null
+    learner_type: string | null
+  } | null
+}
+
+interface ExistingAttendanceRow {
+  id: string
+}
+
+interface AssignmentGroupRow {
+  coach_id: string | null
+  coach_assignment_group_students: { booking_session_id: string }[] | null
+}
+
+interface CoachAssignmentRow {
+  coach_id: string
 }
 
 function getErrorMessage(error: unknown) {
@@ -52,6 +83,121 @@ function isInNextCalendarMonth(originalDate: string, makeupDate: string) {
 
 function isPastSession(date: string, endTime: string | null) {
   return new Date(`${date}T${endTime || '23:59'}`).getTime() < Date.now()
+}
+
+function normalizeReason(value: unknown) {
+  return typeof value === 'string' ? value.trim().slice(0, 500) : ''
+}
+
+function normalizeAttendanceStatus(value: unknown): AttendanceStatus | null {
+  return value === 'present' || value === 'late' || value === 'absent' ? value : null
+}
+
+function getStudentContext(session: ReviewSessionRow) {
+  const studentId = session.child_id || session.bookings?.user_id || null
+  const studentType: StudentType = session.child_id ? 'child' : 'adult'
+  return { studentId, studentType }
+}
+
+async function getAssignedCoachIds(supabaseAdmin: ReturnType<typeof getServiceRoleClient>, session: ReviewSessionRow) {
+  if (!session.schedule_slot_id) return []
+
+  const { data: groups } = await supabaseAdmin
+    .from('coach_assignment_groups')
+    .select('coach_id, coach_assignment_group_students(booking_session_id)')
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: AssignmentGroupRow[] | null }
+
+  const groupCoachIds = (groups || [])
+    .filter((group) => (group.coach_assignment_group_students || []).some((student) => student.booking_session_id === session.id))
+    .map((group) => group.coach_id)
+    .filter((coachId): coachId is string => Boolean(coachId))
+
+  if (groupCoachIds.length > 0) return Array.from(new Set(groupCoachIds))
+
+  const { data: assignments } = await supabaseAdmin
+    .from('coach_assignments')
+    .select('coach_id')
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: CoachAssignmentRow[] | null }
+
+  return Array.from(new Set((assignments || []).map((assignment) => assignment.coach_id).filter(Boolean)))
+}
+
+async function upsertRetrospectiveAttendance({
+  supabaseAdmin,
+  session,
+  status,
+  actorId,
+}: {
+  supabaseAdmin: ReturnType<typeof getServiceRoleClient>
+  session: ReviewSessionRow
+  status: AttendanceStatus
+  actorId: string
+}) {
+  const { studentId, studentType } = getStudentContext(session)
+  if (!studentId) {
+    throw new Error('Cannot resolve student for retrospective attendance')
+  }
+
+  const attendanceTable = supabaseAdmin.from('attendance') as unknown as {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        eq: (column: string, value: string) => {
+          order: (column: string, options: { ascending: boolean }) => {
+            limit: (count: number) => {
+              maybeSingle: () => Promise<{ data: ExistingAttendanceRow | null; error: { message: string } | null }>
+            }
+          }
+        }
+      }
+    }
+    update: (values: { coach_id: string; status: AttendanceStatus; checked_at: string }) => {
+      eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>
+    }
+    insert: (values: {
+      booking_session_id: string
+      student_id: string
+      student_type: StudentType
+      coach_id: string
+      status: AttendanceStatus
+      checked_at: string
+    }) => Promise<{ error: { message: string } | null }>
+  }
+
+  const checkedAt = new Date().toISOString()
+  const { data: existingAttendance, error: existingAttendanceError } = await attendanceTable
+    .select('id')
+    .eq('booking_session_id', session.id)
+    .eq('student_id', studentId)
+    .order('checked_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existingAttendanceError) {
+    throw new Error(existingAttendanceError.message)
+  }
+
+  if (existingAttendance) {
+    const { error } = await attendanceTable
+      .update({
+        coach_id: actorId,
+        status,
+        checked_at: checkedAt,
+      })
+      .eq('id', existingAttendance.id)
+
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await attendanceTable.insert({
+      booking_session_id: session.id,
+      student_id: studentId,
+      student_type: studentType,
+      coach_id: actorId,
+      status,
+      checked_at: checkedAt,
+    })
+
+    if (error) throw new Error(error.message)
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -197,18 +343,28 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { session_id: sessionId, action } = body as {
       session_id?: string
-      action?: 'confirm_absent'
+      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review'
+    }
+    const reason = normalizeReason((body as { reason?: unknown }).reason)
+    const attendanceStatus = normalizeAttendanceStatus((body as { attendance_status?: unknown }).attendance_status)
+
+    if (!sessionId || !action) {
+      return NextResponse.json({ error: 'session_id and action are required' }, { status: 400 })
     }
 
-    if (!sessionId || action !== 'confirm_absent') {
-      return NextResponse.json({ error: 'session_id and action are required' }, { status: 400 })
+    if ((action === 'mark_attendance' || action === 'request_coach_review' || action === 'close_review') && !reason) {
+      return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
+    }
+
+    if (action === 'mark_attendance' && !attendanceStatus) {
+      return NextResponse.json({ error: 'กรุณาเลือกสถานะ มาเรียน/สาย/ขาดเรียน' }, { status: 400 })
     }
 
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('booking_sessions')
-      .select('id, date, end_time, status, is_makeup')
+      .select('id, booking_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, bookings(user_id, learner_type)')
       .eq('id', sessionId)
-      .single<{ id: string; date: string; end_time: string | null; status: string; is_makeup: boolean | null }>()
+      .single<ReviewSessionRow>()
 
     if (sessionError || !session) {
       return NextResponse.json({ error: sessionError?.message || 'ไม่พบรอบเรียนนี้' }, { status: 404 })
@@ -218,7 +374,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'รอบชดเชยไม่สามารถยืนยันเป็นขาดเรียนเพื่อสร้างสิทธิ์ชดเชยซ้ำได้' }, { status: 400 })
     }
 
-    if (session.status === 'absent') {
+    if (session.status === 'absent' && action === 'confirm_absent') {
       return NextResponse.json({ success: true })
     }
 
@@ -226,13 +382,111 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'ยืนยันขาดเรียนได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
     }
 
+    if (action === 'request_coach_review') {
+      const coachIds = await getAssignedCoachIds(supabaseAdmin, session)
+      if (coachIds.length === 0) {
+        return NextResponse.json({ error: 'ยังไม่พบโค้ชที่รับผิดชอบรอบนี้ กรุณาบันทึกผลย้อนหลังหรือปิดเคสด้วยเหตุผลแทน' }, { status: 400 })
+      }
+
+      await Promise.all(coachIds.map((coachId) => notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+        user_id: coachId,
+        title: 'ตรวจสอบการเช็คชื่อย้อนหลัง',
+        message: `Admin ส่งรอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''} กลับให้ตรวจสอบ: ${reason}`,
+        type: 'schedule',
+        link_url: `/coach/attendance?date=${session.date}&slot=${session.schedule_slot_id || ''}`,
+      }).catch(() => null)))
+
+      await logActivity({
+        userId: access.ctx.user.id,
+        action: 'attendance_gap_request_coach_review',
+        entityType: 'booking_sessions',
+        entityId: session.id,
+        details: {
+          reason,
+          scheduleSlotId: session.schedule_slot_id,
+          notifiedCoachIds: coachIds,
+        },
+        ipAddress: req.headers.get('x-forwarded-for'),
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === 'close_review') {
+      const { error: closeError } = await supabaseAdmin
+        .from('booking_sessions')
+        .update({ status: 'completed' })
+        .eq('id', sessionId)
+
+      if (closeError) {
+        return NextResponse.json({ error: closeError.message }, { status: 500 })
+      }
+
+      await logActivity({
+        userId: access.ctx.user.id,
+        action: 'attendance_gap_closed_no_action',
+        entityType: 'booking_sessions',
+        entityId: session.id,
+        details: {
+          reason,
+          scheduleSlotId: session.schedule_slot_id,
+        },
+        ipAddress: req.headers.get('x-forwarded-for'),
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
+    const finalAttendanceStatus = action === 'confirm_absent' ? 'absent' : attendanceStatus
+    if (!finalAttendanceStatus) {
+      return NextResponse.json({ error: 'กรุณาเลือกสถานะเช็คชื่อ' }, { status: 400 })
+    }
+
+    await upsertRetrospectiveAttendance({
+      supabaseAdmin,
+      session,
+      status: finalAttendanceStatus,
+      actorId: access.ctx.user.id,
+    })
+
+    const sessionStatus = finalAttendanceStatus === 'absent' ? 'absent' : 'completed'
     const { error: updateError } = await supabaseAdmin
       .from('booking_sessions')
-      .update({ status: 'absent' })
+      .update({ status: sessionStatus })
       .eq('id', sessionId)
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    await logActivity({
+      userId: access.ctx.user.id,
+      action: action === 'confirm_absent' ? 'attendance_gap_confirm_absent' : 'attendance_gap_mark_retrospective',
+      entityType: 'booking_sessions',
+      entityId: session.id,
+      details: {
+        reason,
+        attendanceStatus: finalAttendanceStatus,
+        sessionStatus,
+        scheduleSlotId: session.schedule_slot_id,
+      },
+      ipAddress: req.headers.get('x-forwarded-for'),
+    })
+
+    if (session.bookings?.user_id) {
+      const statusLabel = finalAttendanceStatus === 'absent'
+        ? 'ขาดเรียน'
+        : finalAttendanceStatus === 'late'
+          ? 'มาสาย'
+          : 'มาเรียน'
+
+      await notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+        user_id: session.bookings.user_id,
+        title: 'อัปเดตสถานะการเข้าเรียนย้อนหลัง',
+        message: `Admin บันทึกสถานะ ${statusLabel} สำหรับรอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''}${reason ? ` เหตุผล: ${reason}` : ''}`,
+        type: 'schedule',
+        link_url: '/dashboard/schedule',
+      }).catch(() => null)
     }
 
     return NextResponse.json({ success: true })

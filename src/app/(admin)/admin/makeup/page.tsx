@@ -25,7 +25,19 @@ interface MakeupSessionRow {
 interface GroupRow {
   id: string
   schedule_slot_id: string
+  name: string | null
+  coach_id: string | null
+  profiles?: { full_name: string | null; email: string | null } | null
   coach_assignment_group_students: { booking_session_id: string }[] | null
+}
+
+interface CoachCheckinRow {
+  schedule_slot_id: string
+  coach_id: string
+  checkin_time: string
+  photo_url: string | null
+  location_lat: number | null
+  location_lng: number | null
 }
 
 interface SlotSessionRow {
@@ -93,15 +105,19 @@ export default async function MakeupPage() {
   const sessionIds = (sessions || []).map((session) => session.id)
   const slotIds = Array.from(new Set((sessions || []).map((session) => session.schedule_slot_id).filter(Boolean) as string[]))
   const groupSessionIdsBySessionId: Record<string, string[]> = {}
+  const groupContextBySessionId: Record<string, { groupName: string | null; coachId: string | null; coachName: string | null }> = {}
   const slotSessionIdsBySlotId: Record<string, string[]> = {}
   const attendanceBySessionId: Record<string, AttendanceRow> = {}
   const attendanceCountBySessionId: Record<string, number> = {}
+  const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
+  const checkinsBySlotId: Record<string, CoachCheckinRow> = {}
 
   if (slotIds.length > 0) {
     const { data: groups } = await supabase
       .from('coach_assignment_groups')
       .select(`
-        id, schedule_slot_id,
+        id, schedule_slot_id, name, coach_id,
+        profiles!coach_assignment_groups_coach_id_fkey(full_name, email),
         coach_assignment_group_students(booking_session_id)
       `)
       .in('schedule_slot_id', slotIds) as unknown as { data: GroupRow[] | null }
@@ -111,8 +127,25 @@ export default async function MakeupPage() {
       groupSessionIds.forEach((sessionId) => {
         if (sessionIds.includes(sessionId)) {
           groupSessionIdsBySessionId[sessionId] = groupSessionIds
+          groupContextBySessionId[sessionId] = {
+            groupName: group.name,
+            coachId: group.coach_id,
+            coachName: group.profiles?.full_name || group.profiles?.email || null,
+          }
         }
       })
+    })
+
+    const { data: checkins } = await supabase
+      .from('coach_checkins')
+      .select('schedule_slot_id, coach_id, checkin_time, photo_url, location_lat, location_lng')
+      .in('schedule_slot_id', slotIds)
+      .order('checkin_time', { ascending: false }) as unknown as { data: CoachCheckinRow[] | null }
+
+    ;(checkins || []).forEach((checkin) => {
+      const coachKey = `${checkin.schedule_slot_id}:${checkin.coach_id}`
+      if (!checkinsBySlotCoachKey[coachKey]) checkinsBySlotCoachKey[coachKey] = checkin
+      if (!checkinsBySlotId[checkin.schedule_slot_id]) checkinsBySlotId[checkin.schedule_slot_id] = checkin
     })
 
     const { data: slotSessions } = await supabase
@@ -155,6 +188,13 @@ export default async function MakeupPage() {
       ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
       : (session.bookings?.profiles?.full_name || 'ไม่ทราบ')
 
+    const groupContext = groupContextBySessionId[session.id] || null
+    const checkin = groupContext?.coachId && session.schedule_slot_id
+      ? checkinsBySlotCoachKey[`${session.schedule_slot_id}:${groupContext.coachId}`] || checkinsBySlotId[session.schedule_slot_id] || null
+      : session.schedule_slot_id
+        ? checkinsBySlotId[session.schedule_slot_id] || null
+        : null
+
     return {
       id: session.id,
       booking_id: session.booking_id,
@@ -173,6 +213,11 @@ export default async function MakeupPage() {
       branch_name: session.bookings?.branches?.name || 'ไม่ทราบ',
       course_type: session.bookings?.course_types?.name || '',
       is_makeup: session.is_makeup || false,
+      group_name: groupContext?.groupName || null,
+      coach_name: groupContext?.coachName || null,
+      coach_checkin_time: checkin?.checkin_time || null,
+      coach_checkin_photo_url: checkin?.photo_url || null,
+      coach_checkin_has_location: checkin?.location_lat != null && checkin?.location_lng != null,
     }
   })
 
