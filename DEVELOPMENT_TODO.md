@@ -789,6 +789,14 @@ Notes:
     - Saved `coach_teaching_rules_settings` into `system_settings`; `prod:check` now finds all 3 required settings.
     - Remaining warning before production deploy: `.env.local` still has `SLIPOK_TEST_MODE=true` for current testing. Production must remove it or set it to false and use real SlipOK credentials.
     - Checks passed: `npm run prod:save-default-settings`, `npm run prod:check`, `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
+  - Re-check 2026-05-21 after pricing/wallet fixes:
+    - Re-ran `npm run prod:check` against the real Supabase remote after wallet UAT cleanup; result remains READY WITH WARNINGS/PASSES.
+    - Confirmed no seed/demo users remain: 0 seed profiles and 0 seed auth users.
+    - Confirmed master data still exists: 7 active branches, 3 course types, 702 active schedule templates, 70 active levels, 11 pricing tiers, 3 required system settings, and Storage buckets `avatars`, `coach-checkins`, `payment-slips`.
+    - Verified lesson wallet UAT again: store guard, assignment cleanup, slot count decrement, same-month redeem, no extra payment path, expired/wrong-month guards, and auto-cleanup all passed.
+    - Verified kids group incremental pricing code path now charges only the newly added sessions at the tier for the final monthly count, e.g. existing 2 + new 1 uses the 3-session tier for 1 new session instead of recalculating the whole month.
+    - Remaining warning before production deploy is still intentional for testing: `SLIPOK_TEST_MODE=true`. Production must set it to false/remove it and use real SlipOK credentials.
+    - Checks passed: `npm run lint`, `npm run check:mojibake`, `npm run prod:check`, `npm run uat:lesson-wallet`, `npm run build`, and `git diff --check`.
 
 ## Phase 3 - Build & Deploy Readiness
 
