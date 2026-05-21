@@ -838,6 +838,60 @@ Notes:
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, and `npm run prod:check`.
     - Note: local non-escalated `prod:check`/`build` can fail on network access to Supabase/Google Fonts inside sandbox; escalated checks passed. Production warning remains only `SLIPOK_TEST_MODE=true` until real mode is intentionally enabled.
 
+- [ ] 21.2 Coach Assignment Visibility / Past Slot Lock
+  - Critical issue found 2026-05-22: Head Coach can confirm a coach assignment, Admin sees the assigned coach, but User schedule can still show `ยังไม่ได้มอบหมายโค้ช`.
+  - Fix the read model so User schedule/history uses the same confirmed `coach_assignment_groups` / student-to-coach assignment source as Admin and Coach pages.
+  - User-facing schedule must show the assigned coach name once Head Coach has saved/confirmed the group for that learner/session.
+  - Filter default fixes for high-risk operational pages:
+    - Admin Makeup page should open with `ทุกสาขา` + `ทั้งหมด` instead of hiding records behind `ยังชดเชยได้`.
+    - Head Coach group assignment page should open with `ทั้งหมด` instead of `ต้องมอบหมาย`.
+    - Default filters should prioritize visibility first; users can narrow down after they see the full workload.
+  - Past-slot rule:
+    - Head Coach/Admin must not be able to newly assign or reassign learners/coaches after the class date/time has already passed.
+    - Past confirmed assignments should remain view-only for audit, attendance, teaching hours, and User history.
+    - If a past class has no assignment/attendance, it must go through the attendance gap resolution flow instead of normal assignment.
+  - API/server guards must enforce the same rule even if the UI is bypassed.
+  - UAT required:
+    - Future assigned slot: Head Coach confirms -> Admin sees coach -> User sees the same coach.
+    - Past slot with existing assignment: visible read-only everywhere.
+    - Past slot without assignment: normal assign controls are blocked and the record routes to attendance gap review.
+    - Coach schedule, attendance, makeup, teaching hours, and User schedule remain consistent after the change.
+
+- [ ] 21.3 Production Env / SlipOK Real Mode Final Check
+  - Confirm production `.env` values before staging/deploy:
+    - `NEXT_PUBLIC_SUPABASE_URL`
+    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+    - `SUPABASE_SERVICE_ROLE_KEY`
+    - `SLIPOK_TEST_MODE=false`
+    - `SLIPOK_API_URL`
+    - `SLIPOK_API_KEY`
+  - Confirm the SlipOK branch/account shown to users matches the account SlipOK validates.
+  - Run `npm run prod:check` in real mode and confirm the only remaining warnings are intentional.
+  - Verify `payment-slips`, `avatars`, and `coach-checkins` buckets/policies still work before staging.
+  - Do not commit real secrets into the repository.
+
+- [ ] 21.4 Dependency Vulnerability Review
+  - Run dependency audit and review only actionable `critical`/`high` issues first.
+  - Avoid broad dependency upgrades that could destabilize Next.js, Supabase, Drizzle, or UI behavior.
+  - If fixes require package updates, run `npm run lint`, `npx tsc --noEmit`, `npm run check:mojibake`, and `npm run build`.
+  - Document any intentionally deferred vulnerability with reason and risk.
+
+- [ ] 21.5 Staging Deploy Preparation
+  - Prepare staging environment variables in the target host.
+  - Confirm build command, install command, Node version, and output settings.
+  - Run local checks before deployment: `npm run prod:check`, `npm run lint`, `npx tsc --noEmit`, `npm run check:mojibake`, and `npm run build`.
+  - Confirm Supabase migrations are already applied and no seed/demo data is required for production.
+  - Prepare a rollback point before first staging deploy.
+
+- [ ] 21.6 Staging Smoke Test Across Roles
+  - Super Admin: settings, payment settings, ranking, teaching program review, payroll/teaching hours, finance.
+  - Admin: allowed menu visibility, payment review actions, complaints, notifications, attendance gap handling.
+  - Head Coach: schedule, coach suggestion, group assignment, duplicate coach prevention, student grouping by level.
+  - Coach: schedule calendar, check-in selfie/location window, attendance, level evaluation, teaching program, teaching hours.
+  - User: booking, duplicate booking guard, pricing tier calculation, coupon, SlipOK upload, history, schedule, reschedule, lesson wallet, notifications.
+  - Confirm mobile responsive basics for Admin, Coach, and User critical pages.
+  - Record any staging-only issue as a new TODO item instead of silently patching unrelated flows.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.
