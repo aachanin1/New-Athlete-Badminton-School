@@ -8,7 +8,7 @@ CREATE TYPE user_role AS ENUM ('user', 'coach', 'head_coach', 'admin', 'super_ad
 CREATE TYPE course_type_name AS ENUM ('kids_group', 'adult_group', 'private');
 CREATE TYPE learner_type AS ENUM ('self', 'child');
 CREATE TYPE booking_status AS ENUM ('pending_payment', 'paid', 'verified', 'cancelled');
-CREATE TYPE session_status AS ENUM ('scheduled', 'completed', 'rescheduled', 'absent');
+CREATE TYPE session_status AS ENUM ('scheduled', 'completed', 'rescheduled', 'absent', 'walleted');
 CREATE TYPE payment_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'late');
 CREATE TYPE slot_status AS ENUM ('open', 'full', 'cancelled');
@@ -256,6 +256,30 @@ CREATE TABLE teaching_programs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Lesson Wallet Credits (สิทธิ์วันเรียนที่เก็บไว้ใช้ในเดือนเดียวกัน)
+CREATE TABLE lesson_wallet_credits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  original_session_id UUID NOT NULL UNIQUE REFERENCES booking_sessions(id) ON DELETE CASCADE,
+  redeemed_session_id UUID UNIQUE REFERENCES booking_sessions(id) ON DELETE SET NULL,
+  child_id UUID REFERENCES children(id) ON DELETE SET NULL,
+  branch_id UUID NOT NULL REFERENCES branches(id),
+  course_type_id UUID NOT NULL REFERENCES course_types(id),
+  original_schedule_slot_id UUID REFERENCES schedule_slots(id) ON DELETE SET NULL,
+  original_date DATE NOT NULL,
+  original_start_time TIME NOT NULL,
+  original_end_time TIME NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'redeemed', 'expired')),
+  stored_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  redeemed_at TIMESTAMPTZ,
+  expired_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE coach_program_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   coach_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -432,6 +456,9 @@ CREATE INDEX idx_bookings_user ON bookings(user_id);
 CREATE INDEX idx_bookings_month_year ON bookings(month, year);
 CREATE INDEX idx_booking_sessions_booking ON booking_sessions(booking_id);
 CREATE INDEX idx_booking_sessions_date ON booking_sessions(date);
+CREATE INDEX idx_lesson_wallet_credits_user_status ON lesson_wallet_credits(user_id, status, expires_at);
+CREATE INDEX idx_lesson_wallet_credits_booking ON lesson_wallet_credits(booking_id);
+CREATE INDEX idx_lesson_wallet_credits_original_month ON lesson_wallet_credits(user_id, original_date);
 CREATE INDEX idx_payments_booking ON payments(booking_id);
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_coach_branches_coach ON coach_branches(coach_id);
@@ -471,6 +498,7 @@ CREATE TRIGGER tr_children_updated_at BEFORE UPDATE ON children FOR EACH ROW EXE
 CREATE TRIGGER tr_schedule_templates_updated_at BEFORE UPDATE ON schedule_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_booking_sessions_updated_at BEFORE UPDATE ON booking_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_lesson_wallet_credits_updated_at BEFORE UPDATE ON lesson_wallet_credits FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_teaching_programs_updated_at BEFORE UPDATE ON teaching_programs FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_coach_program_templates_updated_at BEFORE UPDATE ON coach_program_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_coach_payouts_updated_at BEFORE UPDATE ON coach_payouts FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -509,6 +537,7 @@ ALTER TABLE pricing_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lesson_wallet_credits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupon_usages ENABLE ROW LEVEL SECURITY;
@@ -600,6 +629,11 @@ CREATE POLICY "Users can manage own sessions" ON booking_sessions FOR ALL
   USING (EXISTS (SELECT 1 FROM bookings WHERE bookings.id = booking_sessions.booking_id AND bookings.user_id = auth.uid()));
 CREATE POLICY "Staff can view all sessions" ON booking_sessions FOR SELECT USING (is_staff());
 CREATE POLICY "Admins can manage all sessions" ON booking_sessions FOR ALL USING (is_admin_or_super());
+
+-- lesson_wallet_credits
+CREATE POLICY "Users can view own lesson wallet credits" ON lesson_wallet_credits FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "Staff can view lesson wallet credits" ON lesson_wallet_credits FOR SELECT USING (is_staff());
+CREATE POLICY "Admins can manage lesson wallet credits" ON lesson_wallet_credits FOR ALL USING (is_admin_or_super()) WITH CHECK (is_admin_or_super());
 
 -- payments
 CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (user_id = auth.uid());

@@ -734,6 +734,47 @@ Notes:
     - Confirmed production warnings that must be resolved before deploy: 51 seed auth/profile users still exist, placeholder payment/check-in URLs still exist, `SLIPOK_TEST_MODE=true`, and `coach_teaching_rules_settings` has not been saved yet in `system_settings`.
     - Checks passed: `node --check scripts/production-readiness-check.js`, `npm run check:mojibake`, `npm run lint`, `npm run prod:check`, and `git diff --check`.
 
+  - [x] 20.1 User Lesson Wallet / Same-Month Learning Credit
+  - New owner requirement before deploy: users can move a paid/verified learning session into a same-month "lesson wallet" when they cannot choose a new date yet.
+  - Hard rules:
+    - A session can be moved into the wallet only if the booking is paid/verified, the session has not started, no attendance exists, and the request is at least 48 hours before the session start time.
+    - If the user forgets to move it before the 48-hour cutoff, the session remains on the schedule and normal absence/makeup rules apply; no late wallet action.
+    - Wallet credits can only be redeemed into another available schedule slot in the same month and before that target slot starts.
+    - Redeeming a wallet credit does not create a new payment because it uses the already-paid session entitlement.
+    - Walleted sessions are not absent, not completed, not makeup-eligible, not coach-payable, and must not be included in coach attendance/hour calculations.
+    - Unused wallet credits expire at the end of the original booking month and do not carry over.
+  - Safety design:
+    - Do not delete the original booking/payment record; preserve audit history.
+    - Add DB support for lesson wallet credits and/or a clear `booking_sessions` wallet status/mapping.
+    - When a session is moved into the wallet after Head Coach assignment exists, remove only that learner from `coach_assignment_group_students`, reduce slot occupancy, and notify Head Coach/Coach to review the affected group.
+    - If the learner was the only student in a group, keep the assignment auditable but ensure empty groups are not treated as payable teaching evidence.
+    - When redeemed into a new slot, create/reactivate a scheduled session that enters the normal Head Coach assignment flow again.
+  - Required implementation:
+    - DB migration for wallet credit records, status/audit fields, and safe indexes.
+    - User UI for "เก็บเข้ากระเป๋า" and "ใช้วันเรียนจากกระเป๋า" with 48-hour cutoff messaging.
+    - User schedule/history must show walleted, redeemed, and expired states clearly.
+    - API guards for paid booking, same-month redemption, target slot capacity, cutoff time, no attendance, and no started session.
+    - Head Coach/Coach notifications and assignment cleanup when a learner is removed from an assigned group.
+    - Admin visibility/audit trail for wallet actions before deploy.
+  - UAT cases:
+    - Store before Head Coach assignment.
+    - Store after Head Coach assignment but before 48-hour cutoff.
+    - Block store within 48 hours.
+    - Block store after Coach check-in or attendance exists.
+    - Redeem in same month into an available slot without payment.
+    - Block redeem into full/past/wrong-month slots.
+    - Expire unused wallet credit at month end and confirm it does not become makeup.
+  - Completed 2026-05-21:
+    - Added DB migration/schema/type support for `lesson_wallet_credits` and `booking_sessions.status = walleted` so original booking/payment history stays auditable.
+    - Added `/api/lesson-wallet` with store/redeem/expire guards: verified booking only, no makeup, no attendance, 48-hour store cutoff, same-month redeem, future target slot, template validation, capacity check, duplicate learner prevention, slot count updates, assignment cleanup, notifications, and activity logs.
+    - Added User schedule action “เก็บเข้ากระเป๋า” only on eligible sessions and a new `/dashboard/lesson-wallet` page for active/redeemed/expired credits and same-month redemption without payment.
+    - Kept walleted sessions out of coach access/assignment duplicate logic and slot attendance scope, while showing wallet status clearly in User schedule/history and Admin schedule views.
+    - Applied remote Supabase migration `20260521170000_add_lesson_wallet_credits.sql` with `supabase db push`.
+    - Added `npm run uat:lesson-wallet`, a guarded disposable Supabase UAT that creates only `uat.nasc+lesson.wallet.*@example.com` accounts and `NASC_UAT_LESSON_WALLET` schedule data.
+    - UAT verifies migration table usability, storing a verified paid session into the wallet, 48-hour/no-attendance guards, coach assignment cleanup, slot count decrement, same-month redemption into a future slot, original booking/payment reuse without new charge, wrong-month detection, expired credit handling, and cleanup.
+    - UAT auto-cleanup passed after the run: 3 profiles, 6 slots, 5 sessions, and 2 wallet credits removed.
+    - Checks passed: `npm run uat:lesson-wallet`, `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
+
 - [ ] 21. Phase 3 Deploy Readiness
   - Review dependency vulnerabilities and update only when safe.
   - Prepare production environment variables.

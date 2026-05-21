@@ -159,6 +159,7 @@ async function getSessionsByIds(supabase: SupabaseLike, sessionIds: string[]) {
     `)
     .in('id', sessionIds)
     .neq('status', 'rescheduled')
+    .neq('status', 'walleted')
     .in('bookings.status', BOOKING_VISIBLE_STATUSES)
     .order('date', { ascending: false }) as { data: VisibleSessionRow[] | null }
 
@@ -177,6 +178,7 @@ async function getSessionsBySlots(supabase: SupabaseLike, slotIds: string[]) {
     `)
     .in('schedule_slot_id', slotIds)
     .neq('status', 'rescheduled')
+    .neq('status', 'walleted')
     .in('bookings.status', BOOKING_VISIBLE_STATUSES)
     .order('date', { ascending: false }) as { data: VisibleSessionRow[] | null }
 
@@ -195,6 +197,7 @@ async function getSessionsByBranches(supabase: SupabaseLike, branchIds: string[]
     `)
     .in('branch_id', branchIds)
     .neq('status', 'rescheduled')
+    .neq('status', 'walleted')
     .in('bookings.status', BOOKING_VISIBLE_STATUSES)
     .order('date', { ascending: false }) as { data: VisibleSessionRow[] | null }
 

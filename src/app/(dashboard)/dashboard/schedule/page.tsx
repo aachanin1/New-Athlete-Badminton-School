@@ -128,6 +128,7 @@ export default async function SchedulePage() {
       .select('id, schedule_slot_id')
       .in('schedule_slot_id', slotIds)
       .neq('status', 'rescheduled')
+      .neq('status', 'walleted')
       .limit(1000) as unknown as { data: SlotSessionRow[] | null }
 
     ;(slotSessions || []).forEach((session) => {

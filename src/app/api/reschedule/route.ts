@@ -137,6 +137,7 @@ async function ensureLearnerHasNoDuplicateSlot(
     .select(selectColumns)
     .eq('schedule_slot_id', scheduleSlotId)
     .neq('status', 'rescheduled')
+    .neq('status', 'walleted')
     .neq('id', session.id)
 
   query = session.child_id

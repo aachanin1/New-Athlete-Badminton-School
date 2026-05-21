@@ -7,6 +7,7 @@ export type DerivedSessionStatus =
   | 'completed'
   | 'in_progress'
   | 'upcoming'
+  | 'walleted'
   | 'attendance_gap_review'
 
 export interface DeriveSessionStatusInput {
@@ -37,6 +38,7 @@ export function deriveSessionAttendanceStatus(input: DeriveSessionStatusInput): 
   if (input.status === 'absent') return 'absent'
   if (input.status === 'completed') return 'completed'
   if (input.status === 'rescheduled') return 'completed'
+  if (input.status === 'walleted') return 'walleted'
 
   const now = input.now || new Date()
   if (isInProgressSession(input.date, input.startTime, input.endTime, now)) return 'in_progress'

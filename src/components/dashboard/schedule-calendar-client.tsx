@@ -1,12 +1,23 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, AlertTriangle, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, MapPin, RotateCcw, ShieldCheck, UserRound } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, ArrowRight, AlertTriangle, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, Loader2, MapPin, RotateCcw, ShieldCheck, UserRound, WalletCards } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { deriveSessionAttendanceStatus, type DerivedSessionStatus } from '@/lib/session-attendance-status'
 import { cn, fmtTime } from '@/lib/utils'
 
@@ -57,6 +68,7 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'เรียนแล้ว',
   rescheduled: 'เลื่อน',
   absent: 'ขาดเรียน',
+  walleted: 'เก็บในกระเป๋า',
 }
 
 const ATTENDANCE_BADGES: Record<DerivedSessionStatus, { label: string; className: string; dotClassName: string }> = {
@@ -89,6 +101,11 @@ const ATTENDANCE_BADGES: Record<DerivedSessionStatus, { label: string; className
     label: 'รอเรียน',
     className: 'border-slate-200 bg-slate-50 text-slate-700',
     dotClassName: 'bg-slate-400',
+  },
+  walleted: {
+    label: 'อยู่ในกระเป๋า',
+    className: 'border-violet-200 bg-violet-50 text-violet-700',
+    dotClassName: 'bg-violet-500',
   },
   attendance_gap_review: {
     label: 'รอตรวจสอบการเช็คชื่อ',
@@ -137,11 +154,20 @@ function getDisplayStatus(session: SessionData, now: Date) {
   return { key: status, ...ATTENDANCE_BADGES[status] }
 }
 
+function isAtLeast48HoursAhead(date: string, time: string) {
+  const start = new Date(`${date}T${time.slice(0, 5)}:00+07:00`)
+  return start.getTime() - Date.now() >= 48 * 60 * 60 * 1000
+}
+
 export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: ScheduleCalendarClientProps) {
+  const router = useRouter()
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth())
   const [year, setYear] = useState(now.getFullYear())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [walletSession, setWalletSession] = useState<SessionData | null>(null)
+  const [walletLoadingId, setWalletLoadingId] = useState<string | null>(null)
+  const [walletError, setWalletError] = useState<string | null>(null)
 
   const childColorMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -185,6 +211,38 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
   const getLearnerName = (session: SessionData) => {
     if (session.children) return session.children.nickname || session.children.full_name
     return userName || 'ตัวเอง'
+  }
+
+  const canStoreInWallet = (session: SessionData) => {
+    return (
+      session.status === 'scheduled' &&
+      !session.is_makeup &&
+      !session.attendance_status &&
+      isAtLeast48HoursAhead(session.date, session.start_time)
+    )
+  }
+
+  const storeInWallet = async () => {
+    if (!walletSession) return
+    setWalletLoadingId(walletSession.id)
+    setWalletError(null)
+
+    const response = await fetch('/api/lesson-wallet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'store', sessionId: walletSession.id }),
+    })
+    const result = await response.json() as { success?: boolean; error?: string }
+
+    if (!response.ok || !result.success) {
+      setWalletError(result.error || 'เก็บเข้ากระเป๋าไม่สำเร็จ กรุณาลองใหม่')
+      setWalletLoadingId(null)
+      return
+    }
+
+    setWalletLoadingId(null)
+    setWalletSession(null)
+    router.refresh()
   }
 
   const totalThisMonth = useMemo(() => {
@@ -404,8 +462,12 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                           <div className="flex items-start gap-2 text-sm text-amber-700">
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                             <div>
-                              <p className="font-semibold">ยังไม่ได้มอบหมายโค้ช</p>
-                              <p className="text-xs text-amber-600">จะแสดงชื่อโค้ชเมื่อหัวหน้าโค้ชจัดกลุ่มเรียบร้อย</p>
+                              <p className="font-semibold">{session.status === 'walleted' ? 'เก็บไว้ในกระเป๋าวันเรียน' : 'ยังไม่ได้มอบหมายโค้ช'}</p>
+                              <p className="text-xs text-amber-600">
+                                {session.status === 'walleted'
+                                  ? 'ใช้สิทธิ์นี้ได้จากเมนูกระเป๋าวันเรียนภายในเดือนเดิม'
+                                  : 'จะแสดงชื่อโค้ชเมื่อหัวหน้าโค้ชจัดกลุ่มเรียบร้อย'}
+                              </p>
                             </div>
                           </div>
                         )}
@@ -435,6 +497,27 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                           เลยเวลาเรียนแล้ว แต่ยังไม่มีการเช็คชื่อทั้งรอบ ต้องรอ Admin/Coach ตรวจสอบก่อนสรุปสถานะ
                         </span>
                       )}
+                      {session.status === 'walleted' && (
+                        <span className="inline-flex items-center gap-1 text-violet-700">
+                          <WalletCards className="h-3 w-3" />
+                          รอบนี้ถูกเก็บเข้ากระเป๋าแล้ว ไม่ถูกนับเป็นขาดเรียนหรือรอบชดเชย
+                        </span>
+                      )}
+                      {canStoreInWallet(session) && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="ml-auto border-violet-200 text-violet-700 hover:bg-violet-50"
+                          onClick={() => {
+                            setWalletError(null)
+                            setWalletSession(session)
+                          }}
+                        >
+                          <WalletCards className="mr-1 h-3.5 w-3.5" />
+                          เก็บเข้ากระเป๋า
+                        </Button>
+                      )}
                     </div>
 
                     {session.rescheduled_from && (
@@ -462,6 +545,52 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={Boolean(walletSession)} onOpenChange={(open) => !open && setWalletSession(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>เก็บรอบเรียนเข้ากระเป๋า?</AlertDialogTitle>
+            <AlertDialogDescription>
+              รอบนี้จะถูกถอดออกจากตารางเรียนและเก็บเป็นสิทธิ์ใช้ใหม่ได้ภายในเดือนเดียวกันเท่านั้น ไม่คิดเงินซ้ำ และถ้ามีการมอบหมายโค้ชแล้วระบบจะแจ้งให้ Head Coach ตรวจกลุ่มอีกครั้ง
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {walletSession && (
+            <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
+              <p className="font-semibold text-[#153c85]">{getLearnerName(walletSession)}</p>
+              <p>{new Date(`${walletSession.date}T00:00:00+07:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })} · {fmtTime(walletSession.start_time)}-{fmtTime(walletSession.end_time)}</p>
+              <p className="text-xs text-gray-500">{walletSession.branches?.name || '-'}</p>
+            </div>
+          )}
+          {walletError && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              {walletError}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(walletLoadingId)}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-[#2748bf] hover:bg-[#153c85]"
+              disabled={Boolean(walletLoadingId)}
+              onClick={(event) => {
+                event.preventDefault()
+                storeInWallet()
+              }}
+            >
+              {walletLoadingId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  กำลังเก็บ...
+                </>
+              ) : (
+                <>
+                  <WalletCards className="mr-2 h-4 w-4" />
+                  ยืนยันเก็บเข้ากระเป๋า
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

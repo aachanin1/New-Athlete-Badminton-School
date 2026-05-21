@@ -16,6 +16,7 @@ import {
   TrendingUp,
   UserCircle,
   Users,
+  WalletCards,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ const USER_NAV = [
   { href: '/dashboard/history', label: 'ประวัติการจอง', icon: History },
   { href: '/dashboard/schedule', label: 'ตารางเรียน', icon: CalendarDays },
   { href: '/dashboard/reschedule', label: 'เปลี่ยนวัน/สาขา', icon: ArrowLeftRight },
+  { href: '/dashboard/lesson-wallet', label: 'กระเป๋าวันเรียน', icon: WalletCards },
   { href: '/dashboard/progress', label: 'พัฒนาการ & Ranking', icon: TrendingUp },
   { href: '/dashboard/complaint', label: 'ร้องเรียน', icon: MessageSquareWarning },
   { href: '/dashboard/notifications', label: 'แจ้งเตือน', icon: Bell },

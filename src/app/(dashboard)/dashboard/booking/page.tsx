@@ -144,7 +144,8 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
       .from('booking_sessions')
       .select('id, booking_id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status')
       .in('booking_id', existingBookingIds)
-      .neq('status', 'rescheduled') as unknown as { data: ExistingBookingSessionRow[] | null }
+      .neq('status', 'rescheduled')
+      .neq('status', 'walleted') as unknown as { data: ExistingBookingSessionRow[] | null }
     existingSessionsData = sessions || []
   }
 

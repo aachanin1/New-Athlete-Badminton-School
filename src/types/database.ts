@@ -2,7 +2,8 @@ export type UserRole = 'user' | 'coach' | 'head_coach' | 'admin' | 'super_admin'
 export type CourseTypeName = 'kids_group' | 'adult_group' | 'private'
 export type LearnerType = 'self' | 'child'
 export type BookingStatus = 'pending_payment' | 'paid' | 'verified' | 'cancelled'
-export type SessionStatus = 'scheduled' | 'completed' | 'rescheduled' | 'absent'
+export type SessionStatus = 'scheduled' | 'completed' | 'rescheduled' | 'absent' | 'walleted'
+export type LessonWalletStatus = 'active' | 'redeemed' | 'expired'
 export type PaymentStatus = 'pending' | 'approved' | 'rejected'
 export type AttendanceStatus = 'present' | 'absent' | 'late'
 export type SlotStatus = 'open' | 'full' | 'cancelled'
@@ -76,6 +77,12 @@ export interface Database {
         Row: BookingSession
         Insert: Omit<BookingSession, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<BookingSession, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      lesson_wallet_credits: {
+        Row: LessonWalletCredit
+        Insert: Omit<LessonWalletCredit, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<LessonWalletCredit, 'id' | 'created_at'>>
         Relationships: []
       }
       payments: {
@@ -416,6 +423,29 @@ export interface CoachAssignmentGroup {
   sort_order: number
   notes: string | null
   created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LessonWalletCredit {
+  id: string
+  user_id: string
+  booking_id: string
+  original_session_id: string
+  redeemed_session_id: string | null
+  child_id: string | null
+  branch_id: string
+  course_type_id: string
+  original_schedule_slot_id: string | null
+  original_date: string
+  original_start_time: string
+  original_end_time: string
+  status: LessonWalletStatus
+  stored_at: string
+  expires_at: string
+  redeemed_at: string | null
+  expired_at: string | null
+  notes: string | null
   created_at: string
   updated_at: string
 }

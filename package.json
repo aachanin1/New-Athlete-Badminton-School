@@ -10,6 +10,7 @@
     "seed:cleanup": "node scripts/seed-realistic-data.js --cleanup",
     "seed:verify": "node scripts/verify-seed-data.js",
     "uat:attendance-gap": "node scripts/uat-attendance-gap.js",
+    "uat:lesson-wallet": "node scripts/uat-lesson-wallet.js",
     "prod:check": "node scripts/production-readiness-check.js",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint"

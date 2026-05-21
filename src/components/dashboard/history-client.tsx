@@ -139,6 +139,14 @@ const STATUS_HELP: Record<string, string> = {
   cancelled: 'รายการนี้ถูกยกเลิกแล้ว',
 }
 
+const SESSION_STATUS_MAP: Record<string, { label: string; className: string }> = {
+  scheduled: { label: 'นัดหมาย', className: 'bg-blue-50 text-blue-700' },
+  completed: { label: 'เรียนแล้ว', className: 'bg-green-50 text-green-700' },
+  rescheduled: { label: 'เลื่อนแล้ว', className: 'bg-orange-50 text-orange-700' },
+  absent: { label: 'ขาดเรียน', className: 'bg-red-50 text-red-700' },
+  walleted: { label: 'อยู่ในกระเป๋า', className: 'bg-violet-50 text-violet-700' },
+}
+
 const COURSE_LABELS: Record<string, string> = {
   kids_group: 'เด็ก (กลุ่ม)',
   adult_group: 'ผู้ใหญ่ (กลุ่ม)',
@@ -774,6 +782,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                     const sessionDate = new Date(session.date + 'T00:00:00')
                     const dayLabel = sessionDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
                     const isPending = selectedBooking.status === 'pending_payment'
+                    const sessionStatus = SESSION_STATUS_MAP[session.status]
 
                     return (
                       <div key={session.id} className="flex items-center justify-between p-2.5 bg-white border rounded-lg">
@@ -791,9 +800,13 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                             </div>
                           </div>
                         </div>
-                        {isPending && (
+                        {isPending ? (
                           <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
                             แก้ไขผ่านปฏิทิน
+                          </span>
+                        ) : sessionStatus && (
+                          <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${sessionStatus.className}`}>
+                            {sessionStatus.label}
                           </span>
                         )}
                       </div>

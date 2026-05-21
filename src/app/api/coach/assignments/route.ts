@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
       .eq('branch_id', branchId)
       .eq('start_time', startTime)
       .eq('end_time', endTime)
-      .neq('status', 'rescheduled') as unknown as { data: MatchingSessionRow[] | null }
+      .neq('status', 'rescheduled')
+      .neq('status', 'walleted') as unknown as { data: MatchingSessionRow[] | null }
 
     const sessionIdsToBackfill = (matchingSessions || [])
       .filter((session) => session.bookings?.course_type_id === courseTypeId && session.schedule_slot_id !== resolvedSlotId)
