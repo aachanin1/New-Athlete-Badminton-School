@@ -780,6 +780,15 @@ Notes:
   - Prepare production environment variables.
   - Deploy staging.
   - Smoke test staging across Super Admin, Admin, Head Coach, Coach, and User roles.
+  - Completed 2026-05-21:
+    - Ran Production readiness re-check against the real Supabase remote.
+    - Confirmed seed/demo users are gone: 0 seed profiles and 0 seed auth users.
+    - Confirmed required master data exists: 7 active branches, 3 course types, 702 active schedule templates, 70 active levels, and 11 pricing tiers.
+    - Confirmed required Storage buckets exist: `avatars`, `coach-checkins`, and `payment-slips`.
+    - Added `npm run prod:save-default-settings` to save missing production-safe defaults without hand-editing JSON in the app.
+    - Saved `coach_teaching_rules_settings` into `system_settings`; `prod:check` now finds all 3 required settings.
+    - Remaining warning before production deploy: `.env.local` still has `SLIPOK_TEST_MODE=true` for current testing. Production must remove it or set it to false and use real SlipOK credentials.
+    - Checks passed: `npm run prod:save-default-settings`, `npm run prod:check`, `npm run check:mojibake`, `npm run lint`, `npm run build`, and `git diff --check`.
 
 ## Phase 3 - Build & Deploy Readiness
 

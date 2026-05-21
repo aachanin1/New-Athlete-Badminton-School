@@ -41,6 +41,11 @@ interface SessionData {
   attendance_checked_at?: string | null
   attendance_scope_count?: number
   rescheduled_from?: { date: string; start_time: string; end_time: string } | null
+  wallet_credit_status?: 'active' | 'redeemed' | 'expired' | null
+  wallet_redeemed_at?: string | null
+  wallet_expired_at?: string | null
+  wallet_redeemed_to?: { date: string; start_time: string; end_time: string } | null
+  wallet_source_status?: 'active' | 'redeemed' | 'expired' | null
   children: { full_name: string; nickname: string | null } | null
   bookings: {
     course_types: { name: string | null } | null
@@ -114,6 +119,19 @@ const ATTENDANCE_BADGES: Record<DerivedSessionStatus, { label: string; className
   },
 }
 
+const WALLET_CREDIT_BADGES = {
+  redeemed: {
+    label: 'ใช้แล้วจากกระเป๋า',
+    className: 'border-blue-200 bg-blue-50 text-blue-700',
+    dotClassName: 'bg-blue-500',
+  },
+  expired: {
+    label: 'หมดอายุในกระเป๋า',
+    className: 'border-gray-200 bg-gray-50 text-gray-600',
+    dotClassName: 'bg-gray-400',
+  },
+}
+
 const ROLE_LABELS: Record<string, string> = {
   coach: 'โค้ช',
   head_coach: 'หัวหน้าโค้ช',
@@ -150,8 +168,29 @@ function getDerivedStatus(session: SessionData, now: Date) {
 }
 
 function getDisplayStatus(session: SessionData, now: Date) {
+  if (session.status === 'walleted' && session.wallet_credit_status === 'redeemed') {
+    return { key: 'wallet_redeemed', ...WALLET_CREDIT_BADGES.redeemed }
+  }
+  if (session.status === 'walleted' && session.wallet_credit_status === 'expired') {
+    return { key: 'wallet_expired', ...WALLET_CREDIT_BADGES.expired }
+  }
+
   const status = getDerivedStatus(session, now)
   return { key: status, ...ATTENDANCE_BADGES[status] }
+}
+
+function getSessionStatusLabel(session: SessionData) {
+  if (session.status === 'walleted' && session.wallet_credit_status === 'redeemed') return 'ใช้สิทธิ์แล้ว'
+  if (session.status === 'walleted' && session.wallet_credit_status === 'expired') return 'หมดอายุ'
+  return STATUS_LABELS[session.status] || session.status
+}
+
+function formatSlotText(slot: { date: string; start_time: string; end_time: string }) {
+  const dateLabel = new Date(`${slot.date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
+    day: 'numeric',
+    month: 'short',
+  })
+  return `${dateLabel} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}`
 }
 
 function isAtLeast48HoursAhead(date: string, time: string) {
@@ -406,6 +445,10 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                 const coachRoleLabel = session.coach_role ? ROLE_LABELS[session.coach_role] || session.coach_role : 'โค้ช'
                 const needsAttendanceReview = derivedStatus === 'attendance_gap_review'
                 const derivedAbsentFromPartialAttendance = derivedStatus === 'absent' && !session.attendance_status && (session.attendance_scope_count || 0) > 0
+                const isWalletSession = session.status === 'walleted'
+                const isWalletRedeemed = isWalletSession && session.wallet_credit_status === 'redeemed'
+                const isWalletExpired = isWalletSession && session.wallet_credit_status === 'expired'
+                const isRedeemedFromWallet = session.wallet_source_status === 'redeemed'
 
                 return (
                   <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
@@ -462,10 +505,22 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                           <div className="flex items-start gap-2 text-sm text-amber-700">
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                             <div>
-                              <p className="font-semibold">{session.status === 'walleted' ? 'เก็บไว้ในกระเป๋าวันเรียน' : 'ยังไม่ได้มอบหมายโค้ช'}</p>
+                              <p className="font-semibold">
+                                {isWalletRedeemed
+                                  ? 'ใช้สิทธิ์จากกระเป๋าแล้ว'
+                                  : isWalletExpired
+                                    ? 'สิทธิ์ในกระเป๋าหมดอายุแล้ว'
+                                    : isWalletSession
+                                      ? 'เก็บไว้ในกระเป๋าวันเรียน'
+                                      : 'ยังไม่ได้มอบหมายโค้ช'}
+                              </p>
                               <p className="text-xs text-amber-600">
-                                {session.status === 'walleted'
-                                  ? 'ใช้สิทธิ์นี้ได้จากเมนูกระเป๋าวันเรียนภายในเดือนเดิม'
+                                {isWalletRedeemed && session.wallet_redeemed_to
+                                  ? `ถูกนำไปใช้กับรอบ ${formatSlotText(session.wallet_redeemed_to)} แล้ว`
+                                  : isWalletExpired
+                                    ? 'สิทธิ์นี้เลยกำหนดใช้ภายในเดือนเดิมแล้ว'
+                                    : isWalletSession
+                                      ? 'ใช้สิทธิ์นี้ได้จากเมนูกระเป๋าวันเรียนภายในเดือนเดิม'
                                   : 'จะแสดงชื่อโค้ชเมื่อหัวหน้าโค้ชจัดกลุ่มเรียบร้อย'}
                               </p>
                             </div>
@@ -477,7 +532,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                       <Badge variant="outline" className="bg-white text-xs">
                         <ClipboardCheck className="mr-1 h-3 w-3" />
-                        {STATUS_LABELS[session.status] || session.status}
+                        {getSessionStatusLabel(session)}
                       </Badge>
                       {session.attendance_checked_at && (
                         <span className="inline-flex items-center gap-1 text-green-700">
@@ -497,10 +552,22 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                           เลยเวลาเรียนแล้ว แต่ยังไม่มีการเช็คชื่อทั้งรอบ ต้องรอ Admin/Coach ตรวจสอบก่อนสรุปสถานะ
                         </span>
                       )}
-                      {session.status === 'walleted' && (
+                      {isWalletSession && isWalletRedeemed && (
+                        <span className="inline-flex items-center gap-1 text-blue-700">
+                          <WalletCards className="h-3 w-3" />
+                          ใช้สิทธิ์แล้ว{session.wallet_redeemed_to ? ` ไปวันที่ ${formatSlotText(session.wallet_redeemed_to)}` : ''}
+                        </span>
+                      )}
+                      {isWalletSession && !isWalletRedeemed && !isWalletExpired && (
                         <span className="inline-flex items-center gap-1 text-violet-700">
                           <WalletCards className="h-3 w-3" />
                           รอบนี้ถูกเก็บเข้ากระเป๋าแล้ว ไม่ถูกนับเป็นขาดเรียนหรือรอบชดเชย
+                        </span>
+                      )}
+                      {isWalletExpired && (
+                        <span className="inline-flex items-center gap-1 text-gray-600">
+                          <WalletCards className="h-3 w-3" />
+                          สิทธิ์ในกระเป๋าหมดอายุแล้ว
                         </span>
                       )}
                       {canStoreInWallet(session) && (
@@ -524,7 +591,8 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                       <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-700">
                         <RotateCcw className="h-3 w-3" />
                         <span>
-                          ย้ายมาจากวันที่ {new Date(`${session.rescheduled_from.date}T00:00:00+07:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} {fmtTime(session.rescheduled_from.start_time)}-{fmtTime(session.rescheduled_from.end_time)}
+                          {isRedeemedFromWallet ? 'ใช้สิทธิ์จากกระเป๋าวันที่ ' : 'ย้ายมาจากวันที่ '}
+                          {formatSlotText(session.rescheduled_from)}
                         </span>
                       </div>
                     )}

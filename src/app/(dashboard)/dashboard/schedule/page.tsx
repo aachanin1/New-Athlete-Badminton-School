@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { getServiceRoleClient } from '@/lib/auth/admin'
 import { createClient } from '@/lib/supabase/server'
 import { ScheduleCalendarClient } from '@/components/dashboard/schedule-calendar-client'
 
@@ -19,6 +20,21 @@ interface ScheduleSessionRow {
 }
 
 interface OriginalSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+}
+
+interface WalletCreditRow {
+  original_session_id: string
+  redeemed_session_id: string | null
+  status: 'active' | 'redeemed' | 'expired'
+  redeemed_at: string | null
+  expired_at: string | null
+}
+
+interface RedeemedSessionRow {
   id: string
   date: string
   start_time: string
@@ -62,6 +78,7 @@ interface SlotSessionRow {
 
 export default async function SchedulePage() {
   const supabase = createClient()
+  const adminSupabase = getServiceRoleClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -81,6 +98,8 @@ export default async function SchedulePage() {
   const slotIds = Array.from(new Set(sessionsArr.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
   const fromIds = Array.from(new Set(sessionsArr.map((session) => session.rescheduled_from_id).filter(Boolean))) as string[]
   const fromMap: Record<string, OriginalSessionRow> = {}
+  const walletCreditByOriginalSessionId: Record<string, WalletCreditRow> = {}
+  const redeemedSessionById: Record<string, RedeemedSessionRow> = {}
   const assignmentBySessionId: Record<string, AssignmentGroupRow> = {}
   const groupSessionIdsBySessionId: Record<string, string[]> = {}
   const slotSessionIdsBySlotId: Record<string, string[]> = {}
@@ -96,6 +115,33 @@ export default async function SchedulePage() {
     ;(fromSessions || []).forEach((session) => {
       fromMap[session.id] = session
     })
+  }
+
+  const walletOriginalIds = Array.from(new Set([...sessionIds, ...fromIds]))
+  if (walletOriginalIds.length > 0) {
+    const { data: walletCredits } = await adminSupabase
+      .from('lesson_wallet_credits')
+      .select('original_session_id, redeemed_session_id, status, redeemed_at, expired_at')
+      .in('original_session_id', walletOriginalIds) as unknown as { data: WalletCreditRow[] | null }
+
+    ;(walletCredits || []).forEach((credit) => {
+      walletCreditByOriginalSessionId[credit.original_session_id] = credit
+    })
+
+    const redeemedSessionIds = Array.from(new Set((walletCredits || [])
+      .map((credit) => credit.redeemed_session_id)
+      .filter(Boolean))) as string[]
+
+    if (redeemedSessionIds.length > 0) {
+      const { data: redeemedSessions } = await adminSupabase
+        .from('booking_sessions')
+        .select('id, date, start_time, end_time')
+        .in('id', redeemedSessionIds) as unknown as { data: RedeemedSessionRow[] | null }
+
+      ;(redeemedSessions || []).forEach((session) => {
+        redeemedSessionById[session.id] = session
+      })
+    }
   }
 
   if (slotIds.length > 0) {
@@ -165,10 +211,17 @@ export default async function SchedulePage() {
   const sessions = sessionsArr.map((session) => {
     const assignment = assignmentBySessionId[session.id]
     const attendance = attendanceBySessionId[session.id]
+    const walletCredit = walletCreditByOriginalSessionId[session.id]
+    const sourceWalletCredit = session.rescheduled_from_id ? walletCreditByOriginalSessionId[session.rescheduled_from_id] : null
 
     return {
       ...session,
       rescheduled_from: session.rescheduled_from_id ? fromMap[session.rescheduled_from_id] || null : null,
+      wallet_credit_status: walletCredit?.status || null,
+      wallet_redeemed_at: walletCredit?.redeemed_at || null,
+      wallet_expired_at: walletCredit?.expired_at || null,
+      wallet_redeemed_to: walletCredit?.redeemed_session_id ? redeemedSessionById[walletCredit.redeemed_session_id] || null : null,
+      wallet_source_status: sourceWalletCredit?.status || null,
       assignment_group_id: assignment?.id || null,
       assignment_group_name: assignment?.name || null,
       coach_id: assignment?.coach_id || null,

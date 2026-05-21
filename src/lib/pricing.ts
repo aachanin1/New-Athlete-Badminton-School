@@ -223,14 +223,14 @@ export function getKidsGroupTotal(
 
 export function getKidsGroupIncremental(
   existingSessionsThisMonth: number,
-  existingPaidThisMonth: number,
+  _existingPaidThisMonth: number,
   newSessions: number,
   pricing?: PricingTierInput[] | PricingCatalog | null
 ) {
   const totalSessionsForMonth = existingSessionsThisMonth + newSessions
   const { perSession, tierLabel } = getKidsGroupTotal(totalSessionsForMonth, pricing)
   const totalCostForMonth = Math.round(perSession * totalSessionsForMonth)
-  const incrementalPrice = Math.max(0, totalCostForMonth - existingPaidThisMonth)
+  const incrementalPrice = Math.max(0, Math.round(perSession * newSessions))
   const effectivePerSession = newSessions > 0 ? Math.round(incrementalPrice / newSessions) : 0
 
   return {
