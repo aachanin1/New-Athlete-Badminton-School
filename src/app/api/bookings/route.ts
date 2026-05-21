@@ -82,15 +82,21 @@ export async function PUT(request: NextRequest) {
     }
 
     const childIds = Array.from(new Set(sessions.map((session) => session.childId).filter(Boolean))) as string[]
+    const childNameMap = new Map<string, string>()
     if (childIds.length > 0) {
       const { data: ownedChildren, error: childError } = await (adminSupabase
         .from('children') as unknown as DbTable)
-        .select('id')
+        .select('id, full_name, nickname')
         .eq('parent_id', user.id)
-        .in('id', childIds) as { data: { id: string }[] | null; error: DbError | null }
+        .in('id', childIds) as { data: OwnedChildRow[] | null; error: DbError | null }
 
       if (childError || !ownedChildren || ownedChildren.length !== childIds.length) {
         return NextResponse.json({ error: 'ไม่สามารถแก้ไขการจองให้ผู้เรียนที่ไม่ได้อยู่ในบัญชีนี้ได้' }, { status: 403 })
+      }
+      if (ownedChildren) {
+        ownedChildren.forEach((child) => {
+          childNameMap.set(child.id, child.nickname || child.full_name)
+        })
       }
     }
 
@@ -102,6 +108,13 @@ export async function PUT(request: NextRequest) {
 
     if (!courseType) {
       return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
+    }
+
+    try {
+      await assertNoDuplicateActiveSessions(adminSupabase, user.id, sessions, childNameMap, bookingId)
+    } catch (duplicateError) {
+      const message = duplicateError instanceof Error ? duplicateError.message : 'ไม่สามารถจองรอบซ้ำได้'
+      return NextResponse.json({ error: message }, { status: 409 })
     }
 
     const calculatedTotalAmount = await calculateBookingBasePrice({
@@ -232,6 +245,7 @@ interface DbQuery extends PromiseLike<{ data: unknown[] | null; error: DbError |
   eq(column: string, value: unknown): DbQuery
   in(column: string, values: unknown[]): DbQuery
   neq(column: string, value: unknown): DbQuery
+  is(column: string, value: unknown): DbQuery
   limit(count: number): DbQuery
   select(columns: string): DbQuery
   single(): Promise<{ data: unknown; error: DbError | null }>
@@ -258,6 +272,25 @@ interface TemplateRow {
   start_time: string
   end_time: string
 }
+
+interface OwnedChildRow {
+  id: string
+  full_name: string
+  nickname: string | null
+}
+
+interface ExistingSessionConflictRow {
+  id: string
+  booking_id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+}
+
+const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'paid', 'verified']
+const ACTIVE_SESSION_STATUSES = ['scheduled', 'completed', 'absent']
 
 interface ResolvedBookingSessionRow {
   booking_id: string
@@ -292,6 +325,68 @@ function isSessionStillBookable(session: BookingSessionPayload) {
 
 function normalizeTime(value: string) {
   return value.slice(0, 5)
+}
+
+function getLearnerKey(childId: string | null | undefined) {
+  return childId || 'self'
+}
+
+function getLearnerName(childId: string | null | undefined, childNames: Map<string, string>) {
+  if (!childId) return 'ตัวเอง'
+  return childNames.get(childId) || 'ผู้เรียน'
+}
+
+function getSessionIdentity(session: BookingSessionPayload) {
+  return [
+    getLearnerKey(session.childId),
+    session.date,
+    normalizeTime(session.startTime),
+    normalizeTime(session.endTime),
+  ].join('|')
+}
+
+function formatDuplicateSessionMessage(session: BookingSessionPayload, childNames: Map<string, string>) {
+  return `${getLearnerName(session.childId, childNames)} มีรอบเรียน ${session.date} ${normalizeTime(session.startTime)}-${normalizeTime(session.endTime)} อยู่แล้ว`
+}
+
+async function assertNoDuplicateActiveSessions(
+  adminSupabase: AdminSupabase,
+  userId: string,
+  sessions: BookingSessionPayload[],
+  childNames: Map<string, string>,
+  excludeBookingId?: string
+) {
+  const seen = new Set<string>()
+  for (const session of sessions) {
+    const key = getSessionIdentity(session)
+    if (seen.has(key)) {
+      throw new Error(`เลือกรอบซ้ำในรายการเดียวกัน: ${formatDuplicateSessionMessage(session, childNames)}`)
+    }
+    seen.add(key)
+  }
+
+  for (const session of sessions) {
+    let query = (adminSupabase.from('booking_sessions') as unknown as DbTable)
+      .select('id, booking_id, date, start_time, end_time, branch_id, child_id, bookings!inner(id, user_id, status)')
+      .eq('date', session.date)
+      .eq('start_time', normalizeTime(session.startTime))
+      .eq('end_time', normalizeTime(session.endTime))
+      .eq('bookings.user_id', userId)
+      .in('bookings.status', ACTIVE_BOOKING_STATUSES)
+      .in('status', ACTIVE_SESSION_STATUSES)
+      .limit(1)
+
+    query = session.childId ? query.eq('child_id', session.childId) : query.is('child_id', null)
+    if (excludeBookingId) query = query.neq('booking_id', excludeBookingId)
+
+    const { data, error } = await query as { data: ExistingSessionConflictRow[] | null; error: DbError | null }
+    if (error) {
+      throw new Error(`ตรวจสอบรอบเรียนซ้ำไม่สำเร็จ: ${error.message}`)
+    }
+    if (data && data.length > 0) {
+      throw new Error(`จองซ้ำไม่ได้: ${formatDuplicateSessionMessage(session, childNames)}`)
+    }
+  }
 }
 
 function timeToMinutes(value: string) {
@@ -515,16 +610,22 @@ export async function POST(request: NextRequest) {
       childId,
       ...sessions.map((session) => session.childId),
     ].filter(Boolean))) as string[]
+    const childNameMap = new Map<string, string>()
 
     if (childIds.length > 0) {
       const { data: ownedChildren, error: childError } = await (adminSupabase
         .from('children') as unknown as DbTable)
-        .select('id')
+        .select('id, full_name, nickname')
         .eq('parent_id', user.id)
-        .in('id', childIds) as { data: { id: string }[] | null; error: DbError | null }
+        .in('id', childIds) as { data: OwnedChildRow[] | null; error: DbError | null }
 
       if (childError || !ownedChildren || ownedChildren.length !== childIds.length) {
         return NextResponse.json({ error: 'ไม่สามารถจองให้ผู้เรียนที่ไม่ได้อยู่ในบัญชีนี้ได้' }, { status: 403 })
+      }
+      if (ownedChildren) {
+        ownedChildren.forEach((child) => {
+          childNameMap.set(child.id, child.nickname || child.full_name)
+        })
       }
     }
 
@@ -551,6 +652,13 @@ export async function POST(request: NextRequest) {
 
     if (Math.abs(calculatedTotalAmount - totalAmount) > 1) {
       return NextResponse.json({ error: 'ราคาค่าเรียนมีการเปลี่ยนแปลง กรุณารีเฟรชหน้าแล้วตรวจสอบยอดอีกครั้ง' }, { status: 400 })
+    }
+
+    try {
+      await assertNoDuplicateActiveSessions(adminSupabase, user.id, sessions, childNameMap)
+    } catch (duplicateError) {
+      const message = duplicateError instanceof Error ? duplicateError.message : 'ไม่สามารถจองรอบซ้ำได้'
+      return NextResponse.json({ error: message }, { status: 409 })
     }
 
     const { coupon, discountAmount, error: couponError } = await validateCoupon(

@@ -27,19 +27,19 @@ export interface SlipOKResponse {
     qrCode?: string
   }
   message?: string
-  code?: string
+  code?: string | number
 }
 
 interface SlipOKErrorResponse {
   message?: string
-  code?: string
+  code?: string | number
 }
 
 /**
  * Verify a payment slip using SlipOK API.
  * Sends the slip image file and returns parsed transaction data.
  */
-export async function verifySlip(fileBuffer: Buffer, fileName: string): Promise<SlipOKResponse> {
+export async function verifySlip(fileBuffer: Buffer, fileName: string, expectedAmount?: number): Promise<SlipOKResponse> {
   const apiUrl = process.env.SLIPOK_API_URL
   const apiKey = process.env.SLIPOK_API_KEY
 
@@ -51,6 +51,10 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string): Promise<
   const uint8 = new Uint8Array(fileBuffer)
   const blob = new Blob([uint8], { type: 'image/jpeg' })
   formData.append('files', blob, fileName)
+  formData.append('log', 'true')
+  if (typeof expectedAmount === 'number' && Number.isFinite(expectedAmount) && expectedAmount > 0) {
+    formData.append('amount', String(expectedAmount))
+  }
 
   try {
     const res = await fetch(apiUrl, {
@@ -68,6 +72,7 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string): Promise<
         success: false,
         message: json?.message || `SlipOK API error: ${res.status}`,
         code: json?.code,
+        data: json?.data,
       }
     }
 

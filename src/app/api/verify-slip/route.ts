@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         } as SlipOKResponse['data'],
       }
     } else {
-      slipResult = await verifySlip(fileBuffer, file.name)
+      slipResult = await verifySlip(fileBuffer, file.name, expectedAmount)
 
       if (slipResult.success && slipResult.data) {
         const validation = validateSlipData(slipResult.data, expectedAmount)
@@ -147,7 +147,8 @@ export async function POST(request: NextRequest) {
           verificationNotes = `SlipOK: ${validation.reason}`
         }
       } else {
-        verificationNotes = `SlipOK error: ${slipResult?.message || 'unknown'}`
+        const codeLabel = slipResult?.code ? ` (${slipResult.code})` : ''
+        verificationNotes = `SlipOK error${codeLabel}: ${slipResult?.message || 'unknown'}`
       }
     }
 

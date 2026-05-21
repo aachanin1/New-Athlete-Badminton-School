@@ -301,6 +301,41 @@ async function collectStorageData(report, supabase) {
   addCountDetail(report, 'Storage buckets', buckets.map((bucket) => bucket.name).join(', ') || 'none')
 }
 
+async function collectSlipOkData(report, config) {
+  if (config.slipokTestMode || !config.slipokApiKey || !config.slipokApiUrl) return
+
+  const quotaUrl = `${config.slipokApiUrl.replace(/\/$/, '')}/quota`
+  try {
+    const response = await fetch(quotaUrl, {
+      method: 'GET',
+      headers: {
+        'x-authorization': config.slipokApiKey,
+      },
+    })
+    const text = await response.text()
+    let payload = null
+    try {
+      payload = text ? JSON.parse(text) : null
+    } catch {
+      payload = null
+    }
+
+    if (!response.ok) {
+      const code = payload?.code ? ` ${payload.code}` : ''
+      const message = payload?.message || `HTTP ${response.status}`
+      report.blockers.push(`SlipOK quota check failed:${code} ${message}`)
+      return
+    }
+
+    const data = payload?.data || {}
+    addCountDetail(report, 'SlipOK quota remaining', data.quota ?? 'unknown')
+    addCountDetail(report, 'SlipOK package end date', data.endDate || 'unknown')
+    report.passes.push('SlipOK production credentials can read quota.')
+  } catch (error) {
+    report.blockers.push(`SlipOK quota check failed: ${error.message}`)
+  }
+}
+
 function collectEnvData(report, config) {
   if (!config.supabaseUrl) report.blockers.push('Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL.')
   if (!config.publishableKey) report.blockers.push('Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY.')
@@ -364,6 +399,8 @@ async function main() {
     await collectMasterData(report, supabase)
     await collectStorageData(report, supabase)
   }
+
+  await collectSlipOkData(report, config)
 
   printReport(report)
   process.exit(report.blockers.length ? 1 : 0)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
+import { logActivity } from '@/lib/activity-log'
 import { notifyUser } from '@/lib/notifications'
 
 interface PaymentRow {
@@ -7,29 +8,35 @@ interface PaymentRow {
   booking_id: string
   user_id: string
   status: string
+  notes: string | null
 }
 
 type NotificationSupabase = Parameters<typeof notifyUser>[0]
+type PaymentReviewAction = 'approve' | 'reject' | 'send_back' | 'cancel'
 
-// PATCH: Approve or Reject a payment
+// PATCH: Admin payment review actions for SlipOK/manual verification cases.
 export async function PATCH(request: NextRequest) {
   const access = await requireAdminMenuAccess('payments')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
   const admin = access.ctx.user
 
   try {
-    const { paymentId, action, notes } = await request.json()
-
-    if (!paymentId || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: 'paymentId and action (approve/reject) are required' }, { status: 400 })
+    const { paymentId, action, notes } = await request.json() as {
+      paymentId?: string
+      action?: PaymentReviewAction
+      notes?: string
     }
 
+    if (!paymentId || !action || !['approve', 'reject', 'send_back', 'cancel'].includes(action)) {
+      return NextResponse.json({ error: 'paymentId and action are required' }, { status: 400 })
+    }
+
+    const normalizedAction: Exclude<PaymentReviewAction, 'reject'> = action === 'reject' ? 'send_back' : action
     const adminSupabase = getServiceRoleClient()
 
-    // Get payment to find booking_id
     const { data: payment, error: fetchErr } = await adminSupabase
       .from('payments')
-      .select('id, booking_id, user_id, status')
+      .select('id, booking_id, user_id, status, notes')
       .eq('id', paymentId)
       .single() as unknown as { data: PaymentRow | null; error: { message: string } | null }
 
@@ -38,55 +45,95 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (payment.status !== 'pending') {
-      return NextResponse.json({ error: `รายการนี้ถูก${payment.status === 'approved' ? 'อนุมัติ' : 'ปฏิเสธ'}ไปแล้ว` }, { status: 400 })
+      return NextResponse.json({ error: 'รายการนี้ถูกตรวจสอบไปแล้ว' }, { status: 400 })
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'rejected'
+    const newPaymentStatus = normalizedAction === 'approve' ? 'approved' : 'rejected'
+    const nextBookingStatus = normalizedAction === 'approve'
+      ? 'verified'
+      : normalizedAction === 'cancel'
+        ? 'cancelled'
+        : 'pending_payment'
     const now = new Date().toISOString()
+    const adminNote = (notes || '').trim()
+    const fallbackNote = normalizedAction === 'approve'
+      ? 'Admin manual approval'
+      : normalizedAction === 'cancel'
+        ? 'Admin rejected and cancelled booking'
+        : 'Admin returned payment for slip re-upload'
+    const actionNote = `[Admin payment review: ${normalizedAction}] ${adminNote || fallbackNote}`
+    const mergedNotes = [payment.notes, actionNote].filter(Boolean).join('\n')
 
-    // Update payment
     const { error: updateErr } = await adminSupabase
       .from('payments')
       .update({
-        status: newStatus,
+        status: newPaymentStatus,
         verified_by: admin.id,
         verified_at: now,
-        notes: notes || (action === 'approve' ? 'Admin อนุมัติ' : 'Admin ปฏิเสธ'),
+        notes: mergedNotes,
       })
       .eq('id', paymentId)
 
     if (updateErr) {
-      return NextResponse.json({ error: `อัปเดตไม่สำเร็จ: ${updateErr.message}` }, { status: 500 })
+      return NextResponse.json({ error: `อัปเดต payment ไม่สำเร็จ: ${updateErr.message}` }, { status: 500 })
     }
 
-    // Update booking status
-    if (action === 'approve') {
+    const { error: bookingUpdateErr } = await adminSupabase
+      .from('bookings')
+      .update({ status: nextBookingStatus })
+      .eq('id', payment.booking_id)
+
+    if (bookingUpdateErr) {
       await adminSupabase
-        .from('bookings')
-        .update({ status: 'verified' })
-        .eq('id', payment.booking_id)
-    } else {
-      // Rejected: revert booking to pending_payment so user can re-upload
-      await adminSupabase
-        .from('bookings')
-        .update({ status: 'pending_payment' })
-        .eq('id', payment.booking_id)
+        .from('payments')
+        .update({
+          status: payment.status,
+          verified_by: null,
+          verified_at: null,
+          notes: payment.notes,
+        })
+        .eq('id', paymentId)
+
+      return NextResponse.json({ error: `อัปเดต booking ไม่สำเร็จ: ${bookingUpdateErr.message}` }, { status: 500 })
     }
 
     await notifyUser(adminSupabase as unknown as NotificationSupabase, {
       user_id: payment.user_id,
-      title: action === 'approve' ? 'ยืนยันการชำระเงินแล้ว' : 'การชำระเงินต้องตรวจสอบใหม่',
-      message: action === 'approve'
-        ? 'ผู้ดูแลได้ยืนยันการชำระเงินของคุณแล้ว'
-        : 'ผู้ดูแลปฏิเสธการชำระเงินครั้งนี้ กรุณาตรวจสอบและแนบสลิปใหม่',
+      title: normalizedAction === 'approve'
+        ? 'ยืนยันการชำระเงินแล้ว'
+        : normalizedAction === 'cancel'
+          ? 'การจองถูกยกเลิก'
+          : 'กรุณาแนบสลิปใหม่',
+      message: normalizedAction === 'approve'
+        ? 'ผู้ดูแลยืนยันการชำระเงินของคุณเรียบร้อยแล้ว'
+        : normalizedAction === 'cancel'
+          ? `ผู้ดูแลยกเลิกการจองนี้${adminNote ? `: ${adminNote}` : ''}`
+          : `สลิปเดิมต้องแก้ไข/แนบใหม่${adminNote ? `: ${adminNote}` : ''}`,
       type: 'payment',
       link_url: '/dashboard/history',
     })
 
-    return NextResponse.json({ success: true, status: newStatus })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+    await logActivity({
+      userId: admin.id,
+      action: `admin_payment_${normalizedAction}`,
+      entityType: 'payment',
+      entityId: payment.id,
+      details: {
+        bookingId: payment.booking_id,
+        paymentStatus: newPaymentStatus,
+        bookingStatus: nextBookingStatus,
+        notes: adminNote || null,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      status: newPaymentStatus,
+      bookingStatus: nextBookingStatus,
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('Admin payment action error:', err)
-    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${err.message}` }, { status: 500 })
+    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${message}` }, { status: 500 })
   }
 }

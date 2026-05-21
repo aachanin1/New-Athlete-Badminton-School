@@ -797,6 +797,46 @@ Notes:
     - Verified kids group incremental pricing code path now charges only the newly added sessions at the tier for the final monthly count, e.g. existing 2 + new 1 uses the 3-session tier for 1 new session instead of recalculating the whole month.
     - Remaining warning before production deploy is still intentional for testing: `SLIPOK_TEST_MODE=true`. Production must set it to false/remove it and use real SlipOK credentials.
     - Checks passed: `npm run lint`, `npm run check:mojibake`, `npm run prod:check`, `npm run uat:lesson-wallet`, `npm run build`, and `git diff --check`.
+  - SlipOK real-mode check 2026-05-21:
+    - Compared local implementation with `SlipOK API Guide.docx`; updated SlipOK verification to send `log=true` and `amount` with file uploads so SlipOK can validate receiver/deduplicate/check amount according to the guide.
+    - Added live SlipOK quota validation to `npm run prod:check` when `SLIPOK_TEST_MODE=false` and real credentials are present.
+    - Current real SlipOK blocker: quota endpoint returns code `1003` / `Package ของคุณหมดอายุแล้ว`, so real slip auto-approval cannot work until the SlipOK package/branch is renewed or corrected.
+    - Checks passed after code changes: `npm run lint`, `npm run check:mojibake`, `npx tsc --noEmit`, and `git diff --check`.
+    - `npm run build` did not complete in this local run because Google Fonts DNS lookup failed for `fonts.googleapis.com`; this is a network/font fetch issue, not a TypeScript error from the SlipOK changes.
+
+- [x] 21.1 Booking Duplicate Guard + Payment Review Actions
+  - Production blocker found during real SlipOK testing: the same learner can still create and pay for a duplicate booking on the same date/time/branch.
+  - Safe booking rule:
+    - One learner must not have duplicate active sessions for the same `date + start_time + end_time` even if the branch/course differs, because the learner cannot attend overlapping rounds.
+    - Active booking statuses for duplicate checks: `pending_payment`, `paid`, `verified`.
+    - Active session statuses for duplicate checks: `scheduled`, `completed`, `absent`.
+    - Ignore sessions/bookings that are `rescheduled`, `walleted`, or `cancelled`.
+    - Server API must enforce this even if the UI is bypassed.
+  - Booking fixes:
+    - Disable already-booked learner slots in the User booking calendar and label them clearly as `จองแล้ว`.
+    - Add duplicate guard to `POST /api/bookings` before inserting booking/session rows.
+    - Add the same guard to `PUT /api/bookings`, excluding the booking being edited.
+    - Return a clear error such as `น้อง A มีรอบเรียน 28 พ.ค. 17:00-19:00 ที่แจ้งวัฒนะอยู่แล้ว`.
+  - Payment review fixes:
+    - Keep auto-approval when SlipOK passes and local validation passes.
+    - For SlipOK failures, Admin/Super Admin must have explicit actions:
+      - `อนุมัติด้วยตนเอง`: mark payment `approved`, booking `verified`, and notify the user.
+      - `ตีกลับให้แนบสลิปใหม่`: mark payment `rejected`, move booking back to `pending_payment`, store the admin reason, and notify the user to upload a new slip.
+      - `ปฏิเสธและยกเลิกการจอง`: mark payment `rejected`, booking `cancelled`, and prevent the sessions from continuing into Coach assignment/attendance flow.
+    - User history must show the admin reason and a clear re-upload path when a slip is sent back.
+  - UAT required:
+    - Duplicate same learner/date/time/branch is blocked in both UI and API.
+    - SlipOK `1014` or other failure can be sent back with a reason; User can upload a new slip.
+    - Manual approval verifies the booking and payment without requiring SlipOK to pass.
+    - Cancelled payment booking no longer appears in active scheduling/coach flows.
+  - Completed 2026-05-21:
+    - User booking calendar now disables already-booked same-learner same-time slots and labels them `จองแล้ว`.
+    - `POST /api/bookings` and `PUT /api/bookings` now reject duplicate active sessions server-side; `PUT` excludes the booking currently being edited.
+    - Admin payment review now supports three explicit actions from the payment detail dialog: manual approve, send back for re-upload, and reject/cancel booking.
+    - Admin review actions store notes, notify the User, log Activity Log entries, and update booking/payment status consistently.
+    - User history now surfaces the latest rejected payment note and keeps the re-upload path visible while the booking is back in `pending_payment`.
+    - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, and `npm run prod:check`.
+    - Note: local non-escalated `prod:check`/`build` can fail on network access to Supabase/Google Fonts inside sandbox; escalated checks passed. Production warning remains only `SLIPOK_TEST_MODE=true` until real mode is intentionally enabled.
 
 ## Phase 3 - Build & Deploy Readiness
 

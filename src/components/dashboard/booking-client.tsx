@@ -339,6 +339,21 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
     return `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   }
 
+  const getExistingConflictForSlot = (day: number, slot: TimeSlot, learnerKey = activeChildTab) => {
+    const dateStr = getDateString(day)
+    const start = slot.start.slice(0, 5)
+    const end = slot.end.slice(0, 5)
+    return existingSessionsForCalendar.find((session) => {
+      const sessionLearnerKey = session.child_id || 'self'
+      return (
+        sessionLearnerKey === learnerKey &&
+        session.date === dateStr &&
+        session.start_time.slice(0, 5) === start &&
+        session.end_time.slice(0, 5) === end
+      )
+    })
+  }
+
   const getTodayStart = () => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -403,6 +418,10 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
 
   const handleSlotSelect = (day: number, slot: TimeSlot, slotBranchId: string) => {
     if (!isSlotBookable(day, slot)) return
+    if (getExistingConflictForSlot(day, slot)) {
+      setError('ผู้เรียนคนนี้มีรอบเรียนเวลาเดียวกันอยู่แล้ว กรุณาเลือกรอบอื่น')
+      return
+    }
     const dateStr = getDateString(day)
     const date = new Date(calYear, calMonth, day)
     const key = activeChildTab
@@ -1012,12 +1031,15 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
                           <div className="flex flex-wrap gap-2">
                             {slots.map((slot) => {
                               const isSlotSelected = activeSessions.some((s) => s.date === expandedDate && s.start === slot.start && s.branchId === branch.id)
+                              const existingConflict = getExistingConflictForSlot(day, slot)
                               return (
                                 <Button key={`${branch.id}-${slot.start}-${slot.end}`} size="sm"
                                   variant={isSlotSelected ? 'default' : 'outline'}
-                                  className={isSlotSelected ? 'bg-[#2748bf]' : ''}
+                                  disabled={!!existingConflict}
+                                  className={existingConflict ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400' : isSlotSelected ? 'bg-[#2748bf]' : ''}
                                   onClick={() => handleSlotSelect(day, slot, branch.id)}>
                                   <Clock className="h-3 w-3 mr-1" />{fmtTime(slot.start)} - {fmtTime(slot.end)}
+                                  {existingConflict && <span className="ml-1 text-[10px]">จองแล้ว</span>}
                                 </Button>
                               )
                             })}

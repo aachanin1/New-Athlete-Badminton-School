@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { PaymentSettingsClient } from '@/components/admin/payment-settings-client'
 import type { PaymentTransferSettings } from '@/lib/payment-settings'
@@ -57,6 +59,29 @@ interface PaymentData {
 interface PaymentsClientProps {
   payments: PaymentData[]
   paymentTransferSettings: PaymentTransferSettings
+}
+
+type PaymentReviewAction = 'approve' | 'send_back' | 'cancel'
+
+const PAYMENT_REVIEW_COPY: Record<PaymentReviewAction, { title: string; description: string; button: string; buttonClass: string }> = {
+  approve: {
+    title: 'อนุมัติด้วยตนเอง',
+    description: 'ใช้เฉพาะเคสที่ตรวจสลิปแล้วมั่นใจว่ายอดและบัญชีถูกต้อง ระบบจะยืนยัน booking ทันที',
+    button: 'อนุมัติและยืนยัน booking',
+    buttonClass: 'bg-emerald-600 hover:bg-emerald-700',
+  },
+  send_back: {
+    title: 'ตีกลับให้แนบสลิปใหม่',
+    description: 'ใช้เมื่อสลิปผิด บัญชีไม่ตรง ยอดไม่ตรง หรือ SlipOK ตรวจไม่ผ่าน แต่ยังเปิดโอกาสให้ลูกค้าแนบใหม่',
+    button: 'ตีกลับให้ลูกค้าแนบใหม่',
+    buttonClass: 'bg-amber-600 hover:bg-amber-700',
+  },
+  cancel: {
+    title: 'ปฏิเสธและยกเลิกการจอง',
+    description: 'ใช้เมื่อรายการนี้ไม่ควรดำเนินต่อ ระบบจะยกเลิก booking และไม่ส่งต่อเข้า flow โค้ช',
+    button: 'ยกเลิก booking นี้',
+    buttonClass: 'bg-rose-600 hover:bg-rose-700',
+  },
 }
 
 const STATUS_CONFIG: Record<PaymentData['status'], { label: string; tone: string; icon: LucideIcon; help: string }> = {
@@ -124,12 +149,18 @@ function getShortId(id: string) {
 }
 
 export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsClientProps) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [detailPayment, setDetailPayment] = useState<PaymentData | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [slipOpen, setSlipOpen] = useState(false)
   const [paymentSettingsOpen, setPaymentSettingsOpen] = useState(false)
+  const [reviewPayment, setReviewPayment] = useState<PaymentData | null>(null)
+  const [reviewAction, setReviewAction] = useState<PaymentReviewAction>('send_back')
+  const [reviewNotes, setReviewNotes] = useState('')
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [slipUrl, setSlipUrl] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -184,6 +215,48 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
   const openSlipImage = (url: string) => {
     setSlipUrl(url)
     setSlipOpen(true)
+  }
+
+  const openReviewDialog = (payment: PaymentData, action: PaymentReviewAction) => {
+    setReviewPayment(payment)
+    setReviewAction(action)
+    setReviewNotes('')
+    setReviewError(null)
+    setDetailOpen(false)
+  }
+
+  const submitReviewAction = async () => {
+    if (!reviewPayment) return
+    if (reviewAction !== 'approve' && !reviewNotes.trim()) {
+      setReviewError('กรุณาระบุเหตุผลเพื่อให้ลูกค้าและทีมงานตรวจสอบย้อนหลังได้')
+      return
+    }
+
+    setReviewSubmitting(true)
+    setReviewError(null)
+    try {
+      const response = await fetch('/api/admin/payments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId: reviewPayment.id,
+          action: reviewAction,
+          notes: reviewNotes.trim(),
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        setReviewError(result.error || 'ดำเนินการไม่สำเร็จ')
+        return
+      }
+
+      setReviewPayment(null)
+      router.refresh()
+    } catch {
+      setReviewError('เกิดข้อผิดพลาด กรุณาลองใหม่')
+    } finally {
+      setReviewSubmitting(false)
+    }
   }
 
   return (
@@ -526,6 +599,29 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
                 </div>
               )}
 
+              {detailPayment.status === 'pending' && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-semibold text-amber-900">การตอบกลับรายการนี้</p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    ถ้า SlipOK ไม่ผ่าน ให้เลือกตีกลับเพื่อให้ User เห็นเหตุผลและแนบสลิปใหม่ได้ หรือยกเลิกเมื่อรายการไม่ควรไปต่อ
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => openReviewDialog(detailPayment, 'approve')}>
+                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                      อนุมัติด้วยตนเอง
+                    </Button>
+                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => openReviewDialog(detailPayment, 'send_back')}>
+                      <AlertTriangle className="mr-1.5 h-4 w-4" />
+                      ตีกลับให้แนบใหม่
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => openReviewDialog(detailPayment, 'cancel')}>
+                      <XCircle className="mr-1.5 h-4 w-4" />
+                      ปฏิเสธและยกเลิก
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {detailPayment.slip_image_url ? (
                 <div>
                   <div className="mb-2 flex items-center justify-between">
@@ -552,6 +648,59 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
                 <p>สร้างรายการ: {formatDate(detailPayment.created_at)}</p>
                 <p>ยืนยันโดย: {detailPayment.verified_by_name || 'SlipOK / ระบบอัตโนมัติ'}</p>
                 <p>เวลายืนยัน: {formatDate(detailPayment.verified_at)}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!reviewPayment} onOpenChange={(open) => {
+        if (!open && !reviewSubmitting) setReviewPayment(null)
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">{PAYMENT_REVIEW_COPY[reviewAction].title}</DialogTitle>
+            <DialogDescription>{PAYMENT_REVIEW_COPY[reviewAction].description}</DialogDescription>
+          </DialogHeader>
+          {reviewPayment && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-gray-50 p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-gray-900">{reviewPayment.user_name}</p>
+                    <p className="truncate text-xs text-gray-500">{reviewPayment.user_email || '-'}</p>
+                  </div>
+                  <p className="shrink-0 text-lg font-bold text-[#153c85]">{formatMoney(reviewPayment.amount)}</p>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">Booking {getShortId(reviewPayment.booking_id)} · Payment {getShortId(reviewPayment.id)}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  เหตุผล/หมายเหตุ {reviewAction === 'approve' ? '(ไม่บังคับ)' : '(บังคับ)'}
+                </label>
+                <Textarea
+                  value={reviewNotes}
+                  onChange={(event) => setReviewNotes(event.target.value)}
+                  placeholder={reviewAction === 'approve' ? 'เช่น ตรวจสลิปกับบัญชีแล้วถูกต้อง' : 'เช่น บัญชีปลายทางไม่ตรง / ยอดไม่ตรง / แพ็กเกจ SlipOK หมดอายุ'}
+                  className="min-h-28"
+                />
+              </div>
+
+              {reviewError && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                  {reviewError}
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="outline" onClick={() => setReviewPayment(null)} disabled={reviewSubmitting}>
+                  ยกเลิก
+                </Button>
+                <Button className={PAYMENT_REVIEW_COPY[reviewAction].buttonClass} onClick={submitReviewAction} disabled={reviewSubmitting}>
+                  {reviewSubmitting ? <Clock className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {PAYMENT_REVIEW_COPY[reviewAction].button}
+                </Button>
               </div>
             </div>
           )}

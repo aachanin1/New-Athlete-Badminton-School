@@ -317,6 +317,12 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
     return payments.filter((p) => p.booking_id === bookingId)
   }
 
+  const getLatestRejectedPayment = (bookingId: string) => {
+    return getBookingPayments(bookingId)
+      .filter((payment) => payment.status === 'rejected')
+      .sort((a, b) => new Date(b.verified_at || b.created_at).getTime() - new Date(a.verified_at || a.created_at).getTime())[0]
+  }
+
   // Group bookings by month/year for display
   const groupedBookings = useMemo(() => {
     const groups: { key: string; label: string; year: number; month: number; bookings: BookingWithRelations[]; total: number }[] = []
@@ -453,6 +459,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
               {visibleBookings.map((booking) => {
                 const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_payment
                 const bookingPayments = getBookingPayments(booking.id)
+                const latestRejectedPayment = getLatestRejectedPayment(booking.id)
                 const couponUsages = couponUsageMap[booking.id] || []
                 const couponDiscount = couponUsages.reduce((sum, usage) => sum + Number(usage.discount_amount || 0), 0)
 
@@ -466,6 +473,12 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                             <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                           </div>
                           <p className="text-xs text-gray-500">{STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
+                          {!isAdmin && booking.status === 'pending_payment' && latestRejectedPayment?.notes && (
+                            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                              <p className="font-medium">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
+                              <p className="mt-1 whitespace-pre-wrap">{latestRejectedPayment.notes}</p>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                             <div className="flex items-center gap-1.5 text-gray-600">
@@ -770,6 +783,13 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {!isAdmin && selectedBooking.status === 'pending_payment' && getLatestRejectedPayment(selectedBooking.id)?.notes && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                  <p className="font-semibold">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
+                  <p className="mt-1 whitespace-pre-wrap">{getLatestRejectedPayment(selectedBooking.id)?.notes}</p>
                 </div>
               )}
 
