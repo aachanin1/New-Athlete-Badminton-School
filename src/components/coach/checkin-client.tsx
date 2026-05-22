@@ -45,6 +45,80 @@ type CameraState = 'idle' | 'requesting' | 'ready' | 'blocked'
 type LocationState = 'idle' | 'requesting' | 'ready' | 'blocked'
 type CheckinWindowState = 'early' | 'open' | 'expired'
 
+function getSecureContextError(feature: string) {
+  if (typeof window === 'undefined') return null
+  if (window.isSecureContext || ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)) return null
+  return `เบราว์เซอร์มือถือจะอนุญาต${feature}เฉพาะเว็บ HTTPS เท่านั้น ถ้าทดสอบจากมือถือผ่าน IP/LAN ให้ใช้ staging/production HTTPS หรือ tunnel HTTPS ก่อน`
+}
+
+function getCameraErrorMessage(error: unknown) {
+  const secureContextError = getSecureContextError('กล้อง')
+  if (secureContextError) return secureContextError
+
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+      return 'ระบบยังไม่ได้สิทธิ์ใช้กล้องหน้า กรุณาอนุญาตกล้องใน browser/site settings แล้วกดเปิดกล้องหน้าอีกครั้ง'
+    }
+    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+      return 'ไม่พบกล้องบนอุปกรณ์นี้ กรุณาตรวจสอบว่ามีกล้องหน้าและไม่ได้ถูกแอปอื่นใช้งานอยู่'
+    }
+    if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+      return 'กล้องถูกใช้งานอยู่หรือเปิดไม่ได้ กรุณาปิดแอปที่ใช้กล้องอยู่แล้วลองใหม่'
+    }
+    if (error.name === 'OverconstrainedError') {
+      return 'ไม่สามารถเปิดกล้องหน้าด้วยค่าที่ร้องขอได้ กรุณาลองกดเปิดกล้องหน้าอีกครั้ง'
+    }
+  }
+
+  return 'กรุณาอนุญาตให้ระบบใช้กล้องหน้า เพื่อถ่ายเซลฟี่เช็คอิน'
+}
+
+function getLocationErrorMessage(error?: GeolocationPositionError) {
+  const secureContextError = getSecureContextError('ตำแหน่ง GPS')
+  if (secureContextError) return secureContextError
+
+  if (error?.code === 1) {
+    return 'ระบบยังไม่ได้สิทธิ์ตำแหน่งที่ตั้ง กรุณาอนุญาต Location ใน browser/site settings แล้วกดอนุญาตตำแหน่งอีกครั้ง'
+  }
+  if (error?.code === 2) {
+    return 'มือถือยังหาตำแหน่ง GPS ไม่ได้ กรุณาเปิด Location ของเครื่องและลองอีกครั้ง'
+  }
+  if (error?.code === 3) {
+    return 'ขอตำแหน่ง GPS ไม่ทันเวลา กรุณาอยู่ในพื้นที่ที่สัญญาณดีขึ้นแล้วกดอนุญาตตำแหน่งอีกครั้ง'
+  }
+
+  return 'กรุณาอนุญาตตำแหน่งที่ตั้งก่อนเช็คอิน ระบบต้องบันทึกพิกัดพร้อมรูปเซลฟี่'
+}
+
+function waitForVideoReady(video: HTMLVideoElement) {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      cleanup()
+      reject(new Error('video_ready_timeout'))
+    }, 8000)
+
+    const done = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        cleanup()
+        resolve()
+      }
+    }
+
+    const cleanup = () => {
+      window.clearTimeout(timeout)
+      video.removeEventListener('loadedmetadata', done)
+      video.removeEventListener('canplay', done)
+    }
+
+    video.addEventListener('loadedmetadata', done)
+    video.addEventListener('canplay', done)
+  })
+}
+
 function getCheckinWindowState(startTime: string, nowMs: number): CheckinWindowState {
   const [hourText, minuteText] = startTime.split(':')
   const hour = Number(hourText)
@@ -102,6 +176,13 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null, sele
   }
 
   const startCamera = async () => {
+    const secureContextError = getSecureContextError('กล้อง')
+    if (secureContextError) {
+      setCameraState('blocked')
+      setError(secureContextError)
+      return
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraState('blocked')
       setError('เบราว์เซอร์ไม่รองรับการเปิดกล้อง กรุณาใช้ Chrome/Safari/Edge เวอร์ชันล่าสุด')
@@ -114,22 +195,38 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null, sele
     try {
       stopCamera()
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
+        video: {
+          facingMode: { ideal: 'user' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       })
       streamRef.current = stream
       if (videoRef.current) {
+        videoRef.current.muted = true
+        videoRef.current.playsInline = true
+        videoRef.current.autoplay = true
         videoRef.current.srcObject = stream
-        await videoRef.current.play()
+        await videoRef.current.play().catch(() => undefined)
+        await waitForVideoReady(videoRef.current)
       }
       setCameraState('ready')
-    } catch {
+    } catch (caughtError) {
+      stopCamera()
       setCameraState('blocked')
-      setError('กรุณาอนุญาตให้ระบบใช้กล้องหน้า เพื่อถ่ายเซลฟี่เช็คอิน')
+      setError(getCameraErrorMessage(caughtError))
     }
   }
 
   const requestLocation = () => {
+    const secureContextError = getSecureContextError('ตำแหน่ง GPS')
+    if (secureContextError) {
+      setLocationState('blocked')
+      setError(secureContextError)
+      return
+    }
+
     if (!navigator.geolocation) {
       setLocationState('blocked')
       setError('เบราว์เซอร์ไม่รองรับ GPS')
@@ -141,13 +238,14 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null, sele
       (position) => {
         setLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
         setLocationState('ready')
+        setError(null)
       },
-      () => {
+      (caughtError) => {
         setLocation(null)
         setLocationState('blocked')
-        setError('กรุณาอนุญาตตำแหน่งที่ตั้งก่อนเช็คอิน ระบบต้องบันทึกพิกัดพร้อมรูปเซลฟี่')
+        setError(getLocationErrorMessage(caughtError))
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 },
     )
   }
 
@@ -159,8 +257,13 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null, sele
       return
     }
 
-    const width = video.videoWidth || 720
-    const height = video.videoHeight || 720
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.videoWidth === 0 || video.videoHeight === 0) {
+      setError('กล้องยังไม่พร้อม กรุณารอภาพจากกล้องขึ้นก่อน หรือกดเปิดกล้องหน้าอีกครั้ง')
+      return
+    }
+
+    const width = video.videoWidth
+    const height = video.videoHeight
     canvas.width = width
     canvas.height = height
 

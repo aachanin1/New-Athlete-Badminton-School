@@ -876,6 +876,12 @@ Notes:
   - Run `npm run prod:check` in real mode and confirm the only remaining warnings are intentional.
   - Verify `payment-slips`, `avatars`, and `coach-checkins` buckets/policies still work before staging.
   - Do not commit real secrets into the repository.
+  - Mobile check-in hardening 2026-05-22:
+    - Coach check-in now detects insecure mobile contexts and explains that camera/GPS require HTTPS instead of showing a generic permission error.
+    - Camera capture now waits for real video metadata/frame readiness before enabling selfie capture, reducing black-preview/blank-capture issues on mobile browsers.
+    - GPS errors now distinguish denied permission, unavailable position, and timeout so Coach/Admin know what to fix during field use.
+    - Real SlipOK credentials validated through `npm run prod:check`; quota is readable, remaining quota is 98, and package end date is 2026-05-26.
+    - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, `npm run prod:check`.
 
 - [ ] 21.4 Dependency Vulnerability Review
   - Run dependency audit and review only actionable `critical`/`high` issues first.
