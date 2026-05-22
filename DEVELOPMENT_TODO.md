@@ -838,7 +838,7 @@ Notes:
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, and `npm run prod:check`.
     - Note: local non-escalated `prod:check`/`build` can fail on network access to Supabase/Google Fonts inside sandbox; escalated checks passed. Production warning remains only `SLIPOK_TEST_MODE=true` until real mode is intentionally enabled.
 
-- [ ] 21.2 Coach Assignment Visibility / Past Slot Lock
+- [x] 21.2 Coach Assignment Visibility / Past Slot Lock
   - Critical issue found 2026-05-22: Head Coach can confirm a coach assignment, Admin sees the assigned coach, but User schedule can still show `ยังไม่ได้มอบหมายโค้ช`.
   - Fix the read model so User schedule/history uses the same confirmed `coach_assignment_groups` / student-to-coach assignment source as Admin and Coach pages.
   - User-facing schedule must show the assigned coach name once Head Coach has saved/confirmed the group for that learner/session.
@@ -856,6 +856,13 @@ Notes:
     - Past slot with existing assignment: visible read-only everywhere.
     - Past slot without assignment: normal assign controls are blocked and the record routes to attendance gap review.
     - Coach schedule, attendance, makeup, teaching hours, and User schedule remain consistent after the change.
+  - Completed 2026-05-22:
+    - User schedule now reads confirmed `coach_assignment_groups` with service access and falls back to legacy `coach_assignments` only when no assignment group exists for that slot.
+    - User schedule, attendance status, and coach visibility now share the same assignment source used by Admin/Coach pages.
+    - Head Coach assignment page now opens with all statuses visible by default and locks started/past slots as read-only.
+    - `POST /api/coach/assignment-groups` now rejects started/past slots server-side, so UI bypass cannot create backdated assignments.
+    - Admin Makeup page now opens with `ทุกสาขา` + `ทั้งหมด` to avoid hiding review records behind an action-only filter.
+    - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`.
 
 - [ ] 21.3 Production Env / SlipOK Real Mode Final Check
   - Confirm production `.env` values before staging/deploy:

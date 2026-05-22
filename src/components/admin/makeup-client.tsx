@@ -259,7 +259,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterBranch, setFilterBranch] = useState('all')
-  const [filterType, setFilterType] = useState('actionable')
+  const [filterType, setFilterType] = useState('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)

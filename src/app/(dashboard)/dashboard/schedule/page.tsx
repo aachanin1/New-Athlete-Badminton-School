@@ -64,6 +64,16 @@ interface AssignmentGroupRow {
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
 
+interface LegacyAssignmentRow {
+  schedule_slot_id: string
+  coach_id: string
+  profiles: {
+    full_name: string | null
+    role: string | null
+    avatar_url: string | null
+  } | null
+}
+
 interface AttendanceRow {
   booking_session_id: string
   student_id: string
@@ -105,6 +115,8 @@ export default async function SchedulePage() {
   const slotSessionIdsBySlotId: Record<string, string[]> = {}
   const attendanceBySessionId: Record<string, AttendanceRow> = {}
   const attendanceCountBySessionId: Record<string, number> = {}
+  const groupCountBySlotId: Record<string, number> = {}
+  const legacyAssignmentBySlotId: Record<string, LegacyAssignmentRow> = {}
 
   if (fromIds.length > 0) {
     const { data: fromSessions } = await supabase
@@ -145,7 +157,8 @@ export default async function SchedulePage() {
   }
 
   if (slotIds.length > 0) {
-    const { data: groupRows } = await supabase
+    const [{ data: groupRows }, { data: legacyAssignments }] = await Promise.all([
+      adminSupabase
       .from('coach_assignment_groups')
       .select(`
         id,
@@ -155,9 +168,19 @@ export default async function SchedulePage() {
         profiles!coach_assignment_groups_coach_id_fkey(full_name, role, avatar_url),
         coach_assignment_group_students(booking_session_id)
       `)
-      .in('schedule_slot_id', slotIds) as unknown as { data: AssignmentGroupRow[] | null }
+      .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: AssignmentGroupRow[] | null }>,
+      adminSupabase
+        .from('coach_assignments')
+        .select(`
+          schedule_slot_id,
+          coach_id,
+          profiles!coach_assignments_coach_id_fkey(full_name, role, avatar_url)
+        `)
+        .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: LegacyAssignmentRow[] | null }>,
+    ])
 
     ;(groupRows || []).forEach((group) => {
+      groupCountBySlotId[group.schedule_slot_id] = (groupCountBySlotId[group.schedule_slot_id] || 0) + 1
       const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
       ;(group.coach_assignment_group_students || []).forEach((student) => {
         if (sessionIds.includes(student.booking_session_id)) {
@@ -166,10 +189,16 @@ export default async function SchedulePage() {
         }
       })
     })
+
+    ;(legacyAssignments || []).forEach((assignment) => {
+      if (!legacyAssignmentBySlotId[assignment.schedule_slot_id]) {
+        legacyAssignmentBySlotId[assignment.schedule_slot_id] = assignment
+      }
+    })
   }
 
   if (slotIds.length > 0) {
-    const { data: slotSessions } = await supabase
+    const { data: slotSessions } = await adminSupabase
       .from('booking_sessions')
       .select('id, schedule_slot_id')
       .in('schedule_slot_id', slotIds)
@@ -192,7 +221,7 @@ export default async function SchedulePage() {
   ]))
 
   if (attendanceScopeSessionIds.length > 0) {
-    const { data: attendanceRows } = await supabase
+    const { data: attendanceRows } = await adminSupabase
       .from('attendance')
       .select('booking_session_id, student_id, status, checked_at')
       .in('booking_session_id', attendanceScopeSessionIds)
@@ -210,6 +239,9 @@ export default async function SchedulePage() {
 
   const sessions = sessionsArr.map((session) => {
     const assignment = assignmentBySessionId[session.id]
+    const legacyAssignment = !assignment && session.schedule_slot_id && !groupCountBySlotId[session.schedule_slot_id]
+      ? legacyAssignmentBySlotId[session.schedule_slot_id] || null
+      : null
     const attendance = attendanceBySessionId[session.id]
     const walletCredit = walletCreditByOriginalSessionId[session.id]
     const sourceWalletCredit = session.rescheduled_from_id ? walletCreditByOriginalSessionId[session.rescheduled_from_id] : null
@@ -224,11 +256,11 @@ export default async function SchedulePage() {
       wallet_source_status: sourceWalletCredit?.status || null,
       assignment_group_id: assignment?.id || null,
       assignment_group_name: assignment?.name || null,
-      coach_id: assignment?.coach_id || null,
-      coach_name: assignment?.profiles?.full_name || null,
-      coach_role: assignment?.profiles?.role || null,
-      coach_avatar_url: assignment?.profiles?.avatar_url || null,
-      assignment_status: assignment?.coach_id ? 'assigned' as const : 'pending_assignment' as const,
+      coach_id: assignment?.coach_id || legacyAssignment?.coach_id || null,
+      coach_name: assignment?.profiles?.full_name || legacyAssignment?.profiles?.full_name || null,
+      coach_role: assignment?.profiles?.role || legacyAssignment?.profiles?.role || null,
+      coach_avatar_url: assignment?.profiles?.avatar_url || legacyAssignment?.profiles?.avatar_url || null,
+      assignment_status: assignment?.coach_id || legacyAssignment?.coach_id ? 'assigned' as const : 'pending_assignment' as const,
       attendance_status: attendance?.status || null,
       attendance_checked_at: attendance?.checked_at || null,
       attendance_scope_count: (groupSessionIdsBySessionId[session.id] || slotSessionIdsBySlotId[session.schedule_slot_id || ''] || [session.id])

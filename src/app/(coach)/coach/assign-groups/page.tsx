@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { AssignGroupsClient } from '@/components/coach/assign-groups-client'
 import { getCoachMemoryKey, getCoachStudentMemoryMap, type CoachMemoryEntry } from '@/lib/coach-student-memory'
 import { createClient } from '@/lib/supabase/server'
+import { getBangkokDateString } from '@/lib/utils'
 import type { LevelCategory, StudentType } from '@/types/database'
 
 interface CoachBranchRow {
@@ -118,6 +119,8 @@ interface AssignmentSlotForClient {
   suggestedCoachId: string | null
   suggestedCoachName: string | null
   suggestedCoachReason: string | null
+  assignmentLocked: boolean
+  assignmentLockReason: string | null
   students: AssignmentStudentForClient[]
   assignmentGroups: ExistingAssignmentGroupForClient[]
 }
@@ -165,6 +168,16 @@ function rankCoachSuggestion(a: {
   if (b.studentCount !== a.studentCount) return b.studentCount - a.studentCount
   if (b.totalSessions !== a.totalSessions) return b.totalSessions - a.totalSessions
   return b.lastTaughtDate.localeCompare(a.lastTaughtDate)
+}
+
+function getBangkokSlotStart(date: string, startTime: string) {
+  return new Date(`${date}T${startTime.slice(0, 8)}+07:00`)
+}
+
+function getAssignmentLockReason(date: string, startTime: string, now = new Date()) {
+  const start = getBangkokSlotStart(date, startTime)
+  if (now < start) return null
+  return 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว การมอบหมายย้อนหลังต้องเข้าทาง flow ตรวจสอบ attendance gap'
 }
 
 export default async function AssignGroupsPage() {
@@ -237,7 +250,8 @@ export default async function AssignGroupsPage() {
     coaches = Array.from(coachMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'th'))
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = getBangkokDateString(now)
   let sessionRows: SessionRow[] = []
 
   if (branchIds.length > 0) {
@@ -351,6 +365,8 @@ export default async function AssignGroupsPage() {
         suggestedCoachId: null,
         suggestedCoachName: null,
         suggestedCoachReason: null,
+        assignmentLocked: Boolean(getAssignmentLockReason(session.date, session.start_time, now)),
+        assignmentLockReason: getAssignmentLockReason(session.date, session.start_time, now),
         students: [],
         assignmentGroups: session.schedule_slot_id ? assignmentGroupsBySlot[session.schedule_slot_id] || [] : [],
       }

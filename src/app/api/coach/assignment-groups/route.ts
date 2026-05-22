@@ -76,6 +76,14 @@ function getStudentFromSession(session: BookingSessionForGroup) {
   }
 }
 
+function getBangkokSlotStart(date: string, startTime: string) {
+  return new Date(`${date}T${startTime.slice(0, 8)}+07:00`)
+}
+
+function isAssignmentLocked(date: string, startTime: string, now = new Date()) {
+  return now >= getBangkokSlotStart(date, startTime)
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const manager = await requireAssignmentManager(supabase)
@@ -130,6 +138,10 @@ export async function POST(request: NextRequest) {
 
     if (!slot || slot.branch_id !== branchId) {
       return NextResponse.json({ error: 'ไม่พบรอบสอนที่ต้องการจัดกลุ่ม' }, { status: 404 })
+    }
+
+    if (isAssignmentLocked(slot.date, slot.start_time)) {
+      return NextResponse.json({ error: 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว ไม่สามารถมอบหมาย/แก้ไขกลุ่มได้ กรุณาใช้ flow ตรวจสอบ attendance gap หรือข้อมูลย้อนหลังแทน' }, { status: 409 })
     }
 
     const submittedSessionIds = Array.from(new Set(groups.flatMap((group) => group.studentSessionIds || [])))

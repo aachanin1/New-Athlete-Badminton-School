@@ -80,6 +80,8 @@ interface AssignmentSlot {
   suggestedCoachId: string | null
   suggestedCoachName: string | null
   suggestedCoachReason: string | null
+  assignmentLocked: boolean
+  assignmentLockReason: string | null
   students: AssignmentStudent[]
   assignmentGroups: ExistingAssignmentGroup[]
 }
@@ -418,7 +420,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
   const [selectedDate, setSelectedDate] = useState(() => slots[0]?.date || '')
   const [selectedSlotKey, setSelectedSlotKey] = useState('')
   const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(slots[0]?.date || new Date().toISOString().slice(0, 10)))
-  const [statusFilter, setStatusFilter] = useState<AssignmentStatusFilter>('needs_assignment')
+  const [statusFilter, setStatusFilter] = useState<AssignmentStatusFilter>('all')
 
   const stats = useMemo(() => {
     const totalStudents = slots.reduce((sum, slot) => sum + slot.students.length, 0)
@@ -549,6 +551,11 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
 
   const saveSlot = async (slot: AssignmentSlot) => {
     const groups = draftsBySlot[slot.key] || []
+    if (slot.assignmentLocked) {
+      setErrorsBySlot((prev) => ({ ...prev, [slot.key]: slot.assignmentLockReason || 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว ไม่สามารถมอบหมายย้อนหลังได้' }))
+      return
+    }
+
     if (!slot.scheduleSlotId) {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'รอบนี้ยังไม่มี schedule slot จึงบันทึกกลุ่มไม่ได้' }))
       return
@@ -888,6 +895,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                 const duplicateCoachIds = getDuplicateCoachIds(slotGroups)
                 const hasDuplicateCoaches = duplicateCoachIds.size > 0
                 const slotDraftState = getSlotDraftState(slot, slotGroups)
+                const isAssignmentLocked = slot.assignmentLocked
 
                 return (
                   <Card key={slot.key} className="overflow-hidden shadow-sm">
@@ -899,6 +907,9 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                             <Badge className="bg-blue-100 text-blue-700">{slot.courseType || 'คอร์ส'}</Badge>
                             <Badge variant="outline">{slot.students.length} คน</Badge>
                             <Badge className={getStateBadgeClass(slotDraftState)}>{getStateLabel(slotDraftState)}</Badge>
+                            {isAssignmentLocked && (
+                              <Badge className="bg-gray-100 text-gray-700">ล็อกย้อนหลัง</Badge>
+                            )}
                             {hasDuplicateCoaches && (
                               <Badge className="bg-red-100 text-red-700">โค้ชซ้ำในรอบนี้</Badge>
                             )}
@@ -915,11 +926,11 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Button type="button" variant="outline" size="sm" onClick={() => resetAutoGroups(slot)}>
+                          <Button type="button" variant="outline" size="sm" onClick={() => resetAutoGroups(slot)} disabled={isAssignmentLocked}>
                             <RefreshCw className="mr-2 h-4 w-4" />
                             จัดตาม Level (ยังไม่บันทึก)
                           </Button>
-                          <Button type="button" variant="outline" size="sm" onClick={() => addGroup(slot)}>
+                          <Button type="button" variant="outline" size="sm" onClick={() => addGroup(slot)} disabled={isAssignmentLocked}>
                             <Plus className="mr-2 h-4 w-4" />
                             เพิ่มกลุ่ม
                           </Button>
@@ -927,7 +938,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                             type="button"
                             size="sm"
                             onClick={() => saveSlot(slot)}
-                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved'}
+                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved' || isAssignmentLocked}
                             className="bg-[#2748bf] hover:bg-[#153c85]"
                           >
                             {savingKey === slot.key ? (
@@ -944,6 +955,12 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                           </Button>
                         </div>
                       </div>
+
+                      {isAssignmentLocked && (
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                          {slot.assignmentLockReason || 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว จึงแสดงการมอบหมายแบบอ่านอย่างเดียว'}
+                        </div>
+                      )}
 
                       <div className={cn(
                         'rounded-lg border px-3 py-2 text-sm',
@@ -980,6 +997,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                                     value={group.name}
                                     onChange={(event) => updateGroup(slot.key, group.localId, { name: event.target.value })}
                                     className="font-semibold"
+                                    disabled={isAssignmentLocked}
                                   />
                                 </div>
                                 <Button
@@ -988,7 +1006,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                                   size="sm"
                                   className="text-red-600 hover:bg-red-50"
                                   onClick={() => removeGroup(slot, group.localId)}
-                                  disabled={slotGroups.length <= 1}
+                                  disabled={slotGroups.length <= 1 || isAssignmentLocked}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   <span className="sr-only">ลบกลุ่ม</span>
@@ -1001,6 +1019,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                                   <Select
                                     value={group.coachId || 'unassigned'}
                                     onValueChange={(value) => updateGroup(slot.key, group.localId, { coachId: value === 'unassigned' ? null : value })}
+                                    disabled={isAssignmentLocked}
                                   >
                                     <SelectTrigger><SelectValue placeholder="เลือกโค้ช" /></SelectTrigger>
                                     <SelectContent>
@@ -1038,7 +1057,8 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                                     size="sm"
                                     className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                                     disabled={
-                                      Boolean(usedCoachMap[bestCoach.coachId]?.some((usedGroup) => usedGroup.groupId !== group.localId))
+                                      isAssignmentLocked
+                                      || Boolean(usedCoachMap[bestCoach.coachId]?.some((usedGroup) => usedGroup.groupId !== group.localId))
                                       && bestCoach.coachId !== group.coachId
                                     }
                                     onClick={() => updateGroup(slot.key, group.localId, { coachId: bestCoach.coachId })}
@@ -1070,6 +1090,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                                       groups={slotGroups}
                                       selectedGroupId={group.localId}
                                       onMove={(nextGroupId) => moveStudent(slot.key, student.bookingSessionId, nextGroupId)}
+                                      disabled={isAssignmentLocked}
                                     />
                                   ))
                                 )}
@@ -1106,11 +1127,13 @@ function StudentRow({
   groups,
   selectedGroupId,
   onMove,
+  disabled = false,
 }: {
   student: AssignmentStudent
   groups: GroupDraft[]
   selectedGroupId: string
   onMove: (groupId: string) => void
+  disabled?: boolean
 }) {
   return (
     <div className="rounded-md border bg-gray-50 p-2">
@@ -1144,7 +1167,7 @@ function StudentRow({
         </div>
 
         <div className="w-full md:w-56">
-          <Select value={selectedGroupId} onValueChange={onMove}>
+          <Select value={selectedGroupId} onValueChange={onMove} disabled={disabled}>
             <SelectTrigger className="h-9 bg-white"><SelectValue placeholder="ย้ายกลุ่ม" /></SelectTrigger>
             <SelectContent>
               {groups.map((group) => (
