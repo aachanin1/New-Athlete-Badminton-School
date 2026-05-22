@@ -41,6 +41,17 @@ interface BranchOption {
   slug: string
 }
 
+interface ExistingSession {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+  status: string
+  course_type_id: string
+}
+
 interface PickedSlot {
   date: string
   dayOfWeek: number
@@ -54,6 +65,7 @@ interface PickedSlot {
 interface LessonWalletClientProps {
   credits: WalletCredit[]
   branches: BranchOption[]
+  existingSessions: ExistingSession[]
   scheduleTemplates: ScheduleTemplateOption[]
 }
 
@@ -93,7 +105,11 @@ function isFutureSlot(date: string, time: string) {
   return new Date(`${date}T${time.slice(0, 5)}:00+07:00`).getTime() > Date.now()
 }
 
-export function LessonWalletClient({ credits, branches, scheduleTemplates }: LessonWalletClientProps) {
+function normalizeTime(value: string) {
+  return value.length === 5 ? `${value}:00` : value
+}
+
+export function LessonWalletClient({ credits, branches, existingSessions, scheduleTemplates }: LessonWalletClientProps) {
   const router = useRouter()
   const [selectedCredit, setSelectedCredit] = useState<WalletCredit | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
@@ -122,13 +138,33 @@ export function LessonWalletClient({ credits, branches, scheduleTemplates }: Les
 
   const getDateStr = (day: number) => `${selectedMonthParts.year}-${String(selectedMonthParts.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
+  const isSlotAlreadyBooked = (
+    credit: WalletCredit,
+    date: string,
+    start: string,
+    end: string,
+    branchId: string,
+  ) => existingSessions.some((session) => (
+    session.date === date &&
+    normalizeTime(session.start_time) === normalizeTime(start) &&
+    normalizeTime(session.end_time) === normalizeTime(end) &&
+    session.branch_id === branchId &&
+    session.course_type_id === credit.course_type_id &&
+    session.child_id === credit.child_id &&
+    !['rescheduled', 'walleted'].includes(session.status)
+  ))
+
   const isDateSelectable = (day: number) => {
     if (!selectedCredit) return false
     const courseType = getCourseType(selectedCredit)
     const date = new Date(selectedMonthParts.year, selectedMonthParts.month, day)
+    const dateStr = getDateStr(day)
     return branches.some((branch) => {
       if (!hasTemplateSlots(scheduleTemplates, branch.slug, courseType, date)) return false
-      return getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay()).some((slot) => isFutureSlot(getDateStr(day), slot.start))
+      return getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay()).some((slot) => (
+        isFutureSlot(dateStr, slot.start) &&
+        !isSlotAlreadyBooked(selectedCredit, dateStr, slot.start, slot.end, branch.id)
+      ))
     })
   }
 
@@ -156,6 +192,7 @@ export function LessonWalletClient({ credits, branches, scheduleTemplates }: Les
   const handleSlotPick = (day: number, start: string, end: string, branch: BranchOption, templateId?: string) => {
     const date = getDateStr(day)
     if (!isFutureSlot(date, start)) return
+    if (selectedCredit && isSlotAlreadyBooked(selectedCredit, date, start, end, branch.id)) return
     setPickedSlot({
       date,
       dayOfWeek: new Date(selectedMonthParts.year, selectedMonthParts.month, day).getDay(),
@@ -385,17 +422,20 @@ export function LessonWalletClient({ credits, branches, scheduleTemplates }: Les
                           <div className="flex flex-wrap gap-2">
                             {slots.map((slot) => {
                               const isSlotPicked = pickedSlot?.date === expandedDate && pickedSlot.start === slot.start && pickedSlot.branchId === branch.id
+                              const alreadyBooked = isSlotAlreadyBooked(selectedCredit, expandedDate, slot.start, slot.end, branch.id)
                               return (
                                 <Button
                                   key={`${branch.id}-${slot.start}-${slot.end}`}
                                   type="button"
                                   size="sm"
+                                  disabled={alreadyBooked}
                                   variant={isSlotPicked ? 'default' : 'outline'}
-                                  className={isSlotPicked ? 'bg-[#2748bf]' : ''}
+                                  className={isSlotPicked ? 'bg-[#2748bf]' : alreadyBooked ? 'cursor-not-allowed border-orange-200 bg-orange-50 text-orange-700 opacity-70' : ''}
                                   onClick={() => handleSlotPick(day, slot.start, slot.end, branch, slot.templateId)}
                                 >
                                   <Clock className="mr-1 h-3.5 w-3.5" />
                                   {fmtTime(slot.start)}-{fmtTime(slot.end)}
+                                  {alreadyBooked && <span className="ml-1 text-[11px]">(จองแล้ว)</span>}
                                 </Button>
                               )
                             })}

@@ -100,7 +100,7 @@ interface CoachBranchRow {
 interface ExistingSessionRow {
   id: string
   status: string
-  bookings?: { user_id: string } | null
+  bookings?: { user_id: string; course_type_id: string } | null
 }
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
@@ -279,13 +279,21 @@ async function findMatchingTemplate(
 async function ensureNoDuplicateLearnerSlot(
   adminSupabase: AdminSupabase,
   credit: WalletCreditRow,
-  scheduleSlotId: string,
+  target: {
+    date: string
+    startTime: string
+    endTime: string
+    branchId: string
+  },
 ) {
-  const selectColumns = credit.child_id ? 'id, status' : 'id, status, bookings!inner(user_id)'
   let query = adminSupabase
     .from('booking_sessions')
-    .select(selectColumns)
-    .eq('schedule_slot_id', scheduleSlotId)
+    .select('id, status, bookings!inner(user_id, course_type_id)')
+    .eq('date', target.date)
+    .eq('start_time', normalizeTime(target.startTime))
+    .eq('end_time', normalizeTime(target.endTime))
+    .eq('branch_id', target.branchId)
+    .eq('bookings.course_type_id', credit.course_type_id)
 
   query = credit.child_id
     ? query.eq('child_id', credit.child_id)
@@ -510,7 +518,12 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
   })
 
   await ensureSlotHasCapacity(adminSupabase, scheduleSlotId)
-  await ensureNoDuplicateLearnerSlot(adminSupabase, credit, scheduleSlotId)
+  await ensureNoDuplicateLearnerSlot(adminSupabase, credit, {
+    date: targetDate,
+    startTime,
+    endTime,
+    branchId,
+  })
 
   const { data: newSession, error: insertError } = await adminSupabase
     .from('booking_sessions')

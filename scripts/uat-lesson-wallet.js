@@ -83,7 +83,9 @@ function nextUatMonthDates() {
     originalDate: formatDate(localDate(baseYear, normalizedMonth, 5)),
     targetDate: formatDate(localDate(baseYear, normalizedMonth, 7)),
     duplicateDate: formatDate(localDate(baseYear, normalizedMonth, 9)),
+    rewalletDate: formatDate(localDate(baseYear, normalizedMonth, 10)),
     expireDate: formatDate(localDate(baseYear, normalizedMonth, 11)),
+    conflictDate: formatDate(localDate(baseYear, normalizedMonth, 12)),
     nearDate: addDays(formatDate(now), 1),
     wrongMonthDate: formatDate(localDate(baseYear, normalizedMonth + 1, 5)),
   }
@@ -341,7 +343,7 @@ async function createTemplateAndSlot({ branchId, courseTypeId, date, startTime, 
       max_students: maxStudents,
       current_students: currentStudents,
       status: 'open',
-    }).select('id, template_id, date, start_time, end_time, current_students, max_students').single(),
+    }).select('id, template_id, branch_id, course_type_id, date, start_time, end_time, current_students, max_students').single(),
     `create slot ${date}`,
   )
 
@@ -506,8 +508,12 @@ async function redeemCredit({ credit, original, targetSlot, userId }) {
   const duplicateRows = await expectNoError(
     await supabase
       .from('booking_sessions')
-      .select('id, status')
-      .eq('schedule_slot_id', targetSlot.id)
+      .select('id, status, bookings!inner(course_type_id)')
+      .eq('date', targetSlot.date)
+      .eq('start_time', targetSlot.start_time)
+      .eq('end_time', targetSlot.end_time)
+      .eq('branch_id', targetSlot.branch_id)
+      .eq('bookings.course_type_id', targetSlot.course_type_id)
       .eq('child_id', original.session.child_id),
     'check duplicate learner before redeem',
   )
@@ -531,7 +537,7 @@ async function redeemCredit({ credit, original, targetSlot, userId }) {
       status: 'scheduled',
       rescheduled_from_id: original.session.id,
       is_makeup: false,
-    }).select('id, booking_id, schedule_slot_id, status, rescheduled_from_id').single(),
+    }).select('id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, child_id, status, rescheduled_from_id').single(),
     'create redeemed session',
   )
 
@@ -565,6 +571,33 @@ async function redeemCredit({ credit, original, targetSlot, userId }) {
   )
 
   return newSession
+}
+
+async function assertDuplicateRedeemBlocked({ parentId, childId, branchId, courseTypeId, bookedSlot, targetSlot }) {
+  await createVerifiedBookingWithSession({
+    userId: parentId,
+    childId,
+    branchId,
+    courseTypeId,
+    slot: bookedSlot,
+    label: 'same-time-conflict',
+  })
+
+  const duplicateRows = await expectNoError(
+    await supabase
+      .from('booking_sessions')
+      .select('id, status, bookings!inner(course_type_id)')
+      .eq('date', targetSlot.date)
+      .eq('start_time', targetSlot.start_time)
+      .eq('end_time', targetSlot.end_time)
+      .eq('branch_id', targetSlot.branch_id)
+      .eq('bookings.course_type_id', targetSlot.course_type_id)
+      .eq('child_id', childId),
+    'check same-time duplicate learner before redeem',
+  )
+
+  const hasBlockingDuplicate = duplicateRows.some((session) => !['rescheduled', 'walleted'].includes(session.status))
+  assertCondition(hasBlockingDuplicate, 'Same-time duplicate guard should block wallet redeem')
 }
 
 async function assertStoreBlockedCases({ parentId, childId, branchId, courseTypeId, nearSlot, duplicateSlot, expireSlot }) {
@@ -677,6 +710,13 @@ async function runUat() {
     startTime: '17:00',
     endTime: '19:00',
   })
+  const rewalletSlot = await createTemplateAndSlot({
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    date: dates.rewalletDate,
+    startTime: '17:00',
+    endTime: '19:00',
+  })
   const nearSlot = await createTemplateAndSlot({
     branchId: branch.id,
     courseTypeId: courseType.id,
@@ -690,6 +730,13 @@ async function runUat() {
     date: dates.expireDate,
     startTime: '15:00',
     endTime: '16:00',
+  })
+  const conflictBookedSlot = await createTemplateAndSlot({
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    date: dates.conflictDate,
+    startTime: '17:00',
+    endTime: '19:00',
   })
   const wrongMonthSlot = await createTemplateAndSlot({
     branchId: branch.id,
@@ -766,6 +813,56 @@ async function runUat() {
   assertCondition(Number(finalTargetSlot.current_students) === 1, 'Target slot count was not incremented')
   assertCondition(paymentCount === 1, 'Redeem flow should reuse the original paid booking without creating another payment')
 
+  await assignCoach({
+    coachId: ids.coach,
+    adminId: ids.admin,
+    slotId: targetSlot.id,
+    session: redeemedSession,
+    childId: child.id,
+  })
+  const rewalletCredit = await storeSessionInWallet({
+    userId: ids.parent,
+    session: redeemedSession,
+    courseTypeId: courseType.id,
+    bookingId: original.booking.id,
+  })
+  const targetSlotAfterRewallet = await expectNoError(
+    await supabase.from('schedule_slots').select('current_students').eq('id', targetSlot.id).single(),
+    'verify target slot count after re-wallet',
+  )
+  const rewalletAssignmentAfterStore = await expectNoError(
+    await supabase.from('coach_assignment_group_students').select('id').eq('booking_session_id', redeemedSession.id),
+    'verify redeemed assignment removed after re-wallet',
+  )
+  assertCondition(Number(targetSlotAfterRewallet.current_students) === 0, 'Re-wallet did not decrement the redeemed target slot')
+  assertCondition(rewalletAssignmentAfterStore.length === 0, 'Re-wallet did not remove learner from assigned coach group')
+
+  const secondRedeemedSession = await redeemCredit({
+    credit: rewalletCredit,
+    original: { booking: original.booking, session: redeemedSession },
+    targetSlot: rewalletSlot,
+    userId: ids.parent,
+  })
+  const finalRewalletCredit = await expectNoError(
+    await supabase.from('lesson_wallet_credits').select('status, redeemed_session_id').eq('id', rewalletCredit.id).single(),
+    'verify re-wallet credit redeemed',
+  )
+  const finalRewalletTargetSlot = await expectNoError(
+    await supabase.from('schedule_slots').select('current_students').eq('id', rewalletSlot.id).single(),
+    'verify re-wallet target slot count',
+  )
+  const { count: rewalletPaymentCount, error: rewalletPaymentCountError } = await supabase
+    .from('payments')
+    .select('id', { count: 'exact', head: true })
+    .eq('booking_id', original.booking.id)
+  if (rewalletPaymentCountError) throw new Error(`verify re-wallet payment count: ${rewalletPaymentCountError.message}`)
+  assertCondition(finalRewalletCredit.status === 'redeemed', 'Re-wallet credit was not marked redeemed')
+  assertCondition(finalRewalletCredit.redeemed_session_id === secondRedeemedSession.id, 'Re-wallet redeemed session id was not linked')
+  assertCondition(secondRedeemedSession.booking_id === original.booking.id, 'Second redeemed session did not reuse original booking')
+  assertCondition(secondRedeemedSession.rescheduled_from_id === redeemedSession.id, 'Second redeemed session did not reference the re-walleted session')
+  assertCondition(Number(finalRewalletTargetSlot.current_students) === 1, 'Re-wallet target slot count was not incremented')
+  assertCondition(rewalletPaymentCount === 1, 'Re-wallet flow should not create another payment')
+
   await assertStoreBlockedCases({
     parentId: ids.parent,
     childId: child.id,
@@ -775,13 +872,23 @@ async function runUat() {
     duplicateSlot,
     expireSlot,
   })
+  await assertDuplicateRedeemBlocked({
+    parentId: ids.parent,
+    childId: child.id,
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    bookedSlot: conflictBookedSlot,
+    targetSlot: conflictBookedSlot,
+  })
 
   console.log('PASS Migration table is usable: lesson_wallet_credits insert/update/select succeeded')
   console.log('PASS Store wallet: verified booking only, 48-hour guard, no attendance, original session -> walleted')
   console.log('PASS Store wallet: original slot count decremented and learner removed from coach group')
   console.log('PASS Redeem wallet: same-month future slot, target capacity, new scheduled session created')
   console.log('PASS Redeem wallet: original booking/payment reused; no additional charge path used')
+  console.log('PASS Re-wallet chain: redeemed session can be stored again, assignment cleanup stays per learner, and payment count stays unchanged')
   console.log('PASS Guard checks: near cutoff blocked, attended session blocked, expired credit marked expired, wrong-month candidate detected')
+  console.log('PASS Duplicate guard: same learner/date/time/branch/course is blocked before wallet redeem')
 
   if (!keepData) {
     const cleanupResult = await cleanupUatData()

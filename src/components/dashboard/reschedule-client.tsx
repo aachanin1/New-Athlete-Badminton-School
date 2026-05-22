@@ -90,8 +90,16 @@ function getStartDate(date: string, time: string) {
   return new Date(`${date}T${time.slice(0, 5)}:00`)
 }
 
+function normalizeTime(value: string) {
+  return value.length === 5 ? `${value}:00` : value
+}
+
 function canReschedule(sessionDate: string, sessionTime: string) {
   return getStartDate(sessionDate, sessionTime).getTime() - Date.now() >= 24 * 60 * 60 * 1000
+}
+
+function isFutureSlot(date: string, time: string) {
+  return getStartDate(date, time).getTime() > Date.now()
 }
 
 function formatDateThai(dateStr: string) {
@@ -148,15 +156,52 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
 
   const getDateStr = (day: number) => `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
+  const isSameLearner = (a: SessionRow, b: SessionRow) => a.child_id === b.child_id
+
+  const isSameSlotContext = (
+    session: SessionRow,
+    date: string,
+    start: string,
+    end: string,
+    branchId: string,
+  ) => (
+    session.date === date &&
+    normalizeTime(session.start_time) === normalizeTime(start) &&
+    normalizeTime(session.end_time) === normalizeTime(end) &&
+    session.branch_id === branchId
+  )
+
+  const isSlotBlocked = (
+    date: string,
+    start: string,
+    end: string,
+    branchId: string,
+  ) => {
+    if (!selectedSession) return false
+    return sessions.some((session) => (
+      isSameLearner(session, selectedSession) &&
+      session.bookings?.course_type_id === selectedSession.bookings?.course_type_id &&
+      isSameSlotContext(session, date, start, end, branchId) &&
+      !['rescheduled', 'walleted'].includes(session.status)
+    ))
+  }
+
   const isDateSelectable = (day: number) => {
     if (!selectedSession) return false
     const courseType = getCourseType(selectedSession)
     const date = new Date(selectedYear, selectedMonth, day)
+    const dateStr = getDateStr(day)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     if (date < today) return false
 
-    return branches.some((branch) => hasTemplateSlots(scheduleTemplates, branch.slug, courseType, date))
+    return branches.some((branch) => {
+      if (!hasTemplateSlots(scheduleTemplates, branch.slug, courseType, date)) return false
+      return getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay()).some((slot) => (
+        isFutureSlot(dateStr, slot.start) &&
+        !isSlotBlocked(dateStr, slot.start, slot.end, branch.id)
+      ))
+    })
   }
 
   const openDialog = (session: SessionRow) => {
@@ -177,6 +222,8 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
 
   const handleSlotPick = (day: number, start: string, end: string, branch: BranchOption, templateId?: string) => {
     const dateStr = getDateStr(day)
+    if (!isFutureSlot(dateStr, start)) return
+    if (isSlotBlocked(dateStr, start, end, branch.id)) return
     const date = new Date(selectedYear, selectedMonth, day)
     setPickedSlot({
       date: dateStr,
@@ -436,6 +483,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
 
                       {branches.map((branch) => {
                         const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayIndex)
+                          .filter((slot) => isFutureSlot(expandedDate, slot.start))
                         if (slots.length === 0) return null
 
                         return (
@@ -447,17 +495,20 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                             <div className="flex flex-wrap gap-2">
                               {slots.map((slot) => {
                                 const isSlotPicked = pickedSlot?.date === expandedDate && pickedSlot.start === slot.start && pickedSlot.branchId === branch.id
+                                const isBlocked = isSlotBlocked(expandedDate, slot.start, slot.end, branch.id)
                                 return (
                                   <Button
                                     key={`${branch.id}-${slot.start}-${slot.end}`}
                                     type="button"
                                     size="sm"
+                                    disabled={isBlocked}
                                     variant={isSlotPicked ? 'default' : 'outline'}
-                                    className={isSlotPicked ? 'bg-[#2748bf]' : ''}
+                                    className={isSlotPicked ? 'bg-[#2748bf]' : isBlocked ? 'cursor-not-allowed border-orange-200 bg-orange-50 text-orange-700 opacity-70' : ''}
                                     onClick={() => handleSlotPick(day, slot.start, slot.end, branch, slot.templateId)}
                                   >
                                     <Clock className="mr-1 h-3.5 w-3.5" />
                                     {fmtTime(slot.start)}-{fmtTime(slot.end)}
+                                    {isBlocked && <span className="ml-1 text-[11px]">(รอบเดิม)</span>}
                                   </Button>
                                 )
                               })}

@@ -475,6 +475,10 @@ Notes:
       - User schedule/reschedule pages now use typed server data, compact month/day views, rescheduled-from context, and crowded calendar indicators with `+N` instead of long overflowing dots.
       - Cleaned User-side lint warnings in the touched schedule/reschedule/notification/dashboard/children/complaint helper path.
       - Verified `npm run check:mojibake` and `npm run build`; build passes without lint warnings.
+    - Hotfix 2026-05-23:
+      - Reschedule modal now disables the original same date/time/branch/course slot and labels it `(รอบเดิม)` so users cannot choose the same class again.
+      - `/api/reschedule` now rejects the same original slot by date/time/branch context before creating/reusing a target `schedule_slot_id`, and duplicate checks now compare learner/date/time/branch/course instead of relying only on slot id.
+      - Checks passed: `npx tsc --noEmit`, `npm run lint`, and `npm run check:mojibake`.
   - [x] 15.7 Shared Notifications
     - Notification badge counts must be correct per recipient user, coach, admin, or super admin.
     - Important events should create notifications: booking created, payment verified, makeup granted, coach assigned, attendance/absence where useful.
@@ -882,6 +886,34 @@ Notes:
     - GPS errors now distinguish denied permission, unavailable position, and timeout so Coach/Admin know what to fix during field use.
     - Real SlipOK credentials validated through `npm run prod:check`; quota is readable, remaining quota is 98, and package end date is 2026-05-26.
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, `npm run prod:check`.
+
+- [x] 21.3.1 User Lesson Wallet Display + Re-Wallet Flow
+  - Refine `/dashboard/schedule` wallet visibility so the calendar is not overloaded with duplicate wallet statuses.
+  - Display rules:
+    - `walleted` + active credit: show as purple "อยู่ในกระเป๋า" because the lesson entitlement is still unused.
+    - `walleted` + redeemed credit: hide from the main calendar/session list because the target session already shows "ใช้สิทธิ์จากกระเป๋าวันที่ ...".
+    - `walleted` + expired credit: prefer showing in `/dashboard/lesson-wallet` rather than cluttering the schedule calendar, unless a clear expired audit indicator is needed.
+  - Re-wallet rule:
+    - A session created from wallet redemption may be stored back into the wallet again if it is still in the same month, at least 48 hours before start, has no attendance, and is not a makeup session.
+    - Re-walleting must not create a new payment; it must keep using the original paid booking entitlement.
+    - If the redeemed session was already assigned to a Coach group, remove only that learner from the assignment group and notify Head Coach/Coach to review the group again.
+  - Backend/API safety:
+    - Confirm `/api/lesson-wallet` handles repeated wallet -> redeem -> wallet -> redeem chains without duplicate active credits, duplicate learner slots, or extra payment rows.
+    - Keep same-month, future-slot, capacity, and duplicate learner guards.
+  - UAT required:
+    - Store original session A into wallet.
+    - Redeem into session B.
+    - Store session B into wallet again.
+    - Redeem into session C in the same month.
+    - Verify only the active/relevant schedule entries are visible, payment count does not increase, and Coach assignment cleanup happens per learner only.
+  - Completed 2026-05-23:
+    - `/dashboard/schedule` now shows walleted sessions only when the wallet credit is still active; redeemed/expired wallet source sessions are hidden from the main calendar/list to avoid duplicate status noise.
+    - Target sessions redeemed from wallet continue to show the source context, such as "ใช้สิทธิ์จากกระเป๋าวันที่ ...".
+    - `/dashboard/lesson-wallet` now disables already-booked target slots for the same learner/date/time/branch/course and labels them "จองแล้ว".
+    - `/api/lesson-wallet` now blocks duplicate wallet redemption by learner/date/time/branch/course, not just by selected `schedule_slot_id`.
+    - Extended `npm run uat:lesson-wallet` to cover wallet -> redeem -> wallet -> redeem chains.
+    - UAT now verifies re-walleting a redeemed/assigned session decrements the old target slot, removes only that learner from Coach assignment groups, creates the new target session, keeps the original booking/payment count unchanged, and blocks duplicate target slots before wallet redemption.
+    - Checks passed: `node --check scripts/uat-lesson-wallet.js`, `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run uat:lesson-wallet`, `npm run build`, and `git diff --check`.
 
 - [x] 21.4 Dependency Vulnerability Review
   - Run dependency audit and review only actionable `critical`/`high` issues first.

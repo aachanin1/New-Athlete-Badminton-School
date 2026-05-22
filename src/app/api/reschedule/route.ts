@@ -58,6 +58,8 @@ interface BranchRow {
 
 interface ExistingSessionRow {
   id: string
+  status: string
+  bookings?: { user_id: string; course_type_id: string } | null
 }
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
@@ -102,6 +104,18 @@ function templateCoversSlot(template: TemplateRow, startTime: string, endTime: s
   return timeToMinutes(template.start_time) <= timeToMinutes(startTime) && timeToMinutes(template.end_time) >= timeToMinutes(endTime)
 }
 
+function isSameSlotContext(
+  session: RescheduleSessionRow,
+  target: Required<Pick<ReschedulePayload, 'targetDate' | 'startTime' | 'endTime' | 'branchId'>>
+) {
+  return (
+    session.date === target.targetDate &&
+    normalizeTime(session.start_time) === normalizeTime(target.startTime) &&
+    normalizeTime(session.end_time) === normalizeTime(target.endTime) &&
+    session.branch_id === target.branchId
+  )
+}
+
 async function findMatchingTemplate(
   adminSupabase: AdminSupabase,
   courseTypeId: string,
@@ -128,14 +142,17 @@ async function findMatchingTemplate(
 async function ensureLearnerHasNoDuplicateSlot(
   adminSupabase: AdminSupabase,
   session: RescheduleSessionRow,
-  scheduleSlotId: string,
+  target: Required<Pick<ReschedulePayload, 'targetDate' | 'startTime' | 'endTime' | 'branchId'>>,
   userId: string
 ) {
-  const selectColumns = session.child_id ? 'id' : 'id, bookings!inner(user_id)'
   let query = adminSupabase
     .from('booking_sessions')
-    .select(selectColumns)
-    .eq('schedule_slot_id', scheduleSlotId)
+    .select('id, status, bookings!inner(user_id, course_type_id)')
+    .eq('date', target.targetDate)
+    .eq('start_time', normalizeTime(target.startTime))
+    .eq('end_time', normalizeTime(target.endTime))
+    .eq('branch_id', target.branchId)
+    .eq('bookings.course_type_id', session.bookings?.course_type_id || '')
     .neq('status', 'rescheduled')
     .neq('status', 'walleted')
     .neq('id', session.id)
@@ -147,7 +164,8 @@ async function ensureLearnerHasNoDuplicateSlot(
   const { data, error } = await query as unknown as { data: ExistingSessionRow[] | null; error: DbError | null }
   if (error) throw new Error(`ตรวจสอบรอบซ้ำไม่สำเร็จ: ${error.message}`)
 
-  if ((data || []).length > 0) {
+  const duplicate = (data || []).some((row) => !['rescheduled', 'walleted'].includes(row.status))
+  if (duplicate) {
     throw new Error('ผู้เรียนคนนี้มีรอบเรียนในวันและเวลานี้แล้ว')
   }
 }
@@ -259,6 +277,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ผู้เรียนสามารถเปลี่ยนได้เฉพาะภายในเดือนที่จองเท่านั้น' }, { status: 400 })
     }
 
+    const target = { targetDate, startTime, endTime, branchId }
+    if (isSameSlotContext(session, target)) {
+      return NextResponse.json({ error: 'กรุณาเลือกรอบเรียนใหม่ที่ไม่ใช่รอบเดิม' }, { status: 400 })
+    }
+
     const courseTypeId = session.bookings.course_type_id
     const template = await findMatchingTemplate(adminSupabase, courseTypeId, {
       targetDate,
@@ -286,7 +309,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'กรุณาเลือกรอบเรียนใหม่ที่ไม่ใช่รอบเดิม' }, { status: 400 })
     }
 
-    await ensureLearnerHasNoDuplicateSlot(adminSupabase, session, scheduleSlotId, user.id)
+    await ensureLearnerHasNoDuplicateSlot(adminSupabase, session, target, user.id)
 
     const { error: updateError } = await adminSupabase
       .from('booking_sessions')

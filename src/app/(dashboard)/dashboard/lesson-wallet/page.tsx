@@ -48,6 +48,21 @@ interface ScheduleTemplateRow {
   course_types?: { name: CourseTypeName | null } | null
 }
 
+interface ExistingSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  branch_id: string
+  child_id: string | null
+  status: string
+  bookings?: {
+    user_id: string
+    course_type_id: string
+    status: string | null
+  } | null
+}
+
 export default async function LessonWalletPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -64,7 +79,7 @@ export default async function LessonWalletPage() {
     .eq('status', 'active')
     .lt('expires_at', nowIso)
 
-  const [{ data: credits }, { data: branches }, { data: scheduleTemplates }] = await Promise.all([
+  const [{ data: credits }, { data: branches }, { data: scheduleTemplates }, { data: existingSessions }] = await Promise.all([
     adminSupabase
       .from('lesson_wallet_credits')
       .select(`
@@ -90,6 +105,16 @@ export default async function LessonWalletPage() {
         course_types(name)
       `)
       .eq('is_active', true) as unknown as PromiseLike<{ data: ScheduleTemplateRow[] | null }>,
+    adminSupabase
+      .from('booking_sessions')
+      .select(`
+        id, date, start_time, end_time, branch_id, child_id, status,
+        bookings!inner(user_id, course_type_id, status)
+      `)
+      .eq('bookings.user_id', user.id)
+      .neq('bookings.status', 'cancelled')
+      .neq('status', 'rescheduled')
+      .neq('status', 'walleted') as unknown as PromiseLike<{ data: ExistingSessionRow[] | null }>,
   ])
 
   return (
@@ -104,6 +129,16 @@ export default async function LessonWalletPage() {
       <LessonWalletClient
         credits={credits || []}
         branches={branches || []}
+        existingSessions={(existingSessions || []).map((session) => ({
+          id: session.id,
+          date: session.date,
+          start_time: session.start_time,
+          end_time: session.end_time,
+          branch_id: session.branch_id,
+          child_id: session.child_id,
+          status: session.status,
+          course_type_id: session.bookings?.course_type_id || '',
+        }))}
         scheduleTemplates={(scheduleTemplates || []).map((template) => ({
           id: template.id,
           branch_id: template.branch_id,

@@ -266,6 +266,12 @@ export default async function SchedulePage() {
       attendance_scope_count: (groupSessionIdsBySessionId[session.id] || slotSessionIdsBySlotId[session.schedule_slot_id || ''] || [session.id])
         .reduce((sum, sessionId) => sum + (attendanceCountBySessionId[sessionId] || 0), 0),
     }
+  }).filter((session) => {
+    if (session.status !== 'walleted') return true
+
+    // Keep only active wallet credits on the schedule. Redeemed/expired credits
+    // are shown in the wallet page or as source context on the target session.
+    return !session.wallet_credit_status || session.wallet_credit_status === 'active'
   })
 
   const [{ data: children }, { data: profile }] = await Promise.all([
