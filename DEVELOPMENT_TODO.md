@@ -883,11 +883,24 @@ Notes:
     - Real SlipOK credentials validated through `npm run prod:check`; quota is readable, remaining quota is 98, and package end date is 2026-05-26.
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, `npm run prod:check`.
 
-- [ ] 21.4 Dependency Vulnerability Review
+- [x] 21.4 Dependency Vulnerability Review
   - Run dependency audit and review only actionable `critical`/`high` issues first.
   - Avoid broad dependency upgrades that could destabilize Next.js, Supabase, Drizzle, or UI behavior.
   - If fixes require package updates, run `npm run lint`, `npx tsc --noEmit`, `npm run check:mojibake`, and `npm run build`.
   - Document any intentionally deferred vulnerability with reason and risk.
+  - Completed 2026-05-22:
+    - Ran `npm audit --audit-level=moderate`; initial result was 11 vulnerabilities from transitive packages plus Next.js.
+    - `npm audit fix` without `--force` did not produce a lockfile-safe fix, so broad forced upgrades were avoided.
+    - Added safe npm overrides for transitive dependencies only: `ajv`, `brace-expansion`, `flatted`, `glob`, `minimatch`, `picomatch`, `ws`, and Next's nested `postcss`.
+    - Updated direct `postcss` dev dependency to a patched 8.5.x range.
+    - Reduced audit result to 1 remaining high-severity Next.js advisory group.
+    - Deferred `npm audit fix --force` because it would install `next@16.2.6` and `eslint-config-next@16.2.6`, a breaking framework upgrade that must be handled as a separate upgrade window.
+    - Checks passed: `npm run lint`, `npx tsc --noEmit`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+
+- [ ] 21.4.1 Next.js Major Security Upgrade Spike
+  - Review the remaining `npm audit` high-severity Next.js advisory group separately from routine dependency patching.
+  - Test upgrade path from Next 14.2.35 to the current secure Next major on a separate branch before production deploy.
+  - Re-run role smoke tests after upgrade because routing, middleware, image handling, and App Router behavior can be affected.
 
 - [ ] 21.5 Staging Deploy Preparation
   - Prepare staging environment variables in the target host.
