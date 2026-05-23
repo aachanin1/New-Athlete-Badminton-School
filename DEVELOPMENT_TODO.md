@@ -967,12 +967,19 @@ Notes:
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm audit --audit-level=moderate`, `npm run prod:check`, and `git diff --check`.
     - Not merged into `main` yet; keep this as a reviewed spike branch before deciding whether to promote the framework upgrade.
 
-- [ ] 21.5 Staging Deploy Preparation
+- [x] 21.5 Staging Deploy Preparation
   - Prepare staging environment variables in the target host.
   - Confirm build command, install command, Node version, and output settings.
   - Run local checks before deployment: `npm run prod:check`, `npm run lint`, `npx tsc --noEmit`, `npm run check:mojibake`, and `npm run build`.
   - Confirm Supabase migrations are already applied and no seed/demo data is required for production.
   - Prepare a rollback point before first staging deploy.
+  - Completed 2026-05-23 on branch `spike/next-major-security-upgrade`:
+    - Added Node engine requirement `>=20.9.0` and documented staging settings: install `npm ci`, build `npm run build`, start `npm run start` for Node hosts.
+    - Updated `.env.example` and production docs to prefer `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, keep `NEXT_PUBLIC_SUPABASE_ANON_KEY` only as fallback, and use `SLIPOK_TEST_MODE=false` for staging/production.
+    - Fixed Supabase browser/server/proxy clients to read `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` first with `NEXT_PUBLIC_SUPABASE_ANON_KEY` fallback, preventing auth/client breakage if the host only configures the newer Supabase publishable key.
+    - Confirmed production readiness against remote Supabase: 0 seed profiles, 0 seed auth users, required master data present, required buckets present, and SlipOK quota readable.
+    - Rollback plan documented in `PRODUCTION_READINESS.md`: keep last stable `main`, keep this branch separate until smoke passes, and redeploy stable `main` if staging reveals a framework/runtime blocker.
+    - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm audit --audit-level=moderate`, `npm run prod:check`, and `git diff --check`.
 
 - [ ] 21.6 Staging Smoke Test Across Roles
   - Super Admin: settings, payment settings, ranking, teaching program review, payroll/teaching hours, finance.

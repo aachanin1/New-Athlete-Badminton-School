@@ -56,14 +56,47 @@ Payments:
 
 Do not commit `.env.local` or any service role key.
 
+## Staging Deploy Settings
+
+Use the `spike/next-major-security-upgrade` branch as the current deploy candidate until it is reviewed and merged.
+
+Recommended host/runtime settings:
+
+- Node.js: `>=20.9.0`
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Start command for a Node server host: `npm run start`
+- Next.js runtime: App Router with `src/proxy.ts`
+
+Environment variables to configure in staging and production:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+SLIPOK_TEST_MODE=false
+SLIPOK_API_URL=
+SLIPOK_API_KEY=
+```
+
+Do not add seed/demo credentials to staging. Use real test accounts created through the normal app flow.
+
+Rollback point before first staging deploy:
+
+1. Keep the last stable `main` commit hash.
+2. Keep the pushed branch `spike/next-major-security-upgrade` separate until staging smoke tests pass.
+3. If staging smoke fails on a framework/runtime issue, redeploy the last stable `main` commit and record the blocker in `DEVELOPMENT_TODO.md`.
+
 ## Pre-Deploy Checks
 
 Run these locally before deploy:
 
 ```bash
+npx tsc --noEmit
 npm run check:mojibake
 npm run lint
 npm run build
+npm audit --audit-level=moderate
 npm run prod:check
 ```
 
