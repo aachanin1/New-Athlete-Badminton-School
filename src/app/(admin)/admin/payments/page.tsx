@@ -102,6 +102,7 @@ export default async function PaymentsPage() {
     <PaymentsClient
       payments={paymentList}
       paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
+      slipOkMode={process.env.SLIPOK_TEST_MODE === 'true' ? 'test' : 'live'}
     />
   )
 }

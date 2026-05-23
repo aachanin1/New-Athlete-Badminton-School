@@ -64,8 +64,11 @@ const BOOKING_STATUS_LABELS: Record<string, string> = {
 
 const SESSION_STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
   scheduled: { label: 'นัดหมาย', badge: 'bg-blue-100 text-blue-700' },
+  upcoming: { label: 'รอเรียน', badge: 'bg-blue-100 text-blue-700' },
+  in_progress: { label: 'กำลังเรียน', badge: 'bg-amber-100 text-amber-700' },
   completed: { label: 'เรียนแล้ว', badge: 'bg-emerald-100 text-emerald-700' },
   absent: { label: 'ขาดเรียน', badge: 'bg-rose-100 text-rose-700' },
+  attendance_gap_review: { label: 'รอตรวจเช็คชื่อ', badge: 'bg-orange-100 text-orange-700' },
   walleted: { label: 'เข้ากระเป๋า', badge: 'bg-violet-100 text-violet-700' },
   cancelled: { label: 'ยกเลิก', badge: 'bg-gray-100 text-gray-600' },
 }

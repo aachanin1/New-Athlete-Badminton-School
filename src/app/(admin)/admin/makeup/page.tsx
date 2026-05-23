@@ -69,10 +69,17 @@ interface ScheduleTemplateRow {
   course_types?: { name: CourseTypeName | null } | null
 }
 
+interface CoachOptionRow {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: string | null
+}
+
 export default async function MakeupPage() {
   const supabase = await createClient()
 
-  const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }] = await Promise.all([
+  const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }, { data: coaches }] = await Promise.all([
     supabase
       .from('booking_sessions')
       .select(`
@@ -100,6 +107,11 @@ export default async function MakeupPage() {
         course_types(name)
       `)
       .eq('is_active', true) as unknown as PromiseLike<{ data: ScheduleTemplateRow[] | null }>,
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .in('role', ['coach', 'head_coach'])
+      .order('full_name') as unknown as PromiseLike<{ data: CoachOptionRow[] | null }>,
   ])
 
   const sessionIds = (sessions || []).map((session) => session.id)
@@ -236,6 +248,11 @@ export default async function MakeupPage() {
         end_time: template.end_time.slice(0, 5),
         is_active: template.is_active,
         notes: template.notes,
+      }))}
+      coaches={(coaches || []).map((coach) => ({
+        id: coach.id,
+        name: coach.full_name || coach.email || 'ไม่ทราบชื่อโค้ช',
+        role: coach.role || 'coach',
       }))}
     />
   )

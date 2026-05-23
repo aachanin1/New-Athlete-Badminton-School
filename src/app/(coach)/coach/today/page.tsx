@@ -79,6 +79,32 @@ function getMonthNavDate(selectedDate: Date, offset: number) {
   return toInputDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + offset, 1))
 }
 
+function getStudentScheduleStatus(student: { status: string; attendanceStatus: 'present' | 'late' | 'absent' | null }) {
+  if (student.attendanceStatus === 'present') {
+    return { label: 'มาเรียนแล้ว', className: 'bg-green-100 text-green-700' }
+  }
+
+  if (student.attendanceStatus === 'late') {
+    return { label: 'มาสาย', className: 'bg-amber-100 text-amber-700' }
+  }
+
+  if (student.attendanceStatus === 'absent' || student.status === 'absent') {
+    return { label: 'ขาดเรียน', className: 'bg-red-100 text-red-700' }
+  }
+
+  if (student.status === 'completed') {
+    return { label: 'มาเรียนแล้ว', className: 'bg-green-100 text-green-700' }
+  }
+
+  return { label: 'รอสอน', className: 'bg-gray-100 text-gray-500' }
+}
+
+function getSlotAttendanceSummary(slot: { students: { attendanceStatus: 'present' | 'late' | 'absent' | null }[] }) {
+  const checkedCount = slot.students.filter((student) => Boolean(student.attendanceStatus)).length
+  const isComplete = slot.students.length > 0 && checkedCount === slot.students.length
+  return { checkedCount, isComplete }
+}
+
 export default async function CoachSchedulePage({ searchParams }: CoachSchedulePageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -264,10 +290,13 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
         </Card>
       ) : (
         <div className="space-y-4">
-          {teachingDay.slots.map((slot) => (
-            <Card key={slot.id}>
-              <CardContent className="space-y-3 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+          {teachingDay.slots.map((slot) => {
+            const slotAttendance = getSlotAttendanceSummary(slot)
+
+            return (
+              <Card key={slot.id}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2748bf]/10">
                       <Clock className="h-5 w-5 text-[#2748bf]" />
@@ -286,7 +315,12 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                       {slot.checkin ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <Camera className="mr-1 h-3.5 w-3.5" />}
                       {slot.checkin ? 'เช็คอินแล้ว' : 'รอเช็คอิน'}
                     </Badge>
-                    {slot.students.length > 0 && slot.checkin ? (
+                    {slotAttendance.isComplete ? (
+                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                        <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                        เช็คชื่อครบแล้ว {slotAttendance.checkedCount}/{slot.students.length}
+                      </Badge>
+                    ) : slot.students.length > 0 && slot.checkin ? (
                       <Link
                         href={`/coach/attendance?date=${selectedDate}&slot=${slot.id}`}
                         className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
@@ -307,48 +341,45 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                         ต้องมีเช็คอินก่อนเช็คชื่อ
                       </span>
                     ) : null}
+                    </div>
                   </div>
-                </div>
 
-                {slot.students.length === 0 ? (
-                  <div className="rounded-lg border border-dashed p-4 text-center text-sm text-gray-400">
-                    รอบนี้ยังไม่มีผู้เรียนที่อยู่ในกลุ่มของคุณ
-                  </div>
-                ) : (
-                  <div className="space-y-2 border-t pt-3">
-                    {slot.students.map((student) => (
-                      <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
-                        {student.isChild ? <Baby className="h-4 w-4 shrink-0 text-pink-500" /> : <User className="h-4 w-4 shrink-0 text-blue-500" />}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate font-medium text-gray-900">{student.studentName}</p>
-                            {student.assignmentGroupName && (
-                              <Badge variant="outline" className="bg-white text-[10px] text-gray-600">
-                                <Layers3 className="mr-1 h-3 w-3" />
-                                {student.assignmentGroupName}
-                              </Badge>
-                            )}
+                  {slot.students.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-4 text-center text-sm text-gray-400">
+                      รอบนี้ยังไม่มีผู้เรียนที่อยู่ในกลุ่มของคุณ
+                    </div>
+                  ) : (
+                    <div className="space-y-2 border-t pt-3">
+                      {slot.students.map((student) => {
+                        const studentStatus = getStudentScheduleStatus(student)
+
+                        return (
+                          <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                            {student.isChild ? <Baby className="h-4 w-4 shrink-0 text-pink-500" /> : <User className="h-4 w-4 shrink-0 text-blue-500" />}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate font-medium text-gray-900">{student.studentName}</p>
+                                {student.assignmentGroupName && (
+                                  <Badge variant="outline" className="bg-white text-[10px] text-gray-600">
+                                    <Layers3 className="mr-1 h-3 w-3" />
+                                    {student.assignmentGroupName}
+                                  </Badge>
+                                )}
+                              </div>
+                              {student.parentName && <p className="truncate text-xs text-gray-400">ผู้ปกครอง: {student.parentName}</p>}
+                            </div>
+                            <Badge className={`text-[10px] ${studentStatus.className}`}>
+                              {studentStatus.label}
+                            </Badge>
                           </div>
-                          {student.parentName && <p className="truncate text-xs text-gray-400">ผู้ปกครอง: {student.parentName}</p>}
-                        </div>
-                        <Badge
-                          className={`text-[10px] ${
-                            student.status === 'completed'
-                              ? 'bg-green-100 text-green-700'
-                              : student.status === 'absent'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-gray-100 text-gray-500'
-                          }`}
-                        >
-                          {student.status === 'completed' ? 'เรียนแล้ว' : student.status === 'absent' ? 'ขาดเรียน' : 'รอสอน'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                        )
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>

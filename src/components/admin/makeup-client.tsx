@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 
 type CourseKey = 'kids_group' | 'adult_group' | 'private'
-type ReviewAction = 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review'
+type ReviewAction = 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review' | 'return_entitlement'
 
 interface BookingSessionData {
   id: string
@@ -61,10 +61,17 @@ interface BranchOption {
   slug: string
 }
 
+interface CoachOption {
+  id: string
+  name: string
+  role: string
+}
+
 interface MakeupClientProps {
   sessions: BookingSessionData[]
   branches: BranchOption[]
   scheduleTemplates: ScheduleTemplateOption[]
+  coaches: CoachOption[]
 }
 
 interface MonthGroup {
@@ -197,6 +204,7 @@ function getReviewActionLabel(action: ReviewAction) {
   if (action === 'mark_attendance') return 'บันทึกเช็คชื่อย้อนหลัง'
   if (action === 'request_coach_review') return 'ส่งกลับให้โค้ชตรวจสอบ'
   if (action === 'close_review') return 'ปิดเคสโดยไม่สร้างสิทธิ์ชดเชย'
+  if (action === 'return_entitlement') return 'คืนสิทธิ์เข้ากระเป๋า'
   return 'ยืนยันขาดเรียน'
 }
 
@@ -255,7 +263,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
     .filter((day) => day.slotsByBranch.length > 0)
 }
 
-export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupClientProps) {
+export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }: MakeupClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterBranch, setFilterBranch] = useState('all')
@@ -269,6 +277,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
   const [reviewAction, setReviewAction] = useState<ReviewAction>('confirm_absent')
   const [reviewAttendanceStatus, setReviewAttendanceStatus] = useState<AttendanceStatus>('present')
   const [reviewReason, setReviewReason] = useState('')
+  const [reviewCoachId, setReviewCoachId] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
@@ -517,15 +526,27 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
     setReviewAction(action)
     setReviewAttendanceStatus(action === 'confirm_absent' ? 'absent' : 'present')
     setReviewReason('')
+    setReviewCoachId('')
     setError(null)
   }
 
   const submitReviewAction = async () => {
     if (!reviewSession) return
     const reason = reviewReason.trim()
+    const needsRetroCoach = reviewAction === 'mark_attendance' && !reviewSession.coach_name
 
-    if ((reviewAction === 'mark_attendance' || reviewAction === 'request_coach_review' || reviewAction === 'close_review') && !reason) {
+    if ((reviewAction === 'mark_attendance' || reviewAction === 'request_coach_review' || reviewAction === 'close_review' || reviewAction === 'return_entitlement') && !reason) {
       setError('กรุณาระบุเหตุผลก่อนบันทึกผลตรวจสอบ')
+      return
+    }
+
+    if (reviewAction === 'confirm_absent' && !reviewSession.coach_name && !reason) {
+      setError('กรุณาระบุเหตุผลก่อนยืนยันขาด เพราะรอบนี้ยังไม่มีโค้ชที่ถูกมอบหมาย')
+      return
+    }
+
+    if (needsRetroCoach && !reviewCoachId) {
+      setError('กรุณาเลือกโค้ชจริงที่สอนรอบนี้ก่อนบันทึกย้อนหลัง')
       return
     }
 
@@ -541,6 +562,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
           action: reviewAction,
           attendance_status: reviewAction === 'mark_attendance' ? reviewAttendanceStatus : undefined,
           reason,
+          coach_id: needsRetroCoach ? reviewCoachId : undefined,
         }),
       })
 
@@ -748,7 +770,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
                         variant="outline"
                         className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
                         disabled={reviewLoadingId === session.id}
-                        onClick={() => confirmAbsent(session.id)}
+                        onClick={() => {
+                          if (session.coach_name) {
+                            void confirmAbsent(session.id)
+                          } else {
+                            openReviewDialog(session, 'confirm_absent')
+                          }
+                        }}
                       >
                         {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
                       </Button>
@@ -756,8 +784,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
                         size="sm"
                         variant="outline"
                         className="h-8 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
-                        disabled={reviewLoadingId === session.id}
+                        disabled={reviewLoadingId === session.id || !session.coach_name}
                         onClick={() => openReviewDialog(session, 'request_coach_review')}
+                        title={!session.coach_name ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
                       >
                         ส่งให้โค้ช
                       </Button>
@@ -769,6 +798,15 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
                         onClick={() => openReviewDialog(session, 'close_review')}
                       >
                         ปิดเคส
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
+                        disabled={reviewLoadingId === session.id}
+                        onClick={() => openReviewDialog(session, 'return_entitlement')}
+                      >
+                        คืนสิทธิ์
                       </Button>
                     </div>
                   </div>
@@ -929,6 +967,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
                       <SelectItem value="confirm_absent">ยืนยันขาดเรียน</SelectItem>
                       <SelectItem value="request_coach_review">ส่งกลับให้โค้ชตรวจสอบ</SelectItem>
                       <SelectItem value="close_review">ปิดเคสโดยไม่สร้างสิทธิ์ชดเชย</SelectItem>
+                      <SelectItem value="return_entitlement">คืนสิทธิ์เข้ากระเป๋า</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -949,7 +988,26 @@ export function MakeupClient({ sessions, branches, scheduleTemplates }: MakeupCl
                   </div>
                 )}
 
-                {reviewAction !== 'confirm_absent' && (
+                {reviewAction === 'mark_attendance' && !reviewSession.coach_name && (
+                  <div>
+                    <label className="text-sm font-semibold text-gray-900">โค้ชที่สอนจริง</label>
+                    <Select value={reviewCoachId} onValueChange={setReviewCoachId}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="เลือกโค้ชสำหรับบันทึกย้อนหลัง" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {coaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.name} {coach.role === 'head_coach' ? '(หัวหน้าโค้ช)' : '(โค้ช)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-gray-500">ระบบจะสร้าง assignment ย้อนหลังแบบมี audit log เพื่อให้ตารางสอน/ชั่วโมงสอน/ประวัตินักเรียนตรงกัน</p>
+                  </div>
+                )}
+
+                {(reviewAction !== 'confirm_absent' || !reviewSession.coach_name) && (
                   <div>
                     <label className="text-sm font-semibold text-gray-900">เหตุผล / หลักฐานประกอบ</label>
                     <Textarea

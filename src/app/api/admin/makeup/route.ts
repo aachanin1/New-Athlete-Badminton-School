@@ -24,6 +24,7 @@ interface SourceSessionRow {
 interface ReviewSessionRow {
   id: string
   booking_id: string
+  branch_id: string
   schedule_slot_id: string | null
   date: string
   start_time: string | null
@@ -33,11 +34,16 @@ interface ReviewSessionRow {
   child_id: string | null
   bookings?: {
     user_id: string | null
+    course_type_id: string | null
     learner_type: string | null
   } | null
 }
 
 interface ExistingAttendanceRow {
+  id: string
+}
+
+interface AssignmentGroupInsertRow {
   id: string
 }
 
@@ -74,6 +80,14 @@ function getMonthBounds(date: string) {
     followingStartInput: toInput(followingStart),
     followingStart,
   }
+}
+
+function getMonthEndIso(date: string) {
+  const [year, month] = date.split('-').map(Number)
+  const nextMonthStart = month === 12
+    ? new Date(`${year + 1}-01-01T00:00:00+07:00`)
+    : new Date(`${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00+07:00`)
+  return new Date(nextMonthStart.getTime() - 1).toISOString()
 }
 
 function isInNextCalendarMonth(originalDate: string, makeupDate: string) {
@@ -122,16 +136,114 @@ async function getAssignedCoachIds(supabaseAdmin: ReturnType<typeof getServiceRo
   return Array.from(new Set((assignments || []).map((assignment) => assignment.coach_id).filter(Boolean)))
 }
 
-async function upsertRetrospectiveAttendance({
+async function ensureRetrospectiveAssignment({
   supabaseAdmin,
   session,
-  status,
+  coachId,
   actorId,
 }: {
   supabaseAdmin: ReturnType<typeof getServiceRoleClient>
   session: ReviewSessionRow
-  status: AttendanceStatus
+  coachId: string
   actorId: string
+}) {
+  if (!session.schedule_slot_id) {
+    throw new Error('Cannot create retrospective assignment without schedule slot')
+  }
+
+  const { studentId, studentType } = getStudentContext(session)
+  if (!studentId) {
+    throw new Error('Cannot resolve student for retrospective assignment')
+  }
+
+  const { data: existingStudents } = await supabaseAdmin
+    .from('coach_assignment_group_students')
+    .select(`
+      id,
+      group_id,
+      coach_assignment_groups!inner(schedule_slot_id, coach_id)
+    `)
+    .eq('booking_session_id', session.id)
+    .eq('coach_assignment_groups.schedule_slot_id', session.schedule_slot_id) as unknown as {
+      data: {
+        id: string
+        group_id: string
+        coach_assignment_groups?: { schedule_slot_id: string; coach_id: string | null } | null
+      }[] | null
+    }
+
+  const existingForCoach = (existingStudents || []).find((row) => row.coach_assignment_groups?.coach_id === coachId)
+  if (existingForCoach) return existingForCoach.group_id
+
+  if ((existingStudents || []).length > 0) {
+    const { error: deleteError } = await supabaseAdmin
+      .from('coach_assignment_group_students')
+      .delete()
+      .in('id', (existingStudents || []).map((row) => row.id))
+
+    if (deleteError) throw new Error(deleteError.message)
+  }
+
+  const { data: insertedGroup, error: groupError } = await supabaseAdmin
+    .from('coach_assignment_groups')
+    .insert({
+      schedule_slot_id: session.schedule_slot_id,
+      coach_id: coachId,
+      name: 'บันทึกย้อนหลังโดย Admin',
+      level_min: null,
+      level_max: null,
+      sort_order: 999,
+      notes: 'Retroactive assignment created from Admin attendance gap resolution',
+      created_by: actorId,
+    })
+    .select('id')
+    .single() as unknown as { data: AssignmentGroupInsertRow | null; error: { message: string } | null }
+
+  if (groupError || !insertedGroup) {
+    throw new Error(groupError?.message || 'Cannot create retrospective assignment group')
+  }
+
+  const { error: studentError } = await supabaseAdmin
+    .from('coach_assignment_group_students')
+    .insert({
+      group_id: insertedGroup.id,
+      booking_session_id: session.id,
+      student_id: studentId,
+      student_type: studentType,
+    })
+
+  if (studentError) throw new Error(studentError.message)
+
+  const { data: existingLegacy } = await supabaseAdmin
+    .from('coach_assignments')
+    .select('id')
+    .eq('schedule_slot_id', session.schedule_slot_id)
+    .eq('coach_id', coachId)
+    .maybeSingle() as unknown as { data: { id: string } | null }
+
+  if (!existingLegacy) {
+    await supabaseAdmin
+      .from('coach_assignments')
+      .insert({
+        coach_id: coachId,
+        schedule_slot_id: session.schedule_slot_id,
+        assigned_by: actorId,
+      })
+  }
+
+  return insertedGroup.id
+}
+
+async function upsertRetrospectiveAttendance({
+  supabaseAdmin,
+  session,
+  status,
+  coachId,
+}: {
+  supabaseAdmin: ReturnType<typeof getServiceRoleClient>
+  session: ReviewSessionRow
+  status: AttendanceStatus
+  coachId: string
 }) {
   const { studentId, studentType } = getStudentContext(session)
   if (!studentId) {
@@ -179,7 +291,7 @@ async function upsertRetrospectiveAttendance({
   if (existingAttendance) {
     const { error } = await attendanceTable
       .update({
-        coach_id: actorId,
+        coach_id: coachId,
         status,
         checked_at: checkedAt,
       })
@@ -191,7 +303,7 @@ async function upsertRetrospectiveAttendance({
       booking_session_id: session.id,
       student_id: studentId,
       student_type: studentType,
-      coach_id: actorId,
+      coach_id: coachId,
       status,
       checked_at: checkedAt,
     })
@@ -343,16 +455,19 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { session_id: sessionId, action } = body as {
       session_id?: string
-      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review'
+      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review' | 'return_entitlement'
     }
     const reason = normalizeReason((body as { reason?: unknown }).reason)
     const attendanceStatus = normalizeAttendanceStatus((body as { attendance_status?: unknown }).attendance_status)
+    const selectedCoachId = typeof (body as { coach_id?: unknown }).coach_id === 'string'
+      ? ((body as { coach_id?: string }).coach_id || '').trim()
+      : ''
 
     if (!sessionId || !action) {
       return NextResponse.json({ error: 'session_id and action are required' }, { status: 400 })
     }
 
-    if ((action === 'mark_attendance' || action === 'request_coach_review' || action === 'close_review') && !reason) {
+    if ((action === 'mark_attendance' || action === 'request_coach_review' || action === 'close_review' || action === 'return_entitlement') && !reason) {
       return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
     }
 
@@ -362,7 +477,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('booking_sessions')
-      .select('id, booking_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, bookings(user_id, learner_type)')
+      .select('id, booking_id, branch_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, bookings(user_id, course_type_id, learner_type)')
       .eq('id', sessionId)
       .single<ReviewSessionRow>()
 
@@ -382,13 +497,15 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'ยืนยันขาดเรียนได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
     }
 
+    const assignedCoachIds = await getAssignedCoachIds(supabaseAdmin, session)
+    const hasAssignedCoach = assignedCoachIds.length > 0
+
     if (action === 'request_coach_review') {
-      const coachIds = await getAssignedCoachIds(supabaseAdmin, session)
-      if (coachIds.length === 0) {
+      if (!hasAssignedCoach) {
         return NextResponse.json({ error: 'ยังไม่พบโค้ชที่รับผิดชอบรอบนี้ กรุณาบันทึกผลย้อนหลังหรือปิดเคสด้วยเหตุผลแทน' }, { status: 400 })
       }
 
-      await Promise.all(coachIds.map((coachId) => notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+      await Promise.all(assignedCoachIds.map((coachId) => notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
         user_id: coachId,
         title: 'ตรวจสอบการเช็คชื่อย้อนหลัง',
         message: `Admin ส่งรอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''} กลับให้ตรวจสอบ: ${reason}`,
@@ -404,7 +521,7 @@ export async function PATCH(req: NextRequest) {
         details: {
           reason,
           scheduleSlotId: session.schedule_slot_id,
-          notifiedCoachIds: coachIds,
+          notifiedCoachIds: assignedCoachIds,
         },
         ipAddress: req.headers.get('x-forwarded-for'),
       })
@@ -437,16 +554,126 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (action === 'return_entitlement') {
+      if (!session.bookings?.user_id || !session.bookings?.course_type_id || !session.branch_id) {
+        return NextResponse.json({ error: 'ข้อมูล booking ไม่ครบสำหรับคืนสิทธิ์เข้ากระเป๋า' }, { status: 400 })
+      }
+
+      const { data: existingCredits, error: existingCreditError } = await supabaseAdmin
+        .from('lesson_wallet_credits')
+        .select('id, status')
+        .eq('original_session_id', session.id)
+        .neq('status', 'expired')
+        .limit(1) as unknown as { data: { id: string; status: string }[] | null; error: { message: string } | null }
+
+      if (existingCreditError) {
+        return NextResponse.json({ error: existingCreditError.message }, { status: 500 })
+      }
+
+      if ((existingCredits || []).length === 0) {
+        const { error: creditError } = await supabaseAdmin
+          .from('lesson_wallet_credits')
+          .insert({
+            user_id: session.bookings.user_id,
+            booking_id: session.booking_id,
+            original_session_id: session.id,
+            child_id: session.child_id,
+            branch_id: session.branch_id,
+            course_type_id: session.bookings.course_type_id,
+            original_schedule_slot_id: session.schedule_slot_id,
+            original_date: session.date,
+            original_start_time: session.start_time || '00:00:00',
+            original_end_time: session.end_time || '00:00:00',
+            status: 'active',
+            expires_at: getMonthEndIso(session.date),
+            notes: `Returned by Admin attendance-gap review: ${reason}`,
+          })
+
+        if (creditError) {
+          return NextResponse.json({ error: creditError.message }, { status: 500 })
+        }
+      }
+
+      const { error: walletError } = await supabaseAdmin
+        .from('booking_sessions')
+        .update({ status: 'walleted' })
+        .eq('id', sessionId)
+
+      if (walletError) {
+        return NextResponse.json({ error: walletError.message }, { status: 500 })
+      }
+
+      await logActivity({
+        userId: access.ctx.user.id,
+        action: 'attendance_gap_return_entitlement',
+        entityType: 'booking_sessions',
+        entityId: session.id,
+        details: {
+          reason,
+          scheduleSlotId: session.schedule_slot_id,
+          hadAssignedCoach: hasAssignedCoach,
+          existingCreditId: existingCredits?.[0]?.id || null,
+        },
+        ipAddress: req.headers.get('x-forwarded-for'),
+      })
+
+      await notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+        user_id: session.bookings.user_id,
+        title: 'คืนสิทธิ์วันเรียนเข้ากระเป๋าแล้ว',
+        message: `Admin คืนสิทธิ์รอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''} เข้ากระเป๋าวันเรียนแล้ว เหตุผล: ${reason}`,
+        type: 'schedule',
+        link_url: '/dashboard/lesson-wallet',
+      }).catch(() => null)
+
+      return NextResponse.json({ success: true })
+    }
+
     const finalAttendanceStatus = action === 'confirm_absent' ? 'absent' : attendanceStatus
     if (!finalAttendanceStatus) {
       return NextResponse.json({ error: 'กรุณาเลือกสถานะเช็คชื่อ' }, { status: 400 })
+    }
+
+    if (!hasAssignedCoach && action === 'confirm_absent' && !reason) {
+      return NextResponse.json({ error: 'กรุณาระบุเหตุผลก่อนยืนยันขาด เพราะรอบนี้ไม่มีโค้ชที่ถูกมอบหมาย' }, { status: 400 })
+    }
+
+    let attendanceCoachId = assignedCoachIds[0] || selectedCoachId
+    let retrospectiveGroupId: string | null = null
+
+    if (!hasAssignedCoach && action === 'mark_attendance') {
+      if (!selectedCoachId) {
+        return NextResponse.json({ error: 'กรุณาเลือกโค้ชจริงก่อนบันทึกย้อนหลัง' }, { status: 400 })
+      }
+
+      const { data: coachProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', selectedCoachId)
+        .in('role', ['coach', 'head_coach'])
+        .maybeSingle() as unknown as { data: { id: string; role: string } | null }
+
+      if (!coachProfile) {
+        return NextResponse.json({ error: 'พบโค้ชที่เลือกไม่ถูกต้อง' }, { status: 400 })
+      }
+
+      retrospectiveGroupId = await ensureRetrospectiveAssignment({
+        supabaseAdmin,
+        session,
+        coachId: selectedCoachId,
+        actorId: access.ctx.user.id,
+      })
+      attendanceCoachId = selectedCoachId
+    }
+
+    if (!attendanceCoachId) {
+      attendanceCoachId = access.ctx.user.id
     }
 
     await upsertRetrospectiveAttendance({
       supabaseAdmin,
       session,
       status: finalAttendanceStatus,
-      actorId: access.ctx.user.id,
+      coachId: attendanceCoachId,
     })
 
     const sessionStatus = finalAttendanceStatus === 'absent' ? 'absent' : 'completed'
@@ -469,6 +696,9 @@ export async function PATCH(req: NextRequest) {
         attendanceStatus: finalAttendanceStatus,
         sessionStatus,
         scheduleSlotId: session.schedule_slot_id,
+        attendanceCoachId,
+        retrospectiveGroupId,
+        hadAssignedCoach: hasAssignedCoach,
       },
       ipAddress: req.headers.get('x-forwarded-for'),
     })

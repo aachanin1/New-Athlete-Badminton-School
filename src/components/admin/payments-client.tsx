@@ -59,6 +59,7 @@ interface PaymentData {
 interface PaymentsClientProps {
   payments: PaymentData[]
   paymentTransferSettings: PaymentTransferSettings
+  slipOkMode: 'live' | 'test'
 }
 
 type PaymentReviewAction = 'approve' | 'send_back' | 'cancel'
@@ -148,7 +149,7 @@ function getShortId(id: string) {
   return id.length > 10 ? `${id.slice(0, 8)}...` : id
 }
 
-export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsClientProps) {
+export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }: PaymentsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -273,8 +274,16 @@ export function PaymentsClient({ payments, paymentTransferSettings }: PaymentsCl
           </p>
         </div>
 
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-          รายการที่ SlipOK ผ่านจะยืนยัน booking อัตโนมัติ
+        <div
+          className={`rounded-lg border px-3 py-2 text-xs ${
+            slipOkMode === 'live'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-amber-200 bg-amber-50 text-amber-700'
+          }`}
+        >
+          {slipOkMode === 'live'
+            ? 'SlipOK ใช้งานจริง: รายการที่ตรวจผ่านจะยืนยัน booking อัตโนมัติ'
+            : 'SlipOK TEST MODE: ใช้ทดสอบเท่านั้น รายการจริงต้องตั้งค่า env แล้ว redeploy'}
         </div>
       </div>
 

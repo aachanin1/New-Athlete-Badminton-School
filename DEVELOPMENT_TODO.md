@@ -991,6 +991,43 @@ Notes:
   - Confirm mobile responsive basics for Admin, Coach, and User critical pages.
   - Record any staging-only issue as a new TODO item instead of silently patching unrelated flows.
 
+- [x] 21.6.1 Production Blocker: Attendance Gap Without Assigned Coach
+  - Real production case found 2026-05-23: Head Coach can forget to assign a coach/group, the class time can pass, and the Admin makeup/attendance-gap flow becomes stuck because there is no assigned coach to send back to and the existing absence confirmation is too strict for this no-assignment state.
+  - Safe resolution rules:
+    - If the class really happened but the coach assignment was forgotten, Admin/Super Admin must be able to record a retroactive audited assignment, choose the actual coach, and save attendance for each learner.
+    - If no class happened because the school forgot to assign a coach, Admin/Super Admin must close the case as a school/system issue and return the lesson entitlement to the learner, preferably through makeup/wallet credit, without marking the learner absent.
+    - If the learner truly did not attend even though no assignment exists, Admin/Super Admin may confirm absence only with a required reason/audit note.
+    - Head Coach must not be allowed to perform normal backdated assignment after the class has passed; past no-assignment classes should be handled through the Admin attendance-gap audit flow only.
+  - Keep downstream flows aligned: User schedule/makeup/wallet, Coach teaching hours, attendance evidence, and Admin audit log must reflect the selected resolution.
+  - Treat as a production blocker before broad owner review because it can leave paid lessons stuck between makeup, attendance, and coach assignment flows.
+  - Completed:
+    - Admin/Super Admin attendance-gap review now supports three audited outcomes for past sessions without assigned coach:
+      - record real attendance by selecting the actual coach; the system creates a retroactive assignment group and writes attendance to that coach,
+      - confirm learner absence with a required reason/audit note,
+      - return the lesson entitlement into the learner lesson wallet when the school/system caused the missed class.
+    - "Send back to coach" is blocked when no coach exists for that round, so the flow no longer sends a task into nowhere.
+    - Head Coach normal backdated assignment remains locked after class time; past no-assignment cases are handled through Admin audit flow.
+    - User is notified when Admin returns entitlement to the lesson wallet.
+
+- [x] 21.6.2 Production QA Fixes: Admin Schedule Status + SlipOK Mode Visibility
+  - Admin schedule status mismatch found 2026-05-23: Admin schedule can still show a past attended round as `รอเรียน` while User schedule correctly shows `มาเรียนแล้ว`.
+  - Fix the Admin schedule read model/status mapper to use the same attendance/session truth source as User schedule, and cross-check Coach pages for the same status consistency:
+    - `present` / checked attendance should render as `มาเรียนแล้ว`.
+    - Past sessions with no attendance should route into the attendance-gap/makeup review states, not remain `รอเรียน`.
+    - Wallet/reschedule/makeup states must remain consistent with User schedule and Admin makeup pages.
+  - Admin payment review should visibly show current SlipOK mode:
+    - Display `SlipOK ใช้งานจริง` when production verification is active.
+    - Display `SlipOK TEST MODE` with a clear warning when test mode is active.
+  - Do not add a web UI toggle for SlipOK mode. Mode changes must stay in Vercel environment variables and require redeploy, so production payment behavior cannot be changed accidentally from the app.
+  - Keep SlipOK API URL/key in environment variables only; never expose secrets in UI.
+  - Completed:
+    - Admin schedule now derives status from the same session/attendance truth used by User schedule, including completed attendance, in-progress, attendance-gap review, wallet, reschedule, and makeup states.
+    - Admin schedule displays coach names from saved coach assignment groups first, with legacy slot assignment as fallback.
+    - Coach schedule detail now displays learner status from attendance rows first, so checked students show `มาเรียนแล้ว` / `มาสาย` / `ขาดเรียน` instead of staying `รอสอน`.
+    - Coach schedule detail shows a completed attendance badge when all learners in that assigned slot are checked, reducing duplicate check-name actions.
+    - Admin payment review now displays server-side SlipOK mode clearly as live production verification or TEST MODE without exposing API keys and without adding a risky UI toggle.
+    - Verification target: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.
