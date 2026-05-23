@@ -205,6 +205,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
   }
 
   const redeem = async () => {
+    if (loading) return
     if (!selectedCredit || !pickedSlot) {
       setError('กรุณาเลือกวันและรอบเรียน')
       return
@@ -302,7 +303,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                     </p>
                     <p className="text-xs text-gray-500">หมดอายุ {new Date(credit.expires_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</p>
                   </div>
-                  <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={() => openRedeemDialog(credit)}>
+                  <Button className="bg-[#2748bf] hover:bg-[#153c85]" disabled={loading} onClick={() => openRedeemDialog(credit)}>
                     <ArrowRight className="mr-1 h-4 w-4" />
                     ใช้วันเรียน
                   </Button>

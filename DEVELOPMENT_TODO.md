@@ -919,6 +919,10 @@ Notes:
     - Extended `npm run uat:lesson-wallet` to cover wallet -> redeem -> wallet -> redeem chains.
     - UAT now verifies re-walleting a redeemed/assigned session decrements the old target slot, removes only that learner from Coach assignment groups, creates the new target session, keeps the original booking/payment count unchanged, and blocks duplicate target slots before wallet redemption.
     - Checks passed: `node --check scripts/uat-lesson-wallet.js`, `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run uat:lesson-wallet`, `npm run build`, and `git diff --check`.
+  - Production hotfix 2026-05-23:
+    - `/api/lesson-wallet` now verifies that the `lesson_wallet_credits` row was actually updated from `active` to `redeemed`; if another request already used the same credit, it rolls back the newly-created session and slot count, then returns a conflict instead of silently creating an extra class.
+    - `/dashboard/lesson-wallet` blocks repeated redeem clicks while the request is running.
+    - Admin dashboard and Admin schedule now apply the same visibility rule as User schedule: wallet source sessions are shown only while the wallet credit is still active; redeemed/expired wallet sources are hidden from operational calendars.
 
 - [x] 21.3.2 Coach Assignment Stability After Wallet Store
   - Owner requirement: when a User stores a lesson into the wallet after Head Coach has already assigned groups/coaches, the system must remove only that learner and must not create unnecessary reassignment work.

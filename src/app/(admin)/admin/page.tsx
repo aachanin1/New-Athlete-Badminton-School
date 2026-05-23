@@ -50,6 +50,11 @@ interface AttendanceRow {
   status: AttendanceStatus
 }
 
+interface WalletCreditRow {
+  original_session_id: string
+  status: 'active' | 'redeemed' | 'expired'
+}
+
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
@@ -105,8 +110,29 @@ export default async function AdminDashboardPage() {
 
   const todayCount = todaySessions?.length || 0
   const monthRevenue = (monthBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
-  const slotIds = Array.from(new Set((scheduleRows || []).map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
-  const sessionIds = (scheduleRows || []).map((session) => session.id)
+  const rawScheduleRows = scheduleRows || []
+  const rawScheduleSessionIds = rawScheduleRows.map((session) => session.id)
+  const walletCreditByOriginalSessionId = new Map<string, WalletCreditRow>()
+
+  if (rawScheduleSessionIds.length > 0) {
+    const { data } = await (supabase
+      .from('lesson_wallet_credits')
+      .select('original_session_id, status')
+      .in('original_session_id', rawScheduleSessionIds) as unknown as PromiseLike<DataResult<WalletCreditRow>>)
+
+    ;(data || []).forEach((credit) => {
+      walletCreditByOriginalSessionId.set(credit.original_session_id, credit)
+    })
+  }
+
+  const visibleScheduleRows = rawScheduleRows.filter((session) => {
+    if (session.status !== 'walleted') return true
+    const walletCredit = walletCreditByOriginalSessionId.get(session.id)
+    return !walletCredit || walletCredit.status === 'active'
+  })
+
+  const slotIds = Array.from(new Set(visibleScheduleRows.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
+  const sessionIds = visibleScheduleRows.map((session) => session.id)
 
   let coachAssignments: CoachAssignmentRow[] = []
   if (slotIds.length > 0) {
@@ -140,7 +166,7 @@ export default async function AdminDashboardPage() {
     attendanceBySessionId.set(attendance.booking_session_id, attendance.status)
   })
 
-  const scheduleSessions = (scheduleRows || []).map((session) => ({
+  const scheduleSessions = visibleScheduleRows.map((session) => ({
     id: session.id,
     date: session.date,
     start_time: session.start_time,

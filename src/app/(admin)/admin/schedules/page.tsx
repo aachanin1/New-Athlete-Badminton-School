@@ -54,6 +54,11 @@ interface AttendanceRow {
   status: AttendanceStatus
 }
 
+interface WalletCreditRow {
+  original_session_id: string
+  status: 'active' | 'redeemed' | 'expired'
+}
+
 export default async function SchedulesPage() {
   await requireAdminPageAccess()
   const supabase = await createClient()
@@ -76,8 +81,29 @@ export default async function SchedulesPage() {
     supabase.from('branches').select('id, name, slug').eq('is_active', true).order('name') as unknown as Promise<{ data: BranchRow[] | null }>,
   ])
 
-  const slotIds = Array.from(new Set((sessions || []).map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
-  const sessionIds = (sessions || []).map((session) => session.id)
+  const rawSessions = sessions || []
+  const rawSessionIds = rawSessions.map((session) => session.id)
+  const walletCreditByOriginalSessionId = new Map<string, WalletCreditRow>()
+
+  if (rawSessionIds.length > 0) {
+    const { data: walletCredits } = await supabase
+      .from('lesson_wallet_credits')
+      .select('original_session_id, status')
+      .in('original_session_id', rawSessionIds) as unknown as { data: WalletCreditRow[] | null }
+
+    ;(walletCredits || []).forEach((credit) => {
+      walletCreditByOriginalSessionId.set(credit.original_session_id, credit)
+    })
+  }
+
+  const visibleSessions = rawSessions.filter((session) => {
+    if (session.status !== 'walleted') return true
+    const walletCredit = walletCreditByOriginalSessionId.get(session.id)
+    return !walletCredit || walletCredit.status === 'active'
+  })
+
+  const slotIds = Array.from(new Set(visibleSessions.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
+  const sessionIds = visibleSessions.map((session) => session.id)
 
   let coachAssignments: CoachAssignmentRow[] = []
   let groups: GroupRow[] = []
@@ -101,7 +127,8 @@ export default async function SchedulesPage() {
         .from('booking_sessions')
         .select('id, schedule_slot_id')
         .in('schedule_slot_id', slotIds)
-        .neq('status', 'rescheduled') as unknown as PromiseLike<{ data: SlotSessionRow[] | null }>,
+        .neq('status', 'rescheduled')
+        .neq('status', 'walleted') as unknown as PromiseLike<{ data: SlotSessionRow[] | null }>,
     ])
     coachAssignments = legacyAssignments || []
     groups = groupRows || []
@@ -162,7 +189,7 @@ export default async function SchedulesPage() {
     }
   })
 
-  const scheduleSessions = (sessions || []).map((session) => {
+  const scheduleSessions = visibleSessions.map((session) => {
     const scopedSessionIds = groupScopeMap.get(session.id)
       || (session.schedule_slot_id ? slotScopeMap.get(session.schedule_slot_id) : null)
       || [session.id]

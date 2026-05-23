@@ -120,6 +120,10 @@ interface RemainingAssignmentRow {
   } | null
 }
 
+interface RedeemedCreditUpdateRow {
+  id: string
+}
+
 interface PostWalletAssignmentState {
   activeSessionIds: string[]
   assignedSessionIds: string[]
@@ -657,7 +661,7 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
     return NextResponse.json({ error: message }, { status: 500 })
   }
 
-  const { error: updateCreditError } = await adminSupabase
+  const { data: redeemedCredit, error: updateCreditError } = await adminSupabase
     .from('lesson_wallet_credits')
     .update({
       status: 'redeemed',
@@ -665,12 +669,18 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
       redeemed_at: new Date().toISOString(),
     })
     .eq('id', credit.id)
-    .eq('status', 'active') as unknown as { error: DbError | null }
+    .eq('status', 'active')
+    .select('id')
+    .maybeSingle() as unknown as { data: RedeemedCreditUpdateRow | null; error: DbError | null }
 
-  if (updateCreditError) {
+  if (updateCreditError || !redeemedCredit) {
     await adjustSlotCount(adminSupabase, scheduleSlotId, -1).catch(() => null)
     await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
-    return NextResponse.json({ error: `ใช้สิทธิ์ไม่สำเร็จ: ${updateCreditError.message}` }, { status: 500 })
+    return NextResponse.json({
+      error: updateCreditError
+        ? `ใช้สิทธิ์ไม่สำเร็จ: ${updateCreditError.message}`
+        : 'สิทธิ์กระเป๋านี้ถูกใช้ไปแล้ว กรุณารีเฟรชหน้าแล้วลองใหม่',
+    }, { status: updateCreditError ? 500 : 409 })
   }
 
   const oldLabel = slotLabel(credit.original_date, credit.original_start_time, credit.original_end_time)
