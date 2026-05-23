@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, Building2, CreditCard, AlertTriangle, CalendarDays, UserCog, Ticket, TrendingUp } from 'lucide-react'
 import { AdminOverviewSchedule } from '@/components/admin/admin-overview-schedule'
+import { deriveSessionAttendanceStatus } from '@/lib/session-attendance-status'
+import type { AttendanceStatus } from '@/types/database'
 
 type CountResult = { count: number | null }
 type DataResult<T> = { data: T[] | null }
@@ -41,6 +43,11 @@ interface CoachAssignmentRow {
   schedule_slot_id: string
   coach_id: string
   profiles?: { full_name: string } | null
+}
+
+interface AttendanceRow {
+  booking_session_id: string
+  status: AttendanceStatus
 }
 
 export default async function AdminDashboardPage() {
@@ -99,6 +106,7 @@ export default async function AdminDashboardPage() {
   const todayCount = todaySessions?.length || 0
   const monthRevenue = (monthBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
   const slotIds = Array.from(new Set((scheduleRows || []).map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
+  const sessionIds = (scheduleRows || []).map((session) => session.id)
 
   let coachAssignments: CoachAssignmentRow[] = []
   if (slotIds.length > 0) {
@@ -118,12 +126,37 @@ export default async function AdminDashboardPage() {
     return map
   }, {})
 
+  let attendanceRows: AttendanceRow[] = []
+  if (sessionIds.length > 0) {
+    const { data } = await (supabase
+      .from('attendance')
+      .select('booking_session_id, status')
+      .in('booking_session_id', sessionIds) as unknown as PromiseLike<DataResult<AttendanceRow>>)
+    attendanceRows = data || []
+  }
+
+  const attendanceBySessionId = new Map<string, AttendanceStatus>()
+  attendanceRows.forEach((attendance) => {
+    attendanceBySessionId.set(attendance.booking_session_id, attendance.status)
+  })
+
   const scheduleSessions = (scheduleRows || []).map((session) => ({
     id: session.id,
     date: session.date,
     start_time: session.start_time,
     end_time: session.end_time,
-    status: session.status,
+    status: (() => {
+      const derivedStatus = deriveSessionAttendanceStatus({
+        status: session.status,
+        date: session.date,
+        startTime: session.start_time,
+        endTime: session.end_time,
+        isMakeup: session.is_makeup || false,
+        attendanceStatus: attendanceBySessionId.get(session.id) || null,
+        scopeAttendanceCount: attendanceBySessionId.has(session.id) ? 1 : 0,
+      })
+      return derivedStatus === 'present' || derivedStatus === 'late' ? 'completed' : derivedStatus
+    })(),
     is_makeup: session.is_makeup || false,
     child_id: session.child_id,
     branch_id: session.branch_id,

@@ -79,6 +79,17 @@ function formatDisplayDate(date: string) {
   })
 }
 
+function getSessionStatusConfig(status: string) {
+  const derivedStatusMap: Record<string, { label: string; badge: string }> = {
+    upcoming: { label: 'รอเรียน', badge: 'bg-blue-100 text-blue-700' },
+    in_progress: { label: 'กำลังเรียน', badge: 'bg-amber-100 text-amber-700' },
+    attendance_gap_review: { label: 'รอตรวจเช็คชื่อ', badge: 'bg-orange-100 text-orange-700' },
+    walleted: { label: 'เข้ากระเป๋า', badge: 'bg-violet-100 text-violet-700' },
+  }
+
+  return SESSION_STATUS[status] || derivedStatusMap[status] || { label: status, badge: 'bg-gray-100 text-gray-600' }
+}
+
 export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewScheduleProps) {
   const now = new Date()
   const today = now.toISOString().split('T')[0]
@@ -313,7 +324,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
               <div className="space-y-2">
                 {listSessions.map((session) => {
                   const course = COURSE_CONFIG[session.course_type] || { label: session.course_type, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-700' }
-                  const status = SESSION_STATUS[session.status] || { label: session.status, badge: 'bg-gray-100 text-gray-600' }
+                  const status = getSessionStatusConfig(session.status)
 
                   return (
                     <div key={session.id} className="rounded-lg border bg-white p-3">
