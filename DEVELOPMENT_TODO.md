@@ -868,7 +868,7 @@ Notes:
     - Admin Makeup page now opens with `ทุกสาขา` + `ทั้งหมด` to avoid hiding review records behind an action-only filter.
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`.
 
-- [ ] 21.3 Production Env / SlipOK Real Mode Final Check
+- [x] 21.3 Production Env / SlipOK Real Mode Final Check
   - Confirm production `.env` values before staging/deploy:
     - `NEXT_PUBLIC_SUPABASE_URL`
     - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
@@ -886,6 +886,11 @@ Notes:
     - GPS errors now distinguish denied permission, unavailable position, and timeout so Coach/Admin know what to fix during field use.
     - Real SlipOK credentials validated through `npm run prod:check`; quota is readable, remaining quota is 98, and package end date is 2026-05-26.
     - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `git diff --check`, `npm run build`, `npm run prod:check`.
+  - Final real-mode re-check 2026-05-23:
+    - Confirmed required local env keys are present without printing secrets: Supabase URL/publishable key/service role key, `SLIPOK_TEST_MODE=false`, `SLIPOK_API_URL`, and `SLIPOK_API_KEY`.
+    - `npm run prod:check` can read real SlipOK quota and reports: seed profiles `0`, seed auth users `0`, required Storage buckets present, active branches `7`, course types `3`, active schedule templates `702`, active levels `70`, pricing tiers `11`, system settings `3`, SlipOK quota remaining `98`, and package end date `2026-05-26`.
+    - No production secrets were committed; real `.env.local` remains local only.
+    - Checks passed: `npm run prod:check`, `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, and `git diff --check`.
 
 - [x] 21.3.1 User Lesson Wallet Display + Re-Wallet Flow
   - Refine `/dashboard/schedule` wallet visibility so the calendar is not overloaded with duplicate wallet statuses.
