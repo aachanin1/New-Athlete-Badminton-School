@@ -10,6 +10,8 @@ import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName, Database } from '@/types/database'
 
 const STORE_CUTOFF_HOURS = 48
+const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'paid', 'verified']
+const ACTIVE_SESSION_STATUSES = ['scheduled', 'completed', 'absent']
 
 interface StorePayload {
   action?: 'store' | 'redeem' | 'expire_due'
@@ -101,6 +103,30 @@ interface ExistingSessionRow {
   id: string
   status: string
   bookings?: { user_id: string; course_type_id: string } | null
+}
+
+interface RemainingSlotSessionRow {
+  id: string
+  status: string
+  bookings?: {
+    status: string
+  } | null
+}
+
+interface RemainingAssignmentRow {
+  booking_session_id: string
+  coach_assignment_groups?: {
+    coach_id: string | null
+  } | null
+}
+
+interface PostWalletAssignmentState {
+  activeSessionIds: string[]
+  assignedSessionIds: string[]
+  unassignedSessionIds: string[]
+  remainingAssignedCoachIds: string[]
+  needsReview: boolean
+  hasActiveLearners: boolean
 }
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
@@ -206,6 +232,68 @@ async function fetchAssignmentStudents(adminSupabase: AdminSupabase, sessionId: 
 
   if (error) throw new Error(`โหลดข้อมูลกลุ่มโค้ชไม่สำเร็จ: ${error.message}`)
   return data || []
+}
+
+async function fetchPostWalletAssignmentState(adminSupabase: AdminSupabase, scheduleSlotId: string | null): Promise<PostWalletAssignmentState> {
+  if (!scheduleSlotId) {
+    return {
+      activeSessionIds: [],
+      assignedSessionIds: [],
+      unassignedSessionIds: [],
+      remainingAssignedCoachIds: [],
+      needsReview: false,
+      hasActiveLearners: false,
+    }
+  }
+
+  const { data: sessions, error: sessionError } = await adminSupabase
+    .from('booking_sessions')
+    .select('id, status, bookings!inner(status)')
+    .eq('schedule_slot_id', scheduleSlotId)
+    .in('status', ACTIVE_SESSION_STATUSES)
+    .in('bookings.status', ACTIVE_BOOKING_STATUSES) as unknown as { data: RemainingSlotSessionRow[] | null; error: DbError | null }
+
+  if (sessionError) throw new Error(`ตรวจสอบผู้เรียนที่เหลือในรอบไม่สำเร็จ: ${sessionError.message}`)
+
+  const activeSessionIds = (sessions || []).map((row) => row.id)
+  if (activeSessionIds.length === 0) {
+    return {
+      activeSessionIds: [],
+      assignedSessionIds: [],
+      unassignedSessionIds: [],
+      remainingAssignedCoachIds: [],
+      needsReview: false,
+      hasActiveLearners: false,
+    }
+  }
+
+  const { data: assignmentRows, error: assignmentError } = await adminSupabase
+    .from('coach_assignment_group_students')
+    .select(`
+      booking_session_id,
+      coach_assignment_groups!inner(coach_id)
+    `)
+    .in('booking_session_id', activeSessionIds) as unknown as { data: RemainingAssignmentRow[] | null; error: DbError | null }
+
+  if (assignmentError) throw new Error(`ตรวจสอบกลุ่มโค้ชที่เหลือไม่สำเร็จ: ${assignmentError.message}`)
+
+  const assignedSessionIds = Array.from(new Set((assignmentRows || []).map((row) => row.booking_session_id)))
+  const assignedSessionSet = new Set(assignedSessionIds)
+  const unassignedSessionIds = activeSessionIds.filter((sessionId) => !assignedSessionSet.has(sessionId))
+  const remainingAssignedCoachIds = Array.from(new Set(
+    (assignmentRows || [])
+      .map((row) => row.coach_assignment_groups?.coach_id)
+      .filter((coachId): coachId is string => Boolean(coachId)),
+  ))
+
+  return {
+    activeSessionIds,
+    assignedSessionIds,
+    unassignedSessionIds,
+    remainingAssignedCoachIds,
+    needsReview: unassignedSessionIds.length > 0,
+    hasActiveLearners: activeSessionIds.length > 0,
+  }
 }
 
 async function notifyHeadCoachesAndAssignedCoach(
@@ -427,13 +515,9 @@ async function storeInWallet(request: NextRequest, userId: string, payload: Stor
     }
   }
 
+  const postWalletState = await fetchPostWalletAssignmentState(adminSupabase, session.schedule_slot_id)
   const label = slotLabel(session.date, session.start_time, session.end_time)
-  await Promise.all([
-    notifyHeadCoachesAndAssignedCoach(adminSupabase, session.branch_id, assignedCoachIds, {
-      title: 'ผู้เรียนเก็บรอบเรียนเข้ากระเป๋า',
-      message: `ผู้เรียนเก็บรอบ ${label} เข้ากระเป๋าวันเรียนแล้ว กรุณาตรวจกลุ่มสอนหากรอบนี้เคยมอบหมายไว้`,
-      link_url: `/coach/assign-groups?month=${monthKey(session.date)}`,
-    }),
+  const postWalletNotifications = [
     notifyRoles(adminSupabase as unknown as SupabaseClient<Database>, {
       roles: ['admin', 'super_admin'],
       title: 'ผู้เรียนเก็บรอบเรียนเข้ากระเป๋า',
@@ -453,11 +537,30 @@ async function storeInWallet(request: NextRequest, userId: string, payload: Stor
         startTime: session.start_time,
         cutoffHours: STORE_CUTOFF_HOURS,
         removedAssignmentStudentIds: assignmentRows.map((row) => row.id),
-        notifiedCoachIds: assignedCoachIds,
+        notifiedCoachIds: postWalletState.needsReview ? assignedCoachIds : [],
+        postWalletAssignmentState: {
+          activeSessionCount: postWalletState.activeSessionIds.length,
+          assignedSessionCount: postWalletState.assignedSessionIds.length,
+          unassignedSessionCount: postWalletState.unassignedSessionIds.length,
+          hasActiveLearners: postWalletState.hasActiveLearners,
+          needsReview: postWalletState.needsReview,
+        },
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     }),
-  ]).catch(() => null)
+  ]
+
+  if (postWalletState.needsReview) {
+    postWalletNotifications.push(
+      notifyHeadCoachesAndAssignedCoach(adminSupabase, session.branch_id, assignedCoachIds, {
+        title: 'ผู้เรียนถูกย้ายเข้ากระเป๋า ต้องตรวจกลุ่มสอน',
+        message: `ผู้เรียนเก็บรอบ ${label} เข้ากระเป๋าแล้ว และยังมีผู้เรียนที่ต้องมอบหมายโค้ชในรอบนี้`,
+        link_url: `/coach/assign-groups?month=${monthKey(session.date)}`,
+      }),
+    )
+  }
+
+  await Promise.all(postWalletNotifications).catch(() => null)
 
   return NextResponse.json({ success: true, creditId: credit.id })
 }

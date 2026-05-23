@@ -327,7 +327,20 @@ export default async function AssignGroupsPage() {
     return map
   }, {} as Record<string, { coachId: string; coachName: string }>)
 
+  const activeSessionIdsBySlot = sessionRows.reduce((map, session) => {
+    if (!session.schedule_slot_id) return map
+    if (!map[session.schedule_slot_id]) map[session.schedule_slot_id] = new Set<string>()
+    map[session.schedule_slot_id].add(session.id)
+    return map
+  }, {} as Record<string, Set<string>>)
+
   const assignmentGroupsBySlot = (assignmentGroups || []).reduce((map, group) => {
+    const activeSessionIds = activeSessionIdsBySlot[group.schedule_slot_id] || new Set<string>()
+    const studentSessionIds = (group.coach_assignment_group_students || [])
+      .map((student) => student.booking_session_id)
+      .filter((sessionId) => activeSessionIds.has(sessionId))
+    if (studentSessionIds.length === 0) return map
+
     if (!map[group.schedule_slot_id]) map[group.schedule_slot_id] = []
     map[group.schedule_slot_id].push({
       id: group.id,
@@ -337,7 +350,7 @@ export default async function AssignGroupsPage() {
       levelMin: group.level_min,
       levelMax: group.level_max,
       sortOrder: group.sort_order,
-      studentSessionIds: (group.coach_assignment_group_students || []).map((student) => student.booking_session_id),
+      studentSessionIds,
     })
     return map
   }, {} as Record<string, ExistingAssignmentGroupForClient[]>)

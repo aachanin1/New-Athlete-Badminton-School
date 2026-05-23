@@ -750,7 +750,7 @@ Notes:
   - Safety design:
     - Do not delete the original booking/payment record; preserve audit history.
     - Add DB support for lesson wallet credits and/or a clear `booking_sessions` wallet status/mapping.
-    - When a session is moved into the wallet after Head Coach assignment exists, remove only that learner from `coach_assignment_group_students`, reduce slot occupancy, and notify Head Coach/Coach to review the affected group.
+    - When a session is moved into the wallet after Head Coach assignment exists, remove only that learner from `coach_assignment_group_students`, reduce slot occupancy, and only notify Head Coach/Coach when active learners remain unassigned after the cleanup.
     - If the learner was the only student in a group, keep the assignment auditable but ensure empty groups are not treated as payable teaching evidence.
     - When redeemed into a new slot, create/reactivate a scheduled session that enters the normal Head Coach assignment flow again.
   - Required implementation:
@@ -758,7 +758,7 @@ Notes:
     - User UI for "เก็บเข้ากระเป๋า" and "ใช้วันเรียนจากกระเป๋า" with 48-hour cutoff messaging.
     - User schedule/history must show walleted, redeemed, and expired states clearly.
     - API guards for paid booking, same-month redemption, target slot capacity, cutoff time, no attendance, and no started session.
-    - Head Coach/Coach notifications and assignment cleanup when a learner is removed from an assigned group.
+    - Head Coach/Coach assignment cleanup when a learner is removed from an assigned group; notifications must avoid creating reassignment work when the remaining learners are still assigned.
     - Admin visibility/audit trail for wallet actions before deploy.
   - UAT cases:
     - Store before Head Coach assignment.
@@ -896,7 +896,7 @@ Notes:
   - Re-wallet rule:
     - A session created from wallet redemption may be stored back into the wallet again if it is still in the same month, at least 48 hours before start, has no attendance, and is not a makeup session.
     - Re-walleting must not create a new payment; it must keep using the original paid booking entitlement.
-    - If the redeemed session was already assigned to a Coach group, remove only that learner from the assignment group and notify Head Coach/Coach to review the group again.
+    - If the redeemed session was already assigned to a Coach group, remove only that learner from the assignment group. Only notify Head Coach/Coach when active learners remain without any group assignment.
   - Backend/API safety:
     - Confirm `/api/lesson-wallet` handles repeated wallet -> redeem -> wallet -> redeem chains without duplicate active credits, duplicate learner slots, or extra payment rows.
     - Keep same-month, future-slot, capacity, and duplicate learner guards.
@@ -913,6 +913,25 @@ Notes:
     - `/api/lesson-wallet` now blocks duplicate wallet redemption by learner/date/time/branch/course, not just by selected `schedule_slot_id`.
     - Extended `npm run uat:lesson-wallet` to cover wallet -> redeem -> wallet -> redeem chains.
     - UAT now verifies re-walleting a redeemed/assigned session decrements the old target slot, removes only that learner from Coach assignment groups, creates the new target session, keeps the original booking/payment count unchanged, and blocks duplicate target slots before wallet redemption.
+    - Checks passed: `node --check scripts/uat-lesson-wallet.js`, `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run uat:lesson-wallet`, `npm run build`, and `git diff --check`.
+
+- [x] 21.3.2 Coach Assignment Stability After Wallet Store
+  - Owner requirement: when a User stores a lesson into the wallet after Head Coach has already assigned groups/coaches, the system must remove only that learner and must not create unnecessary reassignment work.
+  - Safe rules:
+    - If the affected slot/group still has active learners after the wallet action, keep the existing Coach/group assignment as confirmed and do not force Head Coach to assign again.
+    - If the removed learner was the last learner in a group, keep the old group auditable but exclude the empty group from Coach schedule, check-in, attendance, teaching programs, and teaching-hour/payroll evidence.
+    - If the whole slot has no active learners left after wallet store, Coach should no longer see the slot as work to teach/check in for; it should behave like a slot with no booking.
+    - Only show Head Coach "needs assignment" when active learner sessions remain in the slot but are not assigned to any group.
+  - Required implementation:
+    - Adjust `/api/lesson-wallet` store flow to compute post-wallet slot state after removing the learner from `coach_assignment_group_students`.
+    - Send Head Coach/Coach notifications only when a real review is needed; avoid noisy "review group" alerts when the remaining learners are still fully assigned.
+    - Ensure Coach schedule, check-in, attendance, teaching programs, and teaching-hour calculations ignore empty assignment groups and slots with no active learners.
+    - Extend lesson-wallet UAT to cover: 3 learners -> wallet 1, 1 learner -> wallet 1, one group emptied while other groups remain, and active unassigned learner remains.
+  - Completed:
+    - `/api/lesson-wallet` now computes post-wallet assignment state after removing the learner from group students.
+    - Coach/Head Coach notifications are sent only when active learners remain without assignment; normal remaining assigned groups do not create reassignment noise.
+    - Coach schedule, check-in authorization, teaching programs, and teaching-hour/payroll sources ignore empty groups after wallet actions.
+    - Lesson wallet UAT covers multi-learner group removal, emptied group audit retention, split groups, re-wallet chains, duplicate target guards, and payment reuse.
     - Checks passed: `node --check scripts/uat-lesson-wallet.js`, `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run uat:lesson-wallet`, `npm run build`, and `git diff --check`.
 
 - [x] 21.4 Dependency Vulnerability Review

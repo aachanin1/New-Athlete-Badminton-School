@@ -38,6 +38,7 @@ interface CheckinInsertRow {
 interface GroupAssignmentRow {
   id: string
   coach_id: string | null
+  coach_assignment_group_students?: { booking_session_id: string }[] | null
 }
 
 interface LegacyAssignmentRow {
@@ -87,12 +88,12 @@ async function canCoachCheckinSlot(
 ) {
   const { data: groupRows } = await adminSupabase
     .from('coach_assignment_groups')
-    .select('id, coach_id')
+    .select('id, coach_id, coach_assignment_group_students(booking_session_id)')
     .eq('schedule_slot_id', scheduleSlotId) as unknown as { data: GroupAssignmentRow[] | null }
 
   const groups = groupRows || []
   if (groups.length > 0) {
-    return groups.some((group) => group.coach_id === coachId)
+    return groups.some((group) => group.coach_id === coachId && (group.coach_assignment_group_students || []).length > 0)
   }
 
   const { data: assignment } = await adminSupabase

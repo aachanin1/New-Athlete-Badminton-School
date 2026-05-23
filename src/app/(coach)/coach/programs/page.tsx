@@ -29,6 +29,7 @@ interface AssignedSlotRow {
   id: string
   name: string
   schedule_slot_id: string
+  coach_assignment_group_students?: { booking_session_id: string }[] | null
   schedule_slots?: {
     id: string
     date: string
@@ -79,6 +80,7 @@ export default async function ProgramsPage() {
     .from('coach_assignment_groups')
     .select(`
       id, name, schedule_slot_id,
+      coach_assignment_group_students(booking_session_id),
       schedule_slots!inner(id, date, start_time, end_time, branches(name), course_types(name))
     `)
     .eq('coach_id', user.id)
@@ -130,6 +132,7 @@ export default async function ProgramsPage() {
   }>()
 
   ;(assignedGroups || []).forEach((group) => {
+    if ((group.coach_assignment_group_students || []).length === 0) return
     const slot = group.schedule_slots
     if (!slot?.id) return
     const current = slotMap.get(slot.id) || {

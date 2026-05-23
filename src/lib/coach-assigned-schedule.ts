@@ -170,7 +170,7 @@ async function getCoachGroupsForDate(supabase: SupabaseLike, coachId: string, da
     .eq('coach_id', coachId)
     .eq('schedule_slots.date', date) as { data: AssignmentGroupRow[] | null }
 
-  return data || []
+  return (data || []).filter((group) => (group.coach_assignment_group_students || []).length > 0)
 }
 
 async function getLegacyAssignedSlotsForDate(supabase: SupabaseLike, coachId: string, date: string) {
@@ -194,10 +194,12 @@ async function getGroupedSlotIds(supabase: SupabaseLike, slotIds: string[]) {
 
   const { data } = await supabase
     .from('coach_assignment_groups')
-    .select('schedule_slot_id')
-    .in('schedule_slot_id', slotIds) as { data: { schedule_slot_id: string }[] | null }
+    .select('schedule_slot_id, coach_assignment_group_students(booking_session_id)')
+    .in('schedule_slot_id', slotIds) as { data: { schedule_slot_id: string; coach_assignment_group_students?: AssignmentGroupStudentRow[] | null }[] | null }
 
-  return new Set((data || []).map((row) => row.schedule_slot_id))
+  return new Set((data || [])
+    .filter((row) => (row.coach_assignment_group_students || []).length > 0)
+    .map((row) => row.schedule_slot_id))
 }
 
 async function getSessionsForCoachDay(
@@ -370,6 +372,7 @@ export async function getCoachAssignedTeachingDay(
           : null,
       }
     })
+    .filter((slot) => slot.students.length > 0)
 
   return {
     date,

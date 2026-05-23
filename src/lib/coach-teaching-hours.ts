@@ -319,6 +319,7 @@ export async function getCoachTeachingHourSourceRows(
   groups.forEach((group) => {
     if (!group.coach_id || !group.schedule_slots) return
     const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
+    if (groupSessionIds.length === 0) return
     const attendanceCount = groupSessionIds.reduce((sum, sessionId) => sum + (attendanceCounts.get(sessionId) || 0), 0)
     const key = getSlotKey(group.coach_id, group.schedule_slot_id)
     if (emitted.has(key)) return

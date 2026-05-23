@@ -307,12 +307,12 @@ async function selectMasterData() {
   return { branch, courseType }
 }
 
-async function createChild(parentId) {
+async function createChild(parentId, suffix = '') {
   return expectNoError(
     await supabase.from('children').insert({
       parent_id: parentId,
-      full_name: 'UAT Wallet Child',
-      nickname: 'Wallet Kid',
+      full_name: `UAT Wallet Child${suffix ? ` ${suffix}` : ''}`,
+      nickname: suffix ? `Wallet Kid ${suffix}` : 'Wallet Kid',
     }).select('id, full_name').single(),
     'create uat child',
   )
@@ -435,6 +435,49 @@ async function assignCoach({ coachId, adminId, slotId, session, childId }) {
   )
 
   return { group, student }
+}
+
+async function assignCoachGroup({ coachId, adminId, slotId, students, groupName }) {
+  const existingAssignment = await expectNoError(
+    await supabase.from('coach_assignments').select('schedule_slot_id').eq('coach_id', coachId).eq('schedule_slot_id', slotId).maybeSingle(),
+    `check uat legacy coach assignment ${groupName}`,
+  )
+  if (!existingAssignment) {
+    await expectNoError(
+      await supabase.from('coach_assignments').insert({
+        coach_id: coachId,
+        schedule_slot_id: slotId,
+        assigned_by: adminId,
+      }),
+      `create uat legacy coach assignment ${groupName}`,
+    )
+  }
+
+  const group = await expectNoError(
+    await supabase.from('coach_assignment_groups').insert({
+      schedule_slot_id: slotId,
+      coach_id: coachId,
+      name: groupName,
+      level_min: 0,
+      level_max: 20,
+      sort_order: 1,
+      notes: UAT_MARKER,
+      created_by: adminId,
+    }).select('id').single(),
+    `create uat coach assignment group ${groupName}`,
+  )
+
+  await expectNoError(
+    await supabase.from('coach_assignment_group_students').insert(students.map(({ session, childId }) => ({
+      group_id: group.id,
+      booking_session_id: session.id,
+      student_id: childId,
+      student_type: 'child',
+    }))),
+    `create uat assignment group students ${groupName}`,
+  )
+
+  return group
 }
 
 async function createCreditFromSession({ userId, session, courseTypeId, bookingId }) {
@@ -678,6 +721,10 @@ async function runUat() {
   const ids = await createProfiles()
   const { branch, courseType } = await selectMasterData()
   const child = await createChild(ids.parent)
+  const child2 = await createChild(ids.parent, 'B')
+  const child3 = await createChild(ids.parent, 'C')
+  const child4 = await createChild(ids.parent, 'D')
+  const child5 = await createChild(ids.parent, 'E')
   await expectNoError(
     await supabase.from('coach_branches').insert({
       coach_id: ids.coach,
@@ -738,6 +785,22 @@ async function runUat() {
     startTime: '17:00',
     endTime: '19:00',
   })
+  const sharedGroupSlot = await createTemplateAndSlot({
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    date: dates.originalDate,
+    startTime: '13:00',
+    endTime: '15:00',
+    currentStudents: 3,
+  })
+  const splitGroupSlot = await createTemplateAndSlot({
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    date: dates.targetDate,
+    startTime: '13:00',
+    endTime: '15:00',
+    currentStudents: 2,
+  })
   const wrongMonthSlot = await createTemplateAndSlot({
     branchId: branch.id,
     courseTypeId: courseType.id,
@@ -754,13 +817,119 @@ async function runUat() {
     slot: originalSlot,
     label: 'original',
   })
-  await assignCoach({
+  const originalAssignment = await assignCoach({
     coachId: ids.coach,
     adminId: ids.admin,
     slotId: originalSlot.id,
     session: original.session,
     childId: child.id,
   })
+
+  const sharedOne = await createVerifiedBookingWithSession({
+    userId: ids.parent,
+    childId: child.id,
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    slot: sharedGroupSlot,
+    label: 'shared-group-1',
+  })
+  const sharedTwo = await createVerifiedBookingWithSession({
+    userId: ids.parent,
+    childId: child2.id,
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    slot: sharedGroupSlot,
+    label: 'shared-group-2',
+  })
+  const sharedThree = await createVerifiedBookingWithSession({
+    userId: ids.parent,
+    childId: child3.id,
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    slot: sharedGroupSlot,
+    label: 'shared-group-3',
+  })
+  const sharedGroup = await assignCoachGroup({
+    coachId: ids.coach,
+    adminId: ids.admin,
+    slotId: sharedGroupSlot.id,
+    groupName: 'UAT Wallet Shared Group',
+    students: [
+      { session: sharedOne.session, childId: child.id },
+      { session: sharedTwo.session, childId: child2.id },
+      { session: sharedThree.session, childId: child3.id },
+    ],
+  })
+
+  const splitOne = await createVerifiedBookingWithSession({
+    userId: ids.parent,
+    childId: child4.id,
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    slot: splitGroupSlot,
+    label: 'split-group-1',
+  })
+  const splitTwo = await createVerifiedBookingWithSession({
+    userId: ids.parent,
+    childId: child5.id,
+    branchId: branch.id,
+    courseTypeId: courseType.id,
+    slot: splitGroupSlot,
+    label: 'split-group-2',
+  })
+  const emptiedGroup = await assignCoachGroup({
+    coachId: ids.coach,
+    adminId: ids.admin,
+    slotId: splitGroupSlot.id,
+    groupName: 'UAT Wallet Emptied Group',
+    students: [{ session: splitOne.session, childId: child4.id }],
+  })
+  const remainingSplitGroup = await assignCoachGroup({
+    coachId: ids.coach,
+    adminId: ids.admin,
+    slotId: splitGroupSlot.id,
+    groupName: 'UAT Wallet Remaining Group',
+    students: [{ session: splitTwo.session, childId: child5.id }],
+  })
+
+  await storeSessionInWallet({
+    userId: ids.parent,
+    session: sharedOne.session,
+    courseTypeId: courseType.id,
+    bookingId: sharedOne.booking.id,
+  })
+  const sharedGroupRowsAfterStore = await expectNoError(
+    await supabase.from('coach_assignment_group_students').select('id, booking_session_id').eq('group_id', sharedGroup.id),
+    'verify shared group after wallet store',
+  )
+  const sharedSlotAfterStore = await expectNoError(
+    await supabase.from('schedule_slots').select('current_students').eq('id', sharedGroupSlot.id).single(),
+    'verify shared slot count after wallet store',
+  )
+  assertCondition(sharedGroupRowsAfterStore.length === 2, 'Shared assigned group should keep the remaining learners after one wallet store')
+  assertCondition(Number(sharedSlotAfterStore.current_students) === 2, 'Shared slot count should decrement to remaining learners only')
+
+  await storeSessionInWallet({
+    userId: ids.parent,
+    session: splitOne.session,
+    courseTypeId: courseType.id,
+    bookingId: splitOne.booking.id,
+  })
+  const emptiedGroupRowsAfterStore = await expectNoError(
+    await supabase.from('coach_assignment_group_students').select('id').eq('group_id', emptiedGroup.id),
+    'verify emptied group after wallet store',
+  )
+  const remainingSplitGroupRows = await expectNoError(
+    await supabase.from('coach_assignment_group_students').select('id').eq('group_id', remainingSplitGroup.id),
+    'verify other split group remains assigned',
+  )
+  const splitSlotAfterStore = await expectNoError(
+    await supabase.from('schedule_slots').select('current_students').eq('id', splitGroupSlot.id).single(),
+    'verify split slot count after wallet store',
+  )
+  assertCondition(emptiedGroupRowsAfterStore.length === 0, 'Emptied group should be auditable but contain no active learners')
+  assertCondition(remainingSplitGroupRows.length === 1, 'Other assigned group in the same slot should remain untouched')
+  assertCondition(Number(splitSlotAfterStore.current_students) === 1, 'Split slot count should keep the remaining learner')
 
   const credit = await storeSessionInWallet({
     userId: ids.parent,
@@ -781,9 +950,14 @@ async function runUat() {
     await supabase.from('coach_assignment_group_students').select('id').eq('booking_session_id', original.session.id),
     'verify assignment removed after store',
   )
+  const originalAssignmentGroupStillExists = await expectNoError(
+    await supabase.from('coach_assignment_groups').select('id').eq('id', originalAssignment.group.id).single(),
+    'verify emptied original assignment group remains auditable',
+  )
   assertCondition(storedSession.status === 'walleted', 'Original session was not marked walleted')
   assertCondition(Number(originalSlotAfterStore.current_students) === 0, 'Original slot count was not decremented')
   assertCondition(assignmentAfterStore.length === 0, 'Stored learner was not removed from coach group')
+  assertCondition(Boolean(originalAssignmentGroupStillExists.id), 'Empty assignment group should remain for audit instead of being deleted')
 
   assertCondition(monthKey(original.session.date) !== monthKey(wrongMonthSlot.date), 'Wrong-month test slot is not in another month')
   const redeemedSession = await redeemCredit({
@@ -884,6 +1058,7 @@ async function runUat() {
   console.log('PASS Migration table is usable: lesson_wallet_credits insert/update/select succeeded')
   console.log('PASS Store wallet: verified booking only, 48-hour guard, no attendance, original session -> walleted')
   console.log('PASS Store wallet: original slot count decremented and learner removed from coach group')
+  console.log('PASS Coach assignment stability: remaining assigned learners stay assigned and emptied groups are left auditable without active students')
   console.log('PASS Redeem wallet: same-month future slot, target capacity, new scheduled session created')
   console.log('PASS Redeem wallet: original booking/payment reused; no additional charge path used')
   console.log('PASS Re-wallet chain: redeemed session can be stored again, assignment cleanup stays per learner, and payment count stays unchanged')
