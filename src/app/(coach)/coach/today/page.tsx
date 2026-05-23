@@ -292,6 +292,24 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
         <div className="space-y-4">
           {teachingDay.slots.map((slot) => {
             const slotAttendance = getSlotAttendanceSummary(slot)
+            const checkinBadge = slot.checkin
+              ? {
+                  label: 'เช็คอินแล้ว',
+                  className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                  Icon: CheckCircle2,
+                }
+              : slotAttendance.isComplete
+                ? {
+                    label: 'บันทึกผลแล้ว',
+                    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                    Icon: CheckCircle2,
+                  }
+                : {
+                    label: 'รอเช็คอิน',
+                    className: 'border-orange-200 bg-orange-50 text-orange-700',
+                    Icon: Camera,
+                  }
+            const CheckinIcon = checkinBadge.Icon
 
             return (
               <Card key={slot.id}>
@@ -311,14 +329,14 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className={slot.checkin ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-orange-200 bg-orange-50 text-orange-700'}>
-                      {slot.checkin ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <Camera className="mr-1 h-3.5 w-3.5" />}
-                      {slot.checkin ? 'เช็คอินแล้ว' : 'รอเช็คอิน'}
+                    <Badge variant="outline" className={checkinBadge.className}>
+                      <CheckinIcon className="mr-1 h-3.5 w-3.5" />
+                      {checkinBadge.label}
                     </Badge>
                     {slotAttendance.isComplete ? (
                       <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
                         <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                        เช็คชื่อครบแล้ว {slotAttendance.checkedCount}/{slot.students.length}
+                        บันทึกผลครบแล้ว {slotAttendance.checkedCount}/{slot.students.length}
                       </Badge>
                     ) : slot.students.length > 0 && slot.checkin ? (
                       <Link

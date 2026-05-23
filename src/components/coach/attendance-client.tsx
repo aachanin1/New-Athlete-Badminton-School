@@ -117,16 +117,17 @@ export function AttendanceClient({
   const isToday = selectedDate === today
   const slotSummaries = useMemo(() => slots.map((slot) => {
     const checked = slot.students.filter((student) => statuses[`${student.bookingSessionId}-${student.studentId}`]).length
-    const isLocked = !slot.checkin
     const isComplete = slot.students.length > 0 && checked === slot.students.length
-    const label = isLocked ? 'ล็อกอยู่' : isComplete ? 'เช็คครบแล้ว' : checked > 0 ? 'กำลังเช็คชื่อ' : 'รอเช็คชื่อ'
-    const color = isLocked
-      ? 'border-orange-200 bg-orange-50 text-orange-700'
-      : isComplete
+    const hasAttendance = checked > 0
+    const needsCheckin = !slot.checkin && !hasAttendance
+    const label = isComplete ? 'บันทึกผลครบแล้ว' : needsCheckin ? 'รอเช็คอิน' : checked > 0 ? 'กำลังบันทึกผล' : 'รอบันทึกผล'
+    const color = isComplete
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-blue-200 bg-blue-50 text-blue-700'
+        : needsCheckin
+          ? 'border-orange-200 bg-orange-50 text-orange-700'
+          : 'border-blue-200 bg-blue-50 text-blue-700'
 
-    return { slotId: slot.scheduleSlotId, checked, isLocked, isComplete, label, color }
+    return { slotId: slot.scheduleSlotId, checked, isLocked: needsCheckin, isComplete, label, color }
   }), [slots, statuses])
   const completedSlots = slotSummaries.filter((summary) => summary.isComplete).length
   const lockedSlots = slotSummaries.filter((summary) => summary.isLocked).length
@@ -189,7 +190,7 @@ export function AttendanceClient({
             <p className="text-lg font-bold text-[#153c85]">{slots.length}</p>
           </div>
           <div className="rounded-lg bg-emerald-50 px-3 py-2">
-            <p className="text-[11px] text-emerald-600">เช็คครบแล้ว</p>
+            <p className="text-[11px] text-emerald-600">บันทึกผลครบแล้ว</p>
             <p className="text-lg font-bold text-emerald-700">{completedSlots}</p>
           </div>
           <div className="rounded-lg bg-orange-50 px-3 py-2">

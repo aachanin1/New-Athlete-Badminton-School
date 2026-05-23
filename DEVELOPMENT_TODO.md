@@ -1025,6 +1025,8 @@ Notes:
     - Admin schedule displays coach names from saved coach assignment groups first, with legacy slot assignment as fallback.
     - Coach schedule detail now displays learner status from attendance rows first, so checked students show `มาเรียนแล้ว` / `มาสาย` / `ขาดเรียน` instead of staying `รอสอน`.
     - Coach schedule detail shows a completed attendance badge when all learners in that assigned slot are checked, reducing duplicate check-name actions.
+    - Coach attendance/schedule wording now says `บันทึกผลครบแล้ว` for completed attendance so an absent result is not misread as the student attended.
+    - Coach monthly calendar and teaching-hour source now ignore assignment groups whose sessions were moved to wallet/rescheduled/cancelled, preventing ghost orange dots and non-payable hours after wallet actions.
     - Admin payment review now displays server-side SlipOK mode clearly as live production verification or TEST MODE without exposing API keys and without adding a risky UI toggle.
     - Verification target: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
 

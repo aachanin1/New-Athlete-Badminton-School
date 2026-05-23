@@ -62,6 +62,10 @@ interface BookingSessionRow {
   schedule_slot_id: string
 }
 
+interface BookingSessionIdRow {
+  id: string
+}
+
 interface AttendanceRow {
   booking_session_id: string
 }
@@ -200,6 +204,24 @@ async function getPayableSessionsBySlot(supabase: SupabaseLike, slotIds: string[
   return map
 }
 
+async function getPayableSessionIds(supabase: SupabaseLike, sessionIds: string[]) {
+  const set = new Set<string>()
+  const uniqueSessionIds = Array.from(new Set(sessionIds.filter(Boolean)))
+  if (uniqueSessionIds.length === 0) return set
+
+  const { data } = await supabase
+    .from('booking_sessions')
+    .select('id, bookings!inner(status)')
+    .in('id', uniqueSessionIds)
+    .in('status', SESSION_ATTENDANCE_STATUSES)
+    .in('bookings.status', BOOKING_PAYABLE_STATUSES)
+    .limit(10000) as unknown as { data: BookingSessionIdRow[] | null }
+
+  ;(data || []).forEach((session) => set.add(session.id))
+
+  return set
+}
+
 async function getAttendanceCounts(supabase: SupabaseLike, sessionIds: string[]) {
   const map = new Map<string, number>()
   if (sessionIds.length === 0) return map
@@ -304,12 +326,14 @@ export async function getCoachTeachingHourSourceRows(
     ...legacyRows.map((assignment) => assignment.coach_id),
   ]))
 
-  const [sessionsBySlot, checkinMap] = await Promise.all([
+  const rawGroupedSessionIds = groups.flatMap((group) => (group.coach_assignment_group_students || []).map((student) => student.booking_session_id))
+  const [sessionsBySlot, checkinMap, payableGroupedSessionIds] = await Promise.all([
     getPayableSessionsBySlot(supabase, slotIds),
     getCheckins(supabase, coachIds, slotIds),
+    getPayableSessionIds(supabase, rawGroupedSessionIds),
   ])
 
-  const groupedSessionIds = groups.flatMap((group) => (group.coach_assignment_group_students || []).map((student) => student.booking_session_id))
+  const groupedSessionIds = rawGroupedSessionIds.filter((sessionId) => payableGroupedSessionIds.has(sessionId))
   const legacySessionIds = slotIds.flatMap((slotId) => (sessionsBySlot.get(slotId) || []).map((session) => session.id))
   const attendanceCounts = await getAttendanceCounts(supabase, Array.from(new Set([...groupedSessionIds, ...legacySessionIds])))
 
@@ -318,7 +342,9 @@ export async function getCoachTeachingHourSourceRows(
 
   groups.forEach((group) => {
     if (!group.coach_id || !group.schedule_slots) return
-    const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
+    const groupSessionIds = (group.coach_assignment_group_students || [])
+      .map((student) => student.booking_session_id)
+      .filter((sessionId) => payableGroupedSessionIds.has(sessionId))
     if (groupSessionIds.length === 0) return
     const attendanceCount = groupSessionIds.reduce((sum, sessionId) => sum + (attendanceCounts.get(sessionId) || 0), 0)
     const key = getSlotKey(group.coach_id, group.schedule_slot_id)
