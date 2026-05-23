@@ -33,6 +33,9 @@ dev-server.log
 # API keys
 /SlipOK_API/
 
+# local production reset backups / restore points
+/backups/
+
 # vercel
 .vercel
 

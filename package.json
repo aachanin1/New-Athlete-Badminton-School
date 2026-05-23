@@ -15,6 +15,8 @@
     "uat:attendance-gap": "node scripts/uat-attendance-gap.js",
     "uat:lesson-wallet": "node scripts/uat-lesson-wallet.js",
     "prod:save-default-settings": "node scripts/save-default-production-settings.js",
+    "prod:create-restore-point": "node scripts/create-production-reset-restore-point.js",
+    "prod:reset-operational-data": "node scripts/reset-production-operational-data.js",
     "prod:check": "node scripts/production-readiness-check.js",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint src --max-warnings=0"
