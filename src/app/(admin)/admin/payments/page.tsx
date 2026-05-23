@@ -38,7 +38,7 @@ interface VerifierRow {
 }
 
 export default async function PaymentsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch payments with booking + user + branch data
   const { data: payments } = await supabase

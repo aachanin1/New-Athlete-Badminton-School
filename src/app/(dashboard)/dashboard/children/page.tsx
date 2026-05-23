@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ChildrenClient } from '@/components/dashboard/children-client'
 
 export default async function ChildrenPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')

@@ -29,7 +29,7 @@ interface BranchRow {
 }
 
 export default async function CoachesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch all coaches (role = coach or head_coach)
   const { data: profiles } = await supabase

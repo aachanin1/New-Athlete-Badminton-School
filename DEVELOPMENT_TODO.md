@@ -953,10 +953,19 @@ Notes:
     - Deferred `npm audit fix --force` because it would install `next@16.2.6` and `eslint-config-next@16.2.6`, a breaking framework upgrade that must be handled as a separate upgrade window.
     - Checks passed: `npm run lint`, `npx tsc --noEmit`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
 
-- [ ] 21.4.1 Next.js Major Security Upgrade Spike
+- [x] 21.4.1 Next.js Major Security Upgrade Spike
   - Review the remaining `npm audit` high-severity Next.js advisory group separately from routine dependency patching.
   - Test upgrade path from Next 14.2.35 to the current secure Next major on a separate branch before production deploy.
   - Re-run role smoke tests after upgrade because routing, middleware, image handling, and App Router behavior can be affected.
+  - Completed 2026-05-23 on branch `spike/next-major-security-upgrade`:
+    - Upgraded `next` and `eslint-config-next` to `16.2.6`, upgraded ESLint to `9.39.1`, and confirmed `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+    - Migrated Supabase server client usage for async `cookies()` and updated App Router pages that receive `searchParams` to the Next 16 Promise-based shape.
+    - Replaced deprecated `.eslintrc.json` with ESLint 9 flat config and scoped lint to `src` to match the prior app lint surface.
+    - Locked local dev/build to webpack with `next dev --webpack` and `next build --webpack` because the project still has webpack configuration and Next 16 defaults to Turbopack.
+    - Renamed request `middleware` convention to `proxy` and converted Tailwind config plugin loading to ESM import so Next 16 dev server opens cleanly.
+    - Smoke checked public/protected routes on `http://127.0.0.1:3002`: public pages returned 200 and protected Admin/Coach/User pages returned expected auth redirects.
+    - Checks passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm audit --audit-level=moderate`, `npm run prod:check`, and `git diff --check`.
+    - Not merged into `main` yet; keep this as a reviewed spike branch before deciding whether to promote the framework upgrade.
 
 - [ ] 21.5 Staging Deploy Preparation
   - Prepare staging environment variables in the target host.

@@ -49,7 +49,7 @@ function getYearRange() {
 }
 
 export default async function PayrollPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const range = getYearRange()
 
   const [{ data: summaries }, { data: teachingRulesSetting }, payrollRows] = await Promise.all([

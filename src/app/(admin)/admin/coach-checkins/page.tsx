@@ -49,7 +49,7 @@ function getMonthRange() {
 }
 
 export default async function CoachCheckinsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const range = getMonthRange()
 
   const [{ data: assignments }, { data: checkins }, { data: branches }] = await Promise.all([

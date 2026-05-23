@@ -16,7 +16,7 @@ interface ActivityLogRow {
 
 export default async function LogsPage() {
   await requireSuperAdminPageAccess()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: logs } = await supabase
     .from('activity_logs')

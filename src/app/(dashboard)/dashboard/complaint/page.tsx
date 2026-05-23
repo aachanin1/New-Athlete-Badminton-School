@@ -16,7 +16,7 @@ interface ComplaintRow {
 }
 
 export default async function ComplaintPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')

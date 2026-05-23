@@ -35,7 +35,7 @@ interface CouponUpdateQuery {
 }
 
 export default async function CouponsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: coupons } = await supabase
     .from('coupons')

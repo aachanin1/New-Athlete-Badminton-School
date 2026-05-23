@@ -6,7 +6,7 @@ import {
 } from '@/lib/payment-settings'
 
 export default async function PaymentSettingsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: setting } = await supabase
     .from('system_settings')
     .select('value')

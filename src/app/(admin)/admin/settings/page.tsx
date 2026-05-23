@@ -40,9 +40,9 @@ interface CoachOtSettingRow {
 }
 
 interface SettingsPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     section?: string
-  }
+  }>
 }
 
 const VALID_SECTIONS: SettingsSection[] = ['admin-menus', 'levels', 'pricing', 'coach-ot']
@@ -53,7 +53,8 @@ function getActiveSection(value?: string): SettingsSection {
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
   const { supabase } = await requireSuperAdminPageAccess()
-  const activeSection = getActiveSection(searchParams?.section)
+  const resolvedSearchParams = await searchParams
+  const activeSection = getActiveSection(resolvedSearchParams?.section)
 
   let sectionContent: ReactNode = null
 

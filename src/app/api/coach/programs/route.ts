@@ -48,7 +48,7 @@ type ProgramMutationTable = {
   delete: () => ProgramMutationChain
 }
 
-async function requireCoach(supabase: ReturnType<typeof createClient>) {
+async function requireCoach(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -70,7 +70,7 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
 }
 
-async function isAssignedToSlot(supabase: ReturnType<typeof createClient>, coach: User, scheduleSlotId: string) {
+async function isAssignedToSlot(supabase: Awaited<ReturnType<typeof createClient>>, coach: User, scheduleSlotId: string) {
   const { data: group } = await supabase
     .from('coach_assignment_groups')
     .select('id')
@@ -92,7 +92,7 @@ async function isAssignedToSlot(supabase: ReturnType<typeof createClient>, coach
   return Boolean(legacyAssignment)
 }
 
-async function getOwnedProgram(supabase: ReturnType<typeof createClient>, coach: User, programId: string) {
+async function getOwnedProgram(supabase: Awaited<ReturnType<typeof createClient>>, coach: User, programId: string) {
   const { data, error } = await supabase
     .from('teaching_programs')
     .select('id, status, schedule_slot_id')
@@ -104,7 +104,7 @@ async function getOwnedProgram(supabase: ReturnType<typeof createClient>, coach:
 }
 
 async function getExistingProgramForSlot(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   coach: User,
   scheduleSlotId: string,
   exceptProgramId?: string,
@@ -126,7 +126,7 @@ async function getExistingProgramForSlot(
   return data
 }
 
-async function updateProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: Required<Pick<ProgramPayload, 'programId' | 'programContent' | 'scheduleSlotId'>> & { status: ProgramStatus }) {
+async function updateProgram(supabase: Awaited<ReturnType<typeof createClient>>, coach: User, payload: Required<Pick<ProgramPayload, 'programId' | 'programContent' | 'scheduleSlotId'>> & { status: ProgramStatus }) {
   const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
   return table
     .update({
@@ -139,7 +139,7 @@ async function updateProgram(supabase: ReturnType<typeof createClient>, coach: U
     .eq('coach_id', coach.id) as unknown as PromiseLike<{ error: DbError | null }>
 }
 
-async function insertProgram(supabase: ReturnType<typeof createClient>, coach: User, payload: { scheduleSlotId: string; programContent: string; status: ProgramStatus }) {
+async function insertProgram(supabase: Awaited<ReturnType<typeof createClient>>, coach: User, payload: { scheduleSlotId: string; programContent: string; status: ProgramStatus }) {
   const table = supabase.from('teaching_programs') as unknown as ProgramMutationTable
   return table
     .insert({
@@ -153,7 +153,7 @@ async function insertProgram(supabase: ReturnType<typeof createClient>, coach: U
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

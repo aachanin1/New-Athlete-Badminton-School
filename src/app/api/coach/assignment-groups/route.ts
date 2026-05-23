@@ -37,7 +37,7 @@ interface ScheduleSlotForNotification {
   course_types?: { name: string | null } | null
 }
 
-async function requireAssignmentManager(supabase: ReturnType<typeof createClient>) {
+async function requireAssignmentManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -85,7 +85,7 @@ function isAssignmentLocked(date: string, startTime: string, now = new Date()) {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const manager = await requireAssignmentManager(supabase)
   if (!manager) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

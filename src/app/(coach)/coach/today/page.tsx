@@ -22,9 +22,9 @@ import { createClient } from '@/lib/supabase/server'
 import { fmtTime, getBangkokDateString } from '@/lib/utils'
 
 interface CoachSchedulePageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     date?: string
-  }
+  }>
 }
 
 function isValidDateString(value?: string) {
@@ -80,12 +80,13 @@ function getMonthNavDate(selectedDate: Date, offset: number) {
 }
 
 export default async function CoachSchedulePage({ searchParams }: CoachSchedulePageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  const resolvedSearchParams = await searchParams
   const today = getBangkokDateString()
-  const selectedDate = isValidDateString(searchParams?.date) ? searchParams?.date as string : today
+  const selectedDate = isValidDateString(resolvedSearchParams?.date) ? resolvedSearchParams?.date as string : today
   const selectedDateObj = new Date(`${selectedDate}T00:00:00`)
   const monthStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), 1)
   const nextMonthStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth() + 1, 1)

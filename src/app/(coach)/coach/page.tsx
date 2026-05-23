@@ -51,7 +51,7 @@ function formatMonthTitle(value: Date) {
 }
 
 export default async function CoachDashboardPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 

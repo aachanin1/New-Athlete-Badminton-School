@@ -44,7 +44,7 @@ interface CoachAssignmentRow {
 }
 
 export default async function AdminDashboardPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
   const now = new Date()
   const currentMonth = now.getMonth() + 1

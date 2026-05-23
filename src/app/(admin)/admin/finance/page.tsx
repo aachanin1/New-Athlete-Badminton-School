@@ -75,7 +75,7 @@ function getYearRange() {
 }
 
 export default async function FinancePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const range = getYearRange()
 
   const [

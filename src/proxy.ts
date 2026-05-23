@@ -25,7 +25,7 @@ const ROLE_HOME: Record<string, string> = {
   super_admin: '/admin',
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { user, supabaseResponse, supabase } = await updateSession(request)
   const { pathname } = request.nextUrl
 

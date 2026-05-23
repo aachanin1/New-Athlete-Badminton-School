@@ -26,7 +26,7 @@ interface BookingUserRow {
 
 export default async function UsersPage() {
   const { role } = await requireAdminPageAccess()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch all profiles
   const { data: profiles } = await supabase

@@ -44,7 +44,7 @@ interface ScheduleTemplateRow {
 }
 
 export default async function ReschedulePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

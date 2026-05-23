@@ -37,7 +37,7 @@ interface CoachAssignmentRow {
 
 export default async function SchedulesPage() {
   await requireAdminPageAccess()
-  const supabase = createClient()
+  const supabase = await createClient()
   const [{ data: sessions }, { data: branches }] = await Promise.all([
     supabase
       .from('booking_sessions')

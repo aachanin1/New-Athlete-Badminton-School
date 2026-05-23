@@ -29,7 +29,7 @@ interface ScheduleTemplateRow {
 
 export default async function ScheduleTemplatesPage() {
   await requireSuperAdminPageAccess()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: branches }, { data: courseTypes }, { data: templates }] = await Promise.all([
     supabase

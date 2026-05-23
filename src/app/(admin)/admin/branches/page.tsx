@@ -15,7 +15,7 @@ interface BranchIdRow {
 }
 
 export default async function BranchesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: branches }, { data: coachBranches }, { data: bookings }] = await Promise.all([
     supabase.from('branches').select('id, name, slug, address, is_active, created_at').order('name') as unknown as Promise<{ data: BranchRow[] | null }>,

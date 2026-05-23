@@ -30,7 +30,7 @@ interface ProgressStudent {
 }
 
 export default async function ProgressPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

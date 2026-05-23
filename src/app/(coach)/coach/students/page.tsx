@@ -9,7 +9,7 @@ interface StudentLevelRow {
 }
 
 export default async function StudentsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 

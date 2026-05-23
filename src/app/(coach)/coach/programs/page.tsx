@@ -62,7 +62,7 @@ function formatSlotLabel(program: TeachingProgramRow) {
 }
 
 export default async function ProgramsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 

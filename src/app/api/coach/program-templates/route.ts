@@ -42,7 +42,7 @@ type TemplateMutationTable = {
   delete: () => TemplateMutationChain
 }
 
-async function requireCoach(supabase: ReturnType<typeof createClient>) {
+async function requireCoach(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -81,7 +81,7 @@ function mapTemplate(row: TemplateRow) {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -181,7 +181,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -9,7 +9,7 @@ import { AdminMenuPermissionsClient } from '@/components/admin/admin-menu-permis
 
 export default async function AdminMenuPermissionsPage() {
   await requireSuperAdminPageAccess()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: permissionSetting } = await supabase
     .from('system_settings')

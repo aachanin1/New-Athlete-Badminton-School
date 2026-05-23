@@ -70,7 +70,7 @@ interface ScheduleTemplateRow {
 }
 
 export default async function MakeupPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }] = await Promise.all([
     supabase

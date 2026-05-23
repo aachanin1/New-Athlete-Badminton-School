@@ -80,8 +80,9 @@ interface EditBookingData extends EditBookingRow {
   childIds: string[]
 }
 
-export default async function BookingPage({ searchParams }: { searchParams: { editBookingId?: string } }) {
-  const supabase = createClient()
+export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string }> }) {
+  const resolvedSearchParams = await searchParams
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
@@ -151,11 +152,11 @@ export default async function BookingPage({ searchParams }: { searchParams: { ed
 
   // If editing an existing booking, fetch its data + sessions
   let editBookingData: EditBookingData | null = null
-  if (searchParams.editBookingId) {
+  if (resolvedSearchParams.editBookingId) {
     const { data: booking } = await supabase
       .from('bookings')
       .select('id, user_id, learner_type, child_id, branch_id, course_type_id, month, year, total_sessions, total_price, status, course_types(name)')
-      .eq('id', searchParams.editBookingId)
+      .eq('id', resolvedSearchParams.editBookingId)
       .eq('user_id', user.id)
       .single() as unknown as { data: EditBookingRow | null }
 

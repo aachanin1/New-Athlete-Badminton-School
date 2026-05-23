@@ -5,7 +5,7 @@ import { canManageStudentForCoach, getCoachRole } from '@/lib/coach-student-acce
 import { createClient } from '@/lib/supabase/server'
 import type { StudentType } from '@/types/database'
 
-async function requireCoach(supabase: ReturnType<typeof createClient>) {
+async function requireCoach(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -16,7 +16,7 @@ async function requireCoach(supabase: ReturnType<typeof createClient>) {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const coach = await requireCoach(supabase)
   if (!coach) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

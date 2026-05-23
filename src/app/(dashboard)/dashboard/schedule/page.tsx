@@ -87,7 +87,7 @@ interface SlotSessionRow {
 }
 
 export default async function SchedulePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const adminSupabase = getServiceRoleClient()
   const {
     data: { user },

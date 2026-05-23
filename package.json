@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "check:mojibake": "node scripts/check-mojibake.js",
     "seed:realistic": "node scripts/seed-realistic-data.js",
     "seed:cleanup": "node scripts/seed-realistic-data.js --cleanup",
@@ -14,7 +14,7 @@
     "prod:save-default-settings": "node scripts/save-default-production-settings.js",
     "prod:check": "node scripts/production-readiness-check.js",
     "start": "NODE_ENV=production node server.js",
-    "lint": "next lint"
+    "lint": "eslint src --max-warnings=0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -36,7 +36,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
-    "next": "14.2.35",
+    "next": "16.2.6",
     "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
@@ -52,8 +52,8 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.2.6",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

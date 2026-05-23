@@ -6,10 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 
 interface AttendancePageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     date?: string
     slot?: string
-  }
+  }>
 }
 
 function toInputDate(value: Date) {
@@ -35,13 +35,14 @@ function formatDateLabel(date: string) {
 }
 
 export default async function AttendancePage({ searchParams }: AttendancePageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  const resolvedSearchParams = await searchParams
   const today = getBangkokDateString()
-  const selectedDate = isValidDateString(searchParams?.date) ? searchParams?.date as string : today
-  const selectedSlotId = searchParams?.slot || null
+  const selectedDate = isValidDateString(resolvedSearchParams?.date) ? resolvedSearchParams?.date as string : today
+  const selectedSlotId = resolvedSearchParams?.slot || null
   const teachingDay = await getCoachAssignedTeachingDay(supabase, user.id, selectedDate)
   const adminReturnedSlotIds = await getAdminReturnedAttendanceSlotIds(
     getServiceRoleClient(),

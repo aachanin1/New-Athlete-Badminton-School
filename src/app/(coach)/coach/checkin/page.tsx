@@ -6,10 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 
 interface CheckinPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     date?: string
     slot?: string
-  }
+  }>
 }
 
 function toInputDate(value: Date) {
@@ -26,12 +26,13 @@ function isValidDateString(value?: string) {
 }
 
 export default async function CheckinPage({ searchParams }: CheckinPageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  const resolvedSearchParams = await searchParams
   const today = getBangkokDateString()
-  const selectedDate = isValidDateString(searchParams?.date) ? searchParams?.date as string : today
+  const selectedDate = isValidDateString(resolvedSearchParams?.date) ? resolvedSearchParams?.date as string : today
   const teachingDay = await getCoachAssignedTeachingDay(supabase, user.id, selectedDate)
   const adminReturnedSlotIds = await getAdminReturnedAttendanceSlotIds(
     getServiceRoleClient(),
@@ -64,7 +65,9 @@ export default async function CheckinPage({ searchParams }: CheckinPageProps) {
       photoUrl: slot.checkin!.photoUrl,
     }))
 
-  const initialSlotId = slots.some((slot) => slot.id === searchParams?.slot) ? searchParams?.slot || null : null
+  const initialSlotId = slots.some((slot) => slot.id === resolvedSearchParams?.slot)
+    ? resolvedSearchParams?.slot || null
+    : null
 
   return <CheckinClient slots={slots} todayCheckins={todayCheckins} initialSlotId={initialSlotId} selectedDate={selectedDate} today={today} />
 }

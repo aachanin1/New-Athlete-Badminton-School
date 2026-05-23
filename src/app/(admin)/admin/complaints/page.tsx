@@ -28,7 +28,7 @@ interface ResolverRow {
 
 export default async function ComplaintsPage() {
   await requireAdminPageAccess()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: complaints } = await supabase
     .from('complaints')

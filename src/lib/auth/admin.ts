@@ -23,7 +23,7 @@ export function getServiceRoleClient() {
 }
 
 export async function getCurrentUserWithRole() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

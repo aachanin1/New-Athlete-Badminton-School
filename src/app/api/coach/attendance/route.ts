@@ -90,7 +90,7 @@ function getSlotLabel(session: BookingSessionAuthRow | null) {
   return `${dateLabel} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}${branchName}`
 }
 
-async function requireCoach(supabase: ReturnType<typeof createClient>) {
+async function requireCoach(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -105,7 +105,7 @@ async function requireCoach(supabase: ReturnType<typeof createClient>) {
 }
 
 async function getAttendanceAuthContext(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   actor: { id: string; role: UserRole },
   bookingSessionId: string,
   studentId: string,
@@ -167,7 +167,7 @@ async function getAttendanceAuthContext(
 }
 
 async function hasCheckedInForSlot(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   coachId: string,
   scheduleSlotId: string,
 ) {
@@ -182,7 +182,7 @@ async function hasCheckedInForSlot(
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const actor = await requireCoach(supabase)
   if (!actor) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

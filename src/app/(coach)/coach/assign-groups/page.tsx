@@ -181,7 +181,7 @@ function getAssignmentLockReason(date: string, startTime: string, now = new Date
 }
 
 export default async function AssignGroupsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
