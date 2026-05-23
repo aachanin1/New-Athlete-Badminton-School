@@ -975,6 +975,7 @@ Notes:
   - Prepare a rollback point before first staging deploy.
   - Completed 2026-05-23 on branch `spike/next-major-security-upgrade`:
     - Added Node engine requirement `>=20.9.0` and documented staging settings: install `npm ci`, build `npm run build`, start `npm run start` for Node hosts.
+    - Added `vercel.json` so Vercel uses `npm ci` and `npm run build`, preserving the Next 16 webpack build flag configured in `package.json`.
     - Updated `.env.example` and production docs to prefer `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, keep `NEXT_PUBLIC_SUPABASE_ANON_KEY` only as fallback, and use `SLIPOK_TEST_MODE=false` for staging/production.
     - Fixed Supabase browser/server/proxy clients to read `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` first with `NEXT_PUBLIC_SUPABASE_ANON_KEY` fallback, preventing auth/client breakage if the host only configures the newer Supabase publishable key.
     - Confirmed production readiness against remote Supabase: 0 seed profiles, 0 seed auth users, required master data present, required buckets present, and SlipOK quota readable.
