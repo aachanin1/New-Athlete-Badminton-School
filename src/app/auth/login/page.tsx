@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -13,20 +13,51 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from 'lucide-react'
 import type { UserRole } from '@/types/database'
 
+const EMAIL_CONFIRMATION_ERROR =
+  'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ หากใช้ Hotmail/Outlook ให้ตรวจสอบ Junk/Spam หรือกดส่งอีเมลยืนยันใหม่'
+
+function getAuthEmailRedirectTo() {
+  return `${window.location.origin}/auth/callback?next=/dashboard`
+}
+
+function isEmailConfirmationError(message: string) {
+  const normalized = message.toLowerCase()
+  return normalized.includes('email not confirmed') || normalized.includes('email_not_confirmed')
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  const [resending, setResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const busy = loading || redirecting
+  const [notice, setNotice] = useState<string | null>(null)
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
+  const busy = loading || redirecting || resending
+  const resendBusyLabel = 'กำลังส่งอีเมลยืนยัน...'
   const busyLabel = redirecting ? 'กำลังพาไปหน้าแดชบอร์ด...' : 'กำลังเข้าสู่ระบบ...'
+
+  useEffect(() => {
+    const callbackError = new URLSearchParams(window.location.search).get('error')
+    if (!callbackError) return
+
+    const needsConfirmation = isEmailConfirmationError(callbackError)
+    setNeedsEmailConfirmation(needsConfirmation)
+    setError(
+      needsConfirmation
+        ? EMAIL_CONFIRMATION_ERROR
+        : `ยืนยันบัญชีไม่สำเร็จ: ${callbackError}`
+    )
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setNotice(null)
+    setNeedsEmailConfirmation(false)
 
     const supabase = createClient()
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -35,6 +66,12 @@ export default function LoginPage() {
     })
 
     if (error) {
+      if (isEmailConfirmationError(error.message)) {
+        setNeedsEmailConfirmation(true)
+        setError(EMAIL_CONFIRMATION_ERROR)
+        setLoading(false)
+        return
+      }
       setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
       setLoading(false)
       return
@@ -50,6 +87,39 @@ export default function LoginPage() {
     setRedirecting(true)
     router.replace(getHomePathForRole(profile?.role))
     router.refresh()
+  }
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = email.trim()
+    setError(null)
+    setNotice(null)
+
+    if (!targetEmail) {
+      setNeedsEmailConfirmation(true)
+      setError('กรุณากรอกอีเมลก่อนส่งลิงก์ยืนยันใหม่')
+      return
+    }
+
+    setResending(true)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: targetEmail,
+      options: {
+        emailRedirectTo: getAuthEmailRedirectTo(),
+      },
+    })
+
+    setResending(false)
+
+    if (error) {
+      setError(`ส่งอีเมลยืนยันใหม่ไม่สำเร็จ: ${error.message}`)
+      return
+    }
+
+    setNeedsEmailConfirmation(false)
+    setNotice('ส่งอีเมลยืนยันใหม่แล้ว กรุณาตรวจสอบ Inbox/Junk/Spam แล้วกดยืนยันอีกครั้ง')
   }
 
   return (
@@ -83,6 +153,30 @@ export default function LoginPage() {
             {error && (
               <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
                 {error}
+                {needsEmailConfirmation && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full border-red-200 bg-white text-red-700 hover:bg-red-50"
+                    onClick={handleResendConfirmation}
+                    disabled={busy}
+                  >
+                    {resending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        กำลังส่งอีเมลยืนยัน...
+                      </>
+                    ) : (
+                      'ส่งอีเมลยืนยันใหม่'
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+            {notice && (
+              <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                {notice}
               </div>
             )}
             <div className="space-y-2">
@@ -119,7 +213,7 @@ export default function LoginPage() {
               {busy ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {busyLabel}
+                  {resending ? resendBusyLabel : busyLabel}
                 </>
               ) : (
                 'เข้าสู่ระบบ'

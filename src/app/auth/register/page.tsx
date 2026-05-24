@@ -11,6 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
+function getAuthEmailRedirectTo() {
+  return `${window.location.origin}/auth/callback?next=/dashboard`
+}
+
 export default function RegisterPage() {
   const router = useRouter()
   const [fullName, setFullName] = useState('')
@@ -43,6 +47,7 @@ export default function RegisterPage() {
       email,
       password,
       options: {
+        emailRedirectTo: getAuthEmailRedirectTo(),
         data: {
           full_name: fullName,
           phone,

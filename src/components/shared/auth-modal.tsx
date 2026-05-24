@@ -26,6 +26,18 @@ interface AuthModalProps {
   defaultMode?: AuthMode
 }
 
+const EMAIL_CONFIRMATION_ERROR =
+  'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ หากใช้ Hotmail/Outlook ให้ตรวจสอบ Junk/Spam หรือกดส่งอีเมลยืนยันใหม่'
+
+function getAuthEmailRedirectTo() {
+  return `${window.location.origin}/auth/callback?next=/dashboard`
+}
+
+function isEmailConfirmationError(message: string) {
+  const normalized = message.toLowerCase()
+  return normalized.includes('email not confirmed') || normalized.includes('email_not_confirmed')
+}
+
 export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthModalProps) {
   const router = useRouter()
   const [mode, setMode] = useState<AuthMode>(defaultMode)
@@ -42,9 +54,13 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  const [resending, setResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
   const [success, setSuccess] = useState(false)
-  const busy = loading || redirecting
+  const busy = loading || redirecting || resending
+  const resendBusyLabel = 'กำลังส่งอีเมลยืนยัน...'
   const busyLabel = redirecting
     ? 'กำลังพาไปหน้าแดชบอร์ด...'
     : mode === 'login'
@@ -58,9 +74,12 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
     setFullName('')
     setPhone('')
     setError(null)
+    setNotice(null)
+    setNeedsEmailConfirmation(false)
     setSuccess(false)
     setLoading(false)
     setRedirecting(false)
+    setResending(false)
   }
 
   const switchMode = (newMode: AuthMode) => {
@@ -72,11 +91,19 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setNotice(null)
+    setNeedsEmailConfirmation(false)
 
     const supabase = createClient()
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
+      if (isEmailConfirmationError(error.message)) {
+        setNeedsEmailConfirmation(true)
+        setError(EMAIL_CONFIRMATION_ERROR)
+        setLoading(false)
+        return
+      }
       setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
       setLoading(false)
       return
@@ -115,6 +142,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
       email,
       password,
       options: {
+        emailRedirectTo: getAuthEmailRedirectTo(),
         data: { full_name: fullName, phone },
       },
     })
@@ -131,6 +159,39 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
 
     setSuccess(true)
     setLoading(false)
+  }
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = email.trim()
+    setError(null)
+    setNotice(null)
+
+    if (!targetEmail) {
+      setNeedsEmailConfirmation(true)
+      setError('กรุณากรอกอีเมลก่อนส่งลิงก์ยืนยันใหม่')
+      return
+    }
+
+    setResending(true)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: targetEmail,
+      options: {
+        emailRedirectTo: getAuthEmailRedirectTo(),
+      },
+    })
+
+    setResending(false)
+
+    if (error) {
+      setError(`ส่งอีเมลยืนยันใหม่ไม่สำเร็จ: ${error.message}`)
+      return
+    }
+
+    setNeedsEmailConfirmation(false)
+    setNotice('ส่งอีเมลยืนยันใหม่แล้ว กรุณาตรวจสอบ Inbox/Junk/Spam แล้วกดยืนยันอีกครั้ง')
   }
 
   const handleOpenChange = (v: boolean) => {
@@ -200,6 +261,30 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
               {error}
+              {mode === 'login' && needsEmailConfirmation && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 w-full border-red-200 bg-white text-red-700 hover:bg-red-50"
+                  onClick={handleResendConfirmation}
+                  disabled={busy}
+                >
+                  {resending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {resendBusyLabel}
+                    </>
+                  ) : (
+                    'ส่งอีเมลยืนยันใหม่'
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+          {notice && (
+            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              {notice}
             </div>
           )}
 
@@ -283,7 +368,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
             {busy ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {busyLabel}
+                {resending ? resendBusyLabel : busyLabel}
               </>
             ) : (
               mode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'
