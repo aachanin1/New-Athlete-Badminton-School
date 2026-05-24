@@ -45,6 +45,12 @@ function getLoginErrorUrl(origin: string, message: string) {
   return loginUrl
 }
 
+function getLoginVerifiedUrl(origin: string) {
+  const loginUrl = new URL('/auth/login', origin)
+  loginUrl.searchParams.set('verified', '1')
+  return loginUrl
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
@@ -82,5 +88,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(getLoginErrorUrl(origin, error.message))
   }
 
-  return NextResponse.redirect(getLoginErrorUrl(origin, 'Could not authenticate'))
+  return NextResponse.redirect(getLoginVerifiedUrl(origin))
 }

@@ -40,7 +40,14 @@ export default function LoginPage() {
   const busyLabel = redirecting ? 'กำลังพาไปหน้าแดชบอร์ด...' : 'กำลังเข้าสู่ระบบ...'
 
   useEffect(() => {
-    const callbackError = new URLSearchParams(window.location.search).get('error')
+    const searchParams = new URLSearchParams(window.location.search)
+    const callbackError = searchParams.get('error')
+    const verified = searchParams.get('verified')
+
+    if (verified === '1') {
+      setNotice('ยืนยันอีเมลสำเร็จแล้ว กรุณาเข้าสู่ระบบ')
+    }
+
     if (!callbackError) return
 
     const needsConfirmation = isEmailConfirmationError(callbackError)
