@@ -56,8 +56,29 @@ interface PaymentData {
   verified_by_name: string | null
 }
 
+interface IncompleteBookingData {
+  id: string
+  user_id: string
+  user_name: string
+  user_email: string
+  user_phone: string
+  learner_name: string
+  branch_name: string
+  course_type: string
+  month: number
+  year: number
+  total_sessions: number
+  total_price: number
+  status: string
+  created_at: string
+  latest_payment_id: string | null
+  latest_payment_status: string | null
+  has_slip: boolean
+}
+
 interface PaymentsClientProps {
   payments: PaymentData[]
+  incompleteBookings: IncompleteBookingData[]
   paymentTransferSettings: PaymentTransferSettings
   slipOkMode: 'live' | 'test'
 }
@@ -149,7 +170,7 @@ function getShortId(id: string) {
   return id.length > 10 ? `${id.slice(0, 8)}...` : id
 }
 
-export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }: PaymentsClientProps) {
+export function PaymentsClient({ payments, incompleteBookings, paymentTransferSettings, slipOkMode }: PaymentsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -166,6 +187,8 @@ export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
+  const [incompletePage, setIncompletePage] = useState(1)
+  const [incompletePageSize, setIncompletePageSize] = useState(10)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -188,6 +211,31 @@ export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }
   const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const pagedPayments = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
 
+  const filteredIncompleteBookings = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return incompleteBookings
+
+    return incompleteBookings.filter((booking) => [
+      booking.user_name,
+      booking.user_email,
+      booking.user_phone,
+      booking.learner_name,
+      booking.branch_name,
+      booking.course_type,
+      booking.id,
+      booking.latest_payment_id || '',
+    ].some((value) => String(value).toLowerCase().includes(q)))
+  }, [incompleteBookings, search])
+
+  const safeIncompletePage = Math.min(
+    incompletePage,
+    Math.max(1, Math.ceil(filteredIncompleteBookings.length / incompletePageSize)),
+  )
+  const pagedIncompleteBookings = filteredIncompleteBookings.slice(
+    (safeIncompletePage - 1) * incompletePageSize,
+    safeIncompletePage * incompletePageSize,
+  )
+
   const stats = useMemo(() => {
     const approved = payments.filter((payment) => payment.status === 'approved')
     const pending = payments.filter((payment) => payment.status === 'pending')
@@ -199,8 +247,12 @@ export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }
       approved: approved.length,
       rejected: rejected.length,
       approvedAmount: approved.reduce((sum, payment) => sum + payment.amount, 0),
+      incomplete: incompleteBookings.length,
+      waitingSlip: incompleteBookings.filter((booking) => booking.status === 'pending_payment').length,
+      waitingVerify: incompleteBookings.filter((booking) => booking.status === 'paid').length,
+      incompleteAmount: incompleteBookings.reduce((sum, booking) => sum + booking.total_price, 0),
     }
-  }, [payments])
+  }, [payments, incompleteBookings])
 
   const copyText = async (text: string) => {
     await navigator.clipboard.writeText(text)
@@ -342,6 +394,114 @@ export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }
         </Card>
       </div>
 
+      {stats.incomplete > 0 && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-950">รายการจองที่ยังไม่สมบูรณ์</p>
+                  <p className="mt-1 text-sm text-amber-800">
+                    รายการกลุ่มนี้ยังไม่ถูกส่งเข้า flow สอน/มอบหมายโค้ช จนกว่า booking จะเป็น `verified`
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs lg:min-w-[320px]">
+                <div className="rounded-lg border border-amber-200 bg-white px-2 py-2">
+                  <p className="text-amber-700">รอแนบสลิป</p>
+                  <p className="mt-1 text-lg font-bold text-amber-900">{stats.waitingSlip}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-white px-2 py-2">
+                  <p className="text-amber-700">รอตรวจ</p>
+                  <p className="mt-1 text-lg font-bold text-amber-900">{stats.waitingVerify}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-white px-2 py-2">
+                  <p className="text-amber-700">ยอดรวม</p>
+                  <p className="mt-1 text-lg font-bold text-amber-900">{formatMoney(stats.incompleteAmount)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {pagedIncompleteBookings.map((booking) => {
+                const isWaitingSlip = booking.status === 'pending_payment'
+                const statusLabel = BOOKING_STATUS_LABELS[booking.status] || booking.status || 'ยังไม่สมบูรณ์'
+
+                return (
+                  <div
+                    key={booking.id}
+                    className="grid gap-3 rounded-lg border border-amber-200 bg-white p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(180px,.8fr)_minmax(150px,.7fr)_auto] lg:items-center"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-semibold text-gray-900">{booking.user_name}</p>
+                        <Badge variant="outline" className={isWaitingSlip ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-blue-200 bg-blue-50 text-blue-700'}>
+                          {statusLabel}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 truncate text-sm text-gray-500">{booking.user_email || '-'}</p>
+                      <p className="mt-1 truncate text-xs text-gray-400">{booking.user_phone || 'ไม่มีเบอร์โทร'}</p>
+                    </div>
+
+                    <div className="min-w-0 text-sm">
+                      <p className="font-medium text-gray-900">{booking.learner_name}</p>
+                      <p className="mt-1 text-gray-500">{COURSE_LABELS[booking.course_type] || booking.course_type || '-'}</p>
+                      <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {booking.branch_name}
+                      </p>
+                    </div>
+
+                    <div className="text-sm">
+                      <p className="font-semibold text-gray-900">{formatMoney(booking.total_price)}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {MONTH_NAMES[booking.month]} {booking.year} · {booking.total_sessions} ครั้ง
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">สร้าง {formatDate(booking.created_at)}</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      <Button variant="outline" size="sm" onClick={() => copyText(booking.id)}>
+                        <Copy className="mr-1.5 h-4 w-4" />
+                        {copiedId === booking.id ? 'คัดลอกแล้ว' : 'Booking ID'}
+                      </Button>
+                      {booking.latest_payment_id && (
+                        <Button variant="outline" size="sm" onClick={() => copyText(booking.latest_payment_id!)}>
+                          <Receipt className="mr-1.5 h-4 w-4" />
+                          {copiedId === booking.latest_payment_id ? 'คัดลอกแล้ว' : booking.has_slip ? 'มีสลิป' : 'Payment'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {filteredIncompleteBookings.length === 0 && (
+                <div className="rounded-lg border border-dashed border-amber-200 bg-white/70 p-6 text-center text-sm text-amber-700">
+                  ไม่พบรายการจองที่ยังไม่สมบูรณ์ตามคำค้นหานี้
+                </div>
+              )}
+            </div>
+
+            {filteredIncompleteBookings.length > 0 && (
+              <ListPagination
+                page={safeIncompletePage}
+                pageSize={incompletePageSize}
+                total={filteredIncompleteBookings.length}
+                onPageChange={setIncompletePage}
+                onPageSizeChange={(nextPageSize) => {
+                  setIncompletePageSize(nextPageSize)
+                  setIncompletePage(1)
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-gray-200">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -353,6 +513,7 @@ export function PaymentsClient({ payments, paymentTransferSettings, slipOkMode }
                 onChange={(event) => {
                   setSearch(event.target.value)
                   setPage(1)
+                  setIncompletePage(1)
                 }}
                 className="pl-10"
               />

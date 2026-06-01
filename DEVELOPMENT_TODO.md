@@ -1051,6 +1051,25 @@ Notes:
     - Read-only production audit found 20 existing assignment-group student rows tied to non-verified booking sessions and 122 pending/paid sessions that the old calendar query could show; this code now hides/blocks them from teaching surfaces, but no production cleanup was performed.
     - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
 
+- [x] 21.6.4 Payment Pending Visibility for User/Admin
+  - Production follow-up found 2026-06-01: after gating teaching surfaces to verified bookings only, `pending_payment` / `paid` bookings can correctly disappear from teaching calendars, but User/Admin still need a clear place to see and resolve those incomplete bookings.
+  - Business rule:
+    - `bookings.status = verified` is the only status that enters teaching, assignment, coach schedule, attendance, and teaching-hour flows.
+    - `pending_payment` means the user has not completed slip upload yet and must see an obvious path to continue payment.
+    - `paid` means a slip/payment exists but the booking is not verified yet, so Admin must be able to track it and User must understand the booking is not complete.
+  - Add User-facing visibility on schedule/history/dashboard so incomplete bookings do not look lost after being removed from teaching calendars.
+  - Add Admin payment visibility for booking-level incomplete items, including bookings that do not have a payment row yet.
+  - Do not change verified booking behavior.
+  - After code changes, run `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+  - Completed:
+    - User schedule now shows a clear incomplete-payment banner when the user has `pending_payment` or `paid` bookings that are intentionally excluded from the teaching calendar.
+    - The banner explains that those bookings do not enter teaching/assignment flow until verified, summarizes waiting-slip/waiting-review counts, and links to booking history for slip upload/review.
+    - Admin payment review now includes a booking-level "รายการจองที่ยังไม่สมบูรณ์" section for `pending_payment` / `paid` bookings, including bookings with no payment row yet.
+    - Admin can search, paginate, see learner/branch/course/month/session/amount, and copy booking/payment ids for follow-up without changing verified payment review behavior.
+    - Verified booking behavior remains unchanged: verified bookings are still the only rows that enter teaching, assignment, coach schedule, attendance, and teaching-hour flows.
+    - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, and `git diff --check`.
+    - `npm run prod:check` passed readiness checks with one environment warning: local `SLIPOK_TEST_MODE=true`; production must keep SlipOK live credentials configured in Vercel before deploy.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.
