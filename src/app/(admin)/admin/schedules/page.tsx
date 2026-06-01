@@ -75,7 +75,7 @@ export default async function SchedulesPage() {
           course_types(name)
         )
       `)
-      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
+      .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
       .order('date', { ascending: true }) as unknown as Promise<{ data: ScheduleSessionRow[] | null }>,
     supabase.from('branches').select('id, name, slug').eq('is_active', true).order('name') as unknown as Promise<{ data: BranchRow[] | null }>,
@@ -125,10 +125,11 @@ export default async function SchedulesPage() {
         .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: GroupRow[] | null }>,
       supabase
         .from('booking_sessions')
-        .select('id, schedule_slot_id')
+        .select('id, schedule_slot_id, bookings!inner(status)')
         .in('schedule_slot_id', slotIds)
         .neq('status', 'rescheduled')
-        .neq('status', 'walleted') as unknown as PromiseLike<{ data: SlotSessionRow[] | null }>,
+        .neq('status', 'walleted')
+        .eq('bookings.status', 'verified') as unknown as PromiseLike<{ data: SlotSessionRow[] | null }>,
     ])
     coachAssignments = legacyAssignments || []
     groups = groupRows || []

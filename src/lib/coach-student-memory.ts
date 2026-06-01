@@ -82,7 +82,7 @@ interface MemoryCoachAssignment {
   } | null
 }
 
-const LEARNED_BOOKING_STATUSES = ['paid', 'verified']
+const LEARNED_BOOKING_STATUSES = ['verified']
 const LEARNED_SESSION_STATUSES = ['completed', 'absent', 'scheduled']
 
 function getStudentKey(type: StudentType, id: string) {

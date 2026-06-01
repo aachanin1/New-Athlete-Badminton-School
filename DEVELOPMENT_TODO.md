@@ -1034,6 +1034,23 @@ Notes:
     - Admin payment review now displays server-side SlipOK mode clearly as live production verification or TEST MODE without exposing API keys and without adding a risky UI toggle.
     - Verification target: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
 
+- [x] 21.6.3 Verified Booking Gate for Teaching/Assignment Surfaces
+  - Production blocker found 2026-06-01: Admin overview, Admin schedules, and Head Coach assignment can treat `pending_payment` / `paid` bookings as teaching-ready rows, while payment review still shows those bookings are not fully verified.
+  - Business rule: only `bookings.status = verified` is a real teaching session that can show as scheduled/learning, be assigned to Coach, appear on Coach schedule/check-in/attendance, and count toward teaching hours.
+  - Keep `/admin/payments` broad enough to show pending/paid/verified payment review states; do not hide payment problems from Admin.
+  - Fix Admin overview and Admin schedules operational calendars to load verified bookings only.
+  - Fix Head Coach assignment to load verified bookings only and add server-side assignment API validation so non-verified booking sessions cannot be saved into assignment groups.
+  - Fix Coach schedule/student-memory access helpers to ignore pending/paid bookings on teaching surfaces.
+  - After code changes, run `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+  - Completed:
+    - Admin overview and Admin schedules now load only `bookings.status = verified` into operational teaching calendars and "today/scheduled" counts.
+    - Head Coach assignment now loads only verified booking sessions, so unpaid or slip-pending learners cannot be grouped from the UI.
+    - `/api/coach/assignment-groups` now validates submitted booking sessions server-side and rejects any session whose booking is not `verified`.
+    - Coach schedule, Coach student access, Coach-student memory, and teaching-hour/payable source helpers now ignore pending/paid bookings on teaching surfaces.
+    - Payment audit remains broad and still shows pending/paid/verified states for Admin review.
+    - Read-only production audit found 20 existing assignment-group student rows tied to non-verified booking sessions and 122 pending/paid sessions that the old calendar query could show; this code now hides/blocks them from teaching surfaces, but no production cleanup was performed.
+    - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

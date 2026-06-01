@@ -24,6 +24,7 @@ interface BookingSessionForGroup {
   bookings?: {
     user_id: string
     learner_type: 'self' | 'child'
+    status: string
   } | null
 }
 
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest) {
     const { data: sessions } = submittedSessionIds.length > 0
       ? await adminSupabase
         .from('booking_sessions')
-        .select('id, schedule_slot_id, child_id, bookings!inner(user_id, learner_type)')
+        .select('id, schedule_slot_id, child_id, bookings!inner(user_id, learner_type, status)')
         .in('id', submittedSessionIds) as unknown as { data: BookingSessionForGroup[] | null }
       : { data: [] as BookingSessionForGroup[] }
 
@@ -157,6 +158,11 @@ export async function POST(request: NextRequest) {
     const invalidSession = submittedSessionIds.find((id) => sessionMap.get(id)?.schedule_slot_id !== scheduleSlotId)
     if (invalidSession) {
       return NextResponse.json({ error: 'มีผู้เรียนที่ไม่ได้อยู่ในรอบสอนนี้' }, { status: 400 })
+    }
+
+    const nonVerifiedSession = submittedSessionIds.find((id) => sessionMap.get(id)?.bookings?.status !== 'verified')
+    if (nonVerifiedSession) {
+      return NextResponse.json({ error: 'จองยังไม่สมบูรณ์ ต้องยืนยันการชำระเงินก่อนมอบหมายโค้ช' }, { status: 400 })
     }
 
     const submittedCoachIds = groups.map((group) => group.coachId).filter(Boolean) as string[]

@@ -14,7 +14,7 @@ type SupabaseLike = {
   from: (table: string) => SupabaseTable
 }
 
-const BOOKING_VISIBLE_STATUSES = ['pending_payment', 'paid', 'verified']
+const BOOKING_VISIBLE_STATUSES = ['verified']
 const SESSION_VISIBLE_STATUSES: SessionStatus[] = ['scheduled', 'completed', 'absent']
 
 interface SlotRow {

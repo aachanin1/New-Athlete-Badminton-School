@@ -1,6 +1,6 @@
 import type { CoachEmploymentType } from '@/types/database'
 
-const BOOKING_PAYABLE_STATUSES = ['paid', 'verified']
+const BOOKING_PAYABLE_STATUSES = ['verified']
 const SESSION_ATTENDANCE_STATUSES = ['scheduled', 'completed', 'absent']
 
 type SupabaseQuery = PromiseLike<unknown> & {

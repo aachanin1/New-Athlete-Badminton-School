@@ -18,7 +18,7 @@ type SupabaseLike = {
   from: (table: string) => SupabaseTable
 }
 
-const BOOKING_VISIBLE_STATUSES = ['pending_payment', 'paid', 'verified']
+const BOOKING_VISIBLE_STATUSES = ['verified']
 const STAFF_ALL_ACCESS_ROLES: UserRole[] = ['admin', 'super_admin']
 const COACH_ROLES: UserRole[] = ['coach', 'head_coach']
 

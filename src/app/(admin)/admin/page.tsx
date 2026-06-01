@@ -82,7 +82,12 @@ export default async function AdminDashboardPage() {
     supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'pending') as unknown as PromiseLike<CountResult>,
     supabase.from('complaints').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress']) as unknown as PromiseLike<CountResult>,
     supabase.from('coupons').select('*', { count: 'exact', head: true }).eq('is_active', true) as unknown as PromiseLike<CountResult>,
-    supabase.from('booking_sessions').select('id').eq('date', today).eq('status', 'scheduled') as unknown as PromiseLike<DataResult<{ id: string }>>,
+    supabase
+      .from('booking_sessions')
+      .select('id, bookings!inner(status)')
+      .eq('date', today)
+      .eq('status', 'scheduled')
+      .eq('bookings.status', 'verified') as unknown as PromiseLike<DataResult<{ id: string }>>,
     supabase
       .from('bookings')
       .select('total_price')
@@ -101,7 +106,7 @@ export default async function AdminDashboardPage() {
           course_types(name)
         )
       `)
-      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
+      .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
       .order('date', { ascending: true })
       .order('start_time', { ascending: true }) as unknown as PromiseLike<DataResult<RawScheduleRow>>,

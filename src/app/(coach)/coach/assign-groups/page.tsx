@@ -268,7 +268,7 @@ export default async function AssignGroupsPage() {
       .gte('date', today)
       .in('branch_id', branchIds)
       .in('status', ['scheduled', 'completed'])
-      .in('bookings.status', ['pending_payment', 'paid', 'verified'])
+      .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
       .order('date', { ascending: true })
       .order('start_time', { ascending: true }) as unknown as { data: SessionRow[] | null }
