@@ -1,0 +1,7 @@
+.agents/
+SlipOK API Guide.docx
+SlipOK_API/
+backups/
+.env
+.env.*
+*.log
