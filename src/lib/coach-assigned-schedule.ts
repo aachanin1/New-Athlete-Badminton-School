@@ -1,4 +1,8 @@
 import type { AttendanceStatus, SessionStatus, StudentType } from '@/types/database'
+import {
+  createCoachCheckinSignedUrlMap,
+  getResolvedCoachCheckinPhotoUrl,
+} from '@/lib/coach-checkin-photos'
 
 type SupabaseQuery = PromiseLike<unknown> & {
   eq: (column: string, value: unknown) => SupabaseQuery
@@ -324,6 +328,7 @@ export async function getCoachAssignedTeachingDay(
   })
 
   const checkinMap = new Map<string, CheckinRow>()
+  const signedPhotoUrlMap = await createCoachCheckinSignedUrlMap(checkins.map((checkin) => checkin.photo_url))
   checkins.forEach((checkin) => {
     if (!checkinMap.has(checkin.schedule_slot_id)) checkinMap.set(checkin.schedule_slot_id, checkin)
   })
@@ -367,7 +372,7 @@ export async function getCoachAssignedTeachingDay(
           ? {
               id: checkin.id,
               checkinTime: checkin.checkin_time,
-              photoUrl: checkin.photo_url,
+              photoUrl: getResolvedCoachCheckinPhotoUrl(checkin.photo_url, signedPhotoUrlMap),
             }
           : null,
       }

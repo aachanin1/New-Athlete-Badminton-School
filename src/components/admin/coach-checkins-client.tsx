@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -497,7 +497,7 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
               )}
 
               {selectedRow.photo_url ? (
-                <Image src={selectedRow.photo_url} alt="check-in selfie" width={900} height={900} className="max-h-[55vh] w-full rounded-lg object-contain bg-gray-100" />
+                <CheckinEvidenceImage src={selectedRow.photo_url} />
               ) : (
                 <div className="rounded-lg border border-dashed border-orange-200 bg-orange-50 py-10 text-center text-sm text-orange-700">
                   ไม่มีรูปเซลฟี่สำหรับรอบนี้
@@ -530,6 +530,40 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function CheckinEvidenceImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    setFailed(false)
+  }, [src])
+
+  if (failed) {
+    return (
+      <div className="rounded-lg border border-dashed border-orange-200 bg-orange-50 px-4 py-10 text-center text-sm text-orange-700">
+        <p className="font-medium">โหลดรูปเช็คอินไม่สำเร็จ</p>
+        <p className="mt-1 text-xs">ลิงก์หลักฐานอาจหมดอายุ หรือไฟล์ใน storage ไม่ตรงกับรายการเช็คอิน</p>
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <a href={src} target="_blank" rel="noopener noreferrer">
+            เปิดรูปในแท็บใหม่
+          </a>
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <Image
+      src={src}
+      alt="รูปเซลฟี่เช็คอินของโค้ช"
+      width={900}
+      height={900}
+      unoptimized
+      onError={() => setFailed(true)}
+      className="max-h-[55vh] w-full rounded-lg bg-gray-100 object-contain"
+    />
   )
 }
 

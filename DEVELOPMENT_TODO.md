@@ -1070,6 +1070,17 @@ Notes:
     - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, and `git diff --check`.
     - `npm run prod:check` passed readiness checks with one environment warning: local `SLIPOK_TEST_MODE=true`; production must keep SlipOK live credentials configured in Vercel before deploy.
 
+- [x] 21.6.5 Coach Check-in Image Visibility
+  - Production issue found 2026-06-01: Coach check-in rows can show check-in time and GPS, but the selfie image breaks because `coach-checkins` is a private Supabase Storage bucket while old rows store public object URLs.
+  - Business rule: keep coach selfie evidence private; do not make `coach-checkins` public and do not change check-in, attendance, or payroll logic.
+  - Fix:
+    - Added a dedicated server helper that converts old public URLs or object paths into short-lived signed URLs for the private `coach-checkins` bucket.
+    - Admin `/admin/coach-checkins` now resolves selfie evidence through signed URLs before passing rows to the client.
+    - Coach check-in history uses the same signed URL path through the assigned schedule helper.
+    - Added a readable Admin fallback if a signed evidence image still cannot load.
+  - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+  - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

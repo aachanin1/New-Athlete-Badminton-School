@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { CoachCheckinsClient } from '@/components/admin/coach-checkins-client'
+import {
+  createCoachCheckinSignedUrlMap,
+  getResolvedCoachCheckinPhotoUrl,
+} from '@/lib/coach-checkin-photos'
 
 interface AssignmentRow {
   id: string
@@ -85,6 +89,7 @@ export default async function CoachCheckinsPage() {
     const key = `${checkin.coach_id}:${checkin.schedule_slot_id}`
     if (!checkinMap.has(key)) checkinMap.set(key, checkin)
   })
+  const signedPhotoUrlMap = await createCoachCheckinSignedUrlMap((checkins || []).map((checkin) => checkin.photo_url))
 
   const auditRows = (assignments || [])
     .filter((assignment) => assignment.schedule_slots)
@@ -104,7 +109,7 @@ export default async function CoachCheckinsPage() {
         end_time: slot?.end_time || '',
         checkin_id: checkin?.id || null,
         checkin_time: checkin?.checkin_time || null,
-        photo_url: checkin?.photo_url || null,
+        photo_url: getResolvedCoachCheckinPhotoUrl(checkin?.photo_url, signedPhotoUrlMap),
         location_lat: checkin?.location_lat || null,
         location_lng: checkin?.location_lng || null,
       }

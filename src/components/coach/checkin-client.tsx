@@ -526,7 +526,7 @@ export function CheckinClient({ slots, todayCheckins, initialSlotId = null, sele
             <Card key={checkin.id}>
               <CardContent className="flex items-center gap-3 p-3">
                 {checkin.photoUrl ? (
-                  <Image src={checkin.photoUrl} alt="checkin" width={48} height={48} className="h-12 w-12 rounded-lg object-cover" />
+                  <Image src={checkin.photoUrl} alt="checkin" width={48} height={48} unoptimized className="h-12 w-12 rounded-lg object-cover" />
                 ) : (
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100">
                     <ImageIcon className="h-5 w-5 text-gray-300" />
