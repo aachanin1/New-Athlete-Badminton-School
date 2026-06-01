@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -441,9 +442,16 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
-                            <UserCog className="h-3 w-3" />
-                            {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}
+                          <div className="flex shrink-0 flex-col gap-2 lg:items-end">
+                            <div className="flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
+                              <UserCog className="h-3 w-3" />
+                              {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}
+                            </div>
+                            {session.status === 'attendance_gap_review' && (
+                              <Button asChild variant="outline" size="sm" className="h-8 border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100">
+                                <Link href="/admin/makeup">ตรวจในวันชดเชย</Link>
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -16,6 +16,7 @@ interface MakeupSessionRow {
   child_id: string | null
   children?: { full_name: string | null; nickname: string | null } | null
   bookings?: {
+    status: string
     profiles?: { full_name: string | null } | null
     branches?: { name: string | null } | null
     course_types?: { name: string | null } | null
@@ -76,24 +77,66 @@ interface CoachOptionRow {
   role: string | null
 }
 
+function toDateInput(value: Date) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getBangkokTodayInput() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+
+  const partMap = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${partMap.year}-${partMap.month}-${partMap.day}`
+}
+
 export default async function MakeupPage() {
   const supabase = await createClient()
+  const todayInput = getBangkokTodayInput()
+  const [todayYear, todayMonth, todayDay] = todayInput.split('-').map(Number)
+  const historyStartInput = toDateInput(new Date(todayYear, todayMonth - 1 - 6, todayDay))
+  const nextMonthEndInput = toDateInput(new Date(todayYear, todayMonth + 1, 0))
+  const makeupSessionSelect = `
+    id, booking_id, date, start_time, end_time, status, is_makeup, child_id, branch_id, schedule_slot_id, rescheduled_from_id,
+    children(full_name, nickname),
+    bookings!inner(user_id, learner_type, status,
+      profiles!bookings_user_id_fkey(full_name),
+      branches(name),
+      course_types(name)
+    )
+  `
 
-  const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }, { data: coaches }] = await Promise.all([
+  const [
+    { data: sourceSessions, error: sourceSessionsError },
+    { data: linkedMakeupSessions, error: linkedMakeupSessionsError },
+    { data: branches },
+    { data: scheduleTemplates },
+    { data: coaches },
+  ] = await Promise.all([
     supabase
       .from('booking_sessions')
-      .select(`
-        id, booking_id, date, start_time, end_time, status, is_makeup, child_id, branch_id, schedule_slot_id, rescheduled_from_id,
-        children(full_name, nickname),
-        bookings(user_id, learner_type,
-          profiles!bookings_user_id_fkey(full_name),
-          branches(name),
-          course_types(name)
-        )
-      `)
+      .select(makeupSessionSelect)
+      .eq('bookings.status', 'verified')
       .in('status', ['absent', 'scheduled', 'completed'])
+      .lte('date', todayInput)
+      .gte('date', historyStartInput)
       .order('date', { ascending: false })
-      .limit(300) as unknown as PromiseLike<{ data: MakeupSessionRow[] | null }>,
+      .limit(2000) as unknown as PromiseLike<{ data: MakeupSessionRow[] | null; error: { message: string } | null }>,
+    supabase
+      .from('booking_sessions')
+      .select(makeupSessionSelect)
+      .eq('bookings.status', 'verified')
+      .not('rescheduled_from_id', 'is', null)
+      .gte('date', historyStartInput)
+      .lte('date', nextMonthEndInput)
+      .order('date', { ascending: false })
+      .limit(1000) as unknown as PromiseLike<{ data: MakeupSessionRow[] | null; error: { message: string } | null }>,
     supabase
       .from('branches')
       .select('id, name, slug')
@@ -114,8 +157,17 @@ export default async function MakeupPage() {
       .order('full_name') as unknown as PromiseLike<{ data: CoachOptionRow[] | null }>,
   ])
 
-  const sessionIds = (sessions || []).map((session) => session.id)
-  const slotIds = Array.from(new Set((sessions || []).map((session) => session.schedule_slot_id).filter(Boolean) as string[]))
+  if (sourceSessionsError || linkedMakeupSessionsError) {
+    console.error('Makeup attendance source query error:', sourceSessionsError || linkedMakeupSessionsError)
+  }
+
+  const sessionById = new Map<string, MakeupSessionRow>()
+  ;(sourceSessions || []).forEach((session) => sessionById.set(session.id, session))
+  ;(linkedMakeupSessions || []).forEach((session) => sessionById.set(session.id, session))
+  const sessions = Array.from(sessionById.values())
+
+  const sessionIds = sessions.map((session) => session.id)
+  const slotIds = Array.from(new Set(sessions.map((session) => session.schedule_slot_id).filter(Boolean) as string[]))
   const groupSessionIdsBySessionId: Record<string, string[]> = {}
   const groupContextBySessionId: Record<string, { groupName: string | null; coachId: string | null; coachName: string | null }> = {}
   const slotSessionIdsBySlotId: Record<string, string[]> = {}
@@ -162,9 +214,11 @@ export default async function MakeupPage() {
 
     const { data: slotSessions } = await supabase
       .from('booking_sessions')
-      .select('id, schedule_slot_id')
+      .select('id, schedule_slot_id, bookings!inner(status)')
       .in('schedule_slot_id', slotIds)
+      .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
+      .neq('status', 'walleted')
       .limit(1000) as unknown as { data: SlotSessionRow[] | null }
 
     ;(slotSessions || []).forEach((session) => {
@@ -195,7 +249,7 @@ export default async function MakeupPage() {
     })
   }
 
-  const sessionList = (sessions || []).map((session) => {
+  const sessionList = sessions.map((session) => {
     const learnerName = session.child_id
       ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
       : (session.bookings?.profiles?.full_name || 'ไม่ทราบ')

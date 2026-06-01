@@ -1081,6 +1081,19 @@ Notes:
   - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
   - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
 
+- [x] 21.6.6 Makeup Attendance Review Data Source Fix
+  - Production issue found 2026-06-01: Admin schedule could show past verified sessions as `attendance_gap_review`, but Admin Makeup/วันชดเชย showed 0 rows because the page loaded only the newest 300 `booking_sessions`; future sessions filled that limit and hid older past review rows.
+  - Business rule:
+    - Only verified bookings can enter attendance-gap/makeup review.
+    - Past sessions with no attendance must remain visible for Admin review even when the system has many future bookings.
+    - Pending/paid/unverified bookings must stay out of teaching, assignment, attendance, and makeup-credit flows.
+  - Completed:
+    - Admin Makeup now queries verified past source sessions and linked makeup sessions separately, using Bangkok-local today instead of one newest-row limit.
+    - Attendance scope for grouped/slot sessions now excludes non-verified, rescheduled, and walleted rows before deriving review/absence status.
+    - Admin schedule and Admin overview now add a direct action from `attendance_gap_review` rows to `/admin/makeup`, so staff can see where to resolve the case.
+  - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
+  - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

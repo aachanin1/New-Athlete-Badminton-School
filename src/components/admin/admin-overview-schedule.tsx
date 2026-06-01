@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -361,6 +362,11 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
                           {session.coach_names.length > 0 ? <UserCog className="h-3 w-3" /> : <Users className="h-3 w-3" />}
                           {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}
                         </div>
+                        {session.status === 'attendance_gap_review' && (
+                          <Button asChild variant="outline" size="sm" className="h-8 shrink-0 border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100">
+                            <Link href="/admin/makeup">ตรวจในวันชดเชย</Link>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
