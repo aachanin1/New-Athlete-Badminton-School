@@ -337,7 +337,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
       const group = groups.get(key)
       if (!group) return
       group.sessions.push(session)
-      if (session.status === 'absent') group.absentCount += 1
+      group.absentCount += 1
       if (isOverdueSession(session)) group.overdueCount += 1
       if (!group.branches.includes(session.branch_name)) group.branches.push(session.branch_name)
       if (makeupSourceIds.has(session.id)) group.hasMakeup = true

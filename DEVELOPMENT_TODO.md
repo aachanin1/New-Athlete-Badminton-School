@@ -1119,6 +1119,31 @@ Notes:
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npm run build`, and `npm run prod:check`.
   - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
 
+- [x] 21.6.9 Attendance State Single Source of Truth + Reconciliation
+  - Production consistency issue found 2026-06-02: Coach attendance can show a learner checked/present while Admin schedule or Makeup review still shows `รอตรวจเช็คชื่อ`/pending because some surfaces trust `booking_sessions.status` while others read `attendance`.
+  - Business rule:
+    - `attendance` is the source of truth for present, late, and absent.
+    - `booking_sessions.status` is a lifecycle/cache field and must not be used alone for attendance display, makeup eligibility, payroll/audit, or Admin/User/Coach schedule status.
+    - Pages may still write `booking_sessions.status` as a cache/audit status after attendance is recorded, but display logic must derive from attendance first.
+  - Goals:
+    - Use `src/lib/session-attendance-status.ts` as the shared helper for Admin overview, Admin schedules, Admin makeup, Coach schedule/attendance, and User schedule.
+    - Keep per-student attendance decisions per student; do not collapse multiple learners in one teaching round into one status.
+    - Add `npm run attendance:reconcile:dry-run` to report attendance/status mismatches without modifying production data.
+    - Do not run any production reconciliation write until owner confirms the dry-run report.
+  - Implemented:
+    - Added shared attendance-state helpers in `src/lib/session-attendance-status.ts`, including per-session and per-session+student latest-attendance maps.
+    - Admin overview, Admin schedules, Admin makeup, User schedule, Coach schedule, and coach assigned schedule now derive display status from `attendance` first.
+    - Added `npm run attendance:reconcile:dry-run` for report-only production mismatch checks. The script uses smaller batches and retry logic to avoid long URL/fetch failures.
+    - Added `AGENTS.md` rule: attendance is the source of truth; `booking_sessions.status` is only lifecycle/cache.
+  - Dry-run result on 2026-06-02:
+    - Verified teaching sessions checked: 726.
+    - Attendance rows checked: 11.
+    - Status mismatches found: 11 (`attendance` exists but `booking_sessions.status` is stale).
+    - Booking status without attendance rows found: 8.
+    - No production data was modified.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Next safe step if owner confirms: add a separate reconciliation write script/API to update stale `booking_sessions.status` from attendance, after reviewing the dry-run list.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

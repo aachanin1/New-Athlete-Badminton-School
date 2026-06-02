@@ -16,6 +16,7 @@ A badminton school management system in Thailand with 3 user portals:
 3. **Coach Assignment**: Coaches are assigned to specific teaching slots (`schedule_slots`), not just branches
 4. **Check-in**: Per teaching slot, not daily. Requires photo and GPS.
 5. **Payment**: SlipOK auto-verifies slips. `SLIPOK_TEST_MODE=true` bypasses API calls.
+6. **Attendance State**: `attendance` is the source of truth for present, late, and absent. `booking_sessions.status` is only a lifecycle/cache field and must not be used alone to render attendance state, makeup eligibility, payroll/audit, or Admin/User/Coach schedule status. Always use `src/lib/session-attendance-status.ts` for display and review decisions.
 
 ### Most Important Files
 - `src/middleware.ts` - Role-based route guards

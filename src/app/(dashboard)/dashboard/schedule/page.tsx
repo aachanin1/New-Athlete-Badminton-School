@@ -6,6 +6,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { createClient } from '@/lib/supabase/server'
 import { ScheduleCalendarClient } from '@/components/dashboard/schedule-calendar-client'
+import {
+  buildAttendanceCountBySessionId,
+  buildLatestAttendanceRowBySessionId,
+  type AttendanceSessionRow,
+} from '@/lib/session-attendance-status'
 
 interface ScheduleSessionRow {
   id: string
@@ -78,7 +83,7 @@ interface LegacyAssignmentRow {
   } | null
 }
 
-interface AttendanceRow {
+interface AttendanceRow extends AttendanceSessionRow {
   booking_session_id: string
   student_id: string
   status: 'present' | 'absent' | 'late'
@@ -142,8 +147,8 @@ export default async function SchedulePage() {
   const assignmentBySessionId: Record<string, AssignmentGroupRow> = {}
   const groupSessionIdsBySessionId: Record<string, string[]> = {}
   const slotSessionIdsBySlotId: Record<string, string[]> = {}
-  const attendanceBySessionId: Record<string, AttendanceRow> = {}
-  const attendanceCountBySessionId: Record<string, number> = {}
+  let attendanceBySessionId = new Map<string, AttendanceRow>()
+  let attendanceCountBySessionId = new Map<string, number>()
   const groupCountBySlotId: Record<string, number> = {}
   const legacyAssignmentBySlotId: Record<string, LegacyAssignmentRow> = {}
 
@@ -256,14 +261,15 @@ export default async function SchedulePage() {
       .in('booking_session_id', attendanceScopeSessionIds)
       .order('checked_at', { ascending: true }) as unknown as { data: AttendanceRow[] | null }
 
-    ;(attendanceRows || []).forEach((attendance) => {
-      attendanceCountBySessionId[attendance.booking_session_id] = (attendanceCountBySessionId[attendance.booking_session_id] || 0) + 1
-      const session = sessionsArr.find((item) => item.id === attendance.booking_session_id)
+    const sessionById = new Map(sessionsArr.map((item) => [item.id, item]))
+    const ownAttendanceRows = (attendanceRows || []).filter((attendance) => {
+      const session = sessionById.get(attendance.booking_session_id)
       const expectedStudentId = session?.child_id || session?.bookings?.user_id
-      if (!expectedStudentId || attendance.student_id === expectedStudentId) {
-        attendanceBySessionId[attendance.booking_session_id] = attendance
-      }
+      return !expectedStudentId || attendance.student_id === expectedStudentId
     })
+
+    attendanceBySessionId = buildLatestAttendanceRowBySessionId(ownAttendanceRows)
+    attendanceCountBySessionId = buildAttendanceCountBySessionId(attendanceRows || [])
   }
 
   const sessions = sessionsArr.map((session) => {
@@ -271,7 +277,7 @@ export default async function SchedulePage() {
     const legacyAssignment = !assignment && session.schedule_slot_id && !groupCountBySlotId[session.schedule_slot_id]
       ? legacyAssignmentBySlotId[session.schedule_slot_id] || null
       : null
-    const attendance = attendanceBySessionId[session.id]
+    const attendance = attendanceBySessionId.get(session.id)
     const walletCredit = walletCreditByOriginalSessionId[session.id]
     const sourceWalletCredit = session.rescheduled_from_id ? walletCreditByOriginalSessionId[session.rescheduled_from_id] : null
 
@@ -293,7 +299,7 @@ export default async function SchedulePage() {
       attendance_status: attendance?.status || null,
       attendance_checked_at: attendance?.checked_at || null,
       attendance_scope_count: (groupSessionIdsBySessionId[session.id] || slotSessionIdsBySlotId[session.schedule_slot_id || ''] || [session.id])
-        .reduce((sum, sessionId) => sum + (attendanceCountBySessionId[sessionId] || 0), 0),
+        .reduce((sum, sessionId) => sum + (attendanceCountBySessionId.get(sessionId) || 0), 0),
     }
   }).filter((session) => {
     if (session.status !== 'walleted') return true

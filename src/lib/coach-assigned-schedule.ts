@@ -3,6 +3,10 @@ import {
   createCoachCheckinSignedUrlMap,
   getResolvedCoachCheckinPhotoUrl,
 } from '@/lib/coach-checkin-photos'
+import {
+  buildLatestAttendanceRowBySessionStudentKey,
+  getAttendanceSessionStudentKey,
+} from '@/lib/session-attendance-status'
 
 type SupabaseQuery = PromiseLike<unknown> & {
   eq: (column: string, value: unknown) => SupabaseQuery
@@ -146,10 +150,6 @@ function getAdultName(session: BookingSessionRow) {
 
 function getStudentId(session: BookingSessionRow) {
   return session.child_id || session.bookings?.user_id || ''
-}
-
-function getAttendanceKey(sessionId: string, studentId: string) {
-  return `${sessionId}:${studentId}`
 }
 
 function dedupeSlots(rows: (SlotRow | null | undefined)[]) {
@@ -322,10 +322,7 @@ export async function getCoachAssignedTeachingDay(
     sessionsBySlot.set(session.schedule_slot_id, rows)
   })
 
-  const attendanceMap = new Map<string, AttendanceStatus>()
-  attendanceRows.forEach((row) => {
-    attendanceMap.set(getAttendanceKey(row.booking_session_id, row.student_id), row.status)
-  })
+  const attendanceMap = buildLatestAttendanceRowBySessionStudentKey(attendanceRows)
 
   const checkinMap = new Map<string, CheckinRow>()
   const signedPhotoUrlMap = await createCoachCheckinSignedUrlMap(checkins.map((checkin) => checkin.photo_url))
@@ -365,7 +362,9 @@ export async function getCoachAssignedTeachingDay(
             parentPhone: session.bookings?.profiles?.phone || null,
             isChild,
             status: session.status,
-            attendanceStatus: studentId ? attendanceMap.get(getAttendanceKey(session.id, studentId)) || null : null,
+            attendanceStatus: studentId
+              ? attendanceMap.get(getAttendanceSessionStudentKey(session.id, studentId))?.status || null
+              : null,
           }
         }),
         checkin: checkin

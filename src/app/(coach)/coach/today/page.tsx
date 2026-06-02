@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
+import { deriveSessionAttendanceStatus } from '@/lib/session-attendance-status'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime, getBangkokDateString } from '@/lib/utils'
 
@@ -79,20 +80,32 @@ function getMonthNavDate(selectedDate: Date, offset: number) {
   return toInputDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + offset, 1))
 }
 
-function getStudentScheduleStatus(student: { status: string; attendanceStatus: 'present' | 'late' | 'absent' | null }) {
-  if (student.attendanceStatus === 'present') {
+function getStudentScheduleStatus(
+  slot: { date: string; startTime: string; endTime: string },
+  student: { status: string; attendanceStatus: 'present' | 'late' | 'absent' | null },
+) {
+  const derivedStatus = deriveSessionAttendanceStatus({
+    status: student.status,
+    date: slot.date,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    attendanceStatus: student.attendanceStatus,
+    scopeAttendanceCount: student.attendanceStatus ? 1 : 0,
+  })
+
+  if (derivedStatus === 'present') {
     return { label: 'มาเรียนแล้ว', className: 'bg-green-100 text-green-700' }
   }
 
-  if (student.attendanceStatus === 'late') {
+  if (derivedStatus === 'late') {
     return { label: 'มาสาย', className: 'bg-amber-100 text-amber-700' }
   }
 
-  if (student.attendanceStatus === 'absent' || student.status === 'absent') {
+  if (derivedStatus === 'absent') {
     return { label: 'ขาดเรียน', className: 'bg-red-100 text-red-700' }
   }
 
-  if (student.status === 'completed') {
+  if (derivedStatus === 'completed') {
     return { label: 'มาเรียนแล้ว', className: 'bg-green-100 text-green-700' }
   }
 
@@ -369,7 +382,7 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                   ) : (
                     <div className="space-y-2 border-t pt-3">
                       {slot.students.map((student) => {
-                        const studentStatus = getStudentScheduleStatus(student)
+                        const studentStatus = getStudentScheduleStatus(slot, student)
 
                         return (
                           <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">

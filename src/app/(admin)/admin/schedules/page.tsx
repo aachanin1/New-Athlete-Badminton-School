@@ -1,8 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { SchedulesClient } from '@/components/admin/schedules-client'
 import { requireAdminPageAccess } from '@/lib/auth/admin'
-import { deriveSessionAttendanceStatus } from '@/lib/session-attendance-status'
-import type { AttendanceStatus } from '@/types/database'
+import {
+  buildAttendanceCountBySessionId,
+  buildLatestAttendanceBySessionId,
+  deriveSessionDisplayStatus,
+  type AttendanceSessionRow,
+} from '@/lib/session-attendance-status'
 
 interface ScheduleSessionRow {
   id: string
@@ -49,10 +53,7 @@ interface SlotSessionRow {
   schedule_slot_id: string | null
 }
 
-interface AttendanceRow {
-  booking_session_id: string
-  status: AttendanceStatus
-}
+type AttendanceRow = AttendanceSessionRow
 
 interface WalletCreditRow {
   original_session_id: string
@@ -176,25 +177,20 @@ export default async function SchedulesPage() {
   if (attendanceScopeSessionIds.length > 0) {
     const { data } = await supabase
       .from('attendance')
-      .select('booking_session_id, status')
+      .select('booking_session_id, status, checked_at')
       .in('booking_session_id', attendanceScopeSessionIds) as unknown as { data: AttendanceRow[] | null }
     attendanceRows = data || []
   }
 
-  const attendanceBySessionId = new Map<string, AttendanceStatus>()
-  const attendanceCountBySessionId = new Map<string, number>()
-  attendanceRows.forEach((attendance) => {
-    attendanceCountBySessionId.set(attendance.booking_session_id, (attendanceCountBySessionId.get(attendance.booking_session_id) || 0) + 1)
-    if (sessionIds.includes(attendance.booking_session_id)) {
-      attendanceBySessionId.set(attendance.booking_session_id, attendance.status)
-    }
-  })
+  const visibleSessionIds = new Set(sessionIds)
+  const attendanceBySessionId = buildLatestAttendanceBySessionId(attendanceRows, visibleSessionIds)
+  const attendanceCountBySessionId = buildAttendanceCountBySessionId(attendanceRows)
 
   const scheduleSessions = visibleSessions.map((session) => {
     const scopedSessionIds = groupScopeMap.get(session.id)
       || (session.schedule_slot_id ? slotScopeMap.get(session.schedule_slot_id) : null)
       || [session.id]
-    const derivedStatus = deriveSessionAttendanceStatus({
+    const derivedStatus = deriveSessionDisplayStatus({
       status: session.status,
       date: session.date,
       startTime: session.start_time,
@@ -209,7 +205,7 @@ export default async function SchedulesPage() {
       date: session.date,
       start_time: session.start_time,
       end_time: session.end_time,
-      status: derivedStatus === 'present' || derivedStatus === 'late' ? 'completed' : derivedStatus,
+      status: derivedStatus,
       is_makeup: session.is_makeup || false,
       child_id: session.child_id,
       branch_id: session.branch_id,

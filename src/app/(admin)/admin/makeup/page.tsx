@@ -1,5 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { MakeupClient } from '@/components/admin/makeup-client'
+import {
+  buildAttendanceCountBySessionId,
+  buildLatestAttendanceBySessionId,
+  type AttendanceSessionRow,
+} from '@/lib/session-attendance-status'
 import type { AttendanceStatus, CourseTypeName } from '@/types/database'
 
 interface MakeupSessionRow {
@@ -46,10 +51,7 @@ interface SlotSessionRow {
   schedule_slot_id: string | null
 }
 
-interface AttendanceRow {
-  booking_session_id: string
-  status: AttendanceStatus
-}
+type AttendanceRow = AttendanceSessionRow
 
 interface BranchRow {
   id: string
@@ -171,8 +173,8 @@ export default async function MakeupPage() {
   const groupSessionIdsBySessionId: Record<string, string[]> = {}
   const groupContextBySessionId: Record<string, { groupName: string | null; coachId: string | null; coachName: string | null }> = {}
   const slotSessionIdsBySlotId: Record<string, string[]> = {}
-  const attendanceBySessionId: Record<string, AttendanceRow> = {}
-  const attendanceCountBySessionId: Record<string, number> = {}
+  let attendanceBySessionId = new Map<string, AttendanceStatus>()
+  let attendanceCountBySessionId = new Map<string, number>()
   const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
   const checkinsBySlotId: Record<string, CoachCheckinRow> = {}
 
@@ -238,15 +240,12 @@ export default async function MakeupPage() {
   if (attendanceScopeSessionIds.length > 0) {
     const { data: attendanceRows } = await supabase
       .from('attendance')
-      .select('booking_session_id, status')
+      .select('booking_session_id, status, checked_at')
       .in('booking_session_id', attendanceScopeSessionIds) as unknown as { data: AttendanceRow[] | null }
 
-    ;(attendanceRows || []).forEach((attendance) => {
-      attendanceCountBySessionId[attendance.booking_session_id] = (attendanceCountBySessionId[attendance.booking_session_id] || 0) + 1
-      if (sessionIds.includes(attendance.booking_session_id)) {
-        attendanceBySessionId[attendance.booking_session_id] = attendance
-      }
-    })
+    const visibleSessionIds = new Set(sessionIds)
+    attendanceBySessionId = buildLatestAttendanceBySessionId(attendanceRows || [], visibleSessionIds)
+    attendanceCountBySessionId = buildAttendanceCountBySessionId(attendanceRows || [])
   }
 
   const sessionList = sessions.map((session) => {
@@ -271,9 +270,9 @@ export default async function MakeupPage() {
       start_time: session.start_time,
       end_time: session.end_time,
       status: session.status,
-      attendance_status: attendanceBySessionId[session.id]?.status || null,
+      attendance_status: attendanceBySessionId.get(session.id) || null,
       attendance_scope_count: (groupSessionIdsBySessionId[session.id] || slotSessionIdsBySlotId[session.schedule_slot_id || ''] || [session.id])
-        .reduce((sum, sessionId) => sum + (attendanceCountBySessionId[sessionId] || 0), 0),
+        .reduce((sum, sessionId) => sum + (attendanceCountBySessionId.get(sessionId) || 0), 0),
       user_name: session.bookings?.profiles?.full_name || 'ไม่ทราบ',
       learner_name: learnerName,
       branch_name: session.bookings?.branches?.name || 'ไม่ทราบ',
