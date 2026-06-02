@@ -91,6 +91,16 @@ function getSessionStatusConfig(status: string) {
   return SESSION_STATUS[status] || derivedStatusMap[status] || { label: status, badge: 'bg-gray-100 text-gray-600' }
 }
 
+function getMakeupReviewHref(session: Pick<OverviewSession, 'id' | 'date'>) {
+  const params = new URLSearchParams({
+    review: 'attendance',
+    date: session.date,
+    session: session.id,
+  })
+
+  return `/admin/makeup?${params.toString()}`
+}
+
 export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewScheduleProps) {
   const now = new Date()
   const today = now.toISOString().split('T')[0]
@@ -364,7 +374,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
                         </div>
                         {session.status === 'attendance_gap_review' && (
                           <Button asChild variant="outline" size="sm" className="h-8 shrink-0 border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100">
-                            <Link href="/admin/makeup">ตรวจในวันชดเชย</Link>
+                            <Link href={getMakeupReviewHref(session)}>ตรวจในวันชดเชย</Link>
                           </Button>
                         )}
                       </div>

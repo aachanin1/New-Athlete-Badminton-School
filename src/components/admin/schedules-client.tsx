@@ -111,6 +111,16 @@ function formatShortDate(date: string) {
   })
 }
 
+function getMakeupReviewHref(session: Pick<ScheduleSession, 'id' | 'date'>) {
+  const params = new URLSearchParams({
+    review: 'attendance',
+    date: session.date,
+    session: session.id,
+  })
+
+  return `/admin/makeup?${params.toString()}`
+}
+
 export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
   const now = new Date()
   const today = now.toISOString().split('T')[0]
@@ -449,7 +459,7 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                             </div>
                             {session.status === 'attendance_gap_review' && (
                               <Button asChild variant="outline" size="sm" className="h-8 border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100">
-                                <Link href="/admin/makeup">ตรวจในวันชดเชย</Link>
+                                <Link href={getMakeupReviewHref(session)}>ตรวจในวันชดเชย</Link>
                               </Button>
                             )}
                           </div>

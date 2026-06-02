@@ -103,6 +103,35 @@ function buildLatestAttendanceBySessionId(rows) {
   return map
 }
 
+function getSessionStudentKey(sessionId, studentId) {
+  return `${sessionId}:${studentId}`
+}
+
+function buildLatestAttendanceBySessionStudentKey(rows) {
+  const map = new Map()
+
+  rows.forEach((row) => {
+    if (!row.student_id) return
+
+    const key = getSessionStudentKey(row.booking_session_id, row.student_id)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, row)
+      return
+    }
+
+    const existingTime = existing.checked_at ? new Date(existing.checked_at).getTime() : -1
+    const rowTime = row.checked_at ? new Date(row.checked_at).getTime() : -1
+    if (rowTime >= existingTime) map.set(key, row)
+  })
+
+  return map
+}
+
+function getExpectedStudentId(session) {
+  return session.child_id || session.bookings?.user_id || null
+}
+
 function learnerLabel(session) {
   return session.children?.nickname || session.children?.full_name || session.bookings?.user_id || 'unknown learner'
 }
@@ -149,11 +178,28 @@ async function main() {
   }
 
   const latestAttendanceBySessionId = buildLatestAttendanceBySessionId(attendanceRows)
+  const latestAttendanceBySessionStudent = buildLatestAttendanceBySessionStudentKey(attendanceRows)
   const statusMismatches = []
+  const studentScopeMismatches = []
   const statusWithoutAttendance = []
 
   sessions.forEach((session) => {
-    const latestAttendance = latestAttendanceBySessionId.get(session.id)
+    const expectedStudentId = getExpectedStudentId(session)
+    const exactAttendance = expectedStudentId
+      ? latestAttendanceBySessionStudent.get(getSessionStudentKey(session.id, expectedStudentId))
+      : null
+    const legacyAttendance = latestAttendanceBySessionId.get(session.id)
+    const latestAttendance = exactAttendance || (
+      legacyAttendance && (!legacyAttendance.student_id || !expectedStudentId) ? legacyAttendance : null
+    )
+
+    if (!exactAttendance && legacyAttendance?.student_id && expectedStudentId) {
+      studentScopeMismatches.push({
+        session,
+        expectedStudentId,
+        latestAttendance: legacyAttendance,
+      })
+    }
 
     if (latestAttendance) {
       const expectedStatus = expectedBookingStatusFromAttendanceStatus(latestAttendance.status)
@@ -176,8 +222,25 @@ async function main() {
   console.log('No production data was modified.')
   console.log(`Verified teaching sessions checked: ${sessions.length}`)
   console.log(`Attendance rows checked: ${attendanceRows.length}`)
+  console.log(`Student-scope attendance mismatches: ${studentScopeMismatches.length}`)
   console.log(`Status mismatches: ${statusMismatches.length}`)
   console.log(`Booking status without attendance: ${statusWithoutAttendance.length}`)
+
+  if (studentScopeMismatches.length > 0) {
+    console.log('\nTop student-scope attendance mismatches:')
+    studentScopeMismatches.slice(0, 25).forEach(({ session, expectedStudentId, latestAttendance }) => {
+      console.log([
+        `- session=${session.id}`,
+        `date=${session.date}`,
+        `time=${String(session.start_time).slice(0, 5)}-${String(session.end_time).slice(0, 5)}`,
+        `learner=${learnerLabel(session)}`,
+        `expected_student_id=${expectedStudentId || '-'}`,
+        `attendance_student_id=${latestAttendance.student_id || '-'}`,
+        `attendance=${latestAttendance.status}`,
+        `checked_at=${latestAttendance.checked_at || '-'}`,
+      ].join(' | '))
+    })
+  }
 
   if (statusMismatches.length > 0) {
     console.log('\nTop status mismatches:')

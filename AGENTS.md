@@ -16,7 +16,7 @@ A badminton school management system in Thailand with 3 user portals:
 3. **Coach Assignment**: Coaches are assigned to specific teaching slots (`schedule_slots`), not just branches
 4. **Check-in**: Per teaching slot, not daily. Requires photo and GPS.
 5. **Payment**: SlipOK auto-verifies slips. `SLIPOK_TEST_MODE=true` bypasses API calls.
-6. **Attendance State**: `attendance` is the source of truth for present, late, and absent. `booking_sessions.status` is only a lifecycle/cache field and must not be used alone to render attendance state, makeup eligibility, payroll/audit, or Admin/User/Coach schedule status. Always use `src/lib/session-attendance-status.ts` for display and review decisions.
+6. **Attendance State**: `attendance` is the source of truth for present, late, and absent. `booking_sessions.status` is only a lifecycle/cache field and must not be used alone to render attendance state, makeup eligibility, payroll/audit, or Admin/User/Coach schedule status. Always use `src/lib/session-attendance-status.ts` for display and review decisions. Attendance rows must match the exact learner by `booking_session_id + student_id`; the expected `student_id` is `booking_sessions.child_id` for child learners and `bookings.user_id` for self/adult learners. After Admin route authorization, server-rendered Admin attendance/evidence reads must use the service-role client so RLS/session drift cannot make Admin see different attendance than Coach/User. Admin overview, Admin schedules, and Admin makeup must share `src/lib/admin-attendance-state.ts` for status/scope decisions; do not recalculate attendance scope separately per page.
 
 ### Most Important Files
 - `src/middleware.ts` - Role-based route guards

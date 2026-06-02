@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { SchedulesClient } from '@/components/admin/schedules-client'
-import { requireAdminPageAccess } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminPageAccess } from '@/lib/auth/admin'
 import {
-  buildAttendanceCountBySessionId,
-  buildLatestAttendanceBySessionId,
-  deriveSessionDisplayStatus,
+  buildAdminAttendanceState,
+  getAdminAttendanceScopeSessionIds,
+  type AdminAttendanceGroupRow,
+  type AdminAttendanceSlotSessionRow,
+} from '@/lib/admin-attendance-state'
+import {
   type AttendanceSessionRow,
 } from '@/lib/session-attendance-status'
 
@@ -41,17 +44,14 @@ interface CoachAssignmentRow {
   profiles?: { full_name: string | null } | null
 }
 
-interface GroupRow {
+interface GroupRow extends AdminAttendanceGroupRow {
   schedule_slot_id: string
   coach_id: string | null
   profiles?: { full_name: string | null } | null
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
 
-interface SlotSessionRow {
-  id: string
-  schedule_slot_id: string | null
-}
+type SlotSessionRow = AdminAttendanceSlotSessionRow
 
 type AttendanceRow = AttendanceSessionRow
 
@@ -60,9 +60,40 @@ interface WalletCreditRow {
   status: 'active' | 'redeemed' | 'expired'
 }
 
+interface AttendanceQueryResult {
+  data: AttendanceRow[] | null
+  error: { message: string } | null
+}
+
+const ATTENDANCE_QUERY_CHUNK_SIZE = 100
+
+async function fetchAttendanceRowsBySessionIds(
+  adminSupabase: ReturnType<typeof getServiceRoleClient>,
+  sessionIds: string[],
+) {
+  const attendanceRows: AttendanceRow[] = []
+
+  for (let index = 0; index < sessionIds.length; index += ATTENDANCE_QUERY_CHUNK_SIZE) {
+    const chunk = sessionIds.slice(index, index + ATTENDANCE_QUERY_CHUNK_SIZE)
+    const { data, error } = await (adminSupabase
+      .from('attendance')
+      .select('booking_session_id, student_id, status, checked_at')
+      .in('booking_session_id', chunk) as unknown as Promise<AttendanceQueryResult>)
+
+    if (error) {
+      throw new Error(`Admin schedule attendance query failed: ${error.message}`)
+    }
+
+    attendanceRows.push(...(data || []))
+  }
+
+  return attendanceRows
+}
+
 export default async function SchedulesPage() {
   await requireAdminPageAccess()
   const supabase = await createClient()
+  const adminSupabase = getServiceRoleClient()
   const [{ data: sessions }, { data: branches }] = await Promise.all([
     supabase
       .from('booking_sessions')
@@ -104,7 +135,6 @@ export default async function SchedulesPage() {
   })
 
   const slotIds = Array.from(new Set(visibleSessions.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
-  const sessionIds = visibleSessions.map((session) => session.id)
 
   let coachAssignments: CoachAssignmentRow[] = []
   let groups: GroupRow[] = []
@@ -146,59 +176,21 @@ export default async function SchedulesPage() {
     return map
   }, {})
 
-  const groupCoachMap = new Map<string, string[]>()
-  const groupScopeMap = new Map<string, string[]>()
-  groups.forEach((group) => {
-    const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
-    groupSessionIds.forEach((sessionId) => {
-      groupScopeMap.set(sessionId, groupSessionIds)
-      const coachName = group.profiles?.full_name
-      if (!coachName) return
-      const names = groupCoachMap.get(sessionId) || []
-      if (!names.includes(coachName)) names.push(coachName)
-      groupCoachMap.set(sessionId, names)
-    })
-  })
-
-  const slotScopeMap = new Map<string, string[]>()
-  slotSessions.forEach((session) => {
-    if (!session.schedule_slot_id) return
-    const rows = slotScopeMap.get(session.schedule_slot_id) || []
-    rows.push(session.id)
-    slotScopeMap.set(session.schedule_slot_id, rows)
-  })
-
-  const attendanceScopeSessionIds = Array.from(new Set([
-    ...sessionIds,
-    ...Array.from(groupScopeMap.values()).flat(),
-    ...Array.from(slotScopeMap.values()).flat(),
-  ]))
+  const attendanceScopeSessionIds = getAdminAttendanceScopeSessionIds(visibleSessions, groups, slotSessions)
   let attendanceRows: AttendanceRow[] = []
   if (attendanceScopeSessionIds.length > 0) {
-    const { data } = await supabase
-      .from('attendance')
-      .select('booking_session_id, status, checked_at')
-      .in('booking_session_id', attendanceScopeSessionIds) as unknown as { data: AttendanceRow[] | null }
-    attendanceRows = data || []
+    attendanceRows = await fetchAttendanceRowsBySessionIds(adminSupabase, attendanceScopeSessionIds)
   }
 
-  const visibleSessionIds = new Set(sessionIds)
-  const attendanceBySessionId = buildLatestAttendanceBySessionId(attendanceRows, visibleSessionIds)
-  const attendanceCountBySessionId = buildAttendanceCountBySessionId(attendanceRows)
+  const adminAttendanceState = buildAdminAttendanceState({
+    sessions: visibleSessions,
+    groups,
+    slotSessions,
+    attendanceRows,
+  })
 
   const scheduleSessions = visibleSessions.map((session) => {
-    const scopedSessionIds = groupScopeMap.get(session.id)
-      || (session.schedule_slot_id ? slotScopeMap.get(session.schedule_slot_id) : null)
-      || [session.id]
-    const derivedStatus = deriveSessionDisplayStatus({
-      status: session.status,
-      date: session.date,
-      startTime: session.start_time,
-      endTime: session.end_time,
-      isMakeup: session.is_makeup || false,
-      attendanceStatus: attendanceBySessionId.get(session.id) || null,
-      scopeAttendanceCount: scopedSessionIds.reduce((sum, sessionId) => sum + (attendanceCountBySessionId.get(sessionId) || 0), 0),
-    })
+    const derivedStatus = adminAttendanceState.getDisplayStatus(session)
 
     return {
       id: session.id,
@@ -216,7 +208,10 @@ export default async function SchedulesPage() {
       parent_name: session.child_id ? (session.bookings?.profiles?.full_name || 'ไม่ทราบ') : null,
       course_type: session.bookings?.course_types?.name || '',
       booking_status: session.bookings?.status || '',
-      coach_names: groupCoachMap.get(session.id) || (session.schedule_slot_id ? coachMap[session.schedule_slot_id] || [] : []),
+      coach_names: adminAttendanceState.getCoachNames(
+        session,
+        session.schedule_slot_id ? coachMap[session.schedule_slot_id] || [] : [],
+      ),
     }
   })
 

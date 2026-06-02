@@ -1,58 +1,21 @@
-import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
-import { Users, Building2, CreditCard, AlertTriangle, CalendarDays, UserCog, Ticket, TrendingUp } from 'lucide-react'
-import { AdminOverviewSchedule } from '@/components/admin/admin-overview-schedule'
+import { createClient } from '@/lib/supabase/server'
 import {
-  buildLatestAttendanceBySessionId,
-  deriveSessionDisplayStatus,
-  type AttendanceSessionRow,
-} from '@/lib/session-attendance-status'
+  AlertTriangle,
+  Building2,
+  CalendarDays,
+  CreditCard,
+  Ticket,
+  TrendingUp,
+  UserCog,
+  Users,
+} from 'lucide-react'
 
 type CountResult = { count: number | null }
 type DataResult<T> = { data: T[] | null }
 
 interface PriceRow {
   total_price: number | null
-}
-
-interface BranchRow {
-  id: string
-  name: string
-}
-
-interface RawScheduleRow {
-  id: string
-  date: string
-  start_time: string
-  end_time: string
-  status: string
-  is_makeup: boolean | null
-  child_id: string | null
-  branch_id: string
-  schedule_slot_id: string | null
-  branches?: { name: string } | null
-  children?: { full_name: string; nickname: string | null } | null
-  bookings?: {
-    id: string
-    user_id: string
-    learner_type: string
-    status: string
-    profiles?: { full_name: string } | null
-    course_types?: { name: string } | null
-  } | null
-}
-
-interface CoachAssignmentRow {
-  schedule_slot_id: string
-  coach_id: string
-  profiles?: { full_name: string } | null
-}
-
-type AttendanceRow = AttendanceSessionRow
-
-interface WalletCreditRow {
-  original_session_id: string
-  status: 'active' | 'redeemed' | 'expired'
 }
 
 export default async function AdminDashboardPage() {
@@ -72,8 +35,6 @@ export default async function AdminDashboardPage() {
     { count: activeCoupons },
     { data: todaySessions },
     { data: monthBookings },
-    { data: scheduleRows },
-    { data: branches },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user') as unknown as PromiseLike<CountResult>,
     supabase.from('children').select('*', { count: 'exact', head: true }) as unknown as PromiseLike<CountResult>,
@@ -94,106 +55,10 @@ export default async function AdminDashboardPage() {
       .eq('status', 'verified')
       .eq('month', currentMonth)
       .eq('year', currentYear) as unknown as PromiseLike<DataResult<PriceRow>>,
-    supabase
-      .from('booking_sessions')
-      .select(`
-        id, date, start_time, end_time, branch_id, child_id, status, is_makeup, schedule_slot_id,
-        branches(name),
-        children(full_name, nickname),
-        bookings!inner(
-          id, user_id, learner_type, status,
-          profiles!bookings_user_id_fkey(full_name),
-          course_types(name)
-        )
-      `)
-      .eq('bookings.status', 'verified')
-      .neq('status', 'rescheduled')
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true }) as unknown as PromiseLike<DataResult<RawScheduleRow>>,
-    supabase.from('branches').select('id, name').eq('is_active', true).order('name') as unknown as PromiseLike<DataResult<BranchRow>>,
   ])
 
   const todayCount = todaySessions?.length || 0
   const monthRevenue = (monthBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
-  const rawScheduleRows = scheduleRows || []
-  const rawScheduleSessionIds = rawScheduleRows.map((session) => session.id)
-  const walletCreditByOriginalSessionId = new Map<string, WalletCreditRow>()
-
-  if (rawScheduleSessionIds.length > 0) {
-    const { data } = await (supabase
-      .from('lesson_wallet_credits')
-      .select('original_session_id, status')
-      .in('original_session_id', rawScheduleSessionIds) as unknown as PromiseLike<DataResult<WalletCreditRow>>)
-
-    ;(data || []).forEach((credit) => {
-      walletCreditByOriginalSessionId.set(credit.original_session_id, credit)
-    })
-  }
-
-  const visibleScheduleRows = rawScheduleRows.filter((session) => {
-    if (session.status !== 'walleted') return true
-    const walletCredit = walletCreditByOriginalSessionId.get(session.id)
-    return !walletCredit || walletCredit.status === 'active'
-  })
-
-  const slotIds = Array.from(new Set(visibleScheduleRows.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
-  const sessionIds = visibleScheduleRows.map((session) => session.id)
-
-  let coachAssignments: CoachAssignmentRow[] = []
-  if (slotIds.length > 0) {
-    const { data } = await (supabase
-      .from('coach_assignments')
-      .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name)')
-      .in('schedule_slot_id', slotIds) as unknown as PromiseLike<DataResult<CoachAssignmentRow>>)
-    coachAssignments = data || []
-  }
-
-  const coachMap = coachAssignments.reduce((map: Record<string, string[]>, item) => {
-    if (!map[item.schedule_slot_id]) map[item.schedule_slot_id] = []
-    const coachName = item.profiles?.full_name
-    if (coachName && !map[item.schedule_slot_id].includes(coachName)) {
-      map[item.schedule_slot_id].push(coachName)
-    }
-    return map
-  }, {})
-
-  let attendanceRows: AttendanceRow[] = []
-  if (sessionIds.length > 0) {
-    const { data } = await (supabase
-      .from('attendance')
-      .select('booking_session_id, status, checked_at')
-      .in('booking_session_id', sessionIds) as unknown as PromiseLike<DataResult<AttendanceRow>>)
-    attendanceRows = data || []
-  }
-
-  const attendanceBySessionId = buildLatestAttendanceBySessionId(attendanceRows)
-
-  const scheduleSessions = visibleScheduleRows.map((session) => ({
-    id: session.id,
-    date: session.date,
-    start_time: session.start_time,
-    end_time: session.end_time,
-    status: deriveSessionDisplayStatus({
-      status: session.status,
-      date: session.date,
-      startTime: session.start_time,
-      endTime: session.end_time,
-      isMakeup: session.is_makeup || false,
-      attendanceStatus: attendanceBySessionId.get(session.id) || null,
-      scopeAttendanceCount: attendanceBySessionId.has(session.id) ? 1 : 0,
-    }),
-    is_makeup: session.is_makeup || false,
-    child_id: session.child_id,
-    branch_id: session.branch_id,
-    branch_name: session.branches?.name || 'ไม่ทราบสาขา',
-    learner_name: session.child_id
-      ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบชื่อ')
-      : (session.bookings?.profiles?.full_name || 'ไม่ทราบชื่อ'),
-    parent_name: session.child_id ? (session.bookings?.profiles?.full_name || '') : '',
-    course_type: session.bookings?.course_types?.name || '',
-    booking_status: session.bookings?.status || '',
-    coach_names: session.schedule_slot_id ? coachMap[session.schedule_slot_id] || [] : [],
-  }))
 
   const stats = [
     {
@@ -260,7 +125,9 @@ export default async function AdminDashboardPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">ภาพรวมระบบ</h1>
-        <p className="text-gray-500 text-sm mt-1">สรุปข้อมูลและตารางเรียนของ New Athlete School</p>
+        <p className="mt-1 text-sm text-gray-500">
+          สรุปข้อมูลหลักของ New Athlete School
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
@@ -279,8 +146,6 @@ export default async function AdminDashboardPage() {
           </Card>
         ))}
       </div>
-
-      <AdminOverviewSchedule sessions={scheduleSessions} branches={branches || []} />
     </div>
   )
 }

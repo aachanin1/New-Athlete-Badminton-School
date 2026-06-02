@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -72,6 +72,10 @@ interface MakeupClientProps {
   branches: BranchOption[]
   scheduleTemplates: ScheduleTemplateOption[]
   coaches: CoachOption[]
+  reviewTarget?: {
+    sessionId?: string | null
+    date?: string | null
+  }
 }
 
 interface MonthGroup {
@@ -277,7 +281,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
     .filter((day) => day.slotsByBranch.length > 0)
 }
 
-export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }: MakeupClientProps) {
+export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, reviewTarget }: MakeupClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterBranch, setFilterBranch] = useState('all')
@@ -298,6 +302,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
+  const reviewTargetSessionId = reviewTarget?.sessionId || null
+  const reviewTargetDate = reviewTarget?.date || null
+
+  const isReviewTargetSession = useCallback((session: BookingSessionData) => {
+    if (reviewTargetSessionId) return session.id === reviewTargetSessionId
+    if (reviewTargetDate) return session.date === reviewTargetDate
+    return false
+  }, [reviewTargetDate, reviewTargetSessionId])
 
   const makeupSourceIds = useMemo(
     () => new Set(sessions.map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
@@ -420,8 +432,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
           formatDate(session.date),
         ].some((value) => value.toLowerCase().includes(q))
       })
-      .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
-  }, [filterBranch, search, sessions])
+      .sort((a, b) => {
+        const aTarget = isReviewTargetSession(a)
+        const bTarget = isReviewTargetSession(b)
+        if (aTarget !== bTarget) return aTarget ? -1 : 1
+        return b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time)
+      })
+  }, [filterBranch, isReviewTargetSession, search, sessions])
 
   const reviewSessionGroups = useMemo<ReviewSessionGroup[]>(() => {
     const groups = new Map<string, ReviewSessionGroup>()
@@ -465,8 +482,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
         ...group,
         sessions: group.sessions.sort((a, b) => a.learner_name.localeCompare(b.learner_name)),
       }))
-      .sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime))
-  }, [reviewSessions])
+      .sort((a, b) => {
+        const aTarget = a.sessions.some(isReviewTargetSession)
+        const bTarget = b.sessions.some(isReviewTargetSession)
+        if (aTarget !== bTarget) return aTarget ? -1 : 1
+        return b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)
+      })
+  }, [isReviewTargetSession, reviewSessions])
 
   const stats = useMemo(() => ({
     total: monthGroups.length,
@@ -827,8 +849,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
               </Badge>
             </div>
             <div className="mt-4 max-h-[28rem] space-y-3 overflow-y-auto pr-1">
-              {reviewSessionGroups.map((group) => (
-                <div key={group.key} className="overflow-hidden rounded-xl border border-orange-100 bg-white shadow-sm">
+              {reviewSessionGroups.map((group) => {
+                const isTargetGroup = group.sessions.some(isReviewTargetSession)
+
+                return (
+                  <div
+                    key={group.key}
+                    className={`overflow-hidden rounded-xl border bg-white shadow-sm ${
+                      isTargetGroup ? 'border-orange-300 ring-2 ring-orange-200' : 'border-orange-100'
+                    }`}
+                  >
                   <div className="flex flex-col gap-3 border-b border-orange-100 bg-orange-50/50 p-3 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
@@ -933,8 +963,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
                       </div>
                     ))}
                   </div>
-                </div>
-              ))}
+                  </div>
+                )
+              })}
             </div>
             <div className="hidden">
               {reviewSessions.slice(0, 30).map((session) => (

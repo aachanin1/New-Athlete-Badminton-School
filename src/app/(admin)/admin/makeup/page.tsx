@@ -1,11 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { MakeupClient } from '@/components/admin/makeup-client'
+import { getServiceRoleClient } from '@/lib/auth/admin'
 import {
-  buildAttendanceCountBySessionId,
-  buildLatestAttendanceBySessionId,
+  buildAdminAttendanceState,
+  getAdminAttendanceScopeSessionIds,
+  type AdminAttendanceGroupRow,
+  type AdminAttendanceSlotSessionRow,
+} from '@/lib/admin-attendance-state'
+import {
   type AttendanceSessionRow,
 } from '@/lib/session-attendance-status'
-import type { AttendanceStatus, CourseTypeName } from '@/types/database'
+import type { CourseTypeName } from '@/types/database'
 
 interface MakeupSessionRow {
   id: string
@@ -21,6 +26,7 @@ interface MakeupSessionRow {
   child_id: string | null
   children?: { full_name: string | null; nickname: string | null } | null
   bookings?: {
+    user_id: string
     status: string
     profiles?: { full_name: string | null } | null
     branches?: { name: string | null } | null
@@ -28,7 +34,7 @@ interface MakeupSessionRow {
   } | null
 }
 
-interface GroupRow {
+interface GroupRow extends AdminAttendanceGroupRow {
   id: string
   schedule_slot_id: string
   name: string | null
@@ -46,10 +52,7 @@ interface CoachCheckinRow {
   location_lng: number | null
 }
 
-interface SlotSessionRow {
-  id: string
-  schedule_slot_id: string | null
-}
+type SlotSessionRow = AdminAttendanceSlotSessionRow
 
 type AttendanceRow = AttendanceSessionRow
 
@@ -79,6 +82,21 @@ interface CoachOptionRow {
   role: string | null
 }
 
+type MakeupPageSearchParams = Record<string, string | string[] | undefined>
+
+interface MakeupPageProps {
+  searchParams?: Promise<MakeupPageSearchParams>
+}
+
+async function resolveSearchParams(searchParams?: MakeupPageProps['searchParams']) {
+  return searchParams ? await searchParams : {}
+}
+
+function getSingleSearchParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+}
+
 function toDateInput(value: Date) {
   const year = value.getFullYear()
   const month = String(value.getMonth() + 1).padStart(2, '0')
@@ -98,8 +116,14 @@ function getBangkokTodayInput() {
   return `${partMap.year}-${partMap.month}-${partMap.day}`
 }
 
-export default async function MakeupPage() {
+export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const supabase = await createClient()
+  const adminSupabase = getServiceRoleClient()
+  const resolvedSearchParams = await resolveSearchParams(searchParams)
+  const reviewTarget = {
+    sessionId: getSingleSearchParam(resolvedSearchParams.session),
+    date: getSingleSearchParam(resolvedSearchParams.date),
+  }
   const todayInput = getBangkokTodayInput()
   const [todayYear, todayMonth, todayDay] = todayInput.split('-').map(Number)
   const historyStartInput = toDateInput(new Date(todayYear, todayMonth - 1 - 6, todayDay))
@@ -168,18 +192,16 @@ export default async function MakeupPage() {
   ;(linkedMakeupSessions || []).forEach((session) => sessionById.set(session.id, session))
   const sessions = Array.from(sessionById.values())
 
-  const sessionIds = sessions.map((session) => session.id)
+  const visibleSessionIds = new Set(sessions.map((session) => session.id))
   const slotIds = Array.from(new Set(sessions.map((session) => session.schedule_slot_id).filter(Boolean) as string[]))
-  const groupSessionIdsBySessionId: Record<string, string[]> = {}
   const groupContextBySessionId: Record<string, { groupName: string | null; coachId: string | null; coachName: string | null }> = {}
-  const slotSessionIdsBySlotId: Record<string, string[]> = {}
-  let attendanceBySessionId = new Map<string, AttendanceStatus>()
-  let attendanceCountBySessionId = new Map<string, number>()
+  let groups: GroupRow[] = []
+  let slotSessionsForScope: SlotSessionRow[] = []
   const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
   const checkinsBySlotId: Record<string, CoachCheckinRow> = {}
 
   if (slotIds.length > 0) {
-    const { data: groups } = await supabase
+    const { data: groupRows } = await supabase
       .from('coach_assignment_groups')
       .select(`
         id, schedule_slot_id, name, coach_id,
@@ -188,11 +210,11 @@ export default async function MakeupPage() {
       `)
       .in('schedule_slot_id', slotIds) as unknown as { data: GroupRow[] | null }
 
-    ;(groups || []).forEach((group) => {
+    groups = groupRows || []
+    groups.forEach((group) => {
       const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
       groupSessionIds.forEach((sessionId) => {
-        if (sessionIds.includes(sessionId)) {
-          groupSessionIdsBySessionId[sessionId] = groupSessionIds
+        if (visibleSessionIds.has(sessionId)) {
           groupContextBySessionId[sessionId] = {
             groupName: group.name,
             coachId: group.coach_id,
@@ -223,30 +245,27 @@ export default async function MakeupPage() {
       .neq('status', 'walleted')
       .limit(1000) as unknown as { data: SlotSessionRow[] | null }
 
-    ;(slotSessions || []).forEach((session) => {
-      if (!session.schedule_slot_id) return
-      const rows = slotSessionIdsBySlotId[session.schedule_slot_id] || []
-      rows.push(session.id)
-      slotSessionIdsBySlotId[session.schedule_slot_id] = rows
-    })
+    slotSessionsForScope = slotSessions || []
   }
 
-  const attendanceScopeSessionIds = Array.from(new Set([
-    ...sessionIds,
-    ...Object.values(groupSessionIdsBySessionId).flat(),
-    ...Object.values(slotSessionIdsBySlotId).flat(),
-  ]))
+  const attendanceScopeSessionIds = getAdminAttendanceScopeSessionIds(sessions, groups, slotSessionsForScope)
+  let attendanceRows: AttendanceRow[] = []
 
   if (attendanceScopeSessionIds.length > 0) {
-    const { data: attendanceRows } = await supabase
+    const { data } = await adminSupabase
       .from('attendance')
-      .select('booking_session_id, status, checked_at')
+      .select('booking_session_id, student_id, status, checked_at')
       .in('booking_session_id', attendanceScopeSessionIds) as unknown as { data: AttendanceRow[] | null }
 
-    const visibleSessionIds = new Set(sessionIds)
-    attendanceBySessionId = buildLatestAttendanceBySessionId(attendanceRows || [], visibleSessionIds)
-    attendanceCountBySessionId = buildAttendanceCountBySessionId(attendanceRows || [])
+    attendanceRows = data || []
   }
+
+  const adminAttendanceState = buildAdminAttendanceState({
+    sessions,
+    groups,
+    slotSessions: slotSessionsForScope,
+    attendanceRows,
+  })
 
   const sessionList = sessions.map((session) => {
     const learnerName = session.child_id
@@ -270,9 +289,8 @@ export default async function MakeupPage() {
       start_time: session.start_time,
       end_time: session.end_time,
       status: session.status,
-      attendance_status: attendanceBySessionId.get(session.id) || null,
-      attendance_scope_count: (groupSessionIdsBySessionId[session.id] || slotSessionIdsBySlotId[session.schedule_slot_id || ''] || [session.id])
-        .reduce((sum, sessionId) => sum + (attendanceCountBySessionId.get(sessionId) || 0), 0),
+      attendance_status: adminAttendanceState.latestAttendanceBySessionId.get(session.id) || null,
+      attendance_scope_count: adminAttendanceState.getAttendanceScopeCount(session),
       user_name: session.bookings?.profiles?.full_name || 'ไม่ทราบ',
       learner_name: learnerName,
       branch_name: session.bookings?.branches?.name || 'ไม่ทราบ',
@@ -307,6 +325,7 @@ export default async function MakeupPage() {
         name: coach.full_name || coach.email || 'ไม่ทราบชื่อโค้ช',
         role: coach.role || 'coach',
       }))}
+      reviewTarget={reviewTarget}
     />
   )
 }

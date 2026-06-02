@@ -1144,6 +1144,85 @@ Notes:
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
   - Next safe step if owner confirms: add a separate reconciliation write script/API to update stale `booking_sessions.status` from attendance, after reviewing the dry-run list.
 
+- [x] 21.6.10 Admin Attendance RLS Visibility Guard
+  - Production issue found 2026-06-02: Coach Attendance showed learners as checked/present, but Admin overview/schedule/makeup could still show `รอตรวจเช็คชื่อ` because server-rendered Admin pages queried `attendance` through the session client and could be affected by RLS/session visibility.
+  - Business rule:
+    - Admin pages remain protected by `requireAdminPageAccess`/Admin layout before rendering.
+    - After Admin authorization, read-only attendance/evidence queries for Admin status rendering should use the service-role client so all Admin/User/Coach surfaces see the same attendance truth.
+    - Do not change Coach attendance writes, payroll, lesson wallet, makeup rule, or production data.
+  - Implemented:
+    - Admin overview, Admin schedules, and Admin makeup now read `attendance` rows with `getServiceRoleClient()` while continuing to derive display status through `src/lib/session-attendance-status.ts`.
+    - Added `AGENTS.md` guard so future Admin attendance reads do not accidentally fall back to session/RLS-dependent status logic.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Production data check: the 2026-06-02 rows for `เปรม`, `พรีม`, and `พรีโม่` have `attendance.status = present`; the patched Admin display rule derives them as `completed/มาเรียนแล้ว` even though `booking_sessions.status` is still stale `scheduled`.
+
+- [x] 21.6.11 Admin Attendance Status Shared Scope Fix
+  - Production consistency issue found 2026-06-02: Admin overview, Admin schedules, and Admin makeup can still disagree if each page builds attendance scope separately.
+  - Goal:
+    - Admin overview, Admin schedules, and Admin makeup must use one shared helper for attendance status and scope decisions.
+    - The shared helper must read the same group/slot scope so one attended learner or one checked round is interpreted consistently across Admin surfaces.
+    - Keep `attendance` as source of truth and keep service-role read-only attendance queries after Admin route authorization.
+    - Do not modify production data, do not run reconciliation writes, and do not deploy until owner confirms.
+  - Required checks: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Implemented:
+    - Added `src/lib/admin-attendance-state.ts` as the shared Admin scope/status helper.
+    - Admin overview, Admin schedules, and Admin makeup now use the same group/slot attendance scope and derive display state through the same helper.
+    - Added an `AGENTS.md` rule so future Admin attendance views do not recalculate scope independently.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Production data was not modified. Production was not deployed.
+
+- [x] 21.6.12 Attendance Status Exact Student Scope + Admin Review Link Fix
+  - Production consistency issue found 2026-06-02: Coach can show attendance completed per learner while Admin overview/schedules still marks the same learner as attendance-gap review, and the Admin review button can open Makeup without showing the same item.
+  - Root rule:
+    - `attendance` remains the source of truth for present/late/absent.
+    - Attendance display must match by `booking_session_id + expected_student_id`, not by session id alone.
+    - Expected student id is `booking_sessions.child_id` for child learners, otherwise `bookings.user_id` for self/adult learners.
+  - Goals:
+    - Admin overview, Admin schedules, and Admin makeup must use the same exact per-student helper scope as Coach/User pages.
+    - Admin attendance queries must include `student_id` so display status cannot be derived from an unrelated learner in the same teaching slot.
+    - Admin review links should carry enough context (`review`, `date`, `session`) so staff land on the relevant Makeup review context.
+    - Add a dry-run/report path to expose mismatches without writing production data.
+  - Safety:
+    - Do not modify production data.
+    - Do not run reconciliation writes.
+    - Do not deploy production until owner confirms.
+  - Required checks: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Implemented:
+    - Added an exact Admin attendance helper that resolves each learner by `booking_session_id + expected_student_id`.
+    - Admin overview, Admin schedules, and Admin makeup now select `attendance.student_id` and use the same exact-scope display status.
+    - Admin review links now include `review`, `date`, and `session` so the Makeup page can highlight the same review context.
+    - Expanded the attendance dry-run report to show exact student-scope mismatches without writing production data.
+    - Added an `AGENTS.md` rule so future attendance surfaces do not fall back to broad session-only status.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Dry-run result 2026-06-02:
+    - `Student-scope attendance mismatches: 0`.
+    - `Status mismatches: 21` remain because some production `booking_sessions.status` rows are stale while attendance already exists; no production data was modified.
+
+- [x] 21.6.13 Admin Schedule Single Source Display Fix
+  - Production consistency issue found 2026-06-02: Admin overview duplicated the schedule/calendar display and could continue showing confusing attendance-review states even after Makeup/Coach source-of-truth fixes.
+  - Goals:
+    - Remove the duplicate schedule/calendar section from Admin overview so `/admin` is KPI-only.
+    - Keep `/admin/schedules` as the single Admin schedule surface for calendar/status review.
+    - Make `/admin/schedules` load attendance through the exact Admin attendance helper and fail visibly if attendance cannot be loaded, instead of silently defaulting past sessions to review.
+    - Query large attendance scopes in chunks so production months with many booking sessions do not lose attendance data because of one oversized `.in()` request.
+  - Safety:
+    - Do not modify production data.
+    - Do not change Coach/User attendance writes, makeup rules, payroll, booking verified gate, or lesson wallet behavior.
+    - Do not deploy production until owner confirms.
+  - Required checks: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Completed 2026-06-02:
+    - `/admin` now keeps only KPI cards and no longer renders a duplicate schedule/calendar surface.
+    - `/admin/schedules` remains the single Admin schedule surface.
+    - Admin schedule attendance loading now queries attendance rows in chunks and throws a visible server error if attendance cannot be loaded, instead of silently treating past sessions as review gaps.
+    - No production data was modified.
+  - Verification:
+    - `npm run check:mojibake` passed.
+    - `npx tsc --noEmit` passed.
+    - `npm run lint` passed.
+    - `npm run attendance:reconcile:dry-run` passed; report still shows production `booking_sessions.status` rows that are stale while attendance rows already exist, which is data reconciliation follow-up only.
+    - `git diff --check` passed with Windows line-ending warnings only.
+    - `npm run build` passed.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.
