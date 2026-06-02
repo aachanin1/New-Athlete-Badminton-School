@@ -1094,6 +1094,19 @@ Notes:
   - Verification passed: `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, `npm run prod:check`, and `git diff --check`.
   - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
 
+- [x] 21.6.7 Makeup Attendance Review Grouped Per-Student Actions
+  - Admin Makeup "attendance review" must group rows by teaching round, coach, branch, course, date, and time so high-volume cases are readable.
+  - "Send to coach for review" is a round-level action with one button per round.
+  - Retroactive attendance, confirm absence, close case, and return entitlement remain per-student actions only.
+  - Coach Attendance must show Admin-returned work in a clear "retroactive review" section.
+  - Coach must still check in retroactively with selfie + GPS before recording attendance if evidence is missing.
+  - Coach attendance remains per-student only; no group-level attendance button.
+  - Must not affect verified booking gate, lesson wallet, makeup eligibility, payroll/teaching hours, or existing attendance rows.
+  - Implemented: Admin Makeup now renders attendance-gap review rows as grouped teaching rounds with one round-level "send to coach" action and per-student resolution actions.
+  - Implemented: Coach Attendance now shows Admin-returned retroactive review rounds in a dedicated section; missing check-in evidence routes the coach to retroactive selfie/GPS check-in before per-student attendance.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npm run build`, and `npm run prod:check`.
+  - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

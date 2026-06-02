@@ -97,6 +97,20 @@ interface LearnerGroup {
   months: MonthGroup[]
 }
 
+interface ReviewSessionGroup {
+  key: string
+  date: string
+  startTime: string
+  endTime: string
+  branchName: string
+  courseType: string
+  coachName: string | null
+  coachCheckinTime: string | null
+  coachCheckinHasLocation: boolean
+  groupNames: string[]
+  sessions: BookingSessionData[]
+}
+
 interface PickedSlot {
   date: string
   dayOfWeek: number
@@ -273,6 +287,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null)
+  const [reviewGroupLoadingKey, setReviewGroupLoadingKey] = useState<string | null>(null)
   const [reviewSession, setReviewSession] = useState<BookingSessionData | null>(null)
   const [reviewAction, setReviewAction] = useState<ReviewAction>('confirm_absent')
   const [reviewAttendanceStatus, setReviewAttendanceStatus] = useState<AttendanceStatus>('present')
@@ -408,6 +423,51 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
       .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time))
   }, [filterBranch, search, sessions])
 
+  const reviewSessionGroups = useMemo<ReviewSessionGroup[]>(() => {
+    const groups = new Map<string, ReviewSessionGroup>()
+
+    reviewSessions.forEach((session) => {
+      const key = [
+        session.date,
+        session.start_time,
+        session.end_time,
+        session.branch_name,
+        session.course_type || 'course',
+        session.coach_name || 'no-coach',
+      ].join('|')
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          date: session.date,
+          startTime: session.start_time,
+          endTime: session.end_time,
+          branchName: session.branch_name,
+          courseType: session.course_type || 'คอร์สเรียน',
+          coachName: session.coach_name || null,
+          coachCheckinTime: session.coach_checkin_time || null,
+          coachCheckinHasLocation: Boolean(session.coach_checkin_has_location),
+          groupNames: [],
+          sessions: [],
+        })
+      }
+
+      const group = groups.get(key)
+      if (!group) return
+      group.sessions.push(session)
+      if (session.group_name && !group.groupNames.includes(session.group_name)) group.groupNames.push(session.group_name)
+      if (!group.coachCheckinTime && session.coach_checkin_time) group.coachCheckinTime = session.coach_checkin_time
+      if (session.coach_checkin_has_location) group.coachCheckinHasLocation = true
+    })
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        sessions: group.sessions.sort((a, b) => a.learner_name.localeCompare(b.learner_name)),
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime))
+  }, [reviewSessions])
+
   const stats = useMemo(() => ({
     total: monthGroups.length,
     actionable: monthGroups.filter((group) => group.canCreate).length,
@@ -518,6 +578,43 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setReviewLoadingId(null)
+    }
+  }
+
+  const sendReviewGroupToCoach = async (group: ReviewSessionGroup) => {
+    const representativeSession = group.sessions[0]
+    if (!representativeSession) return
+
+    if (!group.coachName) {
+      setError('รอบนี้ยังไม่มีโค้ชที่รับผิดชอบ จึงส่งให้โค้ชตรวจสอบไม่ได้ กรุณาบันทึกย้อนหลังหรือปิดเคสเป็นรายคน')
+      return
+    }
+
+    setReviewGroupLoadingKey(group.key)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: representativeSession.id,
+          action: 'request_coach_review',
+          reason: `ส่งตรวจสอบย้อนหลังทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} (${group.sessions.length} คน)`,
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(result?.error || 'ส่งให้โค้ชตรวจสอบรอบนี้ไม่สำเร็จ')
+        return
+      }
+
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setReviewGroupLoadingKey(null)
     }
   }
 
@@ -725,9 +822,121 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches }:
                   รอบเหล่านี้เลยเวลาเรียนแล้ว แต่ยังไม่มี attendance ของทั้งรอบ ระบบจึงยังไม่สร้างสิทธิ์ชดเชยอัตโนมัติจนกว่า Admin/Coach จะตรวจสอบ
                 </p>
               </div>
-              <Badge variant="outline" className="w-fit border-orange-200 bg-white text-orange-700">{reviewSessions.length} รายการ</Badge>
+              <Badge variant="outline" className="w-fit border-orange-200 bg-white text-orange-700">
+                {reviewSessionGroups.length} รอบ / {reviewSessions.length} รายการ
+              </Badge>
             </div>
-            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+            <div className="mt-4 max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+              {reviewSessionGroups.map((group) => (
+                <div key={group.key} className="overflow-hidden rounded-xl border border-orange-100 bg-white shadow-sm">
+                  <div className="flex flex-col gap-3 border-b border-orange-100 bg-orange-50/50 p-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="border-orange-200 bg-white text-orange-700">รอบสอน</Badge>
+                        <span className="font-semibold text-[#153c85]">
+                          {formatDate(group.date)} {formatTime(group.startTime, group.endTime)}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={group.coachCheckinTime ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}
+                        >
+                          {group.coachCheckinTime ? 'โค้ชเช็คอินแล้ว' : 'ยังไม่มีเช็คอินโค้ช'}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{group.branchName}</span>
+                        <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{group.courseType}</span>
+                        <span className="inline-flex items-center gap-1"><User className="h-3.5 w-3.5" />{group.coachName || 'ยังไม่พบโค้ชในกลุ่ม'}</span>
+                        <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{group.sessions.length} คน</span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        กลุ่ม: {group.groupNames.length ? group.groupNames.join(', ') : '-'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        เช็คอิน: {formatDateTime(group.coachCheckinTime) || '-'}
+                        {group.coachCheckinTime ? ` · ${group.coachCheckinHasLocation ? 'มีรูปและ GPS' : 'มีรูปแต่ไม่มี GPS'}` : ''}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
+                      disabled={reviewGroupLoadingKey === group.key || !group.coachName}
+                      onClick={() => void sendReviewGroupToCoach(group)}
+                      title={!group.coachName ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
+                    >
+                      {reviewGroupLoadingKey === group.key ? 'กำลังส่ง...' : 'ส่งให้โค้ชตรวจสอบรอบนี้'}
+                    </Button>
+                  </div>
+
+                  <div className="divide-y divide-gray-100">
+                    {group.sessions.map((session) => (
+                      <div key={session.id} className="grid gap-3 p-3 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-gray-950">{session.learner_name}</span>
+                            <Badge variant="outline" className="bg-orange-50 text-orange-700">รอตรวจสอบ</Badge>
+                            {session.group_name && (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-600">{session.group_name}</Badge>
+                            )}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
+                            <span>ผู้ปกครอง/ผู้ใช้: {session.user_name}</span>
+                            <span>{session.branch_name}</span>
+                            <span>{session.course_type || 'คอร์สเรียน'}</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                            disabled={reviewLoadingId === session.id}
+                            onClick={() => openReviewDialog(session, 'mark_attendance')}
+                          >
+                            บันทึกย้อนหลัง
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                            disabled={reviewLoadingId === session.id}
+                            onClick={() => {
+                              if (session.coach_name) {
+                                void confirmAbsent(session.id)
+                              } else {
+                                openReviewDialog(session, 'confirm_absent')
+                              }
+                            }}
+                          >
+                            {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                            disabled={reviewLoadingId === session.id}
+                            onClick={() => openReviewDialog(session, 'close_review')}
+                          >
+                            ปิดเคส
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
+                            disabled={reviewLoadingId === session.id}
+                            onClick={() => openReviewDialog(session, 'return_entitlement')}
+                          >
+                            คืนสิทธิ์
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden">
               {reviewSessions.slice(0, 30).map((session) => (
                 <div key={session.id} className="grid gap-3 rounded-lg border border-orange-100 bg-white p-3 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                   <div className="min-w-0">

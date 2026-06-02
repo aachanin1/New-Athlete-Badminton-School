@@ -132,6 +132,16 @@ export function AttendanceClient({
   const completedSlots = slotSummaries.filter((summary) => summary.isComplete).length
   const lockedSlots = slotSummaries.filter((summary) => summary.isLocked).length
   const missingAttendanceSlots = slotSummaries.filter((summary) => !summary.isLocked && !summary.isComplete).length
+  const retroReviewSlots = useMemo(() => slots.filter((slot) => slot.canRetroactiveCheckin), [slots])
+  const retroReviewStudentCount = retroReviewSlots.reduce((sum, slot) => sum + slot.students.length, 0)
+
+  const expandSlot = (slotId: string) => {
+    setExpandedSlots((prev) => {
+      const next = new Set(prev)
+      next.add(slotId)
+      return next
+    })
+  }
 
   const toggleSlot = (slotId: string) => {
     setExpandedSlots((prev) => {
@@ -183,6 +193,73 @@ export function AttendanceClient({
         </div>
       )}
 
+      {retroReviewSlots.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50/40">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-orange-700">
+                  <AlertCircle className="h-4 w-4" />
+                  รอตรวจสอบย้อนหลัง
+                </div>
+                <p className="mt-1 text-sm text-orange-700/80">
+                  Admin ส่งรอบเหล่านี้กลับให้ตรวจสอบย้อนหลัง โค้ชต้องมีหลักฐานเช็คอินด้วยเซลฟี่และ GPS ก่อน แล้วค่อยเช็คชื่อรายคน
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit border-orange-200 bg-white text-orange-700">
+                {retroReviewSlots.length} รอบ / {retroReviewStudentCount} คน
+              </Badge>
+            </div>
+            <div className="grid gap-2 lg:grid-cols-2">
+              {retroReviewSlots.map((slot) => {
+                const summary = slotSummaries.find((item) => item.slotId === slot.scheduleSlotId)
+                const needsCheckin = !slot.checkin
+
+                return (
+                  <div key={slot.key} className="rounded-lg border border-orange-100 bg-white p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-[#153c85]">{fmtTime(slot.startTime)} - {fmtTime(slot.endTime)}</span>
+                          <Badge className="bg-blue-100 text-[10px] text-blue-700">{slot.courseType || 'คอร์ส'}</Badge>
+                          {summary && (
+                            <Badge variant="outline" className={summary.color}>
+                              {summary.label} {summary.checked}/{slot.students.length}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {slot.branchName} · {slot.students.length} คน
+                        </p>
+                      </div>
+                      {needsCheckin ? (
+                        <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600">
+                          <Link href={`/coach/checkin?date=${selectedDate}&slot=${slot.scheduleSlotId}`}>
+                            <Camera className="mr-1.5 h-4 w-4" />
+                            เช็คอินย้อนหลัง
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                          onClick={() => expandSlot(slot.scheduleSlotId)}
+                        >
+                          ตรวจรายคน
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {slots.length > 0 && (
         <div className="sticky top-0 z-10 grid grid-cols-2 gap-2 rounded-xl border bg-white/95 p-2 shadow-sm backdrop-blur lg:grid-cols-4">
           <div className="rounded-lg bg-blue-50 px-3 py-2">
@@ -229,7 +306,7 @@ export function AttendanceClient({
             }, {} as Record<string, StudentSession[]>))
 
             return (
-              <Card key={slot.key} className={`shadow-sm ${isLocked ? 'border-orange-200 bg-orange-50/40' : ''}`}>
+              <Card id={`attendance-slot-${slot.scheduleSlotId}`} key={slot.key} className={`shadow-sm ${isLocked ? 'border-orange-200 bg-orange-50/40' : ''}`}>
                 <CardContent className="space-y-3 p-4">
                   <button
                     type="button"
