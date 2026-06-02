@@ -1107,6 +1107,18 @@ Notes:
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npm run build`, and `npm run prod:check`.
   - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
 
+- [x] 21.6.8 Admin Coach Check-in Audit UX Scalability Pass
+  - Production UX issue found 2026-06-02: Admin `/admin/coach-checkins` has correct data but becomes visually noisy with many coaches and many assigned rounds.
+  - Goal:
+    - Keep coach check-in, attendance, payroll, and storage evidence logic unchanged.
+    - Show a compact problem-first queue grouped by teaching round so Admin can review missing check-ins, missing selfie, late check-ins, and missing GPS before browsing all rows.
+    - Keep coach summary and all-record audit table available, but reduce their visual weight with tighter height and pagination.
+    - Preserve detail dialog for signed selfie/GPS review.
+  - Implemented: added a problem-first review queue grouped by date/time/branch/course, with per-coach issue chips and a detail action that reuses the existing selfie/GPS dialog.
+  - Implemented: default all-record audit pagination is now lighter at 15 rows/page, coach summary height is reduced, and GPS evidence checks use null-safe logic.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, `npm run build`, and `npm run prod:check`.
+  - `npm run prod:check` still reports the existing local environment warning: `SLIPOK_TEST_MODE=true`; production Vercel env must remain configured for live SlipOK.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

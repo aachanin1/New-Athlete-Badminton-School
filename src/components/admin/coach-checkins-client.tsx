@@ -51,6 +51,17 @@ interface CoachCheckinsClientProps {
 type AuditStatus = 'checked' | 'late' | 'missing' | 'upcoming' | 'no_photo'
 type DateScope = 'today' | 'week' | 'month' | 'all' | 'custom'
 
+interface ReviewGroup {
+  key: string
+  date: string
+  startTime: string
+  endTime: string
+  branchName: string
+  courseType: string
+  priority: number
+  rows: CheckinAuditRow[]
+}
+
 const STATUS_META: Record<AuditStatus, { label: string; className: string; icon: LucideIcon; priority: number }> = {
   missing: { label: 'ขาดเช็คอิน', className: 'border-red-200 bg-red-50 text-red-700', icon: XCircle, priority: 1 },
   no_photo: { label: 'ไม่มีรูป', className: 'border-orange-200 bg-orange-50 text-orange-700', icon: ImageIcon, priority: 2 },
@@ -118,6 +129,45 @@ function getStatus(row: CheckinAuditRow): AuditStatus {
   return 'upcoming'
 }
 
+function hasLocation(row: CheckinAuditRow): row is CheckinAuditRow & { location_lat: number; location_lng: number } {
+  return row.location_lat !== null && row.location_lng !== null
+}
+
+function needsReview(row: CheckinAuditRow) {
+  const status = getStatus(row)
+  return status === 'missing' || status === 'no_photo' || status === 'late' || Boolean(row.checkin_time && !hasLocation(row))
+}
+
+function getReviewPriority(row: CheckinAuditRow) {
+  const status = getStatus(row)
+  if (status === 'missing') return 1
+  if (status === 'no_photo') return 2
+  if (status === 'late') return 3
+  if (row.checkin_time && !hasLocation(row)) return 4
+  return 9
+}
+
+function getReviewBadges(row: CheckinAuditRow) {
+  const status = getStatus(row)
+  const badges: { label: string; className: string }[] = []
+
+  if (status === 'missing' || status === 'no_photo' || status === 'late') {
+    badges.push({
+      label: STATUS_META[status].label,
+      className: STATUS_META[status].className,
+    })
+  }
+
+  if (row.checkin_time && !hasLocation(row)) {
+    badges.push({
+      label: 'ไม่มี GPS',
+      className: 'border-slate-200 bg-slate-50 text-slate-600',
+    })
+  }
+
+  return badges
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T00:00:00`))
 }
@@ -144,7 +194,7 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
   const [dateScope, setDateScope] = useState<DateScope>('week')
   const [filterDate, setFilterDate] = useState('')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(25)
+  const [pageSize, setPageSize] = useState(15)
   const [selectedRow, setSelectedRow] = useState<CheckinAuditRow | null>(null)
 
   const coaches = useMemo(() => {
@@ -228,6 +278,37 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
     })
     return Array.from(summaryMap.values()).sort((a, b) => b.missing - a.missing || b.noPhoto - a.noPhoto || b.late - a.late || a.coachName.localeCompare(b.coachName, 'th'))
   }, [filtered])
+
+  const reviewRows = useMemo(() => filtered.filter(needsReview), [filtered])
+
+  const reviewGroups = useMemo(() => {
+    const groupMap = new Map<string, ReviewGroup>()
+
+    reviewRows.forEach((row) => {
+      const key = `${row.date}|${row.start_time}|${row.end_time}|${row.branch_id}|${row.course_type}`
+      const current = groupMap.get(key) || {
+        key,
+        date: row.date,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        branchName: row.branch_name,
+        courseType: row.course_type,
+        priority: getReviewPriority(row),
+        rows: [],
+      }
+
+      current.priority = Math.min(current.priority, getReviewPriority(row))
+      current.rows.push(row)
+      groupMap.set(key, current)
+    })
+
+    return Array.from(groupMap.values())
+      .map((group) => ({
+        ...group,
+        rows: group.rows.sort((a, b) => getReviewPriority(a) - getReviewPriority(b) || a.coach_name.localeCompare(b.coach_name, 'th')),
+      }))
+      .sort((a, b) => a.priority - b.priority || `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
+  }, [reviewRows])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -335,6 +416,12 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
         </CardContent>
       </Card>
 
+      <ReviewQueueCard
+        groups={reviewGroups}
+        totalRows={reviewRows.length}
+        onOpenDetail={openDetail}
+      />
+
       <Card className="border-gray-200">
         <CardContent className="p-0">
           <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
@@ -347,7 +434,7 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
           {coachSummaries.length === 0 ? (
             <div className="py-8 text-center text-sm text-gray-400">ไม่มีข้อมูลโค้ชตามตัวกรอง</div>
           ) : (
-            <div className="max-h-[18rem] overflow-y-auto">
+            <div className="max-h-[12rem] overflow-y-auto">
               <table className="w-full min-w-[760px] text-sm">
                 <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold text-gray-500">
                   <tr>
@@ -446,9 +533,9 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
                               <ImageIcon className="mr-1 h-3.5 w-3.5" />
                               {row.photo_url ? 'มีรูป' : 'ไม่มีรูป'}
                             </Badge>
-                            <Badge variant="outline" className={row.location_lat && row.location_lng ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50 text-gray-500'}>
+                            <Badge variant="outline" className={hasLocation(row) ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50 text-gray-500'}>
                               <MapPin className="mr-1 h-3.5 w-3.5" />
-                              {row.location_lat && row.location_lng ? 'มี GPS' : 'ไม่มี GPS'}
+                              {hasLocation(row) ? 'มี GPS' : 'ไม่มี GPS'}
                             </Badge>
                           </div>
                         </td>
@@ -470,6 +557,7 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
               total={filtered.length}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 15, 25]}
             />
           </>
         )}
@@ -504,7 +592,7 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
                 </div>
               )}
 
-              {selectedRow.location_lat && selectedRow.location_lng ? (
+              {hasLocation(selectedRow) ? (
                 <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
                   <div>
@@ -530,6 +618,127 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function ReviewQueueCard({
+  groups,
+  totalRows,
+  onOpenDetail,
+}: {
+  groups: ReviewGroup[]
+  totalRows: number
+  onOpenDetail: (row: CheckinAuditRow) => void
+}) {
+  if (groups.length === 0) {
+    return (
+      <Card className="border-emerald-200 bg-emerald-50/40">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-emerald-900">ไม่มีรายการที่ต้องตรวจสอบก่อน</p>
+              <p className="mt-1 text-sm text-emerald-700">
+                รอบในตัวกรองนี้ไม่มีเคสขาดเช็คอิน ไม่มีรูป เช็คอินช้า หรือขาด GPS
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="border-emerald-200 bg-white text-emerald-700">
+            พร้อมตรวจรายการทั้งหมด
+          </Badge>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="border-orange-200 bg-orange-50/25">
+      <CardContent className="p-0">
+        <div className="flex flex-col gap-2 border-b border-orange-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-700">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-orange-900">ต้องตรวจสอบก่อน</p>
+              <p className="mt-1 text-sm text-orange-700">
+                จัดกลุ่มตามรอบเรียน เพื่อให้เห็นปัญหาหลักก่อนเปิดดูรูปและตำแหน่งรายคน
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="border-orange-200 bg-white text-orange-700">
+              {groups.length} รอบ
+            </Badge>
+            <Badge variant="outline" className="border-orange-200 bg-white text-orange-700">
+              {totalRows} รายการ
+            </Badge>
+          </div>
+        </div>
+
+        <div className="max-h-[34rem] overflow-y-auto p-3">
+          <div className="grid gap-3 xl:grid-cols-2">
+            {groups.map((group) => (
+              <div key={group.key} className="rounded-lg border border-orange-100 bg-white p-3 shadow-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-[#153c85]">
+                      {formatDate(group.date)} · {formatTime(group.startTime)}-{formatTime(group.endTime)}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {group.branchName} · {group.courseType || '-'}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="w-fit border-orange-200 bg-orange-50 text-orange-700">
+                    {group.rows.length} โค้ช
+                  </Badge>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {group.rows.map((row) => {
+                    const status = getStatus(row)
+                    const badges = getReviewBadges(row)
+                    return (
+                      <div key={row.assignment_id} className="rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-gray-950">{row.coach_name}</p>
+                            {row.checkin_time ? (
+                              <p className="mt-0.5 text-xs text-gray-500">เช็คอิน {formatCheckinTime(row.checkin_time)}</p>
+                            ) : (
+                              <p className="mt-0.5 text-xs text-red-600">ยังไม่มีเวลาเช็คอิน</p>
+                            )}
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => onOpenDetail(row)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            รายละเอียด
+                          </Button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {badges.map((badge) => (
+                            <Badge key={badge.label} variant="outline" className={badge.className}>
+                              {badge.label}
+                            </Badge>
+                          ))}
+                          {status !== 'no_photo' && (
+                            <EvidencePill ok={Boolean(row.photo_url)} icon={ImageIcon} okLabel="มีรูป" missingLabel="ไม่มีรูป" tone="orange" />
+                          )}
+                          {!(row.checkin_time && !hasLocation(row)) && (
+                            <EvidencePill ok={hasLocation(row)} icon={MapPin} okLabel="มี GPS" missingLabel="ไม่มี GPS" tone="blue" />
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -598,6 +807,34 @@ function StatCard({
         <Icon className={`h-5 w-5 ${toneClasses[tone]}`} />
       </CardContent>
     </Card>
+  )
+}
+
+function EvidencePill({
+  ok,
+  icon: Icon,
+  okLabel,
+  missingLabel,
+  tone,
+}: {
+  ok: boolean
+  icon: LucideIcon
+  okLabel: string
+  missingLabel: string
+  tone: 'blue' | 'orange'
+}) {
+  const okClasses = tone === 'blue'
+    ? 'border-blue-200 bg-blue-50 text-blue-700'
+    : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  const missingClasses = tone === 'blue'
+    ? 'border-gray-200 bg-gray-50 text-gray-500'
+    : 'border-orange-200 bg-orange-50 text-orange-700'
+
+  return (
+    <Badge variant="outline" className={ok ? okClasses : missingClasses}>
+      <Icon className="mr-1 h-3.5 w-3.5" />
+      {ok ? okLabel : missingLabel}
+    </Badge>
   )
 }
 
