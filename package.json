@@ -14,6 +14,7 @@
     "seed:verify": "node scripts/verify-seed-data.js",
     "uat:attendance-gap": "node scripts/uat-attendance-gap.js",
     "attendance:reconcile:dry-run": "node scripts/dry-run-attendance-reconciliation.js",
+    "attendance:reconcile:write": "node scripts/dry-run-attendance-reconciliation.js --write",
     "uat:lesson-wallet": "node scripts/uat-lesson-wallet.js",
     "prod:save-default-settings": "node scripts/save-default-production-settings.js",
     "prod:create-restore-point": "node scripts/create-production-reset-restore-point.js",

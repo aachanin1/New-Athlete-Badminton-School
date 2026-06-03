@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
+import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import { notifyUserOnce } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime } from '@/lib/utils'
@@ -242,11 +243,6 @@ export async function POST(request: NextRequest) {
       }
       insert: (values: AttendanceRecord) => Promise<{ error: DbError | null }>
     }
-    const sessionTable = supabase.from('booking_sessions') as unknown as {
-      update: (values: { status: 'absent' | 'completed' }) => {
-        eq: (column: string, value: string) => Promise<{ error: DbError | null }>
-      }
-    }
     const attendanceRecord: AttendanceRecord = {
       booking_session_id: bookingSessionId,
       student_id: studentId,
@@ -288,11 +284,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const sessionStatus = status === 'absent' ? 'absent' : 'completed'
-    const { error: sessionError } = await sessionTable.update({ status: sessionStatus }).eq('id', bookingSessionId)
-
-    if (sessionError) {
-      return NextResponse.json({ error: `อัปเดตสถานะรอบเรียนไม่สำเร็จ: ${sessionError.message}` }, { status: 500 })
+    let sessionStatus: 'absent' | 'completed'
+    try {
+      const syncResult = await syncBookingSessionStatusFromAttendance({
+        supabase: getServiceRoleClient(),
+        bookingSessionId,
+        attendanceStatus: status,
+      })
+      sessionStatus = syncResult.sessionStatus
+    } catch (syncError) {
+      return NextResponse.json({ error: `อัปเดตสถานะรอบเรียนไม่สำเร็จ: ${getErrorMessage(syncError)}` }, { status: 500 })
     }
 
     await logActivity({

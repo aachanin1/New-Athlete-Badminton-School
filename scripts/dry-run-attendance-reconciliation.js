@@ -5,6 +5,7 @@ const { createClient } = require('@supabase/supabase-js')
 const PAGE_SIZE = 1000
 const CHUNK_SIZE = 50
 const MAX_RETRIES = 3
+const WRITE_MODE = process.argv.includes('--write')
 
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {}
@@ -85,6 +86,10 @@ function expectedBookingStatusFromAttendanceStatus(status) {
   return status === 'absent' ? 'absent' : 'completed'
 }
 
+function isWritableAttendanceStatus(status) {
+  return status === 'present' || status === 'late' || status === 'absent'
+}
+
 function buildLatestAttendanceBySessionId(rows) {
   const map = new Map()
 
@@ -134,6 +139,46 @@ function getExpectedStudentId(session) {
 
 function learnerLabel(session) {
   return session.children?.nickname || session.children?.full_name || session.bookings?.user_id || 'unknown learner'
+}
+
+async function writeStatusMismatches(supabase, statusMismatches) {
+  const results = []
+
+  for (const { session, latestAttendance, expectedStatus } of statusMismatches) {
+    if (!isWritableAttendanceStatus(latestAttendance.status)) {
+      throw new Error(`Refusing to write unknown attendance status "${latestAttendance.status}" for session ${session.id}`)
+    }
+
+    const { data, error } = await withRetry(`booking_sessions update ${session.id}`, () => supabase
+      .from('booking_sessions')
+      .update({ status: expectedStatus })
+      .eq('id', session.id)
+      .eq('status', session.status)
+      .select('id, status')
+      .maybeSingle())
+
+    if (error) throw new Error(`booking_sessions update ${session.id}: ${error.message}`)
+
+    if (!data) {
+      const { data: current, error: currentError } = await supabase
+        .from('booking_sessions')
+        .select('id, status')
+        .eq('id', session.id)
+        .maybeSingle()
+
+      if (currentError) throw new Error(`booking_sessions verify ${session.id}: ${currentError.message}`)
+      if (current?.status === expectedStatus) {
+        results.push({ session, latestAttendance, expectedStatus, skipped: 'already-updated' })
+        continue
+      }
+
+      throw new Error(`booking_sessions update ${session.id}: row changed before reconciliation`)
+    }
+
+    results.push({ session, latestAttendance, expectedStatus, skipped: null })
+  }
+
+  return results
 }
 
 async function main() {
@@ -218,8 +263,12 @@ async function main() {
     }
   })
 
-  console.log('[DRY RUN] Attendance reconciliation report')
-  console.log('No production data was modified.')
+  console.log(WRITE_MODE
+    ? '[WRITE] Attendance reconciliation report before write'
+    : '[DRY RUN] Attendance reconciliation report')
+  console.log(WRITE_MODE
+    ? 'Production data has not been modified yet. Safety checks run before writing.'
+    : 'No production data was modified.')
   console.log(`Verified teaching sessions checked: ${sessions.length}`)
   console.log(`Attendance rows checked: ${attendanceRows.length}`)
   console.log(`Student-scope attendance mismatches: ${studentScopeMismatches.length}`)
@@ -271,7 +320,37 @@ async function main() {
     })
   }
 
-  console.log('\nThis command is report-only. Confirm before running any production reconciliation write.')
+  if (!WRITE_MODE) {
+    console.log('\nThis command is report-only. Confirm before running any production reconciliation write.')
+    return
+  }
+
+  if (studentScopeMismatches.length > 0) {
+    throw new Error('Refusing to write because student-scope attendance mismatches were found.')
+  }
+
+  if (statusMismatches.length === 0) {
+    console.log('\n[WRITE] No status mismatches to reconcile.')
+    return
+  }
+
+  console.log(`\n[WRITE] Updating ${statusMismatches.length} booking_sessions.status rows from attendance source of truth...`)
+  const writeResults = await writeStatusMismatches(supabase, statusMismatches)
+
+  writeResults.forEach(({ session, latestAttendance, expectedStatus, skipped }) => {
+    console.log([
+      skipped ? '- skipped' : '- updated',
+      `session=${session.id}`,
+      `date=${session.date}`,
+      `time=${String(session.start_time).slice(0, 5)}-${String(session.end_time).slice(0, 5)}`,
+      `learner=${learnerLabel(session)}`,
+      `attendance=${latestAttendance.status}`,
+      `booking_status=${session.status}->${expectedStatus}`,
+      skipped ? `reason=${skipped}` : null,
+    ].filter(Boolean).join(' | '))
+  })
+
+  console.log(`\n[WRITE] Completed. Rows processed: ${writeResults.length}. Run dry-run again to verify Status mismatches is 0.`)
 }
 
 main().catch((error) => {

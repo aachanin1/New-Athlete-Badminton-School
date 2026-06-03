@@ -1223,6 +1223,59 @@ Notes:
     - `git diff --check` passed with Windows line-ending warnings only.
     - `npm run build` passed.
 
+- [x] 21.6.14 Attendance Reconciliation Write
+  - Production data consistency issue confirmed 2026-06-03: `attendance` rows were correct, but 21 `booking_sessions.status` rows were still stale as `scheduled`.
+  - Business rule:
+    - `attendance` remains the source of truth for present/late/absent.
+    - Reconciliation writes may update only `booking_sessions.status`.
+    - `present`/`late` attendance maps to `booking_sessions.status = completed`.
+    - `absent` attendance maps to `booking_sessions.status = absent`.
+    - Do not touch payments, bookings, lesson wallet, makeup records, coupons, coach assignments, or attendance rows.
+  - Implemented:
+    - Added `npm run attendance:reconcile:write` using the same report logic as `npm run attendance:reconcile:dry-run`.
+    - Write mode refuses to run if exact student-scope mismatches are found.
+    - Write mode updates rows by current `id + status` guard to avoid overwriting concurrent changes.
+  - Production write result:
+    - Dry-run before write: `Student-scope attendance mismatches: 0`, `Status mismatches: 21`.
+    - Write applied: 21 `booking_sessions.status` rows updated from attendance.
+    - Dry-run after write: `Student-scope attendance mismatches: 0`, `Status mismatches: 0`.
+    - `Booking status without attendance: 9` remains as a separate historical-data review bucket; no action was taken on those rows.
+  - Production was not deployed for this data-only reconciliation.
+
+- [x] 21.6.15 Attendance Write-Through / DB Sync Guard
+  - Production issue found 2026-06-03: Coach/Admin attendance can be correct while `booking_sessions.status` becomes stale, causing Admin/User/Coach status displays to disagree.
+  - Goals:
+    - Every Coach/Admin attendance write must sync the exact `booking_sessions.id` immediately.
+    - `attendance` is the source of truth for present/late/absent.
+    - `present`/`late` maps to `booking_sessions.status = completed`.
+    - `absent` maps to `booking_sessions.status = absent`.
+    - Update only the exact learner `booking_session_id`; never update another learner in the same slot/group.
+    - Do not rely on daily/manual reconciliation for new attendance writes.
+  - Safety:
+    - Do not touch payments, bookings, lesson wallet, makeup rules, coupons, or coach assignment data.
+    - If production stale data remains, report the exact rows before writing.
+    - Do not deploy production until owner confirms.
+  - Required checks: `npm run attendance:reconcile:dry-run`, `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `git diff --check`, and `npm run build`.
+  - Implemented:
+    - Added shared `syncBookingSessionStatusFromAttendance()` helper so Coach/Admin attendance writes use the same mapping.
+    - Coach attendance API now writes attendance, then uses service-role write-through to update only the exact `booking_sessions.id`.
+    - Admin makeup retrospective attendance API now uses the same helper for exact-session status sync.
+  - Verification:
+    - Dry-run before code fix: `Student-scope attendance mismatches: 0`, `Status mismatches: 2`, `Booking status without attendance: 0`.
+    - `npx tsc --noEmit` passed.
+    - `npm run check:mojibake` passed.
+    - `npm run lint` passed.
+    - `git diff --check` passed with Windows line-ending warnings only.
+    - `npm run build` passed.
+    - Dry-run after code fix reported existing stale production rows; owner confirmed production sync.
+  - Production data sync after owner confirmation:
+    - `b4f96087-8dd1-4747-beab-5519de5eedd0` | 2026-06-03 15:00-17:00 | learner `แผ่นดิน` | `scheduled` -> `completed` from `present`.
+    - `b1611125-efc8-458f-85e1-2f96a9a7b69b` | 2026-06-03 15:00-17:00 | learner `มาวิน` | `scheduled` -> `absent` from `absent`.
+    - `753d6ba5-f782-41a0-81f7-cb291b0a2de5` | 2026-06-03 17:00-19:00 | learner `ปริญ` | `scheduled` -> `completed` from `present`.
+    - Dry-run after write: `Student-scope attendance mismatches: 0`, `Status mismatches: 0`, `Booking status without attendance: 0`.
+  - Production deploy note:
+    - New attendance writes will auto-sync only after this code guard is deployed to production.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

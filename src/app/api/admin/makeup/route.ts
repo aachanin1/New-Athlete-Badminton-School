@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
+import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
 import type { AttendanceStatus, StudentType } from '@/types/database'
@@ -676,14 +677,16 @@ export async function PATCH(req: NextRequest) {
       coachId: attendanceCoachId,
     })
 
-    const sessionStatus = finalAttendanceStatus === 'absent' ? 'absent' : 'completed'
-    const { error: updateError } = await supabaseAdmin
-      .from('booking_sessions')
-      .update({ status: sessionStatus })
-      .eq('id', sessionId)
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    let sessionStatus: 'absent' | 'completed'
+    try {
+      const syncResult = await syncBookingSessionStatusFromAttendance({
+        supabase: supabaseAdmin,
+        bookingSessionId: sessionId,
+        attendanceStatus: finalAttendanceStatus,
+      })
+      sessionStatus = syncResult.sessionStatus
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Sync booking session status failed' }, { status: 500 })
     }
 
     await logActivity({
