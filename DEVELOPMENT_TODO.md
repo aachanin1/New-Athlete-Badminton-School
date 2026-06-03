@@ -1276,6 +1276,32 @@ Notes:
   - Production deploy note:
     - New attendance writes will auto-sync only after this code guard is deployed to production.
 
+- [x] 21.6.16 Retroactive Coach Evidence Request
+  - Production issue found 2026-06-03: Admin can record retroactive attendance for a real taught slot, but if no `coach_checkins` evidence exists, the owner still sees "no evidence" and has no clean way to request only selfie/GPS from the responsible coach.
+  - Goals:
+    - Admin can keep recording retroactive attendance as before.
+    - If attendance is recorded but `coach_checkins` evidence is missing or incomplete, show "attendance recorded, coach evidence missing".
+    - Add an Admin action to request retroactive coach evidence.
+    - Coach sees the retroactive task and must submit selfie + GPS through the coach check-in flow.
+    - Admin must never create coach evidence on behalf of a coach.
+  - Safety:
+    - Do not touch payment, booking, lesson wallet, makeup entitlement rules, coupons, or assignment logic.
+    - Evidence request should use notification/activity log only until the coach submits real selfie/GPS.
+    - Do not deploy production until owner confirms.
+  - Required checks: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Implemented 2026-06-03:
+    - Admin makeup review now separates "attendance recorded but coach evidence missing" from real missing-attendance cases.
+    - Added an Admin action to request retroactive coach evidence for a grouped slot without creating `coach_checkins` on behalf of the coach.
+    - Coach retro check-in lookup now accepts the new evidence-request activity action, so the responsible coach can submit selfie + GPS through the existing coach check-in flow.
+    - Scope preserved: no payment, booking, lesson wallet, makeup entitlement, coupon, or assignment logic was changed.
+  - Verification:
+    - `npm run check:mojibake` passed.
+    - `npx tsc --noEmit` passed.
+    - `npm run lint` passed.
+    - `git diff --check` passed.
+    - `npm run build` passed.
+    - `npm run attendance:reconcile:dry-run` passed as a report-only command, but reported 1 existing production status mismatch outside this item: session `1b9d1b2b-2078-4c47-a042-46d74ae41fa6`, learner `โหย่ว`, 2026-06-03 17:00-19:00, `booking_status=scheduled`, `attendance=present`, expected `completed`. No production data was modified.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

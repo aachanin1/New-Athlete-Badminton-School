@@ -22,6 +22,11 @@ interface ActivityLogReviewRow {
   details: Record<string, unknown> | null
 }
 
+const ADMIN_RETURNED_ATTENDANCE_ACTIONS = [
+  'attendance_gap_request_coach_review',
+  'attendance_gap_request_coach_evidence',
+] as const
+
 function getNotifiedCoachIds(details: Record<string, unknown> | null) {
   const ids = details?.notifiedCoachIds
   return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
@@ -49,7 +54,7 @@ export async function getAdminReturnedAttendanceSlotIds(
   const { data: reviewLogs } = await supabase
     .from('activity_logs')
     .select('entity_id, details')
-    .eq('action', 'attendance_gap_request_coach_review')
+    .in('action', ADMIN_RETURNED_ATTENDANCE_ACTIONS)
     .eq('entity_type', 'booking_sessions')
     .in('entity_id', sessionIds)
     .order('created_at', { ascending: false }) as { data: ActivityLogReviewRow[] | null }

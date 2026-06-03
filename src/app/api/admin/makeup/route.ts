@@ -42,6 +42,14 @@ interface ReviewSessionRow {
 
 interface ExistingAttendanceRow {
   id: string
+  status?: AttendanceStatus | null
+}
+
+interface CoachCheckinEvidenceRow {
+  coach_id: string | null
+  photo_url: string | null
+  location_lat: number | null
+  location_lng: number | null
 }
 
 interface AssignmentGroupInsertRow {
@@ -456,7 +464,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { session_id: sessionId, action } = body as {
       session_id?: string
-      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review' | 'return_entitlement'
+      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'request_coach_evidence' | 'close_review' | 'return_entitlement'
     }
     const reason = normalizeReason((body as { reason?: unknown }).reason)
     const attendanceStatus = normalizeAttendanceStatus((body as { attendance_status?: unknown }).attendance_status)
@@ -468,7 +476,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'session_id and action are required' }, { status: 400 })
     }
 
-    if ((action === 'mark_attendance' || action === 'request_coach_review' || action === 'close_review' || action === 'return_entitlement') && !reason) {
+    if ((action === 'mark_attendance' || action === 'request_coach_review' || action === 'request_coach_evidence' || action === 'close_review' || action === 'return_entitlement') && !reason) {
       return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
     }
 
@@ -494,12 +502,93 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    if (session.status !== 'scheduled' || !isPastSession(session.date, session.end_time)) {
+    if (!isPastSession(session.date, session.end_time)) {
+      return NextResponse.json({ error: 'จัดการ attendance gap ได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
+    }
+
+    if (action !== 'request_coach_evidence' && session.status !== 'scheduled') {
       return NextResponse.json({ error: 'ยืนยันขาดเรียนได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
     }
 
     const assignedCoachIds = await getAssignedCoachIds(supabaseAdmin, session)
     const hasAssignedCoach = assignedCoachIds.length > 0
+
+    if (action === 'request_coach_evidence') {
+      if (!session.schedule_slot_id) {
+        return NextResponse.json({ error: 'รอบนี้ไม่มี schedule slot สำหรับขอหลักฐานโค้ช' }, { status: 400 })
+      }
+
+      if (!hasAssignedCoach) {
+        return NextResponse.json({ error: 'ยังไม่พบโค้ชที่รับผิดชอบรอบนี้ จึงขอหลักฐานย้อนหลังไม่ได้' }, { status: 400 })
+      }
+
+      const { studentId } = getStudentContext(session)
+      if (!studentId) {
+        return NextResponse.json({ error: 'ไม่สามารถระบุผู้เรียนของรอบนี้ได้' }, { status: 400 })
+      }
+
+      const { data: attendanceRows, error: attendanceError } = await supabaseAdmin
+        .from('attendance')
+        .select('id, status')
+        .eq('booking_session_id', session.id)
+        .eq('student_id', studentId)
+        .order('checked_at', { ascending: false })
+        .limit(1) as unknown as { data: ExistingAttendanceRow[] | null; error: { message: string } | null }
+
+      if (attendanceError) {
+        return NextResponse.json({ error: attendanceError.message }, { status: 500 })
+      }
+
+      if (!attendanceRows?.[0]) {
+        return NextResponse.json({ error: 'ต้องบันทึก attendance ของผู้เรียนก่อน จึงจะขอหลักฐานโค้ชย้อนหลังได้' }, { status: 400 })
+      }
+
+      const { data: checkins, error: checkinError } = await supabaseAdmin
+        .from('coach_checkins')
+        .select('coach_id, photo_url, location_lat, location_lng')
+        .eq('schedule_slot_id', session.schedule_slot_id)
+        .in('coach_id', assignedCoachIds)
+        .limit(20) as unknown as { data: CoachCheckinEvidenceRow[] | null; error: { message: string } | null }
+
+      if (checkinError) {
+        return NextResponse.json({ error: checkinError.message }, { status: 500 })
+      }
+
+      const hasCompleteEvidence = (checkins || []).some((checkin) => (
+        Boolean(checkin.photo_url) &&
+        checkin.location_lat !== null &&
+        checkin.location_lng !== null
+      ))
+
+      if (hasCompleteEvidence) {
+        return NextResponse.json({ success: true, alreadyHasEvidence: true })
+      }
+
+      await Promise.all(assignedCoachIds.map((coachId) => notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+        user_id: coachId,
+        title: 'ขอหลักฐานเช็คอินย้อนหลัง',
+        message: `Admin บันทึก attendance ย้อนหลังแล้ว แต่ยังไม่มี selfie/GPS ของรอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''}: ${reason}`,
+        type: 'schedule',
+        link_url: `/coach/checkin?date=${session.date}&slot=${session.schedule_slot_id}`,
+      }).catch(() => null)))
+
+      await logActivity({
+        userId: access.ctx.user.id,
+        action: 'attendance_gap_request_coach_evidence',
+        entityType: 'booking_sessions',
+        entityId: session.id,
+        details: {
+          reason,
+          scheduleSlotId: session.schedule_slot_id,
+          notifiedCoachIds: assignedCoachIds,
+          attendanceAlreadyRecorded: true,
+          attendanceStatus: attendanceRows[0].status || null,
+        },
+        ipAddress: req.headers.get('x-forwarded-for'),
+      })
+
+      return NextResponse.json({ success: true })
+    }
 
     if (action === 'request_coach_review') {
       if (!hasAssignedCoach) {

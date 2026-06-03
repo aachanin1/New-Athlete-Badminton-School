@@ -29,7 +29,13 @@ import {
 } from 'lucide-react'
 
 type CourseKey = 'kids_group' | 'adult_group' | 'private'
-type ReviewAction = 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'close_review' | 'return_entitlement'
+type ReviewAction =
+  | 'confirm_absent'
+  | 'mark_attendance'
+  | 'request_coach_review'
+  | 'request_coach_evidence'
+  | 'close_review'
+  | 'return_entitlement'
 
 interface BookingSessionData {
   id: string
@@ -166,6 +172,28 @@ function isAttendanceReviewSession(session: BookingSessionData) {
   })
 }
 
+function hasRecordedAttendance(session: BookingSessionData) {
+  return session.attendance_status === 'present' || session.attendance_status === 'late' || session.attendance_status === 'absent'
+}
+
+function hasCompleteCoachEvidence(session: BookingSessionData) {
+  return Boolean(session.coach_checkin_time && session.coach_checkin_photo_url && session.coach_checkin_has_location)
+}
+
+function isCoachEvidenceReviewSession(session: BookingSessionData) {
+  return Boolean(
+    !session.is_makeup &&
+    session.schedule_slot_id &&
+    session.coach_name &&
+    hasRecordedAttendance(session) &&
+    !hasCompleteCoachEvidence(session)
+  )
+}
+
+function isReviewOrEvidenceSession(session: BookingSessionData) {
+  return isAttendanceReviewSession(session) || isCoachEvidenceReviewSession(session)
+}
+
 function getMonthKey(date: string) {
   return date.slice(0, 7)
 }
@@ -221,6 +249,7 @@ function formatDateTime(value: string | null | undefined) {
 function getReviewActionLabel(action: ReviewAction) {
   if (action === 'mark_attendance') return 'บันทึกเช็คชื่อย้อนหลัง'
   if (action === 'request_coach_review') return 'ส่งกลับให้โค้ชตรวจสอบ'
+  if (action === 'request_coach_evidence') return 'ขอหลักฐานโค้ชย้อนหลัง'
   if (action === 'close_review') return 'ปิดเคสโดยไม่สร้างสิทธิ์ชดเชย'
   if (action === 'return_entitlement') return 'คืนสิทธิ์เข้ากระเป๋า'
   return 'ยืนยันขาดเรียน'
@@ -419,7 +448,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     const q = search.trim().toLowerCase()
 
     return sessions
-      .filter(isAttendanceReviewSession)
+      .filter(isReviewOrEvidenceSession)
       .filter((session) => {
         if (filterBranch !== 'all' && session.branch_id !== filterBranch) return false
         if (!q) return true
@@ -496,7 +525,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     expired: monthGroups.filter((group) => group.isExpired && !group.hasMakeup).length,
     makeups: monthGroups.filter((group) => group.hasMakeup).length,
     learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
-    review: sessions.filter(isAttendanceReviewSession).length,
+    review: sessions.filter(isReviewOrEvidenceSession).length,
   }), [monthGroups, sessions])
 
   const totalPages = Math.max(1, Math.ceil(learnerGroups.length / pageSize))
@@ -640,6 +669,44 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     }
   }
 
+  const requestCoachEvidenceForGroup = async (group: ReviewSessionGroup) => {
+    const representativeSession = group.sessions.find(isCoachEvidenceReviewSession)
+    if (!representativeSession) return
+
+    if (!group.coachName) {
+      setError('รอบนี้ยังไม่มีโค้ชที่รับผิดชอบ จึงขอหลักฐานย้อนหลังไม่ได้')
+      return
+    }
+
+    const loadingKey = `${group.key}:evidence`
+    setReviewGroupLoadingKey(loadingKey)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: representativeSession.id,
+          action: 'request_coach_evidence',
+          reason: `ขอหลักฐาน selfie/GPS ย้อนหลังสำหรับรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} (${group.sessions.length} คน)`,
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(result?.error || 'ขอหลักฐานโค้ชย้อนหลังไม่สำเร็จ')
+        return
+      }
+
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setReviewGroupLoadingKey(null)
+    }
+  }
+
   const openReviewDialog = (session: BookingSessionData, action: ReviewAction) => {
     setReviewSession(session)
     setReviewAction(action)
@@ -654,7 +721,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     const reason = reviewReason.trim()
     const needsRetroCoach = reviewAction === 'mark_attendance' && !reviewSession.coach_name
 
-    if ((reviewAction === 'mark_attendance' || reviewAction === 'request_coach_review' || reviewAction === 'close_review' || reviewAction === 'return_entitlement') && !reason) {
+    if ((reviewAction === 'mark_attendance' || reviewAction === 'request_coach_review' || reviewAction === 'request_coach_evidence' || reviewAction === 'close_review' || reviewAction === 'return_entitlement') && !reason) {
       setError('กรุณาระบุเหตุผลก่อนบันทึกผลตรวจสอบ')
       return
     }
@@ -841,7 +908,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน
                 </div>
                 <p className="mt-1 text-sm text-orange-700/80">
-                  รอบเหล่านี้เลยเวลาเรียนแล้ว แต่ยังไม่มี attendance ของทั้งรอบ ระบบจึงยังไม่สร้างสิทธิ์ชดเชยอัตโนมัติจนกว่า Admin/Coach จะตรวจสอบ
+                  รอบเหล่านี้เลยเวลาเรียนแล้ว อาจยังไม่มี attendance หรือบันทึก attendance แล้วแต่ยังขาดหลักฐาน selfie/GPS ของโค้ช จึงต้องตรวจสอบก่อนสรุปสิทธิ์ชดเชย
                 </p>
               </div>
               <Badge variant="outline" className="w-fit border-orange-200 bg-white text-orange-700">
@@ -851,6 +918,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
             <div className="mt-4 max-h-[28rem] space-y-3 overflow-y-auto pr-1">
               {reviewSessionGroups.map((group) => {
                 const isTargetGroup = group.sessions.some(isReviewTargetSession)
+                const groupNeedsAttendanceReview = group.sessions.some(isAttendanceReviewSession)
+                const groupNeedsCoachEvidence = group.sessions.some(isCoachEvidenceReviewSession)
+                const canRequestCoachEvidenceOnly = groupNeedsCoachEvidence && !groupNeedsAttendanceReview
+                const groupLoadingKey = canRequestCoachEvidenceOnly ? `${group.key}:evidence` : group.key
 
                 return (
                   <div
@@ -868,9 +939,19 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         </span>
                         <Badge
                           variant="outline"
-                          className={group.coachCheckinTime ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}
+                          className={
+                            canRequestCoachEvidenceOnly
+                              ? 'bg-amber-50 text-amber-700'
+                              : group.coachCheckinTime
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-red-50 text-red-700'
+                          }
                         >
-                          {group.coachCheckinTime ? 'โค้ชเช็คอินแล้ว' : 'ยังไม่มีเช็คอินโค้ช'}
+                          {canRequestCoachEvidenceOnly
+                            ? 'บันทึก attendance แล้ว / ขาดหลักฐานโค้ช'
+                            : group.coachCheckinTime
+                              ? 'โค้ชเช็คอินแล้ว'
+                              : 'ยังไม่มีเช็คอินโค้ช'}
                         </Badge>
                       </div>
                       <div className="flex flex-wrap gap-3 text-xs text-gray-500">
@@ -891,11 +972,15 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                       size="sm"
                       variant="outline"
                       className="h-9 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
-                      disabled={reviewGroupLoadingKey === group.key || !group.coachName}
-                      onClick={() => void sendReviewGroupToCoach(group)}
+                      disabled={reviewGroupLoadingKey === groupLoadingKey || !group.coachName}
+                      onClick={() => void (canRequestCoachEvidenceOnly ? requestCoachEvidenceForGroup(group) : sendReviewGroupToCoach(group))}
                       title={!group.coachName ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
                     >
-                      {reviewGroupLoadingKey === group.key ? 'กำลังส่ง...' : 'ส่งให้โค้ชตรวจสอบรอบนี้'}
+                      {reviewGroupLoadingKey === groupLoadingKey
+                        ? 'กำลังส่ง...'
+                        : canRequestCoachEvidenceOnly
+                          ? 'ขอหลักฐานโค้ชรอบนี้'
+                          : 'ส่งให้โค้ชตรวจสอบรอบนี้'}
                     </Button>
                   </div>
 
@@ -905,7 +990,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold text-gray-950">{session.learner_name}</span>
-                            <Badge variant="outline" className="bg-orange-50 text-orange-700">รอตรวจสอบ</Badge>
+                            {isCoachEvidenceReviewSession(session) ? (
+                              <>
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700">บันทึก attendance แล้ว</Badge>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700">ยังไม่มีหลักฐานโค้ช</Badge>
+                              </>
+                            ) : (
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700">รอตรวจสอบ</Badge>
+                            )}
                             {session.group_name && (
                               <Badge variant="outline" className="bg-gray-50 text-gray-600">{session.group_name}</Badge>
                             )}
