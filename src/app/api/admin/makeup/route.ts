@@ -104,8 +104,13 @@ function isInNextCalendarMonth(originalDate: string, makeupDate: string) {
   return makeupDate >= bounds.nextStart && makeupDate < bounds.followingStartInput
 }
 
+function getBangkokSessionEnd(date: string, endTime: string | null) {
+  const normalizedEndTime = (endTime || '23:59:59').trim()
+  return new Date(`${date}T${normalizedEndTime}+07:00`)
+}
+
 function isPastSession(date: string, endTime: string | null) {
-  return new Date(`${date}T${endTime || '23:59'}`).getTime() < Date.now()
+  return getBangkokSessionEnd(date, endTime).getTime() < Date.now()
 }
 
 function normalizeReason(value: unknown) {
@@ -502,12 +507,24 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    if (!isPastSession(session.date, session.end_time)) {
-      return NextResponse.json({ error: 'จัดการ attendance gap ได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
+    const hasEndedInBangkok = isPastSession(session.date, session.end_time)
+    if (!hasEndedInBangkok) {
+      const actionLabel = action === 'mark_attendance'
+        ? 'บันทึกเช็คชื่อย้อนหลัง'
+        : action === 'close_review'
+          ? 'ปิดเคส'
+          : action === 'return_entitlement'
+            ? 'คืนสิทธิ์'
+            : action === 'request_coach_review'
+              ? 'ส่งให้โค้ชตรวจสอบ'
+              : action === 'request_coach_evidence'
+                ? 'ขอหลักฐานโค้ชย้อนหลัง'
+                : 'ยืนยันขาดเรียน'
+      return NextResponse.json({ error: `${actionLabel}ได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วตามเวลาไทยเท่านั้น` }, { status: 400 })
     }
 
-    if (action !== 'request_coach_evidence' && session.status !== 'scheduled') {
-      return NextResponse.json({ error: 'ยืนยันขาดเรียนได้เฉพาะรอบปกติที่เลยเวลาเรียนแล้วเท่านั้น' }, { status: 400 })
+    if (action === 'confirm_absent' && session.status !== 'scheduled') {
+      return NextResponse.json({ error: 'ยืนยันขาดเรียนได้เฉพาะรอบปกติที่ยังไม่มีผลเช็คชื่อแล้วเท่านั้น' }, { status: 400 })
     }
 
     const assignedCoachIds = await getAssignedCoachIds(supabaseAdmin, session)

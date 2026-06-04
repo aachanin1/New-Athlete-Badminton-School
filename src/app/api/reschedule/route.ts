@@ -342,6 +342,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `สร้างรอบเรียนใหม่ไม่สำเร็จ: ${insertError?.message || 'ไม่พบข้อมูลรอบเรียนใหม่'}` }, { status: 500 })
     }
 
+    const { error: assignmentCleanupError } = await adminSupabase
+      .from('coach_assignment_group_students')
+      .delete()
+      .eq('booking_session_id', session.id) as unknown as { error: DbError | null }
+
+    if (assignmentCleanupError) {
+      await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
+      await adminSupabase.from('booking_sessions').update({ status: 'scheduled' }).eq('id', session.id)
+      return NextResponse.json({ error: `Clean up old coach assignment group failed: ${assignmentCleanupError.message}` }, { status: 500 })
+    }
+
     await notifyReschedule(adminSupabase, user.id, session.branch_id, branchId, targetDate, startTime).catch(() => null)
 
     await logActivity({

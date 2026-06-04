@@ -64,10 +64,10 @@ export async function PUT(request: NextRequest) {
     const adminSupabase = getServiceRoleClient()
     const { data: booking, error: bookingError } = await (adminSupabase
       .from('bookings') as unknown as DbTable)
-      .select('id, user_id, course_type_id, status')
+      .select('id, user_id, course_type_id, status, learner_type, child_id')
       .eq('id', bookingId)
       .eq('user_id', user.id)
-      .single() as { data: { id: string; user_id: string; course_type_id: string; status: string } | null; error: DbError | null }
+      .single() as { data: { id: string; user_id: string; course_type_id: string; status: string; learner_type: LearnerType | null; child_id: string | null } | null; error: DbError | null }
 
     if (bookingError || !booking) {
       return NextResponse.json({ error: 'ไม่พบการจองที่ต้องการแก้ไข' }, { status: 404 })
@@ -81,7 +81,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ไม่สามารถเปลี่ยนประเภทคอร์สจากหน้าการแก้ไขวันจองได้' }, { status: 400 })
     }
 
-    const childIds = Array.from(new Set(sessions.map((session) => session.childId).filter(Boolean))) as string[]
+    const childIntegrityError = validateChildSessionIntegrity(booking.learner_type, sessions, booking.child_id)
+    if (childIntegrityError) {
+      return NextResponse.json({ error: childIntegrityError }, { status: 400 })
+    }
+
+    const childIds = getSessionChildIds(sessions)
     const childNameMap = new Map<string, string>()
     if (childIds.length > 0) {
       const { data: ownedChildren, error: childError } = await (adminSupabase
@@ -161,6 +166,7 @@ export async function PUT(request: NextRequest) {
         total_sessions: totalSessions,
         total_price: calculatedTotalAmount,
         branch_id: branchId,
+        child_id: getResolvedBookingChildId(booking.learner_type, booking.child_id, sessions),
         month,
         year,
       })
@@ -334,6 +340,41 @@ function getLearnerKey(childId: string | null | undefined) {
 function getLearnerName(childId: string | null | undefined, childNames: Map<string, string>) {
   if (!childId) return 'ตัวเอง'
   return childNames.get(childId) || 'ผู้เรียน'
+}
+
+function getSessionChildIds(sessions: BookingSessionPayload[]) {
+  return Array.from(new Set(sessions.map((session) => session.childId).filter(Boolean))) as string[]
+}
+
+function getResolvedBookingChildId(
+  learnerType: LearnerType | null | undefined,
+  childId: string | null | undefined,
+  sessions: BookingSessionPayload[]
+) {
+  if (learnerType !== 'child') return childId || null
+  const sessionChildIds = getSessionChildIds(sessions)
+  if (childId) return childId
+  return sessionChildIds.length === 1 ? sessionChildIds[0] : null
+}
+
+function validateChildSessionIntegrity(
+  learnerType: LearnerType | null | undefined,
+  sessions: BookingSessionPayload[],
+  bookingChildId?: string | null
+) {
+  if (learnerType !== 'child') return null
+
+  const missingChildSession = sessions.find((session) => !session.childId)
+  if (missingChildSession) {
+    return 'Please select a child learner for every class session.'
+  }
+
+  const sessionChildIds = getSessionChildIds(sessions)
+  if (bookingChildId && sessionChildIds.some((sessionChildId) => sessionChildId !== bookingChildId)) {
+    return 'Selected learner does not match the child on this booking.'
+  }
+
+  return null
 }
 
 function getSessionIdentity(session: BookingSessionPayload) {
@@ -604,6 +645,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    const childIntegrityError = validateChildSessionIntegrity(learnerType, sessions, childId)
+    if (childIntegrityError) {
+      return NextResponse.json({ error: childIntegrityError }, { status: 400 })
+    }
+
     const adminSupabase = getServiceRoleClient()
 
     const childIds = Array.from(new Set([
@@ -682,7 +728,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         learner_type: learnerType,
-        child_id: childId || null,
+        child_id: getResolvedBookingChildId(learnerType, childId, sessions),
         branch_id: branchId,
         course_type_id: courseTypeId,
         month,

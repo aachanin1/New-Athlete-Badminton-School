@@ -46,6 +46,7 @@ interface CheckinAuditRow {
 interface CoachCheckinsClientProps {
   rows: CheckinAuditRow[]
   branches: { id: string; name: string }[]
+  loadErrors?: string[]
 }
 
 type AuditStatus = 'checked' | 'late' | 'missing' | 'upcoming' | 'no_photo'
@@ -186,12 +187,12 @@ function formatCheckinTime(value: string) {
   }).format(new Date(value))
 }
 
-export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps) {
+export function CoachCheckinsClient({ rows, branches, loadErrors = [] }: CoachCheckinsClientProps) {
   const [search, setSearch] = useState('')
   const [filterBranch, setFilterBranch] = useState('all')
   const [filterCoach, setFilterCoach] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [dateScope, setDateScope] = useState<DateScope>('week')
+  const [dateScope, setDateScope] = useState<DateScope>('today')
   const [filterDate, setFilterDate] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
@@ -335,6 +336,21 @@ export function CoachCheckinsClient({ rows, branches }: CoachCheckinsClientProps
           ตรวจเช็คอินรายรอบสอนแบบ compact ดูปัญหาก่อน แล้วค่อยเปิดรายละเอียดรูปเซลฟี่และตำแหน่ง
         </p>
       </div>
+
+      {loadErrors.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="flex gap-3 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-600" />
+            <div className="space-y-1">
+              <p className="font-semibold text-orange-900">โหลดข้อมูลเช็คอินไม่ครบ</p>
+              <p className="text-sm text-orange-800">
+                ระบบพบปัญหาระหว่างโหลดข้อมูลบางส่วน กรุณารีเฟรชอีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังเกิดซ้ำ
+              </p>
+              <p className="text-xs text-orange-700">{loadErrors.slice(0, 2).join(' | ')}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
         <StatCard label="รอบในช่วงที่เลือก" value={stats.total} icon={Clock} tone="blue" />

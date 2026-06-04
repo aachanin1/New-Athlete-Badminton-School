@@ -1302,6 +1302,55 @@ Notes:
     - `npm run build` passed.
     - `npm run attendance:reconcile:dry-run` passed as a report-only command, but reported 1 existing production status mismatch outside this item: session `1b9d1b2b-2078-4c47-a042-46d74ae41fa6`, learner `โหย่ว`, 2026-06-03 17:00-19:00, `booking_status=scheduled`, `attendance=present`, expected `completed`. No production data was modified.
 
+- [x] 21.6.17 Makeup Review Action Guard + Bangkok Time Fix
+  - Production issue found 2026-06-03: Admin makeup review actions share one broad validation guard, so valid actions such as retroactive attendance or close review can be blocked by confirm-absent rules and show the wrong error.
+  - Goals:
+    - Make session-ended checks explicit to Asia/Bangkok time.
+    - Split `/api/admin/makeup` validation by action instead of using one shared status guard.
+    - `confirm_absent` uses only the confirm-absent rule.
+    - `mark_attendance` can record retroactive attendance after the class has ended in Bangkok time.
+    - `close_review` can close the case without being blocked by confirm-absent validation.
+    - `return_entitlement` keeps its own entitlement return rules.
+    - `request_coach_review` and `request_coach_evidence` keep their existing flow.
+    - Error messages should match the action the Admin clicked.
+  - Safety:
+    - Do not touch payment, booking, lesson wallet, coupon, or assignment logic outside this action guard.
+    - Do not deploy production until owner confirms.
+  - Required checks: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+  - Implemented 2026-06-03:
+    - `/api/admin/makeup` now evaluates ended sessions using an explicit Asia/Bangkok `+07:00` timestamp.
+    - Replaced the shared non-scheduled status guard with action-specific validation.
+    - `confirm_absent` keeps the confirm-absent-only rule, while `mark_attendance`, `close_review`, `return_entitlement`, `request_coach_review`, and `request_coach_evidence` keep their own action flow after the class has ended.
+    - Error messages now match the action that Admin clicked instead of always returning the confirm-absent message.
+    - Scope preserved: no payment, booking, lesson wallet, coupon, or assignment logic was changed.
+  - Verification:
+    - `npm run check:mojibake` passed.
+    - `npx tsc --noEmit` passed.
+    - `npm run lint` passed.
+    - `git diff --check` passed with Windows line-ending warnings only.
+    - `npm run build` passed.
+    - `npm run attendance:reconcile:dry-run` passed as report-only. It found 1 existing production status mismatch outside this item: session `1b9d1b2b-2078-4c47-a042-46d74ae41fa6`, learner `โหย่ว`, 2026-06-03 17:00-19:00, `booking_status=scheduled`, `attendance=present`, expected `completed`. No production data was modified.
+
+- [ ] 21.6.18 Attendance Sync Root-Cause Audit + Write-Path Enforcement
+  - Production blocker: `attendance` and `booking_sessions.status` must not drift again after Coach/Admin records attendance. Manual reconciliation is only a repair tool, not the normal operating model.
+  - Problem evidence:
+    - Dry-run after 21.6.17 still found session `1b9d1b2b-2078-4c47-a042-46d74ae41fa6`, learner `โหย่ว`, 2026-06-03 17:00-19:00, `booking_status=scheduled`, `attendance=present`, expected `completed`.
+    - This means at least one write path can still create/update attendance without syncing the exact `booking_sessions.id`.
+  - Goals:
+    - Audit every code path that writes to `attendance`.
+    - All Coach/Admin attendance writes must call one shared write-through helper immediately after attendance is created or updated.
+    - The helper must update only the exact `booking_sessions.id` for that student/session.
+    - `present` or `late` must sync `booking_sessions.status` to `completed`.
+    - `absent` must sync `booking_sessions.status` to `absent`.
+    - Admin/User/Coach display must keep reading attendance-derived status through the shared status helper instead of deciding from `booking_sessions.status` alone.
+    - Add a guard/check script or test that fails/report-blocks when future attendance writes are not followed by status sync.
+    - Run dry-run before and after the fix. Production stale rows must be reported before any write, and production writes require owner confirmation.
+  - Safety:
+    - Do not touch payment, booking purchase, lesson wallet, coupon, pricing, SlipOK, or coach assignment behavior unless directly needed to preserve exact-session status sync.
+    - No blind production data update. Any stale sync write must be scoped to listed session IDs and confirmed first.
+    - No deploy production until owner confirms.
+  - Required checks: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `git diff --check`, and `npm run build`.
+
 ## Phase 3 - Build & Deploy Readiness
 
 - [x] Make `npm run build` pass.

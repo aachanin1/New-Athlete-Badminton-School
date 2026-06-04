@@ -1,0 +1,198 @@
+# PROJECT_STATE.md - Current Project Snapshot
+
+Last updated: 2026-06-04
+Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
+
+## Current Snapshot
+
+New Athlete Badminton School is a multi-portal badminton school management app.
+The repo currently uses Next.js 16.2.6 App Router, React 18, TypeScript 5,
+TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
+
+Observed scripts:
+
+- `npm run dev`: Next dev with webpack.
+- `npm run build`: Next build with webpack.
+- `npm run lint`: ESLint against `src` with max warnings 0.
+- `npm run check:mojibake`: Thai copy/mojibake guard.
+- `npm run prod:check`: read-only production readiness checker.
+- `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
+- `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
+
+## Observed Architecture
+
+- `src/proxy.ts` handles Supabase session refresh, role route prefixes, auth redirects, and standard Admin menu permission redirects.
+- `src/lib/supabase/middleware.ts` wraps Supabase SSR session handling for proxy.
+- `src/app/(dashboard)` contains User portal routes.
+- `src/app/(coach)` contains Coach and Head Coach routes.
+- `src/app/(admin)` contains Admin and Super Admin routes.
+- `src/app/api` contains public/user/coach/admin APIs.
+- Admin page access uses `src/lib/auth/admin.ts`; API-level Admin menu checks use `requireAdminMenuAccess`.
+- Admin menu permissions use `src/lib/admin-navigation.ts` and `system_settings` key `admin_menu_permissions`.
+- Service role access is centralized in `getServiceRoleClient()`.
+
+## Database and Migrations Observed
+
+Key tables/types observed in `supabase/schema.sql` and `src/types/database.ts`:
+
+- `profiles`, `children`, `branches`, `course_types`
+- `schedule_templates`, `schedule_slots`
+- `pricing_tiers`, `levels`
+- `bookings`, `booking_sessions`, `payments`
+- `coupons`, `coupon_usages`
+- `coach_assignments`, `coach_assignment_groups`, `coach_assignment_group_students`
+- `attendance`, `coach_checkins`, `teaching_programs`, `coach_program_templates`
+- `student_levels`, `student_achievements`
+- `lesson_wallet_credits`
+- `coach_teaching_hours`, `coach_payouts`, `coach_weekly_teaching_summaries`
+- `notifications`, `complaints`, `activity_logs`, `system_settings`, `finance_expenses`
+
+Observed migrations include:
+
+- Baseline remote schema: `20260506082635_current_remote_baseline.sql`
+- Schedule template seed from hardcoded schedules.
+- Level expansion to 70 and LV 0 support.
+- Extensible level constraints for future LV 71+.
+- Coach assignment groups.
+- Student achievements.
+- Coach weekly teaching summaries.
+- Coach program templates.
+- Lesson wallet credits.
+
+## Confirmed Business State
+
+### Levels
+
+- Current business state from owner and code: LV 0 through LV 70.
+- LV 0 is unassessed.
+- Current ranges in `src/constants/levels.ts`:
+  - LV 1-34: Basic.
+  - LV 35-58: Athlete C.
+  - LV 59-70: Athlete B.
+- Code can technically support LV 71+ after the extensibility migration, but current active production rule is 1-70 unless owner confirms otherwise.
+
+### Attendance
+
+- `attendance` is source of truth for present/late/absent.
+- `booking_sessions.status` is kept as lifecycle/cache state and must be synced after attendance writes.
+- Shared status helper: `src/lib/session-attendance-status.ts`.
+- Admin shared scope/status helper: `src/lib/admin-attendance-state.ts`.
+- Exact learner matching uses `booking_session_id + expected student_id`.
+- Write-through helper: `src/lib/attendance-write-through.ts`.
+- Coach attendance API currently calls write-through after insert/update.
+- Admin makeup retrospective attendance API currently calls write-through after insert/update.
+
+### Booking, Payment, and Scheduling
+
+- User booking API resolves sessions through DB `schedule_templates` and real `schedule_slots`.
+- New booking sessions should persist `schedule_slot_id`.
+- Admin booking on behalf of users is disabled.
+- Slip upload API stores payment rows and updates booking status based on SlipOK/test-mode result.
+- `SLIPOK_TEST_MODE=true` auto-approves locally; production must use real SlipOK env.
+- Pricing reads DB `pricing_tiers` through `src/lib/booking-pricing.ts` and falls back to defaults only if rows are missing.
+- Kids group combines sibling sessions for monthly tier pricing.
+
+### Coach and Attendance Evidence
+
+- Coach assignments now use assignment groups by learner/slot, with legacy assignment fallback.
+- Coach check-in is per teaching slot and requires photo/GPS.
+- Coach attendance is locked until check-in for the exact slot, except Admin/Super Admin retrospective paths.
+- Coach teaching hour source rows are verified only with students, check-in, photo, location, and attendance.
+- Weekly teaching summaries are stored in `coach_weekly_teaching_summaries`.
+
+### Lesson Wallet
+
+- `lesson_wallet_credits` exists.
+- User can store verified scheduled sessions before the 48-hour cutoff when no attendance exists.
+- Redemption is same-month, future-slot, no new payment.
+- Walleted sessions are excluded from absence, makeup, and coach-payable evidence.
+
+## Observed Current Routes
+
+Public:
+
+- `/`
+- `/ranking`
+- `/auth/login`, `/auth/register`, `/auth/callback`
+
+User:
+
+- `/dashboard`, `/dashboard/booking`, `/dashboard/history`, `/dashboard/schedule`
+- `/dashboard/reschedule`, `/dashboard/lesson-wallet`, `/dashboard/progress`
+- `/dashboard/children`, `/dashboard/complaint`, `/dashboard/notifications`
+- `/profile`
+
+Coach/Head Coach:
+
+- `/coach`, `/coach/today`, `/coach/checkin`, `/coach/attendance`
+- `/coach/students`, `/coach/levels`, `/coach/programs`, `/coach/hours`
+- `/coach/assign-groups`, `/coach/notifications`
+
+Admin/Super Admin:
+
+- `/admin`, `/admin/users`, `/admin/coaches`, `/admin/branches`
+- `/admin/schedules`, `/admin/schedule-templates`, `/admin/payments`
+- `/admin/payments/settings`, `/admin/coupons`, `/admin/complaints`
+- `/admin/notifications`, `/admin/ranking`, `/admin/makeup`
+- `/admin/coach-checkins`, `/admin/payroll`, `/admin/finance`
+- `/admin/teaching-programs`, `/admin/settings`, `/admin/settings/pricing`
+- `/admin/settings/levels`, `/admin/settings/coach-ot`
+- `/admin/settings/admin-menus`, `/admin/logs`
+
+## Current Active Risk
+
+Latest attendance reconciliation result:
+
+- Owner confirmed production repair on 2026-06-04.
+- `npm run attendance:reconcile:write` updated 1 stale row:
+  - session `1b9d1b2b-2078-4c47-a042-46d74ae41fa6`
+  - `booking_sessions.status`: `scheduled` -> `completed`
+  - source of truth: `attendance.status=present`
+- Follow-up `npm run attendance:reconcile:dry-run` reported:
+  - Student-scope attendance mismatches: 0
+  - Status mismatches: 0
+  - Booking status without attendance: 0
+
+Current active production risk:
+
+- No known attendance/session status drift after the confirmed reconciliation.
+- Continue to treat `attendance` as the source of truth and keep write-through required on every runtime attendance write path.
+- `21.6.19` follow-up code now guards future child bookings by requiring child learner sessions to carry `childId` and by persisting `bookings.child_id`.
+- Existing historical child bookings/sessions with null `child_id` were not backfilled by the scoped code fix. Any production repair needs a separate owner-approved dry-run/write plan.
+- Admin coach check-in audit now chunks active `booking_sessions` lookups and surfaces load errors in the UI instead of silently showing a false empty state.
+- Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
+  - groups: 197
+  - group session ids: 422
+  - chunks: 6
+  - active grouped sessions: 405
+  - query errors: 0
+- Next production focus should be deploy readiness / smoke testing unless the owner reports a new production bug.
+
+## Pre-Existing Dirty Worktree Observed
+
+Before this documentation audit, `git status --short` showed:
+
+- Modified: `DEVELOPMENT_TODO.md`
+- Modified: `src/app/api/admin/makeup/route.ts`
+- Untracked: `SlipOK API Guide.docx`
+
+Treat these as existing user/previous-agent changes. Inspect before editing. Do not revert.
+
+## Unknown / Need Verification
+
+- Whether the current dirty changes in `DEVELOPMENT_TODO.md` and `src/app/api/admin/makeup/route.ts` are already reviewed by the owner.
+- Current deployed Vercel branch and deployment status.
+- Whether latest code after attendance write-through and 21.6.19 fixes is deployed to production.
+- Current `.env.local` values were not inspected in this audit.
+- Current remote DB migration state after the latest local work needs confirmation before deploy.
+- Final staging smoke test across all roles after current attendance reconciliation is not confirmed in this audit.
+
+## Do Not Regress
+
+- Do not restore Admin booking on behalf of users.
+- Do not rely on `booking_sessions.status` alone for attendance display.
+- Do not use old LV 1-60 level ranges.
+- Do not bypass schedule templates/slots for bookings, reschedule, makeup, or wallet redemption.
+- Do not add a SlipOK mode UI toggle.
+- Do not weaken coach evidence requirements for weekly teaching-hour closing.
+- Do not use native browser alert/confirm/prompt in product UI.
