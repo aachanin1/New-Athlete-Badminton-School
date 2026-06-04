@@ -191,6 +191,8 @@ export default async function SchedulesPage() {
 
   const scheduleSessions = visibleSessions.map((session) => {
     const derivedStatus = adminAttendanceState.getDisplayStatus(session)
+    const learnerType = session.bookings?.learner_type || ''
+    const hasMissingChildLink = learnerType === 'child' && !session.child_id
 
     return {
       id: session.id,
@@ -200,12 +202,18 @@ export default async function SchedulesPage() {
       status: derivedStatus,
       is_makeup: session.is_makeup || false,
       child_id: session.child_id,
+      learner_type: learnerType,
+      has_missing_child_link: hasMissingChildLink,
       branch_id: session.branch_id,
       branch_name: session.branches?.name || 'ไม่ทราบ',
-      learner_name: session.child_id
-        ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
-        : (session.bookings?.profiles?.full_name || 'ไม่ทราบ'),
-      parent_name: session.child_id ? (session.bookings?.profiles?.full_name || 'ไม่ทราบ') : null,
+      learner_name: hasMissingChildLink
+        ? 'ข้อมูลเด็กไม่ครบ'
+        : session.child_id
+          ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
+          : (session.bookings?.profiles?.full_name || 'ไม่ทราบ'),
+      parent_name: session.child_id || hasMissingChildLink
+        ? (session.bookings?.profiles?.full_name || 'ไม่ทราบ')
+        : null,
       course_type: session.bookings?.course_types?.name || '',
       booking_status: session.bookings?.status || '',
       coach_names: adminAttendanceState.getCoachNames(

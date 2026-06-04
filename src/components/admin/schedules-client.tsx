@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Building2,
@@ -36,6 +37,8 @@ interface ScheduleSession {
   status: string
   is_makeup: boolean
   child_id: string | null
+  learner_type: string
+  has_missing_child_link: boolean
   branch_id: string
   branch_name: string
   learner_name: string
@@ -428,6 +431,12 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                                   ชดเชย
                                 </Badge>
                               )}
+                              {session.has_missing_child_link && (
+                                <Badge variant="outline" className="border-red-200 bg-red-50 text-[10px] text-red-700">
+                                  <AlertTriangle className="mr-1 h-3 w-3" />
+                                  ข้อมูลเด็กไม่ครบ
+                                </Badge>
+                              )}
                             </div>
 
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -453,7 +462,11 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
                           </div>
 
                           <div className="flex shrink-0 flex-col gap-2 lg:items-end">
-                            <div className="flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs text-gray-500">
+                            <div className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${
+                              session.coach_names.length > 0
+                                ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                                : 'border-red-100 bg-red-50 text-red-700'
+                            }`}>
                               <UserCog className="h-3 w-3" />
                               {session.coach_names.length > 0 ? session.coach_names.join(', ') : 'ยังไม่ได้ assign โค้ช'}
                             </div>

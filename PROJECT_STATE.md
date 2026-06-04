@@ -158,7 +158,11 @@ Current active production risk:
 - No known attendance/session status drift after the confirmed reconciliation.
 - Continue to treat `attendance` as the source of truth and keep write-through required on every runtime attendance write path.
 - `21.6.19` follow-up code now guards future child bookings by requiring child learner sessions to carry `childId` and by persisting `bookings.child_id`.
-- Existing historical child bookings/sessions with null `child_id` were not backfilled by the scoped code fix. Any production repair needs a separate owner-approved dry-run/write plan.
+- `21.6.20` owner-confirmed exact-row historical child FK repair was run on 2026-06-04:
+  - booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f` updated to child `65a94ede-296e-4bbe-9bab-2aaf03b99c7e`.
+  - 16 related `booking_sessions` rows updated to the same `child_id`.
+  - Post-write verification found 0 target sessions with missing/wrong `child_id`.
+  - No other bookings or sessions were targeted by this repair.
 - Admin coach check-in audit now chunks active `booking_sessions` lookups and surfaces load errors in the UI instead of silently showing a false empty state.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
@@ -166,7 +170,16 @@ Current active production risk:
   - chunks: 6
   - active grouped sessions: 405
   - query errors: 0
-- Next production focus should be deploy readiness / smoke testing unless the owner reports a new production bug.
+- Commit `48e3faa` (`fix(prod): stabilize coach checkin audit and child booking guards`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-04.
+- Production alias reported by Vercel CLI: `https://www.newathleteschool.com`.
+- Historical child FK/name integrity repair on 2026-06-04 fixed one target booking where Admin schedule displayed the parent name as learner:
+  - parent profile: `211069ab-7a7d-457d-8b22-f76e8d3ecae3`
+  - child row: `65a94ede-296e-4bbe-9bab-2aaf03b99c7e`
+  - booking: `080c8a56-9b67-4a83-a44b-5a0394f4b73f`
+  - affected `booking_sessions`: 16 rows, repaired from `child_id=null` to the target child id
+  - post-write sample join resolves to child name `สัจจธร ธิติศักดิ์สกุล` / nickname `น้องอองเดร`
+- Admin schedule now has a UI guard for child bookings with missing `child_id`, so it flags missing child linkage instead of silently showing the parent as the learner. Coach assignment state is also color-coded: assigned coach is green, missing coach is red.
+- Next production focus should be role smoke testing and any broader historical child FK audit only if new evidence appears.
 
 ## Pre-Existing Dirty Worktree Observed
 
@@ -181,10 +194,8 @@ Treat these as existing user/previous-agent changes. Inspect before editing. Do 
 ## Unknown / Need Verification
 
 - Whether the current dirty changes in `DEVELOPMENT_TODO.md` and `src/app/api/admin/makeup/route.ts` are already reviewed by the owner.
-- Current deployed Vercel branch and deployment status.
-- Whether latest code after attendance write-through and 21.6.19 fixes is deployed to production.
 - Current `.env.local` values were not inspected in this audit.
-- Current remote DB migration state after the latest local work needs confirmation before deploy.
+- Current remote DB migration state after the latest local work needs confirmation before future DB-dependent work.
 - Final staging smoke test across all roles after current attendance reconciliation is not confirmed in this audit.
 
 ## Do Not Regress

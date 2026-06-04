@@ -48,8 +48,48 @@ Read only when relevant:
   - chunks: 6
   - active grouped sessions: 405
   - query errors: 0
+- Commit `48e3faa` was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production.
+- Vercel production alias reported ready: `https://www.newathleteschool.com`.
+- Completed UI portion of `21.6.20 Historical Child FK Repair + Admin Schedule Integrity UI`:
+  - Admin schedule flags child bookings with missing `child_id` instead of silently showing the parent profile name as the learner.
+  - Admin schedule coach assignment state is color-coded: assigned coach is green, no coach is red.
+  - Read-only dry-run confirmed exact historical repair candidate for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f` and 16 related sessions.
+  - Owner-confirmed exact-row DB repair updated that booking and all 16 related sessions to child `65a94ede-296e-4bbe-9bab-2aaf03b99c7e`.
+  - Post-write verification confirmed 0 target sessions with missing/wrong `child_id` and sample child join resolves to `น้องอองเดร`.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`, and `git diff --check` (only Windows LF/CRLF warnings).
+  - No commit, push, or deploy was run for this item.
 
 ## Active Next Task
+
+### 0. 21.6.20 Historical Child FK Repair + Admin Schedule Integrity UI
+
+Source context:
+
+- Production issue: Admin schedule can display a parent profile name as the learner when historical child bookings/sessions have `learner_type=child` but `child_id=null`.
+- Confirmed read-only target case:
+  - parent profile: `211069ab-7a7d-457d-8b22-f76e8d3ecae3`
+  - child row: `65a94ede-296e-4bbe-9bab-2aaf03b99c7e`
+  - booking: `080c8a56-9b67-4a83-a44b-5a0394f4b73f`
+  - affected booking sessions: 16 rows
+
+Scope:
+
+- Add Admin schedule UI guard so child bookings with missing `child_id` are clearly flagged and do not silently show the parent name as the learner.
+- Show coach assignment state clearly: no coach = red, assigned coach = green.
+- Run read-only dry-run report for the exact historical rows.
+
+Status:
+
+- UI guard: done.
+- Assignment color: done.
+- Dry-run report: done.
+- DB historical repair write: done after explicit owner confirmation.
+- Post-write verification: done.
+
+Production safety:
+
+- Exact-row write already completed for the confirmed target only.
+- Do not run broader historical writes without a fresh dry-run and explicit owner confirmation.
 
 ### 1. Documentation Verification Pass
 
@@ -109,9 +149,9 @@ Production safety:
 
 ## Follow-Up Queue
 
-- `21.6.19` source fixes need deployment confirmation after owner approves.
-- Historical child bookings/sessions with null `child_id` still need a separate owner-approved dry-run/write plan if the owner wants old production rows repaired.
-- Re-run role smoke tests after deploy.
+- Smoke test production after `48e3faa` deployment across Super Admin, Admin, Head Coach, Coach, and User.
+- Verify Admin schedule now shows the repaired learner as `น้องอองเดร` for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f`.
+- If another historical child-name issue appears, run a fresh read-only dry-run before any write.
 
 ## Known Pre-Existing Dirty Worktree
 
