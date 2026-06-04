@@ -58,6 +58,10 @@ Read only when relevant:
   - Post-write verification confirmed 0 target sessions with missing/wrong `child_id` and sample child join resolves to `น้องอองเดร`.
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`, and `git diff --check` (only Windows LF/CRLF warnings).
   - No commit, push, or deploy was run for this item.
+- Completed scoped Admin makeup coach-checkin evidence fix:
+  - Root cause proved read-only: `admin/makeup` could show an assigned coach as checked in by falling back to another coach's `coach_checkins` row in the same `schedule_slot_id`.
+  - Fix: assigned groups now require exact `schedule_slot_id + coach_id` evidence before `coach_checkin_time` is passed to the Admin makeup UI.
+  - No DB writes, migration, commit, push, or deploy were run for this fix.
 
 ## Active Next Task
 

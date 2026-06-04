@@ -164,6 +164,7 @@ Current active production risk:
   - Post-write verification found 0 target sessions with missing/wrong `child_id`.
   - No other bookings or sessions were targeted by this repair.
 - Admin coach check-in audit now chunks active `booking_sessions` lookups and surfaces load errors in the UI instead of silently showing a false empty state.
+- Admin makeup coach-checkin evidence now requires the exact assigned coach pair (`schedule_slot_id + coach_id`) before showing coach evidence as complete. Same-slot check-ins from other coaches must not be treated as evidence for the assigned coach.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
   - group session ids: 422

@@ -274,7 +274,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
 
     const groupContext = groupContextBySessionId[session.id] || null
     const checkin = groupContext?.coachId && session.schedule_slot_id
-      ? checkinsBySlotCoachKey[`${session.schedule_slot_id}:${groupContext.coachId}`] || checkinsBySlotId[session.schedule_slot_id] || null
+      ? checkinsBySlotCoachKey[`${session.schedule_slot_id}:${groupContext.coachId}`] || null
       : session.schedule_slot_id
         ? checkinsBySlotId[session.schedule_slot_id] || null
         : null
