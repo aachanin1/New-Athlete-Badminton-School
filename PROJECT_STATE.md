@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -205,6 +205,7 @@ Current active production risk:
   - post-write sample join resolves to child name `สัจจธร ธิติศักดิ์สกุล` / nickname `น้องอองเดร`
 - Admin schedule now has a UI guard for child bookings with missing `child_id`, so it flags missing child linkage instead of silently showing the parent as the learner. Coach assignment state is also color-coded: assigned coach is green, missing coach is red.
 - Next production focus should be role smoke testing and any broader historical child FK audit only if new evidence appears.
+- Auth UX polish on 2026-06-06 added password visibility toggles to login/register password fields in the Home auth modal and direct auth pages. This is UI-only and does not change Supabase auth, redirects, email confirmation, or validation behavior.
 
 ## Pre-Existing Dirty Worktree Observed
 

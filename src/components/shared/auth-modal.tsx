@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import type { UserRole } from '@/types/database'
 
 type AuthMode = 'login' | 'register'
@@ -50,6 +50,8 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
   }, [open, defaultMode])
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -71,6 +73,8 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
     setEmail('')
     setPassword('')
     setConfirmPassword('')
+    setShowPassword(false)
+    setShowConfirmPassword(false)
     setFullName('')
     setPhone('')
     setError(null)
@@ -332,31 +336,55 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
 
           <div className="space-y-2">
             <Label htmlFor="modal-password">รหัสผ่าน</Label>
-            <Input
-              id="modal-password"
-              type="password"
-              placeholder={mode === 'register' ? 'อย่างน้อย 6 ตัวอักษร' : '••••••••'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              disabled={busy}
-            />
+            <div className="relative">
+              <Input
+                id="modal-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={mode === 'register' ? 'อย่างน้อย 6 ตัวอักษร' : '••••••••'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={busy}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setShowPassword((value) => !value)}
+                disabled={busy}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           {mode === 'register' && (
             <div className="space-y-2">
               <Label htmlFor="modal-confirmPassword">ยืนยันรหัสผ่าน</Label>
-              <Input
-                id="modal-confirmPassword"
-                type="password"
-                placeholder="กรอกรหัสผ่านอีกครั้ง"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                disabled={busy}
-              />
+              <div className="relative">
+                <Input
+                  id="modal-confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="กรอกรหัสผ่านอีกครั้ง"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={busy}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  aria-label={showConfirmPassword ? 'ซ่อนรหัสผ่านยืนยัน' : 'แสดงรหัสผ่านยืนยัน'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  disabled={busy}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           )}
 

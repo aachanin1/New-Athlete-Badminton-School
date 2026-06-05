@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -21,6 +21,10 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped auth UX polish:
+  - Added password visibility toggles to login/register password fields in the Home auth modal and direct auth pages.
+  - Scope was limited to auth input UI only; Supabase auth, redirects, validation, and registration behavior were not changed.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run build`, and local HTTP checks for `/`, `/auth/login`, `/auth/register`.
 - Archived old long `AGENTS.md` to `context-archive/AGENTS.legacy-2026-06-04.md`.
 - Replaced `AGENTS.md` with a compact operating guide.
 - Created `PROJECT_STATE.md`.
