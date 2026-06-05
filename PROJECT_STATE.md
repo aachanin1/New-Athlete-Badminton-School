@@ -168,6 +168,7 @@ Current active production risk:
 - Admin makeup coach-checkin evidence now requires the exact assigned coach pair (`schedule_slot_id + coach_id`) before showing coach evidence as complete. Same-slot check-ins from other coaches must not be treated as evidence for the assigned coach.
 - Admin makeup attendance-gap review now reads review request/closed metadata from `activity_logs` in chunks, hides closed review sessions from the review queue, sends coach review/evidence requests to every learner session in the selected round, and provides a round-level close action.
 - Admin makeup no-coach past rounds are now resolved at round scope only. The UI hides per-learner action buttons for these rounds and opens a round-level resolution dialog. The taught path creates a retrospective `coach_assignment_groups` record, links every learner session in the round, writes attendance per learner, and syncs session status through the attendance write-through helper. Return-entitlement and close-round paths run across all eligible sessions in the selected round.
+- Attendance display derivation no longer treats a learner as absent merely because another learner in the same slot/group has attendance. A past session without exact learner attendance now stays in `attendance_gap_review`; `absent` requires exact attendance/source-of-truth evidence or an explicitly synced absent session.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
   - group session ids: 422
@@ -175,6 +176,26 @@ Current active production risk:
   - active grouped sessions: 405
   - query errors: 0
 - Commit `48e3faa` (`fix(prod): stabilize coach checkin audit and child booking guards`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-04.
+- Commit `86aa087` (`fix(makeup): improve attendance gap round handling`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-05.
+  - Vercel deployment id reported by CLI: `dpl_G79NWgVY7R4PMC2FsiMArXRhN4SS`.
+  - Production alias reported by Vercel CLI: `https://www.newathleteschool.com`.
+  - Pre-deploy checks passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+  - Scope: Admin makeup attendance-gap round handling, exact coach evidence, no-coach round resolution, and round-level Admin actions.
+  - Remaining risk: manual production/local smoke for Admin makeup round-level flows is still pending. Do not perform production write actions for smoke unless the owner explicitly confirms the exact case.
+- Documentation sync verification on 2026-06-05:
+  - `npm run check:mojibake` passed.
+  - `npx tsc --noEmit` passed.
+  - `npm run lint` passed.
+  - `npm run attendance:reconcile:dry-run` passed with 0 student-scope attendance mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npm run build` passed.
+  - `npm run prod:check` passed with warning that local `SLIPOK_TEST_MODE=true`; production must keep real SlipOK env configured.
+  - `git diff --check` reported only LF/CRLF warnings for the documentation files.
+- False-absent display fix verification on 2026-06-05:
+  - `npm run check:mojibake` passed.
+  - `npx tsc --noEmit` passed.
+  - `npm run lint` passed.
+  - `npm run attendance:reconcile:dry-run` passed with 0 student-scope attendance mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npm run build` passed.
 - Production alias reported by Vercel CLI: `https://www.newathleteschool.com`.
 - Historical child FK/name integrity repair on 2026-06-04 fixed one target booking where Admin schedule displayed the parent name as learner:
   - parent profile: `211069ab-7a7d-457d-8b22-f76e8d3ecae3`
@@ -187,20 +208,18 @@ Current active production risk:
 
 ## Pre-Existing Dirty Worktree Observed
 
-Before this documentation audit, `git status --short` showed:
+Before the latest documentation sync after `86aa087`, `git status --short` showed:
 
-- Modified: `DEVELOPMENT_TODO.md`
-- Modified: `src/app/api/admin/makeup/route.ts`
 - Untracked: `SlipOK API Guide.docx`
 
-Treat these as existing user/previous-agent changes. Inspect before editing. Do not revert.
+Treat the untracked guide as out of scope. Do not commit, delete, or move it unless the owner explicitly asks.
 
 ## Unknown / Need Verification
 
-- Whether the current dirty changes in `DEVELOPMENT_TODO.md` and `src/app/api/admin/makeup/route.ts` are already reviewed by the owner.
 - Current `.env.local` values were not inspected in this audit.
 - Current remote DB migration state after the latest local work needs confirmation before future DB-dependent work.
-- Final staging smoke test across all roles after current attendance reconciliation is not confirmed in this audit.
+- Final production/local smoke test across all roles after `86aa087` is not confirmed in this audit.
+- Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
 
 ## Do Not Regress
 

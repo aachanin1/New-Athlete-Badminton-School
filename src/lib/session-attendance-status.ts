@@ -53,7 +53,7 @@ export function deriveSessionAttendanceStatus(input: DeriveSessionStatusInput): 
   if (isInProgressSession(input.date, input.startTime, input.endTime, now)) return 'in_progress'
   if (!isPastSession(input.date, input.endTime, now)) return 'upcoming'
 
-  return (input.scopeAttendanceCount || 0) > 0 ? 'absent' : 'attendance_gap_review'
+  return 'attendance_gap_review'
 }
 
 export function toDisplaySessionStatus(status: DerivedSessionStatus): DisplaySessionStatus {

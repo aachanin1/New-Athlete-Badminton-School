@@ -50,6 +50,12 @@ Read only when relevant:
   - query errors: 0
 - Commit `48e3faa` was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production.
 - Vercel production alias reported ready: `https://www.newathleteschool.com`.
+- Commit `86aa087` (`fix(makeup): improve attendance gap round handling`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-05.
+  - Vercel deployment id: `dpl_G79NWgVY7R4PMC2FsiMArXRhN4SS`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Scope: Admin makeup attendance-gap round handling, exact coach evidence, no-coach round-level resolution, and round-level Admin actions.
+  - Pre-deploy checks passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+  - Supersedes the older local-only notes below that said the Admin makeup fixes were not committed, pushed, or deployed.
 - Completed UI portion of `21.6.20 Historical Child FK Repair + Admin Schedule Integrity UI`:
   - Admin schedule flags child bookings with missing `child_id` instead of silently showing the parent profile name as the learner.
   - Admin schedule coach assignment state is color-coded: assigned coach is green, no coach is red.
@@ -78,6 +84,11 @@ Read only when relevant:
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`.
   - `git diff --check` reported only Windows LF/CRLF warnings.
   - No commit, push, or deploy was run for this fix.
+- Completed scoped false-absent display fix for partial attendance in the same slot/group:
+  - Root cause proved read-only: `deriveSessionAttendanceStatus` inferred `absent` when another learner in the same scope had attendance, even though the target learner had no exact attendance row yet.
+  - Fix: a past session without exact learner attendance now derives `attendance_gap_review`; `absent` remains reserved for exact attendance/source-of-truth evidence or explicitly synced absent sessions.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`.
+  - No DB writes, migration, commit, push, or deploy were run for this fix.
 
 ## Active Next Task
 
@@ -86,11 +97,11 @@ Read only when relevant:
 Source context:
 
 - `admin/makeup` attendance-gap review and coach evidence flows.
-- Latest source edits have passed local checks but are not committed, pushed, or deployed.
+- Latest scoped Admin makeup edits are committed, pushed, and deployed as `86aa087`.
 
 Scope:
 
-- Smoke the affected Admin makeup cases locally before commit:
+- Smoke the affected Admin makeup cases locally or in production only with explicit owner-approved test cases:
   - no-coach past round opens `จัดการเคสทั้งรอบ` and hides per-learner buttons.
   - no-coach taught path requires a real coach, creates the retrospective group, and syncs learner attendance/status.
   - no-coach return-entitlement path returns entitlement for every eligible learner in that round.
@@ -102,13 +113,17 @@ Scope:
 
 Status:
 
-- Code checks passed.
+- Code checks passed before deployment.
+- Documentation sync after deployment completed on 2026-06-05.
+- Post-sync verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`, `npm run prod:check`.
+- `npm run prod:check` warning: local `SLIPOK_TEST_MODE=true`; production must keep real SlipOK env configured.
+- `git diff --check` reported only LF/CRLF warnings for documentation files.
 - Browser/UAT smoke still pending owner/local confirmation.
 
 Production safety:
 
-- Do not commit, push, or deploy until owner confirms.
-- Do not run DB writes/migrations for this item.
+- Do not run production write actions for smoke unless the owner explicitly confirms the exact test case.
+- Do not run DB writes/migrations or cleanup for this item.
 
 ### 1. Documentation Verification Pass
 
@@ -168,19 +183,18 @@ Production safety:
 
 ## Follow-Up Queue
 
-- Smoke test production after `48e3faa` deployment across Super Admin, Admin, Head Coach, Coach, and User.
+- Smoke test production after `86aa087` deployment across Super Admin, Admin, Head Coach, Coach, and User.
+- For Admin makeup regression, only run write actions when the owner gives the exact test case to mutate.
 - Verify Admin schedule now shows the repaired learner as `น้องอองเดร` for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f`.
 - If another historical child-name issue appears, run a fresh read-only dry-run before any write.
 
 ## Known Pre-Existing Dirty Worktree
 
-Observed before this documentation audit:
+Observed before this documentation sync after `86aa087`:
 
-- Modified: `DEVELOPMENT_TODO.md`
-- Modified: `src/app/api/admin/makeup/route.ts`
 - Untracked: `SlipOK API Guide.docx`
 
-Do not revert these. Inspect before editing.
+Do not commit, delete, or move the untracked guide unless the owner explicitly asks.
 
 ## Session Exit Checklist
 
