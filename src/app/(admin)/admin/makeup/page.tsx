@@ -56,6 +56,22 @@ type SlotSessionRow = AdminAttendanceSlotSessionRow
 
 type AttendanceRow = AttendanceSessionRow
 
+interface ActivityLogRow {
+  action: string
+  entity_id: string | null
+  created_at: string
+  details: Record<string, unknown> | null
+}
+
+interface ReviewMeta {
+  coachReviewRequestedCount: number
+  coachReviewRequestedAt: string | null
+  coachEvidenceRequestedCount: number
+  coachEvidenceRequestedAt: string | null
+  reviewClosedAt: string | null
+  reviewClosedReason: string | null
+}
+
 interface BranchRow {
   id: string
   name: string
@@ -267,6 +283,66 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     attendanceRows,
   })
 
+  const reviewMetaBySessionId = new Map<string, ReviewMeta>()
+  const sessionIds = sessions.map((session) => session.id)
+
+  if (sessionIds.length > 0) {
+    const reviewLogs: ActivityLogRow[] = []
+    const logActions = [
+      'attendance_gap_request_coach_review',
+      'attendance_gap_request_coach_evidence',
+      'attendance_gap_closed_no_action',
+    ]
+
+    for (let i = 0; i < sessionIds.length; i += 200) {
+      const sessionIdChunk = sessionIds.slice(i, i + 200)
+      const { data } = await adminSupabase
+        .from('activity_logs')
+        .select('action, entity_id, created_at, details')
+        .eq('entity_type', 'booking_sessions')
+        .in('entity_id', sessionIdChunk)
+        .in('action', logActions)
+        .order('created_at', { ascending: false }) as unknown as { data: ActivityLogRow[] | null }
+
+      if (data) reviewLogs.push(...data)
+    }
+
+    reviewLogs.forEach((log) => {
+      if (!log.entity_id) return
+      const meta = reviewMetaBySessionId.get(log.entity_id) || {
+        coachReviewRequestedCount: 0,
+        coachReviewRequestedAt: null,
+        coachEvidenceRequestedCount: 0,
+        coachEvidenceRequestedAt: null,
+        reviewClosedAt: null,
+        reviewClosedReason: null,
+      }
+
+      if (log.action === 'attendance_gap_request_coach_review') {
+        meta.coachReviewRequestedCount += 1
+        if (!meta.coachReviewRequestedAt || log.created_at > meta.coachReviewRequestedAt) {
+          meta.coachReviewRequestedAt = log.created_at
+        }
+      }
+
+      if (log.action === 'attendance_gap_request_coach_evidence') {
+        meta.coachEvidenceRequestedCount += 1
+        if (!meta.coachEvidenceRequestedAt || log.created_at > meta.coachEvidenceRequestedAt) {
+          meta.coachEvidenceRequestedAt = log.created_at
+        }
+      }
+
+      if (log.action === 'attendance_gap_closed_no_action') {
+        if (!meta.reviewClosedAt || log.created_at > meta.reviewClosedAt) {
+          meta.reviewClosedAt = log.created_at
+          meta.reviewClosedReason = typeof log.details?.reason === 'string' ? log.details.reason : null
+        }
+      }
+
+      reviewMetaBySessionId.set(log.entity_id, meta)
+    })
+  }
+
   const sessionList = sessions.map((session) => {
     const learnerName = session.child_id
       ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
@@ -278,6 +354,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       : session.schedule_slot_id
         ? checkinsBySlotId[session.schedule_slot_id] || null
         : null
+    const reviewMeta = reviewMetaBySessionId.get(session.id)
 
     return {
       id: session.id,
@@ -301,6 +378,12 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       coach_checkin_time: checkin?.checkin_time || null,
       coach_checkin_photo_url: checkin?.photo_url || null,
       coach_checkin_has_location: checkin?.location_lat != null && checkin?.location_lng != null,
+      review_closed_at: reviewMeta?.reviewClosedAt || null,
+      review_closed_reason: reviewMeta?.reviewClosedReason || null,
+      coach_review_requested_count: reviewMeta?.coachReviewRequestedCount || 0,
+      coach_review_requested_at: reviewMeta?.coachReviewRequestedAt || null,
+      coach_evidence_requested_count: reviewMeta?.coachEvidenceRequestedCount || 0,
+      coach_evidence_requested_at: reviewMeta?.coachEvidenceRequestedAt || null,
     }
   })
 

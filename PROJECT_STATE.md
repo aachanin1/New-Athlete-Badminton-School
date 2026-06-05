@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -81,6 +81,7 @@ Observed migrations include:
 - Write-through helper: `src/lib/attendance-write-through.ts`.
 - Coach attendance API currently calls write-through after insert/update.
 - Admin makeup retrospective attendance API currently calls write-through after insert/update.
+- Admin makeup attendance-gap review treats `activity_logs` action `attendance_gap_closed_no_action` as a terminal review marker. Closing a review must not mark the session `completed`.
 
 ### Booking, Payment, and Scheduling
 
@@ -165,6 +166,8 @@ Current active production risk:
   - No other bookings or sessions were targeted by this repair.
 - Admin coach check-in audit now chunks active `booking_sessions` lookups and surfaces load errors in the UI instead of silently showing a false empty state.
 - Admin makeup coach-checkin evidence now requires the exact assigned coach pair (`schedule_slot_id + coach_id`) before showing coach evidence as complete. Same-slot check-ins from other coaches must not be treated as evidence for the assigned coach.
+- Admin makeup attendance-gap review now reads review request/closed metadata from `activity_logs` in chunks, hides closed review sessions from the review queue, sends coach review/evidence requests to every learner session in the selected round, and provides a round-level close action.
+- Admin makeup no-coach past rounds are now resolved at round scope only. The UI hides per-learner action buttons for these rounds and opens a round-level resolution dialog. The taught path creates a retrospective `coach_assignment_groups` record, links every learner session in the round, writes attendance per learner, and syncs session status through the attendance write-through helper. Return-entitlement and close-round paths run across all eligible sessions in the selected round.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
   - group session ids: 422

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -62,38 +62,53 @@ Read only when relevant:
   - Root cause proved read-only: `admin/makeup` could show an assigned coach as checked in by falling back to another coach's `coach_checkins` row in the same `schedule_slot_id`.
   - Fix: assigned groups now require exact `schedule_slot_id + coach_id` evidence before `coach_checkin_time` is passed to the Admin makeup UI.
   - No DB writes, migration, commit, push, or deploy were run for this fix.
+- Completed scoped Admin makeup attendance-gap action hardening:
+  - Root cause proved read-only: per-person review actions could be fired close together inside the same round, and `close_review` marked a session `completed`, which contradicted the rule for closing a case without makeup entitlement or coach teaching hours.
+  - `close_review` now logs the terminal audit action only and no longer changes `booking_sessions.status` to `completed`.
+  - Admin makeup now reads review request/closed metadata from `activity_logs` in chunks and hides closed review sessions from the review queue.
+  - Round actions now send coach review/evidence requests to every eligible learner session in the round instead of only the first representative session.
+  - Added round-level close action and request counters/status badges for coach review/evidence requests.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+  - No commit, push, or deploy was run for this fix.
+- Completed scoped Admin makeup unassigned-round resolution UX/API:
+  - Past normal rounds with learners but no coach in assignment groups now show a round-level resolution flow instead of per-learner action buttons.
+  - Taught-but-forgotten cases require Admin to choose the real coach, create a retrospective assignment group for the whole round, record attendance per learner, sync `booking_sessions.status`, log audit details, and notify users.
+  - Return-entitlement and close-round paths run across all eligible learner sessions in the selected round, so the round cannot be partially resolved by accident.
+  - Per-learner buttons are hidden for no-coach rounds to prevent one child action from changing the wrong sibling/learner context.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`.
+  - `git diff --check` reported only Windows LF/CRLF warnings.
+  - No commit, push, or deploy was run for this fix.
 
 ## Active Next Task
 
-### 0. 21.6.20 Historical Child FK Repair + Admin Schedule Integrity UI
+### 0. Production Smoke Test / Admin Makeup Regression
 
 Source context:
 
-- Production issue: Admin schedule can display a parent profile name as the learner when historical child bookings/sessions have `learner_type=child` but `child_id=null`.
-- Confirmed read-only target case:
-  - parent profile: `211069ab-7a7d-457d-8b22-f76e8d3ecae3`
-  - child row: `65a94ede-296e-4bbe-9bab-2aaf03b99c7e`
-  - booking: `080c8a56-9b67-4a83-a44b-5a0394f4b73f`
-  - affected booking sessions: 16 rows
+- `admin/makeup` attendance-gap review and coach evidence flows.
+- Latest source edits have passed local checks but are not committed, pushed, or deployed.
 
 Scope:
 
-- Add Admin schedule UI guard so child bookings with missing `child_id` are clearly flagged and do not silently show the parent name as the learner.
-- Show coach assignment state clearly: no coach = red, assigned coach = green.
-- Run read-only dry-run report for the exact historical rows.
+- Smoke the affected Admin makeup cases locally before commit:
+  - no-coach past round opens `จัดการเคสทั้งรอบ` and hides per-learner buttons.
+  - no-coach taught path requires a real coach, creates the retrospective group, and syncs learner attendance/status.
+  - no-coach return-entitlement path returns entitlement for every eligible learner in that round.
+  - no-coach close-round path closes review for every eligible learner without marking sessions `completed`.
+  - round-level "ส่งให้โค้ชตรวจสอบรอบนี้" targets all eligible sessions in the round.
+  - round-level "ขอหลักฐานโค้ชรอบนี้" targets all eligible sessions in the round.
+  - "ปิดเคสทั้งรอบ" removes the round from the review queue without setting sessions to `completed`.
+  - closed cases do not re-enter coach evidence requests.
 
 Status:
 
-- UI guard: done.
-- Assignment color: done.
-- Dry-run report: done.
-- DB historical repair write: done after explicit owner confirmation.
-- Post-write verification: done.
+- Code checks passed.
+- Browser/UAT smoke still pending owner/local confirmation.
 
 Production safety:
 
-- Exact-row write already completed for the confirmed target only.
-- Do not run broader historical writes without a fresh dry-run and explicit owner confirmation.
+- Do not commit, push, or deploy until owner confirms.
+- Do not run DB writes/migrations for this item.
 
 ### 1. Documentation Verification Pass
 

@@ -36,6 +36,7 @@ type ReviewAction =
   | 'request_coach_evidence'
   | 'close_review'
   | 'return_entitlement'
+type UnassignedRoundMode = 'taught' | 'return_entitlement' | 'close_review'
 
 interface BookingSessionData {
   id: string
@@ -59,6 +60,12 @@ interface BookingSessionData {
   coach_checkin_time?: string | null
   coach_checkin_photo_url?: string | null
   coach_checkin_has_location?: boolean
+  review_closed_at?: string | null
+  review_closed_reason?: string | null
+  coach_review_requested_count?: number
+  coach_review_requested_at?: string | null
+  coach_evidence_requested_count?: number
+  coach_evidence_requested_at?: string | null
 }
 
 interface BranchOption {
@@ -117,6 +124,10 @@ interface ReviewSessionGroup {
   coachName: string | null
   coachCheckinTime: string | null
   coachCheckinHasLocation: boolean
+  coachReviewRequestCount: number
+  coachReviewRequestedAt: string | null
+  coachEvidenceRequestCount: number
+  coachEvidenceRequestedAt: string | null
   groupNames: string[]
   sessions: BookingSessionData[]
 }
@@ -160,7 +171,13 @@ function isMissedSession(session: BookingSessionData) {
   })
 }
 
+function isClosedReviewSession(session: BookingSessionData) {
+  return Boolean(session.review_closed_at)
+}
+
 function isAttendanceReviewSession(session: BookingSessionData) {
+  if (isClosedReviewSession(session)) return false
+
   return isAttendanceGapReviewSession({
     status: session.status,
     date: session.date,
@@ -181,6 +198,8 @@ function hasCompleteCoachEvidence(session: BookingSessionData) {
 }
 
 function isCoachEvidenceReviewSession(session: BookingSessionData) {
+  if (isClosedReviewSession(session)) return false
+
   return Boolean(
     !session.is_makeup &&
     session.schedule_slot_id &&
@@ -192,6 +211,10 @@ function isCoachEvidenceReviewSession(session: BookingSessionData) {
 
 function isReviewOrEvidenceSession(session: BookingSessionData) {
   return isAttendanceReviewSession(session) || isCoachEvidenceReviewSession(session)
+}
+
+function isUnassignedAttendanceRound(group: ReviewSessionGroup) {
+  return !group.coachName && group.sessions.some(isAttendanceReviewSession)
 }
 
 function getMonthKey(date: string) {
@@ -319,7 +342,6 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null)
   const [reviewGroupLoadingKey, setReviewGroupLoadingKey] = useState<string | null>(null)
   const [reviewSession, setReviewSession] = useState<BookingSessionData | null>(null)
   const [reviewAction, setReviewAction] = useState<ReviewAction>('confirm_absent')
@@ -327,6 +349,12 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [reviewReason, setReviewReason] = useState('')
   const [reviewCoachId, setReviewCoachId] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [unassignedGroup, setUnassignedGroup] = useState<ReviewSessionGroup | null>(null)
+  const [unassignedMode, setUnassignedMode] = useState<UnassignedRoundMode>('taught')
+  const [unassignedCoachId, setUnassignedCoachId] = useState('')
+  const [unassignedReason, setUnassignedReason] = useState('')
+  const [unassignedAttendance, setUnassignedAttendance] = useState<Record<string, AttendanceStatus>>({})
+  const [unassignedSubmitting, setUnassignedSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
@@ -493,6 +521,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           coachName: session.coach_name || null,
           coachCheckinTime: session.coach_checkin_time || null,
           coachCheckinHasLocation: Boolean(session.coach_checkin_has_location),
+          coachReviewRequestCount: 0,
+          coachReviewRequestedAt: null,
+          coachEvidenceRequestCount: 0,
+          coachEvidenceRequestedAt: null,
           groupNames: [],
           sessions: [],
         })
@@ -504,6 +536,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       if (session.group_name && !group.groupNames.includes(session.group_name)) group.groupNames.push(session.group_name)
       if (!group.coachCheckinTime && session.coach_checkin_time) group.coachCheckinTime = session.coach_checkin_time
       if (session.coach_checkin_has_location) group.coachCheckinHasLocation = true
+      group.coachReviewRequestCount += session.coach_review_requested_count || 0
+      group.coachEvidenceRequestCount += session.coach_evidence_requested_count || 0
+      if (session.coach_review_requested_at && (!group.coachReviewRequestedAt || session.coach_review_requested_at > group.coachReviewRequestedAt)) {
+        group.coachReviewRequestedAt = session.coach_review_requested_at
+      }
+      if (session.coach_evidence_requested_at && (!group.coachEvidenceRequestedAt || session.coach_evidence_requested_at > group.coachEvidenceRequestedAt)) {
+        group.coachEvidenceRequestedAt = session.coach_evidence_requested_at
+      }
     })
 
     return Array.from(groups.values())
@@ -604,37 +644,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     }
   }
 
-  const confirmAbsent = async (sessionId: string) => {
-    setReviewLoadingId(sessionId)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/admin/makeup', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          action: 'confirm_absent',
-        }),
-      })
-
-      const result = await response.json().catch(() => null)
-      if (!response.ok) {
-        setError(result?.error || 'ยืนยันขาดเรียนไม่สำเร็จ')
-        return
-      }
-
-      router.refresh()
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setReviewLoadingId(null)
-    }
-  }
-
   const sendReviewGroupToCoach = async (group: ReviewSessionGroup) => {
-    const representativeSession = group.sessions[0]
-    if (!representativeSession) return
+    const targetSessions = group.sessions.filter(isAttendanceReviewSession)
+    if (targetSessions.length === 0) return
 
     if (!group.coachName) {
       setError('รอบนี้ยังไม่มีโค้ชที่รับผิดชอบ จึงส่งให้โค้ชตรวจสอบไม่ได้ กรุณาบันทึกย้อนหลังหรือปิดเคสเป็นรายคน')
@@ -645,20 +657,22 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     setError(null)
 
     try {
-      const response = await fetch('/api/admin/makeup', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: representativeSession.id,
-          action: 'request_coach_review',
-          reason: `ส่งตรวจสอบย้อนหลังทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} (${group.sessions.length} คน)`,
-        }),
-      })
+      for (const session of targetSessions) {
+        const response = await fetch('/api/admin/makeup', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: session.id,
+            action: 'request_coach_review',
+            reason: `ส่งตรวจสอบย้อนหลังทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} (${targetSessions.length} คน)`,
+          }),
+        })
 
-      const result = await response.json().catch(() => null)
-      if (!response.ok) {
-        setError(result?.error || 'ส่งให้โค้ชตรวจสอบรอบนี้ไม่สำเร็จ')
-        return
+        const result = await response.json().catch(() => null)
+        if (!response.ok) {
+          setError(result?.error || 'ส่งให้โค้ชตรวจสอบรอบนี้ไม่สำเร็จ')
+          return
+        }
       }
 
       router.refresh()
@@ -670,8 +684,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }
 
   const requestCoachEvidenceForGroup = async (group: ReviewSessionGroup) => {
-    const representativeSession = group.sessions.find(isCoachEvidenceReviewSession)
-    if (!representativeSession) return
+    const targetSessions = group.sessions.filter(isCoachEvidenceReviewSession)
+    if (targetSessions.length === 0) return
 
     if (!group.coachName) {
       setError('รอบนี้ยังไม่มีโค้ชที่รับผิดชอบ จึงขอหลักฐานย้อนหลังไม่ได้')
@@ -683,20 +697,57 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     setError(null)
 
     try {
-      const response = await fetch('/api/admin/makeup', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: representativeSession.id,
-          action: 'request_coach_evidence',
-          reason: `ขอหลักฐาน selfie/GPS ย้อนหลังสำหรับรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} (${group.sessions.length} คน)`,
-        }),
-      })
+      for (const session of targetSessions) {
+        const response = await fetch('/api/admin/makeup', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: session.id,
+            action: 'request_coach_evidence',
+            reason: `ขอหลักฐาน selfie/GPS ย้อนหลังสำหรับรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} (${targetSessions.length} คน)`,
+          }),
+        })
 
-      const result = await response.json().catch(() => null)
-      if (!response.ok) {
-        setError(result?.error || 'ขอหลักฐานโค้ชย้อนหลังไม่สำเร็จ')
-        return
+        const result = await response.json().catch(() => null)
+        if (!response.ok) {
+          setError(result?.error || 'ขอหลักฐานโค้ชย้อนหลังไม่สำเร็จ')
+          return
+        }
+      }
+
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setReviewGroupLoadingKey(null)
+    }
+  }
+
+  const closeReviewGroup = async (group: ReviewSessionGroup) => {
+    const targetSessions = group.sessions.filter(isReviewOrEvidenceSession)
+    if (targetSessions.length === 0) return
+
+    const loadingKey = `${group.key}:close`
+    setReviewGroupLoadingKey(loadingKey)
+    setError(null)
+
+    try {
+      for (const session of targetSessions) {
+        const response = await fetch('/api/admin/makeup', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: session.id,
+            action: 'close_review',
+            reason: `ปิดเคสทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} โดยไม่สร้างสิทธิ์ชดเชย (${targetSessions.length} คน)`,
+          }),
+        })
+
+        const result = await response.json().catch(() => null)
+        if (!response.ok) {
+          setError(result?.error || 'ปิดเคสทั้งรอบไม่สำเร็จ')
+          return
+        }
       }
 
       router.refresh()
@@ -721,13 +772,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     const reason = reviewReason.trim()
     const needsRetroCoach = reviewAction === 'mark_attendance' && !reviewSession.coach_name
 
-    if ((reviewAction === 'mark_attendance' || reviewAction === 'request_coach_review' || reviewAction === 'request_coach_evidence' || reviewAction === 'close_review' || reviewAction === 'return_entitlement') && !reason) {
+    if ((reviewAction === 'mark_attendance' || reviewAction === 'confirm_absent' || reviewAction === 'request_coach_review' || reviewAction === 'request_coach_evidence' || reviewAction === 'close_review' || reviewAction === 'return_entitlement') && !reason) {
       setError('กรุณาระบุเหตุผลก่อนบันทึกผลตรวจสอบ')
-      return
-    }
-
-    if (reviewAction === 'confirm_absent' && !reviewSession.coach_name && !reason) {
-      setError('กรุณาระบุเหตุผลก่อนยืนยันขาด เพราะรอบนี้ยังไม่มีโค้ชที่ถูกมอบหมาย')
       return
     }
 
@@ -764,6 +810,96 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setReviewSubmitting(false)
+    }
+  }
+
+  const openUnassignedRoundDialog = (group: ReviewSessionGroup) => {
+    const attendanceMap = Object.fromEntries(
+      group.sessions
+        .filter(isAttendanceReviewSession)
+        .map((session) => [session.id, 'present' as AttendanceStatus])
+    )
+
+    setUnassignedGroup(group)
+    setUnassignedMode('taught')
+    setUnassignedCoachId('')
+    setUnassignedReason('')
+    setUnassignedAttendance(attendanceMap)
+    setError(null)
+  }
+
+  const submitUnassignedRoundResolution = async () => {
+    if (!unassignedGroup) return
+
+    const targetSessions = unassignedGroup.sessions.filter(isAttendanceReviewSession)
+    const reason = unassignedReason.trim()
+
+    if (targetSessions.length === 0) {
+      setError('ไม่พบรายการผู้เรียนที่ต้องตรวจสอบในรอบนี้')
+      return
+    }
+
+    if (!reason) {
+      setError('กรุณาระบุเหตุผลเพื่อเก็บ audit log ก่อนบันทึกทั้งรอบ')
+      return
+    }
+
+    if (unassignedMode === 'taught' && !unassignedCoachId) {
+      setError('กรุณาเลือกโค้ชจริงที่สอนรอบนี้ก่อนบันทึกย้อนหลังทั้งรอบ')
+      return
+    }
+
+    setUnassignedSubmitting(true)
+    setError(null)
+
+    try {
+      if (unassignedMode === 'taught') {
+        const response = await fetch('/api/admin/makeup', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'resolve_unassigned_round',
+            resolution_mode: 'taught',
+            session_ids: targetSessions.map((session) => session.id),
+            attendance_by_session_id: unassignedAttendance,
+            coach_id: unassignedCoachId,
+            reason,
+          }),
+        })
+
+        const result = await response.json().catch(() => null)
+        if (!response.ok) {
+          setError(result?.error || 'บันทึกย้อนหลังทั้งรอบไม่สำเร็จ')
+          return
+        }
+      } else {
+        const action = unassignedMode === 'return_entitlement' ? 'return_entitlement' : 'close_review'
+
+        for (const session of targetSessions) {
+          const response = await fetch('/api/admin/makeup', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: session.id,
+              action,
+              reason,
+            }),
+          })
+
+          const result = await response.json().catch(() => null)
+          if (!response.ok) {
+            setError(result?.error || 'บันทึกผลทั้งรอบไม่สำเร็จ')
+            return
+          }
+        }
+      }
+
+      setUnassignedGroup(null)
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setUnassignedSubmitting(false)
     }
   }
 
@@ -922,6 +1058,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 const groupNeedsCoachEvidence = group.sessions.some(isCoachEvidenceReviewSession)
                 const canRequestCoachEvidenceOnly = groupNeedsCoachEvidence && !groupNeedsAttendanceReview
                 const groupLoadingKey = canRequestCoachEvidenceOnly ? `${group.key}:evidence` : group.key
+                const isUnassignedRound = isUnassignedAttendanceRound(group)
 
                 return (
                   <div
@@ -953,6 +1090,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                               ? 'โค้ชเช็คอินแล้ว'
                               : 'ยังไม่มีเช็คอินโค้ช'}
                         </Badge>
+                        {group.coachReviewRequestCount > 0 && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            ส่งให้โค้ชแล้ว {group.coachReviewRequestCount} ครั้ง
+                          </Badge>
+                        )}
+                        {group.coachEvidenceRequestCount > 0 && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700">
+                            ขอหลักฐานแล้ว {group.coachEvidenceRequestCount} ครั้ง
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-3 text-xs text-gray-500">
                         <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{group.branchName}</span>
@@ -968,20 +1115,43 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         {group.coachCheckinTime ? ` · ${group.coachCheckinHasLocation ? 'มีรูปและ GPS' : 'มีรูปแต่ไม่มี GPS'}` : ''}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-9 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
-                      disabled={reviewGroupLoadingKey === groupLoadingKey || !group.coachName}
-                      onClick={() => void (canRequestCoachEvidenceOnly ? requestCoachEvidenceForGroup(group) : sendReviewGroupToCoach(group))}
-                      title={!group.coachName ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
-                    >
-                      {reviewGroupLoadingKey === groupLoadingKey
-                        ? 'กำลังส่ง...'
-                        : canRequestCoachEvidenceOnly
-                          ? 'ขอหลักฐานโค้ชรอบนี้'
-                          : 'ส่งให้โค้ชตรวจสอบรอบนี้'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2 xl:justify-end">
+                      {isUnassignedRound ? (
+                        <Button
+                          size="sm"
+                          className="h-9 bg-[#2748bf] text-white hover:bg-[#153c85]"
+                          onClick={() => openUnassignedRoundDialog(group)}
+                        >
+                          จัดการเคสทั้งรอบ
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
+                            disabled={reviewGroupLoadingKey === groupLoadingKey || !group.coachName}
+                            onClick={() => void (canRequestCoachEvidenceOnly ? requestCoachEvidenceForGroup(group) : sendReviewGroupToCoach(group))}
+                            title={!group.coachName ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
+                          >
+                            {reviewGroupLoadingKey === groupLoadingKey
+                              ? 'กำลังส่ง...'
+                              : canRequestCoachEvidenceOnly
+                                ? `ขอหลักฐานโค้ชรอบนี้${group.coachEvidenceRequestCount ? ` (${group.coachEvidenceRequestCount})` : ''}`
+                                : `ส่งให้โค้ชตรวจสอบรอบนี้${group.coachReviewRequestCount ? ` (${group.coachReviewRequestCount})` : ''}`}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                            disabled={reviewGroupLoadingKey === `${group.key}:close`}
+                            onClick={() => void closeReviewGroup(group)}
+                          >
+                            {reviewGroupLoadingKey === `${group.key}:close` ? 'กำลังปิดเคส...' : 'ปิดเคสทั้งรอบ'}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className="divide-y divide-gray-100">
@@ -1008,50 +1178,41 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             <span>{session.course_type || 'คอร์สเรียน'}</span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
-                            disabled={reviewLoadingId === session.id}
-                            onClick={() => openReviewDialog(session, 'mark_attendance')}
-                          >
-                            บันทึกย้อนหลัง
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
-                            disabled={reviewLoadingId === session.id}
-                            onClick={() => {
-                              if (session.coach_name) {
-                                void confirmAbsent(session.id)
-                              } else {
-                                openReviewDialog(session, 'confirm_absent')
-                              }
-                            }}
-                          >
-                            {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                            disabled={reviewLoadingId === session.id}
-                            onClick={() => openReviewDialog(session, 'close_review')}
-                          >
-                            ปิดเคส
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
-                            disabled={reviewLoadingId === session.id}
-                            onClick={() => openReviewDialog(session, 'return_entitlement')}
-                          >
-                            คืนสิทธิ์
-                          </Button>
-                        </div>
+                        {isUnassignedRound ? (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            รอบนี้ยังไม่มีโค้ชในกลุ่ม ให้จัดการจากปุ่มทั้งรอบด้านบนเท่านั้น เพื่อไม่ให้ผลรายคนหลุดจากรอบเดียวกัน
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                              disabled={reviewSubmitting && reviewSession?.id === session.id}
+                              onClick={() => openReviewDialog(session, 'mark_attendance')}
+                            >
+                              บันทึกย้อนหลัง
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                              disabled={reviewSubmitting && reviewSession?.id === session.id}
+                              onClick={() => openReviewDialog(session, 'confirm_absent')}
+                            >
+                              {reviewSubmitting && reviewSession?.id === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
+                              disabled={reviewSubmitting && reviewSession?.id === session.id}
+                              onClick={() => openReviewDialog(session, 'return_entitlement')}
+                            >
+                              คืนสิทธิ์
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1092,7 +1253,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         size="sm"
                         variant="outline"
                         className="h-8 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
-                        disabled={reviewLoadingId === session.id}
+                        disabled={reviewSubmitting && reviewSession?.id === session.id}
                         onClick={() => openReviewDialog(session, 'mark_attendance')}
                       >
                         บันทึกย้อนหลัง
@@ -1101,22 +1262,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         size="sm"
                         variant="outline"
                         className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
-                        disabled={reviewLoadingId === session.id}
-                        onClick={() => {
-                          if (session.coach_name) {
-                            void confirmAbsent(session.id)
-                          } else {
-                            openReviewDialog(session, 'confirm_absent')
-                          }
-                        }}
+                        disabled={reviewSubmitting && reviewSession?.id === session.id}
+                        onClick={() => openReviewDialog(session, 'confirm_absent')}
                       >
-                        {reviewLoadingId === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
+                        {reviewSubmitting && reviewSession?.id === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         className="h-8 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
-                        disabled={reviewLoadingId === session.id || !session.coach_name}
+                        disabled={(reviewSubmitting && reviewSession?.id === session.id) || !session.coach_name}
                         onClick={() => openReviewDialog(session, 'request_coach_review')}
                         title={!session.coach_name ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
                       >
@@ -1126,7 +1281,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         size="sm"
                         variant="outline"
                         className="h-8 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                        disabled={reviewLoadingId === session.id}
+                        disabled={reviewSubmitting && reviewSession?.id === session.id}
                         onClick={() => openReviewDialog(session, 'close_review')}
                       >
                         ปิดเคส
@@ -1135,7 +1290,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         size="sm"
                         variant="outline"
                         className="h-8 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
-                        disabled={reviewLoadingId === session.id}
+                        disabled={reviewSubmitting && reviewSession?.id === session.id}
                         onClick={() => openReviewDialog(session, 'return_entitlement')}
                       >
                         คืนสิทธิ์
@@ -1364,6 +1519,153 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   onClick={submitReviewAction}
                 >
                   {reviewSubmitting ? 'กำลังบันทึก...' : getReviewActionLabel(reviewAction)}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(unassignedGroup)}
+        onOpenChange={(open) => {
+          if (!open && !unassignedSubmitting) setUnassignedGroup(null)
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">จัดการรอบที่ยังไม่มีโค้ช</DialogTitle>
+            <DialogDescription>
+              ใช้เฉพาะรอบที่เลยเวลาเรียนแล้ว แต่ยังไม่มีโค้ชอยู่ในกลุ่ม ระบบจะบันทึกผลทั้งรอบเพื่อให้ตารางเรียน กระเป๋าวันเรียน และชั่วโมงสอนตรงกัน
+            </DialogDescription>
+          </DialogHeader>
+          {unassignedGroup && (
+            <div className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <p className="font-semibold">
+                  {formatDate(unassignedGroup.date)} {formatTime(unassignedGroup.startTime, unassignedGroup.endTime)}
+                </p>
+                <p className="mt-1 text-xs">
+                  {unassignedGroup.branchName} · {unassignedGroup.courseType || 'คอร์สเรียน'} · {unassignedGroup.sessions.length} คน
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">ผลที่ต้องการปิดรอบนี้</label>
+                <Select value={unassignedMode} onValueChange={(value) => setUnassignedMode(value as UnassignedRoundMode)}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="taught">สอนจริง แต่ลืมมอบหมาย/เช็คชื่อ</SelectItem>
+                    <SelectItem value="return_entitlement">คืนสิทธิ์ทั้งรอบ</SelectItem>
+                    <SelectItem value="close_review">ปิดเคสทั้งรอบ ไม่สร้างสิทธิ์ชดเชย</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {unassignedMode === 'taught' && (
+                <>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-900">โค้ชที่สอนจริง</label>
+                    <Select value={unassignedCoachId} onValueChange={setUnassignedCoachId}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="เลือกโค้ชที่สอนจริงในรอบนี้" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {coaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.name} {coach.role === 'head_coach' ? '(หัวหน้าโค้ช)' : '(โค้ช)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      ระบบจะสร้างกลุ่ม assignment ย้อนหลังให้ทั้งรอบนี้ แล้วบันทึก attendance ตามรายชื่อด้านล่าง
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-gray-200">
+                    <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-900">
+                      ผลเช็คชื่อรายคน
+                    </div>
+                    <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto">
+                      {unassignedGroup.sessions.filter(isAttendanceReviewSession).map((session) => (
+                        <div key={session.id} className="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-950">{session.learner_name}</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              ผู้ปกครอง/ผู้ใช้: {session.user_name}
+                            </p>
+                          </div>
+                          <Select
+                            value={unassignedAttendance[session.id] || 'present'}
+                            onValueChange={(value) => setUnassignedAttendance((current) => ({
+                              ...current,
+                              [session.id]: value as AttendanceStatus,
+                            }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="present">{getAttendanceStatusLabel('present')}</SelectItem>
+                              <SelectItem value="late">{getAttendanceStatusLabel('late')}</SelectItem>
+                              <SelectItem value="absent">{getAttendanceStatusLabel('absent')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {unassignedMode === 'return_entitlement' && (
+                <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
+                  ระบบจะคืนสิทธิ์เข้ากระเป๋าวันเรียนให้ผู้เรียนทุกคนในรอบนี้ และไม่สร้างชั่วโมงสอนให้โค้ช
+                </div>
+              )}
+
+              {unassignedMode === 'close_review' && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  ระบบจะปิดเคสทั้งรอบโดยไม่สร้างสิทธิ์ชดเชย และไม่สร้างชั่วโมงสอนให้โค้ช
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">เหตุผล / หลักฐานประกอบ</label>
+                <Textarea
+                  className="mt-2 min-h-24"
+                  value={unassignedReason}
+                  onChange={(event) => setUnassignedReason(event.target.value)}
+                  placeholder="เช่น หัวหน้าโค้ชลืมมอบหมาย แต่มีการสอนจริง / คืนสิทธิ์ทั้งรอบเพราะไม่ได้เปิดสอน / ปิดเคสตามการตรวจสอบของ Admin"
+                />
+                <p className="mt-1 text-xs text-gray-500">จำเป็นสำหรับ audit log เพื่อให้ตรวจสอบย้อนหลังได้</p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={unassignedSubmitting}
+                  onClick={() => setUnassignedGroup(null)}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  disabled={unassignedSubmitting}
+                  onClick={submitUnassignedRoundResolution}
+                >
+                  {unassignedSubmitting ? 'กำลังบันทึก...' : 'บันทึกผลทั้งรอบ'}
                 </Button>
               </div>
             </div>

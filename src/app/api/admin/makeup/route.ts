@@ -65,6 +65,18 @@ interface CoachAssignmentRow {
   coach_id: string
 }
 
+interface CoachProfileRow {
+  id: string
+  role: string
+}
+
+interface GroupStudentInsertRow {
+  group_id: string
+  booking_session_id: string
+  student_id: string
+  student_type: StudentType
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
 }
@@ -148,6 +160,51 @@ async function getAssignedCoachIds(supabaseAdmin: ReturnType<typeof getServiceRo
     .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: CoachAssignmentRow[] | null }
 
   return Array.from(new Set((assignments || []).map((assignment) => assignment.coach_id).filter(Boolean)))
+}
+
+async function getStrictGroupCoachIds(supabaseAdmin: ReturnType<typeof getServiceRoleClient>, session: ReviewSessionRow) {
+  if (!session.schedule_slot_id) return []
+
+  const { data: groups } = await supabaseAdmin
+    .from('coach_assignment_groups')
+    .select('coach_id, coach_assignment_group_students(booking_session_id)')
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: AssignmentGroupRow[] | null }
+
+  return Array.from(new Set((groups || [])
+    .filter((group) => (group.coach_assignment_group_students || []).some((student) => student.booking_session_id === session.id))
+    .map((group) => group.coach_id)
+    .filter((coachId): coachId is string => Boolean(coachId))))
+}
+
+async function ensureLegacyCoachAssignment({
+  supabaseAdmin,
+  scheduleSlotId,
+  coachId,
+  actorId,
+}: {
+  supabaseAdmin: ReturnType<typeof getServiceRoleClient>
+  scheduleSlotId: string
+  coachId: string
+  actorId: string
+}) {
+  const { data: existingLegacy } = await supabaseAdmin
+    .from('coach_assignments')
+    .select('id')
+    .eq('schedule_slot_id', scheduleSlotId)
+    .eq('coach_id', coachId)
+    .maybeSingle() as unknown as { data: { id: string } | null }
+
+  if (!existingLegacy) {
+    const { error } = await supabaseAdmin
+      .from('coach_assignments')
+      .insert({
+        coach_id: coachId,
+        schedule_slot_id: scheduleSlotId,
+        assigned_by: actorId,
+      })
+
+    if (error) throw new Error(error.message)
+  }
 }
 
 async function ensureRetrospectiveAssignment({
@@ -469,7 +526,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { session_id: sessionId, action } = body as {
       session_id?: string
-      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'request_coach_evidence' | 'close_review' | 'return_entitlement'
+      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'request_coach_evidence' | 'close_review' | 'return_entitlement' | 'resolve_unassigned_round'
     }
     const reason = normalizeReason((body as { reason?: unknown }).reason)
     const attendanceStatus = normalizeAttendanceStatus((body as { attendance_status?: unknown }).attendance_status)
@@ -477,11 +534,237 @@ export async function PATCH(req: NextRequest) {
       ? ((body as { coach_id?: string }).coach_id || '').trim()
       : ''
 
+    if (action === 'resolve_unassigned_round') {
+      const sessionIds = Array.from(new Set(
+        (Array.isArray((body as { session_ids?: unknown }).session_ids)
+          ? (body as { session_ids: unknown[] }).session_ids
+          : [])
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+          .map((value) => value.trim())
+      ))
+      const resolutionMode = (body as { resolution_mode?: unknown }).resolution_mode
+      const attendanceBySessionIdRaw = (body as { attendance_by_session_id?: unknown }).attendance_by_session_id
+      const attendanceBySessionId = attendanceBySessionIdRaw && typeof attendanceBySessionIdRaw === 'object'
+        ? attendanceBySessionIdRaw as Record<string, unknown>
+        : {}
+
+      if (resolutionMode !== 'taught') {
+        return NextResponse.json({ error: 'resolve_unassigned_round รองรับเฉพาะกรณีสอนจริงแต่ลืมมอบหมาย' }, { status: 400 })
+      }
+
+      if (sessionIds.length === 0) {
+        return NextResponse.json({ error: 'session_ids are required' }, { status: 400 })
+      }
+
+      if (!selectedCoachId) {
+        return NextResponse.json({ error: 'กรุณาเลือกโค้ชจริงที่สอนรอบนี้' }, { status: 400 })
+      }
+
+      if (!reason) {
+        return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
+      }
+
+      const { data: coachProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', selectedCoachId)
+        .in('role', ['coach', 'head_coach'])
+        .maybeSingle() as unknown as { data: CoachProfileRow | null }
+
+      if (!coachProfile) {
+        return NextResponse.json({ error: 'พบโค้ชที่เลือกไม่ถูกต้อง' }, { status: 400 })
+      }
+
+      const { data: targetSessions, error: targetError } = await supabaseAdmin
+        .from('booking_sessions')
+        .select(`
+          id,
+          booking_id,
+          branch_id,
+          schedule_slot_id,
+          date,
+          start_time,
+          end_time,
+          status,
+          is_makeup,
+          child_id,
+          bookings(user_id, course_type_id, learner_type)
+        `)
+        .in('id', sessionIds) as unknown as { data: ReviewSessionRow[] | null; error: { message: string } | null }
+
+      if (targetError) {
+        return NextResponse.json({ error: targetError.message }, { status: 500 })
+      }
+
+      if (!targetSessions || targetSessions.length !== sessionIds.length) {
+        return NextResponse.json({ error: 'ไม่พบรายการผู้เรียนครบตามรอบที่เลือก' }, { status: 404 })
+      }
+
+      const firstSession = targetSessions[0]
+      if (!firstSession?.schedule_slot_id) {
+        return NextResponse.json({ error: 'รอบนี้ไม่มี schedule slot จึงบันทึกย้อนหลังทั้งรอบไม่ได้' }, { status: 400 })
+      }
+
+      const isSameRound = targetSessions.every((session) => (
+        session.schedule_slot_id === firstSession.schedule_slot_id &&
+        session.date === firstSession.date &&
+        session.start_time === firstSession.start_time &&
+        session.end_time === firstSession.end_time &&
+        session.branch_id === firstSession.branch_id
+      ))
+
+      if (!isSameRound) {
+        return NextResponse.json({ error: 'บันทึกย้อนหลังทั้งรอบได้เฉพาะรายการที่อยู่รอบเรียนเดียวกันเท่านั้น' }, { status: 400 })
+      }
+
+      const invalidSession = targetSessions.find((session) => (
+        session.is_makeup ||
+        session.status !== 'scheduled' ||
+        !isPastSession(session.date, session.end_time)
+      ))
+
+      if (invalidSession) {
+        return NextResponse.json({ error: 'บันทึกย้อนหลังทั้งรอบได้เฉพาะรอบปกติที่เลยเวลาและยังรอตรวจสอบเท่านั้น' }, { status: 400 })
+      }
+
+      for (const session of targetSessions) {
+        const strictCoachIds = await getStrictGroupCoachIds(supabaseAdmin, session)
+        if (strictCoachIds.length > 0) {
+          return NextResponse.json({ error: 'พบรอบที่มีโค้ชในกลุ่มแล้ว กรุณาใช้ flow ตรวจสอบเดิมของรอบที่มีโค้ช' }, { status: 400 })
+        }
+
+        const { studentId } = getStudentContext(session)
+        if (!studentId) {
+          return NextResponse.json({ error: 'ไม่สามารถระบุผู้เรียนของบางรายการในรอบนี้ได้' }, { status: 400 })
+        }
+
+        if (!normalizeAttendanceStatus(attendanceBySessionId[session.id])) {
+          return NextResponse.json({ error: 'กรุณาเลือกสถานะเช็คชื่อให้ครบทุกคนในรอบนี้' }, { status: 400 })
+        }
+      }
+
+      const { data: insertedGroup, error: groupError } = await supabaseAdmin
+        .from('coach_assignment_groups')
+        .insert({
+          schedule_slot_id: firstSession.schedule_slot_id,
+          coach_id: selectedCoachId,
+          name: 'บันทึกย้อนหลังทั้งรอบโดย Admin',
+          level_min: null,
+          level_max: null,
+          sort_order: 999,
+          notes: `Retroactive round assignment created from Admin unassigned-round resolution: ${reason}`,
+          created_by: access.ctx.user.id,
+        })
+        .select('id')
+        .single() as unknown as { data: AssignmentGroupInsertRow | null; error: { message: string } | null }
+
+      if (groupError || !insertedGroup) {
+        return NextResponse.json({ error: groupError?.message || 'สร้างกลุ่มมอบหมายย้อนหลังไม่สำเร็จ' }, { status: 500 })
+      }
+
+      const groupStudents: GroupStudentInsertRow[] = targetSessions.map((session) => {
+        const { studentId, studentType } = getStudentContext(session)
+        if (!studentId) throw new Error('Cannot resolve student for round assignment')
+        return {
+          group_id: insertedGroup.id,
+          booking_session_id: session.id,
+          student_id: studentId,
+          student_type: studentType,
+        }
+      })
+
+      const { error: groupStudentError } = await supabaseAdmin
+        .from('coach_assignment_group_students')
+        .insert(groupStudents)
+
+      if (groupStudentError) {
+        return NextResponse.json({ error: groupStudentError.message }, { status: 500 })
+      }
+
+      try {
+        await ensureLegacyCoachAssignment({
+          supabaseAdmin,
+          scheduleSlotId: firstSession.schedule_slot_id,
+          coachId: selectedCoachId,
+          actorId: access.ctx.user.id,
+        })
+      } catch (error) {
+        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+      }
+
+      const results: { sessionId: string; attendanceStatus: AttendanceStatus; sessionStatus: 'absent' | 'completed' }[] = []
+
+      for (const session of targetSessions) {
+        const finalAttendanceStatus = normalizeAttendanceStatus(attendanceBySessionId[session.id])
+        if (!finalAttendanceStatus) {
+          return NextResponse.json({ error: 'กรุณาเลือกสถานะเช็คชื่อให้ครบทุกคนในรอบนี้' }, { status: 400 })
+        }
+
+        await upsertRetrospectiveAttendance({
+          supabaseAdmin,
+          session,
+          status: finalAttendanceStatus,
+          coachId: selectedCoachId,
+        })
+
+        const syncResult = await syncBookingSessionStatusFromAttendance({
+          supabase: supabaseAdmin,
+          bookingSessionId: session.id,
+          attendanceStatus: finalAttendanceStatus,
+        })
+
+        results.push({
+          sessionId: session.id,
+          attendanceStatus: finalAttendanceStatus,
+          sessionStatus: syncResult.sessionStatus,
+        })
+
+        await logActivity({
+          userId: access.ctx.user.id,
+          action: 'attendance_gap_resolve_unassigned_round',
+          entityType: 'booking_sessions',
+          entityId: session.id,
+          details: {
+            reason,
+            attendanceStatus: finalAttendanceStatus,
+            sessionStatus: syncResult.sessionStatus,
+            scheduleSlotId: session.schedule_slot_id,
+            coachId: selectedCoachId,
+            retrospectiveGroupId: insertedGroup.id,
+            resolvedSessionIds: sessionIds,
+          },
+          ipAddress: req.headers.get('x-forwarded-for'),
+        })
+
+        if (session.bookings?.user_id) {
+          const statusLabel = finalAttendanceStatus === 'absent'
+            ? 'ขาดเรียน'
+            : finalAttendanceStatus === 'late'
+              ? 'มาสาย'
+              : 'มาเรียน'
+
+          await notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+            user_id: session.bookings.user_id,
+            title: 'อัปเดตสถานะการเข้าเรียนย้อนหลัง',
+            message: `Admin บันทึกย้อนหลังทั้งรอบเป็น ${statusLabel} สำหรับรอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''}${reason ? ` เหตุผล: ${reason}` : ''}`,
+            type: 'schedule',
+            link_url: '/dashboard/schedule',
+          }).catch(() => null)
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        group_id: insertedGroup.id,
+        results,
+      })
+    }
+
     if (!sessionId || !action) {
       return NextResponse.json({ error: 'session_id and action are required' }, { status: 400 })
     }
 
-    if ((action === 'mark_attendance' || action === 'request_coach_review' || action === 'request_coach_evidence' || action === 'close_review' || action === 'return_entitlement') && !reason) {
+    if ((action === 'mark_attendance' || action === 'confirm_absent' || action === 'request_coach_review' || action === 'request_coach_evidence' || action === 'close_review' || action === 'return_entitlement') && !reason) {
       return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
     }
 
@@ -637,15 +920,6 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'close_review') {
-      const { error: closeError } = await supabaseAdmin
-        .from('booking_sessions')
-        .update({ status: 'completed' })
-        .eq('id', sessionId)
-
-      if (closeError) {
-        return NextResponse.json({ error: closeError.message }, { status: 500 })
-      }
-
       await logActivity({
         userId: access.ctx.user.id,
         action: 'attendance_gap_closed_no_action',
