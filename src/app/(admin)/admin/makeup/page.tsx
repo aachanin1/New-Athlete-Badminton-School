@@ -214,7 +214,6 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   let groups: GroupRow[] = []
   let slotSessionsForScope: SlotSessionRow[] = []
   const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
-  const checkinsBySlotId: Record<string, CoachCheckinRow> = {}
 
   if (slotIds.length > 0) {
     const { data: groupRows } = await supabase
@@ -249,7 +248,6 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     ;(checkins || []).forEach((checkin) => {
       const coachKey = `${checkin.schedule_slot_id}:${checkin.coach_id}`
       if (!checkinsBySlotCoachKey[coachKey]) checkinsBySlotCoachKey[coachKey] = checkin
-      if (!checkinsBySlotId[checkin.schedule_slot_id]) checkinsBySlotId[checkin.schedule_slot_id] = checkin
     })
 
     const { data: slotSessions } = await supabase
@@ -351,9 +349,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     const groupContext = groupContextBySessionId[session.id] || null
     const checkin = groupContext?.coachId && session.schedule_slot_id
       ? checkinsBySlotCoachKey[`${session.schedule_slot_id}:${groupContext.coachId}`] || null
-      : session.schedule_slot_id
-        ? checkinsBySlotId[session.schedule_slot_id] || null
-        : null
+      : null
     const reviewMeta = reviewMetaBySessionId.get(session.id)
 
     return {

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-06
+Last updated: 2026-06-08
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -95,6 +95,65 @@ Read only when relevant:
   - No DB writes, migration, commit, push, or deploy were run for this fix.
 
 ## Active Next Task
+
+### 0. Admin Makeup Exact Coach Check-In Evidence Debug
+
+Source context:
+
+- `admin/makeup` section "ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน".
+- Reported production pattern: a learner session can show "ยังไม่พบโค้ชในกลุ่ม" while the round/header also shows coach check-in evidence.
+
+Scope:
+
+- Read-only debug only until the owner approves a fix.
+- Inspect only:
+  - `booking_sessions`
+  - `coach_assignment_groups`
+  - `coach_assignment_group_students`
+  - `coach_checkins`
+  - `attendance`
+  - related `bookings`, `children`, `profiles`, branches, and course names needed to identify the reported session.
+- Prove whether the root cause is:
+  - slot-only coach check-in fallback contaminating no-group sessions,
+  - missing `coach_assignment_group_students`,
+  - wrong group/session linkage,
+  - stale legacy assignment data,
+  - or UI grouping/display using the wrong source.
+
+Required proof:
+
+- Build a per-session table with:
+  - `booking_session_id`
+  - learner name
+  - date/time/branch/course
+  - `schedule_slot_id`
+  - assignment group id/name
+  - group coach id/name
+  - slot check-in coach id/name
+  - exact `schedule_slot_id + coach_id` check-in result
+  - slot-only check-in result
+  - exact learner attendance status
+
+Read-only proof result:
+
+- Verified on 2026-06-08 for 2026-06-07 16:00-18:00.
+- Affected session: `7513b5d0-f5c4-43d8-bb61-bac051c97e09`.
+- Learner/branch/course: มาเบล / สุวรรณภูมิ / kids_group.
+- The session has no `coach_assignment_group_students` link, so it has no exact group coach.
+- The same `schedule_slot_id` has check-ins from other assigned coaches.
+- Root cause is slot-only coach check-in fallback contamination in Admin makeup data shaping. The UI is receiving check-in evidence for a no-group learner session because server code falls back to `checkinsBySlotId`.
+- Source fix completed locally on 2026-06-08: Admin makeup now only passes coach check-in evidence when there is an exact `schedule_slot_id + group coach_id` match. Same-slot check-ins are no longer evidence for sessions that are not linked to a coach group.
+- Post-fix read-only proof for session `7513b5d0-f5c4-43d8-bb61-bac051c97e09` showed `slot_only_has_checkin=true` but `new_server_would_show_checkin_for_no_group=false`.
+- Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, and `npm run build`.
+- No DB writes, migration, commit, push, or deploy were run for this fix. Await owner UAT/commit instruction.
+
+Production safety:
+
+- Source fix is local only until owner orders commit/push/deploy.
+- No DB writes.
+- No migration.
+- No cleanup rows.
+- If a write or code fix is needed, report the exact root cause and proposed fix first.
 
 ### 0. Production Smoke Test / Admin Makeup Regression
 

@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-06
+Last updated: 2026-06-08
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -169,6 +169,17 @@ Current active production risk:
 - Admin makeup attendance-gap review now reads review request/closed metadata from `activity_logs` in chunks, hides closed review sessions from the review queue, sends coach review/evidence requests to every learner session in the selected round, and provides a round-level close action.
 - Admin makeup no-coach past rounds are now resolved at round scope only. The UI hides per-learner action buttons for these rounds and opens a round-level resolution dialog. The taught path creates a retrospective `coach_assignment_groups` record, links every learner session in the round, writes attendance per learner, and syncs session status through the attendance write-through helper. Return-entitlement and close-round paths run across all eligible sessions in the selected round.
 - Attendance display derivation no longer treats a learner as absent merely because another learner in the same slot/group has attendance. A past session without exact learner attendance now stays in `attendance_gap_review`; `absent` requires exact attendance/source-of-truth evidence or an explicitly synced absent session.
+- Admin makeup check-in evidence regression guard, added 2026-06-08:
+  - The review section "ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน" must not show coach check-in evidence for a learner session unless that learner is linked to a `coach_assignment_groups` row and the `coach_checkins` row matches the exact `schedule_slot_id + coach_id`.
+  - A same-slot check-in from another coach must not be displayed as evidence when the learner session still says "ยังไม่พบโค้ชในกลุ่ม".
+  - If a future report shows "ยังไม่พบโค้ชในกลุ่ม" together with "ได้เช็คอินแล้ว", first run read-only debug against `booking_sessions`, `coach_assignment_groups`, `coach_assignment_group_students`, `coach_checkins`, and `attendance` before changing code or data.
+  - Expected proof table should include: `booking_session_id`, learner name, `schedule_slot_id`, group id, group coach id/name, slot check-in coach id/name, exact-pair check-in result, slot-only check-in result, and attendance status.
+  - Safe fix direction, if root cause is confirmed again: remove slot-only check-in evidence from the Admin makeup review display and require exact group coach evidence only; keep slot-only data as diagnostic metadata at most.
+  - Read-only proof on 2026-06-08 confirmed this exact pattern for 2026-06-07 16:00-18:00 at สุวรรณภูมิ: learner session `7513b5d0-f5c4-43d8-bb61-bac051c97e09` had no `coach_assignment_group_students` link and no exact coach evidence, while the same `schedule_slot_id` had check-ins from other assigned coaches. This is a slot-only fallback contamination bug, not proof that the ungrouped learner's coach checked in.
+  - Scoped source fix on 2026-06-08 removed the slot-only check-in fallback from `src/app/(admin)/admin/makeup/page.tsx`. Admin makeup now passes coach check-in evidence only when the learner session is linked to a coach assignment group and the check-in matches the exact `schedule_slot_id + coach_id`.
+  - Post-fix read-only proof for session `7513b5d0-f5c4-43d8-bb61-bac051c97e09` showed `slot_only_has_checkin=true` but `new_server_would_show_checkin_for_no_group=false`.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, and `npm run build`.
+  - No DB writes, migration, commit, push, or deploy were run for this scoped fix.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
   - group session ids: 422
