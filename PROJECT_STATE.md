@@ -180,6 +180,17 @@ Current active production risk:
   - Post-fix read-only proof for session `7513b5d0-f5c4-43d8-bb61-bac051c97e09` showed `slot_only_has_checkin=true` but `new_server_would_show_checkin_for_no_group=false`.
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, and `npm run build`.
   - No DB writes, migration, commit, push, or deploy were run for this scoped fix.
+- Admin schedules vs Admin makeup assignment-source regression guard, added 2026-06-08:
+  - Reported pattern: `admin/schedules` can show coach names on a learner row while `admin/makeup` says the same learner session has no coach in group / no exact coach check-in.
+  - This must be debugged before any source or DB change because `admin/schedules` may display slot-level or legacy coach fallback while `admin/makeup` intentionally requires exact learner-group evidence.
+  - Required invariant: learner-level coach display must come from exact `coach_assignment_group_students.booking_session_id -> coach_assignment_groups.coach_id` when deciding whether that learner has an assigned coach.
+  - `coach_assignments` or other slot-level coach lists may be diagnostic/legacy context only; they must not prove that a specific learner is assigned to that coach.
+  - Read-only proof table must include: `booking_session_id`, learner name, `schedule_slot_id`, branch/course/time, exact group id/name, exact group coach id/name, all same-slot groups/coaches, legacy `coach_assignments` coaches, exact-pair coach check-in result, and exact learner attendance status.
+  - Safe fix direction if confirmed: make `admin/schedules` distinguish exact learner coach assignment from slot-level/legacy coach context, and do not weaken `admin/makeup` exact-evidence rules.
+  - Read-only proof on 2026-06-08 for Tin session `fcd3e6ea-bac1-4513-8261-ff26e931f7ce`: exact `coach_assignment_group_students` count is 0, exact check-ins count is 0, and exact attendance count is 0. The same `schedule_slot_id` has other groups and legacy slot coaches for other learners only. Therefore `admin/makeup` is correct to show no coach in group; `admin/schedules` must not show same-slot or legacy coaches as Tin's assigned coaches.
+  - Scoped source fix on 2026-06-08 removed slot-level/legacy coach fallback from `src/app/(admin)/admin/schedules/page.tsx` and from `adminAttendanceState.getCoachNames`. Admin schedules now shows coach names only from exact learner assignment groups (`coach_assignment_group_students.booking_session_id -> coach_assignment_groups.coach_id`).
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, and `npm run build`.
+  - No DB writes, migration, commit, push, or deploy were run for this scoped fix.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
   - group session ids: 422

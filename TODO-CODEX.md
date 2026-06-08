@@ -96,6 +96,77 @@ Read only when relevant:
 
 ## Active Next Task
 
+### 0. Admin Schedules vs Makeup Exact Learner Assignment Debug
+
+Source context:
+
+- Reported production pattern on 2026-06-08:
+  - `admin/makeup` for 2026-06-07 17:00-19:00 shows learner `Tinn` / `ติณห์` as pending review with no coach in group and no coach check-in.
+  - `admin/schedules` for the same learner/session shows pending attendance review but displays two coach names on the row.
+- This page has regressed multiple times, so do not guess or patch broadly.
+
+Scope:
+
+- Read-only debug only until the owner approves a fix.
+- Inspect only:
+  - `booking_sessions`
+  - `bookings`
+  - `children`
+  - `profiles`
+  - `branches`
+  - `course_types`
+  - `coach_assignment_groups`
+  - `coach_assignment_group_students`
+  - `coach_assignments`
+  - `coach_checkins`
+  - `attendance`
+- Do not write DB data.
+- Do not run migrations.
+- Do not cleanup rows.
+- Do not edit source until the root cause is proved and owner approves.
+
+Required proof:
+
+- Identify the exact `booking_sessions.id` for learner `ติณห์`, 2026-06-07, 17:00-19:00, `kids_group`.
+- Compare exact learner assignment vs slot-level/legacy coach context:
+  - exact `coach_assignment_group_students.booking_session_id`
+  - exact `coach_assignment_groups.coach_id`
+  - all groups in the same `schedule_slot_id`
+  - legacy `coach_assignments` rows for the same `schedule_slot_id`
+  - exact `coach_checkins` by `schedule_slot_id + coach_id`
+  - exact learner `attendance` by `booking_session_id + expected student_id`
+
+Read-only proof result 2026-06-08:
+
+- Target session: `fcd3e6ea-bac1-4513-8261-ff26e931f7ce`, learner Tin, `schedule_slot_id` `ec443dd3-9e8e-442b-a10d-c883c07d42c0`, 2026-06-07 17:00-19:00.
+- Exact `coach_assignment_group_students` rows for the target session: 0.
+- Exact target-session check-ins: 0.
+- Exact target-session attendance rows: 0.
+- Same slot has other groups/coaches for other learners and legacy `coach_assignments` rows: Coach Ik NA Ram and Coach Link NA Ratchada.
+- Conclusion: `admin/makeup` is correct to show "no coach in group" for Tin. `admin/schedules` is likely presenting slot-level or legacy coach fallback as if it were Tin's learner-level assignment.
+
+Possible root-cause labels:
+
+- `admin/schedules` uses slot-level fallback coach names as if they were learner-level assignment.
+- Missing `coach_assignment_group_students` for the reported learner session.
+- Wrong group/session linkage.
+- Stale legacy `coach_assignments` or stale same-slot group data.
+- UI display uses a broader source than `admin/makeup`.
+
+Safe fix direction, if confirmed:
+
+- Keep `admin/makeup` strict: exact learner group and exact `schedule_slot_id + coach_id` check-in only.
+- Make `admin/schedules` show exact learner coach assignment separately from slot-level/legacy diagnostic context.
+- Do not treat a coach shown at slot level as proof that the specific learner has been assigned.
+
+Source fix completed locally on 2026-06-08:
+
+- Removed `coach_assignments`/slot-level coach fallback from `src/app/(admin)/admin/schedules/page.tsx`.
+- Updated `src/lib/admin-attendance-state.ts` so `getCoachNames(session)` returns only exact learner group coach names, never fallback slot coaches.
+- `admin/makeup` remains strict and unchanged for this fix.
+- Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, and `npm run build`.
+- No DB writes, migration, commit, push, or deploy were run for this fix. Await owner UAT/commit instruction.
+
 ### 0. Admin Makeup Exact Coach Check-In Evidence Debug
 
 Source context:

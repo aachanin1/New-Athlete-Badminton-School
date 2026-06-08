@@ -151,8 +151,8 @@ export function buildAdminAttendanceState<TSession extends AdminAttendanceSessio
     })
   }
 
-  function getCoachNames(session: AdminAttendanceSessionBase, fallbackNames: string[] = []) {
-    return groupCoachNamesBySessionId.get(session.id) || fallbackNames
+  function getCoachNames(session: AdminAttendanceSessionBase) {
+    return groupCoachNamesBySessionId.get(session.id) || []
   }
 
   return {

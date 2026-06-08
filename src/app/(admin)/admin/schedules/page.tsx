@@ -39,11 +39,6 @@ interface BranchRow {
   slug: string
 }
 
-interface CoachAssignmentRow {
-  schedule_slot_id: string
-  profiles?: { full_name: string | null } | null
-}
-
 interface GroupRow extends AdminAttendanceGroupRow {
   schedule_slot_id: string
   coach_id: string | null
@@ -136,15 +131,10 @@ export default async function SchedulesPage() {
 
   const slotIds = Array.from(new Set(visibleSessions.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
 
-  let coachAssignments: CoachAssignmentRow[] = []
   let groups: GroupRow[] = []
   let slotSessions: SlotSessionRow[] = []
   if (slotIds.length > 0) {
-    const [{ data: legacyAssignments }, { data: groupRows }, { data: slotSessionRows }] = await Promise.all([
-      supabase
-        .from('coach_assignments')
-        .select('schedule_slot_id, profiles!coach_assignments_coach_id_fkey(full_name)')
-        .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: CoachAssignmentRow[] | null }>,
+    const [{ data: groupRows }, { data: slotSessionRows }] = await Promise.all([
       supabase
         .from('coach_assignment_groups')
         .select(`
@@ -162,19 +152,9 @@ export default async function SchedulesPage() {
         .neq('status', 'walleted')
         .eq('bookings.status', 'verified') as unknown as PromiseLike<{ data: SlotSessionRow[] | null }>,
     ])
-    coachAssignments = legacyAssignments || []
     groups = groupRows || []
     slotSessions = slotSessionRows || []
   }
-
-  const coachMap = coachAssignments.reduce((map: Record<string, string[]>, item) => {
-    if (!map[item.schedule_slot_id]) map[item.schedule_slot_id] = []
-    const coachName = item.profiles?.full_name
-    if (coachName && !map[item.schedule_slot_id].includes(coachName)) {
-      map[item.schedule_slot_id].push(coachName)
-    }
-    return map
-  }, {})
 
   const attendanceScopeSessionIds = getAdminAttendanceScopeSessionIds(visibleSessions, groups, slotSessions)
   let attendanceRows: AttendanceRow[] = []
@@ -216,10 +196,7 @@ export default async function SchedulesPage() {
         : null,
       course_type: session.bookings?.course_types?.name || '',
       booking_status: session.bookings?.status || '',
-      coach_names: adminAttendanceState.getCoachNames(
-        session,
-        session.schedule_slot_id ? coachMap[session.schedule_slot_id] || [] : [],
-      ),
+      coach_names: adminAttendanceState.getCoachNames(session),
     }
   })
 
