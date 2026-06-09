@@ -21,6 +21,11 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped lesson wallet redemption template fallback fix:
+  - Root cause proved read-only: `/api/lesson-wallet` hard-filtered by client `scheduleTemplateId`, so a stale/mismatched id could reject a valid branch/course/day/time slot.
+  - Fix keeps `scheduleTemplateId` as a fast-path hint only. If it does not match, the API falls back to active `schedule_templates` by branch, course, day, and selected start/end time.
+  - Business behavior was not changed: same-month rule, duplicate learner guard, capacity guard, no-payment redemption, and wallet transitions remain intact.
+  - Verification for this item must include a stale-id fallback check plus normal project checks.
 - Completed scoped auth UX polish:
   - Added password visibility toggles to login/register password fields in the Home auth modal and direct auth pages.
   - Scope was limited to auth input UI only; Supabase auth, redirects, validation, and registration behavior were not changed.

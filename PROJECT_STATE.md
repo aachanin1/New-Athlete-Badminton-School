@@ -108,6 +108,7 @@ Observed migrations include:
 - User can store verified scheduled sessions before the 48-hour cutoff when no attendance exists.
 - Redemption is same-month, future-slot, no new payment.
 - Walleted sessions are excluded from absence, makeup, and coach-payable evidence.
+- Wallet redemption must validate against active `schedule_templates` by branch, course, day, and time. A client-provided `scheduleTemplateId` is only a hint; if it is stale or does not cover the selected time, the API must fall back to the canonical branch/course/day/time template lookup before rejecting.
 
 ## Observed Current Routes
 
@@ -158,6 +159,11 @@ Latest attendance reconciliation result:
 Current active production risk:
 
 - No known attendance/session status drift after the confirmed reconciliation.
+- Lesson wallet redemption fallback fix, added 2026-06-09:
+  - Reported pattern: `/dashboard/lesson-wallet` could return HTTP 400 with `รอบเรียนที่เลือกไม่ตรงกับรอบเรียนประจำในระบบ` even when the selected branch/date/time/course had an active recurring template.
+  - Root cause proved read-only: `/api/lesson-wallet` treated client `scheduleTemplateId` as a hard filter. A stale/mismatched id caused the canonical branch/course/day/time lookup to be skipped.
+  - Scoped source fix: `src/app/api/lesson-wallet/route.ts` now first tries the provided template id, then falls back to active templates for the selected branch, course, day, and time. It still rejects when no active matching template exists.
+  - Business rules unchanged: same-month redemption, future-slot requirement, duplicate learner guard, capacity guard, no new payment, and wallet status transitions remain intact.
 - Continue to treat `attendance` as the source of truth and keep write-through required on every runtime attendance write path.
 - `21.6.19` follow-up code now guards future child bookings by requiring child learner sessions to carry `childId` and by persisting `bookings.child_id`.
 - `21.6.20` owner-confirmed exact-row historical child FK repair was run on 2026-06-04:

@@ -352,20 +352,29 @@ async function findMatchingTemplate(
   courseTypeId: string,
   payload: Required<Pick<StorePayload, 'targetDate' | 'startTime' | 'endTime' | 'branchId'>> & Pick<StorePayload, 'scheduleTemplateId'>
 ) {
-  let query = adminSupabase
-    .from('schedule_templates')
-    .select('id, start_time, end_time')
-    .eq('branch_id', payload.branchId)
-    .eq('course_type_id', courseTypeId)
-    .eq('day_of_week', dayOfWeek(payload.targetDate))
-    .eq('is_active', true)
+  const loadTemplates = async (scheduleTemplateId?: string | null) => {
+    let query = adminSupabase
+      .from('schedule_templates')
+      .select('id, start_time, end_time')
+      .eq('branch_id', payload.branchId)
+      .eq('course_type_id', courseTypeId)
+      .eq('day_of_week', dayOfWeek(payload.targetDate))
+      .eq('is_active', true)
 
-  if (payload.scheduleTemplateId) query = query.eq('id', payload.scheduleTemplateId)
+    if (scheduleTemplateId) query = query.eq('id', scheduleTemplateId)
 
-  const { data, error } = await query as unknown as { data: TemplateRow[] | null; error: DbError | null }
-  if (error) throw new Error(`โหลดรอบเรียนประจำไม่สำเร็จ: ${error.message}`)
+    const { data, error } = await query as unknown as { data: TemplateRow[] | null; error: DbError | null }
+    if (error) throw new Error(`โหลดรอบเรียนประจำไม่สำเร็จ: ${error.message}`)
 
-  return (data || []).find((template) => templateCoversSlot(template, payload.startTime, payload.endTime)) || null
+    return (data || []).find((template) => templateCoversSlot(template, payload.startTime, payload.endTime)) || null
+  }
+
+  if (payload.scheduleTemplateId) {
+    const templateById = await loadTemplates(payload.scheduleTemplateId)
+    if (templateById) return templateById
+  }
+
+  return loadTemplates()
 }
 
 async function ensureNoDuplicateLearnerSlot(
