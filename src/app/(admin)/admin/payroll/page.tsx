@@ -1,7 +1,7 @@
 import { PayrollClient } from '@/components/admin/payroll-client'
 import { COACH_TEACHING_RULES_SETTING_KEY, normalizeCoachTeachingRulesSettings } from '@/lib/coach-teaching-rules'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
-import { createClient } from '@/lib/supabase/server'
+import { getServiceRoleClient, requireAdminPageAccess } from '@/lib/auth/admin'
 
 interface WeeklySummaryRow {
   id: string
@@ -34,6 +34,11 @@ interface CoachTeachingRulesSettingRow {
   value: unknown
 }
 
+interface QueryResult<T> {
+  data: T | null
+  error: { message: string } | null
+}
+
 function getYearRange() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 1)
@@ -49,11 +54,12 @@ function getYearRange() {
 }
 
 export default async function PayrollPage() {
-  const supabase = await createClient()
+  await requireAdminPageAccess()
+  const adminSupabase = getServiceRoleClient()
   const range = getYearRange()
 
-  const [{ data: summaries }, { data: teachingRulesSetting }, payrollRows] = await Promise.all([
-    supabase
+  const [summaryResult, teachingRulesResult, payrollRows] = await Promise.all([
+    adminSupabase
       .from('coach_weekly_teaching_summaries')
       .select(`
         id, coach_id, week_start, week_end, coach_employment_type, threshold_hours,
@@ -65,17 +71,28 @@ export default async function PayrollPage() {
       `)
       .gte('week_start', range.start)
       .lt('week_start', range.end)
-      .order('week_start', { ascending: false }) as unknown as PromiseLike<{ data: WeeklySummaryRow[] | null }>,
-    supabase
+      .order('week_start', { ascending: false }) as unknown as PromiseLike<QueryResult<WeeklySummaryRow[]>>,
+    adminSupabase
       .from('system_settings')
       .select('value')
       .eq('key', COACH_TEACHING_RULES_SETTING_KEY)
-      .maybeSingle() as unknown as PromiseLike<{ data: CoachTeachingRulesSettingRow | null }>,
-    getCoachTeachingHourSourceRows(supabase, {
+      .maybeSingle() as unknown as PromiseLike<QueryResult<CoachTeachingRulesSettingRow>>,
+    getCoachTeachingHourSourceRows(adminSupabase, {
       startDate: range.start,
       endDateExclusive: range.end,
     }),
   ])
+
+  if (summaryResult.error) {
+    throw new Error(`Admin payroll summaries query failed: ${summaryResult.error.message}`)
+  }
+
+  if (teachingRulesResult.error) {
+    throw new Error(`Admin payroll teaching rules query failed: ${teachingRulesResult.error.message}`)
+  }
+
+  const summaries = summaryResult.data
+  const teachingRulesSetting = teachingRulesResult.data
 
   const now = new Date()
   return (

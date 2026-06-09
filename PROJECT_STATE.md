@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-08
+Last updated: 2026-06-09
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -99,6 +99,7 @@ Observed migrations include:
 - Coach check-in is per teaching slot and requires photo/GPS.
 - Coach attendance is locked until check-in for the exact slot, except Admin/Super Admin retrospective paths.
 - Coach teaching hour source rows are verified only with students, check-in, photo, location, and attendance.
+- Coach teaching hour source reads must chunk large `.in()` filters. Production-scale grouped assignments can exceed Supabase/PostgREST request limits and row caps when `booking_session_id` or `schedule_slot_id` arrays are sent in one request.
 - Weekly teaching summaries are stored in `coach_weekly_teaching_summaries`.
 
 ### Lesson Wallet
@@ -191,6 +192,15 @@ Current active production risk:
   - Scoped source fix on 2026-06-08 removed slot-level/legacy coach fallback from `src/app/(admin)/admin/schedules/page.tsx` and from `adminAttendanceState.getCoachNames`. Admin schedules now shows coach names only from exact learner assignment groups (`coach_assignment_group_students.booking_session_id -> coach_assignment_groups.coach_id`).
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, and `npm run build`.
   - No DB writes, migration, commit, push, or deploy were run for this scoped fix.
+- Admin payroll teaching-hours regression guard, added 2026-06-08:
+  - Reported pattern: `/admin/payroll` showed 0 coaches / 0 assigned rounds / 0 payable hours for June 2026 even though production data had assigned groups, verified bookings, coach check-ins, and attendance.
+  - Read-only proof showed June 2026 source data existed: hundreds of schedule slots and assignment groups, 908 payable grouped sessions by status, 86 coach check-ins, 208 attendance rows, and about 394 potential payroll source rows.
+  - Root cause: the payroll page used the normal user-session Supabase client for sensitive payroll source tables and did not run an explicit Admin page guard, while `getCoachTeachingHourSourceRows` ignored Supabase query errors and could silently return empty rows.
+  - Source fix on 2026-06-08: `src/app/(admin)/admin/payroll/page.tsx` now requires Admin page access and uses `getServiceRoleClient()` server-side for payroll summaries, teaching rules, and teaching-hour source rows. The service key remains server-only.
+  - Source fix on 2026-06-08: `src/lib/coach-teaching-hours.ts` now throws descriptive errors for every Supabase query failure instead of silently treating failed reads as empty payroll data.
+  - Payroll business rules were not changed: verified teaching evidence still requires active assigned learners, verified bookings, valid session lifecycle status, exact coach/slot check-in, photo, GPS, and attendance.
+  - Verification passed locally: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+  - No DB writes, migration, cleanup, commit, push, or deploy were run for this scoped fix.
 - Read-only verification on 2026-06-04 for June 2026 coach assignment groups:
   - groups: 197
   - group session ids: 422

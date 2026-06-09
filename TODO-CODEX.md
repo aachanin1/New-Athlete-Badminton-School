@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-08
+Last updated: 2026-06-09
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -93,6 +93,19 @@ Read only when relevant:
   - Fix: a past session without exact learner attendance now derives `attendance_gap_review`; `absent` remains reserved for exact attendance/source-of-truth evidence or explicitly synced absent sessions.
   - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run attendance:reconcile:dry-run`, `npm run build`.
   - No DB writes, migration, commit, push, or deploy were run for this fix.
+- Completed scoped Admin payroll teaching-hours zero-state fix:
+  - Root cause proved read-only: June 2026 teaching/check-in/attendance data existed, but `/admin/payroll` could show all zero because it used a normal user-session Supabase client for payroll source reads and `getCoachTeachingHourSourceRows` silently ignored query errors.
+  - Fix: `/admin/payroll` now requires Admin page access and uses `getServiceRoleClient()` server-side for summaries, teaching rules, and teaching-hour source rows.
+  - Fix: `src/lib/coach-teaching-hours.ts` now throws descriptive query errors for assignment groups, legacy assignments, payable sessions, attendance counts, and coach check-ins instead of returning silent empty data.
+  - Payroll calculation semantics were not changed.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+  - No DB writes, migration, cleanup, commit, push, or deploy were run for this fix.
+- Completed scoped Admin payroll large-query fix:
+  - Root cause proved read-only: `coach_assignment_groups` for 2026 contained 1001 grouped `booking_session_id` values. Full `.in()` reads against `booking_sessions.id` and `attendance.booking_session_id` failed with `Bad Request`; full `schedule_slot_id` reads also risked truncation by returning 1000 rows while chunked reads returned 1007.
+  - Fix: `src/lib/coach-teaching-hours.ts` now chunks payroll source `.in()` reads for payable sessions by slot, payable grouped session ids, and attendance counts.
+  - Payroll calculation semantics were not changed; the fix only changes query transport shape to avoid Supabase/PostgREST request limits and silent row caps.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, `npm run build`, and read-only chunk verification returned payable-by-slot 1007, payable-grouped 994, attendance 232 with no query errors.
+  - No DB writes, migration, cleanup, commit, push, or deploy were run for this fix.
 
 ## Active Next Task
 

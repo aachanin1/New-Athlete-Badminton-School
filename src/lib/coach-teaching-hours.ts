@@ -2,6 +2,7 @@ import type { CoachEmploymentType } from '@/types/database'
 
 const BOOKING_PAYABLE_STATUSES = ['verified']
 const SESSION_ATTENDANCE_STATUSES = ['scheduled', 'completed', 'absent']
+const PAYROLL_IN_FILTER_CHUNK_SIZE = 100
 
 type SupabaseQuery = PromiseLike<unknown> & {
   eq: (column: string, value: unknown) => SupabaseQuery
@@ -18,6 +19,11 @@ type SupabaseTable = {
 
 type SupabaseLike = {
   from: (table: string) => SupabaseTable
+}
+
+interface SupabaseResult<T> {
+  data: T | null
+  error: { message: string } | null
 }
 
 interface SlotRow {
@@ -138,6 +144,41 @@ function getSlotKey(coachId: string, slotId: string) {
   return `${coachId}:${slotId}`
 }
 
+async function runPayrollQuery<T>(query: SupabaseQuery, label: string) {
+  const { data, error } = await query as unknown as SupabaseResult<T>
+
+  if (error) {
+    throw new Error(`Coach teaching hours ${label} query failed: ${error.message}`)
+  }
+
+  return data
+}
+
+function uniqueTruthyIds(ids: string[]) {
+  return Array.from(new Set(ids.filter(Boolean)))
+}
+
+async function runPayrollInChunks<T>(
+  ids: string[],
+  label: string,
+  buildQuery: (chunkIds: string[]) => SupabaseQuery
+) {
+  const uniqueIds = uniqueTruthyIds(ids)
+  if (uniqueIds.length === 0) return []
+
+  const totalChunks = Math.ceil(uniqueIds.length / PAYROLL_IN_FILTER_CHUNK_SIZE)
+  const rows: T[] = []
+
+  for (let index = 0; index < uniqueIds.length; index += PAYROLL_IN_FILTER_CHUNK_SIZE) {
+    const chunkIds = uniqueIds.slice(index, index + PAYROLL_IN_FILTER_CHUNK_SIZE)
+    const chunkNumber = Math.floor(index / PAYROLL_IN_FILTER_CHUNK_SIZE) + 1
+    const data = await runPayrollQuery<T[]>(buildQuery(chunkIds), `${label} chunk ${chunkNumber}/${totalChunks}`)
+    rows.push(...(data || []))
+  }
+
+  return rows
+}
+
 async function getAssignmentGroups(supabase: SupabaseLike, options: TeachingHoursRangeOptions) {
   let query = supabase
     .from('coach_assignment_groups')
@@ -157,7 +198,7 @@ async function getAssignmentGroups(supabase: SupabaseLike, options: TeachingHour
 
   if (options.coachId) query = query.eq('coach_id', options.coachId)
 
-  const { data } = await query as unknown as { data: AssignmentGroupRow[] | null }
+  const data = await runPayrollQuery<AssignmentGroupRow[]>(query, 'assignment groups')
   return (data || []).filter((group) => group.coach_id && group.schedule_slots)
 }
 
@@ -179,7 +220,7 @@ async function getLegacyAssignments(supabase: SupabaseLike, options: TeachingHou
 
   if (options.coachId) query = query.eq('coach_id', options.coachId)
 
-  const { data } = await query as unknown as { data: LegacyAssignmentRow[] | null }
+  const data = await runPayrollQuery<LegacyAssignmentRow[]>(query, 'legacy assignments')
   return (data || []).filter((assignment) => assignment.schedule_slots)
 }
 
@@ -187,13 +228,15 @@ async function getPayableSessionsBySlot(supabase: SupabaseLike, slotIds: string[
   const map = new Map<string, BookingSessionRow[]>()
   if (slotIds.length === 0) return map
 
-  const { data } = await supabase
-    .from('booking_sessions')
-    .select('id, schedule_slot_id, bookings!inner(status)')
-    .in('schedule_slot_id', slotIds)
-    .in('status', SESSION_ATTENDANCE_STATUSES)
-    .in('bookings.status', BOOKING_PAYABLE_STATUSES)
-    .limit(10000) as unknown as { data: BookingSessionRow[] | null }
+  const data = await runPayrollInChunks<BookingSessionRow>(slotIds, 'payable sessions by slot', (chunkSlotIds) =>
+    supabase
+      .from('booking_sessions')
+      .select('id, schedule_slot_id, bookings!inner(status)')
+      .in('schedule_slot_id', chunkSlotIds)
+      .in('status', SESSION_ATTENDANCE_STATUSES)
+      .in('bookings.status', BOOKING_PAYABLE_STATUSES)
+      .limit(10000)
+  )
 
   ;(data || []).forEach((session) => {
     const rows = map.get(session.schedule_slot_id) || []
@@ -206,16 +249,18 @@ async function getPayableSessionsBySlot(supabase: SupabaseLike, slotIds: string[
 
 async function getPayableSessionIds(supabase: SupabaseLike, sessionIds: string[]) {
   const set = new Set<string>()
-  const uniqueSessionIds = Array.from(new Set(sessionIds.filter(Boolean)))
+  const uniqueSessionIds = uniqueTruthyIds(sessionIds)
   if (uniqueSessionIds.length === 0) return set
 
-  const { data } = await supabase
-    .from('booking_sessions')
-    .select('id, bookings!inner(status)')
-    .in('id', uniqueSessionIds)
-    .in('status', SESSION_ATTENDANCE_STATUSES)
-    .in('bookings.status', BOOKING_PAYABLE_STATUSES)
-    .limit(10000) as unknown as { data: BookingSessionIdRow[] | null }
+  const data = await runPayrollInChunks<BookingSessionIdRow>(uniqueSessionIds, 'payable grouped session ids', (chunkSessionIds) =>
+    supabase
+      .from('booking_sessions')
+      .select('id, bookings!inner(status)')
+      .in('id', chunkSessionIds)
+      .in('status', SESSION_ATTENDANCE_STATUSES)
+      .in('bookings.status', BOOKING_PAYABLE_STATUSES)
+      .limit(10000)
+  )
 
   ;(data || []).forEach((session) => set.add(session.id))
 
@@ -226,11 +271,13 @@ async function getAttendanceCounts(supabase: SupabaseLike, sessionIds: string[])
   const map = new Map<string, number>()
   if (sessionIds.length === 0) return map
 
-  const { data } = await supabase
-    .from('attendance')
-    .select('booking_session_id')
-    .in('booking_session_id', sessionIds)
-    .limit(10000) as unknown as { data: AttendanceRow[] | null }
+  const data = await runPayrollInChunks<AttendanceRow>(sessionIds, 'attendance counts', (chunkSessionIds) =>
+    supabase
+      .from('attendance')
+      .select('booking_session_id')
+      .in('booking_session_id', chunkSessionIds)
+      .limit(10000)
+  )
 
   ;(data || []).forEach((attendance) => {
     map.set(attendance.booking_session_id, (map.get(attendance.booking_session_id) || 0) + 1)
@@ -243,13 +290,14 @@ async function getCheckins(supabase: SupabaseLike, coachIds: string[], slotIds: 
   const map = new Map<string, CheckinRow>()
   if (coachIds.length === 0 || slotIds.length === 0) return map
 
-  const { data } = await supabase
+  const query = supabase
     .from('coach_checkins')
     .select('id, coach_id, schedule_slot_id, checkin_time, photo_url, location_lat, location_lng')
     .in('coach_id', coachIds)
     .in('schedule_slot_id', slotIds)
     .order('checkin_time', { ascending: false })
-    .limit(10000) as unknown as { data: CheckinRow[] | null }
+    .limit(10000)
+  const data = await runPayrollQuery<CheckinRow[]>(query, 'coach checkins')
 
   ;(data || []).forEach((checkin) => {
     const key = getSlotKey(checkin.coach_id, checkin.schedule_slot_id)
