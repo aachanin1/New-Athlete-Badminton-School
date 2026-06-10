@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Clock, MapPin } from 'lucide-react'
 import { fmtTime } from '@/lib/utils'
+import { SELF_LEARNER_COLOR, buildLearnerColorMap, getLearnerColor } from './learner-colors'
 
 interface SessionData {
   id: string
@@ -31,24 +32,11 @@ interface DashboardCalendarProps {
 const DAY_HEADERS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
 
-const CHILD_COLORS = [
-  { badge: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  { badge: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
-  { badge: 'bg-pink-100 text-pink-700 border-pink-200', dot: 'bg-pink-500' },
-  { badge: 'bg-teal-100 text-teal-700 border-teal-200', dot: 'bg-teal-500' },
-  { badge: 'bg-orange-100 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
-]
-const SELF_COLOR = { badge: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' }
-
 export function DashboardCalendar({ sessions, learnerChildren, userName }: DashboardCalendarProps) {
   const now = new Date()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  const childColorMap = useMemo(() => {
-    const map: Record<string, typeof CHILD_COLORS[0]> = {}
-    learnerChildren.forEach((c, i) => { map[c.id] = CHILD_COLORS[i % CHILD_COLORS.length] })
-    return map
-  }, [learnerChildren])
+  const childColorMap = useMemo(() => buildLearnerColorMap(learnerChildren), [learnerChildren])
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, SessionData[]> = {}
@@ -82,10 +70,7 @@ export function DashboardCalendar({ sessions, learnerChildren, userName }: Dashb
     return userName
   }
 
-  const getColor = (session: SessionData) => {
-    if (session.child_id && childColorMap[session.child_id]) return childColorMap[session.child_id]
-    return SELF_COLOR
-  }
+  const getColor = (session: SessionData) => getLearnerColor(session.child_id, childColorMap)
 
   return (
     <div className="space-y-4">
@@ -101,8 +86,8 @@ export function DashboardCalendar({ sessions, learnerChildren, userName }: Dashb
               </Badge>
             )
           })}
-          <Badge className={SELF_COLOR.badge} variant="outline">
-            <span className={`w-2 h-2 rounded-full ${SELF_COLOR.dot} mr-1.5`} />
+          <Badge className={SELF_LEARNER_COLOR.badge} variant="outline">
+            <span className={`w-2 h-2 rounded-full ${SELF_LEARNER_COLOR.dot} mr-1.5`} />
             {userName} (ตัวเอง)
           </Badge>
         </div>

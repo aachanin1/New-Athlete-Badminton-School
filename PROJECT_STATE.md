@@ -287,3 +287,12 @@ Treat the untracked guide as out of scope. Do not commit, delete, or move it unl
 - Business rules unchanged: wallet same-month redemption, duplicate learner guard, no-payment flow, schedule status badges, and detail-card status text remain intact.
 - No DB writes, migrations, cleanup, commit, push, or deploy were performed for this scoped UI fix.
 - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+
+## 2026-06-10 - User Dashboard/Schedule Learner Color Parity
+
+- Fixed scoped UI mismatch where `/dashboard` and `/dashboard/schedule` could show different colors for the same learner.
+- Added shared learner color source `src/components/dashboard/learner-colors.ts` and updated both dashboard calendars to use it.
+- Wallet/status meaning on `/dashboard/schedule` is now a separate violet ring marker, so learner identity remains the dot fill color and no longer turns gray because of wallet/status state.
+- Business rules unchanged: booking, attendance, wallet redemption, reschedule, and schedule status logic were not changed.
+- No DB writes, migrations, cleanup, commit, push, or deploy were performed for this scoped UI fix.
+- Verification passed: `git diff --check`, `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.

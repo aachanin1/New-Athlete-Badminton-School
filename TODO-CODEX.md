@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,15 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped User dashboard/schedule learner color parity:
+  - Root cause proved read-only: `/dashboard` and `/dashboard/schedule` used separate learner color maps, so the same learner could render with different calendar-dot colors.
+  - Root cause proved read-only: `/dashboard/schedule` wallet/status rendering could replace the learner identity color, making walleted or derived-status sessions look gray instead of showing the learner color clearly.
+  - Fix adds shared `src/components/dashboard/learner-colors.ts` and updates both dashboard calendars to use the same learner color mapping.
+  - Wallet/status meaning is now represented as a separate marker ring on the dot, while the dot fill remains the learner identity color.
+  - Business behavior was not changed: bookings, wallet redemption, schedule status text, attendance status, and reschedule rules remain intact.
+  - Verification passed: `git diff --check`, `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+  - No DB writes, migrations, cleanup, commit, push, or deploy were performed.
 
 - Completed scoped lesson wallet success feedback and user schedule learner-dot color fix:
   - Root cause proved read-only: wallet redemption success closed the modal and refreshed without any success alert/toast.

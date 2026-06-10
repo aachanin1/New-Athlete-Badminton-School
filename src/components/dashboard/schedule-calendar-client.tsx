@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { deriveSessionAttendanceStatus, type DerivedSessionStatus } from '@/lib/session-attendance-status'
 import { cn, fmtTime } from '@/lib/utils'
+import { SELF_LEARNER_COLOR, buildLearnerColorMap, getLearnerColor } from './learner-colors'
 
 interface SessionData {
   id: string
@@ -139,17 +140,6 @@ const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
 }
 
-const CHILD_COLORS = [
-  'bg-green-100 text-green-700 border-green-200',
-  'bg-purple-100 text-purple-700 border-purple-200',
-  'bg-pink-100 text-pink-700 border-pink-200',
-  'bg-teal-100 text-teal-700 border-teal-200',
-  'bg-orange-100 text-orange-700 border-orange-200',
-]
-
-const CHILD_DOT_COLORS = ['bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500']
-const SELF_DOT_COLOR = 'bg-gray-500'
-
 function getInitial(name: string | null | undefined) {
   return (name || 'Coach').trim().charAt(0).toUpperCase()
 }
@@ -198,6 +188,18 @@ function isAtLeast48HoursAhead(date: string, time: string) {
   return start.getTime() - Date.now() >= 48 * 60 * 60 * 1000
 }
 
+function getCalendarStatusMarkerClass(session: SessionData) {
+  const hasWalletSignal =
+    session.status === 'walleted' ||
+    session.wallet_credit_status === 'active' ||
+    session.wallet_credit_status === 'redeemed' ||
+    session.wallet_credit_status === 'expired' ||
+    session.wallet_source_status === 'redeemed'
+
+  if (hasWalletSignal) return 'ring-2 ring-violet-500 ring-offset-1 ring-offset-white'
+  return 'ring-1 ring-white'
+}
+
 export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: ScheduleCalendarClientProps) {
   const router = useRouter()
   const now = new Date()
@@ -208,21 +210,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
   const [walletLoadingId, setWalletLoadingId] = useState<string | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
 
-  const childColorMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    learnerChildren.forEach((child, index) => {
-      map[child.id] = CHILD_COLORS[index % CHILD_COLORS.length]
-    })
-    return map
-  }, [learnerChildren])
-
-  const childDotColorMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    learnerChildren.forEach((child, index) => {
-      map[child.id] = CHILD_DOT_COLORS[index % CHILD_DOT_COLORS.length]
-    })
-    return map
-  }, [learnerChildren])
+  const childColorMap = useMemo(() => buildLearnerColorMap(learnerChildren), [learnerChildren])
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, SessionData[]> = {}
@@ -356,11 +344,11 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
       {learnerChildren.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {learnerChildren.map((child) => (
-            <Badge key={child.id} className={childColorMap[child.id]} variant="outline">
+            <Badge key={child.id} className={getLearnerColor(child.id, childColorMap).badge} variant="outline">
               {child.nickname || child.full_name}
             </Badge>
           ))}
-          <Badge className="border-gray-200 bg-gray-100 text-gray-700" variant="outline">{userName || 'ตัวเอง'} (ตัวเอง)</Badge>
+          <Badge className={SELF_LEARNER_COLOR.badge} variant="outline">{userName || 'ตัวเอง'} (ตัวเอง)</Badge>
         </div>
       )}
 
@@ -401,13 +389,12 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                   {hasSessions && (
                     <div className="mt-1 flex w-full flex-wrap justify-center gap-0.5">
                       {visibleSessions.map((session) => {
-                        const childId = session.child_id
-                        const learnerDot = childId ? childDotColorMap[childId] || SELF_DOT_COLOR : SELF_DOT_COLOR
+                        const learnerDot = getLearnerColor(session.child_id, childColorMap).dot
                         const status = getDisplayStatus(session, now)
                         return (
                           <span
                             key={session.id}
-                            className={cn('h-2 w-2 rounded-full ring-1 ring-white', learnerDot)}
+                            className={cn('h-2 w-2 rounded-full', learnerDot, getCalendarStatusMarkerClass(session))}
                             title={`${getLearnerName(session)} ${fmtTime(session.start_time)} ${status.label}`}
                           />
                         )
@@ -438,8 +425,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
 
             <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1">
               {selectedSessions.map((session) => {
-                const childId = session.child_id
-                const colorClass = childId ? childColorMap[childId] || '' : 'bg-gray-100 text-gray-700'
+                const colorClass = getLearnerColor(session.child_id, childColorMap).badge
                 const displayStatus = getDisplayStatus(session, now)
                 const derivedStatus = getDerivedStatus(session, now)
                 const coachRoleLabel = session.coach_role ? ROLE_LABELS[session.coach_role] || session.coach_role : 'โค้ช'
