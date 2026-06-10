@@ -269,3 +269,21 @@ Treat the untracked guide as out of scope. Do not commit, delete, or move it unl
 - Do not add a SlipOK mode UI toggle.
 - Do not weaken coach evidence requirements for weekly teaching-hour closing.
 - Do not use native browser alert/confirm/prompt in product UI.
+
+## 2026-06-10 - Lesson Wallet Cross-Branch Course-Type Validation
+
+- Fixed `/dashboard/lesson-wallet` redemption selection to stop guessing missing or invalid course types as `kids_group`.
+- Root cause proved read-only: `/api/lesson-wallet` already allows cross-branch redemption when `branch_id + credit.course_type_id + day/time` matches an active `schedule_templates` row, but the UI/server mapper could display schedule options using a `kids_group` fallback. That mismatch could produce a false `รอบเรียนที่เลือกไม่ตรงกับรอบเรียนประจำในระบบ` error.
+- Source fix: wallet schedule template mapping now requires a valid branch slug and DB-backed course type. Wallet credits with missing/invalid course type data are disabled with a clear UI warning instead of opening a mismatched redemption flow.
+- Business rules unchanged: same-month redemption, future-slot requirement, duplicate learner guard, capacity guard, no-payment redemption, cross-branch allowance, and wallet status transitions remain intact.
+- No DB writes, migrations, cleanup, commit, push, or deploy were performed for this scoped fix.
+- Verification passed: `npx tsc --noEmit`, `npm run check:mojibake`, `npm run lint`, and `npm run build`.
+
+## 2026-06-10 - Lesson Wallet Success Feedback + User Schedule Learner Dots
+
+- Fixed scoped UI feedback after successful `/dashboard/lesson-wallet` redemption: the modal now shows a success toast before closing and refreshing.
+- Fixed `/dashboard/schedule` calendar dots to use learner identity colors as the primary dot color instead of being overridden by derived attendance/status colors.
+- Root cause proved read-only: wallet `redeem()` success path closed the dialog and refreshed without any success feedback; schedule calendar had child dot colors available but rendered `status.dotClassName || learnerDot`, so normal upcoming/wallet/status colors could hide per-learner colors.
+- Business rules unchanged: wallet same-month redemption, duplicate learner guard, no-payment flow, schedule status badges, and detail-card status text remain intact.
+- No DB writes, migrations, cleanup, commit, push, or deploy were performed for this scoped UI fix.
+- Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.

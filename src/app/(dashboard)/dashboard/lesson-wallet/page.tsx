@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 
 import { LessonWalletClient } from '@/components/dashboard/lesson-wallet-client'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { normalizeCourseTypeName } from '@/lib/schedule-template-utils'
 import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName } from '@/types/database'
 
@@ -117,6 +118,26 @@ export default async function LessonWalletPage() {
       .neq('status', 'walleted') as unknown as PromiseLike<{ data: ExistingSessionRow[] | null }>,
   ])
 
+  const walletScheduleTemplates = (scheduleTemplates || []).flatMap((template) => {
+    const courseTypeName = normalizeCourseTypeName(template.course_types?.name)
+    const branchSlug = template.branches?.slug
+
+    if (!courseTypeName || !branchSlug) return []
+
+    return [{
+      id: template.id,
+      branch_id: template.branch_id,
+      branch_slug: branchSlug,
+      course_type_id: template.course_type_id,
+      course_type_name: courseTypeName,
+      day_of_week: template.day_of_week,
+      start_time: template.start_time,
+      end_time: template.end_time,
+      is_active: template.is_active,
+      notes: template.notes,
+    }]
+  })
+
   return (
     <div className="space-y-6">
       <div>
@@ -139,18 +160,7 @@ export default async function LessonWalletPage() {
           status: session.status,
           course_type_id: session.bookings?.course_type_id || '',
         }))}
-        scheduleTemplates={(scheduleTemplates || []).map((template) => ({
-          id: template.id,
-          branch_id: template.branch_id,
-          branch_slug: template.branches?.slug || '',
-          course_type_id: template.course_type_id,
-          course_type_name: template.course_types?.name || 'kids_group',
-          day_of_week: template.day_of_week,
-          start_time: template.start_time,
-          end_time: template.end_time,
-          is_active: template.is_active,
-          notes: template.notes,
-        }))}
+        scheduleTemplates={walletScheduleTemplates}
       />
     </div>
   )

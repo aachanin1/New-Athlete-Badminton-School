@@ -18,7 +18,7 @@ export default async function ChildrenPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">จัดการข้อมูลลูก</h1>
-        <p className="text-gray-500 text-sm mt-1">เพิ่ม แก้ไข ข้อมูลลูกของคุณ</p>
+        <p className="text-gray-500 text-sm mt-1">เพิ่ม แก้ไข ข้อมูลลูกของคุณ |<b className="text-red-500 text-sm mt-1">❗️หมายเหตุ เพิ่มได้เฉพาะข้อมูลลูกหรือ พี่น้องเท่านั้น</b> </p>
       </div>
       <ChildrenClient initialChildren={children || []} />
     </div>

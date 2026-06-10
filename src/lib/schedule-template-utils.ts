@@ -1,5 +1,11 @@
 import type { CourseTypeName } from '@/types/database'
 
+const COURSE_TYPE_NAMES: CourseTypeName[] = ['kids_group', 'adult_group', 'private']
+
+export function normalizeCourseTypeName(value: string | null | undefined): CourseTypeName | null {
+  return COURSE_TYPE_NAMES.includes(value as CourseTypeName) ? (value as CourseTypeName) : null
+}
+
 export interface TimeSlot {
   start: string
   end: string

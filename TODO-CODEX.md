@@ -21,6 +21,21 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped lesson wallet success feedback and user schedule learner-dot color fix:
+  - Root cause proved read-only: wallet redemption success closed the modal and refreshed without any success alert/toast.
+  - Root cause proved read-only: `/dashboard/schedule` already had `child_id`, `children`, and learner color maps, but calendar dots rendered status color before learner color.
+  - Fix keeps business behavior unchanged and only changes UI feedback/dot rendering.
+  - Verification passed: `npm run check:mojibake`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`.
+  - No DB writes, migrations, cleanup, commit, push, or deploy were performed.
+
+- Completed scoped lesson wallet cross-branch course-type validation alignment:
+  - Root cause proved read-only: wallet redemption API validates the real `credit.course_type_id`, while the wallet UI/server mapper could fall back missing/invalid course type names to `kids_group`.
+  - Cross-branch use remains allowed when the chosen branch, course, day, and time exist in active `schedule_templates`.
+  - Invalid wallet credits now stay blocked with an explicit UI warning instead of sending a mismatched API request.
+  - Business behavior was not changed: same-month rule, duplicate learner guard, capacity guard, no-payment redemption, and wallet transitions remain intact.
+  - Verification passed: `npx tsc --noEmit`, `npm run check:mojibake`, `npm run lint`, and `npm run build`.
+  - No DB writes, migrations, cleanup, commit, push, or deploy were performed.
+
 - Completed scoped lesson wallet redemption template fallback fix:
   - Root cause proved read-only: `/api/lesson-wallet` hard-filtered by client `scheduleTemplateId`, so a stale/mismatched id could reject a valid branch/course/day/time slot.
   - Fix keeps `scheduleTemplateId` as a fast-path hint only. If it does not match, the API falls back to active `schedule_templates` by branch, course, day, and selected start/end time.

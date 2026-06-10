@@ -407,7 +407,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                         return (
                           <span
                             key={session.id}
-                            className={cn('h-2 w-2 rounded-full ring-1 ring-white', status.dotClassName || learnerDot)}
+                            className={cn('h-2 w-2 rounded-full ring-1 ring-white', learnerDot)}
                             title={`${getLearnerName(session)} ${fmtTime(session.start_time)} ${status.label}`}
                           />
                         )

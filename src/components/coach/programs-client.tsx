@@ -100,7 +100,7 @@ const STATUS_CONFIG: Record<ProgramStatus, { label: string; color: string; icon:
 const PROGRAM_PRESETS = [
   {
     id: 'draf-phraram2-competition-technique',
-    label: 'หลัการสอน New Athlete',
+    label: 'หลักการสอน New Athlete',
     content: `🗂 หลักวางแผนสอนแต่ละวัน NEW ATHLETE
 "เด็ก 1-2 คนต้องเรียนได้ 5-6 โปรแกรม"
 "เด็ก 3 คนขึ้นได้ ต้องเรียนได้ 4 โปรแกรม"

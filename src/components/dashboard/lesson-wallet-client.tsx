@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, CalendarDays, CheckCircle2, Clock, Loader2, MapPin, ShieldAlert, WalletCards, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
+import { getTemplateSlots, hasTemplateSlots, normalizeCourseTypeName, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
 
@@ -90,10 +91,8 @@ function getLearnerName(credit: WalletCredit) {
   return credit.children?.nickname || credit.children?.full_name || 'ตัวเอง'
 }
 
-function getCourseType(credit: WalletCredit | null): CourseTypeName {
-  const name = credit?.course_types?.name
-  if (name === 'kids_group' || name === 'adult_group' || name === 'private') return name
-  return 'kids_group'
+function getCourseType(credit: WalletCredit | null): CourseTypeName | null {
+  return normalizeCourseTypeName(credit?.course_types?.name)
 }
 
 function getMonthParts(date: string) {
@@ -157,6 +156,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
   const isDateSelectable = (day: number) => {
     if (!selectedCredit) return false
     const courseType = getCourseType(selectedCredit)
+    if (!courseType) return false
     const date = new Date(selectedMonthParts.year, selectedMonthParts.month, day)
     const dateStr = getDateStr(day)
     return branches.some((branch) => {
@@ -236,6 +236,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
     }
 
     setLoading(false)
+    toast.success('ใช้วันเรียนจากกระเป๋าสำเร็จ')
     closeDialog()
     router.refresh()
   }
@@ -283,7 +284,10 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
         </Card>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
-          {activeCredits.map((credit) => (
+          {activeCredits.map((credit) => {
+            const courseType = getCourseType(credit)
+
+            return (
             <Card key={credit.id} className="border-violet-200 bg-violet-50/30">
               <CardContent className="p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -291,7 +295,11 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">พร้อมใช้</Badge>
                       <Badge variant="outline">{getLearnerName(credit)}</Badge>
-                      <Badge variant="outline">{COURSE_LABELS[getCourseType(credit)]}</Badge>
+                      {courseType ? (
+                        <Badge variant="outline">{COURSE_LABELS[courseType]}</Badge>
+                      ) : (
+                        <Badge variant="destructive">ข้อมูลคอร์สไม่ครบ</Badge>
+                      )}
                     </div>
                     <p className="font-semibold text-[#153c85]">{formatDateThai(credit.original_date)}</p>
                     <p className="text-sm text-gray-600">
@@ -303,14 +311,15 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                     </p>
                     <p className="text-xs text-gray-500">หมดอายุ {new Date(credit.expires_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</p>
                   </div>
-                  <Button className="bg-[#2748bf] hover:bg-[#153c85]" disabled={loading} onClick={() => openRedeemDialog(credit)}>
+                  <Button className="bg-[#2748bf] hover:bg-[#153c85]" disabled={loading || !courseType} onClick={() => openRedeemDialog(credit)}>
                     <ArrowRight className="mr-1 h-4 w-4" />
                     ใช้วันเรียน
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -401,6 +410,14 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                 const date = new Date(selectedMonthParts.year, selectedMonthParts.month, day)
                 const dayIndex = date.getDay()
                 const courseType = getCourseType(selectedCredit)
+
+                if (!courseType) {
+                  return (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                      ข้อมูลคอร์สของสิทธิ์นี้ไม่ครบ กรุณาติดต่อผู้ดูแลระบบ
+                    </div>
+                  )
+                }
 
                 return (
                   <div className="space-y-3 rounded-lg border bg-gray-50 p-3">
