@@ -21,6 +21,19 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed production post-deploy Coach smoke for Phase B.1:
+  - Confirmed commit `640519d` (`640519dbc6b75c9186d7e47966b6f384f75999fc`) was deployed to Vercel production.
+  - Deployment id: `dpl_7ZBqt1Fct47o5UAvwKiEDsH7pTVT`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Smoke remained read-only: no check-in, attendance save, payroll, Admin Makeup action, payment, booking, lesson wallet, coupon, assignment, DB write, migration, source code change, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Used the Coach account only through the production login UI. Passwords were not written to project files or documentation.
+  - `/coach` loaded without redirecting back to login, heading `หน้าหลักโค้ช`; observed status `สถานะเช็คชื่อไม่ค้างแล้ว 4/4 รอบ` with no visible conflict.
+  - `/coach/today` loaded without redirecting back to login, heading `ตารางสอนของฉัน`; observed `เช็คอินแล้ว` and `บันทึกผลครบแล้ว` badges with learner labels including `มาเรียนแล้ว` and `ขาดเรียน`.
+  - `/coach/attendance` loaded without redirecting back to login, heading `เช็คชื่อนักเรียน`; observed summary `รอบทั้งหมด 4`, `บันทึกผลครบแล้ว 4`, `ยังล็อก/รอเช็คอิน 0`, and `ยังเช็คไม่ครบ 0`. Slot badges showed `บันทึกผลครบแล้ว .../...` together with `เช็คอินแล้ว`.
+  - Browser console for `/coach`, `/coach/today`, and `/coach/attendance` showed no errors or warnings.
+  - No visible `บันทึกผลบางส่วน` data appeared in production during this smoke, so partial-attendance visual label remains `NEED VERIFICATION` for a future real partial data case.
+  - Gate result: `PASS` for production page load, auth redirect, console, and observed Coach display status on `/coach`, `/coach/today`, and `/coach/attendance`; `NEED VERIFICATION` only for a future visible partial-attendance data case.
+
 - Completed authenticated Coach smoke verification retry for Phase B.1:
   - Used the existing Chrome session already logged in by the owner; no password was entered or written to files/docs.
   - Smoke remained read-only: no attendance save, check-in, payroll, Admin Makeup action, payment, booking, lesson wallet, coupon, assignment, DB write, migration, source code change, commit, deploy, or `SlipOK API Guide.docx` action was performed.

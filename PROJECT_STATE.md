@@ -611,6 +611,22 @@ Potential bug found:
   - Browser console showed no errors. Warning observed: known local Next.js `scroll-behavior: smooth` warning during route transitions.
   - Logout was performed after smoke as requested and returned to the public home page.
   - Gate result: `PASS` for authenticated Phase B.1 Coach smoke on `/coach`, `/coach/today`, and `/coach/attendance`; `NEED VERIFICATION` only for a real data case that visibly contains partial attendance.
+- Phase B.1 release/deploy:
+  - Commit `640519d` (`fix(coach): unify slot display status`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-13.
+  - Full deployed commit: `640519dbc6b75c9186d7e47966b6f384f75999fc`.
+  - Vercel deployment id: `dpl_7ZBqt1Fct47o5UAvwKiEDsH7pTVT`.
+  - Deployment URL: `https://new-athlete-badminton-school-f73lmp4a8-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment was run from a clean temporary worktree pinned to commit `640519d`; the untracked `SlipOK API Guide.docx` was not included.
+- Production post-deploy Coach smoke for Phase B.1:
+  - Smoke remained read-only: no check-in, attendance save, payroll, Admin Makeup action, payment, booking, lesson wallet, coupon, assignment, DB write, migration, source change, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Used the Coach account only through the production login UI. Passwords were not written to project files or documentation.
+  - `/coach` loaded on `https://www.newathleteschool.com/coach` without redirecting back to login. Observed heading `หน้าหลักโค้ช`, 4 rounds today, and status text `สถานะเช็คชื่อไม่ค้างแล้ว 4/4 รอบ`; no visible status conflict was confirmed.
+  - `/coach/today` loaded on `https://www.newathleteschool.com/coach/today` without redirecting back to login. Observed heading `ตารางสอนของฉัน`, `เช็คอินแล้ว`, and `บันทึกผลครบแล้ว` badges including `7/7`, `1/1`, and `4/4`; learner labels included `มาเรียนแล้ว` and `ขาดเรียน`.
+  - `/coach/attendance` loaded on `https://www.newathleteschool.com/coach/attendance` without redirecting back to login. Observed heading `เช็คชื่อนักเรียน`, summary `รอบทั้งหมด 4`, `บันทึกผลครบแล้ว 4`, `ยังล็อก/รอเช็คอิน 0`, and `ยังเช็คไม่ครบ 0`; slot badges showed `บันทึกผลครบแล้ว .../...` together with `เช็คอินแล้ว`.
+  - Browser console for all three route tabs showed no errors or warnings.
+  - No visible `บันทึกผลบางส่วน` data appeared in production during this smoke, so partial-attendance visual label remains `NEED VERIFICATION` for a future real partial data case.
+  - Gate result: `PASS` for production page load, auth redirect, console, and observed Coach display status on `/coach`, `/coach/today`, and `/coach/attendance`; `NEED VERIFICATION` only for a future visible partial-attendance data case.
 
 ## Unknown / Need Verification
 
