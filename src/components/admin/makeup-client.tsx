@@ -361,8 +361,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [unassignedMode, setUnassignedMode] = useState<UnassignedRoundMode>('taught')
   const [unassignedCoachId, setUnassignedCoachId] = useState('')
   const [unassignedReason, setUnassignedReason] = useState('')
-  const [unassignedAttendance, setUnassignedAttendance] = useState<Record<string, AttendanceStatus>>({})
   const [unassignedSubmitting, setUnassignedSubmitting] = useState(false)
+  const [roundAttendanceGroup, setRoundAttendanceGroup] = useState<ReviewSessionGroup | null>(null)
+  const [roundAttendanceReason, setRoundAttendanceReason] = useState('')
+  const [roundAttendance, setRoundAttendance] = useState<Record<string, AttendanceStatus | ''>>({})
+  const [roundAttendanceSubmitting, setRoundAttendanceSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
@@ -822,18 +825,95 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }
 
   const openUnassignedRoundDialog = (group: ReviewSessionGroup) => {
-    const attendanceMap = Object.fromEntries(
-      group.sessions
-        .filter(isAttendanceReviewSession)
-        .map((session) => [session.id, 'present' as AttendanceStatus])
-    )
-
     setUnassignedGroup(group)
     setUnassignedMode('taught')
     setUnassignedCoachId('')
     setUnassignedReason('')
-    setUnassignedAttendance(attendanceMap)
     setError(null)
+  }
+
+  const openRoundAttendanceDialog = (group: ReviewSessionGroup) => {
+    if (isUnassignedAttendanceRound(group)) {
+      setError('รอบนี้ยังไม่มีโค้ชในกลุ่ม กรุณาใช้ปุ่มจัดการเคสทั้งรอบเท่านั้น')
+      return
+    }
+
+    const attendanceMap: Record<string, AttendanceStatus | ''> = {}
+    group.sessions
+      .filter(isAttendanceReviewSession)
+      .forEach((session) => {
+        attendanceMap[session.id] = ''
+      })
+
+    setRoundAttendanceGroup(group)
+    setRoundAttendanceReason('')
+    setRoundAttendance(attendanceMap)
+    setError(null)
+  }
+
+  const submitRoundAttendance = async () => {
+    if (!roundAttendanceGroup) return
+
+    if (isUnassignedAttendanceRound(roundAttendanceGroup)) {
+      setError('รอบนี้ยังไม่มีโค้ชในกลุ่ม กรุณาใช้ flow จัดการเคสทั้งรอบเดิม')
+      return
+    }
+
+    const targetSessions = roundAttendanceGroup.sessions.filter(isAttendanceReviewSession)
+    const reason = roundAttendanceReason.trim()
+
+    if (targetSessions.length === 0) {
+      setError('ไม่พบรายการผู้เรียนที่ต้องบันทึกย้อนหลังในรอบนี้')
+      return
+    }
+
+    if (!reason) {
+      setError('กรุณาระบุเหตุผลเพื่อเก็บ audit log ก่อนบันทึกทั้งรอบ')
+      return
+    }
+
+    const missingSessions = targetSessions.filter((session) => !roundAttendance[session.id])
+    if (missingSessions.length > 0) {
+      setError('กรุณาเลือกสถานะเช็คชื่อให้ครบทุกคนในรอบนี้')
+      return
+    }
+
+    setRoundAttendanceSubmitting(true)
+    setError(null)
+
+    try {
+      for (const session of targetSessions) {
+        const attendanceStatus = roundAttendance[session.id]
+        if (!attendanceStatus) {
+          setError('กรุณาเลือกสถานะเช็คชื่อให้ครบทุกคนในรอบนี้')
+          return
+        }
+
+        const response = await fetch('/api/admin/makeup', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: session.id,
+            action: 'mark_attendance',
+            attendance_status: attendanceStatus,
+            reason: `บันทึกย้อนหลังทั้งรอบ ${formatDate(roundAttendanceGroup.date)} ${formatTime(roundAttendanceGroup.startTime, roundAttendanceGroup.endTime)}: ${reason}`,
+          }),
+        })
+
+        const result = await response.json().catch(() => null)
+        if (!response.ok) {
+          setError(result?.error || 'บันทึกย้อนหลังทั้งรอบไม่สำเร็จ')
+          return
+        }
+      }
+
+      setRoundAttendanceGroup(null)
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setRoundAttendanceSubmitting(false)
+    }
   }
 
   const submitUnassignedRoundResolution = async () => {
@@ -853,7 +933,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     }
 
     if (unassignedMode === 'taught' && !unassignedCoachId) {
-      setError('กรุณาเลือกโค้ชจริงที่สอนรอบนี้ก่อนบันทึกย้อนหลังทั้งรอบ')
+      setError('กรุณาเลือกโค้ชที่จะรับผิดชอบรอบนี้ก่อนมอบหมาย')
       return
     }
 
@@ -866,10 +946,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'resolve_unassigned_round',
-            resolution_mode: 'taught',
+            action: 'assign_coach_to_round',
             session_ids: targetSessions.map((session) => session.id),
-            attendance_by_session_id: unassignedAttendance,
             coach_id: unassignedCoachId,
             reason,
           }),
@@ -877,7 +955,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
         const result = await response.json().catch(() => null)
         if (!response.ok) {
-          setError(result?.error || 'บันทึกย้อนหลังทั้งรอบไม่สำเร็จ')
+          setError(result?.error || 'มอบหมายโค้ชให้รอบนี้ไม่สำเร็จ')
           return
         }
       } else {
@@ -910,6 +988,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       setUnassignedSubmitting(false)
     }
   }
+
+  const roundAttendanceTargetSessions = roundAttendanceGroup?.sessions.filter(isAttendanceReviewSession) || []
+  const roundAttendanceComplete = roundAttendanceTargetSessions.length > 0 &&
+    roundAttendanceTargetSessions.every((session) => Boolean(roundAttendance[session.id]))
+  const unassignedTargetSessions = unassignedGroup?.sessions.filter(isAttendanceReviewSession) || []
+  const unassignedSaveDisabled = unassignedSubmitting ||
+    !unassignedReason.trim() ||
+    (unassignedMode === 'taught' && !unassignedCoachId)
 
   return (
     <div className="space-y-5">
@@ -1151,6 +1237,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-9 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                            disabled={!groupNeedsAttendanceReview}
+                            onClick={() => openRoundAttendanceDialog(group)}
+                            title={!groupNeedsAttendanceReview ? 'รอบนี้ไม่มีรายการที่ต้องบันทึก attendance ย้อนหลังแล้ว' : undefined}
+                          >
+                            บันทึกย้อนหลังทั้งรอบ
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="h-9 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                             disabled={reviewGroupLoadingKey === `${group.key}:close`}
                             onClick={() => void closeReviewGroup(group)}
@@ -1191,34 +1287,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             รอบนี้ยังไม่มีโค้ชในกลุ่ม ให้จัดการจากปุ่มทั้งรอบด้านบนเท่านั้น เพื่อไม่ให้ผลรายคนหลุดจากรอบเดียวกัน
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
-                              disabled={reviewSubmitting && reviewSession?.id === session.id}
-                              onClick={() => openReviewDialog(session, 'mark_attendance')}
-                            >
-                              บันทึกย้อนหลัง
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
-                              disabled={reviewSubmitting && reviewSession?.id === session.id}
-                              onClick={() => openReviewDialog(session, 'confirm_absent')}
-                            >
-                              {reviewSubmitting && reviewSession?.id === session.id ? 'กำลังยืนยัน...' : 'ยืนยันขาด'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
-                              disabled={reviewSubmitting && reviewSession?.id === session.id}
-                              onClick={() => openReviewDialog(session, 'return_entitlement')}
-                            >
-                              คืนสิทธิ์
-                            </Button>
+                          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                            {isCoachEvidenceReviewSession(session)
+                              ? 'บันทึก attendance แล้ว แต่ยังต้องติดตามหลักฐานโค้ชจากปุ่มระดับรอบด้านบน'
+                              : 'ให้บันทึกหรือส่งตรวจสอบจากปุ่มระดับรอบด้านบนเท่านั้น เพื่อให้ผลทั้งรอบไปทางเดียวกัน'}
                           </div>
                         )}
                       </div>
@@ -1410,6 +1482,108 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       )}
 
       <Dialog
+        open={Boolean(roundAttendanceGroup)}
+        onOpenChange={(open) => {
+          if (!open && !roundAttendanceSubmitting) setRoundAttendanceGroup(null)
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">บันทึกย้อนหลังทั้งรอบ</DialogTitle>
+            <DialogDescription>
+              เลือกสถานะผู้เรียนทุกคนในรอบนี้ให้ครบก่อนบันทึก ระบบจะเขียน attendance รายคน แต่ attendance ครบไม่ได้แปลว่าหลักฐานโค้ชครบจนกว่าจะมี selfie/GPS/check-in ครบตามเงื่อนไข
+            </DialogDescription>
+          </DialogHeader>
+          {roundAttendanceGroup && (
+            <div className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <p className="font-semibold">
+                  {formatDate(roundAttendanceGroup.date)} {formatTime(roundAttendanceGroup.startTime, roundAttendanceGroup.endTime)}
+                </p>
+                <p className="mt-1 text-xs">
+                  {roundAttendanceGroup.branchName} · {roundAttendanceGroup.courseType || 'คอร์สเรียน'} · {roundAttendanceTargetSessions.length} คน · โค้ช: {roundAttendanceGroup.coachName || '-'}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                การบันทึกนี้สรุปเฉพาะสถานะผู้เรียน เช่น มาเรียน / มาสาย / ขาดเรียน เท่านั้น หากหลักฐานโค้ชยังไม่ครบ ให้ใช้การติดตามหลักฐานโค้ชแยกต่างหาก
+              </div>
+
+              <div className="rounded-lg border border-gray-200">
+                <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-900">
+                  ผลเช็คชื่อรายคน
+                </div>
+                <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto">
+                  {roundAttendanceTargetSessions.map((session) => (
+                    <div key={session.id} className="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-950">{session.learner_name}</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          ผู้ปกครอง/ผู้ใช้: {session.user_name}
+                        </p>
+                      </div>
+                      <Select
+                        value={roundAttendance[session.id] || ''}
+                        onValueChange={(value) => setRoundAttendance((current) => ({
+                          ...current,
+                          [session.id]: value as AttendanceStatus,
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกสถานะ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="present">{getAttendanceStatusLabel('present')}</SelectItem>
+                          <SelectItem value="late">{getAttendanceStatusLabel('late')}</SelectItem>
+                          <SelectItem value="absent">{getAttendanceStatusLabel('absent')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">เหตุผล / หลักฐานประกอบ</label>
+                <Textarea
+                  className="mt-2 min-h-24"
+                  value={roundAttendanceReason}
+                  onChange={(event) => setRoundAttendanceReason(event.target.value)}
+                  placeholder="เช่น โค้ชสอนจริงแต่ลืมบันทึก attendance / Admin ตรวจสอบย้อนหลังจากหลักฐานการสอน"
+                />
+                <p className="mt-1 text-xs text-gray-500">จำเป็นสำหรับ audit log ของทุกคนในรอบนี้</p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={roundAttendanceSubmitting}
+                  onClick={() => setRoundAttendanceGroup(null)}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  disabled={roundAttendanceSubmitting || !roundAttendanceReason.trim() || !roundAttendanceComplete}
+                  onClick={submitRoundAttendance}
+                >
+                  {roundAttendanceSubmitting ? 'กำลังบันทึก...' : 'บันทึก attendance ทั้งรอบ'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={Boolean(reviewSession)}
         onOpenChange={(open) => {
           if (!open && !reviewSubmitting) setReviewSession(null)
@@ -1544,7 +1718,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">จัดการรอบที่ยังไม่มีโค้ช</DialogTitle>
             <DialogDescription>
-              ใช้เฉพาะรอบที่เลยเวลาเรียนแล้ว แต่ยังไม่มีโค้ชอยู่ในกลุ่ม ระบบจะบันทึกผลทั้งรอบเพื่อให้ตารางเรียน กระเป๋าวันเรียน และชั่วโมงสอนตรงกัน
+              ใช้เฉพาะรอบที่เลยเวลาเรียนแล้ว แต่ยังไม่มีโค้ชอยู่ในกลุ่ม หากสอนจริงให้มอบหมายโค้ชก่อน โดยยังไม่บันทึก attendance
             </DialogDescription>
           </DialogHeader>
           {unassignedGroup && (
@@ -1595,39 +1769,26 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                       </SelectContent>
                     </Select>
                     <p className="mt-1 text-xs text-gray-500">
-                      ระบบจะสร้างกลุ่ม assignment ย้อนหลังให้ทั้งรอบนี้ แล้วบันทึก attendance ตามรายชื่อด้านล่าง
+                      ระบบจะสร้างกลุ่ม assignment ย้อนหลังให้ทั้งรอบนี้เท่านั้น ยังไม่เขียน attendance และยังไม่เปลี่ยนสถานะรอบเรียน
                     </p>
                   </div>
 
                   <div className="rounded-lg border border-gray-200">
                     <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-900">
-                      ผลเช็คชื่อรายคน
+                      รายชื่อผู้เรียนในรอบนี้
                     </div>
                     <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto">
-                      {unassignedGroup.sessions.filter(isAttendanceReviewSession).map((session) => (
-                        <div key={session.id} className="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
+                      {unassignedTargetSessions.map((session) => (
+                        <div key={session.id} className="px-3 py-3">
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-950">{session.learner_name}</p>
                             <p className="mt-1 text-xs text-gray-500">
                               ผู้ปกครอง/ผู้ใช้: {session.user_name}
                             </p>
+                            <p className="mt-1 text-xs text-blue-700">
+                              รอให้โค้ชตรวจสอบและบันทึก attendance หลังได้รับมอบหมายรอบนี้
+                            </p>
                           </div>
-                          <Select
-                            value={unassignedAttendance[session.id] || 'present'}
-                            onValueChange={(value) => setUnassignedAttendance((current) => ({
-                              ...current,
-                              [session.id]: value as AttendanceStatus,
-                            }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="present">{getAttendanceStatusLabel('present')}</SelectItem>
-                              <SelectItem value="late">{getAttendanceStatusLabel('late')}</SelectItem>
-                              <SelectItem value="absent">{getAttendanceStatusLabel('absent')}</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
                       ))}
                     </div>
@@ -1670,10 +1831,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 <Button
                   type="button"
                   className="bg-[#2748bf] hover:bg-[#153c85]"
-                  disabled={unassignedSubmitting}
+                  disabled={unassignedSaveDisabled}
                   onClick={submitUnassignedRoundResolution}
                 >
-                  {unassignedSubmitting ? 'กำลังบันทึก...' : 'บันทึกผลทั้งรอบ'}
+                  {unassignedSubmitting
+                    ? 'กำลังบันทึก...'
+                    : unassignedMode === 'taught'
+                      ? 'มอบหมายโค้ชให้รอบนี้'
+                      : 'บันทึกผลทั้งรอบ'}
                 </Button>
               </div>
             </div>

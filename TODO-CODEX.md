@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,44 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed Phase B.2-New.2 no-coach assign-only flow:
+  - Source/API/UI fix only; no direct DB data repair, migrations, payroll calculation, wallet/return-entitlement logic, payment, coupon, booking/create-makeup POST, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Added `assign_coach_to_round` to `PATCH /api/admin/makeup`.
+  - New action validates required `session_ids`, `coach_id`, and `reason`; validates coach/head-coach role; validates one same past normal scheduled round; rejects if any target session already has a strict learner group coach assignment.
+  - New action writes only assignment/review side effects: `coach_assignment_groups`, `coach_assignment_group_students`, legacy-compatible `coach_assignments` when needed, `activity_logs` with `attendance_gap_assign_coach_round`, and one coach notification.
+  - Confirmed by source inspection: the new action does not write `attendance`, does not call `upsertRetrospectiveAttendance`, does not call `syncBookingSessionStatusFromAttendance`, and does not update `booking_sessions.status`.
+  - Updated `src/components/admin/makeup-client.tsx` so no-coach dialog mode `สอนจริง แต่ลืมมอบหมาย/เช็คชื่อ` selects only coach + reason, shows learners as read-only labels, and removes per-learner status selects.
+  - No-coach cards still show only `จัดการเคสทั้งรอบ`; assigned-coach cards still show the Phase B.2-New.1 round-level action set.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and `npm.cmd run build`.
+  - Post-build cleanup/restart completed: removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local HTTP 200.
+  - Authenticated local `/admin/makeup` smoke passed read-only: no-coach dialog had no status select and assign button stayed disabled while incomplete; assigned-coach modal still opened and save stayed disabled while incomplete. No write-action save was clicked.
+
+- Completed Phase B.2-New.1 Admin Makeup round-level UX:
+  - Source/UI fix only; no DB data, migrations, payroll calculation, wallet/return-entitlement logic, create-makeup POST, payment, booking, coupon, assignment semantics, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Updated `src/components/admin/makeup-client.tsx`.
+  - Assigned-coach review rounds now show round-level actions for coach review/evidence, retroactive attendance for the whole round, and close whole round.
+  - No-coach review rounds preserve the previous regression guard: only `จัดการเคสทั้งรอบ` is shown, the learner-row warning remains, and per-person buttons plus the assigned-coach three-button set are not shown.
+  - Added an assigned-coach `บันทึกย้อนหลังทั้งรอบ` modal that lists every learner in the round, requires every learner status plus an audit reason before save is enabled, and uses the existing per-session `mark_attendance` PATCH path.
+  - Added copy clarifying that complete attendance does not mean coach selfie/GPS/check-in evidence is complete.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and `npm.cmd run build`.
+  - Post-build cleanup/restart completed: removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local HTTP 200.
+  - Authenticated local `/admin/makeup` smoke passed read-only for both assigned-coach and no-coach cards. The assigned-coach modal opened and save stayed disabled while incomplete; the no-coach dialog opened with only the existing `จัดการเคสทั้งรอบ` entry point. No real write-action button was submitted.
+  - Browser console showed no errors; only the known local Next.js dev `scroll-behavior: smooth` warning appeared.
+  - Remaining risk: the assigned-coach modal still loops existing per-session PATCH calls and is not transactional. A future atomic round-level API would require a separately approved API semantics change.
+
+- Completed Phase B.2 Admin Makeup Process Contract Audit:
+  - Read-only audit only; no source code, DB data, migrations, production Admin Makeup actions, payroll calculation, payment, booking, lesson wallet, coupon, assignment, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Audited `src/app/(admin)/admin/makeup/page.tsx`, `src/components/admin/makeup-client.tsx`, `src/app/api/admin/makeup/route.ts`, `src/lib/admin-attendance-state.ts`, `src/lib/session-attendance-status.ts`, and `src/lib/attendance-write-through.ts`.
+  - Confirmed `close_review` only writes `activity_logs.action = attendance_gap_closed_no_action` and hides the review queue item. It does not write attendance, sync session status, create wallet credit, or prove absence/completion.
+  - Confirmed `confirm_absent` and `mark_attendance` write exact learner attendance and sync `booking_sessions.status` through `attendance-write-through`.
+  - Confirmed `return_entitlement` creates/reuses `lesson_wallet_credits`, updates `booking_sessions.status = walleted`, logs `attendance_gap_return_entitlement`, and does not write attendance.
+  - Confirmed `request_coach_review` and `request_coach_evidence` are notification/log review actions only and do not change attendance/session status.
+  - Confirmed no-coach `resolve_unassigned_round` creates retrospective assignment context, writes exact attendance per learner, syncs statuses, logs, and notifies users.
+  - Suspicious behavior found but not fixed: `return_entitlement` lacks an API guard against existing exact attendance, so using it on a coach-evidence review case could make `attendance` conflict with `booking_sessions.status = walleted`.
+  - Suspicious behavior found but not fixed: `mark_attendance` allows `absent`, overlapping with `confirm_absent` but producing a different activity log action.
+  - High-risk area found but not fixed: group-level actions are not transactional across sessions, and `close_review` can hide Admin review without changing User/Coach-visible status.
+  - Draft next fix plan: first guard `return_entitlement` against existing attendance and improve `close_review` copy/confirmation; then separately decide whether `mark_attendance` should allow absent. Keep payroll calculation, create-makeup POST behavior, and assignment semantics out of the first fix round.
 
 - Completed production post-deploy Coach smoke for Phase B.1:
   - Confirmed commit `640519d` (`640519dbc6b75c9186d7e47966b6f384f75999fc`) was deployed to Vercel production.
