@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-09
+Last updated: 2026-06-12
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -253,11 +253,209 @@ Before the latest documentation sync after `86aa087`, `git status --short` showe
 
 Treat the untracked guide as out of scope. Do not commit, delete, or move it unless the owner explicitly asks.
 
+## 2026-06-12 - New Machine Handoff Readiness
+
+- Local repo was re-checked after moving to the new machine.
+- Current branch: `spike/next-major-security-upgrade`.
+- Current HEAD: `cec49fd fix(user): align dashboard learner colors`.
+- `node` is available as `v24.16.0`, which satisfies the repo engine requirement `>=20.9.0`.
+- `npm.cmd` is available as `11.13.0`.
+- Direct `npm` from PowerShell is blocked by Windows Execution Policy because `npm.ps1` cannot be loaded. Use `npm.cmd` and `npx.cmd` in this shell unless the owner changes the policy.
+- `node_modules`, `package-lock.json`, `.env.local`, and `.next` are present locally.
+- Local `.env.local` values were not printed or inspected directly, but `npm.cmd run prod:check` confirmed the required Supabase environment variables are present.
+- Verification after the move passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run prod:check`
+- `npm.cmd run prod:check` still reports the expected local warning: `SLIPOK_TEST_MODE=true`. Production must keep real SlipOK credentials and live mode.
+- `npm.cmd run build` was not run in this readiness pass because no source code changed and the project handoff guide requires a dev-server/static-chunk cleanup cycle after build work.
+
+## 2026-06-12 - Phase 3 Read-Only Role Smoke Readiness
+
+- Read-only scope only: no source code changes, no DB writes, no migrations, no payment/booking/wallet/coupon/assignment/payroll-close actions.
+- Read `PRODUCTION_READINESS.md` and `DEVELOPMENT_TODO.md` section `21. Phase 3 Deploy Readiness`.
+- Local dev server was started only for smoke testing at `http://127.0.0.1:3000` and stopped after the smoke pass.
+- Public page smoke passed:
+  - `/` loaded with non-empty content and no browser console errors captured.
+  - `/ranking` loaded with non-empty ranking content and no browser console errors captured.
+  - `/auth/login` loaded the login form.
+  - `/auth/register` loaded the registration form.
+- Unauthenticated auth-guard smoke passed:
+  - `/dashboard`, `/dashboard/schedule`, `/dashboard/lesson-wallet`
+  - `/coach`, `/coach/today`, `/coach/checkin`, `/coach/attendance`
+  - `/admin`, `/admin/schedules`, `/admin/makeup`, `/admin/payroll`
+  - All protected routes redirected to `/auth/login?redirect=...` and loaded the login page.
+- Authenticated role page-load/empty-state smoke remains `Need verification` because the in-app browser did not have an authenticated test session and no role-specific test credentials were provided in this read-only round.
+- Read-only verification passed:
+  - `npm.cmd run prod:check` with the expected local `SLIPOK_TEST_MODE=true` warning.
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run check:mojibake`
+- Dev server log showed one non-blocking Next.js LCP image recommendation for `/logo new-athlete-school.jpg`. No code change was made.
+
+## 2026-06-12 - Authenticated Role Smoke Readiness Partial
+
+- Owner approved opening Coach/Head Coach pages even though `src/app/(coach)/layout.tsx` may create coach notification rows on page load.
+- Test credentials were used only through the browser UI. Passwords were not written to files or documentation.
+- Local dev server was started only for smoke testing at `http://127.0.0.1:3000` and stopped after the smoke pass.
+- User smoke passed:
+  - Login redirected to `/dashboard`.
+  - `/dashboard`, `/dashboard/schedule`, and `/dashboard/lesson-wallet` loaded with non-empty content.
+  - User guard redirected `/coach` and `/admin` back to `/dashboard`.
+  - No browser console errors were captured for the User routes.
+  - Lesson wallet showed real action buttons such as `ใช้วันเรียน`; they were not clicked.
+- Coach/Head Coach smoke partially passed:
+  - The supplied Coach account displayed as `Super Head Coach (หัวหน้า)`, not as a standard Coach account.
+  - `/coach`, `/coach/today`, `/coach/checkin`, and `/coach/attendance` loaded.
+  - `/coach/assign-groups` was accessible and loaded, consistent with the displayed Head Coach status.
+  - `/admin` redirected back to `/coach`.
+  - No browser console errors were captured for the Coach/Head Coach routes.
+  - Risky buttons such as check-in and assignment-group actions were visible but not clicked.
+- Super Admin smoke partially passed:
+  - Login redirected to `/admin`.
+  - `/admin`, `/admin/schedules`, `/admin/makeup`, `/dashboard`, and `/coach` loaded during the observed pass.
+  - Super Admin menu showed Super Admin-only items including `Activity Log` and `ตั้งค่าระบบ`.
+  - `/admin/makeup` loaded but emitted a React hydration mismatch console error. The mismatch sample showed server/client text difference for a learner display (`ZEN` vs Thai learner name) inside `MakeupClient`.
+  - After the `/admin/makeup` hydration error, the same browser tab continued reporting that error on later navigations. A clean per-route recheck was attempted, but browser navigation timed out before completing the confirmation pass.
+- Standard Admin smoke remains `Need verification` because no standard Admin account was provided.
+- Standard Coach smoke remains `Need verification` because the supplied Coach account displayed Head Coach privileges.
+- Head Coach smoke is partially covered by the supplied Head Coach-like account and Super Admin coach surface, but a true standalone Head Coach account is still `Need verification` if role-specific permissions must be proved.
+- No source code changes, DB migrations, payment/booking/wallet/coupon/payroll-close actions, commit, push, deploy, or `SlipOK API Guide.docx` action were performed.
+
+Potential bug found:
+
+- `/admin/makeup` has a hydration mismatch in the browser console during authenticated Super Admin smoke.
+- Suggested debug plan before any code change:
+  - Reproduce `/admin/makeup` in a fresh browser tab/session and capture the exact hydration mismatch segment.
+  - Inspect `src/app/(admin)/admin/makeup/page.tsx` and the `MakeupClient` rendering path for nondeterministic ordering, locale/date formatting, or server/client learner-name fallback differences.
+  - Verify whether row ordering or display-name selection can change between SSR and hydration.
+  - Only after root cause is proven, propose a scoped source fix and run `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and targeted browser smoke.
+
+## 2026-06-12 - Admin Makeup Hydration Fix + Super Admin Clean Recheck
+
+- Scoped debug reproduced `/admin/makeup` in a fresh tab with the authenticated Super Admin browser session.
+- Root cause proved source-only:
+  - `MakeupClient` sorted learner names with default `localeCompare`.
+  - Node SSR sorted `['ZEN', 'โซเลน']` as `['โซเลน', 'ZEN']`.
+  - Browser hydration sorted the same names as `['ZEN', 'โซเลน']`.
+  - React therefore reported a text mismatch inside the learner card (`ZEN` vs `โซเลน`).
+- Scoped fix:
+  - `src/components/admin/makeup-client.tsx` now uses an explicit Thai-locale comparator with deterministic code-point/id tie-breakers for learner-name sort paths used by MakeupClient.
+  - No Admin makeup action flow, API route, database data, migration, payment, booking, lesson wallet, coupon, assignment, or payroll-close logic was changed.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - Post-build AGENTS cleanup: stopped dev server, removed generated `.next`, restarted dev server.
+  - Browser smoke: fresh `/admin/makeup?smoke=after-fix` tab loaded with heading `วันชดเชย`, no fresh console error/warn, and no hydration mismatch.
+- Super Admin clean-tab recheck after the fix passed with no fresh console error/warn:
+  - `/admin/payroll`
+  - `/admin/settings`
+  - `/admin/users`
+  - `/admin/branches`
+  - `/admin/coaches`
+- No DB writes, migrations, write actions, payment/booking/wallet/coupon/assignment/payroll-close actions, commit, push, deploy, or `SlipOK API Guide.docx` action were performed.
+
+## 2026-06-12 - Standard Admin Authenticated Smoke
+
+- A Standard Admin test account was used only through the browser UI. Passwords were not written to files or documentation.
+- Local smoke remained read-only: no Admin write buttons were clicked, no DB writes, migrations, payment/booking/lesson wallet/coupon/assignment/payroll-close actions, commit, push, deploy, or `SlipOK API Guide.docx` action were performed.
+- Login redirected to `/admin`.
+- Standard Admin menu was permission-scoped for this account. Visible admin menu entries were:
+  - `/admin`
+  - `/admin/schedules`
+  - `/admin/users`
+  - `/admin/ranking`
+  - `/admin/payments`
+  - `/admin/coupons`
+  - `/admin/complaints`
+  - `/admin/notifications`
+- Visible/allowed route smoke passed with no fresh browser console error/warn:
+  - `/admin` loaded with heading `ภาพรวมระบบ`.
+  - `/admin/schedules` loaded with heading `ตารางเรียน`.
+  - `/admin/users` loaded with heading `จัดการนักเรียน / ผู้ปกครอง`.
+  - `/admin/ranking` loaded with heading `อันดับนักเรียน`.
+  - `/admin/payments` loaded with heading `ตรวจสอบการชำระเงิน`.
+  - `/admin/coupons` loaded with heading `คูปองส่วนลด`.
+  - `/admin/complaints` loaded with heading `ร้องเรียน`.
+  - `/admin/notifications` loaded with heading `แจ้งเตือน`.
+- Permission/guard smoke passed with direct navigation redirecting back to `/admin` and no fresh browser console error/warn:
+  - `/admin/makeup`
+  - `/admin/payroll`
+  - `/admin/settings`
+  - `/admin/logs`
+  - `/admin/branches`
+  - `/admin/coaches`
+  - `/admin/coach-checkins`
+  - `/admin/finance`
+  - `/admin/teaching-programs`
+  - `/admin/schedule-templates`
+  - `/admin/booking`
+- Cross-portal route smoke matched current `ROLE_ROUTES` behavior:
+  - `/coach` loaded for Standard Admin with the coach surface and no assignment-groups menu text.
+  - `/dashboard` loaded for Standard Admin.
+  - `/profile` loaded for Standard Admin.
+- Logout returned to `/`.
+- Owner clarified Standard Coach UI expectation: same as Head Coach except without the assignment/round-group menu. A role-pure Standard Coach browser smoke is still `Need verification` unless a Standard Coach account is provided.
+
+## 2026-06-12 - Phase 3 Local Release Readiness Verification
+
+- Scope was verification-only: no feature work, no commit, no deploy, no DB writes, no migrations, no write-action clicks, and no `SlipOK API Guide.docx` action.
+- Diff review covered only:
+  - `src/components/admin/makeup-client.tsx`
+  - `PROJECT_STATE.md`
+  - `TODO-CODEX.md`
+- Diff review result:
+  - `src/components/admin/makeup-client.tsx` only adds deterministic Thai-locale learner-name sorting plus stable tie-breakers inside `MakeupClient`.
+  - The source change is scoped to render ordering for Admin makeup hydration stability. It does not change Admin makeup actions, API routes, attendance/payment/booking/wallet/coupon/assignment/payroll-close behavior, DB data, or migrations.
+  - `PROJECT_STATE.md` and `TODO-CODEX.md` only document local readiness, smoke results, the hydration root cause/fix, and remaining verification gaps.
+  - Credential scan across the three scoped files found no supplied email/password strings.
+  - No out-of-scope source logic was found in the reviewed diff.
+- Command verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run attendance:reconcile:dry-run`
+  - `npm.cmd run prod:check`
+  - `git diff --check`
+- `attendance:reconcile:dry-run` remained report-only and showed 1060 verified teaching sessions checked, 295 attendance rows checked, 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+- `prod:check` result was `READY WITH WARNINGS/PASSES` with the known local warning: `SLIPOK_TEST_MODE=true`. Production must use live SlipOK mode and real credentials.
+- `git diff --check` reported only Windows LF/CRLF working-copy warnings, not whitespace errors.
+- Browser smoke attempt:
+  - Local dev server started at `http://127.0.0.1:3000` only for smoke and was stopped afterward.
+  - In-app browser loaded `/auth/login`, but Super Admin login did not establish an authenticated session in this smoke attempt. Direct admin route attempts redirected to `/auth/login?redirect=...`.
+  - Browser console showed only the known Next.js LCP image warning for `/logo new-athlete-school.jpg`; no fresh hydration mismatch was captured in the attempted admin-route tabs.
+  - Because authenticated admin session was not established in this browser attempt, the requested fresh-tab browser smoke for `/admin/makeup`, `/admin`, `/admin/schedules`, `/admin/payments`, and `/coach` is `Need verification` for this release-readiness pass.
+- Release gate for this pass:
+  - `PASS`: scoped diff review and command verification.
+  - `NEED VERIFICATION`: authenticated browser smoke in a clean session for Super Admin admin routes and Coach/Head-Coach `/coach`; role-pure Standard Coach browser smoke.
+  - `RISK / OWNER APPROVAL REQUIRED`: production deploy, production writes, Admin makeup write-action UAT, live SlipOK verification, and any commit/deploy decision.
+  - `BLOCKER`: none found in source checks; browser smoke remains incomplete because auth/session could not be established in the in-app browser attempt.
+
+## 2026-06-12 - Super Admin Authenticated Release Smoke Recheck
+
+- Owner logged in as Super Admin locally, then the Chrome connector saw the authenticated `http://127.0.0.1:3000/admin` session.
+- Scope remained read-only: no commit, deploy, DB writes, migrations, payment/booking/wallet/coupon/assignment/payroll-close actions, or Admin makeup write-action clicks.
+- Fresh-tab Chrome smoke passed for the requested Super Admin routes:
+  - `/admin/makeup` loaded with heading `วันชดเชย`, did not redirect to login, had no fresh console errors, and had no React hydration mismatch.
+  - `/admin` loaded with heading `ภาพรวมระบบ`, did not redirect to login, had no fresh console errors, and had no hydration mismatch.
+  - `/admin/schedules` loaded with heading `ตารางเรียน`, did not redirect to login, had no fresh console errors, and had no hydration mismatch.
+  - `/admin/payments` loaded with heading `ตรวจสอบการชำระเงิน`, did not redirect to login, had no fresh console errors, and had no hydration mismatch.
+- `/admin/makeup` still displayed real write-action buttons such as retrospective attendance, confirm absent, return entitlement, close case, and send-to-coach actions; none were clicked.
+- Release gate after this recheck:
+  - `PASS`: scoped source diff review, command verification, and Super Admin authenticated smoke for `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments`.
+  - `NEED VERIFICATION`: role-pure Standard Coach browser smoke and any Coach/Head-Coach release-gate route not covered by the latest Super Admin admin-route recheck.
+  - `RISK / OWNER APPROVAL REQUIRED`: commit, deploy, production writes, live SlipOK verification, and Admin makeup write-action UAT.
+  - `BLOCKER`: none found in the checked source/commands/Super Admin smoke routes.
+
 ## Unknown / Need Verification
 
-- Current `.env.local` values were not inspected in this audit.
+- Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
 - Current remote DB migration state after the latest local work needs confirmation before future DB-dependent work.
-- Final production/local smoke test across all roles after `86aa087` is not confirmed in this audit.
+- Final authenticated production/local smoke test across all roles after `86aa087` is partially complete. User, Head-Coach-like, Standard Admin, and Super Admin requested local admin surfaces are now verified, including `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments` with no fresh console errors or hydration mismatch in the latest authenticated Chrome smoke. Standard Coach expected UI has been owner-confirmed, but a role-pure Standard Coach browser smoke still needs a Standard Coach account if browser verification is required.
 - Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
 
 ## Do Not Regress

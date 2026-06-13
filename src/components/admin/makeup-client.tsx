@@ -269,6 +269,14 @@ function formatDateTime(value: string | null | undefined) {
   }).format(new Date(value))
 }
 
+function compareTextTh(a: string, b: string) {
+  const byThaiLocale = a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' })
+  if (byThaiLocale !== 0) return byThaiLocale
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
+}
+
 function getReviewActionLabel(action: ReviewAction) {
   if (action === 'mark_attendance') return 'บันทึกเช็คชื่อย้อนหลัง'
   if (action === 'request_coach_review') return 'ส่งกลับให้โค้ชตรวจสอบ'
@@ -469,7 +477,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         ...group,
         months: group.months.sort((a, b) => b.monthKey.localeCompare(a.monthKey)),
       }))
-      .sort((a, b) => b.months.length - a.months.length || a.learnerName.localeCompare(b.learnerName))
+      .sort((a, b) => b.months.length - a.months.length || compareTextTh(a.learnerName, b.learnerName) || a.key.localeCompare(b.key))
   }, [filteredMonthGroups])
 
   const reviewSessions = useMemo(() => {
@@ -549,7 +557,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     return Array.from(groups.values())
       .map((group) => ({
         ...group,
-        sessions: group.sessions.sort((a, b) => a.learner_name.localeCompare(b.learner_name)),
+        sessions: group.sessions.sort((a, b) => compareTextTh(a.learner_name, b.learner_name) || a.id.localeCompare(b.id)),
       }))
       .sort((a, b) => {
         const aTarget = a.sessions.some(isReviewTargetSession)
