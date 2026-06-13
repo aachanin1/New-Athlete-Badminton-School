@@ -49,7 +49,25 @@ function isPastSlot(row: CoachTeachingHourSourceRow) {
   return new Date(`${row.date}T${row.end_time}`).getTime() < Date.now()
 }
 
+function isNoTeachingWithoutLearners(row: CoachTeachingHourSourceRow) {
+  return (
+    !row.has_checkin &&
+    row.student_count > 0 &&
+    row.attendance_count >= row.student_count &&
+    row.absent_count >= row.student_count &&
+    row.present_count === 0 &&
+    row.late_count === 0
+  )
+}
+
 function getEvidenceLabel(row: CoachTeachingHourSourceRow) {
+  if (isNoTeachingWithoutLearners(row)) {
+    return {
+      label: 'ไม่มีการสอน - ไม่มีผู้เรียนในรอบนี้',
+      className: 'border-slate-200 bg-slate-50 text-slate-600',
+      icon: XCircle,
+    }
+  }
   if (row.is_verified) return { label: 'ครบหลักฐาน', className: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 }
   if (!row.has_checkin) {
     return {
@@ -97,7 +115,7 @@ export default async function HoursPage() {
   const verifiedRows = rows.filter((row) => row.is_verified)
   const entries = rule ? calculateTeachingPayEntries(verifiedRows, rule) : []
   const weekEntries = entries.filter((entry) => entry.weekKey === currentWeek.key)
-  const pendingEvidence = rows.filter((row) => !row.is_verified && isPastSlot(row))
+  const pendingEvidence = rows.filter((row) => !row.is_verified && isPastSlot(row) && !isNoTeachingWithoutLearners(row))
 
   const totals = entries.reduce((summary, entry) => {
     summary.totalHours += entry.hours
@@ -139,7 +157,7 @@ export default async function HoursPage() {
       const totalHours = weekVerifiedEntries.reduce((sum, entry) => sum + entry.hours, 0)
       const payableHours = weekVerifiedEntries.reduce((sum, entry) => sum + entry.payableHours, 0)
       const payableAmount = weekVerifiedEntries.reduce((sum, entry) => sum + entry.payableAmount, 0)
-      const missingEvidence = week.rows.filter((row) => !row.is_verified && isPastSlot(row)).length
+      const missingEvidence = week.rows.filter((row) => !row.is_verified && isPastSlot(row) && !isNoTeachingWithoutLearners(row)).length
 
       return {
         ...week,
@@ -283,7 +301,7 @@ export default async function HoursPage() {
                           </p>
                         </div>
                         <span className="text-sm font-bold">
-                          {row.is_verified ? `${formatNumber(getHoursBetween(row.date, row.start_time, row.end_time))} ชม.` : 'ยังไม่นับ'}
+                          {row.is_verified ? `${formatNumber(getHoursBetween(row.date, row.start_time, row.end_time))} ชม.` : isNoTeachingWithoutLearners(row) ? 'ไม่ถูกนับ' : 'ยังไม่นับ'}
                         </span>
                       </div>
                     )

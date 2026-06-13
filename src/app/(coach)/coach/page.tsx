@@ -50,6 +50,12 @@ function formatMonthTitle(value: Date) {
   })
 }
 
+function getSlotAttendanceSummary(slot: { students: { attendanceStatus: 'present' | 'late' | 'absent' | null }[] }) {
+  const checkedCount = slot.students.filter((student) => Boolean(student.attendanceStatus)).length
+  const isComplete = slot.students.length > 0 && checkedCount === slot.students.length
+  return { checkedCount, isComplete }
+}
+
 export default async function CoachDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -80,7 +86,11 @@ export default async function CoachDashboardPage() {
     .reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
   const monthTotal = verifiedRows.reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
   const pendingEvidence = monthRows.filter((row) => !row.is_verified)
-  const hasPendingCheckin = teachingDay.slots.length > 0 && teachingDay.checkedSlotCount < teachingDay.slots.length
+  const pendingCheckinSlotCount = teachingDay.slots.filter((slot) => (
+    !slot.checkin && !getSlotAttendanceSummary(slot).isComplete
+  )).length
+  const resolvedAttendanceSlotCount = teachingDay.slots.length - pendingCheckinSlotCount
+  const hasPendingCheckin = pendingCheckinSlotCount > 0
   const monthRowsByDate = monthRows.reduce((map, row) => {
     if (!map[row.date]) map[row.date] = []
     map[row.date].push(row)
@@ -253,8 +263,8 @@ export default async function CoachDashboardPage() {
               {teachingDay.slots.length === 0
                 ? 'วันนี้ยังไม่มีรอบสอนที่ได้รับมอบหมาย'
                 : hasPendingCheckin
-                  ? `เช็คอินแล้ว ${teachingDay.checkedSlotCount}/${teachingDay.slots.length} รอบ`
-                  : `เช็คอินครบแล้ว ${teachingDay.checkedSlotCount}/${teachingDay.slots.length} รอบ`}
+                  ? `รอเช็คอินก่อนเช็คชื่อ ${pendingCheckinSlotCount}/${teachingDay.slots.length} รอบ`
+                  : `สถานะเช็คชื่อไม่ค้างแล้ว ${resolvedAttendanceSlotCount}/${teachingDay.slots.length} รอบ`}
             </p>
             {hasPendingCheckin && (
               <p className="text-xs text-gray-500">

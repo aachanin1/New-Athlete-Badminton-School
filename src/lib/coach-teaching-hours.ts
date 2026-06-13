@@ -74,6 +74,7 @@ interface BookingSessionIdRow {
 
 interface AttendanceRow {
   booking_session_id: string
+  status: 'present' | 'late' | 'absent' | string | null
 }
 
 interface CheckinRow {
@@ -89,6 +90,13 @@ interface CheckinRow {
 interface CoachProfileMeta {
   coachName: string
   employmentType: CoachEmploymentType | null
+}
+
+interface AttendanceStats {
+  total: number
+  present: number
+  late: number
+  absent: number
 }
 
 export interface CoachTeachingHourSourceRow {
@@ -110,6 +118,9 @@ export interface CoachTeachingHourSourceRow {
   location_lng: number | null
   student_count: number
   attendance_count: number
+  present_count: number
+  late_count: number
+  absent_count: number
   has_checkin: boolean
   has_photo: boolean
   has_location: boolean
@@ -268,19 +279,26 @@ async function getPayableSessionIds(supabase: SupabaseLike, sessionIds: string[]
 }
 
 async function getAttendanceCounts(supabase: SupabaseLike, sessionIds: string[]) {
-  const map = new Map<string, number>()
+  const map = new Map<string, AttendanceStats>()
   if (sessionIds.length === 0) return map
 
   const data = await runPayrollInChunks<AttendanceRow>(sessionIds, 'attendance counts', (chunkSessionIds) =>
     supabase
       .from('attendance')
-      .select('booking_session_id')
+      .select('booking_session_id, status')
       .in('booking_session_id', chunkSessionIds)
       .limit(10000)
   )
 
   ;(data || []).forEach((attendance) => {
-    map.set(attendance.booking_session_id, (map.get(attendance.booking_session_id) || 0) + 1)
+    const stats = map.get(attendance.booking_session_id) || { total: 0, present: 0, late: 0, absent: 0 }
+    stats.total += 1
+
+    if (attendance.status === 'present') stats.present += 1
+    if (attendance.status === 'late') stats.late += 1
+    if (attendance.status === 'absent') stats.absent += 1
+
+    map.set(attendance.booking_session_id, stats)
   })
 
   return map
@@ -315,7 +333,7 @@ function createSourceRow(params: {
   slot: SlotRow
   checkin: CheckinRow | null
   studentCount: number
-  attendanceCount: number
+  attendanceStats: AttendanceStats
 }): CoachTeachingHourSourceRow {
   const profile = getProfileMeta(params.profile)
   const lat = toNumberOrNull(params.checkin?.location_lat)
@@ -324,7 +342,7 @@ function createSourceRow(params: {
   const hasCheckin = Boolean(params.checkin?.id)
   const hasPhoto = Boolean(params.checkin?.photo_url)
   const hasLocation = lat !== null && lng !== null
-  const hasAttendance = params.attendanceCount > 0
+  const hasAttendance = params.attendanceStats.total > 0
 
   return {
     assignment_id: params.assignmentId,
@@ -344,7 +362,10 @@ function createSourceRow(params: {
     location_lat: lat,
     location_lng: lng,
     student_count: params.studentCount,
-    attendance_count: params.attendanceCount,
+    attendance_count: params.attendanceStats.total,
+    present_count: params.attendanceStats.present,
+    late_count: params.attendanceStats.late,
+    absent_count: params.attendanceStats.absent,
     has_checkin: hasCheckin,
     has_photo: hasPhoto,
     has_location: hasLocation,
@@ -394,7 +415,17 @@ export async function getCoachTeachingHourSourceRows(
       .map((student) => student.booking_session_id)
       .filter((sessionId) => payableGroupedSessionIds.has(sessionId))
     if (groupSessionIds.length === 0) return
-    const attendanceCount = groupSessionIds.reduce((sum, sessionId) => sum + (attendanceCounts.get(sessionId) || 0), 0)
+    const attendanceStats = groupSessionIds.reduce<AttendanceStats>((stats, sessionId) => {
+      const sessionStats = attendanceCounts.get(sessionId)
+      if (!sessionStats) return stats
+
+      stats.total += sessionStats.total
+      stats.present += sessionStats.present
+      stats.late += sessionStats.late
+      stats.absent += sessionStats.absent
+
+      return stats
+    }, { total: 0, present: 0, late: 0, absent: 0 })
     const key = getSlotKey(group.coach_id, group.schedule_slot_id)
     if (emitted.has(key)) return
     emitted.add(key)
@@ -407,14 +438,24 @@ export async function getCoachTeachingHourSourceRows(
       slot: group.schedule_slots,
       checkin: checkinMap.get(key) || null,
       studentCount: groupSessionIds.length,
-      attendanceCount,
+      attendanceStats,
     }))
   })
 
   legacyRows.forEach((assignment) => {
     if (!assignment.schedule_slots) return
     const sessions = sessionsBySlot.get(assignment.schedule_slot_id) || []
-    const attendanceCount = sessions.reduce((sum, session) => sum + (attendanceCounts.get(session.id) || 0), 0)
+    const attendanceStats = sessions.reduce<AttendanceStats>((stats, session) => {
+      const sessionStats = attendanceCounts.get(session.id)
+      if (!sessionStats) return stats
+
+      stats.total += sessionStats.total
+      stats.present += sessionStats.present
+      stats.late += sessionStats.late
+      stats.absent += sessionStats.absent
+
+      return stats
+    }, { total: 0, present: 0, late: 0, absent: 0 })
     const key = getSlotKey(assignment.coach_id, assignment.schedule_slot_id)
     if (emitted.has(key)) return
     emitted.add(key)
@@ -427,7 +468,7 @@ export async function getCoachTeachingHourSourceRows(
       slot: assignment.schedule_slots,
       checkin: checkinMap.get(key) || null,
       studentCount: sessions.length,
-      attendanceCount,
+      attendanceStats,
     }))
   })
 

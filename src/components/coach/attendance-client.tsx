@@ -295,8 +295,10 @@ export function AttendanceClient({
       ) : (
         <div className="space-y-4">
           {slots.map((slot) => {
-            const isLocked = !slot.checkin
             const slotSummary = slotSummaries.find((summary) => summary.slotId === slot.scheduleSlotId)
+            const isCheckinGate = Boolean(slotSummary?.isLocked)
+            const blocksAttendanceWrite = !slot.checkin
+            const hasResolvedAttendanceWithoutCheckin = !slot.checkin && Boolean(slotSummary?.checked)
             const isExpanded = expandedSlots.has(slot.scheduleSlotId)
             const studentsByGroup = Object.entries(slot.students.reduce((map, student) => {
               const groupName = student.assignmentGroupName || 'กลุ่มหลัก'
@@ -306,7 +308,7 @@ export function AttendanceClient({
             }, {} as Record<string, StudentSession[]>))
 
             return (
-              <Card id={`attendance-slot-${slot.scheduleSlotId}`} key={slot.key} className={`shadow-sm ${isLocked ? 'border-orange-200 bg-orange-50/40' : ''}`}>
+              <Card id={`attendance-slot-${slot.scheduleSlotId}`} key={slot.key} className={`shadow-sm ${isCheckinGate ? 'border-orange-200 bg-orange-50/40' : ''}`}>
                 <CardContent className="space-y-3 p-4">
                   <button
                     type="button"
@@ -314,8 +316,8 @@ export function AttendanceClient({
                     className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isLocked ? 'bg-orange-100' : 'bg-[#2748bf]/10'}`}>
-                        {isExpanded ? <ChevronDown className="h-5 w-5 text-[#2748bf]" /> : isLocked ? <Lock className="h-5 w-5 text-orange-500" /> : <ChevronRight className="h-5 w-5 text-[#2748bf]" />}
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${isCheckinGate ? 'bg-orange-100' : 'bg-[#2748bf]/10'}`}>
+                        {isExpanded ? <ChevronDown className="h-5 w-5 text-[#2748bf]" /> : isCheckinGate ? <Lock className="h-5 w-5 text-orange-500" /> : <ChevronRight className="h-5 w-5 text-[#2748bf]" />}
                       </div>
                       <div>
                         <p className="font-bold text-[#153c85]">{fmtTime(slot.startTime)} - {fmtTime(slot.endTime)}</p>
@@ -332,17 +334,22 @@ export function AttendanceClient({
                       </div>
                     </div>
 
-                    {isLocked && (isToday || slot.canRetroactiveCheckin) ? (
+                    {isCheckinGate && (isToday || slot.canRetroactiveCheckin) ? (
                       <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600">
                         <Link href={`/coach/checkin?date=${selectedDate}&slot=${slot.scheduleSlotId}`}>
                           <Camera className="mr-1.5 h-4 w-4" />
                           {slot.canRetroactiveCheckin && !isToday ? 'เช็คอินย้อนหลัง' : 'ไปเช็คอินก่อน'}
                         </Link>
                       </Button>
-                    ) : isLocked ? (
+                    ) : isCheckinGate ? (
                       <Badge variant="outline" className="w-fit border-orange-200 bg-orange-50 text-orange-700">
                         <Lock className="mr-1 h-3.5 w-3.5" />
                         รอหลักฐานเช็คอิน
+                      </Badge>
+                    ) : hasResolvedAttendanceWithoutCheckin ? (
+                      <Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 text-emerald-700">
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                        บันทึกผลแล้ว
                       </Badge>
                     ) : (
                       <Badge className="w-fit bg-green-100 text-green-700">
@@ -352,7 +359,7 @@ export function AttendanceClient({
                     )}
                   </button>
 
-                  {isLocked && (
+                  {isCheckinGate && (
                     <div className="rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm text-orange-700">
                       {slot.canRetroactiveCheckin
                         ? 'Admin ส่งรอบนี้กลับให้ตรวจสอบ โค้ชสามารถเช็คอินย้อนหลังด้วยเซลฟี่และพิกัดก่อนเช็คชื่อได้'
@@ -402,7 +409,7 @@ export function AttendanceClient({
                                   <Button
                                     key={status}
                                     size="sm"
-                                    disabled={isLocked}
+                                    disabled={blocksAttendanceWrite}
                                     className={`h-7 px-2 text-[11px] ${isActive ? `${config.color} text-white` : 'bg-gray-200 text-gray-500 hover:bg-gray-300'} disabled:cursor-not-allowed disabled:opacity-50`}
                                     onClick={() => markAttendance(student, status)}
                                   >

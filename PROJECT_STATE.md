@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -450,6 +450,78 @@ Potential bug found:
   - `NEED VERIFICATION`: role-pure Standard Coach browser smoke and any Coach/Head-Coach release-gate route not covered by the latest Super Admin admin-route recheck.
   - `RISK / OWNER APPROVAL REQUIRED`: commit, deploy, production writes, live SlipOK verification, and Admin makeup write-action UAT.
   - `BLOCKER`: none found in the checked source/commands/Super Admin smoke routes.
+
+## 2026-06-13 - Owner-Approved Angie Attendance Repair
+
+- Root cause proved before write:
+  - Admin closed the target `/admin/makeup` review with `attendance_gap_closed_no_action`.
+  - That close action only created an `activity_logs` row and hid the Admin review queue item.
+  - The underlying source-of-truth data still had `booking_sessions.status = scheduled` and no exact `attendance` row, so Coach/User surfaces continued deriving `attendance_gap_review`.
+- Exact target repaired:
+  - learner: `ชนกนันท์ สุขวงศ์` / `แองจี้`
+  - `booking_sessions.id`: `734ce70b-5a6d-4bf0-9544-0deb631aee26`
+  - `booking_id`: `a7b06735-ce69-43dc-ae35-c67e24328c0a`
+  - `child_id` / expected `attendance.student_id`: `900ebb5d-2eb1-4143-82a0-86e47757338b`
+  - `schedule_slot_id`: `69bb4231-6472-4376-931a-57ac9a4570dc`
+  - date/time: `2026-06-07` `13:00:00-15:00:00`
+  - branch/course: Chaengwattana / `kids_group`
+- Owner-approved data repair performed:
+  - inserted exact `attendance` row `9582fab4-151c-4a85-a36d-05aab5802ef0` with `status = absent`, `student_type = child`, and assigned coach `95bf2081-e9f9-4aa1-883c-7294d2b8ce33`.
+  - synced `booking_sessions.status` for `734ce70b-5a6d-4bf0-9544-0deb631aee26` to `absent`.
+  - inserted audit log `3cef354c-939d-4937-9c53-705ab8f25ef2` with action `attendance_gap_confirm_absent`, referencing previous close log `3c2ef466-ec6c-49f7-970a-badbd196c951`.
+- Post-write verification:
+  - exact attendance count for the target session/student is 1 and status is `absent`.
+  - target session status is `absent`.
+  - no lesson wallet credit was created by this repair.
+  - no coach check-in row was created.
+  - no weekly teaching summary row was created for the assigned coach/date.
+  - source/data projection now derives the target User/Admin status as `absent` instead of `attendance_gap_review`.
+  - Coach attendance slot summary can count the learner as checked because exact attendance exists, but `src/components/coach/attendance-client.tsx` still has a separate card-level `isLocked = !slot.checkin` warning path. That is a follow-up UI/logic issue and was not changed in this data repair.
+  - `npm.cmd run attendance:reconcile:dry-run` passed with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+- No source code, migrations, payment, booking, lesson wallet redemption, coupon, assignment, payroll close, commit, push, deploy, or `SlipOK API Guide.docx` action was performed in this repair.
+- Follow-up risk remains: the Admin Makeup `close_review` UX can still be misused for sudden-leave/absence cases. Future source fix should be scoped and owner-approved before changing action semantics or UI copy.
+
+## 2026-06-13 - Coach UI Attendance/Check-in State Sync
+
+- Scoped source fix only; no DB writes, migrations, API write logic, check-in evidence rules, payroll calculation, payment, booking, lesson wallet, coupon, assignment, payroll close, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+- Fixed Coach UI display state after an attendance row already exists but the slot has no coach check-in:
+  - `src/components/coach/attendance-client.tsx` now distinguishes the UI gate `no check-in + no attendance yet` from `no check-in + attendance already recorded`.
+  - `src/components/coach/attendance-client.tsx` still disables attendance write buttons when there is no check-in, preserving the existing coach write guard.
+  - `src/app/(coach)/coach/page.tsx` now shows pending check-in CTA/status only for today's slots that still have no check-in and incomplete attendance, instead of treating every no-check-in slot as pending.
+- `/coach/today` was inspected and already had a complete-attendance display path, so it was not changed.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `npm.cmd run build`
+  - Post-build AGENTS cleanup: stopped the dev server on port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified `/` plus a `_next/static` CSS asset returned HTTP 200.
+  - `git diff --check` reported only Windows LF/CRLF warnings, not whitespace errors.
+- Browser smoke notes:
+  - A headless Chrome smoke before restart logged in with the supplied Coach/Head-Coach account and loaded `/coach`, `/coach/today?date=2026-06-07`, and `/coach/attendance?date=2026-06-07&slot=69bb4231-6472-4376-931a-57ac9a4570dc` with no console errors.
+  - That account did not show the target Angie slot, so exact target visual verification remains `Need verification` with the real assigned coach account or an authenticated session that can see that slot.
+  - A post-restart retry stayed on `/auth/login` and did not establish a session before timeout; no console error was captured.
+
+## 2026-06-13 - Coach Hours No-Teaching Label Sync
+
+- Scoped source/UI fix only; no DB writes, migrations, API write logic, check-in evidence rules, payroll calculation, payment, booking, lesson wallet, coupon, assignment, payroll close, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+- Fixed `/coach/hours` display for all-absent rounds where no class happened and the coach did not check in:
+  - `src/lib/coach-teaching-hours.ts` now carries attendance status counts (`present_count`, `late_count`, `absent_count`) in addition to total `attendance_count`.
+  - `src/app/(coach)/coach/hours/page.tsx` now displays `ไม่มีการสอน - ไม่มีผู้เรียนในรอบนี้` when every learner in the row has exact absent attendance and there is no coach check-in.
+  - The same no-teaching row is no longer counted as a missing-evidence warning in `/coach/hours`; the row remains not counted for hours.
+- Payroll/teaching-hour calculation semantics were intentionally not changed in this scoped label sync. Any future rule change for all-absent rows that already have coach check-in evidence must be scoped and owner-approved separately.
+- Read-only target proof for Angie session `734ce70b-5a6d-4bf0-9544-0deb631aee26` confirmed `session_status=absent`, `attendance_total=1`, `absent_count=1`, `present_count=0`, `late_count=0`, and the new no-teaching label predicate evaluates to `true`.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `npm.cmd run build`
+  - Post-build AGENTS cleanup: stopped the dev server on port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified `/` plus a `_next/static` CSS asset returned HTTP 200.
+  - `git diff --check` reported only Windows LF/CRLF warnings, not whitespace errors.
+- Authenticated browser visual smoke for `/coach/hours` remains `Need verification` with a real coach session that can see the target slot. Passwords were not written to files or scripts for this verification.
 
 ## Unknown / Need Verification
 

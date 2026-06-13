@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,41 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped Coach Hours no-teaching label sync:
+  - Source/UI fix only; no DB writes, migrations, API write logic, check-in evidence rules, payroll calculation, payment/booking/wallet/coupon/assignment/payroll-close action, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - `src/lib/coach-teaching-hours.ts` now returns attendance status counts (`present_count`, `late_count`, `absent_count`) alongside total `attendance_count`.
+  - `src/app/(coach)/coach/hours/page.tsx` now labels all-absent/no-check-in rows as `ไม่มีการสอน - ไม่มีผู้เรียนในรอบนี้` instead of `ยังไม่เช็คอิน`.
+  - Those no-teaching rows are excluded from `/coach/hours` missing-evidence warning counts and show `ไม่ถูกนับ`; payroll formula/calculation semantics were not changed.
+  - Read-only proof for Angie session `734ce70b-5a6d-4bf0-9544-0deb631aee26` confirmed `attendance_total=1`, `absent_count=1`, `present_count=0`, `late_count=0`, and the new label predicate is true.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check`, `npm.cmd run build`, post-build `.next` cleanup/dev restart, HTTP `/` check, `_next/static` asset check, and `git diff --check`.
+  - `attendance:reconcile:dry-run` returned 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `prod:check` still reports the known local warning: `SLIPOK_TEST_MODE=true`.
+  - Authenticated browser visual smoke for `/coach/hours` remains `Need verification` with a real coach session that can see the target slot. Passwords were not written to files or scripts.
+
+- Completed scoped Coach UI attendance/check-in state sync:
+  - Source fix only; no DB writes, migrations, API write logic, check-in evidence rules, payroll calculation, payment/booking/wallet/coupon/assignment/payroll-close action, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - `src/components/coach/attendance-client.tsx` now separates `no check-in + no attendance yet` from `no check-in + attendance already recorded`.
+  - Attendance write buttons in `src/components/coach/attendance-client.tsx` remain disabled when there is no check-in, preserving the coach write guard.
+  - `src/app/(coach)/coach/page.tsx` now shows pending check-in CTA/status only for today's slots that still have no check-in and incomplete attendance.
+  - `/coach/today` was inspected and already had a complete-attendance display path, so it was not changed.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check`, `npm.cmd run build`, post-build `.next` cleanup/dev restart, HTTP `/` check, `_next/static` asset check, and `git diff --check`.
+  - `attendance:reconcile:dry-run` returned 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `prod:check` still reports the known local warning: `SLIPOK_TEST_MODE=true`.
+  - Browser smoke with the supplied Coach/Head-Coach account loaded `/coach`, `/coach/today?date=2026-06-07`, and `/coach/attendance?date=2026-06-07&slot=69bb4231-6472-4376-931a-57ac9a4570dc` with no console errors before restart, but that account did not show the target Angie slot. Exact target visual verification remains `Need verification` with the real assigned coach account or a session that can see that slot.
+
+- Completed owner-approved Admin Makeup attendance repair for Angie:
+  - Root cause proved read-only before the write: `attendance_gap_closed_no_action` hid the target Admin Makeup review item, but the target `booking_sessions` row stayed `scheduled` and had no exact `attendance` row, so Coach/User surfaces still derived `attendance_gap_review`.
+  - Exact target: learner `ชนกนันท์ สุขวงศ์` / `แองจี้`, `booking_sessions.id` `734ce70b-5a6d-4bf0-9544-0deb631aee26`, `child_id` `900ebb5d-2eb1-4143-82a0-86e47757338b`, `schedule_slot_id` `69bb4231-6472-4376-931a-57ac9a4570dc`, `2026-06-07` `13:00:00-15:00:00`.
+  - Data repair inserted exact `attendance` row `9582fab4-151c-4a85-a36d-05aab5802ef0` with `status = absent` and synced the target `booking_sessions.status` to `absent`.
+  - Added audit log `3cef354c-939d-4937-9c53-705ab8f25ef2` with action `attendance_gap_confirm_absent`, referencing previous close log `3c2ef466-ec6c-49f7-970a-badbd196c951`.
+  - Post-write read-only verification confirmed one exact absent attendance row, target session status `absent`, no lesson wallet credit created, no coach check-in created, and no weekly teaching summary created.
+  - Source/data projection now derives User/Admin status as `absent`; Coach slot summary can count the row as checked because exact attendance exists.
+  - Follow-up found but not changed: Coach attendance cards still use a separate `isLocked = !slot.checkin` warning path in `src/components/coach/attendance-client.tsx`, so an already-resolved absent row may still show check-in evidence messaging. This needs a scoped UI/logic plan before any source change.
+  - Verification passed: `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run prod:check`.
+  - `prod:check` still reports the known local warning: `SLIPOK_TEST_MODE=true`.
+  - No source code, migrations, payment/booking/wallet/coupon/assignment/payroll-close action, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Follow-up needed: propose a scoped source/UX fix so sudden-leave/absence cases use `confirm_absent` and `close_review` is not mistaken for an absence/makeup path.
 
 - Completed Super Admin authenticated release smoke recheck:
   - Owner logged in locally, and Chrome connector saw the authenticated `http://127.0.0.1:3000/admin` session.
