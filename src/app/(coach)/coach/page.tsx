@@ -3,6 +3,7 @@ import { BarChart3, CalendarCheck, Camera, Clock, MapPin, UserCheck } from 'luci
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
+import { getCoachSlotCheckedCount, getCoachSlotDisplaySummary } from '@/lib/coach-slot-display-status'
 import { getHoursBetween, getWeekInfo } from '@/lib/coach-teaching-rules'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
 import { createClient } from '@/lib/supabase/server'
@@ -50,12 +51,6 @@ function formatMonthTitle(value: Date) {
   })
 }
 
-function getSlotAttendanceSummary(slot: { students: { attendanceStatus: 'present' | 'late' | 'absent' | null }[] }) {
-  const checkedCount = slot.students.filter((student) => Boolean(student.attendanceStatus)).length
-  const isComplete = slot.students.length > 0 && checkedCount === slot.students.length
-  return { checkedCount, isComplete }
-}
-
 export default async function CoachDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -86,9 +81,11 @@ export default async function CoachDashboardPage() {
     .reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
   const monthTotal = verifiedRows.reduce((sum, row) => sum + getHoursBetween(row.date, row.start_time, row.end_time), 0)
   const pendingEvidence = monthRows.filter((row) => !row.is_verified)
-  const pendingCheckinSlotCount = teachingDay.slots.filter((slot) => (
-    !slot.checkin && !getSlotAttendanceSummary(slot).isComplete
-  )).length
+  const pendingCheckinSlotCount = teachingDay.slots.filter((slot) => getCoachSlotDisplaySummary({
+    hasCheckin: Boolean(slot.checkin),
+    studentCount: slot.students.length,
+    checkedCount: getCoachSlotCheckedCount(slot.students),
+  }).isCheckinGate).length
   const resolvedAttendanceSlotCount = teachingDay.slots.length - pendingCheckinSlotCount
   const hasPendingCheckin = pendingCheckinSlotCount > 0
   const monthRowsByDate = monthRows.reduce((map, row) => {

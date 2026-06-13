@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
+import { getCoachSlotCheckedCount, getCoachSlotDisplaySummary } from '@/lib/coach-slot-display-status'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
 import { deriveSessionAttendanceStatus } from '@/lib/session-attendance-status'
 import { createClient } from '@/lib/supabase/server'
@@ -110,12 +111,6 @@ function getStudentScheduleStatus(
   }
 
   return { label: 'รอสอน', className: 'bg-gray-100 text-gray-500' }
-}
-
-function getSlotAttendanceSummary(slot: { students: { attendanceStatus: 'present' | 'late' | 'absent' | null }[] }) {
-  const checkedCount = slot.students.filter((student) => Boolean(student.attendanceStatus)).length
-  const isComplete = slot.students.length > 0 && checkedCount === slot.students.length
-  return { checkedCount, isComplete }
 }
 
 export default async function CoachSchedulePage({ searchParams }: CoachSchedulePageProps) {
@@ -304,17 +299,21 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
       ) : (
         <div className="space-y-4">
           {teachingDay.slots.map((slot) => {
-            const slotAttendance = getSlotAttendanceSummary(slot)
+            const slotAttendance = getCoachSlotDisplaySummary({
+              hasCheckin: Boolean(slot.checkin),
+              studentCount: slot.students.length,
+              checkedCount: getCoachSlotCheckedCount(slot.students),
+            })
             const checkinBadge = slot.checkin
               ? {
                   label: 'เช็คอินแล้ว',
                   className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
                   Icon: CheckCircle2,
                 }
-              : slotAttendance.isComplete
+              : slotAttendance.hasAttendance
                 ? {
-                    label: 'บันทึกผลแล้ว',
-                    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                    label: slotAttendance.label,
+                    className: slotAttendance.color,
                     Icon: CheckCircle2,
                   }
                 : {
@@ -349,7 +348,7 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                     {slotAttendance.isComplete ? (
                       <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
                         <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                        บันทึกผลครบแล้ว {slotAttendance.checkedCount}/{slot.students.length}
+                        {slotAttendance.label} {slotAttendance.checkedCount}/{slot.students.length}
                       </Badge>
                     ) : slot.students.length > 0 && slot.checkin ? (
                       <Link

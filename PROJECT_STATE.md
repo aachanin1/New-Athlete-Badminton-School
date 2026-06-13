@@ -523,6 +523,95 @@ Potential bug found:
   - `git diff --check` reported only Windows LF/CRLF warnings, not whitespace errors.
 - Authenticated browser visual smoke for `/coach/hours` remains `Need verification` with a real coach session that can see the target slot. Passwords were not written to files or scripts for this verification.
 
+## 2026-06-13 - Phase A Status Derivation Audit
+
+- Read-only audit only. No source code, DB data, migrations, refactors, payroll behavior, attendance behavior, makeup behavior, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+- Files audited:
+  - `src/lib/session-attendance-status.ts`
+  - `src/lib/admin-attendance-state.ts`
+  - `src/lib/attendance-write-through.ts`
+  - `src/lib/coach-teaching-hours.ts`
+  - `src/app/(coach)/coach/page.tsx`
+  - `src/app/(coach)/coach/today/page.tsx`
+  - `src/app/(coach)/coach/hours/page.tsx`
+  - `src/components/coach/attendance-client.tsx`
+  - `src/app/(admin)/admin/schedules/page.tsx`
+  - `src/app/(admin)/admin/makeup/page.tsx`
+  - `src/components/admin/payroll-client.tsx`
+  - read-only payroll API context: `src/app/api/admin/coach-payouts/route.ts`
+- Status groups identified:
+  - Learner attendance status: exact `attendance` row should lead; `booking_sessions.status` and date/time are fallback/cache only.
+  - Teaching slot status: Coach dashboard/today/attendance derive slot state locally from check-in plus per-student attendance completion.
+  - Coach evidence status: `src/lib/coach-teaching-hours.ts` derives evidence from assignment groups, active learner sessions, coach check-in, photo, GPS, and attendance counts.
+  - Admin review status: `/admin/makeup` combines learner attendance state with `activity_logs` review request/closed actions.
+  - Payroll status: Admin payroll and payout close use `row.is_verified` from coach teaching-hour source rows and separate missing-evidence counts.
+- Confirmed audit findings:
+  - Admin learner display is mostly aligned where it uses `src/lib/admin-attendance-state.ts`, especially `/admin/schedules` and `/admin/makeup`.
+  - Coach surfaces still contain duplicated slot/check-in/attendance summary logic across `/coach`, `/coach/today`, and `attendance-client`.
+  - `/coach/hours` now has a display-only no-teaching/all-absent path, but Admin payroll and payout close still use the original evidence/payroll semantics. Payroll behavior must not be changed without a separate owner-approved scope.
+  - `/admin/makeup` review close state is separate from learner attendance state. A closed review can hide a queue item without changing attendance; this is intentional in current code but remains a UX/process risk after the Angie incident.
+- Suspicious or needs-verification items:
+  - `scopeAttendanceCount` is accepted by `deriveSessionAttendanceStatus` but is not currently used by the helper.
+  - `getCoachTeachingHourSourceRows` treats any attendance evidence as `has_attendance`; the business rule for all-absent rows with full coach evidence needs owner confirmation before payroll changes.
+  - `/coach` pending evidence counts do not share the exact same no-teaching exclusion that `/coach/hours` now uses.
+  - `src/components/admin/payroll-client.tsx` has evidence badge logic duplicated from `/coach/hours` and can still label no-check-in/all-absent rows as missing check-in from a payroll-evidence perspective.
+- Draft direction for Phase B:
+  - Start display-only. Create or extend shared derivation helpers only after choosing the smallest contract boundary.
+  - Keep payroll calculation/close semantics separate from Coach UI display semantics until the owner approves exact payroll rules.
+  - Keep Admin Makeup write/action semantics separate from display status cleanup.
+  - Verify with `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and targeted browser smoke for the touched routes.
+
+## 2026-06-13 - Phase B.1 Coach Display Status Sync
+
+- Scoped Coach display/read-only status source fix only. No DB data, migrations, payroll calculation, Admin Makeup action, payment, booking, lesson wallet, coupon, assignment, attendance write behavior, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+- Added `src/lib/coach-slot-display-status.ts` as a small pure helper for Coach slot display state.
+- Normalized Coach display slot states for:
+  - `/coach`
+  - `/coach/today`
+  - `/coach/attendance`
+- Normalized statuses are display-only:
+  - `no_learners`
+  - `needs_checkin`
+  - `checked_in_waiting_attendance`
+  - `partial_attendance`
+  - `attendance_complete`
+  - `resolved_without_checkin`
+- Source changes:
+  - `src/app/(coach)/coach/page.tsx` now uses the shared helper for pending check-in display counts.
+  - `src/app/(coach)/coach/today/page.tsx` now uses the shared helper for slot attendance badges and completed-result display.
+  - `src/components/coach/attendance-client.tsx` now uses the shared helper for slot card badges, locked display state, completed count, and partial/resolved-without-checkin display.
+- Preserved behavior:
+  - Coach attendance write buttons are still disabled when the exact slot has no coach check-in.
+  - No API write paths were changed.
+  - Payroll/evidence calculation and Admin Makeup review/action semantics were not touched.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npm.cmd run build`
+  - Post-build AGENTS cleanup: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified `/` plus a `_next/static` CSS asset returned HTTP 200.
+- Browser smoke:
+  - Unauthenticated read-only smoke for `/coach`, `/coach/today`, and `/coach/attendance` redirected to `/auth/login?redirect=...` with no console errors.
+  - Authenticated Coach visual smoke remains `Need verification` with a real Coach/Head-Coach session because the browser used for this smoke did not have a Coach session.
+- Authenticated Coach smoke attempt after owner supplied a Coach account:
+  - No source code, DB data, migrations, payroll calculation, Admin Makeup action, payment, booking, lesson wallet, coupon, assignment, attendance write action, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - The supplied account was used only through the browser login UI. Passwords were not written to project files or documentation.
+  - Login did not succeed locally. `/auth/login` displayed `อีเมลหรือรหัสผ่านไม่ถูกต้อง` after the supplied credential attempt.
+  - Because no authenticated Coach session was established, `/coach`, `/coach/today`, and `/coach/attendance` could not be authenticated-smoked in this pass.
+  - Browser console during the login attempt showed only the known local Next.js LCP image warning for `/logo new-athlete-school.jpg`; no fresh console error was captured.
+  - Gate for authenticated Coach smoke: `BLOCKER` at login credential/session establishment; route-level Phase B.1 authenticated visual status remains `NEED VERIFICATION`.
+- Authenticated Coach smoke retry after owner logged in manually:
+  - Used the existing Chrome session already logged in by the owner. No password was entered or written to files/docs.
+  - Smoke remained read-only: no attendance save, check-in, payroll, Admin Makeup action, payment, booking, lesson wallet, coupon, assignment, DB write, migration, source code change, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - `/coach` loaded without redirect, heading `หน้าหลักโค้ช`, and no status conflict was observed.
+  - `/coach/today` loaded without redirect, heading `ตารางสอนของฉัน`; observed completed/check-in labels were consistent, including `เช็คอินแล้ว` and `บันทึกผลครบแล้ว`.
+  - `/coach/attendance` loaded without redirect, heading `เช็คชื่อนักเรียน`; observed summary showed complete slots, `ยังล็อก/รอเช็คอิน 0`, and `ยังเช็คไม่ครบ 0`. Slot badges showed `บันทึกผลครบแล้ว .../...` together with `เช็คอินแล้ว`.
+  - No `partial attendance` case appeared in the visible smoke data, so partial label rendering remains covered by source/checks but not visually exercised in this browser pass.
+  - Browser console showed no errors. Warning observed: known local Next.js `scroll-behavior: smooth` warning during route transitions.
+  - Logout was performed after smoke as requested and returned to the public home page.
+  - Gate result: `PASS` for authenticated Phase B.1 Coach smoke on `/coach`, `/coach/today`, and `/coach/attendance`; `NEED VERIFICATION` only for a real data case that visibly contains partial attendance.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

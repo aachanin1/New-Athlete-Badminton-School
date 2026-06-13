@@ -7,6 +7,7 @@ import { AlertCircle, Baby, CalendarCheck, Camera, CheckCircle2, ChevronDown, Ch
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { getCoachSlotDisplaySummary } from '@/lib/coach-slot-display-status'
 import { fmtTime } from '@/lib/utils'
 
 interface StudentSession {
@@ -117,17 +118,21 @@ export function AttendanceClient({
   const isToday = selectedDate === today
   const slotSummaries = useMemo(() => slots.map((slot) => {
     const checked = slot.students.filter((student) => statuses[`${student.bookingSessionId}-${student.studentId}`]).length
-    const isComplete = slot.students.length > 0 && checked === slot.students.length
-    const hasAttendance = checked > 0
-    const needsCheckin = !slot.checkin && !hasAttendance
-    const label = isComplete ? 'บันทึกผลครบแล้ว' : needsCheckin ? 'รอเช็คอิน' : checked > 0 ? 'กำลังบันทึกผล' : 'รอบันทึกผล'
-    const color = isComplete
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : needsCheckin
-          ? 'border-orange-200 bg-orange-50 text-orange-700'
-          : 'border-blue-200 bg-blue-50 text-blue-700'
+    const summary = getCoachSlotDisplaySummary({
+      hasCheckin: Boolean(slot.checkin),
+      studentCount: slot.students.length,
+      checkedCount: checked,
+    })
 
-    return { slotId: slot.scheduleSlotId, checked, isLocked: needsCheckin, isComplete, label, color }
+    return {
+      slotId: slot.scheduleSlotId,
+      checked: summary.checkedCount,
+      isLocked: summary.isCheckinGate,
+      isComplete: summary.isComplete,
+      status: summary.status,
+      label: summary.label,
+      color: summary.color,
+    }
   }), [slots, statuses])
   const completedSlots = slotSummaries.filter((summary) => summary.isComplete).length
   const lockedSlots = slotSummaries.filter((summary) => summary.isLocked).length
@@ -298,7 +303,8 @@ export function AttendanceClient({
             const slotSummary = slotSummaries.find((summary) => summary.slotId === slot.scheduleSlotId)
             const isCheckinGate = Boolean(slotSummary?.isLocked)
             const blocksAttendanceWrite = !slot.checkin
-            const hasResolvedAttendanceWithoutCheckin = !slot.checkin && Boolean(slotSummary?.checked)
+            const hasResolvedAttendanceWithoutCheckin = slotSummary?.status === 'resolved_without_checkin'
+            const hasPartialAttendanceWithoutCheckin = !slot.checkin && slotSummary?.status === 'partial_attendance'
             const isExpanded = expandedSlots.has(slot.scheduleSlotId)
             const studentsByGroup = Object.entries(slot.students.reduce((map, student) => {
               const groupName = student.assignmentGroupName || 'กลุ่มหลัก'
@@ -350,6 +356,11 @@ export function AttendanceClient({
                       <Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 text-emerald-700">
                         <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                         บันทึกผลแล้ว
+                      </Badge>
+                    ) : hasPartialAttendanceWithoutCheckin ? (
+                      <Badge variant="outline" className="w-fit border-blue-200 bg-blue-50 text-blue-700">
+                        <UserCheck className="mr-1 h-3.5 w-3.5" />
+                        บันทึกผลบางส่วน
                       </Badge>
                     ) : (
                       <Badge className="w-fit bg-green-100 text-green-700">
