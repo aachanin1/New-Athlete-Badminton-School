@@ -22,7 +22,8 @@ Read only when relevant:
 ## Completed This Round
 
 - Completed Phase B.2-New.2 no-coach assign-only flow:
-  - Source/API/UI fix only; no direct DB data repair, migrations, payroll calculation, wallet/return-entitlement logic, payment, coupon, booking/create-makeup POST, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Source/API/UI fix only; no direct DB data repair, migrations, payroll calculation, wallet/return-entitlement logic, payment, coupon, booking/create-makeup POST, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Commit `ebee5f7` (`fix(makeup): assign no-coach rounds without attendance`) was pushed to `spike/next-major-security-upgrade`. It has not been deployed.
   - Added `assign_coach_to_round` to `PATCH /api/admin/makeup`.
   - New action validates required `session_ids`, `coach_id`, and `reason`; validates coach/head-coach role; validates one same past normal scheduled round; rejects if any target session already has a strict learner group coach assignment.
   - New action writes only assignment/review side effects: `coach_assignment_groups`, `coach_assignment_group_students`, legacy-compatible `coach_assignments` when needed, `activity_logs` with `attendance_gap_assign_coach_round`, and one coach notification.
@@ -32,6 +33,8 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and `npm.cmd run build`.
   - Post-build cleanup/restart completed: removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local HTTP 200.
   - Authenticated local `/admin/makeup` smoke passed read-only: no-coach dialog had no status select and assign button stayed disabled while incomplete; assigned-coach modal still opened and save stayed disabled while incomplete. No write-action save was clicked.
+  - Release gate: Source checks PASS, Build PASS, read-only browser smoke PASS, and `assign_coach_to_round` write UAT NEED VERIFICATION.
+  - Write UAT reason: there is currently no real no-coach round and no owner-approved coach target. Do not create fake test data and do not click a real save until the owner provides an exact test case.
 
 - Completed Phase B.2-New.1 Admin Makeup round-level UX:
   - Source/UI fix only; no DB data, migrations, payroll calculation, wallet/return-entitlement logic, create-makeup POST, payment, booking, coupon, assignment semantics, commit, deploy, or `SlipOK API Guide.docx` action was performed.
@@ -398,6 +401,7 @@ Status:
   - Latest authenticated Chrome release smoke passed for Super Admin `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments` with no fresh console errors or hydration mismatch.
   - Standard Coach expected UI has been owner-confirmed as Head Coach without the assignment/round-group menu; browser verification still needs a role-pure Standard Coach account if required.
 - Admin makeup round-level UAT remains pending and must be owner-driven because key flows write data.
+- Phase B.2-New.2 `assign_coach_to_round` write UAT remains NEED VERIFICATION. Reason: there is no real no-coach round and no owner-approved coach target yet. Do not create fake test data; wait for an exact owner-approved round/coach pair before any save.
 
 ### 0. Admin Schedules vs Makeup Exact Learner Assignment Debug
 

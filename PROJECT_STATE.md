@@ -702,7 +702,8 @@ Potential bug found:
 
 ## 2026-06-14 - Phase B.2-New.2 No-Coach Assign-Only Flow
 
-- Scoped Admin Makeup API/UI source fix only. No direct DB data repair, migrations, payroll calculation, wallet/return-entitlement logic, payment, coupon, booking/create-makeup POST, commit, deploy, or `SlipOK API Guide.docx` action was performed.
+- Scoped Admin Makeup API/UI source fix only. No direct DB data repair, migrations, payroll calculation, wallet/return-entitlement logic, payment, coupon, booking/create-makeup POST, deploy, or `SlipOK API Guide.docx` action was performed.
+- Commit `ebee5f7` (`fix(makeup): assign no-coach rounds without attendance`) was pushed to `spike/next-major-security-upgrade`. It has not been deployed.
 - Added new `PATCH /api/admin/makeup` action `assign_coach_to_round`.
 - `assign_coach_to_round` writes only assignment/review side effects:
   - Inserts one `coach_assignment_groups` row for the selected coach and round.
@@ -737,12 +738,22 @@ Potential bug found:
   - `มอบหมายโค้ชให้รอบนี้` was disabled while coach/reason were incomplete.
   - Assigned-coach cards still showed the round-level action set, and the `บันทึกย้อนหลังทั้งรอบ` modal still opened with disabled save while incomplete.
 
+### Phase B.2-New.2 Release Gate
+
+- Source checks: PASS.
+- Build: PASS.
+- Read-only browser smoke: PASS.
+- Write UAT for `assign_coach_to_round`: NEED VERIFICATION.
+- Reason: there is currently no real no-coach round and no owner-approved coach target for a safe write UAT.
+- No fake test data was created and no real save/write action was clicked.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
 - Current remote DB migration state after the latest local work needs confirmation before future DB-dependent work.
 - Final authenticated production/local smoke test across all roles after `86aa087` is partially complete. User, Head-Coach-like, Standard Admin, and Super Admin requested local admin surfaces are now verified, including `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments` with no fresh console errors or hydration mismatch in the latest authenticated Chrome smoke. Standard Coach expected UI has been owner-confirmed, but a role-pure Standard Coach browser smoke still needs a Standard Coach account if browser verification is required.
 - Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
+- Phase B.2-New.2 `assign_coach_to_round` write UAT is still NEED VERIFICATION until the owner provides a real no-coach round and an approved coach target. Do not create fake test data for this UAT.
 
 ## Do Not Regress
 
