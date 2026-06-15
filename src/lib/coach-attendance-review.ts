@@ -25,11 +25,15 @@ interface ActivityLogReviewRow {
 const ADMIN_RETURNED_ATTENDANCE_ACTIONS = [
   'attendance_gap_request_coach_review',
   'attendance_gap_request_coach_evidence',
+  'attendance_gap_replace_coach_round',
 ] as const
 
 function getNotifiedCoachIds(details: Record<string, unknown> | null) {
   const ids = details?.notifiedCoachIds
-  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+  const newCoachId = details?.newCoachId
+  const notifiedIds = Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+  if (typeof newCoachId === 'string') notifiedIds.push(newCoachId)
+  return Array.from(new Set(notifiedIds))
 }
 
 export async function getAdminReturnedAttendanceSlotIds(

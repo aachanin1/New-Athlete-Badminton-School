@@ -362,6 +362,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [unassignedCoachId, setUnassignedCoachId] = useState('')
   const [unassignedReason, setUnassignedReason] = useState('')
   const [unassignedSubmitting, setUnassignedSubmitting] = useState(false)
+  const [replacementGroup, setReplacementGroup] = useState<ReviewSessionGroup | null>(null)
+  const [replacementCoachId, setReplacementCoachId] = useState('')
+  const [replacementReason, setReplacementReason] = useState('')
+  const [replacementSubmitting, setReplacementSubmitting] = useState(false)
   const [roundAttendanceGroup, setRoundAttendanceGroup] = useState<ReviewSessionGroup | null>(null)
   const [roundAttendanceReason, setRoundAttendanceReason] = useState('')
   const [roundAttendance, setRoundAttendance] = useState<Record<string, AttendanceStatus | ''>>({})
@@ -832,6 +836,64 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     setError(null)
   }
 
+  const openCoachReplacementDialog = (group: ReviewSessionGroup) => {
+    setReplacementGroup(group)
+    setReplacementCoachId('')
+    setReplacementReason('')
+    setError(null)
+  }
+
+  const submitCoachReplacement = async () => {
+    if (!replacementGroup) return
+
+    const targetSessions = replacementGroup.sessions.filter(isReviewOrEvidenceSession)
+    const reason = replacementReason.trim()
+
+    if (targetSessions.length === 0) {
+      setError('ไม่พบรายการผู้เรียนที่ต้องเปลี่ยนโค้ชในรอบนี้')
+      return
+    }
+
+    if (!replacementCoachId) {
+      setError('กรุณาเลือกโค้ชตัวจริงที่สอนรอบนี้')
+      return
+    }
+
+    if (!reason) {
+      setError('กรุณาระบุเหตุผลเพื่อเก็บ audit log ก่อนเปลี่ยนโค้ช')
+      return
+    }
+
+    setReplacementSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'replace_coach_for_past_round',
+          session_ids: targetSessions.map((session) => session.id),
+          coach_id: replacementCoachId,
+          reason,
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(result?.error || 'เปลี่ยนโค้ชย้อนหลังไม่สำเร็จ')
+        return
+      }
+
+      setReplacementGroup(null)
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setReplacementSubmitting(false)
+    }
+  }
+
   const openRoundAttendanceDialog = (group: ReviewSessionGroup) => {
     if (isUnassignedAttendanceRound(group)) {
       setError('รอบนี้ยังไม่มีโค้ชในกลุ่ม กรุณาใช้ปุ่มจัดการเคสทั้งรอบเท่านั้น')
@@ -996,6 +1058,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const unassignedSaveDisabled = unassignedSubmitting ||
     !unassignedReason.trim() ||
     (unassignedMode === 'taught' && !unassignedCoachId)
+  const replacementTargetSessions = replacementGroup?.sessions.filter(isReviewOrEvidenceSession) || []
+  const replacementSaveDisabled = replacementSubmitting ||
+    !replacementCoachId ||
+    !replacementReason.trim() ||
+    replacementTargetSessions.length === 0
 
   return (
     <div className="space-y-5">
@@ -1233,6 +1300,15 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                               : canRequestCoachEvidenceOnly
                                 ? `ขอหลักฐานโค้ชรอบนี้${group.coachEvidenceRequestCount ? ` (${group.coachEvidenceRequestCount})` : ''}`
                                 : `ส่งให้โค้ชตรวจสอบรอบนี้${group.coachReviewRequestCount ? ` (${group.coachReviewRequestCount})` : ''}`}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
+                            disabled={replacementSubmitting}
+                            onClick={() => openCoachReplacementDialog(group)}
+                          >
+                            เปลี่ยนโค้ชย้อนหลัง
                           </Button>
                           <Button
                             size="sm"
@@ -1480,6 +1556,106 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           />
         </div>
       )}
+
+      <Dialog
+        open={Boolean(replacementGroup)}
+        onOpenChange={(open) => {
+          if (!open && !replacementSubmitting) setReplacementGroup(null)
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">เปลี่ยนโค้ชย้อนหลัง</DialogTitle>
+            <DialogDescription>
+              ใช้เมื่อรอบเรียนเกิดขึ้นแล้วแต่โค้ชที่สอนจริงไม่ตรงกับคนที่ถูกมอบหมาย ระบบจะเปลี่ยนผู้รับผิดชอบและขอหลักฐานจากโค้ชตัวจริง โดยยังไม่บันทึก attendance และไม่ลบหลักฐานเดิม
+            </DialogDescription>
+          </DialogHeader>
+          {replacementGroup && (
+            <div className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">
+                <p className="font-semibold">
+                  {formatDate(replacementGroup.date)} {formatTime(replacementGroup.startTime, replacementGroup.endTime)}
+                </p>
+                <p className="mt-1 text-xs">
+                  {replacementGroup.branchName} · {replacementGroup.courseType || 'คอร์สเรียน'} · {replacementTargetSessions.length} คน · โค้ชเดิม: {replacementGroup.coachName || '-'}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                การเปลี่ยนนี้จะย้ายผู้รับผิดชอบของ learner group ไปที่โค้ชตัวจริง และส่งให้โค้ชคนนั้นเช็กอินย้อนหลังด้วย selfie/GPS ก่อนนับหลักฐานครบหรือใช้ตรวจ payroll
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">โค้ชตัวจริงที่สอนรอบนี้</label>
+                <Select value={replacementCoachId} onValueChange={setReplacementCoachId}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="เลือกโค้ชตัวจริง" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coaches.map((coach) => (
+                      <SelectItem key={coach.id} value={coach.id}>
+                        {coach.name} {coach.role === 'head_coach' ? '(หัวหน้าโค้ช)' : '(โค้ช)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="rounded-lg border border-gray-200">
+                <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-900">
+                  รายชื่อผู้เรียนในรอบนี้
+                </div>
+                <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto">
+                  {replacementTargetSessions.map((session) => (
+                    <div key={session.id} className="px-3 py-3">
+                      <p className="font-semibold text-gray-950">{session.learner_name}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        ผู้ปกครอง/ผู้ใช้: {session.user_name} · กลุ่ม: {session.group_name || '-'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">เหตุผล / หลักฐานประกอบ</label>
+                <Textarea
+                  className="mt-2 min-h-24"
+                  value={replacementReason}
+                  onChange={(event) => setReplacementReason(event.target.value)}
+                  placeholder="เช่น โค้ชที่ถูกมอบหมายลาป่วยกะทันหัน และโค้ชคนนี้เป็นผู้สอนจริงในรอบดังกล่าว"
+                />
+                <p className="mt-1 text-xs text-gray-500">จำเป็นสำหรับ audit log และใช้ตามรอยย้อนหลังเมื่อตรวจหลักฐานโค้ช/payroll</p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={replacementSubmitting}
+                  onClick={() => setReplacementGroup(null)}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  disabled={replacementSaveDisabled}
+                  onClick={submitCoachReplacement}
+                >
+                  {replacementSubmitting ? 'กำลังบันทึก...' : 'เปลี่ยนโค้ชและขอหลักฐาน'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(roundAttendanceGroup)}

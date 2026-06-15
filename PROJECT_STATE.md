@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -746,6 +746,48 @@ Potential bug found:
 - Write UAT for `assign_coach_to_round`: NEED VERIFICATION.
 - Reason: there is currently no real no-coach round and no owner-approved coach target for a safe write UAT.
 - No fake test data was created and no real save/write action was clicked.
+- Commit `6ab8e37` was deployed to Vercel production on 2026-06-14.
+  - Deployment id: `dpl_D5wsjCNRNuHgjebsS9KiSNwupmuU`.
+  - Deployment URL: `https://new-athlete-badminton-school-d4g9qm8na-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+- Production read-only smoke for `/admin/makeup` after deploy:
+  - Used an existing authenticated Chrome Super Admin session. The in-app browser redirected to login and was not used for authenticated smoke.
+  - `/admin/makeup` loaded on production and showed no-coach plus assigned-coach review cards.
+  - No-coach cards still showed only `จัดการเคสทั้งรอบ`; learner rows kept the warning to use the round-level button only.
+  - No-coach dialog mode `สอนจริง แต่ลืมมอบหมาย/เช็คชื่อ` showed coach selection + reason, read-only learner labels, no per-learner status select, and disabled `มอบหมายโค้ชให้รอบนี้` while incomplete.
+  - Assigned-coach cards still showed the round-level actions `ส่งให้โค้ชตรวจสอบรอบนี้`/review request, `บันทึกย้อนหลังทั้งรอบ`, and `ปิดเคสทั้งรอบ`.
+  - `บันทึกย้อนหลังทั้งรอบ` modal opened and disabled `บันทึก attendance ทั้งรอบ` while learner statuses/reason were incomplete.
+  - No production write action was submitted.
+  - Console result: NEED VERIFICATION / BLOCKER for clean-console gate because Chrome captured `Error: Minified React error #418` from `/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js` during `/admin/makeup` hydration.
+
+## 2026-06-15 - Phase B.2-New.3 Past-Round Coach Replacement
+
+- Scoped Admin Makeup API/UI/helper source fix only. No DB data repair, migrations, payroll calculation changes, attendance write behavior changes, payment, booking, coupon, deploy, commit, or `SlipOK API Guide.docx` action was performed.
+- Added `PATCH /api/admin/makeup` action `replace_coach_for_past_round` for past normal rounds where the real coach differs from the assigned coach.
+- New action validates `session_ids`, `coach_id`, and `reason`; validates one same past normal `schedule_slot_id`; rejects makeup/walleted/cancelled/non-past rounds; validates the selected profile is `coach` or `head_coach`; and rejects a selected coach already assigned to another learner group in the same slot.
+- Replacement behavior:
+  - Updates exact `coach_assignment_groups.coach_id` for learner groups linked to the selected sessions.
+  - Creates a retrospective group only for selected sessions that still have no exact group.
+  - Ensures legacy `coach_assignments` compatibility for the new coach.
+  - Logs `activity_logs.action = attendance_gap_replace_coach_round` per selected session with previous coach ids, new coach id, changed group ids, affected session ids, reason, and flags that no attendance/session status was changed.
+  - Notifies the new coach to check in retrospectively with selfie/GPS.
+- `src/lib/coach-attendance-review.ts` now treats `attendance_gap_replace_coach_round` as an Admin-returned review action, so only the notified/new coach can use the retrospective check-in exception for that slot.
+- Updated `src/components/admin/makeup-client.tsx`:
+  - Assigned-coach review cards now include `เปลี่ยนโค้ชย้อนหลัง`.
+  - The dialog requires a new coach and audit reason, lists learners read-only, and states that the action changes responsibility/requests evidence without writing attendance or deleting old evidence.
+- Business rules preserved:
+  - `/coach/assign-groups` remains locked after the slot starts.
+  - `attendance` remains the source of truth and is not written by the replacement action.
+  - Old coach check-in evidence is not deleted; exact current assignment plus new coach check-in remains required for complete evidence/payroll review.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `npm.cmd run build`
+  - Post-build cleanup/restart: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Local Chrome read-only smoke for `/admin/makeup` redirected to `/auth/login?redirect=%2Fadmin%2Fmakeup` with no console errors. Known local warning observed: LCP image warning for `/logo new-athlete-school.jpg`.
+- Write UAT for `replace_coach_for_past_round`: NEED VERIFICATION with an owner-approved real past round and approved replacement coach. Do not submit real replacement writes without owner confirmation of the exact target.
 
 ## Unknown / Need Verification
 
@@ -754,6 +796,8 @@ Potential bug found:
 - Final authenticated production/local smoke test across all roles after `86aa087` is partially complete. User, Head-Coach-like, Standard Admin, and Super Admin requested local admin surfaces are now verified, including `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments` with no fresh console errors or hydration mismatch in the latest authenticated Chrome smoke. Standard Coach expected UI has been owner-confirmed, but a role-pure Standard Coach browser smoke still needs a Standard Coach account if browser verification is required.
 - Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
 - Phase B.2-New.2 `assign_coach_to_round` write UAT is still NEED VERIFICATION until the owner provides a real no-coach round and an approved coach target. Do not create fake test data for this UAT.
+- Phase B.2-New.3 `replace_coach_for_past_round` write UAT is NEED VERIFICATION until the owner provides an exact past round and approved replacement coach.
+- Production `/admin/makeup` clean-console smoke after deploy `6ab8e37` is NEED VERIFICATION / BLOCKER until the React #418 hydration/runtime console error is investigated. Page UI loaded and read-only controls matched expectations, but the console gate did not pass.
 
 ## Do Not Regress
 
