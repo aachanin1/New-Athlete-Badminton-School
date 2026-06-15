@@ -29,6 +29,8 @@ Read only when relevant:
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Authenticated local Chrome read-only `/admin/makeup` smoke passed: the reported 2026-06-14 15:00-17:00 Rama 2 round with 5 learners showed `ส่งให้โค้ชแล้ว 1 ครั้ง` and button suffix `(1)`, no-coach and assigned-coach controls remained visible, no console errors were captured, and no write action was clicked.
   - No current visible coach-evidence request-count case was present in the smoke data, but the same display aggregation path was fixed for evidence counters.
+  - Commit `c4a75c1` was pushed and deployed to Vercel production on 2026-06-15. Deployment id `dpl_qMctHJktpKKHDMZPVtwHwe5r3p2G`, production alias `https://www.newathleteschool.com`, status Ready.
+  - Owner-confirmed production smoke after deploy: the round that previously showed `ส่งให้โค้ชแล้ว 5 ครั้ง` now shows `ส่งให้โค้ชแล้ว 1 ครั้ง`. No production write action was clicked. Counter aggregation bug is resolved in production.
 
 - Completed scoped Admin Makeup React #418 timezone display fix:
   - Source/display-only fix only; no DB writes, migrations, API semantics changes, business behavior changes, payroll/payment/booking/wallet/coupon/assignment changes, `assign_coach_to_round`, `replace_coach_for_past_round`, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.

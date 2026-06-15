@@ -872,6 +872,12 @@ Potential bug found:
   - Assigned-coach cards still showed the expected review, coach replacement, retrospective attendance, and close-case controls.
   - No write action was clicked.
 - No current visible coach-evidence request-count case was present in the smoke data, but the same display aggregation path was fixed for evidence counters.
+- Commit `c4a75c1` (`fix(makeup): show round-level review request counts`) was pushed and deployed to Vercel production on 2026-06-15.
+  - Deployment id: `dpl_qMctHJktpKKHDMZPVtwHwe5r3p2G`.
+  - Deployment URL: `https://new-athlete-badminton-school-b59ov4rbb-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Vercel status: Ready.
+- Owner-confirmed production smoke after deploy: the round that previously showed `ส่งให้โค้ชแล้ว 5 ครั้ง` now shows `ส่งให้โค้ชแล้ว 1 ครั้ง`. No production write action was clicked. Counter aggregation bug is resolved in production.
 
 ## Unknown / Need Verification
 
