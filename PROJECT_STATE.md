@@ -815,6 +815,12 @@ Potential bug found:
   - Vercel status: Ready.
   - Production read-only smoke after deploy: `/` returned HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` returned HTTP 200, and `/admin/payroll` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fpayroll`.
   - Vercel CLI logs for the final deployment window returned no runtime logs; no error/fatal runtime logs were returned by the CLI query.
+- Authenticated production Chrome smoke for `/admin/payroll` after deploy:
+  - Loaded `https://www.newathleteschool.com/admin/payroll` with the existing Super Admin session and did not redirect to login.
+  - Browser console showed no errors or warnings.
+  - Coach Link NA Ratchada detail dialog opened read-only; the verified evidence list included both 2026-06-11 rows (`13:00-15:00` Ramintra and `17:00-19:00` Ratchada), confirming the production UI no longer stops at 2026-06-10 / 8 rows.
+  - The dialog showed `ปิดสัปดาห์` buttons, including one enabled write action; no payroll write action was clicked.
+  - Production authenticated smoke gate for the payroll evidence-list visibility fix: PASS.
 
 ## 2026-06-15 - Admin Makeup React #418 Timezone Display Fix
 

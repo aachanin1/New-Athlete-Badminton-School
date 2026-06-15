@@ -47,6 +47,7 @@ Read only when relevant:
   - Final production deployment id: `dpl_21B3aVVFBiV8rmAUTKWsgPf2rxhk`; production alias: `https://www.newathleteschool.com`; deployment status: Ready.
   - Production read-only smoke after deploy: `/` HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` HTTP 200, and `/admin/payroll` HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fpayroll`.
   - Vercel CLI logs during final smoke returned no runtime logs; no error/fatal runtime logs were returned by the CLI query.
+  - Authenticated production Chrome smoke for `/admin/payroll` passed read-only with the existing Super Admin session: page loaded without login redirect, browser console showed no errors/warnings, and the Coach Link NA Ratchada detail dialog included both 2026-06-11 verified evidence rows. The enabled `ปิดสัปดาห์` write action was visible but was not clicked.
 
 - Completed Phase B.2-New.3 past-round coach replacement:
   - Source/API/UI/helper fix only; no DB data repair, migrations, payroll calculation changes, attendance write behavior changes, payment, booking, coupon, deploy, commit, or `SlipOK API Guide.docx` action was performed.
