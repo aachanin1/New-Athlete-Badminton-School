@@ -808,6 +808,13 @@ Potential bug found:
 - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
 - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
 - Local browser smoke: `/admin/payroll` redirected unauthenticated local browser to `/auth/login?redirect=%2Fadmin%2Fpayroll` as expected, with no console errors on recheck.
+- Commit `40f86cf` (`fix(payroll): show all evidence rows`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
+  - Deployment id: `dpl_6mxN8PuZiXiq9dRFeLgM7zKU5KgC`.
+  - Deployment URL: `https://new-athlete-badminton-school-irlo6rcte-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Vercel status: Ready.
+  - Production read-only smoke after deploy: `/` returned HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` returned HTTP 200, and `/admin/payroll` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fpayroll`.
+  - Vercel CLI logs for the deployment window returned info-level requests only; no error/fatal runtime logs were returned by the CLI query.
 
 ## Unknown / Need Verification
 

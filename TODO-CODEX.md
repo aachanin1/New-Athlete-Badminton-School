@@ -31,6 +31,10 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local browser smoke for `/admin/payroll` redirected unauthenticated access to `/auth/login?redirect=%2Fadmin%2Fpayroll` as expected and showed no console errors on recheck.
+  - Commit `40f86cf` (`fix(payroll): show all evidence rows`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
+  - Deployment id: `dpl_6mxN8PuZiXiq9dRFeLgM7zKU5KgC`; production alias: `https://www.newathleteschool.com`; deployment status: Ready.
+  - Production read-only smoke after deploy: `/` HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` HTTP 200, and `/admin/payroll` HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fpayroll`.
+  - Vercel CLI logs during smoke showed info-level requests only; no error/fatal runtime logs were returned by the CLI query.
 
 - Completed Phase B.2-New.3 past-round coach replacement:
   - Source/API/UI/helper fix only; no DB data repair, migrations, payroll calculation changes, attendance write behavior changes, payment, booking, coupon, deploy, commit, or `SlipOK API Guide.docx` action was performed.
