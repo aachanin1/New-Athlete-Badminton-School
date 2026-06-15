@@ -1026,7 +1026,7 @@ function TeachingEvidenceList({
         <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">ยังไม่มีรอบที่เช็คอินพร้อมรูป พิกัด และเช็คชื่อครบ</div>
       ) : (
         <div className="space-y-2">
-          {entries.slice(0, 8).map((entry) => (
+          {entries.map((entry) => (
             <div key={entry.row.assignment_id} className={entry.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-orange-50/40 p-3 text-sm' : 'rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 text-sm'}>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">ครบหลักฐาน</Badge>
@@ -1061,7 +1061,7 @@ function TeachingIssueList({ rows }: { rows: PayrollSourceRow[] }) {
         <div className="rounded-lg border border-dashed p-4 text-sm text-gray-400">ไม่มีรอบค้างตรวจ</div>
       ) : (
         <div className="space-y-2">
-          {rows.slice(0, 8).map((row) => {
+          {rows.map((row) => {
             const badge = getEvidenceBadge(row)
             const Icon = badge.icon
             return (

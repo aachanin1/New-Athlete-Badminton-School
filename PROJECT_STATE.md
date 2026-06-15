@@ -796,6 +796,19 @@ Potential bug found:
   - Production read-only smoke after deploy: `/` returned HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` returned HTTP 200, and `/admin/makeup` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fmakeup`.
   - Vercel CLI logs for the deployment window showed info-level requests only during smoke; no error/fatal runtime logs were returned by the Vercel MCP query, though the MCP reported a 403 warning while paging runtime logs.
 
+## 2026-06-15 - Admin Payroll Evidence List Visibility
+
+- Scoped Admin Payroll UI fix only. No DB writes, migrations, payroll calculation semantics, attendance writes, commit, push, or deploy were performed.
+- Reported pattern: Coach Link NA Ratchada had completed/check-in/attendance evidence for 2026-06-11, but the visible `/admin/payroll` evidence list stopped at 2026-06-10.
+- Read-only DB proof for coach `412a8f42-d069-4b1d-9b2c-abce93f0dc82` confirmed 2026-06-11 has 2 verified payroll source rounds:
+  - 13:00-15:00 at Ramintra: 1 linked/payable session, 1 attendance row (`present`), exact coach check-in with photo and GPS.
+  - 17:00-19:00 at Ratchada: 3 linked/payable sessions, 3 attendance rows (`present`), exact coach check-in with photo and GPS.
+- Root cause: `src/components/admin/payroll-client.tsx` rendered only the first 8 evidence rows and first 8 issue rows with `slice(0, 8)`. The 2026-06-11 rounds were verified rows 9 and 10, so they were hidden from the visible list even though source data was present.
+- Source fix: Admin Payroll now renders all verified evidence rows and all issue rows for the selected coach/month instead of silently truncating after 8.
+- Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+- Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+- Local browser smoke: `/admin/payroll` redirected unauthenticated local browser to `/auth/login?redirect=%2Fadmin%2Fpayroll` as expected, with no console errors on recheck.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

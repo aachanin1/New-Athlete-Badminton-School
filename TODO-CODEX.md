@@ -21,6 +21,17 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed urgent Admin Payroll evidence-list visibility fix:
+  - Source/UI fix only; no DB writes, migrations, payroll calculation semantics, attendance write behavior, payment, booking, commit, push, or deploy were performed.
+  - Read-only DB proof confirmed Coach Link NA Ratchada (`412a8f42-d069-4b1d-9b2c-abce93f0dc82`) had two verified payroll source rounds on 2026-06-11:
+    - 13:00-15:00 Ramintra kids_group: 1 payable session, 1 present attendance row, exact coach check-in with photo/GPS.
+    - 17:00-19:00 Ratchada kids_group: 3 payable sessions, 3 present attendance rows, exact coach check-in with photo/GPS.
+  - Root cause: `src/components/admin/payroll-client.tsx` used `slice(0, 8)` for both verified evidence rows and issue rows. Coach Link had 10 verified rows in June 2026, so 2026-06-11 was hidden as rows 9-10 while totals still had the data.
+  - Fix: Admin Payroll now renders every verified evidence row and every issue row for the selected coach/month instead of silently truncating the list.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Local browser smoke for `/admin/payroll` redirected unauthenticated access to `/auth/login?redirect=%2Fadmin%2Fpayroll` as expected and showed no console errors on recheck.
+
 - Completed Phase B.2-New.3 past-round coach replacement:
   - Source/API/UI/helper fix only; no DB data repair, migrations, payroll calculation changes, attendance write behavior changes, payment, booking, coupon, deploy, commit, or `SlipOK API Guide.docx` action was performed.
   - Added `replace_coach_for_past_round` to `PATCH /api/admin/makeup`.
