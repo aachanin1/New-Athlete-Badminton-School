@@ -33,6 +33,10 @@ Read only when relevant:
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local Chrome read-only `/admin/makeup` smoke redirected to `/auth/login?redirect=%2Fadmin%2Fmakeup` with no console errors. Known local LCP image warning for `/logo new-athlete-school.jpg` remained.
   - Write UAT for `replace_coach_for_past_round`: NEED VERIFICATION with an owner-approved exact past round and replacement coach. Do not submit real replacement writes without owner confirmation.
+  - Commit `6606f41` (`fix(makeup): support past round coach replacement`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
+  - Deployment id: `dpl_5BN7cSZH8ecQhbkFScpjxZZjJZWq`; production alias: `https://www.newathleteschool.com`; deployment status: Ready.
+  - Production read-only smoke after deploy: `/` HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` HTTP 200, and `/admin/makeup` HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fmakeup`.
+  - Vercel CLI logs during smoke showed info-level requests only. Vercel MCP error/fatal query returned no logs but included a 403 paging warning.
 
 - Completed Phase B.2-New.2 no-coach assign-only flow:
   - Source/API/UI fix only; no direct DB data repair, migrations, payroll calculation, wallet/return-entitlement logic, payment, coupon, booking/create-makeup POST, deploy, or `SlipOK API Guide.docx` action was performed.

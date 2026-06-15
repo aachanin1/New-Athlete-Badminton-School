@@ -788,6 +788,13 @@ Potential bug found:
   - Post-build cleanup/restart: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local Chrome read-only smoke for `/admin/makeup` redirected to `/auth/login?redirect=%2Fadmin%2Fmakeup` with no console errors. Known local warning observed: LCP image warning for `/logo new-athlete-school.jpg`.
 - Write UAT for `replace_coach_for_past_round`: NEED VERIFICATION with an owner-approved real past round and approved replacement coach. Do not submit real replacement writes without owner confirmation of the exact target.
+- Commit `6606f41` (`fix(makeup): support past round coach replacement`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
+  - Deployment id: `dpl_5BN7cSZH8ecQhbkFScpjxZZjJZWq`.
+  - Deployment URL: `https://new-athlete-badminton-school-9vfzr03lm-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Vercel status: Ready.
+  - Production read-only smoke after deploy: `/` returned HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` returned HTTP 200, and `/admin/makeup` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fmakeup`.
+  - Vercel CLI logs for the deployment window showed info-level requests only during smoke; no error/fatal runtime logs were returned by the Vercel MCP query, though the MCP reported a 403 warning while paging runtime logs.
 
 ## Unknown / Need Verification
 
