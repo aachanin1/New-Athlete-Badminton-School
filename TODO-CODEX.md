@@ -21,6 +21,15 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Admin Makeup round-level request counter display fix:
+  - Source/client display fix only; no API semantics, write behavior, `activity_logs`, `notifications`, DB data, migrations, payroll/booking/wallet/payment/coupon/assignment, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Root cause: `/admin/makeup` grouped learner sessions into round cards and summed per-session `coach_review_requested_count` / `coach_evidence_requested_count`, so one round-level send across 5 learners displayed as 5 requests.
+  - Fix: `src/components/admin/makeup-client.tsx` now uses the maximum per-session count for both coach review and coach evidence display counters, preserving per-session internal logs/notifications while showing a round-level badge count.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only the known Windows LF/CRLF warning for `src/components/admin/makeup-client.tsx`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Authenticated local Chrome read-only `/admin/makeup` smoke passed: the reported 2026-06-14 15:00-17:00 Rama 2 round with 5 learners showed `ส่งให้โค้ชแล้ว 1 ครั้ง` and button suffix `(1)`, no-coach and assigned-coach controls remained visible, no console errors were captured, and no write action was clicked.
+  - No current visible coach-evidence request-count case was present in the smoke data, but the same display aggregation path was fixed for evidence counters.
+
 - Completed scoped Admin Makeup React #418 timezone display fix:
   - Source/display-only fix only; no DB writes, migrations, API semantics changes, business behavior changes, payroll/payment/booking/wallet/coupon/assignment changes, `assign_coach_to_round`, `replace_coach_for_past_round`, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
   - Production authenticated `/admin/makeup` React #418 had been confirmed on page-load hydration. Read-only debug narrowed the likely root cause to `formatDateTime()` rendering check-in timestamps without an explicit timezone.

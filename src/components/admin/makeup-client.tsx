@@ -552,8 +552,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       if (session.group_name && !group.groupNames.includes(session.group_name)) group.groupNames.push(session.group_name)
       if (!group.coachCheckinTime && session.coach_checkin_time) group.coachCheckinTime = session.coach_checkin_time
       if (session.coach_checkin_has_location) group.coachCheckinHasLocation = true
-      group.coachReviewRequestCount += session.coach_review_requested_count || 0
-      group.coachEvidenceRequestCount += session.coach_evidence_requested_count || 0
+      group.coachReviewRequestCount = Math.max(group.coachReviewRequestCount, session.coach_review_requested_count || 0)
+      group.coachEvidenceRequestCount = Math.max(group.coachEvidenceRequestCount, session.coach_evidence_requested_count || 0)
       if (session.coach_review_requested_at && (!group.coachReviewRequestedAt || session.coach_review_requested_at > group.coachReviewRequestedAt)) {
         group.coachReviewRequestedAt = session.coach_review_requested_at
       }

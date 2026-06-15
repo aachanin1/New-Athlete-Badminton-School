@@ -851,6 +851,28 @@ Potential bug found:
   - No production write action was clicked.
 - Production clean-console gate for the React #418 timezone display fix: PASS.
 
+## 2026-06-15 - Admin Makeup Round-Level Request Counter Display
+
+- Scoped Admin Makeup client display fix only. No API semantics, write behavior, `activity_logs`, `notifications`, DB data, migrations, payroll/booking/wallet/payment/coupon/assignment, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+- Reported pattern: `/admin/makeup` round 2026-06-14 15:00-17:00 at Rama 2 had 5 learners. One click on the round-level send-to-coach-review action produced per-session audit logs, but the card badge displayed the request count as 5.
+- Root cause: `src/components/admin/makeup-client.tsx` grouped learner sessions into round cards and summed `coach_review_requested_count` and `coach_evidence_requested_count` across sessions. The server still reads `activity_logs` per `booking_sessions` row, and the API still logs/notifies per session.
+- Source fix: round card display aggregation now uses the maximum per-session request count for both coach review and coach evidence counters instead of summing all learner/session counters.
+- Business behavior preserved: internal per-learner/per-session log and notification rows may still exist, but the card badge/button count now displays the round-level count.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only the known Windows LF/CRLF warning for `src/components/admin/makeup-client.tsx`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+- Authenticated local Chrome read-only smoke for `/admin/makeup` passed:
+  - Page loaded without login redirect and without console errors or Next error overlay.
+  - The reported 2026-06-14 15:00-17:00 Rama 2 round with 5 learners showed the coach review counter as 1 instead of 5, including the button suffix `(1)`.
+  - No-coach round cards still showed the round-level case-management control.
+  - Assigned-coach cards still showed the expected review, coach replacement, retrospective attendance, and close-case controls.
+  - No write action was clicked.
+- No current visible coach-evidence request-count case was present in the smoke data, but the same display aggregation path was fixed for evidence counters.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
