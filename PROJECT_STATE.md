@@ -833,7 +833,17 @@ Potential bug found:
   - `git diff --check` passed with the known Windows LF/CRLF warning for `src/components/admin/makeup-client.tsx`.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Authenticated local Chrome smoke for `/admin/makeup` loaded with no console errors and no React #418. No write action was clicked.
-- Production clean-console smoke after this local source fix is still NEED VERIFICATION until the fix is committed, deployed, and authenticated `/admin/makeup` is rechecked.
+- Commit `d59af8c` (`fix(makeup): stabilize checkin time hydration`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
+  - Deployment id: `dpl_A2RWoVHBxgKev3CN7J7zco2NPDvA`.
+  - Deployment URL: `https://new-athlete-badminton-school-4xigsjz4k-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Vercel status: Ready.
+- Authenticated production Chrome smoke for `/admin/makeup` after deploy:
+  - Loaded `https://www.newathleteschool.com/admin/makeup` without redirecting to login.
+  - Browser console showed no errors or warnings and no React #418.
+  - Page showed Super Admin/Admin Makeup content, no-coach round controls, and assigned-coach round controls.
+  - No production write action was clicked.
+- Production clean-console gate for the React #418 timezone display fix: PASS.
 
 ## Unknown / Need Verification
 
@@ -843,7 +853,7 @@ Potential bug found:
 - Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
 - Phase B.2-New.2 `assign_coach_to_round` write UAT is still NEED VERIFICATION until the owner provides a real no-coach round and an approved coach target. Do not create fake test data for this UAT.
 - Phase B.2-New.3 `replace_coach_for_past_round` write UAT is NEED VERIFICATION until the owner provides an exact past round and approved replacement coach.
-- Production `/admin/makeup` clean-console smoke for the React #418 timezone display fix is NEED VERIFICATION until the local source fix is committed, deployed, and authenticated production `/admin/makeup` is rechecked.
+- Production `/admin/makeup` clean-console smoke for the React #418 timezone display fix passed after deploy `d59af8c`; keep future production smoke read-only unless the owner approves exact write targets.
 
 ## Do Not Regress
 

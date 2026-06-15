@@ -28,7 +28,10 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only the known Windows LF/CRLF warning.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Authenticated local Chrome `/admin/makeup` smoke passed read-only with no console errors and no React #418. No write action was clicked.
-  - Production clean-console result remains NEED VERIFICATION until this local source fix is committed, deployed, and authenticated production `/admin/makeup` is rechecked.
+  - Commit `d59af8c` (`fix(makeup): stabilize checkin time hydration`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id: `dpl_A2RWoVHBxgKev3CN7J7zco2NPDvA`; production alias: `https://www.newathleteschool.com`; deployment status: Ready.
+  - Authenticated production Chrome `/admin/makeup` smoke passed read-only: page loaded without login redirect, console showed no errors/warnings, no React #418 was captured, and no write action was clicked.
+  - Production clean-console gate for this React #418 timezone display fix: PASS.
 
 - Completed urgent Admin Payroll evidence-list visibility fix:
   - Source/UI fix only; no DB writes, migrations, payroll calculation semantics, attendance write behavior, payment, booking, commit, push, or deploy were performed.
@@ -448,7 +451,7 @@ Status:
 - Admin makeup round-level UAT remains pending and must be owner-driven because key flows write data.
 - Phase B.2-New.2 `assign_coach_to_round` write UAT remains NEED VERIFICATION. Reason: there is no real no-coach round and no owner-approved coach target yet. Do not create fake test data; wait for an exact owner-approved round/coach pair before any save.
 - Phase B.2-New.3 `replace_coach_for_past_round` write UAT remains NEED VERIFICATION. Reason: this flow changes real coach assignment/evidence ownership, so wait for an exact owner-approved past round and replacement coach before any save.
-- Next safe task before more release confidence: review/commit the scoped `/admin/makeup` React #418 timezone display fix, deploy after owner approval, and run authenticated production `/admin/makeup` clean-console smoke. Owner-driven write UAT for Admin Makeup replacement/assignment flows still waits for exact safe target records.
+- Next safe task before more release confidence: owner-driven write UAT for Admin Makeup replacement/assignment flows when exact safe target records are provided. Keep production smoke read-only unless the owner approves exact write targets.
 
 ### 0. Admin Schedules vs Makeup Exact Learner Assignment Debug
 
