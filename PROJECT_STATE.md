@@ -816,6 +816,25 @@ Potential bug found:
   - Production read-only smoke after deploy: `/` returned HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` returned HTTP 200, and `/admin/payroll` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fpayroll`.
   - Vercel CLI logs for the final deployment window returned no runtime logs; no error/fatal runtime logs were returned by the CLI query.
 
+## 2026-06-15 - Admin Makeup React #418 Timezone Display Fix
+
+- Scoped Admin Makeup display-only fix only. No DB writes, migrations, API semantics changes, business behavior changes, payroll/payment/booking/wallet/coupon/assignment changes, `assign_coach_to_round`, `replace_coach_for_past_round`, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+- Production authenticated `/admin/makeup` still emitted `Minified React error #418` on page-load hydration after deploy `6606f41`.
+- Read-only debug narrowed the likely root cause to check-in date/time text rendering in `src/components/admin/makeup-client.tsx`:
+  - `formatDateTime()` formatted Supabase timestamp values with `Intl.DateTimeFormat('th-TH')` without an explicit timezone.
+  - Vercel/server rendering can format the same timestamp in UTC while Chrome/user rendering formats it in Asia/Bangkok.
+  - Proof command showed the same timestamp renders as `4 Jun 69 09:42` in UTC and `4 Jun 69 16:42` in Asia/Bangkok unless `timeZone: 'Asia/Bangkok'` is set.
+- Source fix: `formatDateTime()` now sets `timeZone: 'Asia/Bangkok'`.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` passed with the known Windows LF/CRLF warning for `src/components/admin/makeup-client.tsx`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Authenticated local Chrome smoke for `/admin/makeup` loaded with no console errors and no React #418. No write action was clicked.
+- Production clean-console smoke after this local source fix is still NEED VERIFICATION until the fix is committed, deployed, and authenticated `/admin/makeup` is rechecked.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
@@ -824,7 +843,7 @@ Potential bug found:
 - Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
 - Phase B.2-New.2 `assign_coach_to_round` write UAT is still NEED VERIFICATION until the owner provides a real no-coach round and an approved coach target. Do not create fake test data for this UAT.
 - Phase B.2-New.3 `replace_coach_for_past_round` write UAT is NEED VERIFICATION until the owner provides an exact past round and approved replacement coach.
-- Production `/admin/makeup` clean-console smoke after deploy `6ab8e37` is NEED VERIFICATION / BLOCKER until the React #418 hydration/runtime console error is investigated. Page UI loaded and read-only controls matched expectations, but the console gate did not pass.
+- Production `/admin/makeup` clean-console smoke for the React #418 timezone display fix is NEED VERIFICATION until the local source fix is committed, deployed, and authenticated production `/admin/makeup` is rechecked.
 
 ## Do Not Regress
 

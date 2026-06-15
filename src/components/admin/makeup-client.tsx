@@ -261,6 +261,7 @@ function formatTime(start: string, end: string) {
 function formatDateTime(value: string | null | undefined) {
   if (!value) return null
   return new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'Asia/Bangkok',
     day: 'numeric',
     month: 'short',
     year: '2-digit',

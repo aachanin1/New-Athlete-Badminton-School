@@ -21,6 +21,15 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Admin Makeup React #418 timezone display fix:
+  - Source/display-only fix only; no DB writes, migrations, API semantics changes, business behavior changes, payroll/payment/booking/wallet/coupon/assignment changes, `assign_coach_to_round`, `replace_coach_for_past_round`, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Production authenticated `/admin/makeup` React #418 had been confirmed on page-load hydration. Read-only debug narrowed the likely root cause to `formatDateTime()` rendering check-in timestamps without an explicit timezone.
+  - Fix: `src/components/admin/makeup-client.tsx` now adds `timeZone: 'Asia/Bangkok'` inside `formatDateTime()` only.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only the known Windows LF/CRLF warning.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Authenticated local Chrome `/admin/makeup` smoke passed read-only with no console errors and no React #418. No write action was clicked.
+  - Production clean-console result remains NEED VERIFICATION until this local source fix is committed, deployed, and authenticated production `/admin/makeup` is rechecked.
+
 - Completed urgent Admin Payroll evidence-list visibility fix:
   - Source/UI fix only; no DB writes, migrations, payroll calculation semantics, attendance write behavior, payment, booking, commit, push, or deploy were performed.
   - Read-only DB proof confirmed Coach Link NA Ratchada (`412a8f42-d069-4b1d-9b2c-abce93f0dc82`) had two verified payroll source rounds on 2026-06-11:
@@ -439,7 +448,7 @@ Status:
 - Admin makeup round-level UAT remains pending and must be owner-driven because key flows write data.
 - Phase B.2-New.2 `assign_coach_to_round` write UAT remains NEED VERIFICATION. Reason: there is no real no-coach round and no owner-approved coach target yet. Do not create fake test data; wait for an exact owner-approved round/coach pair before any save.
 - Phase B.2-New.3 `replace_coach_for_past_round` write UAT remains NEED VERIFICATION. Reason: this flow changes real coach assignment/evidence ownership, so wait for an exact owner-approved past round and replacement coach before any save.
-- Next safe task before more release confidence: scoped read-only debug of the production `/admin/makeup` React #418 hydration/runtime console error from deploy `6ab8e37`, plus owner-driven write UAT for Admin Makeup replacement/assignment flows when exact safe target records are provided.
+- Next safe task before more release confidence: review/commit the scoped `/admin/makeup` React #418 timezone display fix, deploy after owner approval, and run authenticated production `/admin/makeup` clean-console smoke. Owner-driven write UAT for Admin Makeup replacement/assignment flows still waits for exact safe target records.
 
 ### 0. Admin Schedules vs Makeup Exact Learner Assignment Debug
 
