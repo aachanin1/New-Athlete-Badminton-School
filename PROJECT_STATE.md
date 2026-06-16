@@ -1003,6 +1003,21 @@ Potential bug found:
   - Local browser read-only smoke for `/admin/makeup` redirected unauthenticated access to `/auth/login?redirect=%2Fadmin%2Fmakeup` with 0 console errors.
 - Authenticated UI smoke for the new dialog and owner-approved production UAT are still pending. Do not click the new write action until the owner confirms the exact target and approves the write.
 
+## 2026-06-16 - Font Preload Warning Noise
+
+- Scoped app-shell font loading fix only. No DB writes, migrations, business logic changes, Admin makeup action changes, commit, push, or deploy were performed.
+- Production screenshot after deploy `99c579a` showed many Chrome DevTools warnings for preloaded `/_next/static/media/*.woff2` Prompt font files and a reported odd-looking font. Read-only HTML inspection confirmed the preload tags had correct `as="font"` attributes, but `next/font` was preloading 10 Prompt font files from `subsets: ["thai", "latin"]` and weights `300/400/500/600/700`.
+- Source fix: `src/app/layout.tsx` keeps the Prompt font but removes unused weight `300`, sets `display: "swap"`, and disables automatic font preload with `preload: false` so pages do not emit unused `.woff2` preload links.
+- Local verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only known Windows LF/CRLF warnings.
+  - Post-build cleanup/restart completed; local `/` and `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Local `/auth/login` HTML emitted 0 `.woff2` preload links.
+- Production will continue showing the old preload warnings until this scoped layout fix is committed and deployed.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

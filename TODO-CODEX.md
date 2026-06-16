@@ -21,6 +21,14 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped app-shell font preload warning fix:
+  - Source fix only; no DB writes, migrations, business logic changes, Admin makeup action changes, commit, push, or deploy action was performed.
+  - Production screenshot showed many Chrome DevTools warnings for Prompt `.woff2` font preloads. Read-only HTML inspection confirmed `as="font"` was correct, but `next/font` was preloading 10 Prompt files from 5 weights across Thai/Latin subsets.
+  - `src/app/layout.tsx` keeps Prompt as the app font, removes unused weight `300`, sets `display: "swap"`, and disables automatic font preload with `preload: false`.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Post-build cleanup/restart completed; local `/` and `_next/static/chunks/webpack.js` returned HTTP 200. Local `/auth/login` HTML emitted 0 `.woff2` preload links.
+  - Production still needs commit/push/deploy for this warning fix to take effect.
+
 - Completed scoped Admin Makeup targeted same-slot learner move source/UI fix:
   - Source/UI fix only for `/admin/makeup`; no DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, booking/reschedule/payment/wallet/payroll logic changes, commit, push, or deploy action was performed.
   - Added API action `move_learner_to_existing_coach_group` in `src/app/api/admin/makeup/route.ts`.
