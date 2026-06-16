@@ -22,13 +22,15 @@ Read only when relevant:
 ## Completed This Round
 
 - Completed scoped Dashboard History walleted count clarity fix:
-  - Source/display fix only for `/dashboard/history`; no DB writes, migrations, lesson wallet write logic, booking/reschedule/payment/attendance write logic, Admin makeup, payroll, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Source/display fix only for `/dashboard/history`; no DB writes, migrations, lesson wallet write logic, booking/reschedule/payment/attendance write logic, Admin makeup, payroll, or `SlipOK API Guide.docx` action was performed.
   - Read-only proof for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f` showed `total_sessions = 16`, active course rows = 13, and 3 `walleted` rows backed by active `lesson_wallet_credits`.
   - `src/app/(dashboard)/dashboard/history/page.tsx` now fetches wallet credits read-only for loaded booking session ids, matches by `lesson_wallet_credits.original_session_id`, and passes minimal wallet credit metadata into the client.
   - `src/components/dashboard/history-client.tsx` keeps active count semantics unchanged, shows `รอบเรียนที่มีวันเรียนแล้ว: 13/16 ครั้ง`, adds `อยู่ในกระเป๋า รอเลือกวันใหม่: 3 ครั้ง`, and renders a separate walleted section for the 3 stored sessions.
   - Authenticated local Chrome smoke on `http://localhost:3000/dashboard/history` passed read-only for the reported Rama 2 16-session booking: wallet section showed 15 มิ.ย. 17:00-19:00, 21 มิ.ย. 09:00-11:00, and 25 มิ.ย. 17:00-19:00; completed/absent/attendance-gap labels remained visible; no console errors were captured; and no write action was clicked.
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Commit `4c5e2c2` was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-16. Deployment id `dpl_FXxNEtqBL6kEJAKHGX8oy2nzYHd4`; production alias `https://www.newathleteschool.com`; status Ready.
+  - Authenticated production Chrome smoke on `https://www.newathleteschool.com/dashboard/history` passed read-only for the reported parent booking: card still showed 16 sessions and learner count 13; detail showed 13/16 plus `อยู่ในกระเป๋า รอเลือกวันใหม่: 3 ครั้ง`; wallet section showed 15 มิ.ย. 17:00-19:00, 21 มิ.ย. 09:00-11:00, and 25 มิ.ย. 17:00-19:00; completed/absent/attendance-gap labels remained visible; browser console errors were 0; and no write action was clicked.
 
 - Completed scoped Dashboard History status display consistency fix:
   - Source/display fix only for `/dashboard/history`; no DB writes, migrations, booking write logic, reschedule API, payment logic, attendance write logic, Admin makeup, payroll, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
