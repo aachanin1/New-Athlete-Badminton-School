@@ -21,6 +21,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Admin Makeup targeted same-slot learner move source/UI fix:
+  - Source/UI fix only for `/admin/makeup`; no DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, booking/reschedule/payment/wallet/payroll logic changes, commit, push, or deploy action was performed.
+  - Added API action `move_learner_to_existing_coach_group` in `src/app/api/admin/makeup/route.ts`.
+  - The action validates `session_ids`, `target_group_id`, `coach_id`, `reason`, target group existence, same `schedule_slot_id`, target group coach match, same date/start/end/branch/course, non-makeup active lifecycle statuses only, and blocks if exact learner attendance exists by `booking_session_id + expected student_id`.
+  - The action writes only targeted `coach_assignment_group_students` updates/inserts, compatibility `coach_assignments` when missing, `activity_logs`, and target-coach notification. It does not write `attendance`, does not change `booking_sessions.status`, does not delete coach check-ins/evidence, and does not delete the old group.
+  - `src/app/(admin)/admin/makeup/page.tsx` now passes exact `group_id`, `coach_id`, and server-preloaded same-slot target group options into the client so target groups still appear when the review list is narrowed by search/filter.
+  - `src/components/admin/makeup-client.tsx` now exposes the "ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน" button and dialog near "เปลี่ยนโค้ชย้อนหลัง"; the dialog shows learner, old group/coach, same-slot target groups only, target coach, required reason, and safety copy.
+  - Read-only proof for Kheen session `c4a375b6-4bf1-4305-8932-c47e5f53270d`: current group Link `c500256e-bd39-44e9-96e4-a26e725c5b9e`, target group Nice `1120daab-2a90-4205-979d-d2803ebb5fbc`, same schedule slot `0a346a9a-e603-4da6-9d49-6c417774ea01`, target group round matches, exact attendance count 0.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Local browser read-only smoke for `/admin/makeup` redirected unauthenticated access to login with 0 console errors. Authenticated dialog smoke and owner-approved write UAT remain pending.
+
 - Completed scoped Admin Makeup branch display source fix:
   - Source/display query fix only for `/admin/makeup`; no DB writes, migrations, assignment logic, `replace_coach_for_past_round`, `assign_coach_to_round`, attendance write logic, booking/reschedule/payment/wallet/payroll, commit, push, or deploy action was performed.
   - Root cause confirmed read-only: `/admin/makeup` displayed `branch_name` from `bookings.branch_id`, while filtering and the real round branch use `booking_sessions.branch_id`; `/admin/schedules` already displayed from `booking_sessions.branch_id`.

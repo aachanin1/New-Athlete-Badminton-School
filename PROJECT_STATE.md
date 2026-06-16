@@ -980,6 +980,29 @@ Potential bug found:
   - Wallet section showed 15 มิ.ย. 17:00-19:00, 21 มิ.ย. 09:00-11:00, and 25 มิ.ย. 17:00-19:00, each as `รอเลือกวันใหม่`.
   - Completed, absent, and attendance-gap review labels remained visible. Browser console errors: 0. No production write action was clicked.
 
+## 2026-06-16 - Admin Makeup Targeted Same-Slot Learner Move
+
+- Scoped `/admin/makeup` source/UI fix only. No DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, booking/reschedule/payment/wallet/payroll logic changes, commit, push, or deploy were performed.
+- Added API action `move_learner_to_existing_coach_group` in `src/app/api/admin/makeup/route.ts` for a targeted same-slot move of one or more learner sessions into an existing `coach_assignment_groups` row.
+- The action validates required `session_ids`, `target_group_id`, `coach_id`, and `reason`; target group existence; same `schedule_slot_id`; target group coach match; same date/start/end/branch/course; non-makeup active lifecycle statuses only; and exact learner attendance absence by `booking_session_id + expected student_id`.
+- The action writes only `coach_assignment_group_students` membership updates/inserts, compatibility `coach_assignments` when missing for the target coach/slot, `activity_logs`, and a notification to the target coach. It intentionally does not write `attendance`, does not change `booking_sessions.status`, does not delete coach check-ins/evidence, and does not delete the old group even if it becomes empty.
+- `src/app/(admin)/admin/makeup/page.tsx` now passes exact `group_id`, `coach_id`, and server-preloaded same-slot coach-group options from the learner's assignment group to the makeup client so the UI can list target groups safely even when the visible review list is narrowed by search/filter.
+- `src/components/admin/makeup-client.tsx` now adds a "ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน" button near the retrospective coach replacement action and a read/confirm dialog that shows the learner, old group/coach, same-slot target groups only, target coach, required reason, and warnings that attendance/status/evidence are not changed.
+- Read-only proof for Kheen session `c4a375b6-4bf1-4305-8932-c47e5f53270d`:
+  - Current membership is group `c500256e-bd39-44e9-96e4-a26e725c5b9e` / Coach Link.
+  - Target group `1120daab-2a90-4205-979d-d2803ebb5fbc` / Coach Nice is in the same schedule slot `0a346a9a-e603-4da6-9d49-6c417774ea01`.
+  - Target group member rows match the same round/date/time/branch/course.
+  - Exact attendance rows for Kheen's expected student id are 0.
+- Verification passed locally:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only known Windows LF/CRLF warnings.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Local browser read-only smoke for `/admin/makeup` redirected unauthenticated access to `/auth/login?redirect=%2Fadmin%2Fmakeup` with 0 console errors.
+- Authenticated UI smoke for the new dialog and owner-approved production UAT are still pending. Do not click the new write action until the owner confirms the exact target and approves the write.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

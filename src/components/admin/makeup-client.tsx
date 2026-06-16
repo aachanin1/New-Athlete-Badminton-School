@@ -55,8 +55,11 @@ interface BookingSessionData {
   branch_name: string
   course_type: string
   is_makeup: boolean
+  group_id?: string | null
   group_name?: string | null
+  coach_id?: string | null
   coach_name?: string | null
+  same_slot_coach_groups?: SameSlotCoachGroupOption[]
   coach_checkin_time?: string | null
   coach_checkin_photo_url?: string | null
   coach_checkin_has_location?: boolean
@@ -139,6 +142,14 @@ interface PickedSlot {
   end: string
   branchId: string
   branchName: string
+}
+
+interface SameSlotCoachGroupOption {
+  groupId: string
+  groupName: string
+  coachId: string
+  coachName: string
+  sessionCount: number
 }
 
 interface AvailableDay {
@@ -367,6 +378,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [replacementCoachId, setReplacementCoachId] = useState('')
   const [replacementReason, setReplacementReason] = useState('')
   const [replacementSubmitting, setReplacementSubmitting] = useState(false)
+  const [moveGroup, setMoveGroup] = useState<ReviewSessionGroup | null>(null)
+  const [moveSessionId, setMoveSessionId] = useState('')
+  const [moveTargetGroupId, setMoveTargetGroupId] = useState('')
+  const [moveReason, setMoveReason] = useState('')
+  const [moveSubmitting, setMoveSubmitting] = useState(false)
   const [roundAttendanceGroup, setRoundAttendanceGroup] = useState<ReviewSessionGroup | null>(null)
   const [roundAttendanceReason, setRoundAttendanceReason] = useState('')
   const [roundAttendance, setRoundAttendance] = useState<Record<string, AttendanceStatus | ''>>({})
@@ -383,6 +399,43 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     if (reviewTargetDate) return session.date === reviewTargetDate
     return false
   }, [reviewTargetDate, reviewTargetSessionId])
+
+  const getSameSlotCoachGroups = useCallback((sourceSession: BookingSessionData): SameSlotCoachGroupOption[] => {
+    if (!sourceSession.schedule_slot_id) return []
+    if (sourceSession.same_slot_coach_groups?.length) {
+      return [...sourceSession.same_slot_coach_groups]
+        .sort((a, b) => compareTextTh(a.coachName, b.coachName) || compareTextTh(a.groupName, b.groupName) || a.groupId.localeCompare(b.groupId))
+    }
+
+    const groupMap = new Map<string, SameSlotCoachGroupOption>()
+    sessions.forEach((session) => {
+      if (!session.group_id || !session.coach_id) return
+      if (session.group_id === sourceSession.group_id) return
+      if (session.schedule_slot_id !== sourceSession.schedule_slot_id) return
+      if (session.date !== sourceSession.date) return
+      if (session.start_time !== sourceSession.start_time) return
+      if (session.end_time !== sourceSession.end_time) return
+      if (session.branch_id !== sourceSession.branch_id) return
+      if ((session.course_type || '') !== (sourceSession.course_type || '')) return
+
+      const existing = groupMap.get(session.group_id)
+      if (existing) {
+        existing.sessionCount += 1
+        return
+      }
+
+      groupMap.set(session.group_id, {
+        groupId: session.group_id,
+        groupName: session.group_name || 'ไม่ระบุชื่อกลุ่ม',
+        coachId: session.coach_id,
+        coachName: session.coach_name || 'ไม่ทราบโค้ช',
+        sessionCount: 1,
+      })
+    })
+
+    return Array.from(groupMap.values())
+      .sort((a, b) => compareTextTh(a.coachName, b.coachName) || compareTextTh(a.groupName, b.groupName) || a.groupId.localeCompare(b.groupId))
+  }, [sessions])
 
   const makeupSourceIds = useMemo(
     () => new Set(sessions.map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
@@ -844,6 +897,22 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     setError(null)
   }
 
+  const openMoveLearnerDialog = (group: ReviewSessionGroup) => {
+    const targetSessions = group.sessions.filter(isReviewOrEvidenceSession)
+    const firstMovableSession = targetSessions.find((session) => getSameSlotCoachGroups(session).length > 0)
+
+    if (!firstMovableSession) {
+      setError('ไม่พบกลุ่มโค้ชอื่นในรอบเดียวกันสำหรับย้ายผู้เรียน')
+      return
+    }
+
+    setMoveGroup(group)
+    setMoveSessionId(firstMovableSession.id)
+    setMoveTargetGroupId('')
+    setMoveReason('')
+    setError(null)
+  }
+
   const submitCoachReplacement = async () => {
     if (!replacementGroup) return
 
@@ -892,6 +961,60 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     } finally {
       setReplacementSubmitting(false)
+    }
+  }
+
+  const submitMoveLearner = async () => {
+    if (!moveGroup) return
+
+    const targetSession = moveGroup.sessions.find((session) => session.id === moveSessionId) || null
+    const targetGroups = targetSession ? getSameSlotCoachGroups(targetSession) : []
+    const targetGroup = targetGroups.find((group) => group.groupId === moveTargetGroupId) || null
+    const reason = moveReason.trim()
+
+    if (!targetSession) {
+      setError('กรุณาเลือกผู้เรียนที่ต้องการย้าย')
+      return
+    }
+
+    if (!targetGroup) {
+      setError('กรุณาเลือกกลุ่มโค้ชปลายทางในรอบเดียวกัน')
+      return
+    }
+
+    if (!reason) {
+      setError('กรุณาระบุเหตุผลเพื่อเก็บ audit log ก่อนย้ายผู้เรียน')
+      return
+    }
+
+    setMoveSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'move_learner_to_existing_coach_group',
+          session_ids: [targetSession.id],
+          target_group_id: targetGroup.groupId,
+          coach_id: targetGroup.coachId,
+          reason,
+        }),
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        setError(result?.error || 'ย้ายผู้เรียนเข้ากลุ่มโค้ชไม่สำเร็จ')
+        return
+      }
+
+      setMoveGroup(null)
+      router.refresh()
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setMoveSubmitting(false)
     }
   }
 
@@ -1064,6 +1187,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     !replacementCoachId ||
     !replacementReason.trim() ||
     replacementTargetSessions.length === 0
+  const moveCandidateSessions = moveGroup?.sessions.filter(isReviewOrEvidenceSession) || []
+  const selectedMoveSession = moveCandidateSessions.find((session) => session.id === moveSessionId) || null
+  const moveTargetGroups = selectedMoveSession ? getSameSlotCoachGroups(selectedMoveSession) : []
+  const selectedMoveTargetGroup = moveTargetGroups.find((group) => group.groupId === moveTargetGroupId) || null
+  const moveSaveDisabled = moveSubmitting ||
+    !selectedMoveSession ||
+    !selectedMoveTargetGroup ||
+    !moveReason.trim()
 
   return (
     <div className="space-y-5">
@@ -1221,6 +1352,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 const canRequestCoachEvidenceOnly = groupNeedsCoachEvidence && !groupNeedsAttendanceReview
                 const groupLoadingKey = canRequestCoachEvidenceOnly ? `${group.key}:evidence` : group.key
                 const isUnassignedRound = isUnassignedAttendanceRound(group)
+                const canMoveLearnerToExistingGroup = group.sessions
+                  .filter(isReviewOrEvidenceSession)
+                  .some((session) => getSameSlotCoachGroups(session).length > 0)
 
                 return (
                   <div
@@ -1310,6 +1444,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             onClick={() => openCoachReplacementDialog(group)}
                           >
                             เปลี่ยนโค้ชย้อนหลัง
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
+                            disabled={!canMoveLearnerToExistingGroup || moveSubmitting}
+                            onClick={() => openMoveLearnerDialog(group)}
+                            title={!canMoveLearnerToExistingGroup ? 'ไม่พบกลุ่มโค้ชอื่นในรอบเดียวกัน' : undefined}
+                          >
+                            ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน
                           </Button>
                           <Button
                             size="sm"
@@ -1651,6 +1795,148 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   onClick={submitCoachReplacement}
                 >
                   {replacementSubmitting ? 'กำลังบันทึก...' : 'เปลี่ยนโค้ชและขอหลักฐาน'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(moveGroup)}
+        onOpenChange={(open) => {
+          if (!open && !moveSubmitting) {
+            setMoveGroup(null)
+            setMoveSessionId('')
+            setMoveTargetGroupId('')
+            setMoveReason('')
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#153c85]">ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน</DialogTitle>
+            <DialogDescription>
+              ใช้กับกรณีผู้เรียนตกหล่นหรือลงเรียนทีหลัง และต้องย้ายเข้า coach group เดิมของโค้ชที่สอนจริงใน schedule slot เดียวกันเท่านั้น
+            </DialogDescription>
+          </DialogHeader>
+          {moveGroup && (
+            <div className="space-y-4">
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm text-cyan-900">
+                <p className="font-semibold">
+                  {formatDate(moveGroup.date)} {formatTime(moveGroup.startTime, moveGroup.endTime)}
+                </p>
+                <p className="mt-1 text-xs">
+                  {moveGroup.branchName} · {moveGroup.courseType || 'คอร์สเรียน'} · กลุ่มเดิม: {moveGroup.groupNames.length ? moveGroup.groupNames.join(', ') : '-'} · โค้ชเดิม: {moveGroup.coachName || '-'}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">ผู้เรียนที่จะย้าย</label>
+                <Select
+                  value={moveSessionId}
+                  onValueChange={(value) => {
+                    setMoveSessionId(value)
+                    setMoveTargetGroupId('')
+                    setError(null)
+                  }}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder="เลือกผู้เรียน" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {moveCandidateSessions.map((session) => {
+                      const sameSlotGroupCount = getSameSlotCoachGroups(session).length
+                      return (
+                        <SelectItem key={session.id} value={session.id}>
+                          {session.learner_name} · กลุ่มเดิม: {session.group_name || '-'} · target {sameSlotGroupCount} กลุ่ม
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedMoveSession && (
+                <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
+                  <p className="font-semibold text-gray-950">{selectedMoveSession.learner_name}</p>
+                  <p className="mt-1 text-xs">
+                    กลุ่มเดิม: {selectedMoveSession.group_name || '-'} · โค้ชเดิม: {selectedMoveSession.coach_name || '-'} · session id: {selectedMoveSession.id}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">กลุ่มโค้ชปลายทางในรอบเดียวกัน</label>
+                <Select
+                  value={moveTargetGroupId}
+                  onValueChange={(value) => {
+                    setMoveTargetGroupId(value)
+                    setError(null)
+                  }}
+                  disabled={!selectedMoveSession || moveTargetGroups.length === 0}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder={moveTargetGroups.length ? 'เลือกกลุ่มโค้ชปลายทาง' : 'ไม่พบกลุ่มโค้ชอื่นในรอบเดียวกัน'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {moveTargetGroups.map((group) => (
+                      <SelectItem key={group.groupId} value={group.groupId}>
+                        {group.coachName} · {group.groupName} · {group.sessionCount} คน
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedMoveTargetGroup && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                  ปลายทาง: {selectedMoveTargetGroup.groupName} · โค้ช {selectedMoveTargetGroup.coachName} · group id: {selectedMoveTargetGroup.groupId}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                Action นี้ย้ายเฉพาะ membership ของผู้เรียนเข้า existing coach group ในรอบเดียวกัน ไม่บันทึก attendance, ไม่เปลี่ยนสถานะรอบเรียน, ไม่ลบหลักฐาน/check-in เดิม และไม่ลบกลุ่มเดิมแม้กลุ่มเดิมจะว่าง
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-900">เหตุผล / หลักฐานประกอบ</label>
+                <Textarea
+                  className="mt-2 min-h-24"
+                  value={moveReason}
+                  onChange={(event) => setMoveReason(event.target.value)}
+                  placeholder="เช่น ผู้เรียนลงเรียนทีหลังและเรียนกับโค้ชปลายทางจริงในรอบนี้"
+                />
+                <p className="mt-1 text-xs text-gray-500">จำเป็นสำหรับ audit log และใช้ตามรอยย้อนหลังเมื่อดูหลักฐานโค้ช/payroll</p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={moveSubmitting}
+                  onClick={() => {
+                    setMoveGroup(null)
+                    setMoveSessionId('')
+                    setMoveTargetGroupId('')
+                    setMoveReason('')
+                  }}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-[#2748bf] hover:bg-[#153c85]"
+                  disabled={moveSaveDisabled}
+                  onClick={submitMoveLearner}
+                >
+                  {moveSubmitting ? 'กำลังย้าย...' : 'ย้ายผู้เรียนเข้ากลุ่ม'}
                 </Button>
               </div>
             </div>

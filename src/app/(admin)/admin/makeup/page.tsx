@@ -28,6 +28,7 @@ interface MakeupSessionRow {
   children?: { full_name: string | null; nickname: string | null } | null
   bookings?: {
     user_id: string
+    course_type_id: string | null
     status: string
     profiles?: { full_name: string | null } | null
     branches?: { name: string | null } | null
@@ -53,7 +54,21 @@ interface CoachCheckinRow {
   location_lng: number | null
 }
 
-type SlotSessionRow = AdminAttendanceSlotSessionRow
+interface SlotSessionRow extends AdminAttendanceSlotSessionRow {
+  branch_id?: string | null
+  date?: string | null
+  start_time?: string | null
+  end_time?: string | null
+  bookings?: { status?: string | null; course_type_id?: string | null } | null
+}
+
+interface SameSlotCoachGroupPayload {
+  groupId: string
+  groupName: string
+  coachId: string
+  coachName: string
+  sessionCount: number
+}
 
 type AttendanceRow = AttendanceSessionRow
 
@@ -149,7 +164,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     id, booking_id, date, start_time, end_time, status, is_makeup, child_id, branch_id, schedule_slot_id, rescheduled_from_id,
     branches(name),
     children(full_name, nickname),
-    bookings!inner(user_id, learner_type, status,
+    bookings!inner(user_id, learner_type, course_type_id, status,
       profiles!bookings_user_id_fkey(full_name),
       branches(name),
       course_types(name)
@@ -212,9 +227,10 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
 
   const visibleSessionIds = new Set(sessions.map((session) => session.id))
   const slotIds = Array.from(new Set(sessions.map((session) => session.schedule_slot_id).filter(Boolean) as string[]))
-  const groupContextBySessionId: Record<string, { groupName: string | null; coachId: string | null; coachName: string | null }> = {}
+  const groupContextBySessionId: Record<string, { groupId: string; groupName: string | null; coachId: string | null; coachName: string | null }> = {}
   let groups: GroupRow[] = []
   let slotSessionsForScope: SlotSessionRow[] = []
+  const slotSessionById = new Map<string, SlotSessionRow>()
   const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
 
   if (slotIds.length > 0) {
@@ -233,6 +249,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       groupSessionIds.forEach((sessionId) => {
         if (visibleSessionIds.has(sessionId)) {
           groupContextBySessionId[sessionId] = {
+            groupId: group.id,
             groupName: group.name,
             coachId: group.coach_id,
             coachName: group.profiles?.full_name || group.profiles?.email || null,
@@ -254,7 +271,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
 
     const { data: slotSessions } = await supabase
       .from('booking_sessions')
-      .select('id, schedule_slot_id, bookings!inner(status)')
+      .select('id, schedule_slot_id, branch_id, date, start_time, end_time, bookings!inner(status, course_type_id)')
       .in('schedule_slot_id', slotIds)
       .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
@@ -262,6 +279,9 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       .limit(1000) as unknown as { data: SlotSessionRow[] | null }
 
     slotSessionsForScope = slotSessions || []
+    slotSessionsForScope.forEach((slotSession) => {
+      slotSessionById.set(slotSession.id, slotSession)
+    })
   }
 
   const attendanceScopeSessionIds = getAdminAttendanceScopeSessionIds(sessions, groups, slotSessionsForScope)
@@ -343,6 +363,47 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     })
   }
 
+  const getSameSlotCoachGroupOptions = (
+    session: MakeupSessionRow,
+    currentGroupId: string | null,
+  ): SameSlotCoachGroupPayload[] => {
+    if (!session.schedule_slot_id) return []
+
+    const courseTypeId = session.bookings?.course_type_id || null
+
+    return groups
+      .filter((group) => group.schedule_slot_id === session.schedule_slot_id)
+      .filter((group) => group.id !== currentGroupId)
+      .filter((group) => Boolean(group.coach_id))
+      .filter((group) => {
+        const groupSessionIds = (group.coach_assignment_group_students || [])
+          .map((student) => student.booking_session_id)
+          .filter(Boolean)
+        const groupSessions = groupSessionIds
+          .map((sessionId) => slotSessionById.get(sessionId))
+          .filter((row): row is SlotSessionRow => Boolean(row))
+
+        if (groupSessions.length === 0) return true
+
+        return groupSessions.every((groupSession) => (
+          groupSession.schedule_slot_id === session.schedule_slot_id &&
+          groupSession.date === session.date &&
+          groupSession.start_time === session.start_time &&
+          groupSession.end_time === session.end_time &&
+          groupSession.branch_id === session.branch_id &&
+          (groupSession.bookings?.course_type_id || null) === courseTypeId
+        ))
+      })
+      .map((group) => ({
+        groupId: group.id,
+        groupName: group.name || 'ไม่ระบุชื่อกลุ่ม',
+        coachId: group.coach_id as string,
+        coachName: group.profiles?.full_name || group.profiles?.email || 'ไม่ทราบโค้ช',
+        sessionCount: (group.coach_assignment_group_students || []).length,
+      }))
+      .sort((a, b) => a.coachName.localeCompare(b.coachName, 'th') || a.groupName.localeCompare(b.groupName, 'th') || a.groupId.localeCompare(b.groupId))
+  }
+
   const sessionList = sessions.map((session) => {
     const learnerName = session.child_id
       ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
@@ -371,8 +432,11 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       branch_name: session.branches?.name || 'ไม่ทราบ',
       course_type: session.bookings?.course_types?.name || '',
       is_makeup: session.is_makeup || false,
+      group_id: groupContext?.groupId || null,
       group_name: groupContext?.groupName || null,
+      coach_id: groupContext?.coachId || null,
       coach_name: groupContext?.coachName || null,
+      same_slot_coach_groups: getSameSlotCoachGroupOptions(session, groupContext?.groupId || null),
       coach_checkin_time: checkin?.checkin_time || null,
       coach_checkin_photo_url: checkin?.photo_url || null,
       coach_checkin_has_location: checkin?.location_lat != null && checkin?.location_lng != null,

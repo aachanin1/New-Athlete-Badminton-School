@@ -67,6 +67,32 @@ interface AssignmentGroupDetailRow {
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
 
+interface MoveTargetGroupRow {
+  id: string
+  schedule_slot_id: string | null
+  coach_id: string | null
+  name: string | null
+  coach_assignment_group_students: { booking_session_id: string }[] | null
+}
+
+interface ExistingGroupStudentRow {
+  id: string
+  group_id: string
+  booking_session_id: string
+  coach_assignment_groups?: {
+    id: string
+    schedule_slot_id: string | null
+    coach_id: string | null
+    name: string | null
+  } | null
+}
+
+interface AttendanceLookupRow {
+  booking_session_id: string
+  student_id: string | null
+  status: AttendanceStatus | null
+}
+
 interface CoachAssignmentRow {
   coach_id: string
 }
@@ -540,13 +566,337 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { session_id: sessionId, action } = body as {
       session_id?: string
-      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'request_coach_evidence' | 'close_review' | 'return_entitlement' | 'resolve_unassigned_round' | 'assign_coach_to_round' | 'replace_coach_for_past_round'
+      action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'request_coach_evidence' | 'close_review' | 'return_entitlement' | 'resolve_unassigned_round' | 'assign_coach_to_round' | 'replace_coach_for_past_round' | 'move_learner_to_existing_coach_group'
     }
     const reason = normalizeReason((body as { reason?: unknown }).reason)
     const attendanceStatus = normalizeAttendanceStatus((body as { attendance_status?: unknown }).attendance_status)
     const selectedCoachId = typeof (body as { coach_id?: unknown }).coach_id === 'string'
       ? ((body as { coach_id?: string }).coach_id || '').trim()
       : ''
+    const targetGroupId = typeof (body as { target_group_id?: unknown }).target_group_id === 'string'
+      ? ((body as { target_group_id?: string }).target_group_id || '').trim()
+      : ''
+
+    if (action === 'move_learner_to_existing_coach_group') {
+      const sessionIds = normalizeSessionIds((body as { session_ids?: unknown }).session_ids)
+
+      if (sessionIds.length === 0) {
+        return NextResponse.json({ error: 'session_ids are required' }, { status: 400 })
+      }
+
+      if (!targetGroupId) {
+        return NextResponse.json({ error: 'กรุณาเลือกกลุ่มโค้ชปลายทางในรอบเดียวกัน' }, { status: 400 })
+      }
+
+      if (!selectedCoachId) {
+        return NextResponse.json({ error: 'กรุณาเลือกโค้ชของกลุ่มปลายทาง' }, { status: 400 })
+      }
+
+      if (!reason) {
+        return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
+      }
+
+      const { data: coachProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', selectedCoachId)
+        .in('role', ['coach', 'head_coach'])
+        .maybeSingle() as unknown as { data: CoachProfileRow | null }
+
+      if (!coachProfile) {
+        return NextResponse.json({ error: 'พบโค้ชที่เลือกไม่ถูกต้อง' }, { status: 400 })
+      }
+
+      const { data: targetSessions, error: targetError } = await supabaseAdmin
+        .from('booking_sessions')
+        .select(`
+          id,
+          booking_id,
+          branch_id,
+          schedule_slot_id,
+          date,
+          start_time,
+          end_time,
+          status,
+          is_makeup,
+          child_id,
+          bookings(user_id, course_type_id, learner_type)
+        `)
+        .in('id', sessionIds) as unknown as { data: ReviewSessionRow[] | null; error: { message: string } | null }
+
+      if (targetError) {
+        return NextResponse.json({ error: targetError.message }, { status: 500 })
+      }
+
+      if (!targetSessions || targetSessions.length !== sessionIds.length) {
+        return NextResponse.json({ error: 'ไม่พบรายการผู้เรียนครบตามรอบที่เลือก' }, { status: 404 })
+      }
+
+      const firstSession = targetSessions[0]
+      if (!firstSession?.schedule_slot_id) {
+        return NextResponse.json({ error: 'รอบนี้ไม่มี schedule slot จึงย้ายเข้ากลุ่มโค้ชเดิมไม่ได้' }, { status: 400 })
+      }
+
+      const firstCourseTypeId = firstSession.bookings?.course_type_id || null
+      const isSameRound = targetSessions.every((session) => (
+        session.schedule_slot_id === firstSession.schedule_slot_id &&
+        session.date === firstSession.date &&
+        session.start_time === firstSession.start_time &&
+        session.end_time === firstSession.end_time &&
+        session.branch_id === firstSession.branch_id &&
+        (session.bookings?.course_type_id || null) === firstCourseTypeId
+      ))
+
+      if (!isSameRound) {
+        return NextResponse.json({ error: 'ย้ายเข้ากลุ่มโค้ชได้เฉพาะรายการที่อยู่รอบเรียนเดียวกัน สาขาเดียวกัน เวลาเดียวกัน และคอร์สเดียวกันเท่านั้น' }, { status: 400 })
+      }
+
+      const invalidSession = targetSessions.find((session) => (
+        session.is_makeup ||
+        !['scheduled', 'completed', 'absent'].includes(session.status)
+      ))
+
+      if (invalidSession) {
+        return NextResponse.json({ error: 'ย้ายเข้ากลุ่มโค้ชได้เฉพาะรอบปกติที่ไม่ถูกยกเลิก เลื่อนรอบ หรือเก็บเข้ากระเป๋าเท่านั้น' }, { status: 400 })
+      }
+
+      const expectedStudentBySessionId = new Map<string, string>()
+      const targetStudentRows: GroupStudentInsertRow[] = []
+      for (const session of targetSessions) {
+        const { studentId, studentType } = getStudentContext(session)
+        if (!studentId) {
+          return NextResponse.json({ error: 'ไม่สามารถระบุผู้เรียนของบางรายการในรอบนี้ได้' }, { status: 400 })
+        }
+        expectedStudentBySessionId.set(session.id, studentId)
+        targetStudentRows.push({
+          group_id: targetGroupId,
+          booking_session_id: session.id,
+          student_id: studentId,
+          student_type: studentType,
+        })
+      }
+
+      const { data: existingAttendanceRows, error: attendanceError } = await supabaseAdmin
+        .from('attendance')
+        .select('booking_session_id, student_id, status')
+        .in('booking_session_id', sessionIds) as unknown as { data: AttendanceLookupRow[] | null; error: { message: string } | null }
+
+      if (attendanceError) {
+        return NextResponse.json({ error: attendanceError.message }, { status: 500 })
+      }
+
+      const blockingAttendance = (existingAttendanceRows || []).filter((row) => (
+        row.booking_session_id &&
+        row.student_id &&
+        expectedStudentBySessionId.get(row.booking_session_id) === row.student_id
+      ))
+
+      if (blockingAttendance.length > 0) {
+        return NextResponse.json({ error: 'พบ attendance ของผู้เรียนในรอบนี้แล้ว กรุณาตรวจสอบก่อนย้ายกลุ่มเพื่อไม่ให้ audit/หลักฐานโค้ชคลาดเคลื่อน' }, { status: 400 })
+      }
+
+      const { data: targetGroup, error: targetGroupError } = await supabaseAdmin
+        .from('coach_assignment_groups')
+        .select('id, schedule_slot_id, coach_id, name, coach_assignment_group_students(booking_session_id)')
+        .eq('id', targetGroupId)
+        .maybeSingle() as unknown as { data: MoveTargetGroupRow | null; error: { message: string } | null }
+
+      if (targetGroupError) {
+        return NextResponse.json({ error: targetGroupError.message }, { status: 500 })
+      }
+
+      if (!targetGroup) {
+        return NextResponse.json({ error: 'ไม่พบกลุ่มโค้ชปลายทาง' }, { status: 404 })
+      }
+
+      if (targetGroup.schedule_slot_id !== firstSession.schedule_slot_id) {
+        return NextResponse.json({ error: 'กลุ่มโค้ชปลายทางไม่ได้อยู่ใน schedule slot เดียวกัน' }, { status: 400 })
+      }
+
+      if (targetGroup.coach_id !== selectedCoachId) {
+        return NextResponse.json({ error: 'โค้ชที่เลือกไม่ตรงกับโค้ชของกลุ่มปลายทาง' }, { status: 400 })
+      }
+
+      const targetGroupSessionIds = Array.from(new Set((targetGroup.coach_assignment_group_students || [])
+        .map((student) => student.booking_session_id)
+        .filter(Boolean)))
+
+      if (targetGroupSessionIds.length > 0) {
+        const { data: targetGroupSessions, error: targetGroupSessionsError } = await supabaseAdmin
+          .from('booking_sessions')
+          .select(`
+            id,
+            booking_id,
+            branch_id,
+            schedule_slot_id,
+            date,
+            start_time,
+            end_time,
+            status,
+            is_makeup,
+            child_id,
+            bookings(user_id, course_type_id, learner_type)
+          `)
+          .in('id', targetGroupSessionIds) as unknown as { data: ReviewSessionRow[] | null; error: { message: string } | null }
+
+        if (targetGroupSessionsError) {
+          return NextResponse.json({ error: targetGroupSessionsError.message }, { status: 500 })
+        }
+
+        const mismatchedGroupSession = (targetGroupSessions || []).find((session) => (
+          session.schedule_slot_id !== firstSession.schedule_slot_id ||
+          session.date !== firstSession.date ||
+          session.start_time !== firstSession.start_time ||
+          session.end_time !== firstSession.end_time ||
+          session.branch_id !== firstSession.branch_id ||
+          (session.bookings?.course_type_id || null) !== firstCourseTypeId
+        ))
+
+        if (mismatchedGroupSession) {
+          return NextResponse.json({ error: 'กลุ่มโค้ชปลายทางมีผู้เรียนที่ไม่ได้อยู่รอบ/สาขา/เวลา/คอร์สเดียวกัน กรุณาตรวจข้อมูลก่อนย้าย' }, { status: 400 })
+        }
+      }
+
+      const { data: existingMemberships, error: existingMembershipError } = await supabaseAdmin
+        .from('coach_assignment_group_students')
+        .select(`
+          id,
+          group_id,
+          booking_session_id,
+          coach_assignment_groups(id, schedule_slot_id, coach_id, name)
+        `)
+        .in('booking_session_id', sessionIds) as unknown as {
+          data: ExistingGroupStudentRow[] | null
+          error: { message: string } | null
+        }
+
+      if (existingMembershipError) {
+        return NextResponse.json({ error: existingMembershipError.message }, { status: 500 })
+      }
+
+      const mismatchedExistingMembership = (existingMemberships || []).find((membership) => (
+        membership.coach_assignment_groups?.schedule_slot_id !== firstSession.schedule_slot_id
+      ))
+
+      if (mismatchedExistingMembership) {
+        return NextResponse.json({ error: 'พบผู้เรียนอยู่ใน coach group คนละ schedule slot กรุณาตรวจข้อมูลก่อนย้ายกลุ่ม' }, { status: 400 })
+      }
+
+      const membershipBySessionId = new Map<string, ExistingGroupStudentRow>()
+      ;(existingMemberships || []).forEach((membership) => {
+        if (!membershipBySessionId.has(membership.booking_session_id)) {
+          membershipBySessionId.set(membership.booking_session_id, membership)
+        }
+      })
+
+      const updateMembershipIds: string[] = []
+      const insertMemberships: GroupStudentInsertRow[] = []
+      const movedSessionIds: string[] = []
+      const attachedSessionIds: string[] = []
+      const alreadyAttachedSessionIds: string[] = []
+      const previousGroupIds = new Set<string>()
+
+      targetStudentRows.forEach((studentRow) => {
+        const existing = membershipBySessionId.get(studentRow.booking_session_id)
+        if (!existing) {
+          insertMemberships.push(studentRow)
+          attachedSessionIds.push(studentRow.booking_session_id)
+          return
+        }
+
+        if (existing.group_id === targetGroupId) {
+          alreadyAttachedSessionIds.push(studentRow.booking_session_id)
+          return
+        }
+
+        updateMembershipIds.push(existing.id)
+        movedSessionIds.push(studentRow.booking_session_id)
+        previousGroupIds.add(existing.group_id)
+      })
+
+      if (updateMembershipIds.length === 0 && insertMemberships.length === 0) {
+        return NextResponse.json({
+          success: true,
+          already_attached: true,
+          target_group_id: targetGroupId,
+          target_coach_id: selectedCoachId,
+          already_attached_session_ids: alreadyAttachedSessionIds,
+        })
+      }
+
+      if (updateMembershipIds.length > 0) {
+        const { error: updateMembershipError } = await supabaseAdmin
+          .from('coach_assignment_group_students')
+          .update({ group_id: targetGroupId })
+          .in('id', updateMembershipIds)
+
+        if (updateMembershipError) {
+          return NextResponse.json({ error: updateMembershipError.message }, { status: 500 })
+        }
+      }
+
+      if (insertMemberships.length > 0) {
+        const { error: insertMembershipError } = await supabaseAdmin
+          .from('coach_assignment_group_students')
+          .insert(insertMemberships)
+
+        if (insertMembershipError) {
+          return NextResponse.json({ error: insertMembershipError.message }, { status: 500 })
+        }
+      }
+
+      try {
+        await ensureLegacyCoachAssignment({
+          supabaseAdmin,
+          scheduleSlotId: firstSession.schedule_slot_id,
+          coachId: selectedCoachId,
+          actorId: access.ctx.user.id,
+        })
+      } catch (error) {
+        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+      }
+
+      for (const session of targetSessions) {
+        await logActivity({
+          userId: access.ctx.user.id,
+          action: 'attendance_gap_move_learner_to_existing_group',
+          entityType: 'booking_sessions',
+          entityId: session.id,
+          details: {
+            reason,
+            scheduleSlotId: session.schedule_slot_id,
+            targetGroupId,
+            targetCoachId: selectedCoachId,
+            previousGroupIds: Array.from(previousGroupIds),
+            movedSessionIds,
+            attachedSessionIds,
+            alreadyAttachedSessionIds,
+            attendanceWritten: false,
+            bookingSessionStatusChanged: false,
+            coachEvidenceDeleted: false,
+          },
+          ipAddress: req.headers.get('x-forwarded-for'),
+        })
+      }
+
+      await notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
+        user_id: selectedCoachId,
+        title: 'มีผู้เรียนถูกย้ายเข้ากลุ่มรอบเรียนของคุณ',
+        message: `Admin ย้ายผู้เรียนเข้ากลุ่มโค้ชของคุณในรอบ ${firstSession.date} ${firstSession.start_time || ''}-${firstSession.end_time || ''} โดยไม่บันทึก attendance และไม่เปลี่ยนสถานะรอบเรียน: ${reason}`,
+        type: 'schedule',
+        link_url: `/coach/attendance?date=${firstSession.date}&slot=${firstSession.schedule_slot_id}`,
+      }).catch(() => null)
+
+      return NextResponse.json({
+        success: true,
+        target_group_id: targetGroupId,
+        target_coach_id: selectedCoachId,
+        moved_session_ids: movedSessionIds,
+        attached_session_ids: attachedSessionIds,
+        already_attached_session_ids: alreadyAttachedSessionIds,
+        previous_group_ids: Array.from(previousGroupIds),
+      })
+    }
 
     if (action === 'replace_coach_for_past_round') {
       const sessionIds = normalizeSessionIds((body as { session_ids?: unknown }).session_ids)
