@@ -21,6 +21,24 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Dashboard History walleted count clarity fix:
+  - Source/display fix only for `/dashboard/history`; no DB writes, migrations, lesson wallet write logic, booking/reschedule/payment/attendance write logic, Admin makeup, payroll, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Read-only proof for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f` showed `total_sessions = 16`, active course rows = 13, and 3 `walleted` rows backed by active `lesson_wallet_credits`.
+  - `src/app/(dashboard)/dashboard/history/page.tsx` now fetches wallet credits read-only for loaded booking session ids, matches by `lesson_wallet_credits.original_session_id`, and passes minimal wallet credit metadata into the client.
+  - `src/components/dashboard/history-client.tsx` keeps active count semantics unchanged, shows `รอบเรียนที่มีวันเรียนแล้ว: 13/16 ครั้ง`, adds `อยู่ในกระเป๋า รอเลือกวันใหม่: 3 ครั้ง`, and renders a separate walleted section for the 3 stored sessions.
+  - Authenticated local Chrome smoke on `http://localhost:3000/dashboard/history` passed read-only for the reported Rama 2 16-session booking: wallet section showed 15 มิ.ย. 17:00-19:00, 21 มิ.ย. 09:00-11:00, and 25 มิ.ย. 17:00-19:00; completed/absent/attendance-gap labels remained visible; no console errors were captured; and no write action was clicked.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+
+- Completed scoped Dashboard History status display consistency fix:
+  - Source/display fix only for `/dashboard/history`; no DB writes, migrations, booking write logic, reschedule API, payment logic, attendance write logic, Admin makeup, payroll, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - `src/app/(dashboard)/dashboard/history/page.tsx` now fetches attendance rows read-only for loaded booking session ids in chunks, matches exact `booking_session_id + expected student_id`, derives server-side `display_status` through the shared attendance display helper, and keeps raw `status` unchanged.
+  - `src/components/dashboard/history-client.tsx` now uses `display_status` for detail/list badges while raw `status` still drives active count and rescheduled history separation.
+  - Count semantics did not change: active paid-course rows still count raw `scheduled`, `completed`, and `absent`; rescheduled rows are still shown separately and not counted.
+  - Authenticated local Chrome smoke on `http://localhost:3000/dashboard/history` passed read-only for the reported Rama 2 16-session booking: detail still showed `13/16`, past raw `scheduled` rows without attendance displayed `รอตรวจสอบการเช็คชื่อ`, completed displayed `เรียนแล้ว`, absent displayed `ขาดเรียน`, no console errors were captured, and no write action was clicked.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+
 - Completed scoped Admin Schedules month pagination fix:
   - Source fix only for `/admin/schedules`; no DB writes, migrations, booking/reschedule/payment/attendance logic changes, assignment semantics changes, Admin makeup changes, payroll changes, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
   - `src/app/(admin)/admin/schedules/page.tsx` now parses `year`/`month` query params, defaults invalid/missing params to the current month, filters `booking_sessions` server-side to the selected month, and fetches monthly sessions with paginated `.range()` batches in stable `date/start_time/id` order.

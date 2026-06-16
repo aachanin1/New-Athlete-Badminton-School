@@ -939,6 +939,35 @@ Potential bug found:
   - Unauthenticated local `/admin/schedules?year=2026&month=6` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fschedules`.
   - Authenticated local Chrome read-only smoke on `http://localhost:3000/admin/schedules?year=2026&month=6` loaded without login redirect and without console errors. Searching `วรวรรณ จินตานนท์` showed 20 rows and two 2026-06-28 cards for `ต้นข้าว` and `ต้นบุญ`, both 16:00-18:00 at `รัชดา`.
 
+## 2026-06-16 - Dashboard History Status Display Consistency
+
+- Scoped `/dashboard/history` display-status fix only. No DB writes, migrations, booking write logic, reschedule API, payment logic, attendance write logic, Admin makeup, payroll, commit, push, or deploy were performed.
+- Root cause: `/dashboard/history` detail/list badges used raw `booking_sessions.status`, while `/dashboard/schedule` derives display state from attendance/time via `src/lib/session-attendance-status.ts`. Past raw `scheduled` sessions with no exact attendance could therefore show `นัดหมาย` in history while the schedule calendar showed `รอตรวจสอบการเช็คชื่อ`.
+- Source fix: `src/app/(dashboard)/dashboard/history/page.tsx` now reads attendance rows read-only for loaded booking sessions in chunks, matches exact `booking_session_id + expected student_id`, derives server-side `display_status` with `deriveSessionDisplayStatus()`, and keeps raw `status` unchanged for lifecycle/count/reschedule logic.
+- Source fix: `src/components/dashboard/history-client.tsx` now uses `display_status` for session badges and keeps raw `status` for active count and rescheduled history separation. The active count semantics remain `scheduled/completed/absent` only.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only known Windows LF/CRLF warnings.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Authenticated local Chrome read-only smoke on `http://localhost:3000/dashboard/history` loaded the reported 16-session booking at Rama 2 without console errors. The detail dialog still showed `13/16`; past raw `scheduled` rows without attendance showed `รอตรวจสอบการเช็คชื่อ`; completed rows showed `เรียนแล้ว`; absent rows showed `ขาดเรียน`; no write action was clicked.
+
+## 2026-06-16 - Dashboard History Walleted Count Clarity
+
+- Scoped `/dashboard/history` display fix only. No DB writes, migrations, lesson wallet write logic, booking/reschedule/payment/attendance write logic, Admin makeup, payroll, commit, push, or deploy were performed.
+- Root cause: a verified 16-session Rama 2 booking for `น้องอองเดร` had 13 active course sessions and 3 `booking_sessions.status = walleted` rows backed by `lesson_wallet_credits.status = active`. The detail UI showed `13/16` but did not explain the 3 walleted sessions.
+- Source fix: `src/app/(dashboard)/dashboard/history/page.tsx` now fetches `lesson_wallet_credits` read-only for loaded booking session ids in chunks, matches by `original_session_id`, and passes minimal wallet credit status/redeem metadata into the history client.
+- Source fix: `src/components/dashboard/history-client.tsx` now keeps active count semantics unchanged, adds a summary line for active wallet credits, and renders a separate "อยู่ในกระเป๋า / รอเลือกวันใหม่" section for `walleted` sessions with status labels for active/redeemed/expired/cancelled-like states.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Authenticated local Chrome read-only smoke on `http://localhost:3000/dashboard/history` passed for the reported 16-session booking: detail showed `จำนวนที่ชำระ: 16 ครั้ง`, `รอบเรียนที่มีวันเรียนแล้ว: 13/16 ครั้ง`, `อยู่ในกระเป๋า รอเลือกวันใหม่: 3 ครั้ง`, and wallet rows for 15 มิ.ย. 17:00-19:00, 21 มิ.ย. 09:00-11:00, and 25 มิ.ย. 17:00-19:00. Completed/absent/attendance-gap labels remained visible and no console errors were captured.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

@@ -77,12 +77,19 @@ interface PaymentRow {
 interface SessionDetail {
   id: string
   booking_id: string
+  rescheduled_from_id: string | null
+  wallet_credit_status: string | null
+  wallet_redeemed_session_id: string | null
+  wallet_redeemed_at: string | null
+  wallet_expired_at: string | null
+  wallet_expires_at: string | null
   date: string
   start_time: string
   end_time: string
   branch_id: string
   child_id: string | null
   status: string
+  display_status: string
   is_makeup: boolean
   children?: { full_name: string; nickname: string | null } | null
   branches?: { name: string } | null
@@ -141,10 +148,13 @@ const STATUS_HELP: Record<string, string> = {
 
 const SESSION_STATUS_MAP: Record<string, { label: string; className: string }> = {
   scheduled: { label: 'นัดหมาย', className: 'bg-blue-50 text-blue-700' },
+  upcoming: { label: 'รอเรียน', className: 'bg-slate-50 text-slate-700' },
+  in_progress: { label: 'กำลังเรียน', className: 'bg-blue-50 text-blue-700' },
   completed: { label: 'เรียนแล้ว', className: 'bg-green-50 text-green-700' },
   rescheduled: { label: 'เลื่อนแล้ว', className: 'bg-orange-50 text-orange-700' },
   absent: { label: 'ขาดเรียน', className: 'bg-red-50 text-red-700' },
   walleted: { label: 'อยู่ในกระเป๋า', className: 'bg-violet-50 text-violet-700' },
+  attendance_gap_review: { label: 'รอตรวจสอบการเช็คชื่อ', className: 'bg-orange-50 text-orange-700' },
 }
 
 const COURSE_LABELS: Record<string, string> = {
@@ -155,6 +165,75 @@ const COURSE_LABELS: Record<string, string> = {
 
 const MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const BOOKINGS_PREVIEW_PER_MONTH = 4
+const ACTIVE_SESSION_STATUSES = new Set(['scheduled', 'completed', 'absent'])
+
+function isActiveSession(session: SessionDetail) {
+  return ACTIVE_SESSION_STATUSES.has(session.status)
+}
+
+function getLearnerName(session: SessionDetail) {
+  return session.children?.nickname || session.children?.full_name || 'ตัวเอง'
+}
+
+function getSessionDateLabel(session: SessionDetail) {
+  const sessionDate = new Date(session.date + 'T00:00:00')
+  return sessionDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function getSessionStatusConfig(session: SessionDetail) {
+  return SESSION_STATUS_MAP[session.display_status] || SESSION_STATUS_MAP[session.status]
+}
+
+function getWalletCreditStatusConfig(session: SessionDetail) {
+  if (session.wallet_credit_status === 'redeemed') {
+    return {
+      label: 'ใช้สิทธิ์แล้ว',
+      description: 'เลือกวันใหม่แล้ว',
+      className: 'bg-emerald-50 text-emerald-700',
+    }
+  }
+
+  if (session.wallet_credit_status === 'expired') {
+    return {
+      label: 'หมดอายุ',
+      description: 'สิทธิ์ในกระเป๋าหมดอายุแล้ว',
+      className: 'bg-gray-50 text-gray-600',
+    }
+  }
+
+  if (session.wallet_credit_status === 'cancelled') {
+    return {
+      label: 'ยกเลิกแล้ว',
+      description: 'สิทธิ์ในกระเป๋าถูกยกเลิกแล้ว',
+      className: 'bg-red-50 text-red-700',
+    }
+  }
+
+  return {
+    label: 'รอเลือกวันใหม่',
+    description: 'ยังไม่ใช้สิทธิ์ อยู่ในกระเป๋าเรียน',
+    className: 'bg-violet-50 text-violet-700',
+  }
+}
+
+function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: string[], fallbackTotal: number) {
+  const activeSessions = sessions.filter(isActiveSession)
+
+  if (activeSessions.length > 0) {
+    const childCounts: Record<string, number> = {}
+    activeSessions.forEach((session) => {
+      const name = getLearnerName(session)
+      childCounts[name] = (childCounts[name] || 0) + 1
+    })
+    return Object.entries(childCounts).map(([name, count]) => ({ name, count }))
+  }
+
+  if (sessions.length > 0) {
+    return []
+  }
+
+  return fallbackNames.map((name) => ({ name, count: fallbackTotal }))
+}
 
 export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {}, paymentTransferSettings }: HistoryClientProps) {
   const router = useRouter()
@@ -393,6 +472,22 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
     const b = bookings.find((bk) => bk.id === id)
     return sum + (b?.total_price || 0)
   }, 0)
+  const selectedBookingSessions = selectedBooking ? bookingSessionsMap[selectedBooking.id] || [] : []
+  const selectedActiveSessions = selectedBookingSessions.filter(isActiveSession)
+  const selectedRescheduledSessions = selectedBookingSessions.filter((session) => session.status === 'rescheduled')
+  const selectedWalletedSessions = selectedBookingSessions.filter((session) => session.status === 'walleted')
+  const selectedActiveWalletedSessions = selectedWalletedSessions.filter((session) => !session.wallet_credit_status || session.wallet_credit_status === 'active')
+  const selectedRescheduleTargetsBySourceId = new Map(
+    selectedBookingSessions
+      .filter((session) => session.rescheduled_from_id)
+      .map((session) => [session.rescheduled_from_id!, session])
+  )
+  const selectedFallbackNames = selectedBooking
+    ? bookingChildNamesMap[selectedBooking.id] || [selectedBooking.children?.full_name || 'ตัวเอง']
+    : []
+  const selectedLearnerCounts = selectedBooking
+    ? getLearnerSessionCounts(selectedBookingSessions, selectedFallbackNames, selectedBooking.total_sessions)
+    : []
 
   return (
     <>
@@ -407,21 +502,14 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                   const nameCountMap: Record<string, number> = {}
                   pendingBookings.forEach((b) => {
                     const sessions = bookingSessionsMap[b.id] || []
-                    if (sessions.length > 0) {
-                      const childCounts: Record<string, number> = {}
-                      sessions.forEach((s) => {
-                        const name = s.children?.nickname || s.children?.full_name || 'ตัวเอง'
-                        childCounts[name] = (childCounts[name] || 0) + 1
-                      })
-                      Object.entries(childCounts).forEach(([name, count]) => {
-                        nameCountMap[name] = (nameCountMap[name] || 0) + count
-                      })
-                    } else {
-                      const names = bookingChildNamesMap[b.id] || [b.children?.full_name || 'ตัวเอง']
-                      names.forEach((n) => {
-                        nameCountMap[n] = (nameCountMap[n] || 0) + b.total_sessions
-                      })
-                    }
+                    const counts = getLearnerSessionCounts(
+                      sessions,
+                      bookingChildNamesMap[b.id] || [b.children?.full_name || 'ตัวเอง'],
+                      b.total_sessions
+                    )
+                    counts.forEach(({ name, count }) => {
+                      nameCountMap[name] = (nameCountMap[name] || 0) + count
+                    })
                   })
                   return Object.entries(nameCountMap).map(([name, count]) => `${name} = ${count} ครั้ง`).join(', ')
                 })()} — รวม ฿{pendingTotal.toLocaleString()}
@@ -462,6 +550,11 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                 const latestRejectedPayment = getLatestRejectedPayment(booking.id)
                 const couponUsages = couponUsageMap[booking.id] || []
                 const couponDiscount = couponUsages.reduce((sum, usage) => sum + Number(usage.discount_amount || 0), 0)
+                const bookingSessionCounts = getLearnerSessionCounts(
+                  bookingSessionsMap[booking.id] || [],
+                  bookingChildNamesMap[booking.id] || [booking.children?.full_name || 'ตัวเอง'],
+                  booking.total_sessions
+                )
 
                 return (
                   <Card key={booking.id} className="hover:shadow-md transition-shadow">
@@ -495,18 +588,9 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                             </div>
                             {(bookingChildNamesMap[booking.id]?.length > 0 || booking.children) && (
                               <div className="flex items-center gap-1.5 text-gray-600 col-span-2 md:col-span-4">
-                                <span>👦 {(() => {
-                                  const sessions = bookingSessionsMap[booking.id] || []
-                                  if (sessions.length > 0) {
-                                    const childCounts: Record<string, number> = {}
-                                    sessions.forEach((s) => {
-                                      const name = s.children?.nickname || s.children?.full_name || 'ตัวเอง'
-                                      childCounts[name] = (childCounts[name] || 0) + 1
-                                    })
-                                    return Object.entries(childCounts).map(([name, count]) => `${name} (${count} ครั้ง)`).join(', ')
-                                  }
-                                  return bookingChildNamesMap[booking.id]?.join(', ') || booking.children?.full_name || '-'
-                                })()}</span>
+                                <span>👦 {bookingSessionCounts.length > 0
+                                  ? bookingSessionCounts.map(({ name, count }) => `${name} (${count} ครั้ง)`).join(', ')
+                                  : bookingChildNamesMap[booking.id]?.join(', ') || booking.children?.full_name || '-'}</span>
                               </div>
                             )}
                           </div>
@@ -755,11 +839,26 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
               )}
 
               {/* Summary */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-gray-600">
-                  <p>จำนวน: <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
-                  {(bookingChildNamesMap[selectedBooking.id]?.length > 0 || selectedBooking.children) && (
-                    <p className="mt-0.5">👦 {bookingChildNamesMap[selectedBooking.id]?.join(', ') || selectedBooking.children?.full_name}</p>
+                  <p>จำนวนที่ชำระ: <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
+                  <p className="mt-0.5">
+                    รอบเรียนที่มีวันเรียนแล้ว: <strong>{selectedActiveSessions.length}/{selectedBooking.total_sessions} ครั้ง</strong>
+                  </p>
+                  {selectedActiveWalletedSessions.length > 0 && (
+                    <p className="mt-0.5">
+                      อยู่ในกระเป๋า รอเลือกวันใหม่: <strong>{selectedActiveWalletedSessions.length} ครั้ง</strong>
+                    </p>
+                  )}
+                  {selectedLearnerCounts.length > 0 && (
+                    <p className="mt-0.5">
+                      ผู้เรียน: {selectedLearnerCounts.map(({ name, count }) => `${name} (${count} ครั้ง)`).join(', ')}
+                    </p>
+                  )}
+                  {selectedRescheduledSessions.length > 0 && (
+                    <p className="mt-1 text-xs text-orange-700">
+                      มีประวัติการเลื่อน {selectedRescheduledSessions.length} รายการ ไม่นับซ้ำในจำนวนครั้งที่ชำระแล้ว
+                    </p>
                   )}
                 </div>
                 <p className="text-lg font-bold text-[#2748bf]">฿{selectedBooking.total_price.toLocaleString()}</p>
@@ -794,18 +893,17 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
               )}
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">วันเรียนที่จอง:</p>
-                {(bookingSessionsMap[selectedBooking.id] || []).length === 0 ? (
+                <p className="text-sm font-medium text-gray-700">รอบเรียนที่มีวันเรียนแล้ว:</p>
+                {selectedActiveSessions.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-4">ยังไม่มีวันเรียน</p>
                 ) : (
-                  (bookingSessionsMap[selectedBooking.id] || []).map((session) => {
-                    const sessionDate = new Date(session.date + 'T00:00:00')
-                    const dayLabel = sessionDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
+                  selectedActiveSessions.map((session) => {
+                    const dayLabel = getSessionDateLabel(session)
                     const isPending = selectedBooking.status === 'pending_payment'
-                    const sessionStatus = SESSION_STATUS_MAP[session.status]
+                    const sessionStatus = getSessionStatusConfig(session)
 
                     return (
-                      <div key={session.id} className="flex items-center justify-between p-2.5 bg-white border rounded-lg">
+                      <div key={session.id} className="flex flex-col gap-2 p-2.5 bg-white border rounded-lg sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3 text-sm">
                           <CalendarDays className="h-4 w-4 text-gray-400 shrink-0" />
                           <div>
@@ -834,6 +932,85 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                   })
                 )}
               </div>
+
+              {selectedWalletedSessions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">อยู่ในกระเป๋า / รอเลือกวันใหม่:</p>
+                  <div className="space-y-2">
+                    {selectedWalletedSessions.map((session) => {
+                      const dayLabel = getSessionDateLabel(session)
+                      const walletStatus = getWalletCreditStatusConfig(session)
+
+                      return (
+                        <div key={session.id} className="rounded-lg border border-violet-200 bg-violet-50/60 p-2.5 text-sm">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="font-medium text-violet-800">
+                                {dayLabel} {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                              </p>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                <span>{session.branches?.name || '-'}</span>
+                                <span>• {getLearnerName(session)}</span>
+                              </div>
+                              <p className="mt-1 text-xs text-violet-700">{walletStatus.description}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${walletStatus.className}`}>
+                              {walletStatus.label}
+                            </span>
+                          </div>
+                          {session.wallet_redeemed_session_id && (
+                            <div className="mt-2 rounded-md border border-white/80 bg-white/70 px-3 py-2 text-xs text-gray-600">
+                              มีรอบใหม่ในระบบแล้ว
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {selectedRescheduledSessions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">ประวัติการเลื่อนรอบ:</p>
+                  <div className="space-y-2">
+                    {selectedRescheduledSessions.map((session) => {
+                      const dayLabel = getSessionDateLabel(session)
+                      const targetSession = selectedRescheduleTargetsBySourceId.get(session.id)
+                      const targetStatus = targetSession ? getSessionStatusConfig(targetSession) : null
+
+                      return (
+                        <div key={session.id} className="rounded-lg border border-orange-200 bg-orange-50/60 p-2.5 text-sm">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="font-medium text-orange-800">
+                                {dayLabel} {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                              </p>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                <span>{session.branches?.name || '-'}</span>
+                                <span>• {getLearnerName(session)}</span>
+                              </div>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">
+                              ถูกเลื่อนออกแล้ว
+                            </span>
+                          </div>
+                          {targetSession && (
+                            <div className="mt-2 rounded-md border border-white/80 bg-white/70 px-3 py-2 text-xs text-gray-600">
+                              ไปเป็น {getSessionDateLabel(targetSession)} {fmtTime(targetSession.start_time)} - {fmtTime(targetSession.end_time)}
+                              {targetStatus && (
+                                <span className={`ml-2 rounded-full px-2 py-0.5 font-medium ${targetStatus.className}`}>
+                                  {targetStatus.label}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex flex-col gap-2 pt-2 border-t">
