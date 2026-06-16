@@ -21,6 +21,26 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Admin Schedules month pagination fix:
+  - Source fix only for `/admin/schedules`; no DB writes, migrations, booking/reschedule/payment/attendance logic changes, assignment semantics changes, Admin makeup changes, payroll changes, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - `src/app/(admin)/admin/schedules/page.tsx` now parses `year`/`month` query params, defaults invalid/missing params to the current month, filters `booking_sessions` server-side to the selected month, and fetches monthly sessions with paginated `.range()` batches in stable `date/start_time/id` order.
+  - Related month-scoped reads for wallet credits, assignment groups, slot session attendance scope, and attendance are chunked/constrained to the fetched month session/slot ids, with clear Supabase errors instead of silent empty data.
+  - `src/components/admin/schedules-client.tsx` now receives the selected month from the server and updates the URL when navigating months or today; existing search/branch/course filters continue to run client-side over that loaded month.
+  - Read-only verification confirmed `/admin/schedules?year=2026&month=6` loaded 1,136 rows in batches of 1,000 and 136. Booking `925362e8-fc3d-4f46-a41d-a49758212450` had active rows complete: `ต้นข้าว` 10 and `ต้นบุญ` 10, with 6 `rescheduled` rows excluded.
+  - Authenticated local Chrome smoke on `http://localhost:3000/admin/schedules?year=2026&month=6` passed with no console errors. Searching `วรวรรณ จินตานนท์` showed 20 rows and two 2026-06-28 cards for `ต้นข้าว` and `ต้นบุญ`, both 16:00-18:00 at `รัชดา`.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Unauthenticated local `/admin/schedules?year=2026&month=6` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fschedules`.
+
+- Completed scoped User Booking History reschedule clarity fix:
+  - Source/display fix only; no DB writes, migrations, booking creation/reschedule semantics, payment logic, attendance logic, payroll logic, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
+  - Implemented the read-only case plan for parent `pick2523@hotmail.com`: active sessions are not missing; rescheduled rows are now presented as history instead of being mixed into active paid rounds.
+  - `src/app/(dashboard)/dashboard/history/page.tsx` now fetches `booking_sessions.rescheduled_from_id` and builds `sessionCountMap` from active statuses only (`scheduled`, `completed`, `absent`).
+  - `src/components/dashboard/history-client.tsx` now counts per-learner sessions from active rows only, shows "รอบที่นับในคอร์ส" separately from "ประวัติการเลื่อนรอบ", and displays the replacement session when `rescheduled_from_id` links the rows.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+  - Post-build cleanup/restart completed: no existing port 3000 listener, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - In-app browser read-only smoke for `/dashboard/history` redirected unauthenticated access to `/auth/login?redirect=%2Fdashboard%2Fhistory` with no console errors.
+
 - Completed read-only production post-write verification for owner-run Admin Makeup write UAT:
   - No source code, DB data, migrations, rollback, deploy, or `SlipOK API Guide.docx` action was performed by Codex.
   - `assign_coach_to_round` PASS for 2026-06-14 16:00-18:00 at Ratchada. Exact target booking session `c4a375b6-4bf1-4305-8932-c47e5f53270d` (`คีน`) has new group `c500256e-bd39-44e9-96e4-a26e725c5b9e` assigned to Coach Link (`412a8f42-d069-4b1d-9b2c-abce93f0dc82`), one matching `coach_assignment_group_students` row, legacy `coach_assignments` row `f7c21caf-27fc-4db7-9ff6-6fde38e405cc`, activity log `attendance_gap_assign_coach_round`, and notification `a7e6c328-0a8e-48b2-bbce-9df504201f8f`.

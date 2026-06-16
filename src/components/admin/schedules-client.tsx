@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -51,6 +52,8 @@ interface ScheduleSession {
 interface SchedulesClientProps {
   sessions: ScheduleSession[]
   branches: BranchOption[]
+  initialYear: number
+  initialMonth: number
 }
 
 const COURSE_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
@@ -124,15 +127,19 @@ function getMakeupReviewHref(session: Pick<ScheduleSession, 'id' | 'date'>) {
   return `/admin/makeup?${params.toString()}`
 }
 
-export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
+export function SchedulesClient({ sessions, branches, initialYear, initialMonth }: SchedulesClientProps) {
+  const router = useRouter()
   const now = new Date()
   const today = now.toISOString().split('T')[0]
-  const [month, setMonth] = useState(now.getMonth())
-  const [year, setYear] = useState(now.getFullYear())
+  const month = initialMonth - 1
+  const year = initialYear
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
   const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [search, setSearch] = useState('')
-  const [selectedDate, setSelectedDate] = useState<string | null>(today)
+  const [selectedDate, setSelectedDate] = useState<string | null>(() => {
+    const todayDate = new Date(`${today}T00:00:00`)
+    return todayDate.getMonth() === month && todayDate.getFullYear() === year ? today : null
+  })
 
   const filteredMonthSessions = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -193,30 +200,28 @@ export function SchedulesClient({ sessions, branches }: SchedulesClientProps) {
   const totalBranches = new Set(filteredMonthSessions.map((session) => session.branch_id)).size
   const totalSlots = new Set(filteredMonthSessions.map((session) => `${session.date}:${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`)).size
   const unassignedSessions = filteredMonthSessions.filter((session) => session.coach_names.length === 0).length
+  const navigateToMonth = (targetYear: number, targetMonth: number) => {
+    router.push(`/admin/schedules?year=${targetYear}&month=${targetMonth}`)
+  }
+
   const goToPreviousMonth = () => {
     if (month === 0) {
-      setMonth(11)
-      setYear(year - 1)
+      navigateToMonth(year - 1, 12)
     } else {
-      setMonth(month - 1)
+      navigateToMonth(year, month)
     }
-    setSelectedDate(null)
   }
 
   const goToNextMonth = () => {
     if (month === 11) {
-      setMonth(0)
-      setYear(year + 1)
+      navigateToMonth(year + 1, 1)
     } else {
-      setMonth(month + 1)
+      navigateToMonth(year, month + 2)
     }
-    setSelectedDate(null)
   }
 
   const goToToday = () => {
-    setMonth(now.getMonth())
-    setYear(now.getFullYear())
-    setSelectedDate(today)
+    navigateToMonth(now.getFullYear(), now.getMonth() + 1)
   }
 
   return (

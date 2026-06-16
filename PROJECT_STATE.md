@@ -900,6 +900,45 @@ Potential bug found:
 - Tables/areas confirmed not written by these actions for the target sessions: `attendance`, `booking_sessions.status`, DB migrations, payroll, booking, wallet, payment, coupon, assignment semantics outside the tested coach-assignment compatibility rows, and SlipOK guide/docs.
 - Rollback assessment: no rollback recommended from read-only verification; no blocker found.
 
+## 2026-06-16 - User Booking History Reschedule Clarity
+
+- Scoped User/Admin booking-history display fix only. No DB writes, migrations, booking creation/reschedule semantics, payment logic, attendance logic, commit, push, or deploy were performed.
+- Context: read-only investigation of parent `pick2523@hotmail.com` showed booking `925362e8-fc3d-4f46-a41d-a49758212450` has 20 active June 2026 sessions for ต้นข้าว/ต้นบุญ, plus 6 `booking_sessions.status = rescheduled` history rows. Active sessions were not missing; rescheduled rows were old rounds moved through the parent account.
+- Source fix: `/dashboard/history` now fetches `booking_sessions.rescheduled_from_id` and counts only active statuses (`scheduled`, `completed`, `absent`) for session-count completion messaging.
+- Source fix: `src/components/dashboard/history-client.tsx` now shows booking detail with separate sections for:
+  - "รอบที่นับในคอร์ส" from active sessions only.
+  - "ประวัติการเลื่อนรอบ" from `rescheduled` rows, with a link to the replacement row when `rescheduled_from_id` is available.
+- Booking cards and grouped pending-payment summaries now count learner sessions from active rows only, so rescheduled history rows no longer inflate per-child session counts.
+- Business rules unchanged: rescheduled rows remain audit/history, wallet/payment/attendance/payroll behavior was not changed.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - Post-build cleanup/restart: no existing port 3000 listener, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - In-app browser read-only smoke: `/dashboard/history` redirected unauthenticated local access to `/auth/login?redirect=%2Fdashboard%2Fhistory` with no console errors.
+
+## 2026-06-16 - Admin Schedules Month Pagination Fix
+
+- Scoped `/admin/schedules` source fix only. No DB writes, migrations, booking/reschedule/payment/attendance logic changes, assignment semantics changes, Admin makeup changes, payroll changes, commit, push, or deploy were performed.
+- Root cause proved read-only: June 2026 schedule data exceeded the Supabase/PostgREST 1,000 row cap. A broad `/admin/schedules` query stopped before 2026-06-28, hiding active booking sessions for booking `925362e8-fc3d-4f46-a41d-a49758212450`.
+- Source fix: `src/app/(admin)/admin/schedules/page.tsx` now parses `year`/`month` from URL query params, defaults invalid or missing params to the current month, applies server-side month date filters, and fetches `booking_sessions` in stable `date/start_time/id` order with paginated `.range()` batches until the last short batch.
+- Related reads for wallet credits, assignment groups, slot session attendance scope, and attendance are constrained to the fetched month/session/slot ids and chunked where needed. Supabase errors now throw descriptive errors instead of failing silently for the schedule data path.
+- Source fix: `src/components/admin/schedules-client.tsx` now receives the server-selected month and updates the URL with `router.push('/admin/schedules?year=YYYY&month=M')` when changing month or jumping to today. Existing client-side search/branch/course filters still run against the loaded month sessions.
+- Read-only verification after the fix:
+  - `/admin/schedules?year=2026&month=6` month query loaded 1,136 rows in batches of 1,000 and 136.
+  - Booking `925362e8-fc3d-4f46-a41d-a49758212450` had 20 active rows in the loaded month: `ต้นข้าว` 10 and `ต้นบุญ` 10. The 6 `rescheduled` rows remained excluded from active counts.
+  - 2026-06-28 rows were present for `ต้นข้าว` and `ต้นบุญ`, both 16:00-18:00 at `รัชดา`.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only known Windows LF/CRLF warnings.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Unauthenticated local `/admin/schedules?year=2026&month=6` returned HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fschedules`.
+  - Authenticated local Chrome read-only smoke on `http://localhost:3000/admin/schedules?year=2026&month=6` loaded without login redirect and without console errors. Searching `วรวรรณ จินตานนท์` showed 20 rows and two 2026-06-28 cards for `ต้นข้าว` and `ต้นบุญ`, both 16:00-18:00 at `รัชดา`.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
