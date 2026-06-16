@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,14 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed read-only production post-write verification for owner-run Admin Makeup write UAT:
+  - No source code, DB data, migrations, rollback, deploy, or `SlipOK API Guide.docx` action was performed by Codex.
+  - `assign_coach_to_round` PASS for 2026-06-14 16:00-18:00 at Ratchada. Exact target booking session `c4a375b6-4bf1-4305-8932-c47e5f53270d` (`คีน`) has new group `c500256e-bd39-44e9-96e4-a26e725c5b9e` assigned to Coach Link (`412a8f42-d069-4b1d-9b2c-abce93f0dc82`), one matching `coach_assignment_group_students` row, legacy `coach_assignments` row `f7c21caf-27fc-4db7-9ff6-6fde38e405cc`, activity log `attendance_gap_assign_coach_round`, and notification `a7e6c328-0a8e-48b2-bbce-9df504201f8f`.
+  - `replace_coach_for_past_round` PASS for 2026-06-14 15:00-17:00 at Rama 2. Exact target sessions `1cb6f5bf-9df4-4051-9e8d-d4e305b91af0`, `6b822eb9-87b8-4271-922b-283d9c367f92`, `5c560343-79d5-42ea-be0d-ccf567d67d05`, `1ce69fb4-6641-4ebb-a480-9011892573a5`, and `fe1e3ebe-9976-4e83-be29-051f918ed3c3` remain in group `cf18d7df-f42e-4852-8255-a96b25c10c7e`, now assigned to Coach Jom (`b852eb8f-7989-4fba-958d-b7a28bcfea4d`), with legacy `coach_assignments` row `d1a752c4-ebf7-470c-bd7f-ac1f7808f428`, five `attendance_gap_replace_coach_round` logs, and notification `c7a24182-0d9d-492b-bc11-34f395ca7335`.
+  - Confirmed no `attendance` rows for the target sessions and no `booking_sessions.status` changes from either action; the target sessions remain `scheduled` and their `updated_at` values predate the UAT writes.
+  - Existing slot check-in evidence rows for the Rama 2 slot remain present. There is no current Coach Tony check-in row for that slot to prove Tony-specific preservation from a post-only snapshot; source inspection confirms the replacement action has no evidence delete path.
+  - Rollback assessment: no rollback recommended; no blocker found.
 
 - Completed scoped Admin Makeup round-level request counter display fix:
   - Source/client display fix only; no API semantics, write behavior, `activity_logs`, `notifications`, DB data, migrations, payroll/booking/wallet/payment/coupon/assignment, commit, push, deploy, or `SlipOK API Guide.docx` action was performed.
@@ -71,7 +79,7 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and `npm.cmd run build`.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local Chrome read-only `/admin/makeup` smoke redirected to `/auth/login?redirect=%2Fadmin%2Fmakeup` with no console errors. Known local LCP image warning for `/logo new-athlete-school.jpg` remained.
-  - Write UAT for `replace_coach_for_past_round`: NEED VERIFICATION with an owner-approved exact past round and replacement coach. Do not submit real replacement writes without owner confirmation.
+  - Owner-run production write UAT for `replace_coach_for_past_round` was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 15:00-17:00 Rama 2 target group changed to Coach Jom.
   - Commit `6606f41` (`fix(makeup): support past round coach replacement`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
   - Deployment id: `dpl_5BN7cSZH8ecQhbkFScpjxZZjJZWq`; production alias: `https://www.newathleteschool.com`; deployment status: Ready.
   - Production read-only smoke after deploy: `/` HTTP 200, `_next/static/chunks/webpack-6fbcecb408fbe888.js` HTTP 200, and `/admin/makeup` HTTP 307 to `/auth/login?redirect=%2Fadmin%2Fmakeup`.
@@ -89,8 +97,8 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run attendance:reconcile:dry-run`, and `npm.cmd run build`.
   - Post-build cleanup/restart completed: removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local HTTP 200.
   - Authenticated local `/admin/makeup` smoke passed read-only: no-coach dialog had no status select and assign button stayed disabled while incomplete; assigned-coach modal still opened and save stayed disabled while incomplete. No write-action save was clicked.
-  - Release gate: Source checks PASS, Build PASS, read-only browser smoke PASS, and `assign_coach_to_round` write UAT NEED VERIFICATION.
-  - Write UAT reason: there is currently no real no-coach round and no owner-approved coach target. Do not create fake test data and do not click a real save until the owner provides an exact test case.
+  - Release gate: Source checks PASS, Build PASS, read-only browser smoke PASS, and owner-run production `assign_coach_to_round` write UAT read-only verified on 2026-06-16.
+  - Owner-run production write UAT for `assign_coach_to_round` PASS for the exact 2026-06-14 16:00-18:00 Ratchada target session assigned to Coach Link.
   - Commit `6ab8e37` was deployed to Vercel production on 2026-06-14.
   - Production read-only `/admin/makeup` smoke after deploy loaded with an authenticated Chrome Super Admin session and confirmed the no-coach/assigned-coach UI controls matched the Phase B.2-New.2 scope.
   - No production write action was submitted during smoke.
@@ -460,10 +468,10 @@ Status:
   - Super Admin requested local surfaces passed after the `/admin/makeup` hydration fix, including clean-tab recheck for `/admin/payroll`, `/admin/settings`, `/admin/users`, `/admin/branches`, and `/admin/coaches`.
   - Latest authenticated Chrome release smoke passed for Super Admin `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments` with no fresh console errors or hydration mismatch.
   - Standard Coach expected UI has been owner-confirmed as Head Coach without the assignment/round-group menu; browser verification still needs a role-pure Standard Coach account if required.
-- Admin makeup round-level UAT remains pending and must be owner-driven because key flows write data.
-- Phase B.2-New.2 `assign_coach_to_round` write UAT remains NEED VERIFICATION. Reason: there is no real no-coach round and no owner-approved coach target yet. Do not create fake test data; wait for an exact owner-approved round/coach pair before any save.
-- Phase B.2-New.3 `replace_coach_for_past_round` write UAT remains NEED VERIFICATION. Reason: this flow changes real coach assignment/evidence ownership, so wait for an exact owner-approved past round and replacement coach before any save.
-- Next safe task before more release confidence: owner-driven write UAT for Admin Makeup replacement/assignment flows when exact safe target records are provided. Keep production smoke read-only unless the owner approves exact write targets.
+- Admin makeup round-level UAT remains owner-driven for any future write cases; the 2026-06-16 `assign_coach_to_round` and `replace_coach_for_past_round` production UAT cases are read-only verified as PASS.
+- Phase B.2-New.2 `assign_coach_to_round` owner-run production write UAT was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 16:00-18:00 Ratchada target session assigned to Coach Link.
+- Phase B.2-New.3 `replace_coach_for_past_round` owner-run production write UAT was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 15:00-17:00 Rama 2 target group changed to Coach Jom.
+- Keep any future production Admin Makeup write action gated by a fresh exact owner-approved target. Default smoke remains read-only.
 
 ### 0. Admin Schedules vs Makeup Exact Learner Assignment Debug
 

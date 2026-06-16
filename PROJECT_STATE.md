@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -743,9 +743,8 @@ Potential bug found:
 - Source checks: PASS.
 - Build: PASS.
 - Read-only browser smoke: PASS.
-- Write UAT for `assign_coach_to_round`: NEED VERIFICATION.
-- Reason: there is currently no real no-coach round and no owner-approved coach target for a safe write UAT.
-- No fake test data was created and no real save/write action was clicked.
+- Owner-run production write UAT for `assign_coach_to_round` was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 16:00-18:00 Ratchada target session assigned to Coach Link.
+- Earlier implementation smoke did not create fake test data and did not click a real save/write action before owner approval.
 - Commit `6ab8e37` was deployed to Vercel production on 2026-06-14.
   - Deployment id: `dpl_D5wsjCNRNuHgjebsS9KiSNwupmuU`.
   - Deployment URL: `https://new-athlete-badminton-school-d4g9qm8na-aachanin1s-projects.vercel.app`.
@@ -787,7 +786,7 @@ Potential bug found:
   - `npm.cmd run build`
   - Post-build cleanup/restart: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local Chrome read-only smoke for `/admin/makeup` redirected to `/auth/login?redirect=%2Fadmin%2Fmakeup` with no console errors. Known local warning observed: LCP image warning for `/logo new-athlete-school.jpg`.
-- Write UAT for `replace_coach_for_past_round`: NEED VERIFICATION with an owner-approved real past round and approved replacement coach. Do not submit real replacement writes without owner confirmation of the exact target.
+- Owner-run production write UAT for `replace_coach_for_past_round` was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 15:00-17:00 Rama 2 target group changed to Coach Jom.
 - Commit `6606f41` (`fix(makeup): support past round coach replacement`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-15.
   - Deployment id: `dpl_5BN7cSZH8ecQhbkFScpjxZZjJZWq`.
   - Deployment URL: `https://new-athlete-badminton-school-9vfzr03lm-aachanin1s-projects.vercel.app`.
@@ -879,14 +878,36 @@ Potential bug found:
   - Vercel status: Ready.
 - Owner-confirmed production smoke after deploy: the round that previously showed `ส่งให้โค้ชแล้ว 5 ครั้ง` now shows `ส่งให้โค้ชแล้ว 1 ครั้ง`. No production write action was clicked. Counter aggregation bug is resolved in production.
 
+## 2026-06-16 - Admin Makeup Production Write UAT Verification
+
+- Owner performed the production write actions; Codex performed read-only post-write verification only. No source code, DB data, migrations, rollback, deploy, or `SlipOK API Guide.docx` action was performed.
+- `assign_coach_to_round` production UAT PASS for 2026-06-14 16:00-18:00 at Ratchada:
+  - Exact target booking session: `c4a375b6-4bf1-4305-8932-c47e5f53270d` for learner `คีน` (`55af6613-e4fa-44c5-a0cf-b5142df6955c`).
+  - New group `c500256e-bd39-44e9-96e4-a26e725c5b9e` points to Coach Link (`412a8f42-d069-4b1d-9b2c-abce93f0dc82`) and has the expected one `coach_assignment_group_students` row.
+  - Legacy `coach_assignments` compatibility row `f7c21caf-27fc-4db7-9ff6-6fde38e405cc` exists for Coach Link and slot `0a346a9a-e603-4da6-9d49-6c417774ea01`.
+  - Activity log `065e09fd-d7f5-48f8-997b-faea142acc3d` has `attendance_gap_assign_coach_round`, `attendanceWritten:false`, and `bookingSessionStatusChanged:false`.
+  - Notification `a7e6c328-0a8e-48b2-bbce-9df504201f8f` was sent to Coach Link with the expected attendance link.
+  - No `attendance` rows exist for the target session, and `booking_sessions.status` remains `scheduled` with `updated_at` still before the UAT write.
+- `replace_coach_for_past_round` production UAT PASS for 2026-06-14 15:00-17:00 at Rama 2:
+  - Exact target booking sessions: `1cb6f5bf-9df4-4051-9e8d-d4e305b91af0` (`น้องขิม`), `6b822eb9-87b8-4271-922b-283d9c367f92` (`บิว`), `5c560343-79d5-42ea-be0d-ccf567d67d05` (`พราว`), `1ce69fb4-6641-4ebb-a480-9011892573a5` (`ภานันต์`), and `fe1e3ebe-9976-4e83-be29-051f918ed3c3` (`ภูมิ`).
+  - Group `cf18d7df-f42e-4852-8255-a96b25c10c7e` now points to Coach Jom (`b852eb8f-7989-4fba-958d-b7a28bcfea4d`) and still has all five learner rows.
+  - Previous coach recorded in logs: Coach Tony (`f8fde879-4be7-4225-a6be-c05f45c37a32`). Legacy `coach_assignments` compatibility row `d1a752c4-ebf7-470c-bd7f-ac1f7808f428` exists for Coach Jom and slot `9ffb311c-8ff6-481b-9498-a382ff7c10c9`.
+  - Five `attendance_gap_replace_coach_round` activity logs exist, one per target session, all with `attendanceWritten:false` and `bookingSessionStatusChanged:false`.
+  - Notification `c7a24182-0d9d-492b-bc11-34f395ca7335` was sent to Coach Jom with the expected retrospective check-in link.
+  - No `attendance` rows exist for the five target sessions, and all five `booking_sessions.status` values remain `scheduled` with `updated_at` still before the UAT write.
+  - Existing slot check-in evidence rows for Coach Ten and Coach Ja remain present. There is no current Coach Tony check-in row for this slot to preserve, so Tony-specific evidence deletion cannot be proved from a post-only snapshot; source inspection confirms the replace action has no evidence delete path.
+- Tables observed written by the owner-run UAT: `coach_assignment_groups`, `coach_assignment_group_students`, `coach_assignments`, `activity_logs`, and `notifications`.
+- Tables/areas confirmed not written by these actions for the target sessions: `attendance`, `booking_sessions.status`, DB migrations, payroll, booking, wallet, payment, coupon, assignment semantics outside the tested coach-assignment compatibility rows, and SlipOK guide/docs.
+- Rollback assessment: no rollback recommended from read-only verification; no blocker found.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
 - Current remote DB migration state after the latest local work needs confirmation before future DB-dependent work.
 - Final authenticated production/local smoke test across all roles after `86aa087` is partially complete. User, Head-Coach-like, Standard Admin, and Super Admin requested local admin surfaces are now verified, including `/admin/makeup`, `/admin`, `/admin/schedules`, and `/admin/payments` with no fresh console errors or hydration mismatch in the latest authenticated Chrome smoke. Standard Coach expected UI has been owner-confirmed, but a role-pure Standard Coach browser smoke still needs a Standard Coach account if browser verification is required.
-- Admin makeup round-level actions after `86aa087` still need owner-driven UAT because the important buttons write production data.
-- Phase B.2-New.2 `assign_coach_to_round` write UAT is still NEED VERIFICATION until the owner provides a real no-coach round and an approved coach target. Do not create fake test data for this UAT.
-- Phase B.2-New.3 `replace_coach_for_past_round` write UAT is NEED VERIFICATION until the owner provides an exact past round and approved replacement coach.
+- Admin makeup round-level actions other than the 2026-06-16 verified `assign_coach_to_round` and `replace_coach_for_past_round` cases still need owner-driven UAT because the important buttons write production data.
+- Phase B.2-New.2 `assign_coach_to_round` owner-run production write UAT was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 16:00-18:00 Ratchada target session.
+- Phase B.2-New.3 `replace_coach_for_past_round` owner-run production write UAT was read-only verified on 2026-06-16: PASS for the exact 2026-06-14 15:00-17:00 Rama 2 target group.
 - Production `/admin/makeup` clean-console smoke for the React #418 timezone display fix passed after deploy `d59af8c`; keep future production smoke read-only unless the owner approves exact write targets.
 
 ## Do Not Regress
