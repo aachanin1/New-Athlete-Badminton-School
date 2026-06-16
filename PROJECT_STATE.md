@@ -982,7 +982,7 @@ Potential bug found:
 
 ## 2026-06-16 - Admin Makeup Targeted Same-Slot Learner Move
 
-- Scoped `/admin/makeup` source/UI fix only. No DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, booking/reschedule/payment/wallet/payroll logic changes, commit, push, or deploy were performed.
+- Scoped `/admin/makeup` source/UI fix only. No direct DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, or booking/reschedule/payment/wallet/payroll logic changes were performed by Codex.
 - Added API action `move_learner_to_existing_coach_group` in `src/app/api/admin/makeup/route.ts` for a targeted same-slot move of one or more learner sessions into an existing `coach_assignment_groups` row.
 - The action validates required `session_ids`, `target_group_id`, `coach_id`, and `reason`; target group existence; same `schedule_slot_id`; target group coach match; same date/start/end/branch/course; non-makeup active lifecycle statuses only; and exact learner attendance absence by `booking_session_id + expected student_id`.
 - The action writes only `coach_assignment_group_students` membership updates/inserts, compatibility `coach_assignments` when missing for the target coach/slot, `activity_logs`, and a notification to the target coach. It intentionally does not write `attendance`, does not change `booking_sessions.status`, does not delete coach check-ins/evidence, and does not delete the old group even if it becomes empty.
@@ -1001,7 +1001,15 @@ Potential bug found:
   - `git diff --check` with only known Windows LF/CRLF warnings.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local browser read-only smoke for `/admin/makeup` redirected unauthenticated access to `/auth/login?redirect=%2Fadmin%2Fmakeup` with 0 console errors.
-- Authenticated UI smoke for the new dialog and owner-approved production UAT are still pending. Do not click the new write action until the owner confirms the exact target and approves the write.
+- Commit `99c579a` (`fix(makeup): move learner to existing coach group`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-16.
+- Owner-run production UAT for Kheen passed on 2026-06-16. Codex performed post-write read-only verification only:
+  - Session `c4a375b6-4bf1-4305-8932-c47e5f53270d` is now in target group `1120daab-2a90-4205-979d-d2803ebb5fbc` / `โคัช ไนซ์ NA ราม`.
+  - The same session is no longer in old group `c500256e-bd39-44e9-96e4-a26e725c5b9e` / `โคัช ลิ้ง NA รัชดา`; the old group has 0 members after the move.
+  - `attendance` remains 0 rows for the exact learner, and `booking_sessions.status` remains `scheduled`.
+  - Coach check-in/evidence for Coach Nice remains present with photo and GPS; no evidence was deleted.
+  - Activity log action `attendance_gap_move_learner_to_existing_group` exists with details confirming `attendanceWritten=false`, `bookingSessionStatusChanged=false`, and `coachEvidenceDeleted=false`.
+  - Notification `f8912135-148b-48eb-b04c-ecbf5061854e` was sent to Coach Nice for the same slot.
+  - Result: PASS. No rollback needed.
 
 ## 2026-06-16 - Font Preload Warning Noise
 

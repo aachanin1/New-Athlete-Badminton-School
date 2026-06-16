@@ -34,7 +34,7 @@ Read only when relevant:
   - No write action, DB data change, migration, or additional deploy was performed while closing this item.
 
 - Completed scoped Admin Makeup targeted same-slot learner move source/UI fix:
-  - Source/UI fix only for `/admin/makeup`; no DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, booking/reschedule/payment/wallet/payroll logic changes, commit, push, or deploy action was performed.
+  - Source/UI fix only for `/admin/makeup`; no direct DB data edits, migrations, attendance writes, `booking_sessions.status` changes, check-in/evidence deletion, or booking/reschedule/payment/wallet/payroll logic changes were performed by Codex.
   - Added API action `move_learner_to_existing_coach_group` in `src/app/api/admin/makeup/route.ts`.
   - The action validates `session_ids`, `target_group_id`, `coach_id`, `reason`, target group existence, same `schedule_slot_id`, target group coach match, same date/start/end/branch/course, non-makeup active lifecycle statuses only, and blocks if exact learner attendance exists by `booking_session_id + expected student_id`.
   - The action writes only targeted `coach_assignment_group_students` updates/inserts, compatibility `coach_assignments` when missing, `activity_logs`, and target-coach notification. It does not write `attendance`, does not change `booking_sessions.status`, does not delete coach check-ins/evidence, and does not delete the old group.
@@ -43,7 +43,9 @@ Read only when relevant:
   - Read-only proof for Kheen session `c4a375b6-4bf1-4305-8932-c47e5f53270d`: current group Link `c500256e-bd39-44e9-96e4-a26e725c5b9e`, target group Nice `1120daab-2a90-4205-979d-d2803ebb5fbc`, same schedule slot `0a346a9a-e603-4da6-9d49-6c417774ea01`, target group round matches, exact attendance count 0.
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
   - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
-  - Local browser read-only smoke for `/admin/makeup` redirected unauthenticated access to login with 0 console errors. Authenticated dialog smoke and owner-approved write UAT remain pending.
+  - Local browser read-only smoke for `/admin/makeup` redirected unauthenticated access to login with 0 console errors.
+  - Commit `99c579a` was pushed and deployed to production on 2026-06-16.
+  - Owner-run production UAT for Kheen passed. Post-write read-only verification confirmed session `c4a375b6-4bf1-4305-8932-c47e5f53270d` moved to target group Nice `1120daab-2a90-4205-979d-d2803ebb5fbc`, is no longer in old group Link `c500256e-bd39-44e9-96e4-a26e725c5b9e`, exact attendance remains 0, `booking_sessions.status` remains `scheduled`, Coach Nice check-in/evidence remains present, activity log `attendance_gap_move_learner_to_existing_group` exists, and notification `f8912135-148b-48eb-b04c-ecbf5061854e` was sent. Result: PASS; no rollback needed.
 
 - Completed scoped Admin Makeup branch display source fix:
   - Source/display query fix only for `/admin/makeup`; no DB writes, migrations, assignment logic, `replace_coach_for_past_round`, `assign_coach_to_round`, attendance write logic, booking/reschedule/payment/wallet/payroll, commit, push, or deploy action was performed.
