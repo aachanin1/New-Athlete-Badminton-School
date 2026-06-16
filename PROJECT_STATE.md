@@ -1005,7 +1005,7 @@ Potential bug found:
 
 ## 2026-06-16 - Font Preload Warning Noise
 
-- Scoped app-shell font loading fix only. No DB writes, migrations, business logic changes, Admin makeup action changes, commit, push, or deploy were performed.
+- Scoped app-shell font loading fix only. No DB writes, migrations, business logic changes, or Admin makeup action changes were performed.
 - Production screenshot after deploy `99c579a` showed many Chrome DevTools warnings for preloaded `/_next/static/media/*.woff2` Prompt font files and a reported odd-looking font. Read-only HTML inspection confirmed the preload tags had correct `as="font"` attributes, but `next/font` was preloading 10 Prompt font files from `subsets: ["thai", "latin"]` and weights `300/400/500/600/700`.
 - Source fix: `src/app/layout.tsx` keeps the Prompt font but removes unused weight `300`, sets `display: "swap"`, and disables automatic font preload with `preload: false` so pages do not emit unused `.woff2` preload links.
 - Local verification passed:
@@ -1016,7 +1016,15 @@ Potential bug found:
   - `git diff --check` with only known Windows LF/CRLF warnings.
   - Post-build cleanup/restart completed; local `/` and `_next/static/chunks/webpack.js` returned HTTP 200.
   - Local `/auth/login` HTML emitted 0 `.woff2` preload links.
-- Production will continue showing the old preload warnings until this scoped layout fix is committed and deployed.
+- Commit `2d749b7` (`fix(app): reduce font preload warnings`) was pushed to `spike/next-major-security-upgrade` and deployed to Vercel production on 2026-06-16.
+  - Deployment URL: `https://new-athlete-badminton-school-nnrezwdqb-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Production smoke result:
+  - Public/app-shell smoke passed for `/auth/login` and unauthenticated shell paths. Thai font rendering returned to normal and `.woff2` preload flood was not observed in the app shell.
+  - Owner-confirmed Chrome screenshot showed authenticated `/admin` loaded successfully after login and Thai font looked normal.
+  - Codex authenticated console smoke remains `NEED REVIEW` only because the Codex in-app browser does not share the owner's logged-in Chrome session/cookies. This is not a confirmed runtime error.
+  - No write action, DB data change, migration, or additional deploy was performed during smoke.
 
 ## Unknown / Need Verification
 
