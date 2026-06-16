@@ -21,6 +21,15 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Admin Makeup branch display source fix:
+  - Source/display query fix only for `/admin/makeup`; no DB writes, migrations, assignment logic, `replace_coach_for_past_round`, `assign_coach_to_round`, attendance write logic, booking/reschedule/payment/wallet/payroll, commit, push, or deploy action was performed.
+  - Root cause confirmed read-only: `/admin/makeup` displayed `branch_name` from `bookings.branch_id`, while filtering and the real round branch use `booking_sessions.branch_id`; `/admin/schedules` already displayed from `booking_sessions.branch_id`.
+  - `src/app/(admin)/admin/makeup/page.tsx` now selects root `branches(name)` from `booking_sessions` and sends `branch_name` from `session.branches?.name`.
+  - Read-only verification using the updated select contract confirmed Trin sessions `f5c8bfbd-28c2-48db-9e35-819634d2981f` (2026-06-16 17:00-19:00) and `3f205c55-10b2-49cd-b988-7be9f44e4036` (2026-06-13 17:00-19:00) send `branch_name = Ramintra` while their booking package branch remains Chaengwattana.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only the known Windows LF/CRLF warning for `src/app/(admin)/admin/makeup/page.tsx`.
+  - Post-build cleanup/restart completed: stopped port 3000, removed generated `.next`, restarted `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000`, and verified local `/` plus `_next/static/chunks/webpack.js` returned HTTP 200.
+  - Local Chrome read-only smoke for `/admin/makeup` redirected unauthenticated access to `/auth/login?redirect=%2Fadmin%2Fmakeup` and captured no console errors; authenticated UI smoke still needs an admin session.
+
 - Completed scoped Dashboard History walleted count clarity fix:
   - Source/display fix only for `/dashboard/history`; no DB writes, migrations, lesson wallet write logic, booking/reschedule/payment/attendance write logic, Admin makeup, payroll, or `SlipOK API Guide.docx` action was performed.
   - Read-only proof for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f` showed `total_sessions = 16`, active course rows = 13, and 3 `walleted` rows backed by active `lesson_wallet_credits`.

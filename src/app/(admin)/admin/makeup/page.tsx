@@ -24,6 +24,7 @@ interface MakeupSessionRow {
   status: string
   is_makeup: boolean | null
   child_id: string | null
+  branches?: { name: string | null } | null
   children?: { full_name: string | null; nickname: string | null } | null
   bookings?: {
     user_id: string
@@ -146,6 +147,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const nextMonthEndInput = toDateInput(new Date(todayYear, todayMonth + 1, 0))
   const makeupSessionSelect = `
     id, booking_id, date, start_time, end_time, status, is_makeup, child_id, branch_id, schedule_slot_id, rescheduled_from_id,
+    branches(name),
     children(full_name, nickname),
     bookings!inner(user_id, learner_type, status,
       profiles!bookings_user_id_fkey(full_name),
@@ -366,7 +368,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       attendance_scope_count: adminAttendanceState.getAttendanceScopeCount(session),
       user_name: session.bookings?.profiles?.full_name || 'ไม่ทราบ',
       learner_name: learnerName,
-      branch_name: session.bookings?.branches?.name || 'ไม่ทราบ',
+      branch_name: session.branches?.name || 'ไม่ทราบ',
       course_type: session.bookings?.course_types?.name || '',
       is_makeup: session.is_makeup || false,
       group_name: groupContext?.groupName || null,

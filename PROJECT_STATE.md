@@ -98,6 +98,7 @@ Observed migrations include:
 - Coach assignments now use assignment groups by learner/slot, with legacy assignment fallback.
 - Coach check-in is per teaching slot and requires photo/GPS.
 - Coach attendance is locked until check-in for the exact slot, except Admin/Super Admin retrospective paths.
+- Admin Makeup displays round branch names from `booking_sessions.branch_id` / the session branch relation, not from the booking package branch.
 - Coach teaching hour source rows are verified only with students, check-in, photo, location, and attendance.
 - Coach teaching hour source reads must chunk large `.in()` filters. Production-scale grouped assignments can exceed Supabase/PostgREST request limits and row caps when `booking_session_id` or `schedule_slot_id` arrays are sent in one request.
 - Weekly teaching summaries are stored in `coach_weekly_teaching_summaries`.
