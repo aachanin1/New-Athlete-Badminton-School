@@ -21,6 +21,13 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped public Ranking React #418 timezone display fix:
+  - Source fix only for `src/components/shared/ranking-board.tsx`; no DB writes, migrations, ranking logic, sort logic, business logic, or docs changes were included in the source commit.
+  - Root cause: latest assessment date text used `new Date(date).toLocaleDateString('th-TH', ...)` without explicit timezone, so Vercel/server UTC and Thai browser timezone could render different dates during hydration.
+  - Fix: `formatDate()` now uses `Intl.DateTimeFormat('th-TH', { day, month, year, timeZone: 'Asia/Bangkok' })`.
+  - Commit `f3da82670f7047a8160068fd1994c84f7e37f45a` (`fix(ranking): stabilize latest assessment date timezone`) was pushed and deployed to production. Deployment id `dpl_A9rxyHHukg6D3ncePFzaKD8egpmS`; production alias `https://www.newathleteschool.com`; status Ready.
+  - Post-deploy production `/ranking` smoke passed after initial load and two hard refreshes: console error/warning count 0, no React #418, computed font `Prompt, "Prompt Fallback"`, `.woff2` preload links 0, and ranking student list rendered.
+
 - Completed scoped app-shell font preload warning fix:
   - Source fix only; no DB writes, migrations, business logic changes, or Admin makeup action changes were performed.
   - Production screenshot showed many Chrome DevTools warnings for Prompt `.woff2` font preloads. Read-only HTML inspection confirmed `as="font"` was correct, but `next/font` was preloading 10 Prompt files from 5 weights across Thai/Latin subsets.

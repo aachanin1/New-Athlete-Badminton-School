@@ -1054,6 +1054,23 @@ Potential bug found:
 - Do not weaken coach evidence requirements for weekly teaching-hour closing.
 - Do not use native browser alert/confirm/prompt in product UI.
 
+## 2026-06-17 - Public Ranking React #418 Timezone Display Fix
+
+- Scoped `/ranking` display-only fix. No DB writes, migrations, ranking/sort logic changes, business logic changes, or docs changes were included in the source commit.
+- Root cause: `src/components/shared/ranking-board.tsx` formatted latest assessment dates with `new Date(date).toLocaleDateString('th-TH', ...)` without an explicit timezone. Production server rendering could format UTC dates one day earlier than the browser in Asia/Bangkok, causing React hydration error #418.
+- Source fix: `formatDate()` now uses `Intl.DateTimeFormat('th-TH', { day, month, year, timeZone: 'Asia/Bangkok' })`.
+- Commit `f3da82670f7047a8160068fd1994c84f7e37f45a` (`fix(ranking): stabilize latest assessment date timezone`) changed only `src/components/shared/ranking-board.tsx` and was deployed to Vercel production.
+  - Deployment id: `dpl_A9rxyHHukg6D3ncePFzaKD8egpmS`.
+  - Deployment URL: `https://new-athlete-badminton-school-2kb185env-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Post-deploy production browser smoke for `https://www.newathleteschool.com/ranking` passed after initial load and two hard refreshes:
+  - Console error/warning count: 0.
+  - React hydration error #418: not present.
+  - Computed font remains `Prompt, "Prompt Fallback"`.
+  - `.woff2` preload links: 0.
+  - Ranking content rendered with student list data.
+
 ## 2026-06-10 - Lesson Wallet Cross-Branch Course-Type Validation
 
 - Fixed `/dashboard/lesson-wallet` redemption selection to stop guessing missing or invalid course types as `kids_group`.
