@@ -10,6 +10,7 @@ import {
 import {
   type AttendanceSessionRow,
 } from '@/lib/session-attendance-status'
+import type { LevelCategory, ProgramStatus, StudentType } from '@/types/database'
 
 interface ScheduleSessionRow {
   id: string
@@ -27,6 +28,7 @@ interface ScheduleSessionRow {
     id: string
     user_id: string
     learner_type: string
+    course_type_id: string
     status: string
     profiles?: { full_name: string | null } | null
     course_types?: { name: string | null } | null
@@ -40,8 +42,13 @@ interface BranchRow {
 }
 
 interface GroupRow extends AdminAttendanceGroupRow {
+  id: string
   schedule_slot_id: string
   coach_id: string | null
+  name: string
+  level_min: number | null
+  level_max: number | null
+  sort_order: number
   profiles?: { full_name: string | null } | null
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
@@ -53,6 +60,34 @@ type AttendanceRow = AttendanceSessionRow
 interface WalletCreditRow {
   original_session_id: string
   status: 'active' | 'redeemed' | 'expired'
+}
+
+interface StudentRef {
+  id: string
+  type: StudentType
+}
+
+interface StudentLevelRow {
+  student_id: string
+  student_type: StudentType
+  level: number
+  created_at: string
+}
+
+interface LevelRow {
+  id: number
+  name: string
+  category: LevelCategory
+}
+
+interface TeachingProgramRow {
+  id: string
+  coach_id: string
+  schedule_slot_id: string
+  program_content: string
+  status: ProgramStatus
+  created_at: string
+  updated_at: string
 }
 
 interface AttendanceQueryResult {
@@ -82,6 +117,21 @@ interface GroupQueryResult {
 
 interface SlotSessionQueryResult {
   data: SlotSessionRow[] | null
+  error: { message: string } | null
+}
+
+interface StudentLevelQueryResult {
+  data: StudentLevelRow[] | null
+  error: { message: string } | null
+}
+
+interface LevelQueryResult {
+  data: LevelRow[] | null
+  error: { message: string } | null
+}
+
+interface TeachingProgramQueryResult {
+  data: TeachingProgramRow[] | null
   error: { message: string } | null
 }
 
@@ -141,6 +191,57 @@ function chunkArray<T>(items: T[], chunkSize: number) {
   return chunks
 }
 
+function getStudentRef(session: ScheduleSessionRow): StudentRef | null {
+  if (session.child_id) return { id: session.child_id, type: 'child' }
+  if (session.bookings?.user_id) return { id: session.bookings.user_id, type: 'adult' }
+  return null
+}
+
+function getStudentKey(student: StudentRef) {
+  return `${student.type}:${student.id}`
+}
+
+function getRoundKey(session: ScheduleSessionRow) {
+  if (session.schedule_slot_id) return `slot:${session.schedule_slot_id}`
+  return [
+    'fallback',
+    session.date,
+    session.start_time,
+    session.end_time,
+    session.branch_id,
+    session.bookings?.course_type_id || 'unknown-course',
+  ].join(':')
+}
+
+function buildLatestLevelMap(levelRows: StudentLevelRow[]) {
+  const map = new Map<string, StudentLevelRow>()
+
+  levelRows.forEach((row) => {
+    const key = getStudentKey({ id: row.student_id, type: row.student_type })
+    if (!map.has(key)) map.set(key, row)
+  })
+
+  return map
+}
+
+function getProgramKey(scheduleSlotId: string, coachId: string) {
+  return `${scheduleSlotId}:${coachId}`
+}
+
+function buildLatestTeachingProgramMap(programRows: TeachingProgramRow[]) {
+  const map = new Map<string, TeachingProgramRow>()
+
+  programRows.forEach((program) => {
+    const key = getProgramKey(program.schedule_slot_id, program.coach_id)
+    const current = map.get(key)
+    if (!current || program.updated_at.localeCompare(current.updated_at) > 0) {
+      map.set(key, program)
+    }
+  })
+
+  return map
+}
+
 async function fetchScheduleSessionsForMonth(
   supabase: Awaited<ReturnType<typeof createClient>>,
   startDate: string,
@@ -157,7 +258,7 @@ async function fetchScheduleSessionsForMonth(
         branches(name),
         children(full_name, nickname),
         bookings!inner(
-          id, user_id, learner_type, status,
+          id, user_id, learner_type, course_type_id, status,
           profiles!bookings_user_id_fkey(full_name),
           course_types(name)
         )
@@ -216,8 +317,13 @@ async function fetchGroupsBySlotIds(
     const { data, error } = await (supabase
       .from('coach_assignment_groups')
       .select(`
+        id,
         schedule_slot_id,
         coach_id,
+        name,
+        level_min,
+        level_max,
+        sort_order,
         profiles!coach_assignment_groups_coach_id_fkey(full_name),
         coach_assignment_group_students(booking_session_id)
       `)
@@ -295,6 +401,66 @@ async function fetchAttendanceRowsBySessionIds(
   return attendanceRows
 }
 
+async function fetchStudentLevelsByStudentRefs(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  studentRefs: StudentRef[],
+) {
+  const levelRows: StudentLevelRow[] = []
+  const studentIds = Array.from(new Set(studentRefs.map((student) => student.id)))
+
+  for (const chunk of chunkArray(studentIds, RELATED_QUERY_CHUNK_SIZE)) {
+    const { data, error } = await (supabase
+      .from('student_levels')
+      .select('student_id, student_type, level, created_at')
+      .in('student_id', chunk)
+      .order('created_at', { ascending: false }) as unknown as Promise<StudentLevelQueryResult>)
+
+    if (error) {
+      throw new Error(`Admin schedule student levels query failed: ${error.message}`)
+    }
+
+    levelRows.push(...(data || []))
+  }
+
+  return levelRows
+}
+
+async function fetchLevelDefinitions(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data, error } = await (supabase
+    .from('levels')
+    .select('id, name, category')
+    .eq('is_active', true) as unknown as Promise<LevelQueryResult>)
+
+  if (error) {
+    throw new Error(`Admin schedule levels query failed: ${error.message}`)
+  }
+
+  return data || []
+}
+
+async function fetchTeachingProgramsBySlotIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  slotIds: string[],
+) {
+  const programs: TeachingProgramRow[] = []
+
+  for (const chunk of chunkArray(slotIds, RELATED_QUERY_CHUNK_SIZE)) {
+    const { data, error } = await (supabase
+      .from('teaching_programs')
+      .select('id, coach_id, schedule_slot_id, program_content, status, created_at, updated_at')
+      .in('schedule_slot_id', chunk)
+      .order('updated_at', { ascending: false }) as unknown as Promise<TeachingProgramQueryResult>)
+
+    if (error) {
+      throw new Error(`Admin schedule teaching programs query failed: ${error.message}`)
+    }
+
+    programs.push(...(data || []))
+  }
+
+  return programs
+}
+
 export default async function SchedulesPage({ searchParams }: SchedulesPageProps) {
   await requireAdminPageAccess()
   const resolvedSearchParams = searchParams ? await searchParams : {}
@@ -338,13 +504,30 @@ export default async function SchedulesPage({ searchParams }: SchedulesPageProps
 
   let groups: GroupRow[] = []
   let slotSessions: SlotSessionRow[] = []
+  let teachingProgramRows: TeachingProgramRow[] = []
   if (slotIds.length > 0) {
-    const [groupRows, slotSessionRows] = await Promise.all([
+    const [groupRows, slotSessionRows, programRows] = await Promise.all([
       fetchGroupsBySlotIds(supabase, slotIds),
       fetchSlotSessionsBySlotIds(supabase, slotIds, startDate, endDate),
+      fetchTeachingProgramsBySlotIds(supabase, slotIds),
     ])
     groups = groupRows
     slotSessions = slotSessionRows
+    teachingProgramRows = programRows
+  }
+
+  const studentRefs = visibleSessions
+    .map(getStudentRef)
+    .filter((student): student is StudentRef => Boolean(student))
+  let studentLevelRows: StudentLevelRow[] = []
+  let levelDefinitions: LevelRow[] = []
+  if (studentRefs.length > 0) {
+    const [levelRows, levels] = await Promise.all([
+      fetchStudentLevelsByStudentRefs(supabase, studentRefs),
+      fetchLevelDefinitions(supabase),
+    ])
+    studentLevelRows = levelRows
+    levelDefinitions = levels
   }
 
   const attendanceScopeSessionIds = getAdminAttendanceScopeSessionIds(visibleSessions, groups, slotSessions)
@@ -360,23 +543,38 @@ export default async function SchedulesPage({ searchParams }: SchedulesPageProps
     attendanceRows,
   })
 
+  const latestLevelMap = buildLatestLevelMap(studentLevelRows)
+  const levelDefinitionMap = new Map(levelDefinitions.map((level) => [level.id, level]))
+  const teachingProgramMap = buildLatestTeachingProgramMap(teachingProgramRows)
+
   const scheduleSessions = visibleSessions.map((session) => {
     const derivedStatus = adminAttendanceState.getDisplayStatus(session)
     const learnerType = session.bookings?.learner_type || ''
     const hasMissingChildLink = learnerType === 'child' && !session.child_id
+    const studentRef = getStudentRef(session)
+    const latestLevel = studentRef ? latestLevelMap.get(getStudentKey(studentRef)) : null
+    const levelDefinition = latestLevel ? levelDefinitionMap.get(latestLevel.level) : null
 
     return {
       id: session.id,
+      round_key: getRoundKey(session),
+      schedule_slot_id: session.schedule_slot_id,
       date: session.date,
       start_time: session.start_time,
       end_time: session.end_time,
       status: derivedStatus,
       is_makeup: session.is_makeup || false,
       child_id: session.child_id,
+      student_id: studentRef?.id || null,
+      student_type: studentRef?.type || null,
+      level: latestLevel?.level ?? 0,
+      level_name: levelDefinition?.name || (latestLevel ? null : 'ยังไม่ประเมิน'),
+      level_category: levelDefinition?.category || null,
       learner_type: learnerType,
       has_missing_child_link: hasMissingChildLink,
       branch_id: session.branch_id,
       branch_name: session.branches?.name || 'ไม่ทราบ',
+      course_type_id: session.bookings?.course_type_id || '',
       learner_name: hasMissingChildLink
         ? 'ข้อมูลเด็กไม่ครบ'
         : session.child_id
@@ -391,10 +589,121 @@ export default async function SchedulesPage({ searchParams }: SchedulesPageProps
     }
   })
 
+  const sessionById = new Map(scheduleSessions.map((session) => [session.id, session]))
+  const roundMap = new Map<string, {
+    key: string
+    schedule_slot_id: string | null
+    date: string
+    start_time: string
+    end_time: string
+    branch_id: string
+    branch_name: string
+    course_type_id: string
+    course_type: string
+    learner_count: number
+    groups: {
+      id: string
+      name: string
+      coach_id: string | null
+      coach_name: string | null
+      level_min: number | null
+      level_max: number | null
+      sort_order: number
+      teaching_program: {
+        id: string
+        status: ProgramStatus
+        program_content: string
+        updated_at: string
+      } | null
+      learners: typeof scheduleSessions
+    }[]
+    unassigned_learners: typeof scheduleSessions
+  }>()
+
+  scheduleSessions.forEach((session) => {
+    if (!roundMap.has(session.round_key)) {
+      roundMap.set(session.round_key, {
+        key: session.round_key,
+        schedule_slot_id: session.schedule_slot_id,
+        date: session.date,
+        start_time: session.start_time,
+        end_time: session.end_time,
+        branch_id: session.branch_id,
+        branch_name: session.branch_name,
+        course_type_id: session.course_type_id,
+        course_type: session.course_type,
+        learner_count: 0,
+        groups: [],
+        unassigned_learners: [],
+      })
+    }
+    const round = roundMap.get(session.round_key)
+    if (round) round.learner_count += 1
+  })
+
+  const assignedSessionIds = new Set<string>()
+  groups
+    .slice()
+    .sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name, 'th'))
+    .forEach((group) => {
+      const round = roundMap.get(`slot:${group.schedule_slot_id}`)
+      if (!round) return
+
+      const learners = (group.coach_assignment_group_students || [])
+        .reduce<typeof scheduleSessions>((items, student) => {
+          const matchedSession = sessionById.get(student.booking_session_id)
+          if (matchedSession && matchedSession.round_key === round.key) items.push(matchedSession)
+          return items
+        }, [])
+        .sort((a, b) => a.learner_name.localeCompare(b.learner_name, 'th'))
+
+      if (learners.length === 0) return
+
+      learners.forEach((learner) => assignedSessionIds.add(learner.id))
+      const teachingProgram = group.coach_id
+        ? teachingProgramMap.get(getProgramKey(group.schedule_slot_id, group.coach_id)) || null
+        : null
+
+      round.groups.push({
+        id: group.id,
+        name: group.name,
+        coach_id: group.coach_id,
+        coach_name: group.profiles?.full_name || null,
+        level_min: group.level_min,
+        level_max: group.level_max,
+        sort_order: group.sort_order,
+        teaching_program: teachingProgram
+          ? {
+            id: teachingProgram.id,
+            status: teachingProgram.status,
+            program_content: teachingProgram.program_content,
+            updated_at: teachingProgram.updated_at,
+          }
+          : null,
+        learners,
+      })
+    })
+
+  scheduleSessions.forEach((session) => {
+    if (assignedSessionIds.has(session.id)) return
+    const round = roundMap.get(session.round_key)
+    if (!round) return
+    round.unassigned_learners.push(session)
+  })
+
+  const scheduleRounds = Array.from(roundMap.values())
+    .map((round) => ({
+      ...round,
+      groups: round.groups.sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name, 'th')),
+      unassigned_learners: round.unassigned_learners.sort((a, b) => a.learner_name.localeCompare(b.learner_name, 'th')),
+    }))
+    .sort((a, b) => `${a.date} ${a.start_time} ${a.branch_name} ${a.course_type}`.localeCompare(`${b.date} ${b.start_time} ${b.branch_name} ${b.course_type}`, 'th'))
+
   return (
     <SchedulesClient
       key={`${year}-${month}`}
       sessions={scheduleSessions}
+      rounds={scheduleRounds}
       branches={branchesResult.data || []}
       initialYear={year}
       initialMonth={month}
