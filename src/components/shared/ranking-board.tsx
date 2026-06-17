@@ -56,7 +56,12 @@ function getInitials(name: string) {
 
 function formatDate(date: string | null) {
   if (!date) return 'ยังไม่ได้ประเมิน'
-  return new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
+  return new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(date))
 }
 
 function getRankClass(rank: number) {
