@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { getCoachSlotCheckedCount, getCoachSlotDisplaySummary } from '@/lib/coach-slot-display-status'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
-import { deriveSessionAttendanceStatus } from '@/lib/session-attendance-status'
+import { deriveSessionAttendanceStatus, isInProgressSession } from '@/lib/session-attendance-status'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime, getBangkokDateString } from '@/lib/utils'
 
@@ -85,6 +85,7 @@ function getStudentScheduleStatus(
   slot: { date: string; startTime: string; endTime: string },
   student: { status: string; attendanceStatus: 'present' | 'late' | 'absent' | null },
 ) {
+  const isInProgress = isInProgressSession(slot.date, slot.startTime, slot.endTime)
   const derivedStatus = deriveSessionAttendanceStatus({
     status: student.status,
     date: slot.date,
@@ -95,10 +96,18 @@ function getStudentScheduleStatus(
   })
 
   if (derivedStatus === 'present') {
+    if (isInProgress) {
+      return { label: 'เช็คชื่อแล้ว', className: 'bg-green-100 text-green-700' }
+    }
+
     return { label: 'มาเรียนแล้ว', className: 'bg-green-100 text-green-700' }
   }
 
   if (derivedStatus === 'late') {
+    if (isInProgress) {
+      return { label: 'เช็คชื่อแล้ว', className: 'bg-green-100 text-green-700' }
+    }
+
     return { label: 'มาสาย', className: 'bg-amber-100 text-amber-700' }
   }
 
@@ -107,10 +116,26 @@ function getStudentScheduleStatus(
   }
 
   if (derivedStatus === 'completed') {
-    return { label: 'มาเรียนแล้ว', className: 'bg-green-100 text-green-700' }
+    return { label: 'บันทึกผลแล้ว', className: 'bg-green-100 text-green-700' }
   }
 
-  return { label: 'รอสอน', className: 'bg-gray-100 text-gray-500' }
+  if (derivedStatus === 'upcoming') {
+    return { label: 'รอเริ่มสอน', className: 'bg-blue-100 text-blue-700' }
+  }
+
+  if (derivedStatus === 'in_progress') {
+    return { label: 'รอเช็คชื่อ', className: 'bg-amber-100 text-amber-700' }
+  }
+
+  if (derivedStatus === 'attendance_gap_review') {
+    return { label: 'รอตรวจเช็คชื่อ', className: 'bg-orange-100 text-orange-700' }
+  }
+
+  if (derivedStatus === 'walleted') {
+    return { label: 'ไม่อยู่ในรอบสอนวันนี้', className: 'bg-gray-100 text-gray-500' }
+  }
+
+  return { label: 'ไม่อยู่ในรอบสอนวันนี้', className: 'bg-gray-100 text-gray-500' }
 }
 
 export default async function CoachSchedulePage({ searchParams }: CoachSchedulePageProps) {
