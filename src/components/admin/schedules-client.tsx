@@ -195,6 +195,24 @@ function formatLevel(session: ScheduleSession) {
   return `LV ${session.level}${session.level_name ? ` · ${session.level_name}` : ''}`
 }
 
+function formatActualGroupLevelRange(learners: ScheduleSession[]) {
+  if (learners.length === 0) return null
+
+  const assessedLevels = learners
+    .map((learner) => learner.level)
+    .filter((level) => level > 0)
+  const unassessedCount = learners.length - assessedLevels.length
+
+  if (assessedLevels.length === 0) return 'เด็กในกลุ่ม: ยังไม่ประเมิน'
+
+  const minLevel = Math.min(...assessedLevels)
+  const maxLevel = Math.max(...assessedLevels)
+  const levelLabel = minLevel === maxLevel ? `LV ${minLevel}` : `LV ${minLevel}-${maxLevel}`
+
+  if (unassessedCount > 0) return `เด็กในกลุ่ม ${levelLabel} + ยังไม่ประเมิน ${unassessedCount} คน`
+  return `เด็กในกลุ่ม ${levelLabel}`
+}
+
 function isWalletedLearner(session: ScheduleSession) {
   return session.status === 'walleted'
 }
@@ -703,6 +721,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                           {displayGroups.map((group) => {
                             const program = group.teaching_program
                             const programStatus = program ? PROGRAM_STATUS_CONFIG[program.status] : null
+                            const actualLevelRangeLabel = formatActualGroupLevelRange(group.learners)
                             return (
                               <div key={group.id} className="rounded-md border border-emerald-100 bg-emerald-50/30 p-3">
                                 <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
@@ -713,13 +732,15 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                                         <UserCog className="mr-1 h-3 w-3" />
                                         โค้ช: {group.coach_name || 'ยังไม่ระบุโค้ช'}
                                       </Badge>
-                                      {(group.level_min !== null || group.level_max !== null) && (
-                                        <Badge variant="outline" className="text-[10px]">
-                                          LV {group.level_min ?? 0}-{group.level_max ?? 70}
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                      <span>ผู้เรียนในกลุ่มนี้ {group.learners.length} คน</span>
+                                      {actualLevelRangeLabel && (
+                                        <Badge variant="outline" className="border-emerald-200 bg-white text-[10px] text-emerald-700">
+                                          {actualLevelRangeLabel}
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="mt-1 text-xs text-gray-500">ผู้เรียนในกลุ่มนี้ {group.learners.length} คน</p>
                                   </div>
 
                                   <div className="min-w-0 rounded-md bg-white/80 px-3 py-2 text-xs ring-1 ring-emerald-100 lg:max-w-[18rem]">

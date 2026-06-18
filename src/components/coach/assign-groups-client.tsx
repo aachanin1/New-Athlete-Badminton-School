@@ -306,10 +306,22 @@ function getGroupStudents(slot: AssignmentSlot, group: GroupDraft) {
   return slot.students.filter((student) => ids.has(student.bookingSessionId))
 }
 
-function describeLevelRange(group: GroupDraft) {
-  if (group.levelMin === null && group.levelMax === null) return 'ไม่กำหนดช่วง Level'
-  if (group.levelMin === group.levelMax) return `LV ${group.levelMin ?? 0}`
-  return `LV ${group.levelMin ?? 0}-${group.levelMax ?? 0}`
+function formatActualGroupLevelRange(students: AssignmentStudent[]) {
+  if (students.length === 0) return null
+
+  const assessedLevels = students
+    .map((student) => student.level ?? 0)
+    .filter((level) => level > 0)
+  const unassessedCount = students.length - assessedLevels.length
+
+  if (assessedLevels.length === 0) return 'เด็กในกลุ่ม: ยังไม่ประเมิน'
+
+  const minLevel = Math.min(...assessedLevels)
+  const maxLevel = Math.max(...assessedLevels)
+  const levelLabel = minLevel === maxLevel ? `LV ${minLevel}` : `LV ${minLevel}-${maxLevel}`
+
+  if (unassessedCount > 0) return `เด็กในกลุ่ม ${levelLabel} + ยังไม่ประเมิน ${unassessedCount} คน`
+  return `เด็กในกลุ่ม ${levelLabel}`
 }
 
 function hasWideLevelGap(students: AssignmentStudent[]) {
@@ -980,6 +992,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                           const groupStudents = getGroupStudents(slot, group)
                           const bestCoach = pickBestCoachForStudents(groupStudents)
                           const usedCoachMap = getUsedCoachMap(slotGroups)
+                          const actualLevelRangeLabel = formatActualGroupLevelRange(groupStudents)
 
                           return (
                             <div
@@ -1070,7 +1083,9 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                               </div>
 
                               <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                <Badge variant="outline" className="bg-gray-50">{describeLevelRange(group)}</Badge>
+                                {actualLevelRangeLabel && (
+                                  <Badge variant="outline" className="bg-gray-50">{actualLevelRangeLabel}</Badge>
+                                )}
                                 <Badge variant="outline" className="bg-gray-50">{groupStudents.length} คน</Badge>
                                 {hasWideLevelGap(groupStudents) && (
                                   <Badge className="bg-amber-100 text-amber-800">Level ห่างมาก</Badge>
