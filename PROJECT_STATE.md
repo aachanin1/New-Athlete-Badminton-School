@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -1033,6 +1033,33 @@ Potential bug found:
   - Owner-confirmed Chrome screenshot showed authenticated `/admin` loaded successfully after login and Thai font looked normal.
   - Codex authenticated console smoke remains `NEED REVIEW` only because the Codex in-app browser does not share the owner's logged-in Chrome session/cookies. This is not a confirmed runtime error.
   - No write action, DB data change, migration, or additional deploy was performed during smoke.
+
+## 2026-06-18 - Admin Schedules Daily Board MVP
+
+- Scoped `/admin/schedules` Daily Board MVP is closed. The source change was limited to:
+  - `src/app/(admin)/admin/schedules/page.tsx`
+  - `src/components/admin/schedules-client.tsx`
+- Commit `e7c691afe5d8d3da98c362a1707fc071bf53f7b3` (`feat(schedules): show daily round board`) was pushed and deployed to Vercel production.
+  - Deployment id: `dpl_AbzHehYxXP2fX1FpmfMr1Pat9rWz`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Daily Board now displays the right-side `/admin/schedules` day view as round cards instead of a long per-session list. Rounds are grouped by `schedule_slot_id` first, with fallback key `date + start_time + end_time + branch_id + course_type_id` only when a session has no slot.
+- The round card display includes time, branch, course, learner count, coached learner count, waiting-for-coach count for non-walleted learners only, walleted count when present, coach groups, learners under each exact coach group, learner LV, attendance display labels, and teaching program boxes at the round/coach-group level when available.
+- Coach assignment display follows the exact learner-group source: `coach_assignment_group_students.booking_session_id -> coach_assignment_groups.coach_id`. Legacy `coach_assignments` remains diagnostic/compatibility context only and is not used to prove learner-level coach assignment.
+- Walleted sessions are displayed separately as `อยู่ในกระเป๋า` / `รอเลือกวันใหม่` / `ไม่ต้องจัดโค้ช`. They are not counted as `รอจัดโค้ช`, are not shown in the waiting-coach section, and are not treated as active learning status.
+- Daily Board-specific status wording is intentionally display-only and does not change attendance source-of-truth, `booking_sessions.status`, APIs, DB data, migrations, or write behavior:
+  - Before round start: `รอเริ่มเรียน`.
+  - During the round: round status `กำลังเรียน`; learners with present/late attendance show `เช็คชื่อแล้ว`; learners without attendance show `รอเช็คชื่อ`; `เรียนแล้ว` is not shown while the round is still active.
+  - After round end: present/late shows `เรียนแล้ว`; missing attendance shows `รอตรวจเช็คชื่อ`; absent remains `ขาดเรียน`.
+- Verification before deploy passed locally: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+- Authenticated local smoke on `/admin/schedules?year=2026&month=6` passed. On 2026-06-17 at 14:57 Bangkok time, the active-round labels were verified: round `กำลังเรียน`, present/late `เช็คชื่อแล้ว`, missing attendance `รอเช็คชื่อ`, and no `เรียนแล้ว` badge during the active round.
+- Authenticated production read-only smoke on `https://www.newathleteschool.com/admin/schedules?year=2026&month=6` passed for layout/data/display:
+  - 2026-06-17 showed Daily Board round cards, including 09:00-11:00, 13:00-15:00, and 15:00-17:00.
+  - Round cards showed time, branch, course, learner counts, coached counts, coach groups, learners, LV, attendance labels, and program boxes where coach groups existed.
+  - A walleted 15:00-17:00 card showed wallet-specific wording and was not counted as waiting for coach.
+  - Console errors: 0. Console warnings: 0. The font/preload warning flood did not return. No production write action was clicked.
+- Production smoke status is `PASS with one NEED REVIEW note`: the live label case (`กำลังเรียน` / `เช็คชื่อแล้ว` / `รอเช็คชื่อ`) could not be rechecked against 2026-06-17 on production because the production smoke happened on 2026-06-18, after all target rounds were already in the past. This is acceptable for closure because the same live-label rule passed in authenticated local smoke on 2026-06-17 at 14:57.
+- Backlog, not part of the Daily Board MVP scope: `/coach/today` wording is still broad because `รอสอน` can span multiple teaching phases. A future scoped task should split it into labels such as `รอเริ่มสอน`, `กำลังสอน-รอเช็คชื่อ`, and `รอตรวจเช็คชื่อ` without changing the Daily Board MVP.
 
 ## Unknown / Need Verification
 

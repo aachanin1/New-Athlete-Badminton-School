@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,19 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped `/admin/schedules` Daily Board MVP:
+  - Source change was limited to `src/app/(admin)/admin/schedules/page.tsx` and `src/components/admin/schedules-client.tsx`.
+  - Commit `e7c691afe5d8d3da98c362a1707fc071bf53f7b3` (`feat(schedules): show daily round board`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_AbzHehYxXP2fX1FpmfMr1Pat9rWz`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Daily Board now shows right-panel round cards grouped by `schedule_slot_id`, with fallback `date + start_time + end_time + branch_id + course_type_id` only for sessions without a slot.
+  - Round cards display time, branch, course, learner count, coached learner count, waiting-for-coach count for non-walleted learners only, walleted count when present, coach groups, learners under exact coach groups, LV, attendance display labels, and teaching program boxes at round/coach-group level when available.
+  - Walleted sessions display as `อยู่ในกระเป๋า` / `รอเลือกวันใหม่` / `ไม่ต้องจัดโค้ช`, are not counted as `รอจัดโค้ช`, and are not shown in the waiting-coach section.
+  - Daily Board display labels are display-only: active rounds use `กำลังเรียน`; present/late during the round uses `เช็คชื่อแล้ว`; missing attendance during the round uses `รอเช็คชื่อ`; `เรียนแล้ว` appears only after the round ends.
+  - Local authenticated smoke passed on `/admin/schedules?year=2026&month=6`. On 2026-06-17 at 14:57 Bangkok time, the live-label case passed with no `เรียนแล้ว` badge during an active round.
+  - Production read-only smoke passed for layout/data/display on `https://www.newathleteschool.com/admin/schedules?year=2026&month=6`: 2026-06-17 showed round cards for 09:00-11:00, 13:00-15:00, and 15:00-17:00; walleted learners were not counted as waiting for coach; console errors/warnings were 0; the font/preload warning flood did not return; and no write action was clicked.
+  - Production smoke status: `PASS with one NEED REVIEW note`. The live label case could not be rechecked on production against 2026-06-17 because the smoke happened on 2026-06-18 after all target rounds were past, but the local authenticated 2026-06-17 14:57 smoke already verified the live-label behavior.
+  - No DB writes, migrations, API semantics changes, write behavior changes, extra deploy, or production write actions were performed while closing this documentation item.
 
 - Completed scoped public Ranking React #418 timezone display fix:
   - Source fix only for `src/components/shared/ranking-board.tsx`; no DB writes, migrations, ranking logic, sort logic, business logic, or docs changes were included in the source commit.
@@ -776,6 +789,7 @@ Production safety:
 
 ## Follow-Up Queue
 
+- Backlog only, not part of the closed Daily Board MVP: `/coach/today` wording is broad because `รอสอน` can cover multiple teaching phases. A future scoped task should split it into labels such as `รอเริ่มสอน`, `กำลังสอน-รอเช็คชื่อ`, and `รอตรวจเช็คชื่อ` without changing shared helpers or Daily Board behavior unless that new scope is explicitly approved.
 - Smoke test production after `86aa087` deployment across Super Admin, Admin, Head Coach, Coach, and User.
 - For Admin makeup regression, only run write actions when the owner gives the exact test case to mutate.
 - Verify Admin schedule now shows the repaired learner as `น้องอองเดร` for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f`.
