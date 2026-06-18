@@ -21,6 +21,17 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped `/coach/today` wording refinement:
+  - Source change was limited to `src/app/(coach)/coach/today/page.tsx`.
+  - Commit `475bd055a42e657c518ce2858419ec8ef78db7aa` (`fix(coach): clarify today learner status wording`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_ABbA2kBzRDciuLZBaKsJkwG4iU2b`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Root cause: learner badges on `/coach/today` mapped `upcoming`, `in_progress`, `attendance_gap_review`, and fallback statuses to the broad label `รอสอน`.
+  - Fix: `/coach/today` keeps using `deriveSessionAttendanceStatus()` but maps learner badge labels locally: `upcoming` -> `รอเริ่มสอน`, `in_progress` -> `รอเช็คชื่อ`, present/late during the round -> `เช็คชื่อแล้ว`, `attendance_gap_review` -> `รอตรวจเช็คชื่อ`, `completed` -> `บันทึกผลแล้ว`, post-round present -> `มาเรียนแล้ว`, post-round late -> `มาสาย`, `absent` -> `ขาดเรียน`, and walleted/fallback -> `ไม่อยู่ในรอบสอนวันนี้`.
+  - Shared helpers and adjacent surfaces were intentionally not changed: `src/lib/session-attendance-status.ts`, `src/lib/coach-slot-display-status.ts`, `/coach/attendance`, Admin/User pages, DB/API/migrations, attendance source-of-truth, `booking_sessions.status`, and write behavior stayed unchanged.
+  - Local verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Authenticated local smoke loaded `/coach/today` with a coach/head-coach session, showed learner badge `รอสอน` count 0 and real `รอเริ่มสอน` count 3. Other phase labels were `NEED REVIEW` only because no real data for those phases was visible at smoke time. Console error count was 0; the single Next dev `scroll-behavior: smooth` warning was unrelated to this change. No write action was clicked.
+  - Authenticated production read-only smoke on `https://www.newathleteschool.com/coach/today` passed with `PASS with NEED REVIEW note`: the page loaded with a coach session and did not redirect; learner badge `รอสอน` count was 0; real production data showed `รอเริ่มสอน` count 3; other phase labels remain `NEED REVIEW` only because no production data for those phases was visible at smoke time. Console errors/warnings were 0, the font/preload warning flood did not return, and no check-in/attendance/write action was clicked.
+
 - Completed scoped `/admin/schedules` Daily Board MVP:
   - Source change was limited to `src/app/(admin)/admin/schedules/page.tsx` and `src/components/admin/schedules-client.tsx`.
   - Commit `e7c691afe5d8d3da98c362a1707fc071bf53f7b3` (`feat(schedules): show daily round board`) was pushed and deployed to Vercel production.
@@ -789,7 +800,6 @@ Production safety:
 
 ## Follow-Up Queue
 
-- Backlog only, not part of the closed Daily Board MVP: `/coach/today` wording is broad because `รอสอน` can cover multiple teaching phases. A future scoped task should split it into labels such as `รอเริ่มสอน`, `กำลังสอน-รอเช็คชื่อ`, and `รอตรวจเช็คชื่อ` without changing shared helpers or Daily Board behavior unless that new scope is explicitly approved.
 - Smoke test production after `86aa087` deployment across Super Admin, Admin, Head Coach, Coach, and User.
 - For Admin makeup regression, only run write actions when the owner gives the exact test case to mutate.
 - Verify Admin schedule now shows the repaired learner as `น้องอองเดร` for booking `080c8a56-9b67-4a83-a44b-5a0394f4b73f`.

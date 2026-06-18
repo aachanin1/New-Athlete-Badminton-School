@@ -1059,7 +1059,42 @@ Potential bug found:
   - A walleted 15:00-17:00 card showed wallet-specific wording and was not counted as waiting for coach.
   - Console errors: 0. Console warnings: 0. The font/preload warning flood did not return. No production write action was clicked.
 - Production smoke status is `PASS with one NEED REVIEW note`: the live label case (`กำลังเรียน` / `เช็คชื่อแล้ว` / `รอเช็คชื่อ`) could not be rechecked against 2026-06-17 on production because the production smoke happened on 2026-06-18, after all target rounds were already in the past. This is acceptable for closure because the same live-label rule passed in authenticated local smoke on 2026-06-17 at 14:57.
-- Backlog, not part of the Daily Board MVP scope: `/coach/today` wording is still broad because `รอสอน` can span multiple teaching phases. A future scoped task should split it into labels such as `รอเริ่มสอน`, `กำลังสอน-รอเช็คชื่อ`, and `รอตรวจเช็คชื่อ` without changing the Daily Board MVP.
+- Follow-up backlog from the Daily Board MVP was completed on 2026-06-18 by the scoped `/coach/today` wording refinement below.
+
+## 2026-06-18 - Coach Today Wording Refinement
+
+- Scoped `/coach/today` learner-badge display fix is closed. The source change was limited to `src/app/(coach)/coach/today/page.tsx`.
+- Commit `475bd055a42e657c518ce2858419ec8ef78db7aa` (`fix(coach): clarify today learner status wording`) was pushed and deployed to Vercel production.
+  - Deployment id: `dpl_ABbA2kBzRDciuLZBaKsJkwG4iU2b`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Root cause: `/coach/today` learner badges collapsed `upcoming`, `in_progress`, `attendance_gap_review`, and fallback statuses into the broad label `รอสอน`, so coaches could not distinguish before-start, active-round, and post-round missing-attendance states.
+- Source fix: `/coach/today` still uses `deriveSessionAttendanceStatus()` as the attendance source-of-truth helper, but maps the derived statuses locally for the schedule view:
+  - `upcoming` -> `รอเริ่มสอน`.
+  - `in_progress` without attendance -> `รอเช็คชื่อ`.
+  - `present` / `late` while the round is in progress -> `เช็คชื่อแล้ว`.
+  - `attendance_gap_review` -> `รอตรวจเช็คชื่อ`.
+  - `completed` -> `บันทึกผลแล้ว`.
+  - `present` after the round -> `มาเรียนแล้ว`.
+  - `late` after the round -> `มาสาย`.
+  - `absent` -> `ขาดเรียน`.
+  - `walleted` or unexpected fallback -> `ไม่อยู่ในรอบสอนวันนี้`.
+- Shared helpers were intentionally not changed: `src/lib/session-attendance-status.ts`, `src/lib/coach-slot-display-status.ts`, `/coach/attendance`, DB/API/migrations, attendance source-of-truth, `booking_sessions.status`, and write behavior were not changed.
+- Verification before commit/deploy passed locally: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+- Authenticated local smoke on `/coach/today` passed with a coach/head-coach session:
+  - Page loaded without login redirect.
+  - Learner badge `รอสอน` count was 0.
+  - Real data showed `รอเริ่มสอน` for 3 learners.
+  - Other phase labels remained `NEED REVIEW` only because no real local data for those phases was visible at smoke time.
+  - Console errors: 0. Console warnings: 1 Next dev `scroll-behavior: smooth` warning, unrelated to the wording change.
+  - No check-in, attendance, or write action was clicked.
+- Authenticated production read-only smoke on `https://www.newathleteschool.com/coach/today` passed:
+  - Page loaded with the coach session and did not redirect to login.
+  - Learner badge `รอสอน` count was 0.
+  - Real production data showed `รอเริ่มสอน` for 3 learners.
+  - `รอเช็คชื่อ`, `เช็คชื่อแล้ว`, `รอตรวจเช็คชื่อ`, `มาเรียนแล้ว`, `มาสาย`, and `ขาดเรียน` remain `NEED REVIEW` only because no real production data for those phases was visible at smoke time; this is not a found bug.
+  - Console errors: 0. Console warnings: 0. The font/preload warning flood did not return.
+  - No check-in, attendance, or write action was clicked.
 
 ## Unknown / Need Verification
 
