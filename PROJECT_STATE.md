@@ -1096,6 +1096,33 @@ Potential bug found:
   - Console errors: 0. Console warnings: 0. The font/preload warning flood did not return.
   - No check-in, attendance, or write action was clicked.
 
+## 2026-06-18 - LV Actual Learner Range Display
+
+- Scoped display-only LV range fix is closed for `/admin/schedules` Daily Board and `/coach/assign-groups`.
+- Source change was limited to:
+  - `src/components/admin/schedules-client.tsx`
+  - `src/components/coach/assign-groups-client.tsx`
+- Commit `6f311875342315626375e5afbc26cd2d118c3c2a` (`fix(groups): show actual learner level range`) was pushed and deployed to Vercel production.
+  - Deployment id: `dpl_7LTrBQ2mAUVP3KN9AyKZi485zrpp`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Root cause: coach group names come from `coach_assignment_groups.name`, but the previous group badge displayed `coach_assignment_groups.level_min / level_max` as plain `LV xx-xx`. Those fields are stored/configured group metadata, not the current actual LV range of learners in the group, so the UI could mislead Admin/Coach when learner levels changed or membership no longer matched the original group band.
+- Source fix: both surfaces now hide configured group ranges in the UI and display only actual learner LV ranges derived from already-loaded learners in each group:
+  - `/admin/schedules`: actual range is computed from `group.learners[].level`.
+  - `/coach/assign-groups`: actual range is computed from `getGroupStudents(slot, group)[].level`.
+  - Examples: `เด็กในกลุ่ม LV 57`, `เด็กในกลุ่ม LV 26-32`, `เด็กในกลุ่ม: ยังไม่ประเมิน`, and `เด็กในกลุ่ม LV 26-32 + ยังไม่ประเมิน 1 คน`.
+- The fix does not write actual learner LV back to `coach_assignment_groups.level_min / level_max`, does not rename groups, does not change membership, does not change coach assignment behavior, and does not change DB/API/migrations/write behavior.
+- Verification before deploy passed locally: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+- Authenticated local smoke passed:
+  - `/admin/schedules?year=2026&month=6` showed actual learner LV ranges such as `เด็กในกลุ่ม LV 57`, `เด็กในกลุ่ม LV 37`, and `เด็กในกลุ่ม LV 26-32`; `ช่วงที่ตั้งไว้` was absent.
+  - `/coach/assign-groups` showed actual learner LV range such as `เด็กในกลุ่ม LV 8`; configured ranges such as standalone `LV 11-30`, `LV 51-70`, `LV 31-50`, and `LV 0-10` were absent.
+  - Console errors: 0. Local console warning was a Next dev logo-image LCP warning, unrelated to the LV display change.
+- Authenticated production read-only smoke passed with one `NEED REVIEW` note:
+  - `/admin/schedules?year=2026&month=6` passed: `ช่วงที่ตั้งไว้` was absent, configured group ranges as standalone `LV 11-30`, `LV 51-70`, `LV 31-50`, and `LV 0-10` were absent, and actual learner ranges appeared, including `เด็กในกลุ่ม LV 57`, `เด็กในกลุ่ม LV 37`, `เด็กในกลุ่ม LV 26-32`, and `เด็กในกลุ่ม: ยังไม่ประเมิน`.
+  - `/coach/assign-groups` passed with a `NEED REVIEW` note only for the empty-group case because no real empty group was visible during smoke. The page showed actual learner range `เด็กในกลุ่ม LV 26-32`, did not show configured ranges, and did not show `ช่วงที่ตั้งไว้` or `ไม่กำหนดช่วง Level`.
+  - Console errors: 0. Console warnings: 1 Next dev `scroll-behavior: smooth` warning, unrelated to the LV display change. The font/preload warning flood did not return.
+  - No write action was clicked.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

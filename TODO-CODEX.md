@@ -21,6 +21,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped LV actual learner range display:
+  - Source change was limited to `src/components/admin/schedules-client.tsx` and `src/components/coach/assign-groups-client.tsx`.
+  - Commit `6f311875342315626375e5afbc26cd2d118c3c2a` (`fix(groups): show actual learner level range`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_7LTrBQ2mAUVP3KN9AyKZi485zrpp`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Root cause: group names come from `coach_assignment_groups.name`, while the previous group badge displayed configured metadata `coach_assignment_groups.level_min / level_max` as plain `LV xx-xx`. That could be confused with current learner levels.
+  - Fix: `/admin/schedules` and `/coach/assign-groups` no longer show configured group ranges in the UI. They display actual learner LV ranges derived from already-loaded group members only: `group.learners[].level` in Admin Daily Board and `getGroupStudents(slot, group)[].level` in Coach Assign Groups.
+  - Display examples now include `เด็กในกลุ่ม LV 57`, `เด็กในกลุ่ม LV 26-32`, `เด็กในกลุ่ม: ยังไม่ประเมิน`, and `เด็กในกลุ่ม LV 26-32 + ยังไม่ประเมิน 1 คน`.
+  - No DB writes, migrations, API/write behavior changes, assignment logic changes, group renames, membership changes, or learner level data changes were made.
+  - Local verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Authenticated local smoke passed for `/admin/schedules?year=2026&month=6` and `/coach/assign-groups`. Admin showed `เด็กในกลุ่ม LV 57`, `เด็กในกลุ่ม LV 37`, and `เด็กในกลุ่ม LV 26-32`; Coach showed `เด็กในกลุ่ม LV 8`; configured standalone range badges were absent.
+  - Authenticated production read-only smoke passed with one `NEED REVIEW` note: `/admin/schedules` passed and `/coach/assign-groups` passed; the only `NEED REVIEW` is that no real empty group was visible to verify the empty-group LV suppression. Console errors were 0; the one console warning was the unrelated Next dev `scroll-behavior: smooth` warning; the font/preload warning flood did not return; no write action was clicked.
+
 - Completed scoped `/coach/today` wording refinement:
   - Source change was limited to `src/app/(coach)/coach/today/page.tsx`.
   - Commit `475bd055a42e657c518ce2858419ec8ef78db7aa` (`fix(coach): clarify today learner status wording`) was pushed and deployed to Vercel production.
