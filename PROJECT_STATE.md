@@ -1123,6 +1123,34 @@ Potential bug found:
   - Console errors: 0. Console warnings: 1 Next dev `scroll-behavior: smooth` warning, unrelated to the LV display change. The font/preload warning flood did not return.
   - No write action was clicked.
 
+## 2026-06-18 - Ranking Branch Fallback Display
+
+- Scoped Ranking branch display fallback is closed for public `/ranking` and Admin `/admin/ranking`.
+- Source change was limited to `src/components/shared/ranking-content.tsx`.
+- Commit `9ec35fba3725180e1f2dbbd98dfa640ef842c2c3` (`fix(ranking): fallback child branch from sessions`) was pushed and deployed to Vercel production.
+  - Deployment id: `dpl_35YWQvijuWT2MtyWPfxmQXx3s4Bn`.
+  - Deployment URL: `https://new-athlete-badminton-school-mczsmydrb-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Root cause: Ranking built learner branch names from `bookings.child_id -> bookings.branch_id -> branches` only. The reported child `ณิชารัศน์ (แกรนท์)` had real `booking_sessions.child_id` rows and attendance, but the related verified child booking had `bookings.child_id = null`, so Ranking could not map the booking branch to the child and displayed `ยังไม่ผูกสาขา`.
+- Source fix: Ranking keeps the original booking branch source when `bookings.child_id` maps correctly, then falls back only for children missing a booking branch by reading `booking_sessions.child_id -> booking_sessions.branch_id -> branches`.
+  - Fallback session statuses are limited to `scheduled`, `completed`, and `absent`.
+  - The fallback query is scoped only to child ids that do not already have a branch from the booking map.
+  - Large `.in()` filters are chunked and session reads are paginated to avoid request/row-cap issues.
+- The fix is display/read-only. It does not write or repair `bookings.child_id`, does not change booking creation/write behavior, does not change attendance logic, and does not change DB/API/migrations.
+- Verification before deploy passed locally:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only known Windows LF/CRLF warnings.
+- Local public `/ranking` smoke passed: filtering `ราชพฤกษ์-ตลิ่งชัน` showed `ณิชารัศน์ (แกรนท์)` with branch `ราชพฤกษ์-ตลิ่งชัน`, did not show `ยังไม่ผูกสาขา` for the child, and console errors/warnings were 0. Local `/admin/ranking` authenticated smoke remained `NEED REVIEW` only because no admin session was available in that local browser.
+- Authenticated production read-only smoke passed:
+  - `/ranking` showed `ณิชารัศน์ (แกรนท์)` under `ราชพฤกษ์-ตลิ่งชัน`, did not show `ยังไม่ผูกสาขา` for the child, and console errors/warnings were 0.
+  - `/admin/ranking` loaded with an Admin session and showed the same shared Ranking board result for `ณิชารัศน์ (แกรนท์)` and `ราชพฤกษ์-ตลิ่งชัน`.
+  - The font/preload warning flood did not return.
+  - No write action was clicked.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

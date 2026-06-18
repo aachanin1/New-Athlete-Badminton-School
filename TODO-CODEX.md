@@ -21,6 +21,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Ranking branch fallback display fix:
+  - Source change was limited to `src/components/shared/ranking-content.tsx`.
+  - Commit `9ec35fba3725180e1f2dbbd98dfa640ef842c2c3` (`fix(ranking): fallback child branch from sessions`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_35YWQvijuWT2MtyWPfxmQXx3s4Bn`; deployment URL `https://new-athlete-badminton-school-mczsmydrb-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Root cause: Ranking built child branch labels from `bookings.child_id -> bookings.branch_id` only. The reported child `ณิชารัศน์ (แกรนท์)` had real `booking_sessions.child_id` rows and attendance at `ราชพฤกษ์-ตลิ่งชัน`, but the related verified child booking had `bookings.child_id = null`, so Ranking showed `ยังไม่ผูกสาขา`.
+  - Fix: Ranking keeps the booking branch source when `bookings.child_id` is correct, then falls back only for children without booking-map branches by reading `booking_sessions.child_id -> booking_sessions.branch_id -> branches`.
+  - Fallback sessions are constrained to `scheduled`, `completed`, and `absent`; fallback reads are scoped only to missing child ids, chunk `.in()` filters, and paginate results to avoid row-cap issues.
+  - No DB writes, migrations, API/write behavior changes, booking creation/write logic changes, attendance logic changes, or `bookings.child_id` repair were performed.
+  - Local verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Local public `/ranking` smoke passed: filtering `ราชพฤกษ์-ตลิ่งชัน` showed `ณิชารัศน์ (แกรนท์)` with branch `ราชพฤกษ์-ตลิ่งชัน`, did not show `ยังไม่ผูกสาขา`, and console errors/warnings were 0. Local `/admin/ranking` authenticated smoke was `NEED REVIEW` only because no admin session was available in that local browser.
+  - Production read-only smoke passed for both `/ranking` and `/admin/ranking`: `ณิชารัศน์ (แกรนท์)` displayed `ราชพฤกษ์-ตลิ่งชัน`, no `ยังไม่ผูกสาขา` for the child, console errors/warnings were 0, the font/preload warning flood did not return, and no write action was clicked.
+
 - Completed scoped LV actual learner range display:
   - Source change was limited to `src/components/admin/schedules-client.tsx` and `src/components/coach/assign-groups-client.tsx`.
   - Commit `6f311875342315626375e5afbc26cd2d118c3c2a` (`fix(groups): show actual learner level range`) was pushed and deployed to Vercel production.
