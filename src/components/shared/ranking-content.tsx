@@ -35,6 +35,14 @@ interface ChildRankingRow {
   created_at: string
 }
 
+interface SessionBranchRankingRow {
+  child_id: string | null
+  branches: {
+    id: string
+    name: string | null
+  } | null
+}
+
 interface ParentProfileRow {
   id: string
   avatar_url: string | null
@@ -69,6 +77,10 @@ interface StudentAchievementRow {
   is_active: boolean
 }
 
+const CHILD_SESSION_BRANCH_STATUSES = ['scheduled', 'completed', 'absent'] as const
+const IN_FILTER_CHUNK_SIZE = 100
+const PAGE_SIZE = 1000
+
 function sortRanking(students: RankingStudent[]) {
   return students.sort((a, b) => {
     if (b.level !== a.level) return b.level - a.level
@@ -83,6 +95,14 @@ function getStudentKey(type: 'adult' | 'child', id: string) {
   return `${type}:${id}`
 }
 
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
+}
+
 function getLatestLevelMap(levels: StudentLevelRow[]) {
   const latestLevels = new Map<string, StudentLevelRow>()
   for (const level of levels) {
@@ -94,6 +114,16 @@ function getLatestLevelMap(levels: StudentLevelRow[]) {
 
 function buildLevelDefinitionMap(levels: LevelDefinitionRow[]) {
   return new Map(levels.map((level) => [level.id, level]))
+}
+
+function addBranchToMap(map: Map<string, RankingBranch[]>, key: string, branch: RankingBranch) {
+  const current = map.get(key) || []
+
+  if (!current.some((item) => item.id === branch.id)) {
+    current.push(branch)
+  }
+
+  map.set(key, current)
 }
 
 function buildBookingBranchMap(bookings: BookingRankingRow[]) {
@@ -115,6 +145,21 @@ function buildBookingBranchMap(bookings: BookingRankingRow[]) {
     }
 
     map.set(key, current)
+  }
+
+  return map
+}
+
+function buildSessionBranchMap(sessions: SessionBranchRankingRow[]) {
+  const map = new Map<string, RankingBranch[]>()
+
+  for (const session of sessions) {
+    if (!session.child_id || !session.branches?.id) continue
+
+    addBranchToMap(map, getStudentKey('child', session.child_id), {
+      id: session.branches.id,
+      name: session.branches.name || session.branches.id,
+    })
   }
 
   return map
@@ -144,19 +189,22 @@ function buildKids(
   levels: StudentLevelRow[],
   levelDefinitions: LevelDefinitionRow[],
   bookings: BookingRankingRow[],
+  sessionBranches: SessionBranchRankingRow[],
   parentProfiles: ParentProfileRow[],
   achievements: StudentAchievementRow[],
 ) {
   const latestLevels = getLatestLevelMap(levels)
   const levelDefinitionMap = buildLevelDefinitionMap(levelDefinitions)
   const branchMap = buildBookingBranchMap(bookings)
+  const sessionBranchMap = buildSessionBranchMap(sessionBranches)
   const achievementMap = buildAchievementMap(achievements)
   const parentAvatarById = new Map(parentProfiles.map((profile) => [profile.id, profile.avatar_url]))
 
   return sortRanking(children.map((child) => {
     const latestLevel = latestLevels.get(getStudentKey('child', child.id))
     const levelDefinition = latestLevel ? levelDefinitionMap.get(latestLevel.level) : null
-    const branches = branchMap.get(getStudentKey('child', child.id)) || []
+    const key = getStudentKey('child', child.id)
+    const branches = branchMap.get(key) || sessionBranchMap.get(key) || []
 
     return {
       id: child.id,
@@ -213,6 +261,37 @@ function buildAdults(
   return sortRanking(Array.from(adults.values()))
 }
 
+async function fetchSessionBranchFallbackRows(
+  supabase: ReturnType<typeof getServiceRoleClient>,
+  childIds: string[],
+) {
+  const rows: SessionBranchRankingRow[] = []
+
+  for (const childIdChunk of chunkArray(childIds, IN_FILTER_CHUNK_SIZE)) {
+    let from = 0
+
+    while (true) {
+      const { data } = await supabase
+        .from('booking_sessions')
+        .select('child_id, branches(id, name)')
+        .in('child_id', childIdChunk)
+        .in('status', CHILD_SESSION_BRANCH_STATUSES)
+        .not('branch_id', 'is', null)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1) as unknown as { data: SessionBranchRankingRow[] | null }
+
+      const pageRows = data || []
+      rows.push(...pageRows)
+
+      if (pageRows.length < PAGE_SIZE) break
+      from += PAGE_SIZE
+    }
+  }
+
+  return rows
+}
+
 export async function RankingContent({ mode = 'public' }: RankingContentProps = {}) {
   noStore()
   const supabase = getServiceRoleClient()
@@ -254,6 +333,14 @@ export async function RankingContent({ mode = 'public' }: RankingContentProps = 
   const childStudentIds = (children || []).map((child) => child.id)
   const studentIds = Array.from(new Set([...childStudentIds, ...adultStudentIds]))
 
+  const bookingBranchMap = buildBookingBranchMap(bookings || [])
+  const childIdsMissingBookingBranch = (children || [])
+    .filter((child) => !bookingBranchMap.has(getStudentKey('child', child.id)))
+    .map((child) => child.id)
+  const sessionBranchRows = childIdsMissingBookingBranch.length > 0
+    ? await fetchSessionBranchFallbackRows(supabase, childIdsMissingBookingBranch)
+    : []
+
   let levelRows: StudentLevelRow[] = []
   let achievementRows: StudentAchievementRow[] = []
   if (studentIds.length > 0) {
@@ -275,7 +362,7 @@ export async function RankingContent({ mode = 'public' }: RankingContentProps = 
     achievementRows = achievements || []
   }
 
-  const kids = buildKids(children || [], levelRows, levelDefinitions || [], bookings || [], parentProfiles, achievementRows)
+  const kids = buildKids(children || [], levelRows, levelDefinitions || [], bookings || [], sessionBranchRows, parentProfiles, achievementRows)
   const adults = buildAdults(bookings || [], levelRows, levelDefinitions || [], achievementRows)
 
   return (
