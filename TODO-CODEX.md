@@ -21,6 +21,20 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped `/admin/makeup` Tabs + Filters MVP:
+  - Source change was limited to `src/components/admin/makeup-client.tsx`.
+  - Commit `7e1bae818e42e4bbf24368363f0821ae04b2c308` (`feat(makeup): add tabbed admin review filters`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_3wRJjCqExkPPEEqUzBxxJSC3WuCD`; deployment URL `https://new-athlete-badminton-school-8yyuagnpo-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - UI now splits `/admin/makeup` into two client-only tabs: `ต้องตรวจสอบ` for review/attendance-gap/coaching-evidence flows and `เลือกวันชดเชย` for learner-month entitlement cards.
+  - Tab `ต้องตรวจสอบ` keeps the existing review round cards and write action surfaces, including send-to-coach, request evidence, move learner to existing group, assign new coach, replace coach, retrospective attendance, return entitlement, and close case flows.
+  - Tab `เลือกวันชดเชย` keeps the existing learner/month cards, linked makeup display, status badges (`ยังชดเชยได้`, `ชดเชยแล้ว`, `หมดเขต`), and the existing `เลือกรอบชดเชย` button when eligible.
+  - Filters are client-only and tab-scoped: review search/branch/course/case-status filters and entitlement search/branch/course/status filters.
+  - Duplicate coach group guard UI remains intact: same-slot unassigned cases still show `ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน` and `มอบหมายโค้ชใหม่`, with helper text and the warning `ห้ามเลือกโค้ชที่มีกลุ่มอยู่แล้วในรอบนี้`.
+  - No API route changes, DB writes, migrations, write behavior changes, attendance/write-through changes, wallet/return entitlement logic changes, or duplicate coach group guard changes were made.
+  - Local verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Authenticated local `/admin/makeup` smoke passed: both tabs rendered, review and entitlement filters worked, duplicate coach group UI remained visible, assigned-coach cards kept existing actions, console errors/warnings were 0, and no write action was clicked.
+  - Authenticated production `/admin/makeup` smoke passed: page loaded with Admin session, both tabs rendered, filters worked on both tabs, duplicate coach group UI and assigned-coach actions remained visible, console errors/warnings were 0, the font/preload warning flood did not return, and no submit/move/assign/close/attendance/makeup/write action was clicked.
+
 - Completed scoped Admin Makeup duplicate coach group guard:
   - Source change was limited to `src/app/(admin)/admin/makeup/page.tsx`, `src/app/api/admin/makeup/route.ts`, and `src/components/admin/makeup-client.tsx`.
   - Commit `632b90c7fd6e98f155d61205243f541f5bfb640f` (`fix(makeup): prevent duplicate coach groups`) was pushed and deployed to Vercel production.
