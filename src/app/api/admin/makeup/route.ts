@@ -67,6 +67,13 @@ interface AssignmentGroupDetailRow {
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
 
+interface PopulatedCoachGroupRow {
+  id: string
+  coach_id: string | null
+  name: string | null
+  coach_assignment_group_students: { booking_session_id: string }[] | null
+}
+
 interface MoveTargetGroupRow {
   id: string
   schedule_slot_id: string | null
@@ -214,6 +221,76 @@ async function getStrictGroupCoachIds(supabaseAdmin: ReturnType<typeof getServic
     .filter((group) => (group.coach_assignment_group_students || []).some((student) => student.booking_session_id === session.id))
     .map((group) => group.coach_id)
     .filter((coachId): coachId is string => Boolean(coachId))))
+}
+
+async function findPopulatedCoachGroupForCoachInRound(
+  supabaseAdmin: ReturnType<typeof getServiceRoleClient>,
+  firstSession: ReviewSessionRow,
+  coachId: string,
+) {
+  if (!firstSession.schedule_slot_id) return null
+
+  const firstCourseTypeId = firstSession.bookings?.course_type_id || null
+  const { data: groups, error: groupsError } = await supabaseAdmin
+    .from('coach_assignment_groups')
+    .select('id, coach_id, name, coach_assignment_group_students(booking_session_id)')
+    .eq('schedule_slot_id', firstSession.schedule_slot_id)
+    .eq('coach_id', coachId) as unknown as {
+      data: PopulatedCoachGroupRow[] | null
+      error: { message: string } | null
+    }
+
+  if (groupsError) throw new Error(groupsError.message)
+
+  const populatedGroups = (groups || []).filter((group) => (
+    (group.coach_assignment_group_students || []).some((student) => Boolean(student.booking_session_id))
+  ))
+
+  if (populatedGroups.length === 0) return null
+
+  const groupSessionIds = Array.from(new Set(populatedGroups.flatMap((group) => (
+    group.coach_assignment_group_students || []
+  ).map((student) => student.booking_session_id).filter(Boolean))))
+
+  if (groupSessionIds.length === 0) return null
+
+  const { data: groupSessions, error: groupSessionsError } = await supabaseAdmin
+    .from('booking_sessions')
+    .select(`
+      id,
+      booking_id,
+      branch_id,
+      schedule_slot_id,
+      date,
+      start_time,
+      end_time,
+      status,
+      is_makeup,
+      child_id,
+      bookings(user_id, course_type_id, learner_type)
+    `)
+    .in('id', groupSessionIds) as unknown as {
+      data: ReviewSessionRow[] | null
+      error: { message: string } | null
+    }
+
+  if (groupSessionsError) throw new Error(groupSessionsError.message)
+
+  const groupSessionById = new Map((groupSessions || []).map((session) => [session.id, session]))
+  return populatedGroups.find((group) => {
+    const sessionsInGroup = (group.coach_assignment_group_students || [])
+      .map((student) => groupSessionById.get(student.booking_session_id))
+      .filter((session): session is ReviewSessionRow => Boolean(session))
+
+    return sessionsInGroup.length > 0 && sessionsInGroup.every((session) => (
+      session.schedule_slot_id === firstSession.schedule_slot_id &&
+      session.date === firstSession.date &&
+      session.start_time === firstSession.start_time &&
+      session.end_time === firstSession.end_time &&
+      session.branch_id === firstSession.branch_id &&
+      (session.bookings?.course_type_id || null) === firstCourseTypeId
+    ))
+  }) || null
 }
 
 async function ensureLegacyCoachAssignment({
@@ -1201,6 +1278,22 @@ export async function PATCH(req: NextRequest) {
 
       if (invalidSession) {
         return NextResponse.json({ error: 'มอบหมายโค้ชทั้งรอบได้เฉพาะรอบปกติที่เลยเวลาและยังรอตรวจสอบเท่านั้น' }, { status: 400 })
+      }
+
+      try {
+        const existingCoachGroup = await findPopulatedCoachGroupForCoachInRound(
+          supabaseAdmin,
+          firstSession,
+          selectedCoachId,
+        )
+
+        if (existingCoachGroup) {
+          return NextResponse.json({
+            error: 'โค้ชคนนี้มีกลุ่มอยู่แล้วในรอบเดียวกัน กรุณาใช้ "ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน" แทน',
+          }, { status: 400 })
+        }
+      } catch (error) {
+        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
       }
 
       const groupStudents: GroupStudentInsertRow[] = []

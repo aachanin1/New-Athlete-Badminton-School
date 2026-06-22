@@ -404,6 +404,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     if (!sourceSession.schedule_slot_id) return []
     if (sourceSession.same_slot_coach_groups?.length) {
       return [...sourceSession.same_slot_coach_groups]
+        .filter((group) => group.sessionCount > 0)
         .sort((a, b) => compareTextTh(a.coachName, b.coachName) || compareTextTh(a.groupName, b.groupName) || a.groupId.localeCompare(b.groupId))
     }
 
@@ -434,6 +435,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     })
 
     return Array.from(groupMap.values())
+      .filter((group) => group.sessionCount > 0)
       .sort((a, b) => compareTextTh(a.coachName, b.coachName) || compareTextTh(a.groupName, b.groupName) || a.groupId.localeCompare(b.groupId))
   }, [sessions])
 
@@ -1123,6 +1125,17 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       return
     }
 
+    if (unassignedMode === 'taught') {
+      const existingCoachGroup = targetSessions
+        .flatMap((session) => getSameSlotCoachGroups(session))
+        .find((group) => group.coachId === unassignedCoachId)
+
+      if (existingCoachGroup) {
+        setError('โค้ชคนนี้มีกลุ่มอยู่แล้วในรอบเดียวกัน กรุณาใช้ "ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน" แทน')
+        return
+      }
+    }
+
     setUnassignedSubmitting(true)
     setError(null)
 
@@ -1410,16 +1423,51 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         เช็คอิน: {formatDateTime(group.coachCheckinTime) || '-'}
                         {group.coachCheckinTime ? ` · ${group.coachCheckinHasLocation ? 'มีรูปและ GPS' : 'มีรูปแต่ไม่มี GPS'}` : ''}
                       </p>
+                      {isUnassignedRound && canMoveLearnerToExistingGroup && (
+                        <p className="text-xs font-medium text-cyan-700">
+                          รอบนี้มีกลุ่มโค้ชอยู่แล้ว เลือกย้ายเข้ากลุ่มเดิมเมื่อผู้เรียนหลุดจากกลุ่มเดิม หรือมอบหมายโค้ชใหม่เมื่อควรแยกอีกกลุ่ม
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2 xl:justify-end">
                       {isUnassignedRound ? (
-                        <Button
-                          size="sm"
-                          className="h-9 bg-[#2748bf] text-white hover:bg-[#153c85]"
-                          onClick={() => openUnassignedRoundDialog(group)}
-                        >
-                          จัดการเคสทั้งรอบ
-                        </Button>
+                        <>
+                          {canMoveLearnerToExistingGroup && (
+                            <div className="max-w-64 space-y-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-9 border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
+                                disabled={moveSubmitting}
+                                onClick={() => openMoveLearnerDialog(group)}
+                              >
+                                ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน
+                              </Button>
+                              <p className="text-xs text-cyan-700">
+                                ใช้เมื่อผู้เรียนควรอยู่ในกลุ่มโค้ชที่มีอยู่แล้ว
+                              </p>
+                            </div>
+                          )}
+                          <div className="max-w-64 space-y-1">
+                            <Button
+                              size="sm"
+                              className="h-9 bg-[#2748bf] text-white hover:bg-[#153c85]"
+                              onClick={() => openUnassignedRoundDialog(group)}
+                            >
+                              มอบหมายโค้ชใหม่
+                            </Button>
+                            {canMoveLearnerToExistingGroup && (
+                              <>
+                                <p className="text-xs text-gray-600">
+                                  ใช้เมื่อผู้เรียนควรแยกไปอีกโค้ช
+                                </p>
+                                <p className="text-xs font-medium text-red-600">
+                                  ห้ามเลือกโค้ชที่มีกลุ่มอยู่แล้วในรอบนี้
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        </>
                       ) : (
                         <>
                           <Button

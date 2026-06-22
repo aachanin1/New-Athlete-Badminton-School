@@ -379,11 +379,13 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
         const groupSessionIds = (group.coach_assignment_group_students || [])
           .map((student) => student.booking_session_id)
           .filter(Boolean)
+        if (groupSessionIds.length === 0) return false
+
         const groupSessions = groupSessionIds
           .map((sessionId) => slotSessionById.get(sessionId))
           .filter((row): row is SlotSessionRow => Boolean(row))
 
-        if (groupSessions.length === 0) return true
+        if (groupSessions.length === 0) return false
 
         return groupSessions.every((groupSession) => (
           groupSession.schedule_slot_id === session.schedule_slot_id &&
