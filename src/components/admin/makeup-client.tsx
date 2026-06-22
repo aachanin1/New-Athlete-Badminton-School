@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { DAY_LABELS } from '@/lib/branch-schedules'
@@ -29,6 +30,9 @@ import {
 } from 'lucide-react'
 
 type CourseKey = 'kids_group' | 'adult_group' | 'private'
+type MakeupTab = 'review' | 'makeup'
+type ReviewStatusFilter = 'all' | 'no_coach' | 'waiting_attendance' | 'coach_evidence' | 'coach_requested'
+type MakeupStatusFilter = 'all' | 'actionable' | 'makeup' | 'expired'
 type ReviewAction =
   | 'confirm_absent'
   | 'mark_attendance'
@@ -355,9 +359,15 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
 
 export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, reviewTarget }: MakeupClientProps) {
   const router = useRouter()
-  const [search, setSearch] = useState('')
-  const [filterBranch, setFilterBranch] = useState('all')
-  const [filterType, setFilterType] = useState('all')
+  const [activeTab, setActiveTab] = useState<MakeupTab>('review')
+  const [reviewSearch, setReviewSearch] = useState('')
+  const [reviewBranch, setReviewBranch] = useState('all')
+  const [reviewCourse, setReviewCourse] = useState('all')
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatusFilter>('all')
+  const [makeupSearch, setMakeupSearch] = useState('')
+  const [makeupBranch, setMakeupBranch] = useState('all')
+  const [makeupCourse, setMakeupCourse] = useState('all')
+  const [makeupStatus, setMakeupStatus] = useState<MakeupStatusFilter>('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -443,6 +453,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     () => new Set(sessions.map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
     [sessions]
   )
+  const courseOptions = useMemo(
+    () => Array.from(new Set(sessions.map((session) => session.course_type).filter(Boolean))).sort(compareTextTh),
+    [sessions]
+  )
 
   const monthGroups = useMemo(() => {
     const groups = new Map<string, MonthGroup & { learnerName: string; userName: string; branches: string[] }>()
@@ -492,13 +506,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }, [makeupSourceIds, sessions])
 
   const filteredMonthGroups = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = makeupSearch.trim().toLowerCase()
 
     return monthGroups.filter((group) => {
-      if (filterType === 'actionable' && !group.canCreate) return false
-      if (filterType === 'expired' && !group.isExpired) return false
-      if (filterType === 'makeup' && !group.hasMakeup) return false
-      if (filterBranch !== 'all' && !group.sessions.some((session) => session.branch_id === filterBranch)) return false
+      if (makeupStatus === 'actionable' && !group.canCreate) return false
+      if (makeupStatus === 'expired' && (!group.isExpired || group.hasMakeup)) return false
+      if (makeupStatus === 'makeup' && !group.hasMakeup) return false
+      if (makeupBranch !== 'all' && !group.sessions.some((session) => session.branch_id === makeupBranch)) return false
+      if (makeupCourse !== 'all' && !group.sessions.some((session) => session.course_type === makeupCourse)) return false
       if (!q) return true
 
       return [
@@ -510,7 +525,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         ...group.sessions.map((session) => session.course_type),
       ].some((value) => value.toLowerCase().includes(q))
     })
-  }, [filterBranch, filterType, monthGroups, search])
+  }, [makeupBranch, makeupCourse, makeupSearch, makeupStatus, monthGroups])
 
   const learnerGroups = useMemo<LearnerGroup[]>(() => {
     const groups = new Map<string, LearnerGroup>()
@@ -544,17 +559,23 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }, [filteredMonthGroups])
 
   const reviewSessions = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = reviewSearch.trim().toLowerCase()
 
     return sessions
       .filter(isReviewOrEvidenceSession)
       .filter((session) => {
-        if (filterBranch !== 'all' && session.branch_id !== filterBranch) return false
+        if (reviewBranch !== 'all' && session.branch_id !== reviewBranch) return false
+        if (reviewCourse !== 'all' && session.course_type !== reviewCourse) return false
+        if (reviewStatus === 'no_coach' && session.coach_name) return false
+        if (reviewStatus === 'waiting_attendance' && !isAttendanceReviewSession(session)) return false
+        if (reviewStatus === 'coach_evidence' && !isCoachEvidenceReviewSession(session)) return false
+        if (reviewStatus === 'coach_requested' && !(session.coach_review_requested_count && session.coach_review_requested_count > 0)) return false
         if (!q) return true
 
         return [
           session.learner_name,
           session.user_name,
+          session.coach_name || '',
           session.branch_name,
           session.course_type,
           formatDate(session.date),
@@ -566,7 +587,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         if (aTarget !== bTarget) return aTarget ? -1 : 1
         return b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time)
       })
-  }, [filterBranch, isReviewTargetSession, search, sessions])
+  }, [isReviewTargetSession, reviewBranch, reviewCourse, reviewSearch, reviewStatus, sessions])
 
   const reviewSessionGroups = useMemo<ReviewSessionGroup[]>(() => {
     const groups = new Map<string, ReviewSessionGroup>()
@@ -630,14 +651,20 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       })
   }, [isReviewTargetSession, reviewSessions])
 
-  const stats = useMemo(() => ({
-    total: monthGroups.length,
-    actionable: monthGroups.filter((group) => group.canCreate).length,
-    expired: monthGroups.filter((group) => group.isExpired && !group.hasMakeup).length,
-    makeups: monthGroups.filter((group) => group.hasMakeup).length,
-    learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
-    review: sessions.filter(isReviewOrEvidenceSession).length,
-  }), [monthGroups, sessions])
+  const stats = useMemo(() => {
+    const reviewItems = sessions.filter(isReviewOrEvidenceSession)
+
+    return {
+      total: monthGroups.length,
+      actionable: monthGroups.filter((group) => group.canCreate).length,
+      expired: monthGroups.filter((group) => group.isExpired && !group.hasMakeup).length,
+      makeups: monthGroups.filter((group) => group.hasMakeup).length,
+      learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
+      review: reviewItems.length,
+      reviewNoCoach: reviewItems.filter((session) => !session.coach_name).length,
+      reviewCoachEvidence: reviewItems.filter(isCoachEvidenceReviewSession).length,
+    }
+  }, [monthGroups, sessions])
 
   const totalPages = Math.max(1, Math.ceil(learnerGroups.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -1226,13 +1253,31 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-6">
+        <Card className={stats.review > 0 ? 'border-orange-300 bg-orange-50/40' : 'border-gray-200'}>
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">ต้องตรวจสอบ</p>
+              <p className="mt-1 text-xl font-bold text-orange-600 sm:text-2xl">{stats.review}</p>
+            </div>
+            <AlertCircle className="h-5 w-5 text-orange-500" />
+          </CardContent>
+        </Card>
+        <Card className={stats.reviewNoCoach > 0 ? 'border-red-300 bg-red-50/40' : 'border-gray-200'}>
+          <CardContent className="flex items-center justify-between p-3 sm:p-4">
+            <div>
+              <p className="text-xs text-gray-500">ไม่มีโค้ช</p>
+              <p className="mt-1 text-xl font-bold text-red-600 sm:text-2xl">{stats.reviewNoCoach}</p>
+            </div>
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          </CardContent>
+        </Card>
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
-              <p className="text-xs text-gray-500">เดือนที่มีสิทธิ์</p>
-              <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{stats.total}</p>
+              <p className="text-xs text-gray-500">ขาดหลักฐานโค้ช</p>
+              <p className="mt-1 text-xl font-bold text-amber-600 sm:text-2xl">{stats.reviewCoachEvidence}</p>
             </div>
-            <Calendar className="h-5 w-5 text-[#2748bf]" />
+            <Clock className="h-5 w-5 text-amber-500" />
           </CardContent>
         </Card>
         <Card className={stats.actionable > 0 ? 'border-red-300 bg-red-50/40' : 'border-gray-200'}>
@@ -1241,16 +1286,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
               <p className="text-xs text-gray-500">ยังชดเชยได้</p>
               <p className="mt-1 text-xl font-bold text-red-600 sm:text-2xl">{stats.actionable}</p>
             </div>
-            <AlertCircle className="h-5 w-5 text-red-500" />
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="flex items-center justify-between p-3 sm:p-4">
-            <div>
-              <p className="text-xs text-gray-500">หมดเขต</p>
-              <p className="mt-1 text-xl font-bold text-gray-500 sm:text-2xl">{stats.expired}</p>
-            </div>
-            <XCircle className="h-5 w-5 text-gray-400" />
+            <Calendar className="h-5 w-5 text-red-500" />
           </CardContent>
         </Card>
         <Card className="border-gray-200">
@@ -1260,15 +1296,6 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
               <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{stats.makeups}</p>
             </div>
             <CalendarCheck className="h-5 w-5 text-emerald-500" />
-          </CardContent>
-        </Card>
-        <Card className={stats.review > 0 ? 'border-orange-300 bg-orange-50/40' : 'border-gray-200'}>
-          <CardContent className="flex items-center justify-between p-3 sm:p-4">
-            <div>
-              <p className="text-xs text-gray-500">ต้องตรวจเช็คชื่อ</p>
-              <p className="mt-1 text-xl font-bold text-orange-600 sm:text-2xl">{stats.review}</p>
-            </div>
-            <AlertCircle className="h-5 w-5 text-orange-500" />
           </CardContent>
         </Card>
         <Card className="border-gray-200 max-xl:col-span-2">
@@ -1282,66 +1309,72 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         </Card>
       </div>
 
-      <Card className="border-gray-200">
-        <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_220px_220px_auto] 2xl:items-center">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              className="pl-10"
-              placeholder="ค้นหาผู้เรียน, ผู้ปกครอง, สาขา, เดือน..."
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(1)
-              }}
-            />
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MakeupTab)} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[520px]">
+          <TabsTrigger value="review">ต้องตรวจสอบ ({stats.review})</TabsTrigger>
+          <TabsTrigger value="makeup">เลือกวันชดเชย ({stats.total})</TabsTrigger>
+        </TabsList>
+
+        {error && !dialogOpen && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
-          <Select
-            value={filterBranch}
-            onValueChange={(value) => {
-              setFilterBranch(value)
-              setPage(1)
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="ทุกสาขา" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทุกสาขา</SelectItem>
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filterType}
-            onValueChange={(value) => {
-              setFilterType(value)
-              setPage(1)
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="สถานะ" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="actionable">ยังชดเชยได้</SelectItem>
-              <SelectItem value="expired">หมดเขต</SelectItem>
-              <SelectItem value="makeup">ชดเชยแล้ว</SelectItem>
-              <SelectItem value="all">ทั้งหมด</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="whitespace-nowrap text-sm text-gray-500">แสดง {filteredMonthGroups.length} เดือน จาก {monthGroups.length} เดือน</p>
-        </CardContent>
-      </Card>
+        )}
 
-      {error && !dialogOpen && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+        <TabsContent value="review" className="space-y-4">
+          <Card className="border-gray-200">
+            <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_220px_220px_220px_auto] 2xl:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  className="pl-10"
+                  placeholder="ค้นหานักเรียน, ผู้ปกครอง, โค้ช, สาขา..."
+                  value={reviewSearch}
+                  onChange={(event) => setReviewSearch(event.target.value)}
+                />
+              </div>
+              <Select value={reviewBranch} onValueChange={setReviewBranch}>
+                <SelectTrigger>
+                  <SelectValue placeholder="ทุกสาขา" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกสาขา</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={reviewCourse} onValueChange={setReviewCourse}>
+                <SelectTrigger>
+                  <SelectValue placeholder="ทุกคอร์ส" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกคอร์ส</SelectItem>
+                  {courseOptions.map((course) => (
+                    <SelectItem key={course} value={course}>{course}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={reviewStatus} onValueChange={(value) => setReviewStatus(value as ReviewStatusFilter)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="สถานะเคส" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="no_coach">ไม่มีโค้ช</SelectItem>
+                  <SelectItem value="waiting_attendance">รอเช็คชื่อ</SelectItem>
+                  <SelectItem value="coach_evidence">ขาดหลักฐานโค้ช</SelectItem>
+                  <SelectItem value="coach_requested">ส่งให้โค้ชแล้ว</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="whitespace-nowrap text-sm text-gray-500">
+                แสดง {reviewSessionGroups.length} รอบ / {reviewSessions.length} รายการ
+              </p>
+            </CardContent>
+          </Card>
 
-      {reviewSessions.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50/30">
+          {reviewSessions.length > 0 ? (
+            <Card className="border-orange-200 bg-orange-50/30">
           <CardContent className="p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -1650,8 +1683,89 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
               ))}
             </div>
           </CardContent>
-        </Card>
-      )}
+            </Card>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-14 text-center text-gray-400">
+                <AlertCircle className="mx-auto mb-3 h-12 w-12 opacity-40" />
+                <p className="font-medium">ไม่พบเคสต้องตรวจสอบตามเงื่อนไขที่เลือก</p>
+                <p className="mt-1 text-sm">ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="makeup" className="space-y-4">
+          <Card className="border-gray-200">
+            <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_220px_220px_220px_auto] 2xl:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  className="pl-10"
+                  placeholder="ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน..."
+                  value={makeupSearch}
+                  onChange={(event) => {
+                    setMakeupSearch(event.target.value)
+                    setPage(1)
+                  }}
+                />
+              </div>
+              <Select
+                value={makeupBranch}
+                onValueChange={(value) => {
+                  setMakeupBranch(value)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="ทุกสาขา" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกสาขา</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={makeupCourse}
+                onValueChange={(value) => {
+                  setMakeupCourse(value)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="ทุกคอร์ส" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทุกคอร์ส</SelectItem>
+                  {courseOptions.map((course) => (
+                    <SelectItem key={course} value={course}>{course}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={makeupStatus}
+                onValueChange={(value) => {
+                  setMakeupStatus(value as MakeupStatusFilter)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="สถานะ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="actionable">ยังชดเชยได้</SelectItem>
+                  <SelectItem value="makeup">ชดเชยแล้ว</SelectItem>
+                  <SelectItem value="expired">หมดเขต</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="whitespace-nowrap text-sm text-gray-500">
+                แสดง {filteredMonthGroups.length} เดือน จาก {monthGroups.length} เดือน
+              </p>
+            </CardContent>
+          </Card>
 
       {learnerGroups.length === 0 ? (
         <Card className="border-dashed">
@@ -1749,6 +1863,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           />
         </div>
       )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog
         open={Boolean(replacementGroup)}
