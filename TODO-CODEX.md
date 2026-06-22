@@ -21,6 +21,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Phase 1 User Reschedule cutoff change:
+  - Source change was limited to `src/app/(dashboard)/dashboard/reschedule/page.tsx`, `src/app/api/reschedule/route.ts`, and `src/components/dashboard/reschedule-client.tsx`.
+  - Commit `c6b470dbba646f5b4db023a7dedf0df8d7b08f37` (`fix(reschedule): reduce cutoff to 12 hours`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_3gm8uhsKrmm6Zxe69R9GsBHq1yMk`; deployment URL `https://new-athlete-badminton-school-lnjpth3gt-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - `/api/reschedule` now blocks user reschedule requests only when the original lesson starts in less than 12 hours, instead of 24 hours.
+  - `/dashboard/reschedule` client eligibility and page copy now use `12 ชั่วโมง`.
+  - Reschedule lesson start parsing is explicit for Asia/Bangkok via `+07:00`.
+  - Lesson Wallet was intentionally not changed: `/dashboard/lesson-wallet` still shows 48-hour policy and `/api/lesson-wallet` still uses `STORE_CUTOFF_HOURS = 48`.
+  - Admin Makeup was not changed. No DB writes, migrations, Lesson Wallet logic changes, Admin Makeup changes, or write actions were performed.
+  - Verification before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Production read-only smoke passed with one `NEED REVIEW` note: `/dashboard/reschedule` loaded with a user session and showed `ล่วงหน้าอย่างน้อย 12 ชั่วโมง` with no `24 ชั่วโมง` copy; `/dashboard/lesson-wallet` still showed `48 ชั่วโมง` and no `12 ชั่วโมง`; `/dashboard/schedule` loaded but the smoke account had no sessions, so real eligibility/action UI remains `NEED REVIEW` only for lack of data. Console errors/warnings were 0, the font/preload warning flood did not return, and no submit/reschedule/store-wallet/redeem/write action was clicked.
+
 - Completed scoped `/admin/makeup` Tabs + Filters MVP:
   - Source change was limited to `src/components/admin/makeup-client.tsx`.
   - Commit `7e1bae818e42e4bbf24368363f0821ae04b2c308` (`feat(makeup): add tabbed admin review filters`) was pushed and deployed to Vercel production.

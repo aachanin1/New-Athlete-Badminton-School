@@ -92,6 +92,7 @@ Observed migrations include:
 - `SLIPOK_TEST_MODE=true` auto-approves locally; production must use real SlipOK env.
 - Pricing reads DB `pricing_tiers` through `src/lib/booking-pricing.ts` and falls back to defaults only if rows are missing.
 - Kids group combines sibling sessions for monthly tier pricing.
+- User Reschedule (`/dashboard/reschedule` and `/api/reschedule`) now uses a 12-hour cutoff before the original lesson start time. The cutoff is computed against the lesson start in Asia/Bangkok (`+07:00`).
 
 ### Coach and Attendance Evidence
 
@@ -182,6 +183,12 @@ Current active production risk:
   - `ต้องตรวจสอบ` keeps the existing review round cards and action surfaces; `เลือกวันชดเชย` keeps the existing learner/month entitlement cards.
   - Filters are client-only and tab-specific. No API route, DB, migration, write behavior, attendance/write-through logic, wallet/return-entitlement logic, or duplicate coach group guard behavior changed.
   - Production smoke confirmed duplicate coach group UI and assigned-coach action cards remained visible, console errors/warnings were 0, the font/preload warning flood did not return, and no write action was clicked.
+- User Reschedule 12-hour cutoff Phase 1 is deployed in production as of commit `c6b470dbba646f5b4db023a7dedf0df8d7b08f37`:
+  - Deployment id `dpl_3gm8uhsKrmm6Zxe69R9GsBHq1yMk`; production alias `https://www.newathleteschool.com`; production smoke passed with a `NEED REVIEW` note only for live eligibility/action examples because the smoke account had no sessions.
+  - `/dashboard/reschedule` displays `ล่วงหน้าอย่างน้อย 12 ชั่วโมง`, and no `24 ชั่วโมง` copy was found in the reschedule page.
+  - `/api/reschedule` and the client eligibility gate both use the 12-hour cutoff and parse lesson start times as Asia/Bangkok (`+07:00`).
+  - Lesson Wallet is intentionally unchanged in this phase: `/dashboard/lesson-wallet` still shows the 48-hour policy, and `/api/lesson-wallet` still uses `STORE_CUTOFF_HOURS = 48`.
+  - No DB writes, migrations, write behavior changes beyond the reschedule validation threshold, Admin Makeup changes, Lesson Wallet logic changes, or production write actions were performed.
 - Attendance display derivation no longer treats a learner as absent merely because another learner in the same slot/group has attendance. A past session without exact learner attendance now stays in `attendance_gap_review`; `absent` requires exact attendance/source-of-truth evidence or an explicitly synced absent session.
 - Admin makeup check-in evidence regression guard, added 2026-06-08:
   - The review section "ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน" must not show coach check-in evidence for a learner session unless that learner is linked to a `coach_assignment_groups` row and the `coach_checkins` row matches the exact `schedule_slot_id + coach_id`.
