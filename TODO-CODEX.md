@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,19 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped Admin Makeup duplicate coach group guard:
+  - Source change was limited to `src/app/(admin)/admin/makeup/page.tsx`, `src/app/api/admin/makeup/route.ts`, and `src/components/admin/makeup-client.tsx`.
+  - Commit `632b90c7fd6e98f155d61205243f541f5bfb640f` (`fix(makeup): prevent duplicate coach groups`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_nZXGVWu22RueVEadGf7zjKA7QLNt`; deployment URL `https://new-athlete-badminton-school-8fzxf2jny-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Incident context: owner production write on 2026-06-02 17:00-19:00 Ramintra created a duplicate same-coach group in the same slot. Owner-approved production repair moved Kirin into Trin's existing group; the wrong new group was left empty for audit continuity.
+  - API fix: `assign_coach_to_round` now blocks before creating a group if the selected coach already has a populated `coach_assignment_groups` row in the same `schedule_slot_id` and same round context. Empty groups do not block.
+  - UI fix: unassigned learner cards with an existing same-slot populated coach group now show both valid choices: `ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน` and `มอบหมายโค้ชใหม่`, with helper text for each path and the warning `ห้ามเลือกโค้ชที่มีกลุ่มอยู่แล้วในรอบนี้`.
+  - Same-slot target options exclude empty groups. The UI still allows a legitimate new group when Admin selects a different coach who does not already have a populated group in that slot/round.
+  - No DB data writes, migrations, attendance write logic changes, `booking_sessions.status` changes, or coach check-in/evidence behavior changes were made by the source fix.
+  - Local verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Authenticated local `/admin/makeup` smoke passed: real unassigned same-slot cases showed both choices and helper/warning text, assigned-coach cards kept existing buttons, console errors/warnings were 0, and no write action was clicked.
+  - Authenticated production `/admin/makeup` smoke passed: page loaded with Admin session, same-slot unassigned cases showed both choices, helper text and warning were visible, assigned-coach cards kept existing buttons, console errors/warnings were 0, the font/preload warning flood did not return, and no submit/move/assign/close/attendance/write action was clicked.
 
 - Completed scoped Ranking branch fallback display fix:
   - Source change was limited to `src/components/shared/ranking-content.tsx`.

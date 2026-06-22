@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-18
+Last updated: 2026-06-22
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -1150,6 +1150,37 @@ Potential bug found:
   - `/admin/ranking` loaded with an Admin session and showed the same shared Ranking board result for `ณิชารัศน์ (แกรนท์)` and `ราชพฤกษ์-ตลิ่งชัน`.
   - The font/preload warning flood did not return.
   - No write action was clicked.
+
+## 2026-06-22 - Admin Makeup Duplicate Coach Group Guard
+
+- Scoped duplicate coach group guard is closed for `/admin/makeup`.
+- Source change was limited to:
+  - `src/app/(admin)/admin/makeup/page.tsx`
+  - `src/app/api/admin/makeup/route.ts`
+  - `src/components/admin/makeup-client.tsx`
+- Commit `632b90c7fd6e98f155d61205243f541f5bfb640f` (`fix(makeup): prevent duplicate coach groups`) was pushed and deployed to Vercel production.
+  - Deployment id: `dpl_nZXGVWu22RueVEadGf7zjKA7QLNt`.
+  - Deployment URL: `https://new-athlete-badminton-school-8fzxf2jny-aachanin1s-projects.vercel.app`.
+  - Production alias: `https://www.newathleteschool.com`.
+  - Deployment status: Ready.
+- Production incident context: owner clicked the Admin Makeup round action for a 2026-06-02 17:00-19:00 Ramintra round and `assign_coach_to_round` created a second populated coach group for the same coach in the same `schedule_slot_id`. Production data was repaired with owner approval by moving Kirin into the existing Trin group; the duplicate empty group was left in place for audit continuity.
+- Root cause: `assign_coach_to_round` did not guard against a selected coach already having a populated `coach_assignment_groups` row in the same slot/round, and the unassigned card UI previously pushed users toward the round assign flow when a same-slot existing group was available.
+- API fix: `assign_coach_to_round` now checks for a populated group for the selected coach in the same `schedule_slot_id` and same round context before creating a new group. Populated means the group has at least one `coach_assignment_group_students` member. Empty groups are intentionally ignored so incident leftovers do not block valid future assignment.
+- If the selected coach already has a populated same-slot/same-round group, the API returns 400 with: `โค้ชคนนี้มีกลุ่มอยู่แล้วในรอบเดียวกัน กรุณาใช้ "ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน" แทน`.
+- UI fix: unassigned learner cards with an existing same-slot populated coach group now show two explicit choices:
+  - `ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน`, with helper `ใช้เมื่อผู้เรียนควรอยู่ในกลุ่มโค้ชที่มีอยู่แล้ว`.
+  - `มอบหมายโค้ชใหม่`, with helper `ใช้เมื่อผู้เรียนควรแยกไปอีกโค้ช` and warning `ห้ามเลือกโค้ชที่มีกลุ่มอยู่แล้วในรอบนี้`.
+- Same-slot target group options exclude empty groups. The UI and local validation still allow assigning a genuinely different coach who does not already have a populated group in the slot/round.
+- The fix did not write DB data, did not add migrations, did not change attendance write logic, did not change `booking_sessions.status` logic, and did not touch coach check-ins/evidence behavior.
+- Verification before commit/deploy passed locally: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+- Authenticated local read-only smoke passed on `/admin/makeup`: the page loaded without login redirect, unassigned cards with same-slot groups showed both choices and helper/warning text, assigned-coach cards still showed their existing buttons, console errors/warnings were 0, and no write action was clicked.
+- Authenticated production read-only smoke on `https://www.newathleteschool.com/admin/makeup` passed:
+  - Page loaded with an Admin session and did not redirect to login.
+  - Real unassigned same-slot cases showed both `ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน` and `มอบหมายโค้ชใหม่`.
+  - Helper text and duplicate-coach warning were visible.
+  - Assigned-coach cards still showed existing buttons such as `ส่งให้โค้ชตรวจสอบรอบนี้`, `เปลี่ยนโค้ชย้อนหลัง`, `บันทึกย้อนหลังทั้งรอบ`, and `ปิดเคสทั้งรอบ`.
+  - Console errors/warnings were 0. The font/preload warning flood did not return.
+  - No submit, move, assign, close, attendance, or other write action was clicked.
 
 ## Unknown / Need Verification
 
