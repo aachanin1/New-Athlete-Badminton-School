@@ -85,9 +85,11 @@ const COURSE_LABELS: Record<CourseTypeName, string> = {
   private: 'Private',
 }
 const RESCHEDULE_PREVIEW_PER_MONTH = 6
+const RESCHEDULE_CUTOFF_HOURS = 12
+const BANGKOK_TIMEZONE_OFFSET = '+07:00'
 
 function getStartDate(date: string, time: string) {
-  return new Date(`${date}T${time.slice(0, 5)}:00`)
+  return new Date(`${date}T${time.slice(0, 5)}:00${BANGKOK_TIMEZONE_OFFSET}`)
 }
 
 function normalizeTime(value: string) {
@@ -95,7 +97,7 @@ function normalizeTime(value: string) {
 }
 
 function canReschedule(sessionDate: string, sessionTime: string) {
-  return getStartDate(sessionDate, sessionTime).getTime() - Date.now() >= 24 * 60 * 60 * 1000
+  return getStartDate(sessionDate, sessionTime).getTime() - Date.now() >= RESCHEDULE_CUTOFF_HOURS * 60 * 60 * 1000
 }
 
 function isFutureSlot(date: string, time: string) {
@@ -307,7 +309,7 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-semibold">กฎการเปลี่ยนวัน/สาขา</p>
-            <p>เปลี่ยนได้เฉพาะรอบที่ยังไม่เริ่ม ล่วงหน้าอย่างน้อย 24 ชั่วโมง และอยู่ภายในเดือนที่จองเท่านั้น</p>
+            <p>เปลี่ยนได้เฉพาะรอบที่ยังไม่เริ่ม ล่วงหน้าอย่างน้อย {RESCHEDULE_CUTOFF_HOURS} ชั่วโมง และอยู่ภายในเดือนที่จองเท่านั้น</p>
             <p className="mt-1 text-yellow-700">รอบชดเชยเป็นหน้าที่ Admin จัดการ ผู้เรียนจะเห็นในตารางเรียนหลัง Admin เพิ่มให้แล้ว</p>
           </div>
         </div>

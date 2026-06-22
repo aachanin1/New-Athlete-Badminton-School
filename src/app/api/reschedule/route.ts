@@ -64,6 +64,9 @@ interface ExistingSessionRow {
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
 
+const RESCHEDULE_CUTOFF_HOURS = 12
+const BANGKOK_TIMEZONE_OFFSET = '+07:00'
+
 function normalizeTime(value: string) {
   return value.length === 5 ? `${value}:00` : value
 }
@@ -78,12 +81,12 @@ function timeToMinutes(value: string) {
 }
 
 function sessionStart(date: string, time: string) {
-  return new Date(`${date}T${shortTime(time)}:00`)
+  return new Date(`${date}T${shortTime(time)}:00${BANGKOK_TIMEZONE_OFFSET}`)
 }
 
-function isAtLeast24HoursAhead(date: string, time: string) {
+function isAtLeastRescheduleCutoffAhead(date: string, time: string) {
   const diffMs = sessionStart(date, time).getTime() - Date.now()
-  return diffMs >= 24 * 60 * 60 * 1000
+  return diffMs >= RESCHEDULE_CUTOFF_HOURS * 60 * 60 * 1000
 }
 
 function isFutureSlot(date: string, time: string) {
@@ -269,8 +272,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'รอบชดเชยต้องให้ Admin เป็นผู้จัดการเท่านั้น' }, { status: 400 })
     }
 
-    if (!isAtLeast24HoursAhead(session.date, session.start_time)) {
-      return NextResponse.json({ error: 'ต้องเปลี่ยนล่วงหน้าอย่างน้อย 24 ชั่วโมงก่อนเวลาเรียนเดิม' }, { status: 400 })
+    if (!isAtLeastRescheduleCutoffAhead(session.date, session.start_time)) {
+      return NextResponse.json({ error: `ต้องเปลี่ยนล่วงหน้าอย่างน้อย ${RESCHEDULE_CUTOFF_HOURS} ชั่วโมงก่อนเวลาเรียนเดิม` }, { status: 400 })
     }
 
     if (!isSameCalendarMonth(session.date, targetDate)) {
