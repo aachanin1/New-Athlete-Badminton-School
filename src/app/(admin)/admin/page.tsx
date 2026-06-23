@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminPageAccess } from '@/lib/auth/admin'
 import {
   AlertTriangle,
   Building2,
@@ -14,12 +14,9 @@ import {
 type CountResult = { count: number | null }
 type DataResult<T> = { data: T[] | null }
 
-interface PriceRow {
-  total_price: number | null
-}
-
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
+  const { supabase, role } = await requireAdminPageAccess()
+  const canViewFinancialAmounts = role === 'super_admin'
   const today = new Date().toISOString().split('T')[0]
   const now = new Date()
   const currentMonth = now.getMonth() + 1
@@ -34,7 +31,6 @@ export default async function AdminDashboardPage() {
     { count: openComplaints },
     { count: activeCoupons },
     { data: todaySessions },
-    { data: monthBookings },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user') as unknown as PromiseLike<CountResult>,
     supabase.from('children').select('*', { count: 'exact', head: true }) as unknown as PromiseLike<CountResult>,
@@ -49,16 +45,9 @@ export default async function AdminDashboardPage() {
       .eq('date', today)
       .eq('status', 'scheduled')
       .eq('bookings.status', 'verified') as unknown as PromiseLike<DataResult<{ id: string }>>,
-    supabase
-      .from('bookings')
-      .select('total_price')
-      .eq('status', 'verified')
-      .eq('month', currentMonth)
-      .eq('year', currentYear) as unknown as PromiseLike<DataResult<PriceRow>>,
   ])
 
   const todayCount = todaySessions?.length || 0
-  const monthRevenue = (monthBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
 
   const stats = [
     {
@@ -112,14 +101,26 @@ export default async function AdminDashboardPage() {
       icon: Ticket,
       iconClass: 'text-indigo-500',
     },
-    {
+  ]
+
+  if (canViewFinancialAmounts) {
+    const { data: monthBookings } = await supabase
+      .from('bookings')
+      .select('total_price')
+      .eq('status', 'verified')
+      .eq('month', currentMonth)
+      .eq('year', currentYear) as unknown as DataResult<{ total_price: number | null }>
+
+    const monthRevenue = (monthBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
+
+    stats.push({
       title: 'รายได้เดือนนี้',
       value: `฿${monthRevenue.toLocaleString()}`,
       note: 'verified',
       icon: TrendingUp,
       iconClass: 'text-emerald-500',
-    },
-  ]
+    })
+  }
 
   return (
     <div className="space-y-4">

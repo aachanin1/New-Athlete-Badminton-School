@@ -37,7 +37,7 @@ interface PaymentData {
   id: string
   booking_id: string
   user_id: string
-  amount: number
+  amount: number | null
   method: string
   slip_image_url: string | null
   status: 'pending' | 'approved' | 'rejected'
@@ -68,7 +68,7 @@ interface IncompleteBookingData {
   month: number
   year: number
   total_sessions: number
-  total_price: number
+  total_price: number | null
   status: string
   created_at: string
   latest_payment_id: string | null
@@ -81,6 +81,7 @@ interface PaymentsClientProps {
   incompleteBookings: IncompleteBookingData[]
   paymentTransferSettings: PaymentTransferSettings
   slipOkMode: 'live' | 'test'
+  canViewFinancialAmounts: boolean
 }
 
 type PaymentReviewAction = 'approve' | 'send_back' | 'cancel'
@@ -170,7 +171,13 @@ function getShortId(id: string) {
   return id.length > 10 ? `${id.slice(0, 8)}...` : id
 }
 
-export function PaymentsClient({ payments, incompleteBookings, paymentTransferSettings, slipOkMode }: PaymentsClientProps) {
+export function PaymentsClient({
+  payments,
+  incompleteBookings,
+  paymentTransferSettings,
+  slipOkMode,
+  canViewFinancialAmounts,
+}: PaymentsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -246,13 +253,13 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
       pending: pending.length,
       approved: approved.length,
       rejected: rejected.length,
-      approvedAmount: approved.reduce((sum, payment) => sum + payment.amount, 0),
+      approvedAmount: canViewFinancialAmounts ? approved.reduce((sum, payment) => sum + (payment.amount || 0), 0) : null,
       incomplete: incompleteBookings.length,
       waitingSlip: incompleteBookings.filter((booking) => booking.status === 'pending_payment').length,
       waitingVerify: incompleteBookings.filter((booking) => booking.status === 'paid').length,
-      incompleteAmount: incompleteBookings.reduce((sum, booking) => sum + booking.total_price, 0),
+      incompleteAmount: canViewFinancialAmounts ? incompleteBookings.reduce((sum, booking) => sum + (booking.total_price || 0), 0) : null,
     }
-  }, [payments, incompleteBookings])
+  }, [payments, incompleteBookings, canViewFinancialAmounts])
 
   const copyText = async (text: string) => {
     await navigator.clipboard.writeText(text)
@@ -346,7 +353,7 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
+      <div className={`grid grid-cols-2 gap-2 sm:gap-3 ${canViewFinancialAmounts ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
         <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
@@ -383,15 +390,17 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
             <XCircle className="h-5 w-5 text-rose-500" />
           </CardContent>
         </Card>
-        <Card className="border-gray-200 max-xl:col-span-2">
-          <CardContent className="flex items-center justify-between p-3 sm:p-4">
-            <div className="min-w-0">
-              <p className="text-xs text-gray-500">ยอดยืนยันแล้ว</p>
-              <p className="mt-1 truncate text-xl font-bold text-[#153c85] sm:text-2xl">{formatMoney(stats.approvedAmount)}</p>
-            </div>
-            <Banknote className="h-5 w-5 text-[#f57e3b]" />
-          </CardContent>
-        </Card>
+        {canViewFinancialAmounts && (
+          <Card className="border-gray-200 max-xl:col-span-2">
+            <CardContent className="flex items-center justify-between p-3 sm:p-4">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">ยอดยืนยันแล้ว</p>
+                <p className="mt-1 truncate text-xl font-bold text-[#153c85] sm:text-2xl">{formatMoney(stats.approvedAmount || 0)}</p>
+              </div>
+              <Banknote className="h-5 w-5 text-[#f57e3b]" />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {stats.incomplete > 0 && (
@@ -409,7 +418,7 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs lg:min-w-[320px]">
+              <div className={`grid gap-2 text-center text-xs ${canViewFinancialAmounts ? 'grid-cols-3 lg:min-w-[320px]' : 'grid-cols-2 lg:min-w-[220px]'}`}>
                 <div className="rounded-lg border border-amber-200 bg-white px-2 py-2">
                   <p className="text-amber-700">รอแนบสลิป</p>
                   <p className="mt-1 text-lg font-bold text-amber-900">{stats.waitingSlip}</p>
@@ -418,10 +427,12 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
                   <p className="text-amber-700">รอตรวจ</p>
                   <p className="mt-1 text-lg font-bold text-amber-900">{stats.waitingVerify}</p>
                 </div>
-                <div className="rounded-lg border border-amber-200 bg-white px-2 py-2">
-                  <p className="text-amber-700">ยอดรวม</p>
-                  <p className="mt-1 text-lg font-bold text-amber-900">{formatMoney(stats.incompleteAmount)}</p>
-                </div>
+                {canViewFinancialAmounts && (
+                  <div className="rounded-lg border border-amber-200 bg-white px-2 py-2">
+                    <p className="text-amber-700">ยอดรวม</p>
+                    <p className="mt-1 text-lg font-bold text-amber-900">{formatMoney(stats.incompleteAmount || 0)}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -456,7 +467,9 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
                     </div>
 
                     <div className="text-sm">
-                      <p className="font-semibold text-gray-900">{formatMoney(booking.total_price)}</p>
+                      {canViewFinancialAmounts && (
+                        <p className="font-semibold text-gray-900">{formatMoney(booking.total_price || 0)}</p>
+                      )}
                       <p className="mt-1 text-xs text-gray-500">
                         {MONTH_NAMES[booking.month]} {booking.year} · {booking.total_sessions} ครั้ง
                       </p>
@@ -623,7 +636,9 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
                       <StatusIcon className="mr-1 h-3.5 w-3.5" />
                       {statusCfg.label}
                     </Badge>
-                    <p className="text-lg font-bold text-gray-900">{formatMoney(payment.amount)}</p>
+                    {canViewFinancialAmounts && (
+                      <p className="text-lg font-bold text-gray-900">{formatMoney(payment.amount || 0)}</p>
+                    )}
                   </div>
 
                   <div className="min-w-0 pr-2 text-sm text-gray-500">
@@ -713,9 +728,19 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
                   </div>
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="text-xs text-gray-400">ยอดชำระ</p>
-                  <p className="mt-2 text-2xl font-bold text-[#153c85]">{formatMoney(detailPayment.amount)}</p>
-                  <p className="text-xs text-gray-500">วิธีชำระเงิน: {detailPayment.method || '-'}</p>
+                  {canViewFinancialAmounts ? (
+                    <>
+                      <p className="text-xs text-gray-400">ยอดชำระ</p>
+                      <p className="mt-2 text-2xl font-bold text-[#153c85]">{formatMoney(detailPayment.amount || 0)}</p>
+                      <p className="text-xs text-gray-500">วิธีชำระเงิน: {detailPayment.method || '-'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-400">วิธีชำระเงิน</p>
+                      <p className="mt-2 font-medium text-gray-900">{detailPayment.method || '-'}</p>
+                      <p className="mt-1 text-xs text-gray-500">ซ่อนยอดเงินตามสิทธิ์ผู้ใช้</p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -840,7 +865,9 @@ export function PaymentsClient({ payments, incompleteBookings, paymentTransferSe
                     <p className="truncate font-semibold text-gray-900">{reviewPayment.user_name}</p>
                     <p className="truncate text-xs text-gray-500">{reviewPayment.user_email || '-'}</p>
                   </div>
-                  <p className="shrink-0 text-lg font-bold text-[#153c85]">{formatMoney(reviewPayment.amount)}</p>
+                  {canViewFinancialAmounts && (
+                    <p className="shrink-0 text-lg font-bold text-[#153c85]">{formatMoney(reviewPayment.amount || 0)}</p>
+                  )}
                 </div>
                 <p className="mt-2 text-xs text-gray-500">Booking {getShortId(reviewPayment.booking_id)} · Payment {getShortId(reviewPayment.id)}</p>
               </div>

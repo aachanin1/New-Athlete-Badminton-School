@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
 import { PaymentsClient } from '@/components/admin/payments-client'
+import { requireAdminPageAccess } from '@/lib/auth/admin'
 import {
   PAYMENT_TRANSFER_SETTING_KEY,
   normalizePaymentTransferSettings,
@@ -11,7 +11,7 @@ interface PaymentRow {
   id: string
   booking_id: string
   user_id: string
-  amount: number
+  amount?: number | null
   method: string
   slip_image_url: string | null
   status: PaymentStatus
@@ -45,7 +45,7 @@ interface IncompleteBookingRow {
   month: number | null
   year: number | null
   total_sessions: number | null
-  total_price: number | null
+  total_price?: number | null
   status: string | null
   created_at: string
   branches?: { name: string | null } | null
@@ -61,13 +61,14 @@ interface IncompleteBookingRow {
 }
 
 export default async function PaymentsPage() {
-  const supabase = await createClient()
+  const { supabase, role } = await requireAdminPageAccess()
+  const canViewFinancialAmounts = role === 'super_admin'
 
   // Fetch payments with booking + user + branch data
   const { data: payments } = await supabase
     .from('payments')
     .select(`
-      id, booking_id, user_id, amount, method, slip_image_url,
+      id, booking_id, user_id, ${canViewFinancialAmounts ? 'amount,' : ''} method, slip_image_url,
       status, verified_by, verified_at, notes, created_at,
       bookings(month, year, status, total_sessions, branch_id, course_type_id,
         branches(name),
@@ -87,7 +88,7 @@ export default async function PaymentsPage() {
       month,
       year,
       total_sessions,
-      total_price,
+      ${canViewFinancialAmounts ? 'total_price,' : ''}
       status,
       created_at,
       branches(name),
@@ -124,7 +125,7 @@ export default async function PaymentsPage() {
     id: p.id,
     booking_id: p.booking_id,
     user_id: p.user_id,
-    amount: p.amount,
+    amount: canViewFinancialAmounts ? (p.amount ?? 0) : null,
     method: p.method,
     slip_image_url: p.slip_image_url,
     status: ['pending', 'approved', 'rejected'].includes(p.status) ? p.status : 'pending',
@@ -162,7 +163,7 @@ export default async function PaymentsPage() {
       month: booking.month || 0,
       year: booking.year || 0,
       total_sessions: booking.total_sessions || 0,
-      total_price: booking.total_price || 0,
+      total_price: canViewFinancialAmounts ? (booking.total_price || 0) : null,
       status: booking.status || '',
       created_at: booking.created_at,
       latest_payment_id: latestPayment?.id || null,
@@ -177,6 +178,7 @@ export default async function PaymentsPage() {
       incompleteBookings={incompleteBookingList}
       paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
       slipOkMode={process.env.SLIPOK_TEST_MODE === 'true' ? 'test' : 'live'}
+      canViewFinancialAmounts={canViewFinancialAmounts}
     />
   )
 }
