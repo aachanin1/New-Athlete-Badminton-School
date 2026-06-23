@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,17 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped Admin financial visibility gating:
+  - Source change was limited to `src/app/(admin)/admin/page.tsx`, `src/app/(admin)/admin/payments/page.tsx`, and `src/components/admin/payments-client.tsx`.
+  - Commit `846fb8097bee086c994c21b039568bc61592d08c` (`fix(admin): hide financial totals from standard admins`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_Gg64CoEQmxEuzj11bPqqCSVG1nxv`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Owner policy: standard Admin does not need complete per-item amount redaction; the accepted goal is to reduce easy visibility of revenue totals, aggregate summaries, and total amounts. `payment.notes` remains visible and was not sanitized/redacted.
+  - `/admin` now hides the `รายได้เดือนนี้` card from standard Admin and avoids the monthly revenue query for non-Super Admin users. Super Admin still sees the card and amount.
+  - `/admin/payments` now gates financial totals server-side. Standard Admin does not receive/render the approved amount summary, incomplete booking `ยอดรวม`, payment row amounts, incomplete booking row amounts, or detail/review amount fields. Super Admin behavior is unchanged.
+  - Standard Admin still sees operational payment data and controls: status, slip, payer info, Booking ID, Payment ID, branch/course/date/time, and the existing `สลิป` and `รายละเอียด` buttons.
+  - Production smoke passed for both roles. Super Admin saw dashboard revenue `฿591,672`, payment approved amount `฿594,872`, incomplete total `฿8,500`, row amounts, and detail amounts. Standard Admin did not see dashboard revenue, payment summaries, row amount fields, incomplete totals, or detail `ยอดชำระ`, and did see `ซ่อนยอดเงินตามสิทธิ์ผู้ใช้`.
+  - Console errors were 0. The only warning was the existing unrelated Next dev LCP logo warning. No DB changes, migrations, payment status logic changes, SlipOK logic changes, write action clicks, or extra deploys after smoke were performed.
 
 - Completed scoped Phase 1 User Reschedule cutoff change:
   - Source change was limited to `src/app/(dashboard)/dashboard/reschedule/page.tsx`, `src/app/api/reschedule/route.ts`, and `src/components/dashboard/reschedule-client.tsx`.

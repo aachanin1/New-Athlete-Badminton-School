@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -189,6 +189,15 @@ Current active production risk:
   - `/api/reschedule` and the client eligibility gate both use the 12-hour cutoff and parse lesson start times as Asia/Bangkok (`+07:00`).
   - Lesson Wallet is intentionally unchanged in this phase: `/dashboard/lesson-wallet` still shows the 48-hour policy, and `/api/lesson-wallet` still uses `STORE_CUTOFF_HOURS = 48`.
   - No DB writes, migrations, write behavior changes beyond the reschedule validation threshold, Admin Makeup changes, Lesson Wallet logic changes, or production write actions were performed.
+- Admin financial visibility gating is deployed in production as of commit `846fb8097bee086c994c21b039568bc61592d08c`:
+  - Deployment id `dpl_Gg64CoEQmxEuzj11bPqqCSVG1nxv`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(admin)/admin/page.tsx`, `src/app/(admin)/admin/payments/page.tsx`, and `src/components/admin/payments-client.tsx`.
+  - Owner policy: standard Admin does not need complete per-item amount redaction; the goal is to avoid easy visibility of revenue totals, aggregate summaries, and total amounts. `payment.notes` remains visible and is not sanitized/redacted in this scope.
+  - `/admin` gates the monthly revenue query/card by role. Super Admin still sees `รายได้เดือนนี้`; standard Admin does not query/render the revenue card.
+  - `/admin/payments` uses server-side role gating. Standard Admin does not receive/render approved amount summaries, incomplete booking total summaries, payment row amounts, incomplete booking row amounts, or detail/review amount fields; Super Admin sees amounts as before.
+  - Standard Admin still sees payment/booking status, slip, payer info, Booking ID, Payment ID, branch/course/date/time, and the existing `สลิป` / `รายละเอียด` workflow controls.
+  - Production smoke passed for Super Admin and standard Admin. Super Admin saw dashboard revenue `฿591,672`, payment approved amount `฿594,872`, incomplete total `฿8,500`, row amounts, and detail amounts. Standard Admin did not see those totals/amount fields and saw `ซ่อนยอดเงินตามสิทธิ์ผู้ใช้` where applicable.
+  - Console errors were 0; the only warning was the existing unrelated Next dev LCP logo warning. No DB changes, migrations, payment status logic changes, SlipOK logic changes, write action clicks, or extra deploys after smoke were performed.
 - Attendance display derivation no longer treats a learner as absent merely because another learner in the same slot/group has attendance. A past session without exact learner attendance now stays in `attendance_gap_review`; `absent` requires exact attendance/source-of-truth evidence or an explicitly synced absent session.
 - Admin makeup check-in evidence regression guard, added 2026-06-08:
   - The review section "ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน" must not show coach check-in evidence for a learner session unless that learner is linked to a `coach_assignment_groups` row and the `coach_checkins` row matches the exact `schedule_slot_id + coach_id`.
