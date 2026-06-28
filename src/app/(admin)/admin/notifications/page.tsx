@@ -329,7 +329,7 @@ export default async function AdminNotificationsPage() {
       }
     })
     .filter((alert): alert is AlertInsight => Boolean(alert))
-    .sort((a, b) => a.title.localeCompare(b.title, 'th'))
+    .sort((a, b) => a.title.localeCompare(b.title, 'th-TH') || a.id.localeCompare(b.id))
 
   const groupedSessionMap = new Map<string, { count: number; branchName: string; courseName: string; date: string; startTime: string }>()
   ;sessions
@@ -464,6 +464,7 @@ export default async function AdminNotificationsPage() {
   return (
     <NotificationsAdminClient
       currentAdminId={user.id}
+      todayDateKey={today}
       notifications={notificationList}
       users={(users || []).map((profile) => ({
         id: profile.id,

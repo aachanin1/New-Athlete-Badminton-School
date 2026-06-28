@@ -77,6 +77,7 @@ interface AdminActionAlert {
 
 interface NotificationsAdminClientProps {
   currentAdminId: string
+  todayDateKey: string
   notifications: NotificationData[]
   users: UserOption[]
   actionAlerts: AdminActionAlert[]
@@ -122,14 +123,26 @@ const TARGET_OPTIONS = [
   { value: 'specific', label: 'เลือกผู้ใช้รายคน' },
 ]
 
+function getBangkokDateKey(date: string) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(date))
+  const partMap = new Map(parts.map((part) => [part.type, part.value]))
+  return `${partMap.get('year')}-${partMap.get('month')}-${partMap.get('day')}`
+}
+
 function formatDate(date: string) {
-  return new Date(date).toLocaleString('th-TH', {
+  return new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'Asia/Bangkok',
     day: 'numeric',
     month: 'short',
     year: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  })
+  }).format(new Date(date))
 }
 
 function getTypeConfig(type: string) {
@@ -138,6 +151,7 @@ function getTypeConfig(type: string) {
 
 export function NotificationsAdminClient({
   currentAdminId,
+  todayDateKey,
   notifications,
   users,
   actionAlerts,
@@ -172,7 +186,7 @@ export function NotificationsAdminClient({
 
   const adminUnread = adminInbox.filter((notification) => !notification.is_read)
   const todayCount = notifications.filter((notification) => (
-    new Date(notification.created_at).toDateString() === new Date().toDateString()
+    getBangkokDateKey(notification.created_at) === todayDateKey
   )).length
 
   const filteredNotifications = useMemo(() => {
