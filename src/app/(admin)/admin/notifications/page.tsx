@@ -40,10 +40,19 @@ interface SessionRow {
   booking_id: string
   date: string
   start_time: string
+  end_time: string
   status: string
   branch_id: string
+  schedule_slot_id: string | null
   branches?: { name: string | null } | null
-  bookings?: { id: string; course_types?: { name: string | null } | null; month: number; year: number } | null
+  bookings?: {
+    id: string
+    status: string
+    course_type_id: string | null
+    course_types?: { name: string | null } | null
+    month: number
+    year: number
+  } | null
 }
 
 interface PaymentRow {
@@ -102,11 +111,40 @@ interface AdminActionAlert {
   actionLabel: string
 }
 
-function formatInputDate(value: Date) {
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const date = String(value.getDate()).padStart(2, '0')
-  return `${year}-${month}-${date}`
+const NOTIFICATION_SESSION_PAGE_SIZE = 1000
+const LOW_ENROLLMENT_REAL_STATUSES = new Set(['scheduled', 'completed', 'absent'])
+
+type AdminPageSupabase = Awaited<ReturnType<typeof requireAdminPageAccess>>['supabase']
+
+function getBangkokDateString(value: Date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value)
+
+  const partMap = new Map(parts.map((part) => [part.type, part.value]))
+  return `${partMap.get('year')}-${partMap.get('month')}-${partMap.get('day')}`
+}
+
+function addDaysToDateString(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00+07:00`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function getMonthPartsFromDateString(value: string) {
+  const [year, month] = value.split('-').map(Number)
+  return { year, month }
+}
+
+function getMonthOffsetParts(year: number, month: number, offset: number) {
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1))
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+  }
 }
 
 function getCourseLabel(courseName: string | null | undefined) {
@@ -118,25 +156,65 @@ function getCourseLabel(courseName: string | null | undefined) {
   return courseName ? labels[courseName] || courseName : '-'
 }
 
+function getLowEnrollmentGroupKey(session: SessionRow) {
+  if (session.schedule_slot_id) return `slot:${session.schedule_slot_id}`
+
+  return [
+    'fallback',
+    session.date,
+    session.start_time,
+    session.end_time,
+    session.branch_id,
+    session.bookings?.course_type_id || session.bookings?.course_types?.name || 'unknown-course',
+  ].join(':')
+}
+
+async function fetchNotificationSessions(supabase: AdminPageSupabase, today: string) {
+  const sessions: SessionRow[] = []
+
+  for (let start = 0; ; start += NOTIFICATION_SESSION_PAGE_SIZE) {
+    const end = start + NOTIFICATION_SESSION_PAGE_SIZE - 1
+    const { data, error } = await (supabase
+      .from('booking_sessions')
+      .select(`
+        id, booking_id, date, start_time, end_time, status, branch_id, schedule_slot_id,
+        branches(name),
+        bookings!inner(id, status, course_type_id, course_types(name), month, year)
+      `)
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true })
+      .order('id', { ascending: true })
+      .range(start, end) as unknown as Promise<{ data: SessionRow[] | null; error: { message: string } | null }>)
+
+    if (error) {
+      throw new Error(`Admin notifications sessions query failed: ${error.message}`)
+    }
+
+    const rows = data || []
+    sessions.push(...rows)
+
+    if (rows.length < NOTIFICATION_SESSION_PAGE_SIZE) break
+  }
+
+  return sessions
+}
+
 export default async function AdminNotificationsPage() {
   const { supabase, user } = await requireAdminPageAccess()
   const now = new Date()
-  const today = formatInputDate(now)
-  const tomorrow = formatInputDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
-  const currentMonth = now.getMonth() + 1
-  const currentYear = now.getFullYear()
-  const nextDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  const nextMonth = nextDate.getMonth() + 1
-  const nextYear = nextDate.getFullYear()
-  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const prevMonth = prevDate.getMonth() + 1
-  const prevYear = prevDate.getFullYear()
+  const today = getBangkokDateString(now)
+  const tomorrow = addDaysToDateString(today, 1)
+  const { month: currentMonth, year: currentYear } = getMonthPartsFromDateString(today)
+  const { month: nextMonth, year: nextYear } = getMonthOffsetParts(currentYear, currentMonth, 1)
+  const { month: prevMonth, year: prevYear } = getMonthOffsetParts(currentYear, currentMonth, -1)
+  const sessionsPromise = fetchNotificationSessions(supabase, today)
 
   const [
     { data: notifications },
     { data: users },
     { data: bookings },
-    { data: sessions },
+    sessions,
     { data: pendingPayments },
     { data: complaints },
     { data: todayAssignments },
@@ -155,12 +233,7 @@ export default async function AdminNotificationsPage() {
       .from('bookings')
       .select('id, user_id, total_sessions, month, year, status, profiles!bookings_user_id_fkey(full_name), course_types(name), branches(name)')
       .limit(1200) as unknown as Promise<{ data: BookingRow[] | null }>,
-    supabase
-      .from('booking_sessions')
-      .select('id, booking_id, date, start_time, status, branch_id, branches(name), bookings!inner(id, course_types(name), month, year)')
-      .gte('date', today)
-      .order('date', { ascending: true })
-      .limit(700) as unknown as Promise<{ data: SessionRow[] | null }>,
+    sessionsPromise,
     supabase
       .from('payments')
       .select('id, amount, status, created_at, profiles!payments_user_id_fkey(full_name)')
@@ -259,10 +332,13 @@ export default async function AdminNotificationsPage() {
     .sort((a, b) => a.title.localeCompare(b.title, 'th'))
 
   const groupedSessionMap = new Map<string, { count: number; branchName: string; courseName: string; date: string; startTime: string }>()
-  ;(sessions || [])
-    .filter((session) => session.status === 'scheduled')
+  ;sessions
+    .filter((session) => (
+      session.bookings?.status === 'verified'
+      && LOW_ENROLLMENT_REAL_STATUSES.has(session.status)
+    ))
     .forEach((session) => {
-      const key = `${session.date}-${session.start_time}-${session.branch_id}-${session.bookings?.course_types?.name || ''}`
+      const key = getLowEnrollmentGroupKey(session)
       const existing = groupedSessionMap.get(key)
       if (existing) {
         existing.count += 1
