@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-23
+Last updated: 2026-06-28
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -198,6 +198,18 @@ Current active production risk:
   - Standard Admin still sees payment/booking status, slip, payer info, Booking ID, Payment ID, branch/course/date/time, and the existing `สลิป` / `รายละเอียด` workflow controls.
   - Production smoke passed for Super Admin and standard Admin. Super Admin saw dashboard revenue `฿591,672`, payment approved amount `฿594,872`, incomplete total `฿8,500`, row amounts, and detail amounts. Standard Admin did not see those totals/amount fields and saw `ซ่อนยอดเงินตามสิทธิ์ผู้ใช้` where applicable.
   - Console errors were 0; the only warning was the existing unrelated Next dev LCP logo warning. No DB changes, migrations, payment status logic changes, SlipOK logic changes, write action clicks, or extra deploys after smoke were performed.
+- Admin notifications low-enrollment count and hydration fixes are deployed in production:
+  - Low-enrollment source commit `9b88fbdf98e9146941dd5ea01c32fa6abc79bfc3` (`fix(admin): align low-enrollment alert counts`) changed `src/app/(admin)/admin/notifications/page.tsx`; deployment id `dpl_JDhvkyBxHzzSmMNqmpoUvHPJ6CqX`; production alias `https://www.newathleteschool.com`; status Ready.
+  - React hydration source commit `953edc93266ea81f3b84afd0ee0fbe3cd3de3f05` (`fix(admin): stabilize notifications hydration`) changed `src/app/(admin)/admin/notifications/page.tsx` and `src/components/admin/notifications-admin-client.tsx`; deployment id `dpl_FFzuVkJqFGNrAnHFzbpBBySzc3Jz`; production alias `https://www.newathleteschool.com`; status Ready.
+  - Low-enrollment root cause: the old alert counted only `booking_sessions.status === scheduled` and did not require `bookings.status = verified`, so the 2026-06-21 10:00 Ratchaphruek-Taling Chan kids_group round excluded 4 verified completed learners and counted 1 pending_payment scheduled learner.
+  - Low-enrollment alert logic now counts only verified bookings, counts real learner statuses `scheduled`, `completed`, and `absent`, excludes `rescheduled`, `walleted`, `cancelled`, and non-verified bookings, groups by `schedule_slot_id` first, and falls back to `date + start_time + end_time + branch_id + course_type_id`. It also uses Asia/Bangkok-safe date logic and paginates/range-batches instead of relying on `.limit(700)`.
+  - Data proof for schedule slot `02aa539d-b602-4a95-9ade-5a0285e0ae6f`: old alert count was 1, new verified real learner count is 4, and 4 is above the low-enrollment threshold of 2, so the round should not show as low-enrollment.
+  - After deploying the low-enrollment fix, production `/admin/notifications` reproduced React minified error #418 on initial load. The root cause was non-deterministic client/server date rendering: `toLocaleString('th-TH')` without fixed timezone, `todayCount` using runtime `new Date().toDateString()`, and locale sorting without an explicit deterministic tie-breaker.
+  - Hydration fix: notification date formatting now uses `Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', ... })`, the server sends a deterministic Bangkok `todayDateKey`, `todayCount` compares against Bangkok date keys, and sort paths use explicit `th-TH` locale plus stable id tie-breakers.
+  - Verification passed before final deploy: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings where applicable.
+  - Local authenticated `/admin/notifications` smoke passed after two hard refreshes: console errors/warnings were 0, no React hydration error, no React #418, no text mismatch, and sections rendered for urgent work, recommendations, customer follow-up, and low-enrollment.
+  - Production smoke after final deploy passed: `/admin/notifications` loaded with Admin session and no redirect; fresh cache-buster load, two hard refreshes, and a read-only click on the recommendations tab produced console errors/warnings 0, no React #418, no hydration error, no text mismatch, and all notification sections rendered. The old 2026-06-21 UI case is `NEED REVIEW` only because it is outside the current window; source/data proof confirms the new count is 4 and above threshold.
+  - No DB changes, migrations, write actions, Admin Makeup changes, Lesson Wallet changes, SlipOK changes, payment/booking write logic changes, docs changes before smoke, or extra deploys after final smoke were performed.
 - Attendance display derivation no longer treats a learner as absent merely because another learner in the same slot/group has attendance. A past session without exact learner attendance now stays in `attendance_gap_review`; `absent` requires exact attendance/source-of-truth evidence or an explicitly synced absent session.
 - Admin makeup check-in evidence regression guard, added 2026-06-08:
   - The review section "ต้องตรวจสอบการเช็คชื่อก่อนสรุปขาดเรียน" must not show coach check-in evidence for a learner session unless that learner is linked to a `coach_assignment_groups` row and the `coach_checkins` row matches the exact `schedule_slot_id + coach_id`.

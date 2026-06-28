@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-23
+Last updated: 2026-06-28
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,21 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped Admin notifications low-enrollment alert count and React hydration fixes:
+  - Low-enrollment source commit `9b88fbdf98e9146941dd5ea01c32fa6abc79bfc3` (`fix(admin): align low-enrollment alert counts`) was pushed and deployed to Vercel production.
+  - React hydration source commit `953edc93266ea81f3b84afd0ee0fbe3cd3de3f05` (`fix(admin): stabilize notifications hydration`) was pushed and deployed to Vercel production.
+  - Deployment ids: `dpl_JDhvkyBxHzzSmMNqmpoUvHPJ6CqX` for the low-enrollment fix and `dpl_FFzuVkJqFGNrAnHFzbpBBySzc3Jz` for the hydration fix; production alias `https://www.newathleteschool.com`; both Ready.
+  - Source scope was limited to `src/app/(admin)/admin/notifications/page.tsx` and `src/components/admin/notifications-admin-client.tsx`.
+  - Low-enrollment root cause: alert logic counted only `booking_sessions.status === scheduled` and did not require verified bookings, so the reported 2026-06-21 10:00 Ratchaphruek-Taling Chan kids_group round counted 1 pending_payment scheduled learner instead of 4 verified real learners.
+  - Low-enrollment logic now counts only `bookings.status = verified`, includes `scheduled`, `completed`, and `absent`, excludes `rescheduled`, `walleted`, `cancelled`, and non-verified bookings, groups by `schedule_slot_id` first, falls back to `date + start_time + end_time + branch_id + course_type_id`, uses Asia/Bangkok-safe date logic, and avoids the old `.limit(700)` row-cap risk with pagination/range batching.
+  - Data proof for schedule slot `02aa539d-b602-4a95-9ade-5a0285e0ae6f`: old count was 1, new verified real learner count is 4, and 4 > threshold 2, so that round should not be shown as low-enrollment.
+  - React #418 root cause after the first deployment: notification date rendering used `toLocaleString('th-TH')` without fixed timezone, `todayCount` used runtime `new Date().toDateString()`, and sorting needed explicit locale/tie-breaker.
+  - Hydration fix: `formatDate()` uses `Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', ... })`, the server passes deterministic Bangkok `todayDateKey`, `todayCount` compares Bangkok date keys, and sort paths use explicit `th-TH` locale plus stable id tie-breakers.
+  - Checks passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings where applicable.
+  - Local authenticated `/admin/notifications` smoke passed: two hard refreshes had console logs/errors/warnings 0, no React hydration error, no React #418, no text mismatch, and sections rendered for urgent work, recommendations, customer follow-up, and low-enrollment.
+  - Production smoke after final deploy passed: fresh cache-buster load, two hard refreshes, and a read-only recommendations-tab click showed no React #418, no hydration error, no text mismatch, console errors/warnings 0, and sections for urgent work, recommendations, customer follow-up, and low-enrollment rendered. The old 2026-06-21 UI case is `NEED REVIEW` only because it is outside the current window; source/data proof confirms the new logic counts 4 and suppresses it.
+  - No DB changes, migrations, write actions, Admin Makeup changes, Lesson Wallet changes, SlipOK changes, payment/booking write logic changes, docs changes before smoke, or extra deploys after final smoke were performed.
 
 - Completed scoped Admin financial visibility gating:
   - Source change was limited to `src/app/(admin)/admin/page.tsx`, `src/app/(admin)/admin/payments/page.tsx`, and `src/components/admin/payments-client.tsx`.
