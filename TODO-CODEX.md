@@ -21,6 +21,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Phase 1 standardized Thai date display release:
+  - Source commit `73d465ca1bef5881bb6e6a9c7f52d9046db8a08d` (`fix(ui): standardize thai date display`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_GYpjsdSxAMQfWJBjFZqhF1ZNeAUe`; deployment URL `https://new-athlete-badminton-school-hpbojsf73-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/lib/date-format.ts`, `src/components/admin/schedules-client.tsx`, `src/components/admin/payroll-client.tsx`, `src/components/admin/makeup-client.tsx`, `src/app/(coach)/coach/today/page.tsx`, `src/app/(coach)/coach/attendance/page.tsx`, `src/app/(coach)/coach/hours/page.tsx`, and `src/components/coach/assign-groups-client.tsx`.
+  - Added shared deterministic Asia/Bangkok date display helpers: `getBangkokDateKey`, `parseBangkokDate`, `formatThaiDateWithWeekday`, `formatThaiShortDate`, `formatThaiDateRangeWithWeekday`, `formatThaiDateTimeWithWeekday`, `formatThaiCompactDateWithWeekday`, `formatThaiMonthYear`, and `formatThaiShortMonthYear`.
+  - Admin/Coach operational pages now use a consistent weekday date display such as `จันทร์ 29 มิ.ย. 69`, and date ranges show weekday on both ends, such as `จันทร์ 1 มิ.ย. 69 - อาทิตย์ 7 มิ.ย. 69`.
+  - This was display-only. It did not change query/filter/grouping behavior, payroll calculation, payroll Monday-Sunday boundary logic, close API behavior, booking/reschedule/wallet/attendance logic, Admin Makeup write behavior, DB/API/migrations, or write actions.
+  - Checks before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Production smoke passed with one `NEED REVIEW` note only for `/coach/hours` visual weekly/date rows because the smoke coach session had no row data. `/admin/schedules` showed `จันทร์ 29 มิ.ย. 69`; `/admin/payroll` showed weekday weekly ranges in the coach-hours modal; `/admin/makeup` showed `อาทิตย์ 28 มิ.ย. 69` and `เสาร์ 27 มิ.ย. 69`; `/coach/today` and `/coach/attendance` showed `จันทร์ 29 มิ.ย. 69`; `/coach/assign-groups` showed weekday dates including `จันทร์ 29 มิ.ย. 69`.
+  - Hydration/console smoke passed: hard refresh/fresh load checks on `/admin/schedules`, `/admin/payroll`, and `/coach/today` found no React #418, no hydration error, no text mismatch, and console errors/warnings 0.
+  - No DB/API/migration changes, source changes after smoke, extra deploy after smoke, write action clicks, or `ปิดสัปดาห์` clicks were performed.
+
 - Completed scoped Admin Payroll / Coach Hours Monday-Sunday teaching week boundary release:
   - Source commit `56dc769e6b817d645f5cf08523070b64d3ce6f02` (`fix(payroll): use monday teaching weeks`) was pushed and deployed to Vercel production.
   - Deployment id `dpl_FgzX1ZCovmSoj1q9KcL5YYknuZjE`; deployment URL `https://new-athlete-badminton-school-7fipynggk-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
