@@ -13,6 +13,7 @@ import {
 } from '@/lib/coach-teaching-rules'
 import { getCoachTeachingHourSourceRows, type CoachTeachingHourSourceRow } from '@/lib/coach-teaching-hours'
 import { createClient } from '@/lib/supabase/server'
+import { getBangkokDateString } from '@/lib/utils'
 
 interface ProfileRow {
   coach_employment_type: string | null
@@ -23,14 +24,19 @@ interface CoachTeachingRulesSettingRow {
 }
 
 function toInputDate(value: Date) {
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
+  const year = value.getUTCFullYear()
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(value.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T00:00:00`))
+  return new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(`${value}T00:00:00+07:00`))
 }
 
 function formatTime(value: string) {
@@ -46,7 +52,7 @@ function formatCurrency(value: number) {
 }
 
 function isPastSlot(row: CoachTeachingHourSourceRow) {
-  return new Date(`${row.date}T${row.end_time}`).getTime() < Date.now()
+  return new Date(`${row.date}T${row.end_time}+07:00`).getTime() < Date.now()
 }
 
 function isNoTeachingWithoutLearners(row: CoachTeachingHourSourceRow) {
@@ -86,10 +92,12 @@ export default async function HoursPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  const currentWeek = getWeekInfo(toInputDate(now))
+  const today = getBangkokDateString()
+  const currentYear = Number(today.slice(0, 4))
+  const currentMonth = Number(today.slice(5, 7))
+  const monthStartKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
+  const nextMonthStart = new Date(Date.UTC(currentYear, currentMonth, 1))
+  const currentWeek = getWeekInfo(today)
 
   const [{ data: profile }, { data: teachingRulesSetting }, rows] = await Promise.all([
     supabase
@@ -104,7 +112,7 @@ export default async function HoursPage() {
       .maybeSingle() as unknown as PromiseLike<{ data: CoachTeachingRulesSettingRow | null }>,
     getCoachTeachingHourSourceRows(supabase, {
       coachId: user.id,
-      startDate: toInputDate(monthStart),
+      startDate: monthStartKey,
       endDateExclusive: toInputDate(nextMonthStart),
     }),
   ])
@@ -135,7 +143,11 @@ export default async function HoursPage() {
     return summary
   }, { groupHours: 0, privateHours: 0, totalHours: 0, payableHours: 0, payableAmount: 0 })
 
-  const monthName = now.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })
+  const monthName = new Intl.DateTimeFormat('th-TH', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(`${monthStartKey}T00:00:00+07:00`))
   const entriesByRowId = new Map(entries.map((entry) => [`${entry.row.assignment_source}-${entry.row.assignment_id}`, entry]))
   const weeklyRows = Array.from(rows.reduce((map, row) => {
     const week = getWeekInfo(row.date)

@@ -144,6 +144,7 @@ interface PayrollClientProps {
 }
 
 const MONTH_LABELS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+const BANGKOK_TIME_ZONE = 'Asia/Bangkok'
 
 const EMPLOYMENT_BADGES: Record<CoachEmploymentType, string> = {
   full_time: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
@@ -152,7 +153,7 @@ const EMPLOYMENT_BADGES: Record<CoachEmploymentType, string> = {
 }
 
 function isPastSlot(row: PayrollSourceRow) {
-  return new Date(`${row.date}T${row.end_time}`).getTime() < Date.now()
+  return new Date(`${row.date}T${row.end_time}+07:00`).getTime() < Date.now()
 }
 
 function isPayable(row: PayrollSourceRow) {
@@ -175,8 +176,20 @@ function isMissingAttendance(row: PayrollSourceRow) {
   return row.has_checkin && row.has_photo && row.has_location && !row.has_attendance
 }
 
+function getInputDateYearMonth(value: string) {
+  return {
+    year: Number(value.slice(0, 4)),
+    month: Number(value.slice(5, 7)),
+  }
+}
+
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T00:00:00`))
+  return new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+    timeZone: BANGKOK_TIME_ZONE,
+  }).format(new Date(`${value}T00:00:00+07:00`))
 }
 
 function formatTime(value: string) {
@@ -194,6 +207,23 @@ function formatCurrency(value: number) {
 function getEmploymentLabel(employmentType: CoachEmploymentType | null, teachingRules: CoachTeachingRules) {
   if (!employmentType) return 'ยังไม่กำหนด'
   return getCoachTeachingRule(employmentType, teachingRules).label
+}
+
+function rangesOverlap(startA: string, endA: string, startB: string, endB: string) {
+  return startA <= endB && endA >= startB
+}
+
+function findOverlappingClosedSummary(
+  summaries: Iterable<WeeklySummaryData>,
+  coachId: string,
+  week: WeekBreakdown,
+) {
+  for (const summary of summaries) {
+    if (summary.coach_id !== coachId) continue
+    if (summary.week_start === week.weekStart && summary.week_end === week.weekEnd) continue
+    if (rangesOverlap(summary.week_start, summary.week_end, week.weekStart, week.weekEnd)) return summary
+  }
+  return null
 }
 
 function buildWeekBreakdown(
@@ -308,7 +338,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
   const [closeNotes, setCloseNotes] = useState('')
 
   const years = useMemo(() => {
-    const values = new Set(rows.map((row) => new Date(`${row.date}T00:00:00`).getFullYear()))
+    const values = new Set(rows.map((row) => getInputDateYearMonth(row.date).year))
     values.add(currentYear)
     return Array.from(values).sort((a, b) => b - a)
   }, [currentYear, rows])
@@ -317,8 +347,8 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
 
   const monthRows = useMemo(() => {
     return rows.filter((row) => {
-      const date = new Date(`${row.date}T00:00:00`)
-      if (date.getMonth() + 1 !== viewMonth || date.getFullYear() !== viewYear) return false
+      const date = getInputDateYearMonth(row.date)
+      if (date.month !== viewMonth || date.year !== viewYear) return false
 
       const employmentType = normalizeCoachEmploymentType(row.employment_type)
       if (filterEmployment !== 'all' && employmentType !== filterEmployment) return false
@@ -435,6 +465,7 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
 
   const openCloseWeekDialog = (coach: CoachSummary, week: WeekBreakdown) => {
     if (!coach.employmentType || week.payableEntries.length === 0) return
+    if (findOverlappingClosedSummary(closedSummaryMap.values(), coach.coach_id, week)) return
     setCloseTarget({ coach, week })
     setCloseNotes('')
     setCloseError(null)
@@ -442,6 +473,10 @@ export function PayrollClient({ rows, currentMonth, currentYear, teachingRules, 
 
   const closeWeek = async (coach: CoachSummary, week: WeekBreakdown, note: string) => {
     if (!coach.employmentType || week.payableEntries.length === 0) return
+    if (findOverlappingClosedSummary(closedSummaryMap.values(), coach.coach_id, week)) {
+      setCloseError('พบสรุปสัปดาห์เดิมที่ทับช่วงวันที่นี้ กรุณาตรวจสอบก่อนปิดสัปดาห์')
+      return
+    }
 
     const key = `${coach.coach_id}:${week.weekStart}`
     setClosingKey(key)
@@ -935,9 +970,12 @@ function CoachPayrollCard({
           <div className="grid gap-2 xl:grid-cols-2">
             {coach.weeklyBreakdown.map((week) => {
               const closed = closedSummaryMap.get(`${coach.coach_id}:${week.weekStart}`)
+              const overlappingClosed = closed
+                ? null
+                : findOverlappingClosedSummary(closedSummaryMap.values(), coach.coach_id, week)
               const closingThisWeek = closingKey === `${coach.coach_id}:${week.weekStart}`
               return (
-                <div key={week.weekStart} className={closed ? 'rounded-lg border border-emerald-200 bg-white p-3' : week.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-white p-3' : 'rounded-lg border bg-white p-3'}>
+                <div key={week.weekStart} className={closed ? 'rounded-lg border border-emerald-200 bg-white p-3' : overlappingClosed ? 'rounded-lg border border-amber-200 bg-amber-50/40 p-3' : week.payableAmount > 0 ? 'rounded-lg border border-orange-200 bg-white p-3' : 'rounded-lg border bg-white p-3'}>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{week.label}</p>
@@ -964,6 +1002,11 @@ function CoachPayrollCard({
                         <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                         ปิดแล้ว ฿{formatCurrency(closed.payable_amount)}
                       </Badge>
+                    ) : overlappingClosed ? (
+                      <Badge variant="outline" className="w-fit border-amber-200 bg-amber-50 text-amber-700">
+                        <AlertCircle className="mr-1 h-3.5 w-3.5" />
+                        มีสรุปเดิมทับช่วง
+                      </Badge>
                     ) : (
                       <Button
                         type="button"
@@ -982,6 +1025,11 @@ function CoachPayrollCard({
                     <p className="mt-2 text-xs text-gray-500">
                       ปิดเมื่อ {formatDate(closed.closed_at.slice(0, 10))} {closed.closed_by_name ? `โดย ${closed.closed_by_name}` : ''}
                       {closed.notes ? ` · ${closed.notes}` : ''}
+                    </p>
+                  )}
+                  {overlappingClosed && (
+                    <p className="mt-2 text-xs text-amber-700">
+                      พบสรุปเดิม {formatDate(overlappingClosed.week_start)} - {formatDate(overlappingClosed.week_end)} ที่ทับช่วงนี้ ต้องตรวจสอบก่อนปิดสัปดาห์
                     </p>
                   )}
                 </div>

@@ -306,21 +306,34 @@ async function getAttendanceCounts(supabase: SupabaseLike, sessionIds: string[])
 
 async function getCheckins(supabase: SupabaseLike, coachIds: string[], slotIds: string[]) {
   const map = new Map<string, CheckinRow>()
-  if (coachIds.length === 0 || slotIds.length === 0) return map
+  const uniqueCoachIds = uniqueTruthyIds(coachIds)
+  const uniqueSlotIds = uniqueTruthyIds(slotIds)
+  if (uniqueCoachIds.length === 0 || uniqueSlotIds.length === 0) return map
 
-  const query = supabase
-    .from('coach_checkins')
-    .select('id, coach_id, schedule_slot_id, checkin_time, photo_url, location_lat, location_lng')
-    .in('coach_id', coachIds)
-    .in('schedule_slot_id', slotIds)
-    .order('checkin_time', { ascending: false })
-    .limit(10000)
-  const data = await runPayrollQuery<CheckinRow[]>(query, 'coach checkins')
+  for (let coachIndex = 0; coachIndex < uniqueCoachIds.length; coachIndex += PAYROLL_IN_FILTER_CHUNK_SIZE) {
+    const coachChunk = uniqueCoachIds.slice(coachIndex, coachIndex + PAYROLL_IN_FILTER_CHUNK_SIZE)
+    const coachChunkNumber = Math.floor(coachIndex / PAYROLL_IN_FILTER_CHUNK_SIZE) + 1
 
-  ;(data || []).forEach((checkin) => {
-    const key = getSlotKey(checkin.coach_id, checkin.schedule_slot_id)
-    if (!map.has(key)) map.set(key, checkin)
-  })
+    for (let slotIndex = 0; slotIndex < uniqueSlotIds.length; slotIndex += PAYROLL_IN_FILTER_CHUNK_SIZE) {
+      const slotChunk = uniqueSlotIds.slice(slotIndex, slotIndex + PAYROLL_IN_FILTER_CHUNK_SIZE)
+      const slotChunkNumber = Math.floor(slotIndex / PAYROLL_IN_FILTER_CHUNK_SIZE) + 1
+      const data = await runPayrollQuery<CheckinRow[]>(
+        supabase
+          .from('coach_checkins')
+          .select('id, coach_id, schedule_slot_id, checkin_time, photo_url, location_lat, location_lng')
+          .in('coach_id', coachChunk)
+          .in('schedule_slot_id', slotChunk)
+          .order('checkin_time', { ascending: false })
+          .limit(10000),
+        `coach checkins coach chunk ${coachChunkNumber} slot chunk ${slotChunkNumber}`,
+      )
+
+      ;(data || []).forEach((checkin) => {
+        const key = getSlotKey(checkin.coach_id, checkin.schedule_slot_id)
+        if (!map.has(key)) map.set(key, checkin)
+      })
+    }
+  }
 
   return map
 }

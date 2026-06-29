@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import {
+  addDaysToInputDate,
   calculateTeachingPayEntries,
   COACH_TEACHING_RULES_SETTING_KEY,
   getCoachTeachingRule,
   getHoursBetween,
+  isCanonicalTeachingWeekRangeBangkok,
   normalizeCoachEmploymentType,
   normalizeCoachTeachingRulesSettings,
 } from '@/lib/coach-teaching-rules'
@@ -36,9 +38,7 @@ function getErrorMessage(error: unknown) {
 }
 
 function getNextDate(value: string) {
-  const date = new Date(`${value}T00:00:00`)
-  date.setDate(date.getDate() + 1)
-  return date.toISOString().slice(0, 10)
+  return addDaysToInputDate(value, 1)
 }
 
 export async function POST(request: NextRequest) {
@@ -59,7 +59,37 @@ export async function POST(request: NextRequest) {
     const validCoachId = coachId
     const validWeekStart = weekStart
     const validWeekEnd = weekEnd
+    if (!isCanonicalTeachingWeekRangeBangkok(validWeekStart, validWeekEnd)) {
+      return NextResponse.json(
+        { error: 'ช่วงสัปดาห์ไม่ตรงกับรอบจันทร์-อาทิตย์ กรุณารีเฟรชหน้าแล้วลองใหม่' },
+        { status: 400 },
+      )
+    }
+
     const supabase = getServiceRoleClient()
+
+    const { data: overlappingSummaries, error: overlapError } = await supabase
+      .from('coach_weekly_teaching_summaries')
+      .select('id, week_start, week_end')
+      .eq('coach_id', validCoachId)
+      .lte('week_start', validWeekEnd)
+      .gte('week_end', validWeekStart)
+      .limit(1) as unknown as {
+        data: { id: string; week_start: string; week_end: string }[] | null
+        error: DbError | null
+      }
+
+    if (overlapError) {
+      return NextResponse.json({ error: overlapError.message }, { status: 500 })
+    }
+
+    if (overlappingSummaries?.length) {
+      return NextResponse.json(
+        { error: 'พบสรุปสัปดาห์เดิมที่ทับช่วงวันที่นี้ กรุณาตรวจสอบก่อนปิดสัปดาห์' },
+        { status: 409 },
+      )
+    }
+
     const [{ data: teachingRulesSetting }, sourceRows] = await Promise.all([
       supabase
         .from('system_settings')

@@ -19,36 +19,37 @@ function formatNumber(value: number) {
 }
 
 function toInputDate(value: Date) {
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
+  const year = value.getUTCFullYear()
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(value.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
 function getMonthCalendarDays(monthStart: Date) {
-  const firstDay = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1)
-  const lastDay = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
+  const firstDay = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), 1))
+  const lastDay = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0))
   const calendarStart = new Date(firstDay)
-  calendarStart.setDate(firstDay.getDate() - firstDay.getDay())
+  calendarStart.setUTCDate(firstDay.getUTCDate() - firstDay.getUTCDay())
 
   const calendarEnd = new Date(lastDay)
-  calendarEnd.setDate(lastDay.getDate() + (6 - lastDay.getDay()))
+  calendarEnd.setUTCDate(lastDay.getUTCDate() + (6 - lastDay.getUTCDay()))
 
   const days: Date[] = []
   const cursor = new Date(calendarStart)
   while (cursor <= calendarEnd) {
     days.push(new Date(cursor))
-    cursor.setDate(cursor.getDate() + 1)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
 
   return days
 }
 
 function formatMonthTitle(value: Date) {
-  return value.toLocaleDateString('th-TH', {
+  return new Intl.DateTimeFormat('th-TH', {
     month: 'long',
     year: 'numeric',
-  })
+    timeZone: 'Asia/Bangkok',
+  }).format(value)
 }
 
 export default async function CoachDashboardPage() {
@@ -57,10 +58,11 @@ export default async function CoachDashboardPage() {
   if (!user) return null
 
   const today = getBangkokDateString()
-  const now = new Date()
   const currentWeek = getWeekInfo(today)
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const currentYear = Number(today.slice(0, 4))
+  const currentMonth = Number(today.slice(5, 7))
+  const startOfMonth = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
+  const nextMonthStart = new Date(Date.UTC(currentYear, currentMonth, 1))
 
   const [teachingDay, { data: coachBranches }, monthRows] = await Promise.all([
     getCoachAssignedTeachingDay(supabase, user.id, today),
@@ -191,7 +193,7 @@ export default async function CoachDashboardPage() {
             {calendarDays.map((day) => {
               const dateKey = toInputDate(day)
               const rows = monthRowsByDate[dateKey] || []
-              const isCurrentMonth = day.getMonth() === startOfMonth.getMonth()
+              const isCurrentMonth = day.getUTCMonth() === startOfMonth.getUTCMonth()
               const isToday = dateKey === today
 
               return (
@@ -207,8 +209,8 @@ export default async function CoachDashboardPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1">
-                    <span className={`font-bold ${day.getDay() === 0 ? 'text-red-500' : 'text-gray-700'}`}>
-                      {day.getDate()}
+                    <span className={`font-bold ${day.getUTCDay() === 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                      {day.getUTCDate()}
                     </span>
                     {rows.length > 0 && (
                       <span className="rounded-full bg-gray-100 px-1.5 text-[10px] font-semibold leading-5 text-gray-600 sm:hidden">

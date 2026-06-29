@@ -33,6 +33,14 @@ export interface TeachingPayEntry<TSlot extends TeachingSlotForCalculation> {
   weekLabel: string
 }
 
+export interface TeachingWeekInfo {
+  key: string
+  end: string
+  weekStart: string
+  weekEnd: string
+  label: string
+}
+
 export const COACH_TEACHING_RULES: CoachTeachingRules = {
   full_time: {
     employmentType: 'full_time',
@@ -64,6 +72,8 @@ export const COACH_TEACHING_RULES: CoachTeachingRules = {
 }
 
 const COACH_EMPLOYMENT_ORDER: CoachEmploymentType[] = ['full_time', 'half_time', 'part_time']
+const INPUT_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+const TIME_PATTERN = /^(\d{2}):(\d{2})(?::(\d{2}))?$/
 
 export const COACH_EMPLOYMENT_OPTIONS = Object.values(COACH_TEACHING_RULES)
 
@@ -114,10 +124,35 @@ export function getCoachTeachingRule(employmentType: CoachEmploymentType, rules:
   return rules[employmentType] || COACH_TEACHING_RULES[employmentType]
 }
 
+function parseInputDate(value: string) {
+  const match = INPUT_DATE_PATTERN.exec(value)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+
+  return new Date(Date.UTC(year, month - 1, day))
+}
+
+function parseTimeToMinutes(value: string) {
+  const match = TIME_PATTERN.exec(value)
+  if (!match) return null
+
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+
+  return hour * 60 + minute
+}
+
 export function getHoursBetween(date: string, startTime: string, endTime: string) {
-  const start = new Date(`${date}T${startTime}`)
-  const end = new Date(`${date}T${endTime}`)
-  return Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60))
+  void date
+  const start = parseTimeToMinutes(startTime)
+  const end = parseTimeToMinutes(endTime)
+  if (start === null || end === null) return 0
+  return Math.max(0, (end - start) / 60)
 }
 
 export function isPrivateCourse(courseType: string) {
@@ -126,23 +161,55 @@ export function isPrivateCourse(courseType: string) {
 }
 
 export function formatInputDate(value: Date) {
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
+  const year = value.getUTCFullYear()
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(value.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
-export function getWeekInfo(dateValue: string) {
-  const date = new Date(`${dateValue}T00:00:00`)
+export function addDaysToInputDate(dateValue: string, days: number) {
+  const date = parseInputDate(dateValue)
+  if (!date) return dateValue
+  date.setUTCDate(date.getUTCDate() + days)
+  return formatInputDate(date)
+}
+
+export function getTeachingWeekInfoBangkok(dateValue: string): TeachingWeekInfo {
+  const date = parseInputDate(dateValue)
+  if (!date) {
+    return {
+      key: dateValue,
+      end: dateValue,
+      weekStart: dateValue,
+      weekEnd: dateValue,
+      label: `${dateValue} - ${dateValue}`,
+    }
+  }
+
   const start = new Date(date)
-  start.setDate(date.getDate() - date.getDay())
+  const daysSinceMonday = (date.getUTCDay() + 6) % 7
+  start.setUTCDate(date.getUTCDate() - daysSinceMonday)
   const end = new Date(start)
-  end.setDate(start.getDate() + 6)
+  end.setUTCDate(start.getUTCDate() + 6)
+  const weekStart = formatInputDate(start)
+  const weekEnd = formatInputDate(end)
 
   return {
-    key: formatInputDate(start),
-    end: formatInputDate(end),
+    key: weekStart,
+    end: weekEnd,
+    weekStart,
+    weekEnd,
+    label: `${weekStart} - ${weekEnd}`,
   }
+}
+
+export function getWeekInfo(dateValue: string) {
+  return getTeachingWeekInfoBangkok(dateValue)
+}
+
+export function isCanonicalTeachingWeekRangeBangkok(weekStart: string, weekEnd: string) {
+  const week = getTeachingWeekInfoBangkok(weekStart)
+  return week.weekStart === weekStart && week.weekEnd === weekEnd
 }
 
 export function calculateTeachingPayEntries<TSlot extends TeachingSlotForCalculation>(
