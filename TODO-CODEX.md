@@ -21,6 +21,20 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped `/dashboard/booking` Thai date display closeout:
+  - Source commit `a9ffcf74019f69424e288a1698910444b4e58a8c` (`fix(booking): standardize thai date display`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_27LUxvWCa7UmZwwUdyZXHMZaw55W`; deployment URL `https://new-athlete-badminton-school-q05rf1358-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/components/dashboard/booking-client.tsx`; the change reused the existing `src/lib/date-format.ts` helper.
+  - This closes the final Thai date-display path intentionally skipped from Phase 2 because `/dashboard/booking` is booking/calendar selection/write-heavy. Standardized Thai date display is now complete across the system, including `/dashboard/booking`.
+  - Display changes: raw error date uses `formatThaiDateWithWeekday(...)`; expanded slot header uses `formatThaiDateWithWeekday(...)`; selected-session chips/badges use `formatThaiCompactDateWithWeekday(...)`; month selector and summary month/year use `formatThaiMonthYear(...)`.
+  - Calendar weekday header and calendar day cells intentionally remain compact/calendar UI: `อา จ อ พ พฤ ศ ส` and normal day numbers such as `30`.
+  - This was display-only. It did not change calendar selection logic, selected date/date key logic, current month / past-date disabling / bookable slot logic, schedule template matching, `scheduleTemplateId`, `POST/PUT /api/bookings` payloads, booking/payment behavior, DB/API/migrations, or write actions.
+  - Checks before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Production smoke passed on `https://www.newathleteschool.com/dashboard/booking`: page loaded with a real user session and no unexpected redirect; month selector showed `มิถุนายน 2569`; expanded slot header showed `อังคาร 30 มิ.ย. 69 — เลือกรอบเรียน:`; selected-session chip showed `อ. 30 มิ.ย. 69 08:00-09:00`; summary month/year showed `มิถุนายน 2569`; summary selected date showed `อ. 30 มิ.ย. 69 08:00-09:00`.
+  - Production smoke confirmed console errors/warnings 0, no React #418, no hydration error, and no text mismatch.
+  - Read-only smoke interaction selected `Private`, learner `A'Arm Chanin`, branch `แจ้งวัฒนะ`, date `30`, and slot `08:00 - 09:00`, then went to summary only to read display. `ยืนยันการจอง` was not clicked; no booking/payment/write action was performed.
+  - No source changes after smoke, no extra deploy after smoke, no docs changes before smoke, and no DB/API/migration changes were performed.
+
 - Completed scoped Phase 2 standardized Thai date display release:
   - Source commit `2eebfef5ee1b4dc5da9cd34f05baa2b19efa3eda` (`fix(ui): standardize remaining thai date displays`) was pushed and deployed to Vercel production.
   - Deployment id `dpl_ED8kxqLF3aEhPBCNq4AeUADGnbQX`; deployment URL `https://new-athlete-badminton-school-6u58bndez-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
@@ -31,7 +45,7 @@ Read only when relevant:
   - Checks before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
   - Production smoke passed with `NEED REVIEW` notes only where the smoke account had no real row/date data. Confirmed weekday examples included `/dashboard/notifications` `จันทร์ 29 มิ.ย. 69 14:33`, `/admin/payments` `จันทร์ 29 มิ.ย. 69 14:33` and `เสาร์ 27 มิ.ย. 69 19:30`, `/admin/ranking` and `/ranking` `ประเมินล่าสุด: พฤหัสบดี 25 มิ.ย. 69`, `/admin/finance` `จันทร์ 1 มิ.ย. 69`, `/admin/complaints` `พฤหัสบดี 28 พ.ค. 69 23:28`, `/admin/users` `สมัคร จันทร์ 29 มิ.ย. 69`, `/admin/logs` `จันทร์ 29 มิ.ย. 69 15:18`, and `/admin/settings/levels` `อัปเดต พุธ 13 พ.ค. 69 18:03`.
   - Fresh-tab/cache-buster hydration checks on `/dashboard/schedule`, `/admin/payments`, `/admin/notifications`, and `/ranking` found no React #418, no hydration error, no text mismatch, and console errors/warnings 0.
-  - `/dashboard/booking` was intentionally not changed in this phase because it is booking/calendar selection/write-heavy and out of scope. No source changes after smoke, DB/API/migration changes, write action clicks, `ปิดสัปดาห์` clicks, docs changes before smoke, or extra deploys after smoke were performed.
+  - `/dashboard/booking` was intentionally not changed in this phase because it is booking/calendar selection/write-heavy and out of scope at that time. It was closed later by the scoped booking date-display release above.
 
 - Completed scoped Phase 1 standardized Thai date display release:
   - Source commit `73d465ca1bef5881bb6e6a9c7f52d9046db8a08d` (`fix(ui): standardize thai date display`) was pushed and deployed to Vercel production.
