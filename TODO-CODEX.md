@@ -21,6 +21,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped Admin Payroll / Coach Hours Monday-Sunday teaching week boundary release:
+  - Source commit `56dc769e6b817d645f5cf08523070b64d3ce6f02` (`fix(payroll): use monday teaching weeks`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_FgzX1ZCovmSoj1q9KcL5YYknuZjE`; deployment URL `https://new-athlete-badminton-school-7fipynggk-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/lib/coach-teaching-rules.ts`, `src/components/admin/payroll-client.tsx`, `src/app/api/admin/coach-payouts/route.ts`, `src/app/(coach)/coach/hours/page.tsx`, `src/app/(coach)/coach/page.tsx`, and `src/lib/coach-teaching-hours.ts`.
+  - Teaching/payroll week boundaries now use Monday-Sunday instead of Sunday-Saturday, with deterministic Asia/Bangkok date keys shared by Admin Payroll, Coach Hours, and Coach Dashboard.
+  - Expected June 2026 mapping after the fix: `2026-06-01 - 2026-06-07`, `2026-06-08 - 2026-06-14`, `2026-06-15 - 2026-06-21`, `2026-06-22 - 2026-06-28`, and `2026-06-29 - 2026-07-05`.
+  - Close-week safety now validates client `weekStart/weekEnd` against the canonical Monday-Sunday teaching week and blocks overlapping legacy `coach_weekly_teaching_summaries` before upsert. Existing closed summaries were not repaired, migrated, deleted, or rewritten.
+  - `coach_checkins` chunking in `src/lib/coach-teaching-hours.ts` is a read-only query transport fix for large reads; payroll rates, coach evidence requirements, attendance logic, and payable formula semantics were not changed beyond weekly grouping.
+  - Production smoke passed for `/admin/payroll`: the coach-hours detail modal loaded, Coach Tony NA Rama 2 showed Monday-Sunday ranges `1 มิ.ย. 69 - 7 มิ.ย. 69`, `8 มิ.ย. 69 - 14 มิ.ย. 69`, `15 มิ.ย. 69 - 21 มิ.ย. 69`, `22 มิ.ย. 69 - 28 มิ.ย. 69`, and `29 มิ.ย. 69 - 5 ก.ค. 69`; legacy ranges `31 พ.ค. 69 - 6 มิ.ย. 69` and `7 มิ.ย. 69 - 13 มิ.ย. 69` were not found.
+  - `/coach` and `/coach/hours` production smoke loaded without crash and with console errors/warnings 0. Coach weekly visual rows remain `NEED REVIEW` only because the smoke coach session had no real weekly rows visible.
+  - No DB changes, migrations, closed-summary repair/migration/delete, payroll rate changes, coach evidence requirement changes, attendance logic changes, payment/booking/wallet/Admin Makeup/SlipOK changes, write action clicks, `ปิดสัปดาห์` clicks, or extra deploys after smoke were performed.
+
 - Completed scoped Admin notifications low-enrollment alert count and React hydration fixes:
   - Low-enrollment source commit `9b88fbdf98e9146941dd5ea01c32fa6abc79bfc3` (`fix(admin): align low-enrollment alert counts`) was pushed and deployed to Vercel production.
   - React hydration source commit `953edc93266ea81f3b84afd0ee0fbe3cd3de3f05` (`fix(admin): stabilize notifications hydration`) was pushed and deployed to Vercel production.
