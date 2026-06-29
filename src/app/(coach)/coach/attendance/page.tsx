@@ -2,6 +2,7 @@ import { AttendanceClient } from '@/components/coach/attendance-client'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { getAdminReturnedAttendanceSlotIds } from '@/lib/coach-attendance-review'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 
@@ -26,12 +27,7 @@ function isValidDateString(value?: string) {
 }
 
 function formatDateLabel(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 export default async function AttendancePage({ searchParams }: AttendancePageProps) {

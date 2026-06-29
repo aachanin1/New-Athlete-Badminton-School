@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { getCoachSlotCheckedCount, getCoachSlotDisplaySummary } from '@/lib/coach-slot-display-status'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
+import { formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { deriveSessionAttendanceStatus, isInProgressSession } from '@/lib/session-attendance-status'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime, getBangkokDateString } from '@/lib/utils'
@@ -43,19 +44,11 @@ function toInputDate(value: Date) {
 }
 
 function formatDateLabel(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function formatMonthTitle(value: Date) {
-  return value.toLocaleDateString('th-TH', {
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiMonthYear(value)
 }
 
 function getMonthCalendarDays(monthStart: Date) {

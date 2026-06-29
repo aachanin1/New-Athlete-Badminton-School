@@ -12,6 +12,7 @@ import {
   normalizeCoachTeachingRulesSettings,
 } from '@/lib/coach-teaching-rules'
 import { getCoachTeachingHourSourceRows, type CoachTeachingHourSourceRow } from '@/lib/coach-teaching-hours'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 
@@ -31,12 +32,7 @@ function toInputDate(value: Date) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    timeZone: 'Asia/Bangkok',
-  }).format(new Date(`${value}T00:00:00+07:00`))
+  return formatThaiDateWithWeekday(value)
 }
 
 function formatTime(value: string) {

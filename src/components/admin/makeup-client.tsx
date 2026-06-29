@@ -11,7 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
-import { DAY_LABELS } from '@/lib/branch-schedules'
+import {
+  formatThaiDateTimeWithWeekday,
+  formatThaiDateWithWeekday,
+  formatThaiMonthYear,
+  formatThaiShortMonthYear,
+} from '@/lib/date-format'
 import { isAttendanceGapReviewSession, isMakeupEligibleMissedSession } from '@/lib/session-attendance-status'
 import { getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import type { AttendanceStatus } from '@/types/database'
@@ -252,21 +257,17 @@ function getMonthRange(date: string) {
   }
 
   return {
-    monthLabel: new Intl.DateTimeFormat('th-TH', { month: 'short', year: '2-digit' }).format(start),
-    nextMonthLabel: new Intl.DateTimeFormat('th-TH', { month: 'long', year: 'numeric' }).format(nextStart),
+    monthLabel: formatThaiShortMonthYear(toInput(start)),
+    nextMonthLabel: formatThaiMonthYear(toInput(nextStart)),
     nextMonthStart: toInput(nextStart),
     nextMonthEnd: toInput(nextEnd),
     followingStart,
-    deadlineLabel: new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(nextEnd),
+    deadlineLabel: formatThaiDateWithWeekday(toInput(nextEnd)),
   }
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  }).format(new Date(`${value}T00:00:00`))
+  return formatThaiDateWithWeekday(value)
 }
 
 function formatTime(start: string, end: string) {
@@ -275,14 +276,7 @@ function formatTime(start: string, end: string) {
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return null
-  return new Intl.DateTimeFormat('th-TH', {
-    timeZone: 'Asia/Bangkok',
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
+  return formatThaiDateTimeWithWeekday(value)
 }
 
 function compareTextTh(a: string, b: string) {
@@ -2553,7 +2547,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                     <div className="rounded-lg border border-gray-200 p-3">
                       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
                         <Calendar className="h-4 w-4 text-[#2748bf]" />
-                        {selectedDay ? `${DAY_LABELS[selectedDay.dayOfWeek]} ${formatDate(selectedDay.dateInput)}` : 'เลือกรอบเรียน'}
+                        {selectedDay ? formatDate(selectedDay.dateInput) : 'เลือกรอบเรียน'}
                       </div>
                       {!selectedDay ? (
                         <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">
@@ -2603,7 +2597,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
               {pickedSlot && (
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                  เลือกแล้ว: {DAY_LABELS[pickedSlot.dayOfWeek]} {formatDate(pickedSlot.date)} • {formatTime(pickedSlot.start, pickedSlot.end)} • {pickedSlot.branchName}
+                  เลือกแล้ว: {formatDate(pickedSlot.date)} • {formatTime(pickedSlot.start, pickedSlot.end)} • {pickedSlot.branchName}
                 </div>
               )}
 

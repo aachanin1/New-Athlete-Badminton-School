@@ -21,6 +21,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 
 interface BranchOption {
@@ -174,20 +175,11 @@ function normalizeTimeString(time: string) {
 }
 
 function formatDisplayDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function formatShortDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function formatLevel(session: ScheduleSession) {

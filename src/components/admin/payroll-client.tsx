@@ -43,6 +43,7 @@ import {
   type TeachingPayEntry,
   type TeachingSlotForCalculation,
 } from '@/lib/coach-teaching-rules'
+import { formatThaiDateRangeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 
 interface PayrollSourceRow extends TeachingSlotForCalculation {
@@ -144,8 +145,6 @@ interface PayrollClientProps {
 }
 
 const MONTH_LABELS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-const BANGKOK_TIME_ZONE = 'Asia/Bangkok'
-
 const EMPLOYMENT_BADGES: Record<CoachEmploymentType, string> = {
   full_time: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
   half_time: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
@@ -184,12 +183,7 @@ function getInputDateYearMonth(value: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    timeZone: BANGKOK_TIME_ZONE,
-  }).format(new Date(`${value}T00:00:00+07:00`))
+  return formatThaiDateWithWeekday(value)
 }
 
 function formatTime(value: string) {
@@ -238,7 +232,7 @@ function buildWeekBreakdown(
       weeks.set(week.key, {
         weekStart: week.key,
         weekEnd: week.end,
-        label: `${formatDate(week.key)} - ${formatDate(week.end)}`,
+        label: formatThaiDateRangeWithWeekday(week.key, week.end),
         assignedRows: [],
         payableEntries: [],
         missingRows: [],

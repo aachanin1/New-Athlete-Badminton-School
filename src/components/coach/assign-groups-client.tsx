@@ -28,6 +28,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  formatThaiCompactDateWithWeekday,
+  formatThaiDateWithWeekday,
+  formatThaiMonthYear,
+  formatThaiShortDate,
+} from '@/lib/date-format'
 import { cn, fmtTime } from '@/lib/utils'
 import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
 import type { LevelCategory, StudentType } from '@/types/database'
@@ -121,20 +127,11 @@ const LEVEL_CATEGORY_LABELS: Record<LevelCategory, string> = {
 }
 
 function formatDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function formatShortDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function getMemoryText(memory: CoachMemoryEntry) {
@@ -418,10 +415,7 @@ function shiftMonth(monthKey: string, direction: -1 | 1) {
 }
 
 function formatMonth(monthKey: string) {
-  return new Date(`${monthKey}-01T00:00:00`).toLocaleDateString('th-TH', {
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiMonthYear(`${monthKey}-01`)
 }
 
 export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGroupsClientProps) {
@@ -769,9 +763,8 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
               {dateSummaries.map((summary) => {
                 const isActive = summary.date === activeDate
-                const dateObj = new Date(`${summary.date}T00:00:00`)
-                const weekday = dateObj.toLocaleDateString('th-TH', { weekday: 'short' })
-                const day = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+                const [weekday] = formatThaiCompactDateWithWeekday(summary.date).split(' ')
+                const day = formatThaiShortDate(summary.date)
 
                 return (
                   <button
