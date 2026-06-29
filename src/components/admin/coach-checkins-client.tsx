@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 
 interface CheckinAuditRow {
   assignment_id: string
@@ -170,7 +171,7 @@ function getReviewBadges(row: CheckinAuditRow) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T00:00:00`))
+  return formatThaiDateWithWeekday(value)
 }
 
 function formatTime(value: string) {
@@ -178,13 +179,7 @@ function formatTime(value: string) {
 }
 
 function formatCheckinTime(value: string) {
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
+  return formatThaiDateTimeWithWeekday(value)
 }
 
 export function CoachCheckinsClient({ rows, branches, loadErrors = [] }: CoachCheckinsClientProps) {

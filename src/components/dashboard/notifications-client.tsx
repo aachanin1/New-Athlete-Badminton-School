@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 import { Bell, BellRing, CheckCheck, Clock, Search, Circle } from 'lucide-react'
 
 interface NotificationRow {
@@ -71,13 +72,7 @@ export function NotificationsClient({
   const startIndex = (safePage - 1) * NOTIFICATIONS_PER_PAGE
   const paginatedNotifications = filtered.slice(startIndex, startIndex + NOTIFICATIONS_PER_PAGE)
 
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const formatDate = (date: string) => formatThaiDateTimeWithWeekday(date)
 
   const markAsRead = async (notificationId?: string) => {
     setLoading(true)

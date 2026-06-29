@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import { hasPaymentTransferSettings, type PaymentTransferSettings } from '@/lib/payment-settings'
 import { Button } from '@/components/ui/button'
@@ -176,8 +177,7 @@ function getLearnerName(session: SessionDetail) {
 }
 
 function getSessionDateLabel(session: SessionDetail) {
-  const sessionDate = new Date(session.date + 'T00:00:00')
-  return sessionDate.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })
+  return formatThaiDateWithWeekday(session.date)
 }
 
 function getSessionStatusConfig(session: SessionDetail) {
@@ -876,7 +876,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                       <div key={usage.id} className="flex items-center justify-between gap-3 rounded-md bg-white/70 px-3 py-2">
                         <div>
                           <p className="font-mono font-semibold text-[#153c85]">{usage.coupons?.code || 'COUPON'}</p>
-                          <p className="text-xs text-gray-500">{new Date(usage.used_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</p>
+                          <p className="text-xs text-gray-500">{formatThaiDateTimeWithWeekday(usage.used_at)}</p>
                         </div>
                         <p className="font-bold text-orange-700">-฿{Number(usage.discount_amount || 0).toLocaleString()}</p>
                       </div>

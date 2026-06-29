@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 
 interface LogData {
   id: string
@@ -41,14 +42,7 @@ const ENTITY_COLORS: Record<string, string> = {
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  return formatThaiDateTimeWithWeekday(value)
 }
 
 export function LogsClient({ logs }: LogsClientProps) {

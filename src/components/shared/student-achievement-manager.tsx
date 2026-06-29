@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 
 export interface ManagedStudentAchievement {
   id: string
@@ -208,7 +209,7 @@ export function StudentAchievementManager({
                       {achievement.description && <p className="mt-1 text-sm text-gray-500">{achievement.description}</p>}
                       {achievement.awardedAt && (
                         <p className="mt-1 text-xs text-gray-400">
-                          วันที่ได้รับ {new Date(achievement.awardedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          วันที่ได้รับ {formatThaiDateWithWeekday(achievement.awardedAt)}
                         </p>
                       )}
                     </div>

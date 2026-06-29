@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import {
   AlertCircle,
   Building2,
@@ -41,11 +42,7 @@ interface BranchesClientProps {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  }).format(new Date(value))
+  return formatThaiDateWithWeekday(value)
 }
 
 export function BranchesClient({ branches }: BranchesClientProps) {

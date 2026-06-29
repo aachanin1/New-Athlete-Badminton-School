@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import {
   Dialog,
   DialogContent,
@@ -183,7 +184,7 @@ export function ComplaintClient({ complaints, branches }: ComplaintClientProps) 
                       <div className="flex items-center gap-2 mb-1">
                         <Badge className={status.color}>{status.label}</Badge>
                         <span className="text-xs text-gray-400">
-                          {new Date(c.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {formatThaiDateWithWeekday(c.created_at)}
                         </span>
                       </div>
                       <h3 className="font-bold text-gray-900">{c.subject}</h3>

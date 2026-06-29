@@ -15,6 +15,7 @@ import {
   normalizeCoachTeachingRulesSettings,
   type CoachTeachingRules,
 } from '@/lib/coach-teaching-rules'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 
 interface CoachOtSettingsClientProps {
   settings: CoachTeachingRules
@@ -27,13 +28,7 @@ function formatCurrency(value: number) {
 
 function formatUpdatedAt(value: string | null) {
   if (!value) return 'ยังไม่เคยบันทึก'
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
+  return formatThaiDateTimeWithWeekday(value)
 }
 
 function serializeRules(settings: CoachTeachingRules) {

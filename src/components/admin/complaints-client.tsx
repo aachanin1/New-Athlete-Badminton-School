@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 
 type ComplaintStatus = 'open' | 'in_progress' | 'resolved'
 
@@ -72,13 +73,7 @@ const STATUS_CONFIG: Record<ComplaintStatus, { label: string; badge: string; ico
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatThaiDateTimeWithWeekday(date)
 }
 
 export function ComplaintsClient({ complaints }: ComplaintsClientProps) {

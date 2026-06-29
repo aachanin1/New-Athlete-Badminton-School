@@ -16,6 +16,7 @@ import {
   type ManagedStudentAchievement,
 } from '@/components/shared/student-achievement-manager'
 import { LEVEL_RANGES, formatLevelRange, getLevelDisplay } from '@/constants/levels'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 
 export interface RankingBranch {
@@ -56,12 +57,7 @@ function getInitials(name: string) {
 
 function formatDate(date: string | null) {
   if (!date) return 'ยังไม่ได้ประเมิน'
-  return new Intl.DateTimeFormat('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    timeZone: 'Asia/Bangkok',
-  }).format(new Date(date))
+  return formatThaiDateWithWeekday(date)
 }
 
 function getRankClass(rank: number) {

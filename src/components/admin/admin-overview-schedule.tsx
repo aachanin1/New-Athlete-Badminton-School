@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, ArrowRight, Building2, CalendarDays, Clock, Search, User, UserCog, Users } from 'lucide-react'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 
 interface BranchOption {
@@ -72,12 +73,7 @@ function getDateString(year: number, month: number, day: number) {
 }
 
 function formatDisplayDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function getSessionStatusConfig(status: string) {
@@ -350,7 +346,7 @@ export function AdminOverviewSchedule({ sessions, branches }: AdminOverviewSched
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="h-3 w-3" />
-                              {new Date(`${session.date}T00:00:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                              {formatThaiDateWithWeekday(session.date)}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />

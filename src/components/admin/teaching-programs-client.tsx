@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 import type { ProgramStatus } from '@/types/database'
 
@@ -89,23 +90,12 @@ const COURSE_LABELS: Record<string, string> = {
 
 function formatDate(value: string) {
   if (!value) return '-'
-  return new Date(`${value}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
+  return formatThaiDateWithWeekday(value)
 }
 
 function formatDateTime(value: string | null) {
   if (!value) return '-'
-  return new Date(value).toLocaleString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatThaiDateTimeWithWeekday(value)
 }
 
 function getInitials(name: string) {

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { PaymentSettingsClient } from '@/components/admin/payment-settings-client'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 import type { PaymentTransferSettings } from '@/lib/payment-settings'
 import {
   AlertTriangle,
@@ -149,13 +150,7 @@ function formatMoney(amount: number) {
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatThaiDateTimeWithWeekday(dateStr)
 }
 
 function getVerificationSource(payment: PaymentData) {

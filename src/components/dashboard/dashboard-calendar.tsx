@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Clock, MapPin } from 'lucide-react'
+import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import { SELF_LEARNER_COLOR, buildLearnerColorMap, getLearnerColor } from './learner-colors'
 
@@ -139,7 +140,7 @@ export function DashboardCalendar({ sessions, learnerChildren, userName }: Dashb
         <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
           <p className="font-medium text-[#153c85] text-sm">
             <CalendarDays className="inline h-4 w-4 mr-1" />
-            {new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {formatThaiDateWithWeekday(selectedDate)}
           </p>
           {selectedSessions.map((s) => {
             const color = getColor(s)
@@ -170,13 +171,12 @@ export function DashboardCalendar({ sessions, learnerChildren, userName }: Dashb
           <p className="text-xs font-medium text-gray-500">รายการเรียนที่กำลังจะถึง</p>
           {sessions.slice(0, 5).map((s) => {
             const color = getColor(s)
-            const d = new Date(s.date + 'T00:00:00')
             return (
               <div key={s.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[#2748bf]/10 rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-[9px] text-[#2748bf] font-medium">{d.toLocaleDateString('th-TH', { weekday: 'short' })}</span>
-                    <span className="text-sm font-bold text-[#2748bf] leading-none">{d.getDate()}</span>
+                    <span className="text-[9px] text-[#2748bf] font-medium">{formatThaiCompactDateWithWeekday(s.date).split(' ')[0]}</span>
+                    <span className="text-sm font-bold text-[#2748bf] leading-none">{Number(s.date.slice(8, 10))}</span>
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 text-sm font-medium">

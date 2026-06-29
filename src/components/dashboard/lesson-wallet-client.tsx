@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getTemplateSlots, hasTemplateSlots, normalizeCourseTypeName, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
 
@@ -79,12 +80,7 @@ const COURSE_LABELS: Record<CourseTypeName, string> = {
 }
 
 function formatDateThai(date: string) {
-  return new Date(`${date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(date)
 }
 
 function getLearnerName(credit: WalletCredit) {
@@ -309,7 +305,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                       <MapPin className="mr-1 inline h-3.5 w-3.5" />
                       {credit.branches?.name || '-'}
                     </p>
-                    <p className="text-xs text-gray-500">หมดอายุ {new Date(credit.expires_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</p>
+                    <p className="text-xs text-gray-500">หมดอายุ {formatThaiDateWithWeekday(credit.expires_at)}</p>
                   </div>
                   <Button className="bg-[#2748bf] hover:bg-[#153c85]" disabled={loading || !courseType} onClick={() => openRedeemDialog(credit)}>
                     <ArrowRight className="mr-1 h-4 w-4" />

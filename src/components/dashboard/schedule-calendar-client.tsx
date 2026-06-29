@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { deriveSessionAttendanceStatus, type DerivedSessionStatus } from '@/lib/session-attendance-status'
+import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn, fmtTime } from '@/lib/utils'
 import { SELF_LEARNER_COLOR, buildLearnerColorMap, getLearnerColor } from './learner-colors'
 
@@ -176,11 +177,7 @@ function getSessionStatusLabel(session: SessionData) {
 }
 
 function formatSlotText(slot: { date: string; start_time: string; end_time: string }) {
-  const dateLabel = new Date(`${slot.date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-  })
-  return `${dateLabel} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}`
+  return `${formatThaiDateWithWeekday(slot.date)} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}`
 }
 
 function isAtLeast48HoursAhead(date: string, time: string) {
@@ -418,7 +415,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <p className="font-medium text-[#153c85]">
                 <CalendarDays className="mr-1 inline h-4 w-4" />
-                {new Date(`${selectedDate}T00:00:00+07:00`).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                {formatThaiDateWithWeekday(selectedDate)}
               </p>
               <span className="text-sm text-gray-500">{selectedSessions.length} รอบ</span>
             </div>
@@ -523,7 +520,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                       {session.attendance_checked_at && (
                         <span className="inline-flex items-center gap-1 text-green-700">
                           <CheckCircle2 className="h-3 w-3" />
-                          เช็คชื่อ {new Date(session.attendance_checked_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          เช็คชื่อ {formatThaiDateTimeWithWeekday(session.attendance_checked_at)}
                         </span>
                       )}
                       {derivedAbsentFromPartialAttendance && (
@@ -611,7 +608,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
           {walletSession && (
             <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
               <p className="font-semibold text-[#153c85]">{getLearnerName(walletSession)}</p>
-              <p>{new Date(`${walletSession.date}T00:00:00+07:00`).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })} · {fmtTime(walletSession.start_time)}-{fmtTime(walletSession.end_time)}</p>
+              <p>{formatThaiDateWithWeekday(walletSession.date)} · {fmtTime(walletSession.start_time)}-{fmtTime(walletSession.end_time)}</p>
               <p className="text-xs text-gray-500">{walletSession.branches?.name || '-'}</p>
             </div>
           )}

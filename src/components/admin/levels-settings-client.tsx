@@ -20,6 +20,7 @@ import {
   getLevelRange,
   getLevelRangeByCategory,
 } from '@/constants/levels'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 import type { LevelCategory } from '@/types/database'
 
 interface LevelData {
@@ -48,13 +49,7 @@ type DialogMode = 'create' | 'edit'
 
 function formatDate(date: string | null) {
   if (!date) return '-'
-  return new Date(date).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatThaiDateTimeWithWeekday(date)
 }
 
 function getNextLevelId(levels: LevelData[]) {

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import type { Child, Gender } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -69,8 +70,7 @@ const CHILDREN_PER_PAGE = 9
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
+  return formatThaiDateWithWeekday(dateStr)
 }
 
 function calculateAge(dateStr: string | null) {

@@ -22,6 +22,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
+import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
 
@@ -105,12 +106,7 @@ function isFutureSlot(date: string, time: string) {
 }
 
 function formatDateThai(dateStr: string) {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('th-TH', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatThaiDateWithWeekday(dateStr)
 }
 
 function getCourseType(session: SessionRow | null): CourseTypeName {
@@ -342,9 +338,9 @@ export function RescheduleClient({ sessions, branches, scheduleTemplates }: Resc
                           <div className="flex items-start gap-3">
                             <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-[#2748bf]/10">
                               <span className="text-xs font-medium text-[#2748bf]">
-                                {new Date(`${session.date}T00:00:00`).toLocaleDateString('th-TH', { weekday: 'short' })}
+                                {formatThaiCompactDateWithWeekday(session.date).split(' ')[0]}
                               </span>
-                              <span className="text-lg font-bold text-[#2748bf]">{new Date(`${session.date}T00:00:00`).getDate()}</span>
+                              <span className="text-lg font-bold text-[#2748bf]">{Number(session.date.slice(8, 10))}</span>
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-gray-900">{formatDateThai(session.date)}</p>

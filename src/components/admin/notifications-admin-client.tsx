@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 import type { NotificationType, UserRole } from '@/types/database'
 
 interface NotificationData {
@@ -135,14 +136,7 @@ function getBangkokDateKey(date: string) {
 }
 
 function formatDate(date: string) {
-  return new Intl.DateTimeFormat('th-TH', {
-    timeZone: 'Asia/Bangkok',
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date))
+  return formatThaiDateTimeWithWeekday(date)
 }
 
 function getTypeConfig(type: string) {

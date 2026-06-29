@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import type { UserRole } from '@/types/database'
 
 interface ChildInfo {
@@ -72,11 +73,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
 ]
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
+  return formatThaiDateWithWeekday(dateStr)
 }
 
 function getInitial(name: string, email: string) {

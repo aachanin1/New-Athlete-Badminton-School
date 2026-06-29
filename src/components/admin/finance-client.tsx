@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import {
   Banknote,
   Building2,
@@ -122,7 +123,7 @@ function formatNumber(value: number, fractionDigits = 0) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(`${value}T00:00:00`))
+  return formatThaiDateWithWeekday(value)
 }
 
 function getCourseLabel(courseType: string) {

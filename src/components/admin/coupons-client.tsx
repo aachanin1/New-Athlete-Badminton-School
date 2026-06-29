@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import {
   AlertCircle,
   Banknote,
@@ -86,11 +87,7 @@ const emptyForm = (): CouponFormState => ({
 })
 
 function formatDate(value: string) {
-  return new Date(`${value.includes('T') ? value : `${value}T00:00:00`}`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
+  return value.includes('T') ? formatThaiDateTimeWithWeekday(value) : formatThaiDateWithWeekday(value)
 }
 
 function formatCurrency(value: number) {
