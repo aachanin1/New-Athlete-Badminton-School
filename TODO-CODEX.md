@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,18 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped Phase 2 standardized Thai date display release:
+  - Source commit `2eebfef5ee1b4dc5da9cd34f05baa2b19efa3eda` (`fix(ui): standardize remaining thai date displays`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_ED8kxqLF3aEhPBCNq4AeUADGnbQX`; deployment URL `https://new-athlete-badminton-school-6u58bndez-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope covered the remaining User/Admin/Public/support date displays and reused the existing `src/lib/date-format.ts` helper from Phase 1.
+  - Files changed: `src/components/admin/admin-overview-schedule.tsx`, `src/components/admin/branches-client.tsx`, `src/components/admin/coach-checkins-client.tsx`, `src/components/admin/coach-ot-settings-client.tsx`, `src/components/admin/complaints-client.tsx`, `src/components/admin/coupons-client.tsx`, `src/components/admin/finance-client.tsx`, `src/components/admin/levels-settings-client.tsx`, `src/components/admin/logs-client.tsx`, `src/components/admin/notifications-admin-client.tsx`, `src/components/admin/payments-client.tsx`, `src/components/admin/teaching-programs-client.tsx`, `src/components/admin/users-client.tsx`, `src/components/dashboard/children-client.tsx`, `src/components/dashboard/complaint-client.tsx`, `src/components/dashboard/dashboard-calendar.tsx`, `src/components/dashboard/history-client.tsx`, `src/components/dashboard/lesson-wallet-client.tsx`, `src/components/dashboard/notifications-client.tsx`, `src/components/dashboard/reschedule-client.tsx`, `src/components/dashboard/schedule-calendar-client.tsx`, `src/components/shared/ranking-board.tsx`, and `src/components/shared/student-achievement-manager.tsx`.
+  - Default date display is now `จันทร์ 29 มิ.ย. 69`; date-time display is `จันทร์ 29 มิ.ย. 69 14:33`; compact weekday is reserved for tight UI such as dashboard quick cards and reschedule date tiles.
+  - This was display-only. It did not change query/filter/grouping/calendar selection, booking/reschedule/wallet/attendance/payroll logic, payroll Monday-Sunday boundary logic, close API behavior, financial visibility gating, ranking sort/filter/rank logic, low-enrollment logic, React #418 deterministic date-key logic, DB/API/migrations, or write actions.
+  - Checks before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Production smoke passed with `NEED REVIEW` notes only where the smoke account had no real row/date data. Confirmed weekday examples included `/dashboard/notifications` `จันทร์ 29 มิ.ย. 69 14:33`, `/admin/payments` `จันทร์ 29 มิ.ย. 69 14:33` and `เสาร์ 27 มิ.ย. 69 19:30`, `/admin/ranking` and `/ranking` `ประเมินล่าสุด: พฤหัสบดี 25 มิ.ย. 69`, `/admin/finance` `จันทร์ 1 มิ.ย. 69`, `/admin/complaints` `พฤหัสบดี 28 พ.ค. 69 23:28`, `/admin/users` `สมัคร จันทร์ 29 มิ.ย. 69`, `/admin/logs` `จันทร์ 29 มิ.ย. 69 15:18`, and `/admin/settings/levels` `อัปเดต พุธ 13 พ.ค. 69 18:03`.
+  - Fresh-tab/cache-buster hydration checks on `/dashboard/schedule`, `/admin/payments`, `/admin/notifications`, and `/ranking` found no React #418, no hydration error, no text mismatch, and console errors/warnings 0.
+  - `/dashboard/booking` was intentionally not changed in this phase because it is booking/calendar selection/write-heavy and out of scope. No source changes after smoke, DB/API/migration changes, write action clicks, `ปิดสัปดาห์` clicks, docs changes before smoke, or extra deploys after smoke were performed.
 
 - Completed scoped Phase 1 standardized Thai date display release:
   - Source commit `73d465ca1bef5881bb6e6a9c7f52d9046db8a08d` (`fix(ui): standardize thai date display`) was pushed and deployed to Vercel production.
