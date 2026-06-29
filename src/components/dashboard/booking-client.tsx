@@ -20,7 +20,7 @@ import {
   CalendarDays,
   Clock,
 } from 'lucide-react'
-import { DAY_LABELS } from '@/lib/branch-schedules'
+import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption, type TimeSlot } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
 import { fmtTime } from '@/lib/utils'
@@ -131,7 +131,9 @@ const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: 
   { value: 'private', label: 'Private', desc: 'เด็ก & ผู้ใหญ่ • 1 ชม.', icon: Star },
 ]
 
-const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+function getMonthDisplayDateKey(year: number, monthIndex: number) {
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`
+}
 
 export function BookingClient({ userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
   const router = useRouter()
@@ -166,6 +168,7 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
   const now = new Date()
   const [calMonth, setCalMonth] = useState(isEditMode ? (editBooking.month - 1) : now.getMonth())
   const [calYear, setCalYear] = useState(isEditMode ? editBooking.year : now.getFullYear())
+  const calendarMonthDisplay = formatThaiMonthYear(getMonthDisplayDateKey(calYear, calMonth))
 
   // Build initial sessionsMap from editBooking sessions
   const buildEditSessionsMap = (): Record<string, SelectedSession[]> => {
@@ -539,7 +542,7 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
 
       const expiredSession = allSessions.find((session) => !isSelectedSessionStillBookable(session))
       if (expiredSession) {
-        setError(`รอบ ${fmtTime(expiredSession.start)}-${fmtTime(expiredSession.end)} วันที่ ${expiredSession.date} เริ่มไปแล้ว กรุณาเลือกรอบเรียนใหม่`)
+        setError(`รอบ ${fmtTime(expiredSession.start)}-${fmtTime(expiredSession.end)} วันที่ ${formatThaiDateWithWeekday(expiredSession.date)} เริ่มไปแล้ว กรุณาเลือกรอบเรียนใหม่`)
         setLoading(false)
         return
       }
@@ -890,7 +893,7 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
               }} disabled={calMonth === now.getMonth() && calYear === now.getFullYear()}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium w-36 text-center">{MONTH_NAMES_TH[calMonth]} {calYear + 543}</span>
+              <span className="text-sm font-medium w-36 text-center">{calendarMonthDisplay}</span>
               <Button variant="outline" size="sm" onClick={() => {
                 if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) } else setCalMonth(calMonth + 1)
                 setSessionsMap({}); setExpandedDate(null)
@@ -997,15 +1000,13 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
               {/* Expanded slot picker — grouped by branch */}
               {expandedDate && (() => {
                 const day = parseInt(expandedDate.split('-')[2])
-                const date = new Date(calYear, calMonth, day)
-                const dow = date.getDay()
                 const existingHere = getExistingSessionsForDate(day)
                 const hasAnyBookableSlot = selectedBranches.some((branch) => getBookableSlots(branch.slug, day).length > 0)
                 return (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg border space-y-3">
                     <p className="text-sm font-medium">
                       <CalendarDays className="inline h-4 w-4 mr-1" />
-                      {DAY_LABELS[dow]} {day} {MONTH_NAMES_TH[calMonth]} — เลือกรอบเรียน:
+                      {formatThaiDateWithWeekday(expandedDate)} — เลือกรอบเรียน:
                     </p>
                     {existingHere.length > 0 && (
                       <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 space-y-1">
@@ -1084,29 +1085,23 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
                     <div key={cid}>
                       <p className="text-xs font-medium text-gray-600 mb-1">{child?.nickname || child?.full_name} ({childSess.length} ครั้ง)</p>
                       <div className="flex flex-wrap gap-1">
-                        {childSess.map((s: SelectedSession, si: number) => {
-                          const d = new Date(s.date + 'T00:00:00')
-                          return (
-                            <Badge key={si} variant="outline" className="text-xs py-0.5 px-1.5 gap-1">
-                              {DAY_LABELS[s.dayOfWeek]} {d.getDate()}/{calMonth + 1} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
-                              <button onClick={() => removeSession(cid, si)} className="ml-0.5 hover:text-red-500"><X className="h-3 w-3" /></button>
-                            </Badge>
-                          )
-                        })}
+                        {childSess.map((s: SelectedSession, si: number) => (
+                          <Badge key={si} variant="outline" className="text-xs py-0.5 px-1.5 gap-1">
+                            {formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
+                            <button onClick={() => removeSession(cid, si)} className="ml-0.5 hover:text-red-500"><X className="h-3 w-3" /></button>
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   )
                 }) : (
                   <div className="flex flex-wrap gap-2">
-                    {activeSessions.sort((a, b) => a.date.localeCompare(b.date)).map((s, i) => {
-                      const d = new Date(s.date + 'T00:00:00')
-                      return (
-                        <Badge key={i} variant="outline" className="text-xs py-1 px-2 gap-1">
-                          {DAY_LABELS[s.dayOfWeek]} {d.getDate()}/{calMonth + 1} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
-                          <button onClick={() => removeSession('self', i)} className="ml-1 hover:text-red-500"><X className="h-3 w-3" /></button>
-                        </Badge>
-                      )
-                    })}
+                    {activeSessions.sort((a, b) => a.date.localeCompare(b.date)).map((s, i) => (
+                      <Badge key={i} variant="outline" className="text-xs py-1 px-2 gap-1">
+                        {formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
+                        <button onClick={() => removeSession('self', i)} className="ml-1 hover:text-red-500"><X className="h-3 w-3" /></button>
+                      </Badge>
+                    ))}
                   </div>
                 )}
 
@@ -1145,7 +1140,7 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
                     ? selectedChildIds.map((id) => learnerChildren.find((c) => c.id === id)?.full_name).join(', ')
                     : userName}
                 </p></div>
-                <div><p className="text-gray-500">เดือน</p><p className="font-medium">{MONTH_NAMES_TH[calMonth]} {calYear + 543}</p></div>
+                <div><p className="text-gray-500">เดือน</p><p className="font-medium">{calendarMonthDisplay}</p></div>
                 <div><p className="text-gray-500">จำนวนครั้ง</p><p className="font-medium">{allSelectedSessions.length} ครั้ง</p></div>
                 {pricing && <div><p className="text-gray-500">เรท</p><p className="font-medium">{pricing.perSession} บาท/ครั้ง ({pricing.tierLabel})</p></div>}
               </div>
@@ -1164,10 +1159,9 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
                           <p className="text-sm font-bold text-[#2748bf]">฿{childPrice.toLocaleString()}</p>
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {childSess.map((s: SelectedSession, si: number) => {
-                            const d = new Date(s.date + 'T00:00:00')
-                            return <Badge key={si} variant="outline" className="text-xs">{DAY_LABELS[s.dayOfWeek]} {d.getDate()}/{calMonth + 1} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}</Badge>
-                          })}
+                          {childSess.map((s: SelectedSession, si: number) => (
+                            <Badge key={si} variant="outline" className="text-xs">{formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}</Badge>
+                          ))}
                         </div>
                       </div>
                     )
@@ -1180,10 +1174,9 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">วันเรียนที่เลือก:</p>
                   <div className="flex flex-wrap gap-1">
-                    {(sessionsMap['self'] || []).sort((a: SelectedSession, b: SelectedSession) => a.date.localeCompare(b.date)).map((s: SelectedSession, i: number) => {
-                      const d = new Date(s.date + 'T00:00:00')
-                      return <Badge key={i} variant="outline" className="text-xs">{DAY_LABELS[s.dayOfWeek]} {d.getDate()}/{calMonth + 1} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}</Badge>
-                    })}
+                    {(sessionsMap['self'] || []).sort((a: SelectedSession, b: SelectedSession) => a.date.localeCompare(b.date)).map((s: SelectedSession, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs">{formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}</Badge>
+                    ))}
                   </div>
                 </div>
               )}
