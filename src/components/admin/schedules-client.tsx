@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -244,6 +244,8 @@ function getRoundLearnerBuckets(round: ScheduleRound) {
   }
 }
 
+type RoundLearnerBuckets = ReturnType<typeof getRoundLearnerBuckets>
+
 function getRoundTimePhase(round: ScheduleRound, now: Date): RoundTimePhase {
   const bangkokDate = getBangkokDateString(now)
   if (round.date < bangkokDate) return 'past'
@@ -286,8 +288,8 @@ function getDailyBoardLearnerStatus(session: ScheduleSession, roundTimePhase: Ro
   return { label: 'รอตรวจเช็คชื่อ', badge: 'bg-orange-100 text-orange-700' }
 }
 
-function getRoundStatus(round: ScheduleRound, roundTimePhase: RoundTimePhase) {
-  const { coachedLearnerCount, waitingCoachCount, walletedLearners } = getRoundLearnerBuckets(round)
+function getRoundStatusFromBuckets(buckets: RoundLearnerBuckets, roundTimePhase: RoundTimePhase) {
+  const { coachedLearnerCount, waitingCoachCount, walletedLearners } = buckets
   if (coachedLearnerCount === 0 && walletedLearners.length > 0) {
     return { label: 'อยู่ในกระเป๋า', badge: 'bg-violet-100 text-violet-700' }
   }
@@ -309,6 +311,8 @@ function getProgramPreview(program: TeachingProgramSummary) {
 
 export function SchedulesClient({ sessions, rounds, branches, initialYear, initialMonth }: SchedulesClientProps) {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const pendingNavigationRef = useRef(false)
   const [now, setNow] = useState(() => new Date())
   const today = getBangkokDateString(now)
   const month = initialMonth - 1
@@ -325,6 +329,10 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     const timer = window.setInterval(() => setNow(new Date()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    pendingNavigationRef.current = false
+  }, [month, year])
 
   const filteredMonthSessions = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -392,6 +400,18 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     return map
   }, [filteredMonthSessions])
 
+  const daySlotCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+
+    Object.entries(sessionsByDate).forEach(([date, daySessions]) => {
+      counts[date] = new Set(
+        daySessions.map((session) => `${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`),
+      ).size
+    })
+
+    return counts
+  }, [sessionsByDate])
+
   const roundsByDate = useMemo(() => {
     const map: Record<string, ScheduleRound[]> = {}
 
@@ -402,6 +422,16 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
 
     Object.values(map).forEach((items) => {
       items.sort((a, b) => a.start_time.localeCompare(b.start_time) || a.branch_name.localeCompare(b.branch_name, 'th'))
+    })
+
+    return map
+  }, [filteredMonthRounds])
+
+  const roundSummaryByKey = useMemo(() => {
+    const map = new Map<string, RoundLearnerBuckets>()
+
+    filteredMonthRounds.forEach((round) => {
+      map.set(round.key, getRoundLearnerBuckets(round))
     })
 
     return map
@@ -423,14 +453,50 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     return days
   }, [month, year])
 
-  const selectedRounds = selectedDate ? roundsByDate[selectedDate] || [] : []
-  const listRounds = selectedDate ? selectedRounds : filteredMonthRounds
-  const totalLearners = new Set(filteredMonthSessions.map((session) => `${session.parent_name || ''}:${session.learner_name}`)).size
-  const totalBranches = new Set(filteredMonthSessions.map((session) => session.branch_id)).size
+  const selectedRounds = useMemo(() => (
+    selectedDate ? roundsByDate[selectedDate] || [] : []
+  ), [roundsByDate, selectedDate])
+  const selectedRoundItems = useMemo(() => selectedRounds.map((round) => ({
+    round,
+    buckets: roundSummaryByKey.get(round.key) || getRoundLearnerBuckets(round),
+  })), [roundSummaryByKey, selectedRounds])
+  const daySummaries = useMemo(() => Object.entries(roundsByDate)
+    .map(([date, dayRounds]) => {
+      const learnerCount = dayRounds.reduce((sum, round) => sum + round.learner_count, 0)
+      const waitingCoachCount = dayRounds.reduce(
+        (sum, round) => sum + (roundSummaryByKey.get(round.key)?.waitingCoachCount || 0),
+        0,
+      )
+      const walletedCount = dayRounds.reduce(
+        (sum, round) => sum + (roundSummaryByKey.get(round.key)?.walletedLearners.length || 0),
+        0,
+      )
+
+      return {
+        date,
+        learnerCount,
+        waitingCoachCount,
+        walletedCount,
+        roundCount: dayRounds.length,
+      }
+    })
+    .sort((a, b) => a.date.localeCompare(b.date)), [roundSummaryByKey, roundsByDate])
+  const totalLearners = useMemo(() => (
+    new Set(filteredMonthSessions.map((session) => `${session.parent_name || ''}:${session.learner_name}`)).size
+  ), [filteredMonthSessions])
+  const totalBranches = useMemo(() => (
+    new Set(filteredMonthSessions.map((session) => session.branch_id)).size
+  ), [filteredMonthSessions])
   const totalSlots = filteredMonthRounds.length
-  const unassignedSessions = filteredMonthRounds.reduce((sum, round) => sum + getRoundLearnerBuckets(round).waitingCoachCount, 0)
+  const unassignedSessions = useMemo(() => (
+    filteredMonthRounds.reduce((sum, round) => sum + (roundSummaryByKey.get(round.key)?.waitingCoachCount || 0), 0)
+  ), [filteredMonthRounds, roundSummaryByKey])
   const navigateToMonth = (targetYear: number, targetMonth: number) => {
-    router.push(`/admin/schedules?year=${targetYear}&month=${targetMonth}`)
+    if (isPending || pendingNavigationRef.current) return
+    pendingNavigationRef.current = true
+    startTransition(() => {
+      router.push(`/admin/schedules?year=${targetYear}&month=${targetMonth}`)
+    })
   }
 
   const goToPreviousMonth = () => {
@@ -454,7 +520,15 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
   }
 
   return (
-    <div className="space-y-5">
+    <div className="relative space-y-5" aria-busy={isPending}>
+      {isPending && (
+        <div className="fixed inset-x-0 top-0 z-50 border-b border-blue-100 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 text-sm font-medium text-[#153c85]">
+            <CalendarDays className="h-4 w-4 animate-pulse text-[#2748bf]" />
+            กำลังโหลดตารางเดือน...
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium text-[#2748bf]">
@@ -468,16 +542,16 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={goToToday}>
+          <Button variant="outline" size="sm" onClick={goToToday} disabled={isPending}>
             วันนี้
           </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth}>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth} disabled={isPending}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="w-36 text-center text-sm font-bold text-[#153c85] sm:w-48 sm:text-base">
             {MONTH_NAMES_TH[month]} {year + 543}
           </div>
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToNextMonth}>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToNextMonth} disabled={isPending}>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -583,7 +657,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                 const daySessions = sessionsByDate[date] || []
                 const isToday = date === today
                 const isSelected = selectedDate === date
-                const daySlots = new Set(daySessions.map((session) => `${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`)).size
+                const daySlots = daySlotCounts[date] || 0
 
                 return (
                   <button
@@ -626,35 +700,70 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
                 <p className="font-semibold text-[#153c85]">
-                  {selectedDate ? formatDisplayDate(selectedDate) : `รายการทั้งหมดใน${MONTH_NAMES_TH[month]}`}
+                  {selectedDate ? formatDisplayDate(selectedDate) : `ภาพรวมเดือน${MONTH_NAMES_TH[month]}`}
                 </p>
-                <p className="text-xs text-gray-500">{listRounds.length} รอบเรียน</p>
+                <p className="text-xs text-gray-500">
+                  {selectedDate ? `${selectedRoundItems.length} รอบเรียน` : `${totalSlots} รอบเรียน`}
+                </p>
               </div>
               {selectedDate && (
                 <Button variant="ghost" size="sm" onClick={() => setSelectedDate(null)}>
-                  ดูทั้งเดือน
+                  กลับภาพรวมเดือน
                 </Button>
               )}
             </div>
 
-            {listRounds.length === 0 ? (
+            {!selectedDate ? (
+              <div className="min-h-[28rem] p-4">
+                <div className="flex min-h-64 flex-col items-center justify-center rounded-md border border-dashed border-blue-100 bg-blue-50/30 px-4 py-8 text-center">
+                  <CalendarDays className="mb-3 h-8 w-8 text-[#2748bf]" />
+                  <p className="font-semibold text-[#153c85]">เลือกวันที่ในปฏิทินเพื่อดูรายละเอียดรอบเรียน</p>
+                  <p className="mt-1 max-w-md text-sm text-gray-500">
+                    หน้านี้แสดงสรุปรายเดือนแบบเบา ๆ ก่อน และจะแสดงกลุ่มโค้ช ผู้เรียน LV โปรแกรมสอน และสถานะรายคนเมื่อเลือกวันที่ต้องการ
+                  </p>
+                </div>
+
+                {daySummaries.length > 0 && (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {daySummaries.map((summary) => (
+                      <button
+                        key={summary.date}
+                        type="button"
+                        onClick={() => setSelectedDate(summary.date)}
+                        className="rounded-md border border-gray-100 bg-white px-3 py-2 text-left transition hover:border-[#2748bf]/40 hover:bg-blue-50/40"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-[#153c85]">{formatShortDate(summary.date)}</p>
+                          <Badge variant="outline" className="text-[10px]">{summary.roundCount} รอบ</Badge>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                          <span>ผู้เรียน {summary.learnerCount} คน</span>
+                          {summary.waitingCoachCount > 0 && <span className="text-red-600">รอจัดโค้ช {summary.waitingCoachCount} คน</span>}
+                          {summary.walletedCount > 0 && <span className="text-violet-700">อยู่ในกระเป๋า {summary.walletedCount} คน</span>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : selectedRoundItems.length === 0 ? (
               <div className="flex min-h-[28rem] items-center justify-center text-sm text-gray-400">
                 ไม่พบตารางเรียนในเงื่อนไขที่เลือก
               </div>
             ) : (
               <div className="max-h-[44rem] overflow-y-auto p-3">
                 <div className="space-y-3">
-                  {listRounds.map((round) => {
+                  {selectedRoundItems.map(({ round, buckets }) => {
                     const course = COURSE_CONFIG[round.course_type] || { label: round.course_type, badge: 'bg-gray-100 text-gray-700' }
                     const roundTimePhase = getRoundTimePhase(round, now)
-                    const roundStatus = getRoundStatus(round, roundTimePhase)
+                    const roundStatus = getRoundStatusFromBuckets(buckets, roundTimePhase)
                     const {
                       displayGroups,
                       unassignedLearners,
                       walletedLearners,
                       coachedLearnerCount,
                       waitingCoachCount,
-                    } = getRoundLearnerBuckets(round)
+                    } = buckets
                     const groupCount = displayGroups.length
 
                     return (
