@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-06-29
+Last updated: 2026-07-01
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -1255,6 +1255,23 @@ Potential bug found:
   - Assigned-coach cards still showed existing buttons such as `ส่งให้โค้ชตรวจสอบรอบนี้`, `เปลี่ยนโค้ชย้อนหลัง`, `บันทึกย้อนหลังทั้งรอบ`, and `ปิดเคสทั้งรอบ`.
   - Console errors/warnings were 0. The font/preload warning flood did not return.
   - No submit, move, assign, close, attendance, or other write action was clicked.
+
+## 2026-07-01 - Admin Schedules Performance UX/Render Fix
+
+- Scoped `/admin/schedules` Phase A + small Phase B performance UX/render fix is deployed to production and production-smoke passed.
+- Source commit `0d70e427db9e4df6a965a41e42371660c59a0cfe` (`fix(schedules): avoid rendering full month details by default`) changed only `src/components/admin/schedules-client.tsx`.
+- Deployment id `dpl_HCABbm1GzZm2bDfe8Xkr5qvTrRei`; deployment URL `https://new-athlete-badminton-school-bd74sd2mc-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Root cause: `/admin/schedules?year=2026&month=6` has large monthly data volume, including 348 rounds and 1182 booking session rows. Before the fix, non-current months could start with `selectedDate = null`, so the right Daily Board panel rendered full-month round/group/learner/program/wallet/detail UI immediately and made tablet/Chrome feel stuck after loading.
+- Fix: month navigation now has pending/loading state, disables Today/previous/next while pending, shows `กำลังโหลดตารางเดือน...`, shows a lightweight month overview when no date is selected, renders Daily Board detail only after a day is selected, memoizes repeated summary/bucket computations, and keeps calendar summary/counts available.
+- No server query semantics, Supabase query/chunk/pagination behavior, business logic, attendance source-of-truth rules, exact coach assignment source, walleted counting rules, teaching program correctness, DB/API/migration, or write behavior changed.
+- Production smoke passed on `https://www.newathleteschool.com/admin/schedules?year=2026&month=6` in Chrome via Codex Chrome Extension, authenticated as `Super Admin: A'Arm Chanin`.
+- Initial June 2026 smoke: page did not redirect to login; displayed `มิถุนายน 2569`; showed 348 rounds and 1182 booking rows; calendar summary/counts per day displayed correctly; right panel showed `ภาพรวมเดือนมิถุนายน` and `เลือกวันที่ในปฏิทินเพื่อดูรายละเอียดรอบเรียน`; heavy detail markers such as `โปรแกรมสอนรอบนี้`, `ผู้ปกครอง:`, and `โค้ช:` had 0 occurrences in the initial overview; UI no longer felt heavily stuck after load.
+- Selected-day smoke for `พุธ 17 มิ.ย. 69` passed: Daily Board showed only that day with 8 rounds, time/branch/course, learner counts, coach groups, learners, LV, teaching program boxes, and attendance labels such as `เรียนแล้ว`, `ขาดเรียน`, and `รอตรวจเช็คชื่อ`; no `พฤหัสบดี 18 มิ.ย. 69` detail mixed into the selected-day panel.
+- Month navigation smoke passed for June -> May, June -> July, and Today -> July: `กำลังโหลดตารางเดือน...` appeared while pending, Today/previous/next buttons were disabled during pending navigation, buttons returned enabled after route settled, and the UI did not appear frozen even when the production query took several seconds.
+- Invariant smoke passed: walleted sessions remained excluded from `รอจัดโค้ช`; the 17 June walleted example showed `อยู่ในกระเป๋า 1 คน`, `มีโค้ชแล้ว 0 คน`, and `ไม่ต้องจัดโค้ช`; coach assignment still displayed through exact coach group / learner group behavior; attendance labels remained correct; calendar summary stayed consistent with June 2026 data; no legacy/slot coach fallback was introduced.
+- Console/hydration smoke passed: console logs/errors/warnings 0, no React #418, no hydration error, and no text mismatch.
+- Verification before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+- Phase C split monthly summary vs daily detail remains optional/future only; it is not required immediately because this scoped fix already avoids full-month detail rendering by default.
 
 ## Unknown / Need Verification
 

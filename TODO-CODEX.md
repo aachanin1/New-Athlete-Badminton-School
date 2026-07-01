@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-06-29
+Last updated: 2026-07-01
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,23 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped `/admin/schedules` Phase A + small Phase B performance UX/render fix:
+  - Source commit `0d70e427db9e4df6a965a41e42371660c59a0cfe` (`fix(schedules): avoid rendering full month details by default`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_HCABbm1GzZm2bDfe8Xkr5qvTrRei`; deployment URL `https://new-athlete-badminton-school-bd74sd2mc-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/components/admin/schedules-client.tsx`.
+  - Root cause: `/admin/schedules?year=2026&month=6` has large monthly data volume, including 348 rounds and 1182 booking session rows. Before the fix, `selectedDate = null` on a non-current month caused the right Daily Board panel to render full-month round/group/learner/program/wallet/detail UI immediately.
+  - Fix: added pending/loading state for month navigation, disabled Today/previous/next while pending, showed `กำลังโหลดตารางเดือน...`, showed a lightweight month overview when no date is selected, rendered Daily Board detail only after selecting a day, memoized repeated summary/bucket computations, and kept calendar summary/counts available.
+  - This did not change server query semantics, Supabase query/chunk/pagination behavior, business logic, attendance source-of-truth rules, exact coach assignment source, walleted counting rules, teaching program correctness, DB/API/migrations, or write behavior.
+  - Checks before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Authenticated production smoke passed on `https://www.newathleteschool.com/admin/schedules?year=2026&month=6` in Chrome via Codex Chrome Extension as `Super Admin: A'Arm Chanin`.
+  - Initial June 2026 showed `มิถุนายน 2569`, 348 rounds, 1182 booking rows, correct calendar summary/counts, right-panel `ภาพรวมเดือนมิถุนายน`, and `เลือกวันที่ในปฏิทินเพื่อดูรายละเอียดรอบเรียน`; it did not render full-month detail immediately and initial heavy detail markers such as `โปรแกรมสอนรอบนี้`, `ผู้ปกครอง:`, and `โค้ช:` were 0.
+  - Selected `พุธ 17 มิ.ย. 69`: Daily Board showed only that day with 8 rounds, time/branch/course, learner counts, coach groups, learners, LV, teaching program boxes, and attendance labels (`เรียนแล้ว`, `ขาดเรียน`, `รอตรวจเช็คชื่อ`); no `พฤหัสบดี 18 มิ.ย. 69` detail mixed into the panel.
+  - Month navigation smoke passed for June -> May, June -> July, and Today -> July: `กำลังโหลดตารางเดือน...` appeared during pending navigation, Today/previous/next were disabled while pending, buttons returned enabled after route settled, and UI did not appear frozen.
+  - Invariants passed: walleted sessions remained excluded from `รอจัดโค้ช`; the 17 June walleted example showed `อยู่ในกระเป๋า 1 คน`, `มีโค้ชแล้ว 0 คน`, and `ไม่ต้องจัดโค้ช`; coach assignment still used exact coach group / learner group behavior; attendance labels and calendar summary remained correct; no legacy/slot coach fallback was introduced.
+  - Console/hydration smoke passed with console logs/errors/warnings 0, no React #418, no hydration error, and no text mismatch.
+  - Phase C split monthly summary vs daily detail remains optional/future only; it is not required immediately because this scoped fix already avoids full-month detail rendering by default.
+  - No source changes after deploy, extra deploy, docs updates before smoke, DB/API/migration changes, or write action clicks were performed.
 
 - Completed scoped `/dashboard/booking` Thai date display closeout:
   - Source commit `a9ffcf74019f69424e288a1698910444b4e58a8c` (`fix(booking): standardize thai date display`) was pushed and deployed to Vercel production.
