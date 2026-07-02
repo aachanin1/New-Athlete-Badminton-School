@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-01
+Last updated: 2026-07-02
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,20 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped kids_group monthly pricing true-up release:
+  - Source commit `5897cede58f720c1b5f205af53c9821cff0a39bf` (`fix(pricing): true up kids group monthly tiers`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_5e6i8M3Mtzy5xNah6xVD9v6PtHwQ`; deployment URL `https://new-athlete-badminton-school-9ku8u3zd9-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/lib/pricing.ts` and `scripts/check-pricing-true-up.js`.
+  - Root cause: kids_group incremental pricing previously used `incrementalPrice = perSessionForFinalMonthlyTier * newSessions`, so split sibling bookings in the same month could overcharge compared with one combined monthly booking. The audited July 2026 split 8 + 8 case totaled `THB 7,248` before the fix, while the expected combined monthly total is `THB 6,496`.
+  - Fix: kids_group monthly pricing now computes `targetMonthlyTotal = finalMonthlyPerSession * (existingSessions + newSessions)` and `incrementalPrice = max(0, targetMonthlyTotal - existingPersistedBookingTotals)`. Future split 8 + 8 bookings now total `THB 4,000 + THB 2,496 = THB 6,496`.
+  - Dry-run proof passed with `node scripts/check-pricing-true-up.js`: single 16 sessions = `THB 6,496`; split 8 + 8 = `THB 4,000 + THB 2,496 = THB 6,496`; existing 8 then add 1 keeps expected 7-10 tier behavior.
+  - Production smoke passed: production alias loaded normally, `/dashboard/booking` loaded with an authenticated session, console errors/warnings were 0, and there was no runtime error, hydration error, or React #418.
+  - UI price preview is `NEED REVIEW` only because reproducing the exact target case safely in production would risk entering booking creation flow. No `ยืนยันการจอง`, slip upload, booking/payment creation, or product write action was performed.
+  - Coupon limitation: true-up subtracts persisted `bookings.total_price`; coupon true-up semantics still need owner decision because there is no pre-discount subtotal snapshot.
+  - Branch-scope limitation: current behavior is preserved and counts existing bookings by the same `user_id + course_type_id + month/year + status` scope. Branch-specific monthly pricing was not changed and needs owner decision if required.
+  - Existing July pending bookings `10254533-f76a-4985-bf0d-af18942a3b85` and `ff0728dd-066a-417a-aeaa-0049fed6b931` were not repaired and still require separate owner-approved DB repair if the owner wants pending totals corrected.
+  - No DB/API/migration/write action, booking/payment creation, slip upload, `ยืนยันการจอง`, existing booking/payment repair, docs-before-smoke update, or extra deploy after smoke was performed.
 
 - Completed scoped `/admin/schedules` Phase A + small Phase B performance UX/render fix:
   - Source commit `0d70e427db9e4df6a965a41e42371660c59a0cfe` (`fix(schedules): avoid rendering full month details by default`) was pushed and deployed to Vercel production.

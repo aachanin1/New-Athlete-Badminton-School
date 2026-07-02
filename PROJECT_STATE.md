@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-01
+Last updated: 2026-07-02
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -92,6 +92,7 @@ Observed migrations include:
 - `SLIPOK_TEST_MODE=true` auto-approves locally; production must use real SlipOK env.
 - Pricing reads DB `pricing_tiers` through `src/lib/booking-pricing.ts` and falls back to defaults only if rows are missing.
 - Kids group combines sibling sessions for monthly tier pricing.
+- Kids group incremental pricing now true-ups split bookings in the same month to the final monthly tier total. It subtracts existing persisted `bookings.total_price` for the same user/course/month/year/status scope before charging the next booking.
 - User Reschedule (`/dashboard/reschedule` and `/api/reschedule`) now uses a 12-hour cutoff before the original lesson start time. The cutoff is computed against the lesson start in Asia/Bangkok (`+07:00`).
 
 ### Coach and Attendance Evidence
@@ -1255,6 +1256,21 @@ Potential bug found:
   - Assigned-coach cards still showed existing buttons such as `ส่งให้โค้ชตรวจสอบรอบนี้`, `เปลี่ยนโค้ชย้อนหลัง`, `บันทึกย้อนหลังทั้งรอบ`, and `ปิดเคสทั้งรอบ`.
   - Console errors/warnings were 0. The font/preload warning flood did not return.
   - No submit, move, assign, close, attendance, or other write action was clicked.
+
+## 2026-07-02 - Kids Group Monthly Pricing True-Up
+
+- Scoped kids_group sibling monthly pricing true-up is deployed to production and production-smoke passed.
+- Source commit `5897cede58f720c1b5f205af53c9821cff0a39bf` (`fix(pricing): true up kids group monthly tiers`) changed only `src/lib/pricing.ts` and `scripts/check-pricing-true-up.js`.
+- Deployment id `dpl_5e6i8M3Mtzy5xNah6xVD9v6PtHwQ`; deployment URL `https://new-athlete-badminton-school-9ku8u3zd9-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Root cause: kids_group incremental pricing previously used `incrementalPrice = perSessionForFinalMonthlyTier * newSessions`. Split sibling bookings in the same month could therefore cost more than one combined monthly booking. Example from the read-only audit: June 2026 one 16-session booking was `THB 6,496`, while July 2026 split 8 + 8 pending bookings totaled `THB 7,248` before the fix.
+- New formula: `targetMonthlyTotal = finalMonthlyPerSession * (existingSessions + newSessions)` and `incrementalPrice = max(0, targetMonthlyTotal - existingPersistedBookingTotals)`. Future kids_group 8 + 8 split bookings now total `THB 6,496` (`THB 4,000 + THB 2,496`) instead of `THB 7,248`.
+- Dry-run proof passed with `node scripts/check-pricing-true-up.js`: single 16 sessions = `THB 6,496`; split 8 + 8 = `THB 4,000 + THB 2,496 = THB 6,496`; existing 8 then add 1 keeps expected 7-10 tier behavior.
+- Production smoke passed: production alias loaded normally; `/dashboard/booking` loaded with an authenticated Chrome session; console errors/warnings were 0; no runtime error, hydration error, or React #418 was found.
+- UI price preview remains `NEED REVIEW` only because reproducing the exact target 8 + 8 case safely in production would risk entering the booking creation flow. No `ยืนยันการจอง`, slip upload, booking/payment creation, or product write action was performed.
+- Coupon limitation: true-up subtracts persisted `bookings.total_price`. Coupon true-up semantics still need owner decision because no pre-discount subtotal snapshot is stored, and this release intentionally did not invent new coupon behavior.
+- Branch-scope limitation: preserved current behavior counts existing bookings by the same `user_id + course_type_id + month/year + status` scope. Branch-specific monthly pricing was not changed and needs owner decision if required.
+- Existing July pending bookings `10254533-f76a-4985-bf0d-af18942a3b85` and `ff0728dd-066a-417a-aeaa-0049fed6b931` were not repaired. They still require separate owner-approved DB repair if the owner wants pending totals corrected.
+- No pricing tier rows, DB/API/migration, existing bookings/payments, history amount source, booking payload shape, schedule selection, attendance/wallet/reschedule logic, docs-before-smoke, extra deploy, booking/payment creation, slip upload, or write action was changed/performed.
 
 ## 2026-07-01 - Admin Schedules Performance UX/Render Fix
 

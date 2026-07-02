@@ -420,6 +420,15 @@ Notes:
     - Booking price must use DB `pricing_tiers`.
     - Coupon usage must decrement availability and appear in user history.
     - SlipOK payment success must make booking/payment/history statuses consistent without manual admin approval.
+    - Production pricing true-up closeout on 2026-07-02:
+      - Source commit `5897cede58f720c1b5f205af53c9821cff0a39bf` (`fix(pricing): true up kids group monthly tiers`) is deployed to production alias `https://www.newathleteschool.com` via deployment `dpl_5e6i8M3Mtzy5xNah6xVD9v6PtHwQ` (Ready).
+      - kids_group split sibling monthly bookings now true-up to the final monthly tier total: `targetMonthlyTotal = finalMonthlyPerSession * (existingSessions + newSessions)` and `incrementalPrice = max(0, targetMonthlyTotal - existingPersistedBookingTotals)`.
+      - Dry-run proof passed: single 16 sessions = `THB 6,496`; split 8 + 8 = `THB 4,000 + THB 2,496 = THB 6,496`; existing 8 then add 1 keeps expected 7-10 tier behavior.
+      - Coupon limitation remains: true-up subtracts persisted `bookings.total_price`; coupon true-up semantics need owner decision because no pre-discount subtotal snapshot exists.
+      - Branch-scope limitation remains: preserved current same `user_id + course_type_id + month/year + status` scope; branch-specific monthly pricing needs owner decision if required.
+      - Existing July pending bookings `10254533-f76a-4985-bf0d-af18942a3b85` and `ff0728dd-066a-417a-aeaa-0049fed6b931` were not repaired and require separate owner-approved DB repair if pending totals should be corrected.
+      - Production smoke passed with no console/runtime/hydration/React #418 errors. UI price preview is `NEED REVIEW` only because reproducing the exact target case would risk entering booking creation flow.
+      - No DB/API/migration/write action, booking/payment creation, slip upload, `ยืนยันการจอง`, or existing booking/payment repair was performed.
     - Audit notes on 2026-05-19 before implementation:
       - Booking page already reads `schedule_templates`, enforces same-day future slots in the UI, and posts new bookings through `/api/bookings`.
       - `/api/bookings` revalidates price from DB `pricing_tiers`, validates coupon usage, decrements coupon usage, and sets bookings to `pending_payment`.
