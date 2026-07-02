@@ -1277,8 +1277,17 @@ Potential bug found:
   - Payment rows remain 0 and coupon usages remain 0.
   - `booking_sessions` were unchanged by fingerprint and booking status was not changed.
   - Activity log `07150189-0a5e-4fe6-bd20-24c47b4b9a75` was inserted with action `pricing_true_up_repair`.
-- Rollback condition for the exact DB repair: rollback only before any payment/slip row exists; if payment exists, stop and re-plan.
-- No pricing tier rows, API/migration, history amount source, booking payload shape, schedule selection, attendance/wallet/reschedule logic, extra deploy, booking/payment creation, slip upload, or product write action beyond the exact owner-approved DB repair was changed/performed.
+- Owner-approved July 2026 current-month DB repair for 4 additional kids_group mismatch groups is complete. Owner policy: ignore June historical mismatches; repair July 2026 current-month mismatches even when payment exists; keep payment rows as evidence of actual transfer and do not modify `payments.amount`; do not create refund/coupon/payment rows; do not touch `booking_sessions`, `pricing_tiers`, Trin/Bin, or June groups.
+  - Root cause for these groups: old incremental pricing charged `final tier per-session * newSessions` and did not true-up earlier higher-tier bookings. The source fix above prevents future repeats.
+  - Ningnong group target `5d1d9a43-afcd-4d26-8817-68ab948443f2`: `bookings.total_price` `2800 -> 1169`, reduction `1631`, group total after repair `7700`, status `verified`, activity log `04cf71ee-5718-49a7-8a5f-364d44a9184f`.
+  - Kanokpan group target `3f95767e-8418-4b0b-b87d-2cd18811825b`: `bookings.total_price` `14700 -> 13600`, reduction `1100`, group total after repair `16100`, status `pending_payment`, activity log `e2aa73ff-b1b9-4168-b58a-28ffc3128a1d`.
+  - Siripong group target `f565a552-65f3-44e0-8826-22a4c9cb0dbb`: `bookings.total_price` `1299 -> 763`, reduction `536`, group total after repair `4763`, status `verified`, activity log `c953f942-7d67-44d0-b8a5-b0abefa213a0`.
+  - Janyawat group target `ff9cf27f-6415-444d-90b6-89ab05fc2d47`: `bookings.total_price` `2000 -> 1500`, reduction `500`, group total after repair `4000`, status `verified`, activity log `e46f9fb1-608e-48d6-a6a5-0c0bd7a7746a`.
+  - Latest batch total July reduction is `3767`; total July reduction including Trin/Bin is `4519`.
+  - Post-write verification passed: payments unchanged by fingerprint; `booking_sessions` unchanged by fingerprint; `pricing_tiers` unchanged by fingerprint; no coupon rows created; no booking/payment/refund/coupon created; non-target bookings in those groups unchanged; Trin/Bin remains matched at `6496`; June guarded bookings unchanged.
+- Rollback condition for these exact DB repairs: rollback only before further dependent accounting/credit/payment action; if later accounting action exists, stop and re-plan.
+- Remaining limitations: coupon true-up semantics still need owner decision if a coupon case appears later; branch-scope policy for future business rules remains owner decision, while this July repair followed current source scope.
+- No pricing tier rows, API/migration, history amount source, booking payload shape, schedule selection, attendance/wallet/reschedule logic, extra deploy, booking/payment/refund/coupon creation, slip upload, or product write action beyond the exact owner-approved DB repairs was changed/performed.
 
 ## 2026-07-01 - Admin Schedules Performance UX/Render Fix
 
