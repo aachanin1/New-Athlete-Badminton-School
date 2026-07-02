@@ -223,14 +223,16 @@ export function getKidsGroupTotal(
 
 export function getKidsGroupIncremental(
   existingSessionsThisMonth: number,
-  _existingPaidThisMonth: number,
+  existingPaidThisMonth: number,
   newSessions: number,
   pricing?: PricingTierInput[] | PricingCatalog | null
 ) {
   const totalSessionsForMonth = existingSessionsThisMonth + newSessions
   const { perSession, tierLabel } = getKidsGroupTotal(totalSessionsForMonth, pricing)
   const totalCostForMonth = Math.round(perSession * totalSessionsForMonth)
-  const incrementalPrice = Math.max(0, Math.round(perSession * newSessions))
+  // Uses persisted booking totals; coupon true-up semantics need owner decision because pre-discount subtotal is not stored.
+  const existingPaid = Math.max(0, Math.round(existingPaidThisMonth))
+  const incrementalPrice = Math.max(0, totalCostForMonth - existingPaid)
   const effectivePerSession = newSessions > 0 ? Math.round(incrementalPrice / newSessions) : 0
 
   return {
