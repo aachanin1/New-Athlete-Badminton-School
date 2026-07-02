@@ -426,9 +426,11 @@ Notes:
       - Dry-run proof passed: single 16 sessions = `THB 6,496`; split 8 + 8 = `THB 4,000 + THB 2,496 = THB 6,496`; existing 8 then add 1 keeps expected 7-10 tier behavior.
       - Coupon limitation remains: true-up subtracts persisted `bookings.total_price`; coupon true-up semantics need owner decision because no pre-discount subtotal snapshot exists.
       - Branch-scope limitation remains: preserved current same `user_id + course_type_id + month/year + status` scope; branch-specific monthly pricing needs owner decision if required.
-      - Existing July pending bookings `10254533-f76a-4985-bf0d-af18942a3b85` and `ff0728dd-066a-417a-aeaa-0049fed6b931` were not repaired and require separate owner-approved DB repair if pending totals should be corrected.
+      - Owner-approved production DB repair for the existing July mismatch is complete: target booking `ff0728dd-066a-417a-aeaa-0049fed6b931` was updated from `bookings.total_price = 3248` to `2496`; paired booking `10254533-f76a-4985-bf0d-af18942a3b85` remained `4000`; combined July 2026 total is now `6496`.
+      - Post-repair verification passed: both bookings remain `pending_payment`; payment rows remain 0; coupon usages remain 0; `booking_sessions` were unchanged by fingerprint; booking status was unchanged; activity log `07150189-0a5e-4fe6-bd20-24c47b4b9a75` exists with action `pricing_true_up_repair`.
+      - Rollback condition for the exact DB repair: rollback only before any payment/slip row exists; if payment exists, stop and re-plan.
       - Production smoke passed with no console/runtime/hydration/React #418 errors. UI price preview is `NEED REVIEW` only because reproducing the exact target case would risk entering booking creation flow.
-      - No DB/API/migration/write action, booking/payment creation, slip upload, `ยืนยันการจอง`, or existing booking/payment repair was performed.
+      - No source code, migration, deploy, booking/payment creation, slip upload, `ยืนยันการจอง`, or product write action beyond the exact owner-approved DB repair was performed.
     - Audit notes on 2026-05-19 before implementation:
       - Booking page already reads `schedule_templates`, enforces same-day future slots in the UI, and posts new bookings through `/api/bookings`.
       - `/api/bookings` revalidates price from DB `pricing_tiers`, validates coupon usage, decrements coupon usage, and sets bookings to `pending_payment`.

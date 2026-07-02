@@ -1269,8 +1269,16 @@ Potential bug found:
 - UI price preview remains `NEED REVIEW` only because reproducing the exact target 8 + 8 case safely in production would risk entering the booking creation flow. No `ยืนยันการจอง`, slip upload, booking/payment creation, or product write action was performed.
 - Coupon limitation: true-up subtracts persisted `bookings.total_price`. Coupon true-up semantics still need owner decision because no pre-discount subtotal snapshot is stored, and this release intentionally did not invent new coupon behavior.
 - Branch-scope limitation: preserved current behavior counts existing bookings by the same `user_id + course_type_id + month/year + status` scope. Branch-specific monthly pricing was not changed and needs owner decision if required.
-- Existing July pending bookings `10254533-f76a-4985-bf0d-af18942a3b85` and `ff0728dd-066a-417a-aeaa-0049fed6b931` were not repaired. They still require separate owner-approved DB repair if the owner wants pending totals corrected.
-- No pricing tier rows, DB/API/migration, existing bookings/payments, history amount source, booking payload shape, schedule selection, attendance/wallet/reschedule logic, docs-before-smoke, extra deploy, booking/payment creation, slip upload, or write action was changed/performed.
+- Owner-approved production DB repair for the existing July mismatch is complete:
+  - Target booking `ff0728dd-066a-417a-aeaa-0049fed6b931` was updated from `bookings.total_price = 3248` to `2496`.
+  - Paired booking `10254533-f76a-4985-bf0d-af18942a3b85` remained `4000`.
+  - Combined July 2026 total after repair is `6496`.
+  - Both bookings remain `pending_payment`.
+  - Payment rows remain 0 and coupon usages remain 0.
+  - `booking_sessions` were unchanged by fingerprint and booking status was not changed.
+  - Activity log `07150189-0a5e-4fe6-bd20-24c47b4b9a75` was inserted with action `pricing_true_up_repair`.
+- Rollback condition for the exact DB repair: rollback only before any payment/slip row exists; if payment exists, stop and re-plan.
+- No pricing tier rows, API/migration, history amount source, booking payload shape, schedule selection, attendance/wallet/reschedule logic, extra deploy, booking/payment creation, slip upload, or product write action beyond the exact owner-approved DB repair was changed/performed.
 
 ## 2026-07-01 - Admin Schedules Performance UX/Render Fix
 

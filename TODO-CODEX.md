@@ -32,8 +32,10 @@ Read only when relevant:
   - UI price preview is `NEED REVIEW` only because reproducing the exact target case safely in production would risk entering booking creation flow. No `ยืนยันการจอง`, slip upload, booking/payment creation, or product write action was performed.
   - Coupon limitation: true-up subtracts persisted `bookings.total_price`; coupon true-up semantics still need owner decision because there is no pre-discount subtotal snapshot.
   - Branch-scope limitation: current behavior is preserved and counts existing bookings by the same `user_id + course_type_id + month/year + status` scope. Branch-specific monthly pricing was not changed and needs owner decision if required.
-  - Existing July pending bookings `10254533-f76a-4985-bf0d-af18942a3b85` and `ff0728dd-066a-417a-aeaa-0049fed6b931` were not repaired and still require separate owner-approved DB repair if the owner wants pending totals corrected.
-  - No DB/API/migration/write action, booking/payment creation, slip upload, `ยืนยันการจอง`, existing booking/payment repair, docs-before-smoke update, or extra deploy after smoke was performed.
+  - Owner-approved production DB repair for the existing July mismatch is complete: target booking `ff0728dd-066a-417a-aeaa-0049fed6b931` was updated from `bookings.total_price = 3248` to `2496`; paired booking `10254533-f76a-4985-bf0d-af18942a3b85` remained `4000`; combined July 2026 total is now `6496`.
+  - Post-repair verification passed: both bookings remain `pending_payment`; payment rows remain 0; coupon usages remain 0; `booking_sessions` were unchanged by fingerprint; booking status was unchanged; activity log `07150189-0a5e-4fe6-bd20-24c47b4b9a75` exists with action `pricing_true_up_repair`.
+  - Rollback condition for the exact DB repair: rollback only before any payment/slip row exists; if payment exists, stop and re-plan.
+  - No DB/API/migration/write action, booking/payment creation, slip upload, `ยืนยันการจอง`, docs-before-smoke update, or extra deploy after smoke was performed before the owner-approved repair; no additional DB writes were performed after the exact approved repair.
 
 - Completed scoped `/admin/schedules` Phase A + small Phase B performance UX/render fix:
   - Source commit `0d70e427db9e4df6a965a41e42371660c59a0cfe` (`fix(schedules): avoid rendering full month details by default`) was pushed and deployed to Vercel production.
