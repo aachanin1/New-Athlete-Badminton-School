@@ -102,6 +102,24 @@ interface SlipVerifyData {
   sender?: string
 }
 
+type PaymentUploadStep = 'idle' | 'uploading' | 'verifying' | 'refreshing' | 'failed'
+
+interface VerifySlipResult {
+  verified: boolean
+  slipData?: SlipVerifyData | null
+  notes?: string | null
+  reviewMessage?: string | null
+  warningCode?: string | null
+}
+
+interface VerifySlipApiResponse extends VerifySlipResult {
+  success?: boolean
+  error?: string
+  code?: string
+  paymentRecorded?: boolean
+  supportReviewRequired?: boolean
+}
+
 interface CouponUsageDetail {
   id: string
   coupon_id: string
@@ -167,6 +185,29 @@ const COURSE_LABELS: Record<string, string> = {
 const MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const BOOKINGS_PREVIEW_PER_MONTH = 4
 const ACTIVE_SESSION_STATUSES = new Set(['scheduled', 'completed', 'absent'])
+
+const PAYMENT_UPLOAD_STEP_TEXT: Record<PaymentUploadStep, { title: string; description: string }> = {
+  idle: {
+    title: '',
+    description: '',
+  },
+  uploading: {
+    title: 'กำลังอัปโหลดสลิป',
+    description: 'ระบบกำลังส่งไฟล์สลิป กรุณาอย่าปิดหน้านี้',
+  },
+  verifying: {
+    title: 'กำลังตรวจสอบสลิป',
+    description: 'SlipOK อาจใช้เวลาหลายวินาที ระบบยังทำงานอยู่',
+  },
+  refreshing: {
+    title: 'บันทึกสลิปสำเร็จ',
+    description: 'กำลังอัปเดตสถานะล่าสุดของรายการจอง',
+  },
+  failed: {
+    title: 'ส่งสลิปไม่สำเร็จ',
+    description: 'กรุณาอ่านข้อความด้านบนก่อนลองส่งซ้ำ หากระบบแจ้งว่ารับสลิปแล้ว ให้ติดต่อเจ้าหน้าที่พร้อม Booking ID',
+  },
+}
 
 function isActiveSession(session: SessionDetail) {
   return ACTIVE_SESSION_STATUSES.has(session.status)
@@ -244,6 +285,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   const [slipFile, setSlipFile] = useState<File | null>(null)
   const [slipPreview, setSlipPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [uploadStep, setUploadStep] = useState<PaymentUploadStep>('idle')
   const [error, setError] = useState<string | null>(null)
   const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
 
@@ -307,6 +349,8 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
     setSlipFile(null)
     setSlipPreview(null)
     setError(null)
+    setUploadStep('idle')
+    setVerifyResult(null)
     setPayDialogOpen(true)
   }
 
@@ -316,6 +360,8 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
     setSlipFile(null)
     setSlipPreview(null)
     setError(null)
+    setUploadStep('idle')
+    setVerifyResult(null)
     setPayDialogOpen(true)
   }
 
@@ -335,19 +381,26 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
 
     setSlipFile(file)
     setError(null)
+    setUploadStep('idle')
+    setVerifyResult(null)
 
     const reader = new FileReader()
     reader.onload = (ev) => setSlipPreview(ev.target?.result as string)
     reader.readAsDataURL(file)
   }
 
-  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; slipData?: SlipVerifyData; notes?: string } | null>(null)
+  const [verifyResult, setVerifyResult] = useState<VerifySlipResult | null>(null)
 
   const handleSubmitPayment = async () => {
-    if (payBookingIds.length === 0 || !slipFile) return
+    if (loading || payBookingIds.length === 0 || !slipFile) return
     setLoading(true)
+    setUploadStep('uploading')
     setError(null)
     setVerifyResult(null)
+
+    const verifyingTimer = window.setTimeout(() => {
+      setUploadStep('verifying')
+    }, 1200)
 
     try {
       const expectedAmount = payBookingIds.reduce((sum, id) => {
@@ -361,34 +414,48 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
       formData.append('expectedAmount', String(expectedAmount))
 
       const res = await fetch('/api/verify-slip', { method: 'POST', body: formData })
-      const json = await res.json()
+      const json = await res.json().catch(() => ({})) as VerifySlipApiResponse
+      window.clearTimeout(verifyingTimer)
 
       if (!res.ok) {
-        setError(json.error || 'เกิดข้อผิดพลาดในการตรวจสอบสลิป')
+        setError(json.error || 'เกิดข้อผิดพลาดในการตรวจสอบสลิป กรุณาลองใหม่อีกครั้ง')
         setLoading(false)
+        setUploadStep('failed')
+        if (json.paymentRecorded || json.supportReviewRequired) {
+          router.refresh()
+        }
         return
       }
 
-      setVerifyResult({ verified: json.verified, slipData: json.slipData, notes: json.notes })
+      setVerifyResult({
+        verified: json.verified,
+        slipData: json.slipData,
+        notes: json.notes,
+        reviewMessage: json.reviewMessage,
+        warningCode: json.warningCode,
+      })
+      setUploadStep('refreshing')
 
       if (json.verified) {
-        // Auto-verified — close after short delay to show result
-        setTimeout(() => {
+        window.setTimeout(() => {
           setPayDialogOpen(false)
           setLoading(false)
+          setUploadStep('idle')
           router.refresh()
-        }, 2000)
+        }, 1400)
       } else {
-        // Slip uploaded but not auto-verified — stays as 'paid' waiting for admin
         setLoading(false)
-        setTimeout(() => {
+        window.setTimeout(() => {
           setPayDialogOpen(false)
+          setUploadStep('idle')
           router.refresh()
-        }, 3000)
+        }, 2200)
       }
     } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
+      window.clearTimeout(verifyingTimer)
+      setError('เชื่อมต่อระบบตรวจสอบสลิปไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')
       setLoading(false)
+      setUploadStep('failed')
     }
   }
 
@@ -721,6 +788,29 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
               </div>
             )}
 
+            {uploadStep !== 'idle' && (
+              <div
+                className={`rounded-lg border p-3 text-sm ${
+                  uploadStep === 'failed'
+                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                    : 'border-blue-200 bg-blue-50 text-blue-700'
+                }`}
+                aria-live="polite"
+              >
+                <div className="flex items-start gap-2">
+                  {uploadStep === 'failed' ? (
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : (
+                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+                  )}
+                  <div>
+                    <p className="font-medium">{PAYMENT_UPLOAD_STEP_TEXT[uploadStep].title}</p>
+                    <p className="mt-0.5 text-xs">{PAYMENT_UPLOAD_STEP_TEXT[uploadStep].description}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {showPaymentTransferSettings && paymentTransferSettings ? (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm">
                 <p className="mb-2 font-medium text-blue-700">ข้อมูลการโอนเงิน</p>
@@ -748,6 +838,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                 accept="image/*"
                 onChange={handleFileChange}
                 className="cursor-pointer"
+                disabled={loading}
               />
             </div>
 
@@ -774,7 +865,10 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                     <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                     <div>
                       <p className="font-medium">อัปโหลดสลิปแล้ว — รอตรวจสอบเพิ่มเติม</p>
-                      <p className="text-xs mt-1">{verifyResult.notes}</p>
+                      <p className="text-xs mt-1">{verifyResult.reviewMessage || verifyResult.notes}</p>
+                      {verifyResult.warningCode && (
+                        <p className="mt-1 text-[11px] text-yellow-600">รหัสตรวจสอบ: {verifyResult.warningCode}</p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -799,7 +893,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      กำลังตรวจสอบสลิป...
+                      {uploadStep === 'uploading' ? 'กำลังอัปโหลดสลิป...' : 'กำลังตรวจสอบสลิป...'}
                     </>
                   ) : (
                     <>

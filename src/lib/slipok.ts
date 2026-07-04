@@ -28,11 +28,19 @@ export interface SlipOKResponse {
   }
   message?: string
   code?: string | number
+  timeout?: boolean
 }
 
 interface SlipOKErrorResponse {
   message?: string
   code?: string | number
+}
+
+const SLIPOK_TIMEOUT_MS = 25_000
+export const SLIPOK_TIMEOUT_CODE = 'SLIPOK_TIMEOUT'
+
+export function isSlipOKTimeout(response: SlipOKResponse | null | undefined) {
+  return Boolean(response?.timeout || response?.code === SLIPOK_TIMEOUT_CODE)
 }
 
 /**
@@ -56,6 +64,9 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string, expectedA
     formData.append('amount', String(expectedAmount))
   }
 
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), SLIPOK_TIMEOUT_MS)
+
   try {
     const res = await fetch(apiUrl, {
       method: 'POST',
@@ -63,6 +74,7 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string, expectedA
         'x-authorization': apiKey,
       },
       body: formData,
+      signal: controller.signal,
     })
 
     const json = await res.json() as SlipOKResponse & SlipOKErrorResponse
@@ -81,11 +93,22 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string, expectedA
       data: json?.data,
     }
   } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return {
+        success: false,
+        timeout: true,
+        code: SLIPOK_TIMEOUT_CODE,
+        message: 'SlipOK ใช้เวลาตรวจสอบนานเกินไป ระบบรับสลิปไว้แล้วและจะให้แอดมินตรวจสอบต่อ',
+      }
+    }
+
     const message = err instanceof Error ? err.message : 'Unknown error'
     return {
       success: false,
       message: `SlipOK API request failed: ${message}`,
     }
+  } finally {
+    clearTimeout(timeout)
   }
 }
 

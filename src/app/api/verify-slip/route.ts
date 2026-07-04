@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
-import { validateSlipData, verifySlip, type SlipOKResponse } from '@/lib/slipok'
+import { isSlipOKTimeout, validateSlipData, verifySlip, type SlipOKResponse } from '@/lib/slipok'
 import type { Database, PaymentStatus } from '@/types/database'
 
 interface BookingRow {
@@ -55,6 +55,30 @@ function buildSlipPublicPath(userId: string, bookingId: string, fileName: string
   return `${userId}/${bookingId}-${Date.now()}.${fileExt}`
 }
 
+const VERIFY_SLIP_ERROR_CODES = {
+  invalidPayload: 'INVALID_SLIP_UPLOAD_PAYLOAD',
+  invalidFileType: 'INVALID_SLIP_FILE_TYPE',
+  bookingLoadFailed: 'BOOKING_LOAD_FAILED',
+  bookingStateConflict: 'BOOKING_STATE_CONFLICT',
+  amountMismatch: 'BOOKING_AMOUNT_MISMATCH',
+  uploadFailed: 'SLIP_UPLOAD_FAILED',
+  paymentInsertFailed: 'PAYMENT_INSERT_FAILED',
+  bookingStatusUpdateFailed: 'BOOKING_STATUS_UPDATE_FAILED',
+  unexpected: 'VERIFY_SLIP_UNEXPECTED_ERROR',
+} as const
+
+function jsonError(
+  error: string,
+  status: number,
+  extra: Record<string, unknown> = {}
+) {
+  return NextResponse.json({
+    success: false,
+    error,
+    ...extra,
+  }, { status })
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const {
@@ -72,11 +96,15 @@ export async function POST(request: NextRequest) {
     const expectedAmount = Number(formData.get('expectedAmount'))
 
     if (!file || bookingIds.length === 0 || !Number.isFinite(expectedAmount) || expectedAmount <= 0) {
-      return NextResponse.json({ error: 'ข้อมูลไม่ครบ: file, bookingIds, expectedAmount' }, { status: 400 })
+      return jsonError('ข้อมูลไม่ครบ กรุณาเลือกสลิปและลองส่งอีกครั้ง', 400, {
+        code: VERIFY_SLIP_ERROR_CODES.invalidPayload,
+      })
     }
 
     if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'กรุณาอัปโหลดไฟล์รูปภาพสลิปเท่านั้น' }, { status: 400 })
+      return jsonError('กรุณาอัปโหลดไฟล์รูปภาพสลิปเท่านั้น', 400, {
+        code: VERIFY_SLIP_ERROR_CODES.invalidFileType,
+      })
     }
 
     const { data: bookings, error: bookingError } = await supabase
@@ -87,20 +115,33 @@ export async function POST(request: NextRequest) {
       .eq('status', 'pending_payment')
 
     if (bookingError) {
-      return NextResponse.json({ error: `โหลดรายการจองไม่สำเร็จ: ${bookingError.message}` }, { status: 500 })
+      console.error('[verify-slip] Failed to load pending bookings', {
+        userId: user.id,
+        bookingIds,
+        error: bookingError.message,
+      })
+      return jsonError('โหลดรายการจองไม่สำเร็จ กรุณารีเฟรชหน้าแล้วลองใหม่', 500, {
+        code: VERIFY_SLIP_ERROR_CODES.bookingLoadFailed,
+      })
     }
 
     const bookingRows = (bookings || []) as BookingRow[]
 
     if (bookingRows.length !== bookingIds.length) {
-      return NextResponse.json({
-        error: 'รายการจองบางรายการไม่พบ หรือไม่ได้อยู่ในสถานะรอชำระเงินแล้ว กรุณารีเฟรชหน้าแล้วตรวจสอบอีกครั้ง',
-      }, { status: 409 })
+      return jsonError(
+        'รายการจองบางรายการไม่พบ หรือไม่ได้อยู่ในสถานะรอชำระเงินแล้ว กรุณารีเฟรชหน้าแล้วตรวจสอบอีกครั้ง',
+        409,
+        { code: VERIFY_SLIP_ERROR_CODES.bookingStateConflict }
+      )
     }
 
     const bookingTotal = bookingRows.reduce((sum, booking) => sum + Number(booking.total_price || 0), 0)
     if (Math.abs(bookingTotal - expectedAmount) > 1) {
-      return NextResponse.json({ error: `ยอดเงินไม่ตรงกับยอดจอง (${bookingTotal} vs ${expectedAmount})` }, { status: 400 })
+      return jsonError(
+        `ยอดเงินไม่ตรงกับยอดจอง (${bookingTotal.toLocaleString('th-TH')} vs ${expectedAmount.toLocaleString('th-TH')}) กรุณารีเฟรชหน้าแล้วตรวจสอบยอดอีกครั้ง`,
+        400,
+        { code: VERIFY_SLIP_ERROR_CODES.amountMismatch }
+      )
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer())
@@ -112,7 +153,14 @@ export async function POST(request: NextRequest) {
       .upload(fileName, fileBuffer, { contentType: file.type })
 
     if (uploadError) {
-      return NextResponse.json({ error: `อัปโหลดสลิปไม่สำเร็จ: ${uploadError.message}` }, { status: 500 })
+      console.error('[verify-slip] Slip upload failed', {
+        userId: user.id,
+        bookingIds,
+        error: uploadError.message,
+      })
+      return jsonError('อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 500, {
+        code: VERIFY_SLIP_ERROR_CODES.uploadFailed,
+      })
     }
 
     const { data: { publicUrl } } = supabase.storage.from('payment-slips').getPublicUrl(fileName)
@@ -121,6 +169,8 @@ export async function POST(request: NextRequest) {
     let verificationStatus: PaymentStatus = 'pending'
     let verificationNotes = ''
     let slipResult: SlipOKResponse | null = null
+    let slipReviewMessage = ''
+    let slipWarningCode: string | null = null
 
     if (isTestMode) {
       verificationStatus = 'approved'
@@ -136,6 +186,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       slipResult = await verifySlip(fileBuffer, file.name, expectedAmount)
+      const slipTimedOut = isSlipOKTimeout(slipResult)
 
       if (slipResult.success && slipResult.data) {
         const validation = validateSlipData(slipResult.data, expectedAmount)
@@ -145,10 +196,18 @@ export async function POST(request: NextRequest) {
           verificationNotes = `SlipOK verified: ${slipResult.data.transRef} | ฿${slipResult.data.amount} | ${slipResult.data.sender?.name || '-'}`
         } else {
           verificationNotes = `SlipOK: ${validation.reason}`
+          slipReviewMessage = validation.reason || 'SlipOK ยังไม่สามารถยืนยันสลิปนี้ได้ แอดมินจะตรวจสอบต่อ'
+          slipWarningCode = 'SLIPOK_VALIDATION_FAILED'
         }
+      } else if (slipTimedOut) {
+        verificationNotes = `SlipOK timeout (${slipResult?.code || 'timeout'}): admin review required`
+        slipReviewMessage = 'ระบบรับสลิปแล้ว แต่ SlipOK ใช้เวลาตรวจสอบนานเกินไป แอดมินจะตรวจสอบต่อ'
+        slipWarningCode = 'SLIPOK_TIMEOUT'
       } else {
         const codeLabel = slipResult?.code ? ` (${slipResult.code})` : ''
         verificationNotes = `SlipOK error${codeLabel}: ${slipResult?.message || 'unknown'}`
+        slipReviewMessage = slipResult?.message || 'SlipOK ยังไม่สามารถยืนยันสลิปนี้ได้ แอดมินจะตรวจสอบต่อ'
+        slipWarningCode = slipResult?.code ? String(slipResult.code) : 'SLIPOK_REJECTED'
       }
     }
 
@@ -171,7 +230,21 @@ export async function POST(request: NextRequest) {
       .insert(paymentRows)
 
     if (paymentError) {
-      return NextResponse.json({ error: `บันทึกข้อมูลการชำระเงินไม่สำเร็จ: ${paymentError.message}` }, { status: 500 })
+      console.error('[verify-slip] Payment insert failed after slip upload', {
+        userId: user.id,
+        bookingIds,
+        paymentStatus: verificationStatus,
+        error: paymentError.message,
+      })
+      return jsonError(
+        'อัปโหลดสลิปสำเร็จแล้ว แต่บันทึกข้อมูลการชำระเงินไม่สำเร็จ กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่พร้อม Booking ID',
+        500,
+        {
+          code: VERIFY_SLIP_ERROR_CODES.paymentInsertFailed,
+          paymentRecorded: false,
+          supportReviewRequired: true,
+        }
+      )
     }
 
     const nextBookingStatus = verificationStatus === 'approved' ? 'verified' : 'paid'
@@ -182,7 +255,22 @@ export async function POST(request: NextRequest) {
       .in('id', bookingIds)
 
     if (bookingUpdateError) {
-      return NextResponse.json({ error: `อัปเดตสถานะการจองไม่สำเร็จ: ${bookingUpdateError.message}` }, { status: 500 })
+      console.error('[verify-slip] Booking status update failed after payment insert', {
+        userId: user.id,
+        bookingIds,
+        nextBookingStatus,
+        paymentStatus: verificationStatus,
+        error: bookingUpdateError.message,
+      })
+      return jsonError(
+        'ระบบรับสลิปและบันทึกการชำระเงินแล้ว แต่ยังอัปเดตสถานะการจองไม่สำเร็จ กรุณาติดต่อเจ้าหน้าที่ให้ตรวจสอบ Booking ID',
+        500,
+        {
+          code: VERIFY_SLIP_ERROR_CODES.bookingStatusUpdateFailed,
+          paymentRecorded: true,
+          supportReviewRequired: true,
+        }
+      )
     }
 
     await notifyRoles(adminSupabase as NotificationSupabase, {
@@ -215,9 +303,13 @@ export async function POST(request: NextRequest) {
         date: slipResult.data.date,
       } : null,
       notes: verificationNotes,
+      reviewMessage: slipReviewMessage || null,
+      warningCode: slipWarningCode,
     })
   } catch (error) {
     console.error('Verify slip error:', error)
-    return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
+    return jsonError(`เกิดข้อผิดพลาด: ${getErrorMessage(error)}`, 500, {
+      code: VERIFY_SLIP_ERROR_CODES.unexpected,
+    })
   }
 }
