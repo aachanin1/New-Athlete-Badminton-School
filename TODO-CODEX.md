@@ -21,6 +21,19 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed User Payment / Slip Upload reliability hardening limited-risk release:
+  - Source commit `bc5e013b4b0d90b517f908d9aaf34e7caad5f43b` (`fix(payment): harden slip upload reliability`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_B2895m9DiJwxm3xWEhu64BUYDhAj`; deployment URL `https://new-athlete-badminton-school-753f9tmvh-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/lib/slipok.ts`, `src/app/api/verify-slip/route.ts`, and `src/components/dashboard/history-client.tsx`.
+  - Root reliability risk: User slip upload could feel stuck or ambiguous when SlipOK was slow/timeout-prone or when a partial failure happened after upload/payment insert.
+  - Fix: added a 25s SlipOK `AbortController` timeout with typed `SLIPOK_TIMEOUT`; `/api/verify-slip` now returns clearer safe messages/codes for upload failure, SlipOK timeout/rejection/invalid slip, payment insert failure, and booking update failure after payment insert; `/dashboard/history` now shows uploading/verifying/refreshing/failed states and disables duplicate submit/file changes while pending.
+  - If payment is recorded but booking update fails, the API returns `paymentRecorded: true` and `supportReviewRequired: true`; the client refreshes and tells the user support must review.
+  - Business semantics were preserved: SlipOK approved still creates payment `approved` and booking `verified`; timeout/rejected/manual-review still records payment `pending` and booking `paid`; payment approval/reject/send-back/cancel semantics, pricing, DB migrations, and direct DB repairs were not changed/performed.
+  - Production read-only smoke passed: production alias loaded normally; `/dashboard/history` loaded with the user session and showed pending payment/upload UI without submitting a slip; `/admin/payments` loaded and payment list rendered normally; console errors/warnings were 0; no React hydration error or React #418 was found.
+  - Post-deploy read-only inconsistency audit passed: payments scanned 392; paid/verified bookings 392; payment exists but booking still `pending_payment` 0; approved payment but booking not `verified` 0; booking `paid`/`verified` without payment row 0; duplicate payment rows for same booking 0.
+  - Browser slip-upload write smoke remains `NEED REVIEW` because no clearly disposable/test pending booking existed. No production slip upload was performed, no booking/payment/slip/coupon was created, and no payment/write action was clicked.
+  - Recommended next reliability task if payment upload still feels slow: User Booking state reset / draft-state preservation, or History page query/loading audit.
+
 - Completed scoped `/admin/payments` multi-child learner display fix:
   - Source commit `abe01e11324bbb1d5bc29034fe516f0bfa655220` (`fix(payments): show session learners for multi-child bookings`) was pushed and deployed to Vercel production.
   - Deployment id `dpl_CdVyyJMkYWcSJJBZrWY6aajcZ1Mf`; deployment URL `https://new-athlete-badminton-school-fpasc3joj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.

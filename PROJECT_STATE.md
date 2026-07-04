@@ -1315,6 +1315,39 @@ Potential bug found:
 - Verification before deploy passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
 - Phase C split monthly summary vs daily detail remains optional/future only; it is not required immediately because this scoped fix already avoids full-month detail rendering by default.
 
+## 2026-07-04 - User Payment / Slip Upload Reliability Hardening
+
+- Scoped User Payment / Slip Upload reliability hardening is deployed to production and production read-only smoke passed.
+- Source commit `bc5e013b4b0d90b517f908d9aaf34e7caad5f43b` (`fix(payment): harden slip upload reliability`) was pushed on branch `spike/next-major-security-upgrade`.
+- Deployment id `dpl_B2895m9DiJwxm3xWEhu64BUYDhAj`; deployment URL `https://new-athlete-badminton-school-753f9tmvh-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Source scope was limited to `src/lib/slipok.ts`, `src/app/api/verify-slip/route.ts`, and `src/components/dashboard/history-client.tsx`.
+- Root reliability risk from the audit: the slip upload flow could feel stuck or unclear when SlipOK was slow/timeout-prone or when a partial failure happened after upload, especially if the payment row was inserted but booking status update failed.
+- Fix summary:
+  - `src/lib/slipok.ts` now wraps the SlipOK request with an explicit 25s `AbortController` timeout and typed `SLIPOK_TIMEOUT` response.
+  - `/api/verify-slip` returns clearer safe messages/codes for storage upload failure, SlipOK timeout, SlipOK rejection/invalid slip, payment insert failure, and booking update failure after payment insert.
+  - `/dashboard/history` slip upload dialog now shows clearer uploading/verifying/refreshing/failed states, disables duplicate submit and file changes while pending, and surfaces safe API messages to the user.
+  - If payment is recorded but booking update fails, the API reports `paymentRecorded: true` and `supportReviewRequired: true`; the client refreshes and tells the user support must review.
+- Business semantics preserved:
+  - SlipOK approved still creates payment `approved` and booking `verified`.
+  - Timeout/rejected/manual-review path still records payment `pending` and booking `paid`.
+  - Payment approval/reject/send-back/cancel semantics were not changed.
+  - Pricing, DB migrations, and direct DB repair were not changed/performed.
+- Production read-only smoke passed:
+  - `https://www.newathleteschool.com` loaded normally.
+  - `/dashboard/history` loaded with the existing user session and did not redirect to login.
+  - Pending payment/upload UI rendered, but no slip dialog was submitted.
+  - `/admin/payments` loaded and the payment list rendered normally.
+  - Console errors/warnings were 0; no React hydration error or React #418 was found.
+- Post-deploy read-only inconsistency audit passed:
+  - payments scanned: 392.
+  - paid/verified bookings: 392.
+  - payment exists but booking still `pending_payment`: 0.
+  - approved payment but booking not `verified`: 0.
+  - booking `paid`/`verified` without payment row: 0.
+  - duplicate payment rows for same booking: 0.
+- Important limitation: browser slip-upload write smoke remains `NEED REVIEW` because no clearly disposable/test pending booking existed. No production slip upload was performed, no booking/payment/slip/coupon was created, and no payment/write action was clicked.
+- Recommended next reliability task if payment upload still feels slow: either User Booking state reset / draft-state preservation, or a History page query/loading audit.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
