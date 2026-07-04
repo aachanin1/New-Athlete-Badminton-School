@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-02
+Last updated: 2026-07-04
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -20,6 +20,17 @@ Read only when relevant:
 - `TODO.md` only as legacy backlog reference after verifying against code.
 
 ## Completed This Round
+
+- Completed scoped `/admin/payments` multi-child learner display fix:
+  - Source commit `abe01e11324bbb1d5bc29034fe516f0bfa655220` (`fix(payments): show session learners for multi-child bookings`) was pushed and deployed to Vercel production.
+  - Deployment id `dpl_CdVyyJMkYWcSJJBZrWY6aajcZ1Mf`; deployment URL `https://new-athlete-badminton-school-fpasc3joj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(admin)/admin/payments/page.tsx` and `src/components/admin/payments-client.tsx`.
+  - Root cause: `/admin/payments` displayed `ไม่ทราบผู้เรียน` for multi-child kids_group bookings because it read learner display from `bookings.child_id -> children` only. For multi-child bookings, `bookings.child_id = null` is intentional, while the real learners are stored correctly in `booking_sessions.child_id`.
+  - Fix: `/admin/payments` still uses `bookings.child_id -> children` first for single-child bookings, then falls back to unique learner names from `booking_sessions.child_id` when `bookings.child_id` is null. Multi-child bookings now show learner summaries, and search/detail modal use the derived learner name.
+  - This was a display/read-model fix only. It did not change payment approval/reject/send-back/cancel logic, payment status/amount logic, pricing, SlipOK behavior, booking/session/payment/coupon data, DB, migrations, or write behavior.
+  - Production smoke passed with `Super Admin: A'Arm Chanin`: `4b0813ef...` showed `ปันนา, ปีนัง`; `5ebae341...` showed `เอมี่, เอลซ่า`; `9b7bd3f5...` showed `ภูเมธ, ซานต้า, ซันเดย์, ตุลย์`; a single-child row still showed `Tigger`; search by `ปันนา`, `เอมี่`, `ภูเมธ`, and `Tigger` worked; the detail modal for `9b7bd3f5...` showed `ผู้เรียน: ภูเมธ, ซานต้า, ซันเดย์, ตุลย์`; console errors/warnings were 0.
+  - No payment write action was clicked. No DB/API/migration changes, booking/payment/slip/coupon creation, pricing changes, SlipOK changes, or `booking_sessions`/`payments`/coupon data changes were performed.
+  - Remaining risk for this display bug after production smoke: none known.
 
 - Completed scoped kids_group monthly pricing true-up release:
   - Source commit `5897cede58f720c1b5f205af53c9821cff0a39bf` (`fix(pricing): true up kids group monthly tiers`) was pushed and deployed to Vercel production.

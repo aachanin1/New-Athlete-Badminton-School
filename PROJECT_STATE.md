@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-02
+Last updated: 2026-07-04
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -90,6 +90,7 @@ Observed migrations include:
 - Admin booking on behalf of users is disabled.
 - Slip upload API stores payment rows and updates booking status based on SlipOK/test-mode result.
 - `SLIPOK_TEST_MODE=true` auto-approves locally; production must use real SlipOK env.
+- `/admin/payments` learner display is now resilient for multi-child bookings. It still reads `bookings.child_id -> children` first for single-child bookings, then falls back to unique learner names from `booking_sessions.child_id` when `bookings.child_id` is null by design.
 - Pricing reads DB `pricing_tiers` through `src/lib/booking-pricing.ts` and falls back to defaults only if rows are missing.
 - Kids group combines sibling sessions for monthly tier pricing.
 - Kids group incremental pricing now true-ups split bookings in the same month to the final monthly tier total. It subtracts existing persisted `bookings.total_price` for the same user/course/month/year/status scope before charging the next booking.
@@ -162,6 +163,14 @@ Latest attendance reconciliation result:
 Current active production risk:
 
 - No known attendance/session status drift after the confirmed reconciliation.
+- `/admin/payments` multi-child learner display fix is deployed in production as of commit `abe01e11324bbb1d5bc29034fe516f0bfa655220` (`fix(payments): show session learners for multi-child bookings`):
+  - Deployment id `dpl_CdVyyJMkYWcSJJBZrWY6aajcZ1Mf`; deployment URL `https://new-athlete-badminton-school-fpasc3joj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Root cause: `/admin/payments` displayed `ไม่ทราบผู้เรียน` for multi-child kids_group bookings because the read model used only `bookings.child_id -> children`. Multi-child bookings intentionally have `bookings.child_id = null`, while the real learners are stored on `booking_sessions.child_id`.
+  - Source scope was limited to `src/app/(admin)/admin/payments/page.tsx` and `src/components/admin/payments-client.tsx`.
+  - Fix is display/read-model only: single-child booking display still uses `bookings.child_id -> children` first; multi-child display falls back to unique learner names from `booking_sessions.child_id`; search and the payment detail modal use the derived learner name.
+  - Production smoke passed on `/admin/payments`: `4b0813ef...` showed `ปันนา, ปีนัง`; `5ebae341...` showed `เอมี่, เอลซ่า`; `9b7bd3f5...` showed `ภูเมธ, ซานต้า, ซันเดย์, ตุลย์`; a single-child row still showed `Tigger`; search by `ปันนา`, `เอมี่`, `ภูเมธ`, and `Tigger` worked; the detail modal for `9b7bd3f5...` showed `ผู้เรียน: ภูเมธ, ซานต้า, ซันเดย์, ตุลย์`; console errors/warnings were 0.
+  - No DB changes, migrations, payment approval/reject/send-back/cancel logic changes, pricing changes, SlipOK changes, `booking_sessions`/`payments`/coupon data changes, booking/payment/slip/coupon creation, or payment write action clicks were performed.
+  - Remaining risk for this display bug after production smoke: none known.
 - Lesson wallet redemption fallback fix, added 2026-06-09:
   - Reported pattern: `/dashboard/lesson-wallet` could return HTTP 400 with `รอบเรียนที่เลือกไม่ตรงกับรอบเรียนประจำในระบบ` even when the selected branch/date/time/course had an active recurring template.
   - Root cause proved read-only: `/api/lesson-wallet` treated client `scheduleTemplateId` as a hard filter. A stale/mismatched id caused the canonical branch/course/day/time lookup to be skipped.
