@@ -26,8 +26,11 @@ interface PaymentRow {
     total_sessions: number | null
     branch_id: string | null
     course_type_id: string | null
+    child_id: string | null
+    learner_type: string | null
     branches?: { name: string | null } | null
     course_types?: { name: string | null } | null
+    children?: { full_name: string | null; nickname: string | null } | null
   } | null
   profiles?: { full_name: string | null; email: string | null } | null
 }
@@ -60,6 +63,136 @@ interface IncompleteBookingRow {
   }[] | null
 }
 
+type AdminPageSupabase = Awaited<ReturnType<typeof requireAdminPageAccess>>['supabase']
+
+interface SessionChildRow {
+  booking_id: string
+  child_id: string | null
+}
+
+interface ChildNameRow {
+  id: string
+  full_name: string | null
+  nickname: string | null
+}
+
+interface LearnerAggregate {
+  name: string
+  sessionCount: number
+}
+
+const IN_FILTER_CHUNK_SIZE = 100
+
+function getChildDisplayName(child: { full_name: string | null; nickname: string | null } | null | undefined) {
+  return child?.nickname || child?.full_name || null
+}
+
+function formatSessionLearnerSummary(names: string[]) {
+  const uniqueNames = Array.from(new Set(names.filter(Boolean)))
+  if (uniqueNames.length === 0) return null
+  if (uniqueNames.length === 1) return uniqueNames[0]
+  if (uniqueNames.length <= 4) return uniqueNames.join(', ')
+
+  return `หลายผู้เรียน: ${uniqueNames.slice(0, 4).join(', ')} และอีก ${uniqueNames.length - 4} คน`
+}
+
+function getBookingLearnerName(
+  bookingChild: { full_name: string | null; nickname: string | null } | null | undefined,
+  learnerType: string | null | undefined,
+  sessionLearnerSummary: string | null | undefined
+) {
+  return getChildDisplayName(bookingChild)
+    || sessionLearnerSummary
+    || (learnerType === 'self' ? 'ผู้เรียนเอง' : 'ไม่ทราบผู้เรียน')
+}
+
+async function fetchSessionLearnerNameMap(supabase: AdminPageSupabase, bookingIds: string[]) {
+  const uniqueBookingIds = Array.from(new Set(bookingIds.filter(Boolean)))
+  const learnerNameMap = new Map<string, string>()
+
+  if (uniqueBookingIds.length === 0) return learnerNameMap
+
+  const sessionRows: SessionChildRow[] = []
+
+  for (let i = 0; i < uniqueBookingIds.length; i += IN_FILTER_CHUNK_SIZE) {
+    const chunk = uniqueBookingIds.slice(i, i + IN_FILTER_CHUNK_SIZE)
+    const { data, error } = await supabase
+      .from('booking_sessions')
+      .select('booking_id, child_id')
+      .in('booking_id', chunk)
+      .not('child_id', 'is', null) as unknown as { data: SessionChildRow[] | null; error: { message?: string } | null }
+
+    if (error) {
+      console.error('[admin/payments] Failed to load session learner fallback', error.message || error)
+      return learnerNameMap
+    }
+
+    sessionRows.push(...(data || []))
+  }
+
+  const childIds = Array.from(new Set(sessionRows.map((row) => row.child_id).filter(Boolean))) as string[]
+  if (childIds.length === 0) return learnerNameMap
+
+  const childNameMap = new Map<string, string>()
+
+  for (let i = 0; i < childIds.length; i += IN_FILTER_CHUNK_SIZE) {
+    const chunk = childIds.slice(i, i + IN_FILTER_CHUNK_SIZE)
+    const { data, error } = await supabase
+      .from('children')
+      .select('id, full_name, nickname')
+      .in('id', chunk) as unknown as { data: ChildNameRow[] | null; error: { message?: string } | null }
+
+    if (error) {
+      console.error('[admin/payments] Failed to load child names for payment fallback', error.message || error)
+      return learnerNameMap
+    }
+
+    for (const child of data || []) {
+      const name = getChildDisplayName(child)
+      if (name) childNameMap.set(child.id, name)
+    }
+  }
+
+  const learnersByBooking = new Map<string, Map<string, LearnerAggregate>>()
+
+  for (const row of sessionRows) {
+    if (!row.child_id) continue
+
+    const childName = childNameMap.get(row.child_id)
+    if (!childName) continue
+
+    const learners = learnersByBooking.get(row.booking_id) || new Map<string, LearnerAggregate>()
+    const learner = learners.get(row.child_id) || { name: childName, sessionCount: 0 }
+    learner.sessionCount += 1
+    learners.set(row.child_id, learner)
+    learnersByBooking.set(row.booking_id, learners)
+  }
+
+  for (const [bookingId, learners] of learnersByBooking) {
+    const learnerEntries = Array.from(learners.entries())
+    const allLearnersHaveSameCount = learnerEntries.every(([, learner]) => (
+      learner.sessionCount === learnerEntries[0]?.[1].sessionCount
+    ))
+    const orderedNames = learnerEntries
+      .sort(([childIdA, learnerA], [childIdB, learnerB]) => {
+        if (learnerA.sessionCount !== learnerB.sessionCount) {
+          return learnerB.sessionCount - learnerA.sessionCount
+        }
+
+        if (allLearnersHaveSameCount) {
+          return learnerA.name.localeCompare(learnerB.name, 'th')
+        }
+
+        return childIdA.localeCompare(childIdB)
+      })
+      .map(([, learner]) => learner.name)
+    const summary = formatSessionLearnerSummary(orderedNames)
+    if (summary) learnerNameMap.set(bookingId, summary)
+  }
+
+  return learnerNameMap
+}
+
 export default async function PaymentsPage() {
   const { supabase, role } = await requireAdminPageAccess()
   const canViewFinancialAmounts = role === 'super_admin'
@@ -70,9 +203,10 @@ export default async function PaymentsPage() {
     .select(`
       id, booking_id, user_id, ${canViewFinancialAmounts ? 'amount,' : ''} method, slip_image_url,
       status, verified_by, verified_at, notes, created_at,
-      bookings(month, year, status, total_sessions, branch_id, course_type_id,
+      bookings(month, year, status, total_sessions, branch_id, course_type_id, child_id, learner_type,
         branches(name),
-        course_types(name)
+        course_types(name),
+        children(full_name, nickname)
       ),
       profiles!payments_user_id_fkey(full_name, email)
     `)
@@ -99,6 +233,11 @@ export default async function PaymentsPage() {
     `)
     .in('status', ['pending_payment', 'paid'])
     .order('created_at', { ascending: false }) as unknown as { data: IncompleteBookingRow[] | null }
+
+  const sessionLearnerNameByBookingId = await fetchSessionLearnerNameMap(supabase, [
+    ...(payments || []).map((payment) => payment.booking_id),
+    ...(incompleteBookings || []).map((booking) => booking.id),
+  ])
 
   // Fetch verifier names
   const verifierIds = Array.from(new Set((payments || []).map((p) => p.verified_by).filter(Boolean))) as string[]
@@ -141,6 +280,11 @@ export default async function PaymentsPage() {
     branch_name: p.bookings?.branches?.name || 'ไม่ทราบ',
     course_type: p.bookings?.course_types?.name || '',
     total_sessions: p.bookings?.total_sessions || 0,
+    learner_name: getBookingLearnerName(
+      p.bookings?.children,
+      p.bookings?.learner_type,
+      sessionLearnerNameByBookingId.get(p.booking_id)
+    ),
     verified_by_name: p.verified_by ? (verifierMap[p.verified_by] || null) : null,
   }))
 
@@ -157,7 +301,11 @@ export default async function PaymentsPage() {
       user_name: booking.profiles?.full_name || 'ไม่ทราบ',
       user_email: booking.profiles?.email || '',
       user_phone: booking.profiles?.phone || '',
-      learner_name: booking.children?.nickname || booking.children?.full_name || (booking.learner_type === 'self' ? 'ผู้เรียนเอง' : 'ไม่ทราบผู้เรียน'),
+      learner_name: getBookingLearnerName(
+        booking.children,
+        booking.learner_type,
+        sessionLearnerNameByBookingId.get(booking.id)
+      ),
       branch_name: booking.branches?.name || 'ไม่ทราบ',
       course_type: booking.course_types?.name || '',
       month: booking.month || 0,

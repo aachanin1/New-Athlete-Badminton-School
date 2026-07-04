@@ -54,6 +54,7 @@ interface PaymentData {
   branch_name: string
   course_type: string
   total_sessions: number
+  learner_name: string
   verified_by_name: string | null
 }
 
@@ -202,6 +203,7 @@ export function PaymentsClient({
       return [
         payment.user_name,
         payment.user_email,
+        payment.learner_name,
         payment.branch_name,
         payment.id,
         payment.booking_id,
@@ -617,6 +619,7 @@ export function PaymentsClient({
 
                   <div className="min-w-0 text-sm">
                     <p className="font-medium text-gray-900">{COURSE_LABELS[payment.course_type] || payment.course_type || '-'}</p>
+                    <p className="mt-1 truncate text-gray-500">{payment.learner_name}</p>
                     <p className="mt-1 flex items-center gap-1 text-gray-500">
                       <Building2 className="h-3.5 w-3.5" />
                       {payment.branch_name}
@@ -740,6 +743,10 @@ export function PaymentsClient({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border p-3 sm:col-span-2">
+                  <p className="text-xs text-gray-400">ผู้เรียน</p>
+                  <p className="mt-1 font-medium">{detailPayment.learner_name}</p>
+                </div>
                 <div className="rounded-lg border p-3 sm:col-span-2">
                   <p className="text-xs text-gray-400">คอร์ส</p>
                   <p className="mt-1 font-medium">{COURSE_LABELS[detailPayment.course_type] || detailPayment.course_type || '-'}</p>
