@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Child, Branch, CourseTypeName } from '@/types/database'
 import { Button } from '@/components/ui/button'
@@ -117,6 +117,24 @@ interface BookingClientProps {
 
 type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
 
+interface BookingDraft {
+  version: 1
+  step: Step
+  courseType: CourseTypeName | null
+  learnerType: 'self' | 'child' | null
+  selectedChildIds: string[]
+  privateSelfAttend: boolean
+  selectedBranchIds: string[]
+  calMonth: number
+  calYear: number
+  sessionsMap: Record<string, SelectedSession[]>
+  activeChildTab: string
+  updatedAt: number
+}
+
+const BOOKING_DRAFT_VERSION = 1
+const STEP_ORDER: Step[] = ['type', 'learner', 'branch', 'calendar', 'summary']
+
 const STEPS: { key: Step; label: string }[] = [
   { key: 'type', label: 'ประเภท' },
   { key: 'learner', label: 'ผู้เรียน' },
@@ -135,7 +153,156 @@ function getMonthDisplayDateKey(year: number, monthIndex: number) {
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`
 }
 
-export function BookingClient({ userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
+function getBookingDraftStorageKey(userId: string, editBookingId?: string | null) {
+  return editBookingId
+    ? `nabs:booking-draft:v${BOOKING_DRAFT_VERSION}:${userId}:edit:${editBookingId}`
+    : `nabs:booking-draft:v${BOOKING_DRAFT_VERSION}:${userId}:new`
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isStep(value: unknown): value is Step {
+  return typeof value === 'string' && STEP_ORDER.includes(value as Step)
+}
+
+function isLearnerType(value: unknown): value is 'self' | 'child' | null {
+  return value === null || value === 'self' || value === 'child'
+}
+
+function isCourseTypeValue(value: unknown, validCourseTypes: Set<string>): value is CourseTypeName | null {
+  return value === null || (typeof value === 'string' && validCourseTypes.has(value))
+}
+
+function isValidStringArray(value: unknown) {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isValidSelectedSession(value: unknown, validBranchIds: Set<string>): value is SelectedSession {
+  if (!isRecord(value)) return false
+  if (typeof value.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.date)) return false
+  if (typeof value.dayOfWeek !== 'number' || value.dayOfWeek < 0 || value.dayOfWeek > 6) return false
+  if (typeof value.start !== 'string' || typeof value.end !== 'string') return false
+  if (typeof value.branchId !== 'string' || !validBranchIds.has(value.branchId)) return false
+  if (value.scheduleTemplateId !== undefined && value.scheduleTemplateId !== null && typeof value.scheduleTemplateId !== 'string') return false
+  if (value.scheduleSlotId !== undefined && value.scheduleSlotId !== null && typeof value.scheduleSlotId !== 'string') return false
+  return true
+}
+
+function isMeaningfulDraft({
+  courseType,
+  learnerType,
+  selectedChildIds,
+  privateSelfAttend,
+  selectedBranchIds,
+  sessionsMap,
+  step,
+  isEditMode,
+}: {
+  courseType: CourseTypeName | null
+  learnerType: 'self' | 'child' | null
+  selectedChildIds: string[]
+  privateSelfAttend: boolean
+  selectedBranchIds: string[]
+  sessionsMap: Record<string, SelectedSession[]>
+  step: Step
+  isEditMode: boolean
+}) {
+  const sessionCount = Object.values(sessionsMap).reduce((sum, sessions) => sum + sessions.length, 0)
+  return Boolean(
+    isEditMode ||
+    courseType ||
+    learnerType ||
+    selectedChildIds.length > 0 ||
+    privateSelfAttend ||
+    selectedBranchIds.length > 0 ||
+    sessionCount > 0 ||
+    step !== 'type'
+  )
+}
+
+function getSafeStep(step: Step, draft: Omit<BookingDraft, 'version' | 'updatedAt'>) {
+  const targetIndex = STEP_ORDER.indexOf(step)
+  if (!draft.courseType) return 'type'
+  if (targetIndex <= STEP_ORDER.indexOf('learner')) return step
+
+  const hasLearner =
+    draft.courseType === 'kids_group'
+      ? draft.selectedChildIds.length > 0
+      : draft.courseType === 'private'
+        ? draft.privateSelfAttend || draft.selectedChildIds.length > 0
+        : Boolean(draft.learnerType)
+
+  if (!hasLearner) return 'learner'
+  if (targetIndex <= STEP_ORDER.indexOf('branch')) return step
+  if (draft.selectedBranchIds.length === 0) return 'branch'
+  if (targetIndex <= STEP_ORDER.indexOf('calendar')) return step
+
+  const selectedSessionCount = Object.values(draft.sessionsMap).reduce((sum, sessions) => sum + sessions.length, 0)
+  return selectedSessionCount > 0 ? step : 'calendar'
+}
+
+function sanitizeBookingDraft(
+  value: unknown,
+  validCourseTypes: Set<string>,
+  validChildIds: Set<string>,
+  validBranchIds: Set<string>
+): Omit<BookingDraft, 'version' | 'updatedAt'> | null {
+  if (!isRecord(value)) return null
+  if (value.version !== BOOKING_DRAFT_VERSION) return null
+  if (!isStep(value.step)) return null
+  if (!isCourseTypeValue(value.courseType, validCourseTypes)) return null
+  if (!isLearnerType(value.learnerType)) return null
+  if (!isValidStringArray(value.selectedChildIds)) return null
+  if (!isValidStringArray(value.selectedBranchIds)) return null
+  if (typeof value.privateSelfAttend !== 'boolean') return null
+  if (typeof value.calMonth !== 'number' || !Number.isInteger(value.calMonth) || value.calMonth < 0 || value.calMonth > 11) return null
+  if (typeof value.calYear !== 'number' || !Number.isInteger(value.calYear) || value.calYear < 2020 || value.calYear > 2100) return null
+  const calMonth = value.calMonth
+  const calYear = value.calYear
+  if (!isRecord(value.sessionsMap)) return null
+
+  const selectedChildIds = value.selectedChildIds.filter((childId) => validChildIds.has(childId))
+  const selectedBranchIds = value.selectedBranchIds.filter((branchId) => validBranchIds.has(branchId))
+  const selectedChildIdSet = new Set(selectedChildIds)
+  const selectedBranchIdSet = new Set(selectedBranchIds)
+  const courseType = value.courseType
+  const sessionsMap: Record<string, SelectedSession[]> = {}
+
+  for (const [learnerKey, sessions] of Object.entries(value.sessionsMap)) {
+    const learnerKeyAllowed = courseType === 'kids_group'
+      ? selectedChildIdSet.has(learnerKey)
+      : learnerKey === 'self'
+
+    if (!learnerKeyAllowed || !Array.isArray(sessions)) continue
+
+    const safeSessions = sessions.filter((session) => isValidSelectedSession(session, selectedBranchIdSet))
+    if (safeSessions.length > 0) sessionsMap[learnerKey] = safeSessions
+  }
+
+  const activeChildTab = typeof value.activeChildTab === 'string' ? value.activeChildTab : 'self'
+  const safeActiveChildTab = courseType === 'kids_group'
+    ? (selectedChildIdSet.has(activeChildTab) ? activeChildTab : selectedChildIds[0] || 'self')
+    : 'self'
+
+  const draft = {
+    step: value.step,
+    courseType,
+    learnerType: value.learnerType,
+    selectedChildIds,
+    privateSelfAttend: value.privateSelfAttend,
+    selectedBranchIds,
+    calMonth,
+    calYear,
+    sessionsMap,
+    activeChildTab: safeActiveChildTab,
+  }
+
+  return { ...draft, step: getSafeStep(value.step, draft) }
+}
+
+export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
 
@@ -195,6 +362,148 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
   const [activeChildTab, setActiveChildTab] = useState<string>(
     isEditMode && editBooking.childIds.length > 0 ? editBooking.childIds[0] : 'self'
   )
+  const [draftReady, setDraftReady] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
+
+  const draftStorageKey = useMemo(
+    () => getBookingDraftStorageKey(userId, editBooking?.id || null),
+    [userId, editBooking?.id]
+  )
+  const previousDraftStorageKeyRef = useRef(draftStorageKey)
+  const validCourseTypes = useMemo(() => new Set(courseTypes.map((ct) => ct.name)), [courseTypes])
+  const validChildIds = useMemo(() => new Set(learnerChildren.map((child) => child.id)), [learnerChildren])
+  const validBranchIds = useMemo(() => new Set(branches.map((branch) => branch.id)), [branches])
+
+  useEffect(() => {
+    const previousDraftStorageKey = previousDraftStorageKeyRef.current
+    if (previousDraftStorageKey === draftStorageKey) return
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem(previousDraftStorageKey)
+      } catch {
+        // Ignore storage errors; the active draft key will still be restored/saved normally.
+      }
+    }
+    previousDraftStorageKeyRef.current = draftStorageKey
+  }, [draftStorageKey])
+
+  useEffect(() => {
+    setDraftReady(false)
+    setDraftRestored(false)
+
+    if (typeof window === 'undefined') {
+      setDraftReady(true)
+      return
+    }
+
+    try {
+      const rawDraft = window.sessionStorage.getItem(draftStorageKey)
+      if (!rawDraft) {
+        setDraftReady(true)
+        return
+      }
+
+      const restoredDraft = sanitizeBookingDraft(
+        JSON.parse(rawDraft),
+        validCourseTypes,
+        validChildIds,
+        validBranchIds
+      )
+
+      if (!restoredDraft) {
+        window.sessionStorage.removeItem(draftStorageKey)
+        setDraftReady(true)
+        return
+      }
+
+      setStep(restoredDraft.step)
+      setCourseType(restoredDraft.courseType)
+      setLearnerType(restoredDraft.learnerType)
+      setSelectedChildIds(restoredDraft.selectedChildIds)
+      setPrivateSelfAttend(restoredDraft.privateSelfAttend)
+      setSelectedBranchIds(restoredDraft.selectedBranchIds)
+      setCalMonth(restoredDraft.calMonth)
+      setCalYear(restoredDraft.calYear)
+      setSessionsMap(restoredDraft.sessionsMap)
+      setActiveChildTab(restoredDraft.activeChildTab)
+      setExpandedDate(null)
+      setDraftRestored(true)
+      setDraftReady(true)
+    } catch {
+      window.sessionStorage.removeItem(draftStorageKey)
+      setDraftReady(true)
+    }
+  }, [draftStorageKey, validBranchIds, validChildIds, validCourseTypes])
+
+  useEffect(() => {
+    if (!draftReady || typeof window === 'undefined') return
+
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const shouldSaveDraft = isMeaningfulDraft({
+          courseType,
+          learnerType,
+          selectedChildIds,
+          privateSelfAttend,
+          selectedBranchIds,
+          sessionsMap,
+          step,
+          isEditMode,
+        })
+
+        if (!shouldSaveDraft) {
+          window.sessionStorage.removeItem(draftStorageKey)
+          return
+        }
+
+        const draft: BookingDraft = {
+          version: BOOKING_DRAFT_VERSION,
+          step,
+          courseType,
+          learnerType,
+          selectedChildIds,
+          privateSelfAttend,
+          selectedBranchIds,
+          calMonth,
+          calYear,
+          sessionsMap,
+          activeChildTab,
+          updatedAt: Date.now(),
+        }
+        window.sessionStorage.setItem(draftStorageKey, JSON.stringify(draft))
+      } catch {
+        // sessionStorage can be unavailable in restricted browser modes.
+      }
+    }, 250)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [
+    activeChildTab,
+    calMonth,
+    calYear,
+    courseType,
+    draftReady,
+    draftStorageKey,
+    isEditMode,
+    learnerType,
+    privateSelfAttend,
+    selectedBranchIds,
+    selectedChildIds,
+    sessionsMap,
+    step,
+  ])
+
+  const clearStoredDraft = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem(draftStorageKey)
+      } catch {
+        // Ignore storage errors; the current in-memory booking state is still usable.
+      }
+    }
+    setDraftRestored(false)
+  }
 
   const currentStepIndex = STEPS.findIndex((s) => s.key === step)
   const selectedBranches = branches.filter((b) => selectedBranchIds.includes(b.id))
@@ -583,6 +892,7 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
           return
         }
 
+        clearStoredDraft()
         router.push('/dashboard/history')
         router.refresh()
       } else {
@@ -622,6 +932,7 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
           return
         }
 
+        clearStoredDraft()
         router.push('/dashboard/history')
         router.refresh()
       }
@@ -645,6 +956,22 @@ export function BookingClient({ userName, learnerChildren, branches, courseTypes
           </div>
         ))}
       </div>
+
+      <div className="mb-4 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+        ระบบจะเก็บแบบร่างไว้ชั่วคราวในเบราว์เซอร์นี้ เพื่อช่วยกู้คืนเมื่อรีเฟรชหรือกลับมาที่หน้านี้
+      </div>
+
+      {draftRestored && (
+        <div className="mb-4 flex flex-col gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>กู้คืนแบบร่างการจองล่าสุดแล้ว</span>
+          </div>
+          <Button size="sm" variant="outline" onClick={clearStoredDraft} className="border-green-300 text-green-700 hover:bg-green-100">
+            ล้างแบบร่าง
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200 mb-4 flex items-center gap-2">
