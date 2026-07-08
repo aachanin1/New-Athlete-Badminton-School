@@ -114,11 +114,23 @@ interface CoachOptionRow {
   role: string | null
 }
 
+interface QueryError {
+  message: string
+}
+
+interface QueryRowsResult<T> {
+  data: T[] | null
+  error: QueryError | null
+}
+
 type MakeupPageSearchParams = Record<string, string | string[] | undefined>
 
 interface MakeupPageProps {
   searchParams?: Promise<MakeupPageSearchParams>
 }
+
+const RANGE_READ_PAGE_SIZE = 1000
+const IN_FILTER_CHUNK_SIZE = 100
 
 async function resolveSearchParams(searchParams?: MakeupPageProps['searchParams']) {
   return searchParams ? await searchParams : {}
@@ -148,6 +160,65 @@ function getBangkokTodayInput() {
   return `${partMap.year}-${partMap.month}-${partMap.day}`
 }
 
+function chunkArray<T>(items: T[], chunkSize: number) {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize))
+  }
+  return chunks
+}
+
+function dedupeRowsById<T extends { id: string }>(rows: T[]) {
+  const rowById = new Map<string, T>()
+  rows.forEach((row) => {
+    if (!rowById.has(row.id)) rowById.set(row.id, row)
+  })
+  return Array.from(rowById.values())
+}
+
+async function readAllRangePages<T>(
+  label: string,
+  buildPage: (start: number, end: number) => PromiseLike<QueryRowsResult<T>>,
+) {
+  const rows: T[] = []
+
+  for (let start = 0; ; start += RANGE_READ_PAGE_SIZE) {
+    const end = start + RANGE_READ_PAGE_SIZE - 1
+    const { data, error } = await buildPage(start, end)
+
+    if (error) {
+      throw new Error(`Admin makeup ${label} query failed: ${error.message}`)
+    }
+
+    const pageRows = data || []
+    rows.push(...pageRows)
+
+    if (pageRows.length < RANGE_READ_PAGE_SIZE) break
+  }
+
+  return rows
+}
+
+async function readChunkedRangePages<T>(
+  label: string,
+  values: string[],
+  buildPage: (chunk: string[], start: number, end: number) => PromiseLike<QueryRowsResult<T>>,
+) {
+  const rows: T[] = []
+  const chunks = chunkArray(Array.from(new Set(values.filter(Boolean))), IN_FILTER_CHUNK_SIZE)
+
+  for (let index = 0; index < chunks.length; index += 1) {
+    const chunk = chunks[index]
+    const chunkRows = await readAllRangePages<T>(
+      `${label} chunk ${index + 1}/${chunks.length}`,
+      (start, end) => buildPage(chunk, start, end),
+    )
+    rows.push(...chunkRows)
+  }
+
+  return rows
+}
+
 export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const supabase = await createClient()
   const adminSupabase = getServiceRoleClient()
@@ -172,35 +243,40 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   `
 
   const [
-    { data: sourceSessions, error: sourceSessionsError },
-    { data: linkedMakeupSessions, error: linkedMakeupSessionsError },
-    { data: branches },
-    { data: scheduleTemplates },
-    { data: coaches },
+    sourceSessions,
+    linkedMakeupSessions,
+    { data: branches, error: branchesError },
+    { data: scheduleTemplates, error: scheduleTemplatesError },
+    { data: coaches, error: coachesError },
   ] = await Promise.all([
-    supabase
-      .from('booking_sessions')
-      .select(makeupSessionSelect)
-      .eq('bookings.status', 'verified')
-      .in('status', ['absent', 'scheduled', 'completed'])
-      .lte('date', todayInput)
-      .gte('date', historyStartInput)
-      .order('date', { ascending: false })
-      .limit(2000) as unknown as PromiseLike<{ data: MakeupSessionRow[] | null; error: { message: string } | null }>,
-    supabase
-      .from('booking_sessions')
-      .select(makeupSessionSelect)
-      .eq('bookings.status', 'verified')
-      .not('rescheduled_from_id', 'is', null)
-      .gte('date', historyStartInput)
-      .lte('date', nextMonthEndInput)
-      .order('date', { ascending: false })
-      .limit(1000) as unknown as PromiseLike<{ data: MakeupSessionRow[] | null; error: { message: string } | null }>,
+    // These queues can exceed PostgREST's default 1000-row window, so read every range explicitly.
+    readAllRangePages<MakeupSessionRow>('source sessions', (start, end) =>
+      supabase
+        .from('booking_sessions')
+        .select(makeupSessionSelect)
+        .eq('bookings.status', 'verified')
+        .in('status', ['absent', 'scheduled', 'completed'])
+        .lte('date', todayInput)
+        .gte('date', historyStartInput)
+        .order('date', { ascending: false })
+        .order('id', { ascending: true })
+        .range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
+    readAllRangePages<MakeupSessionRow>('linked makeup sessions', (start, end) =>
+      supabase
+        .from('booking_sessions')
+        .select(makeupSessionSelect)
+        .eq('bookings.status', 'verified')
+        .not('rescheduled_from_id', 'is', null)
+        .gte('date', historyStartInput)
+        .lte('date', nextMonthEndInput)
+        .order('date', { ascending: false })
+        .order('id', { ascending: true })
+        .range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
     supabase
       .from('branches')
       .select('id, name, slug')
       .eq('is_active', true)
-      .order('name') as unknown as PromiseLike<{ data: BranchRow[] | null }>,
+      .order('name') as unknown as PromiseLike<QueryRowsResult<BranchRow>>,
     supabase
       .from('schedule_templates')
       .select(`
@@ -208,21 +284,23 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
         branches(slug),
         course_types(name)
       `)
-      .eq('is_active', true) as unknown as PromiseLike<{ data: ScheduleTemplateRow[] | null }>,
+      .eq('is_active', true) as unknown as PromiseLike<QueryRowsResult<ScheduleTemplateRow>>,
     supabase
       .from('profiles')
       .select('id, full_name, email, role')
       .in('role', ['coach', 'head_coach'])
-      .order('full_name') as unknown as PromiseLike<{ data: CoachOptionRow[] | null }>,
+      .order('full_name') as unknown as PromiseLike<QueryRowsResult<CoachOptionRow>>,
   ])
 
-  if (sourceSessionsError || linkedMakeupSessionsError) {
-    console.error('Makeup attendance source query error:', sourceSessionsError || linkedMakeupSessionsError)
+  if (branchesError || scheduleTemplatesError || coachesError) {
+    throw new Error(
+      `Admin makeup reference query failed: ${(branchesError || scheduleTemplatesError || coachesError)?.message || 'Unknown error'}`
+    )
   }
 
   const sessionById = new Map<string, MakeupSessionRow>()
-  ;(sourceSessions || []).forEach((session) => sessionById.set(session.id, session))
-  ;(linkedMakeupSessions || []).forEach((session) => sessionById.set(session.id, session))
+  sourceSessions.forEach((session) => sessionById.set(session.id, session))
+  linkedMakeupSessions.forEach((session) => sessionById.set(session.id, session))
   const sessions = Array.from(sessionById.values())
 
   const visibleSessionIds = new Set(sessions.map((session) => session.id))
@@ -234,16 +312,22 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
 
   if (slotIds.length > 0) {
-    const { data: groupRows } = await supabase
-      .from('coach_assignment_groups')
-      .select(`
-        id, schedule_slot_id, name, coach_id,
-        profiles!coach_assignment_groups_coach_id_fkey(full_name, email),
-        coach_assignment_group_students(booking_session_id)
-      `)
-      .in('schedule_slot_id', slotIds) as unknown as { data: GroupRow[] | null }
-
-    groups = groupRows || []
+    // Large slot sets can exceed URL/request limits, so related reads are chunked by slot id.
+    groups = dedupeRowsById(await readChunkedRangePages<GroupRow>(
+      'assignment groups by slot',
+      slotIds,
+      (chunk, start, end) =>
+        supabase
+          .from('coach_assignment_groups')
+          .select(`
+            id, schedule_slot_id, name, coach_id,
+            profiles!coach_assignment_groups_coach_id_fkey(full_name, email),
+            coach_assignment_group_students(booking_session_id)
+          `)
+          .in('schedule_slot_id', chunk)
+          .order('id', { ascending: true })
+          .range(start, end) as unknown as PromiseLike<QueryRowsResult<GroupRow>>,
+    ))
     groups.forEach((group) => {
       const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
       groupSessionIds.forEach((sessionId) => {
@@ -258,27 +342,37 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       })
     })
 
-    const { data: checkins } = await supabase
-      .from('coach_checkins')
-      .select('schedule_slot_id, coach_id, checkin_time, photo_url, location_lat, location_lng')
-      .in('schedule_slot_id', slotIds)
-      .order('checkin_time', { ascending: false }) as unknown as { data: CoachCheckinRow[] | null }
+    const checkins = await readChunkedRangePages<CoachCheckinRow>(
+      'coach checkins by slot',
+      slotIds,
+      (chunk, start, end) =>
+        supabase
+          .from('coach_checkins')
+          .select('schedule_slot_id, coach_id, checkin_time, photo_url, location_lat, location_lng')
+          .in('schedule_slot_id', chunk)
+          .order('checkin_time', { ascending: false })
+          .range(start, end) as unknown as PromiseLike<QueryRowsResult<CoachCheckinRow>>,
+    )
 
-    ;(checkins || []).forEach((checkin) => {
+    checkins.forEach((checkin) => {
       const coachKey = `${checkin.schedule_slot_id}:${checkin.coach_id}`
       if (!checkinsBySlotCoachKey[coachKey]) checkinsBySlotCoachKey[coachKey] = checkin
     })
 
-    const { data: slotSessions } = await supabase
-      .from('booking_sessions')
-      .select('id, schedule_slot_id, branch_id, date, start_time, end_time, bookings!inner(status, course_type_id)')
-      .in('schedule_slot_id', slotIds)
-      .eq('bookings.status', 'verified')
-      .neq('status', 'rescheduled')
-      .neq('status', 'walleted')
-      .limit(1000) as unknown as { data: SlotSessionRow[] | null }
-
-    slotSessionsForScope = slotSessions || []
+    slotSessionsForScope = dedupeRowsById(await readChunkedRangePages<SlotSessionRow>(
+      'slot sessions for attendance scope',
+      slotIds,
+      (chunk, start, end) =>
+        supabase
+          .from('booking_sessions')
+          .select('id, schedule_slot_id, branch_id, date, start_time, end_time, bookings!inner(status, course_type_id)')
+          .in('schedule_slot_id', chunk)
+          .eq('bookings.status', 'verified')
+          .neq('status', 'rescheduled')
+          .neq('status', 'walleted')
+          .order('id', { ascending: true })
+          .range(start, end) as unknown as PromiseLike<QueryRowsResult<SlotSessionRow>>,
+    ))
     slotSessionsForScope.forEach((slotSession) => {
       slotSessionById.set(slotSession.id, slotSession)
     })
@@ -288,12 +382,17 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   let attendanceRows: AttendanceRow[] = []
 
   if (attendanceScopeSessionIds.length > 0) {
-    const { data } = await adminSupabase
-      .from('attendance')
-      .select('booking_session_id, student_id, status, checked_at')
-      .in('booking_session_id', attendanceScopeSessionIds) as unknown as { data: AttendanceRow[] | null }
-
-    attendanceRows = data || []
+    attendanceRows = await readChunkedRangePages<AttendanceRow>(
+      'attendance by scoped session',
+      attendanceScopeSessionIds,
+      (chunk, start, end) =>
+        adminSupabase
+          .from('attendance')
+          .select('booking_session_id, student_id, status, checked_at')
+          .in('booking_session_id', chunk)
+          .order('booking_session_id', { ascending: true })
+          .range(start, end) as unknown as PromiseLike<QueryRowsResult<AttendanceRow>>,
+    )
   }
 
   const adminAttendanceState = buildAdminAttendanceState({
