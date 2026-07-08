@@ -66,6 +66,7 @@ interface IncompleteBookingRow {
 type AdminPageSupabase = Awaited<ReturnType<typeof requireAdminPageAccess>>['supabase']
 
 interface SessionChildRow {
+  id: string
   booking_id: string
   child_id: string | null
 }
@@ -82,6 +83,80 @@ interface LearnerAggregate {
 }
 
 const IN_FILTER_CHUNK_SIZE = 100
+const RANGE_READ_PAGE_SIZE = 1000
+
+interface QueryError {
+  message?: string
+}
+
+interface QueryRowsResult<T> {
+  data: T[] | null
+  error: QueryError | null
+}
+
+function getQueryErrorMessage(error: QueryError | null | undefined) {
+  return error?.message || 'Unknown query error'
+}
+
+function chunkArray<T>(values: T[], size: number) {
+  const chunks: T[][] = []
+  for (let i = 0; i < values.length; i += size) {
+    chunks.push(values.slice(i, i + size))
+  }
+  return chunks
+}
+
+function dedupeRowsById<T extends { id: string }>(rows: T[]) {
+  const rowMap = new Map<string, T>()
+  for (const row of rows) {
+    rowMap.set(row.id, row)
+  }
+  return Array.from(rowMap.values())
+}
+
+async function readAllRangePages<T>(
+  label: string,
+  buildQuery: (start: number, end: number) => Promise<QueryRowsResult<T>>,
+) {
+  const rows: T[] = []
+
+  // Explicit ranges avoid silent PostgREST caps as payment history grows.
+  for (let start = 0; ; start += RANGE_READ_PAGE_SIZE) {
+    const end = start + RANGE_READ_PAGE_SIZE - 1
+    const { data, error } = await buildQuery(start, end)
+
+    if (error) {
+      throw new Error(`[admin/payments] ${label} read failed: ${getQueryErrorMessage(error)}`)
+    }
+
+    const pageRows = data || []
+    rows.push(...pageRows)
+
+    if (pageRows.length < RANGE_READ_PAGE_SIZE) break
+  }
+
+  return rows
+}
+
+async function readChunkedRangePages<T>(
+  label: string,
+  values: string[],
+  buildQuery: (chunk: string[], start: number, end: number) => Promise<QueryRowsResult<T>>,
+) {
+  const uniqueValues = Array.from(new Set(values.filter(Boolean)))
+  const chunks = chunkArray(uniqueValues, IN_FILTER_CHUNK_SIZE)
+  const rows: T[] = []
+
+  for (const [index, chunk] of chunks.entries()) {
+    const chunkRows = await readAllRangePages<T>(
+      `${label} chunk ${index + 1}/${chunks.length}`,
+      (start, end) => buildQuery(chunk, start, end),
+    )
+    rows.push(...chunkRows)
+  }
+
+  return rows
+}
 
 function getChildDisplayName(child: { full_name: string | null; nickname: string | null } | null | undefined) {
   return child?.nickname || child?.full_name || null
@@ -114,43 +189,39 @@ async function fetchSessionLearnerNameMap(supabase: AdminPageSupabase, bookingId
 
   const sessionRows: SessionChildRow[] = []
 
-  for (let i = 0; i < uniqueBookingIds.length; i += IN_FILTER_CHUNK_SIZE) {
-    const chunk = uniqueBookingIds.slice(i, i + IN_FILTER_CHUNK_SIZE)
-    const { data, error } = await supabase
+  // Booking-id chunks can still return many session rows, so each chunk is range-read.
+  sessionRows.push(...dedupeRowsById(await readChunkedRangePages<SessionChildRow>(
+    'session learner fallback',
+    uniqueBookingIds,
+    (chunk, start, end) => supabase
       .from('booking_sessions')
-      .select('booking_id, child_id')
+      .select('id, booking_id, child_id')
       .in('booking_id', chunk)
-      .not('child_id', 'is', null) as unknown as { data: SessionChildRow[] | null; error: { message?: string } | null }
-
-    if (error) {
-      console.error('[admin/payments] Failed to load session learner fallback', error.message || error)
-      return learnerNameMap
-    }
-
-    sessionRows.push(...(data || []))
-  }
+      .not('child_id', 'is', null)
+      .order('booking_id', { ascending: true })
+      .order('id', { ascending: true })
+      .range(start, end) as unknown as Promise<QueryRowsResult<SessionChildRow>>,
+  )))
 
   const childIds = Array.from(new Set(sessionRows.map((row) => row.child_id).filter(Boolean))) as string[]
   if (childIds.length === 0) return learnerNameMap
 
   const childNameMap = new Map<string, string>()
 
-  for (let i = 0; i < childIds.length; i += IN_FILTER_CHUNK_SIZE) {
-    const chunk = childIds.slice(i, i + IN_FILTER_CHUNK_SIZE)
-    const { data, error } = await supabase
+  const childRows = dedupeRowsById(await readChunkedRangePages<ChildNameRow>(
+    'child names for payment fallback',
+    childIds,
+    (chunk, start, end) => supabase
       .from('children')
       .select('id, full_name, nickname')
-      .in('id', chunk) as unknown as { data: ChildNameRow[] | null; error: { message?: string } | null }
+      .in('id', chunk)
+      .order('id', { ascending: true })
+      .range(start, end) as unknown as Promise<QueryRowsResult<ChildNameRow>>,
+  ))
 
-    if (error) {
-      console.error('[admin/payments] Failed to load child names for payment fallback', error.message || error)
-      return learnerNameMap
-    }
-
-    for (const child of data || []) {
-      const name = getChildDisplayName(child)
-      if (name) childNameMap.set(child.id, name)
-    }
+  for (const child of childRows) {
+    const name = getChildDisplayName(child)
+    if (name) childNameMap.set(child.id, name)
   }
 
   const learnersByBooking = new Map<string, Map<string, LearnerAggregate>>()
@@ -197,8 +268,7 @@ export default async function PaymentsPage() {
   const { supabase, role } = await requireAdminPageAccess()
   const canViewFinancialAmounts = role === 'super_admin'
 
-  // Fetch payments with booking + user + branch data
-  const { data: payments } = await supabase
+  const payments = await readAllRangePages<PaymentRow>('payments', (start, end) => supabase
     .from('payments')
     .select(`
       id, booking_id, user_id, ${canViewFinancialAmounts ? 'amount,' : ''} method, slip_image_url,
@@ -210,9 +280,12 @@ export default async function PaymentsPage() {
       ),
       profiles!payments_user_id_fkey(full_name, email)
     `)
-    .order('created_at', { ascending: false }) as unknown as { data: PaymentRow[] | null }
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(start, end) as unknown as Promise<QueryRowsResult<PaymentRow>>
+  )
 
-  const { data: incompleteBookings } = await supabase
+  const incompleteBookings = await readAllRangePages<IncompleteBookingRow>('incomplete bookings', (start, end) => supabase
     .from('bookings')
     .select(`
       id,
@@ -232,35 +305,49 @@ export default async function PaymentsPage() {
       payments(id, status, slip_image_url, created_at)
     `)
     .in('status', ['pending_payment', 'paid'])
-    .order('created_at', { ascending: false }) as unknown as { data: IncompleteBookingRow[] | null }
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(start, end) as unknown as Promise<QueryRowsResult<IncompleteBookingRow>>
+  )
 
   const sessionLearnerNameByBookingId = await fetchSessionLearnerNameMap(supabase, [
-    ...(payments || []).map((payment) => payment.booking_id),
-    ...(incompleteBookings || []).map((booking) => booking.id),
+    ...payments.map((payment) => payment.booking_id),
+    ...incompleteBookings.map((booking) => booking.id),
   ])
 
   // Fetch verifier names
-  const verifierIds = Array.from(new Set((payments || []).map((p) => p.verified_by).filter(Boolean))) as string[]
+  const verifierIds = Array.from(new Set(payments.map((p) => p.verified_by).filter(Boolean))) as string[]
   let verifierMap: Record<string, string> = {}
   if (verifierIds.length > 0) {
-    const { data: verifiers } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', verifierIds) as unknown as { data: VerifierRow[] | null }
-    verifierMap = (verifiers || []).reduce((m: Record<string, string>, v) => {
+    const verifiers = dedupeRowsById(await readChunkedRangePages<VerifierRow>(
+      'payment verifiers',
+      verifierIds,
+      (chunk, start, end) => supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', chunk)
+        .order('id', { ascending: true })
+        .range(start, end) as unknown as Promise<QueryRowsResult<VerifierRow>>,
+    ))
+
+    verifierMap = verifiers.reduce((m: Record<string, string>, v) => {
       m[v.id] = v.full_name || ''
       return m
     }, {})
   }
 
-  const { data: paymentSetting } = await supabase
+  const { data: paymentSetting, error: paymentSettingError } = await supabase
     .from('system_settings')
     .select('value')
     .eq('key', PAYMENT_TRANSFER_SETTING_KEY)
-    .maybeSingle() as unknown as { data: { value: unknown } | null }
+    .maybeSingle() as unknown as { data: { value: unknown } | null; error: QueryError | null }
+
+  if (paymentSettingError) {
+    throw new Error(`[admin/payments] payment transfer setting read failed: ${getQueryErrorMessage(paymentSettingError)}`)
+  }
 
   // Transform data
-  const paymentList = (payments || []).map((p) => ({
+  const paymentList = payments.map((p) => ({
     id: p.id,
     booking_id: p.booking_id,
     user_id: p.user_id,
@@ -288,7 +375,7 @@ export default async function PaymentsPage() {
     verified_by_name: p.verified_by ? (verifierMap[p.verified_by] || null) : null,
   }))
 
-  const incompleteBookingList = (incompleteBookings || []).map((booking) => {
+  const incompleteBookingList = incompleteBookings.map((booking) => {
     const latestPayment = [...(booking.payments || [])].sort((a, b) => {
       const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
       const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
