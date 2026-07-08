@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th">
+    <html lang="th" data-scroll-behavior="smooth">
       <body className={`${prompt.className} antialiased`}>
         <Suspense fallback={null}>
           <LoadingBar />

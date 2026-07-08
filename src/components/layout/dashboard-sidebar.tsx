@@ -10,6 +10,7 @@ import {
   CalendarDays,
   History,
   Home,
+  Loader2,
   LogOut,
   Menu,
   MessageSquareWarning,
@@ -23,6 +24,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { useNavigationPending } from './navigation-pending'
 
 const USER_NAV = [
   { href: '/dashboard', label: 'หน้าหลัก', icon: Home },
@@ -53,6 +55,7 @@ function SidebarContent({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { handlePendingNavigation, isPendingHref } = useNavigationPending()
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -66,7 +69,7 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div className="border-b p-4">
-        <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
+        <Link href="/" className="flex items-center gap-2" onClick={(event) => handlePendingNavigation('/', event, onNavigate)}>
           <Image
             src="/logo new-athlete-school.jpg"
             alt="New Athlete School"
@@ -84,22 +87,30 @@ function SidebarContent({
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {USER_NAV.map((item) => {
           const isActive = pathname === item.href
+          const isPending = isPendingHref(item.href)
           const showBadge = item.href === '/dashboard/notifications' && notificationUnreadCount > 0
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={onNavigate}
+              onClick={(event) => handlePendingNavigation(item.href, event, onNavigate)}
+              aria-busy={isPending || undefined}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-[#2748bf] text-white'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]',
+                isPending && !isActive && 'bg-[#f57e3b]/10 text-[#153c85] ring-1 ring-[#f57e3b]/30'
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
+              {isPending ? (
+                <Loader2 className={cn('h-4 w-4 shrink-0 animate-spin', isActive ? 'text-white' : 'text-[#f57e3b]')} />
+              ) : (
+                <item.icon className="h-4 w-4 shrink-0" />
+              )}
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {isPending && <span className="sr-only">กำลังเปิดเมนู...</span>}
               {showBadge && (
                 <span
                   className={cn(
@@ -118,12 +129,14 @@ function SidebarContent({
       <div className="border-t p-3">
         <Link
           href="/profile"
-          onClick={onNavigate}
+          onClick={(event) => handlePendingNavigation('/profile', event, onNavigate)}
+          aria-busy={isPendingHref('/profile') || undefined}
           className={cn(
             'mb-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
             isProfileActive
               ? 'bg-[#2748bf] text-white'
-              : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-[#2748bf]',
+            isPendingHref('/profile') && !isProfileActive && 'bg-[#f57e3b]/10 text-[#153c85] ring-1 ring-[#f57e3b]/30'
           )}
         >
           <Avatar className="h-6 w-6">
@@ -133,7 +146,11 @@ function SidebarContent({
             </AvatarFallback>
           </Avatar>
           <span className="min-w-0 flex-1 truncate">โปรไฟล์ของฉัน</span>
-          <UserCircle className="h-4 w-4 shrink-0" />
+          {isPendingHref('/profile') ? (
+            <Loader2 className={cn('h-4 w-4 shrink-0 animate-spin', isProfileActive ? 'text-white' : 'text-[#f57e3b]')} />
+          ) : (
+            <UserCircle className="h-4 w-4 shrink-0" />
+          )}
         </Link>
         <button
           onClick={handleLogout}

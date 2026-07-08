@@ -1381,6 +1381,40 @@ Potential bug found:
   - These are not blockers for this scoped client-only release.
 - Next recommended reliability/performance task: run a Booking Performance Audit if the owner wants real speed improvement, or confirm branch/month reset behavior if users still feel selections disappear during in-page changes.
 
+## 2026-07-08 - Phase 1 Performance Foundation Local Smoke Passed
+
+- Scoped perceived-performance UI work is implemented locally and authenticated local read-only smoke passed. Commit, push, production deploy, and production read-only smoke are next.
+- Source scope is limited to global/portal navigation feedback and route-level loading skeletons:
+  - `src/components/shared/loading-bar.tsx`
+  - `src/components/shared/portal-route-loading.tsx`
+  - `src/components/layout/navigation-pending.ts`
+  - `src/components/layout/admin-sidebar.tsx`
+  - `src/components/layout/coach-sidebar.tsx`
+  - `src/components/layout/dashboard-sidebar.tsx`
+  - `src/app/(admin)/admin/loading.tsx`
+  - `src/app/(coach)/coach/loading.tsx`
+  - `src/app/(dashboard)/dashboard/loading.tsx`
+- Implemented behavior:
+  - Global internal route clicks now show immediate top loading feedback and a small pending pill, with guards for external links, modifier/new-tab clicks, hash-only links, and a timeout failsafe.
+  - Admin, Coach, and User dashboard sidebars show per-link pending state and spinner feedback while an internal navigation is settling.
+  - Admin, Coach, and User portal route groups now have lightweight route loading skeletons.
+- Business/API invariants preserved: no DB/API/page query changes, migrations, booking/payment/slip/coupon/check-in/attendance writes, pricing changes, schedule/attendance semantics changes, or SlipOK changes were made.
+- Local verification passed before docs update:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check` with only known Windows LF/CRLF warnings
+- After build, the stale `.next` folder in this repo was removed and `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000` was restarted successfully; `/` returned 200 and a `_next/static/*` JS asset returned 200.
+- Browser smoke status:
+  - Provided local account authenticated successfully and could access Admin, Coach, and User dashboard portals.
+  - Admin desktop sidebar smoke passed from `/admin` to `/admin/schedules`: top loading pill appeared immediately, `/admin/schedules` link had `aria-busy="true"` with `กำลังเปิดเมนู...`, route skeleton appeared, and the schedule page settled without pending UI stuck.
+  - Coach desktop sidebar smoke passed from `/coach` to `/coach/today`: top loading pill appeared immediately, `/coach/today` link had `aria-busy="true"` with `กำลังเปิดเมนู...`, and the page settled without pending UI stuck.
+  - User dashboard desktop sidebar smoke passed from `/dashboard` to `/dashboard/history`: top loading pill appeared immediately, `/dashboard/history` link had `aria-busy="true"` with `กำลังเปิดเมนู...`, and the page settled without pending UI stuck.
+  - Post-build browser verify passed for `/admin`; `<html data-scroll-behavior="smooth">` is present, and the Next smooth-scroll route-transition warning did not recur after the restart.
+  - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed.
+- Next action: commit `fix(ui): add portal navigation loading feedback`, push `spike/next-major-security-upgrade`, deploy production, and run production read-only smoke.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
