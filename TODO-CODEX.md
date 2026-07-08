@@ -21,17 +21,17 @@ Read only when relevant:
 
 ## Current Pending Work
 
-- Phase 1 Performance Foundation: Global / Portal Navigation Pending Feedback + Route Skeletons is implemented locally and authenticated local read-only smoke passed. Commit, push, production deploy, and production read-only smoke are next.
-  - Source scope is limited to `src/components/shared/loading-bar.tsx`, `src/components/shared/portal-route-loading.tsx`, `src/components/layout/navigation-pending.ts`, Admin/Coach/User dashboard sidebars, and Admin/Coach/User portal `loading.tsx` route skeletons.
+- Phase 1 Performance Foundation is released to production.
+  - Source commit `67f5b01` (`fix(ui): add portal navigation loading feedback`) was pushed on branch `spike/next-major-security-upgrade`.
+  - Deployment id `dpl_14eJpsrbUeEd6V1mcF6NVFLshV55`; deployment URL `https://new-athlete-badminton-school-n0odem0ad-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to global/portal navigation feedback, Admin/Coach/User sidebar pending state, route-level portal skeletons, and the root `data-scroll-behavior="smooth"` attribute.
   - No DB/API/page query/business logic changes were made.
-  - No booking/payment/slip/coupon/check-in/attendance creation or write action was performed.
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
-  - After build, `.next` inside this repo was removed and the dev server was restarted on `http://127.0.0.1:3000`; `/` returned 200 and a `_next/static/*` JS asset returned 200.
-  - Authenticated local role smoke passed with the provided local account, which can access Admin, Coach, and User dashboard portals.
-  - Admin `/admin` -> `/admin/schedules`, Coach `/coach` -> `/coach/today`, and User `/dashboard` -> `/dashboard/history` all showed immediate top loading feedback, sidebar `aria-busy="true"` with `กำลังเปิดเมนู...`, and settled without pending UI stuck.
-  - Post-build `/admin` browser verify passed and confirmed `<html data-scroll-behavior="smooth">`; the Next smooth-scroll route-transition warning did not recur after restart.
-  - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed.
-  - Use commit message `fix(ui): add portal navigation loading feedback`, push branch `spike/next-major-security-upgrade`, deploy production, and run read-only production smoke.
+  - Authenticated local read-only smoke passed with the provided local account across Admin, Coach, and User dashboard portals: `/admin` -> `/admin/schedules`, `/coach` -> `/coach/today`, and `/dashboard` -> `/dashboard/history` all showed immediate top loading feedback, sidebar `aria-busy="true"` with `กำลังเปิดเมนู...`, and settled without pending UI stuck.
+  - Production read-only smoke passed for public/guarded routes: `/` returned 200, a `_next/static/*` JS asset returned 200, clean no-cookie `/admin` returned 307 to `/auth/login?redirect=%2Fadmin`, and Vercel CLI error-log check after clean smoke found no logs in the last 1 minute.
+  - `NEED REVIEW`: authenticated production portal navigation smoke was not run because Chrome extension control was unavailable and the provided credential was explicitly for local testing. No production login credential was submitted.
+  - A prior in-app browser production attempt produced two `Invalid Refresh Token` error logs from a stale unauthenticated browser cookie during `/admin` -> login redirect; clean no-cookie smoke did not reproduce new errors.
+  - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
 

@@ -1381,9 +1381,11 @@ Potential bug found:
   - These are not blockers for this scoped client-only release.
 - Next recommended reliability/performance task: run a Booking Performance Audit if the owner wants real speed improvement, or confirm branch/month reset behavior if users still feel selections disappear during in-page changes.
 
-## 2026-07-08 - Phase 1 Performance Foundation Local Smoke Passed
+## 2026-07-08 - Phase 1 Performance Foundation Release
 
-- Scoped perceived-performance UI work is implemented locally and authenticated local read-only smoke passed. Commit, push, production deploy, and production read-only smoke are next.
+- Scoped perceived-performance UI work is committed, pushed, and deployed to production.
+- Source commit `67f5b01` (`fix(ui): add portal navigation loading feedback`) was pushed on branch `spike/next-major-security-upgrade`.
+- Deployment id `dpl_14eJpsrbUeEd6V1mcF6NVFLshV55`; deployment URL `https://new-athlete-badminton-school-n0odem0ad-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
 - Source scope is limited to global/portal navigation feedback and route-level loading skeletons:
   - `src/components/shared/loading-bar.tsx`
   - `src/components/shared/portal-route-loading.tsx`
@@ -1413,7 +1415,16 @@ Potential bug found:
   - User dashboard desktop sidebar smoke passed from `/dashboard` to `/dashboard/history`: top loading pill appeared immediately, `/dashboard/history` link had `aria-busy="true"` with `กำลังเปิดเมนู...`, and the page settled without pending UI stuck.
   - Post-build browser verify passed for `/admin`; `<html data-scroll-behavior="smooth">` is present, and the Next smooth-scroll route-transition warning did not recur after the restart.
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed.
-- Next action: commit `fix(ui): add portal navigation loading feedback`, push `spike/next-major-security-upgrade`, deploy production, and run production read-only smoke.
+- Production smoke:
+  - `https://www.newathleteschool.com/` returned 200.
+  - A production `_next/static/*` JS asset returned 200.
+  - Clean no-cookie `/admin` returned 307 to `/auth/login?redirect=%2Fadmin`, preserving route guard behavior.
+  - In-app browser `/admin` also redirected to login, rendered `<html data-scroll-behavior="smooth">`, and had browser console errors/warnings 0.
+  - Vercel CLI inspect confirmed deployment target `production`, status Ready, and production aliases including `https://www.newathleteschool.com`.
+  - Vercel CLI error-log check immediately after clean no-cookie smoke found no logs in the last 1 minute.
+  - A prior in-app browser production attempt produced two `Invalid Refresh Token` error logs from a stale unauthenticated browser cookie during `/admin` -> login redirect; clean no-cookie smoke did not reproduce new errors.
+  - Authenticated production portal navigation smoke is `NEED REVIEW` because Chrome extension control was unavailable and the provided credential was explicitly for local testing. No production login credential was submitted.
+- No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Unknown / Need Verification
 
