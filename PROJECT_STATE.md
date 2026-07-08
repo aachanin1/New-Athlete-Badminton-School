@@ -1474,6 +1474,50 @@ Potential bug found:
 - No source code change, migration, commit, push, deploy, parent/child delete, activity log delete, coach check-in delete, profile delete, child profile delete, or storage object delete was performed.
 - Payment slip storage objects were intentionally left in storage for optional later cleanup because storage deletion is harder to rollback. Paths are recorded in `backups/rachata-cleanup-20260708-024933/prewrite-summary.json`.
 
+## 2026-07-08 - Admin Makeup Read Transport Cleanup
+
+- Phase 2 `/admin/makeup` Option 1 safe read transport cleanup is committed, pushed, deployed, and smoke verified.
+- Source commit `5928e76` (`fix(makeup): chunk large read queries`) was pushed on branch `spike/next-major-security-upgrade`.
+- Deployment id `dpl_FTvwNYxQhQVg1Scbcrm2YF62hukW`; deployment URL `https://new-athlete-badminton-school-if4vupuq4-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Source scope was limited to `src/app/(admin)/admin/makeup/page.tsx`.
+- Read transport changes:
+  - Added local range/chunk helpers for paginated Supabase reads.
+  - Replaced source session `.limit(2000)` with paginated `.range(...)` reads.
+  - Replaced linked makeup session `.limit(1000)` with paginated `.range(...)` reads.
+  - Replaced unchunked `schedule_slot_id` `.in(...)` reads for assignment groups, coach check-ins, and slot sessions with chunked/ranged reads.
+  - Replaced unchunked attendance `.in('booking_session_id', ...)` with chunked/ranged reads.
+  - Added explicit reference-query error handling for branches, schedule templates, and coaches.
+  - Existing activity-log chunking was left unchanged.
+- Read-only row verification after the source fix:
+  - source sessions 1473.
+  - linked makeup sessions 198.
+  - merged sessions 1535.
+  - unique slot ids 476.
+  - assignment groups 640.
+  - slot sessions for attendance scope 1589.
+  - attendance-scope session ids 1628.
+  - attendance rows 1389.
+  - coach check-ins 557.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd run attendance:reconcile:dry-run`
+  - `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `git diff --check` with only the known Windows LF/CRLF warning for `src/app/(admin)/admin/makeup/page.tsx`.
+- After build, the stale `.next` folder in this repo was removed and `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000` was restarted successfully; `/` and a `_next/static/*` JS asset returned 200.
+- Authenticated local read-only smoke passed on `/admin/makeup`:
+  - Review tab loaded with 72 review items, 52 visible rounds, 18 no-coach items, 6 missing-evidence items, 67 actionable makeup items, 0 completed makeups, and 67 learners.
+  - Makeup tab loaded with 67 month cards; search for `กระต่าย` narrowed to 1 month.
+  - Date-target smoke for `/admin/makeup?date=2026-07-08` highlighted the expected 10:00-12:00 round.
+  - Browser console errors/warnings were 0, and no write action was clicked.
+- Authenticated production read-only smoke passed on `https://www.newathleteschool.com/admin/makeup`:
+  - Review tab showed the same 72 review items and 52 visible rounds.
+  - Makeup tab loaded with 67 month cards; search for `กระต่าย` narrowed to 1 month.
+  - Browser console errors/warnings were 0, Vercel `--level error` logs found no logs, and no write action was clicked.
+- No API route, DB write, migration, schema change, client redesign, tab/filter behavior change, attendance source-of-truth change, lesson wallet/payment/pricing/booking/check-in business logic change, storage deletion, or Admin Makeup write action was performed.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

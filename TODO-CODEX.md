@@ -37,6 +37,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed Phase 2 `/admin/makeup` Option 1 safe read transport cleanup:
+  - Source commit `5928e76` (`fix(makeup): chunk large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_FTvwNYxQhQVg1Scbcrm2YF62hukW`; deployment URL `https://new-athlete-badminton-school-if4vupuq4-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(admin)/admin/makeup/page.tsx`.
+  - Replaced unsafe read caps and large unchunked reads with paginated/ranged reads and chunked `.in(...)` reads for source sessions, linked makeups, assignment groups, coach check-ins, slot sessions for attendance scope, and attendance rows.
+  - Existing activity-log chunking was left unchanged, and reference queries now fail explicitly if branches, schedule templates, or coaches cannot be read.
+  - Read-only row verification after the fix found source sessions 1473, linked makeup sessions 198, merged sessions 1535, unique slot ids 476, assignment groups 640, slot sessions for attendance scope 1589, attendance-scope session ids 1628, attendance rows 1389, and coach check-ins 557.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warning for `src/app/(admin)/admin/makeup/page.tsx`.
+  - Authenticated local read-only smoke passed on `/admin/makeup`: review tab loaded 72 review items and 52 visible rounds; makeup tab loaded 67 month cards; search for `กระต่าย` narrowed to 1 month; `/admin/makeup?date=2026-07-08` highlighted the expected 10:00-12:00 round; console errors/warnings were 0.
+  - Authenticated production read-only smoke passed on `https://www.newathleteschool.com/admin/makeup`: review and makeup tabs loaded, search worked, console errors/warnings were 0, and Vercel `--level error` logs found no logs.
+  - No API route, DB write, migration, schema change, client redesign, tab/filter behavior change, attendance source-of-truth change, lesson wallet/payment/pricing/booking/check-in business logic change, storage deletion, or Admin Makeup write action was performed.
+
 - Completed owner-approved Plan A production cleanup for test booking data under parent `e8a4b5c9-880d-4a43-b693-96cb0ce26316` (`รชต จันดาวรรณ`):
   - Dry-run snapshot: `backups/rachata-cleanup-20260708-024923/`.
   - Write/post-write snapshot: `backups/rachata-cleanup-20260708-024933/`.
