@@ -1431,6 +1431,49 @@ Potential bug found:
     - Vercel CLI error-log check after authenticated smoke found no error logs in the last 5 minutes.
 - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
+## 2026-07-08 - Owner-Approved Test Booking Cleanup
+
+- Owner-approved Plan A production cleanup for parent profile `e8a4b5c9-880d-4a43-b693-96cb0ce26316` (`รชต จันดาวรรณ`) is complete.
+- Scope was limited to operational booking/test rows for the audited target bookings:
+  - `a638ec91-e5fc-4532-a675-54a0c1e089fe`
+  - `713a8a12-5d1c-4a3c-9486-4c8a8e81cce0`
+  - `7c50224f-26f7-4e5e-a997-8e403220eb61`
+  - `ce154363-c2c5-4117-b584-457ae9e472d4`
+  - `ffb929b2-d406-4d09-9cb3-554c51ff4548`
+  - `52bb57e3-bf9b-4a7d-8bde-8d32423d5bda`
+- Local JSON snapshots were saved under `backups/rachata-cleanup-20260708-024923/` for dry-run and `backups/rachata-cleanup-20260708-024933/` for write/post-write verification. The backup folder is ignored by git.
+- Pre-write dry-run passed the hardcoded ID guards and re-verified:
+  - bookings 6, booking_sessions 42, payments 6, coupon_usages 0, lesson_wallet_credits 29, attendance 1.
+  - target `coach_assignment_group_students` links 4.
+  - empty `coach_assignment_groups` approved for deletion 3.
+  - stale legacy `coach_assignments` approved for deletion 3, each with no remaining non-target sessions in the slot.
+  - protected group `7f464902-42ec-411d-a939-f0749e45ecd3` still had 2 non-target learners and was not deleted.
+- Production rows deleted:
+  - `lesson_wallet_credits`: 29.
+  - `payments`: 6.
+  - `attendance`: 1.
+  - `coach_assignment_group_students`: 4.
+  - empty `coach_assignment_groups`: 3.
+  - stale `coach_assignments`: 3.
+  - `booking_sessions`: 42.
+  - `bookings`: 6.
+- Cleanup audit log was inserted:
+  - `activity_logs.id`: `e111c71c-e7f6-448c-a871-c176ced66dea`
+  - action: `owner_test_booking_cleanup`
+  - entity_type/entity_id: `profile` / `e8a4b5c9-880d-4a43-b693-96cb0ce26316`
+- Post-write verification passed:
+  - target bookings, sessions, payments, wallet credits, attendance row, assignment links, empty groups, and stale legacy assignments remaining: 0.
+  - parent profile `e8a4b5c9-880d-4a43-b693-96cb0ce26316` still exists.
+  - child profile `4209ef39-21cd-494e-9e1f-507e3f0a92d1` still exists.
+  - protected group `7f464902-42ec-411d-a939-f0749e45ecd3` still exists with exactly 2 non-target learner links.
+  - all 27 coach check-ins from involved slots still exist.
+  - activity logs were not deleted.
+- Verification after cleanup passed:
+  - `npm.cmd run attendance:reconcile:dry-run`: 0 student-scope mismatches, 0 status mismatches, 0 booking-status-without-attendance rows.
+  - `npm.cmd run prod:check`: READY WITH WARNINGS/PASSES; warning is local `SLIPOK_TEST_MODE=true`.
+- No source code change, migration, commit, push, deploy, parent/child delete, activity log delete, coach check-in delete, profile delete, child profile delete, or storage object delete was performed.
+- Payment slip storage objects were intentionally left in storage for optional later cleanup because storage deletion is harder to rollback. Paths are recorded in `backups/rachata-cleanup-20260708-024933/prewrite-summary.json`.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.

@@ -37,6 +37,19 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed owner-approved Plan A production cleanup for test booking data under parent `e8a4b5c9-880d-4a43-b693-96cb0ce26316` (`รชต จันดาวรรณ`):
+  - Dry-run snapshot: `backups/rachata-cleanup-20260708-024923/`.
+  - Write/post-write snapshot: `backups/rachata-cleanup-20260708-024933/`.
+  - Deleted exact operational rows only: 29 `lesson_wallet_credits`, 6 `payments`, 1 `attendance`, 4 `coach_assignment_group_students`, 3 empty `coach_assignment_groups`, 3 stale `coach_assignments`, 42 `booking_sessions`, and 6 `bookings`.
+  - Kept parent profile `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, child profile `4209ef39-21cd-494e-9e1f-507e3f0a92d1`, all existing activity logs, all coach check-ins, and protected group `7f464902-42ec-411d-a939-f0749e45ecd3`.
+  - Protected group verification after cleanup: group exists with exactly 2 non-target learner links.
+  - Cleanup audit log inserted: `e111c71c-e7f6-448c-a871-c176ced66dea`, action `owner_test_booking_cleanup`.
+  - Post-write verification found 0 remaining target bookings, target sessions, target payments, target wallet credits, target attendance rows, target assignment links, deleted empty groups, or deleted stale legacy assignments.
+  - All 27 coach check-ins from the involved slots still exist.
+  - Payment slip storage objects were not deleted; paths remain recorded in the write backup for optional owner-approved storage cleanup later.
+  - Verification passed: `npm.cmd run attendance:reconcile:dry-run` returned 0 mismatches, and `npm.cmd run prod:check` returned READY WITH WARNINGS/PASSES with the known local `SLIPOK_TEST_MODE=true` warning.
+  - No migration, deploy, commit, source code change, parent/child delete, activity log delete, coach check-in delete, or storage object delete was performed.
+
 - Completed scoped `/dashboard/booking` draft preservation release:
   - Source commit `85aa80a90bd645b63e7bab1fbca408fa66cf2c73` (`fix(booking): preserve draft state`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
   - Deployment id `dpl_AZhW1vNkdGm4oZiMZvVb4hx152qr`; deployment URL `https://new-athlete-badminton-school-bq3vf5e2k-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
