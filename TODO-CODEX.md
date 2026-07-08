@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-04
+Last updated: 2026-07-08
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -21,6 +21,22 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed scoped `/dashboard/booking` draft preservation release:
+  - Source commit `85aa80a90bd645b63e7bab1fbca408fa66cf2c73` (`fix(booking): preserve draft state`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_AZhW1vNkdGm4oZiMZvVb4hx152qr`; deployment URL `https://new-athlete-badminton-school-bq3vf5e2k-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/components/dashboard/booking-client.tsx`.
+  - Original reliability issue: `/dashboard/booking` wizard state lived only in React `useState`, so refresh/remount/auth refresh/returning to the page could lose selected course, learner, branch, and session draft state.
+  - Fix: added client-side `sessionStorage` draft preservation with keys `nabs:booking-draft:v1:{userId}:new` and `nabs:booking-draft:v1:{userId}:edit:{bookingId}`.
+  - Persisted draft fields are `step`, `courseType`, `learnerType`, `selectedChildIds`, `privateSelfAttend`, `selectedBranchIds`, `calMonth`, `calYear`, `sessionsMap`, `activeChildTab`, and `updatedAt`.
+  - Not persisted as source of truth: calculated/final price, `appliedCoupon`, coupon validation result, payment state, API errors, or loading state.
+  - Restore validates course type, child ids, branch ids, active learner key, and session shape; corrupt/invalid drafts are ignored and removed.
+  - UI now shows `กู้คืนแบบร่างการจองล่าสุดแล้ว`, adds `ล้างแบบร่าง`, clears draft after successful `POST`/`PUT`, user discard, and mode/edit key change, and keeps draft through API failure, route refresh, slow network, and summary back.
+  - Production smoke passed: authenticated production `/dashboard/booking` restored a Private -> `A'Arm Chanin` -> `แจ้งวัฒนะ` -> `จันทร์ 6 ก.ค. 69` -> `08:00-09:00` draft after refresh with recalculated price `฿900`; summary/back preserved it; `ล้างแบบร่าง` cleared it; console errors/warnings/pageerrors were 0; no React hydration error or React #418 was observed.
+  - `ยืนยันการจอง` was not clicked, and no booking/payment/slip/coupon was created.
+  - Business semantics were preserved: no API, DB, migration, pricing, `/api/bookings` payload shape, duplicate guard, schedule template rule, same-day future-slot, payment/slip, lesson-wallet, reschedule, or coupon semantic changes.
+  - `NEED REVIEW`: kids_group multi-child browser smoke was not tested because the safe smoke session had no child records; pending edit booking smoke was not tested because no pending editable booking was visible. These were not blockers for this scoped client-only release.
+  - Next recommended task: Booking Performance Audit if the owner wants real speed improvement, or branch/month reset confirmation if users still feel selections disappear during in-page changes.
+
 - Completed User Payment / Slip Upload reliability hardening limited-risk release:
   - Source commit `bc5e013b4b0d90b517f908d9aaf34e7caad5f43b` (`fix(payment): harden slip upload reliability`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
   - Deployment id `dpl_B2895m9DiJwxm3xWEhu64BUYDhAj`; deployment URL `https://new-athlete-badminton-school-753f9tmvh-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
@@ -32,7 +48,7 @@ Read only when relevant:
   - Production read-only smoke passed: production alias loaded normally; `/dashboard/history` loaded with the user session and showed pending payment/upload UI without submitting a slip; `/admin/payments` loaded and payment list rendered normally; console errors/warnings were 0; no React hydration error or React #418 was found.
   - Post-deploy read-only inconsistency audit passed: payments scanned 392; paid/verified bookings 392; payment exists but booking still `pending_payment` 0; approved payment but booking not `verified` 0; booking `paid`/`verified` without payment row 0; duplicate payment rows for same booking 0.
   - Browser slip-upload write smoke remains `NEED REVIEW` because no clearly disposable/test pending booking existed. No production slip upload was performed, no booking/payment/slip/coupon was created, and no payment/write action was clicked.
-  - Recommended next reliability task if payment upload still feels slow: User Booking state reset / draft-state preservation, or History page query/loading audit.
+  - User Booking state reset / draft-state preservation is now completed by the scoped `/dashboard/booking` draft preservation release above. If payment upload still feels slow, the remaining separate next step is a History page query/loading audit.
 
 - Completed scoped `/admin/payments` multi-child learner display fix:
   - Source commit `abe01e11324bbb1d5bc29034fe516f0bfa655220` (`fix(payments): show session learners for multi-child bookings`) was pushed and deployed to Vercel production.

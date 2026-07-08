@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-04
+Last updated: 2026-07-08
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -1346,7 +1346,40 @@ Potential bug found:
   - booking `paid`/`verified` without payment row: 0.
   - duplicate payment rows for same booking: 0.
 - Important limitation: browser slip-upload write smoke remains `NEED REVIEW` because no clearly disposable/test pending booking existed. No production slip upload was performed, no booking/payment/slip/coupon was created, and no payment/write action was clicked.
-- Recommended next reliability task if payment upload still feels slow: either User Booking state reset / draft-state preservation, or a History page query/loading audit.
+- User Booking state reset / draft-state preservation is now completed by the 2026-07-08 `/dashboard/booking` draft preservation release below. If payment upload still feels slow, the next separate area is a History page query/loading audit.
+
+## 2026-07-08 - User Booking Draft Preservation Release
+
+- Scoped `/dashboard/booking` draft preservation is deployed to production and production smoke passed.
+- Source commit `85aa80a90bd645b63e7bab1fbca408fa66cf2c73` (`fix(booking): preserve draft state`) was pushed on branch `spike/next-major-security-upgrade`.
+- Deployment id `dpl_AZhW1vNkdGm4oZiMZvVb4hx152qr`; deployment URL `https://new-athlete-badminton-school-bq3vf5e2k-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Source scope was limited to `src/components/dashboard/booking-client.tsx`.
+- Original reliability issue: the booking wizard state lived only in React `useState`, so refresh/remount/auth refresh/returning to the page could lose selected course, learner, branch, and session draft state.
+- Fix summary:
+  - Added client-side `sessionStorage` draft preservation for `/dashboard/booking`.
+  - New booking draft key: `nabs:booking-draft:v1:{userId}:new`.
+  - Edit booking draft key: `nabs:booking-draft:v1:{userId}:edit:{bookingId}`.
+  - Persisted fields are `step`, `courseType`, `learnerType`, `selectedChildIds`, `privateSelfAttend`, `selectedBranchIds`, `calMonth`, `calYear`, `sessionsMap`, `activeChildTab`, and `updatedAt`.
+  - Not persisted as source of truth: calculated/final price, `appliedCoupon`, coupon validation result, payment state, API errors, or loading state.
+  - Restore validates course type, child ids, branch ids, active learner key, and session shape; corrupt/invalid drafts are ignored and removed.
+  - Restored draft notice: `กู้คืนแบบร่างการจองล่าสุดแล้ว`.
+  - Added `ล้างแบบร่าง`.
+  - Draft clears after successful `POST`/`PUT`, user discard, and mode/edit key change.
+  - Draft does not clear on API failure, route refresh, slow network, or summary back.
+- Production smoke passed:
+  - Opened `/dashboard/booking` with an authenticated production session.
+  - Selected `Private` -> `A'Arm Chanin` -> `แจ้งวัฒนะ` -> `จันทร์ 6 ก.ค. 69` -> `08:00-09:00`.
+  - Browser refresh restored the draft with the restored notice, branch/session selection, and recalculated visible price `฿900`.
+  - Summary showed the restored session; back from summary preserved the draft.
+  - `ล้างแบบร่าง` cleared storage; refresh returned to the initial course step.
+  - Console errors/warnings/pageerrors were 0; no React hydration error or React #418 was observed.
+  - `ยืนยันการจอง` was not clicked, and no booking/payment/slip/coupon was created.
+- Business semantics preserved: no API changes, DB changes, migrations, pricing changes, `/api/bookings` payload shape changes, duplicate guard changes, schedule template rule changes, same-day future-slot rule changes, payment/slip flow changes, or lesson-wallet/reschedule/coupon semantics changes.
+- Important `NEED REVIEW` notes:
+  - kids_group multi-child browser smoke was not tested because the safe smoke session had no child records.
+  - pending edit booking browser smoke was not tested because no pending editable booking was visible.
+  - These are not blockers for this scoped client-only release.
+- Next recommended reliability/performance task: run a Booking Performance Audit if the owner wants real speed improvement, or confirm branch/month reset behavior if users still feel selections disappear during in-page changes.
 
 ## Unknown / Need Verification
 
