@@ -29,7 +29,9 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only known Windows LF/CRLF warnings.
   - Authenticated local read-only smoke passed with the provided local account across Admin, Coach, and User dashboard portals: `/admin` -> `/admin/schedules`, `/coach` -> `/coach/today`, and `/dashboard` -> `/dashboard/history` all showed immediate top loading feedback, sidebar `aria-busy="true"` with `กำลังเปิดเมนู...`, and settled without pending UI stuck.
   - Production read-only smoke passed for public/guarded routes: `/` returned 200, a `_next/static/*` JS asset returned 200, clean no-cookie `/admin` returned 307 to `/auth/login?redirect=%2Fadmin`, and Vercel CLI error-log check after clean smoke found no logs in the last 1 minute.
-  - `NEED REVIEW`: authenticated production portal navigation smoke was not run because Chrome extension control was unavailable and the provided credential was explicitly for local testing. No production login credential was submitted.
+  - Authenticated production read-only smoke passed after the owner logged in through the in-app browser: `/admin` -> `/admin/schedules`, `/coach` -> `/coach/today`, and `/dashboard` -> `/dashboard/history` all showed immediate top loading feedback/route loading copy and settled with browser console errors/warnings 0.
+  - Production route changes were fast enough that the sidebar `aria-busy` state was not captured in the browser sample, but it remains covered by authenticated local smoke above.
+  - Vercel CLI error-log check after authenticated production smoke found no error logs in the last 5 minutes.
   - A prior in-app browser production attempt produced two `Invalid Refresh Token` error logs from a stale unauthenticated browser cookie during `/admin` -> login redirect; clean no-cookie smoke did not reproduce new errors.
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 

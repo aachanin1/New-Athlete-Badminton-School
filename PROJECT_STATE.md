@@ -1423,7 +1423,12 @@ Potential bug found:
   - Vercel CLI inspect confirmed deployment target `production`, status Ready, and production aliases including `https://www.newathleteschool.com`.
   - Vercel CLI error-log check immediately after clean no-cookie smoke found no logs in the last 1 minute.
   - A prior in-app browser production attempt produced two `Invalid Refresh Token` error logs from a stale unauthenticated browser cookie during `/admin` -> login redirect; clean no-cookie smoke did not reproduce new errors.
-  - Authenticated production portal navigation smoke is `NEED REVIEW` because Chrome extension control was unavailable and the provided credential was explicitly for local testing. No production login credential was submitted.
+  - Authenticated production portal navigation smoke passed after the owner logged in through the in-app browser:
+    - `/admin` -> `/admin/schedules` showed the top loading pill and route skeleton immediately, then settled to the schedule calendar with console errors/warnings 0.
+    - `/coach` -> `/coach/today` showed the top loading pill/loading copy immediately, then settled to Coach Schedule with console errors/warnings 0.
+    - `/dashboard` -> `/dashboard/history` showed the top loading pill and route skeleton immediately, then settled to booking history with console errors/warnings 0.
+    - Production route changes were fast enough that the sidebar `aria-busy` state was not captured in the browser sample, but it remains covered by authenticated local smoke above.
+    - Vercel CLI error-log check after authenticated smoke found no error logs in the last 5 minutes.
 - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Unknown / Need Verification
