@@ -163,6 +163,19 @@ Latest attendance reconciliation result:
 Current active production risk:
 
 - No known attendance/session status drift after the confirmed reconciliation.
+- `/admin/payments` Phase 2.2 Option 1 safe read transport cleanup is deployed in production as of commit `33161c6` (`fix(payments): range large read queries`):
+  - Deployment id `dpl_5Kdb3ahBbpd89NTEs4pvv7Eq75ED`; deployment URL `https://new-athlete-badminton-school-n047jvmd6-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(admin)/admin/payments/page.tsx`.
+  - Added local read helpers `readAllRangePages`, `readChunkedRangePages`, and `dedupeRowsById`.
+  - Top-level `payments` and incomplete `bookings` reads now use explicit ranged pagination while preserving the existing status/order/role-specific field selection. Super Admin still receives financial amount fields; standard Admin does not receive `payments.amount` or `bookings.total_price`.
+  - Multi-child learner fallback reads now chunk booking ids by 100 and range every `booking_sessions` page; fallback child-name reads and verifier profile reads are also chunked/ranged and deduped.
+  - Payment transfer setting reads now fail explicitly on read error instead of silently masking the problem.
+  - Read-only post-fix counts: payments 433; incomplete bookings 8; payment-scope booking ids 441; fallback session rows 2574 across chunk rows 456, 727, 299, 746, 346; unique child ids 271; child rows 271; duplicate payment booking ids 0; approved/pending/rejected payments 433/0/0.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warning for the touched file.
+  - Authenticated local smoke passed on `/admin/payments` as Super Admin: list showed 433 rows, incomplete section showed 8 rows, amount visibility was preserved, search returned current-data results for `เอมี่` (1), `ภูเมธ` (2), and `Tigger` (2), and current data returned 0 for `ปันนา`; detail and slip modals opened read-only. No approve/reject/send-back/cancel/write action was clicked.
+  - Local browser logs had one dev-only Next image LCP warning from the slip modal image; no functional error, hydration error, or React #418 was observed.
+  - Authenticated production smoke passed on `https://www.newathleteschool.com/admin/payments`: list showed 433 rows, incomplete section showed 8 rows, amount visibility was preserved for Super Admin, search/detail/slip modal read-only checks passed, production-origin browser warnings/errors were 0, and Vercel error logs found no logs.
+  - No API route, DB write, migration, schema change, client redesign, server pagination behavior change, SlipOK change, payment status/booking status/pricing/learner fallback semantic change, financial visibility regression, storage deletion, booking/payment/slip/coupon creation, or payment write action was performed.
 - `/admin/payments` multi-child learner display fix is deployed in production as of commit `abe01e11324bbb1d5bc29034fe516f0bfa655220` (`fix(payments): show session learners for multi-child bookings`):
   - Deployment id `dpl_CdVyyJMkYWcSJJBZrWY6aajcZ1Mf`; deployment URL `https://new-athlete-badminton-school-fpasc3joj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
   - Root cause: `/admin/payments` displayed `ไม่ทราบผู้เรียน` for multi-child kids_group bookings because the read model used only `bookings.child_id -> children`. Multi-child bookings intentionally have `bookings.child_id = null`, while the real learners are stored on `booking_sessions.child_id`.

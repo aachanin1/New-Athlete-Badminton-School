@@ -37,6 +37,18 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed Phase 2.2 `/admin/payments` Option 1 safe read transport cleanup:
+  - Source commit `33161c6` (`fix(payments): range large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_5Kdb3ahBbpd89NTEs4pvv7Eq75ED`; deployment URL `https://new-athlete-badminton-school-n047jvmd6-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(admin)/admin/payments/page.tsx`.
+  - Replaced broad full reads with explicit ranged pagination for top-level `payments` and incomplete `bookings`; added chunked+ranged reads for booking-session fallback rows, fallback child rows, and verifier profiles; added explicit payment-setting read error handling.
+  - Preserved `PaymentsClient` prop shape, UI behavior, payment/booking/SlipOK/pricing semantics, learner fallback semantics, and financial visibility gating. Super Admin still receives amount fields; standard Admin does not receive payment amount or booking total price fields.
+  - Read-only row verification found payments 433, incomplete bookings 8, payment-scope booking ids 441, fallback session rows 2574, unique child ids 271, duplicate payment booking ids 0, and approved/pending/rejected payments 433/0/0.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warning for `src/app/(admin)/admin/payments/page.tsx`.
+  - Authenticated local and production read-only smoke passed on `/admin/payments`: list showed 433 rows, incomplete section showed 8 rows, Super Admin amount visibility remained intact, search/detail/slip modal checks passed, and no approve/reject/send-back/cancel/write action was clicked.
+  - Local smoke had one dev-only Next image LCP warning from the slip modal image; production-origin browser warnings/errors were 0 and Vercel error logs found no logs.
+  - No API route, DB write, migration, schema change, client redesign, server pagination behavior change, SlipOK change, payment status/booking status/pricing change, storage deletion, booking/payment/slip/coupon creation, or payment write action was performed.
+
 - Completed Phase 2 `/admin/makeup` Option 1 safe read transport cleanup:
   - Source commit `5928e76` (`fix(makeup): chunk large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
   - Deployment id `dpl_FTvwNYxQhQVg1Scbcrm2YF62hukW`; deployment URL `https://new-athlete-badminton-school-if4vupuq4-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
