@@ -329,14 +329,14 @@ export default function LandingPage() {
             </a>
 
             <a
-              href="tel:0800596004"
+              href="tel:0802527227"
               className="flex flex-col items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl p-6 transition-colors"
             >
               <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
                 <Phone className="h-7 w-7 text-white" />
               </div>
               <span className="font-semibold text-lg">โทรศัพท์</span>
-              <span className="text-blue-200 text-sm">080-059-6004</span>
+              <span className="text-blue-200 text-sm">080-252-7227</span>
             </a>
           </div>
 
@@ -374,7 +374,7 @@ export default function LandingPage() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="tel:0800596004"
+                href="tel:0802527227"
                 className="hover:text-white transition-colors"
               >
                 <Phone className="h-5 w-5" />
