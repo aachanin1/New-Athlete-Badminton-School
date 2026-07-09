@@ -7,6 +7,7 @@ import { Award, Building2, Medal, Search, Trophy } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListPagination } from '@/components/admin/list-pagination'
@@ -46,6 +47,7 @@ interface RankingBoardProps {
   adults: RankingStudent[]
   branches: RankingBranch[]
   canManageAchievements?: boolean
+  enableSearch?: boolean
 }
 
 type LearnerTab = 'kids' | 'adults'
@@ -74,6 +76,47 @@ function filterByLevel(student: RankingStudent, levelFilter: LevelFilter) {
   return range ? student.level >= range.minLevel && student.level <= range.maxLevel : true
 }
 
+function normalizeSearchText(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function compactSearchText(value: string) {
+  return normalizeSearchText(value).replace(/\s/g, '')
+}
+
+function getLevelCategorySearchLabel(category: LevelFilter | undefined) {
+  if (category === 'basic') return 'Basic'
+  if (category === 'athlete_1') return 'Athlete C'
+  if (category === 'athlete_2') return 'Athlete B'
+  if (category === 'athlete_3') return 'Athlete A'
+  return ''
+}
+
+function studentMatchesSearch(student: RankingStudent, searchTerm: string) {
+  if (!searchTerm) return true
+
+  const levelInfo = getLevelDisplay(student.level)
+  const level = String(levelInfo.level)
+  const levelLabel = student.levelName || levelInfo.label
+  const levelCategory = getLevelCategorySearchLabel(levelInfo.range?.category as LevelFilter | undefined)
+  const compactSearch = compactSearchText(searchTerm)
+  const terms = [
+    student.name,
+    ...student.branchNames,
+    level,
+    `LV ${level}`,
+    `LV${level}`,
+    `Level ${level}`,
+    levelLabel,
+    levelCategory,
+  ].filter(Boolean)
+
+  return terms.some((term) => {
+    const normalizedTerm = normalizeSearchText(term)
+    return normalizedTerm.includes(searchTerm) || compactSearchText(term).includes(compactSearch)
+  })
+}
+
 function getTopLabel(student: RankingStudent | undefined) {
   if (!student) return 'ยังไม่มีข้อมูล'
   const achievements = student.achievements.map((item) => item.emoji).join('')
@@ -91,6 +134,7 @@ function RankingList({
   selectedBranchId,
   canManageAchievements,
   onManageAchievements,
+  isSearchEmpty,
 }: {
   students: RankingStudent[]
   overallRankMap: Map<string, number>
@@ -98,12 +142,13 @@ function RankingList({
   selectedBranchId: string
   canManageAchievements: boolean
   onManageAchievements: (student: RankingStudent) => void
+  isSearchEmpty: boolean
 }) {
   if (students.length === 0) {
     return (
       <div className="rounded-lg border border-dashed py-12 text-center text-gray-400">
         <Trophy className="mx-auto mb-4 h-14 w-14 opacity-30" />
-        <p className="text-lg font-semibold">ยังไม่มีข้อมูลอันดับ</p>
+        <p className="text-lg font-semibold">{isSearchEmpty ? 'ไม่พบนักเรียนที่ตรงกับคำค้นหา' : 'ยังไม่มีข้อมูลอันดับ'}</p>
         <p className="mt-1 text-sm">ลองเปลี่ยนสาขาหรือช่วง Level ที่ต้องการดู</p>
       </div>
     )
@@ -174,24 +219,29 @@ function RankingList({
   )
 }
 
-export function RankingBoard({ kids, adults, branches, canManageAchievements = false }: RankingBoardProps) {
+export function RankingBoard({ kids, adults, branches, canManageAchievements = false, enableSearch = false }: RankingBoardProps) {
   const [activeTab, setActiveTab] = useState<LearnerTab>('kids')
   const [selectedBranchId, setSelectedBranchId] = useState('all')
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
+  const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [managingStudent, setManagingStudent] = useState<RankingStudent | null>(null)
 
   const activeStudents = activeTab === 'kids' ? kids : adults
   const overallRankMap = useMemo(() => buildRankMap(activeStudents), [activeStudents])
+  const normalizedSearchTerm = useMemo(() => normalizeSearchText(searchTerm), [searchTerm])
 
   const branchStudents = useMemo(() => {
     const inBranch = selectedBranchId === 'all'
       ? activeStudents
       : activeStudents.filter((student) => student.branchIds.includes(selectedBranchId))
 
-    return inBranch.filter((student) => filterByLevel(student, levelFilter))
-  }, [activeStudents, levelFilter, selectedBranchId])
+    const levelFiltered = inBranch.filter((student) => filterByLevel(student, levelFilter))
+    return normalizedSearchTerm
+      ? levelFiltered.filter((student) => studentMatchesSearch(student, normalizedSearchTerm))
+      : levelFiltered
+  }, [activeStudents, levelFilter, normalizedSearchTerm, selectedBranchId])
 
   const branchRankMap = useMemo(() => {
     const source = selectedBranchId === 'all'
@@ -210,6 +260,7 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
   const pagedStudents = branchStudents.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   const resetPaging = () => setPage(1)
+  const isSearchEmpty = Boolean(normalizedSearchTerm) && branchStudents.length === 0
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -266,6 +317,23 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
           </Select>
         </div>
 
+        {enableSearch && (
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value)
+                  setPage(1)
+                }}
+                placeholder="ค้นหาชื่อนักเรียน / ชื่อเล่น / สาขา / Level"
+                className="bg-white pl-9"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           <Card className="border-gray-200">
             <CardContent className="p-4">
@@ -309,6 +377,7 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
                 selectedBranchId={selectedBranchId}
                 canManageAchievements={canManageAchievements}
                 onManageAchievements={setManagingStudent}
+                isSearchEmpty={isSearchEmpty}
               />
               {branchStudents.length > 0 && (
                 <div className="mt-4">
@@ -344,6 +413,7 @@ export function RankingBoard({ kids, adults, branches, canManageAchievements = f
                 selectedBranchId={selectedBranchId}
                 canManageAchievements={canManageAchievements}
                 onManageAchievements={setManagingStudent}
+                isSearchEmpty={isSearchEmpty}
               />
               {branchStudents.length > 0 && (
                 <div className="mt-4">

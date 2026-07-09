@@ -7,6 +7,7 @@ import type { LevelCategory } from '@/types/database'
 
 interface RankingContentProps {
   mode?: 'public' | 'admin'
+  enableSearch?: boolean
 }
 
 interface BookingRankingRow {
@@ -56,6 +57,7 @@ interface LevelDefinitionRow {
 }
 
 interface StudentLevelRow {
+  id: string
   student_id: string
   student_type: 'adult' | 'child'
   level: number
@@ -80,6 +82,65 @@ interface StudentAchievementRow {
 const CHILD_SESSION_BRANCH_STATUSES = ['scheduled', 'completed', 'absent'] as const
 const IN_FILTER_CHUNK_SIZE = 100
 const PAGE_SIZE = 1000
+
+interface QueryError {
+  message?: string
+}
+
+interface QueryRowsResult<T> {
+  data: T[] | null
+  error: QueryError | null
+}
+
+function getQueryErrorMessage(error: QueryError | null | undefined) {
+  return error?.message || 'Unknown query error'
+}
+
+async function readAllRangePages<T>(
+  label: string,
+  buildQuery: (from: number, to: number) => PromiseLike<QueryRowsResult<T>>,
+) {
+  const rows: T[] = []
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const to = from + PAGE_SIZE - 1
+    const { data, error } = await buildQuery(from, to)
+
+    if (error) {
+      throw new Error(`[ranking] ${label} read failed: ${getQueryErrorMessage(error)}`)
+    }
+
+    const pageRows = data || []
+    rows.push(...pageRows)
+
+    if (pageRows.length < PAGE_SIZE) break
+  }
+
+  return rows
+}
+
+async function readChunkedRangePages<T>(
+  label: string,
+  ids: string[],
+  buildQuery: (idChunk: string[], from: number, to: number) => PromiseLike<QueryRowsResult<T>>,
+) {
+  const rows: T[] = []
+
+  for (const [chunkIndex, idChunk] of chunkArray(ids, IN_FILTER_CHUNK_SIZE).entries()) {
+    rows.push(...await readAllRangePages(
+      `${label} chunk ${chunkIndex + 1}`,
+      (from, to) => buildQuery(idChunk, from, to),
+    ))
+  }
+
+  return rows
+}
+
+function dedupeRowsById<T extends { id: string | number }>(rows: T[]) {
+  const rowMap = new Map<string | number, T>()
+  rows.forEach((row) => rowMap.set(row.id, row))
+  return Array.from(rowMap.values())
+}
 
 function sortRanking(students: RankingStudent[]) {
   return students.sort((a, b) => {
@@ -271,7 +332,7 @@ async function fetchSessionBranchFallbackRows(
     let from = 0
 
     while (true) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('booking_sessions')
         .select('child_id, branches(id, name)')
         .in('child_id', childIdChunk)
@@ -279,7 +340,11 @@ async function fetchSessionBranchFallbackRows(
         .not('branch_id', 'is', null)
         .order('date', { ascending: false })
         .order('start_time', { ascending: false })
-        .range(from, from + PAGE_SIZE - 1) as unknown as { data: SessionBranchRankingRow[] | null }
+        .range(from, from + PAGE_SIZE - 1) as unknown as QueryRowsResult<SessionBranchRankingRow>
+
+      if (error) {
+        throw new Error(`[ranking] session branch fallback read failed: ${getQueryErrorMessage(error)}`)
+      }
 
       const pageRows = data || []
       rows.push(...pageRows)
@@ -292,49 +357,69 @@ async function fetchSessionBranchFallbackRows(
   return rows
 }
 
-export async function RankingContent({ mode = 'public' }: RankingContentProps = {}) {
+export async function RankingContent({ mode = 'public', enableSearch = false }: RankingContentProps = {}) {
   noStore()
   const supabase = getServiceRoleClient()
 
-  const [{ data: children }, { data: bookings }, { data: branches }, { data: levelDefinitions }] = await Promise.all([
-    supabase
-      .from('children')
-      .select('id, parent_id, full_name, nickname, avatar_url, created_at')
-      .order('created_at', { ascending: true }) as unknown as PromiseLike<{ data: ChildRankingRow[] | null }>,
-    supabase
-      .from('bookings')
-      .select('id, user_id, learner_type, child_id, created_at, profiles!bookings_user_id_fkey(id, full_name, avatar_url), branches(id, name)')
-      .in('status', ['paid', 'verified'])
-      .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: BookingRankingRow[] | null }>,
-    supabase
-      .from('branches')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name') as unknown as PromiseLike<{ data: RankingBranch[] | null }>,
-    supabase
-      .from('levels')
-      .select('id, name, category, is_active')
-      .order('id', { ascending: true }) as unknown as PromiseLike<{ data: LevelDefinitionRow[] | null }>,
+  const [children, bookings, branches, levelDefinitions] = await Promise.all([
+    readAllRangePages<ChildRankingRow>(
+      'children',
+      (from, to) => supabase
+        .from('children')
+        .select('id, parent_id, full_name, nickname, avatar_url, created_at')
+        .order('created_at', { ascending: true })
+        .range(from, to) as unknown as PromiseLike<QueryRowsResult<ChildRankingRow>>,
+    ),
+    readAllRangePages<BookingRankingRow>(
+      'bookings',
+      (from, to) => supabase
+        .from('bookings')
+        .select('id, user_id, learner_type, child_id, created_at, profiles!bookings_user_id_fkey(id, full_name, avatar_url), branches(id, name)')
+        .in('status', ['paid', 'verified'])
+        .order('created_at', { ascending: false })
+        .range(from, to) as unknown as PromiseLike<QueryRowsResult<BookingRankingRow>>,
+    ),
+    readAllRangePages<RankingBranch>(
+      'branches',
+      (from, to) => supabase
+        .from('branches')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name')
+        .range(from, to) as unknown as PromiseLike<QueryRowsResult<RankingBranch>>,
+    ),
+    readAllRangePages<LevelDefinitionRow>(
+      'levels',
+      (from, to) => supabase
+        .from('levels')
+        .select('id, name, category, is_active')
+        .order('id', { ascending: true })
+        .range(from, to) as unknown as PromiseLike<QueryRowsResult<LevelDefinitionRow>>,
+    ),
   ])
 
-  const parentIds = Array.from(new Set((children || []).map((child) => child.parent_id)))
+  const parentIds = Array.from(new Set(children.map((child) => child.parent_id)))
   let parentProfiles: ParentProfileRow[] = []
   if (parentIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, avatar_url')
-      .in('id', parentIds) as unknown as { data: ParentProfileRow[] | null }
-    parentProfiles = profiles || []
+    parentProfiles = dedupeRowsById(await readChunkedRangePages<ParentProfileRow>(
+      'parent profiles',
+      parentIds,
+      (idChunk, from, to) => supabase
+        .from('profiles')
+        .select('id, avatar_url')
+        .in('id', idChunk)
+        .range(from, to) as unknown as PromiseLike<QueryRowsResult<ParentProfileRow>>,
+    ))
   }
 
-  const adultStudentIds = (bookings || [])
+  const adultStudentIds = bookings
     .filter((booking) => booking.learner_type === 'self')
     .map((booking) => booking.user_id)
-  const childStudentIds = (children || []).map((child) => child.id)
+  const childStudentIds = children.map((child) => child.id)
   const studentIds = Array.from(new Set([...childStudentIds, ...adultStudentIds]))
 
-  const bookingBranchMap = buildBookingBranchMap(bookings || [])
-  const childIdsMissingBookingBranch = (children || [])
+  const bookingBranchMap = buildBookingBranchMap(bookings)
+  const childIdsMissingBookingBranch = children
     .filter((child) => !bookingBranchMap.has(getStudentKey('child', child.id)))
     .map((child) => child.id)
   const sessionBranchRows = childIdsMissingBookingBranch.length > 0
@@ -344,26 +429,36 @@ export async function RankingContent({ mode = 'public' }: RankingContentProps = 
   let levelRows: StudentLevelRow[] = []
   let achievementRows: StudentAchievementRow[] = []
   if (studentIds.length > 0) {
-    const [{ data: levels }, { data: achievements }] = await Promise.all([
-      supabase
-        .from('student_levels')
-        .select('student_id, student_type, level, notes, created_at, profiles!student_levels_updated_by_fkey(full_name)')
-        .in('student_id', studentIds)
-        .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: StudentLevelRow[] | null }>,
-      supabase
-        .from('student_achievements')
-        .select('id, student_id, student_type, emoji, title, description, awarded_at, is_active')
-        .in('student_id', studentIds)
-        .eq('is_active', true)
-        .order('awarded_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: StudentAchievementRow[] | null }>,
+    const [levels, achievements] = await Promise.all([
+      readChunkedRangePages<StudentLevelRow>(
+        'student levels',
+        studentIds,
+        (idChunk, from, to) => supabase
+          .from('student_levels')
+          .select('id, student_id, student_type, level, notes, created_at, profiles!student_levels_updated_by_fkey(full_name)')
+          .in('student_id', idChunk)
+          .order('created_at', { ascending: false })
+          .range(from, to) as unknown as PromiseLike<QueryRowsResult<StudentLevelRow>>,
+      ),
+      readChunkedRangePages<StudentAchievementRow>(
+        'student achievements',
+        studentIds,
+        (idChunk, from, to) => supabase
+          .from('student_achievements')
+          .select('id, student_id, student_type, emoji, title, description, awarded_at, is_active')
+          .in('student_id', idChunk)
+          .eq('is_active', true)
+          .order('awarded_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .range(from, to) as unknown as PromiseLike<QueryRowsResult<StudentAchievementRow>>,
+      ),
     ])
-    levelRows = levels || []
-    achievementRows = achievements || []
+    levelRows = dedupeRowsById(levels)
+    achievementRows = dedupeRowsById(achievements)
   }
 
-  const kids = buildKids(children || [], levelRows, levelDefinitions || [], bookings || [], sessionBranchRows, parentProfiles, achievementRows)
-  const adults = buildAdults(bookings || [], levelRows, levelDefinitions || [], achievementRows)
+  const kids = buildKids(children, levelRows, levelDefinitions, bookings, sessionBranchRows, parentProfiles, achievementRows)
+  const adults = buildAdults(bookings, levelRows, levelDefinitions, achievementRows)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -379,7 +474,7 @@ export async function RankingContent({ mode = 'public' }: RankingContentProps = 
         </p>
       </div>
 
-      <RankingBoard kids={kids} adults={adults} branches={branches || []} canManageAchievements={mode === 'admin'} />
+      <RankingBoard kids={kids} adults={adults} branches={branches} canManageAchievements={mode === 'admin'} enableSearch={enableSearch} />
     </div>
   )
 }

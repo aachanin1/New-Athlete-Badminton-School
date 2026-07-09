@@ -7,7 +7,7 @@ export default function RankingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <PublicNavbar />
-      <RankingContent />
+      <RankingContent enableSearch />
     </div>
   )
 }
