@@ -143,6 +143,8 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'summary', label: 'สรุป' },
 ]
 
+const SETTLED_BOOKING_STATUSES = ['paid', 'verified']
+
 const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: typeof Users }[] = [
   { value: 'kids_group', label: 'เด็ก (กลุ่ม)', desc: 'กลุ่มเล็ก 4-6 คน • 2 ชม.', icon: Users },
   { value: 'adult_group', label: 'ผู้ใหญ่ (กลุ่ม)', desc: '1-6 คน • 2 ชม.', icon: User },
@@ -524,14 +526,19 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     })
   }, [sessionsMap, courseType, selectedChildIds])
 
-  // Count ALL existing sessions & total paid this month (for incremental pricing)
+  // Count only settled bookings for monthly true-up. Pending bookings are not paid yet.
   const existingMonthData = useMemo(() => {
     if (courseType !== 'kids_group') return { sessions: 0, paid: 0 }
     const courseTypeRow = courseTypes.find((ct) => ct.name === courseType)
     if (!courseTypeRow) return { sessions: 0, paid: 0 }
     const editId = editBooking?.id
     const monthBookings = existingBookings.filter(
-      (b) => b.month === calMonth + 1 && b.year === calYear && b.course_type_id === courseTypeRow.id && b.id !== editId
+      (b) =>
+        b.month === calMonth + 1 &&
+        b.year === calYear &&
+        b.course_type_id === courseTypeRow.id &&
+        b.id !== editId &&
+        SETTLED_BOOKING_STATUSES.includes(b.status)
     )
     return {
       sessions: monthBookings.reduce((sum, b) => sum + b.total_sessions, 0),
@@ -598,6 +605,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
   // Final price after coupon discount
   const finalPrice = appliedCoupon ? Math.max(0, totalBatchPrice - appliedCoupon.discountAmount) : totalBatchPrice
+  const isZeroChargeKidsTrueUp = courseType === 'kids_group' && !!kidsIncremental && totalBatchPrice === 0
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
@@ -634,6 +642,14 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     setCouponCode('')
     setCouponError(null)
   }
+
+  useEffect(() => {
+    if (totalBatchPrice === 0 && appliedCoupon) {
+      setAppliedCoupon(null)
+      setCouponCode('')
+      setCouponError(null)
+    }
+  }, [appliedCoupon, totalBatchPrice])
 
   // Calendar helpers
   const calendarDays = useMemo(() => {
@@ -918,7 +934,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               childId: s.childId,
               scheduleTemplateId: s.scheduleTemplateId,
             })),
-            coupon: appliedCoupon ? {
+            coupon: appliedCoupon && totalBatchPrice > 0 ? {
               id: appliedCoupon.id,
               code: appliedCoupon.code,
             } : null,
@@ -1119,7 +1135,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               {existingMonthData.sessions > 0 && selectedChildIds.length > 0 && (
                 <div className="mt-2 p-3 bg-green-50 rounded-lg text-sm text-green-700 flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>จองไว้แล้ว {existingMonthData.sessions} ครั้งเดือนนี้ (฿{existingMonthData.paid.toLocaleString()}) → ระบบนับต่อให้อัตโนมัติ!</span>
+                  <span>จ่ายแล้ว {existingMonthData.sessions} ครั้งเดือนนี้ (฿{existingMonthData.paid.toLocaleString()}) → ระบบนับต่อให้อัตโนมัติ!</span>
                 </div>
               )}
             </div>
@@ -1510,15 +1526,32 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
               {courseType === 'kids_group' && kidsIncremental && (existingMonthData.sessions > 0 || selectedChildIds.length > 1) && (
                 <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
-                  <p>กฎพี่น้อง: รวมทั้งเดือน {kidsIncremental.totalSessionsForMonth} ครั้ง → เรท {kidsIncremental.perSession} บาท/ครั้ง</p>
+                  <p className="font-medium">คำนวณตามเรทราคารวมของเดือนนี้</p>
                   {existingMonthData.sessions > 0 && (
-                    <p className="text-xs">จ่ายไปแล้ว ฿{existingMonthData.paid.toLocaleString()} ({existingMonthData.sessions} ครั้ง) • ยอดครั้งนี้ ฿{totalBatchPrice.toLocaleString()}</p>
+                    <>
+                      <p>เคยจ่ายแล้ว: {existingMonthData.sessions} ครั้ง = ฿{existingMonthData.paid.toLocaleString()}</p>
+                      <p>จองเพิ่มครั้งนี้: {kidsIncremental.newSessions} ครั้ง</p>
+                      <p>รวมหลังจอง: {kidsIncremental.totalSessionsForMonth} ครั้ง</p>
+                    </>
                   )}
+                  <p>เรทราคาใหม่: {kidsIncremental.tierLabel} = ฿{kidsIncremental.perSession.toLocaleString()}/ครั้ง</p>
+                  <p>ยอดรวมตามเรทใหม่: {kidsIncremental.totalSessionsForMonth} × ฿{kidsIncremental.perSession.toLocaleString()} = ฿{kidsIncremental.totalCostForMonth.toLocaleString()}</p>
+                  {existingMonthData.sessions > 0 && (
+                    <p>หักยอดที่จ่ายแล้ว: ฿{kidsIncremental.existingPaid.toLocaleString()}</p>
+                  )}
+                  <p className="font-semibold">ยอดที่ต้องชำระเพิ่ม: ฿{totalBatchPrice.toLocaleString()}</p>
+                  {kidsIncremental.creditDifference > 0 && (
+                    <>
+                      <p>ระบบได้หักเครดิตส่วนต่างที่คุณจ่ายเกินไว้แล้ว ฿{kidsIncremental.creditDifference.toLocaleString()}</p>
+                      <p>จึงสามารถใช้สิทธิ์เรียนรอบนี้ได้โดยไม่ต้องแนบสลิป</p>
+                    </>
+                  )}
+                  <p className="text-xs">หมายเหตุ: การจองครั้งถัดไปจะคำนวณต่อจากยอดสะสมเดือนนี้โดยอัตโนมัติ</p>
                 </div>
               )}
 
               {/* Coupon input */}
-              {!isEditMode && (
+              {!isEditMode && totalBatchPrice > 0 && (
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">คูปองส่วนลด</p>
                   {appliedCoupon ? (
@@ -1572,11 +1605,19 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
-                <p className="font-medium">หลังจากกดยืนยัน:</p>
-                <p>• ระบบจะสร้างรายการจอง สถานะ &quot;รอชำระเงิน&quot;</p>
-                <p>• กรุณาแนบสลิปโอนเงินในหน้าประวัติการจอง — ระบบจะตรวจสลิปอัตโนมัติ</p>
-              </div>
+              {isZeroChargeKidsTrueUp ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+                  <p className="font-medium">หลังจากกดยืนยัน:</p>
+                  <p>• ระบบจะสร้างรายการจองที่ใช้สิทธิ์เรียนได้ทันที</p>
+                  <p>• ไม่ต้องแนบสลิป เพราะยอดที่ต้องชำระเพิ่มเป็น ฿0</p>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
+                  <p className="font-medium">หลังจากกดยืนยัน:</p>
+                  <p>• ระบบจะสร้างรายการจอง สถานะ &quot;รอชำระเงิน&quot;</p>
+                  <p>• กรุณาแนบสลิปโอนเงินในหน้าประวัติการจอง — ระบบจะตรวจสลิปอัตโนมัติ</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1595,7 +1636,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         )}
         {step === 'summary' ? (
           <Button className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading}>
-            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังจอง...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : 'ยืนยันการจอง'}</>}
+            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังจอง...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroChargeKidsTrueUp ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
           </Button>
         ) : (
           <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext()}>

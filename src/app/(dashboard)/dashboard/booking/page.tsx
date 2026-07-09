@@ -130,7 +130,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
     .eq('id', user.id)
     .single() as unknown as { data: ProfileRow | null }
 
-  // Fetch existing bookings for sibling pricing calculation (include total_price for incremental pricing)
+  // Fetch active bookings for calendar conflict display. Pricing true-up filters this list to settled rows only.
   const { data: existingBookings } = await supabase
     .from('bookings')
     .select('id, child_id, course_type_id, month, year, total_sessions, total_price, status')

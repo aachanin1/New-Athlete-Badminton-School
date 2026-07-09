@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -18,6 +18,35 @@ Observed scripts:
 - `npm run prod:check`: read-only production readiness checker.
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
+
+## 2026-07-10 - Kids Group Pricing Pending-Booking True-Up Fix
+
+- Scope: urgent source fix for kids_group monthly pricing true-up only. No adult pricing rule, pricing tier row, DB schema, migration, SlipOK, coupon semantics, lesson wallet, reschedule, attendance, ranking/users/history/makeup, payment row, or existing booking repair was changed.
+- Root cause: the booking flow counted active `pending_payment` bookings inside the kids_group monthly true-up as if they were already paid. This could subtract unpaid booking totals and undercharge future additions.
+- Fix: kids_group monthly true-up now counts only settled booking statuses `paid` and `verified` for `existingSettledSessions` and `existingSettledTotal`. `pending_payment` bookings remain available for calendar/conflict display but are excluded from paid true-up math.
+- Current formula after the fix:
+  - `existingSettledSessions = paid/verified sessions only`
+  - `existingSettledTotal = paid/verified booking totals only`
+  - `totalSessionsAfter = existingSettledSessions + newSessions`
+  - `targetTotal = totalSessionsAfter * rateOf(totalSessionsAfter)`
+  - `charge = max(0, targetTotal - existingSettledTotal)`
+- Zero-baht kids_group true-up behavior: when the source calculation returns `0`, the booking is created as `verified`, the user flow uses the "ใช้สิทธิ์เรียนรอบนี้" action, the slip-upload instructions are hidden, no coupon is applied, and no 0-baht payment row is created by `/api/bookings`.
+- Booking UI explains the true-up with the title `คำนวณตามเรทราคารวมของเดือนนี้`, shows paid sessions/amount, new sessions, total-after-booking, new tier rate, target total, deducted paid total, `ยอดที่ต้องชำระเพิ่ม`, and uses `เครดิตส่วนต่าง` for overpaid true-up credit.
+- Dry-run pricing proof passed with `node scripts/check-pricing-true-up.js`:
+  - new kids_group 1 session = `700`
+  - paid 1 session `700` + add 1 = `550`
+  - paid 2 sessions `1250` + add 1 = `625`
+  - paid 6 sessions `3750` + add 1 = `0` with `เครดิตส่วนต่าง` `250`
+  - paid 6 sessions `3750` + add 2 = `250`
+  - previous pending 1 session is ignored and does not reduce the next price
+  - affected booking scenarios `9112a5cb...` and `60779d60...` recompute to `500` after excluding pending rows
+  - prior 8 + 8 sibling true-up remains `4000 + 2496 = 6496`
+  - adult pricing checks remain unchanged.
+- Local smoke reached `/dashboard/booking` with the provided User account and previewed pricing only; no booking submit, slip upload, DB write, payment/coupon creation, or admin write action was clicked. The visible positive-charge summary showed the new true-up explanation and preserved the slip-required flow.
+- Separate DB repair still needs owner approval after source deploy for:
+  - `9112a5cb-006c-4fdd-838d-5534c15b6fb1`
+  - `60779d60-ac26-4eaf-a34f-703157a32300`
+  Proposed repair boundary: re-read exact rows, confirm they are still `pending_payment`, confirm expected recalculated amount `500`, update only the target booking total/status fields explicitly approved by the owner, do not alter payment/coupon/session rows, and write an activity log if approved.
 
 ## 2026-07-09 - Phase 3 Production Role Smoke Readiness
 

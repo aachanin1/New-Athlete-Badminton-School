@@ -130,13 +130,14 @@ export async function PUT(request: NextRequest) {
       month,
       year,
       newSessions: totalSessions,
-      existingStatuses: ['pending_payment', 'paid', 'verified'],
+      existingStatuses: SETTLED_BOOKING_STATUSES,
       excludeBookingId: bookingId,
     })
 
     if (Math.abs(calculatedTotalAmount - totalAmount) > 1 || Math.abs(calculatedTotalAmount - expectedTotalPrice) > 1) {
       return NextResponse.json({ error: 'ราคาค่าเรียนมีการเปลี่ยนแปลง กรุณารีเฟรชหน้าแล้วตรวจสอบยอดอีกครั้ง' }, { status: 400 })
     }
+    const zeroPriceKidsTrueUp = courseType.name === 'kids_group' && calculatedTotalAmount === 0
 
     let sessionRows: ResolvedBookingSessionRow[]
     try {
@@ -165,6 +166,7 @@ export async function PUT(request: NextRequest) {
       .update({
         total_sessions: totalSessions,
         total_price: calculatedTotalAmount,
+        status: zeroPriceKidsTrueUp ? 'verified' : 'pending_payment',
         branch_id: branchId,
         child_id: getResolvedBookingChildId(booking.learner_type, booking.child_id, sessions),
         month,
@@ -194,6 +196,9 @@ export async function PUT(request: NextRequest) {
       details: {
         totalSessions,
         totalPrice: calculatedTotalAmount,
+        status: zeroPriceKidsTrueUp ? 'verified' : 'pending_payment',
+        settledStatuses: SETTLED_BOOKING_STATUSES,
+        zeroPriceTrueUp: zeroPriceKidsTrueUp,
       },
     })
 
@@ -296,6 +301,7 @@ interface ExistingSessionConflictRow {
 }
 
 const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'paid', 'verified']
+const SETTLED_BOOKING_STATUSES = ['paid', 'verified']
 const ACTIVE_SESSION_STATUSES = ['scheduled', 'completed', 'absent']
 
 interface ResolvedBookingSessionRow {
@@ -693,7 +699,7 @@ export async function POST(request: NextRequest) {
       month,
       year,
       newSessions: totalSessions,
-      existingStatuses: ['pending_payment', 'paid', 'verified'],
+      existingStatuses: SETTLED_BOOKING_STATUSES,
     })
 
     if (Math.abs(calculatedTotalAmount - totalAmount) > 1) {
@@ -707,18 +713,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 409 })
     }
 
-    const { coupon, discountAmount, error: couponError } = await validateCoupon(
-      adminSupabase,
-      user.id,
-      couponInput,
-      calculatedTotalAmount
-    )
+    const { coupon, discountAmount, error: couponError } = calculatedTotalAmount > 0
+      ? await validateCoupon(
+        adminSupabase,
+        user.id,
+        couponInput,
+        calculatedTotalAmount
+      )
+      : { coupon: null, discountAmount: 0, error: null }
 
     if (couponError) {
       return NextResponse.json({ error: couponError }, { status: 400 })
     }
 
     const finalPrice = Math.max(0, calculatedTotalAmount - discountAmount)
+    const zeroPriceKidsTrueUp = courseType.name === 'kids_group' && calculatedTotalAmount === 0 && finalPrice === 0
+    const bookingStatus = zeroPriceKidsTrueUp ? 'verified' : 'pending_payment'
     if (Math.abs(finalPrice - expectedTotalPrice) > 1) {
       return NextResponse.json({ error: 'ยอดชำระไม่ตรงกับข้อมูลล่าสุด กรุณาตรวจสอบคูปองและราคาอีกครั้ง' }, { status: 400 })
     }
@@ -735,7 +745,7 @@ export async function POST(request: NextRequest) {
         year,
         total_sessions: totalSessions,
         total_price: finalPrice,
-        status: 'pending_payment',
+        status: bookingStatus,
       })
       .select('id')
       .single() as { data: { id: string } | null; error: DbError | null }
@@ -797,10 +807,17 @@ export async function POST(request: NextRequest) {
       link_url: '/admin/notifications',
     }).catch(() => null)
 
+    const userNotificationTitle = bookingStatus === 'verified'
+      ? 'สร้างการจองสำเร็จ'
+      : 'สร้างการจองแล้ว รอแนบสลิป'
+    const userNotificationMessage = bookingStatus === 'verified'
+      ? `ระบบสร้างการจอง ${totalSessions} ครั้ง โดยใช้เครดิตส่วนต่างและยอดชำระเพิ่ม ฿0 คุณสามารถใช้สิทธิ์เรียนรอบนี้ได้ทันที`
+      : `ระบบสร้างการจอง ${totalSessions} ครั้ง ยอดชำระ ฿${finalPrice.toLocaleString('th-TH')} เรียบร้อยแล้ว กรุณาแนบสลิปเพื่อยืนยันการจอง`
+
     await notifyUserOnce(adminSupabase as unknown as NotificationSupabase, {
       user_id: user.id,
-      title: 'สร้างการจองแล้ว รอแนบสลิป',
-      message: `ระบบสร้างการจอง ${totalSessions} ครั้ง ยอดชำระ ฿${finalPrice.toLocaleString('th-TH')} เรียบร้อยแล้ว กรุณาแนบสลิปเพื่อยืนยันการจอง`,
+      title: userNotificationTitle,
+      message: userNotificationMessage,
       type: 'payment',
       link_url: '/dashboard/history',
     }).catch(() => null)
@@ -814,6 +831,9 @@ export async function POST(request: NextRequest) {
         totalSessions,
         totalPrice: finalPrice,
         couponId: coupon?.id || null,
+        status: bookingStatus,
+        settledStatuses: SETTLED_BOOKING_STATUSES,
+        zeroPriceTrueUp: zeroPriceKidsTrueUp,
       },
     })
 

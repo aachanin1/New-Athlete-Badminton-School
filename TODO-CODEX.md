@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -21,6 +21,10 @@ Read only when relevant:
 
 ## Current Pending Work
 
+- Urgent pricing blocker follow-up:
+  - Kids_group monthly true-up source fix is in progress this round: only `paid` / `verified` bookings count as settled paid history; `pending_payment` bookings are excluded from `existingSettledSessions` and `existingSettledTotal`.
+  - Do not run DB repair until the owner approves exact target rows and write scope. Current repair candidates remain `9112a5cb-006c-4fdd-838d-5534c15b6fb1` and `60779d60-ac26-4eaf-a34f-703157a32300`.
+  - Adult pricing, pricing tiers, DB schema/migrations, payment rows, coupon rows, SlipOK, `/api/verify-slip`, lesson wallet, reschedule, attendance, and existing bookings are out of scope for this fix.
 - Next active work: Phase 3 Deploy Readiness follow-up review or owner-approved deterministic hydration hardening.
   - Continue with read-only or owner-approved smoke only.
   - Do not run production write actions unless the owner confirms the exact test case and target records.
@@ -47,6 +51,16 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed urgent kids_group pricing pending-booking true-up source fix:
+  - Final classification before deployment: source checks passed; production deploy/smoke to be reported with the release result.
+  - Root cause fixed: `pending_payment` bookings were previously included in active kids_group monthly true-up history and could be treated like paid history. The source now uses settled statuses `paid` and `verified` only for paid-history pricing math.
+  - Formula after fix: `existingSettledSessions + newSessions`, target monthly total by `rateOf(totalSessionsAfter)`, then `charge = max(0, targetTotal - existingSettledTotal)`.
+  - Zero-baht kids_group true-up now uses a no-slip user path, CTA `ใช้สิทธิ์เรียนรอบนี้`, preferred booking status `verified`, no 0-baht payment row from `/api/bookings`, and activity-log details when the booking API succeeds.
+  - Booking UI now explains the calculation with `คำนวณตามเรทราคารวมของเดือนนี้` and uses `เครดิตส่วนต่าง`, not `ส่วนลด`, for overpaid true-up credit.
+  - Dry-run cases passed in `node scripts/check-pricing-true-up.js`: new 1 = `700`; paid 1 + 1 = `550`; paid 2 + 1 = `625`; paid 6 + 1 = `0`; paid 6 + 2 = `250`; pending history ignored; affected `9112...` and `60779...` recompute to `500`; 8 + 8 sibling true-up remains `6496`; adult checks unchanged.
+  - Local browser smoke previewed `/dashboard/booking` pricing only and did not submit a booking. Positive amount still showed the slip-required path; zero-baht path is covered by deterministic dry-run/source checks and still needs a safe owner-approved visual case if required.
+  - No DB write, migration, pricing tier edit, payment/coupon row change, SlipOK change, `/api/verify-slip` change, existing booking repair, or adult pricing change was performed.
 
 - Completed Step 4 Phase 3 Deploy Readiness / Production Readiness Gate:
   - Final classification: `NEED REVIEW`.
