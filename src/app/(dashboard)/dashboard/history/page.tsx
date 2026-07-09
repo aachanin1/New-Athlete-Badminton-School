@@ -83,6 +83,7 @@ type RawSessionRow = Omit<
 >
 
 interface WalletCreditRow {
+  id: string
   original_session_id: string
   redeemed_session_id: string | null
   status: string
@@ -92,18 +93,9 @@ interface WalletCreditRow {
 }
 
 interface AttendanceRow extends AttendanceSessionRow {
+  id: string
   student_id: string
   checked_at: string | null
-}
-
-interface WalletCreditQueryResult {
-  data: WalletCreditRow[] | null
-  error: { message: string } | null
-}
-
-interface AttendanceQueryResult {
-  data: AttendanceRow[] | null
-  error: { message: string } | null
 }
 
 interface CouponUsageRow {
@@ -119,53 +111,118 @@ interface CouponUsageRow {
   } | null
 }
 
-const ATTENDANCE_QUERY_CHUNK_SIZE = 100
+const IN_FILTER_CHUNK_SIZE = 100
+const RANGE_READ_PAGE_SIZE = 1000
+
+interface QueryError {
+  message?: string
+}
+
+interface QueryRowsResult<T> {
+  data: T[] | null
+  error: QueryError | null
+}
+
+interface QueryMaybeSingleResult<T> {
+  data: T | null
+  error: QueryError | null
+}
+
+function getQueryErrorMessage(error: QueryError | null | undefined) {
+  return error?.message || 'Unknown query error'
+}
+
+function chunkArray<T>(values: T[], size: number) {
+  const chunks: T[][] = []
+  for (let i = 0; i < values.length; i += size) {
+    chunks.push(values.slice(i, i + size))
+  }
+  return chunks
+}
+
+function dedupeRowsById<T extends { id: string }>(rows: T[]) {
+  const rowMap = new Map<string, T>()
+  for (const row of rows) {
+    rowMap.set(row.id, row)
+  }
+  return Array.from(rowMap.values())
+}
+
+async function readAllRangePages<T>(
+  label: string,
+  buildQuery: (start: number, end: number) => Promise<QueryRowsResult<T>>,
+) {
+  const rows: T[] = []
+
+  // Explicit ranges avoid silent PostgREST caps as user history grows.
+  for (let start = 0; ; start += RANGE_READ_PAGE_SIZE) {
+    const end = start + RANGE_READ_PAGE_SIZE - 1
+    const { data, error } = await buildQuery(start, end)
+
+    if (error) {
+      throw new Error(`[dashboard/history] ${label} read failed: ${getQueryErrorMessage(error)}`)
+    }
+
+    const pageRows = data || []
+    rows.push(...pageRows)
+
+    if (pageRows.length < RANGE_READ_PAGE_SIZE) break
+  }
+
+  return rows
+}
+
+async function readChunkedRangePages<T>(
+  label: string,
+  values: string[],
+  buildQuery: (chunk: string[], start: number, end: number) => Promise<QueryRowsResult<T>>,
+) {
+  const uniqueValues = Array.from(new Set(values.filter(Boolean)))
+  const chunks = chunkArray(uniqueValues, IN_FILTER_CHUNK_SIZE)
+  const rows: T[] = []
+
+  for (const [index, chunk] of chunks.entries()) {
+    const chunkRows = await readAllRangePages<T>(
+      `${label} chunk ${index + 1}/${chunks.length}`,
+      (start, end) => buildQuery(chunk, start, end),
+    )
+    rows.push(...chunkRows)
+  }
+
+  return rows
+}
 
 async function fetchWalletCreditsBySessionIds(
   adminSupabase: ReturnType<typeof getServiceRoleClient>,
   sessionIds: string[],
 ) {
-  const walletCredits: WalletCreditRow[] = []
-
-  for (let index = 0; index < sessionIds.length; index += ATTENDANCE_QUERY_CHUNK_SIZE) {
-    const chunk = sessionIds.slice(index, index + ATTENDANCE_QUERY_CHUNK_SIZE)
-    const { data, error } = await (adminSupabase
+  return dedupeRowsById(await readChunkedRangePages<WalletCreditRow>(
+    'wallet credits',
+    sessionIds,
+    (chunk, start, end) => adminSupabase
       .from('lesson_wallet_credits')
-      .select('original_session_id, redeemed_session_id, status, redeemed_at, expired_at, expires_at')
-      .in('original_session_id', chunk) as unknown as Promise<WalletCreditQueryResult>)
-
-    if (error) {
-      throw new Error(`Dashboard history wallet credit query failed: ${error.message}`)
-    }
-
-    walletCredits.push(...(data || []))
-  }
-
-  return walletCredits
+      .select('id, original_session_id, redeemed_session_id, status, redeemed_at, expired_at, expires_at')
+      .in('original_session_id', chunk)
+      .order('id', { ascending: true })
+      .range(start, end) as unknown as Promise<QueryRowsResult<WalletCreditRow>>,
+  ))
 }
 
 async function fetchAttendanceRowsBySessionIds(
   adminSupabase: ReturnType<typeof getServiceRoleClient>,
   sessionIds: string[],
 ) {
-  const attendanceRows: AttendanceRow[] = []
-
-  for (let index = 0; index < sessionIds.length; index += ATTENDANCE_QUERY_CHUNK_SIZE) {
-    const chunk = sessionIds.slice(index, index + ATTENDANCE_QUERY_CHUNK_SIZE)
-    const { data, error } = await (adminSupabase
+  return dedupeRowsById(await readChunkedRangePages<AttendanceRow>(
+    'attendance rows',
+    sessionIds,
+    (chunk, start, end) => adminSupabase
       .from('attendance')
-      .select('booking_session_id, student_id, status, checked_at')
+      .select('id, booking_session_id, student_id, status, checked_at')
       .in('booking_session_id', chunk)
-      .order('checked_at', { ascending: true }) as unknown as Promise<AttendanceQueryResult>)
-
-    if (error) {
-      throw new Error(`Dashboard history attendance query failed: ${error.message}`)
-    }
-
-    attendanceRows.push(...(data || []))
-  }
-
-  return attendanceRows
+      .order('checked_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(start, end) as unknown as Promise<QueryRowsResult<AttendanceRow>>,
+  ))
 }
 
 export default async function HistoryPage() {
@@ -176,59 +233,84 @@ export default async function HistoryPage() {
   if (!user) redirect('/auth/login')
 
   // Check if user is admin/super_admin
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single() as unknown as { data: ProfileRow | null }
+    .single() as unknown as QueryMaybeSingleResult<ProfileRow>
+
+  if (profileError) {
+    throw new Error(`[dashboard/history] profile read failed: ${getQueryErrorMessage(profileError)}`)
+  }
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
   // Admin sees all bookings, user sees only own
-  const bookingsResult = isAdmin
-    ? await supabase
+  const bookings = isAdmin
+    ? await readAllRangePages<HistoryBookingRow>(
+      'bookings',
+      (start, end) => supabase
       .from('bookings')
       .select('*, branches(name), children(full_name, nickname), course_types(name), profiles!bookings_user_id_fkey(full_name, email)')
-      .order('created_at', { ascending: false }) as unknown as { data: HistoryBookingRow[] | null }
-    : await supabase
+      .order('created_at', { ascending: false })
+      .range(start, end) as unknown as Promise<QueryRowsResult<HistoryBookingRow>>,
+    )
+    : await readAllRangePages<HistoryBookingRow>(
+      'bookings',
+      (start, end) => supabase
       .from('bookings')
       .select('*, branches(name), children(full_name, nickname), course_types(name), profiles!bookings_user_id_fkey(full_name, email)')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }) as unknown as { data: HistoryBookingRow[] | null }
-
-  const bookings = bookingsResult.data || []
+      .order('created_at', { ascending: false })
+      .range(start, end) as unknown as Promise<QueryRowsResult<HistoryBookingRow>>,
+    )
 
   // Same for payments
-  const paymentsResult = isAdmin
-    ? await supabase
+  const payments = isAdmin
+    ? await readAllRangePages<PaymentRow>(
+      'payments',
+      (start, end) => supabase
       .from('payments')
       .select('*')
-      .order('created_at', { ascending: false }) as unknown as { data: PaymentRow[] | null }
-    : await supabase
+      .order('created_at', { ascending: false })
+      .range(start, end) as unknown as Promise<QueryRowsResult<PaymentRow>>,
+    )
+    : await readAllRangePages<PaymentRow>(
+      'payments',
+      (start, end) => supabase
       .from('payments')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }) as unknown as { data: PaymentRow[] | null }
+      .order('created_at', { ascending: false })
+      .range(start, end) as unknown as Promise<QueryRowsResult<PaymentRow>>,
+    )
 
-  const payments = paymentsResult.data || []
-
-  const { data: paymentSetting } = await supabase
+  const { data: paymentSetting, error: paymentSettingError } = await supabase
     .from('system_settings')
     .select('value')
     .eq('key', PAYMENT_TRANSFER_SETTING_KEY)
-    .maybeSingle() as unknown as { data: { value: unknown } | null }
+    .maybeSingle() as unknown as QueryMaybeSingleResult<{ value: unknown }>
+
+  if (paymentSettingError) {
+    throw new Error(`[dashboard/history] payment transfer setting read failed: ${getQueryErrorMessage(paymentSettingError)}`)
+  }
 
   const bookingIds = bookings.map((booking) => booking.id)
   let couponUsageMap: Record<string, CouponUsageRow[]> = {}
 
   if (bookingIds.length > 0) {
-    const { data: couponUsages } = await supabase
-      .from('coupon_usages')
-      .select('id, coupon_id, booking_id, discount_amount, used_at, coupons(code, discount_type, discount_value)')
-      .in('booking_id', bookingIds)
-      .order('used_at', { ascending: false }) as unknown as { data: CouponUsageRow[] | null }
+    const couponUsages = dedupeRowsById(await readChunkedRangePages<CouponUsageRow>(
+      'coupon usages',
+      bookingIds,
+      (chunk, start, end) => supabase
+        .from('coupon_usages')
+        .select('id, coupon_id, booking_id, discount_amount, used_at, coupons(code, discount_type, discount_value)')
+        .in('booking_id', chunk)
+        .order('used_at', { ascending: false })
+        .range(start, end) as unknown as Promise<QueryRowsResult<CouponUsageRow>>,
+    ))
 
-    couponUsageMap = (couponUsages || []).reduce<Record<string, CouponUsageRow[]>>((map, usage) => {
+    couponUsageMap = couponUsages.reduce<Record<string, CouponUsageRow[]>>((map, usage) => {
       if (!map[usage.booking_id]) map[usage.booking_id] = []
       map[usage.booking_id].push(usage)
       return map
@@ -238,12 +320,17 @@ export default async function HistoryPage() {
   // Fetch only sessions for the bookings visible on this page.
   let rawSessionRows: RawSessionRow[] = []
   if (bookingIds.length > 0) {
-    const { data } = await supabase
-      .from('booking_sessions')
-      .select('id, booking_id, rescheduled_from_id, date, start_time, end_time, branch_id, child_id, status, is_makeup, children(full_name, nickname), branches(name)')
-      .in('booking_id', bookingIds)
-      .order('date', { ascending: true }) as unknown as { data: RawSessionRow[] | null }
-    rawSessionRows = data || []
+    rawSessionRows = dedupeRowsById(await readChunkedRangePages<RawSessionRow>(
+      'booking sessions',
+      bookingIds,
+      (chunk, start, end) => supabase
+        .from('booking_sessions')
+        .select('id, booking_id, rescheduled_from_id, date, start_time, end_time, branch_id, child_id, status, is_makeup, children(full_name, nickname), branches(name)')
+        .in('booking_id', chunk)
+        .order('date', { ascending: true })
+        .order('id', { ascending: true })
+        .range(start, end) as unknown as Promise<QueryRowsResult<RawSessionRow>>,
+    ))
   }
 
   const sessionIds = rawSessionRows.map((session) => session.id)

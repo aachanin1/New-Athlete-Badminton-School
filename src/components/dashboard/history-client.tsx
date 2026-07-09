@@ -308,6 +308,29 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   // Group pending bookings for combined payment
   const pendingBookings = bookings.filter((b) => b.status === 'pending_payment')
   const pendingTotal = pendingBookings.reduce((sum, b) => sum + b.total_price, 0)
+  const paymentsByBookingId = useMemo(() => {
+    const map = new Map<string, PaymentRow[]>()
+    payments.forEach((payment) => {
+      const bookingPayments = map.get(payment.booking_id) || []
+      bookingPayments.push(payment)
+      map.set(payment.booking_id, bookingPayments)
+    })
+    return map
+  }, [payments])
+  const latestRejectedPaymentByBookingId = useMemo(() => {
+    const map = new Map<string, PaymentRow>()
+    payments.forEach((payment) => {
+      if (payment.status !== 'rejected') return
+
+      const existing = map.get(payment.booking_id)
+      const paymentTime = new Date(payment.verified_at || payment.created_at).getTime()
+      const existingTime = existing ? new Date(existing.verified_at || existing.created_at).getTime() : -1
+      if (!existing || paymentTime > existingTime) {
+        map.set(payment.booking_id, payment)
+      }
+    })
+    return map
+  }, [payments])
 
   const openDetailDialog = (booking: BookingWithRelations) => {
     setSelectedBooking(booking)
@@ -460,13 +483,11 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   }
 
   const getBookingPayments = (bookingId: string) => {
-    return payments.filter((p) => p.booking_id === bookingId)
+    return paymentsByBookingId.get(bookingId) || []
   }
 
   const getLatestRejectedPayment = (bookingId: string) => {
-    return getBookingPayments(bookingId)
-      .filter((payment) => payment.status === 'rejected')
-      .sort((a, b) => new Date(b.verified_at || b.created_at).getTime() - new Date(a.verified_at || a.created_at).getTime())[0]
+    return latestRejectedPaymentByBookingId.get(bookingId)
   }
 
   // Group bookings by month/year for display
