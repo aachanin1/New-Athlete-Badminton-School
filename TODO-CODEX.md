@@ -21,10 +21,13 @@ Read only when relevant:
 
 ## Current Pending Work
 
-- Next active work: Phase 3 Deploy Readiness or owner-approved deterministic hydration hardening.
+- Next active work: Phase 3 Deploy Readiness follow-up review or owner-approved deterministic hydration hardening.
   - Continue with read-only or owner-approved smoke only.
   - Do not run production write actions unless the owner confirms the exact test case and target records.
   - Keep Attendance Sync as a regression guard unless new attendance work starts.
+  - Step 4 Phase 3 Deploy Readiness / Production Readiness Gate on 2026-07-09 is `NEED REVIEW`.
+    - Passed: local command checks, attendance reconciliation dry-run, production alias/deployment Ready, production env names present, public route smoke, protected no-cookie redirects, Super Admin sampled read-only routes, `/ranking` and `/admin/ranking` search, and Vercel logs for the smoke window.
+    - Needs review before release PASS: remote Supabase migration state could not be confirmed without Supabase CLI auth token/login; production `SLIPOK_TEST_MODE` encrypted value cannot be safely verified; fresh role smoke did not cover User/Coach/Head Coach/Standard Admin sessions; `/admin/makeup` visual sample stayed in loading state during the browser sample; homepage currently shows `LV 71+` / `70+` level copy although current active production levels are LV 0-70.
   - Step 3 React `#418` triage on 2026-07-09 is `PASS`: fresh production tabs after hard refresh did not reproduce `#418` on Super Admin `/admin/logs`, Head Coach `/coach/programs`, Head Coach `/coach`, Standard Admin direct `/admin/finance`, or Standard Admin direct `/admin/coupons`.
   - Standard Admin `/admin/coupons` redirect is expected for the tested production permission set; the tested Admin sidebar did not expose Coupon access. If the owner wants Standard Admin coupon access, that is a permission/settings decision requiring explicit approval.
   - Owner-approved `/admin/coupons` controlled smoke on 2026-07-09 is `PASS`: Super Admin could open the page, there were no auto-close candidates, no coupon rows/usages changed, and no manual coupon action was clicked.
@@ -44,6 +47,19 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed Step 4 Phase 3 Deploy Readiness / Production Readiness Gate:
+  - Final classification: `NEED REVIEW`.
+  - Scope was read-only production readiness. No source code, API, DB write, migration, deploy, data create/update/delete, slip upload, check-in, attendance save, booking/payment/coupon/payroll/finance/settings/Admin Makeup write action, reset password, or role change was performed.
+  - Local checks passed: clean pre-check `git status --short`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run prod:check` with known local `SLIPOK_TEST_MODE=true` warning, `npm.cmd run attendance:reconcile:dry-run` with 0 mismatches across 2389 verified teaching sessions and 1438 attendance rows, and `git diff --check`.
+  - Production deployment readiness passed for alias/deployment: `https://www.newathleteschool.com` serves Ready Vercel deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`.
+  - Vercel production env names are present without printing secrets: Supabase URL/publishable/service role and SlipOK test mode/API URL/API key. Production SlipOK live-mode value remains `NEED REVIEW` because Vercel shows encrypted values only.
+  - Remote migration state remains `NEED REVIEW`: `npx.cmd supabase migration list --linked` could not run without Supabase CLI access token/login. No migration/reset/push was run.
+  - Public/guard smoke: `/` loaded with `080-252-7227` and `tel:0802527227`; `/ranking` loaded and `LV 67` search filtered to 1 result; no-cookie HTTP checks returned 200 for `/`, `/ranking`, `/auth/login`, `/auth/register` and 307 login redirects for `/dashboard`, `/coach`, `/admin`, `/admin/ranking`.
+  - Authenticated smoke used the existing Super Admin session only: `/admin`, `/admin/ranking`, `/admin/payments`, `/admin/users`, `/admin/logs`, and `/admin/settings` loaded read-only with no captured browser warning/error or React `#418`; `/admin/ranking` search filtered `LV 67` to 1 result and reward controls stayed visible. `/admin/makeup` returned 200 in Vercel logs but the browser visual sample was still loading, so visual coverage is partial.
+  - User, Coach, Head Coach, and Standard Admin sessions were not freshly covered in this Step 4 run. Prior Step 2/3 coverage still exists, but this gate does not claim fresh role coverage for those roles.
+  - Vercel logs for the smoke window showed info-level 200/304 entries only; no error-level entry tied to this gate was visible.
+  - Readiness issue found: production homepage/source `src/app/page.tsx` currently exposes `70+ ระดับพัฒนาการ` and `LV 71+` / `ชุดนักกีฬา A`, conflicting with the current active LV 0-70 production rule unless the owner explicitly confirms LV 71+ as active behavior.
 
 - Completed owner-approved `/admin/coupons` controlled smoke + write-on-read verification:
   - Final classification: `PASS`.

@@ -142,6 +142,48 @@ Observed scripts:
   - The wider 30-minute log window contained one pre-coupons `/ranking` `Invalid Refresh Token` error from stale auth state, separate from the `/admin/coupons` smoke window.
 - Verification before smoke passed: clean `git status --short`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check`.
 
+## 2026-07-09 - Phase 3 Deploy Readiness / Production Readiness Gate
+
+- Final classification: `NEED REVIEW`.
+- Scope was read-only production readiness. No source code, API, DB write, migration, deploy, data create/update/delete, slip upload, check-in, attendance save, booking/payment/coupon/payroll/finance/settings/Admin Makeup write action, reset password, or role change was performed.
+- Local command readiness passed:
+  - `git status --short` was clean before the gate.
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run prod:check` returned READY WITH WARNINGS/PASSES with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `npm.cmd run attendance:reconcile:dry-run` checked 2389 verified teaching sessions and 1438 attendance rows with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `git diff --check`
+- Production alias/deployment readiness:
+  - `https://www.newathleteschool.com` resolves to Ready Vercel deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`.
+  - Vercel production env names are present without exposing values: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SLIPOK_TEST_MODE`, `SLIPOK_API_URL`, and `SLIPOK_API_KEY`.
+- SlipOK readiness result:
+  - Local `prod:check` still warns `SLIPOK_TEST_MODE=true`, which is acceptable only for local testing.
+  - Production SlipOK env names are present in Vercel, but the encrypted value of `SLIPOK_TEST_MODE` cannot be verified without exposing/pulling secrets. Production live mode remains `NEED REVIEW` until confirmed from Vercel settings or a safe owner-approved live SlipOK test.
+  - No slip upload or `/api/verify-slip` live file verification was performed.
+- Remote DB migration state:
+  - `npx.cmd supabase migration list --linked` could not confirm remote migration state because Supabase CLI access token/login is not available in this environment.
+  - No migration command, reset, push, or DB write was run. Remote migration state remains `NEED REVIEW`.
+- Public/guard production route smoke:
+  - Browser smoke: `/` loaded, displayed `080-252-7227`, and exposed `tel:0802527227`.
+  - Browser smoke: `/ranking` loaded and public search for `LV 67` filtered to 1 result with no console warnings/errors.
+  - No-cookie HTTP checks: `/`, `/ranking`, `/auth/login`, and `/auth/register` returned 200; `/auth/login` and `/auth/register` HTML contained form signals.
+  - No-cookie HTTP guard checks: `/dashboard`, `/coach`, `/admin`, and `/admin/ranking` returned 307 to `/auth/login?redirect=...`.
+- Authenticated production smoke coverage:
+  - Existing browser session was Super Admin only.
+  - Super Admin read-only surfaces loaded without React `#418` or captured browser warning/error entries: `/admin`, `/admin/ranking`, `/admin/payments`, `/admin/users`, `/admin/logs`, and `/admin/settings`.
+  - Super Admin `/admin/ranking` search was visible and `LV 67` filtered to 1 result; Admin reward controls remained visible and no achievement/write action was clicked.
+  - `/admin/makeup` returned 200 in Vercel logs, but the in-browser sample was still on the loading state when captured, so visual coverage is partial and remains `NEED REVIEW` for this gate.
+  - User, Coach, Head Coach, and Standard Admin role sessions were not covered in this Step 4 run. Prior Step 2/3 coverage still exists, but this gate does not claim fresh role coverage for those accounts.
+- Vercel logs:
+  - Post-smoke `vercel logs --since 10m` returned info-level 200/304 entries only in the fetched window. No production error-level log tied to this smoke was visible.
+- Readiness issue found:
+  - Production homepage currently displays `70+ ระดับพัฒนาการ` and `LV 71+` / `ชุดนักกีฬา A`; source is `src/app/page.tsx`.
+  - This conflicts with the current hard production business rule that active levels are LV 0-70 unless the owner confirms LV 71+ as active behavior. No source fix was made in this read-only gate.
+- Gate result rationale:
+  - Commands, attendance reconciliation, core public/guard routes, Super Admin sampled routes, Vercel deployment status, and Vercel logs are healthy.
+  - Gate remains `NEED REVIEW` because remote migration state is unconfirmed, production SlipOK live-mode value is not safely visible, fresh role smoke did not cover User/Coach/Head Coach/Standard Admin sessions, `/admin/makeup` visual sample was partial, and homepage LV71+ copy conflicts with the LV 0-70 production rule.
+
 ## Observed Architecture
 
 - `src/proxy.ts` handles Supabase session refresh, role route prefixes, auth redirects, and standard Admin menu permission redirects.
