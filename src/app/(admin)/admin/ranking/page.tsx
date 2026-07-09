@@ -6,5 +6,5 @@ export const dynamic = 'force-dynamic'
 export default async function AdminRankingPage() {
   await requireAdminPageAccess()
 
-  return <RankingContent mode="admin" />
+  return <RankingContent mode="admin" enableSearch />
 }
