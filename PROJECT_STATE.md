@@ -19,6 +19,42 @@ Observed scripts:
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
 
+## 2026-07-09 - Phase 3 Production Role Smoke Readiness
+
+- Final classification: `NEED REVIEW`.
+- Environment: production `https://www.newathleteschool.com`, deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC` inspected with Vercel CLI and reported Ready.
+- Scope was read-only browser smoke plus docs-only closeout. No source code, API, DB, migration, package/config, deploy, booking/payment/slip/coupon/check-in/attendance/wallet/reschedule/payroll/ranking-write/user-edit action was performed.
+- Pre-smoke verification passed:
+  - `git status --short` was clean.
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `git diff --check`
+- Public/unauthenticated production smoke passed:
+  - `/`, `/ranking`, `/auth/login`, and `/auth/register` loaded.
+  - Homepage displayed `080-252-7227` and `tel:0802527227`; the old phone was absent.
+  - Public `/ranking` search input was visible; `LV 67`, `Athlete`, no-match, and cleared search behavior were verified read-only.
+  - Unauthenticated protected routes redirected to `/auth/login?redirect=...`.
+- Authenticated production role smoke covered the provided accounts only through browser UI; passwords were not written to docs:
+  - User/Parent loaded `/dashboard`, `/dashboard/schedule`, `/dashboard/history`, `/dashboard/booking`, `/dashboard/reschedule`, `/dashboard/lesson-wallet`, `/dashboard/progress`, `/dashboard/children`, `/dashboard/notifications`, and `/profile`; direct `/admin` and `/coach` redirected back to `/dashboard`.
+  - Coach loaded `/coach`, `/coach/today`, `/coach/checkin`, `/coach/attendance`, `/coach/students`, `/coach/levels`, `/coach/programs`, `/coach/hours`, and `/coach/notifications`; direct `/admin` redirected back to `/coach`. Direct `/dashboard` rendered a dashboard shell for this account and is an observed access behavior.
+  - Head Coach loaded `/coach`, `/coach/today`, `/coach/attendance`, `/coach/assign-groups`, `/coach/hours`, `/coach/students`, `/coach/levels`, and `/coach/programs`; direct `/admin` redirected back to `/coach`.
+  - Standard Admin loaded `/admin`, `/admin/schedules`, `/admin/users`, `/admin/ranking`, `/admin/payments`, `/admin/complaints`, and `/admin/notifications`; `/admin/payments` did not show baht symbols or amount wording. `/admin/coupons` redirected to `/admin`, so coupon access for this Standard Admin remains `NEED REVIEW` if it is expected.
+  - Standard Admin direct checks for Super Admin-only pages mostly redirected to `/admin` or showed only the Admin shell; `/admin/makeup` and `/admin/coach-checkins` stayed on the URL with shell-only body during this smoke and should be rechecked if direct-deny UI must be explicit.
+  - Super Admin loaded `/admin`, `/admin/schedules`, `/admin/makeup`, `/admin/payments`, `/admin/users`, `/admin/ranking`, `/admin/payroll`, `/admin/finance`, `/admin/notifications`, `/admin/settings`, and `/admin/logs`; `/admin/makeup` displayed makeup/review markers.
+  - Admin ranking search was visible and worked in production; Super Admin verified `LV 67`, `Athlete`, no-match, and cleared search restore on `/admin/ranking`.
+- Production browser console NEED REVIEW:
+  - React minified error `#418` reproduced for Head Coach `/coach/programs` and `/coach`.
+  - React minified error `#418` appeared during Standard Admin restricted `/admin/finance` redirect.
+  - React minified error `#418` appeared on Super Admin `/admin/logs`.
+- Vercel check:
+  - `npx.cmd vercel inspect https://www.newathleteschool.com --scope team_gw8Y6CPd602WAKRsVFobPGCL` reported Ready deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`.
+  - `npx.cmd vercel logs https://www.newathleteschool.com --scope team_gw8Y6CPd602WAKRsVFobPGCL --since 30m` fetched recent production logs showing info-level 2xx/3xx requests only; no server error/fatal entries were visible in the fetched output.
+  - Vercel connector runtime error/log endpoints were permission-blocked with 403, and connector deployment alias lookup returned 404, so CLI output is the usable Vercel source for this pass.
+- No production write action was clicked. No DB write, migration, deploy, source-code change, or package/config change was performed.
+
 ## Observed Architecture
 
 - `src/proxy.ts` handles Supabase session refresh, role route prefixes, auth redirects, and standard Admin menu permission redirects.

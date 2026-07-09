@@ -21,10 +21,13 @@ Read only when relevant:
 
 ## Current Pending Work
 
-- Next active work: Phase 3 / Role Smoke Readiness.
+- Next active work: Phase 3 / Role Smoke Readiness follow-up.
   - Continue with read-only or owner-approved smoke only.
   - Do not run production write actions unless the owner confirms the exact test case and target records.
   - Keep Attendance Sync as a regression guard unless new attendance work starts.
+  - Latest production role smoke on 2026-07-09 is `NEED REVIEW` because React minified error `#418` reproduced on authenticated production routes.
+  - Investigate production React `#418` on Head Coach `/coach/programs` and `/coach`, Standard Admin restricted `/admin/finance` redirect, and Super Admin `/admin/logs`.
+  - Recheck whether the provided Standard Admin should access `/admin/coupons`; during the production smoke it redirected to `/admin`.
 - Recent released baseline: Phase 1 Performance Foundation is in production.
   - Source commit `67f5b01` (`fix(ui): add portal navigation loading feedback`) was pushed on branch `spike/next-major-security-upgrade`.
   - Deployment id `dpl_14eJpsrbUeEd6V1mcF6NVFLshV55`; deployment URL `https://new-athlete-badminton-school-n0odem0ad-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
@@ -40,6 +43,23 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed Step 2 Phase 3 production role smoke readiness:
+  - Final classification: `NEED REVIEW`.
+  - Environment: production `https://www.newathleteschool.com`, Vercel deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC` inspected as Ready through Vercel CLI.
+  - Scope was read-only browser smoke plus docs-only closeout. No source code, API, DB, migration, package/config, deploy, booking/payment/slip/coupon/check-in/attendance/wallet/reschedule/payroll/ranking-write/user-edit action was performed.
+  - Pre-smoke verification passed: clean `git status --short`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run prod:check` with known local `SLIPOK_TEST_MODE=true` warning, `npm.cmd run attendance:reconcile:dry-run`, and `git diff --check`.
+  - Public/unauthenticated production smoke passed for `/`, `/ranking`, `/auth/login`, `/auth/register`, and protected-route redirects to `/auth/login?redirect=...`.
+  - Public `/ranking` search worked read-only for `LV 67`, `Athlete`, no-match, and cleared search restore.
+  - User/Parent authenticated production routes loaded: `/dashboard`, `/dashboard/schedule`, `/dashboard/history`, `/dashboard/booking`, `/dashboard/reschedule`, `/dashboard/lesson-wallet`, `/dashboard/progress`, `/dashboard/children`, `/dashboard/notifications`, and `/profile`; `/admin` and `/coach` redirected back to `/dashboard`.
+  - Coach authenticated production routes loaded: `/coach`, `/coach/today`, `/coach/checkin`, `/coach/attendance`, `/coach/students`, `/coach/levels`, `/coach/programs`, `/coach/hours`, and `/coach/notifications`; `/admin` redirected back to `/coach`. `/dashboard` rendered a dashboard shell for this Coach account and remains an observed access behavior.
+  - Head Coach authenticated production routes loaded: `/coach`, `/coach/today`, `/coach/attendance`, `/coach/assign-groups`, `/coach/hours`, `/coach/students`, `/coach/levels`, and `/coach/programs`; `/admin` redirected back to `/coach`.
+  - Standard Admin authenticated production routes loaded: `/admin`, `/admin/schedules`, `/admin/users`, `/admin/ranking`, `/admin/payments`, `/admin/complaints`, and `/admin/notifications`; `/admin/payments` did not show baht symbols or amount wording. `/admin/coupons` redirected to `/admin`, so coupon access remains `NEED REVIEW` if it is expected.
+  - Super Admin authenticated production routes loaded: `/admin`, `/admin/schedules`, `/admin/makeup`, `/admin/payments`, `/admin/users`, `/admin/ranking`, `/admin/payroll`, `/admin/finance`, `/admin/notifications`, `/admin/settings`, and `/admin/logs`.
+  - Admin `/admin/ranking` search was visible and worked read-only; Super Admin verified `LV 67`, `Athlete`, no-match, and cleared search restore.
+  - NEED REVIEW console findings: React minified error `#418` reproduced on Head Coach `/coach/programs` and `/coach`, appeared during Standard Admin restricted `/admin/finance` redirect, and appeared on Super Admin `/admin/logs`.
+  - Vercel CLI logs for the last 30 minutes showed info-level 2xx/3xx requests only; no server error/fatal entries were visible in the fetched output. Vercel connector runtime logs/errors were permission-blocked with 403.
+  - No credentials were written to documentation.
 
 - Completed Step 1 Documentation Verification Pass after the main Phase 2 closeouts:
   - Scope was documentation only: `PROJECT_STATE.md` and `TODO-CODEX.md`.
@@ -914,6 +934,12 @@ Scope:
 
 Status:
 
+- Latest production smoke on 2026-07-09 is `NEED REVIEW`:
+  - Broad public, unauthenticated, User/Parent, Coach, Head Coach, Standard Admin, and Super Admin page-load coverage was completed on production.
+  - React minified error `#418` reproduced or appeared on authenticated production routes: Head Coach `/coach/programs` and `/coach`, Standard Admin restricted `/admin/finance` redirect, and Super Admin `/admin/logs`.
+  - Provided Standard Admin `/admin/coupons` redirected to `/admin`; confirm whether this is expected menu-permission behavior or a missing access grant.
+  - Vercel CLI inspect showed Ready deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`; CLI logs for the smoke window showed info-level 2xx/3xx requests only, while connector runtime log/error endpoints were 403-blocked.
+  - No production write action, DB write, migration, deploy, source-code edit, or package/config change was performed.
 - New-machine readiness checks passed on 2026-06-12.
 - `npm.cmd run prod:check` passed with local `SLIPOK_TEST_MODE=true` warning.
 - Public and unauthenticated guard smoke passed locally on 2026-06-12.
