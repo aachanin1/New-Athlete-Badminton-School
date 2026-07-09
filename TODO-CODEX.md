@@ -37,6 +37,20 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed Phase 2.4 `/admin/users` Option 1 safe read transport cleanup:
+  - Source commit `3751058` (`fix(users): range large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_3SDZ79Ka4fDuYp2R4S39kGfSLW7k`; deployment URL `https://new-athlete-badminton-school-f00bitzjl-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(admin)/admin/users/page.tsx`.
+  - Replaced broad reads for `profiles`, `children`, and `bookings` with explicit ranged `.range(...)` reads and added explicit read error handling.
+  - Added `childrenByParentId` map shaping for parent-child display; optional `users-client` memo cleanup was deferred.
+  - Read-only row verification after the fix found local 306 users/profiles, 289 children, 21 coaches, and 475 bookings before deploy; production smoke after deploy found 307 users/profiles, 234 parents, 46 adults, 289 children, 21 coaches, and 475 bookings after one new production user appeared.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warning for `src/app/(admin)/admin/users/page.tsx`.
+  - Authenticated local read-only smoke passed on `/admin/users`: list loaded, search for `เบเน่` narrowed to 1 user, parent/child detail remained intact, coach role filter showed 12 coach users, and the user detail panel opened read-only.
+  - Authenticated production read-only smoke passed on `https://www.newathleteschool.com/admin/users`: list loaded, search for `เบเน่` narrowed to 1 user, parent/child detail remained intact, and the user detail panel opened read-only.
+  - Vercel smoke-window logs showed `GET /admin/users` 200 and no error-level entries in the fetched window.
+  - No API route, DB write, migration, schema change, source change outside scope, create/edit/delete/role/password behavior change, parent-child/student-level semantic change, booking/payment/attendance/wallet semantic change, auth/permission change, client pagination/search contract change, or `/admin/users` write action was performed.
+  - Pre-existing unrelated `src/app/page.tsx` changes were not staged, committed, or modified.
+
 - Completed Phase 2.3 `/dashboard/history` Option 1 safe read transport cleanup:
   - Source commit `3cc3ddc` (`fix(history): range large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
   - Deployment id `dpl_EXvDn6rkpRKCohjEmTcgg3XweyMM`; deployment URL `https://new-athlete-badminton-school-e3nssxdhj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.

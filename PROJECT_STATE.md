@@ -1544,6 +1544,36 @@ Potential bug found:
   - Browser console errors/warnings were 0, Vercel `--level error` logs found no logs, and no write action was clicked.
 - No API route, DB write, migration, schema change, client redesign, tab/filter behavior change, attendance source-of-truth change, lesson wallet/payment/pricing/booking/check-in business logic change, storage deletion, or Admin Makeup write action was performed.
 
+## 2026-07-09 - Admin Users Read Transport Cleanup
+
+- Phase 2.4 `/admin/users` Option 1 safe read transport cleanup is committed, pushed, deployed, and read-only smoke verified.
+- Source commit `3751058` (`fix(users): range large read queries`) was pushed on branch `spike/next-major-security-upgrade`.
+- Deployment id `dpl_3SDZ79Ka4fDuYp2R4S39kGfSLW7k`; deployment URL `https://new-athlete-badminton-school-f00bitzjl-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Source scope was limited to `src/app/(admin)/admin/users/page.tsx`.
+- Read transport changes:
+  - Added a local ranged Supabase read helper using `.range(...)` pages of 1000 rows.
+  - Replaced broad reads for `profiles`, `children`, and `bookings` with ranged reads.
+  - Added explicit read error handling for those three large reads.
+  - Added `childrenByParentId` map shaping so parent-child display no longer repeatedly filters the full child list per user.
+  - Deferred optional `users-client` memo cleanup to a future pass.
+- Read-only row verification after the fix:
+  - Local smoke before production deploy showed 306 users/profiles, 289 children, 21 coaches, and 475 bookings.
+  - Production smoke after deploy showed 307 users/profiles, 234 parents, 46 adults, 289 children, 21 coaches, and 475 bookings. The one-user difference was a new production user observed after local verification.
+- Verification passed:
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `npm.cmd run attendance:reconcile:dry-run`
+  - `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `git diff --check` with only the known Windows LF/CRLF warning for `src/app/(admin)/admin/users/page.tsx`.
+- After build, the stale `.next` folder in this repo was removed and `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000` was restarted successfully; `/` and a `_next/static/*` JS asset returned 200.
+- Authenticated local read-only smoke passed on `/admin/users`: full list loaded, search for `เบเน่` narrowed to 1 user, parent/child display remained intact, coach role filter showed 12 coach users, and the user detail panel opened read-only.
+- Authenticated production read-only smoke passed on `https://www.newathleteschool.com/admin/users`: full list loaded, search for `เบเน่` narrowed to 1 user, parent/child display remained intact, and the user detail panel opened read-only.
+- Recent Vercel logs for the smoke window showed `GET /admin/users` returning 200 and no error-level entries in the fetched window.
+- No API route, DB write, migration, schema change, create/edit/delete/role/password behavior change, parent/child semantics change, student level change, booking/payment/attendance/wallet semantic change, permission/auth change, client pagination/search contract change, deploy after docs, or `/admin/users` write action was performed.
+- Pre-existing unrelated `src/app/page.tsx` changes were not staged, committed, or modified for this work.
+
 ## Unknown / Need Verification
 
 - Current `.env.local` values were not inspected directly in this audit. Read-only readiness check only confirmed required Supabase environment variables are present.
