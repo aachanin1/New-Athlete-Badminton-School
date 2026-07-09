@@ -55,6 +55,58 @@ Observed scripts:
   - Vercel connector runtime error/log endpoints were permission-blocked with 403, and connector deployment alias lookup returned 404, so CLI output is the usable Vercel source for this pass.
 - No production write action was clicked. No DB write, migration, deploy, source-code change, or package/config change was performed.
 
+## 2026-07-09 - Phase 3 React #418 Triage / Root-Cause Audit
+
+- Final classification: `PASS` for the read-only triage: the previously reported React minified `#418` console errors did not reproduce in fresh production tabs after hard refresh.
+- Scope was read-only audit plus docs-only closeout. No source code, API, DB, migration, package/config, deploy, settings save, coupon/finance/program/check-in/attendance/payment/payroll/ranking/user-edit action was performed.
+- Pre-browser verification passed:
+  - `git status --short` was clean.
+  - `npm.cmd run check:mojibake`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning.
+  - `npm.cmd run attendance:reconcile:dry-run` with 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
+  - `git diff --check`
+- Production browser reproduction results:
+  - Super Admin `/admin/logs`: rendered `Activity Log`, final URL stayed `/admin/logs`, React `#418` not present, console warning/error count 0.
+  - Head Coach `/coach/programs`: rendered `โปรแกรมสอน`, final URL stayed `/coach/programs`, React `#418` not present, console warning/error count 0.
+  - Head Coach `/coach`: rendered `หน้าหลักโค้ช`, final URL stayed `/coach`, React `#418` not present, console warning/error count 0.
+  - Standard Admin direct `/admin/finance`: redirected to `/admin`, rendered Admin overview, React `#418` not present, console warning/error count 0.
+  - Standard Admin direct `/admin/coupons`: redirected to `/admin`, rendered Admin overview, React `#418` not present, console warning/error count 0.
+- Most likely explanation for the Step 2 React `#418` findings: stale or cross-tab accumulated browser console logs during the long multi-role smoke, not a currently reproducible route-level hydration failure. Confidence: medium, because the exact old browser-log source cannot be replayed after the fresh-tab retest.
+- Source files inspected:
+  - `src/app/(admin)/admin/logs/page.tsx`
+  - `src/components/admin/logs-client.tsx`
+  - `src/app/(coach)/coach/programs/page.tsx`
+  - `src/components/coach/programs-client.tsx`
+  - `src/app/(coach)/coach/page.tsx`
+  - `src/app/(coach)/layout.tsx`
+  - `src/components/layout/coach-sidebar.tsx`
+  - `src/components/layout/admin-sidebar.tsx`
+  - `src/components/layout/navigation-pending.ts`
+  - `src/app/(admin)/layout.tsx`
+  - `src/app/(admin)/admin/page.tsx`
+  - `src/app/(admin)/admin/finance/page.tsx`
+  - `src/app/(admin)/admin/coupons/page.tsx`
+  - `src/lib/admin-navigation.ts`
+  - `src/lib/auth/admin.ts`
+  - `src/proxy.ts`
+  - `src/lib/date-format.ts`
+  - `src/lib/utils.ts`
+  - `src/lib/coach-slot-display-status.ts`
+- Source audit notes:
+  - `/admin/logs` uses deterministic `formatThaiDateTimeWithWeekday`; remaining minor hardening candidate is replacing first-render `new Date().toISOString()` for the `วันนี้` stat/filter comparison with a shared Bangkok date key if this ever reproduces around date boundaries.
+  - `/coach/programs` has timezone-less client date formatting (`toLocaleDateString('th-TH')`) in `ProgramsClient` and timezone-less server `formatSlotLabel`; this is a good source-only hardening candidate even though production did not reproduce the error.
+  - `/coach` current dashboard uses server-side Bangkok date/month calculations and the client sidebar only uses `usePathname`/pending-navigation state; no active mismatch was reproduced.
+  - Standard Admin restricted `/admin/finance` is handled by `src/proxy.ts` before the finance page renders, then falls back to the first allowed Admin menu href. No finance component hydration issue was reproduced for the tested Standard Admin.
+  - Standard Admin `/admin/coupons` redirect is expected for the tested production permission set: the sidebar did not show Coupon access and `src/proxy.ts` redirects disallowed Admin menu paths via `isAdminMenuPathAllowed(...)`.
+  - Important future safety note: `src/app/(admin)/admin/coupons/page.tsx` currently auto-closes expired/maxed coupons by updating rows during page render. Do not render this page under an allowed account in read-only smoke unless the owner approves that write-on-read behavior or it is refactored first.
+- Local dev reproduction was not attempted because fresh production reproduction cleared every target route; local dev would not prove the previous production-only console entries.
+- Recommended next source-only hardening, only if owner approves:
+  - Replace `/coach/programs` client/server date formatting with shared deterministic Bangkok helpers.
+  - Replace `/admin/logs` `today`/filter date key logic with shared Bangkok date helpers.
+  - Review `/admin/coupons` render-time auto-close write and move it behind an explicit owner-approved Admin/API action if product policy requires read-only page load.
+
 ## Observed Architecture
 
 - `src/proxy.ts` handles Supabase session refresh, role route prefixes, auth redirects, and standard Admin menu permission redirects.

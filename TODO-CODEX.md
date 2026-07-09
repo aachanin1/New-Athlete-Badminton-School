@@ -21,13 +21,13 @@ Read only when relevant:
 
 ## Current Pending Work
 
-- Next active work: Phase 3 / Role Smoke Readiness follow-up.
+- Next active work: Phase 3 Deploy Readiness or owner-approved deterministic hydration hardening.
   - Continue with read-only or owner-approved smoke only.
   - Do not run production write actions unless the owner confirms the exact test case and target records.
   - Keep Attendance Sync as a regression guard unless new attendance work starts.
-  - Latest production role smoke on 2026-07-09 is `NEED REVIEW` because React minified error `#418` reproduced on authenticated production routes.
-  - Investigate production React `#418` on Head Coach `/coach/programs` and `/coach`, Standard Admin restricted `/admin/finance` redirect, and Super Admin `/admin/logs`.
-  - Recheck whether the provided Standard Admin should access `/admin/coupons`; during the production smoke it redirected to `/admin`.
+  - Step 3 React `#418` triage on 2026-07-09 is `PASS`: fresh production tabs after hard refresh did not reproduce `#418` on Super Admin `/admin/logs`, Head Coach `/coach/programs`, Head Coach `/coach`, Standard Admin direct `/admin/finance`, or Standard Admin direct `/admin/coupons`.
+  - Standard Admin `/admin/coupons` redirect is expected for the tested production permission set; the tested Admin sidebar did not expose Coupon access. If the owner wants Standard Admin coupon access, that is a permission/settings decision requiring explicit approval.
+  - Optional source-only hardening candidates remain: deterministic Bangkok date formatting in `/coach/programs`, Bangkok date-key logic in `/admin/logs`, and review of `/admin/coupons` page-load auto-close writes.
 - Recent released baseline: Phase 1 Performance Foundation is in production.
   - Source commit `67f5b01` (`fix(ui): add portal navigation loading feedback`) was pushed on branch `spike/next-major-security-upgrade`.
   - Deployment id `dpl_14eJpsrbUeEd6V1mcF6NVFLshV55`; deployment URL `https://new-athlete-badminton-school-n0odem0ad-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
@@ -43,6 +43,17 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed Step 3 Phase 3 React `#418` triage / root-cause audit:
+  - Final classification: `PASS` for triage; the previous React `#418` findings did not reproduce in fresh production tabs after hard refresh.
+  - Scope was read-only audit plus docs-only closeout. No source code, API, DB, migration, package/config, deploy, settings save, coupon/finance/program/check-in/attendance/payment/payroll/ranking/user-edit action was performed.
+  - Pre-browser verification passed: clean `git status --short`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run prod:check` with known local `SLIPOK_TEST_MODE=true` warning, `npm.cmd run attendance:reconcile:dry-run`, and `git diff --check`.
+  - Production repro results: Super Admin `/admin/logs`, Head Coach `/coach/programs`, Head Coach `/coach`, Standard Admin direct `/admin/finance`, and Standard Admin direct `/admin/coupons` all rendered/redirected as expected with React `#418` absent and browser warning/error count 0.
+  - Most likely explanation for the Step 2 console findings is stale or cross-tab accumulated browser console logs during the long multi-role smoke. Confidence is medium because the exact old browser log source cannot be replayed after fresh-tab retest.
+  - Source files inspected included the affected admin/coach pages, `LogsClient`, `ProgramsClient`, admin/coach sidebars, `navigation-pending`, `admin-navigation`, `auth/admin`, `proxy`, and shared date/util/status helpers.
+  - Standard Admin `/admin/coupons` redirect is expected for the tested production permission set: the Admin sidebar omitted Coupon access and `src/proxy.ts` redirects disallowed Admin menu paths through `isAdminMenuPathAllowed(...)`.
+  - Important future safety note: `src/app/(admin)/admin/coupons/page.tsx` currently performs an auto-close update for expired/maxed coupons during page render. Do not render that page under an allowed account as part of read-only smoke unless the owner approves that write-on-read behavior or it is refactored first.
+  - Local dev reproduction was not attempted because fresh production reproduction cleared every target route; local dev would not prove the previous production-only console entries.
 
 - Completed Step 2 Phase 3 production role smoke readiness:
   - Final classification: `NEED REVIEW`.
@@ -934,10 +945,16 @@ Scope:
 
 Status:
 
-- Latest production smoke on 2026-07-09 is `NEED REVIEW`:
+- Step 3 React `#418` triage on 2026-07-09 is `PASS`:
+  - Fresh production tabs after hard refresh did not reproduce React `#418` on Super Admin `/admin/logs`, Head Coach `/coach/programs`, Head Coach `/coach`, Standard Admin direct `/admin/finance`, or Standard Admin direct `/admin/coupons`.
+  - Browser warning/error count was 0 for each retested route.
+  - The most likely Step 2 cause is stale or cross-tab accumulated browser console logs rather than a currently reproducible route-level hydration failure.
+  - Standard Admin `/admin/coupons` redirect is expected for the tested permission set. Owner approval is required before changing system settings or permission policy.
+  - Optional hardening candidates remain source-only and unimplemented: deterministic Bangkok date formatting in `/coach/programs`, Bangkok date-key logic in `/admin/logs`, and review of `/admin/coupons` render-time auto-close writes.
+- Historical Step 2 production smoke on 2026-07-09 was `NEED REVIEW`, now superseded by the Step 3 triage above:
   - Broad public, unauthenticated, User/Parent, Coach, Head Coach, Standard Admin, and Super Admin page-load coverage was completed on production.
   - React minified error `#418` reproduced or appeared on authenticated production routes: Head Coach `/coach/programs` and `/coach`, Standard Admin restricted `/admin/finance` redirect, and Super Admin `/admin/logs`.
-  - Provided Standard Admin `/admin/coupons` redirected to `/admin`; confirm whether this is expected menu-permission behavior or a missing access grant.
+  - Provided Standard Admin `/admin/coupons` redirected to `/admin`; Step 3 confirmed this matches the tested production permission set.
   - Vercel CLI inspect showed Ready deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`; CLI logs for the smoke window showed info-level 2xx/3xx requests only, while connector runtime log/error endpoints were 403-blocked.
   - No production write action, DB write, migration, deploy, source-code edit, or package/config change was performed.
 - New-machine readiness checks passed on 2026-06-12.
