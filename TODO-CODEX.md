@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -36,6 +36,18 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed Phase 2.3 `/dashboard/history` Option 1 safe read transport cleanup:
+  - Source commit `3cc3ddc` (`fix(history): range large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_EXvDn6rkpRKCohjEmTcgg3XweyMM`; deployment URL `https://new-athlete-badminton-school-e3nssxdhj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(dashboard)/dashboard/history/page.tsx` and `src/components/dashboard/history-client.tsx`.
+  - Replaced broad top-level history reads with explicit ranged pagination for `bookings` and `payments`; added chunked+ranged `.in(...)` reads for `coupon_usages`, `booking_sessions`, `attendance`, and `lesson_wallet_credits`; added id-based dedupe; added explicit read error handling for profile and payment-transfer settings.
+  - Included a small client optimization by memoizing payments by booking id and latest rejected payment by booking id in `HistoryClient`.
+  - Preserved `HistoryClient` prop shape, rendered data shape, Admin/User scopes, SlipOK/payment/slip upload behavior, booking/payment status semantics, pricing/coupon semantics, lesson wallet/reschedule behavior, attendance source-of-truth behavior, storage objects, and write flows.
+  - Read-only row verification found bookings 475, booking_sessions 2669, payments 438, lesson_wallet_credits 55, attendance 1411, multi-child null-booking-child/session-child bookings 69, rescheduled rows 202, and booking session statuses completed/rescheduled/walleted/scheduled/absent 1316/193/55/1011/94.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warnings.
+  - Authenticated local and production read-only smoke passed on `/dashboard/history`: list rendered, July expanded, normal detail opened, walleted sessions displayed for the `onlineman2522@gmail.com` private booking, and reschedule/multi-child/attendance statuses displayed for the `ikqjaa@gmail.com` booking. Browser warnings/errors were 0 in both environments, and Vercel smoke-window logs showed only 200 responses.
+  - No API route, DB write, migration, schema change, source change outside scope, SlipOK change, payment/slip upload action, payment/booking status transition change, pricing/coupon semantic change, lesson wallet/reschedule/attendance semantic change, storage deletion, booking/payment/slip/coupon creation, deploy after docs, or write action click was performed.
 
 - Completed Phase 2.2 `/admin/payments` Option 1 safe read transport cleanup:
   - Source commit `33161c6` (`fix(payments): range large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.

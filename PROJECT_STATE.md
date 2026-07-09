@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -163,6 +163,19 @@ Latest attendance reconciliation result:
 Current active production risk:
 
 - No known attendance/session status drift after the confirmed reconciliation.
+- `/dashboard/history` Phase 2.3 Option 1 safe read transport cleanup is deployed in production as of commit `3cc3ddc` (`fix(history): range large read queries`):
+  - Deployment id `dpl_EXvDn6rkpRKCohjEmTcgg3XweyMM`; deployment URL `https://new-athlete-badminton-school-e3nssxdhj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/(dashboard)/dashboard/history/page.tsx` and `src/components/dashboard/history-client.tsx`.
+  - Added local read helpers `readAllRangePages`, `readChunkedRangePages`, and `dedupeRowsById`.
+  - Top-level `bookings` and `payments` reads now use explicit ranged pagination while preserving the existing Admin/global and User/self scopes, field selection, and created-at ordering.
+  - Related reads now chunk and range `.in(...)` filters for `coupon_usages`, `booking_sessions`, `attendance`, and `lesson_wallet_credits`; rows are deduped by id where chunk/range reads can overlap.
+  - Profile and payment-transfer setting reads now fail explicitly on read error instead of silently masking the problem.
+  - Client optimization included: `/dashboard/history` memoizes payments by booking id and latest rejected payment by booking id, preserving `HistoryClient` props and UI behavior.
+  - Read-only post-fix counts: bookings 475, booking_sessions 2669, payments 438, lesson_wallet_credits 55, attendance 1411, multi-child bookings with null `bookings.child_id` and session children 69, rescheduled rows with `rescheduled_from_id` 202, booking session statuses completed/rescheduled/walleted/scheduled/absent 1316/193/55/1011/94.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warnings for touched files.
+  - Authenticated local smoke passed on `/dashboard/history` as Super Admin: August and July groups rendered, July expanded, normal detail modal opened, walleted private booking showed wallet summary/section for `onlineman2522@gmail.com`, and reschedule-heavy multi-child booking `ikqjaa@gmail.com` showed reschedule history, no-double-count copy, learners, and attendance statuses. Browser warnings/errors were 0.
+  - Authenticated production smoke passed on `https://www.newathleteschool.com/dashboard/history`: same read-only list/detail/wallet/reschedule/multi-child checks passed, production browser warnings/errors were 0, and Vercel logs for the smoke window showed 200 responses with no error-level logs.
+  - No API route, DB write, migration, schema change, SlipOK change, payment/slip upload action, payment/booking status transition change, pricing/coupon semantic change, lesson wallet/reschedule/attendance source-of-truth change, storage deletion, booking/payment/slip/coupon creation, or write action click was performed.
 - `/admin/payments` Phase 2.2 Option 1 safe read transport cleanup is deployed in production as of commit `33161c6` (`fix(payments): range large read queries`):
   - Deployment id `dpl_5Kdb3ahBbpd89NTEs4pvv7Eq75ED`; deployment URL `https://new-athlete-badminton-school-n047jvmd6-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
   - Source scope was limited to `src/app/(admin)/admin/payments/page.tsx`.
