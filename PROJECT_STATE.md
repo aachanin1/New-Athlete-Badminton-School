@@ -163,6 +163,9 @@ Latest attendance reconciliation result:
 Current active production risk:
 
 - No known attendance/session status drift after the confirmed reconciliation.
+- Public contact phone number is deployed as `080-252-7227` with `tel:0802527227` as of commit `983e998` (`fix(site): update contact phone number`):
+  - Deployment id `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/app/page.tsx`; no DB write, API change, migration, package/config change, business logic change, or deploy after docs was performed.
 - `/admin/ranking` Phase 2.5 follow-up search enablement is deployed in production as of commit `67aa4f1` (`fix(ranking): enable search in admin view`):
   - Deployment id `dpl_4FCzBixNfSrEiWaiwf6xbfU9DDvL`; deployment URL `https://new-athlete-badminton-school-5olbmc8mo-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
   - Final status: PASS after owner-verified production smoke.
@@ -174,19 +177,19 @@ Current active production risk:
   - Production verification completed for deploy health and route reachability: Vercel inspect reported Ready, `https://www.newathleteschool.com/ranking` returned 200, unauthenticated `/admin/ranking` returned the expected 307 auth redirect, and `vercel logs --level error --since 1h` returned no logs.
   - Owner-verified production smoke completed after deploy: public `/ranking` had the search input visible and the ranking list rendered normally; authenticated Super Admin `/admin/ranking` had the search input visible, Admin sidebar/control still visible, reward/Admin controls still visible, and the ranking list rendered normally.
   - No Admin write action was clicked during owner verification. No new source deploy was needed for this docs-only PASS closeout.
-  - Production deploy was run from a detached clean worktree at commit `67aa4f1`, so the pre-existing unrelated dirty `src/app/page.tsx` change was not included. No DB write, migration, API route change, ranking sort/rank semantic change, branch fallback semantic change, student level/achievement write, booking/payment/attendance/wallet change, storage deletion, or Admin write action was performed.
+  - Production deploy was run from a detached clean worktree at commit `67aa4f1`, so the then-unrelated `src/app/page.tsx` phone-number change was not included in that ranking deploy. That phone update was later completed separately in commit `983e998`. No DB write, migration, API route change, ranking sort/rank semantic change, branch fallback semantic change, student level/achievement write, booking/payment/attendance/wallet change, storage deletion, or Admin write action was performed.
 - `/ranking` + `/admin/ranking` Phase 2.5 Option 1 safe read transport cleanup and public dynamic search is deployed in production as of commit `1cef3b7` (`fix(ranking): add search and range reads`):
   - Deployment id `dpl_9mvhkgVdPags1Ko5Z6W2TRXeyycA`; deployment URL `https://new-athlete-badminton-school-mnggq3uty-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
   - Source scope was limited to `src/components/shared/ranking-content.tsx`, `src/components/shared/ranking-board.tsx`, and `src/app/ranking/page.tsx`.
   - Top-level Ranking reads for `children`, paid/verified `bookings`, active `branches`, and `levels` now use explicit ranged pagination with explicit read errors.
   - Large `.in(...)` reads for parent `profiles`, `student_levels.student_id`, and active `student_achievements.student_id` now use chunked+ranged reads with id dedupe. Existing child session branch fallback remains chunked+ranged and now fails explicitly on read error.
-  - Public `/ranking` now has client search enabled through the shared `RankingBoard`; `/admin/ranking` keeps the same shared board with search disabled. Search covers displayed student name, nickname included in display, branch names, raw level number, `LV 67`/`LV67`, `Level 67`, displayed level label, and English category labels such as Basic, Athlete C, and Athlete B.
+  - At this source commit, public `/ranking` gained client search through the shared `RankingBoard` and `/admin/ranking` intentionally still had search disabled. That admin-search gap was superseded and closed by follow-up commit `67aa4f1`, so current production has search enabled on both `/ranking` and `/admin/ranking`.
   - Ranking semantics were preserved: sort order, rank maps, public/Admin visibility, branch fallback precedence, LV 0-70 behavior, student level display, and achievement write flow were not changed. Search filters the visible list but does not re-rank results.
   - Read-only post-fix counts: children 290, adult visible rows from paid/verified bookings 24, visible ranking rows 314, paid/verified bookings 439, session fallback rows 2422, `student_levels` rows 459, child latest-level rows 238/52 missing, adult latest-level rows 13/11 missing, visible level buckets LV0/Basic/Athlete C/Athlete B/LV71+ = 63/195/55/1/0, active achievements 0, active branches 7, active levels 70.
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only known Windows LF/CRLF warnings for touched ranking files.
-  - Local smoke passed on `/ranking`: search by full name, nickname, branch, and `LV 67` worked; no-match showed the search empty state; branch+search and level+search combinations worked; rank `#1` stayed `#1`; browser warnings/errors were 0. Local `/admin/ranking` authenticated smoke passed: search input absent, ranking rows rendered, achievement buttons remained available, and the achievement modal opened/closed read-only without submitting.
+  - Local smoke passed on `/ranking`: search by full name, nickname, branch, and `LV 67` worked; no-match showed the search empty state; branch+search and level+search combinations worked; rank `#1` stayed `#1`; browser warnings/errors were 0. At this commit only, local `/admin/ranking` authenticated smoke passed with the search input absent, ranking rows rendered, achievement buttons available, and the achievement modal opened/closed read-only; the later follow-up enabled admin search.
   - Production smoke passed on `https://www.newathleteschool.com/ranking` and `/admin/ranking` with the same public/admin checks; production browser warnings/errors were 0. Vercel deployment inspect reported Ready, and `vercel logs --level error --since 1h` returned no logs.
-  - Production deploy was run from a detached clean worktree at commit `1cef3b7` so the pre-existing unrelated dirty `src/app/page.tsx` change was not included. No DB write, migration, API route change, student level/achievement write, booking/payment/attendance/wallet change, storage deletion, or Admin write action was performed.
+  - Production deploy was run from a detached clean worktree at commit `1cef3b7` so the then-unrelated `src/app/page.tsx` phone-number change was not included in that ranking deploy. That phone update was later completed separately in commit `983e998`. No DB write, migration, API route change, student level/achievement write, booking/payment/attendance/wallet change, storage deletion, or Admin write action was performed.
 - `/dashboard/history` Phase 2.3 Option 1 safe read transport cleanup is deployed in production as of commit `3cc3ddc` (`fix(history): range large read queries`):
   - Deployment id `dpl_EXvDn6rkpRKCohjEmTcgg3XweyMM`; deployment URL `https://new-athlete-badminton-school-e3nssxdhj-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
   - Source scope was limited to `src/app/(dashboard)/dashboard/history/page.tsx` and `src/components/dashboard/history-client.tsx`.
@@ -380,13 +383,12 @@ Current active production risk:
 - Next production focus should be role smoke testing and any broader historical child FK audit only if new evidence appears.
 - Auth UX polish on 2026-06-06 added password visibility toggles to login/register password fields in the Home auth modal and direct auth pages. This is UI-only and does not change Supabase auth, redirects, email confirmation, or validation behavior.
 
-## Pre-Existing Dirty Worktree Observed
+## Worktree Notes
 
-Before the latest documentation sync after `86aa087`, `git status --short` showed:
+- Historical note: before the documentation sync after `86aa087`, `git status --short` showed an untracked `SlipOK API Guide.docx`.
+- Current note for the 2026-07-09 documentation verification pass: `git status --short` was clean before edits, and `SlipOK API Guide.docx` was not present in the workspace.
 
-- Untracked: `SlipOK API Guide.docx`
-
-Treat the untracked guide as out of scope. Do not commit, delete, or move it unless the owner explicitly asks.
+If a local guide/document appears again in future work, treat it as out of scope unless the owner explicitly asks to commit, delete, or move it.
 
 ## 2026-06-12 - New Machine Handoff Readiness
 
@@ -1596,7 +1598,30 @@ Potential bug found:
 - Authenticated production read-only smoke passed on `https://www.newathleteschool.com/admin/users`: full list loaded, search for `เบเน่` narrowed to 1 user, parent/child display remained intact, and the user detail panel opened read-only.
 - Recent Vercel logs for the smoke window showed `GET /admin/users` returning 200 and no error-level entries in the fetched window.
 - No API route, DB write, migration, schema change, create/edit/delete/role/password behavior change, parent/child semantics change, student level change, booking/payment/attendance/wallet semantic change, permission/auth change, client pagination/search contract change, deploy after docs, or `/admin/users` write action was performed.
-- Pre-existing unrelated `src/app/page.tsx` changes were not staged, committed, or modified for this work.
+- The then-unrelated `src/app/page.tsx` phone-number changes were not staged, committed, or modified for this work; they were completed later in commit `983e998`.
+
+## 2026-07-09 - Public Contact Phone Update
+
+- Public homepage/contact phone number is deployed to production.
+- Source commit `983e998` (`fix(site): update contact phone number`) was pushed on branch `spike/next-major-security-upgrade`.
+- Deployment id `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+- Source scope was limited to `src/app/page.tsx`.
+- Contact display now uses `080-252-7227`; contact links now use `tel:0802527227`.
+- Replaced old contact number/link `080-059-6004` / `tel:0800596004`.
+- Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check` with only the known Windows LF/CRLF warning.
+- Local smoke passed on `/`: contact section rendered, the new display phone and both `tel:0802527227` links were present, old phone/link were absent, and browser console warnings/errors were 0.
+- Production smoke passed on `https://www.newathleteschool.com`: the new display phone and both `tel:0802527227` links were present, old phone/link were absent, and Chrome console warnings/errors were 0.
+- No DB write, API change, migration, package/config change, business logic change, storage action, or post-deploy write action was performed.
+
+## 2026-07-09 - Documentation Verification Pass
+
+- Documentation-only verification after Phase 2/2.5 closeout and the public phone update is complete.
+- Current docs now reflect that Phase 2 `/admin/makeup`, `/admin/payments`, `/dashboard/history`, `/admin/users`, Phase 2.5 Ranking read/search, the `/admin/ranking` search follow-up, the owner test booking cleanup, `/dashboard/booking` draft preservation, slip upload reliability hardening, and the public contact phone update are closed.
+- Ranking search follow-up is PASS and no longer NEED REVIEW; current production search is enabled on both `/ranking` and `/admin/ranking`.
+- Historical notes that mentioned an unrelated dirty `src/app/page.tsx` phone change now explicitly point to the later completed phone commit `983e998`.
+- Next active work remains Phase 3 / Role Smoke Readiness, followed by Phase 3 Deploy Readiness. Attendance Sync stays a regression guard unless new attendance work starts.
+- Real NEED REVIEW items remain open: role-pure Standard Coach browser smoke if required, Admin Makeup write actions requiring owner-approved exact targets, live SlipOK write smoke without a safe test case, and booking draft smoke gaps where no safe matching data existed.
+- This pass changed documentation only. No source code, API, DB, migration, package/config, deploy, or write action was performed.
 
 ## Unknown / Need Verification
 
