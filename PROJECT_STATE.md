@@ -107,6 +107,41 @@ Observed scripts:
   - Replace `/admin/logs` `today`/filter date key logic with shared Bangkok date helpers.
   - Review `/admin/coupons` render-time auto-close write and move it behind an explicit owner-approved Admin/API action if product policy requires read-only page load.
 
+## 2026-07-09 - Owner-Approved Admin Coupons Controlled Smoke
+
+- Final classification: `PASS`.
+- Scope was owner-approved controlled production smoke for `/admin/coupons`, including the approved page-load write-on-read auto-close path only. No source code, API, migration, deploy, manual DB edit, coupon create/edit/delete/toggle/save action, or other write action was performed.
+- Source audit confirmed:
+  - Auto-close logic lives in `src/app/(admin)/admin/coupons/page.tsx` during server page render.
+  - It selects active coupons and closes only rows where `valid_to < today` using the page's UTC `new Date().toISOString().split('T')[0]` date key, or where `max_uses !== null` and actual `coupon_usages` count is greater than or equal to `max_uses`.
+  - The only auto-close update is `coupons.is_active = false` for matching coupon ids.
+  - The render-time auto-close path does not write an activity log or notification. Manual POST/PATCH coupon API actions do log `create_coupon` / `update_coupon`, but those actions were not clicked.
+  - Successful auto-close is guarded from repeated writes because inactive coupons are excluded on later page loads. If an update failed, the current source does not inspect the update error, so a still-active candidate could be retried on a later render.
+  - Super Admin can open `/admin/coupons`; Standard Admin access depends on `system_settings.admin_menu_permissions` via `src/lib/admin-navigation.ts`, `src/lib/auth/admin.ts`, and `src/proxy.ts`.
+- Pre-smoke read-only DB snapshot, saved locally under ignored `backups/coupons-controlled-smoke-20260709-173156/pre.json`:
+  - total coupons 0, active coupons 0, inactive/disabled/closed coupons 0.
+  - active expired-by-date coupons 0.
+  - active maxed-by-usage coupons 0.
+  - `coupon_usages` total 0.
+  - auto-close candidate coupon ids: `[]`.
+- Production smoke used an allowed Super Admin session on `https://www.newathleteschool.com/admin/coupons`:
+  - Page loaded and rendered the coupons surface, zero-count stats, search input, status filter trigger, create button, and the expected empty state `ไม่พบคูปองตามเงื่อนไข`.
+  - With zero coupon rows, edit/delete/toggle row controls were not present.
+  - Search input accepted a no-match query and kept the empty-state/count display at 0 rows.
+  - No create/edit/delete/save/toggle/manual coupon action was clicked.
+  - React `#418` did not appear. Browser log capture contained one browser-automation clipboard bridge error from the login URL, not an application error from `/admin/coupons`; no application warning/error was observed on the coupons page.
+- Post-smoke read-only DB comparison, saved locally under ignored `backups/coupons-controlled-smoke-20260709-173156/post.json`:
+  - total coupons remained 0.
+  - `coupon_usages` remained 0.
+  - changed coupon rows: 0.
+  - changed coupon ids: `[]`.
+  - auto-close write occurred: no, because there were no candidate coupons.
+- Vercel verification:
+  - `npx.cmd vercel inspect https://www.newathleteschool.com --scope team_gw8Y6CPd602WAKRsVFobPGCL` reported production deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC` as Ready.
+  - Narrow post-smoke `vercel logs --since 3m` showed `/admin/coupons` returning 200 with info-level entries only and no error-level entries.
+  - The wider 30-minute log window contained one pre-coupons `/ranking` `Invalid Refresh Token` error from stale auth state, separate from the `/admin/coupons` smoke window.
+- Verification before smoke passed: clean `git status --short`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check`.
+
 ## Observed Architecture
 
 - `src/proxy.ts` handles Supabase session refresh, role route prefixes, auth redirects, and standard Admin menu permission redirects.

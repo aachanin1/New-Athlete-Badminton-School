@@ -27,7 +27,8 @@ Read only when relevant:
   - Keep Attendance Sync as a regression guard unless new attendance work starts.
   - Step 3 React `#418` triage on 2026-07-09 is `PASS`: fresh production tabs after hard refresh did not reproduce `#418` on Super Admin `/admin/logs`, Head Coach `/coach/programs`, Head Coach `/coach`, Standard Admin direct `/admin/finance`, or Standard Admin direct `/admin/coupons`.
   - Standard Admin `/admin/coupons` redirect is expected for the tested production permission set; the tested Admin sidebar did not expose Coupon access. If the owner wants Standard Admin coupon access, that is a permission/settings decision requiring explicit approval.
-  - Optional source-only hardening candidates remain: deterministic Bangkok date formatting in `/coach/programs`, Bangkok date-key logic in `/admin/logs`, and review of `/admin/coupons` page-load auto-close writes.
+  - Owner-approved `/admin/coupons` controlled smoke on 2026-07-09 is `PASS`: Super Admin could open the page, there were no auto-close candidates, no coupon rows/usages changed, and no manual coupon action was clicked.
+  - Optional source-only hardening candidates remain: deterministic Bangkok date formatting in `/coach/programs`, Bangkok date-key logic in `/admin/logs`, and moving `/admin/coupons` page-load auto-close behind an explicit action if product policy requires strictly read-only page renders.
 - Recent released baseline: Phase 1 Performance Foundation is in production.
   - Source commit `67f5b01` (`fix(ui): add portal navigation loading feedback`) was pushed on branch `spike/next-major-security-upgrade`.
   - Deployment id `dpl_14eJpsrbUeEd6V1mcF6NVFLshV55`; deployment URL `https://new-athlete-badminton-school-n0odem0ad-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
@@ -43,6 +44,18 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed owner-approved `/admin/coupons` controlled smoke + write-on-read verification:
+  - Final classification: `PASS`.
+  - Scope was owner-approved controlled production smoke for `/admin/coupons`, with only the page-load auto-close path approved. No source code, API, migration, deploy, manual DB edit, coupon create/edit/delete/toggle/save action, or other write action was performed.
+  - Source audit confirmed the auto-close logic is in `src/app/(admin)/admin/coupons/page.tsx`, runs during server page render, and only updates `coupons.is_active=false` for active coupons that are expired by `valid_to < today` using the page's UTC date key or maxed by actual `coupon_usages` count. The auto-close path does not write activity logs or notifications. Manual coupon API POST/PATCH actions log activity, but those actions were not used.
+  - Access audit confirmed Super Admin can open `/admin/coupons`; Standard Admin access depends on `system_settings.admin_menu_permissions` through `admin-navigation`, `auth/admin`, and `proxy`.
+  - Pre-smoke read-only DB snapshot found total coupons 0, active coupons 0, inactive/disabled/closed coupons 0, active expired-by-date coupons 0, active maxed-by-usage coupons 0, `coupon_usages` total 0, and auto-close candidate coupon ids `[]`.
+  - Production smoke with Super Admin loaded `https://www.newathleteschool.com/admin/coupons`; the coupons surface, zero-count stats, search input, status filter trigger, create button, and empty state rendered. With zero rows, edit/delete/toggle row controls were not present. Search accepted a no-match query and kept the list at 0.
+  - No manual coupon write action was clicked. No React `#418` appeared. Browser capture contained one browser-automation clipboard bridge error from the login URL, not an app error from `/admin/coupons`; no application warning/error was observed on the coupons page.
+  - Post-smoke read-only DB comparison found total coupons 0, `coupon_usages` 0, changed coupon rows 0, changed coupon ids `[]`, and auto-close write occurred `no` because there were no candidate coupons.
+  - Vercel inspect reported production deployment `dpl_5NrcM92CVrbu5k2BA9Le3gp9G3CC` Ready. Narrow post-smoke logs showed `/admin/coupons` 200/info only with no error-level entries. A wider 30-minute window included one pre-coupons `/ranking` stale-auth `Invalid Refresh Token` error, separate from the coupons smoke window.
+  - Verification before smoke passed: clean `git status --short`, `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run prod:check` with known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check`.
 
 - Completed Step 3 Phase 3 React `#418` triage / root-cause audit:
   - Final classification: `PASS` for triage; the previous React `#418` findings did not reproduce in fresh production tabs after hard refresh.
