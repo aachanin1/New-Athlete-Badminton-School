@@ -40,6 +40,7 @@ Read only when relevant:
 - Completed Phase 2.5 follow-up to enable Ranking search on `/admin/ranking`:
   - Source commit `67aa4f1` (`fix(ranking): enable search in admin view`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
   - Deployment id `dpl_4FCzBixNfSrEiWaiwf6xbfU9DDvL`; deployment URL `https://new-athlete-badminton-school-5olbmc8mo-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Final status: PASS after owner-verified production smoke.
   - Source scope was limited to `src/app/(admin)/admin/ranking/page.tsx`.
   - Exact change: `/admin/ranking` now passes `enableSearch` into `RankingContent`, so the existing shared dynamic search is enabled on both `/ranking` and `/admin/ranking`.
   - Search implementation and behavior were not changed: displayed name, nickname included in display, branch, raw level, `LV 67`/`LV67`, `Level 67`, displayed level label, and Basic/Athlete C/Athlete B matching remain shared. Search filters without re-ranking.
@@ -47,7 +48,8 @@ Read only when relevant:
   - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only the known Windows LF/CRLF warning for the touched file.
   - Local authenticated smoke passed on `/ranking` and `/admin/ranking`: search input visible on both, search worked by typed name/nickname/branch/`LV 67`, public branch+search and level+search still combined, no-match empty state appeared, empty search restored rows, rank was preserved, Admin reward buttons stayed visible, the achievement modal opened/closed read-only, and browser warnings/errors were 0.
   - Production deploy health passed: Vercel inspect was Ready, `/ranking` returned 200, unauthenticated `/admin/ranking` returned the expected 307 auth redirect, and `vercel logs --level error --since 1h` returned no logs.
-  - NEED REVIEW: authenticated production browser smoke for `/admin/ranking` could not complete because the in-app browser automation connector stopped responding after deploy. No production write action was clicked.
+  - Owner visual verification from production completed: public `/ranking` showed the search input and normal ranking list; authenticated Super Admin `/admin/ranking` showed the search input, Admin sidebar/control, reward/Admin controls, and normal ranking list.
+  - No Admin write action was clicked during owner verification. No new source deploy was needed for this docs-only PASS closeout.
   - Deployment used a detached clean worktree at commit `67aa4f1`, so the pre-existing unrelated `src/app/page.tsx` change was not deployed, staged, or committed.
   - No DB write, migration, API route change, ranking semantic change, branch fallback semantic change, student level/achievement write, booking/payment/attendance/wallet change, storage deletion, or Admin write action was performed.
 
