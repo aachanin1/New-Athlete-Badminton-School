@@ -37,6 +37,21 @@ Read only when relevant:
 
 ## Completed This Round
 
+- Completed Phase 2.5 `/ranking` + `/admin/ranking` Option 1 safe read transport cleanup and public dynamic search:
+  - Source commit `1cef3b7` (`fix(ranking): add search and range reads`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
+  - Deployment id `dpl_9mvhkgVdPags1Ko5Z6W2TRXeyycA`; deployment URL `https://new-athlete-badminton-school-mnggq3uty-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
+  - Source scope was limited to `src/components/shared/ranking-content.tsx`, `src/components/shared/ranking-board.tsx`, and `src/app/ranking/page.tsx`.
+  - Replaced broad Ranking reads with explicit ranged pagination for `children`, paid/verified `bookings`, active `branches`, and `levels`.
+  - Added chunked+ranged `.in(...)` reads with id dedupe for parent `profiles`, `student_levels.student_id`, and active `student_achievements.student_id`; existing child session branch fallback remains chunked+ranged and now fails explicitly on read error.
+  - Public `/ranking` now has dynamic client search in the shared board. `/admin/ranking` keeps search disabled. Search matches displayed student name, nickname included in display, branch names, raw level number, `LV 67`/`LV67`, `Level 67`, displayed level label, and English category labels Basic/Athlete C/Athlete B.
+  - Ranking sort/order/rank semantics, branch fallback precedence, LV 0-70 behavior, public/Admin visibility, student level display, and achievement write flow were preserved. Search filters results without re-ranking.
+  - Read-only row verification found children 290, adult visible rows 24, visible ranking rows 314, paid/verified bookings 439, session fallback rows 2422, `student_levels` rows 459, child latest-level rows 238/52 missing, adult latest-level rows 13/11 missing, level buckets LV0/Basic/Athlete C/Athlete B/LV71+ = 63/195/55/1/0, active achievements 0, active branches 7, and active levels 70.
+  - Verification passed: `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run attendance:reconcile:dry-run`, `npm.cmd run prod:check` with the known local `SLIPOK_TEST_MODE=true` warning, and `git diff --check` with only known Windows LF/CRLF warnings.
+  - Local smoke passed: public `/ranking` search worked by full name, nickname, branch, and `LV 67`; no-match empty state appeared; branch+search and level+search combinations worked; rank was preserved. Local `/admin/ranking` rendered without the search input, kept achievement buttons, and the achievement modal opened/closed read-only. Browser warnings/errors were 0.
+  - Production smoke passed on `https://www.newathleteschool.com/ranking` and `/admin/ranking` with the same public/admin checks. Browser warnings/errors were 0, deployment inspect was Ready, and `vercel logs --level error --since 1h` returned no logs.
+  - Production deploy used a detached clean worktree at source commit `1cef3b7`, so the pre-existing unrelated `src/app/page.tsx` change was not deployed, staged, or committed.
+  - No DB write, migration, API route change, student level/achievement write, booking/payment/attendance/wallet semantic change, storage deletion, or Admin write action was performed.
+
 - Completed Phase 2.4 `/admin/users` Option 1 safe read transport cleanup:
   - Source commit `3751058` (`fix(users): range large read queries`) was pushed on branch `spike/next-major-security-upgrade` and deployed to Vercel production.
   - Deployment id `dpl_3SDZ79Ka4fDuYp2R4S39kGfSLW7k`; deployment URL `https://new-athlete-badminton-school-f00bitzjl-aachanin1s-projects.vercel.app`; production alias `https://www.newathleteschool.com`; deployment status Ready.
