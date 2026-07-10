@@ -121,6 +121,23 @@ CREATE TABLE levels (
 
 -- ─── BOOKING & PAYMENT TABLES ───────────────────────────────
 
+-- Progressive pricing scope foundation (inactive until a later booking-flow slice)
+CREATE TABLE booking_pricing_scopes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  course_type_id UUID NOT NULL REFERENCES course_types(id),
+  lesson_year INT NOT NULL CHECK (lesson_year >= 2024),
+  lesson_month INT NOT NULL CHECK (lesson_month BETWEEN 1 AND 12),
+  currency TEXT NOT NULL DEFAULT 'THB' CHECK (currency ~ '^[A-Z]{3}$'),
+  revision BIGINT NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  pricing_tier_version TEXT,
+  locked_by_payment_batch_id UUID,
+  locked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, course_type_id, lesson_year, lesson_month, currency)
+);
+
 -- Bookings (การจองรายเดือน)
 CREATE TABLE bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -134,8 +151,27 @@ CREATE TABLE bookings (
   total_sessions INT NOT NULL DEFAULT 0,
   total_price NUMERIC(10,2) NOT NULL DEFAULT 0,
   status booking_status NOT NULL DEFAULT 'pending_payment',
+  pricing_scope_id UUID REFERENCES booking_pricing_scopes(id) ON DELETE SET NULL,
+  entitlement_sessions INT CHECK (entitlement_sessions IS NULL OR entitlement_sessions > 0),
+  pricing_sequence INT CHECK (pricing_sequence IS NULL OR pricing_sequence > 0),
+  cumulative_sessions_before INT CHECK (cumulative_sessions_before IS NULL OR cumulative_sessions_before >= 0),
+  cumulative_sessions_after INT CHECK (cumulative_sessions_after IS NULL OR cumulative_sessions_after > 0),
+  pricing_tier_id_snapshot UUID REFERENCES pricing_tiers(id) ON DELETE SET NULL,
+  pricing_rate_snapshot NUMERIC(12,2) CHECK (pricing_rate_snapshot IS NULL OR pricing_rate_snapshot >= 0),
+  gross_price_snapshot NUMERIC(12,2) CHECK (gross_price_snapshot IS NULL OR gross_price_snapshot >= 0),
+  coupon_discount_snapshot NUMERIC(12,2) CHECK (coupon_discount_snapshot IS NULL OR coupon_discount_snapshot >= 0),
+  final_price_snapshot NUMERIC(12,2) CHECK (final_price_snapshot IS NULL OR final_price_snapshot >= 0),
+  pricing_revision BIGINT CHECK (pricing_revision IS NULL OR pricing_revision >= 1),
+  expires_at TIMESTAMPTZ,
+  expired_at TIMESTAMPTZ,
+  pricing_calculated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (
+    cumulative_sessions_before IS NULL
+    OR cumulative_sessions_after IS NULL
+    OR cumulative_sessions_after >= cumulative_sessions_before
+  )
 );
 
 -- Booking Sessions (วันเรียนแต่ละครั้ง)
@@ -452,8 +488,13 @@ CREATE INDEX idx_children_parent ON children(parent_id);
 CREATE INDEX idx_schedule_templates_branch ON schedule_templates(branch_id);
 CREATE INDEX idx_schedule_slots_date ON schedule_slots(date);
 CREATE INDEX idx_schedule_slots_branch_date ON schedule_slots(branch_id, date);
+CREATE INDEX idx_booking_pricing_scopes_user_period_course ON booking_pricing_scopes(user_id, lesson_year, lesson_month, course_type_id);
+CREATE INDEX idx_booking_pricing_scopes_locked ON booking_pricing_scopes(locked_at) WHERE locked_by_payment_batch_id IS NOT NULL;
+CREATE INDEX idx_booking_pricing_scopes_updated_at ON booking_pricing_scopes(updated_at);
 CREATE INDEX idx_bookings_user ON bookings(user_id);
 CREATE INDEX idx_bookings_month_year ON bookings(month, year);
+CREATE INDEX idx_bookings_pricing_scope_sequence ON bookings(pricing_scope_id, pricing_sequence) WHERE pricing_scope_id IS NOT NULL;
+CREATE INDEX idx_bookings_progressive_expiry ON bookings(expires_at) WHERE expires_at IS NOT NULL;
 CREATE INDEX idx_booking_sessions_booking ON booking_sessions(booking_id);
 CREATE INDEX idx_booking_sessions_date ON booking_sessions(date);
 CREATE INDEX idx_lesson_wallet_credits_user_status ON lesson_wallet_credits(user_id, status, expires_at);
@@ -496,6 +537,7 @@ CREATE TRIGGER tr_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXE
 CREATE TRIGGER tr_branches_updated_at BEFORE UPDATE ON branches FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_children_updated_at BEFORE UPDATE ON children FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_schedule_templates_updated_at BEFORE UPDATE ON schedule_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_booking_pricing_scopes_updated_at BEFORE UPDATE ON booking_pricing_scopes FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_booking_sessions_updated_at BEFORE UPDATE ON booking_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_lesson_wallet_credits_updated_at BEFORE UPDATE ON lesson_wallet_credits FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -534,6 +576,7 @@ ALTER TABLE course_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedule_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedule_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_tiers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_pricing_scopes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_sessions ENABLE ROW LEVEL SECURITY;

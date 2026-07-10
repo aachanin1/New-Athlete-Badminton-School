@@ -61,6 +61,13 @@ export interface Database {
         Update: Partial<Omit<PricingTier, 'id' | 'created_at'>>
         Relationships: []
       }
+      booking_pricing_scopes: {
+        Row: BookingPricingScope
+        Insert: Omit<BookingPricingScope, 'id' | 'created_at' | 'updated_at' | BookingPricingScopeDefaultColumn>
+          & Partial<Pick<BookingPricingScope, BookingPricingScopeDefaultColumn>>
+        Update: Partial<Omit<BookingPricingScope, 'id' | 'created_at'>>
+        Relationships: []
+      }
       levels: {
         Row: Level
         Insert: Level
@@ -69,7 +76,8 @@ export interface Database {
       }
       bookings: {
         Row: Booking
-        Insert: Omit<Booking, 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<Booking, 'id' | 'created_at' | 'updated_at' | BookingPricingSnapshotColumn>
+          & Partial<Pick<Booking, BookingPricingSnapshotColumn>>
         Update: Partial<Omit<Booking, 'id' | 'created_at'>>
         Relationships: []
       }
@@ -316,6 +324,28 @@ export interface PricingTier {
   created_at: string
 }
 
+type BookingPricingScopeDefaultColumn =
+  | 'currency'
+  | 'revision'
+  | 'pricing_tier_version'
+  | 'locked_by_payment_batch_id'
+  | 'locked_at'
+
+export interface BookingPricingScope {
+  id: string
+  user_id: string
+  course_type_id: string
+  lesson_year: number
+  lesson_month: number
+  currency: string
+  revision: number
+  pricing_tier_version: string | null
+  locked_by_payment_batch_id: string | null
+  locked_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Level {
   id: number
   name: string
@@ -326,6 +356,22 @@ export interface Level {
   is_active: boolean
   updated_at: string
 }
+
+type BookingPricingSnapshotColumn =
+  | 'pricing_scope_id'
+  | 'entitlement_sessions'
+  | 'pricing_sequence'
+  | 'cumulative_sessions_before'
+  | 'cumulative_sessions_after'
+  | 'pricing_tier_id_snapshot'
+  | 'pricing_rate_snapshot'
+  | 'gross_price_snapshot'
+  | 'coupon_discount_snapshot'
+  | 'final_price_snapshot'
+  | 'pricing_revision'
+  | 'expires_at'
+  | 'expired_at'
+  | 'pricing_calculated_at'
 
 export interface Booking {
   id: string
@@ -339,6 +385,20 @@ export interface Booking {
   total_sessions: number
   total_price: number
   status: BookingStatus
+  pricing_scope_id: string | null
+  entitlement_sessions: number | null
+  pricing_sequence: number | null
+  cumulative_sessions_before: number | null
+  cumulative_sessions_after: number | null
+  pricing_tier_id_snapshot: string | null
+  pricing_rate_snapshot: number | null
+  gross_price_snapshot: number | null
+  coupon_discount_snapshot: number | null
+  final_price_snapshot: number | null
+  pricing_revision: number | null
+  expires_at: string | null
+  expired_at: string | null
+  pricing_calculated_at: string | null
   created_at: string
   updated_at: string
 }
