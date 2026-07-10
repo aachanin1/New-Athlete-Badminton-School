@@ -15,6 +15,7 @@ export type LevelCategory = 'basic' | 'athlete_1' | 'athlete_2' | 'athlete_3'
 export type StudentType = 'adult' | 'child'
 export type Gender = 'male' | 'female' | 'other'
 export type CoachEmploymentType = 'full_time' | 'half_time' | 'part_time'
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
   public: {
@@ -83,8 +84,15 @@ export interface Database {
       }
       booking_sessions: {
         Row: BookingSession
-        Insert: Omit<BookingSession, 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<BookingSession, 'id' | 'created_at' | 'updated_at' | 'cancelled_at'>
+          & Partial<Pick<BookingSession, 'cancelled_at'>>
         Update: Partial<Omit<BookingSession, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      progressive_booking_mutation_receipts: {
+        Row: ProgressiveBookingMutationReceipt
+        Insert: Omit<ProgressiveBookingMutationReceipt, 'id' | 'created_at'>
+        Update: never
         Relationships: []
       }
       lesson_wallet_credits: {
@@ -221,7 +229,46 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      progressive_pricing_writes_capability_v1: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      create_progressive_booking_v1: {
+        Args: {
+          p_user_id: string
+          p_learner_type: LearnerType
+          p_child_id: string | null
+          p_branch_id: string
+          p_course_type_id: string
+          p_sessions: Json
+          p_coupon_id: string | null
+          p_client_request_id: string
+          p_expected_scope_revision: number
+        }
+        Returns: Json
+      }
+      update_progressive_pending_booking_v1: {
+        Args: {
+          p_user_id: string
+          p_booking_id: string
+          p_branch_id: string
+          p_sessions: Json
+          p_client_request_id: string
+          p_expected_scope_revision: number
+        }
+        Returns: Json
+      }
+      cancel_progressive_pending_booking_v1: {
+        Args: {
+          p_user_id: string
+          p_booking_id: string
+          p_client_request_id: string
+          p_expected_scope_revision: number
+        }
+        Returns: Json
+      }
+    }
     Enums: {
       user_role: UserRole
       course_type_name: CourseTypeName
@@ -372,6 +419,7 @@ type BookingPricingSnapshotColumn =
   | 'expires_at'
   | 'expired_at'
   | 'pricing_calculated_at'
+  | 'client_request_id'
 
 export interface Booking {
   id: string
@@ -399,6 +447,7 @@ export interface Booking {
   expires_at: string | null
   expired_at: string | null
   pricing_calculated_at: string | null
+  client_request_id: string | null
   created_at: string
   updated_at: string
 }
@@ -415,6 +464,7 @@ export interface BookingSession {
   status: SessionStatus
   rescheduled_from_id: string | null
   is_makeup: boolean
+  cancelled_at: string | null
   created_at: string
   updated_at: string
 }
@@ -470,6 +520,18 @@ export interface CoachAssignment {
   coach_id: string
   schedule_slot_id: string
   assigned_by: string
+  created_at: string
+}
+
+export interface ProgressiveBookingMutationReceipt {
+  id: string
+  user_id: string
+  booking_id: string | null
+  client_request_id: string
+  mutation_type: 'create' | 'update' | 'cancel'
+  request_fingerprint: string
+  expected_scope_revision: number
+  result: Json
   created_at: string
 }
 

@@ -165,6 +165,7 @@ CREATE TABLE bookings (
   expires_at TIMESTAMPTZ,
   expired_at TIMESTAMPTZ,
   pricing_calculated_at TIMESTAMPTZ,
+  client_request_id UUID,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (
@@ -187,6 +188,7 @@ CREATE TABLE booking_sessions (
   status session_status NOT NULL DEFAULT 'scheduled',
   rescheduled_from_id UUID REFERENCES booking_sessions(id) ON DELETE SET NULL,
   is_makeup BOOLEAN NOT NULL DEFAULT false,
+  cancelled_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -290,6 +292,20 @@ CREATE TABLE teaching_programs (
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Server-only idempotency receipts for progressive booking mutations
+CREATE TABLE progressive_booking_mutation_receipts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+  client_request_id UUID NOT NULL,
+  mutation_type TEXT NOT NULL CHECK (mutation_type IN ('create', 'update', 'cancel')),
+  request_fingerprint TEXT NOT NULL,
+  expected_scope_revision BIGINT NOT NULL CHECK (expected_scope_revision >= 0),
+  result JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, client_request_id)
 );
 
 -- Lesson Wallet Credits (สิทธิ์วันเรียนที่เก็บไว้ใช้ในเดือนเดียวกัน)
@@ -495,6 +511,8 @@ CREATE INDEX idx_bookings_user ON bookings(user_id);
 CREATE INDEX idx_bookings_month_year ON bookings(month, year);
 CREATE INDEX idx_bookings_pricing_scope_sequence ON bookings(pricing_scope_id, pricing_sequence) WHERE pricing_scope_id IS NOT NULL;
 CREATE INDEX idx_bookings_progressive_expiry ON bookings(expires_at) WHERE expires_at IS NOT NULL;
+CREATE UNIQUE INDEX idx_bookings_client_request_id_unique ON bookings(user_id, client_request_id) WHERE client_request_id IS NOT NULL;
+CREATE INDEX idx_booking_sessions_progressive_capacity ON booking_sessions(schedule_slot_id, booking_id) WHERE cancelled_at IS NULL;
 CREATE INDEX idx_booking_sessions_booking ON booking_sessions(booking_id);
 CREATE INDEX idx_booking_sessions_date ON booking_sessions(date);
 CREATE INDEX idx_lesson_wallet_credits_user_status ON lesson_wallet_credits(user_id, status, expires_at);
@@ -580,6 +598,7 @@ ALTER TABLE booking_pricing_scopes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE progressive_booking_mutation_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lesson_wallet_credits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
@@ -600,6 +619,11 @@ ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE finance_expenses ENABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON TABLE progressive_booking_mutation_receipts TO service_role;
+
+-- Versioned progressive mutation RPC bodies and service-role-only EXECUTE grants
+-- are defined in 20260710170000_add_progressive_pricing_transactions.sql.
 
 -- Helper: check user role
 CREATE OR REPLACE FUNCTION auth_role()
