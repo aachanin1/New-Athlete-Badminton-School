@@ -308,6 +308,43 @@ CREATE TABLE progressive_booking_mutation_receipts (
   UNIQUE(user_id, client_request_id)
 );
 
+-- Progressive coupon lifecycle (inactive until both server-only flags are enabled)
+CREATE TABLE coupon_course_types (
+  coupon_id UUID NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+  course_type_id UUID NOT NULL REFERENCES course_types(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (coupon_id, course_type_id)
+);
+
+CREATE TABLE progressive_coupon_reservations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coupon_id UUID NOT NULL REFERENCES coupons(id) ON DELETE RESTRICT,
+  booking_id UUID NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved', 'consumed', 'released')),
+  reserved_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  consumed_at TIMESTAMPTZ,
+  released_at TIMESTAMPTZ,
+  release_reason TEXT CHECK (release_reason IS NULL OR release_reason IN ('booking_cancelled', 'booking_expired', 'payment_rejected')),
+  gross_price_snapshot NUMERIC(12,2) NOT NULL CHECK (gross_price_snapshot >= 0),
+  discount_type_snapshot discount_type NOT NULL,
+  discount_value_snapshot NUMERIC(10,2) NOT NULL CHECK (discount_value_snapshot > 0),
+  discount_amount_snapshot NUMERIC(12,2) NOT NULL CHECK (discount_amount_snapshot >= 0),
+  final_price_snapshot NUMERIC(12,2) NOT NULL CHECK (final_price_snapshot >= 0),
+  pricing_revision BIGINT NOT NULL CHECK (pricing_revision >= 1),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (
+    (status = 'reserved' AND consumed_at IS NULL AND released_at IS NULL AND release_reason IS NULL)
+    OR (status = 'consumed' AND consumed_at IS NOT NULL AND released_at IS NULL AND release_reason IS NULL)
+    OR (status = 'released' AND consumed_at IS NULL AND released_at IS NOT NULL AND release_reason IS NOT NULL)
+  ),
+  CHECK (
+    discount_amount_snapshot <= gross_price_snapshot
+    AND final_price_snapshot = round(greatest(0, gross_price_snapshot - discount_amount_snapshot), 2)
+  )
+);
+
 -- Lesson Wallet Credits (สิทธิ์วันเรียนที่เก็บไว้ใช้ในเดือนเดียวกัน)
 CREATE TABLE lesson_wallet_credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -513,6 +550,9 @@ CREATE INDEX idx_bookings_pricing_scope_sequence ON bookings(pricing_scope_id, p
 CREATE INDEX idx_bookings_progressive_expiry ON bookings(expires_at) WHERE expires_at IS NOT NULL;
 CREATE UNIQUE INDEX idx_bookings_client_request_id_unique ON bookings(user_id, client_request_id) WHERE client_request_id IS NOT NULL;
 CREATE INDEX idx_booking_sessions_progressive_capacity ON booking_sessions(schedule_slot_id, booking_id) WHERE cancelled_at IS NULL;
+CREATE UNIQUE INDEX idx_progressive_coupon_active_user ON progressive_coupon_reservations(coupon_id, user_id) WHERE status IN ('reserved', 'consumed');
+CREATE INDEX idx_progressive_coupon_quota ON progressive_coupon_reservations(coupon_id, status);
+CREATE INDEX idx_progressive_coupon_booking_status ON progressive_coupon_reservations(booking_id, status);
 CREATE INDEX idx_booking_sessions_booking ON booking_sessions(booking_id);
 CREATE INDEX idx_booking_sessions_date ON booking_sessions(date);
 CREATE INDEX idx_lesson_wallet_credits_user_status ON lesson_wallet_credits(user_id, status, expires_at);
@@ -558,6 +598,7 @@ CREATE TRIGGER tr_schedule_templates_updated_at BEFORE UPDATE ON schedule_templa
 CREATE TRIGGER tr_booking_pricing_scopes_updated_at BEFORE UPDATE ON booking_pricing_scopes FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_booking_sessions_updated_at BEFORE UPDATE ON booking_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER tr_progressive_coupon_reservations_updated_at BEFORE UPDATE ON progressive_coupon_reservations FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_lesson_wallet_credits_updated_at BEFORE UPDATE ON lesson_wallet_credits FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_teaching_programs_updated_at BEFORE UPDATE ON teaching_programs FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER tr_coach_program_templates_updated_at BEFORE UPDATE ON coach_program_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -599,6 +640,8 @@ ALTER TABLE levels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progressive_booking_mutation_receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coupon_course_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE progressive_coupon_reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lesson_wallet_credits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
@@ -621,9 +664,11 @@ ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE finance_expenses ENABLE ROW LEVEL SECURITY;
 
 GRANT ALL ON TABLE progressive_booking_mutation_receipts TO service_role;
+GRANT ALL ON TABLE coupon_course_types TO service_role;
+GRANT ALL ON TABLE progressive_coupon_reservations TO service_role;
 
 -- Versioned progressive mutation RPC bodies and service-role-only EXECUTE grants
--- are defined in 20260710170000_add_progressive_pricing_transactions.sql.
+-- are defined in the versioned Slice 2 and Slice 3 migrations.
 
 -- Helper: check user role
 CREATE OR REPLACE FUNCTION auth_role()

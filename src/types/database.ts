@@ -95,6 +95,19 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      coupon_course_types: {
+        Row: CouponCourseType
+        Insert: Omit<CouponCourseType, 'created_at'>
+        Update: never
+        Relationships: []
+      }
+      progressive_coupon_reservations: {
+        Row: ProgressiveCouponReservation
+        Insert: Omit<ProgressiveCouponReservation, 'id' | 'created_at' | 'updated_at' | 'reserved_at'>
+          & Partial<Pick<ProgressiveCouponReservation, 'reserved_at'>>
+        Update: Partial<Omit<ProgressiveCouponReservation, 'id' | 'created_at'>>
+        Relationships: []
+      }
       lesson_wallet_credits: {
         Row: LessonWalletCredit
         Insert: Omit<LessonWalletCredit, 'id' | 'created_at' | 'updated_at'>
@@ -521,6 +534,35 @@ export interface CoachAssignment {
   schedule_slot_id: string
   assigned_by: string
   created_at: string
+}
+
+export type ProgressiveCouponReservationStatus = 'reserved' | 'consumed' | 'released'
+export type ProgressiveCouponReleaseReason = 'booking_cancelled' | 'booking_expired' | 'payment_rejected'
+
+export interface CouponCourseType {
+  coupon_id: string
+  course_type_id: string
+  created_at: string
+}
+
+export interface ProgressiveCouponReservation {
+  id: string
+  coupon_id: string
+  booking_id: string
+  user_id: string
+  status: ProgressiveCouponReservationStatus
+  reserved_at: string
+  consumed_at: string | null
+  released_at: string | null
+  release_reason: ProgressiveCouponReleaseReason | null
+  gross_price_snapshot: number
+  discount_type_snapshot: DiscountType
+  discount_value_snapshot: number
+  discount_amount_snapshot: number
+  final_price_snapshot: number
+  pricing_revision: number
+  created_at: string
+  updated_at: string
 }
 
 export interface ProgressiveBookingMutationReceipt {

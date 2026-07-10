@@ -1,7 +1,14 @@
 const ENABLED_VALUE = 'true'
 
+function isEnabled(value: string | undefined) {
+  return typeof value === 'string'
+    && value.trim().toLowerCase() === ENABLED_VALUE
+}
+
 export function isProgressivePricingWritesEnabled() {
-  const configuredValue = process.env.PROGRESSIVE_PRICING_WRITES_ENABLED
-  return typeof configuredValue === 'string'
-    && configuredValue.trim().toLowerCase() === ENABLED_VALUE
+  return isEnabled(process.env.PROGRESSIVE_PRICING_WRITES_ENABLED)
+}
+
+export function isProgressiveCouponLifecycleEnabled() {
+  return isEnabled(process.env.PROGRESSIVE_COUPON_LIFECYCLE_ENABLED)
 }

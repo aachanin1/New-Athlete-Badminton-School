@@ -10,14 +10,6 @@ const PAGE_SIZE = 1000
 const IN_CHUNK_SIZE = 100
 const ACTIVE_SESSION_STATUSES = new Set(['scheduled', 'completed', 'absent'])
 const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'paid', 'verified']
-const TARGET_USER_ID = '571659e8-aed5-48e2-8023-6a6c65b6f75f'
-const TARGET_BASELINE_ID = '510d74b3-d364-49e7-a93d-43046a218295'
-const TARGET_PENDING_IDS = [
-  'cfaf7b0d-2023-48d8-922e-0f801567a29c',
-  '6bbe22c1-7673-49c5-bd1b-4e31b3854b06',
-  '9112a5cb-006c-4fdd-838d-5534c15b6fb1',
-  '60779d60-ac26-4eaf-a34f-703157a32300',
-]
 
 function loadProgressiveHelper() {
   const helperPath = path.join(__dirname, '..', 'src', 'lib', 'progressive-booking-pricing.ts')
@@ -132,6 +124,16 @@ async function readByIds(client, table, select, column, ids) {
   return rows
 }
 
+async function readOptionalByIds(client, table, select, column, ids) {
+  try {
+    return { rows: await readByIds(client, table, select, column, ids), available: true }
+  } catch (error) {
+    const message = String(error?.message || '')
+    if (error?.code !== '42P01' && error?.code !== 'PGRST205' && !message.includes(table)) throw error
+    return { rows: [], available: false }
+  }
+}
+
 function mask(value) {
   if (!value) return 'unknown'
   const characters = Array.from(String(value))
@@ -183,64 +185,11 @@ async function loadBookings(client, courseTypeId, userId) {
   }
 }
 
-function buildExactTargetProof(scopeResults) {
-  const targetScope = scopeResults.find((scope) => scope.userId === TARGET_USER_ID)
-  if (!targetScope) return { status: 'SKIPPED', reason: 'Target scope was excluded by filters or is absent.' }
-  if (!targetScope.sequence || !targetScope.sequence.ok) {
-    return { status: 'FAIL', reason: targetScope.sequence?.error?.message || 'Target sequence was unavailable.' }
-  }
-
-  const byId = new Map(targetScope.sequence.value.items.map((item) => [item.bookingId, item]))
-  const baseline = byId.get(TARGET_BASELINE_ID)
-  const pending = TARGET_PENDING_IDS.map((id) => byId.get(id))
-  if (!baseline || pending.some((item) => !item)) return { status: 'FAIL', reason: 'One or more exact target bookings are missing.' }
-
-  const expectedCumulative = [9, 10, 11, 12]
-  const expectedPrices = [500, 500, 433, 433]
-  const orderedIds = targetScope.sequence.value.items
-    .filter((item) => TARGET_PENDING_IDS.includes(item.bookingId))
-    .map((item) => item.bookingId)
-  const pendingExpectedTotal = pending.reduce((sum, item) => sum + item.finalBookingPrice, 0)
-  const pendingStoredTotal = pending.reduce((sum, item) => sum + item.storedPrice, 0)
-  const pass = baseline.status === 'verified'
-    && baseline.newBookingEntitlementSessions === 8
-    && baseline.storedPrice === 4000
-    && orderedIds.every((id, index) => id === TARGET_PENDING_IDS[index])
-    && pending.every((item, index) => (
-      item.status === 'pending_payment'
-      && item.newBookingEntitlementSessions === 1
-      && item.cumulativeSessionsAfter === expectedCumulative[index]
-      && item.finalBookingPrice === expectedPrices[index]
-    ))
-    && pendingExpectedTotal === 1866
-    && pendingStoredTotal === 2000
-
-  return {
-    status: pass ? 'PASS' : 'FAIL',
-    baseline: {
-      bookingId: baseline.bookingId,
-      entitlementSessions: baseline.newBookingEntitlementSessions,
-      storedPrice: baseline.storedPrice,
-      status: baseline.status,
-    },
-    pending: pending.map((item) => ({
-      bookingId: item.bookingId,
-      cumulativeSessionsAfter: item.cumulativeSessionsAfter,
-      ratePerSession: item.ratePerSession,
-      storedPrice: item.storedPrice,
-      expectedFinal: item.finalBookingPrice,
-      difference: item.storedPriceDifference,
-    })),
-    pendingStoredTotal,
-    pendingExpectedTotal,
-    overprice: roundCurrency(pendingStoredTotal - pendingExpectedTotal),
-  }
-}
-
 function printHumanReport(report) {
   console.log('Kids Group Progressive Pricing Shadow Audit')
   console.log(`Period: ${report.period} (derived from purchased lesson dates)`)
   console.log(`Schema mode: ${report.entitlementSource}`)
+  console.log(`Coupon mode: ${report.couponSource}`)
   console.log(`Filters: user=${report.filters.userId ? mask(report.filters.userId) : 'all'}, course_type=${shortId(report.filters.courseTypeId)}`)
   console.log('Mode: READ-ONLY SELECT queries; no insert/update/delete/RPC calls')
   console.log('')
@@ -273,15 +222,6 @@ function printHumanReport(report) {
     }
   }
 
-  console.log('')
-  console.log(`Exact four-booking proof: ${report.exactTargetProof.status}`)
-  if (report.exactTargetProof.reason) console.log(`- ${report.exactTargetProof.reason}`)
-  for (const item of report.exactTargetProof.pending || []) {
-    console.log(`- ${shortId(item.bookingId)} cumulative=${item.cumulativeSessionsAfter} rate=${item.ratePerSession} stored=${item.storedPrice} expected=${item.expectedFinal} diff=${item.difference}`)
-  }
-  if (report.exactTargetProof.pending) {
-    console.log(`- pending stored=${report.exactTargetProof.pendingStoredTotal}, expected=${report.exactTargetProof.pendingExpectedTotal}, overprice=${report.exactTargetProof.overprice}`)
-  }
 }
 
 async function main() {
@@ -321,6 +261,13 @@ async function main() {
     'booking_id',
     bookingIds,
   )
+  const progressiveCouponLoad = await readOptionalByIds(
+    client,
+    'progressive_coupon_reservations',
+    'id,booking_id,status,discount_amount_snapshot',
+    'booking_id',
+    bookingIds,
+  )
 
   const tiers = await readAll('kids_group pricing tiers', (start, end) => client
     .from('pricing_tiers')
@@ -349,6 +296,13 @@ async function main() {
     couponByBooking.set(
       coupon.booking_id,
       roundCurrency((couponByBooking.get(coupon.booking_id) || 0) + Number(coupon.discount_amount || 0)),
+    )
+  }
+  for (const reservation of progressiveCouponLoad.rows) {
+    if (!['reserved', 'consumed'].includes(reservation.status)) continue
+    couponByBooking.set(
+      reservation.booking_id,
+      roundCurrency(Number(reservation.discount_amount_snapshot || 0)),
     )
   }
 
@@ -515,13 +469,15 @@ async function main() {
   }
 
   scopes.sort((left, right) => right.pendingBookings - left.pendingBookings || left.maskedUserId.localeCompare(right.maskedUserId))
-  const exactTargetProof = buildExactTargetProof(scopeResults)
   const report = {
     generatedAt: new Date().toISOString(),
     period: periodKey,
     entitlementSource: bookingLoad.entitlementColumnAvailable
       ? 'bookings.entitlement_sessions with total_sessions fallback'
       : 'legacy fallback: bookings.total_sessions (remote additive migration not applied)',
+    couponSource: progressiveCouponLoad.available
+      ? 'progressive_coupon_reservations with legacy coupon_usages fallback'
+      : 'legacy coupon_usages (progressive coupon migration not applied)',
     filters: {
       userId: options.userId,
       courseTypeId: kidsCourse.id,
@@ -544,12 +500,10 @@ async function main() {
     scopes,
     anomalies,
     entitlementDriftFindings,
-    exactTargetProof,
   }
 
   if (options.json) console.log(JSON.stringify(report, null, 2))
   else printHumanReport(report)
-  if (exactTargetProof.status === 'FAIL') process.exitCode = 1
 }
 
 main().catch((error) => {

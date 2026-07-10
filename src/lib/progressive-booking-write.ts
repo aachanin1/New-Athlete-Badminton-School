@@ -1,5 +1,8 @@
 import { getServiceRoleClient } from '@/lib/auth/admin'
-import { isProgressivePricingWritesEnabled } from '@/lib/progressive-pricing-feature'
+import {
+  isProgressiveCouponLifecycleEnabled,
+  isProgressivePricingWritesEnabled,
+} from '@/lib/progressive-pricing-feature'
 import type { LearnerType } from '@/types/database'
 
 export type ProgressiveBookingWriteErrorCode =
@@ -7,7 +10,19 @@ export type ProgressiveBookingWriteErrorCode =
   | 'PROGRESSIVE_BOOKING_EXPIRED'
   | 'PROGRESSIVE_BOOKING_NOT_PENDING'
   | 'PROGRESSIVE_CAPACITY_EXCEEDED'
+  | 'PROGRESSIVE_COUPON_ALREADY_USED'
+  | 'PROGRESSIVE_COUPON_COURSE_NOT_ALLOWED'
+  | 'PROGRESSIVE_COUPON_EXPIRED'
+  | 'PROGRESSIVE_COUPON_INACTIVE'
+  | 'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED'
+  | 'PROGRESSIVE_COUPON_MAX_USES'
+  | 'PROGRESSIVE_COUPON_MIN_PURCHASE'
+  | 'PROGRESSIVE_COUPON_NOT_FOUND'
   | 'PROGRESSIVE_COUPON_NOT_READY'
+  | 'PROGRESSIVE_COUPON_NOT_STARTED'
+  | 'PROGRESSIVE_COUPON_RESERVATION_NOT_FOUND'
+  | 'PROGRESSIVE_COUPON_STACK_NOT_ALLOWED'
+  | 'PROGRESSIVE_COUPON_STATE_CONFLICT'
   | 'PROGRESSIVE_DUPLICATE_SESSION'
   | 'PROGRESSIVE_IDEMPOTENCY_CONFLICT'
   | 'PROGRESSIVE_INVALID_REQUEST'
@@ -26,7 +41,19 @@ const KNOWN_ERROR_CODES = new Set<ProgressiveBookingWriteErrorCode>([
   'PROGRESSIVE_BOOKING_EXPIRED',
   'PROGRESSIVE_BOOKING_NOT_PENDING',
   'PROGRESSIVE_CAPACITY_EXCEEDED',
+  'PROGRESSIVE_COUPON_ALREADY_USED',
+  'PROGRESSIVE_COUPON_COURSE_NOT_ALLOWED',
+  'PROGRESSIVE_COUPON_EXPIRED',
+  'PROGRESSIVE_COUPON_INACTIVE',
+  'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED',
+  'PROGRESSIVE_COUPON_MAX_USES',
+  'PROGRESSIVE_COUPON_MIN_PURCHASE',
+  'PROGRESSIVE_COUPON_NOT_FOUND',
   'PROGRESSIVE_COUPON_NOT_READY',
+  'PROGRESSIVE_COUPON_NOT_STARTED',
+  'PROGRESSIVE_COUPON_RESERVATION_NOT_FOUND',
+  'PROGRESSIVE_COUPON_STACK_NOT_ALLOWED',
+  'PROGRESSIVE_COUPON_STATE_CONFLICT',
   'PROGRESSIVE_DUPLICATE_SESSION',
   'PROGRESSIVE_IDEMPOTENCY_CONFLICT',
   'PROGRESSIVE_INVALID_REQUEST',
@@ -186,9 +213,23 @@ async function assertProgressiveCapability(client: ProgressiveRpcClient) {
   }
 }
 
+async function assertProgressiveCouponCapability(client: ProgressiveRpcClient) {
+  const { data, error } = await client.rpc('progressive_coupon_lifecycle_capability_v1')
+  if (error) throw mapRpcError(error)
+
+  const capability = data as { ready?: unknown; version?: unknown } | null
+  if (capability?.ready !== true || capability.version !== 1) {
+    throw new ProgressiveBookingWriteError(
+      'PROGRESSIVE_RPC_UNAVAILABLE',
+      'Progressive coupon lifecycle database capability is not ready.',
+    )
+  }
+}
+
 async function executeProgressiveMutation(
   functionName: string,
   args: Record<string, unknown>,
+  options: { requireCouponLifecycle?: boolean } = {},
 ) {
   if (!isProgressivePricingWritesEnabled()) {
     throw new ProgressiveBookingWriteError(
@@ -197,8 +238,16 @@ async function executeProgressiveMutation(
     )
   }
 
+  if (options.requireCouponLifecycle && !isProgressiveCouponLifecycleEnabled()) {
+    throw new ProgressiveBookingWriteError(
+      'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED',
+      'Progressive coupon lifecycle is disabled.',
+    )
+  }
+
   const client = getRpcClient()
   await assertProgressiveCapability(client)
+  if (options.requireCouponLifecycle) await assertProgressiveCouponCapability(client)
   const { data, error } = await client.rpc(functionName, args)
   if (error) throw mapRpcError(error)
   return parseMutationResult(data)
@@ -215,7 +264,7 @@ export function createProgressiveBooking(input: ProgressiveCreateInput) {
     p_coupon_id: input.couponId || null,
     p_client_request_id: input.clientRequestId,
     p_expected_scope_revision: input.expectedScopeRevision,
-  })
+  }, { requireCouponLifecycle: Boolean(input.couponId) })
 }
 
 export function updateProgressivePendingBooking(input: ProgressiveUpdateInput) {
