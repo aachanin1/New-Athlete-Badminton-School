@@ -21,11 +21,11 @@ Read only when relevant:
 
 ## Current Pending Work
 
-- Urgent pricing blocker follow-up:
-  - Kids_group monthly true-up source fix is in progress this round: only `paid` / `verified` bookings count as settled paid history; `pending_payment` bookings are excluded from `existingSettledSessions` and `existingSettledTotal`.
-  - Do not run DB repair until the owner approves exact target rows and write scope. Current repair candidates remain `9112a5cb-006c-4fdd-838d-5534c15b6fb1` and `60779d60-ac26-4eaf-a34f-703157a32300`.
-  - Adult pricing, pricing tiers, DB schema/migrations, payment rows, coupon rows, SlipOK, `/api/verify-slip`, lesson wallet, reschedule, attendance, and existing bookings are out of scope for this fix.
-- Next active work: Phase 3 Deploy Readiness follow-up review or owner-approved deterministic hydration hardening.
+- Next active work: Step 4.1 Homepage LV Copy Audit/Fix.
+  - Audit and correct homepage `LV 71+` / `70+` copy against the active LV 0-70 business rule.
+  - Keep the task scoped to homepage copy unless the audit proves another public copy surface is directly related.
+  - Do not change DB levels, migrations, level evaluation semantics, or create LV 71+ production behavior without explicit owner confirmation.
+- After Step 4.1: Phase 3 Deploy Readiness follow-up review or owner-approved deterministic hydration hardening.
   - Continue with read-only or owner-approved smoke only.
   - Do not run production write actions unless the owner confirms the exact test case and target records.
   - Keep Attendance Sync as a regression guard unless new attendance work starts.
@@ -51,6 +51,18 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed owner-approved production DB repair for two underpriced kids_group bookings:
+  - Final classification: `PASS`; exact affected-parent booking-card visual smoke remains `NEED REVIEW` only because that authenticated user session was unavailable.
+  - At `2026-07-10 09:35 ICT`, booking `9112a5cb-006c-4fdd-838d-5534c15b6fb1` changed `total_price` `0 -> 500`, and booking `60779d60-ac26-4eaf-a34f-703157a32300` changed `196 -> 500`.
+  - Preconditions passed: both were still `kids_group` and `pending_payment`, old amounts matched exactly, no later manual correction was observed, and payments/coupon usages/wallet/attendance counts were all 0.
+  - Production recalculation for each row used settled history 8 sessions / `4000`, plus 1 new session at the 7-10 tier (`500` per session), producing target total `4500` and corrected charge `500`.
+  - One PostgREST PATCH filtered to the two exact IDs returned exactly 2 rows; both price changes therefore ran in one DB transaction. Status remained `pending_payment`.
+  - Post-write verification passed: both totals are `500`; all non-price booking fields and booking-session/payment/coupon-usage/wallet/attendance/profile/child fingerprints were unchanged. Counts stayed sessions 2, payments 0, coupon usages 0, wallet 0, attendance 0.
+  - Activity log `5dc4dc45-8083-4033-86fc-d048150c3d34` exists with action `owner_pricing_booking_repair`, source commit `1701a0474ae1fdcf742f6db4c3e3c8c26d39ec2b`, and production deployment `dpl_2FKH4GbJ1wa3fSn4xnsxehW6pRdB`.
+  - Super Admin production read-only smoke confirmed the activity-log row/details on `/admin/logs` with console warnings/errors 0. No UI write action was clicked.
+  - Rollback record, not executed: `9112a5cb...` `500 -> 0`; `60779d60...` `500 -> 196`.
+  - No source code, API, migration, deploy, payment/coupon/session/profile/child/wallet/attendance change, or other booking repair was performed. Next task is Step 4.1 Homepage LV Copy Audit/Fix.
 
 - Completed urgent kids_group pricing pending-booking true-up source fix:
   - Final classification before deployment: source checks passed; production deploy/smoke to be reported with the release result.

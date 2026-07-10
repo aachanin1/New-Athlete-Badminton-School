@@ -19,6 +19,22 @@ Observed scripts:
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
 
+## 2026-07-10 - Owner-Approved Kids Group Pricing Booking Repair
+
+- Final classification: `PASS` for the production DB repair. Exact affected-booking UI verification remains `NEED REVIEW` because no authenticated session for the affected parent was available; this does not invalidate the DB repair.
+- Repair completed at `2026-07-10 09:35 ICT` for exactly two owner-approved `kids_group` bookings:
+  - `9112a5cb-006c-4fdd-838d-5534c15b6fb1`: `total_price` `0 -> 500`.
+  - `60779d60-ac26-4eaf-a34f-703157a32300`: `total_price` `196 -> 500`.
+- Pre-write checks passed for both rows: status was `pending_payment`, course was `kids_group`, each booking contained one session for child `1723ca34-71cf-4af5-a459-fcd1f0f4773d` at branch `aa77eba0-d05e-4539-9606-f55fe8a530ca` (แจ้งวัฒนะ), payment rows were 0, coupon usage rows were 0, lesson-wallet rows were 0, and attendance rows were 0. The original `updated_at` matched `created_at`, so no later manual correction was observed.
+- Deployed source recalculation was confirmed against current production pricing data for each target: settled history was 8 sessions / `4000`, the target added 1 session, the 7-10 tier was `500` per session, target monthly total was `4500`, and corrected charge was `500`.
+- The booking repair used one PostgREST PATCH filtered to the exact two IDs. It returned exactly 2 updated rows, so both booking price changes ran in one database transaction. Status stayed `pending_payment`; normal DB `updated_at` changed to `2026-07-10T02:35:12.033883+00:00`.
+- Post-write verification passed: both exact IDs now have `total_price = 500`; the targeted read found no remaining `0` or `196` value; all other booking fields were unchanged; booking-session, payment, coupon-usage, lesson-wallet, attendance, profile, and child fingerprints were unchanged. Related counts stayed sessions 2, payments 0, coupon usages 0, wallet rows 0, and attendance rows 0.
+- Activity log `5dc4dc45-8083-4033-86fc-d048150c3d34` was created with action `owner_pricing_booking_repair`. It records owner approval, both old/new amounts, source fix commit `1701a0474ae1fdcf742f6db4c3e3c8c26d39ec2b`, production deployment `dpl_2FKH4GbJ1wa3fSn4xnsxehW6pRdB`, preserved `pending_payment` status, and unchanged related-table scope.
+- Production Admin read-only smoke passed on `/admin/logs`: the new activity-log row and full JSON details rendered for Super Admin with browser console warnings/errors 0. No upload, payment, booking submit, or admin write action was clicked. The affected parent's booking cards were not visually verified because that user session was unavailable.
+- Exact rollback record, not executed: booking `9112a5cb-006c-4fdd-838d-5534c15b6fb1` `500 -> 0`; booking `60779d60-ac26-4eaf-a34f-703157a32300` `500 -> 196`.
+- Local pre-write/write/post-write evidence is stored under ignored backup folder `backups/pricing-booking-repair-20260710T023354Z`.
+- No source code, API, migration, deploy, payment/coupon/session/profile/child/wallet/attendance data, status, learner, parent, branch, schedule, course, month, or year was changed. Next task: Step 4.1 Homepage LV Copy Audit/Fix.
+
 ## 2026-07-10 - Kids Group Pricing Pending-Booking True-Up Fix
 
 - Scope: urgent source fix for kids_group monthly pricing true-up only. No adult pricing rule, pricing tier row, DB schema, migration, SlipOK, coupon semantics, lesson wallet, reschedule, attendance, ranking/users/history/makeup, payment row, or existing booking repair was changed.
@@ -43,10 +59,7 @@ Observed scripts:
   - prior 8 + 8 sibling true-up remains `4000 + 2496 = 6496`
   - adult pricing checks remain unchanged.
 - Local smoke reached `/dashboard/booking` with the provided User account and previewed pricing only; no booking submit, slip upload, DB write, payment/coupon creation, or admin write action was clicked. The visible positive-charge summary showed the new true-up explanation and preserved the slip-required flow.
-- Separate DB repair still needs owner approval after source deploy for:
-  - `9112a5cb-006c-4fdd-838d-5534c15b6fb1`
-  - `60779d60-ac26-4eaf-a34f-703157a32300`
-  Proposed repair boundary: re-read exact rows, confirm they are still `pending_payment`, confirm expected recalculated amount `500`, update only the target booking total/status fields explicitly approved by the owner, do not alter payment/coupon/session rows, and write an activity log if approved.
+- The owner-approved production DB repair for `9112a5cb-006c-4fdd-838d-5534c15b6fb1` and `60779d60-ac26-4eaf-a34f-703157a32300` is complete as recorded above. Both rows now have `total_price = 500` and remain `pending_payment`.
 
 ## 2026-07-09 - Phase 3 Production Role Smoke Readiness
 
