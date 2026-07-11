@@ -12,3 +12,7 @@ export function isProgressivePricingWritesEnabled() {
 export function isProgressiveCouponLifecycleEnabled() {
   return isEnabled(process.env.PROGRESSIVE_COUPON_LIFECYCLE_ENABLED)
 }
+
+export function isProgressivePaymentBatchEnabled() {
+  return isEnabled(process.env.PROGRESSIVE_PAYMENT_BATCH_ENABLED)
+}

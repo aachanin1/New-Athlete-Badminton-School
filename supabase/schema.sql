@@ -345,6 +345,64 @@ CREATE TABLE progressive_coupon_reservations (
   )
 );
 
+-- Progressive payment batch foundation (inactive until server-only flags are enabled)
+CREATE TABLE progressive_payment_batches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pricing_scope_id UUID NOT NULL REFERENCES booking_pricing_scopes(id) ON DELETE RESTRICT,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
+  status TEXT NOT NULL DEFAULT 'prepared' CHECK (status IN ('prepared', 'submitted', 'under_review', 'approved', 'rejected', 'cancelled')),
+  currency TEXT NOT NULL CHECK (currency ~ '^[A-Z]{3}$'),
+  total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount > 0),
+  member_count INTEGER NOT NULL CHECK (member_count > 0),
+  member_set_fingerprint TEXT NOT NULL,
+  pricing_scope_revision BIGINT NOT NULL CHECK (pricing_scope_revision >= 1),
+  prepare_idempotency_key UUID NOT NULL,
+  prepare_request_fingerprint TEXT NOT NULL,
+  submit_idempotency_key UUID,
+  submit_request_fingerprint TEXT,
+  decision_idempotency_key UUID,
+  decision_request_fingerprint TEXT,
+  slip_storage_bucket TEXT,
+  slip_storage_path TEXT,
+  slip_mime_type TEXT,
+  slip_size_bytes BIGINT CHECK (slip_size_bytes IS NULL OR slip_size_bytes > 0),
+  slip_sha256 TEXT CHECK (slip_sha256 IS NULL OR slip_sha256 ~ '^[0-9a-f]{64}$'),
+  slipok_transaction_ref TEXT,
+  slipok_response_code TEXT,
+  submitted_at TIMESTAMPTZ,
+  under_review_at TIMESTAMPTZ,
+  approved_at TIMESTAMPTZ,
+  rejected_at TIMESTAMPTZ,
+  rejected_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  approved_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  rejection_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, prepare_idempotency_key)
+);
+
+CREATE TABLE progressive_payment_batch_bookings (
+  payment_batch_id UUID NOT NULL REFERENCES progressive_payment_batches(id) ON DELETE CASCADE,
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE RESTRICT,
+  sequence_snapshot INTEGER NOT NULL CHECK (sequence_snapshot > 0),
+  amount_snapshot NUMERIC(12,2) NOT NULL CHECK (amount_snapshot >= 0),
+  coupon_reservation_id UUID REFERENCES progressive_coupon_reservations(id) ON DELETE RESTRICT,
+  member_fingerprint TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (payment_batch_id, booking_id),
+  UNIQUE(payment_batch_id, sequence_snapshot)
+);
+
+CREATE TABLE progressive_payment_allocations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_batch_id UUID NOT NULL REFERENCES progressive_payment_batches(id) ON DELETE RESTRICT,
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE RESTRICT,
+  amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(payment_batch_id, booking_id)
+);
+
 -- Lesson Wallet Credits (สิทธิ์วันเรียนที่เก็บไว้ใช้ในเดือนเดียวกัน)
 CREATE TABLE lesson_wallet_credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

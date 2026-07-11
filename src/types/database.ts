@@ -5,6 +5,7 @@ export type BookingStatus = 'pending_payment' | 'paid' | 'verified' | 'cancelled
 export type SessionStatus = 'scheduled' | 'completed' | 'rescheduled' | 'absent' | 'walleted'
 export type LessonWalletStatus = 'active' | 'redeemed' | 'expired'
 export type PaymentStatus = 'pending' | 'approved' | 'rejected'
+export type ProgressivePaymentBatchStatus = 'prepared' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'cancelled'
 export type AttendanceStatus = 'present' | 'absent' | 'late'
 export type SlotStatus = 'open' | 'full' | 'cancelled'
 export type ProgramStatus = 'draft' | 'submitted' | 'approved' | 'rejected'
@@ -106,6 +107,24 @@ export interface Database {
         Insert: Omit<ProgressiveCouponReservation, 'id' | 'created_at' | 'updated_at' | 'reserved_at'>
           & Partial<Pick<ProgressiveCouponReservation, 'reserved_at'>>
         Update: Partial<Omit<ProgressiveCouponReservation, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      progressive_payment_batches: {
+        Row: ProgressivePaymentBatch
+        Insert: Omit<ProgressivePaymentBatch, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<ProgressivePaymentBatch, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      progressive_payment_batch_bookings: {
+        Row: ProgressivePaymentBatchBooking
+        Insert: Omit<ProgressivePaymentBatchBooking, 'created_at'>
+        Update: Partial<Pick<ProgressivePaymentBatchBooking, 'active'>>
+        Relationships: []
+      }
+      progressive_payment_allocations: {
+        Row: ProgressivePaymentAllocation
+        Insert: Omit<ProgressivePaymentAllocation, 'id' | 'created_at'>
+        Update: never
         Relationships: []
       }
       lesson_wallet_credits: {
@@ -278,6 +297,43 @@ export interface Database {
           p_booking_id: string
           p_client_request_id: string
           p_expected_scope_revision: number
+        }
+        Returns: Json
+      }
+      progressive_payment_batch_capability_v1: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      prepare_progressive_payment_batch_v1: {
+        Args: {
+          p_user_id: string
+          p_pricing_scope_id: string
+          p_booking_ids: string[]
+          p_expected_scope_revision: number
+          p_expected_total: number | null
+          p_idempotency_key: string
+        }
+        Returns: Json
+      }
+      submit_progressive_payment_batch_v1: {
+        Args: {
+          p_batch_id: string
+          p_user_id: string
+          p_slip_metadata: Json
+          p_idempotency_key: string
+        }
+        Returns: Json
+      }
+      approve_progressive_payment_batch_v1: {
+        Args: { p_batch_id: string; p_actor_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      reject_progressive_payment_batch_v1: {
+        Args: {
+          p_batch_id: string
+          p_actor_id: string
+          p_rejection_reason: string
+          p_idempotency_key: string
         }
         Returns: Json
       }
@@ -533,6 +589,59 @@ export interface CoachAssignment {
   coach_id: string
   schedule_slot_id: string
   assigned_by: string
+  created_at: string
+}
+
+export interface ProgressivePaymentBatch {
+  id: string
+  pricing_scope_id: string
+  user_id: string
+  status: ProgressivePaymentBatchStatus
+  currency: string
+  total_amount: number
+  member_count: number
+  member_set_fingerprint: string
+  pricing_scope_revision: number
+  prepare_idempotency_key: string
+  prepare_request_fingerprint: string
+  submit_idempotency_key: string | null
+  submit_request_fingerprint: string | null
+  decision_idempotency_key: string | null
+  decision_request_fingerprint: string | null
+  slip_storage_bucket: string | null
+  slip_storage_path: string | null
+  slip_mime_type: string | null
+  slip_size_bytes: number | null
+  slip_sha256: string | null
+  slipok_transaction_ref: string | null
+  slipok_response_code: string | null
+  submitted_at: string | null
+  under_review_at: string | null
+  approved_at: string | null
+  rejected_at: string | null
+  rejected_by: string | null
+  approved_by: string | null
+  rejection_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProgressivePaymentBatchBooking {
+  payment_batch_id: string
+  booking_id: string
+  sequence_snapshot: number
+  amount_snapshot: number
+  coupon_reservation_id: string | null
+  member_fingerprint: string
+  active: boolean
+  created_at: string
+}
+
+export interface ProgressivePaymentAllocation {
+  id: string
+  payment_batch_id: string
+  booking_id: string
+  amount: number
   created_at: string
 }
 
