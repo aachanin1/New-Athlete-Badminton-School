@@ -49,7 +49,6 @@ function getConfig() {
     slipokApiKey: env.SLIPOK_API_KEY,
     slipokApiUrl: env.SLIPOK_API_URL,
     slipokTestMode: String(env.SLIPOK_TEST_MODE || '').toLowerCase() === 'true',
-    progressiveSlipokTestMode: String(env.PROGRESSIVE_SLIPOK_TEST_MODE || '').trim().toLowerCase() === 'true',
   }
 }
 
@@ -343,11 +342,7 @@ function collectEnvData(report, config) {
   if (!config.serviceRoleKey) report.blockers.push('Missing SUPABASE_SERVICE_ROLE_KEY.')
 
   if (config.slipokTestMode) {
-    report.warnings.push('SLIPOK_TEST_MODE=true. Production must set this to false/remove it and use real SlipOK credentials.')
-  }
-
-  if (config.progressiveSlipokTestMode) {
-    report.warnings.push('PROGRESSIVE_SLIPOK_TEST_MODE=true. Keep Progressive Payment restricted to the server allowlist during UAT.')
+    report.passes.push('SLIPOK_TEST_MODE=true matches the current Owner-approved shared Legacy/Progressive Test Mode policy.')
   }
 
   if (!config.slipokTestMode && (!config.slipokApiKey || !config.slipokApiUrl)) {

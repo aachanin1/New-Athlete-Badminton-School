@@ -219,18 +219,20 @@ check('migration has server-only RPC and RLS controls', () => {
   assert.strictEqual((migration.match(/\$\$/g) || []).length % 2, 0)
 })
 
-check('legacy verify-slip behavior remains unchanged after progressive SlipOK isolation', () => {
+check('legacy verify-slip behavior remains unchanged with the shared SlipOK mode', () => {
   const changed = require('child_process').execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
   assert.ok(!changed.includes('src/app/api/verify-slip/route.ts'), 'src/app/api/verify-slip/route.ts')
 
-  const baseline = require('child_process').execFileSync(
-    'git', ['show', 'HEAD:src/lib/slipok.ts'], { encoding: 'utf8' },
-  )
-  const isolated = fs.readFileSync(path.join(__dirname, '..', 'src/lib/slipok.ts'), 'utf8')
+  const normalizeEol = (value) => value.replace(/\r\n/g, '\n')
+  const isolationCommit = '50f355f660d04f46af7ad00ae8aa8a5ec9762bb6'
+  const baseline = normalizeEol(require('child_process').execFileSync(
+    'git', ['show', `${isolationCommit}^:src/lib/slipok.ts`], { encoding: 'utf8' },
+  ))
+  const isolated = normalizeEol(fs.readFileSync(path.join(__dirname, '..', 'src/lib/slipok.ts'), 'utf8'))
   const restored = isolated
     .replace('export async function verifySlipLive(', 'export async function verifySlip(')
     .replace(/\n\/\*\*\n \* Legacy-compatible SlipOK entry point\.[\s\S]+?\n}\n(?=\n\/\*\*)/, '')
-  assert.strictEqual(restored, baseline, 'Live SlipOK implementation changed outside the authorized isolation wrapper')
+  assert.strictEqual(restored, baseline, 'Live SlipOK implementation changed outside the authorized delegation wrapper')
 
   const progressiveSubmit = fs.readFileSync(
     path.join(__dirname, '..', 'src/app/api/progressive-payments/submit/route.ts'), 'utf8',

@@ -10,6 +10,7 @@ const submitSource = read('src/app/api/progressive-payments/submit/route.ts')
 const legacyRoute = read('src/app/api/verify-slip/route.ts')
 const slipokSource = read('src/lib/slipok.ts')
 const migration = read('supabase/migrations/20260711150500_add_progressive_payment_integration.sql')
+const progressiveOnlyFlag = ['PROGRESSIVE', 'SLIPOK', 'TEST', 'MODE'].join('_')
 
 let liveResult = null
 let liveCalls = 0
@@ -31,7 +32,7 @@ const requireMock = (request) => {
 new Function('require', 'module', 'exports', 'process', compiled)(requireMock, testModule, testModule.exports, process)
 const {
   getProgressiveSlipProviderMode,
-  isProgressiveSlipOKTestMode,
+  isSharedSlipOKTestMode,
   resolveProgressiveSlipVerification,
 } = testModule.exports
 
@@ -42,53 +43,42 @@ async function check(name, action) {
   console.log(`PASS ${name}`)
 }
 
-async function withEnv(values, action) {
-  const previous = {
-    legacy: process.env.SLIPOK_TEST_MODE,
-    progressive: process.env.PROGRESSIVE_SLIPOK_TEST_MODE,
-  }
-  if (values.legacy === undefined) delete process.env.SLIPOK_TEST_MODE
-  else process.env.SLIPOK_TEST_MODE = values.legacy
-  if (values.progressive === undefined) delete process.env.PROGRESSIVE_SLIPOK_TEST_MODE
-  else process.env.PROGRESSIVE_SLIPOK_TEST_MODE = values.progressive
+async function withGlobalMode(value, action) {
+  const previous = process.env.SLIPOK_TEST_MODE
+  if (value === undefined) delete process.env.SLIPOK_TEST_MODE
+  else process.env.SLIPOK_TEST_MODE = value
   try {
     await action()
   } finally {
-    if (previous.legacy === undefined) delete process.env.SLIPOK_TEST_MODE
-    else process.env.SLIPOK_TEST_MODE = previous.legacy
-    if (previous.progressive === undefined) delete process.env.PROGRESSIVE_SLIPOK_TEST_MODE
-    else process.env.PROGRESSIVE_SLIPOK_TEST_MODE = previous.progressive
+    if (previous === undefined) delete process.env.SLIPOK_TEST_MODE
+    else process.env.SLIPOK_TEST_MODE = previous
   }
 }
 
 async function main() {
-  await check('1 progressive test mode is independent and makes no live or storage call', async () => {
-    await withEnv({ legacy: 'false', progressive: 'true' }, async () => {
+  await check('1 global true keeps Legacy and Progressive in no-network auto-approve mode', async () => {
+    await withGlobalMode('true', async () => {
       liveCalls = 0
       let loadCalls = 0
       const mode = getProgressiveSlipProviderMode()
       const result = await resolveProgressiveSlipVerification({
         attemptId: 'attempt-1', totalAmount: 625, providerMode: mode,
-        loadSlip: async () => { loadCalls += 1; throw new Error('test path must not load') },
+        loadSlip: async () => { loadCalls += 1; throw new Error('test mode must not load the slip') },
       })
       assert.equal(mode, 'test')
-      assert.equal(result.providerReference, 'TEST-attempt-1')
       assert.equal(result.decision, 'approved')
+      assert.equal(result.providerReference, 'TEST-attempt-1')
+      assert.equal(result.verifiedAmount, 625)
       assert.equal(liveCalls, 0)
       assert.equal(loadCalls, 0)
-    })
-  })
-
-  await check('2 legacy true does not enable progressive test mode', async () => {
-    await withEnv({ legacy: 'true', progressive: 'false' }, async () => {
-      assert.equal(getProgressiveSlipProviderMode(), 'live')
       assert(legacyRoute.includes("process.env.SLIPOK_TEST_MODE === 'true'"))
-      assert(!legacyRoute.includes('PROGRESSIVE_SLIPOK_TEST_MODE'))
+      assert(legacyRoute.includes("verificationStatus = 'approved'"))
+      assert(legacyRoute.includes("const nextBookingStatus = verificationStatus === 'approved' ? 'verified' : 'paid'"))
     })
   })
 
-  await check('3 both false selects mocked live helper without real network', async () => {
-    await withEnv({ legacy: 'false', progressive: 'false' }, async () => {
+  await check('2 global false selects mocked live paths without a real network call', async () => {
+    await withGlobalMode('false', async () => {
       liveCalls = 0
       liveResult = { success: true, data: { transRef: 'MOCK-LIVE', amount: 625, date: '2026-07-11' } }
       let loadCalls = 0
@@ -100,40 +90,42 @@ async function main() {
       assert.equal(result.providerReference, 'MOCK-LIVE')
       assert.equal(liveCalls, 1)
       assert.equal(loadCalls, 1)
+      assert(legacyRoute.includes('slipResult = await verifySlip(fileBuffer, file.name, expectedAmount)'))
     })
   })
 
-  await check('4 malformed and unset progressive values fail closed', async () => {
-    for (const value of [undefined, '', 'false', 'yes', '1', 'true-ish']) {
-      assert.equal(isProgressiveSlipOKTestMode(value), false)
+  await check('3 malformed and unset shared mode values fail closed to the live path', async () => {
+    for (const value of [undefined, '', 'false', 'TRUE', ' true ', 'yes', '1', 'true-ish']) {
+      assert.equal(isSharedSlipOKTestMode(value), false)
     }
-    assert.equal(isProgressiveSlipOKTestMode(' TRUE '), true)
+    assert.equal(isSharedSlipOKTestMode('true'), true)
   })
 
-  await check('5 client cannot select provider mode', async () => {
-    assert(!submitSource.includes('body.testMode'))
-    assert(!submitSource.includes('body.slipokMode'))
-    assert(!submitSource.includes('body.providerMode'))
+  await check('4 clients cannot select Test or Live mode', async () => {
+    for (const field of ['testMode', 'slipokMode', 'providerMode']) {
+      assert(!submitSource.includes(`body.${field}`))
+    }
     assert(submitSource.includes('const providerMode = getProgressiveSlipProviderMode()'))
   })
 
-  await check('6 resolved retries reuse one durable attempt and allocation path', async () => {
+  await check('5 Progressive retries keep one attempt, result, approval and allocation path', async () => {
     assert(migration.includes('progressive_payment_attempt_key_unique'))
     assert(submitSource.includes("attempt.status === 'resolved' && attempt.decision"))
     assert(submitSource.includes("if (attempt.status !== 'resolved')"))
     assert(submitSource.includes('idempotencyKey: attempt.attemptId'))
   })
 
-  await check('7 legacy and progressive import graphs stay isolated', async () => {
-    assert(legacyRoute.includes("from '@/lib/slipok'"))
-    assert(!legacyRoute.includes("@/lib/progressive-slipok"))
-    assert(!progressiveSource.replaceAll('PROGRESSIVE_SLIPOK_TEST_MODE', '').includes('SLIPOK_TEST_MODE'))
-    assert(!submitSource.replaceAll('PROGRESSIVE_SLIPOK_TEST_MODE', '').includes('SLIPOK_TEST_MODE'))
+  await check('6 only the shared server-side flag controls payment verification mode', async () => {
+    assert(!progressiveSource.includes(progressiveOnlyFlag))
+    assert(!submitSource.includes(progressiveOnlyFlag))
+    assert(!legacyRoute.includes(progressiveOnlyFlag))
+    assert(progressiveSource.includes('process.env.SLIPOK_TEST_MODE'))
+    assert(!progressiveSource.includes('NEXT_PUBLIC_'))
     assert(slipokSource.includes('export async function verifySlipLive'))
     assert(slipokSource.includes('return verifySlipLive(fileBuffer, fileName, expectedAmount)'))
   })
 
-  console.log(`SlipOK Test Mode isolation checks passed: ${passed} checks.`)
+  console.log(`Shared SlipOK Test Mode checks passed: ${passed} checks.`)
 }
 
 main().catch((error) => {

@@ -15,6 +15,7 @@ const adminRoute = read('src/app/api/admin/payments/route.ts')
 const adminPage = read('src/app/(admin)/admin/payments/page.tsx')
 const financePage = read('src/app/(admin)/admin/finance/page.tsx')
 const financeClient = read('src/components/admin/finance-client.tsx')
+const progressiveOnlySlipokFlag = ['PROGRESSIVE', 'SLIPOK', 'TEST', 'MODE'].join('_')
 
 let passed = 0
 function check(name, condition) {
@@ -54,7 +55,8 @@ check('9 upload validates magic bytes and five megabyte limit',
 check('10 duplicate hash upload is idempotent',
   uploadRoute.includes('upsert: true') && migration.includes('v_batch.slip_sha256 = lower(p_sha256)'))
 check('11 test mode resolver cannot call the network',
-  progressiveSlipok.includes('PROGRESSIVE_SLIPOK_TEST_MODE')
+  progressiveSlipok.includes('process.env.SLIPOK_TEST_MODE')
+  && !progressiveSlipok.includes(progressiveOnlySlipokFlag)
   && progressiveSlipok.includes("input.providerMode === 'test'")
   && progressiveSlipok.indexOf("input.providerMode === 'test'") < progressiveSlipok.indexOf('input.loadSlip()')
   && !submitRoute.includes("@/lib/slipok"))

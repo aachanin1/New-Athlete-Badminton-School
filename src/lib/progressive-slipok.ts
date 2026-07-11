@@ -31,14 +31,12 @@ interface ProgressiveSlipResolverDependencies {
   verifyLive: typeof verifySlipLive
 }
 
-export function isProgressiveSlipOKTestMode(
-  raw = process.env.PROGRESSIVE_SLIPOK_TEST_MODE,
-) {
-  return raw?.trim().toLowerCase() === 'true'
+export function isSharedSlipOKTestMode(raw = process.env.SLIPOK_TEST_MODE) {
+  return raw === 'true'
 }
 
 export function getProgressiveSlipProviderMode(): ProgressiveSlipProviderMode {
-  return isProgressiveSlipOKTestMode() ? 'test' : 'live'
+  return isSharedSlipOKTestMode() ? 'test' : 'live'
 }
 
 function underReview(
