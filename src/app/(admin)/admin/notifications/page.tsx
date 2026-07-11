@@ -1,5 +1,7 @@
 import { NotificationsAdminClient } from '@/components/admin/notifications-admin-client'
 import { requireAdminPageAccess } from '@/lib/auth/admin'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
 import type { UserRole } from '@/types/database'
 
 type AlertLevel = 'red' | 'yellow' | 'green'
@@ -57,10 +59,16 @@ interface SessionRow {
 
 interface PaymentRow {
   id: string
-  amount: number
+  amount?: number
   status: string
   created_at: string
   profiles?: { full_name: string | null } | null
+}
+
+interface ProgressivePendingPaymentRow {
+  source_id: string
+  status: string
+  total_amount?: number
 }
 
 interface ComplaintRow {
@@ -201,7 +209,9 @@ async function fetchNotificationSessions(supabase: AdminPageSupabase, today: str
 }
 
 export default async function AdminNotificationsPage() {
-  const { supabase, user } = await requireAdminPageAccess()
+  const { supabase, user, role } = await requireAdminPageAccess()
+  const canViewFinancialAmounts = role === 'super_admin'
+  const service = getServiceRoleClient()
   const now = new Date()
   const today = getBangkokDateString(now)
   const tomorrow = addDaysToDateString(today, 1)
@@ -236,7 +246,7 @@ export default async function AdminNotificationsPage() {
     sessionsPromise,
     supabase
       .from('payments')
-      .select('id, amount, status, created_at, profiles!payments_user_id_fkey(full_name)')
+      .select(`id, ${canViewFinancialAmounts ? 'amount,' : ''} status, created_at, profiles!payments_user_id_fkey(full_name)`)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(50) as unknown as Promise<{ data: PaymentRow[] | null }>,
@@ -262,6 +272,23 @@ export default async function AdminNotificationsPage() {
       .lt('checkin_time', `${tomorrow}T00:00:00`)
       .limit(200) as unknown as Promise<{ data: CheckinRow[] | null }>,
   ])
+
+  const { data: progressivePendingPayments, error: progressivePendingError } = isProgressivePaymentReviewEnabled()
+    ? await service.from('payment_review_queue_v1')
+        .select(`source_id, status${canViewFinancialAmounts ? ', total_amount' : ''}`)
+        .eq('source_kind', 'progressive')
+        .in('status', ['submitted', 'under_review'])
+        .limit(50)
+    : { data: [] as ProgressivePendingPaymentRow[], error: null }
+  if (progressivePendingError) {
+    throw new Error(`[admin/notifications] progressive payment queue failed: ${progressivePendingError.message}`)
+  }
+  const progressivePending = (progressivePendingPayments || []) as unknown as ProgressivePendingPaymentRow[]
+  const pendingPaymentCount = (pendingPayments || []).length + progressivePending.length
+  const pendingPaymentTotal = canViewFinancialAmounts
+    ? (pendingPayments || []).reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+      + progressivePending.reduce((sum, payment) => sum + Number(payment.total_amount || 0), 0)
+    : null
 
   const notificationList = (notifications || []).map((notification) => ({
     id: notification.id,
@@ -427,10 +454,12 @@ export default async function AdminNotificationsPage() {
       href: '#admin-inbox',
       actionLabel: 'ดู Inbox',
     }] : []),
-    ...((pendingPayments || []).length > 0 ? [{
+    ...(pendingPaymentCount > 0 ? [{
       id: 'pending-payments',
-      title: `มีสลิปรอตรวจ ${pendingPayments?.length || 0} รายการ`,
-      description: `ยอดรวมประมาณ ${(pendingPayments || []).reduce((sum, payment) => sum + Number(payment.amount || 0), 0).toLocaleString('th-TH')} บาท`,
+      title: `มีสลิปรอตรวจ ${pendingPaymentCount} รายการ`,
+      description: canViewFinancialAmounts && pendingPaymentTotal !== null
+        ? `ยอดรวมประมาณ ${pendingPaymentTotal.toLocaleString('th-TH')} บาท`
+        : 'ตรวจสอบหลักฐานและดำเนินการจากหน้าชำระเงิน',
       tone: 'amber' as const,
       href: '/admin/payments',
       actionLabel: 'ไปหน้าชำระเงิน',

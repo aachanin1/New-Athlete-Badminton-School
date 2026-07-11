@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -21,6 +21,12 @@ Read only when relevant:
 
 ## Current Pending Work
 
+- Slice 4B Progressive Payment FAST-TRACK MVP is implemented and locally verified. Next actions require explicit Owner instruction:
+  - Review/apply the new remote migration before any feature enablement.
+  - Perform a read-only audit to select a safe Owner/Test `user_id`, then configure the server-side allowlist.
+  - Enable the existing pricing/coupon/batch controls plus the separate Entry/Review controls only for allowlisted UAT.
+  - Run authenticated allowlisted History/Admin/Finance browser UAT before deployment approval.
+  - Do not deploy, apply remote migration, change production environment, enable flags, or call live SlipOK without the next explicit Owner instruction.
 - Next active work: Step 4.1 Homepage LV Copy Audit/Fix.
   - Audit and correct homepage `LV 71+` / `70+` copy against the active LV 0-70 business rule.
   - Keep the task scoped to homepage copy unless the audit proves another public copy surface is directly related.
@@ -51,6 +57,14 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed Slice 4B Progressive Payment FAST-TRACK MVP locally:
+  - Added the additive Slice 4B migration with 30-minute prepared TTL/lazy expiry, private slip bucket, centralized retention policy, one durable verification attempt per batch, upload/cancel/under-review/status RPCs, and unified payment review/ledger views.
+  - Added default-deny server-only Entry/Review/UUID allowlist controls and separate user prepare/upload/submit/status/cancel routes.
+  - Integrated Parent History oldest-contiguous-prefix selection and batch recovery, Admin whole-batch review with Standard Admin amount omission, Finance approved-allocation cash and distinct-batch counting, and Notifications financial visibility parity.
+  - Full local migration chain and synthetic runtime passed; all runtime writes were inside a rolled-back transaction and local Supabase was stopped afterward.
+  - Build and safe unauthenticated browser smoke passed. Authenticated allowlisted browser UAT remains the next controlled step.
+  - No production/remote write, migration apply, deploy, feature enablement, live SlipOK network call, booking repair, or legacy booking exception was made.
 
 - Completed owner-approved production DB repair for two underpriced kids_group bookings:
   - Final classification: `PASS`; exact affected-parent booking-card visual smoke remains `NEED REVIEW` only because that authenticated user session was unavailable.

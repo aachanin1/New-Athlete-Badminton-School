@@ -35,10 +35,11 @@ import {
 import type { LucideIcon } from 'lucide-react'
 
 interface PaymentData {
+  source_kind: 'legacy' | 'progressive'
   id: string
   booking_id: string
   user_id: string
-  amount: number | null
+  amount?: number
   method: string
   slip_image_url: string | null
   status: 'pending' | 'approved' | 'rejected'
@@ -70,7 +71,7 @@ interface IncompleteBookingData {
   month: number
   year: number
   total_sessions: number
-  total_price: number | null
+  total_price?: number
   status: string
   created_at: string
   latest_payment_id: string | null
@@ -155,6 +156,7 @@ function formatDate(dateStr: string | null) {
 }
 
 function getVerificationSource(payment: PaymentData) {
+  if (payment.source_kind === 'progressive') return { label: 'Progressive Batch', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
   const notes = payment.notes || ''
   if (notes.includes('[TEST MODE]')) return { label: 'TEST MODE', className: 'bg-sky-50 text-sky-700 border-sky-200' }
   if (notes.includes('SlipOK verified')) return { label: 'SlipOK', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
@@ -186,6 +188,7 @@ export function PaymentsClient({
   const [reviewNotes, setReviewNotes] = useState('')
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewRequestKey, setReviewRequestKey] = useState('')
   const [slipUrl, setSlipUrl] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -279,6 +282,7 @@ export function PaymentsClient({
     setReviewAction(action)
     setReviewNotes('')
     setReviewError(null)
+    setReviewRequestKey(crypto.randomUUID())
     setDetailOpen(false)
   }
 
@@ -297,6 +301,8 @@ export function PaymentsClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentId: reviewPayment.id,
+          sourceKind: reviewPayment.source_kind,
+          requestKey: reviewRequestKey,
           action: reviewAction,
           notes: reviewNotes.trim(),
         }),
@@ -811,10 +817,12 @@ export function PaymentsClient({
                       <AlertTriangle className="mr-1.5 h-4 w-4" />
                       ตีกลับให้แนบใหม่
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => openReviewDialog(detailPayment, 'cancel')}>
-                      <XCircle className="mr-1.5 h-4 w-4" />
-                      ปฏิเสธและยกเลิก
-                    </Button>
+                    {detailPayment.source_kind === 'legacy' ? (
+                      <Button size="sm" variant="destructive" onClick={() => openReviewDialog(detailPayment, 'cancel')}>
+                        <XCircle className="mr-1.5 h-4 w-4" />
+                        ปฏิเสธและยกเลิก
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               )}

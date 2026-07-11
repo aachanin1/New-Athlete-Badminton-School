@@ -13,6 +13,10 @@ import {
   type AttendanceSessionRow,
   type DisplaySessionStatus,
 } from '@/lib/session-attendance-status'
+import {
+  isProgressivePaymentEntryAvailableForUser,
+  isProgressivePaymentDrainAvailableForUser,
+} from '@/lib/progressive-pricing-feature'
 
 interface HistoryBookingRow {
   id: string
@@ -26,6 +30,8 @@ interface HistoryBookingRow {
   total_sessions: number
   total_price: number
   status: string
+  pricing_scope_id: string | null
+  pricing_revision: number | null
   created_at: string
   branches?: { name: string } | null
   children?: { full_name: string; nickname: string | null } | null
@@ -109,6 +115,20 @@ interface CouponUsageRow {
     discount_type: string
     discount_value: number
   } | null
+}
+
+interface ProgressiveScopeRow {
+  id: string
+  revision: number
+  currency: string
+}
+
+interface ActiveProgressiveBatchRow {
+  id: string
+  pricing_scope_id: string
+  status: 'prepared' | 'submitted' | 'under_review'
+  total_amount: number
+  prepared_expires_at: string
 }
 
 const IN_FILTER_CHUNK_SIZE = 100
@@ -296,6 +316,35 @@ export default async function HistoryPage() {
   }
 
   const bookingIds = bookings.map((booking) => booking.id)
+  const progressivePaymentEnabled = !isAdmin && isProgressivePaymentEntryAvailableForUser(user.id)
+  const progressivePaymentDrainEnabled = !isAdmin && isProgressivePaymentDrainAvailableForUser(user.id)
+  const progressiveScopeIds = Array.from(new Set(bookings
+    .map((booking) => booking.pricing_scope_id)
+    .filter(Boolean))) as string[]
+  const progressiveScopesResult = progressivePaymentEnabled && progressiveScopeIds.length > 0
+    ? await adminSupabase.from('booking_pricing_scopes')
+        .select('id, revision, currency')
+        .in('id', progressiveScopeIds)
+    : { data: [] as ProgressiveScopeRow[], error: null }
+  if (progressiveScopesResult.error) {
+    throw new Error(`[dashboard/history] progressive scope read failed: ${progressiveScopesResult.error.message}`)
+  }
+  const progressiveScopeRevisionMap = Object.fromEntries(
+    ((progressiveScopesResult.data || []) as ProgressiveScopeRow[]).map((scope) => [scope.id, {
+      revision: scope.revision,
+      currency: scope.currency,
+    }]),
+  )
+
+  const activeProgressiveResult = progressivePaymentDrainEnabled
+    ? await adminSupabase.from('progressive_payment_batches')
+        .select('id, pricing_scope_id, status, total_amount, prepared_expires_at')
+        .eq('user_id', user.id)
+        .in('status', ['prepared', 'submitted', 'under_review'])
+    : { data: [] as ActiveProgressiveBatchRow[], error: null }
+  if (activeProgressiveResult.error) {
+    throw new Error(`[dashboard/history] active progressive batch read failed: ${activeProgressiveResult.error.message}`)
+  }
   let couponUsageMap: Record<string, CouponUsageRow[]> = {}
 
   if (bookingIds.length > 0) {
@@ -411,6 +460,9 @@ export default async function HistoryPage() {
         bookingSessionsMap={bookingSessionsMap}
         couponUsageMap={couponUsageMap}
         paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
+        progressivePaymentEnabled={progressivePaymentEnabled}
+        progressiveScopeRevisionMap={progressiveScopeRevisionMap}
+        activeProgressiveBatches={(activeProgressiveResult.data || []) as ActiveProgressiveBatchRow[]}
       />
     </div>
   )

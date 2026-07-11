@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
@@ -54,6 +54,8 @@ interface BookingWithRelations {
   total_sessions: number
   total_price: number
   status: string
+  pricing_scope_id: string | null
+  pricing_revision: number | null
   created_at: string
   branches?: { name: string } | null
   children?: { full_name: string; nickname: string | null } | null
@@ -143,6 +145,23 @@ interface HistoryClientProps {
   bookingSessionsMap?: Record<string, SessionDetail[]>
   couponUsageMap?: Record<string, CouponUsageDetail[]>
   paymentTransferSettings?: PaymentTransferSettings
+  progressivePaymentEnabled?: boolean
+  progressiveScopeRevisionMap?: Record<string, { revision: number; currency: string }>
+  activeProgressiveBatches?: ProgressiveBatchSummary[]
+}
+
+interface ProgressiveBatchSummary {
+  id?: string
+  batchId?: string
+  pricing_scope_id?: string
+  scopeId?: string
+  status: 'prepared' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'cancelled'
+  total_amount?: number
+  totalAmount?: number
+  prepared_expires_at?: string
+  preparedExpiresAt?: string
+  bookingIds?: string[]
+  rejectionReason?: string | null
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -276,7 +295,20 @@ function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: strin
   return fallbackNames.map((name) => ({ name, count: fallbackTotal }))
 }
 
-export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = false, sessionCountMap = {}, bookingChildNamesMap = {}, bookingSessionsMap = {}, couponUsageMap = {}, paymentTransferSettings }: HistoryClientProps) {
+export function HistoryClient({
+  bookings,
+  payments,
+  userId: _userId,
+  isAdmin = false,
+  sessionCountMap = {},
+  bookingChildNamesMap = {},
+  bookingSessionsMap = {},
+  couponUsageMap = {},
+  paymentTransferSettings,
+  progressivePaymentEnabled = false,
+  progressiveScopeRevisionMap = {},
+  activeProgressiveBatches = [],
+}: HistoryClientProps) {
   const router = useRouter()
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
@@ -288,6 +320,10 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   const [uploadStep, setUploadStep] = useState<PaymentUploadStep>('idle')
   const [error, setError] = useState<string | null>(null)
   const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
+  const [paymentMode, setPaymentMode] = useState<'legacy' | 'progressive'>('legacy')
+  const [progressiveBatch, setProgressiveBatch] = useState<ProgressiveBatchSummary | null>(null)
+  const [progressiveSelectedCounts, setProgressiveSelectedCounts] = useState<Record<string, number>>({})
+  const [authoritativeBatchTotal, setAuthoritativeBatchTotal] = useState<number | null>(null)
 
   // Alert dialog state (replaces browser confirm)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -307,7 +343,25 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
 
   // Group pending bookings for combined payment
   const pendingBookings = bookings.filter((b) => b.status === 'pending_payment')
-  const pendingTotal = pendingBookings.reduce((sum, b) => sum + b.total_price, 0)
+  const progressivePendingGroups = useMemo(() => {
+    if (!progressivePaymentEnabled) return []
+    const groups = new Map<string, BookingWithRelations[]>()
+    for (const booking of pendingBookings) {
+      if (!booking.pricing_scope_id || !progressiveScopeRevisionMap[booking.pricing_scope_id]) continue
+      const group = groups.get(booking.pricing_scope_id) || []
+      group.push(booking)
+      groups.set(booking.pricing_scope_id, group)
+    }
+    return Array.from(groups.entries()).map(([scopeId, items]) => ({
+      scopeId,
+      bookings: [...items].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)),
+    }))
+  }, [pendingBookings, progressivePaymentEnabled, progressiveScopeRevisionMap])
+  const progressiveBookingIds = useMemo(() => new Set(
+    progressivePendingGroups.flatMap((group) => group.bookings.map((booking) => booking.id)),
+  ), [progressivePendingGroups])
+  const legacyPendingBookings = pendingBookings.filter((booking) => !progressiveBookingIds.has(booking.id))
+  const pendingTotal = legacyPendingBookings.reduce((sum, b) => sum + b.total_price, 0)
   const paymentsByBookingId = useMemo(() => {
     const map = new Map<string, PaymentRow[]>()
     payments.forEach((payment) => {
@@ -367,6 +421,9 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   }
 
   const openPayDialog = (booking: BookingWithRelations) => {
+    setPaymentMode('legacy')
+    setProgressiveBatch(null)
+    setAuthoritativeBatchTotal(null)
     setSelectedBooking(booking)
     setPayBookingIds([booking.id])
     setSlipFile(null)
@@ -378,14 +435,105 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   }
 
   const openGroupPayDialog = () => {
-    setSelectedBooking(pendingBookings[0] || null)
-    setPayBookingIds(pendingBookings.map((b) => b.id))
+    setPaymentMode('legacy')
+    setProgressiveBatch(null)
+    setAuthoritativeBatchTotal(null)
+    setSelectedBooking(legacyPendingBookings[0] || null)
+    setPayBookingIds(legacyPendingBookings.map((b) => b.id))
     setSlipFile(null)
     setSlipPreview(null)
     setError(null)
     setUploadStep('idle')
     setVerifyResult(null)
     setPayDialogOpen(true)
+  }
+
+  const openProgressivePayDialog = async (scopeId: string, scopeBookings: BookingWithRelations[]) => {
+    const selectedCount = progressiveSelectedCounts[scopeId] ?? 1
+    const selected = scopeBookings.slice(0, selectedCount)
+    const scope = progressiveScopeRevisionMap[scopeId]
+    if (!scope || selected.length === 0 || loading) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/progressive-payments/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pricingScopeId: scopeId,
+          bookingIds: selected.map((booking) => booking.id),
+          expectedScopeRevision: scope.revision,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const result = await response.json() as { batch?: ProgressiveBatchSummary; error?: string }
+      if (!response.ok || !result.batch) throw new Error(result.error || 'เตรียมรายการชำระเงินไม่สำเร็จ')
+
+      setPaymentMode('progressive')
+      setProgressiveBatch(result.batch)
+      setAuthoritativeBatchTotal(result.batch.totalAmount ?? result.batch.total_amount ?? 0)
+      setSelectedBooking(selected[0])
+      setPayBookingIds(selected.map((booking) => booking.id))
+      setSlipFile(null)
+      setSlipPreview(null)
+      setUploadStep('idle')
+      setVerifyResult(null)
+      setPayDialogOpen(true)
+    } catch (prepareError) {
+      setError(prepareError instanceof Error ? prepareError.message : 'เตรียมรายการชำระเงินไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resumeProgressiveBatch = async (batchId: string) => {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/progressive-payments/${batchId}/status`)
+      const result = await response.json() as { batch?: ProgressiveBatchSummary; error?: string }
+      if (!response.ok || !result.batch) throw new Error(result.error || 'โหลดสถานะการชำระเงินไม่สำเร็จ')
+      if (['approved', 'rejected', 'cancelled'].includes(result.batch.status)) {
+        setError(result.batch.status === 'rejected'
+          ? 'สลิปถูกปฏิเสธ ระบบคืนสิทธิ์คูปองและคำนวณราคาใหม่แล้ว'
+          : 'สถานะรายการเปลี่ยนแล้ว กรุณาตรวจสอบรายการล่าสุด')
+        router.refresh()
+        return
+      }
+      const batchBookings = bookings.filter((booking) => result.batch?.bookingIds?.includes(booking.id))
+      setPaymentMode('progressive')
+      setProgressiveBatch(result.batch)
+      setAuthoritativeBatchTotal(result.batch.totalAmount ?? 0)
+      setPayBookingIds(result.batch.bookingIds || [])
+      setSelectedBooking(batchBookings[0] || null)
+      setSlipFile(null)
+      setSlipPreview(null)
+      setUploadStep(result.batch.status === 'under_review' ? 'verifying' : 'idle')
+      setVerifyResult(result.batch.status === 'under_review' ? {
+        verified: false,
+        reviewMessage: 'กำลังตรวจสอบสลิป รายการในคอร์สและเดือนนี้ถูกล็อกชั่วคราว',
+      } : null)
+      setPayDialogOpen(true)
+    } catch (resumeError) {
+      setError(resumeError instanceof Error ? resumeError.message : 'โหลดสถานะการชำระเงินไม่สำเร็จ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePayDialogOpenChange = async (open: boolean) => {
+    if (open) {
+      setPayDialogOpen(true)
+      return
+    }
+    setPayDialogOpen(false)
+    const batchId = progressiveBatch?.batchId || progressiveBatch?.id
+    if (paymentMode === 'progressive' && batchId && progressiveBatch?.status === 'prepared') {
+      await fetch(`/api/progressive-payments/${batchId}/cancel`, { method: 'POST' }).catch(() => null)
+      router.refresh()
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,6 +574,50 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
     }, 1200)
 
     try {
+      if (paymentMode === 'progressive') {
+        const batchId = progressiveBatch?.batchId || progressiveBatch?.id
+        if (!batchId) throw new Error('ไม่พบ Progressive Payment Batch')
+
+        const uploadForm = new FormData()
+        uploadForm.append('batchId', batchId)
+        uploadForm.append('file', slipFile)
+        const uploadResponse = await fetch('/api/progressive-payments/upload', { method: 'POST', body: uploadForm })
+        const uploadResult = await uploadResponse.json() as { error?: string }
+        if (!uploadResponse.ok) throw new Error(uploadResult.error || 'อัปโหลดสลิปไม่สำเร็จ')
+
+        setUploadStep('verifying')
+        const submitResponse = await fetch('/api/progressive-payments/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batchId,
+            submitKey: crypto.randomUUID(),
+            attemptKey: crypto.randomUUID(),
+          }),
+        })
+        const submitResult = await submitResponse.json() as { batch?: ProgressiveBatchSummary; error?: string }
+        if (!submitResponse.ok || !submitResult.batch) throw new Error(submitResult.error || 'ตรวจสอบสลิปไม่สำเร็จ')
+
+        window.clearTimeout(verifyingTimer)
+        setProgressiveBatch(submitResult.batch)
+        const verified = submitResult.batch.status === 'approved'
+        setVerifyResult({
+          verified,
+          reviewMessage: verified
+            ? null
+            : 'กำลังตรวจสอบสลิป รายการในคอร์สและเดือนนี้ถูกล็อกชั่วคราว',
+          warningCode: verified ? null : submitResult.batch.status,
+        })
+        setUploadStep('refreshing')
+        window.setTimeout(() => {
+          setPayDialogOpen(false)
+          setLoading(false)
+          setUploadStep('idle')
+          router.refresh()
+        }, verified ? 1200 : 2200)
+        return
+      }
+
       const expectedAmount = payBookingIds.reduce((sum, id) => {
         const b = bookings.find((bk) => bk.id === id)
         return sum + (b?.total_price || 0)
@@ -481,6 +673,25 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
       setUploadStep('failed')
     }
   }
+
+  useEffect(() => {
+    const batchId = progressiveBatch?.batchId || progressiveBatch?.id
+    if (!payDialogOpen || !batchId || !['submitted', 'under_review'].includes(progressiveBatch?.status || '')) return
+
+    const timer = window.setInterval(async () => {
+      const response = await fetch(`/api/progressive-payments/${batchId}/status`)
+      if (!response.ok) return
+      const result = await response.json() as { batch?: ProgressiveBatchSummary }
+      if (!result.batch) return
+      setProgressiveBatch(result.batch)
+      if (['approved', 'rejected', 'cancelled'].includes(result.batch.status)) {
+        window.clearInterval(timer)
+        router.refresh()
+      }
+    }, 3000)
+
+    return () => window.clearInterval(timer)
+  }, [payDialogOpen, progressiveBatch?.batchId, progressiveBatch?.id, progressiveBatch?.status, router])
 
   const getBookingPayments = (bookingId: string) => {
     return paymentsByBookingId.get(bookingId) || []
@@ -556,10 +767,12 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
   }
 
   // Compute grouped payment total for dialog
-  const payDialogTotal = payBookingIds.reduce((sum, id) => {
-    const b = bookings.find((bk) => bk.id === id)
-    return sum + (b?.total_price || 0)
-  }, 0)
+  const payDialogTotal = paymentMode === 'progressive' && authoritativeBatchTotal !== null
+    ? authoritativeBatchTotal
+    : payBookingIds.reduce((sum, id) => {
+        const b = bookings.find((bk) => bk.id === id)
+        return sum + (b?.total_price || 0)
+      }, 0)
   const selectedBookingSessions = selectedBooking ? bookingSessionsMap[selectedBooking.id] || [] : []
   const selectedActiveSessions = selectedBookingSessions.filter(isActiveSession)
   const selectedRescheduledSessions = selectedBookingSessions.filter((session) => session.status === 'rescheduled')
@@ -579,16 +792,84 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
 
   return (
     <>
+      {!isAdmin && activeProgressiveBatches.length > 0 && (
+        <Card className="mb-4 border-indigo-200 bg-indigo-50">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-indigo-900">มีรายการชำระเงินที่กำลังดำเนินการ</p>
+              <p className="mt-1 text-xs text-indigo-700">กลับมาดำเนินการต่อหรือตรวจสอบสถานะได้โดยไม่สร้างรายการซ้ำ</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeProgressiveBatches.map((batch) => (
+                <Button key={batch.id} size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={() => void resumeProgressiveBatch(batch.id!)}>
+                  {batch.status === 'prepared' ? 'ดำเนินการชำระต่อ' : 'ดูสถานะสลิป'}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isAdmin && progressivePendingGroups.map((group) => {
+        if (activeProgressiveBatches.some((batch) => batch.pricing_scope_id === group.scopeId)) return null
+        const selectedCount = progressiveSelectedCounts[group.scopeId] ?? 1
+        const selectedTotal = group.bookings.slice(0, selectedCount).reduce((sum, booking) => sum + booking.total_price, 0)
+        const first = group.bookings[0]
+        return (
+          <Card key={group.scopeId} className="mb-4 border-blue-200 bg-blue-50/60">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-[#153c85]">
+                    {first.course_types ? COURSE_LABELS[first.course_types.name] || first.course_types.name : 'คอร์ส'} · {MONTH_NAMES[first.month]} {first.year}
+                  </p>
+                  <p className="mt-1 text-xs text-blue-700">เลือกชำระตามลำดับเก่าสุด รายการก่อนหน้าจะถูกเลือกให้อัตโนมัติ</p>
+                </div>
+                <p className="font-bold text-[#2748bf]">ยอดที่เลือก ฿{selectedTotal.toLocaleString()}</p>
+              </div>
+              <div className="space-y-2">
+                {group.bookings.map((booking, index) => (
+                  <label key={booking.id} className="flex cursor-pointer items-center justify-between rounded-md border bg-white px-3 py-2 text-sm">
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={index < selectedCount}
+                        onChange={(event) => setProgressiveSelectedCounts((current) => ({
+                          ...current,
+                          [group.scopeId]: event.target.checked ? index + 1 : index,
+                        }))}
+                      />
+                      รายการ {index + 1} · {booking.branches?.name || '-'}
+                    </span>
+                    <span className="font-medium">฿{booking.total_price.toLocaleString()}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-blue-700">ยอดชำระได้รับการตรวจสอบจากระบบล่าสุดแล้วก่อนอัปโหลด</p>
+                <Button
+                  className="shrink-0 bg-[#f57e3b] hover:bg-[#e06a2a]"
+                  disabled={selectedCount < 1 || loading}
+                  onClick={() => void openProgressivePayDialog(group.scopeId, group.bookings)}
+                >
+                  <Upload className="mr-1 h-4 w-4" />ชำระรายการที่เลือก
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })}
+
       {/* Grouped payment banner */}
-      {!isAdmin && pendingBookings.length > 1 && (
+      {!isAdmin && legacyPendingBookings.length > 1 && (
         <Card className="mb-4 border-[#f57e3b]/30 bg-[#f57e3b]/5">
           <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
-              <p className="font-medium text-[#153c85]">รอชำระเงิน {pendingBookings.length} รายการ</p>
+              <p className="font-medium text-[#153c85]">รอชำระเงินแบบเดิม {legacyPendingBookings.length} รายการ</p>
               <p className="text-sm text-gray-600">
                 {(() => {
                   const nameCountMap: Record<string, number> = {}
-                  pendingBookings.forEach((b) => {
+                  legacyPendingBookings.forEach((b) => {
                     const sessions = bookingSessionsMap[b.id] || []
                     const counts = getLearnerSessionCounts(
                       sessions,
@@ -707,7 +988,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                                 ดูรายละเอียด
                               </Button>
                             )}
-                            {!isAdmin && booking.status === 'pending_payment' && pendingBookings.length <= 1 && (
+                            {!isAdmin && booking.status === 'pending_payment' && !progressiveBookingIds.has(booking.id) && legacyPendingBookings.length <= 1 && (
                               <Button
                                 size="sm"
                                 className="bg-[#f57e3b] hover:bg-[#e06a2a]"
@@ -791,18 +1072,25 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
       </div>
 
       {/* Payment Dialog */}
-      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+      <Dialog open={payDialogOpen} onOpenChange={(open) => void handlePayDialogOpenChange(open)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">แนบสลิปโอนเงิน</DialogTitle>
             <DialogDescription>
-              {payBookingIds.length > 1
+              {paymentMode === 'progressive'
+                ? `ยอดที่ระบบยืนยันล่าสุด ฿${payDialogTotal.toLocaleString()} · ${payBookingIds.length} รายการ`
+                : payBookingIds.length > 1
                 ? `ชำระรวม ${payBookingIds.length} รายการ — ยอด ฿${payDialogTotal.toLocaleString()}`
                 : `ยอดชำระ: ฿${selectedBooking?.total_price.toLocaleString()}`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
+            {paymentMode === 'progressive' && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                ยอดชำระได้รับการตรวจสอบจากระบบล่าสุดแล้ว รายการในคอร์สและเดือนนี้จะถูกล็อกชั่วคราวระหว่างตรวจสลิป
+              </div>
+            )}
             {error && (
               <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md border border-red-200">
                 {error}
@@ -901,7 +1189,7 @@ export function HistoryClient({ bookings, payments, userId: _userId, isAdmin = f
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setPayDialogOpen(false)}
+                  onClick={() => void handlePayDialogOpenChange(false)}
                   disabled={loading}
                 >
                   ยกเลิก

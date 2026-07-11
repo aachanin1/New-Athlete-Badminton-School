@@ -1,4 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
+import type { PaymentLedgerAllocationRow } from '@/types/database'
 import { FinanceClient } from '@/components/admin/finance-client'
 
 interface PaymentRow {
@@ -13,9 +16,21 @@ interface PaymentRow {
     branch_id: string
     course_type_id: string
     total_sessions: number
+    total_price: number | string
     branches?: { name: string | null } | null
     course_types?: { name: string | null } | null
   } | null
+  profiles?: { full_name: string | null; email: string | null } | null
+}
+
+interface ProgressiveFinanceBookingRow {
+  id: string
+  total_price: number | string
+  month: number
+  year: number
+  total_sessions: number
+  branches?: { name: string | null } | null
+  course_types?: { name: string | null } | null
   profiles?: { full_name: string | null; email: string | null } | null
 }
 
@@ -76,6 +91,7 @@ function getYearRange() {
 
 export default async function FinancePage() {
   const supabase = await createClient()
+  const service = getServiceRoleClient()
   const range = getYearRange()
 
   const [
@@ -88,7 +104,7 @@ export default async function FinancePage() {
       .from('payments')
       .select(`
         id, amount, status, created_at,
-        bookings(id, month, year, branch_id, course_type_id, total_sessions,
+        bookings(id, month, year, branch_id, course_type_id, total_sessions, total_price,
           branches(name),
           course_types(name)
         ),
@@ -128,7 +144,31 @@ export default async function FinancePage() {
       .order('name') as unknown as PromiseLike<{ data: BranchOptionRow[] | null }>,
   ])
 
+  const { data: progressiveAllocations, error: progressiveAllocationError } = isProgressivePaymentReviewEnabled()
+    ? await service.from('payment_ledger_allocations_v1')
+        .select('*')
+        .eq('source_kind', 'progressive')
+        .eq('status', 'approved')
+        .limit(2000)
+    : { data: [] as PaymentLedgerAllocationRow[], error: null }
+  if (progressiveAllocationError) throw new Error(`[admin/finance] progressive ledger read failed: ${progressiveAllocationError.message}`)
+
+  const progressiveBookingIds = Array.from(new Set((progressiveAllocations || []).map((row) => row.booking_id)))
+  const { data: progressiveBookings, error: progressiveBookingError } = progressiveBookingIds.length > 0
+    ? await service.from('bookings').select(`
+        id, total_price, month, year, total_sessions,
+        branches(name), course_types(name), profiles!bookings_user_id_fkey(full_name, email)
+      `).in('id', progressiveBookingIds)
+    : { data: [] as ProgressiveFinanceBookingRow[], error: null }
+  if (progressiveBookingError) throw new Error(`[admin/finance] progressive booking read failed: ${progressiveBookingError.message}`)
+  const progressiveBookingMap = new Map(
+    ((progressiveBookings || []) as unknown as ProgressiveFinanceBookingRow[]).map((booking) => [booking.id, booking]),
+  )
+
   const paymentList = (payments || []).map((payment) => ({
+    source_kind: 'legacy' as const,
+    transaction_id: `legacy:${payment.id}`,
+    booking_id: payment.bookings?.id || payment.id,
     id: payment.id,
     amount: Number(payment.amount || 0),
     status: payment.status,
@@ -139,7 +179,28 @@ export default async function FinancePage() {
     booking_month: payment.bookings?.month || 0,
     booking_year: payment.bookings?.year || 0,
     total_sessions: payment.bookings?.total_sessions || 0,
+    booking_net_value: Number(payment.bookings?.total_price || 0),
   }))
+
+  const progressivePaymentList = ((progressiveAllocations || []) as PaymentLedgerAllocationRow[]).map((allocation) => {
+    const booking = progressiveBookingMap.get(allocation.booking_id)
+    return {
+      source_kind: 'progressive' as const,
+      transaction_id: `progressive:${allocation.source_id}`,
+      booking_id: allocation.booking_id,
+      id: `${allocation.source_id}:${allocation.booking_id}`,
+      amount: Number(allocation.allocated_amount),
+      status: allocation.status,
+      created_at: allocation.created_at,
+      payer_name: booking?.profiles?.full_name || booking?.profiles?.email || 'ไม่ทราบชื่อ',
+      branch_name: booking?.branches?.name || 'ไม่ทราบสาขา',
+      course_type: booking?.course_types?.name || '',
+      booking_month: booking?.month || 0,
+      booking_year: booking?.year || 0,
+      total_sessions: booking?.total_sessions || 0,
+      booking_net_value: Number(booking?.total_price || 0),
+    }
+  })
 
   const coachSummaryList = (coachSummaries || []).map((summary) => ({
     id: summary.id,
@@ -185,7 +246,7 @@ export default async function FinancePage() {
   const now = new Date()
   return (
     <FinanceClient
-      payments={paymentList}
+      payments={[...paymentList, ...progressivePaymentList]}
       coachSummaries={coachSummaryList}
       expenses={expenseList}
       branches={branchOptions}

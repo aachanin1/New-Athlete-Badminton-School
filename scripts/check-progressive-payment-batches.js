@@ -219,9 +219,9 @@ check('migration has server-only RPC and RLS controls', () => {
   assert.strictEqual((migration.match(/\$\$/g) || []).length % 2, 0)
 })
 
-check('active legacy HTTP and UI files are unchanged by Slice 4A', () => {
+check('legacy verify-slip and SlipOK implementation remain unchanged by Slice 4B', () => {
   const changed = require('child_process').execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
-  for (const forbidden of ['src/app/api/verify-slip/route.ts', 'src/lib/slipok.ts', 'src/app/api/admin/payments/route.ts', 'src/components/admin/payments-client.tsx', 'src/components/dashboard/history-client.tsx']) assert.ok(!changed.includes(forbidden), forbidden)
+  for (const forbidden of ['src/app/api/verify-slip/route.ts', 'src/lib/slipok.ts']) assert.ok(!changed.includes(forbidden), forbidden)
 })
 
 console.log(`Progressive payment batch checks passed: ${passed} checks.`)

@@ -1,5 +1,8 @@
 import { PaymentsClient } from '@/components/admin/payments-client'
-import { requireAdminPageAccess } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireAdminPageAccess } from '@/lib/auth/admin'
+import { createProgressiveSlipSignedUrl } from '@/lib/progressive-payment-integration'
+import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
+import type { PaymentReviewQueueRow } from '@/types/database'
 import {
   PAYMENT_TRANSFER_SETTING_KEY,
   normalizePaymentTransferSettings,
@@ -80,6 +83,28 @@ interface ChildNameRow {
 interface LearnerAggregate {
   name: string
   sessionCount: number
+}
+
+interface ProgressiveProfileRow {
+  id: string
+  full_name: string | null
+  email: string | null
+}
+
+interface ProgressiveCourseRow {
+  id: string
+  name: string | null
+}
+
+interface ProgressiveMemberRow {
+  payment_batch_id: string
+  booking_id: string
+  bookings?: {
+    learner_type: string | null
+    total_sessions: number | null
+    branches?: { name: string | null } | null
+    children?: { full_name: string | null; nickname: string | null } | null
+  } | null
 }
 
 const IN_FILTER_CHUNK_SIZE = 100
@@ -267,48 +292,80 @@ async function fetchSessionLearnerNameMap(supabase: AdminPageSupabase, bookingId
 export default async function PaymentsPage() {
   const { supabase, role } = await requireAdminPageAccess()
   const canViewFinancialAmounts = role === 'super_admin'
-
-  const payments = await readAllRangePages<PaymentRow>('payments', (start, end) => supabase
+  const service = getServiceRoleClient()
+  const legacyPaymentsPromise = readAllRangePages<PaymentRow>('payments', (start, end) => supabase
     .from('payments')
     .select(`
       id, booking_id, user_id, ${canViewFinancialAmounts ? 'amount,' : ''} method, slip_image_url,
       status, verified_by, verified_at, notes, created_at,
       bookings(month, year, status, total_sessions, branch_id, course_type_id, child_id, learner_type,
-        branches(name),
-        course_types(name),
-        children(full_name, nickname)
+        branches(name), course_types(name), children(full_name, nickname)
       ),
       profiles!payments_user_id_fkey(full_name, email)
     `)
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
-    .range(start, end) as unknown as Promise<QueryRowsResult<PaymentRow>>
-  )
-
-  const incompleteBookings = await readAllRangePages<IncompleteBookingRow>('incomplete bookings', (start, end) => supabase
+    .range(start, end) as unknown as Promise<QueryRowsResult<PaymentRow>>)
+  const incompleteBookingsPromise = readAllRangePages<IncompleteBookingRow>('incomplete bookings', (start, end) => supabase
     .from('bookings')
     .select(`
-      id,
-      user_id,
-      child_id,
-      learner_type,
-      month,
-      year,
-      total_sessions,
+      id, user_id, child_id, learner_type, month, year, total_sessions,
       ${canViewFinancialAmounts ? 'total_price,' : ''}
-      status,
-      created_at,
-      branches(name),
-      course_types(name),
-      children(full_name, nickname),
+      status, created_at, branches(name), course_types(name), children(full_name, nickname),
       profiles!bookings_user_id_fkey(full_name, email, phone),
       payments(id, status, slip_image_url, created_at)
     `)
     .in('status', ['pending_payment', 'paid'])
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
-    .range(start, end) as unknown as Promise<QueryRowsResult<IncompleteBookingRow>>
-  )
+    .range(start, end) as unknown as Promise<QueryRowsResult<IncompleteBookingRow>>)
+
+  const progressiveQueue = isProgressivePaymentReviewEnabled()
+    ? await readAllRangePages<PaymentReviewQueueRow>('progressive payment queue', (start, end) => service
+        .from('payment_review_queue_v1')
+        .select('*')
+        .eq('source_kind', 'progressive')
+        .in('status', ['submitted', 'under_review', 'approved', 'rejected'])
+        .order('submitted_at', { ascending: false })
+        .range(start, end) as unknown as Promise<QueryRowsResult<PaymentReviewQueueRow>>)
+    : []
+
+  const progressiveUserIds = Array.from(new Set(progressiveQueue.map((row) => row.user_id)))
+  const progressiveCourseIds = Array.from(new Set(progressiveQueue.map((row) => row.course_type_id)))
+  const progressiveBatchIds = progressiveQueue.map((row) => row.source_id)
+  const [progressiveProfilesResult, progressiveCoursesResult, progressiveMembersResult] = await Promise.all([
+    progressiveUserIds.length > 0
+      ? service.from('profiles').select('id, full_name, email').in('id', progressiveUserIds)
+      : Promise.resolve({ data: [] as ProgressiveProfileRow[], error: null }),
+    progressiveCourseIds.length > 0
+      ? service.from('course_types').select('id, name').in('id', progressiveCourseIds)
+      : Promise.resolve({ data: [] as ProgressiveCourseRow[], error: null }),
+    progressiveBatchIds.length > 0
+      ? service.from('progressive_payment_batch_bookings').select(`
+          payment_batch_id, booking_id,
+          bookings(learner_type, total_sessions, branches(name), children(full_name, nickname))
+        `).in('payment_batch_id', progressiveBatchIds)
+      : Promise.resolve({ data: [] as ProgressiveMemberRow[], error: null }),
+  ])
+  if (progressiveProfilesResult.error || progressiveCoursesResult.error || progressiveMembersResult.error) {
+    throw new Error('[admin/payments] progressive queue detail read failed')
+  }
+  const progressiveProfiles = (progressiveProfilesResult.data || []) as unknown as ProgressiveProfileRow[]
+  const progressiveCourses = (progressiveCoursesResult.data || []) as unknown as ProgressiveCourseRow[]
+  const progressiveMembers = (progressiveMembersResult.data || []) as unknown as ProgressiveMemberRow[]
+  const progressiveProfileMap = new Map(progressiveProfiles.map((row) => [row.id, row]))
+  const progressiveCourseMap = new Map(progressiveCourses.map((row) => [row.id, row.name || '']))
+  const progressiveMembersMap = new Map<string, ProgressiveMemberRow[]>()
+  for (const member of progressiveMembers) {
+    const members = progressiveMembersMap.get(member.payment_batch_id) || []
+    members.push(member)
+    progressiveMembersMap.set(member.payment_batch_id, members)
+  }
+
+  const [payments, incompleteBookings] = await Promise.all([
+    legacyPaymentsPromise,
+    incompleteBookingsPromise,
+  ])
 
   const sessionLearnerNameByBookingId = await fetchSessionLearnerNameMap(supabase, [
     ...payments.map((payment) => payment.booking_id),
@@ -348,10 +405,11 @@ export default async function PaymentsPage() {
 
   // Transform data
   const paymentList = payments.map((p) => ({
+    source_kind: 'legacy' as const,
     id: p.id,
     booking_id: p.booking_id,
     user_id: p.user_id,
-    amount: canViewFinancialAmounts ? (p.amount ?? 0) : null,
+    ...(canViewFinancialAmounts ? { amount: p.amount ?? 0 } : {}),
     method: p.method,
     slip_image_url: p.slip_image_url,
     status: ['pending', 'approved', 'rejected'].includes(p.status) ? p.status : 'pending',
@@ -373,6 +431,43 @@ export default async function PaymentsPage() {
       sessionLearnerNameByBookingId.get(p.booking_id)
     ),
     verified_by_name: p.verified_by ? (verifierMap[p.verified_by] || null) : null,
+  }))
+
+  const progressivePaymentList = await Promise.all(progressiveQueue.map(async (row) => {
+    const profile = progressiveProfileMap.get(row.user_id)
+    const members = progressiveMembersMap.get(row.source_id) || []
+    const branchNames = Array.from(new Set(members.map((member) => member.bookings?.branches?.name).filter(Boolean))) as string[]
+    const learnerNames = Array.from(new Set(members.map((member) => getChildDisplayName(member.bookings?.children)
+      || (member.bookings?.learner_type === 'self' ? 'ผู้เรียนเอง' : null)).filter(Boolean))) as string[]
+    const totalSessions = members.reduce((sum, member) => sum + Number(member.bookings?.total_sessions || 0), 0)
+    const firstBookingId = members[0]?.booking_id || row.source_id
+    const mappedStatus: PaymentStatus = row.status === 'approved' ? 'approved'
+      : row.status === 'rejected' ? 'rejected' : 'pending'
+
+    return {
+      source_kind: 'progressive' as const,
+      id: row.source_id,
+      booking_id: firstBookingId,
+      user_id: row.user_id,
+      ...(canViewFinancialAmounts ? { amount: Number(row.total_amount) } : {}),
+      method: 'progressive_batch',
+      slip_image_url: await createProgressiveSlipSignedUrl(row.slip_storage_path),
+      status: mappedStatus,
+      verified_by: null,
+      verified_at: row.decided_at,
+      notes: `Progressive Batch · ${row.booking_count} bookings · ${row.status}`,
+      created_at: row.submitted_at,
+      user_name: profile?.full_name || 'ไม่ทราบ',
+      user_email: profile?.email || '',
+      booking_month: row.lesson_month,
+      booking_year: row.lesson_year,
+      booking_status: row.status === 'approved' ? 'verified' : row.status,
+      branch_name: branchNames.length > 0 ? branchNames.join(', ') : 'ไม่ทราบ',
+      course_type: progressiveCourseMap.get(row.course_type_id) || '',
+      total_sessions: totalSessions,
+      learner_name: learnerNames.length > 0 ? learnerNames.join(', ') : `${row.booking_count} bookings`,
+      verified_by_name: row.status === 'approved' || row.status === 'rejected' ? 'Progressive review' : null,
+    }
   }))
 
   const incompleteBookingList = incompleteBookings.map((booking) => {
@@ -398,7 +493,7 @@ export default async function PaymentsPage() {
       month: booking.month || 0,
       year: booking.year || 0,
       total_sessions: booking.total_sessions || 0,
-      total_price: canViewFinancialAmounts ? (booking.total_price || 0) : null,
+      ...(canViewFinancialAmounts ? { total_price: booking.total_price || 0 } : {}),
       status: booking.status || '',
       created_at: booking.created_at,
       latest_payment_id: latestPayment?.id || null,
@@ -409,7 +504,9 @@ export default async function PaymentsPage() {
 
   return (
     <PaymentsClient
-      payments={paymentList}
+      payments={[...progressivePaymentList, ...paymentList].sort((a, b) => (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ))}
       incompleteBookings={incompleteBookingList}
       paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
       slipOkMode={process.env.SLIPOK_TEST_MODE === 'true' ? 'test' : 'live'}

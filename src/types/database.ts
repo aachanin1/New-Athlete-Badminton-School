@@ -260,7 +260,16 @@ export interface Database {
         Relationships: []
       }
     }
-    Views: Record<string, never>
+    Views: {
+      payment_review_queue_v1: {
+        Row: PaymentReviewQueueRow
+        Relationships: []
+      }
+      payment_ledger_allocations_v1: {
+        Row: PaymentLedgerAllocationRow
+        Relationships: []
+      }
+    }
     Functions: {
       progressive_pricing_writes_capability_v1: {
         Args: Record<string, never>
@@ -302,6 +311,52 @@ export interface Database {
       }
       progressive_payment_batch_capability_v1: {
         Args: Record<string, never>
+        Returns: Json
+      }
+      progressive_payment_integration_capability_v1: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      record_progressive_payment_upload_v1: {
+        Args: {
+          p_batch_id: string
+          p_user_id: string
+          p_storage_bucket: string
+          p_storage_path: string
+          p_mime_type: string
+          p_size_bytes: number
+          p_sha256: string
+        }
+        Returns: Json
+      }
+      cancel_progressive_prepared_batch_v1: {
+        Args: { p_batch_id: string; p_user_id: string; p_reason?: string }
+        Returns: Json
+      }
+      expire_progressive_prepared_batch_v1: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
+      mark_progressive_batch_under_review_v1: {
+        Args: { p_batch_id: string; p_result_code: string }
+        Returns: Json
+      }
+      record_progressive_verification_attempt_v1: {
+        Args: { p_batch_id: string; p_attempt_key: string; p_provider_mode: string; p_request_fingerprint: string }
+        Returns: Json
+      }
+      resolve_progressive_verification_attempt_v1: {
+        Args: {
+          p_attempt_id: string
+          p_decision: string
+          p_provider_reference: string | null
+          p_result_code: string
+          p_verified_amount: number | null
+        }
+        Returns: Json
+      }
+      get_progressive_payment_batch_status_v1: {
+        Args: { p_batch_id: string }
         Returns: Json
       }
       prepare_progressive_payment_batch_v1: {
@@ -613,6 +668,11 @@ export interface ProgressivePaymentBatch {
   slip_mime_type: string | null
   slip_size_bytes: number | null
   slip_sha256: string | null
+  prepared_expires_at: string
+  upload_recorded_at: string | null
+  cancelled_at: string | null
+  cancellation_reason: string | null
+  slip_retain_until: string | null
   slipok_transaction_ref: string | null
   slipok_response_code: string | null
   submitted_at: string | null
@@ -624,6 +684,33 @@ export interface ProgressivePaymentBatch {
   rejection_reason: string | null
   created_at: string
   updated_at: string
+}
+
+export interface PaymentReviewQueueRow {
+  source_kind: 'legacy' | 'progressive'
+  source_id: string
+  user_id: string
+  status: string
+  submitted_at: string
+  decided_at: string | null
+  total_amount: number
+  booking_count: number
+  course_type_id: string
+  lesson_month: number
+  lesson_year: number
+  slip_storage_bucket: string | null
+  slip_storage_path: string | null
+}
+
+export interface PaymentLedgerAllocationRow {
+  source_kind: 'legacy' | 'progressive'
+  source_id: string
+  booking_id: string
+  user_id: string
+  status: string
+  allocated_amount: number
+  created_at: string
+  approved_at: string | null
 }
 
 export interface ProgressivePaymentBatchBooking {

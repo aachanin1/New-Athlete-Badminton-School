@@ -40,6 +40,9 @@ import {
 } from 'lucide-react'
 
 interface PaymentData {
+  source_kind: 'legacy' | 'progressive'
+  transaction_id: string
+  booking_id: string
   id: string
   amount: number
   status: string
@@ -50,6 +53,7 @@ interface PaymentData {
   booking_month: number
   booking_year: number
   total_sessions: number
+  booking_net_value: number
 }
 
 interface CoachWeeklySummaryData {
@@ -198,6 +202,9 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
     const pendingPayments = filteredPayments.filter((payment) => payment.status === 'pending')
     const rejectedPayments = filteredPayments.filter((payment) => payment.status === 'rejected')
     const revenue = approvedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    const bookingNetValueByBookingId = new Map<string, number>()
+    approvedPayments.forEach((payment) => bookingNetValueByBookingId.set(payment.booking_id, payment.booking_net_value))
+    const bookingNetValue = Array.from(bookingNetValueByBookingId.values()).reduce((sum, value) => sum + value, 0)
     const pendingRevenue = pendingPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
     const sessionsSold = approvedPayments.reduce((sum, payment) => sum + Number(payment.total_sessions || 0), 0)
     const coachPay = filteredCoachSummaries.reduce((sum, summary) => sum + Number(summary.payable_amount || 0), 0)
@@ -268,7 +275,8 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
       pendingRevenue,
       pendingCount: pendingPayments.length,
       rejectedCount: rejectedPayments.length,
-      approvedCount: approvedPayments.length,
+      approvedCount: new Set(approvedPayments.map((payment) => payment.transaction_id)).size,
+      bookingNetValue,
       sessionsSold,
       coachPay,
       coachPayableHours,
@@ -430,8 +438,9 @@ export function FinanceClient({ payments, coachSummaries, expenses, branches, cu
         <Card className="border-emerald-200 bg-emerald-50/50">
           <CardContent className="flex items-center justify-between p-3">
             <div>
-              <p className="text-xs text-gray-500">รายรับ {periodLabel}</p>
+              <p className="text-xs text-gray-500">เงินรับจริง {periodLabel}</p>
               <p className="mt-1 text-xl font-bold text-emerald-700">฿{formatNumber(finance.revenue)}</p>
+              <p className="text-[11px] text-emerald-700">มูลค่า Booking ฿{formatNumber(finance.bookingNetValue)}</p>
             </div>
             <TrendingUp className="h-5 w-5 text-emerald-500" />
           </CardContent>

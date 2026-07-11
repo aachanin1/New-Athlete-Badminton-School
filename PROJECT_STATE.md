@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -18,6 +18,21 @@ Observed scripts:
 - `npm run prod:check`: read-only production readiness checker.
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
+
+## 2026-07-11 - Slice 4B Progressive Payment FAST-TRACK MVP
+
+- Scope completed locally: additive integration migration, default-deny server controls/UUID allowlist, private progressive slip storage, 30-minute prepared TTL/lazy expiry, durable verification attempts, Test Mode result recovery, Parent History contiguous-prefix flow, Admin whole-batch review, Standard Admin amount omission, and progressive Finance/Notifications reads.
+- Progressive user routes are separate from legacy `/api/verify-slip`: prepare, upload, submit, status, and cancel. The legacy verification route and `src/lib/slipok.ts` were not changed.
+- Feature controls are server-only: `PROGRESSIVE_PAYMENT_ENTRY_ENABLED`, `PROGRESSIVE_PAYMENT_REVIEW_ENABLED`, and `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS`. Existing pricing/coupon/batch flags are still required. Default or malformed values deny access. Entry and drain/review controls remain separate.
+- Progressive slips use private bucket `progressive-payment-slips`, deterministic user/batch/SHA-256 paths, server-side JPEG/PNG/WebP magic-byte validation, a 5 MB limit, and five-minute signed URLs. Retention is centralized in `progressive_payment_retention_config`: approved 84 months, rejected/under-review 180 days, orphan policy 7 days; no scheduled deletion worker was added.
+- Prepared batches expire after 30 minutes through lazy API expiry, become cancelled, release the pricing-scope lock, keep bookings `pending_payment`, and do not release coupon reservations.
+- One durable verification attempt is allowed per batch. Test Mode performs no SlipOK network call, stores deterministic `TEST-{attemptId}` evidence, and uses the same atomic batch approval RPC as future live resolution. Resolved retries reuse the stored attempt/result.
+- Admin Payments combines legacy rows and progressive batches. Progressive actions approve/reject the whole batch only. Standard Admin serializers omit amount/total-price fields; Super Admin receives batch/allocation amounts. Admin Notifications uses the same visibility rule and no longer exposes the legacy pending total to Standard Admin.
+- Finance treats `cash_received` and `booking_net_value` separately. Progressive cash comes only from approved allocations and transaction count uses distinct progressive batch IDs; batch headers are not added to allocation totals.
+- Full local migration chain compiled twice against disposable Supabase. Synthetic runtime transaction passed prepare, upload metadata, submit, resolved-attempt replay, atomic approval, under-review lock, Admin rejection, TTL expiry/unlock, private bucket checks, and ledger reconciliation (`1325` cash, one distinct batch), then rolled back. Local Supabase containers were stopped.
+- Verification passed: TypeScript, ESLint, production build, mojibake guard, pricing 17, transactions 33, coupon 38, Slice 4B integration 18, and the local migration/runtime gates. Slice 4A payment-batch check was updated only to stop treating the newly authorized Admin/History integration files as forbidden; legacy verify-slip/SlipOK immutability remains enforced.
+- Browser smoke passed for public content, no Next error overlay, home/static asset HTTP 200, and unauthenticated redirects for History, Admin Payments, and Finance. Authenticated allowlisted browser UAT remains pending because no confirmed local allowlisted identity was supplied; synthetic DB runtime covers the critical transaction path.
+- No production DB write, remote migration, deploy, production environment/feature-flag change, live SlipOK call, booking repair, or hardcoded production user/booking exception was performed. Known legacy booking `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` remains untouched.
 
 ## 2026-07-10 - Owner-Approved Kids Group Pricing Booking Repair
 
