@@ -51,8 +51,10 @@ Required:
 
 Payments:
 
-- `SLIPOK_TEST_MODE` must not be `true` in production.
-- `SLIPOK_API_URL` and `SLIPOK_API_KEY` must be configured for real SlipOK verification.
+- Current Owner-approved Production policy requires shared server-side `SLIPOK_TEST_MODE=true` for both Legacy and Progressive payments.
+- Successful slip upload auto-approves/verifies through each flow under this policy; no live SlipOK network request is made.
+- Do not add a Progressive-only mode or client mode toggle. Do not switch Production to live verification until the Owner changes policy after branch-specific receiving accounts are designed.
+- Keep `SLIPOK_API_URL` and `SLIPOK_API_KEY` server-only even while live verification is disabled.
 
 Do not commit `.env.local` or any service role key.
 
@@ -74,7 +76,7 @@ Environment variables to configure in staging and production:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-SLIPOK_TEST_MODE=false
+SLIPOK_TEST_MODE=true
 SLIPOK_API_URL=
 SLIPOK_API_KEY=
 ```

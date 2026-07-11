@@ -19,6 +19,18 @@ Observed scripts:
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
 
+## 2026-07-11 - Shared SlipOK Test Mode Corrective Production Release
+
+- Final status: `PASS`. Corrective source commit `0fbf98fe7a03f71ecb61642ebb20458e4a6480de` was pushed and deployed as Production deployment `dpl_P5BQcazfbWjReuuLkGXkZpGoG1Gz`, Ready and aliased to `https://www.newathleteschool.com`.
+- Current Owner-approved Production policy is global server-side `SLIPOK_TEST_MODE=true`, shared by Legacy and Progressive. Successful slip upload auto-approves/verifies through each flow, and the current Production policy makes no live SlipOK network call.
+- The Progressive-only SlipOK Test Mode flag was removed. Client mode overrides are not accepted. Live verification must wait for a future Owner policy after branch-specific receiving accounts are designed.
+- Progressive infrastructure remains preparation for future use. All Progressive feature flags and the UUID allowlist are unset; general users cannot enter the flow. The five remote Progressive migrations remain applied and capability RPC reports Ready.
+- Corrective tests passed: pricing 17, transactions 33, coupon 38, payment batch 39, integration 18, shared SlipOK mode 6, pricing shadow, mojibake, TypeScript, ESLint, production build, production readiness, and attendance reconciliation with 0 mismatches.
+- Production smoke passed: home/login/static 200, protected routes redirected to login, Legacy verification route loaded, and unauthenticated Progressive prepare failed closed with 403.
+- Read-only before/after reconciliation was unchanged: profiles 309; children 291; bookings 503 (`cancelled` 38, `pending_payment` 8, `verified` 457); booking sessions 2736; payments 457 approved; approved cash 1,248,238. Progressive batches/attempts/allocations/locks/storage objects remained 0.
+- Known Legacy booking `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` remains `pending_payment` with `total_price = 550`; no booking repair, payment creation, slip upload, UAT, migration write, or live SlipOK call occurred.
+- This section supersedes earlier readiness notes that described Production Test Mode as a warning or required live SlipOK mode; those older entries are historical records only.
+
 ## 2026-07-11 - Slice 4B Progressive Payment FAST-TRACK MVP
 
 - Scope completed locally: additive integration migration, default-deny server controls/UUID allowlist, private progressive slip storage, 30-minute prepared TTL/lazy expiry, durable verification attempts, Test Mode result recovery, Parent History contiguous-prefix flow, Admin whole-batch review, Standard Admin amount omission, and progressive Finance/Notifications reads.
@@ -627,7 +639,7 @@ If a local guide/document appears again in future work, treat it as out of scope
   - `npx.cmd tsc --noEmit`
   - `npm.cmd run lint`
   - `npm.cmd run prod:check`
-- `npm.cmd run prod:check` still reports the expected local warning: `SLIPOK_TEST_MODE=true`. Production must keep real SlipOK credentials and live mode.
+- Historical result at that time: `npm.cmd run prod:check` reported `SLIPOK_TEST_MODE=true` as a warning and recommended live mode. This guidance is superseded by the 2026-07-11 Owner-approved shared Test Mode policy above.
 - `npm.cmd run build` was not run in this readiness pass because no source code changed and the project handoff guide requires a dev-server/static-chunk cleanup cycle after build work.
 
 ## 2026-06-12 - Phase 3 Read-Only Role Smoke Readiness
@@ -781,7 +793,7 @@ Potential bug found:
   - `npm.cmd run prod:check`
   - `git diff --check`
 - `attendance:reconcile:dry-run` remained report-only and showed 1060 verified teaching sessions checked, 295 attendance rows checked, 0 student-scope mismatches, 0 status mismatches, and 0 booking-status-without-attendance rows.
-- `prod:check` result was `READY WITH WARNINGS/PASSES` with the known local warning: `SLIPOK_TEST_MODE=true`. Production must use live SlipOK mode and real credentials.
+- Historical result at that time: `prod:check` returned `READY WITH WARNINGS/PASSES` and treated `SLIPOK_TEST_MODE=true` as a warning. This guidance is superseded by the 2026-07-11 Owner-approved shared Test Mode policy above.
 - `git diff --check` reported only Windows LF/CRLF working-copy warnings, not whitespace errors.
 - Browser smoke attempt:
   - Local dev server started at `http://127.0.0.1:3000` only for smoke and was stopped afterward.

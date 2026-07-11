@@ -81,8 +81,11 @@ Main portals:
 
 - User creates bookings and uploads payment slips. Admin booking on behalf of users is disabled.
 - `/admin/booking` redirects to `/admin`; `POST /api/admin/booking` returns `410 Gone`.
-- SlipOK verifies payment slips server-side. `SLIPOK_TEST_MODE=true` is local/testing only.
-- Production/staging must use real `SLIPOK_API_URL` and `SLIPOK_API_KEY`; do not expose keys in UI.
+- Current Owner-approved Production policy is the shared server-side `SLIPOK_TEST_MODE=true` for both Legacy and Progressive payments.
+- Under the current policy, a successful slip upload is auto-approved/verified through each flow's normal state transition, and no live SlipOK network request is made.
+- Do not add a Progressive-only SlipOK mode flag. Legacy and Progressive must read the same global server-side mode.
+- Live SlipOK verification must not be proposed or enabled until the Owner changes policy after branch-specific receiving accounts are designed.
+- Keep `SLIPOK_API_URL` and `SLIPOK_API_KEY` server-only; never expose keys in UI.
 - Do not add a UI toggle for SlipOK mode. Mode belongs in environment variables and redeploy flow.
 - SlipOK success should keep `bookings`, `payments`, history, and notifications consistent.
 

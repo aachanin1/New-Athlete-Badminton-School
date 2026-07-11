@@ -21,12 +21,12 @@ Read only when relevant:
 
 ## Current Pending Work
 
-- Slice 4B Progressive Payment FAST-TRACK MVP is implemented and locally verified. Next actions require explicit Owner instruction:
-  - Review/apply the new remote migration before any feature enablement.
-  - Perform a read-only audit to select a safe Owner/Test `user_id`, then configure the server-side allowlist.
-  - Enable the existing pricing/coupon/batch controls plus the separate Entry/Review controls only for allowlisted UAT.
-  - Run authenticated allowlisted History/Admin/Finance browser UAT before deployment approval.
-  - Do not deploy, apply remote migration, change production environment, enable flags, or call live SlipOK without the next explicit Owner instruction.
+- Shared SlipOK corrective release is complete and Production is stable on `0fbf98f` / `dpl_P5BQcazfbWjReuuLkGXkZpGoG1Gz`.
+  - Current Owner-approved policy is shared global server-side `SLIPOK_TEST_MODE=true` for Legacy and Progressive; uploads auto-approve/verify and make no live SlipOK call.
+  - Do not add a Progressive-only SlipOK mode, accept client mode selection, recommend Production live mode, or enable live verification without a new Owner policy after branch-specific receiving accounts are designed.
+  - All five Progressive migrations are already applied remotely. Do not reapply, roll back, or alter them without explicit Owner instruction.
+  - Progressive Entry/Review/pricing-write/coupon/batch flags and the UUID allowlist remain unset. Do not enable them or begin UAT without a new explicit Owner command.
+  - The next Progressive action, if ordered, is a new Owner-approved allowlisted UAT command beginning with a read-only safe-account audit.
 - Next active work: Step 4.1 Homepage LV Copy Audit/Fix.
   - Audit and correct homepage `LV 71+` / `70+` copy against the active LV 0-70 business rule.
   - Keep the task scoped to homepage copy unless the audit proves another public copy surface is directly related.
