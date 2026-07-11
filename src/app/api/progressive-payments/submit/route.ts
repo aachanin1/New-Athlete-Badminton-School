@@ -5,13 +5,17 @@ import {
 } from '@/lib/progressive-payment-batch'
 import {
   createVerificationRequestFingerprint,
+  downloadProgressivePaymentSlip,
   expireProgressiveBatchIfNeeded,
   markProgressiveBatchUnderReview,
   recordProgressiveVerificationAttempt,
-  resolveProgressiveSlipTestMode,
   resolveProgressiveVerificationAttempt,
 } from '@/lib/progressive-payment-integration'
 import { progressivePaymentError, requireProgressivePaymentUser } from '@/lib/progressive-payment-route'
+import {
+  getProgressiveSlipProviderMode,
+  resolveProgressiveSlipVerification,
+} from '@/lib/progressive-slipok'
 
 export async function POST(request: NextRequest) {
   const access = await requireProgressivePaymentUser(request, { mutation: true, requireEntry: true })
@@ -50,10 +54,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ batch })
     }
 
+    const providerMode = getProgressiveSlipProviderMode()
     const attempt = await recordProgressiveVerificationAttempt({
       batchId: batch.batchId,
       attemptKey: body.attemptKey,
-      providerMode: process.env.SLIPOK_TEST_MODE?.trim().toLowerCase() === 'true' ? 'test' : 'live',
+      providerMode,
       requestFingerprint: createVerificationRequestFingerprint(batch),
     })
 
@@ -64,7 +69,15 @@ export async function POST(request: NextRequest) {
           resultCode: attempt.resultCode || 'RESOLVED',
           verifiedAmount: attempt.verifiedAmount,
         }
-      : resolveProgressiveSlipTestMode({ attemptId: attempt.attemptId, totalAmount: batch.totalAmount })
+      : await resolveProgressiveSlipVerification({
+          attemptId: attempt.attemptId,
+          totalAmount: batch.totalAmount,
+          providerMode,
+          loadSlip: async () => ({
+            buffer: await downloadProgressivePaymentSlip(batch.slipStoragePath!),
+            fileName: batch.slipStoragePath!.split('/').pop() || `${batch.batchId}.jpg`,
+          }),
+        })
 
     if (attempt.status !== 'resolved') {
       await resolveProgressiveVerificationAttempt({ attemptId: attempt.attemptId, ...resolution })

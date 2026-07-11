@@ -219,9 +219,23 @@ check('migration has server-only RPC and RLS controls', () => {
   assert.strictEqual((migration.match(/\$\$/g) || []).length % 2, 0)
 })
 
-check('legacy verify-slip and SlipOK implementation remain unchanged by Slice 4B', () => {
+check('legacy verify-slip behavior remains unchanged after progressive SlipOK isolation', () => {
   const changed = require('child_process').execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
-  for (const forbidden of ['src/app/api/verify-slip/route.ts', 'src/lib/slipok.ts']) assert.ok(!changed.includes(forbidden), forbidden)
+  assert.ok(!changed.includes('src/app/api/verify-slip/route.ts'), 'src/app/api/verify-slip/route.ts')
+
+  const baseline = require('child_process').execFileSync(
+    'git', ['show', 'HEAD:src/lib/slipok.ts'], { encoding: 'utf8' },
+  )
+  const isolated = fs.readFileSync(path.join(__dirname, '..', 'src/lib/slipok.ts'), 'utf8')
+  const restored = isolated
+    .replace('export async function verifySlipLive(', 'export async function verifySlip(')
+    .replace(/\n\/\*\*\n \* Legacy-compatible SlipOK entry point\.[\s\S]+?\n}\n(?=\n\/\*\*)/, '')
+  assert.strictEqual(restored, baseline, 'Live SlipOK implementation changed outside the authorized isolation wrapper')
+
+  const progressiveSubmit = fs.readFileSync(
+    path.join(__dirname, '..', 'src/app/api/progressive-payments/submit/route.ts'), 'utf8',
+  )
+  assert.doesNotMatch(progressiveSubmit, /from ['"]@\/lib\/slipok['"]/)
 })
 
 console.log(`Progressive payment batch checks passed: ${passed} checks.`)

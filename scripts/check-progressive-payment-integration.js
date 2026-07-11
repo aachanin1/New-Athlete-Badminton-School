@@ -6,6 +6,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
 const migration = read('supabase/migrations/20260711150500_add_progressive_payment_integration.sql')
 const feature = read('src/lib/progressive-pricing-feature.ts')
 const integration = read('src/lib/progressive-payment-integration.ts')
+const progressiveSlipok = read('src/lib/progressive-slipok.ts')
 const prepareRoute = read('src/app/api/progressive-payments/prepare/route.ts')
 const uploadRoute = read('src/app/api/progressive-payments/upload/route.ts')
 const submitRoute = read('src/app/api/progressive-payments/submit/route.ts')
@@ -53,8 +54,9 @@ check('9 upload validates magic bytes and five megabyte limit',
 check('10 duplicate hash upload is idempotent',
   uploadRoute.includes('upsert: true') && migration.includes('v_batch.slip_sha256 = lower(p_sha256)'))
 check('11 test mode resolver cannot call the network',
-  integration.includes('resolveProgressiveSlipTestMode')
-  && !integration.includes('verifySlip(')
+  progressiveSlipok.includes('PROGRESSIVE_SLIPOK_TEST_MODE')
+  && progressiveSlipok.includes("input.providerMode === 'test'")
+  && progressiveSlipok.indexOf("input.providerMode === 'test'") < progressiveSlipok.indexOf('input.loadSlip()')
   && !submitRoute.includes("@/lib/slipok"))
 check('12 submit creates one durable verification attempt',
   migration.includes('progressive_payment_attempt_key_unique')

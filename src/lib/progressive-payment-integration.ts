@@ -160,6 +160,14 @@ export async function createProgressiveSlipSignedUrl(path: string | null) {
   return data.signedUrl
 }
 
+export async function downloadProgressivePaymentSlip(path: string) {
+  const { data, error } = await getServiceRoleClient().storage
+    .from(PROGRESSIVE_PAYMENT_BUCKET)
+    .download(path)
+  if (error) throw new Error(`Unable to load progressive payment slip: ${error.message}`)
+  return Buffer.from(await data.arrayBuffer())
+}
+
 export function inspectProgressiveSlip(buffer: Buffer) {
   if (buffer.length < 12 || buffer.length > PROGRESSIVE_PAYMENT_MAX_FILE_BYTES) return null
 
@@ -182,24 +190,6 @@ export function inspectProgressiveSlip(buffer: Buffer) {
     extension,
     sha256: createHash('sha256').update(buffer).digest('hex'),
     sizeBytes: buffer.length,
-  }
-}
-
-export function resolveProgressiveSlipTestMode(input: { attemptId: string; totalAmount: number }) {
-  if (process.env.SLIPOK_TEST_MODE?.trim().toLowerCase() !== 'true') {
-    return {
-      decision: 'under_review' as const,
-      providerReference: null,
-      resultCode: 'LIVE_MODE_NOT_ENABLED',
-      verifiedAmount: null,
-    }
-  }
-
-  return {
-    decision: 'approved' as const,
-    providerReference: `TEST-${input.attemptId}`,
-    resultCode: 'TEST_APPROVED',
-    verifiedAmount: input.totalAmount,
   }
 }
 

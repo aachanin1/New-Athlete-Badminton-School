@@ -47,7 +47,7 @@ export function isSlipOKTimeout(response: SlipOKResponse | null | undefined) {
  * Verify a payment slip using SlipOK API.
  * Sends the slip image file and returns parsed transaction data.
  */
-export async function verifySlip(fileBuffer: Buffer, fileName: string, expectedAmount?: number): Promise<SlipOKResponse> {
+export async function verifySlipLive(fileBuffer: Buffer, fileName: string, expectedAmount?: number): Promise<SlipOKResponse> {
   const apiUrl = process.env.SLIPOK_API_URL
   const apiKey = process.env.SLIPOK_API_KEY
 
@@ -110,6 +110,17 @@ export async function verifySlip(fileBuffer: Buffer, fileName: string, expectedA
   } finally {
     clearTimeout(timeout)
   }
+}
+
+/**
+ * Legacy-compatible SlipOK entry point.
+ *
+ * Legacy Test Mode remains owned by /api/verify-slip. Keeping this wrapper
+ * preserves the existing helper contract while allowing Progressive Payment
+ * to call the live network primitive without inheriting the legacy flag.
+ */
+export function verifySlip(fileBuffer: Buffer, fileName: string, expectedAmount?: number) {
+  return verifySlipLive(fileBuffer, fileName, expectedAmount)
 }
 
 /**
