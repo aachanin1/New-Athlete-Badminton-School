@@ -63,6 +63,8 @@ interface EditBookingRow extends ExistingBookingRow {
   branch_id: string
   total_price: number
   course_types: { name: CourseTypeName } | null
+  pricing_scope_id: string | null
+  pricing_revision: number | null
 }
 
 interface EditBookingSessionRow {
@@ -155,7 +157,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
   if (resolvedSearchParams.editBookingId) {
     const { data: booking } = await supabase
       .from('bookings')
-      .select('id, user_id, learner_type, child_id, branch_id, course_type_id, month, year, total_sessions, total_price, status, course_types(name)')
+      .select('id, user_id, learner_type, child_id, branch_id, course_type_id, month, year, total_sessions, total_price, status, pricing_scope_id, pricing_revision, course_types(name)')
       .eq('id', resolvedSearchParams.editBookingId)
       .eq('user_id', user.id)
       .single() as unknown as { data: EditBookingRow | null }

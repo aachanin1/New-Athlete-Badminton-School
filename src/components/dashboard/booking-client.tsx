@@ -100,6 +100,8 @@ interface EditBookingData {
   course_types: { name: string } | null
   sessions: EditBookingSession[]
   childIds: string[]
+  pricing_scope_id: string | null
+  pricing_revision: number | null
 }
 
 interface BookingClientProps {
@@ -118,7 +120,7 @@ interface BookingClientProps {
 type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
 
 interface BookingDraft {
-  version: 1
+  version: 2
   step: Step
   courseType: CourseTypeName | null
   learnerType: 'self' | 'child' | null
@@ -129,10 +131,11 @@ interface BookingDraft {
   calYear: number
   sessionsMap: Record<string, SelectedSession[]>
   activeChildTab: string
+  clientRequestId: string
   updatedAt: number
 }
 
-const BOOKING_DRAFT_VERSION = 1
+const BOOKING_DRAFT_VERSION = 2
 const STEP_ORDER: Step[] = ['type', 'learner', 'branch', 'calendar', 'summary']
 
 const STEPS: { key: Step; label: string }[] = [
@@ -179,6 +182,10 @@ function isCourseTypeValue(value: unknown, validCourseTypes: Set<string>): value
 
 function isValidStringArray(value: unknown) {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function createClientRequestId() {
+  return globalThis.crypto.randomUUID()
 }
 
 function isValidSelectedSession(value: unknown, validBranchIds: Set<string>): value is SelectedSession {
@@ -299,6 +306,7 @@ function sanitizeBookingDraft(
     calYear,
     sessionsMap,
     activeChildTab: safeActiveChildTab,
+    clientRequestId: typeof value.clientRequestId === 'string' ? value.clientRequestId : createClientRequestId(),
   }
 
   return { ...draft, step: getSafeStep(value.step, draft) }
@@ -366,6 +374,15 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   )
   const [draftReady, setDraftReady] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
+  const [clientRequestId, setClientRequestId] = useState('')
+  const [authoritativePreview, setAuthoritativePreview] = useState<{
+    mode: 'legacy' | 'progressive'
+    totalPrice: number
+    grossPrice: number
+    discountAmount: number
+    expectedScopeRevision?: number
+  } | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   const draftStorageKey = useMemo(
     () => getBookingDraftStorageKey(userId, editBooking?.id || null),
@@ -429,6 +446,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       setCalYear(restoredDraft.calYear)
       setSessionsMap(restoredDraft.sessionsMap)
       setActiveChildTab(restoredDraft.activeChildTab)
+      setClientRequestId(restoredDraft.clientRequestId)
       setExpandedDate(null)
       setDraftRestored(true)
       setDraftReady(true)
@@ -437,6 +455,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       setDraftReady(true)
     }
   }, [draftStorageKey, validBranchIds, validChildIds, validCourseTypes])
+
+  useEffect(() => {
+    if (draftReady && !clientRequestId) setClientRequestId(createClientRequestId())
+  }, [clientRequestId, draftReady])
 
   useEffect(() => {
     if (!draftReady || typeof window === 'undefined') return
@@ -471,6 +493,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           calYear,
           sessionsMap,
           activeChildTab,
+          clientRequestId,
           updatedAt: Date.now(),
         }
         window.sessionStorage.setItem(draftStorageKey, JSON.stringify(draft))
@@ -482,6 +505,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     return () => window.clearTimeout(timeoutId)
   }, [
     activeChildTab,
+    clientRequestId,
     calMonth,
     calYear,
     courseType,
@@ -568,17 +592,50 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     return pricing.total
   }, [pricing, courseType, kidsIncremental])
 
+  const bookingSessionCount = courseType === 'private'
+    ? (sessionsMap.self || []).length
+    : allSelectedSessions.length
+
+  const fetchAuthoritativePreview = async (couponId?: string | null) => {
+    const courseTypeRow = courseTypes.find((ct) => ct.name === courseType)
+    if (!courseTypeRow || bookingSessionCount <= 0) throw new Error('ข้อมูลคำนวณราคาไม่ครบ')
+    const response = await fetch('/api/bookings/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookingId: editBooking?.id || null,
+        courseTypeId: courseTypeRow.id,
+        month: calMonth + 1,
+        year: calYear,
+        totalSessions: bookingSessionCount,
+        couponId: couponId || null,
+      }),
+    })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.error || 'คำนวณราคาไม่สำเร็จ')
+    const preview = result as {
+      mode: 'legacy' | 'progressive'
+      totalPrice: number
+      grossPrice: number
+      discountAmount: number
+      expectedScopeRevision?: number
+    }
+    setAuthoritativePreview(preview)
+    return preview
+  }
+
   // Per-child price breakdown (proportional based on session count)
   const childPriceBreakdown = useMemo(() => {
     if (!pricing || courseType !== 'kids_group') return {}
     const map: Record<string, number> = {}
     const totalNew = allSelectedSessions.length
+    const breakdownTotal = authoritativePreview?.grossPrice ?? totalBatchPrice
     selectedChildIds.forEach((cid) => {
       const count = (sessionsMap[cid] || []).length
-      map[cid] = totalNew > 0 ? Math.round(totalBatchPrice * count / totalNew) : 0
+      map[cid] = totalNew > 0 ? Math.round(breakdownTotal * count / totalNew) : 0
     })
     return map
-  }, [pricing, courseType, selectedChildIds, sessionsMap, totalBatchPrice, allSelectedSessions.length])
+  }, [pricing, courseType, selectedChildIds, sessionsMap, totalBatchPrice, allSelectedSessions.length, authoritativePreview])
 
   // Existing booked sessions for calendar display (filter by current month)
   const existingSessionsForCalendar = useMemo(() => {
@@ -604,8 +661,15 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const sessionStatus = allSelectedSessions.length > 0 ? getSessionStatusLabel(allSelectedSessions.length) : null
 
   // Final price after coupon discount
-  const finalPrice = appliedCoupon ? Math.max(0, totalBatchPrice - appliedCoupon.discountAmount) : totalBatchPrice
-  const isZeroChargeKidsTrueUp = courseType === 'kids_group' && !!kidsIncremental && totalBatchPrice === 0
+  const displayedBasePrice = authoritativePreview?.grossPrice ?? totalBatchPrice
+  const finalPrice = authoritativePreview
+    ? authoritativePreview.totalPrice
+    : appliedCoupon ? Math.max(0, totalBatchPrice - appliedCoupon.discountAmount) : totalBatchPrice
+  const isZeroChargeKidsTrueUp = courseType === 'kids_group' && !!kidsIncremental && finalPrice === 0
+
+  useEffect(() => {
+    setAuthoritativePreview(null)
+  }, [calMonth, calYear, courseType, editBooking?.id, selectedBranchIds, selectedChildIds, sessionsMap])
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
@@ -615,20 +679,31 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       const res = await fetch('/api/validate-coupon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode.trim(), totalAmount: totalBatchPrice }),
+        body: JSON.stringify({ code: couponCode.trim(), totalAmount: displayedBasePrice }),
       })
       const json = await res.json()
       if (!res.ok) {
         setCouponError(json.error || 'คูปองไม่ถูกต้อง')
         setAppliedCoupon(null)
       } else {
-        setAppliedCoupon({
+        const nextCoupon = {
           id: json.coupon.id,
           code: json.coupon.code,
           discount_type: json.coupon.discount_type,
           discount_value: json.coupon.discount_value,
           discountAmount: json.discountAmount,
-        })
+        }
+        if (authoritativePreview?.mode === 'progressive') {
+          const couponPreview = await fetchAuthoritativePreview(nextCoupon.id)
+          nextCoupon.discountAmount = couponPreview.discountAmount
+        } else if (authoritativePreview) {
+          setAuthoritativePreview({
+            ...authoritativePreview,
+            discountAmount: nextCoupon.discountAmount,
+            totalPrice: Math.max(0, authoritativePreview.grossPrice - nextCoupon.discountAmount),
+          })
+        }
+        setAppliedCoupon(nextCoupon)
         setCouponError(null)
       }
     } catch {
@@ -641,6 +716,11 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     setAppliedCoupon(null)
     setCouponCode('')
     setCouponError(null)
+    if (authoritativePreview?.mode === 'progressive') {
+      void fetchAuthoritativePreview(null).catch(() => setAuthoritativePreview(null))
+    } else if (authoritativePreview) {
+      setAuthoritativePreview({ ...authoritativePreview, totalPrice: authoritativePreview.grossPrice, discountAmount: 0 })
+    }
   }
 
   useEffect(() => {
@@ -786,9 +866,21 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     )
   }
 
-  const goNext = () => {
+  const goNext = async () => {
     const nextIndex = currentStepIndex + 1
     if (nextIndex < STEPS.length) {
+      if (step === 'calendar' && STEPS[nextIndex].key === 'summary') {
+        setPreviewLoading(true)
+        setError(null)
+        try {
+          await fetchAuthoritativePreview(appliedCoupon?.id || null)
+        } catch (previewError) {
+          setError(previewError instanceof Error ? previewError.message : 'คำนวณราคาไม่สำเร็จ')
+          setPreviewLoading(false)
+          return
+        }
+        setPreviewLoading(false)
+      }
       // When entering calendar, set activeChildTab
       if (STEPS[nextIndex].key === 'calendar') {
         if (courseType === 'kids_group' && selectedChildIds.length > 0) {
@@ -898,6 +990,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               childId: s.childId,
               scheduleTemplateId: s.scheduleTemplateId,
             })),
+            clientRequestId,
+            expectedScopeRevision: authoritativePreview?.expectedScopeRevision,
           }),
         })
 
@@ -924,7 +1018,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             month: calMonth + 1,
             year: calYear,
             totalSessions: bookingTotalSessions,
-            totalAmount: totalBatchPrice,
+            totalAmount: displayedBasePrice,
             expectedTotalPrice: finalPrice,
             sessions: allSessions.map((s) => ({
               date: s.date,
@@ -938,6 +1032,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               id: appliedCoupon.id,
               code: appliedCoupon.code,
             } : null,
+            clientRequestId,
+            expectedScopeRevision: authoritativePreview?.expectedScopeRevision,
           }),
         })
 
@@ -1539,7 +1635,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                   {existingMonthData.sessions > 0 && (
                     <p>หักยอดที่จ่ายแล้ว: ฿{kidsIncremental.existingPaid.toLocaleString()}</p>
                   )}
-                  <p className="font-semibold">ยอดที่ต้องชำระเพิ่ม: ฿{totalBatchPrice.toLocaleString()}</p>
+                  <p className="font-semibold">ยอดที่ต้องชำระเพิ่ม: ฿{displayedBasePrice.toLocaleString()}</p>
                   {kidsIncremental.creditDifference > 0 && (
                     <>
                       <p>ระบบได้หักเครดิตส่วนต่างที่คุณจ่ายเกินไว้แล้ว ฿{kidsIncremental.creditDifference.toLocaleString()}</p>
@@ -1551,7 +1647,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               )}
 
               {/* Coupon input */}
-              {!isEditMode && totalBatchPrice > 0 && (
+              {!isEditMode && displayedBasePrice > 0 && (
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">คูปองส่วนลด</p>
                   {appliedCoupon ? (
@@ -1590,7 +1686,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 {appliedCoupon && (
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>ยอดก่อนส่วนลด</span>
-                    <span>฿{totalBatchPrice.toLocaleString()}</span>
+                    <span>฿{displayedBasePrice.toLocaleString()}</span>
                   </div>
                 )}
                 {appliedCoupon && (
@@ -1635,12 +1731,12 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           </Button>
         )}
         {step === 'summary' ? (
-          <Button className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading}>
-            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังจอง...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroChargeKidsTrueUp ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
+          <Button className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading || previewLoading}>
+            {loading || previewLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังจอง...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroChargeKidsTrueUp ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
           </Button>
         ) : (
-          <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext()}>
-            ถัดไป<ArrowRight className="ml-2 h-4 w-4" />
+          <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading}>
+            {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ถัดไป<ArrowRight className="ml-2 h-4 w-4" /></>}
           </Button>
         )}
       </div>

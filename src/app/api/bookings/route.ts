@@ -5,6 +5,16 @@ import { logActivity } from '@/lib/activity-log'
 import { calculateBookingBasePrice } from '@/lib/booking-pricing'
 import { notifyRoles, notifyUserOnce } from '@/lib/notifications'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
+import {
+  cancelProgressivePendingBooking,
+  createProgressiveBooking,
+  ProgressiveBookingWriteError,
+  updateProgressivePendingBooking,
+} from '@/lib/progressive-booking-write'
+import {
+  decideProgressiveBookingEntry,
+  getProgressiveBookingEntryDependencyState,
+} from '@/lib/progressive-pricing-feature'
 import type { Coupon, CourseTypeName, LearnerType } from '@/types/database'
 
 interface BookingSessionPayload {
@@ -64,10 +74,10 @@ export async function PUT(request: NextRequest) {
     const adminSupabase = getServiceRoleClient()
     const { data: booking, error: bookingError } = await (adminSupabase
       .from('bookings') as unknown as DbTable)
-      .select('id, user_id, course_type_id, status, learner_type, child_id')
+      .select('id, user_id, course_type_id, status, learner_type, child_id, pricing_scope_id')
       .eq('id', bookingId)
       .eq('user_id', user.id)
-      .single() as { data: { id: string; user_id: string; course_type_id: string; status: string; learner_type: LearnerType | null; child_id: string | null } | null; error: DbError | null }
+      .single() as { data: { id: string; user_id: string; course_type_id: string; status: string; learner_type: LearnerType | null; child_id: string | null; pricing_scope_id: string | null } | null; error: DbError | null }
 
     if (bookingError || !booking) {
       return NextResponse.json({ error: 'ไม่พบการจองที่ต้องการแก้ไข' }, { status: 404 })
@@ -120,6 +130,33 @@ export async function PUT(request: NextRequest) {
     } catch (duplicateError) {
       const message = duplicateError instanceof Error ? duplicateError.message : 'ไม่สามารถจองรอบซ้ำได้'
       return NextResponse.json({ error: message }, { status: 409 })
+    }
+
+    if (booking.pricing_scope_id) {
+      if (!isUuid(body.clientRequestId) || !isNonNegativeInteger(body.expectedScopeRevision)) {
+        return NextResponse.json({ error: 'ข้อมูล revision สำหรับแก้ไข Progressive Booking ไม่ครบ', code: 'PROGRESSIVE_INVALID_REQUEST' }, { status: 409 })
+      }
+      try {
+        const { expectedScopeRevision } = await resolveProgressiveExpectedRevision({
+          client: adminSupabase,
+          userId: user.id,
+          clientRequestId: body.clientRequestId,
+          suppliedRevision: body.expectedScopeRevision,
+          mutation: 'update',
+          bookingId,
+        })
+        const result = await updateProgressivePendingBooking({
+          userId: user.id,
+          bookingId,
+          branchId,
+          sessions,
+          clientRequestId: body.clientRequestId,
+          expectedScopeRevision,
+        })
+        return NextResponse.json({ success: true, ...serializeProgressiveResult(result) })
+      } catch (error) {
+        return progressiveWriteError(error)
+      }
     }
 
     const calculatedTotalAmount = await calculateBookingBasePrice({
@@ -225,6 +262,8 @@ interface CreateBookingPayload {
     id?: string
     code?: string
   } | null
+  clientRequestId?: string
+  expectedScopeRevision?: number
 }
 
 interface UpdateBookingPayload {
@@ -237,11 +276,15 @@ interface UpdateBookingPayload {
   totalAmount?: number
   expectedTotalPrice?: number
   sessions?: BookingSessionPayload[]
+  clientRequestId?: string
+  expectedScopeRevision?: number
 }
 
 interface DeleteBookingPayload {
   bookingId?: string
   action?: 'cancel_pending_booking'
+  clientRequestId?: string
+  expectedScopeRevision?: number
 }
 
 interface DbError {
@@ -318,6 +361,72 @@ interface ResolvedBookingSessionRow {
 
 function isPositiveNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value)
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function serializeProgressiveResult(result: Awaited<ReturnType<typeof createProgressiveBooking>>) {
+  return {
+    bookingId: result.bookingId,
+    totalPrice: result.totalPrice,
+    status: 'pending_payment',
+    pricingScopeId: result.scopeId,
+    pricingRevision: result.scopeRevision,
+    sourceKind: 'progressive_kids_group_v1',
+    idempotentReplay: result.idempotentReplay,
+  }
+}
+
+function progressiveWriteError(error: unknown) {
+  if (!(error instanceof ProgressiveBookingWriteError)) throw error
+  const conflictCodes = new Set([
+    'PROGRESSIVE_BOOKING_CONFLICT', 'PROGRESSIVE_CAPACITY_EXCEEDED',
+    'PROGRESSIVE_DUPLICATE_SESSION', 'PROGRESSIVE_IDEMPOTENCY_CONFLICT',
+    'PROGRESSIVE_SCOPE_LOCKED', 'PROGRESSIVE_SCOPE_REVISION_CONFLICT',
+  ])
+  const unavailableCodes = new Set(['PROGRESSIVE_RPC_UNAVAILABLE', 'PROGRESSIVE_WRITES_DISABLED', 'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED'])
+  const status = unavailableCodes.has(error.code) ? 503 : conflictCodes.has(error.code) ? 409 : 400
+  return NextResponse.json({ error: error.message, code: error.code }, { status })
+}
+
+async function resolveProgressiveExpectedRevision({
+  client,
+  userId,
+  clientRequestId,
+  suppliedRevision,
+  mutation,
+  bookingId,
+}: {
+  client: AdminSupabase
+  userId: string
+  clientRequestId: string
+  suppliedRevision: number
+  mutation: 'create' | 'update' | 'cancel'
+  bookingId?: string
+}) {
+  const { data: receipt, error } = await client
+    .from('progressive_booking_mutation_receipts')
+    .select('mutation_type, booking_id, expected_scope_revision')
+    .eq('user_id', userId)
+    .eq('client_request_id', clientRequestId)
+    .maybeSingle() as unknown as {
+      data: { mutation_type: string; booking_id: string | null; expected_scope_revision: number } | null
+      error: DbError | null
+    }
+  if (error) throw new ProgressiveBookingWriteError('PROGRESSIVE_RPC_UNAVAILABLE', error.message)
+  if (!receipt) return { expectedScopeRevision: suppliedRevision, replayCandidate: false }
+  if (receipt.mutation_type !== mutation || (bookingId && receipt.booking_id !== bookingId)) {
+    throw new ProgressiveBookingWriteError('PROGRESSIVE_IDEMPOTENCY_CONFLICT', 'PROGRESSIVE_IDEMPOTENCY_CONFLICT')
+  }
+  return { expectedScopeRevision: Number(receipt.expected_scope_revision), replayCandidate: true }
 }
 
 function normalizeCode(code: string | undefined) {
@@ -691,6 +800,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
     }
 
+    const entryDecision = decideProgressiveBookingEntry(user.id, courseType.name)
+    if (entryDecision.mode === 'progressive') {
+      const dependency = getProgressiveBookingEntryDependencyState()
+      if (!dependency.ready) {
+        return NextResponse.json({
+          error: 'ระบบ Progressive Booking ยังไม่พร้อม กรุณาลองใหม่ภายหลัง',
+          code: 'PROGRESSIVE_BOOKING_DEPENDENCY_UNAVAILABLE',
+        }, { status: 503 })
+      }
+      if (!isUuid(body.clientRequestId) || !isNonNegativeInteger(body.expectedScopeRevision)) {
+        return NextResponse.json({
+          error: 'กรุณาคำนวณราคา Progressive ล่าสุดก่อนยืนยันการจอง',
+          code: 'PROGRESSIVE_PREVIEW_REQUIRED',
+        }, { status: 409 })
+      }
+
+      try {
+        const { expectedScopeRevision, replayCandidate } = await resolveProgressiveExpectedRevision({
+          client: adminSupabase,
+          userId: user.id,
+          clientRequestId: body.clientRequestId,
+          suppliedRevision: body.expectedScopeRevision,
+          mutation: 'create',
+        })
+        if (!replayCandidate) {
+          try {
+            await assertNoDuplicateActiveSessions(adminSupabase, user.id, sessions, childNameMap)
+          } catch (duplicateError) {
+            const message = duplicateError instanceof Error ? duplicateError.message : 'ไม่สามารถจองรอบซ้ำได้'
+            return NextResponse.json({ error: message }, { status: 409 })
+          }
+        }
+        const result = await createProgressiveBooking({
+          userId: user.id,
+          learnerType,
+          childId: getResolvedBookingChildId(learnerType, childId, sessions),
+          branchId,
+          courseTypeId,
+          sessions,
+          couponId: couponInput?.id || null,
+          clientRequestId: body.clientRequestId,
+          expectedScopeRevision,
+        })
+        return NextResponse.json({ success: true, ...serializeProgressiveResult(result) })
+      } catch (error) {
+        return progressiveWriteError(error)
+      }
+    }
+
     const calculatedTotalAmount = await calculateBookingBasePrice({
       supabase: adminSupabase,
       userId: user.id,
@@ -866,10 +1024,10 @@ export async function DELETE(request: NextRequest) {
     const adminSupabase = getServiceRoleClient()
     const { data: booking, error: bookingError } = await (adminSupabase
       .from('bookings') as unknown as DbTable)
-      .select('id, user_id, status')
+      .select('id, user_id, status, pricing_scope_id')
       .eq('id', bookingId)
       .eq('user_id', user.id)
-      .single() as { data: { id: string; user_id: string; status: string } | null; error: DbError | null }
+      .single() as { data: { id: string; user_id: string; status: string; pricing_scope_id: string | null } | null; error: DbError | null }
 
     if (bookingError || !booking) {
       return NextResponse.json({ error: 'ไม่พบการจองที่ต้องการยกเลิก' }, { status: 404 })
@@ -877,6 +1035,31 @@ export async function DELETE(request: NextRequest) {
 
     if (booking.status !== 'pending_payment') {
       return NextResponse.json({ error: 'ยกเลิกจากหน้านี้ได้เฉพาะรายการที่ยังรอชำระเงินเท่านั้น' }, { status: 400 })
+    }
+
+    if (booking.pricing_scope_id) {
+      if (!isUuid(body.clientRequestId) || !isNonNegativeInteger(body.expectedScopeRevision)) {
+        return NextResponse.json({ error: 'ข้อมูล revision สำหรับยกเลิก Progressive Booking ไม่ครบ', code: 'PROGRESSIVE_INVALID_REQUEST' }, { status: 409 })
+      }
+      try {
+        const { expectedScopeRevision } = await resolveProgressiveExpectedRevision({
+          client: adminSupabase,
+          userId: user.id,
+          clientRequestId: body.clientRequestId,
+          suppliedRevision: body.expectedScopeRevision,
+          mutation: 'cancel',
+          bookingId,
+        })
+        const result = await cancelProgressivePendingBooking({
+          userId: user.id,
+          bookingId,
+          clientRequestId: body.clientRequestId,
+          expectedScopeRevision,
+        })
+        return NextResponse.json({ success: true, ...serializeProgressiveResult(result) })
+      } catch (error) {
+        return progressiveWriteError(error)
+      }
     }
 
     const { error: sessionError } = await (adminSupabase

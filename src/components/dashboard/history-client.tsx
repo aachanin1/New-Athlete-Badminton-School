@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
@@ -323,6 +323,7 @@ export function HistoryClient({
   const [paymentMode, setPaymentMode] = useState<'legacy' | 'progressive'>('legacy')
   const [progressiveBatch, setProgressiveBatch] = useState<ProgressiveBatchSummary | null>(null)
   const [progressiveSelectedCounts, setProgressiveSelectedCounts] = useState<Record<string, number>>({})
+  const cancelRequestIds = useRef(new Map<string, string>())
   const [authoritativeBatchTotal, setAuthoritativeBatchTotal] = useState<number | null>(null)
 
   // Alert dialog state (replaces browser confirm)
@@ -392,17 +393,30 @@ export function HistoryClient({
     setDetailDialogOpen(true)
   }
 
-  const handleCancelBooking = (bookingId: string) => {
+  const handleCancelBooking = (booking: BookingWithRelations) => {
     showConfirm(
       'ยืนยันยกเลิกการจอง',
       'การจองที่ยกเลิกแล้วจะไม่สามารถกู้คืนได้ คุณต้องการยกเลิกหรือไม่?',
       async () => {
         setLoading(true)
         setError(null)
+        let clientRequestId = cancelRequestIds.current.get(booking.id)
+        if (!clientRequestId) {
+          clientRequestId = globalThis.crypto.randomUUID()
+          cancelRequestIds.current.set(booking.id, clientRequestId)
+        }
+        const expectedScopeRevision = booking.pricing_scope_id
+          ? progressiveScopeRevisionMap[booking.pricing_scope_id]?.revision
+          : undefined
         const response = await fetch('/api/bookings', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'cancel_pending_booking', bookingId }),
+          body: JSON.stringify({
+            action: 'cancel_pending_booking',
+            bookingId: booking.id,
+            clientRequestId,
+            expectedScopeRevision,
+          }),
         })
         const result = await response.json()
 
@@ -1431,7 +1445,7 @@ export function HistoryClient({
                     <Button
                       variant="outline"
                       className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
-                      onClick={() => handleCancelBooking(selectedBooking.id)}
+                      onClick={() => handleCancelBooking(selectedBooking)}
                       disabled={loading}
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
