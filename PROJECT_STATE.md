@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
 
 ## Current Snapshot
@@ -18,6 +18,18 @@ Observed scripts:
 - `npm run prod:check`: read-only production readiness checker.
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
+
+## 2026-07-12 - Progressive Normal Booking Entry (Kids Group Only)
+
+- Final status: `PASS` for source integration and disposable local runtime. Source commit `56daabf30ad60c07b3c3ccb98fe42028e33de1be` was pushed to `spike/next-major-security-upgrade`. No deploy or Production UAT was performed.
+- Normal Booking now uses a server-only decision: Entry flag off or user not allowlisted keeps every course on Legacy; allowlisted `kids_group` uses Progressive only when pricing-write, coupon-lifecycle, and payment-batch dependencies are ready; a missing dependency returns typed `503` with no Legacy fallback. Allowlisted `adult_group` and `private` remain Legacy and do not call Progressive pricing/write helpers.
+- A read-only `/api/bookings/preview` path uses the Progressive kids calculator and current scope revision. Progressive create recomputes atomically in the existing RPC and returns authoritative booking id, total, pending status, scope id, revision, and source kind. Client mode/user/price fields are not authority.
+- Progressive edit/cancel routing is selected only from DB `bookings.pricing_scope_id`. Existing Progressive bookings can still edit/cancel/drain when only the Entry flag is later disabled. Legacy edit/cancel remains unchanged.
+- Create request UUIDs persist in the session draft. Existing mutation receipts restore the original expected revision for timeout/refresh retries; the RPC fingerprint rejects reuse of the same key with different input, and advisory/scope locks serialize concurrent duplicates.
+- Disposable local Supabase runtime passed 9 scenarios: flags off Legacy; non-allowlisted Legacy; adult/private Legacy; Progressive create with scope/snapshots/sessions and no payment artifacts; edit; soft cancel; dependency fail-closed/no write; concurrent duplicate one-booking result; and History/payment-prepare eligibility. Local shadow audit found 2/2 active bookings `MATCH`, with 0 entitlement drift and 0 missing tiers. Containers were stopped afterward.
+- Verification passed: booking entry 18, pricing 17, transactions 33, coupon 38, payment batches 39, payment integration 18, shared SlipOK mode 6, local shadow audit, TypeScript, ESLint, mojibake, production build, and `git diff --check`. Local attendance reconciliation reported 0 mismatches. `prod:check` was intentionally pointed at the empty disposable DB and therefore reported expected fixture blockers (no branches/templates/tiers/core buckets), not a Production readiness result.
+- Post-build dev restart passed: home 200, generated `_next/static` CSS 200, unauthenticated booking preview 401, meaningful home HTML, and no Next error-overlay marker. Visual automation was unavailable because the agent-browser CLI/browser-control runtime was not installed.
+- No migration was added/changed/applied remotely; no environment or feature flag changed; no Production/remote DB write/read, deploy, Production UAT, live SlipOK call, general-user enablement, Adult/Private pricing change, direct implementation SQL shortcut, or force push occurred.
 
 ## 2026-07-11 - Shared SlipOK Test Mode Corrective Production Release
 

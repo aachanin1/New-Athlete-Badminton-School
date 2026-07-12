@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Work Index
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 This file is the short execution index for Codex. It does not replace
 `DEVELOPMENT_TODO.md`; it points to the relevant detailed section.
@@ -21,6 +21,10 @@ Read only when relevant:
 
 ## Current Pending Work
 
+- Progressive Normal Booking Entry for allowlisted `kids_group` is source-complete at `56daabf` and remains undeployed.
+  - `adult_group` and `private` remain Legacy. Entry/allowlist/dependency decisions are server-only and default deny.
+  - All Production Progressive flags/allowlist remain unset. Do not enable, deploy, or begin Production UAT without a separate explicit Owner command.
+  - Recommended next Progressive step: separate Deploy + Dedicated Parent/Child UAT command, beginning with environment/allowlist confirmation and a read-only account/slot audit.
 - Shared SlipOK corrective release is complete and Production is stable on `0fbf98f` / `dpl_P5BQcazfbWjReuuLkGXkZpGoG1Gz`.
   - Current Owner-approved policy is shared global server-side `SLIPOK_TEST_MODE=true` for Legacy and Progressive; uploads auto-approve/verify and make no live SlipOK call.
   - Do not add a Progressive-only SlipOK mode, accept client mode selection, recommend Production live mode, or enable live verification without a new Owner policy after branch-specific receiving accounts are designed.
@@ -57,6 +61,15 @@ Read only when relevant:
   - No write action was clicked. No booking/payment/slip/coupon/check-in/attendance creation or mutation was performed locally or on production.
 
 ## Completed This Round
+
+- Completed Progressive Normal Booking Entry — Kids Group Only (`PASS`, source + local test only):
+  - Source commit `56daabf30ad60c07b3c3ccb98fe42028e33de1be` was pushed to `spike/next-major-security-upgrade`; source and docs were kept in separate commits.
+  - Server decision table preserves Legacy when Entry is off/unset, user is not allowlisted, or course is `adult_group`/`private`; only allowlisted `kids_group` selects Progressive and missing dependencies fail closed with typed 503.
+  - Added read-only authoritative preview, atomic create routing through existing RPCs, DB-derived edit/cancel routing, History revision-aware cancellation, and persisted create idempotency keys with receipt-aware retry.
+  - Deterministic counts passed: booking entry 18, pricing 17, transactions 33, coupon 38, payment batches 39, payment integration 18, shared SlipOK 6.
+  - Disposable local runtime passed 9/9 scenarios and local shadow audit reported 2 matches, 0 drift, 0 missing tiers. Containers were stopped.
+  - TypeScript, ESLint, mojibake, production build, attendance reconciliation (0 mismatches), static/home/API smoke, and diff check passed. Local `prod:check` was not a Production verdict because it was safely pointed at an empty disposable DB and showed expected missing-fixture blockers.
+  - No migration, deploy, Production environment/flag change, Production/remote DB access, Production UAT, live SlipOK call, Adult/Private pricing change, general-user enablement, direct implementation SQL shortcut, or force push occurred.
 
 - Completed Slice 4B Progressive Payment FAST-TRACK MVP locally:
   - Added the additive Slice 4B migration with 30-minute prepared TTL/lazy expiry, private slip bucket, centralized retention policy, one durable verification attempt per batch, upload/cancel/under-review/status RPCs, and unified payment review/ledger views.
