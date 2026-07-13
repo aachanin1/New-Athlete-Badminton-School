@@ -833,6 +833,94 @@ repo: `Unknown / Need verification`.
 - Classification:
   **OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**.
 
+#### 2026-07-13 - Option A Compatibility Source Implementation Closeout
+
+- Source complete: **yes**. Source commit
+  `f8568a6d9c18da3745492d47c01d3ca22da156c8` was pushed to
+  `origin/spike/next-major-security-upgrade`. It follows provenance-resume docs
+  commit `210b7fc`; the unrelated pre-existing `AGENTS.md` remainder stayed
+  unstaged and excluded.
+- Migration source created: **yes**, exactly one new additive migration,
+  `20260713210000_add_progressive_legacy_baseline_compatibility.sql`. Migration
+  applied remotely: **no**. Existing applied migration files were not edited.
+- Additive scope contract: nullable `legacy_baseline_sessions`,
+  `legacy_baseline_fingerprint`, and `legacy_baseline_initialized_at`, with an
+  all-or-none constraint and an immutability trigger. No monetary Legacy baseline
+  field exists and the migration performs no Legacy booking, payment, ledger,
+  Finance, coupon, wallet, attendance, refund, credit, or accounting DML.
+- Canonical helper: `progressive_legacy_baseline_v1(uuid,uuid,integer,integer)` is
+  service-role-only/SECURITY DEFINER and sums only `bookings.total_sessions` for
+  exact-scope null-`pricing_scope_id` Kids Group bookings that are `paid`,
+  `verified`, or non-expired `pending_payment`. The deterministic SHA-256 input is
+  sorted by booking id and includes stable id/status/entitlement/expiry evidence;
+  raw `booking_sessions`, reschedule descendants, wallet history, and Legacy money
+  are not pricing inputs.
+- Replaced effective shared functions without removing later coupon/payment fixes:
+  `progressive_acquire_scope_v1(uuid,uuid,integer,integer,bigint)`,
+  `progressive_assert_scope_membership_v1(uuid,uuid,uuid,integer,integer)`, and
+  `progressive_reprice_scope_v1(uuid,bigint,timestamptz,uuid)`. Acquire initializes
+  the Legacy count/fingerprint once under the existing advisory lock; existing
+  initialized scopes require an exact match and fail
+  `PROGRESSIVE_LEGACY_BASELINE_DRIFT`. Pre-compat scopes lazily initialize only an
+  authoritative empty baseline.
+- New create signature is
+  `create_progressive_booking_v1(uuid,learner_type,uuid,uuid,uuid,jsonb,uuid,uuid,bigint,integer,text)`.
+  It preserves mutation-receipt replay, advisory/revision locks, slot capacity,
+  coupon reservation, activity logging, and no-payment-artifact behavior. Expected
+  count/fingerprint are part of the mutation fingerprint and are compared with the
+  stored authoritative baseline before inserting the new Progressive booking.
+  Capability `progressive_pricing_writes_capability_v1()` is source version `2`
+  with contract `immutable_scope_v1`.
+- Preview response now separates Legacy baseline, previous Progressive active, and
+  new sessions and preserves cumulative-after, rate, gross, discount/final,
+  source/mode, scope, and revision. Client payload carries only the opaque expected
+  count/fingerprint needed for stale-preview validation; it does not supply trusted
+  Legacy ids, price/payment amounts, or arbitrary pricing authority.
+- Repricing starts cumulative entitlement at the stored Legacy baseline and walks
+  only active scope-owned Progressive rows in `created_at`, then booking-id order.
+  Existing edit/cancel and payment rejection continue through this shared repricer;
+  Legacy rows are outside membership and are never repriced, snapshotted, assigned
+  a scope, or written.
+- Exact verified Option A result: Legacy entitlement `4`, historical Legacy amount
+  `2,500`, new `4`, cumulative `8`, rate `500`, gross/final without coupon `2,000`.
+  The `2,500` remained unchanged and was never deducted. Cancelled and expired
+  pending Legacy were excluded; multi-child `2+2` counted `4`; wallet/reschedule
+  descendants did not change entitlement; coupon applied only after gross.
+- Disposable migration/runtime result: `npx supabase db reset` compiled the full
+  chain through `20260713210000`. A transaction-wrapped SQL fixture rolled back
+  cleanly after testing Legacy-only/mixed and Progressive-only scope creation,
+  exclusions, reschedule/wallet, children, stale revision/baseline, no partial write,
+  replay/idempotency conflict, edit/cancel, immutable drift, pre-compat zero-only
+  initialization, coupon recalculation, and payment prepare/cancel drain. A real
+  two-connection concurrency test passed `8/8`: exactly one first request created
+  one scope/booking/receipt at `2,000`; the other failed typed stale revision. All
+  fixtures were rolled back/deleted, residue counts were zero, and the disposable
+  stack was stopped without backup.
+- Deterministic/regression results: Option A `32`, booking entry `25`, booking
+  pricing `17`, pricing transactions `33`, coupon lifecycle `38`, payment batches
+  `39`, payment integration/Finance/redaction `18`, payment notifications `16`,
+  shared SlipOK `6`, Legacy pricing/payment `14`, plus the concurrency `8` above.
+  The read-only Progressive pricing shadow audit also completed. `tsc --noEmit`,
+  ESLint, mojibake (`225` files), `next build --webpack`, and `git diff --check`
+  passed. After build, port `3000` was stopped, only this repo's `.next` was removed,
+  dev restarted, `/` and generated `/_next/static/*` returned `200`, unauthenticated
+  booking preview returned `401`, browser console errors were `0`, and no visible
+  Next error overlay existed.
+- Source files changed: Progressive preview/write helpers, booking preview/create
+  routes, booking client payload typing, manual database types, booking-entry and
+  transaction regressions, three Option A deterministic/runtime/concurrency test
+  scripts, and the single new migration. Adult Group, Private, Legacy pricing,
+  pricing tiers, payment/Finance/Ledger implementation, environment, allowlist, and
+  Production business data were not changed.
+- Deploy performed: **no**. Entry: **false**. Production active: **no**. Production
+  data changed: **no**. Customer impact: **none**. Financial impact: **none**.
+  Remaining migration/deploy gate: fresh read-only mixed-scope audit plus separate
+  Owner approval to apply `20260713210000` and deploy with Entry still false.
+  Remaining activation/UAT gate: later separate Owner approval for Entry activation
+  and a no-write authoritative `4+4 = 2,000` Production preview with rollback.
+- Classification:
+  **PASS — OPTION A COMPATIBILITY SOURCE COMPLETE; MIGRATION/DEPLOY/ACTIVATION PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

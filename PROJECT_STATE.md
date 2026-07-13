@@ -96,20 +96,21 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
     dependency -> typed `503`, no Legacy fallback or partial write.
   - Current deployed source still returns `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` when
     an active booking's `pricing_scope_id` does not match the Progressive period
-    scope. Option A defines the replacement behavior, and the Owner has approved
-    its source/RPC plus additive-scope-baseline implementation. Source work resumes
-    from Gate 1; remote migration, deploy, Entry activation, and Production data
-    remain separately gated and unapproved.
+    scope. Option A compatible source is now complete and pushed at
+    `f8568a6d9c18da3745492d47c01d3ca22da156c8`, but it is not deployed and its
+    additive migration is not applied remotely. Production therefore remains on
+    the prior behavior until separate migration/deploy approval.
   - `adult_group` and `private` -> Legacy.
   - Existing Progressive edit/cancel remains routed by stored `pricing_scope_id`.
     Payment prepare/upload/submit/status/cancel uses authenticated ownership and
     dependency readiness, so existing bookings can drain after Entry is disabled.
 - UUID allowlist parsing remains available as staged/test infrastructure, but it is
   not a general-customer eligibility or authorization boundary.
-- Source complete: **yes** for the previously approved general Kids Group gate;
-  **no** for Option A active-Legacy compatibility at this snapshot. The Owner
-  decision and source implementation approval are confirmed; Gate 1 implementation
-  is the authorized continuation.
+- Source complete: **yes** for the general Kids Group gate and **yes** for Option A
+  active-Legacy compatibility. Commit `f8568a6d9c18da3745492d47c01d3ca22da156c8`
+  adds the TypeScript contracts, additive migration source, capability version `2`,
+  and deterministic/disposable verification. Remote migration, deploy, Entry, and
+  Production-active behavior remain pending.
 - Source complete: **yes** for the Admin/Super Admin payment-success notification
   correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
   adds a `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
@@ -117,9 +118,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
-- Committed: **yes**, through `60688a3`. Pushed: **yes** to
-  `origin/spike/next-major-security-upgrade` after the synchronized documentation
-  closeout.
+- Committed and pushed: **yes**, through Option A source commit `f8568a6` on
+  `origin/spike/next-major-security-upgrade` before this documentation closeout.
 - Deployed: **yes** from clean detached documentation commit
   `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`, which contains source commit
   `60688a3`. The final Ready rollback deployment is
@@ -138,12 +138,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   Admin received the approved batch operational context once without structured
   amount, booking-total, allocation, revenue, or Finance fields in the rendered UI
   or the technically inspectable server payload.
-- Local verification passed: notifications `16`, booking entry `23`, pricing `17`,
-  transactions `33`, coupon `38`, payment batches `39`, payment integration `18`,
-  shared SlipOK `6`, Legacy pricing `14`, TypeScript, ESLint, mojibake, and
-  Production build. Post-build dev/static-asset verification also passed with HTTP
-  `200` for `/` and `/_next/static/chunks/webpack.js`.
-- All six Progressive migrations and all four capability RPCs are deployed/Ready.
+- Local verification passed: Option A deterministic `32`, Option A real concurrency
+  `8`, booking entry `25`, pricing `17`, transactions `33`, coupon `38`, payment
+  batches `39`, payment integration/Finance/redaction `18`, notifications `16`,
+  shared SlipOK `6`, and Legacy pricing/payment regression `14`. The full disposable
+  migration chain, rollback-only mixed/progressive/edit/cancel/coupon/payment-drain
+  runtime fixture, TypeScript, ESLint, mojibake (`225` files), Production build, and
+  `git diff --check` passed. Post-build checks returned `/` `200`, generated
+  `/_next/static/*` `200`, unauthenticated booking preview `401`, zero console
+  errors, and no visible Next error overlay.
+- The six previously deployed Progressive migrations and four Production capability
+  RPCs remain deployed/Ready. New migration `20260713210000` and pricing-write
+  capability version `2` exist only in pushed source and have not been applied remotely.
 
 ### Production
 
@@ -234,10 +240,51 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `21e32c7c5ee3254b981f8dabf19f515c6c77e8eb`, and explicitly authorized Gate 1
   source implementation to resume. Migration application, deploy, Entry activation,
   and Production business-data changes remain unapproved.
+- Option A source implementation completed and pushed in
+  `f8568a6d9c18da3745492d47c01d3ca22da156c8`. Additive migration source
+  `20260713210000_add_progressive_legacy_baseline_compatibility.sql` adds only three
+  nullable scope fields (`legacy_baseline_sessions`, fingerprint, initialized-at),
+  a constraint/immutability trigger, one authoritative Legacy baseline helper, and
+  compatible replacements for scope acquire/membership/repricing/create/capability.
+  It contains no Legacy booking, Payment, Ledger, Finance, coupon, wallet, or
+  accounting DML and adds no Legacy monetary baseline field.
+- `progressive_legacy_baseline_v1()` selects only null-scope Kids Group rows in the
+  exact user/course/year/month with `paid`, `verified`, or non-expired
+  `pending_payment` status. It sums `bookings.total_sessions`; raw session,
+  reschedule, wallet, stored-price, paid-amount, and accounting fields do not enter
+  the calculation. The SHA-256 fingerprint is built from the booking-id-sorted
+  complete eligible set and detects membership, eligibility/status/expiry, and
+  entitlement changes.
+- First scope acquisition initializes the count/fingerprint once under the existing
+  advisory lock. Initialized scopes compare the current fingerprint and fail with
+  `PROGRESSIVE_LEGACY_BASELINE_DRIFT`; pre-compatibility scopes may initialize to
+  zero only when the eligible Legacy set is empty. Create additionally compares the
+  previewed count/fingerprint, fingerprints them into mutation idempotency, and
+  fails stale baseline input with `PROGRESSIVE_LEGACY_BASELINE_CONFLICT`.
+- Preview now separates `legacyBaselineSessions`,
+  `previousProgressiveActiveSessions`, and `newBookingSessions`, while preserving
+  cumulative-after, rate, gross, coupon/final, source/mode, scope, and revision.
+  Repricing begins at the stored Legacy session baseline and iterates active
+  scope-owned Progressive bookings only in `created_at`, then booking-id order.
+  Legacy rows remain outside membership and are never written or snapshotted.
+- Disposable Supabase `db reset` applied the complete local migration chain through
+  `20260713210000`. A rollback-only runtime fixture proved Legacy-only/mixed and
+  Progressive-only scopes, multi-child `2+2`, cancelled/expired exclusion,
+  reschedule/wallet invariance, exact `4+4 = 2,000`, coupon-after-gross, mutation
+  replay/conflict, stale/no-partial-write, edit/cancel, immutable drift, safe
+  pre-compat zero initialization, and prepare/cancel payment drain. A separate real
+  two-connection race produced exactly one first booking/scope/receipt and one typed
+  stale-revision loser. Fixtures rolled back or were deleted; the local stack was
+  stopped without backup.
+- Migration applied remotely: **no**. Deploy performed: **no**. Entry remains
+  **false**. Production-active Option A behavior: **no**. Production data changed:
+  **no**. Customer impact: **none**. Financial impact: **none**. Next Owner gate is
+  remote migration plus deploy approval after a fresh read-only mixed-scope audit;
+  Entry activation and no-write `4+4` UAT require a later separate approval.
 
 ### Pricing Reconciliation Status
 
-**OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**
+**PASS — OPTION A COMPATIBILITY SOURCE COMPLETE; MIGRATION/DEPLOY/ACTIVATION PENDING**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,

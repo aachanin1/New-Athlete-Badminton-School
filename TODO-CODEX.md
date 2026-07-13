@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**.
+Current classification: **PASS — OPTION A COMPATIBILITY SOURCE COMPLETE; MIGRATION/DEPLOY/ACTIVATION PENDING**.
 
 Confirmed:
 
@@ -101,12 +101,12 @@ Blocked / Need action:
   passed exactly: `4` previous + `4` new = `8`, authoritative rate `500`, charge
   `8 * 500 - 2,500 = 1,500`. The policy Progressive arithmetic is `4 * 500 = 2,000`.
   No confirmation or Production write occurred.
-- Activation is not yet safe for this account. Both active bookings have
-  `pricing_scope_id=null` and there is no July Progressive scope. The deployed
-  source therefore returns `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` before Progressive
-  pricing when Entry is on. The Owner policy is now confirmed, but the compatible
-  source/RPC and additive scope-baseline migration are not implemented; do not
-  reactivate Entry yet.
+- Activation is not yet safe because Production still runs the pre-compatibility
+  deployment. Both active bookings have `pricing_scope_id=null` and there is no July
+  Progressive scope, so deployed source still returns
+  `PROGRESSIVE_LEGACY_SCOPE_NOT_READY`. Compatible source/RPC is complete and pushed
+  at `f8568a6d9c18da3745492d47c01d3ca22da156c8`; additive migration
+  `20260713210000` is source-only and not remotely applied. Do not reactivate Entry.
 - Read-only Production blast radius: `373` active Legacy-only user/month periods,
   `1` Progressive-only period, `0` mixed periods, `423` active Legacy bookings and
   `2,416` Legacy entitlement sessions. Current/future July-August exposure is `185`
@@ -128,12 +128,23 @@ Blocked / Need action:
   `21e32c7c5ee3254b981f8dabf19f515c6c77e8eb`, and explicitly authorized source
   implementation to resume from Gate 1. Remote migration, deploy, Entry activation,
   and Production data changes remain separately gated and unapproved.
+- Option A source implementation and verification are complete. The authoritative
+  helper sums only eligible null-scope Legacy `bookings.total_sessions`; immutable
+  scope count/fingerprint initialization and drift protection run under the scope
+  advisory lock; preview/create carry expected baseline evidence; repricing starts
+  from the stored baseline and touches only Progressive rows. Capability source is
+  version `2`.
+- Full disposable migration reset, rollback-only runtime fixtures, real
+  two-connection first-scope concurrency, all relevant deterministic regressions,
+  TypeScript, lint, mojibake, build, and clean post-build browser checks passed.
+  No fixture residue remains and the disposable Supabase stack is stopped.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. Continue the approved audited compatibility implementation from Gate 1.
-  Entry activation must not be retried yet.
+  booking. Source work is complete. The next action requires Owner approval for a
+  fresh read-only mixed-scope audit, remote migration `20260713210000`, and deploy.
+  Entry activation still requires a later separate approval and no-write `4+4` UAT.
 
 Do not do now:
 
@@ -146,12 +157,13 @@ Do not do now:
 
 Next gated work:
 
-1. Owner approves the exact audited TypeScript plus additive-migration source scope.
-2. Implement and locally verify without Legacy booking backfill or Production data
-   repair; perform a fresh read-only mixed-scope audit before any migration/deploy.
-3. After compatibility readiness is proved, Owner separately approves migration
-   application/deploy and then another
-   Entry activation attempt and no-write `4 + 4` runtime preview.
+1. Owner approves a fresh read-only mixed-scope pre-deploy audit plus remote
+   application of migration `20260713210000` and deployment of `f8568a6` or its
+   documentation descendant, with Entry remaining `false`.
+2. Verify capability version `2`, schema/function hashes, zero Legacy-row rewrites,
+   and unchanged payment/coupon/Finance/Ledger state after migration/deploy.
+3. Owner separately approves a later Entry activation attempt and no-write `4 + 4`
+   runtime preview; rollback immediately if the authoritative result is not `2,000`.
 
 Conditions before any Production write or deploy:
 
@@ -164,14 +176,15 @@ Conditions before any Production write or deploy:
 
 | State | Current result |
 | --- | --- |
-| Source complete | General entry and staff notifications complete; Option A compatibility source/migration not implemented |
-| Committed | Yes - notification fix `60688a3` |
-| Pushed | Yes - through the synchronized source/docs closeout on `origin/spike/next-major-security-upgrade` |
+| Source complete | Yes - Option A TypeScript/RPC/additive migration source complete at `f8568a6` |
+| Committed | Yes - source `f8568a6`; documentation closeout follows separately |
+| Pushed | Yes - source through `f8568a6` on `origin/spike/next-major-security-upgrade` |
 | Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
+| Option A migration | Source `20260713210000` created; not applied remotely |
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | User/Parent Entry-off safe `4 + 4` draft passed at Legacy `1,500`; Option A predicts `2,000`, but Entry-on proof awaits the source fix |
+| Production UAT | User/Parent Entry-off Legacy draft passed at `1,500`; Option A local/disposable `4 + 4` passed at `2,000`; Production Entry-on proof awaits migration/deploy/activation approval |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
