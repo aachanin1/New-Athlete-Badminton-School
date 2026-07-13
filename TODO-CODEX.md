@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **DOCUMENTATION DRIFT — ENTRY VARIABLE PRESENT; MIGRATION/DEPLOY STOPPED**.
+Current classification: **PASS — ENTRY VARIABLE REMOVED; MIGRATION/DEPLOY GATE MUST RESTART FROM GATE 0**.
 
 Confirmed:
 
@@ -144,13 +144,24 @@ Blocked / Need action:
   Vercel CLI. Migration `20260713210000` remains pending and deployment remains
   `dpl_3RS4MWu...`; no migration, deploy, environment, or Production data change
   was performed after this drift was detected.
+- Owner then authorized one isolated environment cleanup. The exact Production-only
+  Entry variable was removed without replacement. Fresh full-name evidence changed
+  from `11` to `10`: removed Entry only, added `0`, and all remaining variable
+  metadata stayed unchanged. The four dependencies and shared SlipOK name remain;
+  the allowlist remains absent.
+- No deployment or migration followed the cleanup. `dpl_3RS4MWu...` remains Ready
+  on the same aliases and `20260713210000` remains pending. Home and unauthenticated
+  preview returned `200` and `401`; bounded error and SlipOK log searches returned
+  zero rows. Counts for `17` relevant Production tables/views were identical before
+  and after, including Booking, Payment, coupon, wallet, attendance, notification,
+  pricing tiers, allocations/Ledger, and Finance.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. Source work is complete, but migration/deploy is stopped at Gate 0.
-  Owner direction is required for the unexpected present Entry variable; current
-  approval explicitly forbids environment changes and required the variable absent.
+  booking. Source work is complete and the future-deployment Entry-absent
+  prerequisite is restored, but the migration/deploy gate must restart from Gate 0.
+  No migration or deployment is authorized by the completed cleanup approval.
 
 Do not do now:
 
@@ -163,10 +174,9 @@ Do not do now:
 
 Next gated work:
 
-1. Owner decides whether a separately approved environment action may remove
-   `PROGRESSIVE_PAYMENT_ENTRY_ENABLED`, or supplies another explicit safe resolution.
-2. After the absent-state prerequisite is re-established and freshly verified,
-   rerun Gate 0/0A and the mixed-scope audit before applying `20260713210000`.
+1. Obtain separate Owner approval to restart the migration/deploy round.
+2. Rerun Gate 0/0A and the fresh mixed-scope audit; do not resume directly at
+   migration application even though the project Entry variable is now absent.
 3. Migration/deploy verification and later Entry activation/UAT remain separately gated.
 
 Conditions before any Production write or deploy:
@@ -186,10 +196,10 @@ Conditions before any Production write or deploy:
 | Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
 | Option A migration | Source `20260713210000` created; not applied remotely |
 | Dependencies enabled | Yes - four dependency controls `true` |
-| Entry enabled | Variable present/encrypted; plaintext and effective value `Unknown / Need verification`; migration/deploy stopped |
+| Entry enabled | Project Production variable absent; unchanged deployed artifact effective value `Unknown / Need verification`; no activation or redeploy |
 | Allowlisted | No - absent in Production; not required by new source |
 | Production UAT | User/Parent Entry-off Legacy draft passed at `1,500`; Option A local/disposable `4 + 4` passed at `2,000`; Production Entry-on proof awaits migration/deploy/activation approval |
-| General users active | No - current default-deny entry routes to Legacy |
+| General users active | `Unknown / Need verification` for unchanged deployment; no new activation observed and Option A is not Production-active |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
 
@@ -217,7 +227,8 @@ Conditions before any Production write or deploy:
 
 - Production runs exact clean `f5b22a9` containing source fix `60688a3` in Ready
   deployment `dpl_3RS4MWu...`; migration `20260713153000` is remotely applied.
-  Entry remains `false` after the approved safe rollback.
+  The project Production Entry variable is absent after the isolated cleanup; the
+  unchanged deployment's embedded effective value remains `Unknown / Need verification`.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
 - The unconfirmed User/Parent `4 + 4` summary remains browser-local. Do not click
   confirmation. No Production business row changed during its preparation.
@@ -225,7 +236,8 @@ Conditions before any Production write or deploy:
   one lazily cancelled original batch plus one approved replacement batch, one
   successful Test Mode attempt, one allocation, one ledger row, and one user
   notification. No second booking, legacy payment row, coupon, migration, allowlist,
-  pricing tier, historical repair, or source change occurred. Entry remains `false`.
+  pricing tier, historical repair, or source change occurred. No Entry activation
+  or redeploy occurred during the cleanup.
 
 ## Session Exit Checklist
 

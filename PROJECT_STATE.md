@@ -53,6 +53,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   Entry-off preview verification. No Entry activation, deploy, Booking confirmation,
   Payment action, account/child change, or Production business-data write was
   approved in this follow-up round.
+- After the later migration/deploy Gate 0 found the unexpected Production Entry
+  variable, Owner approved one isolated environment cleanup only: remove exactly
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` from Vercel Production, preserve every other
+  variable, do not deploy or migrate, and then restart the migration/deploy gate
+  from Gate 0 under separate approval.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -127,14 +132,20 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review based on the last value-level verification;
   all four names remain present in the read-only Production environment listing.
-  Gate 0 read-only verification for the migration/deploy round found
-  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` present as an encrypted Production variable,
-  contrary to the required absent state. Its plaintext value is `Unknown / Need
-  verification`; the allowlist remains absent. No environment change was made.
+  The isolated cleanup removed exactly `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` from the
+  Vercel Production project environment: the name list changed from `11` to `10`,
+  no name was added, and metadata for every remaining variable was unchanged. The
+  allowlist remains absent. No deployment was created, so the Entry value embedded
+  in the current deployment remains `Unknown / Need verification` even though the
+  future-deployment project prerequisite is now restored.
 - Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
   values were read or exposed.
-- Production active for new general Kids Group entry: **no**, because Entry remains
-  off after the approved primary rollback. UAT Stage A passed. Stage B payment
+- Production active for new general Kids Group entry: **Unknown / Need
+  verification** for the unchanged deployed artifact. The last independently
+  verified runtime state was Entry-off after the approved primary rollback, but the
+  later unexpected write-only variable was present before the current deployment
+  and its embedded value cannot be recovered from Vercel CLI. The cleanup did not
+  redeploy or activate Entry. UAT Stage A passed. Stage B payment
   completed on the one approved Progressive booking in shared Test Mode. The staff
   notification correction is now deployed and its migration is applied, but it is
   intentionally future-event-only: no historical notification was backfilled.
@@ -170,11 +181,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Production controls: last value-level verification found pricing writes `true`,
   coupon lifecycle `true`, payment batch `true`, payment review `true`, and shared
   SlipOK Test Mode `true`; read-only closeout listing confirms those five encrypted
-  names remain present. The UUID allowlist remains absent. Contrary to the prior
-  snapshot and the approved deployment prerequisite, the Entry variable is also
-  currently listed as encrypted. Vercel CLI does not expose its plaintext, so the
-  exact stored value is `Unknown / Need verification`; historical rollback and
-  Entry-off runtime records do not prove the current environment variable is absent.
+  names remain present. The UUID allowlist remains absent. The isolated approved
+  cleanup removed only the Entry name from the Vercel Production project
+  environment; a fresh complete-name comparison found no addition or change to the
+  ten remaining entries. Because no redeploy occurred, the current deployment's
+  embedded Entry value remains `Unknown / Need verification`; absence is the
+  prerequisite for a future deployment, not proof about the existing artifact.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
@@ -281,23 +293,33 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   two-connection race produced exactly one first booking/scope/receipt and one typed
   stale-revision loser. Fixtures rolled back or were deleted; the local stack was
   stopped without backup.
-- Migration applied remotely: **no**. Deploy performed: **no**. Entry remains
-  **present/encrypted; value Unknown / Need verification**. Production-active Option
-  A behavior remains **no** on the pre-compatibility deployment. Production data changed:
-  **no**. Customer impact: **none**. Financial impact: **none**. Next Owner gate is
-  remote migration plus deploy approval after a fresh read-only mixed-scope audit;
-  Entry activation and no-write `4+4` UAT require a later separate approval.
+- Migration applied remotely: **no**. Deploy performed: **no**. The Vercel
+  Production project Entry variable is **absent**; the unchanged deployed artifact's
+  effective Entry value is **Unknown / Need verification**. Production-active Option
+  A behavior remains **no** because the deployed source is pre-compatibility.
+  Production data changed: **no**. Customer impact: **none**. Financial impact:
+  **none**. The migration/deploy gate must restart from Gate 0 with fresh read-only
+  mixed-scope evidence and separate Owner approval; Entry activation and no-write
+  `4+4` UAT require a later separate approval.
 
 ### Pricing Reconciliation Status
 
-**DOCUMENTATION DRIFT — ENTRY VARIABLE PRESENT; MIGRATION/DEPLOY STOPPED**
+**PASS — ENTRY VARIABLE REMOVED; MIGRATION/DEPLOY GATE MUST RESTART FROM GATE 0**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
   not the incomplete Production rollout.
-- New source `5c8cee1` is deployed and dependency-ready, but Entry is disabled, so
-  new general Production traffic currently returns to Legacy while the created
-  Progressive UAT booking can drain by stored scope.
+- The isolated environment cleanup changed only the Vercel Production project
+  variable set. Exact before/after evidence is `11 -> 10`, removed Entry only,
+  added `0`, with the remaining metadata unchanged. Deployment
+  `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G` stayed Ready on the same four aliases;
+  migration `20260713210000` stayed pending and all `17` read-only business-data
+  table/view counts stayed equal. No source, schema, business row, customer, or
+  financial state changed.
+- General-entry activity for the unchanged deployment is `Unknown / Need
+  verification`; no new activation, deployment, error, or customer-facing failure
+  was observed during cleanup. The deployed source remains pre-Option-A, while the
+  created Progressive UAT booking can still drain by stored scope.
 - Data repaired: **yes**, exactly one unpaid booking. Source/deploy/activation state
   did not change during the repair.
 - `DOCUMENTATION DRIFT` was found: the previous snapshot said `56daabf` was not

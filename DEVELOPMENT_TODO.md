@@ -962,6 +962,49 @@ repo: `Unknown / Need verification`.
 - Classification:
   **DOCUMENTATION DRIFT — ENTRY VARIABLE PRESENT; MIGRATION/DEPLOY STOPPED**.
 
+#### 2026-07-13 - Isolated Production Entry Variable Cleanup
+
+- Owner explicitly authorized one isolated environment action only: remove exactly
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` from the Vercel Production project, preserve
+  all other variables, do not replace it with `false` or `true`, and do not apply a
+  migration, deploy, activate Entry, change the allowlist/dependencies/SlipOK, or
+  write Production business data.
+- Fresh Git preflight proved branch `spike/next-major-security-upgrade`, local and
+  remote HEAD `a3d344205c5189c4bb0620f676bf4e1b5fceb8d5`, and source ancestor
+  `f8568a6d9c18da3745492d47c01d3ca22da156c8`. The only dirty file remained the
+  unrelated unstaged `AGENTS.md` remainder (`72` additions / `3` deletions).
+- Pre-change Vercel JSON listed `11` Production names. Entry existed as a
+  Production-only Sensitive variable; the four Progressive dependency names and
+  shared `SLIPOK_TEST_MODE` name were present, and the UUID allowlist was absent.
+  Deployment `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G` was Ready on the same four aliases,
+  and remote migration history ended at `20260713153000` with only
+  `20260713210000` pending.
+- `vercel env rm PROGRESSIVE_PAYMENT_ENTRY_ENABLED production --yes` completed
+  successfully. A fresh full JSON comparison proved exactly `11 -> 10`: removed
+  Entry only, added `0`, and no type, target, configuration id, creation time, or
+  update time changed for any remaining variable. No replacement value was added.
+- No deployment was created. The same deployment remains Ready on the same aliases,
+  and the Option A migration remains pending. Because Vercel environment changes do
+  not alter an existing deployment artifact, its embedded Entry value remains
+  `Unknown / Need verification`; the cleanup restores the absent prerequisite only
+  for a future separately approved deployment.
+- Safe checks before/after returned public home `200` and unauthenticated booking
+  preview `401`. Bounded current-deployment searches found `0` error-log rows and
+  `0` SlipOK rows. Read-only counts at `2026-07-13T13:58:05.722Z` and
+  `2026-07-13T13:59:54.205Z` were identical for all `17` checked tables/views:
+  bookings `519`, sessions `2785`, scopes `2`, mutation receipts `3`, coupon
+  reservations `0`, payment batches/members `4/4`, allocations/attempts `1/1`,
+  payments `470`, coupon usages `0`, wallet credits `60`, attendance `1617`,
+  notifications `16137`, pricing tiers `11`, ledger allocations `471`, and Finance
+  expenses `1`.
+- Source changed: **no**. Migration applied remotely: **no**. Deploy/redeploy:
+  **no**. Entry activation: **no**. Allowlist/dependency/SlipOK change: **no**.
+  Production schema/business data changed: **no**. Customer impact: **none**.
+  Financial impact: **none**. The next migration/deploy round requires separate
+  Owner approval and must restart at Gate 0/0A with a fresh mixed-scope audit.
+- Classification:
+  **PASS — ENTRY VARIABLE REMOVED; MIGRATION/DEPLOY GATE MUST RESTART FROM GATE 0**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.
