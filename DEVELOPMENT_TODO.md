@@ -498,9 +498,13 @@ repo: `Unknown / Need verification`.
   Progressive staff copy remains amount-free, targets `admin` and `super_admin`,
   and links to `/admin/payments`.
 - Direct `/admin/finance` and `/admin/settings` checks redirected to `/admin` and
-  exposed no restricted data. No `/admin/coupons` page was opened and no write action
-  was clicked. Browser console warnings/errors, React/hydration errors, and observed
-  network 5xx were `0`.
+  exposed no restricted data. No user navigation or click opened `/admin/coupons`,
+  although Vercel logs recorded automatic Next.js menu-link prefetch requests.
+  Read-only follow-up proved the two current coupons have no expiry or usage cap,
+  zero usages, and zero auto-close candidates, so the render-time guarded update
+  could not run and coupon data remained unchanged. No write action was clicked.
+  Browser console warnings/errors, React/hydration errors, and observed network 5xx
+  were `0`.
 - Bounded Vercel monitoring sampled `100` UAT-window requests, all from
   `dpl_3tW1GQdx...`: error-level events `0`, 5xx `0`; target Admin pages returned
   `200`, and Settings returned the expected `307` guard redirect.

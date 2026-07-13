@@ -211,6 +211,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   the UAT window sampled `100` requests from deployment `dpl_3tW1GQdx...`: error
   level `0`, 5xx `0`; `/admin`, `/admin/payments`, and `/admin/notifications`
   returned `200`, while `/admin/settings` returned the expected `307` guard.
+- No user navigation or click opened `/admin/coupons`. Vercel logs did show automatic
+  Next.js background prefetch requests for that menu route. Read-only follow-up
+  proved both current coupons have no expiry or usage cap, have zero usages, and
+  produce zero render-time auto-close candidates, so the prefetch could not execute
+  the page's guarded `is_active = false` update; coupon data remained unchanged.
 - This read-only UAT's before/after counts were identical: bookings `519`, scopes
   `2`, batches `4`, attempts `1`, allocations `1`, legacy payments `469`, ledger
   rows `470`, coupon reservations/usages `0`, and notifications `15978`. Protected
