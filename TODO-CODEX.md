@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**.
+Current classification: **PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**.
 
 Confirmed:
 
@@ -65,32 +65,34 @@ Blocked / Need action:
   Ordering / Scenario Matrix” was not present in the repo.
 - Super Admin read-only UAT passed on `/admin/payments` and
   `/admin/notifications`; the existing Progressive batch is visible once with its
-  approved amount/details and the recipient-specific inbox loads without console,
+  permitted amount/details and the recipient-specific inbox loads without console,
   React, hydration, or network errors. No retroactive notification was expected or
   created.
-- Standard Admin identity remains `Unknown / Need verification`; Standard Admin
-  amount-redaction Production UAT could not be performed without creating or
-  repurposing an account.
+- Standard Admin read-only UAT now also passed with a uniquely verified `admin`
+  profile. The target Progressive batch appeared once with approved operational
+  context and no structured amount, booking-total, allocation, revenue, or Finance
+  fields in rendered UI or technically inspectable server payload. Dashboard totals
+  were absent; Finance and Settings redirected safely; no data or control changed.
 
 Next authorized continuation:
 
-- Do not repeat the completed payment or create another booking. Next work is a
-  verified Standard Admin read-only UAT when an identity is safely available, then
-  a separate Owner decision for Entry activation and bounded monitoring.
+- Do not repeat the completed payment or create another booking. The next work is a
+  separate Owner decision for Entry activation and bounded post-activation
+  monitoring.
 
 Do not do now:
 
 - Do not create another UAT booking, perform additional repair/repricing, edit the
   UUID allowlist, call live SlipOK, or change pricing tiers.
-- Do not describe the current end-to-end state as `PASS`.
+- Do not describe general Production routing as active or the overall rollout as
+  Task Done while Entry remains `false`; the current `PASS` is scoped to Standard
+  Admin read-only UAT.
 - Do not merge Legacy true-up language into the Progressive formula.
 
 Next gated work:
 
-1. Obtain a verified Standard Admin identity without creating, changing, or
-   repurposing an account, then complete read-only amount-redaction UAT.
-2. Owner separately decides whether to activate Entry for general Kids Group.
-3. If approved, activate Entry last and repeat bounded monitoring without another
+1. Owner separately decides whether to activate Entry for general Kids Group.
+2. If approved, activate Entry last and repeat bounded monitoring without another
    UAT booking or payment.
 
 Conditions before any Production write or deploy:
@@ -111,7 +113,7 @@ Conditions before any Production write or deploy:
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Super Admin read-only pass; Standard Admin identity/UAT pending; no historical notification backfill |
+| Production UAT | Super Admin and Standard Admin read-only pass; financial redaction verified; no historical notification backfill |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |

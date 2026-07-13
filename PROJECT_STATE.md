@@ -105,12 +105,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   values were read or exposed.
 - Production active for new general Kids Group entry: **no**, because Entry remains
   off after the approved primary rollback. UAT Stage A passed. Stage B payment
-  completed on the one approved Progressive booking in shared Test Mode, but the
   completed on the one approved Progressive booking in shared Test Mode. The staff
   notification correction is now deployed and its migration is applied, but it is
   intentionally future-event-only: no historical notification was backfilled.
-  Super Admin read-only Production UAT passed; Standard Admin identity remains
-  `Unknown / Need verification`, so that role UAT is pending.
+  Super Admin and Standard Admin read-only Production UAT both passed. Standard
+  Admin received the approved batch operational context once without structured
+  amount, booking-total, allocation, revenue, or Finance fields in the rendered UI
+  or the technically inspectable server payload.
 - Local verification passed: notifications `16`, booking entry `23`, pricing `17`,
   transactions `33`, coupon `38`, payment batches `39`, payment integration `18`,
   shared SlipOK `6`, Legacy pricing `14`, TypeScript, ESLint, mojibake, and
@@ -141,7 +142,7 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Pricing Reconciliation Status
 
-**NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**
+**PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
@@ -171,12 +172,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   the batch header is not counted separately. User History shows one successful
   booking card and no stale upload state. User notification
   `e62d9e2f-f49f-49f1-a138-9ee427655d14` exists exactly once.
-- Required Admin notification did not occur: the deployed approval function inserts
-  only the user notification, and the two other notifications created in the audit
-  window were unrelated coach attendance reminders. This is the blocking
-  reconciliation result. Admin payment queue data contains the approved batch, and
-  source inspection preserves amount fields only for `super_admin`, but actual
-  Super Admin and Standard Admin Production UI UAT remains unverified in this round.
+- Historical payment evidence before the notification correction showed only the
+  user notification; the two other notifications in that earlier audit window were
+  unrelated coach attendance reminders. That dated finding caused the source fix.
+  It does not describe the current deployed function: migration `20260713153000`
+  and source `60688a3` are now deployed and add future-event-only staff copies.
 - Root cause is corrected and deployed from source commit `60688a3`. Migration
   `20260713153000` keeps
   notification creation after the first successful approval transition and before
@@ -186,10 +186,39 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   check-then-insert behavior is race-prone. Standard Admin copy contains no amount;
   Super Admin receives the same amount-free copy, so no visibility policy expands.
 - Deployment-round classification:
-  **NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**.
-  Super Admin read-only UAT passed, no notification backfill or Production business
-  row change occurred, and Entry remains off. Standard Admin role UAT plus a
-  separate Owner activation decision remain open.
+  **PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**.
+  Super Admin and Standard Admin read-only UAT passed, no notification backfill or
+  Production business-row change occurred, and Entry remains off. Only a separate
+  Owner activation decision remains open for this rollout gate.
+- Fresh Standard Admin read-only UAT on 2026-07-13 proved the authenticated visible
+  profile is uniquely role `admin`, not `super_admin`, without creating, changing,
+  or repurposing an account. `/admin` loaded without aggregate revenue or Finance
+  totals. `/admin/payments` showed target batch `d65dc3b8...` exactly once with
+  approved status and permitted operational context; no structured payment amount,
+  Progressive total, booking total, allocation amount, approved/incomplete total,
+  aggregate revenue, or Finance field was rendered or present in the technically
+  inspectable server payload. The known `700` was not exposed as a structured value.
+- `/admin/notifications` loaded the recipient-specific Standard Admin inbox with no
+  Super Admin financial summary. No historical Progressive staff notification was
+  present, as expected because the migration performs no backfill. Existing dated
+  Legacy/booking notification messages can contain operational free-text amounts;
+  these are historical message strings under the existing contract, not structured
+  Progressive amount fields. The deployed future Progressive staff copy remains
+  amount-free and links to `/admin/payments` for both `admin` and `super_admin`.
+- Direct Standard Admin requests to `/admin/finance` and `/admin/settings` redirected
+  to `/admin` and exposed no restricted content. Browser console errors/warnings,
+  React/hydration errors, and observed network 5xx were `0`. Bounded Vercel logs for
+  the UAT window sampled `100` requests from deployment `dpl_3tW1GQdx...`: error
+  level `0`, 5xx `0`; `/admin`, `/admin/payments`, and `/admin/notifications`
+  returned `200`, while `/admin/settings` returned the expected `307` guard.
+- This read-only UAT's before/after counts were identical: bookings `519`, scopes
+  `2`, batches `4`, attempts `1`, allocations `1`, legacy payments `469`, ledger
+  rows `470`, coupon reservations/usages `0`, and notifications `15978`. Protected
+  row fingerprints were unchanged: UAT booking
+  `b3ace1823603773273d19783fecfa9f4`, effective batch
+  `dbcdcb47fde7f6b59d0244bf90b6b7f6`, and repaired booking
+  `e99a8144b0c0af731aad4d4ae3c81025`. The batch remains `approved`; no future staff
+  copy was backfilled. No Production row or control changed.
 - Before/after counts attributable to this continuation: bookings `514 -> 514`,
   scopes `2 -> 2`, batches `3 -> 4`, attempts `0 -> 1`, allocations `0 -> 1`,
   legacy payments `465 -> 465`, coupon reservations/usages `0 -> 0`, ledger rows

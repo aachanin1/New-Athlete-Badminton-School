@@ -466,6 +466,59 @@ repo: `Unknown / Need verification`.
 - Classification:
   **NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**.
 
+### 2026-07-13 - Standard Admin Read-Only Production UAT Closeout
+
+- Owner authorized read-only inspection and documentation closeout only. No deploy,
+  environment change, Entry activation, booking/payment replay, notification
+  insertion, role change, account creation, or Production repair was performed.
+- Pre-UAT state matched the release record: deployment
+  `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe` was Ready on all four Production aliases from
+  clean commit `f5b22a9`, containing notification source `60688a3`; migration
+  `20260713153000` was applied. Pricing-write, coupon-lifecycle, payment-batch, and
+  payment-review controls were `true`; Entry was `false`; allowlist was absent; and
+  shared `SLIPOK_TEST_MODE=true` remained unchanged.
+- The authenticated Chrome identity was proved from its visible profile name plus a
+  unique read-only Production profile match: role exactly `admin`, with zero matching
+  `super_admin` profiles. No role or account was changed to prepare the session.
+- `/admin` loaded as Standard Admin without monthly/aggregate revenue, baht totals,
+  Finance summary, or Super Admin identity/content. `/admin/payments` showed approved
+  Progressive batch `d65dc3b8...` and booking `89533cdf...` exactly once with payer,
+  learner, course, branch, date/session, identifiers, status, slip, and permitted
+  operational detail.
+- Standard Admin financial redaction passed in both rendered UI and the technically
+  inspectable server payload: no structured payment amount, Progressive batch total,
+  booking total price, allocation amount, approved/incomplete total, aggregate
+  revenue, or Finance field was delivered. Target value `700` was not exposed as a
+  structured value. The server source selects amount fields only for `super_admin`.
+- `/admin/notifications` loaded the recipient-specific Standard Admin inbox with no
+  Super Admin financial summary. No historical Progressive staff copy exists, as
+  required by the future-event-only/no-backfill migration. Existing historical
+  Legacy/booking notification messages may contain free-text amounts under their
+  pre-existing contract; this is not a structured Progressive field. Future
+  Progressive staff copy remains amount-free, targets `admin` and `super_admin`,
+  and links to `/admin/payments`.
+- Direct `/admin/finance` and `/admin/settings` checks redirected to `/admin` and
+  exposed no restricted data. No `/admin/coupons` page was opened and no write action
+  was clicked. Browser console warnings/errors, React/hydration errors, and observed
+  network 5xx were `0`.
+- Bounded Vercel monitoring sampled `100` UAT-window requests, all from
+  `dpl_3tW1GQdx...`: error-level events `0`, 5xx `0`; target Admin pages returned
+  `200`, and Settings returned the expected `307` guard redirect.
+- Before/after Production counts were unchanged: bookings `519`, pricing scopes `2`,
+  batches `4`, attempts `1`, allocations `1`, legacy payments `469`, ledger rows
+  `470`, coupon reservations/usages `0`, and notifications `15978`. Protected
+  fingerprints remained UAT booking `b3ace1823603773273d19783fecfa9f4`, approved
+  batch `dbcdcb47fde7f6b59d0244bf90b6b7f6`, and repaired booking
+  `e99a8144b0c0af731aad4d4ae3c81025`. No row changed and no historical staff
+  notification was backfilled.
+- Source complete/committed/pushed/deployed: yes through the existing release.
+  Migration applied: yes. Dependencies enabled: yes. Entry enabled/Production
+  active: no. Super Admin and Standard Admin read-only UAT: passed. Customer,
+  financial, and Production data impact in this round: none. Task Done: no, because
+  general Kids Group remains Legacy until a separate Owner Entry-activation decision.
+- Classification:
+  **PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.
