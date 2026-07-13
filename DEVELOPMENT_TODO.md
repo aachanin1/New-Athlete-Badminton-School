@@ -790,11 +790,30 @@ repo: `Unknown / Need verification`.
   Source complete for Option A: no. Task Done: no. Next gate is separate Owner
   approval for the audited source plus additive-migration implementation scope.
 - Decision/audit documentation commit
-  `b0cab819a201c625c9309463605af6e5495f81a4` was pushed to
+  `b0cab81014a2dde2e245fd4e156a98b1048f1dfc` was pushed to
   `origin/spike/next-major-security-upgrade`; the pre-existing unrelated remainder
   of the `AGENTS.md` worktree change stayed unstaged and excluded.
 - Classification:
   **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
+
+#### 2026-07-13 - Option A Implementation Gate 0 Documentation Drift
+
+- Owner approved the audited TypeScript plus additive-migration/RPC source scope,
+  local/disposable verification, documentation, commit, and push only.
+- Fresh `git fetch origin` proved branch `spike/next-major-security-upgrade`, local
+  HEAD, and remote HEAD all at `e61d612118b57fb36137e4bb2306715feee5f43f`.
+  Its direct parent is the actual Option A audit commit
+  `b0cab81014a2dde2e245fd4e156a98b1048f1dfc`.
+- The previously recorded full hash
+  `b0cab819a201c625c9309463605af6e5495f81a4` was not a Git object. The shared
+  seven-character prefix and commit subject matched, but the full provenance did
+  not. The three context-document references were corrected.
+- Per the explicit Gate 0 rule, source implementation stopped before any
+  TypeScript or migration edit. No migration/runtime test, commit of source,
+  remote migration, deploy, environment, Entry, allowlist, Production data,
+  customer, or financial state changed.
+- Classification:
+  **DOCUMENTATION DRIFT — SOURCE FIX STOPPED BEFORE IMPLEMENTATION**.
 
 ## Phase 0 - Baseline & Readiness
 

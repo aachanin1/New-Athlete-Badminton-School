@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
+Current classification: **DOCUMENTATION DRIFT — SOURCE FIX STOPPED BEFORE IMPLEMENTATION**.
 
 Confirmed:
 
@@ -118,16 +118,19 @@ Blocked / Need action:
   original/root session count for every row. Raw session rows would overcount `87`
   rescheduled bookings; `25` also have wallet dependencies.
 - Option A decision/audit documentation is committed and pushed at
-  `b0cab819a201c625c9309463605af6e5495f81a4`; no source or Production state changed.
+  `b0cab81014a2dde2e245fd4e156a98b1048f1dfc`; no source or Production state changed.
+- Owner approved the audited compatibility implementation scope, but Gate 0 found
+  that the previously recorded full Option A audit hash was not a Git object.
+  Fresh fetch proved local/remote HEAD `e61d612118b57fb36137e4bb2306715feee5f43f`
+  directly descends from the corrected audit commit above. Source implementation
+  stopped before any TypeScript or migration edit, as required by the Gate 0 rule.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. The next work requires Owner approval for the audited compatibility
-  implementation: TypeScript preview/read-model changes plus an additive migration
-  that snapshots the Legacy entitlement baseline on the Progressive scope and
-  replaces the membership/repricing/create RPC contract. Entry activation must not
-  be retried yet.
+  booking. Resume the already approved audited compatibility implementation only
+  after the Owner accepts the corrected Git provenance and explicitly asks to
+  continue from this stopped Gate 0. Entry activation must not be retried yet.
 
 Do not do now:
 

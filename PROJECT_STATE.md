@@ -218,8 +218,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Audit classification:
   **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
 - Documentation audit commit
-  `b0cab819a201c625c9309463605af6e5495f81a4` is committed and pushed to
+  `b0cab81014a2dde2e245fd4e156a98b1048f1dfc` is committed and pushed to
   `origin/spike/next-major-security-upgrade`. Source remains unchanged.
+- Owner approved the audited TypeScript plus additive-migration implementation
+  scope on 2026-07-13. Gate 0 stopped before source implementation because the
+  previously recorded full audit-commit hash above did not exist in Git. Fresh
+  fetch proved local and remote HEAD both at `e61d612118b57fb36137e4bb2306715feee5f43f`,
+  whose direct parent is the corrected audit commit. No source, migration,
+  Production, deploy, Entry, allowlist, customer, or financial state changed.
 
 ### Pricing Reconciliation Status
 
