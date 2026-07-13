@@ -13,10 +13,7 @@ import {
   type AttendanceSessionRow,
   type DisplaySessionStatus,
 } from '@/lib/session-attendance-status'
-import {
-  isProgressivePaymentEntryAvailableForUser,
-  isProgressivePaymentDrainAvailableForUser,
-} from '@/lib/progressive-pricing-feature'
+import { isProgressivePaymentDrainAvailable } from '@/lib/progressive-pricing-feature'
 
 interface HistoryBookingRow {
   id: string
@@ -316,8 +313,7 @@ export default async function HistoryPage() {
   }
 
   const bookingIds = bookings.map((booking) => booking.id)
-  const progressivePaymentEnabled = !isAdmin && isProgressivePaymentEntryAvailableForUser(user.id)
-  const progressivePaymentDrainEnabled = !isAdmin && isProgressivePaymentDrainAvailableForUser(user.id)
+  const progressivePaymentEnabled = !isAdmin && isProgressivePaymentDrainAvailable()
   const progressiveScopeIds = Array.from(new Set(bookings
     .map((booking) => booking.pricing_scope_id)
     .filter(Boolean))) as string[]
@@ -336,7 +332,7 @@ export default async function HistoryPage() {
     }]),
   )
 
-  const activeProgressiveResult = progressivePaymentDrainEnabled
+  const activeProgressiveResult = progressivePaymentEnabled
     ? await adminSupabase.from('progressive_payment_batches')
         .select('id, pricing_scope_id, status, total_amount, prepared_expires_at')
         .eq('user_id', user.id)

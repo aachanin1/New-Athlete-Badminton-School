@@ -43,20 +43,14 @@ export function isProgressivePaymentUserAllowed(userId: string) {
   return getProgressivePaymentAllowedUserIds().has(userId.toLowerCase())
 }
 
-export function isProgressivePaymentEntryAvailableForUser(userId: string) {
-  return isProgressivePaymentDrainAvailableForUser(userId)
-    && isProgressivePaymentEntryEnabled()
-}
-
 export type ProgressiveBookingEntryDecision =
-  | { mode: 'legacy'; reason: 'entry_disabled' | 'user_not_allowed' | 'course_not_supported' }
-  | { mode: 'progressive'; reason: 'allowlisted_kids_group' }
+  | { mode: 'legacy'; reason: 'entry_disabled' | 'course_not_supported' }
+  | { mode: 'progressive'; reason: 'general_kids_group' }
 
-export function decideProgressiveBookingEntry(userId: string, courseTypeName: string): ProgressiveBookingEntryDecision {
+export function decideProgressiveBookingEntry(courseTypeName: string): ProgressiveBookingEntryDecision {
   if (!isProgressivePaymentEntryEnabled()) return { mode: 'legacy', reason: 'entry_disabled' }
-  if (!isProgressivePaymentUserAllowed(userId)) return { mode: 'legacy', reason: 'user_not_allowed' }
   if (courseTypeName !== 'kids_group') return { mode: 'legacy', reason: 'course_not_supported' }
-  return { mode: 'progressive', reason: 'allowlisted_kids_group' }
+  return { mode: 'progressive', reason: 'general_kids_group' }
 }
 
 export function getProgressiveBookingEntryDependencyState() {
@@ -67,9 +61,8 @@ export function getProgressiveBookingEntryDependencyState() {
   return { ready: missing.length === 0, missing }
 }
 
-export function isProgressivePaymentDrainAvailableForUser(userId: string) {
+export function isProgressivePaymentDrainAvailable() {
   return isProgressivePricingWritesEnabled()
     && isProgressiveCouponLifecycleEnabled()
     && isProgressivePaymentBatchEnabled()
-    && isProgressivePaymentUserAllowed(userId)
 }

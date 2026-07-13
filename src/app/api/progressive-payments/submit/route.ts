@@ -18,7 +18,7 @@ import {
 } from '@/lib/progressive-slipok'
 
 export async function POST(request: NextRequest) {
-  const access = await requireProgressivePaymentUser(request, { mutation: true, requireEntry: true })
+  const access = await requireProgressivePaymentUser(request, { mutation: true })
   if (!access.ok) return access.response
 
   try {

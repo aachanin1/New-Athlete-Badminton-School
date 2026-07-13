@@ -12,7 +12,7 @@ import { progressivePaymentError, requireProgressivePaymentUser } from '@/lib/pr
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
-  const access = await requireProgressivePaymentUser(request, { mutation: true, requireEntry: true })
+  const access = await requireProgressivePaymentUser(request, { mutation: true })
   if (!access.ok) return access.response
 
   try {

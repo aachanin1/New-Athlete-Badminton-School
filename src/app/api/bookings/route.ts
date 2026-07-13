@@ -800,7 +800,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
     }
 
-    const entryDecision = decideProgressiveBookingEntry(user.id, courseType.name)
+    const entryDecision = decideProgressiveBookingEntry(courseType.name)
     if (entryDecision.mode === 'progressive') {
       const dependency = getProgressiveBookingEntryDependencyState()
       if (!dependency.ready) {

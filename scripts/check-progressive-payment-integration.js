@@ -24,9 +24,10 @@ function check(name, condition) {
   console.log(`PASS ${name}`)
 }
 
-check('1 allowlist defaults to deny and accepts only validated UUIDs',
+check('1 staged allowlist helper defaults to deny but is not general eligibility',
   feature.includes('if (!raw) return new Set<string>()')
-  && feature.includes("values.some((value) => !UUID_PATTERN.test(value))"))
+  && feature.includes("values.some((value) => !UUID_PATTERN.test(value))")
+  && !feature.slice(feature.indexOf('export type ProgressiveBookingEntryDecision')).includes('isProgressivePaymentUserAllowed('))
 check('2 entry and review controls are separate server-only environment variables',
   feature.includes('PROGRESSIVE_PAYMENT_ENTRY_ENABLED')
   && feature.includes('PROGRESSIVE_PAYMENT_REVIEW_ENABLED')

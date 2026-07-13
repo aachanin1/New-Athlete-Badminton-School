@@ -4,7 +4,7 @@ import { expireProgressiveBatchIfNeeded } from '@/lib/progressive-payment-integr
 import { progressivePaymentError, requireProgressivePaymentUser } from '@/lib/progressive-payment-route'
 
 export async function POST(request: NextRequest) {
-  const access = await requireProgressivePaymentUser(request, { mutation: true, requireEntry: true })
+  const access = await requireProgressivePaymentUser(request, { mutation: true })
   if (!access.ok) return access.response
 
   try {

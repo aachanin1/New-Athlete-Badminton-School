@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       .single() as unknown as { data: { id: string; name: CourseTypeName } | null }
     if (!courseType) return NextResponse.json({ error: 'ไม่พบประเภทคอร์สในระบบ' }, { status: 400 })
 
-    const decision = decideProgressiveBookingEntry(user.id, courseType.name)
+    const decision = decideProgressiveBookingEntry(courseType.name)
     if (body.bookingId) {
       const { data: booking } = await client
         .from('bookings')
