@@ -1,5 +1,214 @@
 # Development TODO
 
+## Decision / Reconciliation Records
+
+### 2026-07-12 - Kids Group Legacy vs Progressive Pricing
+
+Purpose: preserve the detailed evidence behind the current
+`PRODUCTION POLICY MISMATCH` classification. The prioritized current state and next
+actions live in `PROJECT_STATE.md` and `TODO-CODEX.md`.
+
+#### Formula and ordering
+
+- Legacy source (`src/lib/pricing.ts`, `src/lib/booking-pricing.ts`):
+  - DB `pricing_tiers` is authoritative; source constants are fallback only.
+  - Existing pricing history includes settled `paid` and `verified` bookings only.
+  - `totalAfter = existingSettledSessions + newSessions`.
+  - `targetMonthlyTotal = totalAfter * rateOf(totalAfter)`.
+  - `charge = max(0, targetMonthlyTotal - existingSettledTotal)`.
+  - This is a retroactive monthly true-up. A negative raw charge is represented as
+    `creditDifference`; prior rows are not automatically rewritten during booking.
+- Owner-approved Progressive source (`src/lib/progressive-booking-pricing.ts`):
+  - Active ordering includes non-expired `pending_payment`, `paid`, and `verified`;
+    cancelled/expired rows are excluded.
+  - Order is `created_at`, then booking id for a deterministic tie-break.
+  - `cumulativeAfter = previousActiveSessions + newBookingEntitlementSessions`.
+  - `grossBookingPrice = newBookingEntitlementSessions * rateOf(cumulativeAfter)`.
+  - The current booking's coupon is deducted after gross pricing.
+  - No retroactive monthly true-up, difference credit, or reprice of earlier bookings.
+
+#### Owner examples / scenario matrix
+
+| Scenario | Legacy true-up | Progressive booking-level |
+| --- | ---: | ---: |
+| One booking, 10 sessions | `5,000` | `5,000` |
+| Split `5+5` | `3,125 + 1,875 = 5,000` | `3,125 + 2,500 = 5,625` |
+| Ten settled one-session bookings | `5,000` after true-up/credit effects | `5,825` |
+| Split `8+8` | `4,000 + 2,496 = 6,496` | `4,000 + 3,248 = 7,248` |
+
+Evidence: `scripts/check-pricing-true-up.js`,
+`scripts/check-progressive-booking-pricing.js`, Progressive transaction tests, and
+the Owner's 2026-07-12 documentation-reconciliation instruction. The separately
+named “Formula And Ordering / Scenario Matrix” design document was not found in the
+repo: `Unknown / Need verification`.
+
+#### Source, commits, and releases
+
+- Legacy monthly true-up source commit `5897cede58f720c1b5f205af53c9821cff0a39bf`
+  was recorded deployed as `dpl_5e6i8M3Mtzy5xNah6xVD9v6PtHwQ`.
+- Legacy settled-only follow-up/source repair commit
+  `1701a0474ae1fdcf742f6db4c3e3c8c26d39ec2b` excluded `pending_payment` from
+  settled history and was recorded in deployment `dpl_2FKH4GbJ1wa3fSn4xnsxehW6pRdB`.
+- Progressive pricing foundation was added by `ed1d20d`; transaction support by
+  `46ab89b`; coupon/payment layers followed in later commits.
+- Progressive Normal Booking Entry commit
+  `56daabf30ad60c07b3c3ccb98fe42028e33de1be` is pushed to
+  `origin/spike/next-major-security-upgrade` and passed local/disposable runtime
+  verification. It was not included in the last confirmed Production release.
+- Last confirmed Production source is shared SlipOK corrective commit
+  `0fbf98fe7a03f71ecb61642ebb20458e4a6480de`, deployment
+  `dpl_P5BQcazfbWjReuuLkGXkZpGoG1Gz`, with Progressive entry flags/allowlist unset.
+- Current live deployment/SHA/env state on 2026-07-12 is
+  `Unknown / Need verification`: Vercel read-only inspection failed with scope 403.
+
+#### Production repairs made under Legacy true-up
+
+- `ff0728dd-066a-417a-aeaa-0049fed6b931`: `3,248 -> 2,496`; paired first booking
+  remained `4,000`; no payment/coupon rows; sessions unchanged. Under Progressive
+  `8+8`, the second booking would remain `3,248`, so this repair differs by `752`.
+- Four July rows were repaired with payment evidence preserved, no payment/refund/
+  coupon rows created, and sessions/tiers untouched:
+  - `5d1d9a43-afcd-4d26-8817-68ab948443f2`: `2,800 -> 1,169`.
+  - `3f95767e-8418-4b0b-b87d-2cd18811825b`: `14,700 -> 13,600`.
+  - `f565a552-65f3-44e0-8826-22a4c9cb0dbb`: `1,299 -> 763`.
+  - `ff9cf27f-6415-444d-90b6-89ab05fc2d47`: `2,000 -> 1,500`.
+  - Progressive impact for each is `Unknown / Need verification` until ordered
+    entitlement/tier/coupon snapshots are reconstructed read-only.
+- Two pending rows were corrected from settled history `8 / 4,000`, plus one new
+  session at rate `500`: `9112a5cb-006c-4fdd-838d-5534c15b6fb1` `0 -> 500` and
+  `60779d60-ac26-4eaf-a34f-703157a32300` `196 -> 500`. Payments, coupons, wallet,
+  and attendance were zero; sessions were unchanged. This documented `8+1` case is
+  also `500` under current Progressive tiers.
+- These are historical repair facts. Current row status and later dependencies are
+  `Unknown / Need verification`; no further write is authorized from this record.
+
+#### Documentation drift found and corrected
+
+- `PROJECT_STATE.md` was a long chronological log without a prioritized distinction
+  between Owner policy, Legacy behavior, Progressive source, and deployed runtime.
+- `TODO-CODEX.md` treated Homepage LV copy as the next task while the pricing policy
+  mismatch remained open, and repeated extensive completed history.
+- Earlier scoped `PASS` labels could be read as end-to-end policy/runtime agreement.
+  They now remain historical scope results only and are superseded for current
+  reconciliation by the top-level mismatch classification.
+- Legacy monthly true-up examples and Progressive booking-level examples are now
+  explicitly separated; no formula is silently treated as the other.
+
+#### Final audit result and pending Owner decision
+
+- Progressive implementation matches the supplied Owner formula and scenarios.
+- Superseded by the Owner decision and read-only audit record below.
+
+### 2026-07-12 - Progressive General Rollout Decision and Unpaid-Only Boundary
+
+#### Owner decision
+
+- Progressive replaces Legacy for general Kids Group Production traffic.
+- Exact formula:
+  `grossBookingPrice = newBookingSessions * rateOf(previousActiveSessions + newBookingSessions)`.
+- There is no retroactive monthly true-up, price-difference credit, or automatic
+  rewrite of earlier bookings.
+- Historical review is limited to genuinely unpaid Kids Group bookings. Paid,
+  approved-payment, or verified bookings are excluded from repricing in this round.
+- Adult Group and Private pricing are unchanged.
+- Deploy, environment/feature controls, allowlist changes, Production UAT writes,
+  and Production data repair were not approved.
+
+#### Read-only deployment result and documentation drift
+
+- `DOCUMENTATION DRIFT`: Vercel CLI verification found the current Ready Production
+  deployment is `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW` at source
+  `56daabf30ad60c07b3c3ccb98fe42028e33de1be`, not the previously documented
+  `0fbf98f` release.
+- Public/project aliases are attached to that deployment. All five Progressive
+  control variable names and `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` are absent from
+  Production. No values, secrets, or UUIDs were exposed.
+- Deployed = yes; Enabled = no; Allowlisted = no; Production active = no;
+  Production UAT = not performed. No Vercel state changed.
+
+#### Read-only unpaid-booking result
+
+- Query scope: all `454` Production Kids Group bookings across 2026-05 through
+  2026-08. Counts: `415 verified`, `33 cancelled`, `6 pending_payment`, `0 paid`.
+- Each pending row was checked against payment rows/statuses, coupon usages and
+  Progressive reservations, lesson wallet credits, sessions and attendance,
+  Progressive payment batches/allocations, finance ledger allocations, current
+  pricing tiers, and deterministic active booking order.
+- All six pending rows are genuinely unpaid and have no checked downstream
+  dependency rows. Five match Progressive price. One proposed repair candidate is
+  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`: ordered second after one verified
+  one-session booking, so `previousActiveSessions = 1`, `newBookingSessions = 1`,
+  `rateOf(2) = 625`, expected `625` versus stored Legacy `550`, difference `75`.
+- Candidate totals are Legacy `12,800` versus Progressive `12,875`.
+- All `415` verified rows have direct approved payment evidence and are excluded;
+  no paid or verified row was reopened or repriced.
+
+#### Separate proposed scopes — not performed
+
+- Deploy scope: select and approve a general-traffic gating design because current
+  source still requires UUID allowlisting; then separately approve deploy, exact
+  Production controls, activation order, controlled UAT, monitoring, and rollback.
+- Data-repair scope: after separate Owner approval and a fresh dependency recheck,
+  update only `d6dad7aa...` from `550` to `625`. Do not modify the five matching
+  candidates or any payment, coupon, wallet, refund, entitlement, session,
+  attendance, payroll, or accounting row.
+- Current classification is
+  **OWNER DECISION CONFIRMED — READ-ONLY DEPLOYMENT AND UNPAID-BOOKING AUDIT REQUIRED**,
+  not `PASS`. Superseded for current source status by the 2026-07-13 record below.
+
+### 2026-07-13 - General Kids Group Gating Source
+
+#### Root cause and approved contract
+
+- Deployed source `56daabf` required both `PROGRESSIVE_PAYMENT_ENTRY_ENABLED=true`
+  and membership in `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS`. That was appropriate
+  for the earlier staged rollout but did not implement the Owner-approved general
+  Kids Group policy.
+- Owner approved general `kids_group` selection from the server-resolved course type
+  plus the Entry control, without per-user UUID membership. `adult_group` and
+  `private` remain Legacy.
+- Pricing-write, coupon-lifecycle, and payment-batch dependencies remain mandatory.
+  Once Progressive is selected, any missing dependency returns typed `503` with no
+  Legacy fallback or partial write.
+
+#### Implementation
+
+- Source commit `5c8cee1e8a81f928b870e643a78e1d2baf39fa06` is committed and pushed to
+  `origin/spike/next-major-security-upgrade`.
+- Preview and create now call the server-only decision with the DB course type;
+  client mode, user, and price fields remain non-authoritative.
+- Stored `pricing_scope_id` continues to select Progressive edit/cancel regardless
+  of the current Entry flag.
+- Payment prepare/upload/submit/status/cancel and History payment eligibility now
+  use authenticated ownership plus dependency readiness, not Entry or UUID
+  membership. This preserves draining existing Progressive bookings after Entry is
+  disabled.
+- UUID allowlist parsing was retained as staged/test infrastructure. It is no longer
+  general eligibility and was never a substitute for route authentication or batch
+  ownership checks.
+- No migration, pricing formula/tier, Legacy, Adult Group, Private, SlipOK, payment,
+  coupon, wallet, attendance, entitlement, refund, payroll, or accounting behavior
+  was otherwise changed.
+
+#### Verification and state separation
+
+- Passed: booking entry `23`, Progressive pricing `17`, transactions `33`, coupon
+  lifecycle `38`, payment batches `39`, payment integration `18`, shared SlipOK `6`,
+  Legacy pricing regression `14`, TypeScript, ESLint, mojibake, and Production build.
+- Post-build protocol passed: this repo's `.next` was removed, dev restarted on
+  `127.0.0.1:3000`, home/static assets returned `200`, browser content rendered,
+  captured console errors were empty, and no Next error overlay was present.
+- Source complete: yes. Committed: yes. Pushed: yes.
+- Deployed for `5c8cee1`: no. Enabled: no. Production active: no. Production UAT:
+  not performed. Production data repaired: no.
+- Production remains deployment `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW` at older source
+  `56daabf30ad60c07b3c3ccb98fe42028e33de1be`, with Progressive controls absent.
+- Owner separately approved the later unpaid repair
+  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`, `550 -> 625`. It was not performed and
+  remains a separate write round requiring a fresh pre-write dependency check.
+- Current classification:
+  **PASS — GENERAL KIDS GROUP GATING SOURCE ONLY; DEPLOY/ACTIVATION/UAT AND ONE-ROW REPAIR PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

@@ -1,13 +1,191 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-12
-Source: local repo audit only. Items not confirmed from code/docs are marked as unknown.
+Last updated: 2026-07-13
+Source: local source/git/docs audit plus read-only Vercel CLI and Production
+Supabase read-model verification. Items not confirmed are marked
+`Unknown / Need verification`.
 
-## Current Snapshot
+## Current Source of Truth
 
 New Athlete Badminton School is a multi-portal badminton school management app.
 The repo currently uses Next.js 16.2.6 App Router, React 18, TypeScript 5,
 TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
+
+### Owner Policy
+
+- Owner confirmed on 2026-07-12 that Progressive replaces Legacy for general Kids
+  Group Production traffic. Deploy, environment/flag/allowlist changes, Production
+  UAT writes, and Production data repair were not approved in that audit round; the
+  later one-row repair approval is recorded separately below.
+- Owner-approved Progressive Kids Group pricing is booking-level pricing, not
+  Legacy monthly true-up:
+  - `previousActiveSessions` = active entitlement sessions ordered before the new booking.
+  - `cumulativeAfter = previousActiveSessions + newBookingSessions`.
+  - `grossBookingPrice = newBookingSessions * rateOf(cumulativeAfter)`.
+  - Apply the current booking's coupon after gross pricing; do not retroactively
+    reprice prior bookings or create a monthly price-difference credit.
+- Historical review and any future repair proposal are limited to genuinely unpaid
+  Kids Group bookings. Paid, approved-payment, and verified bookings must not be
+  reopened or repriced in this round.
+- Owner separately approved a later one-row Production repair for unpaid booking
+  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`, `550 -> 625`. It remains pending and was
+  not performed in the 2026-07-13 source-only round.
+- Confirmed examples from the supplied Owner instruction and executable Progressive
+  scenario checks:
+  - one booking of 10 sessions = `5,000`;
+  - split `5+5` = `3,125 + 2,500 = 5,625`;
+  - ten separate one-session bookings = `5,825`.
+- Evidence: `src/lib/progressive-booking-pricing.ts`,
+  `scripts/check-progressive-booking-pricing.js`, and the 2026-07-12 Owner
+  documentation-reconciliation instruction. A separately named design document
+  containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
+  `Unknown / Need verification`.
+
+### Legacy Runtime
+
+- Legacy Kids Group pricing remains a different monthly true-up formula in
+  `src/lib/pricing.ts` and `src/lib/booking-pricing.ts`:
+  - count only settled `paid` and `verified` bookings for existing history;
+  - `cumulativeAfter = existingSettledSessions + newSessions`;
+  - `targetMonthlyTotal = cumulativeAfter * rateOf(cumulativeAfter)`;
+  - `charge = max(0, targetMonthlyTotal - existingSettledTotal)`;
+  - an overpaid result becomes `creditDifference`; it is not the Progressive formula.
+- With the fallback tier examples used by deterministic tests:
+  - Legacy `5+5` = `3,125 + 1,875 = 5,000`;
+  - Legacy ten settled one-session bookings total `5,000` after true-up/credit effects;
+  - Legacy `8+8` = `4,000 + 2,496 = 6,496`.
+- DB `pricing_tiers` remains price authority; the figures above are verified test
+  examples, not permission to hardcode Production tiers.
+- Verified Production entry state (2026-07-12): the Progressive source is deployed,
+  but all Progressive control variables and the UUID allowlist variable are absent,
+  so general users and Adult/Private bookings still enter Legacy.
+
+### Progressive Runtime
+
+- Current general-traffic gating source commit is
+  `5c8cee1e8a81f928b870e643a78e1d2baf39fa06`, committed and pushed to
+  `origin/spike/next-major-security-upgrade`.
+- Current source entry decision is server-only and default deny:
+  - Entry disabled -> all new bookings remain Legacy.
+  - Entry enabled + server-resolved `kids_group` -> Progressive for general users;
+    no per-user UUID allowlist is required.
+  - Entry enabled + missing pricing-write, coupon-lifecycle, or payment-batch
+    dependency -> typed `503`, no Legacy fallback or partial write.
+  - `adult_group` and `private` -> Legacy.
+  - Existing Progressive edit/cancel remains routed by stored `pricing_scope_id`.
+    Payment prepare/upload/submit/status/cancel uses authenticated ownership and
+    dependency readiness, so existing bookings can drain after Entry is disabled.
+- UUID allowlist parsing remains available as staged/test infrastructure, but it is
+  not a general-customer eligibility or authorization boundary.
+- Source complete: **yes** for general Kids Group gating.
+- Committed: **yes**, `5c8cee1`. Pushed: **yes**.
+- Deployed for the new general gating source: **no**. Production still runs
+  allowlist-gated source `56daabf` in deployment `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW`.
+- Enabled: **no**; the relevant Production variables are absent.
+- Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
+  values were read or exposed.
+- Production active: **no**. Production UAT: **not performed**.
+- Local verification passed: booking entry `23`, pricing `17`, transactions `33`,
+  coupon `38`, payment batches `39`, payment integration `18`, shared SlipOK `6`,
+  Legacy pricing `14`, TypeScript, ESLint, mojibake, and Production build. Post-build
+  dev/browser/static-asset verification also passed.
+- Five Progressive migrations and capability RPC were last confirmed deployed/Ready,
+  but Entry/Review/pricing-write/coupon/batch controls and UUID allowlist were unset.
+
+### Production
+
+- Current deployment: `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW`, Ready, created
+  2026-07-12 16:59 ICT, functional source SHA
+  `56daabf30ad60c07b3c3ccb98fe42028e33de1be`.
+- Production aliases: `https://www.newathleteschool.com`,
+  `https://new-athlete-badminton-school.vercel.app`,
+  `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `https://new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+- Read-only environment-name inspection found none of these Production variables:
+  `PROGRESSIVE_PRICING_WRITES_ENABLED`,
+  `PROGRESSIVE_COUPON_LIFECYCLE_ENABLED`,
+  `PROGRESSIVE_PAYMENT_BATCH_ENABLED`, `PROGRESSIVE_PAYMENT_ENTRY_ENABLED`,
+  `PROGRESSIVE_PAYMENT_REVIEW_ENABLED`, or
+  `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS`.
+- Therefore the current Production artifact is deployed, but new source `5c8cee1`
+  is not. Enabled = no; Allowlisted = no; Production active = no; Production UAT =
+  not performed. No Vercel state was changed.
+- Shared Owner-approved payment policy remains server-side
+  `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
+  the normal auto-approve/verify transition and makes no live SlipOK request.
+
+### Pricing Reconciliation Status
+
+**PASS — GENERAL KIDS GROUP GATING SOURCE ONLY; DEPLOY/ACTIVATION/UAT AND ONE-ROW REPAIR PENDING**
+
+- Owner policy, Progressive formula, and pushed source now agree for general Kids
+  Group entry. This `PASS` is source-only, not an end-to-end Production result.
+- The deployed entry remains the older allowlist-gated source and all controls are
+  absent, so general Production traffic still uses Legacy.
+- `DOCUMENTATION DRIFT` was found: the previous snapshot said `56daabf` was not
+  deployed and current Vercel state was unknown. Read-only CLI verification proves
+  it is deployed, while enabled/allowlisted/Production-active states remain false.
+
+### 2026-07-12 Read-Only Unpaid Kids Group Audit
+
+- Exact scope: all `454` Production Kids Group bookings across 2026-05 through
+  2026-08; status counts were `415 verified`, `33 cancelled`, and
+  `6 pending_payment`. Dependencies checked for every pending candidate:
+  `payments`, `coupon_usages`, `progressive_coupon_reservations`,
+  `lesson_wallet_credits`, `booking_sessions`, `attendance`, Progressive payment
+  batch links/allocations, `payment_ledger_allocations_v1`, and `pricing_tiers`.
+- All six candidates are genuinely unpaid: zero payment/ledger evidence, coupons,
+  wallet rows, attendance, batch links, or allocations. Their booking sessions are
+  still `scheduled`. Legacy rows have no Progressive pricing snapshots, so expected
+  amounts were reconstructed from current authoritative Production `pricing_tiers`
+  and active ordering by `created_at`, then booking id.
+
+| Booking | Period/order | Sessions | Legacy | Progressive | Difference | Dependency result |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `e63fd262-fa64-4d8c-96ae-e0ff979a29e3` | 2026-06, #1 | 4 | `2,500` | `2,500` | `0` | 4 scheduled sessions; all checked dependencies `0` |
+| `fbdf5523-0cb6-4a4f-985d-f5c5cea4abd7` | 2026-06, #1 | 7 | `3,500` | `3,500` | `0` | 7 scheduled sessions; all checked dependencies `0` |
+| `4b0813ef-f386-4e6f-9b8d-1b11f861ec5c` | 2026-07, #1 | 2 | `1,250` | `1,250` | `0` | 2 scheduled sessions; all checked dependencies `0` |
+| `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` | 2026-07, #2 after one verified session | 1 | `550` | `625` | `+75` due | 1 scheduled session; all checked dependencies `0` |
+| `9634dca8-d3ce-4922-aaa4-f743edf3dd86` | 2026-07, #1 | 2 | `1,250` | `1,250` | `0` | 2 scheduled sessions; all checked dependencies `0` |
+| `6be6b3cf-f072-4e65-8a27-2656fcfd3390` | 2026-07, #1 | 6 | `3,750` | `3,750` | `0` | 6 scheduled sessions; all checked dependencies `0` |
+
+- Candidate totals: Legacy `12,800`; expected Progressive `12,875`; net increase
+  `75`. Five candidates need no amount repair; only `d6dad7aa...` differs.
+- Excluded: all `415` verified Kids Group bookings have direct `approved` payment
+  rows and are out of scope. There are no Kids Group bookings in `paid` status.
+  The `33 cancelled` rows are inactive and also excluded. Approved payments were
+  not reopened or repriced.
+- Next deploy scope, not performed: separately approve deployment of `5c8cee1`,
+  exact Production variables/rollout order, controlled UAT, monitoring, and rollback.
+- Approved data-repair scope, not performed: in a later separately authorized write
+  round, update only unpaid booking `d6dad7aa...` from `550` to `625`, with a fresh
+  immediately pre-write dependency recheck. Do not change the five matching candidates or any
+  payment, coupon, wallet, session, attendance, entitlement, refund, payroll, or
+  accounting row.
+
+### Production Repair History
+
+All rows below are **historical data-repair records**, not proof of current booking
+status. Each repair used the then-active **Legacy settled-history monthly true-up**,
+not Progressive booking-level pricing.
+
+| Booking | Old -> repaired | Historical state/dependencies | Progressive-policy impact |
+| --- | ---: | --- | --- |
+| `ff0728dd-066a-417a-aeaa-0049fed6b931` | `3,248 -> 2,496` | `pending_payment`; no payment/coupon rows; sessions unchanged | For the documented second `8` in an `8+8` sequence, Progressive would charge `3,248`; the Legacy repair is `752` lower. |
+| `5d1d9a43-afcd-4d26-8817-68ab948443f2` | `2,800 -> 1,169` | July repair; payment evidence preserved; no payment/refund/coupon row created; sessions unchanged | `Unknown / Need verification` without the original ordered entitlement/pricing snapshots. |
+| `3f95767e-8418-4b0b-b87d-2cd18811825b` | `14,700 -> 13,600` | Same repair constraints as above | `Unknown / Need verification`. |
+| `f565a552-65f3-44e0-8826-22a4c9cb0dbb` | `1,299 -> 763` | Same repair constraints as above | `Unknown / Need verification`. |
+| `ff9cf27f-6415-444d-90b6-89ab05fc2d47` | `2,000 -> 1,500` | Same repair constraints as above | `Unknown / Need verification`. |
+| `9112a5cb-006c-4fdd-838d-5534c15b6fb1` | `0 -> 500` | `pending_payment`; payments/coupons/wallet/attendance `0`; sessions unchanged | Documented `8 + 1` sequence is also `500` under current Progressive tiers; no formula difference for this case. |
+| `60779d60-ac26-4eaf-a34f-703157a32300` | `196 -> 500` | Same dependency state as the preceding row | Same documented `8 + 1` result: `500`. |
+
+- Current row statuses, later payments, coupon/wallet/accounting actions, and whether
+  any rollback condition has since changed: `Unknown / Need verification`.
+- Do not rewrite these rows again from documentation alone. Any future repair needs
+  a read-only exact-row report, the explicitly selected formula, dependency impact,
+  and separate Owner approval before Production write.
+
+### Operational Snapshot
 
 Observed scripts:
 
@@ -18,6 +196,13 @@ Observed scripts:
 - `npm run prod:check`: read-only production readiness checker.
 - `npm run attendance:reconcile:dry-run`: attendance/session status drift report.
 - `npm run attendance:reconcile:write`: repair tool. Requires owner confirmation before production write.
+
+## Historical Records
+
+The dated sections below preserve audit history. They are superseded for current
+pricing/rollout status by **Current Source of Truth** above unless a section is
+explicitly cited as the latest verified evidence. Historical `PASS` labels apply
+only to their stated scope and date, not to the current policy-vs-Production result.
 
 ## 2026-07-12 - Progressive Normal Booking Entry (Kids Group Only)
 
@@ -72,7 +257,7 @@ Observed scripts:
 - Production Admin read-only smoke passed on `/admin/logs`: the new activity-log row and full JSON details rendered for Super Admin with browser console warnings/errors 0. No upload, payment, booking submit, or admin write action was clicked. The affected parent's booking cards were not visually verified because that user session was unavailable.
 - Exact rollback record, not executed: booking `9112a5cb-006c-4fdd-838d-5534c15b6fb1` `500 -> 0`; booking `60779d60-ac26-4eaf-a34f-703157a32300` `500 -> 196`.
 - Local pre-write/write/post-write evidence is stored under ignored backup folder `backups/pricing-booking-repair-20260710T023354Z`.
-- No source code, API, migration, deploy, payment/coupon/session/profile/child/wallet/attendance data, status, learner, parent, branch, schedule, course, month, or year was changed. Next task: Step 4.1 Homepage LV Copy Audit/Fix.
+- No source code, API, migration, deploy, payment/coupon/session/profile/child/wallet/attendance data, status, learner, parent, branch, schedule, course, month, or year was changed. Historical next task was Step 4.1 Homepage LV Copy Audit/Fix; **superseded by Current Source of Truth / Pricing Reconciliation**.
 
 ## 2026-07-10 - Kids Group Pricing Pending-Booking True-Up Fix
 
@@ -305,7 +490,10 @@ Observed migrations include:
 - Coach program templates.
 - Lesson wallet credits.
 
-## Confirmed Business State
+## Confirmed Business State (Historical/Observed)
+
+Pricing and rollout statements in this section are **superseded by Current Source
+of Truth**. Non-pricing observations remain historical evidence until reverified.
 
 ### Levels
 
@@ -392,7 +580,7 @@ Admin/Super Admin:
 - `/admin/settings/levels`, `/admin/settings/coach-ot`
 - `/admin/settings/admin-menus`, `/admin/logs`
 
-## Current Active Risk
+## Historical Risk Snapshot (Superseded by Current Source of Truth)
 
 Latest attendance reconciliation result:
 
@@ -1865,7 +2053,7 @@ Potential bug found:
 - Current docs now reflect that Phase 2 `/admin/makeup`, `/admin/payments`, `/dashboard/history`, `/admin/users`, Phase 2.5 Ranking read/search, the `/admin/ranking` search follow-up, the owner test booking cleanup, `/dashboard/booking` draft preservation, slip upload reliability hardening, and the public contact phone update are closed.
 - Ranking search follow-up is PASS and no longer NEED REVIEW; current production search is enabled on both `/ranking` and `/admin/ranking`.
 - Historical notes that mentioned an unrelated dirty `src/app/page.tsx` phone change now explicitly point to the later completed phone commit `983e998`.
-- Next active work remains Phase 3 / Role Smoke Readiness, followed by Phase 3 Deploy Readiness. Attendance Sync stays a regression guard unless new attendance work starts.
+- Historical next work was Phase 3 / Role Smoke Readiness, followed by Phase 3 Deploy Readiness; **superseded by Current Source of Truth / Pricing Reconciliation**. Attendance Sync remains a regression guard unless new attendance work starts.
 - Real NEED REVIEW items remain open: role-pure Standard Coach browser smoke if required, Admin Makeup write actions requiring owner-approved exact targets, live SlipOK write smoke without a safe test case, and booking draft smoke gaps where no safe matching data existed.
 - This pass changed documentation only. No source code, API, DB, migration, package/config, deploy, or write action was performed.
 
