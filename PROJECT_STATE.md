@@ -86,10 +86,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   approved primary rollback.
 - Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
   values were read or exposed.
-- Production active for new general Kids Group entry: **no**, because Entry was
-  rolled back off. UAT Stage A passed. Stage B created one Progressive test booking
-  and one prepared batch, but payment completion is blocked by Chrome file-upload
-  permission and is not passed.
+- Production active for new general Kids Group entry: **no**, because Entry remains
+  off after the approved primary rollback. UAT Stage A passed. Stage B payment
+  completed on the one approved Progressive booking in shared Test Mode, but the
+  full rollout UAT is blocked: Production created the user success notification but
+  no Admin-recipient notification, and the current Chrome session has no verified
+  Admin/Super Admin identity for the required role-specific UI checks.
 - Local verification passed: booking entry `23`, pricing `17`, transactions `33`,
   coupon `38`, payment batches `39`, payment integration `18`, shared SlipOK `6`,
   Legacy pricing `14`, TypeScript, ESLint, mojibake, and Production build. Post-build
@@ -108,8 +110,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Production controls: pricing writes `true`, coupon lifecycle `true`, payment
   batch `true`, payment review `true`, Entry `false`. The UUID allowlist remains
   absent and was not read. Entry was enabled only for controlled UAT, then disabled
-  through the approved primary rollback when browser upload permission blocked
-  payment completion.
+  through the approved primary rollback. It was not re-enabled after payment UAT
+  because the Admin notification and role-specific Admin UI gates did not pass.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
@@ -129,11 +131,36 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - `DOCUMENTATION DRIFT` was found: the previous snapshot said `56daabf` was not
   deployed and current Vercel state was unknown. Read-only CLI verification proves
   it is deployed, while enabled/allowlisted/Production-active states remain false.
-- UAT rows preserved: booking `89533cdf-76cf-4ee5-bb66-ce7bf7bbf5fe`, pricing
-  scope `f4acca6c-86b9-44da-88cc-86d8222f28c3`, session
-  `34ad024d-59f3-409d-b431-36e2765f9737`, and prepared batch
-  `eb5a1c73-fceb-4fd1-b6e6-414fc3fe1410`. No slip, attempt, allocation, payment,
-  coupon, or ledger row was created.
+- UAT payment continuation completed for the same booking only. Original batch
+  `eb5a1c73-fceb-4fd1-b6e6-414fc3fe1410` expired normally and was lazily cancelled
+  with reason `prepared_expired`; replacement batch
+  `d65dc3b8-5a48-4b4a-bea5-b64f2a1133ac` is the one effective approved batch.
+- Booking `89533cdf-76cf-4ee5-bb66-ce7bf7bbf5fe` is now `verified`, still `700`,
+  with unchanged scope `f4acca6c-86b9-44da-88cc-86d8222f28c3`, complete sequence
+  `1` / cumulative `0 -> 1` / rate-gross-final `700` snapshots, and scheduled
+  session `34ad024d-59f3-409d-b431-36e2765f9737`.
+- Test-mode attempt `7da5e1dd-1c5d-436a-8c62-a1f06b67d51c` resolved `approved`
+  for `700`; allocation `7ec8d0e1-a3fa-4e27-9c6e-5e6779c50e9d` and the single
+  Progressive ledger row both allocate `700`. No legacy `payments` row, duplicate
+  allocation/ledger source, coupon reservation/usage, or orphan scope lock exists.
+- Finance read-model reconciliation is cash received `+700`, booking net value
+  `700`, allocation total `700`, and one distinct Progressive batch transaction;
+  the batch header is not counted separately. User History shows one successful
+  booking card and no stale upload state. User notification
+  `e62d9e2f-f49f-49f1-a138-9ee427655d14` exists exactly once.
+- Required Admin notification did not occur: the deployed approval function inserts
+  only the user notification, and the two other notifications created in the audit
+  window were unrelated coach attendance reminders. This is the blocking
+  reconciliation result. Admin payment queue data contains the approved batch, and
+  source inspection preserves amount fields only for `super_admin`, but actual
+  Super Admin and Standard Admin Production UI UAT remains unverified in this round.
+- Before/after counts attributable to this continuation: bookings `514 -> 514`,
+  scopes `2 -> 2`, batches `3 -> 4`, attempts `0 -> 1`, allocations `0 -> 1`,
+  legacy payments `465 -> 465`, coupon reservations/usages `0 -> 0`, ledger rows
+  `465 -> 466`, and notifications `15889 -> 15892`. Of the three new notifications,
+  one is the UAT user payment notification and two are unrelated coach reminders.
+- Existing repaired booking `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` remains
+  `pending_payment`, `625`. No additional repair or second UAT booking occurred.
 
 ### 2026-07-12 Read-Only Unpaid Kids Group Audit
 

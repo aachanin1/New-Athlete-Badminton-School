@@ -306,6 +306,55 @@ repo: `Unknown / Need verification`.
   Admin/Finance/notification reconciliation passes, re-enable Entry last and repeat
   bounded monitoring.
 
+#### 2026-07-13 - Existing UAT Payment Completed; Entry Remains Disabled
+
+- Owner confirmed Chrome file-URL access and authorized continuation on only booking
+  `89533cdf-76cf-4ee5-bb66-ce7bf7bbf5fe`. Pre-continuation read-only verification
+  matched deployment `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`, exact source `5c8cee1`,
+  four dependency controls `true`, Entry `false`, allowlist absent, and shared
+  `SLIPOK_TEST_MODE=true`.
+- Original prepared batch `eb5a1c73-fceb-4fd1-b6e6-414fc3fe1410` expired normally.
+  The product's lazy-expiry path cancelled it with `prepared_expired` and released
+  its scope lock. One stale client revision attempt failed closed and created no
+  batch; after refreshing authoritative scope revision, exactly one replacement
+  batch `d65dc3b8-5a48-4b4a-bea5-b64f2a1133ac` was prepared for the same booking.
+- The real User History flow attached the harmless repository favicon PNG, uploaded
+  it to the private Progressive bucket, and submitted it. Shared Test Mode created
+  no live SlipOK request and resolved verification attempt
+  `7da5e1dd-1c5d-436a-8c62-a1f06b67d51c` as `approved`, amount `700`, result
+  `TEST_APPROVED`. The replacement batch is approved and the booking is `verified`.
+- Allocation `7ec8d0e1-a3fa-4e27-9c6e-5e6779c50e9d` is the only allocation and is
+  `700`. `payment_ledger_allocations_v1` contains one Progressive source for the
+  replacement batch and booking, also `700`; no legacy `payments` row exists.
+  Pricing snapshots, one scheduled session, and total `700` are unchanged; coupon
+  reservations/usages remain zero and the pricing scope is unlocked at revision `3`.
+- User History shows one successful booking card with no stale upload state. User
+  notification `e62d9e2f-f49f-49f1-a138-9ee427655d14` exists once and is visible.
+  Finance reconciliation is cash `+700`, booking net `700`, allocation `700`, and
+  one distinct Progressive transaction with no batch-header double count.
+- The required Admin notification gate failed. No Admin-recipient payment
+  notification was created; the approval RPC inserts only the user notification.
+  The other two notifications in the count delta were unrelated coach attendance
+  reminders. The Chrome session also lacked verified Standard Admin and Super Admin
+  identities, so the required role-specific Production UI checks could not be
+  completed. Source inspection shows Admin Payments conditionally includes amount
+  only when `role === 'super_admin'`, but that is not a substitute for the requested
+  Production role UAT.
+- Counts changed only as expected for this continuation: bookings `514 -> 514`,
+  scopes `2 -> 2`, batches `3 -> 4`, attempts `0 -> 1`, allocations `0 -> 1`,
+  legacy payments `465 -> 465`, coupon reservations/usages `0 -> 0`, ledger
+  `465 -> 466`, notifications `15889 -> 15892`. Existing repaired booking
+  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` remains `625`, `pending_payment`.
+- Safety gate applied before activation: Entry remains `false`; no environment
+  change, redeploy, rollback repetition, second booking, cleanup, migration, source
+  change, pricing-tier change, coupon change, or additional repair occurred.
+- Current classification:
+  **BLOCKER â€” ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**.
+- Next work requires separate Owner approval for a narrowly scoped Admin-notification
+  source correction and deployment, plus verified Standard Admin and Super Admin
+  identities for read-only role UAT. Do not repeat this payment or create another
+  Production UAT booking.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

@@ -37,9 +37,13 @@ Confirmed:
 - Source `5c8cee1` is deployed in Ready rollback deployment `dpl_F2gfntq...`.
   Pricing-write, coupon-lifecycle, payment-batch, and payment-review controls are
   `true`; Entry is `false`; allowlist is absent; shared `SLIPOK_TEST_MODE=true`.
-- Stage A passed. Stage B created exactly one Progressive booking/scope/session and
-  one prepared batch, but Chrome blocked attaching the harmless UAT image because
-  the extension lacks file-URL access. Entry was immediately rolled back off.
+- Stage A passed. Stage B payment completed for the same one approved booking.
+  Original batch `eb5a1c73...` expired and was lazily cancelled; replacement batch
+  `d65dc3b8...` approved in shared Test Mode with one attempt, one `700`
+  allocation, one ledger source, no coupon, and no legacy payment row.
+- Finance reconciles exactly: cash `+700`, booking net value `700`, allocation
+  `700`, one distinct batch transaction, and no batch-header double count. User
+  History and the one user success notification are correct.
 - Production repair completed for exactly unpaid booking `d6dad7aa...`, `550 -> 625`.
   Fresh pre/post checks found zero payment, coupon, wallet, attendance, batch,
   allocation, ledger, refund, credit, or accounting dependencies. Activity log:
@@ -51,15 +55,20 @@ Blocked / Need action:
 
 - The standalone design document named by the Owner as containing “Formula And
   Ordering / Scenario Matrix” was not present in the repo.
-- Enable Chrome extension file-URL access, then resume the existing prepared batch
-  if still valid or let the normal lazy-expiry path handle it before preparing one
-  replacement batch. Do not create a second booking.
+- Admin-recipient payment notification is missing. The deployed Progressive approve
+  path inserts only the user notification; Entry must remain off until the Owner
+  approves the exact source correction and a new deploy/UAT round.
+- The current Chrome session is the Owner-controlled user identity, not a verified
+  Standard Admin or Super Admin identity. Role-specific Production UI checks remain
+  unverified even though source inspection shows amount fields are conditional on
+  `role === 'super_admin'`.
 
 Next authorized continuation:
 
-- Complete only the existing UAT booking payment in shared Test Mode, verify all
-  payment/Admin/Finance/notification invariants, then re-enable Entry last and
-  repeat monitoring. No additional booking or repair is authorized.
+- Do not repeat the completed payment or create another booking. Next work requires
+  separate Owner approval for the narrowly scoped Admin-notification source fix,
+  exact source commit/deploy, authenticated Standard Admin and Super Admin read-only
+  UAT, then Entry activation last only if all gates pass.
 
 Do not do now:
 
@@ -70,10 +79,12 @@ Do not do now:
 
 Next gated work:
 
-1. Owner enables Chrome file-URL access and confirms it is ready.
-2. Resume the existing UAT payment drain; do not create a second booking.
-3. If payment, Admin/Finance, logs, and reconciliation pass, set Entry `true` last,
-   redeploy `5c8cee1`, and repeat bounded monitoring.
+1. Owner approves the exact Admin-notification source correction; do not alter
+   payment, pricing, coupon, Finance, or historical data behavior.
+2. Commit, push, deploy, and verify that correction under a fresh explicit approval.
+3. Use verified Standard Admin and Super Admin identities for role-specific read-only
+   UAT. If notifications, Admin/Finance, logs, and reconciliation all pass, activate
+   Entry last and repeat bounded monitoring without another booking.
 
 Conditions before any Production write or deploy:
 
@@ -93,7 +104,7 @@ Conditions before any Production write or deploy:
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Stage A passed; Stage B blocked after prepare, before upload |
+| Production UAT | Stage A passed; Stage B payment passed, but Admin notification and role-specific Admin UI gates failed/unverified |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
@@ -109,9 +120,9 @@ Conditions before any Production write or deploy:
 - Progressive pricing, transaction, coupon, payment-batch, payment integration, and
   general Kids Group Entry source are complete and pushed through `5c8cee1`.
   Detailed verification is in `PROJECT_STATE.md` and `DEVELOPMENT_TODO.md`.
-- Current deployed source `56daabf` contains the shared global
-  `SLIPOK_TEST_MODE=true` corrective commit `0fbf98f`; no Progressive-only SlipOK
-  mode remains.
+- Current deployed source is `5c8cee1` in Ready deployment `dpl_F2gfntq...` and
+  contains the shared global `SLIPOK_TEST_MODE=true` behavior; no Progressive-only
+  SlipOK mode remains.
 - Seven recorded Kids Group Production price repairs were completed under Legacy
   true-up rules. They are historical repairs, not evidence that Owner Progressive
   policy and current Production runtime match.
@@ -120,9 +131,11 @@ Conditions before any Production write or deploy:
 
 - Source `5c8cee1` was deployed; no source file changed in the rollout.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
-- Production UAT created one Progressive booking/scope/session and one prepared
-  batch. No slip, attempt, allocation, payment, coupon, or ledger row was created.
-  No migration, allowlist, pricing tier, historical repair, or source change occurred.
+- Production UAT created one Progressive booking/scope/session only. Payment used
+  one lazily cancelled original batch plus one approved replacement batch, one
+  successful Test Mode attempt, one allocation, one ledger row, and one user
+  notification. No second booking, legacy payment row, coupon, migration, allowlist,
+  pricing tier, historical repair, or source change occurred. Entry remains `false`.
 
 ## Session Exit Checklist
 
