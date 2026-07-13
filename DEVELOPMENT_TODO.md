@@ -408,6 +408,64 @@ repo: `Unknown / Need verification`.
 - Source-only classification:
   **PASS — ADMIN PAYMENT NOTIFICATION SOURCE FIX ONLY; DEPLOY/UAT/ENTRY ACTIVATION PENDING**.
 
+### 2026-07-13 - Notification Migration, Exact Deploy, and Read-Only Admin UAT
+
+- Gate 0 passed: local/remote branch HEAD matched documentation commit
+  `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`; source commit `60688a3` is its
+  ancestor; only the pre-existing `AGENTS.md` change was dirty. Exactly migration
+  `20260713153000` was pending. Migration file SHA-256 was
+  `B7C9A44BED917BFFDBD7CAFD12D0C58928CDED97AE46A5897A6D79BCC5D8D778`.
+- Prior approval function hash was `2b4ee8a5a7243a54747f3a2632aeb005`, with one
+  service-role-only signature, the user insert present, and no staff-role selection.
+- Gate 1 applied exactly `20260713153000`. Post-apply function hash is
+  `424b3939e86b615b8ded01f0e8038105`; signature/grants remain correct, both user and
+  staff inserts are present, staff selection is only `admin`/`super_admin`, staff
+  copy links to `/admin/payments` and contains no restricted amount token, and the
+  approved replay return precedes both inserts.
+- Migration application created no notification/backfill or business data change.
+  Baseline and final counts remained: notifications `15931`, bookings `517`, scopes
+  `2`, batches `4`, attempts `1`, allocations `1`, legacy payments `467`, ledger
+  `468`, coupon reservations/usages `0`. Protected UAT and repaired-booking hashes
+  were unchanged; duplicate allocation and Progressive ledger-source counts were
+  `0`.
+- Gate 2 deployed from a clean detached worktree at exact commit `f5b22a9`, which
+  contains source `60688a3`. Vercel linking initially added a local `.env*` ignore
+  line, so that first artifact `dpl_9kFSKGs...` was not accepted for UAT. The line
+  was removed and the final clean deployment is
+  `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe`, Ready with all four Production aliases.
+- Vercel API did not populate Git SHA metadata for the CLI deployment; exact commit
+  evidence is the clean detached worktree HEAD/status and upload source scope.
+  Home/static assets returned `200`, protected Admin routes preserved login guards,
+  unauthenticated preview returned `401`, and monitoring found no error, 5xx, or
+  SlipOK runtime log.
+- Production controls remained pricing-write/coupon-lifecycle/payment-batch/
+  payment-review `true`, Entry `false`, allowlist absent, and shared
+  `SLIPOK_TEST_MODE=true`. No environment value changed in this round.
+- Super Admin read-only UAT passed. `/admin/payments` showed the approved Progressive
+  UAT batch once with amount `700`, approved state, one booking, exact batch/booking
+  ids, Progressive method, and permitted details. `/admin/notifications` loaded the
+  recipient-specific Super Admin inbox. No historical staff notification appeared,
+  as required, and Chrome console/React/hydration errors were empty.
+- Standard Admin UAT: `NEED REVIEW — STANDARD ADMIN IDENTITY NOT AVAILABLE`.
+  Source tests still prove amount redaction, but no account was created, changed, or
+  repurposed to substitute for Production role UAT.
+- Entry-off Kids Group pricing remained Legacy by policy/control. Record:
+  **PASS — ENTRY-OFF LEGACY BASELINE CONFIRMED**. The Owner-observed `4` prior + `4`
+  new session draft result `1,500` was not repeated because the only verified
+  browser identity was Super Admin; no booking confirmation occurred. Adult Group
+  and Private remain Legacy by the unchanged entry contract, and the
+  unauthenticated preview guard passed.
+- Customer impact: none in this round; general Kids Group remains Legacy while Entry
+  is off. Financial/data impact: none; no booking, payment, notification, allocation,
+  ledger, Finance, coupon, wallet, attendance, entitlement, refund, payroll, or
+  accounting row changed. Rollback was not performed.
+- Source complete/committed/pushed/deployed: yes. Migration remotely applied: yes.
+  Entry enabled/Production active: no. Production UAT: partial because Standard
+  Admin remains unavailable. Task Done: no; separate Standard Admin UAT and Owner
+  Entry activation decision remain.
+- Classification:
+  **NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

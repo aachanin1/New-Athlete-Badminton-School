@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **BLOCKER — ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**.
+Current classification: **NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**.
 
 Confirmed:
 
@@ -34,7 +34,8 @@ Confirmed:
   payment drain remains authenticated and dependency-gated even if Entry is disabled.
 - Owner confirmed Progressive replaces Legacy for general Kids Group Production
   traffic. Historical review is unpaid-only; paid/approved/verified rows are excluded.
-- Source `5c8cee1` is deployed in Ready rollback deployment `dpl_F2gfntq...`.
+- Exact clean commit `f5b22a9` containing source `60688a3` is deployed in Ready
+  deployment `dpl_3tW1GQdx...`.
   Pricing-write, coupon-lifecycle, payment-batch, and payment-review controls are
   `true`; Entry is `false`; allowlist is absent; shared `SLIPOK_TEST_MODE=true`.
 - Stage A passed. Stage B payment completed for the same one approved booking.
@@ -45,7 +46,8 @@ Confirmed:
   `700`, one distinct batch transaction, and no batch-header double count. User
   History and the one user success notification are correct.
 - Admin/Super Admin notification source correction is complete in commit
-  `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`. The new unapplied migration replaces
+  `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`. Migration `20260713153000` is applied
+  remotely and replaces
   only `approve_progressive_payment_batch_v1`, preserves the existing user insert,
   and adds one amount-free `/admin/payments` notification for every current
   `admin`/`super_admin` profile. Approved replay returns before all notification
@@ -61,19 +63,20 @@ Blocked / Need action:
 
 - The standalone design document named by the Owner as containing “Formula And
   Ordering / Scenario Matrix” was not present in the repo.
-- Production still lacks the Admin-recipient payment notification because migration
-  `20260713153000` has not been applied remotely and source `60688a3` has not been
-  deployed. Entry must remain off pending a separately approved migration/deploy/UAT
-  round.
-- Owner confirms a verified Super Admin Chrome session is ready for later read-only
-  Production UAT. Standard Admin identity remains `Unknown / Need verification`.
+- Super Admin read-only UAT passed on `/admin/payments` and
+  `/admin/notifications`; the existing Progressive batch is visible once with its
+  approved amount/details and the recipient-specific inbox loads without console,
+  React, hydration, or network errors. No retroactive notification was expected or
+  created.
+- Standard Admin identity remains `Unknown / Need verification`; Standard Admin
+  amount-redaction Production UAT could not be performed without creating or
+  repurposing an account.
 
 Next authorized continuation:
 
-- Do not repeat the completed payment or create another booking. Next work requires
-  separate Owner approval to apply exactly migration `20260713153000`, deploy the
-  exact committed source, perform Super Admin and verified Standard Admin read-only
-  UAT, then activate Entry last only if all gates pass.
+- Do not repeat the completed payment or create another booking. Next work is a
+  verified Standard Admin read-only UAT when an identity is safely available, then
+  a separate Owner decision for Entry activation and bounded monitoring.
 
 Do not do now:
 
@@ -84,13 +87,11 @@ Do not do now:
 
 Next gated work:
 
-1. Owner approves remote application of exactly migration `20260713153000` and the
-   exact source deployment; do not alter payment, pricing, coupon, Finance, or
-   historical data behavior.
-2. Deploy and verify the correction under that fresh explicit approval.
-3. Use verified Standard Admin and Super Admin identities for role-specific read-only
-   UAT. If notifications, Admin/Finance, logs, and reconciliation all pass, activate
-   Entry last and repeat bounded monitoring without another booking.
+1. Obtain a verified Standard Admin identity without creating, changing, or
+   repurposing an account, then complete read-only amount-redaction UAT.
+2. Owner separately decides whether to activate Entry for general Kids Group.
+3. If approved, activate Entry last and repeat bounded monitoring without another
+   UAT booking or payment.
 
 Conditions before any Production write or deploy:
 
@@ -106,11 +107,11 @@ Conditions before any Production write or deploy:
 | Source complete | Yes - general entry plus amount-free Admin/Super Admin payment-success notifications |
 | Committed | Yes - notification fix `60688a3` |
 | Pushed | Yes - through the synchronized source/docs closeout on `origin/spike/next-major-security-upgrade` |
-| Deployed | Yes - `5c8cee1`, current `dpl_F2gfntq...` Ready |
+| Deployed | Yes - exact `f5b22a9` containing `60688a3`, current `dpl_3tW1GQdx...` Ready |
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Stage A and user payment passed; deployed Admin notification still absent; Super Admin session ready, Standard Admin identity needs verification |
+| Production UAT | Super Admin read-only pass; Standard Admin identity/UAT pending; no historical notification backfill |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
@@ -125,9 +126,10 @@ Conditions before any Production write or deploy:
 
 - Progressive pricing, transaction, coupon, payment-batch, payment integration, and
   general Kids Group Entry source are complete. The Admin/Super Admin notification
-  source correction is committed at `60688a3` with an unapplied migration.
+  source correction is committed at `60688a3`; migration `20260713153000` is applied
+  and exact clean `f5b22a9` is deployed.
   Detailed verification is in `PROJECT_STATE.md` and `DEVELOPMENT_TODO.md`.
-- Current deployed source is `5c8cee1` in Ready deployment `dpl_F2gfntq...` and
+- Current deployed state is `f5b22a9` in Ready deployment `dpl_3tW1GQdx...` and
   contains the shared global `SLIPOK_TEST_MODE=true` behavior; no Progressive-only
   SlipOK mode remains.
 - Seven recorded Kids Group Production price repairs were completed under Legacy
@@ -136,8 +138,8 @@ Conditions before any Production write or deploy:
 
 ## Worktree / Safety Notes
 
-- Production still runs `5c8cee1`; source fix `60688a3` is not deployed and its
-  migration is not remotely applied.
+- Production runs exact clean `f5b22a9` containing source fix `60688a3`; migration
+  `20260713153000` is remotely applied. Entry remains `false`.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
 - Production UAT created one Progressive booking/scope/session only. Payment used
   one lazily cancelled original batch plus one approved replacement batch, one

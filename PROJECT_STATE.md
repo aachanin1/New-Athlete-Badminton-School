@@ -86,7 +86,7 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Source complete: **yes** for general Kids Group gating.
 - Source complete: **yes** for the Admin/Super Admin payment-success notification
   correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
-  adds an unapplied `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
+  adds a `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
   The approval RPC now inserts one amount-free `/admin/payments` notification for
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
@@ -94,8 +94,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Committed: **yes**, through `60688a3`. Pushed: **yes** to
   `origin/spike/next-major-security-upgrade` after the synchronized documentation
   closeout.
-- Deployed for the new general gating source: **yes**. Production currently runs
-  `5c8cee1` in rollback deployment `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`.
+- Deployed: **yes** from clean detached documentation commit
+  `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`, which contains source commit
+  `60688a3`. Current Ready deployment is
+  `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe`.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review. Entry is explicitly `false` after the
   approved primary rollback.
@@ -104,24 +106,26 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Production active for new general Kids Group entry: **no**, because Entry remains
   off after the approved primary rollback. UAT Stage A passed. Stage B payment
   completed on the one approved Progressive booking in shared Test Mode, but the
-  full rollout UAT is blocked: Production created the user success notification but
-  no Admin-recipient notification. The correction is source-complete but is not
-  deployed or remotely applied. A verified Super Admin Chrome session is ready for
-  later read-only Production UAT; Standard Admin identity remains
-  `Unknown / Need verification`.
+  completed on the one approved Progressive booking in shared Test Mode. The staff
+  notification correction is now deployed and its migration is applied, but it is
+  intentionally future-event-only: no historical notification was backfilled.
+  Super Admin read-only Production UAT passed; Standard Admin identity remains
+  `Unknown / Need verification`, so that role UAT is pending.
 - Local verification passed: notifications `16`, booking entry `23`, pricing `17`,
   transactions `33`, coupon `38`, payment batches `39`, payment integration `18`,
   shared SlipOK `6`, Legacy pricing `14`, TypeScript, ESLint, mojibake, and
   Production build. Post-build dev/static-asset verification also passed with HTTP
   `200` for `/` and `/_next/static/chunks/webpack.js`.
-- Five Progressive migrations and all four capability RPCs are deployed/Ready. The
-  new sixth local migration is not applied remotely.
+- All six Progressive migrations and all four capability RPCs are deployed/Ready.
 
 ### Production
 
-- Current deployment: `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`, Ready, created
-  2026-07-13 09:54 ICT, functional source SHA
-  `5c8cee1e8a81f928b870e643a78e1d2baf39fa06`.
+- Current deployment: `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe`, Ready, created
+  2026-07-13 11:51 ICT from exact clean detached commit
+  `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`; that commit contains notification
+  source commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`. Vercel CLI deployment
+  metadata did not populate `gitSource.sha`; the pinned clean worktree and uploaded
+  source scope are the commit evidence.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
@@ -129,15 +133,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Production controls: pricing writes `true`, coupon lifecycle `true`, payment
   batch `true`, payment review `true`, Entry `false`. The UUID allowlist remains
   absent and was not read. Entry was enabled only for controlled UAT, then disabled
-  through the approved primary rollback. It was not re-enabled after payment UAT
-  because the Admin notification and role-specific Admin UI gates did not pass.
+  through the approved primary rollback. It remained explicitly `false` throughout
+  the migration/deployment/read-only Admin UAT round.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
 ### Pricing Reconciliation Status
 
-**BLOCKER — ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**
+**NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
@@ -173,19 +177,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   reconciliation result. Admin payment queue data contains the approved batch, and
   source inspection preserves amount fields only for `super_admin`, but actual
   Super Admin and Standard Admin Production UI UAT remains unverified in this round.
-- Root cause is corrected in source commit `60688a3`: the deployed RPC has only the
-  `v_batch.user_id` insert and no staff-recipient selection. The new migration keeps
+- Root cause is corrected and deployed from source commit `60688a3`. Migration
+  `20260713153000` keeps
   notification creation after the first successful approval transition and before
   commit, selects only `admin`/`super_admin` profiles, and returns on an approved
   replay before notification inserts. Route-level notification was rejected because
   it would sit outside the atomic approval transaction and the existing helper's
   check-then-insert behavior is race-prone. Standard Admin copy contains no amount;
   Super Admin receives the same amount-free copy, so no visibility policy expands.
-- Source-only classification:
-  **PASS — ADMIN PAYMENT NOTIFICATION SOURCE FIX ONLY; DEPLOY/UAT/ENTRY ACTIVATION PENDING**.
-  Overall rollout remains blocked with Entry off until the migration is separately
-  approved/applied, the exact source is deployed, role UAT passes, and activation is
-  separately approved.
+- Deployment-round classification:
+  **NEED REVIEW — SOURCE DEPLOYED AND ENTRY DISABLED; STANDARD ADMIN UAT PENDING**.
+  Super Admin read-only UAT passed, no notification backfill or Production business
+  row change occurred, and Entry remains off. Standard Admin role UAT plus a
+  separate Owner activation decision remain open.
 - Before/after counts attributable to this continuation: bookings `514 -> 514`,
   scopes `2 -> 2`, batches `3 -> 4`, attempts `0 -> 1`, allocations `0 -> 1`,
   legacy payments `465 -> 465`, coupon reservations/usages `0 -> 0`, ledger rows
