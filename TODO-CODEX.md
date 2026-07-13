@@ -117,6 +117,8 @@ Blocked / Need action:
   active Legacy rows lack `entitlement_sessions`, yet `total_sessions` matches the
   original/root session count for every row. Raw session rows would overcount `87`
   rescheduled bookings; `25` also have wallet dependencies.
+- Option A decision/audit documentation is committed and pushed at
+  `b0cab819a201c625c9309463605af6e5495f81a4`; no source or Production state changed.
 
 Next authorized continuation:
 

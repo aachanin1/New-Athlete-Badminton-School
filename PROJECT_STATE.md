@@ -217,6 +217,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   browser-local confirmation remains untouched.
 - Audit classification:
   **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
+- Documentation audit commit
+  `b0cab819a201c625c9309463605af6e5495f81a4` is committed and pushed to
+  `origin/spike/next-major-security-upgrade`. Source remains unchanged.
 
 ### Pricing Reconciliation Status
 

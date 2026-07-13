@@ -789,6 +789,10 @@ repo: `Unknown / Need verification`.
   Deploy/Entry/allowlist change: no. Customer impact and financial impact: `0`.
   Source complete for Option A: no. Task Done: no. Next gate is separate Owner
   approval for the audited source plus additive-migration implementation scope.
+- Decision/audit documentation commit
+  `b0cab819a201c625c9309463605af6e5495f81a4` was pushed to
+  `origin/spike/next-major-security-upgrade`; the pre-existing unrelated remainder
+  of the `AGENTS.md` worktree change stayed unstaged and excluded.
 - Classification:
   **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
 
