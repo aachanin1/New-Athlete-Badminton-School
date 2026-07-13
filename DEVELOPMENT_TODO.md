@@ -1146,6 +1146,122 @@ repo: `Unknown / Need verification`.
 - Classification:
   **BLOCKER — OPTION A ACTIVATION UAT FAILED; ENTRY ROLLED BACK TO ABSENT**.
 
+#### 2026-07-13 - Progressive Summary Fixed; Option A Production Active
+
+- Owner approved one combined closeout round limited to the localized Progressive
+  Kids Group Summary correction, narrow deterministic tests, source commit/push,
+  corrected Entry-absent deployment, exact-source Entry activation, authenticated
+  no-write `4+4` UAT, reconciliation, and documentation. API/RPC/migration/tier,
+  Legacy, Adult Group, Private, Booking confirmation, Payment, and Production
+  business-data changes remained prohibited.
+- Gate 0 passed on branch `spike/next-major-security-upgrade` from matching
+  local/remote HEAD `817794a4aaefe885aa46f30f4765e7e8a20902e4`. Core Option A
+  `f8568a6` was an ancestor. The only dirty file was the unrelated unstaged
+  `AGENTS.md` remainder (`72` additions / `3` deletions), which remained excluded.
+- Root cause was exactly the Kids Group summary render in
+  `src/components/dashboard/booking-client.tsx`: the component stored only a
+  partial authoritative preview and rendered the Legacy monthly true-up block for
+  every Kids Group summary. The Progressive server preview/price was already
+  correct; no pricing formula or API contract change was required.
+- Source commit `aa64adfb765139ca38908ca2409fa2127ffe4a29`
+  (`fix(booking): separate progressive summary pricing copy`) changes only
+  `src/components/dashboard/booking-client.tsx` and
+  `scripts/check-progressive-booking-entry.js`. It introduces a discriminated
+  preview state, preserves the server-provided Progressive baseline/ordering/rate/
+  gross/final evidence, branches only on authoritative `mode`, and renders separate
+  Progressive and Legacy explanations. Coupon and zero-price semantics are
+  unchanged; Adult Group and Private remain Legacy. The commit was pushed to
+  `origin/spike/next-major-security-upgrade`.
+- Verification passed: booking entry `31`, Option A baseline `32`, Progressive
+  pricing `17`, transactions `33`, coupon `38`, Legacy pricing/payment `14`,
+  `npx.cmd tsc --noEmit`, lint, mojibake `225`, production build `90` routes, and
+  `git diff --check`. Post-build protocol stopped port `3000`, removed only this
+  repo's generated `.next`, restarted dev on `127.0.0.1:3000`, and verified home
+  `200`, generated static asset `200`, unauthenticated preview `401`, and no Next
+  error overlay. Deterministic Summary checks supplied the authenticated local UI
+  proof because the local Chrome tab could not be attached reliably.
+- Corrected clean Entry-absent deployment
+  `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` reached Ready on all four aliases from exact
+  `aa64adf` and became the primary rollback target. Authenticated no-write Entry-off
+  UAT preserved the exact Legacy block/result: previous `4` / `2,500`, new `4`,
+  cumulative `8`, rate `500`, target `4,000`, deduction `2,500`, charge `1,500`;
+  Progressive-only explanation was absent.
+- Entry activation added only Production
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED=true`. The first interactive Vercel attempt
+  accidentally answered the default Sensitive prompt instead of the value prompt,
+  so its artifact remained default-deny and was rejected by runtime proof. Entry
+  was recreated as a non-sensitive flag and pull-back proved exact value `true`.
+  Ordinary same-source deployments still reused the Entry-off build cache and were
+  also rejected. A final `--force` build of the same clean `aa64adf` source produced
+  activation deployment `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`, Ready on all four
+  aliases. No source or dependency changed between Entry-off and Entry-on.
+- Authenticated Production no-write UAT confirmed the exact Owner case: eligible
+  Legacy history `2+2=4`, historical amounts `1,250+1,250=2,500`, cancelled rows
+  excluded, previous Progressive `0`, selected new sessions `4`, and coupon `0`.
+  The authoritative Progressive result was Legacy baseline `4`, previous
+  Progressive `0`, new `4`, cumulative `8`, rate `500`, gross `2,000`, discount
+  `0`, final `2,000`.
+- The customer Summary visibly showed the Progressive booking-level explanation,
+  including `สิทธิ์เดิมที่ใช้กำหนดเรท: 4 ครั้ง`,
+  `การจอง Progressive ก่อนหน้า: 0 ครั้ง`, `จองเพิ่มครั้งนี้: 4 ครั้ง`,
+  `จำนวนสะสมหลังจอง: 8 ครั้ง`,
+  `เรทสำหรับการจองครั้งนี้: 500 บาท/ครั้ง`, and
+  `ราคาการจองใหม่: 4 × 500 = 2,000 บาท`. It also stated that historical payment is
+  preserved and not deducted. Legacy target-total, prior-payment-deduction, and
+  credit-difference wording were all absent. The historical Legacy `2,500` did not
+  participate in or appear as a deduction.
+- Adult Group and Private remained Legacy through the unchanged server-only entry
+  decision and passing deterministic checks. Unauthenticated preview returned
+  `401`. Existing Progressive User History and approved batch remained readable;
+  pricing capability was Ready/version `2`/`immutable_scope_v1`; coupon, payment
+  batch, and payment integration capabilities were Ready/version `1`; both existing
+  scopes were unlocked. Migration `20260713210000` remained applied exactly once.
+- Protected baseline was captured at `2026-07-13T15:43:51.815Z`; post-UAT was
+  captured at `2026-07-13T16:01:11.187Z`. Every count and SHA-256 fingerprint
+  matched exactly:
+
+  | Checkpoint | Count | SHA-256 |
+  | --- | ---: | --- |
+  | bookings | 519 | `d3d5a7c57d7178bc80698672a57634eadb8c4ecca2ea7664201d9fc4ceb040ae` |
+  | booking sessions | 2,785 | `ab8269bb6b1fa1e479880d450aa0edecc07b4048e75a966985b136a60f54b752` |
+  | pricing scopes | 2 | `86503f5f2eb1197578d774fec9a4a3de8dcf43204c12c07f73bf76e9e74edb48` |
+  | mutation receipts | 3 | `0a2e5b22b52817d840b17b40d8b0869475bf08630e4170a8cb7d1bdf83eb3b78` |
+  | coupon reservations | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+  | coupon usages | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+  | payment batches | 4 | `662e71bb9eb71ca5d0a830d9129e87ad3c7dc3a243b9c49e3650b37ce0f34faf` |
+  | payment batch members | 4 | `f94c8df0f696431f99bf9156a09d04f29069deb98fb2cc2dd7db020af900b075` |
+  | verification attempts | 1 | `5b125b6b2bb2e2f5732efdbab8e43cdc4da6afed36b155aef21e6d5218cdfa33` |
+  | allocations | 1 | `3100748cd90c49db598f714ebcae865b90d191ff4ad4df9100f7e2fb24419936` |
+  | payments | 470 | `3c32d4ea56390b151707b04109b5a8020d5c1ce588c7d943596458ef13f0ed2e` |
+  | Ledger | 471 | `ff92de3a57d20a2139f32317379d2588ff69706f391e3fa771703bbc7d88cfbd` |
+  | wallet credits | 60 | `08ba708a26efaba9445856a00414092ee867e25741195ea0be88f97c01ac007a` |
+  | attendance | 1,622 | `4974ee348f148d676fa3fc2e770cce9619469b3424defa7da4d4910fc017d0e7` |
+  | notifications | 16,147 | `402eb8a491c104f5c281fc8f8da6755d9496ea13ec80b287bb32572ca3031df5` |
+  | pricing tiers | 11 | `27c184b2bf280bf0352848d0ef04866db278e5ecd5cf20963395301ba520aaa7` |
+  | Finance expenses | 1 | `f0dafc3824b411b3d8b131103f5f9043a4536d634e2037138b661d92b8df3846` |
+  | existing Progressive bookings | 2 | `41e87af0e6b7d18701a8dec74dd10a810f09c6962d8281b29d5e114be4c8e377` |
+  | virtual pricing snapshots | 519 | `33324b5abf3dbd588aa22f3d2c26e0233cf0b12f0c61a03e839a1eed7b31b993` |
+  | approved Progressive batches | 1 | `d61ed493eadee3da1c0e5871d3f30f9eefadbe22891df1d6e4c1c573cc4ce020` |
+  | repaired booking | 1 | `7ca7308ec459bb39d1c45d0a557774d48b7aba919459f63363a7321c1cb0b541` |
+
+- Final deployment logs sampled `28` requests: errors `0`, 5xx `0`, baseline faults
+  `0`, dependency faults `0`, live SlipOK `0`, booking-create POST `0`, and one
+  successful preview `200`. Browser console warnings/errors, React/hydration errors,
+  and Next error overlay were `0`. No confirmation button was clicked.
+- Source complete: **yes**. Tests passed: **yes**. Committed/pushed: **yes** for
+  source; documentation closeout is the follow-up commit. Migration applied:
+  **yes**. Deployed / Feature enabled / Production active / Production UAT passed:
+  **yes / yes / yes / yes**. Data repaired this round: **no**. Task Done: **yes**.
+  Customer impact: future new general Kids Group bookings now use Progressive.
+  Financial impact: future charges follow Option A; all historical money and
+  accounting evidence remain unchanged. Rollback used after the successful final
+  artifact: **no**; corrected Entry-absent rollback target remains available.
+- Kids Group Pricing Reconciliation is closed and removed from the active blocker
+  queue. The next documented task, Homepage LV copy audit/fix, is unpaused but was
+  not started.
+- Classification:
+  **PASS — PROGRESSIVE SUMMARY FIXED; OPTION A ENTRY ACTIVE; PRODUCTION 4+4=2,000 UAT PASSED; PRICING RECONCILIATION DONE**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.
