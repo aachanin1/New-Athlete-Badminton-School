@@ -1005,6 +1005,65 @@ repo: `Unknown / Need verification`.
 - Classification:
   **PASS — ENTRY VARIABLE REMOVED; MIGRATION/DEPLOY GATE MUST RESTART FROM GATE 0**.
 
+#### 2026-07-13 - Option A Migration Applied and Entry-Absent Source Deployed
+
+- Owner approved one gated execution covering fresh Gate 0/0A, mixed-scope audit,
+  exact migration `20260713210000`, capability/data verification, exact Option A
+  deployment with Entry absent, read-only smoke/monitoring, and documentation push.
+  Entry activation, environment changes, Booking/Payment actions, repair, backfill,
+  and additional source/migration changes remained prohibited.
+- Git started at branch `spike/next-major-security-upgrade`, local/remote HEAD
+  `d4574a76927b3f01e9fd5d8a2328d953c256243f`. Source `f8568a6` is an ancestor and
+  the descendant functional tree is identical. Only the unrelated unstaged
+  `AGENTS.md` remainder (`72` additions / `3` deletions) existed and stayed excluded.
+- Migration SHA-256 matched
+  `30C0A711B391FA1F89F98A0589AABAEBD588E0FAD0390D8583D3E2937844A78E`.
+  Exactly `20260713210000` was pending. Gate 0A proved the additive columns and
+  unchanged acquire/membership/reprice signatures safe for the old Entry-off
+  deployment during the short migration-to-deploy interval.
+- Fresh Production audit found active Kids Group periods: Legacy-only `373`,
+  Progressive-only `1`, mixed `0`; active Legacy bookings `423` / `2,416` sessions;
+  existing Progressive scopes with eligible Legacy `0`; multiple-child `68`;
+  wallet/reschedule `97`; coupon-affected `0`. Current/future: `185` Legacy-only,
+  `1` Progressive-only, mixed `0`, active Legacy bookings `219` / `1,283` sessions.
+  Both existing scopes had authoritative eligible Legacy baseline count `0` and
+  were unlocked; their revisions remained `4` and `3`.
+- `supabase db push --linked --yes` applied exactly migration `20260713210000` once.
+  Remote schema contains only the three approved nullable scope baseline fields,
+  all-or-none constraint, immutability trigger, authoritative helper, compatible
+  scope/membership/reprice/create replacements, and capability update. Existing
+  scope baseline fields stayed null; no backfill ran. Anon helper access remained
+  denied and service-role grants/search paths remained correct.
+- Pricing-write capability is `{ ready: true, version: 2,
+  legacyBaselineContract: "immutable_scope_v1" }`. Payment batch and integration
+  capabilities remain Ready at version `1`. Pre/post migration protected hashes
+  matched for all `21` checkpoints, including Booking/sessions/scopes/snapshots,
+  receipts, Payment/batches/attempts/allocations, Ledger, Finance, coupon, wallet,
+  attendance, notifications, and pricing tiers.
+- A clean detached worktree at exact `d4574a7` deployed the functional-tree-identical
+  Option A source. Production deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` is
+  Ready on all four aliases. Entry and allowlist remain absent; the four dependency
+  controls and shared `SLIPOK_TEST_MODE` name remain present. No environment value
+  was added, removed, or changed in this deployment round.
+- Entry-off smoke: public home `200`; generated assets identify the new deployment;
+  unauthenticated preview `401`; preserved authenticated Kids `4+4` draft remained
+  Legacy `1,500`; Adult/Private source decision remains Legacy; User History showed
+  the approved Progressive `700` booking. The approved batch and both existing
+  scopes remained readable, and payment drain capabilities remained Ready. No
+  confirm/edit/cancel/Payment/batch action was submitted.
+- Bounded deployment log searches returned error `0`, 5xx `0`, and SlipOK `0`.
+  Browser console/hydration warnings were `0`. Final protected counts were unchanged
+  except five attendance rows plus one coach reminder created by timestamp-correlated
+  real coach operations after the baseline; attributable migration/deploy business
+  delta is `0`. Customer impact: none. Financial impact: none. Rollback: not used.
+- Source complete: **yes**. Tests passed: **yes**. Committed/pushed source: **yes**.
+  Migration applied: **yes**. Deployed: **yes**. Feature enabled/Production active:
+  **no**. Production Entry-on UAT: **no**. Data repaired this round: **no**. Task
+  done: **no**. Remaining gate is separate Owner approval for final Entry activation,
+  authoritative no-write Production `4+4 = 2,000` UAT, monitoring, and closeout.
+- Classification:
+  **PASS — OPTION A MIGRATION APPLIED AND ENTRY-ABSENT SOURCE DEPLOYED; ACTIVATION UAT PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

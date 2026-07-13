@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — ENTRY VARIABLE REMOVED; MIGRATION/DEPLOY GATE MUST RESTART FROM GATE 0**.
+Current classification: **PASS — OPTION A MIGRATION APPLIED AND ENTRY-ABSENT SOURCE DEPLOYED; ACTIVATION UAT PENDING**.
 
 Confirmed:
 
@@ -39,10 +39,10 @@ Confirmed:
   payment drain remains authenticated and dependency-gated even if Entry is disabled.
 - Owner confirmed Progressive replaces Legacy for general Kids Group Production
   traffic. Historical review is unpaid-only; paid/approved/verified rows are excluded.
-- Exact clean commit `f5b22a9` containing source `60688a3` is deployed in final
-  Ready rollback deployment `dpl_3RS4MWu...`.
-  Pricing-write, coupon-lifecycle, payment-batch, and payment-review controls are
-  `true`; Entry is `false`; allowlist is absent; shared `SLIPOK_TEST_MODE=true`.
+- Exact Option A functional tree from `f8568a6` is deployed through clean commit
+  `d4574a7` in Ready deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE`.
+  Pricing-write, coupon-lifecycle, payment-batch, and payment-review controls remain
+  present; Entry and allowlist are absent; shared `SLIPOK_TEST_MODE` remains present.
 - Stage A passed. Stage B payment completed for the same one approved booking.
   Original batch `eb5a1c73...` expired and was lazily cancelled; replacement batch
   `d65dc3b8...` approved in shared Test Mode with one attempt, one `700`
@@ -101,17 +101,14 @@ Blocked / Need action:
   passed exactly: `4` previous + `4` new = `8`, authoritative rate `500`, charge
   `8 * 500 - 2,500 = 1,500`. The policy Progressive arithmetic is `4 * 500 = 2,000`.
   No confirmation or Production write occurred.
-- Activation is not yet safe because Production still runs the pre-compatibility
-  deployment. Both active bookings have `pricing_scope_id=null` and there is no July
-  Progressive scope, so deployed source still returns
-  `PROGRESSIVE_LEGACY_SCOPE_NOT_READY`. Compatible source/RPC is complete and pushed
-  at `f8568a6d9c18da3745492d47c01d3ca22da156c8`; additive migration
-  `20260713210000` is source-only and not remotely applied. Do not reactivate Entry.
+- Production now has the compatible source/RPC and migration, but Entry remains
+  absent by design. Do not activate it without the separate final activation/UAT
+  approval and rollback gate.
 - Read-only Production blast radius: `373` active Legacy-only user/month periods,
   `1` Progressive-only period, `0` mixed periods, `423` active Legacy bookings and
   `2,416` Legacy entitlement sessions. Current/future July-August exposure is `185`
   Legacy-only periods, `219` bookings, and `1,283` sessions. There are `68`
-  multiple-child periods, `96` wallet/reschedule periods, `0` coupon-affected
+  multiple-child periods, `97` wallet/reschedule periods, `0` coupon-affected
   periods, and `0` existing Progressive scopes with unmatched active Legacy rows.
 - `bookings.total_sessions` is the canonical Legacy entitlement source: all `423`
   active Legacy rows lack `entitlement_sessions`, yet `total_sessions` matches the
@@ -149,19 +146,26 @@ Blocked / Need action:
   from `11` to `10`: removed Entry only, added `0`, and all remaining variable
   metadata stayed unchanged. The four dependencies and shared SlipOK name remain;
   the allowlist remains absent.
-- No deployment or migration followed the cleanup. `dpl_3RS4MWu...` remains Ready
-  on the same aliases and `20260713210000` remains pending. Home and unauthenticated
-  preview returned `200` and `401`; bounded error and SlipOK log searches returned
-  zero rows. Counts for `17` relevant Production tables/views were identical before
-  and after, including Booking, Payment, coupon, wallet, attendance, notification,
-  pricing tiers, allocations/Ledger, and Finance.
+- The separately approved migration/deploy round completed from fresh Gate 0/0A.
+  Remote migration `20260713210000` is applied exactly once; capability is Ready at
+  version `2` with `immutable_scope_v1`. Exact functional source `f8568a6` was
+  deployed through identical documentation commit `d4574a7` as Ready deployment
+  `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` on all four aliases.
+- Entry and allowlist remain absent; four dependency controls and shared SlipOK Test
+  Mode remain present. Preserved Kids `4+4` stayed Legacy `1,500`, Adult/Private
+  source routing stays Legacy, unauthenticated preview returned `401`, and existing
+  Progressive User History/batch records remained readable/drain-capable. No
+  Booking, Payment, edit/cancel, batch, allocation, or notification action ran.
+- Protected pre/post migration fingerprints matched at all `21` checkpoints. Five
+  later attendance rows and one coach reminder were correlated to real coach
+  operations; migration/deploy-attributable business-data delta is `0`.
 
-Next authorized continuation:
+Next gated continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. Source work is complete and the future-deployment Entry-absent
-  prerequisite is restored, but the migration/deploy gate must restart from Gate 0.
-  No migration or deployment is authorized by the completed cleanup approval.
+  booking. Source, migration, and Entry-absent deploy are complete. Only the final
+  separately approved Entry activation plus authoritative Production no-write
+  `4+4 = 2,000` UAT and closeout remain.
 
 Do not do now:
 
@@ -174,10 +178,9 @@ Do not do now:
 
 Next gated work:
 
-1. Obtain separate Owner approval to restart the migration/deploy round.
-2. Rerun Gate 0/0A and the fresh mixed-scope audit; do not resume directly at
-   migration application even though the project Entry variable is now absent.
-3. Migration/deploy verification and later Entry activation/UAT remain separately gated.
+1. Obtain separate Owner approval for final Entry activation.
+2. Activate Entry only under the approved rollback/monitoring gate.
+3. Run authoritative Production no-write `4+4 = 2,000` UAT and closeout.
 
 Conditions before any Production write or deploy:
 
@@ -191,15 +194,15 @@ Conditions before any Production write or deploy:
 | State | Current result |
 | --- | --- |
 | Source complete | Yes - Option A TypeScript/RPC/additive migration source complete at `f8568a6` |
-| Committed | Yes - source `f8568a6`; documentation closeout follows separately |
-| Pushed | Yes - source through `f8568a6` on `origin/spike/next-major-security-upgrade` |
-| Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
-| Option A migration | Source `20260713210000` created; not applied remotely |
+| Committed | Yes - source `f8568a6`; this documentation closeout is the follow-up commit |
+| Pushed | Yes - source through `f8568a6`; documentation closeout is pushed in this round |
+| Deployed | Yes - Option A functional tree via `d4574a7`, `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` Ready |
+| Option A migration | `20260713210000` applied remotely exactly once |
 | Dependencies enabled | Yes - four dependency controls `true` |
-| Entry enabled | Project Production variable absent; unchanged deployed artifact effective value `Unknown / Need verification`; no activation or redeploy |
+| Entry enabled | No - Production variable absent/default-deny in the new deployment |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | User/Parent Entry-off Legacy draft passed at `1,500`; Option A local/disposable `4 + 4` passed at `2,000`; Production Entry-on proof awaits migration/deploy/activation approval |
-| General users active | `Unknown / Need verification` for unchanged deployment; no new activation observed and Option A is not Production-active |
+| Production UAT | Entry-off Legacy draft passed at `1,500`; Production Entry-on `4 + 4 = 2,000` proof awaits activation approval |
+| General users active | No - Entry absent; Option A installed but not active |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
 
@@ -214,30 +217,30 @@ Conditions before any Production write or deploy:
 - Progressive pricing, transaction, coupon, payment-batch, payment integration, and
   general Kids Group Entry source are complete. The Admin/Super Admin notification
   source correction is committed at `60688a3`; migration `20260713153000` is applied
-  and exact clean `f5b22a9` is deployed.
+  and is included in the current Option A deployment.
   Detailed verification is in `PROJECT_STATE.md` and `DEVELOPMENT_TODO.md`.
-- Current deployed state is `f5b22a9` in Ready deployment `dpl_3RS4MWu...` and
-  contains the shared global `SLIPOK_TEST_MODE=true` behavior; no Progressive-only
-  SlipOK mode remains.
+- Current deployed state is the Option A functional tree from `f8568a6`, deployed
+  via clean `d4574a7` as Ready deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE`.
+  Migration `20260713210000` is applied; shared Test Mode remains present and no
+  Progressive-only SlipOK mode exists.
 - Seven recorded Kids Group Production price repairs were completed under Legacy
   true-up rules. They are historical repairs, not evidence that Owner Progressive
   policy and current Production runtime match.
 
 ## Worktree / Safety Notes
 
-- Production runs exact clean `f5b22a9` containing source fix `60688a3` in Ready
-  deployment `dpl_3RS4MWu...`; migration `20260713153000` is remotely applied.
-  The project Production Entry variable is absent after the isolated cleanup; the
-  unchanged deployment's embedded effective value remains `Unknown / Need verification`.
+- Production runs Option A functional source from clean `d4574a7` in Ready
+  deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE`; migration `20260713210000` is
+  remotely applied. Entry and allowlist are absent/default-deny.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
 - The unconfirmed User/Parent `4 + 4` summary remains browser-local. Do not click
   confirmation. No Production business row changed during its preparation.
 - Production UAT created one Progressive booking/scope/session only. Payment used
   one lazily cancelled original batch plus one approved replacement batch, one
   successful Test Mode attempt, one allocation, one ledger row, and one user
-  notification. No second booking, legacy payment row, coupon, migration, allowlist,
-  pricing tier, historical repair, or source change occurred. No Entry activation
-  or redeploy occurred during the cleanup.
+  notification. No second booking, legacy payment row, coupon, allowlist, pricing
+  tier, historical repair, or Production business-data repair occurred in the
+  migration/deploy round. Entry was not activated.
 
 ## Session Exit Checklist
 
@@ -246,3 +249,7 @@ Conditions before any Production write or deploy:
   risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for docs-only Thai edits.
+- Remaining work: separate Owner approval for Entry activation, no-write Production
+  `4+4 = 2,000` UAT, monitoring, and closeout. Entry remains absent now.
+- Classification:
+  **PASS — OPTION A MIGRATION APPLIED AND ENTRY-ABSENT SOURCE DEPLOYED; ACTIVATION UAT PENDING**.
