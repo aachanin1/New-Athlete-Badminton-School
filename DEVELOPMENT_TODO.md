@@ -209,6 +209,65 @@ repo: `Unknown / Need verification`.
 - Current classification:
   **PASS — GENERAL KIDS GROUP GATING SOURCE ONLY; DEPLOY/ACTIVATION/UAT AND ONE-ROW REPAIR PENDING**.
 
+### 2026-07-13 - Owner-Approved Progressive Unpaid Booking Repair
+
+#### Policy and pre-write proof
+
+- Owner explicitly approved exactly booking
+  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`, `bookings.total_price 550 -> 625`, using
+  `newBookingSessions * rateOf(previousActiveSessions + newBookingSessions)`.
+- Fresh Production audit found exactly one target row: `kids_group`,
+  `pending_payment`, one child entitlement/session, one `scheduled` session, and
+  unchanged `updated_at` from creation.
+- Deterministic active order remained one earlier verified one-session booking
+  `119752e0...` followed by the target. Therefore `previousActiveSessions = 1`,
+  `newBookingSessions = 1`, `cumulativeAfter = 2`, current tier `625`, expected
+  booking price `625`.
+- Pre-write dependency counts were all zero: payments/payment evidence, coupon
+  usages/reservations, lesson wallet, attendance, Progressive batch links,
+  allocations, finance ledger, and refund/credit/accounting relations.
+- Only the original `create_booking` activity existed. The target had no later edit,
+  cancellation, payment, verification, or manual correction evidence.
+
+#### Atomic write
+
+- One linked-Production SQL transaction locked the target booking, target session,
+  active booking order, and pricing-tier rows; rechecked all safety predicates; and
+  required the exact id, `pending_payment`, `550`, and pre-write `updated_at`.
+- Exactly one booking row changed to `625`. Only normal `updated_at` changed beside
+  `total_price`; status, learner, branch, course, month/year, entitlement fields,
+  pricing-scope fields, and all sessions were preserved.
+- The same transaction inserted exactly one activity log:
+  `98359d52-4da1-4ef2-bc75-a9b3a29db830`, action
+  `owner_progressive_unpaid_booking_repair`.
+- Activity details record Owner approval, `550 -> 625`, difference `75`, formula,
+  `1 + 1 -> 2`, tier `625`, preserved pending status, zero dependencies, gating
+  source `5c8cee1`, Production deployment `dpl_AG8za...`/source `56daabf`, and that
+  no deploy or feature activation occurred.
+
+#### Post-write reconciliation and impact
+
+- Independent read-only audit confirmed target `625`, `pending_payment`, the same
+  one scheduled session/order, dependency counts still zero, and exactly one repair
+  activity log.
+- Transaction fingerprints confirmed the other five matching unpaid candidates,
+  every paid/verified booking, all target sessions, and all pricing tiers unchanged.
+- July Progressive shadow reconciliation now reports `4/4` pending bookings
+  `MATCH`, underpriced count `0`, underpriced amount `0`, and no missing tier.
+- Customer impact: the genuinely unpaid amount due increased by `75`; no payment,
+  refund, credit, wallet, attendance, entitlement, payroll, or accounting entry was
+  created or changed.
+- Financial impact: booking receivable/net value increased by `75`; cash received,
+  payment ledger, and accounting allocations remain unchanged.
+- Rollback recorded but not executed: `625 -> 550` only if a fresh audit proves no
+  payment, coupon, wallet, attendance, refund, credit, entitlement, or accounting
+  dependency occurred after repair. Otherwise stop and re-plan with Owner approval.
+- Source complete/committed/pushed: yes (`5c8cee1`). New source deployed: no.
+  Progressive enabled: no. Production active: no. Production UAT: not performed.
+  One-row data repaired: yes.
+- Current classification:
+  **PASS — ONE UNPAID PRODUCTION BOOKING REPAIRED; DEPLOY/ACTIVATION/UAT PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

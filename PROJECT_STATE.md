@@ -27,9 +27,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Historical review and any future repair proposal are limited to genuinely unpaid
   Kids Group bookings. Paid, approved-payment, and verified bookings must not be
   reopened or repriced in this round.
-- Owner separately approved a later one-row Production repair for unpaid booking
-  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`, `550 -> 625`. It remains pending and was
-  not performed in the 2026-07-13 source-only round.
+- Owner-approved one-row Production repair for unpaid booking
+  `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`, `550 -> 625`, completed on 2026-07-13
+  after a fresh dependency audit. No paid or verified booking was reopened.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -116,12 +116,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Pricing Reconciliation Status
 
-**PASS — GENERAL KIDS GROUP GATING SOURCE ONLY; DEPLOY/ACTIVATION/UAT AND ONE-ROW REPAIR PENDING**
+**PASS — ONE UNPAID PRODUCTION BOOKING REPAIRED; DEPLOY/ACTIVATION/UAT PENDING**
 
-- Owner policy, Progressive formula, and pushed source now agree for general Kids
-  Group entry. This `PASS` is source-only, not an end-to-end Production result.
+- Owner policy, Progressive formula, pushed source, and the approved one-row repair
+  agree. This `PASS` is scoped to source readiness and that data repair, not an
+  end-to-end Production rollout result.
 - The deployed entry remains the older allowlist-gated source and all controls are
   absent, so general Production traffic still uses Legacy.
+- Data repaired: **yes**, exactly one unpaid booking. Source/deploy/activation state
+  did not change during the repair.
 - `DOCUMENTATION DRIFT` was found: the previous snapshot said `56daabf` was not
   deployed and current Vercel state was unknown. Read-only CLI verification proves
   it is deployed, while enabled/allowlisted/Production-active states remain false.
@@ -145,23 +148,32 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 | `e63fd262-fa64-4d8c-96ae-e0ff979a29e3` | 2026-06, #1 | 4 | `2,500` | `2,500` | `0` | 4 scheduled sessions; all checked dependencies `0` |
 | `fbdf5523-0cb6-4a4f-985d-f5c5cea4abd7` | 2026-06, #1 | 7 | `3,500` | `3,500` | `0` | 7 scheduled sessions; all checked dependencies `0` |
 | `4b0813ef-f386-4e6f-9b8d-1b11f861ec5c` | 2026-07, #1 | 2 | `1,250` | `1,250` | `0` | 2 scheduled sessions; all checked dependencies `0` |
-| `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` | 2026-07, #2 after one verified session | 1 | `550` | `625` | `+75` due | 1 scheduled session; all checked dependencies `0` |
+| `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40` | 2026-07, #2 after one verified session | 1 | `550` | `625` | Repaired `+75` on 2026-07-13 | 1 scheduled session; all checked dependencies `0` |
 | `9634dca8-d3ce-4922-aaa4-f743edf3dd86` | 2026-07, #1 | 2 | `1,250` | `1,250` | `0` | 2 scheduled sessions; all checked dependencies `0` |
 | `6be6b3cf-f072-4e65-8a27-2656fcfd3390` | 2026-07, #1 | 6 | `3,750` | `3,750` | `0` | 6 scheduled sessions; all checked dependencies `0` |
 
-- Candidate totals: Legacy `12,800`; expected Progressive `12,875`; net increase
-  `75`. Five candidates need no amount repair; only `d6dad7aa...` differs.
+- Original candidate totals were Legacy `12,800` versus Progressive `12,875`.
+  After the one-row repair, all six audited unpaid candidates match Progressive;
+  current stored total is `12,875`.
 - Excluded: all `415` verified Kids Group bookings have direct `approved` payment
   rows and are out of scope. There are no Kids Group bookings in `paid` status.
   The `33 cancelled` rows are inactive and also excluded. Approved payments were
   not reopened or repriced.
 - Next deploy scope, not performed: separately approve deployment of `5c8cee1`,
   exact Production variables/rollout order, controlled UAT, monitoring, and rollback.
-- Approved data-repair scope, not performed: in a later separately authorized write
-  round, update only unpaid booking `d6dad7aa...` from `550` to `625`, with a fresh
-  immediately pre-write dependency recheck. Do not change the five matching candidates or any
-  payment, coupon, wallet, session, attendance, entitlement, refund, payroll, or
-  accounting row.
+- Completed data repair: exactly `d6dad7aa...` changed from `550` to `625`; status
+  and sessions were preserved. Activity log
+  `98359d52-4da1-4ef2-bc75-a9b3a29db830` records the Owner approval, formula,
+  dependency audit, deployed/source state, and no-deploy/no-activation result.
+- Post-write verification found payments, coupon usage/reservations, wallet,
+  attendance, Progressive batches/allocations, finance ledger, and refund/credit/
+  accounting dependencies still `0`. The other five unpaid candidates, all paid/
+  verified bookings, and pricing tiers were fingerprint-unchanged.
+- Customer impact: the unpaid amount due increased by `75`; no cash was received or
+  refunded. Financial impact: booking receivable/net value increased by `75`, while
+  payment ledger/cash/accounting allocations remain unchanged.
+- Recorded rollback, not executed: `625 -> 550` only if no later payment, coupon,
+  wallet, attendance, refund, credit, entitlement, or accounting dependency exists.
 
 ### Production Repair History
 

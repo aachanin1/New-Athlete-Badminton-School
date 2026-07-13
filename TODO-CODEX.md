@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — GENERAL KIDS GROUP GATING SOURCE ONLY; DEPLOY/ACTIVATION/UAT AND ONE-ROW REPAIR PENDING**.
+Current classification: **PASS — ONE UNPAID PRODUCTION BOOKING REPAIRED; DEPLOY/ACTIVATION/UAT PENDING**.
 
 Confirmed:
 
@@ -38,12 +38,12 @@ Confirmed:
   `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW`, but all Progressive control names and the
   allowlist name are absent from Production. Deployed = yes; Enabled = no;
   Allowlisted = no; Production active = no; UAT = not performed.
-- Read-only Production audit found 6 genuinely unpaid candidates. Five already
-  match Progressive pricing; `d6dad7aa...` is `550` Legacy versus `625`
-  Progressive. All 415 verified Kids Group bookings have approved payment evidence
-  and are excluded. See `PROJECT_STATE.md` for exact scope and dependencies.
-- Owner separately approved the later unpaid repair `d6dad7aa...`, `550 -> 625`.
-  It remains unperformed and must not be bundled with deploy/activation.
+- Production repair completed for exactly unpaid booking `d6dad7aa...`, `550 -> 625`.
+  Fresh pre/post checks found zero payment, coupon, wallet, attendance, batch,
+  allocation, ledger, refund, credit, or accounting dependencies. Activity log:
+  `98359d52-4da1-4ef2-bc75-a9b3a29db830`.
+- All six audited unpaid candidates now match Progressive pricing. All 415 verified
+  Kids Group bookings remained fingerprint-unchanged and excluded.
 
 Unknown / Need verification:
 
@@ -56,14 +56,14 @@ Separate Owner approval required next:
 
 - Approve deployment of `5c8cee1`, exact Production controls/activation order,
   controlled Production UAT, monitoring, and rollback plan.
-- The one-row repair already has Owner policy approval but remains a later separate
-  write round with a fresh immediately pre-write dependency check.
+- The one-row repair is complete and is not part of the remaining deploy gate.
 - No approval is requested to touch paid/approved/verified rows or downstream data.
 
 Do not do now:
 
-- Do not repair/reprice Production data, deploy, change environment variables,
-  enable flags, edit the UUID allowlist, call live SlipOK, or change pricing tiers.
+- Do not perform any additional Production repair/repricing, deploy, change
+  environment variables, enable flags, edit the UUID allowlist, call live SlipOK,
+  or change pricing tiers.
 - Do not describe the current end-to-end state as `PASS`.
 - Do not merge Legacy true-up language into the Progressive formula.
 
@@ -72,7 +72,8 @@ Next gated work:
 1. Owner approves or defers deploy/activation/UAT for `5c8cee1`.
 2. If approved, verify exact Production controls before deploy, activate in the
    approved order, and run controlled UAT.
-3. Run the already approved one-row repair only in its later separate write round.
+3. Keep the recorded rollback gated by a fresh downstream-dependency audit; do not
+   execute it automatically.
 
 Conditions before any Production write or deploy:
 
@@ -94,6 +95,7 @@ Conditions before any Production write or deploy:
 | Production UAT | Not performed |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
+| Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
 
 ## Paused Until Pricing Reconciliation Closes
 
@@ -115,10 +117,12 @@ Conditions before any Production write or deploy:
 
 ## Worktree / Safety Notes
 
-- Source commit `5c8cee1` and this context follow-up are the only approved round scope.
+- This completed round changed exactly the approved booking amount and inserted its
+  activity log; the remaining repo changes are documentation only.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
-- No migration, DB/Production data, environment, flag, allowlist, deploy, or
-  Production UAT action is authorized in this round.
+- Production data changed only for the approved booking amount plus one activity
+  log. No migration, environment, flag, allowlist, deploy, or Production UAT action
+  occurred.
 
 ## Session Exit Checklist
 
