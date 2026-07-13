@@ -815,6 +815,24 @@ repo: `Unknown / Need verification`.
 - Classification:
   **DOCUMENTATION DRIFT — SOURCE FIX STOPPED BEFORE IMPLEMENTATION**.
 
+#### 2026-07-13 - Option A Gate 0A Provenance Acceptance and Resume
+
+- Owner accepted corrected Option A audit commit
+  `b0cab81014a2dde2e245fd4e156a98b1048f1dfc` and documentation correction commit
+  `21e32c7c5ee3254b981f8dabf19f515c6c77e8eb`.
+- Fresh fetch proved branch, local HEAD, and remote HEAD at the accepted
+  documentation correction commit; the corrected audit, previous closeout, and
+  correction commits are all in ancestry. The only pre-existing worktree change
+  remained the unrelated unstaged `AGENTS.md` remainder.
+- Owner explicitly authorized the previously approved Option A TypeScript,
+  additive-migration/RPC source, deterministic/disposable tests, documentation,
+  commit, and push scope to resume from Gate 1.
+- Remote migration application, Production schema/data writes, deploy, Vercel
+  controls, Entry activation, allowlist changes, Booking/Payment actions, and live
+  SlipOK remain unapproved.
+- Classification:
+  **OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

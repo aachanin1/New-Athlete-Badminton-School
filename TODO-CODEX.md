@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **DOCUMENTATION DRIFT — SOURCE FIX STOPPED BEFORE IMPLEMENTATION**.
+Current classification: **OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**.
 
 Confirmed:
 
@@ -124,13 +124,16 @@ Blocked / Need action:
   Fresh fetch proved local/remote HEAD `e61d612118b57fb36137e4bb2306715feee5f43f`
   directly descends from the corrected audit commit above. Source implementation
   stopped before any TypeScript or migration edit, as required by the Gate 0 rule.
+- The Owner accepted the corrected provenance and documentation correction commit
+  `21e32c7c5ee3254b981f8dabf19f515c6c77e8eb`, and explicitly authorized source
+  implementation to resume from Gate 1. Remote migration, deploy, Entry activation,
+  and Production data changes remain separately gated and unapproved.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. Resume the already approved audited compatibility implementation only
-  after the Owner accepts the corrected Git provenance and explicitly asks to
-  continue from this stopped Gate 0. Entry activation must not be retried yet.
+  booking. Continue the approved audited compatibility implementation from Gate 1.
+  Entry activation must not be retried yet.
 
 Do not do now:
 

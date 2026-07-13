@@ -96,8 +96,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
     dependency -> typed `503`, no Legacy fallback or partial write.
   - Current deployed source still returns `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` when
     an active booking's `pricing_scope_id` does not match the Progressive period
-    scope. Option A now defines the replacement behavior, but its source/RPC and
-    additive-scope-baseline migration are not implemented or approved yet.
+    scope. Option A defines the replacement behavior, and the Owner has approved
+    its source/RPC plus additive-scope-baseline implementation. Source work resumes
+    from Gate 1; remote migration, deploy, Entry activation, and Production data
+    remain separately gated and unapproved.
   - `adult_group` and `private` -> Legacy.
   - Existing Progressive edit/cancel remains routed by stored `pricing_scope_id`.
     Payment prepare/upload/submit/status/cancel uses authenticated ownership and
@@ -105,8 +107,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - UUID allowlist parsing remains available as staged/test infrastructure, but it is
   not a general-customer eligibility or authorization boundary.
 - Source complete: **yes** for the previously approved general Kids Group gate;
-  **no** for Option A active-Legacy compatibility. The Owner decision is confirmed,
-  but implementation requires separate approval.
+  **no** for Option A active-Legacy compatibility at this snapshot. The Owner
+  decision and source implementation approval are confirmed; Gate 1 implementation
+  is the authorized continuation.
 - Source complete: **yes** for the Admin/Super Admin payment-success notification
   correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
   adds a `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
@@ -215,8 +218,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   cumulative `8`, rate `500`, Progressive gross/final without coupon `2,000`.
   The Legacy `2,500` remains historical evidence and is never deducted. The
   browser-local confirmation remains untouched.
-- Audit classification:
-  **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
+- Audit classification, superseded by the accepted Gate 0A continuation:
+  **OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**.
 - Documentation audit commit
   `b0cab81014a2dde2e245fd4e156a98b1048f1dfc` is committed and pushed to
   `origin/spike/next-major-security-upgrade`. Source remains unchanged.
@@ -226,10 +229,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   fetch proved local and remote HEAD both at `e61d612118b57fb36137e4bb2306715feee5f43f`,
   whose direct parent is the corrected audit commit. No source, migration,
   Production, deploy, Entry, allowlist, customer, or financial state changed.
+- The Owner subsequently accepted corrected audit commit
+  `b0cab81014a2dde2e245fd4e156a98b1048f1dfc` and documentation correction commit
+  `21e32c7c5ee3254b981f8dabf19f515c6c77e8eb`, and explicitly authorized Gate 1
+  source implementation to resume. Migration application, deploy, Entry activation,
+  and Production business-data changes remain unapproved.
 
 ### Pricing Reconciliation Status
 
-**PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**
+**OWNER APPROVAL ACCEPTED — OPTION A SOURCE IMPLEMENTATION AUTHORIZED**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
