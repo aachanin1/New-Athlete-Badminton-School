@@ -472,11 +472,11 @@ check('27. cancelled and expired bookings are excluded', () => {
   assert.strictEqual(bookings[2].storedPrice, 700)
 })
 
-check('28. disabled or failed progressive path has no legacy fallback', () => {
+check('28. disabled or failed progressive path has no Legacy pricing fallback', () => {
   const adapter = fs.readFileSync(path.join(__dirname, '..', 'src/lib/progressive-booking-write.ts'), 'utf8')
   assert.match(adapter, /PROGRESSIVE_WRITES_DISABLED/)
   assert.match(adapter, /PROGRESSIVE_RPC_UNAVAILABLE/)
-  assert.doesNotMatch(adapter, /legacy|calculateBookingBasePrice|ensureScheduleSlot/)
+  assert.doesNotMatch(adapter, /calculateBookingBasePrice|ensureScheduleSlot|createLegacy|fallbackToLegacy/)
 })
 
 check('feature flag is false when unset, false, or malformed and true only after normalization', () => {

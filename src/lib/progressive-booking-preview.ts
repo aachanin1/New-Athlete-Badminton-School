@@ -17,6 +17,14 @@ interface ScopeRow {
   revision: number
   locked_by_payment_batch_id: string | null
   locked_at: string | null
+  legacy_baseline_sessions: number | null
+  legacy_baseline_fingerprint: string | null
+  legacy_baseline_initialized_at: string | null
+}
+
+interface LegacyBaselineRow {
+  baseline_sessions: number
+  baseline_fingerprint: string
 }
 
 interface BookingRow {
@@ -66,7 +74,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
   const today = new Date().toISOString().slice(0, 10)
   const { data: scopeData, error: scopeError } = await client
     .from('booking_pricing_scopes')
-    .select('id, revision, locked_by_payment_batch_id, locked_at')
+    .select('id, revision, locked_by_payment_batch_id, locked_at, legacy_baseline_sessions, legacy_baseline_fingerprint, legacy_baseline_initialized_at')
     .eq('user_id', input.userId)
     .eq('course_type_id', input.courseTypeId)
     .eq('lesson_year', input.year)
@@ -78,6 +86,25 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
   if (scope?.locked_by_payment_batch_id || scope?.locked_at) {
     fail('PROGRESSIVE_SCOPE_LOCKED', 'รายการของเดือนนี้กำลังอยู่ในขั้นตอนชำระเงิน')
   }
+
+  const { data: baselineData, error: baselineError } = await client.rpc(
+    'progressive_legacy_baseline_v1',
+    {
+      p_user_id: input.userId,
+      p_course_type_id: input.courseTypeId,
+      p_lesson_year: input.year,
+      p_lesson_month: input.month,
+    },
+  )
+  if (baselineError) fail('PROGRESSIVE_RPC_UNAVAILABLE', baselineError.message)
+  const currentBaseline = ((baselineData || []) as LegacyBaselineRow[])[0]
+  if (!currentBaseline
+    || !Number.isInteger(Number(currentBaseline.baseline_sessions))
+    || !/^[0-9a-f]{64}$/.test(currentBaseline.baseline_fingerprint)) {
+    fail('PROGRESSIVE_RPC_UNAVAILABLE', 'Progressive legacy baseline RPC returned an invalid result.')
+  }
+  const legacyBaselineSessions = Number(currentBaseline.baseline_sessions)
+  const legacyBaselineFingerprint = currentBaseline.baseline_fingerprint
 
   const { data: periodBookings, error: bookingError } = await client
     .from('bookings')
@@ -91,28 +118,41 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
 
   const activeBookings = ((periodBookings || []) as BookingRow[])
     .filter((booking) => activePendingFilter(booking, Date.now()))
-  if (activeBookings.some((booking) => booking.pricing_scope_id !== scope?.id)) {
-    fail('PROGRESSIVE_LEGACY_SCOPE_NOT_READY', 'เดือนนี้มีรายการจองเดิมที่ยังไม่สามารถรวมกับ Progressive Pricing ได้')
+
+  const legacyBookings = activeBookings.filter((booking) => booking.pricing_scope_id === null)
+  const progressiveBookings = activeBookings.filter((booking) => booking.pricing_scope_id !== null)
+  if (progressiveBookings.some((booking) => booking.pricing_scope_id !== scope?.id)) {
+    fail('PROGRESSIVE_BOOKING_CONFLICT', 'พบรายการ Progressive ที่ไม่ตรงกับรอบราคาของเดือนนี้')
+  }
+
+  if (scope?.legacy_baseline_initialized_at) {
+    if (scope.legacy_baseline_sessions !== legacyBaselineSessions
+      || scope.legacy_baseline_fingerprint !== legacyBaselineFingerprint) {
+      fail('PROGRESSIVE_LEGACY_BASELINE_DRIFT', 'รายการจองเดิมของเดือนนี้เปลี่ยนหลังเริ่ม Progressive Pricing กรุณาติดต่อผู้ดูแลระบบ')
+    }
+  } else if (scope && legacyBookings.length > 0) {
+    fail('PROGRESSIVE_LEGACY_BASELINE_DRIFT', 'พบรายการจองเดิมในรอบ Progressive ที่ยังไม่ได้ยืนยัน baseline กรุณาติดต่อผู้ดูแลระบบ')
   }
 
   const editedBooking = input.bookingId
-    ? activeBookings.find((booking) => booking.id === input.bookingId)
+    ? progressiveBookings.find((booking) => booking.id === input.bookingId)
     : null
   if (input.bookingId && !editedBooking) {
     fail('PROGRESSIVE_BOOKING_CONFLICT', 'ไม่พบรายการ Progressive ที่แก้ไขได้')
   }
 
-  const priorBookings = editedBooking
-    ? activeBookings.filter((booking) => (
+  const priorProgressiveBookings = editedBooking
+    ? progressiveBookings.filter((booking) => (
         booking.id !== editedBooking.id
         && (booking.created_at < editedBooking.created_at
           || (booking.created_at === editedBooking.created_at && booking.id < editedBooking.id))
       ))
-    : activeBookings
-  const previousActiveSessions = priorBookings.reduce(
+    : progressiveBookings
+  const previousProgressiveActiveSessions = priorProgressiveBookings.reduce(
     (sum, booking) => sum + Number(booking.entitlement_sessions ?? booking.total_sessions),
     0,
   )
+  const previousActiveSessions = legacyBaselineSessions + previousProgressiveActiveSessions
 
   const { data: tierData, error: tierError } = await client
     .from('pricing_tiers')
@@ -212,6 +252,12 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
     discountAmount,
     expectedScopeRevision: scope?.revision || 0,
     scopeId: scope?.id || null,
+    legacyBaselineSessions,
+    legacyBaselineFingerprint,
+    previousProgressiveActiveSessions,
+    newBookingSessions: input.entitlementSessions,
+    cumulativeAfterSessions: price.value.cumulativeSessionsAfter,
+    ratePerSession: price.value.ratePerSession,
     sourceKind: 'progressive_kids_group_v1' as const,
     pricing: price.value,
   }

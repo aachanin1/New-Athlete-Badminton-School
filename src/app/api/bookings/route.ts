@@ -264,6 +264,8 @@ interface CreateBookingPayload {
   } | null
   clientRequestId?: string
   expectedScopeRevision?: number
+  expectedLegacyBaselineSessions?: number
+  expectedLegacyBaselineFingerprint?: string
 }
 
 interface UpdateBookingPayload {
@@ -373,6 +375,10 @@ function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
 
+function isSha256Fingerprint(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
+}
+
 function serializeProgressiveResult(result: Awaited<ReturnType<typeof createProgressiveBooking>>) {
   return {
     bookingId: result.bookingId,
@@ -390,6 +396,7 @@ function progressiveWriteError(error: unknown) {
   const conflictCodes = new Set([
     'PROGRESSIVE_BOOKING_CONFLICT', 'PROGRESSIVE_CAPACITY_EXCEEDED',
     'PROGRESSIVE_DUPLICATE_SESSION', 'PROGRESSIVE_IDEMPOTENCY_CONFLICT',
+    'PROGRESSIVE_LEGACY_BASELINE_CONFLICT', 'PROGRESSIVE_LEGACY_BASELINE_DRIFT',
     'PROGRESSIVE_SCOPE_LOCKED', 'PROGRESSIVE_SCOPE_REVISION_CONFLICT',
   ])
   const unavailableCodes = new Set(['PROGRESSIVE_RPC_UNAVAILABLE', 'PROGRESSIVE_WRITES_DISABLED', 'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED'])
@@ -809,7 +816,10 @@ export async function POST(request: NextRequest) {
           code: 'PROGRESSIVE_BOOKING_DEPENDENCY_UNAVAILABLE',
         }, { status: 503 })
       }
-      if (!isUuid(body.clientRequestId) || !isNonNegativeInteger(body.expectedScopeRevision)) {
+      if (!isUuid(body.clientRequestId)
+        || !isNonNegativeInteger(body.expectedScopeRevision)
+        || !isNonNegativeInteger(body.expectedLegacyBaselineSessions)
+        || !isSha256Fingerprint(body.expectedLegacyBaselineFingerprint)) {
         return NextResponse.json({
           error: 'กรุณาคำนวณราคา Progressive ล่าสุดก่อนยืนยันการจอง',
           code: 'PROGRESSIVE_PREVIEW_REQUIRED',
@@ -842,6 +852,8 @@ export async function POST(request: NextRequest) {
           couponId: couponInput?.id || null,
           clientRequestId: body.clientRequestId,
           expectedScopeRevision,
+          expectedLegacyBaselineSessions: body.expectedLegacyBaselineSessions,
+          expectedLegacyBaselineFingerprint: body.expectedLegacyBaselineFingerprint,
         })
         return NextResponse.json({ success: true, ...serializeProgressiveResult(result) })
       } catch (error) {

@@ -33,7 +33,7 @@ const paymentPrepare = read('src/app/api/progressive-payments/prepare/route.ts')
 const paymentUpload = read('src/app/api/progressive-payments/upload/route.ts')
 const paymentSubmit = read('src/app/api/progressive-payments/submit/route.ts')
 const paymentRoute = read('src/lib/progressive-payment-route.ts')
-const migration = read('supabase/migrations/20260710180000_add_progressive_coupon_lifecycle.sql')
+const compatibilityMigration = read('supabase/migrations/20260713210000_add_progressive_legacy_baseline_compatibility.sql')
 const syntheticUser = '11111111-1111-4111-8111-111111111111'
 
 let passed = 0
@@ -126,7 +126,7 @@ check('14 preview is read-only and uses the shared Progressive calculator',
   && !previewHelper.includes('.insert(')
   && !previewHelper.includes('.update(')
   && !previewHelper.includes('.delete(')
-  && !previewHelper.includes('.rpc('))
+  && previewHelper.includes("'progressive_legacy_baseline_v1'"))
 check('15 write ignores client price and returns authoritative scope/revision/source',
   route.includes('serializeProgressiveResult(result)')
   && route.includes("sourceKind: 'progressive_kids_group_v1'")
@@ -143,12 +143,15 @@ check('18 idempotency survives timeout retry and rejects changed fingerprints in
   && route.includes('receipt.expected_scope_revision')
   && route.includes('if (!replayCandidate)')
   && route.indexOf("mutation: 'create'") < route.indexOf('if (!replayCandidate)')
-  && migration.includes('PROGRESSIVE_IDEMPOTENCY_CONFLICT')
-  && migration.includes("pg_advisory_xact_lock"))
-check('19 booking draft preserves a UUID request key and sends preview revision',
+  && compatibilityMigration.includes('PROGRESSIVE_IDEMPOTENCY_CONFLICT')
+  && compatibilityMigration.includes('p_expected_legacy_baseline_fingerprint')
+  && compatibilityMigration.includes("pg_advisory_xact_lock"))
+check('19 booking draft preserves a UUID request key and sends preview revision/baseline',
   bookingClient.includes('clientRequestId: string')
   && bookingClient.includes('globalThis.crypto.randomUUID()')
-  && bookingClient.includes('expectedScopeRevision: authoritativePreview?.expectedScopeRevision'))
+  && bookingClient.includes('expectedScopeRevision: authoritativePreview?.expectedScopeRevision')
+  && bookingClient.includes('expectedLegacyBaselineSessions: authoritativePreview?.legacyBaselineSessions')
+  && bookingClient.includes('expectedLegacyBaselineFingerprint: authoritativePreview?.legacyBaselineFingerprint'))
 check('20 History keeps Progressive eligible and cancellation sends scope revision',
   historyClient.includes('if (!booking.pricing_scope_id || !progressiveScopeRevisionMap[booking.pricing_scope_id]) continue')
   && historyClient.includes('expectedScopeRevision')
@@ -167,5 +170,12 @@ check('23 no migration, public flag, or Progressive helper call was added for ad
   !feature.toString().includes('NEXT_PUBLIC_')
   && !route.includes("courseType.name === 'adult_group' && createProgressive")
   && !route.includes("courseType.name === 'private' && createProgressive"))
+check('24 Legacy rows remain outside scope while Progressive mismatches fail closed',
+  compatibilityMigration.includes('booking.pricing_scope_id IS NULL')
+  && compatibilityMigration.includes('booking.pricing_scope_id IS NOT NULL')
+  && compatibilityMigration.includes('booking.pricing_scope_id IS DISTINCT FROM p_scope_id'))
+check('25 pricing write capability requires Option A version 2',
+  compatibilityMigration.includes("'version', 2")
+  && writeHelper.includes('capability.version !== 2'))
 
 console.log(`Progressive kids group booking entry checks passed: ${passed} checks.`)

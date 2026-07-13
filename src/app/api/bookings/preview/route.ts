@@ -20,7 +20,10 @@ interface PreviewPayload {
 
 function previewError(error: unknown) {
   if (error instanceof ProgressiveBookingPreviewError) {
-    const status = error.code === 'PROGRESSIVE_SCOPE_LOCKED' || error.code === 'PROGRESSIVE_LEGACY_SCOPE_NOT_READY'
+    const status = error.code === 'PROGRESSIVE_SCOPE_LOCKED'
+      || error.code === 'PROGRESSIVE_LEGACY_SCOPE_NOT_READY'
+      || error.code === 'PROGRESSIVE_LEGACY_BASELINE_DRIFT'
+      || error.code === 'PROGRESSIVE_BOOKING_CONFLICT'
       ? 409
       : error.code === 'PROGRESSIVE_RPC_UNAVAILABLE' ? 503 : 400
     return NextResponse.json({ error: error.message, code: error.code }, { status })

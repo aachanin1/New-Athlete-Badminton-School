@@ -381,6 +381,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     grossPrice: number
     discountAmount: number
     expectedScopeRevision?: number
+    legacyBaselineSessions?: number
+    legacyBaselineFingerprint?: string
   } | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
 
@@ -619,6 +621,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       grossPrice: number
       discountAmount: number
       expectedScopeRevision?: number
+      legacyBaselineSessions?: number
+      legacyBaselineFingerprint?: string
     }
     setAuthoritativePreview(preview)
     return preview
@@ -1034,6 +1038,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             } : null,
             clientRequestId,
             expectedScopeRevision: authoritativePreview?.expectedScopeRevision,
+            expectedLegacyBaselineSessions: authoritativePreview?.legacyBaselineSessions,
+            expectedLegacyBaselineFingerprint: authoritativePreview?.legacyBaselineFingerprint,
           }),
         })
 

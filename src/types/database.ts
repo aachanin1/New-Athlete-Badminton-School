@@ -275,6 +275,18 @@ export interface Database {
         Args: Record<string, never>
         Returns: Json
       }
+      progressive_legacy_baseline_v1: {
+        Args: {
+          p_user_id: string
+          p_course_type_id: string
+          p_lesson_year: number
+          p_lesson_month: number
+        }
+        Returns: Array<{
+          baseline_sessions: number
+          baseline_fingerprint: string
+        }>
+      }
       create_progressive_booking_v1: {
         Args: {
           p_user_id: string
@@ -286,6 +298,8 @@ export interface Database {
           p_coupon_id: string | null
           p_client_request_id: string
           p_expected_scope_revision: number
+          p_expected_legacy_baseline_sessions: number
+          p_expected_legacy_baseline_fingerprint: string
         }
         Returns: Json
       }
@@ -501,6 +515,9 @@ type BookingPricingScopeDefaultColumn =
   | 'pricing_tier_version'
   | 'locked_by_payment_batch_id'
   | 'locked_at'
+  | 'legacy_baseline_sessions'
+  | 'legacy_baseline_fingerprint'
+  | 'legacy_baseline_initialized_at'
 
 export interface BookingPricingScope {
   id: string
@@ -513,6 +530,9 @@ export interface BookingPricingScope {
   pricing_tier_version: string | null
   locked_by_payment_batch_id: string | null
   locked_at: string | null
+  legacy_baseline_sessions: number | null
+  legacy_baseline_fingerprint: string | null
+  legacy_baseline_initialized_at: string | null
   created_at: string
   updated_at: string
 }

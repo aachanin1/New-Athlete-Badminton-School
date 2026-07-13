@@ -26,6 +26,8 @@ export type ProgressiveBookingWriteErrorCode =
   | 'PROGRESSIVE_DUPLICATE_SESSION'
   | 'PROGRESSIVE_IDEMPOTENCY_CONFLICT'
   | 'PROGRESSIVE_INVALID_REQUEST'
+  | 'PROGRESSIVE_LEGACY_BASELINE_CONFLICT'
+  | 'PROGRESSIVE_LEGACY_BASELINE_DRIFT'
   | 'PROGRESSIVE_LEGACY_SCOPE_NOT_READY'
   | 'PROGRESSIVE_MISSING_TIER'
   | 'PROGRESSIVE_MULTI_MONTH_BOOKING'
@@ -57,6 +59,8 @@ const KNOWN_ERROR_CODES = new Set<ProgressiveBookingWriteErrorCode>([
   'PROGRESSIVE_DUPLICATE_SESSION',
   'PROGRESSIVE_IDEMPOTENCY_CONFLICT',
   'PROGRESSIVE_INVALID_REQUEST',
+  'PROGRESSIVE_LEGACY_BASELINE_CONFLICT',
+  'PROGRESSIVE_LEGACY_BASELINE_DRIFT',
   'PROGRESSIVE_LEGACY_SCOPE_NOT_READY',
   'PROGRESSIVE_MISSING_TIER',
   'PROGRESSIVE_MULTI_MONTH_BOOKING',
@@ -103,6 +107,8 @@ interface ProgressiveCreateInput {
   couponId?: string | null
   clientRequestId: string
   expectedScopeRevision: number
+  expectedLegacyBaselineSessions: number
+  expectedLegacyBaselineFingerprint: string
 }
 
 interface ProgressiveUpdateInput {
@@ -205,7 +211,7 @@ async function assertProgressiveCapability(client: ProgressiveRpcClient) {
   if (error) throw mapRpcError(error)
 
   const capability = data as { ready?: unknown; version?: unknown } | null
-  if (capability?.ready !== true || capability.version !== 1) {
+  if (capability?.ready !== true || capability.version !== 2) {
     throw new ProgressiveBookingWriteError(
       'PROGRESSIVE_RPC_UNAVAILABLE',
       'Progressive pricing database capability is not ready.',
@@ -264,6 +270,8 @@ export function createProgressiveBooking(input: ProgressiveCreateInput) {
     p_coupon_id: input.couponId || null,
     p_client_request_id: input.clientRequestId,
     p_expected_scope_revision: input.expectedScopeRevision,
+    p_expected_legacy_baseline_sessions: input.expectedLegacyBaselineSessions,
+    p_expected_legacy_baseline_fingerprint: input.expectedLegacyBaselineFingerprint,
   }, { requireCouponLifecycle: Boolean(input.couponId) })
 }
 
