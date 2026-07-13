@@ -182,7 +182,7 @@ Conditions before any Production write or deploy:
 | Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
 | Option A migration | Source `20260713210000` created; not applied remotely |
 | Dependencies enabled | Yes - four dependency controls `true` |
-| Entry enabled | No - rolled back to explicit `false` |
+| Entry enabled | No - variable absent; fail-closed/effective `false` |
 | Allowlisted | No - absent in Production; not required by new source |
 | Production UAT | User/Parent Entry-off Legacy draft passed at `1,500`; Option A local/disposable `4 + 4` passed at `2,000`; Production Entry-on proof awaits migration/deploy/activation approval |
 | General users active | No - current default-deny entry routes to Legacy |

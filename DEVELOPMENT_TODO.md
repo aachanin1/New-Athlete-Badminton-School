@@ -912,8 +912,12 @@ repo: `Unknown / Need verification`.
   scripts, and the single new migration. Adult Group, Private, Legacy pricing,
   pricing tiers, payment/Finance/Ledger implementation, environment, allowlist, and
   Production business data were not changed.
-- Deploy performed: **no**. Entry: **false**. Production active: **no**. Production
-  data changed: **no**. Customer impact: **none**. Financial impact: **none**.
+- Deploy performed: **no**. Entry: **variable absent, effective false**. Production
+  active: **no**. Production data changed: **no**. Customer impact: **none**.
+  Financial impact: **none**. Read-only Vercel closeout confirmed production
+  deployment `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G` remains `Ready` with the same four
+  aliases; Entry and allowlist names are absent, while the four dependency names
+  and shared SlipOK Test Mode name remain present/encrypted.
   Remaining migration/deploy gate: fresh read-only mixed-scope audit plus separate
   Owner approval to apply `20260713210000` and deploy with Entry still false.
   Remaining activation/UAT gate: later separate Owner approval for Entry activation

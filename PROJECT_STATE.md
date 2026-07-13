@@ -125,8 +125,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `60688a3`. The final Ready rollback deployment is
   `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G`.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
-  payment batch, and payment review. Entry is explicitly `false` after the
-  approved primary rollback.
+  payment batch, and payment review based on the last value-level verification;
+  all four names remain present in the read-only Production environment listing.
+  The Entry variable is currently absent and therefore fail-closed/effectively
+  `false`; the allowlist remains absent.
 - Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
   values were read or exposed.
 - Production active for new general Kids Group entry: **no**, because Entry remains
@@ -163,13 +165,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
   `https://new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
-- Production controls: pricing writes `true`, coupon lifecycle `true`, payment
-  batch `true`, payment review `true`, Entry configured `false`. Vercel made the
-  Entry value Sensitive/write-only during activation, so its plaintext cannot be
-  read back; the exact rollback command set it to `false` before the final deploy.
-  The UUID allowlist remains absent and was not read. Entry was enabled only for
-  the attempted no-write routing UAT, then disabled through the approved primary
-  rollback.
+- Production controls: last value-level verification found pricing writes `true`,
+  coupon lifecycle `true`, payment batch `true`, payment review `true`, and shared
+  SlipOK Test Mode `true`; read-only closeout listing confirms those five encrypted
+  names remain present. Entry and the UUID allowlist are currently absent, so Entry
+  is fail-closed/effectively `false`. Historical activation records remain accurate:
+  Entry was enabled only for the attempted no-write routing UAT, then disabled by
+  the approved primary rollback; its current storage form is absence rather than a
+  listed encrypted false value.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
@@ -277,7 +280,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   stale-revision loser. Fixtures rolled back or were deleted; the local stack was
   stopped without backup.
 - Migration applied remotely: **no**. Deploy performed: **no**. Entry remains
-  **false**. Production-active Option A behavior: **no**. Production data changed:
+  effectively **false** because the variable is absent. Production-active Option A
+  behavior: **no**. Production data changed:
   **no**. Customer impact: **none**. Financial impact: **none**. Next Owner gate is
   remote migration plus deploy approval after a fresh read-only mixed-scope audit;
   Entry activation and no-write `4+4` UAT require a later separate approval.
