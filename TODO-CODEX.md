@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — OPTION A COMPATIBILITY SOURCE COMPLETE; MIGRATION/DEPLOY/ACTIVATION PENDING**.
+Current classification: **DOCUMENTATION DRIFT — ENTRY VARIABLE PRESENT; MIGRATION/DEPLOY STOPPED**.
 
 Confirmed:
 
@@ -138,13 +138,19 @@ Blocked / Need action:
   two-connection first-scope concurrency, all relevant deterministic regressions,
   TypeScript, lint, mojibake, build, and clean post-build browser checks passed.
   No fixture residue remains and the disposable Supabase stack is stopped.
+- Fresh Gate 0 for the approved migration/deploy round found the Production
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` name present/encrypted, while the approved
+  prerequisite and current docs required it absent. Its value cannot be read from
+  Vercel CLI. Migration `20260713210000` remains pending and deployment remains
+  `dpl_3RS4MWu...`; no migration, deploy, environment, or Production data change
+  was performed after this drift was detected.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. Source work is complete. The next action requires Owner approval for a
-  fresh read-only mixed-scope audit, remote migration `20260713210000`, and deploy.
-  Entry activation still requires a later separate approval and no-write `4+4` UAT.
+  booking. Source work is complete, but migration/deploy is stopped at Gate 0.
+  Owner direction is required for the unexpected present Entry variable; current
+  approval explicitly forbids environment changes and required the variable absent.
 
 Do not do now:
 
@@ -157,13 +163,11 @@ Do not do now:
 
 Next gated work:
 
-1. Owner approves a fresh read-only mixed-scope pre-deploy audit plus remote
-   application of migration `20260713210000` and deployment of `f8568a6` or its
-   documentation descendant, with Entry remaining `false`.
-2. Verify capability version `2`, schema/function hashes, zero Legacy-row rewrites,
-   and unchanged payment/coupon/Finance/Ledger state after migration/deploy.
-3. Owner separately approves a later Entry activation attempt and no-write `4 + 4`
-   runtime preview; rollback immediately if the authoritative result is not `2,000`.
+1. Owner decides whether a separately approved environment action may remove
+   `PROGRESSIVE_PAYMENT_ENTRY_ENABLED`, or supplies another explicit safe resolution.
+2. After the absent-state prerequisite is re-established and freshly verified,
+   rerun Gate 0/0A and the mixed-scope audit before applying `20260713210000`.
+3. Migration/deploy verification and later Entry activation/UAT remain separately gated.
 
 Conditions before any Production write or deploy:
 
@@ -182,7 +186,7 @@ Conditions before any Production write or deploy:
 | Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
 | Option A migration | Source `20260713210000` created; not applied remotely |
 | Dependencies enabled | Yes - four dependency controls `true` |
-| Entry enabled | No - variable absent; fail-closed/effective `false` |
+| Entry enabled | Variable present/encrypted; plaintext and effective value `Unknown / Need verification`; migration/deploy stopped |
 | Allowlisted | No - absent in Production; not required by new source |
 | Production UAT | User/Parent Entry-off Legacy draft passed at `1,500`; Option A local/disposable `4 + 4` passed at `2,000`; Production Entry-on proof awaits migration/deploy/activation approval |
 | General users active | No - current default-deny entry routes to Legacy |

@@ -127,8 +127,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review based on the last value-level verification;
   all four names remain present in the read-only Production environment listing.
-  The Entry variable is currently absent and therefore fail-closed/effectively
-  `false`; the allowlist remains absent.
+  Gate 0 read-only verification for the migration/deploy round found
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` present as an encrypted Production variable,
+  contrary to the required absent state. Its plaintext value is `Unknown / Need
+  verification`; the allowlist remains absent. No environment change was made.
 - Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
   values were read or exposed.
 - Production active for new general Kids Group entry: **no**, because Entry remains
@@ -168,11 +170,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Production controls: last value-level verification found pricing writes `true`,
   coupon lifecycle `true`, payment batch `true`, payment review `true`, and shared
   SlipOK Test Mode `true`; read-only closeout listing confirms those five encrypted
-  names remain present. Entry and the UUID allowlist are currently absent, so Entry
-  is fail-closed/effectively `false`. Historical activation records remain accurate:
-  Entry was enabled only for the attempted no-write routing UAT, then disabled by
-  the approved primary rollback; its current storage form is absence rather than a
-  listed encrypted false value.
+  names remain present. The UUID allowlist remains absent. Contrary to the prior
+  snapshot and the approved deployment prerequisite, the Entry variable is also
+  currently listed as encrypted. Vercel CLI does not expose its plaintext, so the
+  exact stored value is `Unknown / Need verification`; historical rollback and
+  Entry-off runtime records do not prove the current environment variable is absent.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
@@ -280,15 +282,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   stale-revision loser. Fixtures rolled back or were deleted; the local stack was
   stopped without backup.
 - Migration applied remotely: **no**. Deploy performed: **no**. Entry remains
-  effectively **false** because the variable is absent. Production-active Option A
-  behavior: **no**. Production data changed:
+  **present/encrypted; value Unknown / Need verification**. Production-active Option
+  A behavior remains **no** on the pre-compatibility deployment. Production data changed:
   **no**. Customer impact: **none**. Financial impact: **none**. Next Owner gate is
   remote migration plus deploy approval after a fresh read-only mixed-scope audit;
   Entry activation and no-write `4+4` UAT require a later separate approval.
 
 ### Pricing Reconciliation Status
 
-**PASS — OPTION A COMPATIBILITY SOURCE COMPLETE; MIGRATION/DEPLOY/ACTIVATION PENDING**
+**DOCUMENTATION DRIFT — ENTRY VARIABLE PRESENT; MIGRATION/DEPLOY STOPPED**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,

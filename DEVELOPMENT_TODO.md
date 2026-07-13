@@ -925,6 +925,43 @@ repo: `Unknown / Need verification`.
 - Classification:
   **PASS — OPTION A COMPATIBILITY SOURCE COMPLETE; MIGRATION/DEPLOY/ACTIVATION PENDING**.
 
+#### 2026-07-13 - Option A Migration/Deploy Gate 0 Entry-State Documentation Drift
+
+- Owner approved a fresh read-only mixed-scope audit, exact migration
+  `20260713210000`, capability/version and zero-data-delta verification, exact
+  Entry-off Option A deployment, bounded monitoring, and documentation closeout.
+  Owner required `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` and the UUID allowlist to stay
+  absent and did not approve any environment-variable change or Entry activation.
+- Fresh fetch proved branch `spike/next-major-security-upgrade`, local HEAD, and
+  remote HEAD all at `1503b81ab71e16b8b89fe41d9dcc4e232a5acacc`; source commit
+  `f8568a6d9c18da3745492d47c01d3ca22da156c8` is an ancestor and all descendants
+  are documentation-only. The only worktree change remained the unrelated unstaged
+  `AGENTS.md` remainder (`72` additions / `3` deletions).
+- Migration SHA-256 is
+  `30C0A711B391FA1F89F98A0589AABAEBD588E0FAD0390D8583D3E2937844A78E`.
+  Remote history matched every prior migration through `20260713153000`; exactly
+  `20260713210000` remained pending. No applied migration or source file differed.
+- Read-only Vercel inspection confirmed deployment
+  `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G` remains Production `Ready` on all four aliases.
+  The four dependency names and shared `SLIPOK_TEST_MODE` remain present/encrypted,
+  and the UUID allowlist remains absent. However,
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` is also present/encrypted. This materially
+  conflicts with the approved absent-state prerequisite and the previous current
+  snapshot. Vercel CLI does not expose its plaintext, so its exact value is
+  `Unknown / Need verification`.
+- Safety Gate result: stopped before the mixed-scope audit, Production baseline,
+  migration application, capability change, deployment, browser UAT, or monitoring.
+  No environment variable, Production schema/data/business row, Booking, Payment,
+  coupon, wallet, attendance, notification, Finance, Ledger, refund, credit,
+  payroll, or accounting state was changed. Customer and financial impact from this
+  round: none.
+- Next Owner decision required: explicitly authorize removal of the unexpected
+  Entry variable or provide another safe resolution that restores the required
+  pre-deploy contract. Then rerun Gate 0/0A and the fresh mixed-scope audit; do not
+  resume at migration application.
+- Classification:
+  **DOCUMENTATION DRIFT — ENTRY VARIABLE PRESENT; MIGRATION/DEPLOY STOPPED**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.
