@@ -523,6 +523,79 @@ repo: `Unknown / Need verification`.
 - Classification:
   **PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**.
 
+### 2026-07-13 - Final Entry Activation Attempt and Safe Rollback
+
+- Owner approved changing only `PROGRESSIVE_PAYMENT_ENTRY_ENABLED=true`, preserving
+  the four Progressive dependencies as `true`, UUID allowlist absent, and shared
+  `SLIPOK_TEST_MODE=true`; redeploying the exact approved source; performing only
+  no-write routing/pricing UAT; and immediately using the primary Entry-off rollback
+  if any required proof gate failed. No source change, migration, Booking, Payment,
+  historical repricing, or other Production data write was approved.
+- Gate 0 matched the documented state: `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe`
+  Ready on all four aliases from clean commit
+  `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`, containing general gating source
+  `5c8cee1` and notification source `60688a3`; migration `20260713153000` applied;
+  four dependencies `true`; Entry `false`; allowlist absent; shared Test Mode
+  `true`; local/remote documentation HEAD `bbadb64`; only the unrelated unstaged
+  `AGENTS.md` change present.
+- Entry was set to `true` and the exact source was deployed from a clean detached
+  `f5b22a9` worktree as `dpl_HBTap8Rv72uDN1NFHSg3CyR6GqZp`. It reached Ready and
+  all four Production aliases pointed to it. The deployed functional tree remained
+  unchanged; Vercel CLI metadata did not supply `gitSource.sha`, so the pinned clean
+  worktree and uploaded source scope remain the exact-source evidence.
+- Adult Group and Private authenticated previews each returned `200` and remained
+  Legacy under the inspected server-only course routing contract. They showed one
+  session at `600` and `900` respectively. No confirmation button was clicked.
+  Unauthenticated booking preview returned the expected `401`.
+- The authenticated Standard Admin identity had no child learner. The Kids Group
+  learner step showed no child data and disabled continuation. Proceeding would have
+  required the prohibited creation or repurposing of Production data. The original
+  Owner-controlled User/Parent context and its `4` previous + `4` new safe draft were
+  not available, so the required runtime proof of Progressive routing and exact
+  `4 * 500 = 2,000` preview could not be completed. No `1,500` or `2,000` preview
+  result was manufactured. The browser identity later changed externally to a
+  Super Admin session, confirming it was not a stable substitute for that context.
+- This inability to prove Entry-on Kids Group routing met the mandatory Safety Gate.
+  The approved primary rollback set Entry to `false`, retained all four dependencies
+  `true`, retained allowlist absent and shared Test Mode `true`, and redeployed the
+  exact same source as `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G`. The final deployment is
+  Ready and owns all four aliases. Entry is now a Vercel Sensitive/write-only value;
+  plaintext readback is unavailable, but the exact rollback command set `false`
+  before this final deployment. No old-source rollback was performed.
+- Baseline/final counts: bookings `519 -> 519`, pricing scopes `2 -> 2`, batches
+  `4 -> 4`, attempts `1 -> 1`, allocations `1 -> 1`, legacy payments `469 -> 469`,
+  ledger rows `470 -> 470`, and coupon reservations/usages `0 -> 0`. Booking
+  status/course/source-scope distribution was unchanged. Pricing tier count/fingerprint
+  remained `11` / `5c665704b2f0adffd67d9c7ec3a337db`. Protected fingerprints
+  remained UAT booking `b3ace1823603773273d19783fecfa9f4`, approved batch
+  `dbcdcb47fde7f6b59d0244bf90b6b7f6`, and repaired booking
+  `e99a8144b0c0af731aad4d4ae3c81025`. The target still has one attempt, one
+  allocation, one Progressive ledger source, and zero duplicate keys.
+- Notifications changed `16032 -> 16034` from two real operational coach-assignment
+  events by other users: `8f8cae4d-5ea2-4c6c-95d3-11da26a3e0bb` and
+  `142ae692-96ac-4dfe-a7dd-abea07b3b79d`. Their timestamps correlate to
+  `save_coach_assignment_groups` activity logs. They are separated from the UAT,
+  were not modified, and do not represent activation-created data.
+- Bounded Vercel monitoring sampled `100` activation-deployment and `100`
+  rollback-deployment requests. Both windows had error-level `0`, 5xx `0`, typed
+  dependency 503 `0`, and SlipOK activity `0`. Browser console warnings/errors and
+  observed React/hydration errors were `0`. The approved Progressive batch remained
+  readable in Admin Payments after rollback.
+- UAT-attributable business-data delta, customer impact, and financial impact were
+  all `0`. No Booking, Payment, scope, batch, attempt, allocation, ledger, coupon,
+  wallet, attendance, entitlement, Finance, notification, refund, payroll, or
+  accounting write was performed. General Kids Group returns to Legacy with Entry
+  off; Adult Group and Private remain Legacy; existing Progressive records remain
+  readable/drainable under the same source.
+- Source complete/committed/pushed/deployed: yes. Entry enabled/Production active:
+  no after safe rollback. Production UAT passed: no, because the required Kids Group
+  runtime proof was not available. Data repaired in this round: no. Task Done: no.
+  Remaining gate: verify an existing Owner-controlled User/Parent session with an
+  existing child/safe draft, then obtain separate Owner approval before retrying
+  Entry activation. Do not create data to reproduce the preview.
+- Classification:
+  **BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**.
+Current classification: **BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**.
 
 Confirmed:
 
@@ -34,8 +34,8 @@ Confirmed:
   payment drain remains authenticated and dependency-gated even if Entry is disabled.
 - Owner confirmed Progressive replaces Legacy for general Kids Group Production
   traffic. Historical review is unpaid-only; paid/approved/verified rows are excluded.
-- Exact clean commit `f5b22a9` containing source `60688a3` is deployed in Ready
-  deployment `dpl_3tW1GQdx...`.
+- Exact clean commit `f5b22a9` containing source `60688a3` is deployed in final
+  Ready rollback deployment `dpl_3RS4MWu...`.
   Pricing-write, coupon-lifecycle, payment-batch, and payment-review controls are
   `true`; Entry is `false`; allowlist is absent; shared `SLIPOK_TEST_MODE=true`.
 - Stage A passed. Stage B payment completed for the same one approved booking.
@@ -73,26 +73,43 @@ Blocked / Need action:
   context and no structured amount, booking-total, allocation, revenue, or Finance
   fields in rendered UI or technically inspectable server payload. Dashboard totals
   were absent; Finance and Settings redirected safely; no data or control changed.
+- Owner-approved Entry activation was attempted on exact source `f5b22a9` as Ready
+  deployment `dpl_HBTap8Rv...`. Adult and Private authenticated previews remained
+  Legacy, unauthenticated preview returned `401`, and no UAT business write occurred.
+- The available Standard Admin identity had zero child learners, so Kids Group
+  preview could not be reached without a prohibited Production write. The original
+  Owner User/Parent `4 + 4` draft was unavailable and the exact `1,500 -> 2,000`
+  runtime proof could not be completed. The approved primary rollback therefore set
+  Entry to `false` and redeployed the exact same source as `dpl_3RS4MWu...`, Ready
+  on all aliases.
+- Reconciliation found unchanged bookings `519`, scopes `2`, batches `4`, attempts
+  `1`, allocations `1`, payments `469`, ledger `470`, coupons `0`, pricing tiers,
+  and protected fingerprints. Notifications `16032 -> 16034` were two unrelated
+  real coach-assignment notifications correlated to operational activity logs, not
+  UAT-created rows. Vercel error/5xx/SlipOK log counts were `0`.
 
 Next authorized continuation:
 
-- Do not repeat the completed payment or create another booking. The next work is a
-  separate Owner decision for Entry activation and bounded post-activation
-  monitoring.
+- Do not repeat the completed payment or create another booking. First provide a
+  verified existing Owner-controlled User/Parent session with an existing child and
+  safe Kids Group draft. A separate Owner approval is then required to retry Entry
+  activation and the no-write pricing/routing proof.
 
 Do not do now:
 
 - Do not create another UAT booking, perform additional repair/repricing, edit the
   UUID allowlist, call live SlipOK, or change pricing tiers.
 - Do not describe general Production routing as active or the overall rollout as
-  Task Done while Entry remains `false`; the current `PASS` is scoped to Standard
-  Admin read-only UAT.
+  Task Done while Entry remains `false`; earlier `PASS` records are scoped to their
+  completed Admin read-only UAT gates.
 - Do not merge Legacy true-up language into the Progressive formula.
 
 Next gated work:
 
-1. Owner separately decides whether to activate Entry for general Kids Group.
-2. If approved, activate Entry last and repeat bounded monitoring without another
+1. Verify the existing User/Parent Production context without creating or changing
+   any account, learner, booking, or payment.
+2. Owner separately approves an Entry activation retry.
+3. If approved, activate Entry last and repeat bounded monitoring without another
    UAT booking or payment.
 
 Conditions before any Production write or deploy:
@@ -109,11 +126,11 @@ Conditions before any Production write or deploy:
 | Source complete | Yes - general entry plus amount-free Admin/Super Admin payment-success notifications |
 | Committed | Yes - notification fix `60688a3` |
 | Pushed | Yes - through the synchronized source/docs closeout on `origin/spike/next-major-security-upgrade` |
-| Deployed | Yes - exact `f5b22a9` containing `60688a3`, current `dpl_3tW1GQdx...` Ready |
+| Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Super Admin and Standard Admin read-only pass; financial redaction verified; no historical notification backfill |
+| Production UAT | Earlier Super Admin/Standard Admin read-only pass; Adult/Private/unauthenticated activation checks pass; Kids Group runtime proof blocked by unavailable User/Parent context |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
@@ -131,7 +148,7 @@ Conditions before any Production write or deploy:
   source correction is committed at `60688a3`; migration `20260713153000` is applied
   and exact clean `f5b22a9` is deployed.
   Detailed verification is in `PROJECT_STATE.md` and `DEVELOPMENT_TODO.md`.
-- Current deployed state is `f5b22a9` in Ready deployment `dpl_3tW1GQdx...` and
+- Current deployed state is `f5b22a9` in Ready deployment `dpl_3RS4MWu...` and
   contains the shared global `SLIPOK_TEST_MODE=true` behavior; no Progressive-only
   SlipOK mode remains.
 - Seven recorded Kids Group Production price repairs were completed under Legacy
@@ -140,8 +157,9 @@ Conditions before any Production write or deploy:
 
 ## Worktree / Safety Notes
 
-- Production runs exact clean `f5b22a9` containing source fix `60688a3`; migration
-  `20260713153000` is remotely applied. Entry remains `false`.
+- Production runs exact clean `f5b22a9` containing source fix `60688a3` in Ready
+  deployment `dpl_3RS4MWu...`; migration `20260713153000` is remotely applied.
+  Entry remains `false` after the approved safe rollback.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
 - Production UAT created one Progressive booking/scope/session only. Payment used
   one lazily cancelled original batch plus one approved replacement batch, one

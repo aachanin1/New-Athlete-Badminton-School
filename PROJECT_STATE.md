@@ -36,6 +36,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   once with operational, amount-free copy linked to `/admin/payments`. No deploy,
   remote migration, Entry activation, repeat payment, or Production data write was
   approved in that round.
+- Owner approved final general Kids Group Entry activation on 2026-07-13 using
+  the exact already deployed functional source, with no Booking or Payment write,
+  and required immediate primary rollback to Entry `false` if the authenticated
+  Kids Group routing/price proof could not be completed. Activation was attempted,
+  that proof gate could not be satisfied from the available Chrome identity, and
+  the approved rollback was completed as recorded below.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -96,8 +102,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   closeout.
 - Deployed: **yes** from clean detached documentation commit
   `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`, which contains source commit
-  `60688a3`. Current Ready deployment is
-  `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe`.
+  `60688a3`. The final Ready rollback deployment is
+  `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G`.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review. Entry is explicitly `false` after the
   approved primary rollback.
@@ -121,8 +127,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Production
 
-- Current deployment: `dpl_3tW1GQdxJGrfjo3XU35wwKLCxuWe`, Ready, created
-  2026-07-13 11:51 ICT from exact clean detached commit
+- Current deployment: `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G`, Ready, deployed from
+  exact clean detached commit
   `f5b22a9a3e7e27c16d3a20cd3788a4f3af4b26b5`; that commit contains notification
   source commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`. Vercel CLI deployment
   metadata did not populate `gitSource.sha`; the pinned clean worktree and uploaded
@@ -132,17 +138,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
   `https://new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
 - Production controls: pricing writes `true`, coupon lifecycle `true`, payment
-  batch `true`, payment review `true`, Entry `false`. The UUID allowlist remains
-  absent and was not read. Entry was enabled only for controlled UAT, then disabled
-  through the approved primary rollback. It remained explicitly `false` throughout
-  the migration/deployment/read-only Admin UAT round.
+  batch `true`, payment review `true`, Entry configured `false`. Vercel made the
+  Entry value Sensitive/write-only during activation, so its plaintext cannot be
+  read back; the exact rollback command set it to `false` before the final deploy.
+  The UUID allowlist remains absent and was not read. Entry was enabled only for
+  the attempted no-write routing UAT, then disabled through the approved primary
+  rollback.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
 ### Pricing Reconciliation Status
 
-**PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**
+**BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
@@ -185,11 +193,50 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   it would sit outside the atomic approval transaction and the existing helper's
   check-then-insert behavior is race-prone. Standard Admin copy contains no amount;
   Super Admin receives the same amount-free copy, so no visibility policy expands.
-- Deployment-round classification:
-  **PASS — STANDARD ADMIN READ-ONLY UAT VERIFIED; ENTRY ACTIVATION OWNER DECISION PENDING**.
-  Super Admin and Standard Admin read-only UAT passed, no notification backfill or
-  Production business-row change occurred, and Entry remains off. Only a separate
-  Owner activation decision remains open for this rollout gate.
+- Final activation-round classification:
+  **BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**.
+  Entry-on deployment `dpl_HBTap8Rv72uDN1NFHSg3CyR6GqZp` reached Ready on the
+  exact source and all aliases. Adult Group and Private authenticated previews
+  returned normally and remained Legacy by the server-only routing contract;
+  unauthenticated preview returned `401`. The available Standard Admin identity
+  had no child learner, so it could not reach a Kids Group preview without a
+  prohibited data write. The originally observed User/Parent `4 + 4` draft was not
+  available, so Progressive routing and the exact `1,500 -> 2,000` result were not
+  runtime-proven. The Chrome identity later changed externally to Super Admin,
+  further proving that the browser context was not a stable substitute for the
+  required Owner-controlled User/Parent context.
+- The approved primary rollback set Entry to `false` and redeployed the same clean
+  source as `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G`; all four aliases point to it and
+  it is Ready. The four dependency controls remain `true`, allowlist remains absent,
+  and shared `SLIPOK_TEST_MODE=true` remains unchanged. No old-source rollback was
+  performed.
+- Activation baseline and final counts were identical for bookings `519`, scopes
+  `2`, batches `4`, attempts `1`, allocations `1`, legacy payments `469`, ledger
+  rows `470`, and coupon reservations/usages `0`. Booking status/course/source-scope
+  distribution was unchanged. Pricing tiers remained `11` with fingerprint
+  `5c665704b2f0adffd67d9c7ec3a337db`; protected fingerprints remained UAT booking
+  `b3ace1823603773273d19783fecfa9f4`, effective batch
+  `dbcdcb47fde7f6b59d0244bf90b6b7f6`, and repaired booking
+  `e99a8144b0c0af731aad4d4ae3c81025`.
+- Notifications changed `16032 -> 16034` only because real operational coach
+  assignment activity by other users created rows
+  `8f8cae4d-5ea2-4c6c-95d3-11da26a3e0bb` and
+  `142ae692-96ac-4dfe-a7dd-abea07b3b79d`; their timestamps correlate to
+  `save_coach_assignment_groups` activity-log rows. They are not UAT-created and
+  were not modified. Activation/redeploy/preview attributable business-data delta
+  was `0`.
+- Bounded logs sampled `100` requests from the activation deployment and `100`
+  from the rollback deployment: error-level events `0`, 5xx `0`, typed dependency
+  503 responses `0`, and SlipOK activity `0`. The activation deployment recorded
+  two authenticated preview `200` responses (Adult and Private) plus the expected
+  unauthenticated `401`. Browser console errors/warnings and observed hydration
+  errors were `0`.
+- Customer and financial impact from this round: none. No Booking, Payment, pricing
+  scope, batch, attempt, allocation, ledger, coupon, wallet, attendance, entitlement,
+  Finance, notification, refund, payroll, or accounting write was performed by the
+  UAT. Task Done: **no**. A verified existing Owner-controlled User/Parent session
+  with a child learner and safe draft is required before a separately approved
+  activation retry; no account or Production data may be created to manufacture it.
 - Fresh Standard Admin read-only UAT on 2026-07-13 proved the authenticated visible
   profile is uniquely role `admin`, not `super_admin`, without creating, changing,
   or repurposing an account. `/admin` loaded without aggregate revenue or Finance
