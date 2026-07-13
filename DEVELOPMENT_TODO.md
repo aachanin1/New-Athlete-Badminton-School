@@ -659,6 +659,139 @@ repo: `Unknown / Need verification`.
   Progressive Entry before any separately approved source/migration/data scope or
   activation retry. Do not confirm the prepared draft or activate Entry yet.
 
+### 2026-07-13 - Option A Legacy-to-Progressive Compatibility Decision and Audit
+
+- Owner selected Option A. After Entry activation, every new general Kids Group
+  booking uses Progressive. Eligible active Legacy Kids Group bookings in the same
+  user/course/month period contribute only their entitlement sessions as the
+  initial `previousActiveSessions` baseline. Active remains non-expired
+  `pending_payment`, `paid`, and `verified`; cancelled and expired pending rows are
+  excluded. Legacy stored/paid money is never deducted. Old Legacy bookings are not
+  repriced, credited, refunded, assigned Progressive scopes/snapshots, or backfilled.
+  Adult Group and Private remain Legacy; Production `pricing_tiers` remains authority.
+- This was a read-only source/data/blast-radius audit plus documentation round. No
+  source, migration, Production schema/data, Vercel control, deployment, Entry,
+  allowlist, browser draft, Booking, Payment, coupon, wallet, attendance, entitlement,
+  Finance, Ledger, refund, payroll, or accounting state changed.
+- Source root cause is layered:
+  - `src/lib/progressive-booking-preview.ts` loads active period bookings and raises
+    `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` when any `pricing_scope_id` differs from the
+    current scope, including `null` Legacy rows when no scope exists.
+  - `src/app/api/bookings/preview/route.ts` maps this to a fail-closed `409`; the
+    create route remains server-routed and requires the preview revision.
+  - `progressive_assert_scope_membership_v1()` repeats the same rejection inside
+    atomic create/edit/cancel after the advisory scope lock.
+  - `progressive_reprice_scope_v1()` initializes cumulative sessions to `0` and
+    iterates only bookings whose `pricing_scope_id` equals the Progressive scope.
+    Removing the TypeScript guard alone would therefore still reject the write and,
+    if the SQL guard alone were removed, would still price from the wrong zero baseline.
+  - Mutation receipts and expected scope revisions already provide idempotent replay
+    and stale-scope detection. Payment batches intentionally select only pending
+    Progressive members in one stored scope; Legacy rows must remain outside batch,
+    allocation, payment, and ledger membership.
+- Canonical Legacy entitlement source is `bookings.total_sessions`, summed once per
+  eligible Legacy booking. All `423` active Legacy Kids Group bookings currently
+  have `entitlement_sessions=null`; nevertheless every `total_sessions` value equals
+  its original/root (`rescheduled_from_id is null`) session-row count. Counting all
+  `booking_sessions` would overcount `87` rescheduled bookings. `25` active Legacy
+  bookings have wallet dependencies, but wallet storage/redemption does not change
+  the purchased booking entitlement. No active Legacy root session falls outside
+  its booking month. Monetary columns and payment/ledger rows are not entitlement
+  inputs. This preserves sibling aggregation because the booking total already
+  counts all child sessions once; `68` active user/month periods contain multiple
+  children.
+- Production query captured at `2026-07-13T12:03:24Z`: all `459` Kids Group
+  bookings and `2,647` related sessions, plus `2` pricing scopes, `4` Progressive
+  batches, `1` verification attempt, `1` allocation, `419` Legacy payment rows,
+  `420` combined ledger rows for those Kids Group bookings, `0` coupon usages,
+  `0` Progressive coupon reservations, and `42` lesson-wallet credits. Active
+  status/source counts are `419` verified Legacy, `4` pending-payment Legacy, and
+  `1` verified Progressive; one additional Progressive booking is cancelled.
+- User/month period blast radius:
+  - all recorded active periods: Legacy-only `373`, Progressive-only `1`, mixed
+    `0`, active Legacy plus cancelled Legacy `23`, active Legacy plus pending
+    Progressive `0`, multiple-child `68`, wallet/reschedule history `96`,
+    coupon-affected `0`, and existing scope with unmatched active Legacy `0`;
+  - June: `188` Legacy-only periods / `204` active Legacy bookings / `1,133`
+    entitlement sessions;
+  - July: `184` Legacy-only periods / `218` active Legacy bookings / `1,279`
+    entitlement sessions;
+  - August: `1` Legacy-only period with `4` sessions and `1` separate
+    Progressive-only period with `1` session;
+  - current/future July-August potential exposure: `185` Legacy-only periods,
+    `219` active Legacy bookings, and `1,283` entitlement sessions. This is a
+    compatibility population, not a repair list and not a prediction that every
+    period will create another booking.
+- Authoritative active Kids Group tiers observed read-only: `1 -> 700`, `2-6 ->
+  625`, `7-10 -> 500`, `11-14 -> 433`, `15-18 -> 406`, and `19+ -> 350`.
+  Scenario matrix (coupon is applied only after the shown gross price):
+
+| Scenario | Legacy active | Progressive active | New | Cumulative | Rate | Gross | Coupon/final | Preserved Legacy money |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| No prior + new 4 | 0 | 0 | 4 | 4 | 625 | 2,500 | none / 2,500 | 0 |
+| Legacy 4 + new 4 | 4 | 0 | 4 | 8 | 500 | 2,000 | none / 2,000 | 2,500, not deducted |
+| Legacy 5 + new 5 | 5 | 0 | 5 | 10 | 500 | 2,500 | none / 2,500 | 3,125, not deducted |
+| Legacy 8 + new 8 | 8 | 0 | 8 | 16 | 406 | 3,248 | none / 3,248 | 4,000, not deducted |
+| Non-expired pending Legacy 4 + new 4 | 4 | 0 | 4 | 8 | 500 | 2,000 | none / 2,000 | historical amount only |
+| Verified Legacy 4 + pending Progressive 4 + new 4 | 4 | 4 | 4 | 12 | 433 | 1,732 | none / 1,732 | 2,500, not deducted |
+| Cancelled Legacy 4 + new 4 | 0 | 0 | 4 | 4 | 625 | 2,500 | none / 2,500 | preserved but excluded |
+| Expired pending Legacy 4 + new 4 | 0 | 0 | 4 | 4 | 625 | 2,500 | none / 2,500 | preserved but excluded |
+| Sibling Legacy 2+2 + new 4 | 4 | 0 | 4 | 8 | 500 | 2,000 | none / 2,000 | 2,500, not deducted |
+| Wallet/reschedule history on Legacy 4 + new 4 | 4 | 0 | 4 | 8 | 500 | 2,000 | none / 2,000 | 2,500, not deducted |
+| Legacy 4 + new 4 with coupon | 4 | 0 | 4 | 8 | 500 | 2,000 | existing coupon contract / `2,000 - discount` | 2,500, not deducted |
+
+- Retry/concurrency contract: preview must return the current scope revision plus
+  the expected Legacy baseline/fingerprint. Create must acquire the existing
+  user/course/month advisory lock, capture or verify the baseline exactly once,
+  reject a stale preview, include the baseline contract in the mutation fingerprint,
+  and retain the existing receipt replay. One request creates one scope/booking;
+  concurrent stale requests fail and re-preview rather than double-count Legacy.
+- Rollback contract remains safe: Entry `false` routes new general bookings to
+  Legacy while stored-scope Progressive edit/cancel/payment drain continues. No
+  Progressive or Legacy record is rewritten. Before any later reactivation, a
+  fresh read-only audit must detect any Legacy booking created in a period that now
+  already has a Progressive scope; such a newly mixed period must fail closed until
+  its baseline initialization is proved, never silently fall back or double-count.
+- Smallest safe later implementation boundary is a combination, not source-only:
+  1. update `src/lib/progressive-booking-preview.ts`, preview/create payload typing,
+     and `src/lib/progressive-booking-write.ts` to return/pass a baseline count or
+     fingerprint alongside expected revision;
+  2. add a narrow additive migration with scope-level Legacy baseline metadata and
+     a single authoritative active-Legacy entitlement helper;
+  3. replace `progressive_acquire_scope_v1`,
+     `progressive_assert_scope_membership_v1`, and
+     `progressive_reprice_scope_v1`, plus the create/capability signatures required
+     to capture and verify the baseline atomically;
+  4. keep coupon functions, payment-prefix membership, approval/allocation/ledger,
+     Finance, wallet, attendance, and Legacy pricing semantics unchanged.
+  Existing Progressive edit/cancel can continue through stored scope and the replaced
+  shared repricer. No Legacy booking backfill and no Production business-data repair
+  are required. Applying the additive migration and deploying source are separate
+  later approvals.
+- Required deterministic tests: all eleven pricing rows above; cancelled/expired
+  exclusion; sibling aggregation; wallet/reschedule no double count; coupon after
+  gross; preview/create stale-baseline conflict; concurrent first-scope creation;
+  mutation replay; later Progressive ordering; existing Progressive edit/cancel;
+  payment-prefix/drain; Entry-off rollback; Adult/Private Legacy routing; Finance,
+  ledger, coupon, and Legacy pricing regressions. Exact `4 + 4` must return `2,000`
+  after implementation and must never read/deduct the Legacy `2,500`.
+- Current Vercel deployment remains `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G`, Ready on
+  all four aliases. Four dependency controls remain present/true, Entry remains the
+  explicit rollback `false`, allowlist is absent, and shared Test Mode remains true.
+  Recent deployment error logs returned zero rows. The preserved unconfirmed
+  browser-local `1,500` draft was not modified or confirmed.
+- Read-only before/after counts were identical: Kids Group bookings `459 -> 459`,
+  related sessions `2,647 -> 2,647`, Kids Group pricing scopes `2 -> 2`, all
+  Progressive batches `4 -> 4`, attempts `1 -> 1`, allocations `1 -> 1`, all
+  payments `470 -> 470`, combined ledger rows `471 -> 471`, coupon usages `0 -> 0`,
+  and Progressive coupon reservations `0 -> 0`.
+- Source changed: no. Migration created/applied: no. Production data repair: no.
+  Deploy/Entry/allowlist change: no. Customer impact and financial impact: `0`.
+  Source complete for Option A: no. Task Done: no. Next gate is separate Owner
+  approval for the audited source plus additive-migration implementation scope.
+- Classification:
+  **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

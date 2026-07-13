@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **BLOCKER — USER/PARENT 4+4 DRAFT VERIFIED; LEGACY ACTIVE SCOPE NOT READY FOR ENTRY**.
+Current classification: **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
 
 Confirmed:
 
@@ -18,6 +18,11 @@ Confirmed:
   `newBookingSessions * rateOf(previousActiveSessions + newBookingSessions)`.
 - Progressive does not retroactively true-up earlier bookings or issue a monthly
   price-difference credit.
+- Owner selected Option A: after Entry activation every new general Kids Group
+  booking uses Progressive; active Legacy bookings in the same user/course/month
+  contribute only `bookings.total_sessions` as the initial entitlement baseline.
+  Legacy money is never deducted and old Legacy rows are not repriced, credited,
+  refunded, assigned Progressive scope/snapshots, or backfilled.
 - Verified examples: one 10-session booking `5,000`; split `5+5` totals `5,625`;
   ten one-session bookings total `5,825`.
 - Legacy is a different settled-history monthly true-up. Verified examples:
@@ -99,17 +104,28 @@ Blocked / Need action:
 - Activation is not yet safe for this account. Both active bookings have
   `pricing_scope_id=null` and there is no July Progressive scope. The deployed
   source therefore returns `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` before Progressive
-  pricing when Entry is on. An Owner-approved compatibility policy/source scope is
-  required; do not reactivate Entry on the assumption that this account will show
-  `2,000`.
+  pricing when Entry is on. The Owner policy is now confirmed, but the compatible
+  source/RPC and additive scope-baseline migration are not implemented; do not
+  reactivate Entry yet.
+- Read-only Production blast radius: `373` active Legacy-only user/month periods,
+  `1` Progressive-only period, `0` mixed periods, `423` active Legacy bookings and
+  `2,416` Legacy entitlement sessions. Current/future July-August exposure is `185`
+  Legacy-only periods, `219` bookings, and `1,283` sessions. There are `68`
+  multiple-child periods, `96` wallet/reschedule periods, `0` coupon-affected
+  periods, and `0` existing Progressive scopes with unmatched active Legacy rows.
+- `bookings.total_sessions` is the canonical Legacy entitlement source: all `423`
+  active Legacy rows lack `entitlement_sessions`, yet `total_sessions` matches the
+  original/root session count for every row. Raw session rows would overcount `87`
+  rescheduled bookings; `25` also have wallet dependencies.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. The next work is an Owner decision on how active Legacy Kids Group
-  bookings participate in initial Progressive Entry, followed by a separately
-  approved source-only compatibility audit/fix if required. Entry activation must
-  not be retried yet.
+  booking. The next work requires Owner approval for the audited compatibility
+  implementation: TypeScript preview/read-model changes plus an additive migration
+  that snapshots the Legacy entitlement baseline on the Progressive scope and
+  replaces the membership/repricing/create RPC contract. Entry activation must not
+  be retried yet.
 
 Do not do now:
 
@@ -122,11 +138,11 @@ Do not do now:
 
 Next gated work:
 
-1. Owner decides the compatibility contract for active Legacy bookings that have
-   no Progressive pricing scope or entitlement snapshot.
-2. Audit and implement only the separately approved source/migration/data scope;
-   do not infer permission for migration or Production repair.
-3. After compatibility readiness is proved, Owner separately approves another
+1. Owner approves the exact audited TypeScript plus additive-migration source scope.
+2. Implement and locally verify without Legacy booking backfill or Production data
+   repair; perform a fresh read-only mixed-scope audit before any migration/deploy.
+3. After compatibility readiness is proved, Owner separately approves migration
+   application/deploy and then another
    Entry activation attempt and no-write `4 + 4` runtime preview.
 
 Conditions before any Production write or deploy:
@@ -140,14 +156,14 @@ Conditions before any Production write or deploy:
 
 | State | Current result |
 | --- | --- |
-| Source complete | General entry and staff notifications complete; active Legacy scope compatibility requires Owner decision |
+| Source complete | General entry and staff notifications complete; Option A compatibility source/migration not implemented |
 | Committed | Yes - notification fix `60688a3` |
 | Pushed | Yes - through the synchronized source/docs closeout on `origin/spike/next-major-security-upgrade` |
 | Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | User/Parent Entry-off safe `4 + 4` draft passed at Legacy `1,500`; Entry-on proof blocked by active Legacy scope incompatibility |
+| Production UAT | User/Parent Entry-off safe `4 + 4` draft passed at Legacy `1,500`; Option A predicts `2,000`, but Entry-on proof awaits the source fix |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |

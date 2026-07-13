@@ -24,6 +24,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   - `grossBookingPrice = newBookingSessions * rateOf(cumulativeAfter)`.
   - Apply the current booking's coupon after gross pricing; do not retroactively
     reprice prior bookings or create a monthly price-difference credit.
+- Owner selected Option A on 2026-07-13 for Legacy-to-Progressive compatibility.
+  After Entry activation, every new general Kids Group booking must use Progressive.
+  Active Legacy bookings in the same user/course/month period contribute only their
+  stable entitlement-session count to the initial `previousActiveSessions` baseline.
+  Legacy stored/paid money is never deducted, and old Legacy rows are not repriced,
+  credited, refunded, assigned Progressive scopes/snapshots, or backfilled.
 - Historical review and any future repair proposal are limited to genuinely unpaid
   Kids Group bookings. Paid, approved-payment, and verified bookings must not be
   reopened or repriced in this round.
@@ -88,20 +94,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
     no per-user UUID allowlist is required.
   - Entry enabled + missing pricing-write, coupon-lifecycle, or payment-batch
     dependency -> typed `503`, no Legacy fallback or partial write.
-  - Entry enabled with active bookings whose `pricing_scope_id` does not match the
-    current Progressive period scope -> `PROGRESSIVE_LEGACY_SCOPE_NOT_READY`, no
-    Progressive preview and no Legacy fallback. This fail-closed guard currently
-    affects the verified User/Parent `4 + 4` scenario because both contributing
-    bookings are Legacy and the User has no July Progressive scope.
+  - Current deployed source still returns `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` when
+    an active booking's `pricing_scope_id` does not match the Progressive period
+    scope. Option A now defines the replacement behavior, but its source/RPC and
+    additive-scope-baseline migration are not implemented or approved yet.
   - `adult_group` and `private` -> Legacy.
   - Existing Progressive edit/cancel remains routed by stored `pricing_scope_id`.
     Payment prepare/upload/submit/status/cancel uses authenticated ownership and
     dependency readiness, so existing bookings can drain after Entry is disabled.
 - UUID allowlist parsing remains available as staged/test infrastructure, but it is
   not a general-customer eligibility or authorization boundary.
-- Source complete: **yes** for the previously approved general Kids Group gate,
-  but **Need Owner decision** for active Legacy booking compatibility before the
-  gate can safely serve all existing general users.
+- Source complete: **yes** for the previously approved general Kids Group gate;
+  **no** for Option A active-Legacy compatibility. The Owner decision is confirmed,
+  but implementation requires separate approval.
 - Source complete: **yes** for the Admin/Super Admin payment-success notification
   correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
   adds a `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
@@ -160,9 +165,62 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
+### Option A Compatibility Audit
+
+- Read-only source and Production audit completed on 2026-07-13. No source,
+  migration, environment, deployment, browser draft, or Production data changed.
+- Root incompatibility exists in both layers, not preview alone:
+  `src/lib/progressive-booking-preview.ts` rejects any active booking whose scope is
+  not the current Progressive scope, and
+  `progressive_assert_scope_membership_v1()` repeats that rejection inside the
+  atomic create/edit/cancel path. `progressive_reprice_scope_v1()` then starts its
+  cumulative count at zero and reads only scope-owned Progressive bookings.
+- Canonical Legacy entitlement source is `bookings.total_sessions` for active
+  Legacy rows in the same user/course/month period. All `423` active Legacy Kids
+  Group bookings lacked `entitlement_sessions`, but every booking's
+  `total_sessions` matched its original/root session-row count. Raw session-row
+  counting would overcount `87` rescheduled bookings; `25` active Legacy bookings
+  also have wallet dependencies. No active Legacy root session was outside its
+  booking month. Legacy monetary fields are not read for the baseline.
+- Production query scope was all `459` Kids Group bookings and `2,647` related
+  session rows across all recorded periods. Active means `verified`, `paid`, or
+  non-expired `pending_payment`; cancelled and expired pending rows are excluded.
+  Results by user/month period: `373` active Legacy-only, `1` Progressive-only,
+  `0` mixed, `23` active-Legacy-plus-cancelled-Legacy, `0`
+  active-Legacy-plus-pending-Progressive, `68` multiple-child, `96` with wallet or
+  reschedule history, `0` coupon-affected, and `0` existing-scope periods with
+  unmatched active Legacy rows. The `423` active Legacy bookings comprise `419`
+  verified and `4` pending-payment bookings, all child learner bookings, totaling
+  `2,416` entitlement sessions.
+- Current/future July-August exposure is `185` Legacy-only user/month periods,
+  `219` active Legacy bookings, and `1,283` entitlement sessions; there is also one
+  separate Progressive-only period. This is the potential compatibility population,
+  not a repair list and not evidence that every period will create another booking.
+- The smallest safe implementation is a TypeScript preview/read-model change plus
+  an additive migration that records an immutable Legacy entitlement baseline on
+  the Progressive scope and replaces the membership/repricing/create functions.
+  Source-only removal of the guard is insufficient because the current atomic RPC
+  would still reject the write and the current repricer would still start at zero.
+  No Legacy booking backfill or Production business-data repair is required. A
+  fresh pre-deploy audit must confirm the two existing Progressive scopes still
+  have no unmatched active Legacy rows before their zero baseline is accepted.
+- The existing advisory scope lock, expected revision, and mutation receipt remain
+  the concurrency/idempotency boundary. Preview reports the current scope revision;
+  create acquires the user/course/month lock, captures the Legacy baseline exactly
+  once when the scope is first initialized, rejects a stale revision, and prices
+  Progressive bookings from that baseline in `created_at`, then booking-id order.
+  Coupon, payment-batch membership/drain, Finance/Ledger, edit/cancel stored-scope
+  routing, and Entry-off rollback behavior remain unchanged.
+- Exact preserved draft result: Legacy history `4` sessions / `2,500`, new `4`,
+  cumulative `8`, rate `500`, Progressive gross/final without coupon `2,000`.
+  The Legacy `2,500` remains historical evidence and is never deducted. The
+  browser-local confirmation remains untouched.
+- Audit classification:
+  **PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**.
+
 ### Pricing Reconciliation Status
 
-**BLOCKER — USER/PARENT 4+4 DRAFT VERIFIED; LEGACY ACTIVE SCOPE NOT READY FOR ENTRY**
+**PASS — OPTION A COMPATIBILITY AUDITED; SOURCE FIX OWNER APPROVAL PENDING**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
@@ -247,8 +305,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   scope, batch, attempt, allocation, ledger, coupon, wallet, attendance, entitlement,
   Finance, notification, refund, payroll, or accounting write was performed by the
   UAT. Task Done: **no**. The identity/draft blocker from that activation attempt is
-  resolved by the User/Parent follow-up below; the newly proved Legacy-active-scope
-  compatibility blocker now prevents an activation retry.
+  resolved by the User/Parent follow-up below. Option A now resolves the business
+  decision; the audited source plus additive-migration implementation still prevents
+  an activation retry until separately approved, built, and verified.
 - User/Parent safe-draft follow-up passed on the current rollback deployment. The
   uniquely matched authenticated profile is
   `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, role `user`, with one existing owned

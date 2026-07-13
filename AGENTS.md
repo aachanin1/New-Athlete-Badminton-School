@@ -97,6 +97,20 @@ Main portals:
 - Adult group and private lessons use package/hour rules from pricing tiers.
 - Do not change tiers or pricing semantics without explicit owner approval.
 
+#### Permanent Kids Group Pricing Guardrail — Option A Compatibility
+
+- After general Kids Group Entry is activated, every new general Kids Group booking
+  must use Progressive pricing. Active Legacy Kids Group bookings in the same
+  user/course/month scope contribute their booking entitlement sessions as the
+  initial `previousActiveSessions` baseline; they do not enter the Progressive
+  ordering as rewritten bookings.
+- For Legacy rows without `entitlement_sessions`, use the stable booking entitlement
+  `bookings.total_sessions`. Do not count raw reschedule descendants as additional
+  entitlement, and do not reduce entitlement merely because a session is walleted.
+- Progressive pricing never deducts a Legacy stored/paid amount. Existing Legacy
+  bookings must not be repriced, credited, refunded, assigned Progressive scopes or
+  snapshots, or backfilled merely to enable Progressive entry.
+
 ### Scheduling and Lesson Wallet
 
 - `schedule_templates` is the DB source of truth for bookable recurring slots.
