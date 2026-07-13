@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — OPTION A MIGRATION APPLIED AND ENTRY-ABSENT SOURCE DEPLOYED; ACTIVATION UAT PENDING**.
+Current classification: **BLOCKER — OPTION A ACTIVATION UAT FAILED; ENTRY ROLLED BACK TO ABSENT**.
 
 Confirmed:
 
@@ -159,28 +159,56 @@ Blocked / Need action:
 - Protected pre/post migration fingerprints matched at all `21` checkpoints. Five
   later attendance rows and one coach reminder were correlated to real coach
   operations; migration/deploy-attributable business-data delta is `0`.
+- The separately approved final activation attempt added only Production Entry,
+  deployed exact clean source `d4574a7` as Ready
+  `dpl_Hqz23xUgUXYSH1FtoVZUXSgS2Bqh`, and reached the authenticated no-write July
+  `4+4` preview. The authoritative Progressive fields were baseline `4`, previous
+  Progressive `0`, new `4`, cumulative `8`, rate `500`, coupon `0`, gross/final
+  `2,000`.
+- Mandatory UAT nevertheless failed because the same customer summary still showed
+  Legacy true-up copy saying `หักยอดที่จ่ายแล้ว: ฿2,500`. Historical Legacy money
+  must never be described as deducted from a Progressive charge. No source change
+  was authorized in the activation round.
+- The approved immediate rollback removed Entry rather than setting it to `false`
+  and restored Ready deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` on all four
+  aliases. Final environment names returned `11 -> 10`: Entry removed, allowlist
+  absent, four dependencies and shared Test Mode unchanged. Kids Group again
+  previews through Legacy (`1,500`); Adult/Private remain Legacy; unauthenticated
+  preview is `401`; existing Progressive history/drain remains readable.
+- Protected activation pre/post fingerprints matched for every Booking, session,
+  scope, snapshot, receipt, payment/batch/attempt/allocation, Ledger, coupon, wallet,
+  attendance, tier, Finance, and target record. Notifications `16,144 -> 16,147`
+  were three timestamp-correlated real coach-assignment rows. UAT-attributable
+  business-data delta, customer impact, and financial impact are all `0`; bounded
+  errors, 5xx, baseline/dependency faults, and SlipOK activity were `0`.
 
 Next gated continuation:
 
 - Do not repeat the completed payment, confirm the prepared draft, or create another
-  booking. Source, migration, and Entry-absent deploy are complete. Only the final
-  separately approved Entry activation plus authoritative Production no-write
-  `4+4 = 2,000` UAT and closeout remain.
+  booking. Core Option A source, migration, and Entry-absent deploy remain complete.
+  Obtain separate Owner approval for a narrowly scoped source correction that makes
+  the Kids Group summary branch on Progressive mode and removes Legacy true-up/
+  deduction copy from Progressive previews, with deterministic UI regression tests.
+  A later activation/UAT retry remains separately gated.
 
 Do not do now:
 
 - Do not create another UAT booking, perform additional repair/repricing, edit the
   UUID allowlist, call live SlipOK, or change pricing tiers.
 - Do not describe general Production routing as active or the overall rollout as
-  Task Done while Entry remains `false`; earlier `PASS` records are scoped to their
+  Task Done while Entry is absent; earlier `PASS` records are scoped to their
   completed Admin read-only UAT gates.
 - Do not merge Legacy true-up language into the Progressive formula.
+- Do not reactivate Entry before the customer-summary source/test blocker is fixed,
+  committed, pushed, deployed Entry-off, and separately approved for retry.
 
 Next gated work:
 
-1. Obtain separate Owner approval for final Entry activation.
-2. Activate Entry only under the approved rollback/monitoring gate.
-3. Run authoritative Production no-write `4+4 = 2,000` UAT and closeout.
+1. Obtain Owner approval for the narrow Progressive customer-summary source/test fix.
+2. Implement and verify that Progressive mode never renders Legacy money-deduction
+   language, while Legacy mode keeps its existing true-up explanation.
+3. Commit/push and deploy the corrected source Entry-off under separate approval.
+4. Obtain separate approval for a final activation/no-write UAT retry.
 
 Conditions before any Production write or deploy:
 
@@ -193,18 +221,21 @@ Conditions before any Production write or deploy:
 
 | State | Current result |
 | --- | --- |
-| Source complete | Yes - Option A TypeScript/RPC/additive migration source complete at `f8568a6` |
-| Committed | Yes - source `f8568a6`; this documentation closeout is the follow-up commit |
-| Pushed | Yes - source through `f8568a6`; documentation closeout is pushed in this round |
+| Source complete | No for activation-ready customer summary; core Option A TypeScript/RPC/migration source remains complete at `f8568a6` |
+| Tests passed | No for mandatory Production activation UAT; existing deterministic/runtime suites remain passed |
+| Committed | Yes - core source `f8568a6`; activation rollback documentation is the follow-up commit |
+| Pushed | Yes after this rollback documentation closeout |
 | Deployed | Yes - Option A functional tree via `d4574a7`, `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` Ready |
 | Option A migration | `20260713210000` applied remotely exactly once |
 | Dependencies enabled | Yes - four dependency controls `true` |
-| Entry enabled | No - Production variable absent/default-deny in the new deployment |
+| Entry enabled | No - activation attempt rolled back; Production variable absent/default-deny |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Entry-off Legacy draft passed at `1,500`; Production Entry-on `4 + 4 = 2,000` proof awaits activation approval |
+| Production UAT | Failed mandatory no-deduction UI proof: authoritative Progressive `4 + 4 = 2,000`, but stale summary said Legacy `2,500` was deducted |
 | General users active | No - Entry absent; Option A installed but not active |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
+| Data repaired this round | No |
+| Task done | No - pricing blocker remains active |
 
 ## Paused Until Pricing Reconciliation Closes
 
@@ -235,6 +266,9 @@ Conditions before any Production write or deploy:
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
 - The unconfirmed User/Parent `4 + 4` summary remains browser-local. Do not click
   confirmation. No Production business row changed during its preparation.
+- Final activation used a temporary clean detached `d4574a7` worktree, which was
+  removed after rollback. The authenticated tab was handed back without confirming
+  the draft.
 - Production UAT created one Progressive booking/scope/session only. Payment used
   one lazily cancelled original batch plus one approved replacement batch, one
   successful Test Mode attempt, one allocation, one ledger row, and one user
@@ -249,7 +283,8 @@ Conditions before any Production write or deploy:
   risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for docs-only Thai edits.
-- Remaining work: separate Owner approval for Entry activation, no-write Production
-  `4+4 = 2,000` UAT, monitoring, and closeout. Entry remains absent now.
+- Remaining work: separate Owner approval for the Progressive customer-summary
+  source/test correction, followed by separately approved Entry-off deployment and
+  activation/no-write Production UAT retry. Entry remains absent now.
 - Classification:
-  **PASS — OPTION A MIGRATION APPLIED AND ENTRY-ABSENT SOURCE DEPLOYED; ACTIVATION UAT PENDING**.
+  **BLOCKER — OPTION A ACTIVATION UAT FAILED; ENTRY ROLLED BACK TO ABSENT**.

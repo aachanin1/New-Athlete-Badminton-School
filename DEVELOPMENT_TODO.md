@@ -1064,6 +1064,88 @@ repo: `Unknown / Need verification`.
 - Classification:
   **PASS — OPTION A MIGRATION APPLIED AND ENTRY-ABSENT SOURCE DEPLOYED; ACTIVATION UAT PENDING**.
 
+#### 2026-07-13 - Final Option A Activation UAT Failed; Entry Rolled Back
+
+- Owner approved one final gated round: add only Production
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED=true`, redeploy exact clean Option A source,
+  run authenticated no-write `4+4` UAT, retain Entry only if every mandatory proof
+  passed, otherwise immediately remove Entry and restore the known-good Entry-absent
+  deployment. Source edits, migrations, Booking/Payment actions, and Production
+  business-data writes remained prohibited.
+- Git Gate 0 passed on branch `spike/next-major-security-upgrade` at matching
+  local/remote HEAD `9ecc6181c093e23fb2b75e30c6ed1b9332051b06`.
+  `f8568a6d9c18da3745492d47c01d3ca22da156c8` is an ancestor, and clean deploy
+  commit `d4574a76927b3f01e9fd5d8a2328d953c256243f` has an identical functional
+  tree. The only dirty file was the unrelated unstaged `AGENTS.md` remainder
+  (`72` additions / `3` deletions), which stayed excluded.
+- Production preflight passed: `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` was Ready on
+  all four aliases; Entry and allowlist were absent; four Progressive dependencies
+  and shared Test Mode were present/true; migration `20260713210000` was applied
+  once; pricing capability was Ready/version `2`/`immutable_scope_v1`; payment
+  capabilities were Ready/version `1`. Both existing Progressive scopes were
+  unlocked/readable with authoritative eligible Legacy baseline `0`.
+- Protected pre-activation counts were bookings `519`, booking sessions `2,785`,
+  scopes `2`, pricing snapshots `519`, mutation receipts `3`, coupon reservations
+  `0`, payment batches/members `4/4`, attempts/allocations `1/1`, legacy payments
+  `470`, coupon usages `0`, wallet credits `60`, attendance `1,622`, notifications
+  `16,144`, pricing tiers `11`, Ledger rows `471`, Finance expenses `1`, and
+  existing Progressive bookings `2`. Target UAT booking/batch and repaired booking
+  `d6dad7aa...` fingerprints were captured separately.
+- Gate 1 added exactly Sensitive Production Entry with value `true`. Environment
+  names changed `10 -> 11`; no other name or metadata changed, allowlist remained
+  absent, and the four dependencies/shared Test Mode remained unchanged.
+- Gate 2 deployed from a clean detached worktree pinned to exact `d4574a7`.
+  Activation deployment `dpl_Hqz23xUgUXYSH1FtoVZUXSgS2Bqh` reached Ready and
+  owned all four Production aliases with unchanged migration/capabilities/source.
+- Authenticated read-only UAT proved one Production `user`, the unchanged owned
+  child, and July eligible Legacy history `2+2=4` sessions with preserved amounts
+  `1,250+1,250=2,500`; cancelled rows were excluded and no matching July
+  Progressive booking existed. The browser-local draft selected exactly four
+  active, template-backed July sessions with no coupon and never called create.
+- The authoritative preview selected Progressive and returned the expected
+  pricing evidence: Legacy baseline `4`, previous Progressive active sessions `0`,
+  new sessions `4`, cumulative `8`, rate `500`, gross `2,000`, coupon discount `0`,
+  final `2,000`. There was no Legacy `1,500`, baseline conflict/drift, capability
+  error, or booking-create request.
+- Mandatory pass condition 12 failed in the customer UI. Alongside the correct
+  `฿2,000` total, the summary rendered stale Legacy true-up lines:
+  `ยอดรวมตามเรทใหม่: 8 × ฿500 = ฿4,000`,
+  `หักยอดที่จ่ายแล้ว: ฿2,500`, and
+  `ยอดที่ต้องชำระเพิ่ม: ฿2,000`. This tells the customer that historical Legacy
+  money was deducted, contrary to the permanent Option A rule. Source inspection
+  localized the issue to the existing Kids Group summary branch in
+  `src/components/dashboard/booking-client.tsx`, which does not distinguish the
+  Progressive preview mode. No source edit was authorized or performed.
+- The immediate primary rollback removed exactly Entry without replacing it with
+  `false` and promoted known-good `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE`. It is Ready
+  on all four aliases. Final environment names are back to `10`: Entry/allowlist
+  absent, dependencies/Test Mode unchanged. The same browser-local draft returned
+  Entry-off Legacy `1,500`; Adult Group and Private remain Legacy; unauthenticated
+  preview returned `401`; approved Progressive User History and drain capability
+  remained readable. No edit/cancel/payment/batch action was submitted.
+- Post-rollback protected counts/fingerprints matched every preflight checkpoint
+  above except notifications `16,144 -> 16,147`. The three new notification ids
+  `d8fd54e1...`, `b3f9cf51...`, and `ec1d2579...` were timestamp-correlated real
+  coach-assignment events for separate teaching dates, not activation/UAT writes.
+  Activation/UAT-attributable business-data delta is exactly `0`; no Legacy row
+  received a Progressive scope or snapshot.
+- Bounded activation and rollback monitoring found error `0`, 5xx `0`, dependency
+  or baseline fault `0`, and SlipOK activity `0`. Browser/React/hydration errors and
+  a Next error overlay were absent. Customer impact: `0`. Financial impact: `0`.
+  Rollback used: **yes**. Migration was not reversed.
+- Source complete: **no** for activation-ready customer-summary behavior; core
+  Option A TypeScript/RPC/migration remains complete. Tests passed: **no** for the
+  mandatory Production activation UAT. Committed/pushed: core source **yes**;
+  rollback documentation is the follow-up commit. Migration applied: **yes**.
+  Deployed: **yes**, final known-good Entry-absent deployment. Feature enabled /
+  Production active / Production UAT passed: **no / no / no**. Data repaired this
+  round: **no**. Task Done: **no**.
+- Next gate requires separate Owner approval for a narrow Progressive summary
+  source/test correction, then separately approved Entry-off deployment and final
+  activation/no-write UAT retry. Do not reactivate Entry or confirm the draft.
+- Classification:
+  **BLOCKER — OPTION A ACTIVATION UAT FAILED; ENTRY ROLLED BACK TO ABSENT**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

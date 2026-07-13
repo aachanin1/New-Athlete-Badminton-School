@@ -58,6 +58,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` from Vercel Production, preserve every other
   variable, do not deploy or migrate, and then restart the migration/deploy gate
   from Gate 0 under separate approval.
+- Owner then approved the final Option A activation attempt from exact clean
+  functional source `d4574a7`, authenticated no-write `4+4` Production UAT, bounded
+  monitoring/reconciliation, and immediate rollback to the known-good Entry-absent
+  deployment if any mandatory proof failed. No source, migration, Booking, Payment,
+  or Production business-data write was approved.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -114,7 +119,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   active-Legacy compatibility. Commit `f8568a6d9c18da3745492d47c01d3ca22da156c8`
   adds the TypeScript contracts, additive migration source, capability version `2`,
   and deterministic/disposable verification. Migration and Entry-off deploy are
-  complete; Entry activation and Production-active Option A UAT remain pending.
+  complete. Final Entry-on UAT proved the Progressive arithmetic but failed the
+  mandatory customer-facing no-Legacy-deduction proof because the booking summary
+  still rendered stale Legacy true-up copy. Entry was rolled back to absent. A
+  separately approved source correction and activation retry remain pending.
 - Source complete: **yes** for the Admin/Super Admin payment-success notification
   correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
   adds a `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
@@ -136,9 +144,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
   values were read or exposed.
 - Production active for new general Kids Group entry: **no**. The new artifact was
-  built and deployed with Entry absent/default-deny. Authenticated preserved-draft
-  smoke still returned Legacy `4 + 4 = 1,500`; no confirmation or business write
-  occurred. UAT Stage B payment previously completed on the one approved
+  restored to the known-good Entry-absent/default-deny deployment after the final
+  activation UAT failed its mandatory customer-facing explanation proof. The
+  rollback preview returned Legacy `4 + 4 = 1,500`; no confirmation or business
+  write occurred. UAT Stage B payment previously completed on the one approved
   Progressive booking in shared Test Mode. The staff
   notification correction is now deployed and its migration is applied, but it is
   intentionally future-event-only: no historical notification was backfilled.
@@ -177,10 +186,68 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   cleanup removed only the Entry name from the Vercel Production project
   environment; a fresh complete-name listing after deployment still contains ten
   entries, with Entry and allowlist absent. The current artifact was deployed after
-  that cleanup and therefore uses the default-deny Entry state.
+  that cleanup and was promoted again after the failed activation UAT, so Production
+  again uses the default-deny Entry state.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
+
+### Final Option A Activation Attempt and Rollback (2026-07-13)
+
+- Git preflight started from branch `spike/next-major-security-upgrade` at matching
+  local/remote HEAD `9ecc6181c093e23fb2b75e30c6ed1b9332051b06` with only the
+  unrelated unstaged `AGENTS.md` remainder (`72` additions / `3` deletions).
+  Functional source `f8568a6` is an ancestor, and the deployed clean commit
+  `d4574a7` has an identical functional tree.
+- Production started at Ready deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE` on
+  all four aliases. Migration `20260713210000` was applied exactly once;
+  pricing-write capability was Ready/version `2`/`immutable_scope_v1`; payment
+  capabilities remained Ready/version `1`; both existing Progressive scopes were
+  unlocked and had authoritative eligible Legacy baseline `0`.
+- The Production environment changed from `10` to `11` names by adding only
+  Sensitive `PROGRESSIVE_PAYMENT_ENTRY_ENABLED=true`. The allowlist stayed absent;
+  four Progressive dependencies and shared `SLIPOK_TEST_MODE` stayed unchanged.
+  A clean detached worktree at exact `d4574a7` produced Ready activation deployment
+  `dpl_Hqz23xUgUXYSH1FtoVZUXSgS2Bqh` on all four aliases.
+- Authenticated read-only evidence confirmed one `user`, the existing owned child,
+  and July active Legacy history `2+2=4` sessions / `1,250+1,250=2,500`; cancelled
+  bookings were excluded and no matching July Progressive booking existed.
+  The browser-local no-coupon draft selected exactly four active template-backed
+  July sessions and did not call booking create.
+- The authoritative Entry-on preview selected Progressive and produced Legacy
+  baseline `4`, previous Progressive active sessions `0`, new sessions `4`,
+  cumulative `8`, rate `500`, coupon discount `0`, and gross/final `2,000`.
+  However, the same customer summary also rendered stale Legacy true-up text:
+  `ยอดรวมตามเรทใหม่: 8 × ฿500 = ฿4,000`, `หักยอดที่จ่ายแล้ว: ฿2,500`, and
+  `ยอดที่ต้องชำระเพิ่ม: ฿2,000`. That incorrectly tells the customer the historical
+  Legacy `2,500` was deducted, so mandatory pass condition 12 failed even though
+  the server-authoritative Progressive price itself was correct.
+- The immediate approved rollback removed only
+  `PROGRESSIVE_PAYMENT_ENTRY_ENABLED` (it was not replaced with `false`) and promoted
+  known-good deployment `dpl_Cat3qUUPVamdZ8SkVCFTRQQyu4vE`. It is Ready on all
+  four aliases; the final environment is back to the original `10` names with Entry
+  and allowlist absent. Kids Group again returns Entry-off Legacy `1,500`;
+  Adult/Private remain Legacy; unauthenticated booking preview returns `401`; User
+  History and existing Progressive records remain readable/drain-capable.
+- Protected pre/post counts and fingerprints matched for bookings `519`, booking
+  sessions `2,785`, scopes `2`, pricing snapshots `519`, mutation receipts `3`,
+  coupon reservations/usages `0/0`, payment batches/members `4/4`, attempts `1`,
+  allocations `1`, legacy payments `470`, Ledger rows `471`, wallet credits `60`,
+  attendance `1,622`, pricing tiers `11`, Finance expenses `1`, both existing
+  Progressive bookings, the documented UAT booking/batch, and repaired booking
+  `d6dad7aa...`. Notifications changed `16,144 -> 16,147`; the three exact rows
+  were timestamp-correlated real coach-assignment notifications, not UAT writes.
+  Activation/UAT-attributable business-data delta is `0`.
+- Bounded activation-deployment and restored-deployment monitoring found error `0`,
+  5xx `0`, baseline/dependency conflict `0`, and SlipOK activity `0`; browser errors,
+  hydration errors, and a Next error overlay were absent. Customer and financial
+  impact from the attempted activation is `0`; rollback was used.
+- Current classification:
+  **BLOCKER — OPTION A ACTIVATION UAT FAILED; ENTRY ROLLED BACK TO ABSENT**.
+  Core Option A source/migration remain complete and deployed, but activation-ready
+  customer summary source is not complete. Next work requires separate Owner
+  approval to correct the Progressive-only summary copy and tests, followed by a
+  separately approved activation/UAT retry. Pricing reconciliation stays blocked.
 
 ### Option A Compatibility Audit
 
