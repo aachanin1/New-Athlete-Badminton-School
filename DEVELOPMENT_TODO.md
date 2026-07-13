@@ -349,11 +349,64 @@ repo: `Unknown / Need verification`.
   change, redeploy, rollback repetition, second booking, cleanup, migration, source
   change, pricing-tier change, coupon change, or additional repair occurred.
 - Current classification:
-  **BLOCKER â€” ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**.
+  **BLOCKER — ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**.
 - Next work requires separate Owner approval for a narrowly scoped Admin-notification
   source correction and deployment, plus verified Standard Admin and Super Admin
   identities for read-only role UAT. Do not repeat this payment or create another
   Production UAT booking.
+
+### 2026-07-13 - Progressive Admin Payment Notification Source Fix
+
+#### Root cause and implementation
+
+- Production UAT proved booking `89533cdf-76cf-4ee5-bb66-ce7bf7bbf5fe` and batch
+  `d65dc3b8-5a48-4b4a-bea5-b64f2a1133ac` approved correctly for `700`, but only
+  user notification `e62d9e2f-f49f-49f1-a138-9ee427655d14` was created.
+- Source audit proved `approve_progressive_payment_batch_v1` owns booking
+  verification, coupon consumption, allocations, batch approval, scope unlock,
+  activity log, and the user notification in one transaction. It inserted only for
+  `v_batch.user_id`; neither the submit route nor another helper notified staff.
+- Route-level notification was not used because it would execute after the atomic
+  approval and the shared `notifyUserOnce` helper is a non-atomic check-then-insert.
+  A route failure or concurrent retry could therefore leave missing or duplicate
+  notifications while payment had already committed.
+- Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a` adds migration
+  `20260713153000_notify_staff_on_progressive_payment_approval.sql`. It replaces
+  only the approval RPC, preserves its payment/booking/allocation/coupon/activity
+  semantics and existing user notification, and adds an amount-free operational
+  notification linked to `/admin/payments` for every extant profile whose role is
+  `admin` or `super_admin`. Profiles have no separate active flag.
+- The staff copy contains no batch total, booking total, allocation, revenue, or
+  other restricted amount. Admin and Super Admin receive the same operational copy;
+  no financial visibility contract was broadened.
+- Idempotency remains the approval transaction contract: the batch advisory/row
+  locks serialize approval and an already-approved replay returns before either
+  notification insert. Prepared, expired/cancelled, rejected, under-review, and
+  failed-verification states create no success notification unless a submitted or
+  under-review batch actually completes the successful approval transition.
+
+#### Verification and state separation
+
+- Passed deterministic checks: notification `16`, payment batches `39`, payment
+  integration/Finance/redaction `18`, booking entry `23`, Progressive pricing `17`,
+  Progressive transactions `33`, coupon lifecycle `38`, shared SlipOK `6`, and
+  Legacy pricing/payment `14`.
+- Passed `npm.cmd run check:mojibake`, `npx.cmd tsc --noEmit`, `npm.cmd run lint`,
+  `npm.cmd run build`, and `git diff --check`. After build, `.next` was removed,
+  dev restarted on `127.0.0.1:3000`, and `/` plus
+  `/_next/static/chunks/webpack.js` returned `200`.
+- Source complete: yes. Committed: yes (`60688a3`). Pushed: yes after synchronized
+  documentation closeout. Migration added: yes. Migration applied remotely: no.
+- Deployed: no. Entry: `false`. Allowlist: absent. Production active: no.
+  Production data changed: no. Existing UAT payment was not repeated and no second
+  booking or direct notification repair was performed.
+- Owner confirms a verified Super Admin Chrome session is ready for later read-only
+  Production UAT. Standard Admin identity remains `Unknown / Need verification`.
+- Remaining gate: separate Owner approval to apply exactly the new migration and
+  deploy the exact source, then read-only Super Admin and verified Standard Admin
+  UAT. Entry activation remains a later, separate final gate.
+- Source-only classification:
+  **PASS — ADMIN PAYMENT NOTIFICATION SOURCE FIX ONLY; DEPLOY/UAT/ENTRY ACTIVATION PENDING**.
 
 ## Phase 0 - Baseline & Readiness
 

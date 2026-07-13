@@ -44,6 +44,12 @@ Confirmed:
 - Finance reconciles exactly: cash `+700`, booking net value `700`, allocation
   `700`, one distinct batch transaction, and no batch-header double count. User
   History and the one user success notification are correct.
+- Admin/Super Admin notification source correction is complete in commit
+  `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`. The new unapplied migration replaces
+  only `approve_progressive_payment_batch_v1`, preserves the existing user insert,
+  and adds one amount-free `/admin/payments` notification for every current
+  `admin`/`super_admin` profile. Approved replay returns before all notification
+  inserts, so submit/recovery replay cannot duplicate them.
 - Production repair completed for exactly unpaid booking `d6dad7aa...`, `550 -> 625`.
   Fresh pre/post checks found zero payment, coupon, wallet, attendance, batch,
   allocation, ledger, refund, credit, or accounting dependencies. Activity log:
@@ -55,20 +61,19 @@ Blocked / Need action:
 
 - The standalone design document named by the Owner as containing “Formula And
   Ordering / Scenario Matrix” was not present in the repo.
-- Admin-recipient payment notification is missing. The deployed Progressive approve
-  path inserts only the user notification; Entry must remain off until the Owner
-  approves the exact source correction and a new deploy/UAT round.
-- The current Chrome session is the Owner-controlled user identity, not a verified
-  Standard Admin or Super Admin identity. Role-specific Production UI checks remain
-  unverified even though source inspection shows amount fields are conditional on
-  `role === 'super_admin'`.
+- Production still lacks the Admin-recipient payment notification because migration
+  `20260713153000` has not been applied remotely and source `60688a3` has not been
+  deployed. Entry must remain off pending a separately approved migration/deploy/UAT
+  round.
+- Owner confirms a verified Super Admin Chrome session is ready for later read-only
+  Production UAT. Standard Admin identity remains `Unknown / Need verification`.
 
 Next authorized continuation:
 
 - Do not repeat the completed payment or create another booking. Next work requires
-  separate Owner approval for the narrowly scoped Admin-notification source fix,
-  exact source commit/deploy, authenticated Standard Admin and Super Admin read-only
-  UAT, then Entry activation last only if all gates pass.
+  separate Owner approval to apply exactly migration `20260713153000`, deploy the
+  exact committed source, perform Super Admin and verified Standard Admin read-only
+  UAT, then activate Entry last only if all gates pass.
 
 Do not do now:
 
@@ -79,9 +84,10 @@ Do not do now:
 
 Next gated work:
 
-1. Owner approves the exact Admin-notification source correction; do not alter
-   payment, pricing, coupon, Finance, or historical data behavior.
-2. Commit, push, deploy, and verify that correction under a fresh explicit approval.
+1. Owner approves remote application of exactly migration `20260713153000` and the
+   exact source deployment; do not alter payment, pricing, coupon, Finance, or
+   historical data behavior.
+2. Deploy and verify the correction under that fresh explicit approval.
 3. Use verified Standard Admin and Super Admin identities for role-specific read-only
    UAT. If notifications, Admin/Finance, logs, and reconciliation all pass, activate
    Entry last and repeat bounded monitoring without another booking.
@@ -97,14 +103,14 @@ Conditions before any Production write or deploy:
 
 | State | Current result |
 | --- | --- |
-| Source complete | Yes - general Kids Group entry without UUID allowlist |
-| Committed | Yes - `5c8cee1` |
-| Pushed | Yes - `5c8cee1` on `origin/spike/next-major-security-upgrade` |
+| Source complete | Yes - general entry plus amount-free Admin/Super Admin payment-success notifications |
+| Committed | Yes - notification fix `60688a3` |
+| Pushed | Yes - through the synchronized source/docs closeout on `origin/spike/next-major-security-upgrade` |
 | Deployed | Yes - `5c8cee1`, current `dpl_F2gfntq...` Ready |
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Stage A passed; Stage B payment passed, but Admin notification and role-specific Admin UI gates failed/unverified |
+| Production UAT | Stage A and user payment passed; deployed Admin notification still absent; Super Admin session ready, Standard Admin identity needs verification |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
@@ -118,7 +124,8 @@ Conditions before any Production write or deploy:
 ## Short Completed Summary
 
 - Progressive pricing, transaction, coupon, payment-batch, payment integration, and
-  general Kids Group Entry source are complete and pushed through `5c8cee1`.
+  general Kids Group Entry source are complete. The Admin/Super Admin notification
+  source correction is committed at `60688a3` with an unapplied migration.
   Detailed verification is in `PROJECT_STATE.md` and `DEVELOPMENT_TODO.md`.
 - Current deployed source is `5c8cee1` in Ready deployment `dpl_F2gfntq...` and
   contains the shared global `SLIPOK_TEST_MODE=true` behavior; no Progressive-only
@@ -129,7 +136,8 @@ Conditions before any Production write or deploy:
 
 ## Worktree / Safety Notes
 
-- Source `5c8cee1` was deployed; no source file changed in the rollout.
+- Production still runs `5c8cee1`; source fix `60688a3` is not deployed and its
+  migration is not remotely applied.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
 - Production UAT created one Progressive booking/scope/session only. Payment used
   one lazily cancelled original batch plus one approved replacement batch, one

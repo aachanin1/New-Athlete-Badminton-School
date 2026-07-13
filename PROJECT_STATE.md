@@ -30,6 +30,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Owner-approved one-row Production repair for unpaid booking
   `d6dad7aa-3e20-4f78-93e0-a7638fc1bb40`, `550 -> 625`, completed on 2026-07-13
   after a fresh dependency audit. No paid or verified booking was reopened.
+- Owner approved a source-only Progressive payment notification correction on
+  2026-07-13. A successful first approval must continue notifying the booking
+  owner once and must also notify every current `admin` and `super_admin` profile
+  once with operational, amount-free copy linked to `/admin/payments`. No deploy,
+  remote migration, Entry activation, repeat payment, or Production data write was
+  approved in that round.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -78,7 +84,16 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - UUID allowlist parsing remains available as staged/test infrastructure, but it is
   not a general-customer eligibility or authorization boundary.
 - Source complete: **yes** for general Kids Group gating.
-- Committed: **yes**, `5c8cee1`. Pushed: **yes**.
+- Source complete: **yes** for the Admin/Super Admin payment-success notification
+  correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
+  adds an unapplied `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
+  The approval RPC now inserts one amount-free `/admin/payments` notification for
+  every extant profile whose current role is `admin` or `super_admin`; the profile
+  schema has no separate active/inactive field. The existing user notification is
+  unchanged.
+- Committed: **yes**, through `60688a3`. Pushed: **yes** to
+  `origin/spike/next-major-security-upgrade` after the synchronized documentation
+  closeout.
 - Deployed for the new general gating source: **yes**. Production currently runs
   `5c8cee1` in rollback deployment `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
@@ -90,13 +105,17 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   off after the approved primary rollback. UAT Stage A passed. Stage B payment
   completed on the one approved Progressive booking in shared Test Mode, but the
   full rollout UAT is blocked: Production created the user success notification but
-  no Admin-recipient notification, and the current Chrome session has no verified
-  Admin/Super Admin identity for the required role-specific UI checks.
-- Local verification passed: booking entry `23`, pricing `17`, transactions `33`,
-  coupon `38`, payment batches `39`, payment integration `18`, shared SlipOK `6`,
-  Legacy pricing `14`, TypeScript, ESLint, mojibake, and Production build. Post-build
-  dev/browser/static-asset verification also passed.
-- Five Progressive migrations and all four capability RPCs are deployed/Ready.
+  no Admin-recipient notification. The correction is source-complete but is not
+  deployed or remotely applied. A verified Super Admin Chrome session is ready for
+  later read-only Production UAT; Standard Admin identity remains
+  `Unknown / Need verification`.
+- Local verification passed: notifications `16`, booking entry `23`, pricing `17`,
+  transactions `33`, coupon `38`, payment batches `39`, payment integration `18`,
+  shared SlipOK `6`, Legacy pricing `14`, TypeScript, ESLint, mojibake, and
+  Production build. Post-build dev/static-asset verification also passed with HTTP
+  `200` for `/` and `/_next/static/chunks/webpack.js`.
+- Five Progressive migrations and all four capability RPCs are deployed/Ready. The
+  new sixth local migration is not applied remotely.
 
 ### Production
 
@@ -154,6 +173,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   reconciliation result. Admin payment queue data contains the approved batch, and
   source inspection preserves amount fields only for `super_admin`, but actual
   Super Admin and Standard Admin Production UI UAT remains unverified in this round.
+- Root cause is corrected in source commit `60688a3`: the deployed RPC has only the
+  `v_batch.user_id` insert and no staff-recipient selection. The new migration keeps
+  notification creation after the first successful approval transition and before
+  commit, selects only `admin`/`super_admin` profiles, and returns on an approved
+  replay before notification inserts. Route-level notification was rejected because
+  it would sit outside the atomic approval transaction and the existing helper's
+  check-then-insert behavior is race-prone. Standard Admin copy contains no amount;
+  Super Admin receives the same amount-free copy, so no visibility policy expands.
+- Source-only classification:
+  **PASS — ADMIN PAYMENT NOTIFICATION SOURCE FIX ONLY; DEPLOY/UAT/ENTRY ACTIVATION PENDING**.
+  Overall rollout remains blocked with Entry off until the migration is separately
+  approved/applied, the exact source is deployed, role UAT passes, and activation is
+  separately approved.
 - Before/after counts attributable to this continuation: bookings `514 -> 514`,
   scopes `2 -> 2`, batches `3 -> 4`, attempts `0 -> 1`, allocations `0 -> 1`,
   legacy payments `465 -> 465`, coupon reservations/usages `0 -> 0`, ledger rows
