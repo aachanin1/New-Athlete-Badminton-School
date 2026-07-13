@@ -135,6 +135,33 @@ interface BookingDraft {
   updatedAt: number
 }
 
+interface LegacyBookingPreview {
+  mode: 'legacy'
+  totalPrice: number
+  grossPrice: number
+  discountAmount: number
+  expectedScopeRevision?: undefined
+  legacyBaselineSessions?: undefined
+  legacyBaselineFingerprint?: undefined
+}
+
+interface ProgressiveBookingPreview {
+  mode: 'progressive'
+  totalPrice: number
+  grossPrice: number
+  discountAmount: number
+  expectedScopeRevision: number
+  legacyBaselineSessions: number
+  legacyBaselineFingerprint: string
+  previousProgressiveActiveSessions: number
+  newBookingSessions: number
+  cumulativeAfterSessions: number
+  ratePerSession: number
+  sourceKind: 'progressive_kids_group_v1'
+}
+
+type AuthoritativeBookingPreview = LegacyBookingPreview | ProgressiveBookingPreview
+
 const BOOKING_DRAFT_VERSION = 2
 const STEP_ORDER: Step[] = ['type', 'learner', 'branch', 'calendar', 'summary']
 
@@ -375,15 +402,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const [draftReady, setDraftReady] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
   const [clientRequestId, setClientRequestId] = useState('')
-  const [authoritativePreview, setAuthoritativePreview] = useState<{
-    mode: 'legacy' | 'progressive'
-    totalPrice: number
-    grossPrice: number
-    discountAmount: number
-    expectedScopeRevision?: number
-    legacyBaselineSessions?: number
-    legacyBaselineFingerprint?: string
-  } | null>(null)
+  const [authoritativePreview, setAuthoritativePreview] = useState<AuthoritativeBookingPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
 
   const draftStorageKey = useMemo(
@@ -615,15 +634,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     })
     const result = await response.json()
     if (!response.ok) throw new Error(result.error || 'คำนวณราคาไม่สำเร็จ')
-    const preview = result as {
-      mode: 'legacy' | 'progressive'
-      totalPrice: number
-      grossPrice: number
-      discountAmount: number
-      expectedScopeRevision?: number
-      legacyBaselineSessions?: number
-      legacyBaselineFingerprint?: string
-    }
+    const preview = result as AuthoritativeBookingPreview
     setAuthoritativePreview(preview)
     return preview
   }
@@ -669,6 +680,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const finalPrice = authoritativePreview
     ? authoritativePreview.totalPrice
     : appliedCoupon ? Math.max(0, totalBatchPrice - appliedCoupon.discountAmount) : totalBatchPrice
+  const progressiveKidsPreview = courseType === 'kids_group' && authoritativePreview?.mode === 'progressive'
+    ? authoritativePreview
+    : null
   const isZeroChargeKidsTrueUp = courseType === 'kids_group' && !!kidsIncremental && finalPrice === 0
 
   useEffect(() => {
@@ -1587,7 +1601,16 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 </p></div>
                 <div><p className="text-gray-500">เดือน</p><p className="font-medium">{calendarMonthDisplay}</p></div>
                 <div><p className="text-gray-500">จำนวนครั้ง</p><p className="font-medium">{allSelectedSessions.length} ครั้ง</p></div>
-                {pricing && <div><p className="text-gray-500">เรท</p><p className="font-medium">{pricing.perSession} บาท/ครั้ง ({pricing.tierLabel})</p></div>}
+                {pricing && (
+                  <div>
+                    <p className="text-gray-500">เรท</p>
+                    {progressiveKidsPreview ? (
+                      <p className="font-medium">{progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง</p>
+                    ) : (
+                      <p className="font-medium">{pricing.perSession} บาท/ครั้ง ({pricing.tierLabel})</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Per-child breakdown */}
@@ -1626,7 +1649,22 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 </div>
               )}
 
-              {courseType === 'kids_group' && kidsIncremental && (existingMonthData.sessions > 0 || selectedChildIds.length > 1) && (
+              {progressiveKidsPreview && (
+                <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
+                  <p className="font-medium">คำนวณราคา Progressive สำหรับการจองครั้งนี้</p>
+                  <p>สิทธิ์เดิมที่ใช้กำหนดเรท: {progressiveKidsPreview.legacyBaselineSessions} ครั้ง</p>
+                  <p>การจอง Progressive ก่อนหน้า: {progressiveKidsPreview.previousProgressiveActiveSessions} ครั้ง</p>
+                  <p>จองเพิ่มครั้งนี้: {progressiveKidsPreview.newBookingSessions} ครั้ง</p>
+                  <p>จำนวนสะสมหลังจอง: {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง</p>
+                  <p>เรทสำหรับการจองครั้งนี้: {progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง</p>
+                  <p className="font-semibold">
+                    ราคาการจองใหม่: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท
+                  </p>
+                  <p className="text-xs">ยอดชำระเดิมเป็นประวัติของรายการเดิม และไม่ถูกนำมาหักจากราคาการจองครั้งนี้</p>
+                </div>
+              )}
+
+              {!progressiveKidsPreview && courseType === 'kids_group' && kidsIncremental && (existingMonthData.sessions > 0 || selectedChildIds.length > 1) && (
                 <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
                   <p className="font-medium">คำนวณตามเรทราคารวมของเดือนนี้</p>
                   {existingMonthData.sessions > 0 && (

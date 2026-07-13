@@ -178,4 +178,54 @@ check('25 pricing write capability requires Option A version 2',
   compatibilityMigration.includes("'version', 2")
   && writeHelper.includes('capability.version !== 2'))
 
+const progressiveSummaryStart = bookingClient.indexOf('{progressiveKidsPreview && (')
+const legacySummaryStart = bookingClient.indexOf("{!progressiveKidsPreview && courseType === 'kids_group'")
+const progressiveSummary = bookingClient.slice(progressiveSummaryStart, legacySummaryStart)
+const legacySummary = bookingClient.slice(legacySummaryStart, bookingClient.indexOf('{/* Coupon input */}', legacySummaryStart))
+
+check('26 client keeps the complete authoritative Progressive summary contract',
+  bookingClient.includes("mode: 'progressive'")
+  && bookingClient.includes("sourceKind: 'progressive_kids_group_v1'")
+  && bookingClient.includes('legacyBaselineSessions: number')
+  && bookingClient.includes('previousProgressiveActiveSessions: number')
+  && bookingClient.includes('newBookingSessions: number')
+  && bookingClient.includes('cumulativeAfterSessions: number')
+  && bookingClient.includes('ratePerSession: number'))
+check('27 Progressive 4+4 summary is booking-level and contains no Legacy true-up copy',
+  progressiveSummaryStart >= 0
+  && legacySummaryStart > progressiveSummaryStart
+  && progressiveSummary.includes('สิทธิ์เดิมที่ใช้กำหนดเรท: {progressiveKidsPreview.legacyBaselineSessions} ครั้ง')
+  && progressiveSummary.includes('การจอง Progressive ก่อนหน้า: {progressiveKidsPreview.previousProgressiveActiveSessions} ครั้ง')
+  && progressiveSummary.includes('จองเพิ่มครั้งนี้: {progressiveKidsPreview.newBookingSessions} ครั้ง')
+  && progressiveSummary.includes('จำนวนสะสมหลังจอง: {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง')
+  && progressiveSummary.includes('เรทสำหรับการจองครั้งนี้: {progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง')
+  && progressiveSummary.includes('ราคาการจองใหม่: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท')
+  && progressiveSummary.includes('ไม่ถูกนำมาหักจากราคาการจองครั้งนี้')
+  && !progressiveSummary.includes('ยอดรวมตามเรทใหม่')
+  && !progressiveSummary.includes('หักยอดที่จ่ายแล้ว')
+  && !progressiveSummary.includes('เครดิตส่วนต่าง'))
+check('28 Progressive coupon summary keeps authoritative gross, discount, and final amounts',
+  bookingClient.includes("if (authoritativePreview?.mode === 'progressive')")
+  && bookingClient.includes('const couponPreview = await fetchAuthoritativePreview(nextCoupon.id)')
+  && bookingClient.includes('const displayedBasePrice = authoritativePreview?.grossPrice ?? totalBatchPrice')
+  && bookingClient.includes('? authoritativePreview.totalPrice')
+  && bookingClient.includes('ส่วนลดคูปอง ({appliedCoupon.code})'))
+check('29 Progressive zero-Legacy-baseline summary remains visible without Legacy copy',
+  progressiveSummary.includes('legacyBaselineSessions')
+  && !progressiveSummary.includes('legacyBaselineSessions > 0')
+  && !progressiveSummary.includes('existingMonthData')
+  && !progressiveSummary.includes('kidsIncremental'))
+check('30 Legacy 4+4 true-up explanation remains unchanged behind the Legacy branch',
+  legacySummaryStart >= 0
+  && legacySummary.includes('เคยจ่ายแล้ว: {existingMonthData.sessions} ครั้ง = ฿{existingMonthData.paid.toLocaleString()}')
+  && legacySummary.includes('ยอดรวมตามเรทใหม่: {kidsIncremental.totalSessionsForMonth} × ฿{kidsIncremental.perSession.toLocaleString()} = ฿{kidsIncremental.totalCostForMonth.toLocaleString()}')
+  && legacySummary.includes('หักยอดที่จ่ายแล้ว: ฿{kidsIncremental.existingPaid.toLocaleString()}')
+  && legacySummary.includes('ยอดที่ต้องชำระเพิ่ม: ฿{displayedBasePrice.toLocaleString()}')
+  && legacySummary.includes('เครดิตส่วนต่าง'))
+check('31 Adult Group and Private summary/pricing remain on their existing Legacy paths',
+  bookingClient.includes("if (courseType === 'adult_group') return getAdultGroupTotal")
+  && bookingClient.includes('return getPrivateTotal')
+  && bookingClient.includes("{courseType !== 'kids_group' && (")
+  && bookingClient.slice(progressiveSummaryStart, legacySummaryStart).includes('progressiveKidsPreview'))
+
 console.log(`Progressive kids group booking entry checks passed: ${passed} checks.`)
