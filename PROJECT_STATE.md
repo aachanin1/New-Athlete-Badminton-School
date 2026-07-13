@@ -42,6 +42,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   Kids Group routing/price proof could not be completed. Activation was attempted,
   that proof gate could not be satisfied from the available Chrome identity, and
   the approved rollback was completed as recorded below.
+- Owner then confirmed an existing Chrome User session and approved only read-only
+  User/Parent identity, child, entitlement-history, browser-local draft, and
+  Entry-off preview verification. No Entry activation, deploy, Booking confirmation,
+  Payment action, account/child change, or Production business-data write was
+  approved in this follow-up round.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -83,13 +88,20 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
     no per-user UUID allowlist is required.
   - Entry enabled + missing pricing-write, coupon-lifecycle, or payment-batch
     dependency -> typed `503`, no Legacy fallback or partial write.
+  - Entry enabled with active bookings whose `pricing_scope_id` does not match the
+    current Progressive period scope -> `PROGRESSIVE_LEGACY_SCOPE_NOT_READY`, no
+    Progressive preview and no Legacy fallback. This fail-closed guard currently
+    affects the verified User/Parent `4 + 4` scenario because both contributing
+    bookings are Legacy and the User has no July Progressive scope.
   - `adult_group` and `private` -> Legacy.
   - Existing Progressive edit/cancel remains routed by stored `pricing_scope_id`.
     Payment prepare/upload/submit/status/cancel uses authenticated ownership and
     dependency readiness, so existing bookings can drain after Entry is disabled.
 - UUID allowlist parsing remains available as staged/test infrastructure, but it is
   not a general-customer eligibility or authorization boundary.
-- Source complete: **yes** for general Kids Group gating.
+- Source complete: **yes** for the previously approved general Kids Group gate,
+  but **Need Owner decision** for active Legacy booking compatibility before the
+  gate can safely serve all existing general users.
 - Source complete: **yes** for the Admin/Super Admin payment-success notification
   correction. Commit `60688a340d473b2bb64f0bee9b1e68cb8cf47c1a`
   adds a `CREATE OR REPLACE FUNCTION` migration and deterministic tests.
@@ -150,7 +162,7 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Pricing Reconciliation Status
 
-**BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**
+**BLOCKER — USER/PARENT 4+4 DRAFT VERIFIED; LEGACY ACTIVE SCOPE NOT READY FOR ENTRY**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
   agree. The earlier scoped `PASS` covered source readiness and that data repair,
@@ -234,9 +246,48 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Customer and financial impact from this round: none. No Booking, Payment, pricing
   scope, batch, attempt, allocation, ledger, coupon, wallet, attendance, entitlement,
   Finance, notification, refund, payroll, or accounting write was performed by the
-  UAT. Task Done: **no**. A verified existing Owner-controlled User/Parent session
-  with a child learner and safe draft is required before a separately approved
-  activation retry; no account or Production data may be created to manufacture it.
+  UAT. Task Done: **no**. The identity/draft blocker from that activation attempt is
+  resolved by the User/Parent follow-up below; the newly proved Legacy-active-scope
+  compatibility blocker now prevents an activation retry.
+- User/Parent safe-draft follow-up passed on the current rollback deployment. The
+  uniquely matched authenticated profile is
+  `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, role `user`, with one existing owned
+  child. No profile, role, account, or child row was created or changed.
+- July deterministic active order is verified booking
+  `9634dca8-d3ce-4922-aaa4-f743edf3dd86` (`2` sessions, `1,250`) followed by
+  `db5c80c2-5b5d-42c2-b569-7be643a9da6c` (`2` sessions, `1,250`), ordered by
+  `created_at`, then booking id. Both are `verified`; total active and settled
+  history is `4` sessions / `2,500`. Two later cancelled four-session bookings do
+  not contribute.
+- No usable restored draft appeared in the booking UI. A new browser-local draft
+  selected the existing child, Chaengwattana, and four valid template-backed future
+  sessions: July `17` 10:00-12:00, `18` 09:00-11:00, `19` 09:00-11:00, and `20`
+  10:00-12:00. Coupon input remained empty. The summary reached exactly `4 + 4 = 8`
+  at the authoritative `7-10` tier rate `500` and showed the correct Entry-off
+  Legacy calculation `8 * 500 - 2,500 = 1,500`. The booking confirmation button
+  was not clicked; the unconfirmed summary tab remains available for handoff.
+- Owner-policy Progressive arithmetic for the same sequence is `4 * 500 = 2,000`,
+  with no prior-payment deduction. However, this is not currently a safe Entry-on
+  runtime expectation for this account: both active bookings have
+  `pricing_scope_id=null`, `entitlement_sessions=null`, and the matching July
+  `booking_pricing_scopes` count is `0`. Source inspection proves
+  `previewProgressiveKidsGroupBooking()` will return
+  `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` before pricing rather than `2,000`.
+  Activation must not be retried until the Owner separately decides and approves
+  the compatibility policy/source scope for active Legacy bookings. No source fix,
+  migration, or data repair was performed in this round.
+- Before/after counts were identical: bookings `519`, booking sessions `2782`,
+  scopes `2`, batches `4`, attempts `1`, allocations `1`, payments `470`, ledger
+  rows `471`, coupon reservations/usages `0`, and notifications `16088`. Profile,
+  child, User booking, and User session fingerprints were unchanged. One unique
+  authenticated `POST /api/bookings/preview` returned `200`; booking write requests,
+  sampled error events, and sampled 5xx responses were `0`. Browser console errors,
+  warnings, and observed React/hydration errors were `0`.
+- Scoped result:
+  **PASS — USER/PARENT SAFE 4+4 DRAFT VERIFIED**. Overall activation remains
+  blocked by the proved Legacy-active-scope guard; Entry stays configured `false`,
+  Production remains Legacy for general Kids Group, and customer/financial impact
+  from this read-only round is `0`.
 - Fresh Standard Admin read-only UAT on 2026-07-13 proved the authenticated visible
   profile is uniquely role `admin`, not `super_admin`, without creating, changing,
   or repurposing an account. `/admin` loaded without aggregate revenue or Finance

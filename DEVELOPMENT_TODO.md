@@ -596,6 +596,69 @@ repo: `Unknown / Need verification`.
 - Classification:
   **BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**.
 
+### 2026-07-13 - User/Parent Safe 4+4 Draft Verification
+
+- Owner confirmed Chrome was logged in as a User and authorized only read-only
+  identity, existing-child, entitlement-history, browser-local draft, Entry-off
+  preview, monitoring, reconciliation, and documentation work. Entry activation,
+  environment changes, deploy, Booking confirmation, Payment action, child/account
+  changes, source work, migration, and Production data writes were not authorized.
+- Gate 0 matched the rollback record: `dpl_3RS4MWuNaPPmGS3DxgdJja1dk35G` was Ready
+  on all four aliases from exact functional source `f5b22a9`; all four dependency
+  controls were `true`; allowlist was absent; shared `SLIPOK_TEST_MODE=true`; and
+  the Entry value remained Sensitive/write-only after the exact rollback command.
+  The runtime Entry-off Legacy response below independently confirms Entry is off.
+- The visible Chrome identity uniquely matched Production profile
+  `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, role exactly `user`. It owns one existing
+  child. Profile and child creation/update fingerprints were captured before the
+  flow and remained unchanged; no account, role, profile, or child was created,
+  repurposed, or edited.
+- July Kids Group active deterministic order is booking
+  `9634dca8-d3ce-4922-aaa4-f743edf3dd86` then
+  `db5c80c2-5b5d-42c2-b569-7be643a9da6c`, ordered by `created_at`, then id. Both
+  are `verified`, each has `2` sessions and stored amount `1,250`, so previous
+  active sessions = previous settled sessions = `4` and previous settled amount =
+  `2,500`. Two later cancelled four-session bookings are excluded.
+- No usable restored draft appeared in the normal booking UI. A new browser-local
+  draft selected the existing child, Kids Group, Chaengwattana, and four valid
+  template-backed future sessions: July `17` 10:00-12:00, `18` 09:00-11:00,
+  `19` 09:00-11:00, and `20` 10:00-12:00. Slots were open, capacity was available,
+  no duplicate or disabled selection was bypassed, and coupon input remained empty.
+- Entry-off summary passed exactly: previous settled `4` / `2,500`, selected new
+  `4`, cumulative `8`, authoritative `7-10` tier rate `500`, target total `4,000`,
+  and Legacy charge `1,500`. The UI displayed the true-up and prior-payment
+  deduction as expected while Entry is off. Owner-policy Progressive arithmetic for
+  the same sequence is `4 * 500 = 2,000`, with no deduction or retroactive true-up.
+  The booking confirmation button was present but never clicked; the summary tab
+  was preserved as an unconfirmed browser-local handoff.
+- A new rollout-readiness blocker was proved before any activation retry. Both
+  active bookings have `pricing_scope_id=null` and `entitlement_sessions=null`, and
+  the matching July `booking_pricing_scopes` count is `0`. The deployed
+  `previewProgressiveKidsGroupBooking()` source compares every active booking scope
+  with the current scope and fails with `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` before
+  pricing when they differ. Therefore the policy result `2,000` is arithmetic only;
+  the current Entry-on source would fail closed for this exact account rather than
+  return `2,000`. No source defect was changed and no migration/data repair was
+  proposed or performed in this round.
+- Before/after Production counts were identical: bookings `519`, booking sessions
+  `2782`, pricing scopes `2`, batches `4`, attempts `1`, allocations `1`, payments
+  `470`, ledger rows `471`, coupon reservations/usages `0`, notifications `16088`.
+  Profile, child, User booking, and User booking-session fingerprints matched.
+  One unique authenticated `POST /api/bookings/preview` returned `200`; exact
+  `/api/bookings` write requests were `0`. Bounded logs sampled `100` requests with
+  error-level `0` and 5xx `0`; browser warnings/errors and React/hydration errors
+  were `0`.
+- Source changed/committed/deployed: no. Environment/Entry/allowlist changed: no.
+  Production business data, customer impact, and financial impact: `0`. Entry stays
+  configured `false`; general Kids Group remains Legacy.
+- Scoped draft result:
+  **PASS — USER/PARENT SAFE 4+4 DRAFT VERIFIED**.
+- Overall activation result:
+  **BLOCKER — LEGACY ACTIVE SCOPE NOT READY; OWNER COMPATIBILITY DECISION REQUIRED**.
+  The Owner must define how active Legacy bookings participate in initial
+  Progressive Entry before any separately approved source/migration/data scope or
+  activation retry. Do not confirm the prepared draft or activate Entry yet.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

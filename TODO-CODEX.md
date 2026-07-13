@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **BLOCKER — ENTRY DISABLED; PROGRESSIVE ACTIVATION ROLLED BACK SAFELY**.
+Current classification: **BLOCKER — USER/PARENT 4+4 DRAFT VERIFIED; LEGACY ACTIVE SCOPE NOT READY FOR ENTRY**.
 
 Confirmed:
 
@@ -81,19 +81,35 @@ Blocked / Need action:
   Owner User/Parent `4 + 4` draft was unavailable and the exact `1,500 -> 2,000`
   runtime proof could not be completed. The approved primary rollback therefore set
   Entry to `false` and redeployed the exact same source as `dpl_3RS4MWu...`, Ready
-  on all aliases.
+  on all aliases. The later User-session follow-up resolved this identity blocker.
 - Reconciliation found unchanged bookings `519`, scopes `2`, batches `4`, attempts
   `1`, allocations `1`, payments `469`, ledger `470`, coupons `0`, pricing tiers,
   and protected fingerprints. Notifications `16032 -> 16034` were two unrelated
   real coach-assignment notifications correlated to operational activity logs, not
   UAT-created rows. Vercel error/5xx/SlipOK log counts were `0`.
+- The Owner-confirmed User session is verified as one unique Production profile
+  with role `user` and one existing owned child. Its July Kids Group active/settled
+  history is exactly two ordered `verified` bookings of `2 + 2 = 4` sessions and
+  `1,250 + 1,250 = 2,500`; cancelled bookings are excluded.
+- A new browser-local draft safely selected four template-backed future sessions
+  without a coupon and reached the unconfirmed summary. Entry-off Legacy preview
+  passed exactly: `4` previous + `4` new = `8`, authoritative rate `500`, charge
+  `8 * 500 - 2,500 = 1,500`. The policy Progressive arithmetic is `4 * 500 = 2,000`.
+  No confirmation or Production write occurred.
+- Activation is not yet safe for this account. Both active bookings have
+  `pricing_scope_id=null` and there is no July Progressive scope. The deployed
+  source therefore returns `PROGRESSIVE_LEGACY_SCOPE_NOT_READY` before Progressive
+  pricing when Entry is on. An Owner-approved compatibility policy/source scope is
+  required; do not reactivate Entry on the assumption that this account will show
+  `2,000`.
 
 Next authorized continuation:
 
-- Do not repeat the completed payment or create another booking. First provide a
-  verified existing Owner-controlled User/Parent session with an existing child and
-  safe Kids Group draft. A separate Owner approval is then required to retry Entry
-  activation and the no-write pricing/routing proof.
+- Do not repeat the completed payment, confirm the prepared draft, or create another
+  booking. The next work is an Owner decision on how active Legacy Kids Group
+  bookings participate in initial Progressive Entry, followed by a separately
+  approved source-only compatibility audit/fix if required. Entry activation must
+  not be retried yet.
 
 Do not do now:
 
@@ -106,11 +122,12 @@ Do not do now:
 
 Next gated work:
 
-1. Verify the existing User/Parent Production context without creating or changing
-   any account, learner, booking, or payment.
-2. Owner separately approves an Entry activation retry.
-3. If approved, activate Entry last and repeat bounded monitoring without another
-   UAT booking or payment.
+1. Owner decides the compatibility contract for active Legacy bookings that have
+   no Progressive pricing scope or entitlement snapshot.
+2. Audit and implement only the separately approved source/migration/data scope;
+   do not infer permission for migration or Production repair.
+3. After compatibility readiness is proved, Owner separately approves another
+   Entry activation attempt and no-write `4 + 4` runtime preview.
 
 Conditions before any Production write or deploy:
 
@@ -123,14 +140,14 @@ Conditions before any Production write or deploy:
 
 | State | Current result |
 | --- | --- |
-| Source complete | Yes - general entry plus amount-free Admin/Super Admin payment-success notifications |
+| Source complete | General entry and staff notifications complete; active Legacy scope compatibility requires Owner decision |
 | Committed | Yes - notification fix `60688a3` |
 | Pushed | Yes - through the synchronized source/docs closeout on `origin/spike/next-major-security-upgrade` |
 | Deployed | Yes - exact `f5b22a9` containing `60688a3`, final rollback `dpl_3RS4MWu...` Ready |
 | Dependencies enabled | Yes - four dependency controls `true` |
 | Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Earlier Super Admin/Standard Admin read-only pass; Adult/Private/unauthenticated activation checks pass; Kids Group runtime proof blocked by unavailable User/Parent context |
+| Production UAT | User/Parent Entry-off safe `4 + 4` draft passed at Legacy `1,500`; Entry-on proof blocked by active Legacy scope incompatibility |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
@@ -161,6 +178,8 @@ Conditions before any Production write or deploy:
   deployment `dpl_3RS4MWu...`; migration `20260713153000` is remotely applied.
   Entry remains `false` after the approved safe rollback.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
+- The unconfirmed User/Parent `4 + 4` summary remains browser-local. Do not click
+  confirmation. No Production business row changed during its preparation.
 - Production UAT created one Progressive booking/scope/session only. Payment used
   one lazily cancelled original batch plus one approved replacement batch, one
   successful Test Mode attempt, one allocation, one ledger row, and one user
