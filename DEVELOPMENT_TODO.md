@@ -268,6 +268,44 @@ repo: `Unknown / Need verification`.
 - Current classification:
   **PASS — ONE UNPAID PRODUCTION BOOKING REPAIRED; DEPLOY/ACTIVATION/UAT PENDING**.
 
+### 2026-07-13 - Progressive General-Traffic Rollout and Safe Entry Rollback
+
+- Owner approved deploy/activation/UAT for exact source `5c8cee1`. Pre-deploy Git,
+  Vercel, migration capabilities, Production counts, ledger, and logs matched the
+  documented baseline. All required source checks and Production build passed; the
+  payment-integration test required LF normalization because its literal LF match
+  is a Windows CRLF false negative.
+- Gate 2 deployed Entry-off source as `dpl_9q684Kgc...`; authenticated Owner test
+  preview remained Legacy. Gate 3 enabled pricing-write, coupon-lifecycle,
+  payment-batch, and payment-review controls and deployed `dpl_7cpBHQY...`; Entry
+  and allowlist remained absent and DB counts were unchanged.
+- Gate 4 enabled Entry and deployed `dpl_223P3mh...`, Ready at exact SHA `5c8cee1`.
+  Stage A passed: Kids Group entered the Progressive path, Adult Group and Private
+  remained Legacy, unauthenticated preview returned `401`, and no preview write
+  occurred.
+- Stage B used the documented Owner test profile and `TEST System` learner. It
+  created exactly booking `89533cdf-76cf-4ee5-bb66-ce7bf7bbf5fe` (`700`, one
+  session, `pending_payment`), scope `f4acca6c-86b9-44da-88cc-86d8222f28c3`, and
+  session `34ad024d-59f3-409d-b431-36e2765f9737`. Pricing snapshots prove sequence
+  `1`, cumulative `0 -> 1`, rate/gross/final `700`, coupon `0`.
+- Payment prepare created batch `eb5a1c73-fceb-4fd1-b6e6-414fc3fe1410`, amount
+  `700`, status `prepared`, one active member. Chrome blocked local file attachment
+  because the ChatGPT extension lacks file-URL access. No slip path/hash, submit,
+  verification attempt, allocation, payment, coupon, or ledger row exists.
+- Primary rollback executed immediately: Entry `false`, four dependency controls
+  remain `true`, allowlist absent, shared `SLIPOK_TEST_MODE=true`. Current Ready
+  deployment is `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`, exact SHA `5c8cee1`, with all
+  Production aliases. No source/data deletion or hard source rollback occurred.
+- Monitoring found no final-deployment error logs, no duplicate ledger source, and
+  no Progressive allocation. Legacy payments/ledger remain `465`; repaired booking
+  `d6dad7aa...` remains `625` and `pending_payment`.
+- Current classification:
+  **BLOCKER — ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**.
+- Resume only after Chrome file-URL access is enabled. Drain the existing UAT
+  booking/batch if valid; do not create a second booking. After full payment,
+  Admin/Finance/notification reconciliation passes, re-enable Entry last and repeat
+  bounded monitoring.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

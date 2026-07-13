@@ -79,55 +79,61 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   not a general-customer eligibility or authorization boundary.
 - Source complete: **yes** for general Kids Group gating.
 - Committed: **yes**, `5c8cee1`. Pushed: **yes**.
-- Deployed for the new general gating source: **no**. Production still runs
-  allowlist-gated source `56daabf` in deployment `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW`.
-- Enabled: **no**; the relevant Production variables are absent.
+- Deployed for the new general gating source: **yes**. Production currently runs
+  `5c8cee1` in rollback deployment `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`.
+- Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
+  payment batch, and payment review. Entry is explicitly `false` after the
+  approved primary rollback.
 - Allowlisted: **no**; `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS` is absent. No UUID
   values were read or exposed.
-- Production active: **no**. Production UAT: **not performed**.
+- Production active for new general Kids Group entry: **no**, because Entry was
+  rolled back off. UAT Stage A passed. Stage B created one Progressive test booking
+  and one prepared batch, but payment completion is blocked by Chrome file-upload
+  permission and is not passed.
 - Local verification passed: booking entry `23`, pricing `17`, transactions `33`,
   coupon `38`, payment batches `39`, payment integration `18`, shared SlipOK `6`,
   Legacy pricing `14`, TypeScript, ESLint, mojibake, and Production build. Post-build
   dev/browser/static-asset verification also passed.
-- Five Progressive migrations and capability RPC were last confirmed deployed/Ready,
-  but Entry/Review/pricing-write/coupon/batch controls and UUID allowlist were unset.
+- Five Progressive migrations and all four capability RPCs are deployed/Ready.
 
 ### Production
 
-- Current deployment: `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW`, Ready, created
-  2026-07-12 16:59 ICT, functional source SHA
-  `56daabf30ad60c07b3c3ccb98fe42028e33de1be`.
+- Current deployment: `dpl_F2gfntqNX8ZiR5yr5dPB6UdeX8Fe`, Ready, created
+  2026-07-13 09:54 ICT, functional source SHA
+  `5c8cee1e8a81f928b870e643a78e1d2baf39fa06`.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
   `https://new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
-- Read-only environment-name inspection found none of these Production variables:
-  `PROGRESSIVE_PRICING_WRITES_ENABLED`,
-  `PROGRESSIVE_COUPON_LIFECYCLE_ENABLED`,
-  `PROGRESSIVE_PAYMENT_BATCH_ENABLED`, `PROGRESSIVE_PAYMENT_ENTRY_ENABLED`,
-  `PROGRESSIVE_PAYMENT_REVIEW_ENABLED`, or
-  `PROGRESSIVE_PAYMENT_ALLOWED_USER_IDS`.
-- Therefore the current Production artifact is deployed, but new source `5c8cee1`
-  is not. Enabled = no; Allowlisted = no; Production active = no; Production UAT =
-  not performed. No Vercel state was changed.
+- Production controls: pricing writes `true`, coupon lifecycle `true`, payment
+  batch `true`, payment review `true`, Entry `false`. The UUID allowlist remains
+  absent and was not read. Entry was enabled only for controlled UAT, then disabled
+  through the approved primary rollback when browser upload permission blocked
+  payment completion.
 - Shared Owner-approved payment policy remains server-side
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
 ### Pricing Reconciliation Status
 
-**PASS — ONE UNPAID PRODUCTION BOOKING REPAIRED; DEPLOY/ACTIVATION/UAT PENDING**
+**BLOCKER — ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**
 
 - Owner policy, Progressive formula, pushed source, and the approved one-row repair
-  agree. This `PASS` is scoped to source readiness and that data repair, not an
-  end-to-end Production rollout result.
-- The deployed entry remains the older allowlist-gated source and all controls are
-  absent, so general Production traffic still uses Legacy.
+  agree. The earlier scoped `PASS` covered source readiness and that data repair,
+  not the incomplete Production rollout.
+- New source `5c8cee1` is deployed and dependency-ready, but Entry is disabled, so
+  new general Production traffic currently returns to Legacy while the created
+  Progressive UAT booking can drain by stored scope.
 - Data repaired: **yes**, exactly one unpaid booking. Source/deploy/activation state
   did not change during the repair.
 - `DOCUMENTATION DRIFT` was found: the previous snapshot said `56daabf` was not
   deployed and current Vercel state was unknown. Read-only CLI verification proves
   it is deployed, while enabled/allowlisted/Production-active states remain false.
+- UAT rows preserved: booking `89533cdf-76cf-4ee5-bb66-ce7bf7bbf5fe`, pricing
+  scope `f4acca6c-86b9-44da-88cc-86d8222f28c3`, session
+  `34ad024d-59f3-409d-b431-36e2765f9737`, and prepared batch
+  `eb5a1c73-fceb-4fd1-b6e6-414fc3fe1410`. No slip, attempt, allocation, payment,
+  coupon, or ledger row was created.
 
 ### 2026-07-12 Read-Only Unpaid Kids Group Audit
 
@@ -159,8 +165,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   rows and are out of scope. There are no Kids Group bookings in `paid` status.
   The `33 cancelled` rows are inactive and also excluded. Approved payments were
   not reopened or repriced.
-- Next deploy scope, not performed: separately approve deployment of `5c8cee1`,
-  exact Production variables/rollout order, controlled UAT, monitoring, and rollback.
+- The previously proposed deploy scope was performed under later Owner approval;
+  current rollout state and the safe Entry rollback are recorded above.
 - Completed data repair: exactly `d6dad7aa...` changed from `550` to `625`; status
   and sessions were preserved. Activity log
   `98359d52-4da1-4ef2-bc75-a9b3a29db830` records the Owner approval, formula,

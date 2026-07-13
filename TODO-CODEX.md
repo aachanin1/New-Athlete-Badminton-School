@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Kids Group Pricing Reconciliation - Highest Priority
 
-Current classification: **PASS — ONE UNPAID PRODUCTION BOOKING REPAIRED; DEPLOY/ACTIVATION/UAT PENDING**.
+Current classification: **BLOCKER — ENTRY DISABLED; PROGRESSIVE ROLLOUT ROLLED BACK SAFELY**.
 
 Confirmed:
 
@@ -34,10 +34,12 @@ Confirmed:
   payment drain remains authenticated and dependency-gated even if Entry is disabled.
 - Owner confirmed Progressive replaces Legacy for general Kids Group Production
   traffic. Historical review is unpaid-only; paid/approved/verified rows are excluded.
-- Production still has older source `56daabf` deployed as
-  `dpl_AG8zaB1Wexi5hCKuh5jeDQzfabuW`, but all Progressive control names and the
-  allowlist name are absent from Production. Deployed = yes; Enabled = no;
-  Allowlisted = no; Production active = no; UAT = not performed.
+- Source `5c8cee1` is deployed in Ready rollback deployment `dpl_F2gfntq...`.
+  Pricing-write, coupon-lifecycle, payment-batch, and payment-review controls are
+  `true`; Entry is `false`; allowlist is absent; shared `SLIPOK_TEST_MODE=true`.
+- Stage A passed. Stage B created exactly one Progressive booking/scope/session and
+  one prepared batch, but Chrome blocked attaching the harmless UAT image because
+  the extension lacks file-URL access. Entry was immediately rolled back off.
 - Production repair completed for exactly unpaid booking `d6dad7aa...`, `550 -> 625`.
   Fresh pre/post checks found zero payment, coupon, wallet, attendance, batch,
   allocation, ledger, refund, credit, or accounting dependencies. Activity log:
@@ -45,35 +47,33 @@ Confirmed:
 - All six audited unpaid candidates now match Progressive pricing. All 415 verified
   Kids Group bookings remained fingerprint-unchanged and excluded.
 
-Unknown / Need verification:
+Blocked / Need action:
 
 - The standalone design document named by the Owner as containing “Formula And
   Ordering / Scenario Matrix” was not present in the repo.
-- Current live behavior after a future deploy/activation remains unverified until
-  controlled Production UAT is separately approved and completed.
+- Enable Chrome extension file-URL access, then resume the existing prepared batch
+  if still valid or let the normal lazy-expiry path handle it before preparing one
+  replacement batch. Do not create a second booking.
 
-Separate Owner approval required next:
+Next authorized continuation:
 
-- Approve deployment of `5c8cee1`, exact Production controls/activation order,
-  controlled Production UAT, monitoring, and rollback plan.
-- The one-row repair is complete and is not part of the remaining deploy gate.
-- No approval is requested to touch paid/approved/verified rows or downstream data.
+- Complete only the existing UAT booking payment in shared Test Mode, verify all
+  payment/Admin/Finance/notification invariants, then re-enable Entry last and
+  repeat monitoring. No additional booking or repair is authorized.
 
 Do not do now:
 
-- Do not perform any additional Production repair/repricing, deploy, change
-  environment variables, enable flags, edit the UUID allowlist, call live SlipOK,
-  or change pricing tiers.
+- Do not create another UAT booking, perform additional repair/repricing, edit the
+  UUID allowlist, call live SlipOK, or change pricing tiers.
 - Do not describe the current end-to-end state as `PASS`.
 - Do not merge Legacy true-up language into the Progressive formula.
 
 Next gated work:
 
-1. Owner approves or defers deploy/activation/UAT for `5c8cee1`.
-2. If approved, verify exact Production controls before deploy, activate in the
-   approved order, and run controlled UAT.
-3. Keep the recorded rollback gated by a fresh downstream-dependency audit; do not
-   execute it automatically.
+1. Owner enables Chrome file-URL access and confirms it is ready.
+2. Resume the existing UAT payment drain; do not create a second booking.
+3. If payment, Admin/Finance, logs, and reconciliation pass, set Entry `true` last,
+   redeploy `5c8cee1`, and repeat bounded monitoring.
 
 Conditions before any Production write or deploy:
 
@@ -89,10 +89,11 @@ Conditions before any Production write or deploy:
 | Source complete | Yes - general Kids Group entry without UUID allowlist |
 | Committed | Yes - `5c8cee1` |
 | Pushed | Yes - `5c8cee1` on `origin/spike/next-major-security-upgrade` |
-| Deployed | No for `5c8cee1`; Production remains `56daabf` / `dpl_AG8za...` |
-| Enabled | No - relevant Production variable names absent |
+| Deployed | Yes - `5c8cee1`, current `dpl_F2gfntq...` Ready |
+| Dependencies enabled | Yes - four dependency controls `true` |
+| Entry enabled | No - rolled back to explicit `false` |
 | Allowlisted | No - absent in Production; not required by new source |
-| Production UAT | Not performed |
+| Production UAT | Stage A passed; Stage B blocked after prepare, before upload |
 | General users active | No - current default-deny entry routes to Legacy |
 | Adult/Private | Legacy |
 | Data repaired | Yes - `d6dad7aa...`, `550 -> 625`, dependencies preserved |
@@ -117,12 +118,11 @@ Conditions before any Production write or deploy:
 
 ## Worktree / Safety Notes
 
-- This completed round changed exactly the approved booking amount and inserted its
-  activity log; the remaining repo changes are documentation only.
+- Source `5c8cee1` was deployed; no source file changed in the rollout.
 - The pre-existing unrelated `AGENTS.md` worktree change remains excluded.
-- Production data changed only for the approved booking amount plus one activity
-  log. No migration, environment, flag, allowlist, deploy, or Production UAT action
-  occurred.
+- Production UAT created one Progressive booking/scope/session and one prepared
+  batch. No slip, attempt, allocation, payment, coupon, or ledger row was created.
+  No migration, allowlist, pricing tier, historical repair, or source change occurred.
 
 ## Session Exit Checklist
 
