@@ -8,41 +8,47 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ## Current Active Work
 
-### 1. Production Booking Regression - Active Blocker
+### 1. History Payment Selection 409 / Invalid Slip Modal State
 
-Status: **SOURCE/LOCAL/DEPLOY PASSED; AUTHENTICATED PRODUCTION NO-WRITE UAT BLOCKED**.
+Status: **AUDITED; SOURCE FIX REQUIRES OWNER APPROVAL**.
 
 - Current classification:
-  **BLOCKER - PRODUCTION AUTHENTICATED NO-WRITE UAT COULD NOT BE COMPLETED;
-  DEPLOYMENT HEALTHY, PRODUCTION DATA DELTA 0; TASK NOT DONE**.
-- Owner approved the combined correction/deploy/UAT round and superseded rollback
-  discussion. Source commit `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`
-  is committed/pushed and unifies Steps 4/5 on one fingerprinted authoritative
-  Progressive preview, adds RPC-matched read-only slot availability, disables full
-  slots, preflights before Summary/confirm, and translates capacity races to Thai.
-  Formula, tiers, Legacy, Adult/Private, coupon/payment policy, SlipOK, Entry,
-  allowlist, dependencies, and migration are unchanged.
-- Local gates passed: `255` executable checks plus `6/6` rendered Playwright E2E;
-  Step 4 `2,000`, Step 5 `2,000`, disposable created Booking `2,000`, historical
-  Legacy `4` sessions / `2,500` unchanged and unscoped, `5/6` create success,
-  `6/6` disabled plus forced atomic `409`, race/draft/coupon cases, zero browser
-  application/hydration errors, and disposable residue `0`. TypeScript, lint,
-  mojibake, `91`-route build, post-build restart smoke, and diff checks passed.
-- Exact-source deployment `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` is Ready on all
-  four aliases. Entry remains `true`; allowlist absent; four dependencies and
-  shared Test Mode remain `true`; migration/capabilities unchanged. Public/static
-  smoke is `200`, unauthenticated preview/availability is `401`, and monitored logs
-  show zero 5xx, error-level faults, dependency/baseline/revision faults, or SlipOK.
-- Protected pre/post comparison passed `23/23` count plus fingerprint checks;
-  Production business-data delta is `0`. No Booking confirmation or Production
-  write occurred, and no rollback criterion was observed.
-- Remaining gate: repeat the strictly no-write authenticated UI UAT when a safe
-  browser-control channel can establish the current signed-in Chrome URL. Confirm
-  Step 4/Step 5 `2,000`, full slot disabled, Adult/Private Legacy, History/batch
-  readability, no PII response leakage, and zero console/hydration errors. Current
-  values are `Unknown / Need verification` because all browser bridges failed and
-  Computer Use explicitly stopped before safe navigation. No new source approval
-  is required for this remaining read-only gate.
+  **PRODUCTION REGRESSION AUDITED - VALID SERVER 409 + CLIENT MODAL BUG; SOURCE
+  FIX OWNER APPROVAL REQUIRED**.
+- Scoped price proof is closed:
+  **PASS - PRODUCTION STEP 4/STEP 5 PRICE UI VERIFIED**. Owner evidence shows both
+  Steps at `2,000`, baseline/new/cumulative `4/4/8`, rate `500`, and no Legacy-money
+  deduction.
+- Exact History route: `POST /api/progressive-payments/prepare`. The incident had
+  `11` prepare requests: `5` successful and `6` HTTP 409, plus `5` successful
+  cancels. The 409 cause is `PROGRESSIVE_SCOPE_REVISION_CONFLICT` after a prior
+  modal close cancelled its prepared batch and incremented the scope revision
+  before the page refresh supplied the new revision.
+- Selected items `c917f5f6...` (`3,464`, sequence `1`, entitlement `8`) and
+  `1a7d58f8...` (`866`, sequence `2`, entitlement `2`) are both owned Progressive
+  Kids Group July 2026 bookings in the same scope. The two-item set is the valid
+  contiguous pending prefix; there is no Legacy mix, cross-scope selection,
+  coupon, payment, attendance, wallet, attempt, or allocation conflict.
+- The modal opened only from a real prepare `200`, not from the 409. Two valid
+  `4,330` batches existed and were then cancelled. Client lifecycle remains wrong:
+  cancel/refresh is not an in-flight state, stale batch/member/total state is not
+  cleared, and the 409 error is stored only in a closed dialog surface. Current
+  scope revision is `15`, current batch lock is absent, all incident batches are
+  cancelled, and no repair/unlock is required.
+- Failed 409 requests changed zero Production rows. Separate successful incident
+  actions created/cancelled five batches, seven member rows, ten activity logs, and
+  advanced scope revision `10 -> 15`. There was no slip/upload, Payment, attempt,
+  allocation, coupon, Ledger, Finance, notification, or storage object; financial
+  impact is none.
+- Source/tests/deploy/environment/migration were unchanged by the audit. Deployment
+  remains `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` Ready on four aliases; Entry and four
+  dependencies remain `true`, allowlist absent, shared Test Mode `true`, migration
+  `20260713210000` once, and capabilities Ready.
+- Next Owner gate: approve a narrow History client/error-contract correction that
+  prevents stale-revision retry during cancel/refresh, clears invalid batch state,
+  shows typed Thai error copy outside the modal, and requires a current prepared
+  batch id before upload UI. Preserve contiguous-prefix/same-scope policy and all
+  RPC guards; no migration or Production data repair is proposed.
 
 ### 2. Homepage LV Copy Audit/Fix - Paused Again
 
@@ -166,5 +172,5 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next task: complete the remaining authenticated Production no-write UAT for the
-  already deployed exact source. Homepage LV Copy Audit/Fix remains paused.
+- Next task: Owner decision on the narrow History payment client/error-contract
+  source fix above. Homepage LV Copy Audit/Fix remains paused.

@@ -1457,6 +1457,134 @@ repo: `Unknown / Need verification`.
   **BLOCKER - PRODUCTION AUTHENTICATED NO-WRITE UAT COULD NOT BE COMPLETED;
   DEPLOYMENT HEALTHY, PRODUCTION DATA DELTA 0; TASK NOT DONE**.
 
+#### 2026-07-14 - History Payment Selection 409 / Modal-State Read-Only Audit
+
+- Owner supplied authenticated Production evidence that the Booking correction is
+  visibly correct: Step 4 and Step 5 both show `2,000`, Legacy baseline `4`, new
+  sessions `4`, cumulative `8`, rate `500`, and no Legacy-money deduction. Scoped
+  result: **PASS - PRODUCTION STEP 4/STEP 5 PRICE UI VERIFIED**. During the next
+  History check, selecting `3,464 + 866 = 4,330` produced visible 409 Network rows
+  while a two-item slip modal also appeared. Owner authorized read-only audit plus
+  documentation only and prohibited replay, slip upload, batch/Booking/payment
+  mutation, source/test change, migration, deploy, environment change, or repair.
+- Gate 0 matched exactly: branch `spike/next-major-security-upgrade`, local/remote
+  HEAD `be5c6014a4994930bf178e3e7a0c415c845046f6`, functional source
+  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`, tree
+  `22296e88b9dafbfe369ae559257ac5900aac3c36`, Ready deployment
+  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` on four aliases, Entry `true`, allowlist
+  absent, four dependencies and shared Test Mode `true`, migration
+  `20260713210000` once, and all four capabilities Ready at expected versions.
+  Only unrelated unstaged `AGENTS.md` remained dirty.
+- The approved Chrome connector failed twice during bootstrap before reading or
+  changing any tab. No reload/navigation/request occurred. Original Network
+  payload, response JSON/headers, trace id, idempotency keys, duplicate-payload
+  proof, and one-click request count remain `Unknown / Need verification`.
+- Exact route was `POST /api/progressive-payments/prepare`. Bounded 13:38-13:43
+  Asia/Bangkok logs expanded to the complete 13:40:50.201-13:41:36 window:
+  prepare `11` (`200 x5`, `409 x6`) and cancel `200 x5`. Every event was served by
+  `dpl_2GQ4...`. There were no upload, submit, status, 5xx, error-level, or SlipOK
+  events. Prepare results in order were `200, 409, 409, 200, 409, 200, 409, 200,
+  409, 409, 200`; each successful modal was closed and followed by its own cancel.
+- Exact selection:
+
+  | Booking | Amount | Progressive order | Eligibility |
+  | --- | ---: | --- | --- |
+  | `c917f5f6...` | `3,464` | entitlement `8`, sequence `1`, scope revision snapshot `9` | owned, pending, unexpired, prefix member 1 |
+  | `1a7d58f8...` | `866` | entitlement `2`, sequence `2`, scope revision snapshot `10` | owned, pending, unexpired, prefix member 2 |
+
+  Both are child Kids Group bookings for July 2026, same User/child/course/month
+  scope `c1285993...`, different branches, no coupon, and no Legacy/Progressive
+  mix. Their sessions are future scheduled rows with no attendance or wallet
+  credit. Neither has a Legacy payment, verification attempt, allocation, Ledger
+  row, or active batch member. They are the complete active pending prefix in
+  `created_at, id` order; choosing one or both is valid policy.
+- The server contract first validates same User/scope and exact prefix, then guards
+  expiry, active member/lock, existing payment, attendance/wallet/started session,
+  coupon snapshot, amount, scope lock, and revision under advisory/row locks.
+  Prepare writes batch/member/scope-lock/activity rows only after all validation.
+  The actual 409 was not prefix or selection rejection. Timeline proof shows every
+  409 followed a committed `user_cancelled` batch that increased scope revision;
+  the still-rendered page sent the earlier revision, so line 408-409 of the prepare
+  RPC raised `PROGRESSIVE_SCOPE_REVISION_CONFLICT`. The six exception transactions
+  rolled back before insert/update. Original response body is unavailable, but the
+  internal typed cause and route mapping are proven by source plus revision/action
+  timestamps.
+- Current prepare HTTP mapping is narrower than the RPC guard set:
+
+  | Guard/code | Current HTTP | Meaning |
+  | --- | ---: | --- |
+  | `PROGRESSIVE_SCOPE_REVISION_CONFLICT` | 409 | stale client scope revision; observed and valid |
+  | `PROGRESSIVE_PAYMENT_PREFIX_REQUIRED` | 409 | selection skipped an earlier pending member |
+  | `PROGRESSIVE_BOOKING_EXPIRED` | 409 | pending booking expired |
+  | `PROGRESSIVE_COUPON_STATE_CONFLICT` | 409 | reservation snapshot/state mismatch |
+  | `PROGRESSIVE_IDEMPOTENCY_CONFLICT` | 409 | key reused with different fingerprint |
+  | `PROGRESSIVE_USER_MISMATCH` / `PROGRESSIVE_UNAUTHORIZED` | 403 | wrong scope owner or ownership safeguard; mixed/cross-scope ids normally fail the earlier prefix guard |
+  | dependency unavailable | 503 | required server flags absent |
+  | `PROGRESSIVE_SCOPE_LOCKED`, `PROGRESSIVE_PAYMENT_EXISTS`, `PROGRESSIVE_BOOKING_NOT_PENDING`, `PROGRESSIVE_BATCH_AMOUNT_MISMATCH`, capability mismatch | 500 | valid guards currently not mapped to customer conflict status |
+
+  An active prepared/submitted/review batch or active member therefore protects the
+  scope; prepare itself does not lazily cancel an old prepared batch before checking
+  the scope lock. Status/cancel/upload paths perform lazy expiry. This limitation
+  did not trigger here because every successful batch was explicitly cancelled.
+- Client root cause is lifecycle/error presentation in
+  `src/components/dashboard/history-client.tsx`:
+  - Lines 827-870 build one scope group and enforce a local prefix by slicing the
+    ordered bookings. The button disables on React `loading`, but there is no ref-
+    based synchronous re-entry lock.
+  - Lines 465-496 POST prepare and open the modal only after `response.ok` and a
+    real authoritative batch. Lines 497-500 do not open it on failure.
+  - Lines 540-550 close first, cancel a prepared batch, and refresh, but never set
+    a cancel/refresh loading state or clear `progressiveBatch`, `payBookingIds`, or
+    `authoritativeBatchTotal`. The underlying button can therefore submit stale
+    revision props before refresh completes.
+  - Prepare failure stores the raw server message in `error`, but the only rendered
+    error blocks are inside the closed payment/detail dialogs (1108-1112,
+    1252-1255). The customer sees no useful Thai stale-revision message.
+  - The progressive modal total uses authoritative batch total (784-789,
+    1094-1095). The observed `4,330 / 2 items` came from one of two valid successful
+    batches, not a failed prepare. The source can nevertheless retain a cancelled
+    batch id behind a closed modal because close does not clear state.
+- Incident batches were exactly five: totals `3,464`, `4,330`, `3,464`, `4,330`,
+  `3,464`, at scope revisions `10` through `14`. All five are now `cancelled` with
+  reason `user_cancelled`; seven member rows are inactive; slip metadata is null;
+  attempts/allocations are absent. Scope revision is now `15`, lock owner/time are
+  null, and no active prepared/submitted/under-review batch exists. There was no
+  lazy expiry and no current batch/scope repair requirement.
+- Failed-prepare atomicity: all six 409s produced zero batch/member/scope/Booking/
+  session/receipt/coupon/payment/attempt/allocation/Ledger/wallet/attendance/
+  notification/Finance/activity/storage change. Successful actions in the same
+  incident are separate: five batches and seven members were inserted, five
+  cancellations made those members inactive, ten activity logs were written, and
+  scope revision advanced `10 -> 15`. No slip object exists and upload from any
+  now-cancelled id would be rejected before storage by the upload route's status
+  preflight.
+- Reconciliation from the prior protected baseline at 05:25:27Z found five new
+  bookings/22 sessions: four bookings/18 sessions belonged to the authenticated
+  UAT User and one booking/four sessions was unrelated. The UAT User made four
+  creates, two Booking cancels, nine batch prepares, and nine batch cancels in the
+  wider window. The one new Legacy payment, 50 notifications, and four activity
+  rows were unrelated. Current relevant counts are bookings `524`, sessions
+  `2,815`, scopes `3`, mutation receipts `9`, batches/members `13/17`, attempts/
+  allocations `1/1`, payments/Ledger `471/472`, wallet `61`, attendance `1,630`,
+  notifications `16,373`, tiers `11`, Finance `1`, and activity logs `6,386`.
+- Customer impact: repeated stale-revision retries, an apparently contradictory
+  409 beside a modal created by a different successful request, and no visible
+  typed error. Financial impact: none; no slip/payment/coupon/allocation/Ledger/
+  Finance write occurred. Incident Production data did change through valid
+  prepare/cancel lifecycle rows; this read-only audit itself changed none.
+- Smallest safe source proposal, pending Owner approval: synchronous prepare and
+  cancel/refresh guards; clear stale batch/member/total state; refresh and show Thai
+  copy for typed revision conflict; render/enable Progressive upload only with a
+  current authoritative `prepared` batch id; return structured typed codes and map
+  remaining payment guards appropriately. Preserve same-scope contiguous prefix,
+  lock/revision/idempotency, coupon, Payment, Ledger, and allocation semantics.
+  No migration, unlock, batch repair, or Production data repair is indicated.
+- Source/tests/commit/deploy/environment/migration changed by this audit:
+  **no/no/docs-only pending/no/no/no**. Entry/dependencies/Test Mode remain true;
+  allowlist absent. Classification:
+  **PRODUCTION REGRESSION AUDITED - VALID SERVER 409 + CLIENT MODAL BUG; SOURCE
+  FIX OWNER APPROVAL REQUIRED**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.
