@@ -1585,6 +1585,87 @@ repo: `Unknown / Need verification`.
   **PRODUCTION REGRESSION AUDITED - VALID SERVER 409 + CLIENT MODAL BUG; SOURCE
   FIX OWNER APPROVAL REQUIRED**.
 
+#### 2026-07-14 - History Payment Lifecycle Fix and Controlled Production UAT Closeout
+
+- Owner approved the audited smallest boundary: explicit client lifecycle and
+  reconciliation, safe structured error mapping/Thai copy, executable rendered
+  History tests, disposable/local E2E, exact-source commit/push/deploy, and two
+  controlled Production prepare/cancel cycles for the exact `3,464 + 866` prefix.
+  The approval did not include slip upload/submission, Payment, verification
+  attempt, allocation, Ledger, Finance, coupon, Booking, migration, environment,
+  Entry, allowlist, dependency, formula, policy, guard, or data-repair changes.
+- Changed source/test files in commit
+  `7d98b062f850a4210fae052cefddd92b994889b8` (tree
+  `73294ca5419582492fa558623d395c5b3801af5e`):
+  - `src/components/dashboard/history-client.tsx`;
+  - `src/lib/progressive-payment-route.ts`;
+  - `src/app/api/progressive-payments/prepare/route.ts`;
+  - `package.json` and `playwright.history.config.ts`;
+  - `tests/history-payment-regression/global-setup.ts`, `global-teardown.ts`,
+    `local-supabase.ts`, and `history-payment.spec.ts`.
+- Client contract now uses `idle | preparing | prepared | cancelling | refreshing
+  | conflict | failed`, a synchronous operation ref, stale-generation rejection,
+  server-revision reconciliation, immediate upload-evidence invalidation on close,
+  and exact scope/member/amount checks before the modal/upload path. A conflict
+  refreshes once without retry, retains safe selection, and renders the Thai main-
+  surface message instead of exposing a raw RPC code. Cancel failure keeps the
+  uncertain batch blocked until authoritative refresh/resume. The RPC remains the
+  final same-scope/prefix/revision/idempotency authority.
+- Structured route mapping now returns stable `{ code, error, refreshRequired }`
+  for known 400/403/404/409/503 cases, including scope revision/lock, prefix,
+  expiry, coupon/idempotency, existing payment, pending-state, amount/fingerprint,
+  currency, batch state, and capability/dependency errors. Unknown internals remain
+  a safe 500 and SQL/stack text is not exposed.
+- Executable result: `248` unique checks passed. Deterministic/runtime suites were
+  `244` total (payment batches `39`, integration `18`, notifications `16`, pricing
+  transactions `33`, coupon `38`, Legacy `14`, SlipOK `6`, booking entry `31`,
+  Option A `32`, pricing `17`) and rendered History E2E was `4`. E2E passed both
+  before and after build cleanup/restart. TypeScript, lint, mojibake (`227` files),
+  build (`91` routes), root/static smoke, and `git diff --check` passed. Console,
+  page, and hydration errors were `0`; disposable fixture residue was `0`.
+- Local E2E covered one physical rapid double click producing one prepare, current
+  authoritative `4,330 · 2 รายการ` modal, cancel/revision wait/re-prepare, forced
+  stale revision with typed 409/Thai recovery/no modal/no auto-retry, cancel-failure
+  safe reconciliation/resume, and real RPC valid/skipped-prefix behavior. No slip,
+  Payment, attempt, allocation, Ledger, or Finance artifact remained.
+- The source commit was pushed to `origin/spike/next-major-security-upgrade` and
+  deployed as `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, Ready on all four aliases. Root
+  and generated static asset returned `200`; unauthenticated prepare with valid
+  origin returned `401`. Two earlier deployment attempts
+  (`dpl_2x6buY9UgAacgLBsAZ4EZHvPBL8t` and
+  `dpl_GyFfc9KgfK9bGU3hSDCWBrpaweVk`) were rolled back to
+  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` before UAT because Vercel link metadata made
+  their detached worktrees fail the exact-clean gate. Neither attempt caused a
+  Production business-data write. The final detached worktree stayed clean at the
+  exact tested commit/tree.
+- Controlled Production UAT selected `c917f5f6...` and `1a7d58f8...` only. Two
+  physical prepare clicks returned `200 x2`; both modals showed `4,330 · 2 รายการ`;
+  no 409 occurred. Two closes produced cancel `200 x2`; selection/prepare/upload
+  controls stayed disabled until each RSC revision refresh completed. No file was
+  selected and upload/submit/SlipOK was never invoked. Browser console/hydration
+  count was zero.
+- Exact UAT data result: two new batches (`b4691d68...`, `818833a6...`) are
+  `cancelled`, each total `4,330`, member count `2`, revisions `15`/`16`, and all
+  slip fields null; four new member rows are inactive; scope revision is `17` with
+  no lock. This is the approved `+2` batch, `+4` member, `+4` activity, `+2`
+  revision lifecycle delta. Booking `525`, sessions `2,819`, receipts `10`, coupon
+  rows `0/0`, attempts `2`, allocations `2`, payments `472`, Ledger `474`, wallet
+  `61`, attendance `1,636`, tiers `11`, and Finance `1` retained their complete
+  protected fingerprints. A different user's coach check-in activity and reminder
+  notification were separated by timestamp/user/entity as unrelated real activity.
+- Production controls remained Entry `true`, dependencies `true/true/true/true`,
+  allowlist absent, and shared `SLIPOK_TEST_MODE=true`. Migration
+  `20260713210000` remained applied once. Pricing capability stayed Ready/version
+  `2`/`immutable_scope_v1`; coupon, payment batch, and integration stayed Ready/
+  version `1`. Monitoring found prepare/cancel `200 x2/x2`, zero 409/5xx/error/
+  upload/submit/SlipOK, and no final rollback criterion.
+- Customer impact: stale revision and duplicate re-entry can no longer expose an
+  invalid slip modal; users see a clear Thai recovery path. Financial impact:
+  none. Data repair: none. Final classification:
+  **PASS - HISTORY PAYMENT LIFECYCLE FIXED; LOCAL E2E AND CONTROLLED PRODUCTION
+  UAT PASSED; TASK DONE**. Homepage LV Copy Audit/Fix is unpaused as the next task
+  and was not started in this round.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

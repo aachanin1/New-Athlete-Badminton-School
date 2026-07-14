@@ -10,52 +10,43 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. History Payment Selection 409 / Invalid Slip Modal State
 
-Status: **AUDITED; SOURCE FIX REQUIRES OWNER APPROVAL**.
+Status: **DONE**.
 
-- Current classification:
-  **PRODUCTION REGRESSION AUDITED - VALID SERVER 409 + CLIENT MODAL BUG; SOURCE
-  FIX OWNER APPROVAL REQUIRED**.
-- Scoped price proof is closed:
-  **PASS - PRODUCTION STEP 4/STEP 5 PRICE UI VERIFIED**. Owner evidence shows both
-  Steps at `2,000`, baseline/new/cumulative `4/4/8`, rate `500`, and no Legacy-money
-  deduction.
-- Exact History route: `POST /api/progressive-payments/prepare`. The incident had
-  `11` prepare requests: `5` successful and `6` HTTP 409, plus `5` successful
-  cancels. The 409 cause is `PROGRESSIVE_SCOPE_REVISION_CONFLICT` after a prior
-  modal close cancelled its prepared batch and incremented the scope revision
-  before the page refresh supplied the new revision.
-- Selected items `c917f5f6...` (`3,464`, sequence `1`, entitlement `8`) and
-  `1a7d58f8...` (`866`, sequence `2`, entitlement `2`) are both owned Progressive
-  Kids Group July 2026 bookings in the same scope. The two-item set is the valid
-  contiguous pending prefix; there is no Legacy mix, cross-scope selection,
-  coupon, payment, attendance, wallet, attempt, or allocation conflict.
-- The modal opened only from a real prepare `200`, not from the 409. Two valid
-  `4,330` batches existed and were then cancelled. Client lifecycle remains wrong:
-  cancel/refresh is not an in-flight state, stale batch/member/total state is not
-  cleared, and the 409 error is stored only in a closed dialog surface. Current
-  scope revision is `15`, current batch lock is absent, all incident batches are
-  cancelled, and no repair/unlock is required.
-- Failed 409 requests changed zero Production rows. Separate successful incident
-  actions created/cancelled five batches, seven member rows, ten activity logs, and
-  advanced scope revision `10 -> 15`. There was no slip/upload, Payment, attempt,
-  allocation, coupon, Ledger, Finance, notification, or storage object; financial
-  impact is none.
-- Source/tests/deploy/environment/migration were unchanged by the audit. Deployment
-  remains `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` Ready on four aliases; Entry and four
-  dependencies remain `true`, allowlist absent, shared Test Mode `true`, migration
-  `20260713210000` once, and capabilities Ready.
-- Next Owner gate: approve a narrow History client/error-contract correction that
-  prevents stale-revision retry during cancel/refresh, clears invalid batch state,
-  shows typed Thai error copy outside the modal, and requires a current prepared
-  batch id before upload UI. Preserve contiguous-prefix/same-scope policy and all
-  RPC guards; no migration or Production data repair is proposed.
+- Final classification:
+  **PASS - HISTORY PAYMENT LIFECYCLE FIXED; LOCAL E2E AND CONTROLLED PRODUCTION
+  UAT PASSED; TASK DONE**.
+- Source commit `7d98b062f850a4210fae052cefddd92b994889b8` (tree
+  `73294ca5419582492fa558623d395c5b3801af5e`) is pushed and deployed as
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9` on all four Production aliases.
+- The History client now has an explicit prepare/cancel/refresh/conflict lifecycle,
+  a synchronous single-flight lock, stale-response generation guard, revision
+  reconciliation, visible typed Thai errors, and upload eligibility tied only to
+  the current authoritative prepared batch. Same-scope contiguous-prefix and all
+  RPC guards remain unchanged.
+- Executable verification passed `248` unique checks: `244` deterministic/runtime
+  checks plus `4` real rendered History E2E scenarios. The browser suite passed
+  both before and after the required build/dev restart. Disposable residue was `0`.
+- Controlled Production UAT selected the exact valid `3,464 + 866 = 4,330` prefix.
+  Two one-click prepares returned `200`, both modals showed `4,330 · 2 รายการ`, and
+  two closes/cancels returned `200`. Controls remained disabled through revision
+  refresh, re-prepare did not return 409, and the final scope state was revision
+  `17` with no lock or active member.
+- Expected UAT lifecycle delta was exactly two cancelled batches, four inactive
+  members, four activity logs, and scope revision `15 -> 17`. Booking, Session,
+  receipt, coupon, Payment, attempt, allocation, Ledger, wallet, attendance, tier,
+  Finance, slip/storage, and SlipOK deltas were `0`. One coach check-in activity
+  and one reminder notification during the window were unrelated and separated by
+  timestamp/user/entity.
+- Entry and all four dependencies remain `true`; allowlist remains absent; shared
+  `SLIPOK_TEST_MODE=true`; migration `20260713210000` remains applied once; all
+  four capabilities remain Ready at the approved versions/contracts.
 
-### 2. Homepage LV Copy Audit/Fix - Paused Again
+### 2. Homepage LV Copy Audit/Fix - Next
 
-Status: **PAUSED; NOT STARTED**.
+Status: **UNPAUSED; NOT STARTED**.
 
-- Resume only after the Production Booking Regression is resolved or the Owner
-  explicitly reprioritizes it.
+- The History payment blocker is closed. This is now the next documented task, but
+  it was intentionally not started in the same closeout round.
 - Audit homepage copy for `LV 71+` / `70+` language against the active school
   level contract of LV 0-70.
 - Do not introduce LV 71+ as current Production behavior without explicit Owner

@@ -81,6 +81,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   payment/batch actions, slip upload/submission, Booking/coupon/Ledger/Finance
   changes, data repair, and payment grouping/prefix policy changes were not
   authorized. The existing History payment action must not be replayed.
+- Owner then approved the narrow History lifecycle/error-contract source fix,
+  executable disposable/local browser coverage, exact-source commit/push/deploy,
+  and controlled Production UAT consisting only of two prepare/cancel cycles for
+  the exact `3,464 + 866` prefix. Slip upload/submission, Payment/attempt/allocation/
+  Ledger/Finance/coupon/Booking changes, migration/environment/Entry/allowlist/
+  dependency changes, guard weakening, and Production data repair remained
+  prohibited.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -114,7 +121,7 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 ### Progressive Runtime
 
 - Current general-traffic functional source commit is
-  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`, committed and pushed to
+  `7d98b062f850a4210fae052cefddd92b994889b8`, committed and pushed to
   `origin/spike/next-major-security-upgrade`.
 - Current source entry decision is server-only and default deny:
   - Entry disabled -> all new bookings remain Legacy.
@@ -192,10 +199,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Production
 
-- Current deployment: `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, Ready, deployed from
+- Current deployment: `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, Ready, deployed from
   exact clean detached source commit
-  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`, tree
-  `22296e88b9dafbfe369ae559257ac5900aac3c36`.
+  `7d98b062f850a4210fae052cefddd92b994889b8`, tree
+  `73294ca5419582492fa558623d395c5b3801af5e`.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
@@ -316,9 +323,86 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   revision feedback. Financial impact is **none**: no slip, payment, allocation,
   Ledger, coupon, or Finance entry was created.
 
-### Production Booking Regression Fix Deployment (2026-07-14)
+### History Payment Lifecycle Fix Closeout (2026-07-14)
 
-- Current classification:
+- Final classification:
+  **PASS - HISTORY PAYMENT LIFECYCLE FIXED; LOCAL E2E AND CONTROLLED PRODUCTION
+  UAT PASSED; TASK DONE**. Homepage LV Copy Audit/Fix is unpaused as the next task
+  and was not started in this round.
+- Root causes were the missing cancel/refresh lifecycle state, stale batch/member/
+  total evidence retained behind a closed modal, stale rendered scope revision
+  reused before `router.refresh()` completed, an error surface confined to closed
+  dialogs, and React-state-only re-entry protection. The valid RPC revision and
+  contiguous-prefix guards were not weakened.
+- Source commit `7d98b062f850a4210fae052cefddd92b994889b8`, tree
+  `73294ca5419582492fa558623d395c5b3801af5e`, changed the History client, shared
+  Progressive payment error mapper, prepare route validation response, package/
+  Playwright configuration, and four disposable History E2E support/spec files.
+  It is pushed to `origin/spike/next-major-security-upgrade`.
+- The client now uses lifecycle states `idle`, `preparing`, `prepared`,
+  `cancelling`, `refreshing`, `conflict`, and `failed`; a synchronous ref lock and
+  generation guard prevent duplicate/stale responses. Cancel clears upload
+  eligibility immediately and waits for a newer server revision. Revision conflict
+  keeps the selection, closes stale modal evidence, refreshes once without auto-
+  retry, and displays typed Thai copy on the main surface. Upload is available only
+  for the current authoritative prepared batch with exact scope/member/total
+  evidence.
+- Executable verification passed `248` unique checks: payment batches `39`, payment
+  integration `18`, notifications `16`, pricing transactions `33`, coupon `38`,
+  Legacy true-up/payment `14`, shared SlipOK `6`, booking entry `31`, Option A
+  baseline `32`, Progressive pricing `17`, plus rendered History E2E `4`. The E2E
+  suite passed before and after the required build/dev restart. TypeScript, ESLint,
+  mojibake (`227` files), Production build (`91` routes), and `git diff --check`
+  passed. Browser console/page/hydration errors were `0`; disposable fixture
+  residue was `0`.
+- Local History E2E proved rapid double-click single-flight, authoritative
+  `4,330 · 2 รายการ` prepared modal, cancel/revision wait/re-prepare, real stale-
+  revision 409 with visible Thai recovery and no modal, cancel-failure safe resume,
+  and real RPC valid/skipped-prefix behavior. No local slip, Payment, attempt,
+  allocation, Ledger, or Finance artifact remained.
+- Final deployment `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9` is Ready on all four
+  aliases. `/` and generated static asset returned `200`; authenticated History
+  rendered the new lifecycle; unauthenticated prepare with valid origin returned
+  `401`. Two earlier deployment attempts (`dpl_2x6buY9UgAacgLBsAZ4EZHvPBL8t` and
+  `dpl_GyFfc9KgfK9bGU3hSDCWBrpaweVk`) were rolled back before UAT because Vercel
+  link metadata left the detached worktree failing the exact-clean provenance
+  gate. They caused no Production business-data write. The final deploy used the
+  verified clean detached worktree and exact tested tree.
+- Controlled Production UAT used the existing Owner-controlled User session and
+  exact valid pending prefix `c917f5f6...` (`3,464`) plus `1a7d58f8...` (`866`).
+  Two physical prepare clicks produced exactly two prepare `200` responses and two
+  current modals showing `4,330 · 2 รายการ`; no 409 occurred. Closing each modal
+  produced exactly one cancel `200`, controls stayed disabled through cancel and
+  RSC revision reconciliation, and the second prepare succeeded only after the
+  first revision refresh. No file was selected and upload/submit was never called.
+- Production reconciliation at `2026-07-14T08:14Z` found the exact authorized
+  lifecycle delta: batches `16 -> 18` (both new rows `cancelled`, amount `4,330`,
+  member count `2`, no slip metadata), members `20 -> 24` (all four new rows
+  inactive), activity logs `+4`, and scope revision `15 -> 17` with lock owner/time
+  null. Booking `525`, sessions `2,819`, receipts `10`, coupon reservations/usages
+  `0/0`, attempts `2`, allocations `2`, payments `472`, Ledger `474`, wallet `61`,
+  attendance `1,636`, tiers `11`, and Finance `1` retained their complete protected
+  fingerprints. One coach check-in activity and one reminder notification during
+  the window belonged to a different user/entity and were separated as real
+  operational activity.
+- Entry and all four Progressive dependencies remain exactly `true`; allowlist is
+  absent; shared `SLIPOK_TEST_MODE=true`; migration `20260713210000` remains applied
+  once. Capabilities remain Ready: pricing version `2`/
+  `immutable_scope_v1`, coupon version `1`, payment batch version `1`/
+  `batch_authority_with_allocations`, and integration version `1`/30-minute TTL.
+  Vercel/console monitoring found prepare `200 x2`, cancel `200 x2`, and zero 409,
+  5xx, error-level, hydration, upload, submit, or SlipOK events.
+- Customer impact: repeat payment selection now waits for authoritative revision
+  refresh, stale/duplicate actions cannot reopen invalid slip evidence, and typed
+  Thai errors are visible outside the modal. Financial impact: none. Production
+  data repair: none. The only UAT writes were the approved temporary lifecycle
+  batches/members/activity/revision changes above. No final deployment-health
+  rollback was required.
+
+### Historical Production Booking Regression Fix Deployment (2026-07-14)
+
+- Historical classification before the Owner supplied authenticated price proof
+  and before the History blocker was fixed:
   **BLOCKER - PRODUCTION AUTHENTICATED NO-WRITE UAT COULD NOT BE COMPLETED;
   DEPLOYMENT HEALTHY, PRODUCTION DATA DELTA 0; TASK NOT DONE**.
   Source, executable tests, Localhost E2E, disposable create, commit/push, exact-
