@@ -161,7 +161,60 @@ interface ProgressiveBatchSummary {
   prepared_expires_at?: string
   preparedExpiresAt?: string
   bookingIds?: string[]
+  scopeRevision?: number
   rejectionReason?: string | null
+}
+
+type ProgressivePaymentLifecycle =
+  | 'idle'
+  | 'preparing'
+  | 'prepared'
+  | 'cancelling'
+  | 'refreshing'
+  | 'conflict'
+  | 'failed'
+
+interface ProgressivePaymentApiError {
+  code?: string
+  error?: string
+  refreshRequired?: boolean
+}
+
+interface PendingProgressiveRefresh {
+  generation: number
+  scopeId: string
+  minimumRevision: number
+  batchId?: string
+  mode: 'revision' | 'reconcile-cancel'
+}
+
+const PROGRESSIVE_PAYMENT_ERROR_COPY: Record<string, string> = {
+  PROGRESSIVE_SCOPE_REVISION_CONFLICT: 'ข้อมูลรายการชำระมีการเปลี่ยนแปลง ระบบกำลังอัปเดตรายการ กรุณาลองใหม่อีกครั้ง',
+  PROGRESSIVE_PAYMENT_PREFIX_REQUIRED: 'กรุณาเลือกรายการชำระตามลำดับจากรายการเก่าที่สุด ระบบกำลังอัปเดตรายการล่าสุด',
+  PROGRESSIVE_BOOKING_EXPIRED: 'มีรายการจองหมดอายุ ระบบกำลังอัปเดตรายการ กรุณาตรวจสอบอีกครั้ง',
+  PROGRESSIVE_SCOPE_LOCKED: 'มีรายการชำระเงินของคอร์สนี้กำลังดำเนินการ กรุณาดำเนินการรายการเดิมให้เสร็จก่อน',
+  PROGRESSIVE_PAYMENT_EXISTS: 'รายการบางรายการมีการชำระเงินแล้ว ระบบกำลังอัปเดตรายการล่าสุด',
+  PROGRESSIVE_BOOKING_NOT_PENDING: 'สถานะรายการจองเปลี่ยนแปลงแล้ว ระบบกำลังอัปเดตรายการล่าสุด',
+  PROGRESSIVE_BATCH_AMOUNT_MISMATCH: 'ยอดชำระมีการเปลี่ยนแปลง ระบบกำลังอัปเดตรายการล่าสุด',
+  PROGRESSIVE_COUPON_STATE_CONFLICT: 'สถานะคูปองมีการเปลี่ยนแปลง ระบบกำลังอัปเดตรายการล่าสุด',
+  PROGRESSIVE_PAYMENT_DEPENDENCY_UNAVAILABLE: 'ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
+  PROGRESSIVE_RPC_UNAVAILABLE: 'ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
+  PROGRESSIVE_WRITES_DISABLED: 'ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
+  PROGRESSIVE_PAYMENT_BATCH_DISABLED: 'ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
+  PROGRESSIVE_COUPON_LIFECYCLE_DISABLED: 'ระบบชำระเงินไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
+}
+
+const DEFAULT_PROGRESSIVE_PAYMENT_ERROR = 'ไม่สามารถเตรียมรายการชำระเงินได้ กรุณาลองใหม่อีกครั้ง'
+const CANCEL_PROGRESSIVE_PAYMENT_ERROR = 'ยกเลิกรายการชำระเงินไม่สำเร็จ ระบบกำลังตรวจสอบสถานะ กรุณารอสักครู่'
+
+function progressivePaymentErrorCopy(result: ProgressivePaymentApiError) {
+  return result.code ? PROGRESSIVE_PAYMENT_ERROR_COPY[result.code] || DEFAULT_PROGRESSIVE_PAYMENT_ERROR : DEFAULT_PROGRESSIVE_PAYMENT_ERROR
+}
+
+function sameOrderedIds(left: string[] | undefined, right: string[]) {
+  return Array.isArray(left)
+    && left.length === right.length
+    && left.every((id, index) => id === right[index])
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -318,6 +371,7 @@ export function HistoryClient({
   const [slipPreview, setSlipPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploadStep, setUploadStep] = useState<PaymentUploadStep>('idle')
+  const [verifyResult, setVerifyResult] = useState<VerifySlipResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
   const [paymentMode, setPaymentMode] = useState<'legacy' | 'progressive'>('legacy')
@@ -325,6 +379,31 @@ export function HistoryClient({
   const [progressiveSelectedCounts, setProgressiveSelectedCounts] = useState<Record<string, number>>({})
   const cancelRequestIds = useRef(new Map<string, string>())
   const [authoritativeBatchTotal, setAuthoritativeBatchTotal] = useState<number | null>(null)
+  const [progressiveLifecycle, setProgressiveLifecycle] = useState<ProgressivePaymentLifecycle>('idle')
+  const [progressivePaymentError, setProgressivePaymentError] = useState<string | null>(null)
+  const [progressiveReconciliationBlocked, setProgressiveReconciliationBlocked] = useState(false)
+  const progressiveLifecycleRef = useRef<ProgressivePaymentLifecycle>('idle')
+  const progressiveOperationRef = useRef(false)
+  const progressiveGenerationRef = useRef(0)
+  const pendingProgressiveRefreshRef = useRef<PendingProgressiveRefresh | null>(null)
+  const [progressiveRefreshSignal, setProgressiveRefreshSignal] = useState(0)
+
+  const transitionProgressiveLifecycle = useCallback((next: ProgressivePaymentLifecycle) => {
+    progressiveLifecycleRef.current = next
+    setProgressiveLifecycle(next)
+  }, [])
+
+  const clearProgressivePaymentEvidence = useCallback(() => {
+    setPayDialogOpen(false)
+    setProgressiveBatch(null)
+    setAuthoritativeBatchTotal(null)
+    setSelectedBooking(null)
+    setPayBookingIds([])
+    setSlipFile(null)
+    setSlipPreview(null)
+    setUploadStep('idle')
+    setVerifyResult(null)
+  }, [])
 
   // Alert dialog state (replaces browser confirm)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -361,6 +440,33 @@ export function HistoryClient({
   const progressiveBookingIds = useMemo(() => new Set(
     progressivePendingGroups.flatMap((group) => group.bookings.map((booking) => booking.id)),
   ), [progressivePendingGroups])
+  const progressiveInteractionBusy = ['preparing', 'cancelling', 'refreshing', 'conflict']
+    .includes(progressiveLifecycle)
+  const progressiveControlsBlocked = progressiveInteractionBusy || progressiveReconciliationBlocked
+
+  useEffect(() => {
+    const pending = pendingProgressiveRefreshRef.current
+    if (!pending || pending.generation !== progressiveGenerationRef.current) return
+
+    const currentRevision = progressiveScopeRevisionMap[pending.scopeId]?.revision ?? 0
+    const activeBatchIsVisible = pending.batchId
+      ? activeProgressiveBatches.some((batch) => (batch.id || batch.batchId) === pending.batchId)
+      : false
+    const revisionIsCurrent = currentRevision >= pending.minimumRevision
+    if (pending.mode === 'revision' ? !revisionIsCurrent : !revisionIsCurrent && !activeBatchIsVisible) return
+
+    pendingProgressiveRefreshRef.current = null
+    progressiveOperationRef.current = false
+    setProgressiveReconciliationBlocked(false)
+    if (pending.mode === 'reconcile-cancel') clearProgressivePaymentEvidence()
+    transitionProgressiveLifecycle('idle')
+  }, [
+    activeProgressiveBatches,
+    clearProgressivePaymentEvidence,
+    progressiveRefreshSignal,
+    progressiveScopeRevisionMap,
+    transitionProgressiveLifecycle,
+  ])
   const legacyPendingBookings = pendingBookings.filter((booking) => !progressiveBookingIds.has(booking.id))
   const pendingTotal = legacyPendingBookings.reduce((sum, b) => sum + b.total_price, 0)
   const paymentsByBookingId = useMemo(() => {
@@ -466,53 +572,112 @@ export function HistoryClient({
     const selectedCount = progressiveSelectedCounts[scopeId] ?? 1
     const selected = scopeBookings.slice(0, selectedCount)
     const scope = progressiveScopeRevisionMap[scopeId]
-    if (!scope || selected.length === 0 || loading) return
+    if (!scope || selected.length === 0 || progressiveOperationRef.current || loading) return
 
+    progressiveOperationRef.current = true
+    setProgressiveReconciliationBlocked(false)
+    const generation = ++progressiveGenerationRef.current
+    const selectedIds = selected.map((booking) => booking.id)
+    transitionProgressiveLifecycle('preparing')
     setLoading(true)
     setError(null)
+    setProgressivePaymentError(null)
     try {
       const response = await fetch('/api/progressive-payments/prepare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pricingScopeId: scopeId,
-          bookingIds: selected.map((booking) => booking.id),
+          bookingIds: selectedIds,
           expectedScopeRevision: scope.revision,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
-      const result = await response.json() as { batch?: ProgressiveBatchSummary; error?: string }
-      if (!response.ok || !result.batch) throw new Error(result.error || 'เตรียมรายการชำระเงินไม่สำเร็จ')
+      const result = await response.json().catch(() => ({})) as ProgressivePaymentApiError & {
+        batch?: ProgressiveBatchSummary
+      }
+      if (generation !== progressiveGenerationRef.current) return
+      if (!response.ok) {
+        if (result.code === 'PROGRESSIVE_SCOPE_REVISION_CONFLICT') {
+          clearProgressivePaymentEvidence()
+          setProgressivePaymentError(progressivePaymentErrorCopy(result))
+          transitionProgressiveLifecycle('conflict')
+          pendingProgressiveRefreshRef.current = {
+            generation,
+            scopeId,
+            minimumRevision: scope.revision + 1,
+            mode: 'revision',
+          }
+          setProgressiveRefreshSignal((current) => current + 1)
+          router.refresh()
+          window.setTimeout(() => {
+            if (generation === progressiveGenerationRef.current && pendingProgressiveRefreshRef.current) {
+              transitionProgressiveLifecycle('refreshing')
+            }
+          }, 0)
+          return
+        }
+        setProgressivePaymentError(progressivePaymentErrorCopy(result))
+        transitionProgressiveLifecycle('failed')
+        progressiveOperationRef.current = false
+        if (result.refreshRequired) router.refresh()
+        return
+      }
+
+      const batch = result.batch
+      const batchId = batch?.batchId || batch?.id
+      const batchTotal = batch?.totalAmount ?? batch?.total_amount
+      if (!batch || !batchId || batch.status !== 'prepared' || batch.scopeId !== scopeId
+        || !sameOrderedIds(batch.bookingIds, selectedIds) || !Number.isFinite(batchTotal)) {
+        setProgressivePaymentError(DEFAULT_PROGRESSIVE_PAYMENT_ERROR)
+        transitionProgressiveLifecycle('failed')
+        progressiveOperationRef.current = false
+        return
+      }
 
       setPaymentMode('progressive')
-      setProgressiveBatch(result.batch)
-      setAuthoritativeBatchTotal(result.batch.totalAmount ?? result.batch.total_amount ?? 0)
+      setProgressiveBatch(batch)
+      setAuthoritativeBatchTotal(batchTotal!)
       setSelectedBooking(selected[0])
-      setPayBookingIds(selected.map((booking) => booking.id))
+      setPayBookingIds(selectedIds)
       setSlipFile(null)
       setSlipPreview(null)
       setUploadStep('idle')
       setVerifyResult(null)
+      transitionProgressiveLifecycle('prepared')
+      progressiveOperationRef.current = false
       setPayDialogOpen(true)
-    } catch (prepareError) {
-      setError(prepareError instanceof Error ? prepareError.message : 'เตรียมรายการชำระเงินไม่สำเร็จ')
+    } catch {
+      if (generation !== progressiveGenerationRef.current) return
+      setProgressivePaymentError(DEFAULT_PROGRESSIVE_PAYMENT_ERROR)
+      transitionProgressiveLifecycle('failed')
+      progressiveOperationRef.current = false
     } finally {
-      setLoading(false)
+      if (generation === progressiveGenerationRef.current) setLoading(false)
     }
   }
 
   const resumeProgressiveBatch = async (batchId: string) => {
-    if (loading) return
+    if (loading || progressiveOperationRef.current) return
+    progressiveOperationRef.current = true
+    const generation = ++progressiveGenerationRef.current
+    transitionProgressiveLifecycle('preparing')
     setLoading(true)
     setError(null)
+    setProgressivePaymentError(null)
     try {
       const response = await fetch(`/api/progressive-payments/${batchId}/status`)
-      const result = await response.json() as { batch?: ProgressiveBatchSummary; error?: string }
-      if (!response.ok || !result.batch) throw new Error(result.error || 'โหลดสถานะการชำระเงินไม่สำเร็จ')
+      const result = await response.json().catch(() => ({})) as ProgressivePaymentApiError & {
+        batch?: ProgressiveBatchSummary
+      }
+      if (generation !== progressiveGenerationRef.current) return
+      if (!response.ok || !result.batch) throw new Error('status failed')
       if (['approved', 'rejected', 'cancelled'].includes(result.batch.status)) {
-        setError(result.batch.status === 'rejected'
+        setProgressivePaymentError(result.batch.status === 'rejected'
           ? 'สลิปถูกปฏิเสธ ระบบคืนสิทธิ์คูปองและคำนวณราคาใหม่แล้ว'
           : 'สถานะรายการเปลี่ยนแล้ว กรุณาตรวจสอบรายการล่าสุด')
+        transitionProgressiveLifecycle('idle')
+        progressiveOperationRef.current = false
         router.refresh()
         return
       }
@@ -529,28 +694,103 @@ export function HistoryClient({
         verified: false,
         reviewMessage: 'กำลังตรวจสอบสลิป รายการในคอร์สและเดือนนี้ถูกล็อกชั่วคราว',
       } : null)
+      transitionProgressiveLifecycle('prepared')
+      progressiveOperationRef.current = false
       setPayDialogOpen(true)
-    } catch (resumeError) {
-      setError(resumeError instanceof Error ? resumeError.message : 'โหลดสถานะการชำระเงินไม่สำเร็จ')
+    } catch {
+      if (generation !== progressiveGenerationRef.current) return
+      setProgressivePaymentError(DEFAULT_PROGRESSIVE_PAYMENT_ERROR)
+      transitionProgressiveLifecycle('failed')
+      progressiveOperationRef.current = false
     } finally {
-      setLoading(false)
+      if (generation === progressiveGenerationRef.current) setLoading(false)
     }
   }
 
   const handlePayDialogOpenChange = async (open: boolean) => {
     if (open) {
-      setPayDialogOpen(true)
+      if (progressiveLifecycleRef.current === 'prepared') setPayDialogOpen(true)
       return
     }
-    setPayDialogOpen(false)
     const batchId = progressiveBatch?.batchId || progressiveBatch?.id
-    if (paymentMode === 'progressive' && batchId && progressiveBatch?.status === 'prepared') {
-      await fetch(`/api/progressive-payments/${batchId}/cancel`, { method: 'POST' }).catch(() => null)
+    if (paymentMode !== 'progressive' || !batchId || progressiveBatch?.status !== 'prepared') {
+      setPayDialogOpen(false)
+      return
+    }
+    if (progressiveOperationRef.current || progressiveLifecycleRef.current !== 'prepared') return
+
+    const scopeId = progressiveBatch.scopeId || selectedBooking?.pricing_scope_id
+    if (!scopeId) {
+      setProgressivePaymentError(CANCEL_PROGRESSIVE_PAYMENT_ERROR)
+      setProgressiveReconciliationBlocked(true)
+      transitionProgressiveLifecycle('failed')
+      return
+    }
+
+    progressiveOperationRef.current = true
+    const generation = ++progressiveGenerationRef.current
+    const startingRevision = progressiveScopeRevisionMap[scopeId]?.revision ?? progressiveBatch.scopeRevision ?? 0
+    transitionProgressiveLifecycle('cancelling')
+    setPayDialogOpen(false)
+    setSlipFile(null)
+    setSlipPreview(null)
+    setUploadStep('idle')
+    setVerifyResult(null)
+    setProgressivePaymentError(null)
+    setProgressiveReconciliationBlocked(false)
+
+    try {
+      const response = await fetch(`/api/progressive-payments/${batchId}/cancel`, { method: 'POST' })
+      const result = await response.json().catch(() => ({})) as ProgressivePaymentApiError & {
+        batch?: ProgressiveBatchSummary
+      }
+      if (generation !== progressiveGenerationRef.current) return
+      if (!response.ok || !result.batch || result.batch.status !== 'cancelled') throw new Error('cancel failed')
+
+      const refreshedRevision = result.batch.scopeRevision ?? startingRevision + 1
+      clearProgressivePaymentEvidence()
+      transitionProgressiveLifecycle('refreshing')
+      pendingProgressiveRefreshRef.current = {
+        generation,
+        scopeId,
+        minimumRevision: refreshedRevision,
+        mode: 'revision',
+      }
+      setProgressiveRefreshSignal((current) => current + 1)
+      router.refresh()
+    } catch {
+      if (generation !== progressiveGenerationRef.current) return
+      setProgressivePaymentError(CANCEL_PROGRESSIVE_PAYMENT_ERROR)
+      setProgressiveReconciliationBlocked(true)
+      transitionProgressiveLifecycle('failed')
+      pendingProgressiveRefreshRef.current = {
+        generation,
+        scopeId,
+        minimumRevision: startingRevision + 1,
+        batchId,
+        mode: 'reconcile-cancel',
+      }
+      setProgressiveRefreshSignal((current) => current + 1)
       router.refresh()
     }
   }
 
+  const hasCurrentProgressiveUploadEvidence = (lifecycle: ProgressivePaymentLifecycle) => {
+    if (paymentMode !== 'progressive' || lifecycle !== 'prepared') return false
+    const batchId = progressiveBatch?.batchId || progressiveBatch?.id
+    const batchScopeId = progressiveBatch?.scopeId || progressiveBatch?.pricing_scope_id
+    const selectedScopeId = selectedBooking?.pricing_scope_id
+    const batchTotal = progressiveBatch?.totalAmount ?? progressiveBatch?.total_amount
+    return Boolean(batchId)
+      && progressiveBatch?.status === 'prepared'
+      && Boolean(batchScopeId && selectedScopeId && batchScopeId === selectedScopeId)
+      && sameOrderedIds(progressiveBatch?.bookingIds, payBookingIds)
+      && Number.isFinite(batchTotal)
+      && batchTotal === authoritativeBatchTotal
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (paymentMode === 'progressive' && !hasCurrentProgressiveUploadEvidence(progressiveLifecycleRef.current)) return
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -574,10 +814,9 @@ export function HistoryClient({
     reader.readAsDataURL(file)
   }
 
-  const [verifyResult, setVerifyResult] = useState<VerifySlipResult | null>(null)
-
   const handleSubmitPayment = async () => {
     if (loading || payBookingIds.length === 0 || !slipFile) return
+    if (paymentMode === 'progressive' && !hasCurrentProgressiveUploadEvidence(progressiveLifecycleRef.current)) return
     setLoading(true)
     setUploadStep('uploading')
     setError(null)
@@ -787,6 +1026,8 @@ export function HistoryClient({
         const b = bookings.find((bk) => bk.id === id)
         return sum + (b?.total_price || 0)
       }, 0)
+  const progressiveUploadEligible = paymentMode === 'progressive'
+    && hasCurrentProgressiveUploadEvidence(progressiveLifecycle)
   const selectedBookingSessions = selectedBooking ? bookingSessionsMap[selectedBooking.id] || [] : []
   const selectedActiveSessions = selectedBookingSessions.filter(isActiveSession)
   const selectedRescheduledSessions = selectedBookingSessions.filter((session) => session.status === 'rescheduled')
@@ -806,6 +1047,21 @@ export function HistoryClient({
 
   return (
     <>
+      {!isAdmin && (
+        <span className="sr-only" data-testid="progressive-payment-lifecycle">
+          {progressiveLifecycle}
+        </span>
+      )}
+      {!isAdmin && progressivePaymentError && (
+        <div
+          className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
+          data-testid="progressive-payment-error"
+          role="alert"
+          aria-live="polite"
+        >
+          {progressivePaymentError}
+        </div>
+      )}
       {!isAdmin && activeProgressiveBatches.length > 0 && (
         <Card className="mb-4 border-indigo-200 bg-indigo-50">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -815,7 +1071,13 @@ export function HistoryClient({
             </div>
             <div className="flex flex-wrap gap-2">
               {activeProgressiveBatches.map((batch) => (
-                <Button key={batch.id} size="sm" className="bg-indigo-600 hover:bg-indigo-700" onClick={() => void resumeProgressiveBatch(batch.id!)}>
+                <Button
+                  key={batch.id}
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                  disabled={loading || progressiveControlsBlocked}
+                  onClick={() => void resumeProgressiveBatch(batch.id!)}
+                >
                   {batch.status === 'prepared' ? 'ดำเนินการชำระต่อ' : 'ดูสถานะสลิป'}
                 </Button>
               ))}
@@ -843,15 +1105,22 @@ export function HistoryClient({
               </div>
               <div className="space-y-2">
                 {group.bookings.map((booking, index) => (
-                  <label key={booking.id} className="flex cursor-pointer items-center justify-between rounded-md border bg-white px-3 py-2 text-sm">
+                  <label key={booking.id} className={`flex items-center justify-between rounded-md border bg-white px-3 py-2 text-sm ${progressiveControlsBlocked ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
                     <span className="flex items-center gap-2">
                       <input
                         type="checkbox"
+                        data-testid={`progressive-payment-select-${booking.id}`}
                         checked={index < selectedCount}
-                        onChange={(event) => setProgressiveSelectedCounts((current) => ({
-                          ...current,
-                          [group.scopeId]: event.target.checked ? index + 1 : index,
-                        }))}
+                        disabled={progressiveControlsBlocked}
+                        onChange={(event) => {
+                          if (progressiveControlsBlocked) return
+                          setProgressivePaymentError(null)
+                          if (progressiveLifecycleRef.current === 'failed') transitionProgressiveLifecycle('idle')
+                          setProgressiveSelectedCounts((current) => ({
+                            ...current,
+                            [group.scopeId]: event.target.checked ? index + 1 : index,
+                          }))
+                        }}
                       />
                       รายการ {index + 1} · {booking.branches?.name || '-'}
                     </span>
@@ -863,7 +1132,8 @@ export function HistoryClient({
                 <p className="text-xs text-blue-700">ยอดชำระได้รับการตรวจสอบจากระบบล่าสุดแล้วก่อนอัปโหลด</p>
                 <Button
                   className="shrink-0 bg-[#f57e3b] hover:bg-[#e06a2a]"
-                  disabled={selectedCount < 1 || loading}
+                  data-testid={`progressive-payment-prepare-${group.scopeId}`}
+                  disabled={selectedCount < 1 || loading || progressiveControlsBlocked}
                   onClick={() => void openProgressivePayDialog(group.scopeId, group.bookings)}
                 >
                   <Upload className="mr-1 h-4 w-4" />ชำระรายการที่เลือก
@@ -1087,7 +1357,7 @@ export function HistoryClient({
 
       {/* Payment Dialog */}
       <Dialog open={payDialogOpen} onOpenChange={(open) => void handlePayDialogOpenChange(open)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" data-testid="payment-slip-modal">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">แนบสลิปโอนเงิน</DialogTitle>
             <DialogDescription>
@@ -1161,7 +1431,7 @@ export function HistoryClient({
                 accept="image/*"
                 onChange={handleFileChange}
                 className="cursor-pointer"
-                disabled={loading}
+                disabled={loading || (paymentMode === 'progressive' && !progressiveUploadEligible)}
               />
             </div>
 
@@ -1203,15 +1473,16 @@ export function HistoryClient({
                 <Button
                   variant="outline"
                   className="flex-1"
+                  data-testid="payment-modal-cancel"
                   onClick={() => void handlePayDialogOpenChange(false)}
-                  disabled={loading}
+                  disabled={loading || progressiveControlsBlocked}
                 >
                   ยกเลิก
                 </Button>
                 <Button
                   className="flex-1 bg-[#2748bf] hover:bg-[#153c85]"
                   onClick={handleSubmitPayment}
-                  disabled={!slipFile || loading}
+                  disabled={!slipFile || loading || (paymentMode === 'progressive' && !progressiveUploadEligible)}
                 >
                   {loading ? (
                     <>

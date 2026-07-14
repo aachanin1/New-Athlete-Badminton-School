@@ -16,7 +16,11 @@ export async function POST(request: NextRequest) {
     }
     if (!body.pricingScopeId || !body.idempotencyKey || !Array.isArray(body.bookingIds)
       || body.bookingIds.length === 0 || body.bookingIds.length > 100 || !Number.isInteger(body.expectedScopeRevision)) {
-      return NextResponse.json({ error: 'Invalid progressive payment prepare request' }, { status: 400 })
+      return NextResponse.json({
+        code: 'PROGRESSIVE_INVALID_REQUEST',
+        error: 'Invalid progressive payment prepare request',
+        refreshRequired: false,
+      }, { status: 400 })
     }
 
     const result = await prepareProgressivePaymentBatch({

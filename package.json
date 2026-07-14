@@ -10,6 +10,7 @@
     "build": "next build --webpack",
     "check:mojibake": "node scripts/check-mojibake.js",
     "test:booking-regression:e2e": "playwright test --config=playwright.booking.config.ts",
+    "test:history-payment:e2e": "playwright test --config=playwright.history.config.ts",
     "seed:realistic": "node scripts/seed-realistic-data.js",
     "seed:cleanup": "node scripts/seed-realistic-data.js --cleanup",
     "seed:verify": "node scripts/verify-seed-data.js",
