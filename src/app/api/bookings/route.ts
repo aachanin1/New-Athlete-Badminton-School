@@ -401,6 +401,13 @@ function progressiveWriteError(error: unknown) {
   ])
   const unavailableCodes = new Set(['PROGRESSIVE_RPC_UNAVAILABLE', 'PROGRESSIVE_WRITES_DISABLED', 'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED'])
   const status = unavailableCodes.has(error.code) ? 503 : conflictCodes.has(error.code) ? 409 : 400
+  if (error.code === 'PROGRESSIVE_CAPACITY_EXCEEDED') {
+    console.warn('[booking] Progressive capacity rejected', { code: error.code })
+    return NextResponse.json({
+      error: 'รอบเรียนที่เลือกเต็มแล้ว กรุณาเลือกวันหรือเวลาใหม่',
+      code: error.code,
+    }, { status })
+  }
   return NextResponse.json({ error: error.message, code: error.code }, { status })
 }
 

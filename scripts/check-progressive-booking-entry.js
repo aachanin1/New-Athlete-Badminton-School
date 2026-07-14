@@ -149,9 +149,9 @@ check('18 idempotency survives timeout retry and rejects changed fingerprints in
 check('19 booking draft preserves a UUID request key and sends preview revision/baseline',
   bookingClient.includes('clientRequestId: string')
   && bookingClient.includes('globalThis.crypto.randomUUID()')
-  && bookingClient.includes('expectedScopeRevision: authoritativePreview?.expectedScopeRevision')
-  && bookingClient.includes('expectedLegacyBaselineSessions: authoritativePreview?.legacyBaselineSessions')
-  && bookingClient.includes('expectedLegacyBaselineFingerprint: authoritativePreview?.legacyBaselineFingerprint'))
+  && bookingClient.includes('expectedScopeRevision: submissionPreview.expectedScopeRevision')
+  && bookingClient.includes('expectedLegacyBaselineSessions: submissionPreview.legacyBaselineSessions')
+  && bookingClient.includes('expectedLegacyBaselineFingerprint: submissionPreview.legacyBaselineFingerprint'))
 check('20 History keeps Progressive eligible and cancellation sends scope revision',
   historyClient.includes('if (!booking.pricing_scope_id || !progressiveScopeRevisionMap[booking.pricing_scope_id]) continue')
   && historyClient.includes('expectedScopeRevision')
@@ -179,7 +179,7 @@ check('25 pricing write capability requires Option A version 2',
   && writeHelper.includes('capability.version !== 2'))
 
 const progressiveSummaryStart = bookingClient.indexOf('{progressiveKidsPreview && (')
-const legacySummaryStart = bookingClient.indexOf("{!progressiveKidsPreview && courseType === 'kids_group'")
+const legacySummaryStart = bookingClient.indexOf("{authoritativePreview?.mode === 'legacy' && courseType === 'kids_group'")
 const progressiveSummary = bookingClient.slice(progressiveSummaryStart, legacySummaryStart)
 const legacySummary = bookingClient.slice(legacySummaryStart, bookingClient.indexOf('{/* Coupon input */}', legacySummaryStart))
 
@@ -205,8 +205,9 @@ check('27 Progressive 4+4 summary is booking-level and contains no Legacy true-u
   && !progressiveSummary.includes('หักยอดที่จ่ายแล้ว')
   && !progressiveSummary.includes('เครดิตส่วนต่าง'))
 check('28 Progressive coupon summary keeps authoritative gross, discount, and final amounts',
-  bookingClient.includes("if (authoritativePreview?.mode === 'progressive')")
-  && bookingClient.includes('const couponPreview = await fetchAuthoritativePreview(nextCoupon.id)')
+  bookingClient.includes('const displayedDiscountAmount = authoritativePreview?.discountAmount')
+  && bookingClient.includes('const submissionGrossPrice = submissionPreview.grossPrice')
+  && bookingClient.includes('const submissionFinalPrice = submissionPreview.totalPrice')
   && bookingClient.includes('const displayedBasePrice = authoritativePreview?.grossPrice ?? totalBatchPrice')
   && bookingClient.includes('? authoritativePreview.totalPrice')
   && bookingClient.includes('ส่วนลดคูปอง ({appliedCoupon.code})'))

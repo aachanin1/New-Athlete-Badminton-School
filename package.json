@@ -9,6 +9,7 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "check:mojibake": "node scripts/check-mojibake.js",
+    "test:booking-regression:e2e": "playwright test --config=playwright.booking.config.ts",
     "seed:realistic": "node scripts/seed-realistic-data.js",
     "seed:cleanup": "node scripts/seed-realistic-data.js --cleanup",
     "seed:verify": "node scripts/verify-seed-data.js",
@@ -56,6 +57,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

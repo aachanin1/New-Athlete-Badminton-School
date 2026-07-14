@@ -205,8 +205,8 @@ check('29 preview separates Legacy, Progressive, and new entitlement without Leg
   assert.doesNotMatch(preview, /total_price|paid_amount|payment_id|ledger/i)
 })
 check('30 create payload is opaque and server-authoritative', () => {
-  assert.match(client, /expectedLegacyBaselineSessions: authoritativePreview\?\.legacyBaselineSessions/)
-  assert.match(client, /expectedLegacyBaselineFingerprint: authoritativePreview\?\.legacyBaselineFingerprint/)
+  assert.match(client, /expectedLegacyBaselineSessions: submissionPreview\.legacyBaselineSessions/)
+  assert.match(client, /expectedLegacyBaselineFingerprint: submissionPreview\.legacyBaselineFingerprint/)
   assert.match(route, /isSha256Fingerprint/)
   assert.match(write, /p_expected_legacy_baseline_fingerprint/)
   assert.doesNotMatch(route, /body\.legacyBookingIds|body\.legacyTotalPrice|body\.legacyPayment/)
