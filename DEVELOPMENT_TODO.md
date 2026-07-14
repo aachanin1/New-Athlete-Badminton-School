@@ -1262,6 +1262,120 @@ repo: `Unknown / Need verification`.
 - Classification:
   **PASS — PROGRESSIVE SUMMARY FIXED; OPTION A ENTRY ACTIVE; PRODUCTION 4+4=2,000 UAT PASSED; PRICING RECONCILIATION DONE**.
 
+#### 2026-07-14 - Production Booking Regression Read-Only Audit
+
+- Owner reported a fresh Production regression on `/dashboard/booking` for the
+  controlled July 2026 Kids Group `4+4` case: Step 4 displayed `1,500`, Step 5
+  displayed authoritative Progressive `2,000`, and confirmation returned
+  `409 PROGRESSIVE_CAPACITY_EXCEEDED`. Owner authorized read-only audit and
+  documentation only. No source/test edit, create replay, deploy, Entry change,
+  migration, or Production business-data write was authorized.
+- Gate 0 passed. Branch `spike/next-major-security-upgrade` started at matching
+  local/remote HEAD `8a78d5d7c917787b29cf65425445ed4932179f65`; functional source
+  `aa64adfb765139ca38908ca2409fa2127ffe4a29` is its direct ancestor and the HEAD
+  delta is documentation only. The unrelated unstaged `AGENTS.md` remainder
+  (`72` additions / `3` deletions) remained excluded. Production deployment
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` was Ready on all four aliases. Entry was
+  exactly `true`, allowlist absent, four Progressive dependencies and shared
+  `SLIPOK_TEST_MODE` exactly `true`, migration `20260713210000` applied once,
+  pricing capability Ready/version `2`/`immutable_scope_v1`, and payment
+  capabilities Ready/version `1`.
+  Current Vercel inspection did not expose Git SHA metadata; the exact `aa64adf`
+  provenance remains the prior clean-detached deployment record plus the unchanged
+  functional tree, rather than a new platform-side SHA assertion.
+- Price root cause is the separate Step 4 client render path. In
+  `src/components/dashboard/booking-client.tsx`, `existingMonthData` filters same-
+  period settled `paid`/`verified` history, `kidsIncremental` calls the Legacy
+  monthly true-up helper, and Step 4 renders its `totalBatchPrice`. For the exact
+  case this is `8 x 500 - 2,500 = 1,500`. Step 4 does not call
+  `/api/bookings/preview`.
+- Moving to Step 5 calls `fetchAuthoritativePreview`, which returned Progressive
+  baseline `4`, prior Progressive `0`, new `4`, cumulative `8`, rate `500`, coupon
+  `0`, gross/final `2,000`. After that preview, create submitted the authoritative
+  preview amount/revision/baseline contract; the 409 was not a price conflict.
+  Draft restore retained selection/client mutation state but no price or preview;
+  it therefore exposed the same deterministic Step 4 Legacy path. Proven cause:
+  separate render paths plus preview timing, not corrupted draft state or a stale
+  deployment/cache artifact.
+- The prior `31` booking-entry checks are source-text assertions around Step 5's
+  Summary branches and contracts. They do not execute/render Step 4, transition a
+  real component from calendar to Summary, or assert that the two visible totals
+  match. A later regression suite must cover the executable calendar -> Summary
+  transition for Legacy baseline, zero baseline, coupon, restored draft, and full-
+  slot rejection.
+- Capacity root cause is independent. The effective
+  `progressive_lock_booking_slots_v1` creates/reuses slots, resolves the requested
+  template/date/time rows, locks exact slot rows, rejects duplicate learner/date/
+  time, and then counts existing active sessions with `cancelled_at IS NULL`,
+  session status `scheduled|completed|absent`, and booking status non-expired
+  `pending_payment|paid|verified`. It raised `PROGRESSIVE_CAPACITY_EXCEEDED` inside
+  `create_progressive_booking_v1`; the route correctly mapped the typed database
+  exception to HTTP `409`.
+- Exact selected-slot audit using that rule:
+
+  | Date/time | Template id | Schedule slot id | Active/capacity | Result |
+  | --- | --- | --- | ---: | --- |
+  | 2026-07-20 17:00-19:00 | `8940de2e-022b-4437-bf59-42dd882dfbda` | `ede40674-b21d-4f50-9c98-0cf2f1f20347` | `5/6` | available |
+  | 2026-07-21 17:00-19:00 | `680ba191-4e93-4904-92d4-5ff015b69263` | `53c3556a-6067-4ad1-813c-ca8410d17994` | `4/6` | available |
+  | 2026-07-22 17:00-19:00 | `fc3937db-bf41-44ef-be1e-5e0f01a5841c` | `25aee5d6-7ca1-4a79-a754-ea1e99697113` | `6/6` | rejected; request would make `7` |
+  | 2026-07-23 17:00-19:00 | `b59a3b34-4be7-46a6-9c2b-07045972bf65` | `5266ddfb-8491-4cd2-9214-7c226b2a9bb0` | `1/6` | available |
+
+- Exact booking/session/learner record sets were verified read-only and intentionally
+  not copied into documentation as full personal identifiers. All `16` active
+  contributors across the four slot counts were other users' verified Legacy
+  bookings with scheduled sessions. The current user's Legacy baseline contributed
+  zero physical occupancy. There were no duplicate active learners, Progressive
+  rows, wallet links, makeup rows, cancelled sessions, or expired pending bookings.
+  One valid reschedule descendant contributed on 2026-07-21; its 2026-07-20
+  predecessor had session status `rescheduled` and was excluded, so it was not
+  double-counted.
+- The restored draft's template ids exactly matched the current active templates
+  and resolved to the listed current slots. The six July 22 occupants predated the
+  incident, so capacity did not race from available to full after Step 4. Step 4
+  lists dates from recurring `schedule_templates` and never queries authoritative
+  occupancy. The RPC counts live booking/session rows under lock. All four
+  `schedule_slots.current_students` cache values were stale at `0`, but neither the
+  client nor RPC trusted that cache for the capacity decision. Conclusion:
+  expected protection against a genuinely full slot plus stale-availability UX.
+- The approved Chrome bridge could not attach to the existing incident tab. Per
+  Owner safety rules, the page was not reloaded, the draft was not changed, and no
+  create was replayed. Original Network payload/headers and sanitized Session
+  Storage detail remain `Unknown / Need verification`; screenshots, source, bounded
+  logs, and authoritative database reads supplied the remaining proof.
+- Bounded Vercel logs from 09:26:30-09:31:10 Asia/Bangkok contained three unique
+  preview `200` events and two unique create `409` events at 09:27:48.849 and
+  09:30:45.172. All were Production cache misses served by
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. The log records had empty message/trace fields
+  and did not include payload, response body, or selected slot. There were no 5xx,
+  baseline/dependency faults, payment/slip route events, or live SlipOK activity.
+- Failed-create atomicity passed across a window spanning both requests. Attributable
+  created/updated counts were zero for bookings, booking sessions and pricing
+  snapshots, July pricing scope, mutation receipts, coupon reservations/usages,
+  payment batches/members, verification attempts, allocations, Legacy payments,
+  Ledger, wallet, attendance, notifications, Finance, and activity logs. No orphan
+  scope/booking/session/receipt, notification, payment artifact, or partial slot-
+  count write exists.
+- The two symptoms are separate: (A) UI pricing-source divergence on Step 4 versus
+  authoritative Step 5, and (B) correct atomic capacity rejection combined with a
+  stale-availability UI. Affected scope is any new Progressive Kids Group selection
+  where Step 4's Legacy-derived local price differs from server Progressive pricing;
+  the availability issue affects any slot whose live occupancy reaches capacity.
+- Customer impact: misleading Step 4 price, then corrected Summary, plus late full-
+  slot rejection. Financial impact from both observed attempts: none; no Booking or
+  Payment existed and no amount was charged. Immediate Entry rollback is not
+  recommended because it would route new Kids Group traffic back to the explicitly
+  rejected Legacy formula while server pricing/capacity authority remains intact.
+- Smallest later fix boundary, pending separate Owner approval: make Step 4 consume
+  the same authoritative Kids Group preview used by Step 5; expose authoritative
+  capacity/preflight before confirmation while retaining the locked RPC as final
+  authority; add executable UI transition/full-slot coverage. Do not change tiers,
+  Option A formula, Legacy rows, Adult/Private, coupon/payment policy, or RPC
+  financial semantics.
+- Source changed: **no**. Tests changed: **no**. Deployment, Entry, environment,
+  migration, and Production data changed: **no**. Task Done: **no**. Homepage LV
+  Copy Audit/Fix is paused again. Classification:
+  **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

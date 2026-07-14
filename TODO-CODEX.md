@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -8,19 +8,47 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ## Current Active Work
 
-### 1. Homepage LV Copy Audit/Fix - Next Priority
+### 1. Production Booking Regression - Active Blocker
 
-Status: **UNPAUSED; NOT STARTED**.
+Status: **AUDITED; SOURCE FIX REQUIRES OWNER APPROVAL**.
 
+- Current classification:
+  **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
+- Step 4/date selection renders the Legacy monthly true-up amount (`1,500` in the
+  Owner `4+4` case) from local `totalBatchPrice`; it does not call the authoritative
+  preview API. Step 5 calls preview and correctly renders Progressive `2,000`.
+- The separate `409 PROGRESSIVE_CAPACITY_EXCEEDED` was correct: 2026-07-22
+  17:00-19:00 was already `6/6`; the other selected dates were 2026-07-20 `5/6`,
+  2026-07-21 `4/6`, and 2026-07-23 `1/6`. Step 4 did not expose authoritative
+  occupancy, so this is also a stale-availability UX defect.
+- Two unique create requests were observed in bounded logs, both `409`, both
+  atomic. Read-only Production checks found zero partial Booking, scope, session,
+  receipt, coupon, Payment/batch/allocation, Ledger, wallet, attendance,
+  notification, Finance, activity-log, or slot-count write attributable to either.
+- Entry remains `true`; deployment `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` remains
+  Ready on all four aliases; source, tests, environment, and Production data were
+  not changed in the audit. Immediate Entry rollback is not recommended because it
+  would restore the Owner-rejected Legacy pricing path.
+- Next Owner gate: approve a narrow source/test correction that makes Step 4 use
+  the same authoritative Progressive preview as Step 5, adds authoritative
+  capacity/preflight UX while retaining the RPC guard, and adds executable
+  calendar-to-Summary plus full-slot regression coverage. No fix/deploy/Entry
+  change is authorized yet.
+
+### 2. Homepage LV Copy Audit/Fix - Paused Again
+
+Status: **PAUSED; NOT STARTED**.
+
+- Resume only after the Production Booking Regression is resolved or the Owner
+  explicitly reprioritizes it.
 - Audit homepage copy for `LV 71+` / `70+` language against the active school
   level contract of LV 0-70.
 - Do not introduce LV 71+ as current Production behavior without explicit Owner
   confirmation.
-- Keep this work separate from the completed Kids Group pricing closeout.
 
-## Completed - Kids Group Pricing Reconciliation
+## Historical Closeout - Kids Group Pricing Reconciliation (Reopened)
 
-Current classification:
+Historical 2026-07-13 classification, superseded by the active blocker above:
 **PASS — PROGRESSIVE SUMMARY FIXED; OPTION A ENTRY ACTIVE; PRODUCTION 4+4=2,000 UAT PASSED; PRICING RECONCILIATION DONE**.
 
 Confirmed final state:
@@ -109,15 +137,15 @@ Confirmed final state:
 | Data repaired this round | No |
 | Customer impact | Future new general Kids Group bookings now use Progressive |
 | Financial impact | Future charges follow Option A; historical money/evidence unchanged |
-| Task done | Yes - Kids Group Pricing Reconciliation closed |
+| Task done | No - reopened by the 2026-07-14 Production booking regression |
 
 ## Worktree / Safety Notes
 
 - Branch: `spike/next-major-security-upgrade`.
 - The pre-existing unrelated unstaged `AGENTS.md` remainder remains excluded.
-- The Owner-controlled Production `4+4` draft remains browser-local and
-  unconfirmed. Do not click booking confirmation unless the Owner separately
-  authorizes a real booking.
+- The Owner-controlled Production `4+4` draft was restored browser-locally after
+  two atomic `409` capacity rejections. No booking was created. Do not click
+  booking confirmation again unless the Owner separately authorizes it.
 - Rollback target: corrected Entry-absent deployment
   `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P`; rollback requires removing Entry, not setting
   it to `false`, then promoting that deployment.
@@ -129,4 +157,4 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next task: Homepage LV copy audit/fix is unpaused but not started.
+- Next task: Production Booking Regression source/test fix, pending Owner approval.

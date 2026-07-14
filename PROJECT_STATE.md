@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 Source: local source/git/docs audit plus read-only Vercel CLI and Production
 Supabase read-model verification. Items not confirmed are marked
 `Unknown / Need verification`.
@@ -198,6 +198,91 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
+### Production Booking Regression Audit (2026-07-14)
+
+- Current classification:
+  **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
+  The 2026-07-13 successful no-write Summary UAT remains valid dated evidence, but
+  it no longer closes the end-to-end booking flow. `Task Done` is currently **no**.
+- Fresh Git and runtime preflight passed without documentation/source drift:
+  branch `spike/next-major-security-upgrade`, matching local/remote starting HEAD
+  `8a78d5d7c917787b29cf65425445ed4932179f65`, functional source
+  `aa64adfb765139ca38908ca2409fa2127ffe4a29`, Ready Production deployment
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` on all four aliases, Entry `true`, allowlist
+  absent, four Progressive dependencies `true`, shared `SLIPOK_TEST_MODE=true`,
+  migration `20260713210000` applied once, pricing capability Ready/version `2`/
+  `immutable_scope_v1`, and payment capabilities Ready/version `1`. The only dirty
+  file remained the unrelated unstaged `AGENTS.md` remainder (`72` additions /
+  `3` deletions).
+  Current Vercel inspection exposes deployment identity/state/aliases but no Git
+  SHA metadata; exact `aa64adf` provenance remains the prior clean-detached deploy
+  record plus the unchanged functional tree, not a new platform SHA assertion.
+- Price divergence is a client render-path defect in
+  `src/components/dashboard/booking-client.tsx`. Step 4 does not call the booking
+  preview API. It filters settled `paid`/`verified` Kids Group history, calls the
+  Legacy monthly true-up helper, and renders `totalBatchPrice`; the exact Owner
+  case therefore renders `8 x 500 - 2,500 = 1,500`. Advancing to Step 5 calls
+  `/api/bookings/preview`, stores its authoritative Progressive result, and renders
+  baseline `4`, previous Progressive `0`, new `4`, cumulative `8`, rate `500`, and
+  gross/final `2,000`. Draft restoration did not corrupt the price; it restored the
+  selection and exposed the deterministic Step 4 path. This is not a cache/build
+  artifact.
+- The previous booking-entry regression checks passed because they are source-text
+  assertions over the Step 5 Summary contract. They neither execute/render Step 4
+  nor assert equality across the date-selection card and Summary. Required later
+  coverage is an executable component/browser transition test for calendar ->
+  Summary, including Legacy baseline, coupon, draft restore, and a full-slot case.
+- The `409 PROGRESSIVE_CAPACITY_EXCEEDED` is an independent, correct database guard,
+  not a pricing or Legacy-baseline calculation. `progressive_lock_booking_slots_v1`
+  acquired row locks and rejected 2026-07-22 17:00-19:00 because configured
+  capacity was `6`, active occupancy was already `6`, and the new learner would
+  make `7`. The other selected slots were 2026-07-20 `5/6`, 2026-07-21 `4/6`, and
+  2026-07-23 `1/6`.
+- All counted occupants were other users' active verified Legacy bookings with
+  scheduled sessions. The current user's four-session Legacy baseline was not
+  treated as physical occupancy. No duplicate learner was counted. The one
+  reschedule descendant on 2026-07-21 was counted once while its 2026-07-20
+  `rescheduled` predecessor was excluded. Walleted, cancelled, expired-pending,
+  makeup, and Progressive rows contributed zero. The restored draft's four
+  template ids matched the current active templates and resolved to the current
+  slots; the full slot predated the incident.
+- Step 4 availability and atomic create use different read models. Step 4 exposes
+  recurring template dates and does not query authoritative slot occupancy. The
+  RPC counts active `booking_sessions` under locks. `schedule_slots.current_students`
+  was stale at `0` for all four slots, but the client did not read that cache and
+  the RPC correctly counted live booking/session rows instead. This is a stale-
+  availability UX defect, not an incorrect capacity calculation.
+- Bounded Vercel logs found three unique preview `200` requests and two unique
+  create `409` requests at 09:27:48.849 and 09:30:45.172 Asia/Bangkok. Every event
+  was served by the current Production deployment. There were no 5xx or payment/
+  slip paths. The available Vercel events had no response body, selected-slot id,
+  or trace id; the screenshot supplied the typed error. The existing Chrome
+  incident tab could not be attached through the approved Chrome bridge, so the
+  original sanitized payload, response headers, and Session Storage record remain
+  `Unknown / Need verification`; the create was not reproduced and the draft was
+  not changed.
+- Read-only database checks spanning both failed requests proved zero attributable
+  creates or updates for bookings, booking sessions/snapshots, July pricing scope,
+  mutation receipts, coupon reservations/usages, payment batches/members,
+  verification attempts, allocations, Legacy payments, Ledger, wallet, attendance,
+  notifications, Finance, and activity logs. There is no orphan scope, booking,
+  session, receipt, notification, payment artifact, or partial capacity update.
+- Customer impact: Progressive Kids Group customers with settled Legacy history can
+  see a lower Legacy-derived total on Step 4 and the correct Progressive total on
+  Step 5. A customer may also select a slot that the atomic RPC later rejects as
+  full. Financial impact from the observed requests is **none**: no booking or
+  payment was created, and the server remained authoritative.
+- Immediate Entry rollback is **not recommended** from the current evidence. It
+  would route new Kids Group traffic back to the Owner-rejected Legacy pricing
+  formula while the authoritative Progressive price and capacity guard are
+  protecting writes. The smallest later source boundary is to make Step 4 consume
+  the same authoritative Kids Group preview as Step 5 and expose authoritative
+  occupancy/preflight before confirmation while retaining the RPC as final guard.
+  Any source/test work, deploy, or Entry decision requires new Owner approval.
+- Source changed: **no**. Tests changed: **no**. Deployment/environment/Entry:
+  **unchanged**. Production business data changed by this audit: **no**. Homepage
+  LV work is paused again behind this active blocker.
+
 ### Progressive Summary Fix and Successful Option A Activation (2026-07-13)
 
 - Git preflight started from branch `spike/next-major-security-upgrade` at matching
@@ -258,7 +343,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   deployment `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` remains the rollback target. No
   Booking/Payment/business row, Legacy row, pricing tier, coupon policy, wallet,
   attendance, Ledger, Finance, Adult Group, or Private data changed.
-- Current classification:
+- Historical closeout classification recorded on 2026-07-13 and superseded by
+  the 2026-07-14 Production Booking Regression audit:
   **PASS — PROGRESSIVE SUMMARY FIXED; OPTION A ENTRY ACTIVE; PRODUCTION 4+4=2,000 UAT PASSED; PRICING RECONCILIATION DONE**.
   Source complete, tests passed, committed, pushed, migration applied, deployed,
   enabled, Production active, Production UAT passed, and Task Done are **yes**.
