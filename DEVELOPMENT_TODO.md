@@ -1376,6 +1376,87 @@ repo: `Unknown / Need verification`.
   Copy Audit/Fix is paused again. Classification:
   **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
 
+#### 2026-07-14 - Production Booking Regression Fix Deployed; Authenticated UAT Blocked
+
+- Owner approved one combined closeout round and superseded the earlier rollback
+  discussion: continue fixing current source through Localhost, disposable, deploy,
+  and Production no-write gates; do not roll back Source or Database. No formula,
+  tier, migration, Legacy/Adult/Private, coupon/payment/SlipOK policy, Entry,
+  allowlist, dependency, Production repair, or unrelated change was approved.
+- Source commit `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`, tree
+  `22296e88b9dafbfe369ae559257ac5900aac3c36`, was committed and pushed only after
+  all Localhost gates passed. It uses one draft-fingerprinted authoritative preview
+  across Steps 4 and 5, invalidates/aborts stale preview work, blocks transition or
+  confirmation without fresh evidence, and submits the same revision/baseline
+  evidence used for the displayed gross/discount/final amount. Progressive never
+  falls back visibly to Legacy `totalBatchPrice`; Legacy paths remain intact.
+- A narrow authenticated read model at `/api/bookings/availability` reports only
+  canonical ids, capacity, active occupancy, remaining seats, and full state. The
+  helper mirrors the locked RPC status/expiry rules, excludes cancelled,
+  rescheduled-source, walleted, expired-pending, and inactive rows, and ignores the
+  stale `schedule_slots.current_students` cache. Full selections are disabled or
+  invalidated, other valid selections remain, and fresh availability is required
+  before Summary/confirm. The RPC remains final authority; capacity races return
+  Thai customer copy, refresh availability, and return to selection.
+- Exact source/test files: `.gitignore`, `package.json`, `package-lock.json`,
+  `playwright.booking.config.ts`, `scripts/check-booking-entry-runtime.mjs`,
+  `scripts/check-booking-slot-availability.mjs`,
+  `scripts/check-progressive-booking-entry.js`,
+  `scripts/check-progressive-legacy-baseline.js`,
+  `src/app/api/bookings/availability/route.ts`, `src/app/api/bookings/route.ts`,
+  `src/components/dashboard/booking-client.tsx`,
+  `src/lib/booking-slot-availability.ts`, and the four files under
+  `tests/booking-regression/`.
+- Executable gates passed: availability `8`, booking runtime `1`, Progressive
+  pricing `17`, booking entry `31`, Option A baseline `32`, concurrency `8`,
+  transactions `33`, coupon `38`, payment batches `39`, payment integration `18`,
+  notifications `16`, Legacy pricing/payment `14`, plus `6/6` rendered Playwright
+  scenarios. Total deterministic/runtime checks were `255`. TypeScript, lint,
+  mojibake (`227` files), build (`91` routes), `git diff --check`, and the required
+  post-build `.next` cleanup/restart/root/static/authenticated smoke passed.
+- Disposable actual flow proved Step 4 `2,000`, Step 5 `2,000`, preview baseline/
+  cumulative `4/8`, rate `500`, and created Booking total `2,000` with four
+  sessions. Historical Legacy entitlement `4` / stored `2,500` remained unchanged,
+  unscoped, and unsnapshotted. Coupon rendered `2,000/200/1,800` consistently.
+  Restored drafts recalculated with no `1,500` flash; stale preview responses could
+  not win. Adult, Private, and Entry-off Legacy remained unchanged.
+- Capacity fixtures proved `5/6` selectable/create success, `6/6` disabled with
+  forced typed atomic `409` and no partial financial/business rows, mixed/restored
+  drafts preserving valid selections, and a `5/6 -> 6/6` race refreshing to Thai
+  customer copy. Application console/page/hydration error counts were zero.
+  Teardown reset fixtures and auth; residue count was `0`.
+- The exact tested source was deployed from a clean detached worktree as
+  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, Ready on all four Production aliases. `/`
+  and a generated static asset returned `200`; unauthenticated preview and
+  availability returned `401`. Entry remained exactly `true`, allowlist absent,
+  four dependencies and shared `SLIPOK_TEST_MODE` exactly `true`, migration
+  `20260713210000` applied once, and capabilities unchanged.
+- Protected pre/post Production comparison passed `23/23` count plus complete
+  SHA-256 fingerprints. Covered counts included bookings `519`, sessions `2,793`,
+  scopes `2`, receipts `3`, coupon reservations/usages `0/0`, batches/members
+  `4/4`, attempts/allocations `1/1`, payments `470`, Ledger `471`, wallet `61`,
+  attendance `1,630`, notifications `16,323`, tiers `11`, Finance `1`, snapshots,
+  existing Progressive targets, approved batch, and the repaired booking.
+  UAT-attributable Production business-data delta was exactly `0`.
+- Deployment monitoring found no 5xx, error-level events, baseline/revision/
+  dependency faults, or live SlipOK activity. No Production create request or
+  confirmation was issued in this round.
+- The in-app browser and Chrome bridges failed to bootstrap. The Computer Use
+  fallback could list Chrome but explicitly stopped before navigation because it
+  could not determine the current Windows browser URL with sufficient confidence.
+  Therefore authenticated Production Step 4/Step 5 `2,000`, full-slot UI,
+  Adult/Private UI, existing History/batch readability, response PII inspection,
+  and browser console/hydration proof for the new deployment remain
+  `Unknown / Need verification`. No unsafe manual continuation was attempted.
+- No deployment rollback criterion was observed, so the healthy deployment remains
+  active and rollback to `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` was not used. Customer
+  impact is the deployed source correction; financial impact this round is none.
+  Production data changed: **no**. Data repaired: **no**. Task Done: **no**.
+  Homepage LV Copy Audit/Fix remains paused.
+- Current classification:
+  **BLOCKER - PRODUCTION AUTHENTICATED NO-WRITE UAT COULD NOT BE COMPLETED;
+  DEPLOYMENT HEALTHY, PRODUCTION DATA DELTA 0; TASK NOT DONE**.
+
 ## Phase 0 - Baseline & Readiness
 
 - [x] Confirm current app runs locally with real Supabase project.

@@ -69,6 +69,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   authenticated no-write `4+4` UAT, and documentation closeout. Booking confirmation,
   Payment/business-data writes, API/RPC/migration/tier changes, Legacy changes, and
   Adult Group/Private changes remained prohibited.
+- Owner superseded the rollback discussion on 2026-07-14 and approved one combined
+  Production Booking Regression closeout: continue fixing the current source,
+  require Localhost and disposable-database gates before commit/deploy, deploy the
+  exact tested source, and then perform Production no-write UAT. Source/database
+  rollback, migrations, environment/Entry/allowlist changes, Production writes,
+  pricing/tier/formula changes, and unrelated work remained prohibited.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -101,8 +107,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Progressive Runtime
 
-- Current general-traffic gating source commit is
-  `5c8cee1e8a81f928b870e643a78e1d2baf39fa06`, committed and pushed to
+- Current general-traffic functional source commit is
+  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`, committed and pushed to
   `origin/spike/next-major-security-upgrade`.
 - Current source entry decision is server-only and default deny:
   - Entry disabled -> all new bookings remain Legacy.
@@ -136,13 +142,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
-- Committed and pushed: **yes**, through Progressive Summary source commit
-  `aa64adfb765139ca38908ca2409fa2127ffe4a29` on
+- Committed and pushed: **yes**, through Production Booking Regression source commit
+  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e` on
   `origin/spike/next-major-security-upgrade` before this documentation closeout.
-- Deployed: **yes** from an exact clean detached worktree at `aa64adf`. Production
-  activation deployment `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` is Ready on all four
-  aliases. Corrected Entry-absent rollback deployment
-  `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` remains available.
+- Deployed: **yes** from an exact clean detached worktree at `be61b68`, tree
+  `22296e88b9dafbfe369ae559257ac5900aac3c36`. Deployment
+  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` is Ready on all four aliases. The pre-fix
+  deployment `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` is the approved deployment-health
+  rollback target; no rollback was used in this round.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review based on the last value-level verification;
   all four names remain present in the read-only Production environment listing.
@@ -179,11 +186,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Production
 
-- Current deployment: `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`, Ready, deployed from
+- Current deployment: `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, Ready, deployed from
   exact clean detached source commit
-  `aa64adfb765139ca38908ca2409fa2127ffe4a29`. The final deployment used a forced
-  rebuild so the unchanged source tree was compiled with the newly enabled Entry
-  variable instead of reusing the Entry-off build cache.
+  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`, tree
+  `22296e88b9dafbfe369ae559257ac5900aac3c36`.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
@@ -198,9 +204,89 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
-### Production Booking Regression Audit (2026-07-14)
+### Production Booking Regression Fix Deployment (2026-07-14)
 
 - Current classification:
+  **BLOCKER - PRODUCTION AUTHENTICATED NO-WRITE UAT COULD NOT BE COMPLETED;
+  DEPLOYMENT HEALTHY, PRODUCTION DATA DELTA 0; TASK NOT DONE**.
+  Source, executable tests, Localhost E2E, disposable create, commit/push, exact-
+  source deploy, deployment health, and read-only reconciliation passed. The
+  authenticated Production UI proof remains `Unknown / Need verification` because
+  the available browser-control systems failed before safe navigation and then
+  explicitly stopped the Computer Use turn when they could not establish the
+  current Chrome URL with sufficient confidence. No Booking confirmation or
+  Production mutation was attempted.
+- Source commit `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e` fixes the two audited
+  defects without changing formulas or mutation semantics. One draft fingerprint
+  now owns the Progressive preview state across Steps 4 and 5; relevant input
+  changes abort/invalidate stale work, no Legacy fallback amount is displayed,
+  and Summary/confirm require a fresh successful authoritative preview. Gross,
+  discount, final amount, and create evidence come from that same preview.
+- New authenticated read-only endpoint `/api/bookings/availability` returns only
+  canonical slot/template ids plus capacity, active occupancy, remaining seats,
+  and full state. Its helper counts the same active booking/session states as the
+  locked RPC and excludes cancelled, rescheduled-source, walleted, expired-pending,
+  and otherwise inactive rows. It does not trust
+  `schedule_slots.current_students` or expose learner identities. Full slots show
+  `full/capacity` evidence and are disabled; restored/raced full selections block
+  Summary while preserving other valid selections. The locked RPC remains final
+  authority, and `PROGRESSIVE_CAPACITY_EXCEEDED` is mapped to customer-facing Thai
+  copy before availability is refreshed.
+- Exact source/test boundary: `.gitignore`, `package.json`, `package-lock.json`,
+  `playwright.booking.config.ts`, four booking regression scripts,
+  `src/app/api/bookings/availability/route.ts`, `src/app/api/bookings/route.ts`,
+  `src/components/dashboard/booking-client.tsx`,
+  `src/lib/booking-slot-availability.ts`, and four files under
+  `tests/booking-regression/`. No migration, tier, environment, Entry, allowlist,
+  Legacy formula, Adult/Private route, payment, coupon policy, or SlipOK behavior
+  changed.
+- Executable verification passed: `255` deterministic/runtime checks plus `6/6`
+  rendered Playwright booking scenarios. The actual post-build restarted
+  `/dashboard/booking` flow proved Step 4 `2,000`, Step 5 `2,000`, disposable
+  Booking total `2,000`, coupon gross/discount/final `2,000/200/1,800`, restored-
+  draft recalculation without a `1,500` fallback, stale-response rejection,
+  Adult/Private and Entry-off Legacy preservation, `5/6` selection/create,
+  `6/6` disabled UI and forced atomic `409`, multi-date preservation, and the
+  capacity-race Thai UX. Application console/page/hydration errors were zero.
+  TypeScript, lint, mojibake (`227` files), build (`91` routes), generated static
+  asset smoke, and `git diff --check` passed.
+- The local controlled fixture contained one parent, one child, Legacy entitlement
+  `4` with historical total `2,500`, four new sessions, pricing tiers, templates,
+  slots, and a separate full slot. The created Progressive booking stored exactly
+  `2,000`, baseline/cumulative `4/8`, rate `500`, scope/revision `1`, and four
+  sessions. The Legacy row and `2,500` remained unchanged and unscoped; payment,
+  batch, allocation, attempt, Ledger, wallet, Finance, and live SlipOK counts stayed
+  zero. Global teardown reset the disposable database and reported fixture/auth
+  residue `0`.
+- The exact source was deployed from a clean detached worktree. Deployment
+  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` is Ready and all four aliases resolve to it;
+  `/` and generated `/_next/static/*` returned `200`, while unauthenticated preview
+  and availability returned `401`. Entry remains exactly `true`, allowlist absent,
+  all four Progressive dependencies and shared `SLIPOK_TEST_MODE` exactly `true`,
+  migration `20260713210000` applied once, and capabilities unchanged.
+- Protected pre/post count plus SHA-256 fingerprint comparison passed all `23`
+  groups. The snapshots covered bookings `519`, sessions `2,793`, scopes `2`,
+  receipts `3`, coupon reservations/usages `0/0`, batches/members `4/4`, attempts
+  `1`, allocations `1`, payments `470`, Ledger `471`, wallet `61`, attendance
+  `1,630`, notifications `16,323`, tiers `11`, Finance expenses `1`, snapshots,
+  existing Progressive records, approved batch, and repaired booking. Production
+  UAT-attributable business-data delta is exactly `0`.
+- Deployment logs contained no 5xx, error-level events, baseline/revision/dependency
+  faults, or SlipOK activity. No create request was issued by this Production UAT
+  attempt. Because authenticated rendering was not safely reachable, Production
+  Step 4/Step 5 `2,000`, full-slot disabled state, Adult/Private UI, History/batch
+  readability, and browser console/hydration results remain
+  `Unknown / Need verification` for this deployment.
+- Customer impact: the deployed source is designed to remove the misleading Step 4
+  price and reject known-full choices earlier. Financial impact in this round is
+  **none**; Production data did not change and no payment/slip action occurred.
+  No rollback criterion was observed, so deployment rollback was not used. The
+  task remains active and Homepage LV Copy Audit/Fix remains paused until the
+  authenticated no-write UAT is completed.
+
+### Production Booking Regression Audit (2026-07-14)
+
+- Historical pre-fix classification, superseded by the fix deployment record above:
   **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
   The 2026-07-13 successful no-write Summary UAT remains valid dated evidence, but
   it no longer closes the end-to-end booking flow. `Task Done` is currently **no**.

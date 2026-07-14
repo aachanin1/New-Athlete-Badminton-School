@@ -10,30 +10,39 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Production Booking Regression - Active Blocker
 
-Status: **AUDITED; SOURCE FIX REQUIRES OWNER APPROVAL**.
+Status: **SOURCE/LOCAL/DEPLOY PASSED; AUTHENTICATED PRODUCTION NO-WRITE UAT BLOCKED**.
 
 - Current classification:
-  **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
-- Step 4/date selection renders the Legacy monthly true-up amount (`1,500` in the
-  Owner `4+4` case) from local `totalBatchPrice`; it does not call the authoritative
-  preview API. Step 5 calls preview and correctly renders Progressive `2,000`.
-- The separate `409 PROGRESSIVE_CAPACITY_EXCEEDED` was correct: 2026-07-22
-  17:00-19:00 was already `6/6`; the other selected dates were 2026-07-20 `5/6`,
-  2026-07-21 `4/6`, and 2026-07-23 `1/6`. Step 4 did not expose authoritative
-  occupancy, so this is also a stale-availability UX defect.
-- Two unique create requests were observed in bounded logs, both `409`, both
-  atomic. Read-only Production checks found zero partial Booking, scope, session,
-  receipt, coupon, Payment/batch/allocation, Ledger, wallet, attendance,
-  notification, Finance, activity-log, or slot-count write attributable to either.
-- Entry remains `true`; deployment `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` remains
-  Ready on all four aliases; source, tests, environment, and Production data were
-  not changed in the audit. Immediate Entry rollback is not recommended because it
-  would restore the Owner-rejected Legacy pricing path.
-- Next Owner gate: approve a narrow source/test correction that makes Step 4 use
-  the same authoritative Progressive preview as Step 5, adds authoritative
-  capacity/preflight UX while retaining the RPC guard, and adds executable
-  calendar-to-Summary plus full-slot regression coverage. No fix/deploy/Entry
-  change is authorized yet.
+  **BLOCKER - PRODUCTION AUTHENTICATED NO-WRITE UAT COULD NOT BE COMPLETED;
+  DEPLOYMENT HEALTHY, PRODUCTION DATA DELTA 0; TASK NOT DONE**.
+- Owner approved the combined correction/deploy/UAT round and superseded rollback
+  discussion. Source commit `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e`
+  is committed/pushed and unifies Steps 4/5 on one fingerprinted authoritative
+  Progressive preview, adds RPC-matched read-only slot availability, disables full
+  slots, preflights before Summary/confirm, and translates capacity races to Thai.
+  Formula, tiers, Legacy, Adult/Private, coupon/payment policy, SlipOK, Entry,
+  allowlist, dependencies, and migration are unchanged.
+- Local gates passed: `255` executable checks plus `6/6` rendered Playwright E2E;
+  Step 4 `2,000`, Step 5 `2,000`, disposable created Booking `2,000`, historical
+  Legacy `4` sessions / `2,500` unchanged and unscoped, `5/6` create success,
+  `6/6` disabled plus forced atomic `409`, race/draft/coupon cases, zero browser
+  application/hydration errors, and disposable residue `0`. TypeScript, lint,
+  mojibake, `91`-route build, post-build restart smoke, and diff checks passed.
+- Exact-source deployment `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` is Ready on all
+  four aliases. Entry remains `true`; allowlist absent; four dependencies and
+  shared Test Mode remain `true`; migration/capabilities unchanged. Public/static
+  smoke is `200`, unauthenticated preview/availability is `401`, and monitored logs
+  show zero 5xx, error-level faults, dependency/baseline/revision faults, or SlipOK.
+- Protected pre/post comparison passed `23/23` count plus fingerprint checks;
+  Production business-data delta is `0`. No Booking confirmation or Production
+  write occurred, and no rollback criterion was observed.
+- Remaining gate: repeat the strictly no-write authenticated UI UAT when a safe
+  browser-control channel can establish the current signed-in Chrome URL. Confirm
+  Step 4/Step 5 `2,000`, full slot disabled, Adult/Private Legacy, History/batch
+  readability, no PII response leakage, and zero console/hydration errors. Current
+  values are `Unknown / Need verification` because all browser bridges failed and
+  Computer Use explicitly stopped before safe navigation. No new source approval
+  is required for this remaining read-only gate.
 
 ### 2. Homepage LV Copy Audit/Fix - Paused Again
 
@@ -146,9 +155,9 @@ Confirmed final state:
 - The Owner-controlled Production `4+4` draft was restored browser-locally after
   two atomic `409` capacity rejections. No booking was created. Do not click
   booking confirmation again unless the Owner separately authorizes it.
-- Rollback target: corrected Entry-absent deployment
-  `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P`; rollback requires removing Entry, not setting
-  it to `false`, then promoting that deployment.
+- Deployment-health rollback target for the current fix is the pre-fix deployment
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`; Entry must remain `true`. No rollback was
+  used because no approved rollback condition was observed.
 
 ## Session Exit Checklist
 
@@ -157,4 +166,5 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next task: Production Booking Regression source/test fix, pending Owner approval.
+- Next task: complete the remaining authenticated Production no-write UAT for the
+  already deployed exact source. Homepage LV Copy Audit/Fix remains paused.
