@@ -152,6 +152,139 @@ Main portals:
 - Keep changes scoped. Do not refactor unrelated code while fixing a flow.
 - Inspect dirty worktree files before editing them. Do not overwrite user or previous-agent changes.
 
+## Documentation Consistency Gate
+
+### A. Single Owner for Mutable Facts
+
+- `AGENTS.md` owns permanent rules, guardrails, and business policies only.
+- `PROJECT_STATE.md` is the only authority for current mutable state: Active Task,
+  Task Status, Branch, Local/Remote HEAD, current Source, pushed Source, deployed
+  Source, Deployment ID, migrations, feature controls, allowlist,
+  Production-active behavior, UAT, data repair, customer impact, financial impact,
+  blocker, and current next gate.
+- `TODO-CODEX.md` owns only the short active execution index, next action, and
+  Parking Lot. It must not maintain an independent detailed copy of mutable Git,
+  Deployment, environment, or Production facts. When detail is needed, reference
+  the relevant `PROJECT_STATE.md` section.
+- `DEVELOPMENT_TODO.md` owns dated historical evidence, decision records, detailed
+  audits, and closeouts. Historical records must use dated wording such as
+  "State observed at this closeout" and must not present an old value as current.
+- `TODO.md` remains stale legacy reference unless independently verified.
+
+### B. Update Order
+
+Whenever current state changes, update documentation in this order:
+
+1. Verify actual Source, Git, Deployment, controls, Production, and data state.
+2. Replace the current values in `PROJECT_STATE.md`.
+3. Derive the short `TODO-CODEX.md` status and next action from `PROJECT_STATE.md`.
+4. Append a dated `DEVELOPMENT_TODO.md` record only when detailed history is needed.
+5. Run the Documentation Consistency Matrix before reporting or committing.
+
+Do not only append a new report while leaving an older contradictory current claim.
+
+### C. Mandatory Documentation Consistency Matrix
+
+Before every documentation closeout, compare these fields:
+
+- Active Task
+- Task Status
+- Branch
+- Local HEAD
+- Remote HEAD
+- Ahead/Behind
+- Source Complete
+- Tests Passed
+- Committed
+- Pushed
+- Current Source
+- Deployed Source
+- Deployment ID
+- Migration Source
+- Migration Applied
+- Feature Enabled
+- Allowlisted
+- Production Active
+- Production UAT
+- Controlled Write UAT
+- Data Repaired
+- Production Data Changed
+- Customer Impact
+- Financial Impact
+- Blocker
+- Remaining Work
+- Next Gate / Next Action
+- Parking Lot authorization state
+
+Every current field must have one value. Do not use a combined `PASS` to conceal
+different states.
+
+### D. Hard Stop
+
+If any current-state value conflicts across documents, Source, Git, Deployment, or
+verified Production evidence:
+
+- Report `DOCUMENTATION DRIFT`.
+- Mark unresolved values `Unknown / Need verification`.
+- Do not claim Task Done.
+- Do not commit documentation.
+- Do not push.
+- Do not deploy.
+- Do not start the next task.
+- Perform read-only verification or stop and request Owner direction.
+
+The agent may commit only after the matrix is internally consistent.
+
+### E. Historical Wording
+
+- Dated history may preserve old Source, deployments, flags, blockers, and `PASS`
+  labels only within an explicitly Historical, Superseded, or
+  "State observed at this closeout" section.
+- Do not use "Current", "Next task", or present-tense deployment claims inside old
+  records unless the statement is explicitly scoped to that historical date.
+- Never delete legitimate history merely to make current documents appear aligned.
+  Correct its label or tense.
+
+### F. No Duplicated Mutable State
+
+Do not copy complete mutable Production/Git state into multiple current sections.
+
+When a short summary must repeat a value:
+
+- State that `PROJECT_STATE.md` is authoritative.
+- Update the copied summary in the same session.
+- Include it in the consistency matrix.
+- Treat a mismatch as a blocking failure, not a minor documentation issue.
+
+### G. Session Final Report Requirement
+
+Every Codex final report must separately state:
+
+- Source Complete
+- Tests Passed
+- Committed
+- Pushed
+- Deployed
+- Feature Enabled
+- Allowlisted
+- Production Active
+- Production UAT Passed
+- Controlled Write UAT
+- Data Repaired
+- Production Data Changed
+- Customer Impact
+- Financial Impact
+- Task Done
+- Active Task
+- Next Action
+
+Never report only `PASS`.
+
+### H. Documentation-Only Safety
+
+A documentation-only commit must not claim a Source, Migration, Deploy, Production,
+customer, data, or financial change that did not occur.
+
 ## Local Dev and Verification
 
 Common checks:

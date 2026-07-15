@@ -4,12 +4,16 @@ Last updated: 2026-07-15
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
-use `TODO.md` only as stale legacy reference after code verification.
+use `TODO.md` only as stale legacy reference after code verification. Current
+mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
 No active implementation task is selected after the Unlimited Slot release
 closeout. Do not start a Parking Lot item until the Owner selects the next task.
+
+Next action: **Await Owner selection. Do not start a Parking Lot task
+automatically.**
 
 ## Recently Completed
 
@@ -18,69 +22,22 @@ closeout. Do not start a Parking Lot item until the Owner selects the next task.
 Status: **DONE — REMOTE MIGRATION APPLIED; EXACT SOURCE DEPLOYED;
 NO-WRITE PRODUCTION UAT PASSED**.
 
-- Remote migration `20260715060541_unlimited_normal_slot_entry.sql` is applied
-  exactly once. Effective lock/refresh/capability hashes match the committed
-  migration, capability advertises `slotEntryPolicy=unlimited_learner_v1`, and
-  fixed search path plus `postgres`/`service_role`-only grants remain intact.
-- Exact Source `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
-  `397618a391f968ec1135084978ce3589a43f1d89`, is Ready as deployment
-  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` on all four Production aliases.
-- Authenticated no-write Production UAT passed: a real future slot with aggregate
-  occupancy `15` remained selectable without capacity copy; restored `4+1` showed
-  `2–6 × 625 = 625`; no-write `4+4` showed `7–10 × 500 = 2,000`; Steps 4-5,
-  plain Thai explanation, distinct child nickname/full name, self/adult name,
-  Adult Group, and Private all matched the approved contracts.
-- Existing Production data did not provide child no-nickname, equal-name,
-  multi-child, coupon, or zero-price cases; those cases rely on the already-passed
-  rendered Local E2E evidence rather than manufactured Production state.
-- Console/hydration/overlay errors, 5xx, capacity/capability/dependency/pricing
-  faults, SlipOK activity, and UAT mutation requests were all `0`. No booking was
-  confirmed and no pending edit, Wallet, Reschedule, Makeup, or Payment action was
-  submitted.
-- Release/UAT-attributable business-data and financial delta are `0`. Six reminder
-  notifications to Head Coach/Coach recipients were unrelated live activity and
-  were separated by timestamp/category. Entry/dependencies remain `true`, allowlist
-  absent, and shared `SLIPOK_TEST_MODE=true`; no environment or pricing policy
-  changed. Controlled write UAT was not authorized or required.
+- Authoritative current state is in `PROJECT_STATE.md` under **Dashboard Booking
+  Unlimited Slot Entry + Customer Price UX** and **Production**. Detailed dated
+  evidence is in the 2026-07-15 release closeout in `DEVELOPMENT_TODO.md`.
 
 ### History Payment Selection 409 / Invalid Slip Modal State
 
 Status: **DONE**.
 
-- Final classification:
-  **PASS - HISTORY PAYMENT LIFECYCLE FIXED; LOCAL E2E AND CONTROLLED PRODUCTION
-  UAT PASSED; TASK DONE**.
-- Source commit `7d98b062f850a4210fae052cefddd92b994889b8` (tree
-  `73294ca5419582492fa558623d395c5b3801af5e`) is pushed and deployed as
-  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9` on all four Production aliases.
-- The History client now has an explicit prepare/cancel/refresh/conflict lifecycle,
-  a synchronous single-flight lock, stale-response generation guard, revision
-  reconciliation, visible typed Thai errors, and upload eligibility tied only to
-  the current authoritative prepared batch. Same-scope contiguous-prefix and all
-  RPC guards remain unchanged.
-- Executable verification passed `248` unique checks: `244` deterministic/runtime
-  checks plus `4` real rendered History E2E scenarios. The browser suite passed
-  both before and after the required build/dev restart. Disposable residue was `0`.
-- Controlled Production UAT selected the exact valid `3,464 + 866 = 4,330` prefix.
-  Two one-click prepares returned `200`, both modals showed `4,330 · 2 รายการ`, and
-  two closes/cancels returned `200`. Controls remained disabled through revision
-  refresh, re-prepare did not return 409, and the final scope state was revision
-  `17` with no lock or active member.
-- Expected UAT lifecycle delta was exactly two cancelled batches, four inactive
-  members, four activity logs, and scope revision `15 -> 17`. Booking, Session,
-  receipt, coupon, Payment, attempt, allocation, Ledger, wallet, attendance, tier,
-  Finance, slip/storage, and SlipOK deltas were `0`. One coach check-in activity
-  and one reminder notification during the window were unrelated and separated by
-  timestamp/user/entity.
-- Entry and all four dependencies remain `true`; allowlist remains absent; shared
-  `SLIPOK_TEST_MODE=true`; migration `20260713210000` remains applied once; all
-  four capabilities remain Ready at the approved versions/contracts.
+- Authoritative current state is in `PROJECT_STATE.md`; dated implementation and
+  Production UAT evidence remains in `DEVELOPMENT_TODO.md`.
 
 ## Parking Lot
 
 ### Admin Schedules 20+ Second Performance Investigation
 
-Status: **PARKING LOT — AUDITED; FIX NOT STARTED**.
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
 - Read-only Supabase evidence confirms request fan-out/waterfall: a 100-request
   snapshot spanned `24.816` seconds with all requests returning `200`.
@@ -94,25 +51,25 @@ Status: **PARKING LOT — AUDITED; FIX NOT STARTED**.
   Vercel/RSC, Supabase, and connection/compute evidence.
 - Continue from
   `docs/performance/admin-schedules-supabase-log-analysis-2026-07-14.md`.
-- No source fix, migration, deploy, environment change, or Production write has
-  been approved or performed for this issue.
+- The existing audit does not authorize implementation. Await explicit Owner
+  selection before any further work.
 
 ### Homepage LV Copy Audit/Fix
 
-Status: **PARKING LOT — NOT STARTED**.
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- The History payment blocker is closed. Owner explicitly kept this parked while
-  Dashboard Booking is the single active task.
 - Audit homepage copy for `LV 71+` / `70+` language against the active school
   level contract of LV 0-70.
 - Do not introduce LV 71+ as current Production behavior without explicit Owner
   confirmation.
+- Await explicit Owner selection before any audit or implementation work.
 
-## Historical Closeout - Kids Group Pricing Reconciliation (Closed)
+## Historical / Superseded Reference — Kids Group Pricing Reconciliation
 
-Historical 2026-07-13 classification. Pricing reconciliation is closed; the later
-Booking and History regressions are also closed. Unlimited Slot Entry is a separate
-active Owner policy task, not a reopening of pricing reconciliation:
+State observed at the 2026-07-13 closeout. This retained reference is historical;
+current mutable state is authoritative only in `PROJECT_STATE.md`. Pricing
+reconciliation closed at that checkpoint, and Unlimited Slot Entry later became a
+separate task that is now also DONE:
 **PASS — PROGRESSIVE SUMMARY FIXED; OPTION A ENTRY ACTIVE; PRODUCTION 4+4=2,000 UAT PASSED; PRICING RECONCILIATION DONE**.
 
 Confirmed final state:
@@ -202,7 +159,7 @@ Confirmed final state:
 | Data repaired this round | No |
 | Customer impact | Future new general Kids Group bookings now use Progressive |
 | Financial impact | Future charges follow Option A; historical money/evidence unchanged |
-| Pricing reconciliation task | Done - later Booking/History regressions are also closed; Unlimited Slot Entry is a separate active task |
+| Pricing reconciliation task | Done at this closeout; later Booking/History and Unlimited Slot tasks are also closed |
 
 ## Worktree / Safety Notes
 
@@ -213,9 +170,10 @@ Confirmed final state:
   Do not replay Production confirmation without separate Owner authorization.
 - Historical booking-regression rollback evidence referenced
   `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. It is not a rollback target for Unlimited
-  Slot Entry. The Source Fix is committed and pushed, but no remote migration,
-  deployment, or Production UAT exists for it yet, so no release rollback target
-  has been established.
+  Slot Entry. At the pre-release checkpoint, its Source Fix was committed and
+  pushed but its remote migration, deployment, and Production UAT had not yet
+  occurred. That checkpoint is superseded by the completed release state in
+  `PROJECT_STATE.md`.
 
 ## Session Exit Checklist
 
@@ -224,6 +182,5 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next task: fresh Production preflight, then obtain Owner approval for coordinated
-  Remote Migration + exact Deploy + Production UAT. Admin Schedules Performance
-  and Homepage LV Copy remain in the Parking Lot.
+- Next action: **Await Owner selection. Do not start a Parking Lot task
+  automatically.**

@@ -99,6 +99,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
   `Unknown / Need verification`.
 
+### Current Execution State
+
+- Active Task: **NONE**. No active implementation task is selected.
+- Task Status: Dashboard Booking Unlimited Slot Entry + Customer Price UX is
+  **DONE**. The completed release state is recorded below.
+- Admin Schedules Performance is
+  **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+- Homepage LV remains parked and must not start until the Owner explicitly selects
+  it as the next single active task.
+- Next Action: **Await Owner selection. Do not start a Parking Lot task
+  automatically.**
+
 ### Dashboard Booking Unlimited Slot Entry + Customer Price UX
 
 Status: **DONE — REMOTE MIGRATION APPLIED; EXACT SOURCE DEPLOYED;
@@ -211,9 +223,6 @@ NO-WRITE PRODUCTION UAT PASSED**
   business-data repair was performed. Controlled write UAT was not run and was not
   required or authorized. Rollback was not used; any future rollback or forward fix
   remains a separate Owner decision.
-- Admin Schedules Performance is now
-  **PARKING LOT — AUDITED; FIX NOT STARTED**. Homepage LV Copy Audit remains parked
-  and must not start while this Booking task is active.
 
 ### Legacy Runtime
 
@@ -346,8 +355,9 @@ NO-WRITE PRODUCTION UAT PASSED**
 
 ### Admin Schedules Performance Investigation (2026-07-14)
 
-- Current classification: **CONFIRMED ADMIN LATENCY / REQUEST WATERFALL; SOURCE
-  FIX NOT STARTED**.
+- Current authorization: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED
+  TO START**. The completed read-only audit classified the issue as confirmed Admin
+  latency/request waterfall; no Source fix has started.
 - Read-only Supabase inspection found a 100-request API snapshot spanning `24.816`
   seconds; every request returned `200`. The project remained `ACTIVE_HEALTHY`, and
   no schedules-correlated timeout, deadlock, connection exhaustion, or 5xx was found.
@@ -388,9 +398,10 @@ They are superseded for current-state decisions by `Current Source of Truth` abo
   **PRODUCTION REGRESSION AUDITED - VALID SERVER 409 + CLIENT MODAL BUG; SOURCE
   FIX OWNER APPROVAL REQUIRED**. This classification was superseded by the History
   Payment Lifecycle Fix Closeout below and must not be used as current state.
-  Current History Payment status is **DONE; Production UAT passed**. Homepage LV is
-  parked because Unlimited Slot Entry is the active task, not because History is
-  blocked.
+  At that 2026-07-14 checkpoint, History Payment later closed as **DONE;
+  Production UAT passed**, and Homepage LV was parked because Unlimited Slot Entry
+  was then the active task. That historical priority is superseded by **Current
+  Execution State** above.
 - Scoped Booking price result is now:
   **PASS - PRODUCTION STEP 4/STEP 5 PRICE UI VERIFIED**. Owner-supplied
   authenticated evidence shows Step 4 `2,000`, Step 5 `2,000`, Legacy baseline
@@ -496,8 +507,9 @@ They are superseded for current-state decisions by `Current Source of Truth` abo
 - Final classification:
   **PASS - HISTORY PAYMENT LIFECYCLE FIXED; LOCAL E2E AND CONTROLLED PRODUCTION
   UAT PASSED; TASK DONE**. At this historical closeout, Homepage LV became the next
-  queued task and was not started; it is now superseded in priority and remains in
-  the Parking Lot while Unlimited Slot Entry is active.
+  queued task and was not started; it was later superseded while Unlimited Slot
+  Entry was active. Current authorization is recorded only in **Current Execution
+  State** above.
 - Root causes were the missing cancel/refresh lifecycle state, stale batch/member/
   total evidence retained behind a closed modal, stale rendered scope revision
   reused before `router.refresh()` completed, an error surface confined to closed

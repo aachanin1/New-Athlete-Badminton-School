@@ -2,6 +2,30 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-15 - Documentation Closeout Correction
+
+Status: **DOCUMENTATION DRIFT CORRECTED; NO ACTIVE TASK SELECTED**.
+
+- Owner approved Documentation Closeout Correction Only. Stale present-tense
+  statements that treated Unlimited Slot Entry as active, requested another
+  Production preflight/migration/deploy/UAT gate, or tied Homepage LV authorization
+  to the now-completed Booking task were corrected or explicitly marked historical
+  and superseded.
+- State observed at this closeout: the Unlimited Slot Production release remains
+  **DONE**; no active implementation task is selected. Admin Schedules Performance
+  and Homepage LV remain
+  **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+- A permanent `Documentation Consistency Gate` was added to `AGENTS.md`. It assigns
+  one owner for mutable facts, requires ordered context updates and a consistency
+  matrix, enforces hard-stop and historical-wording rules, prevents duplicated
+  current Production/Git state, and requires separate final-report state fields.
+- This correction changed no Source, Test Source, Migration Source, deployment,
+  environment, feature control, allowlist, SlipOK mode, Production schema/data,
+  customer behavior, or financial state. It performed no Production UAT or data
+  repair.
+- Next action: await Owner selection. Do not start a Parking Lot task
+  automatically.
+
 ### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Closeout
 
 Status: **PASS — UNLIMITED SLOT RELEASE DEPLOYED;
@@ -183,7 +207,7 @@ NO-WRITE PRODUCTION UAT PASSED; TASK DONE**.
 Final classification:
 **PASS — UNLIMITED SLOT RELEASE DEPLOYED; NO-WRITE PRODUCTION UAT PASSED; TASK DONE**.
 
-### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Preflight
+### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Preflight (Historical / Superseded)
 
 Status: **PRODUCTION RELEASE PREFLIGHT COMPLETE; DOCUMENTATION ALIGNED;
 MIGRATION/DEPLOY NOT STARTED**.
@@ -334,7 +358,7 @@ MIGRATION/DEPLOY NOT STARTED**.
 - Remaining gate is Owner approval or rejection of the coordinated exact migration,
   exact deploy, and no-write Production UAT plan. No Production write is implied.
 
-### 2026-07-15 - Dashboard Booking Unlimited Slot Entry Commit/Push Closeout
+### 2026-07-15 - Dashboard Booking Unlimited Slot Entry Commit/Push Closeout (Historical / Superseded)
 
 Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT STARTED**.
 
@@ -399,7 +423,7 @@ Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT 
   unchanged. The next gate is fresh Production preflight and separate Owner
   approval for Remote Migration + exact Deploy + Production UAT.
 
-### 2026-07-15 - Current-State Documentation Alignment
+### 2026-07-15 - Current-State Documentation Alignment (Historical / Superseded)
 
 - Classification before correction:
   **DOCUMENTATION DRIFT — CURRENT STATE MUST BE CORRECTED BEFORE SOURCE FIX**.
@@ -420,7 +444,7 @@ Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT 
   data, customer behavior, and financial state changed in this correction round:
   **no / no / no / no / no / no / no / no / no**.
 
-### 2026-07-15 - Dashboard Booking Unlimited Slot Entry + Customer Price UX Source Fix
+### 2026-07-15 - Dashboard Booking Unlimited Slot Entry + Customer Price UX Source Fix (Historical / Superseded)
 
 Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT STARTED**.
 
@@ -517,7 +541,7 @@ Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT 
 - Next Owner gate: fresh Production preflight, then approve coordinated Remote
   Migration + exact Deploy + Production UAT. Production writes remain unapproved.
 
-### 2026-07-15 - Dashboard Booking Unlimited Slot Entry + Customer Price UX Audit
+### 2026-07-15 - Dashboard Booking Unlimited Slot Entry + Customer Price UX Audit (Historical / Superseded)
 
 #### Owner decision and business reason
 
