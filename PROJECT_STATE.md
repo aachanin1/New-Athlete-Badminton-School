@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 Source: local source/git/docs audit plus read-only Vercel CLI and Production
 Supabase read-model verification. Items not confirmed are marked
 `Unknown / Need verification`.
@@ -99,6 +99,85 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
   `Unknown / Need verification`.
 
+### Dashboard Booking Unlimited Slot Entry + Customer Price UX
+
+Status: **ACTIVE — SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED;
+REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
+(Owner decision 2026-07-15).
+
+- Owner permanently removed the fixed learner-capacity ceiling from normal teaching
+  rounds. Occupancy may remain informational, but `max_students`,
+  `current_students`, a derived `full` state, or counts such as `x/6` must not block
+  or discourage valid slot entry. The Head Coach groups learners and assigns coaches
+  after booking.
+- The rule applies consistently to five entry paths: new User booking,
+  pending-payment booking edit, User reschedule, Lesson Wallet redemption, and
+  Admin/User makeup or replacement-date target selection. Admin booking on behalf
+  of users remains disabled.
+- Existing safety contracts remain mandatory: exact-learner duplicate and overlapping
+  time prevention, ownership/role authorization, active template and real slot
+  resolution, future/not-started checks, same-month wallet/reschedule rules,
+  payment/status requirements, idempotency/concurrency/atomicity, Option A pricing
+  revision/baseline checks, coupon, Ledger, Finance, attendance, and coach evidence.
+- Booking learner headings must use `{nickname} - {fullName}` when a distinct,
+  nonblank nickname exists, otherwise `{fullName}` once. Do not invent a nickname,
+  duplicate equal names, or render a blank separator. This applies to children,
+  self/adult learners, and multi-child selections.
+- Customer pricing copy must not require the terms Progressive, Legacy, baseline,
+  scope, revision, ordered pricing, or true-up. The selected authoritative
+  `pricing_tiers` range and price must be explained in plain Thai, including bounded,
+  one-session, and open-ended tiers. The client must not hardcode Production tier
+  values or infer the selected tier independently from fallback tables.
+- Pricing policy is unchanged: no tier/formula/history reprice; Progressive Kids
+  Group remains booking-level Option A; historical payments remain attached to
+  earlier bookings and are not deducted from a new Progressive booking; Adult Group,
+  Private, coupon, payment, Ledger, and Finance semantics remain unchanged.
+- Committed and pushed Source now removes capacity as a booking decision across User
+  create/pending edit, Reschedule, Lesson Wallet, and Admin Makeup target entry.
+  Occupancy remains informational; cancelled/lifecycle, future, active-template,
+  canonical-slot, ownership, status/payment, same-month, and learner-overlap guards
+  remain enforced. Admin booking remains disabled.
+- Booking now uses one shared learner display formatter and renders the exact tier
+  selected by the server from authoritative `pricing_tiers`. Steps 4-5 use plain
+  Thai customer copy, preserve Option A's no-deduction meaning, retain coupon/final
+  totals and zero-charge behavior, and avoid Progressive/Legacy as required customer
+  terminology.
+- New additive migration Source
+  `20260715060541_unlimited_normal_slot_entry.sql` replaces only the effective
+  Progressive slot lock/refresh helpers and capability contract. It removes the
+  occupancy ceiling, keeps row/advisory locking and learner-overlap protection,
+  makes `current_students` informational, preserves cancelled slots, and exposes
+  capability version `2` with
+  `slotEntryPolicy=unlimited_learner_v1`. It has no table-data rewrite, tier change,
+  reprice, or historical backfill and has been applied only to disposable local
+  Supabase.
+- Source commit is `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`, on
+  `origin/spike/next-major-security-upgrade`. The commit contains the approved
+  functional Source, Tests, exactly one new additive migration, and only the exact
+  permanent unlimited-capacity hunk from `AGENTS.md`. The unrelated `AGENTS.md`
+  remainder and `docs/performance/` remain excluded.
+- Local verification passed: full migration-chain reset; runtime `6+1`, `20+1`,
+  pending edit, duplicate/overlap, cancelled-slot, Option A rollback and concurrency
+  fixtures; 265 deterministic checks; 9 rendered Booking E2E cases with residue
+  `0`; TypeScript, ESLint, mojibake, and production build. The post-build test server
+  restarted from a clean `.next` and served the app/static assets during E2E.
+- Source/Test/Migration and context documentation are committed and pushed. No
+  remote migration, deploy, environment/feature/allowlist change, Production
+  read/write/UAT, pricing-tier/formula change, or financial/data repair occurred.
+  The deployed source remains
+  `7d98b062f850a4210fae052cefddd92b994889b8` in deployment
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`; Progressive Entry remains `true`, the
+  allowlist remains absent, and shared `SLIPOK_TEST_MODE=true` remains unchanged.
+- Production behavior is therefore unchanged: Booking still displays and blocks
+  capacity, Progressive create/edit can still return
+  `PROGRESSIVE_CAPACITY_EXCEEDED`, and Lesson Wallet redemption can still reject a
+  target based on cached capacity/full state. Remote migration, deploy, and
+  Production UAT are not started and require later Owner approval.
+- Admin Schedules Performance is now
+  **PARKING LOT — AUDITED; FIX NOT STARTED**. Homepage LV Copy Audit remains parked
+  and must not start while this Booking task is active.
+
 ### Legacy Runtime
 
 - Legacy Kids Group pricing remains a different monthly true-up formula in
@@ -114,9 +193,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   - Legacy `8+8` = `4,000 + 2,496 = 6,496`.
 - DB `pricing_tiers` remains price authority; the figures above are verified test
   examples, not permission to hardcode Production tiers.
-- Verified Production entry state (2026-07-12): the Progressive source is deployed,
-  but all Progressive control variables and the UUID allowlist variable are absent,
-  so general users and Adult/Private bookings still enter Legacy.
+- Historical / superseded state (verified 2026-07-12): Progressive controls and the
+  UUID allowlist were absent at that checkpoint, so general users still entered
+  Legacy. This is dated activation history, not current runtime.
+- Current Production state (verified read-only 2026-07-15): Entry is `true`, the
+  allowlist is absent, and all four Progressive dependencies are `true`. New general
+  Kids Group bookings use Progressive; Adult Group and Private remain Legacy.
 
 ### Progressive Runtime
 
@@ -155,14 +237,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
-- Committed and pushed: **yes**, through Production Booking Regression source commit
-  `be61b684b8d278c9e3ca69e5cf4f0f313bd4813e` on
-  `origin/spike/next-major-security-upgrade` before this documentation closeout.
-- Deployed: **yes** from an exact clean detached worktree at `be61b68`, tree
-  `22296e88b9dafbfe369ae559257ac5900aac3c36`. Deployment
-  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn` is Ready on all four aliases. The pre-fix
-  deployment `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS` is the approved deployment-health
-  rollback target; no rollback was used in this round.
+- Current committed and Production-deployed functional Source is
+  `7d98b062f850a4210fae052cefddd92b994889b8`, tree
+  `73294ca5419582492fa558623d395c5b3801af5e`, on
+  `origin/spike/next-major-security-upgrade`. The newer Unlimited Slot Entry Source
+  Fix is local and unstaged only.
+- Current Production deployment is `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, verified
+  Ready read-only on 2026-07-15 from that exact functional Source/tree.
+- Historical / superseded booking-regression evidence: commit `be61b68`, tree
+  `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
+  `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. None is the current runtime or a rollback
+  target for the local, uncommitted Unlimited Slot Entry Source Fix.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review based on the last value-level verification;
   all four names remain present in the read-only Production environment listing.
@@ -217,12 +303,53 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
-### History Payment Selection 409 Audit (2026-07-14)
+### Admin Schedules Performance Investigation (2026-07-14)
 
-- Current classification:
+- Current classification: **CONFIRMED ADMIN LATENCY / REQUEST WATERFALL; SOURCE
+  FIX NOT STARTED**.
+- Read-only Supabase inspection found a 100-request API snapshot spanning `24.816`
+  seconds; every request returned `200`. The project remained `ACTIVE_HEALTHY`, and
+  no schedules-correlated timeout, deadlock, connection exhaustion, or 5xx was found.
+- July 2026 currently has `1,373` verified non-rescheduled booking sessions, `418`
+  distinct schedule slots, and `252` distinct learners in the schedules scope.
+- Current source chunks related ids by `100` and loads monthly sessions, wallet
+  credits, assignment groups, slot sessions, teaching programs, levels, and
+  attendance in several dependent phases. The observed July shape produces about
+  `50` Supabase data requests per schedules render before Auth/Profile/Layout work.
+- Historical query statistics do not show one 20-second SQL statement. Relevant
+  monthly-session fingerprints had weighted mean `247.46 ms` and observed max
+  `1,226.20 ms`; the confirmed root pattern is request fan-out plus sequential
+  network/API round trips. RLS init-plan, multiple permissive-policy, and selected
+  foreign-key index advisories remain possible secondary costs, not proven primary
+  root causes.
+- Admin latency is confirmed. System-wide User impact remains **Unknown / Need
+  verification**: shared-capacity risk is credible, but the inspected window had no
+  failures and did not include User-portal end-to-end latency or connection-pool
+  saturation evidence.
+- The 2026-07-01 client render fix remains valid and is not contradicted: it avoided
+  rendering full-month detail by default but explicitly did not change server query,
+  chunk, or pagination behavior.
+- Full report:
+  `docs/performance/admin-schedules-supabase-log-analysis-2026-07-14.md`.
+- This investigation changed source/tests/deployment/environment/migration/
+  Production business data: **no / no / no / no / no / no**. Only read-only logs,
+  advisors, counts, and query statistics were inspected.
+
+## Historical / Superseded 2026-07-13–14 Records
+
+The dated audit, deployment, rollback, Entry, blocker, “current classification,”
+and next-task statements below describe their individual historical checkpoints.
+They are superseded for current-state decisions by `Current Source of Truth` above.
+
+### Historical History Payment Selection 409 Audit (2026-07-14; Superseded)
+
+- Historical pre-fix classification:
   **PRODUCTION REGRESSION AUDITED - VALID SERVER 409 + CLIENT MODAL BUG; SOURCE
-  FIX OWNER APPROVAL REQUIRED**. Overall Task Done remains **no** and Homepage LV
-  Copy Audit/Fix remains paused.
+  FIX OWNER APPROVAL REQUIRED**. This classification was superseded by the History
+  Payment Lifecycle Fix Closeout below and must not be used as current state.
+  Current History Payment status is **DONE; Production UAT passed**. Homepage LV is
+  parked because Unlimited Slot Entry is the active task, not because History is
+  blocked.
 - Scoped Booking price result is now:
   **PASS - PRODUCTION STEP 4/STEP 5 PRICE UI VERIFIED**. Owner-supplied
   authenticated evidence shows Step 4 `2,000`, Step 5 `2,000`, Legacy baseline
@@ -327,8 +454,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 - Final classification:
   **PASS - HISTORY PAYMENT LIFECYCLE FIXED; LOCAL E2E AND CONTROLLED PRODUCTION
-  UAT PASSED; TASK DONE**. Homepage LV Copy Audit/Fix is unpaused as the next task
-  and was not started in this round.
+  UAT PASSED; TASK DONE**. At this historical closeout, Homepage LV became the next
+  queued task and was not started; it is now superseded in priority and remains in
+  the Parking Lot while Unlimited Slot Entry is active.
 - Root causes were the missing cancel/refresh lifecycle state, stale batch/member/
   total evidence retained behind a closed modal, stale rendered scope revision
   reused before `router.refresh()` completed, an error surface confined to closed
@@ -476,16 +604,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Customer impact: the deployed source is designed to remove the misleading Step 4
   price and reject known-full choices earlier. Financial impact in this round is
   **none**; Production data did not change and no payment/slip action occurred.
-  No rollback criterion was observed, so deployment rollback was not used. The
-  task remains active and Homepage LV Copy Audit/Fix remains paused until the
-  authenticated no-write UAT is completed.
+  No rollback criterion was observed, so deployment rollback was not used. At that
+  historical checkpoint the task remained active pending authenticated no-write
+  UAT; the later evidence and History lifecycle closeout supersede that status.
 
 ### Production Booking Regression Audit (2026-07-14)
 
 - Historical pre-fix classification, superseded by the fix deployment record above:
   **PRODUCTION REGRESSION AUDITED - SOURCE FIX OWNER APPROVAL REQUIRED**.
   The 2026-07-13 successful no-write Summary UAT remains valid dated evidence, but
-  it no longer closes the end-to-end booking flow. `Task Done` is currently **no**.
+  it did not close the end-to-end booking flow at that checkpoint. This historical
+  `Task Done = no` state was superseded by the later booking evidence and History
+  lifecycle closeout; it is not the current Unlimited Slot Entry task status.
 - Fresh Git and runtime preflight passed without documentation/source drift:
   branch `spike/next-major-security-upgrade`, matching local/remote starting HEAD
   `8a78d5d7c917787b29cf65425445ed4932179f65`, functional source
@@ -621,8 +751,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Final activation logs sampled `28` requests: error `0`, 5xx `0`, baseline fault
   `0`, dependency fault `0`, SlipOK `0`, booking-create POST `0`, and successful
   preview `1`. Browser console warnings/errors and hydration errors were `0`.
-- Rollback was not used after the successful final activation. Corrected Entry-off
-  deployment `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` remains the rollback target. No
+- Rollback was not used after the successful final activation. At that historical
+  checkpoint, corrected Entry-off deployment
+  `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` was the rollback target; it is not a rollback
+  target for the current local, uncommitted Unlimited Slot Entry Source Fix. No
   Booking/Payment/business row, Legacy row, pricing tier, coupon policy, wallet,
   attendance, Ledger, Finance, Adult Group, or Private data changed.
 - Historical closeout classification recorded on 2026-07-13 and superseded by

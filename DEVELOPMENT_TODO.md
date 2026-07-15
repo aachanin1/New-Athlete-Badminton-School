@@ -2,6 +2,406 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-15 - Dashboard Booking Unlimited Slot Entry Commit/Push Closeout
+
+Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT STARTED**.
+
+- Source commit:
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`.
+- Source tree:
+  `397618a391f968ec1135084978ce3589a43f1d89`.
+- Source message: `fix(booking): remove normal slot capacity limits`.
+- Documentation closeout is the commit containing this record; its exact SHA is
+  reported in the Git/final handoff because a commit cannot contain its own final
+  content-addressed SHA.
+- Both commits are pushed without force to
+  `origin/spike/next-major-security-upgrade`; local/remote equality and ancestry are
+  verified after push.
+- Committed migration Source is exactly
+  `supabase/migrations/20260715060541_unlimited_normal_slot_entry.sql`, SHA-256
+  `130E1F7770ECB2F1D4C16CE19ED7CC8DFFD042F33D3602CCF6EC782BC0982BFD`.
+
+#### Source commit contents
+
+- Permanent rule: only the approved unlimited-capacity Scheduling hunk from
+  `AGENTS.md`.
+- Tests/scripts: `scripts/check-booking-slot-availability.mjs`,
+  `scripts/check-progressive-booking-entry.js`,
+  `scripts/check-unlimited-slot-entry-and-price-ux.mjs`,
+  `scripts/check-unlimited-slot-entry-runtime.sql`,
+  `tests/booking-regression/booking.spec.ts`, and
+  `tests/booking-regression/local-supabase.ts`.
+- Booking/UI/API: `src/components/dashboard/booking-client.tsx`,
+  `src/app/api/bookings/availability/route.ts`,
+  `src/app/api/bookings/preview/route.ts`, `src/app/api/bookings/route.ts`,
+  `src/app/api/lesson-wallet/route.ts`, `src/app/api/reschedule/route.ts`, and
+  `src/app/api/admin/makeup/route.ts`.
+- Shared helpers/contracts: `src/lib/learner-display-name.ts`,
+  `src/lib/booking-slot-availability.ts`, `src/lib/booking-pricing.ts`,
+  `src/lib/pricing.ts`, `src/lib/progressive-booking-preview.ts`,
+  `src/lib/progressive-booking-pricing.ts`, and
+  `src/lib/progressive-booking-write.ts`.
+- Additive migration: exactly
+  `supabase/migrations/20260715060541_unlimited_normal_slot_entry.sql`.
+
+#### Commit/push verification and exclusions
+
+- Before commit: branch/local/remote provenance matched expected
+  `db161d4a39c25a45932c821b7d0f0295ca8d7e2d`; functional ancestor
+  `7d98b062f850a4210fae052cefddd92b994889b8` remained in ancestry; migration
+  checksum matched; `git diff --check`, mojibake, focused Unlimited UX `27/27`,
+  and Booking Entry `31/31` passed; secret scan passed.
+- After Source commit: all 22 committed paths were inspected; context docs were
+  absent; migration checksum from the committed Git blob matched; no unrelated
+  source, performance work, generated output, credentials, or Production identifier
+  was included.
+- Documentation commit contains only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`.
+- Excluded and intentionally still dirty: the unrelated `AGENTS.md` remainder and
+  `docs/performance/admin-schedules-supabase-log-analysis-2026-07-14.md`.
+- Remote migration: **NO**. Deploy: **NO**. Feature/Entry: **NO CHANGE**.
+  Production UAT: **NOT RUN**. Task Done: **NO**.
+- Production remains on Source
+  `7d98b062f850a4210fae052cefddd92b994889b8` and deployment
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`; Production data and financial state are
+  unchanged. The next gate is fresh Production preflight and separate Owner
+  approval for Remote Migration + exact Deploy + Production UAT.
+
+### 2026-07-15 - Current-State Documentation Alignment
+
+- Classification before correction:
+  **DOCUMENTATION DRIFT — CURRENT STATE MUST BE CORRECTED BEFORE SOURCE FIX**.
+- Read-only verification confirmed branch `spike/next-major-security-upgrade`,
+  matching local/remote HEAD `db161d4a39c25a45932c821b7d0f0295ca8d7e2d`,
+  functional Source `7d98b062f850a4210fae052cefddd92b994889b8`, tree
+  `73294ca5419582492fa558623d395c5b3801af5e`, and Ready Production deployment
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`.
+- Production controls remained Entry `true`, all four Progressive dependencies
+  `true`, allowlist absent, and shared `SLIPOK_TEST_MODE=true`; migration
+  `20260713210000` remained applied once. History Payment is DONE with Production
+  UAT passed.
+- Current-state documents now label `be61b68`, `dpl_2GQ4...`, `dpl_CJV...`, Entry-off
+  checkpoints, pre-fix History classifications, and old rollback notes as historical
+  or superseded. Unlimited Slot Entry remains the only active task; Admin Schedules
+  Performance and Homepage LV remain parked.
+- Functional Source/tests/migration, commit, push, deploy, environment, Production
+  data, customer behavior, and financial state changed in this correction round:
+  **no / no / no / no / no / no / no / no / no**.
+
+### 2026-07-15 - Dashboard Booking Unlimited Slot Entry + Customer Price UX Source Fix
+
+Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT STARTED**.
+
+#### Approved policy and implemented boundary
+
+- Implemented the Owner-approved unlimited-learner rule for new User booking,
+  pending-payment edit, User reschedule, Lesson Wallet redemption, and Admin Makeup
+  target selection. Occupancy is informational and no longer decides eligibility.
+- Preserved or strengthened learner date/time overlap prevention, authentication and
+  ownership, active schedule-template resolution, canonical `schedule_slot_id`,
+  future/not-started and cancelled-slot checks, booking/payment status, same-month
+  wallet/reschedule rules, mutation idempotency, revision/baseline concurrency,
+  coupon consistency, and compensating cleanup. Admin booking remains disabled.
+- Pricing tiers/formulas, Option A, historical bookings/payments, Adult Group,
+  Private, SlipOK, Ledger, Finance, attendance, payroll, and Head Coach grouping were
+  not changed.
+
+#### Source map and result
+
+| File / function | Implemented result | Safety retained | Migration |
+| --- | --- | --- | --- |
+| `src/components/dashboard/booking-client.tsx` | Removed `x/y`, full/remaining-seat display and occupancy-based disabling; all course types fetch authoritative preview; Steps 4-5 render plain Thai selected-tier/coupon/zero-price evidence. | Draft fingerprint, stale-response guard, learner/session selection, server preview authority and final totals. | No |
+| `src/lib/learner-display-name.ts` | New shared pure formatter: distinct trimmed nickname + full name, otherwise one available name; multi-learner join has no blank separator. | Does not invent profile nicknames; child and self/adult contracts remain distinct. | No |
+| `src/app/api/bookings/availability/route.ts` + `src/lib/booking-slot-availability.ts` | Availability remains server-authoritative lifecycle/template/slot validation and returns non-blocking `activeOccupancy`; capacity/full/can-fit fields and requested-seat decisions are removed. | Auth/edit ownership, active template, exact date/time/end, canonical slot and cancelled-slot rejection. | No |
+| `src/app/api/bookings/route.ts` + `src/lib/progressive-booking-write.ts` | Removed the obsolete capacity error contract; create/edit now fail closed unless the DB capability advertises `slotEntryPolicy=unlimited_learner_v1`. | Option A preview/revision/baseline, mutation replay, ownership, canonical slots and overlap checks. | Yes |
+| `src/lib/pricing.ts`, `src/lib/booking-pricing.ts`, `src/lib/progressive-booking-pricing.ts`, `src/lib/progressive-booking-preview.ts`, `src/app/api/bookings/preview/route.ts` | Exact selected tier now crosses the server preview boundary as `{id,minSessions,maxSessions,pricePerSession,packagePrice,unit}`; one, bounded and open-ended ranges are formatted without client tier tables. | DB `pricing_tiers` authority; Legacy/Progressive/Adult/Private formulas and coupon order unchanged. | No |
+| `src/app/api/reschedule/route.ts` | Remains capacity-free; duplicate guard now rejects any same-learner interval overlap rather than only exact times. | Verified/scheduled source, cutoff, same month, future active template, real slot, cleanup/log/notification behavior. | No |
+| `src/app/api/lesson-wallet/route.ts` | Removed `current_students < max_students` and historical `full` blocking; cached occupancy updates are informational. | Entitlement, attendance/cutoff, same month, future template/slot, credit CAS, no-payment behavior, overlap and cancelled/lifecycle guards. | No |
+| `src/app/api/admin/makeup/route.ts` | Capacity remains non-blocking; target creation now validates booking/course relationship, future active template, canonical slot and learner overlap and writes `schedule_slot_id`. | Admin authorization, absence/verified policy, next-month entitlement, audit and notifications. | No |
+
+#### Additive migration Source
+
+- Created exactly one new migration:
+  `supabase/migrations/20260715060541_unlimited_normal_slot_entry.sql`.
+- SHA-256:
+  `130E1F7770ECB2F1D4C16CE19ED7CC8DFFD042F33D3602CCF6EC782BC0982BFD`.
+- `CREATE OR REPLACE FUNCTION` keeps the existing signatures for
+  `progressive_lock_booking_slots_v1(uuid,uuid,learner_type,uuid,uuid,jsonb,uuid,uuid[])`
+  and `progressive_refresh_slot_capacity_v1(uuid[])`. The lock helper still resolves
+  and locks canonical slots, rejects cancelled/invalid templates and learner time
+  overlap, but no longer compares occupancy with `max_students`. Refresh still
+  counts active learners into `current_students`, preserves cancelled slots, and
+  normalizes touched non-cancelled slots to `open` without deriving `full`.
+- `progressive_pricing_writes_capability_v1()` remains capability version `2`, keeps
+  `legacyBaselineContract=immutable_scope_v1`, and adds
+  `slotEntryPolicy=unlimited_learner_v1` so mismatched Source/DB fails closed.
+- Fixed search paths and existing `SECURITY DEFINER` top-level create/update RPCs
+  remain intact. Helper/capability execution is revoked from `PUBLIC`, `anon`, and
+  `authenticated`; capability remains granted to `service_role`. There is no DML,
+  table rewrite, historical backfill, tier change, or Production repair.
+- Applied only through disposable local `supabase db reset`; not applied to remote or
+  Production. A rollback to the previous helper definitions would restore the
+  prohibited ceiling and therefore requires a coordinated Source/DB rollback, not
+  a standalone function rollback.
+
+#### Executable verification
+
+- Full disposable migration-chain reset passed and proved capability version/policy,
+  effective grants, and absence of the old capacity/full derivation in effective
+  function definitions.
+- `scripts/check-unlimited-slot-entry-runtime.sql` passed with transaction rollback:
+  `6+1`, `20+1`, pending edit above the old ceiling, overlap against existing data,
+  overlap inside one request, cancelled slot, invalid template, past/started target,
+  informational occupancy, no partial write, and clean residue.
+- Option A runtime rollback SQL passed cleanly; concurrent first booking produced
+  exactly one winner and one `PROGRESSIVE_SCOPE_REVISION_CONFLICT` loser (`8/8`),
+  one scope/receipt, the preserved baseline, correct `2,000` price, and no payment.
+- Deterministic checks passed `265`; rewritten capacity tests retain `6`/`20` as
+  regression triggers and now require learner `7`/`21` success rather than deleting
+  the cases.
+- Rendered Playwright Booking regression passed `9/9`: occupancy `6` and `20`, child
+  and self name display, Reschedule `20+1`, Wallet `6+1`, Makeup above `20`, restored
+  `4+4`/coupon calculation, stale preview, occupied restored draft, occupancy race,
+  and actual `4+4 = 2,000` create. Disposable residue was `0`.
+- `npx tsc --noEmit`, ESLint, `npm.cmd run check:mojibake`, production build, and
+  post-build clean `.next` dev/E2E asset load passed. Final local checks returned
+  `/ = 200`, generated `/_next/static/* = 200`, and unauthenticated Booking
+  availability/preview/create APIs each `401`. Build/dev artifacts remain ignored,
+  no fixture/backup residue is tracked, and the disposable stack was stopped with
+  no backup volume retained.
+
+#### Scope closeout and remaining gate
+
+- Functional Source changed: **yes**. Commit/push: **yes**. Remote
+  migration/deploy/environment/Entry/allowlist/Production read-write/UAT: **no**.
+  Production data and financial state: **no change**.
+- Production remains on Source
+  `7d98b062f850a4210fae052cefddd92b994889b8`, deployment
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, and therefore still exposes the superseded
+  capacity behavior until separately approved commit/push, migration application,
+  deploy, and UAT gates complete.
+- Admin Schedules Performance remains
+  **PARKING LOT — AUDITED; FIX NOT STARTED**; Homepage LV remains parked.
+- Next Owner gate: fresh Production preflight, then approve coordinated Remote
+  Migration + exact Deploy + Production UAT. Production writes remain unapproved.
+
+### 2026-07-15 - Dashboard Booking Unlimited Slot Entry + Customer Price UX Audit
+
+#### Owner decision and business reason
+
+- Owner permanently removed fixed learner-capacity ceilings from normal teaching
+  rounds. A round may contain more than `6`, `20`, or any configured count; the Head
+  Coach divides learners into groups and assigns coaches after booking.
+- Occupancy must not block or discourage any of five normal entry paths: new User
+  booking, pending-payment booking edit, User reschedule, Lesson Wallet redemption,
+  and Admin/User makeup or replacement-date target selection. Admin booking on
+  behalf of users remains disabled.
+- The decision addresses valid customers being blocked by `0/6`, full-slot UI, and
+  `PROGRESSIVE_CAPACITY_EXCEEDED`. It does not change pricing tiers, Legacy or
+  Progressive formulas, Option A, historical bookings, Adult Group, Private,
+  payment, coupon, Ledger, Finance, attendance, payroll, or coach assignment rules.
+- Customer learner headings must use distinct nickname plus full name, or full name
+  once. Price explanations must use plain Thai and authoritative tier ranges without
+  requiring Progressive, Legacy, baseline, scope, revision, ordered pricing, or
+  true-up terminology.
+- This round was read-only Source/DB audit plus documentation only. Functional
+  Source/tests, migration Source/application, commit, push, deploy, environment,
+  Entry/allowlist, Production data, booking/payment actions, and financial state did
+  not change.
+
+#### Effective Source dependency map
+
+| File / function | Current behavior and policy conflict | Safety to preserve | Proposed future change | Migration |
+| --- | --- | --- | --- | --- |
+| `src/components/dashboard/booking-client.tsx` | Fetches availability, shows `x/y`/full/remaining-seat copy, disables full slots and confirmation, maps `PROGRESSIVE_CAPACITY_EXCEEDED`, and describes Kids Group as `4-6` learners. Learner names and pricing terminology vary by step. | Draft fingerprint/stale-preview protection, exact learner selection, start-time checks, authoritative preview, coupon/final totals. | Remove all customer capacity ceilings and disabling; use one learner-name formatter; render authoritative tier range and low-technical Thai explanation in Steps 4-5. | No |
+| `src/app/api/bookings/availability/route.ts` + `src/lib/booking-slot-availability.ts` | Canonicalizes active templates/slots and active occupancy, then derives capacity, remaining, `full`, and `canFit`. Progressive UI treats those fields as blocking. | Authentication, edit ownership, active template/date/time/end matching, cancelled-slot detection, canonical slot id. | Keep as server-authoritative non-blocking slot validation and optional internal `activeOccupancy`; remove capacity/full/remaining/can-fit from customer decisions. | No |
+| `POST/PUT src/app/api/bookings/route.ts` | Progressive create/edit maps the RPC capacity exception to HTTP `409`; Legacy create/edit has no capacity check. | Auth/ownership, learner ownership, active template and real slot resolution, future checks, price preview/revision/baseline, coupon and compensating cleanup. | Remove capacity error contract only; keep server authority. Add overlap and transaction regression coverage rather than weakening guards. | Yes for Progressive RPC |
+| `src/lib/progressive-booking-write.ts` | Carries `PROGRESSIVE_CAPACITY_EXCEEDED` as a known typed RPC error; delegates atomic create/edit to DB. | Service-role boundary, mutation fingerprint/replay, expected revision and Option A baseline. | Remove obsolete capacity error mapping and require a capability contract that proves unlimited-slot policy. | Coordinated |
+| `progressive_lock_booking_slots_v1(...)` | Locks canonical slot rows, prevents exact learner/date/time duplicates, then rejects when active occupancy plus requested learners exceeds `schedule_slots.max_students`. | Advisory/row locking, template/date/time/end resolution, cancelled-slot and duplicate guards. | `CREATE OR REPLACE` the same signature to remove only the capacity comparison/error. Preserve locks and safety checks; extend overlap protection separately. | Yes |
+| `progressive_refresh_slot_capacity_v1(uuid[])` | Recomputes `current_students` and derives slot `status='full'` at `max_students`. | Accurate informational occupancy and cancelled status. | Keep `current_students` informational if still useful, but never derive a blocking `full` state from occupancy; cancelled remains non-entry. | Yes |
+| effective `create_progressive_booking_v1(...)` / `update_progressive_pending_booking_v1(...)` | Atomic create/edit call the lock and refresh helpers, so both inherit the hard capacity ceiling. | Security-definer/service-role-only access, fixed search path, receipt idempotency, revision/baseline/pricing/coupon transaction. | Retain signatures if possible; dependency behavior changes through replaced helpers and a bumped policy capability. | Dependency only |
+| Legacy create/edit in `src/app/api/bookings/route.ts` | Does not enforce capacity, but its shared slot resolver does not itself prove general overlapping-session prevention or a DB transaction. | Existing template, ownership, future, exact duplicate, price, rollback behavior. | Keep unlimited behavior; add overlap/atomicity tests and close proven safety gaps within approved Booking scope. | Unknown if later atomic RPC is chosen |
+| `src/app/api/reschedule/route.ts` | Already ignores occupancy/capacity. It validates ownership, verified/scheduled source, cutoff, same month, future target, active template, real slot, and exact duplicate. Exact duplicates are blocked, but arbitrary time overlap and full DB atomicity are not proven. | All listed guards, notifications, audit and rollback cleanup. | Do not add capacity. Add overlap/idempotency/atomicity regression and hardening where evidence requires. | Unknown |
+| `src/app/api/lesson-wallet/route.ts` | `ensureSlotHasCapacity` requires `status='open'` and `current_students < max_students`; redemption therefore blocks full targets and manually adjusts cached occupancy. | Verified entitlement, ownership, no attendance, 48-hour store cutoff, same month, future active template, real slot, duplicate prevention, credit CAS, no new payment, assignment cleanup. | Replace capacity check with cancelled/lifecycle/template validation; keep occupancy informational. Audit transaction boundary and overlapping-session prevention. | Unknown if later atomic RPC is chosen |
+| `src/app/api/admin/makeup/route.ts` + makeup client | Target creation has no capacity ceiling, but the API does not currently prove active target template, future target, exact learner duplicate/overlap, real `schedule_slot_id`, booking/session relationship, idempotency, or atomicity. | Admin authorization, verified/absence review policy, next-month rule, attendance/entitlement audit and notifications. | Preserve unlimited entry and add the missing server-authoritative target-slot/safety contract before calling the path consistent. | Likely for atomic RPC; exact boundary needs implementation design |
+| Tests/fixtures | Booking regression and availability checks intentionally assert `5/6`, `6/6`, full disabling and atomic capacity rejection; Lesson Wallet UAT asserts available target capacity. Schema fixtures seed `max_students=6`. | Executable template, duplicate, timing, pricing, coupon, draft, race and cleanup proof. | Rewrite behavior assertions rather than delete them: retain `6` fixtures as a regression trigger but require learner 7 and learner 21 to succeed. | No |
+
+- Capacity occurrence classification:
+  - **Hard business capacity limit to remove:** Booking capacity display/disable/error
+    handling, availability capacity/full/can-fit decisions, Progressive lock rejection,
+    refresh-derived `status='full'`, Lesson Wallet capacity/open-only guard, and tests
+    whose pass condition is rejection at `6`.
+  - **Informational occupancy only:** active occupancy counting and
+    `schedule_slots.current_students`, if retained as a non-authoritative operational
+    count that cannot affect entry, pricing, entitlement, payroll, or accounting.
+  - **Duplicate learner/time protection to preserve and strengthen:** the current
+    exact learner/date/start/end checks in Booking, Progressive RPC, Reschedule, and
+    Wallet. General interval-overlap prevention is not proven and remains a required
+    Source-fix safety item.
+  - **Lifecycle/start-time/template protection to preserve:** active template and
+    canonical slot matching, cancelled-slot rejection, future/not-started checks,
+    same-month rules, ownership/status/payment requirements, and assignment cleanup.
+  - **Stale/dead code:** no effective dead capacity guard was relied on. Hardcoded
+    `6` in Booking marketing text conflicts with policy; `max_students=6` in schema
+    defaults and fixtures may remain only as compatibility/regression evidence.
+  - **Unknown / Need verification:** no separate customer User makeup target-entry
+    API was found; the inspected target creation is the Admin makeup path. Whether
+    Reschedule, Wallet, and Makeup should share one new atomic RPC is an
+    implementation design decision, not established current behavior.
+
+#### Effective migration audit
+
+- Latest applied local/Production definition of
+  `progressive_lock_booking_slots_v1(uuid,uuid,learner_type,uuid,uuid,jsonb,uuid,uuid[])`
+  and `progressive_refresh_slot_capacity_v1(uuid[])` is migration
+  `20260710170000_add_progressive_pricing_transactions.sql`. No later migration
+  replaces these helpers.
+- Effective create is the 11-argument
+  `create_progressive_booking_v1(uuid,learner_type,uuid,uuid,uuid,jsonb,uuid,uuid,bigint,integer,text)`
+  from `20260713210000_add_progressive_legacy_baseline_compatibility.sql`. Effective
+  pending edit is
+  `update_progressive_pending_booking_v1(uuid,uuid,uuid,jsonb,uuid,bigint)` from
+  `20260710170000`; effective cancel is
+  `cancel_progressive_pending_booking_v1(uuid,uuid,uuid,bigint)` from
+  `20260710180000_add_progressive_coupon_lifecycle.sql`.
+- Production read-only `pg_proc` and migration-order verification confirmed the lock
+  helper still raises `PROGRESSIVE_CAPACITY_EXCEEDED`; create and pending edit call
+  it. Only the lock/refresh helpers reference `schedule_slots.max_students` or
+  `current_students` among effective Progressive public functions. No pricing,
+  entitlement, payment, Ledger, Finance, attendance, payroll, or accounting RPC was
+  found using capacity as an input.
+- **Migration required: YES.** A new additive, non-destructive
+  `CREATE OR REPLACE FUNCTION` migration must supersede the two effective helpers.
+  No table rewrite, tier change, historical reprice, or Production data repair is
+  currently indicated.
+- Preserve `SET search_path = public, pg_temp`. Lock/refresh are invoker functions;
+  create/update/cancel and capability remain `SECURITY DEFINER`. Preserve revokes
+  from `PUBLIC`, `anon`, and `authenticated`, service-role-only execution, and the
+  current top-level signatures unless a coordinated capability bump explicitly
+  requires otherwise. Production ACL inspection confirmed only `postgres` and
+  `service_role` can execute these functions.
+- Add an explicit unlimited-slot policy field/version to
+  `progressive_pricing_writes_capability_v1()` and update the server expectation in
+  the same Source release so old DB behavior fails closed. Rolling back only the
+  function would reintroduce the invalid capacity ceiling; rollback must be a
+  coordinated Owner-approved Source/migration decision. Existing cached `full`
+  rows need not be destructively rewritten if every entry path ignores occupancy
+  state and touched rows are normalized by the new refresh behavior.
+
+#### Learner names, pricing evidence, and customer copy
+
+- `children.full_name` is required and `children.nickname` is nullable. `profiles`
+  has `full_name` but no nickname field. No shared learner display formatter exists;
+  Booking currently mixes full name, nickname-only, and `full_name (nickname)`.
+- Smallest shared boundary is a pure `src/lib/learner-display-name.ts` formatter:
+  distinct trimmed nickname/full name -> `{nickname} - {fullName}`; absent or
+  whitespace nickname -> full name; equal normalized values -> full name once;
+  blank full name with nickname -> nickname only; both blank -> neutral
+  `ไม่ระบุชื่อผู้เรียน`. Self/adult uses profile full name only. Multi-child output
+  maps the formatter per child and joins the resulting names without blank separators.
+
+  | Case | Required output |
+  | --- | --- |
+  | nickname `น้องเมย์`, full name `เมย์ ใจดี` | `น้องเมย์ - เมย์ ใจดี` |
+  | nickname absent or whitespace, full name `เมย์ ใจดี` | `เมย์ ใจดี` |
+  | nickname equals full name `เมย์ ใจดี` | `เมย์ ใจดี` |
+  | child learner | Apply the same rule to `children.nickname` + `children.full_name` |
+  | self/adult learner | Trimmed `profiles.full_name` only; do not invent nickname |
+  | children `น้องเมย์`/`เมย์ ใจดี` and no nickname/`มิน ใจดี` | `น้องเมย์ - เมย์ ใจดี, มิน ใจดี` |
+- `pricing_tiers.min_sessions` is the inclusive lower bound,
+  `max_sessions` the nullable inclusive upper bound, `price_per_session` the unit
+  price, and `package_price` the package price. `max_sessions=null` is open-ended.
+- Progressive preview already computes an authoritative nested `selectedTier`
+  containing id/min/max, but Booking's client type/render discards that range and
+  uses only the rate. Legacy preview returns totals without selected-tier evidence.
+  The client separately receives tier rows and fallback defaults; that is not a safe
+  substitute for the exact server-selected tier.
+- Smallest safe preview contract adds top-level selected-tier evidence from the exact
+  authoritative DB calculation for every applicable mode:
+  `{id,minSessions,maxSessions,pricePerSession,packagePrice,unit}`. Render `N ครั้ง`
+  for one-session, `N–M ครั้ง` for bounded, and `N ครั้งขึ้นไป` for open-ended.
+  Adult Group and Private preserve their current formulas and render the exact
+  package/session/hour evidence selected by the server. Coupon applies after gross;
+  a zero final price still shows gross, discount, selected range, final `0`, and that
+  no slip is required.
+- Step 4 compact copy: `ช่วงราคา {range} • {rate} บาท/ครั้ง`. Step 5 title:
+  `วิธีคิดราคาการจองครั้งนี้`, followed by `เดือนนี้มีรอบเรียนเดิม {previous} ครั้ง`,
+  `ครั้งนี้เลือกเพิ่ม {new} ครั้ง`, `หลังจองจะรวมเป็น {after} ครั้ง`,
+  `จำนวนรวม {after} ครั้ง อยู่ในช่วงราคา {range}`,
+  `ราคาสำหรับการจองครั้งนี้ {rate} บาทต่อครั้ง`, and
+  `ยอดชำระครั้งนี้: {new} × {rate} = {gross} บาท`.
+- Progressive Kids Group additionally says
+  `ยอดที่ชำระสำหรับรายการก่อนหน้าจะยังอยู่กับรายการเดิม และไม่ถูกหักจากการจองครั้งนี้`.
+  Legacy Kids Group, if still customer-visible, uses the same neutral title and
+  explains paid rounds, total rounds, authoritative range, total monthly amount,
+  amount already paid, and this payment without naming Legacy or true-up.
+- Coupon copy: `ราคาก่อนใช้คูปอง: {gross} บาท`,
+  `ส่วนลดคูปอง {code}: {discount} บาท`,
+  `ยอดชำระหลังหักส่วนลด: {final} บาท`. Zero copy:
+  `ยอดชำระครั้งนี้: 0 บาท` and `ไม่ต้องแนบสลิปสำหรับรายการนี้`.
+- One-session range copy is `ช่วงราคา 1 ครั้ง`; bounded range is
+  `ช่วงราคา {min}–{max} ครั้ง`; open-ended range is
+  `ช่วงราคา {min} ครั้งขึ้นไป`.
+- Exact neutral Legacy explanation, if that mode is still customer-visible:
+  `วิธีคิดราคาการจองครั้งนี้`, `เดือนนี้มีรอบที่ชำระแล้ว {old} ครั้ง`,
+  `ครั้งนี้เลือกเพิ่ม {new} ครั้ง`, `หลังจองจะรวมเป็น {after} ครั้ง`,
+  `จำนวนรวม {after} ครั้ง อยู่ในช่วงราคา {range}`,
+  `ยอดรวมของเดือนตามช่วงราคานี้: {after} × {rate} = {target} บาท`,
+  `หักยอดที่ชำระแล้วในเดือนนี้: {paid} บาท`, and
+  `ยอดชำระครั้งนี้: {charge} บาท`.
+- Exact Adult Group explanation:
+  `วิธีคิดราคาการจองครั้งนี้`, `เลือกเรียน {n} ครั้ง`,
+  `แพ็กเกจที่ใช้: {authoritativeRange}`, `ราคาแพ็กเกจ {package} บาท`,
+  `เฉลี่ย {rate} บาทต่อครั้ง`, and `ยอดชำระครั้งนี้: {final} บาท`.
+  Exact Private explanation uses the same lines with `{hours} ชั่วโมง` and
+  `เฉลี่ย {rate} บาทต่อชั่วโมง`. Coupon and zero-price lines above append after the
+  authoritative gross calculation without changing either formula.
+- Current customer copy to replace includes `เรท Progressive`,
+  `คำนวณราคา Progressive`,
+  `สิทธิ์เดิมที่ใช้กำหนดเรท`, `การจอง Progressive ก่อนหน้า`, technical `เรท`,
+  Legacy monthly target/deduction/credit wording, and capacity/full messages.
+
+#### Proposed implementation split and executable test matrix
+
+1. Customer Booking UI and authoritative preview contract: add shared learner-name
+   formatting, return the selected DB tier evidence for all modes, replace Steps 4-5
+   copy, and retain preview/draft/coupon authority.
+2. User booking/edit: remove UI/API capacity decisions and obsolete typed error while
+   preserving server template/slot/duplicate/timing/Option A/atomic write guards.
+3. Reschedule and Lesson Wallet: remove Wallet capacity/status-full blocking and add
+   shared overlap/lifecycle/idempotency/atomicity regression coverage; Reschedule
+   remains unlimited and receives the same safety proof.
+4. Makeup: add server-authoritative active template, future real-slot, learner
+   duplicate/overlap, ownership relationship, idempotency and atomic write behavior
+   without adding a capacity ceiling.
+5. Database RPC Source: add the non-destructive helper replacements and coordinated
+   capability contract. Do not apply remotely in the Source-fix round.
+6. Rewrite rather than delete the existing full-slot tests. Required matrix:
+   `0+1`, `6+1`, and `20+1` learners succeed; same learner exact/overlapping time
+   remains blocked; started/past and inactive/nonexistent template remain blocked;
+   new booking, pending edit, reschedule, Wallet redemption, and makeup target all
+   succeed above old capacity; Progressive `4+1` shows `2–6`/`625`, `4+4` shows
+   `7–10`/`500`; coupon gross/discount/final remains correct; restored draft
+   recalculates; Adult Group and Private are unchanged; normal customer explanation
+   contains no Progressive/Legacy; all learner-name cases pass. Also retain mutation
+   replay, stale revision/baseline, race, rollback residue, payment/history,
+   attendance, and coach-evidence regressions.
+7. Commit/Push is a separate gate after local/disposable checks and Owner approval.
+8. Deploy, migration application, Production no-write/write UAT, and any data action
+   remain separate later approvals; this audit does not combine them.
+
+#### Out of scope and remaining gate
+
+- No Head Coach grouping redesign, Admin Schedules performance fix, Homepage LV copy,
+  tier/formula change, historical reprice/repair, payment, SlipOK, coupon, Ledger,
+  Finance, payroll, attendance, deployment, environment, or Production write belongs
+  to this audit.
+- No conflicting Owner capacity policy, destructive migration, pricing/payroll/
+  accounting dependency, or required Production data repair was found. The effective
+  RPC is identified confidently. The remaining gate is Owner approval for the
+  audited functional Source Fix, additive migration Source, and Local Test scope
+  only. Commit/push, remote migration, deploy, and Production UAT remain unapproved.
+
 ### 2026-07-12 - Kids Group Legacy vs Progressive Pricing
 
 Purpose: preserve the detailed evidence behind the current

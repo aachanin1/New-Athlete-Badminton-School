@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -8,7 +8,42 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ## Current Active Work
 
-### 1. History Payment Selection 409 / Invalid Slip Modal State
+### 1. Dashboard Booking Unlimited Slot Entry + Customer Price UX
+
+Status: **ACTIVE — SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED;
+REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**.
+
+- Remove fixed learner-capacity blocking consistently from new User booking,
+  pending-payment edit, User reschedule, Lesson Wallet redemption, and
+  makeup/replacement-date target selection while preserving every duplicate,
+  overlap, ownership, template/slot, timing, payment, same-month, idempotency,
+  concurrency, atomicity, Option A, coupon, Ledger, and Finance guard.
+- Replace customer `x/6`, full/remaining-seat states, and internal pricing terms
+  with non-blocking occupancy behavior and plain Thai price explanation sourced
+  from the authoritative selected `pricing_tiers` range.
+- Standardize Booking learner headings to distinct nickname plus full name, or full
+  name only, for child, self/adult, and multi-child cases.
+- Functional Source and executable tests now implement the approved behavior across
+  all five normal entry paths. The authoritative preview includes selected-tier
+  evidence, learner headings use the shared formatter, and customer Steps 4-5 no
+  longer require Progressive/Legacy terminology.
+- Additive migration Source
+  `20260715060541_unlimited_normal_slot_entry.sql` replaces the effective lock,
+  refresh, and capability functions without a data rewrite. It passed a complete
+  disposable local reset and runtime/rollback/concurrency checks; it has not been
+  applied remotely.
+- Verification passed 265 deterministic checks, 9 rendered Booking E2E cases with
+  residue `0`, TypeScript, ESLint, mojibake, and production build. Source commit
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f` (tree
+  `397618a391f968ec1135084978ce3589a43f1d89`) and this context closeout are pushed
+  to `origin/spike/next-major-security-upgrade`. Remote migration, deploy,
+  Production read/write/UAT, environment/feature/allowlist, pricing-tier/formula,
+  and financial/data state remain unchanged. Next gate is separate Owner approval
+  for coordinated Remote Migration + exact Deploy + Production UAT.
+
+## Recently Completed
+
+### History Payment Selection 409 / Invalid Slip Modal State
 
 Status: **DONE**.
 
@@ -41,20 +76,43 @@ Status: **DONE**.
   `SLIPOK_TEST_MODE=true`; migration `20260713210000` remains applied once; all
   four capabilities remain Ready at the approved versions/contracts.
 
-### 2. Homepage LV Copy Audit/Fix - Next
+## Parking Lot
 
-Status: **UNPAUSED; NOT STARTED**.
+### Admin Schedules 20+ Second Performance Investigation
 
-- The History payment blocker is closed. This is now the next documented task, but
-  it was intentionally not started in the same closeout round.
+Status: **PARKING LOT — AUDITED; FIX NOT STARTED**.
+
+- Read-only Supabase evidence confirms request fan-out/waterfall: a 100-request
+  snapshot spanned `24.816` seconds with all requests returning `200`.
+- July scope contains `1,373` verified non-rescheduled sessions, `418` slots, and
+  `252` learners. Current chunking/loading produces about `50` Supabase data
+  requests per schedules render before Auth/Profile/Layout work.
+- No single 20-second SQL query, Supabase outage, timeout, deadlock, connection
+  exhaustion, or schedules-correlated 5xx was found.
+- Admin latency is confirmed. System-wide User impact is
+  `Unknown / Need verification`; shared-capacity risk requires correlated Browser,
+  Vercel/RSC, Supabase, and connection/compute evidence.
+- Continue from
+  `docs/performance/admin-schedules-supabase-log-analysis-2026-07-14.md`.
+- No source fix, migration, deploy, environment change, or Production write has
+  been approved or performed for this issue.
+
+### Homepage LV Copy Audit/Fix
+
+Status: **PARKING LOT — NOT STARTED**.
+
+- The History payment blocker is closed. Owner explicitly kept this parked while
+  Dashboard Booking is the single active task.
 - Audit homepage copy for `LV 71+` / `70+` language against the active school
   level contract of LV 0-70.
 - Do not introduce LV 71+ as current Production behavior without explicit Owner
   confirmation.
 
-## Historical Closeout - Kids Group Pricing Reconciliation (Reopened)
+## Historical Closeout - Kids Group Pricing Reconciliation (Closed)
 
-Historical 2026-07-13 classification, superseded by the active blocker above:
+Historical 2026-07-13 classification. Pricing reconciliation is closed; the later
+Booking and History regressions are also closed. Unlimited Slot Entry is a separate
+active Owner policy task, not a reopening of pricing reconciliation:
 **PASS — PROGRESSIVE SUMMARY FIXED; OPTION A ENTRY ACTIVE; PRODUCTION 4+4=2,000 UAT PASSED; PRICING RECONCILIATION DONE**.
 
 Confirmed final state:
@@ -121,12 +179,13 @@ Confirmed final state:
 - No booking was confirmed. No Booking, Payment, scope, session, snapshot,
   receipt, coupon, wallet, attendance, notification, Ledger, Finance, refund,
   credit, pricing-tier, Legacy, Adult Group, or Private write occurred.
-- Rollback was not required after the successful final artifact. The corrected
-  Entry-absent deployment remains the documented rollback target.
+- Rollback was not required after the successful final artifact. At that historical
+  closeout, the corrected Entry-absent deployment was the documented rollback
+  target; it is not a rollback target for Unlimited Slot Entry.
 
-### Progressive Status Matrix
+### Historical Progressive Status Matrix (2026-07-13 Closeout)
 
-| State | Current result |
+| State | Historical closeout result |
 | --- | --- |
 | Source complete | Yes - summary fix `aa64adf`; core Option A `f8568a6` |
 | Tests passed | Yes |
@@ -143,18 +202,20 @@ Confirmed final state:
 | Data repaired this round | No |
 | Customer impact | Future new general Kids Group bookings now use Progressive |
 | Financial impact | Future charges follow Option A; historical money/evidence unchanged |
-| Task done | No - reopened by the 2026-07-14 Production booking regression |
+| Pricing reconciliation task | Done - later Booking/History regressions are also closed; Unlimited Slot Entry is a separate active task |
 
 ## Worktree / Safety Notes
 
 - Branch: `spike/next-major-security-upgrade`.
 - The pre-existing unrelated unstaged `AGENTS.md` remainder remains excluded.
-- The Owner-controlled Production `4+4` draft was restored browser-locally after
-  two atomic `409` capacity rejections. No booking was created. Do not click
-  booking confirmation again unless the Owner separately authorizes it.
-- Deployment-health rollback target for the current fix is the pre-fix deployment
-  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`; Entry must remain `true`. No rollback was
-  used because no approved rollback condition was observed.
+- Historical safety note: the Owner-controlled Production `4+4` draft was restored
+  browser-locally after two atomic `409` capacity rejections. No booking was created.
+  Do not replay Production confirmation without separate Owner authorization.
+- Historical booking-regression rollback evidence referenced
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. It is not a rollback target for Unlimited
+  Slot Entry. The Source Fix is committed and pushed, but no remote migration,
+  deployment, or Production UAT exists for it yet, so no release rollback target
+  has been established.
 
 ## Session Exit Checklist
 
@@ -163,5 +224,6 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next task: Owner decision on the narrow History payment client/error-contract
-  source fix above. Homepage LV Copy Audit/Fix remains paused.
+- Next task: fresh Production preflight, then obtain Owner approval for coordinated
+  Remote Migration + exact Deploy + Production UAT. Admin Schedules Performance
+  and Homepage LV Copy remain in the Parking Lot.
