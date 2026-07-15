@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 
 import { TeachingProgramsClient, type TeachingProgramReviewItem } from '@/components/admin/teaching-programs-client'
 import { requireAdminMenuAccess } from '@/lib/auth/admin'
+import { getBangkokDateString } from '@/lib/utils'
 import type { ProgramStatus } from '@/types/database'
 
 interface ProgramRow {
@@ -29,11 +30,17 @@ interface SlotRow {
   date: string
   start_time: string
   end_time: string
-  branches?: { name: string | null } | { name: string | null }[] | null
+  branches?: { id: string; name: string | null; slug: string | null } | { id: string; name: string | null; slug: string | null }[] | null
   course_types?: { name: string | null } | { name: string | null }[] | null
 }
 
-function firstRelationName(value: SlotRow['branches']) {
+function firstBranch(value: SlotRow['branches']) {
+  if (!value) return null
+  if (Array.isArray(value)) return value[0] || null
+  return value
+}
+
+function firstCourseTypeName(value: SlotRow['course_types']) {
   if (!value) return null
   if (Array.isArray(value)) return value[0]?.name || null
   return value.name || null
@@ -70,7 +77,7 @@ export default async function AdminTeachingProgramsPage() {
     slotIds.length > 0
       ? supabase
           .from('schedule_slots')
-          .select('id, date, start_time, end_time, branches(name), course_types(name)')
+          .select('id, date, start_time, end_time, branches(id, name, slug), course_types(name)')
           .in('id', slotIds) as unknown as PromiseLike<{ data: SlotRow[] | null }>
       : Promise.resolve({ data: [] as SlotRow[] }),
   ])
@@ -82,6 +89,7 @@ export default async function AdminTeachingProgramsPage() {
     const coach = profileMap.get(program.coach_id)
     const reviewer = program.reviewed_by ? profileMap.get(program.reviewed_by) : null
     const slot = slotMap.get(program.schedule_slot_id)
+    const branch = firstBranch(slot?.branches)
 
     return {
       id: program.id,
@@ -90,8 +98,9 @@ export default async function AdminTeachingProgramsPage() {
       coach_email: coach?.email || '-',
       coach_avatar_url: coach?.avatar_url || null,
       schedule_slot_id: program.schedule_slot_id,
-      branch_name: firstRelationName(slot?.branches) || 'ไม่ทราบสาขา',
-      course_type: firstRelationName(slot?.course_types) || '-',
+      branch_name: branch?.name || 'ไม่ทราบสาขา',
+      branch_slug: branch?.slug || null,
+      course_type: firstCourseTypeName(slot?.course_types) || '-',
       date: slot?.date || '',
       start_time: slot?.start_time || '',
       end_time: slot?.end_time || '',
@@ -105,5 +114,5 @@ export default async function AdminTeachingProgramsPage() {
     }
   })
 
-  return <TeachingProgramsClient programs={reviewItems} />
+  return <TeachingProgramsClient programs={reviewItems} initialDate={getBangkokDateString()} />
 }

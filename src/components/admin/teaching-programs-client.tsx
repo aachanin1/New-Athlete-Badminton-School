@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { sortAdminTeachingPrograms } from '@/lib/admin-teaching-program-order'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 import type { ProgramStatus } from '@/types/database'
@@ -38,6 +39,7 @@ export interface TeachingProgramReviewItem {
   coach_avatar_url: string | null
   schedule_slot_id: string
   branch_name: string
+  branch_slug: string | null
   course_type: string
   date: string
   start_time: string
@@ -53,6 +55,7 @@ export interface TeachingProgramReviewItem {
 
 interface TeachingProgramsClientProps {
   programs: TeachingProgramReviewItem[]
+  initialDate: string
 }
 
 type ReviewAction = 'approved' | 'rejected'
@@ -124,15 +127,15 @@ function StatusBadge({ status }: { status: ProgramStatus }) {
   )
 }
 
-export function TeachingProgramsClient({ programs }: TeachingProgramsClientProps) {
+export function TeachingProgramsClient({ programs, initialDate }: TeachingProgramsClientProps) {
   const [items, setItems] = useState(programs)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string>(() => programs.some((item) => item.status === 'submitted') ? 'submitted' : 'all')
   const [coachId, setCoachId] = useState<string>('all')
   const [branch, setBranch] = useState<string>('all')
   const [course, setCourse] = useState<string>('all')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
+  const [fromDate, setFromDate] = useState(initialDate)
+  const [toDate, setToDate] = useState(initialDate)
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reviewItem, setReviewItem] = useState<TeachingProgramReviewItem | null>(null)
@@ -160,7 +163,7 @@ export function TeachingProgramsClient({ programs }: TeachingProgramsClientProps
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
 
-    return items.filter((item) => {
+    const matches = items.filter((item) => {
       if (status !== 'all' && item.status !== status) return false
       if (coachId !== 'all' && item.coach_id !== coachId) return false
       if (branch !== 'all' && item.branch_name !== branch) return false
@@ -181,6 +184,8 @@ export function TeachingProgramsClient({ programs }: TeachingProgramsClientProps
         item.end_time,
       ].some((value) => value.toLowerCase().includes(q))
     })
+
+    return sortAdminTeachingPrograms(matches)
   }, [branch, coachId, course, fromDate, items, search, status, toDate])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
