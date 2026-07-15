@@ -4,8 +4,8 @@
 
 ### 2026-07-15 - Production Lesson Wallet Canonical Redemption Regression
 
-Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED WRITE UAT
-NOT RUN**.
+Status: **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
+PRODUCTION UAT PASSED**.
 
 #### Gate 0 and exact incident audit
 
@@ -85,12 +85,51 @@ NOT RUN**.
   enabled confirmation action, found no capacity/full block and no console,
   hydration, or network-preflight error, and cancelled without confirming. Runtime
   logs show the Wallet GETs returning `200` and no redemption POST.
-- Controlled write UAT was not run: the two incident credits are real-customer
-  entitlements and had already been redeemed, while no existing Owner-controlled
-  Production test credit/account was independently proved. Remaining gate:
-  **NEED REVIEW — REAL CUSTOMER CREDIT CANNOT BE USED FOR WRITE UAT**. Owner must
-  provide safe existing test evidence or accept the completed no-write closeout;
-  substitute Production test data must not be created.
+- State observed at the earlier no-write closeout: controlled write UAT had not yet
+  run because the identified incident credits were real-customer entitlements and
+  no Owner-controlled test credit had been proved. This checkpoint is superseded
+  by the Owner's later manual Production UAT and the final record below.
+
+#### Owner-controlled Production write UAT and final closeout
+
+- Owner confirmed personally completing a real Production Lesson Wallet redemption
+  successfully and accepted the release. Codex performed read-only reconciliation
+  only; it did not redeem, store, create, repair, migrate, deploy, or change any
+  Production data or control.
+- Gate 0 re-verification found branch `spike/next-major-security-upgrade`; local and
+  fetched remote HEAD both `091a064b9b107913dfcc286e77c4a4e6253ad921`, ahead/
+  behind `0/0`. The pre-existing unrelated `AGENTS.md`, content-identical stat-dirty
+  `src/lib/schedule-slot-utils.ts`, and untracked `docs/performance/` remained
+  excluded. Deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remained Production
+  `READY`; Vercel metadata independently records functional Source
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`. All four Production aliases still
+  point to that artifact.
+- Runtime logs recorded two successful `POST /api/lesson-wallet` calls at
+  `13:29:23Z` and `13:30:14Z`. Database activity evidence safely distinguishes
+  exactly one `redeem_lesson_wallet_credit` at `13:29:31Z` and a later separate
+  `store_lesson_wallet_credit` at `13:30:19Z` for the same sanitized account. The
+  latter stored the newly redeemed target back into the Wallet and is not a second
+  redemption. Both were Owner actions; Codex replayed neither.
+- The redemption changed exactly one credit to `redeemed`, created exactly one
+  target session, retained the credit/session booking relationship, and linked the
+  target to the real open canonical slot and active recurring template for
+  Ramintra / Private / Sunday 2026-07-19 / 17:00-18:00. The later store changed
+  that target to `walleted` and created one correctly linked active credit; no
+  orphan remained.
+- Active exact duplicate/overlap count was `0`. One matching walleted session
+  created on 2026-07-05 pre-existed the UAT, is non-active under the Wallet
+  contract, and has its own active credit; the UAT did not create it. Target orphan
+  count, assignment-student rows, and active overlapping-session count were `0`.
+- Across the complete Owner action window, newly created related Payment rows,
+  coupon usages, payment-Ledger allocations, Progressive allocations, Progressive
+  batch members, Finance expenses, and Bookings were each `0`. Financial impact is
+  none; data repair is none. Production business data changed only through the
+  normal Owner redemption and subsequent Wallet-store actions.
+- The former controlled-write/Task-Done fields were therefore documentation drift
+  after the Owner's confirmation. Final classification:
+  **PASS — LESSON WALLET PRODUCTION REDEMPTION OWNER-VERIFIED; TASK DONE**.
+  Active Task is now `NONE`; next action is to await Owner selection without
+  starting Admin Schedules Performance or Homepage LV automatically.
 
 ### 2026-07-15 - Documentation Closeout Correction
 

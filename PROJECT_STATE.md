@@ -97,6 +97,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   payroll/attendance/SlipOK changes, and Reschedule/Makeup redesign remain
   prohibited. A controlled Production redeem requires independently proven
   Owner-controlled test data.
+- Owner subsequently confirmed on 2026-07-15 that the Owner personally completed
+  a real Production Lesson Wallet redemption successfully and accepted the release.
+  This confirmation supersedes the prior documentation-only statement that
+  controlled-write UAT had not run. Codex is authorized only to reconcile the
+  existing actions read-only and close documentation; no replay, repair, new
+  credit, migration, deploy, environment change, or next-task selection is
+  authorized.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -110,26 +117,22 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **Production Lesson Wallet canonical recurring-round redemption
-  regression**.
-- Task Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED
-  WRITE UAT NOT RUN**. Functional Source
-  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` is active in Production. The
-  identified incident credits are real-customer entitlements and cannot be
-  consumed for controlled-write UAT.
+- Active Task: **NONE**. No active implementation task is selected.
+- Task Status: Production Lesson Wallet canonical recurring-round redemption is
+  **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
+  PRODUCTION UAT PASSED**. Functional Source
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` remains active in Production.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner direction is required for the remaining write-UAT gate:
-  either provide an independently proved existing Owner-controlled test credit/
-  account or accept the completed no-write Production UAT as closeout. Do not
-  create substitute Production data or consume a real customer credit.**
+- Next Action: **Await Owner selection. Do not start a Parking Lot task
+  automatically.**
 
 ### Production Lesson Wallet Canonical Redemption Regression
 
-Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED WRITE UAT
-NOT RUN** (Owner decision 2026-07-15).
+Status: **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
+PRODUCTION UAT PASSED** (Owner decision 2026-07-15).
 
 - Gate 0 verified branch `spike/next-major-security-upgrade`; starting local and
   remote HEAD were both `9a678b9224ea3941db0727071d2337aaf714fcd1`, ahead/
@@ -203,17 +206,40 @@ NOT RUN** (Owner decision 2026-07-15).
   capacity/full block appeared, and console/hydration/network-preflight errors were
   absent. The dialog was cancelled without confirmation. Deployment logs show
   only `GET /dashboard/lesson-wallet` `200` for this UAT and no redemption POST.
-- Controlled Production redeem was not run. The exact incident credits had already
-  been redeemed by the real customer, and no existing Owner-controlled test credit
-  was independently proved. Classification:
-  **NEED REVIEW — REAL CUSTOMER CREDIT CANNOT BE USED FOR WRITE UAT**.
+- The later Owner-controlled Production action is distinguishable without personal
+  data. Deployment logs contain two `POST /api/lesson-wallet` responses with `200`:
+  `13:29:23Z` and `13:30:14Z`. Database activity evidence identifies exactly one
+  `redeem_lesson_wallet_credit` at `13:29:31Z`, followed by a distinct
+  `store_lesson_wallet_credit` at `13:30:19Z` for the same sanitized account. The
+  second action is not a second redemption; it is the Owner subsequently storing
+  the newly redeemed target back into the Wallet. Codex did not replay either
+  action.
+- The redemption changed exactly one active credit to `redeemed` and created
+  exactly one target booking session. The session/credit booking relationship is
+  intact and the target links to the real canonical open slot and active recurring
+  template for Ramintra / Private / Sunday 2026-07-19 / 17:00-18:00. The current
+  target-session status is `walleted` only because of the Owner's immediately
+  subsequent store action; the resulting active credit points back to that session
+  with complete booking/user/course evidence.
+- No active exact duplicate or overlapping learner round was created. One matching
+  walleted session pre-existed since 2026-07-05, remains non-active under the Wallet
+  contract, and has its own active credit; it was not created by this UAT. Target
+  orphan count, target assignment-student rows, and active overlapping-session
+  count are all `0`.
+- The combined action window created `0` related Payment rows, coupon usages,
+  payment-Ledger allocations, Progressive allocations, Progressive batch members,
+  Finance expenses, or Bookings. No financial effect, partial residue, or repair
+  was found. Production business data changed only through the Owner's normal
+  successful redemption and subsequent Wallet-store actions.
+- This reconciles the prior **DOCUMENTATION DRIFT**. Classification:
+  **PASS — LESSON WALLET PRODUCTION REDEMPTION OWNER-VERIFIED; TASK DONE**.
 
 #### Current Lesson Wallet State Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Production Lesson Wallet canonical recurring-round redemption regression |
-| Task Status | Deployed; Production no-write UAT passed; controlled write UAT not run |
+| Active Task | NONE |
+| Task Status | Done; Source deployed; no-write and Owner-verified controlled-write Production UAT passed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | `spike/next-major-security-upgrade` documentation-closeout branch tip |
 | Remote HEAD | Same documentation-closeout branch tip after push |
@@ -232,15 +258,15 @@ NOT RUN** (Owner decision 2026-07-15).
 | Allowlisted | No; existing allowlist remains absent |
 | Production Active | Yes on all four aliases |
 | Production UAT | No-write UAT passed |
-| Controlled Write UAT | Not run; identified credits are real-customer entitlements |
+| Controlled Write UAT | Passed — Owner verified; read-only evidence reconciled one redemption |
 | Data Repaired | No |
-| Production Data Changed | No |
-| Customer Impact | Regression fix is active; displayed canonical target is selectable again |
-| Financial Impact | None |
-| Task Done | No; Production no-write UAT is complete, but controlled write UAT remains an Owner gate |
-| Blocker | Controlled write proof lacks independently verified Owner-controlled Production credit/account |
-| Remaining Work | Controlled Production redeem UAT only, if Owner supplies safe existing test entitlement or accepts no-write closeout |
-| Next Gate / Next Action | Owner direction on controlled write UAT; never consume the real-customer credits |
+| Production Data Changed | Yes — Owner's normal redemption and subsequent Wallet store only; no Codex write or repair |
+| Customer Impact | Regression resolved; Lesson Wallet redemption works normally |
+| Financial Impact | None; related Payment/coupon/Ledger/allocation/Finance creation was `0` |
+| Task Done | Yes |
+| Blocker | None |
+| Remaining Work | None for this task |
+| Next Gate / Next Action | Await Owner selection; do not start a Parking Lot task automatically |
 | Parking Lot authorization state | Admin Schedules Performance and Homepage LV remain not authorized |
 
 ### Dashboard Booking Unlimited Slot Entry + Customer Price UX

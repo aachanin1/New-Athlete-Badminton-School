@@ -9,31 +9,28 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### Production Lesson Wallet Canonical Recurring-Round Redemption
+No active implementation task is selected. Do not start a Parking Lot item until
+the Owner selects the next task.
 
-Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED WRITE UAT
-NOT RUN**.
-
-- Functional Source `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` fixes the
-  UTC-host/Bangkok-weekday mismatch while preserving stale-ID canonical fallback,
-  authoritative credit course type, learner conflict, same-month/future, CAS,
-  no-payment, and unlimited-entry rules.
-- Deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` is Ready from exact functional
-  Source `bb7bd8b`; all four aliases converge. No migration, environment, flag,
-  allowlist, SlipOK, or Production business-data change occurred.
-- Authenticated no-write UAT selected Ramintra / Private / Sunday 2026-07-19 /
-  17:00-18:00 with no capacity, console, hydration, or preflight block, then
-  cancelled without a redemption POST. The real incident credits were later
-  consumed by the real user and are not safe controlled-write UAT data.
-- Authoritative detail and the current state matrix are in `PROJECT_STATE.md` under
-  **Production Lesson Wallet Canonical Redemption Regression**.
-
-Next action: **Owner direction on the remaining controlled-write UAT gate. Provide
-an independently proved existing Owner-controlled Production test entitlement or
-accept the no-write closeout; do not create substitute data or consume a real
-customer credit.**
+Next action: **Await Owner selection. Do not start a Parking Lot task
+automatically.**
 
 ## Recently Completed
+
+### Production Lesson Wallet Canonical Recurring-Round Redemption
+
+Status: **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
+PRODUCTION UAT PASSED**.
+
+- Functional Source `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` remains active in
+  Ready deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` on all four aliases.
+- Read-only reconciliation distinguished exactly one successful redemption and a
+  separate subsequent Owner Wallet-store action. Canonical target evidence is
+  intact; active duplicate/overlap, orphan, Payment, coupon, Ledger, allocation,
+  Finance, and repair counts attributable to the redemption are `0`.
+- Authoritative current detail and the final consistency matrix are in
+  `PROJECT_STATE.md`; dated evidence is in the 2026-07-15 Lesson Wallet record in
+  `DEVELOPMENT_TODO.md`.
 
 ### Dashboard Booking Unlimited Slot Entry + Customer Price UX
 
