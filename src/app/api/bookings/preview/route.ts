@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
-import { calculateBookingBasePrice } from '@/lib/booking-pricing'
+import { calculateBookingBasePricePreview } from '@/lib/booking-pricing'
 import { previewProgressiveKidsGroupBooking, ProgressiveBookingPreviewError } from '@/lib/progressive-booking-preview'
 import {
   decideProgressiveBookingEntry,
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       const dependency = getProgressiveBookingEntryDependencyState()
       if (!dependency.ready) {
         return NextResponse.json({
-          error: 'ระบบ Progressive Booking ยังไม่พร้อม กรุณาลองใหม่ภายหลัง',
+          error: 'ระบบคำนวณราคายังไม่พร้อม กรุณาลองใหม่ภายหลัง',
           code: 'PROGRESSIVE_BOOKING_DEPENDENCY_UNAVAILABLE',
         }, { status: 503 })
       }
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result)
     }
 
-    const totalPrice = await calculateBookingBasePrice({
+    const price = await calculateBookingBasePricePreview({
       supabase: client,
       userId: user.id,
       courseTypeId: courseType.id,
@@ -103,7 +103,16 @@ export async function POST(request: NextRequest) {
       existingStatuses: ['paid', 'verified'],
       excludeBookingId: body.bookingId || undefined,
     })
-    return NextResponse.json({ mode: 'legacy', totalPrice, grossPrice: totalPrice, discountAmount: 0 })
+    return NextResponse.json({
+      mode: 'legacy',
+      totalPrice: price.totalPrice,
+      grossPrice: price.totalPrice,
+      discountAmount: 0,
+      selectedTier: price.selectedTier,
+      existingSessions: price.existingSessions,
+      existingPaid: price.existingPaid,
+      totalSessionsAfter: price.totalSessionsAfter,
+    })
   } catch (error) {
     return previewError(error)
   }

@@ -18,7 +18,6 @@ interface AvailabilityPayload {
   bookingId?: string | null
   courseTypeId?: string
   slots?: BookingAvailabilitySlotInput[]
-  requestedSlots?: BookingAvailabilitySlotInput[]
 }
 
 interface DbError {
@@ -58,18 +57,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as AvailabilityPayload
     if (!body.courseTypeId || !UUID_PATTERN.test(body.courseTypeId)
-      || !isSlotArray(body.slots) || body.slots.length === 0
-      || !isSlotArray(body.requestedSlots || [])) {
+      || !isSlotArray(body.slots) || body.slots.length === 0) {
       return NextResponse.json({ error: 'ข้อมูลรอบเรียนไม่ครบ' }, { status: 400 })
     }
 
     const client = getServiceRoleClient()
     const { data: courseType, error: courseTypeError } = await client
       .from('course_types')
-      .select('id, name, max_students')
+      .select('id, name')
       .eq('id', body.courseTypeId)
       .single() as unknown as {
-        data: { id: string; name: CourseTypeName; max_students: number } | null
+        data: { id: string; name: CourseTypeName } | null
         error: DbError | null
       }
     if (courseTypeError || !courseType) {
@@ -103,12 +101,12 @@ export async function POST(request: NextRequest) {
     const dependency = getProgressiveBookingEntryDependencyState()
     if (!dependency.ready) {
       return NextResponse.json({
-        error: 'ระบบ Progressive Booking ยังไม่พร้อม กรุณาลองใหม่ภายหลัง',
+        error: 'ระบบตรวจสอบการจองยังไม่พร้อม กรุณาลองใหม่ภายหลัง',
         code: 'PROGRESSIVE_BOOKING_DEPENDENCY_UNAVAILABLE',
       }, { status: 503 })
     }
 
-    const allCandidates = [...body.slots, ...(body.requestedSlots || [])]
+    const allCandidates = body.slots
     const branchIds = Array.from(new Set(allCandidates.map((slot) => slot.branchId)))
     const dates = allCandidates.map((slot) => slot.date).sort()
     const firstDate = dates[0]
@@ -123,7 +121,7 @@ export async function POST(request: NextRequest) {
         .in('branch_id', branchIds),
       client
         .from('schedule_slots')
-        .select('id, template_id, branch_id, course_type_id, date, start_time, end_time, max_students, status')
+        .select('id, template_id, branch_id, course_type_id, date, start_time, end_time, status')
         .eq('course_type_id', courseType.id)
         .gte('date', firstDate)
         .lte('date', lastDate)
@@ -149,9 +147,7 @@ export async function POST(request: NextRequest) {
     const now = new Date()
     const slots = buildBookingSlotAvailability({
       courseTypeId: courseType.id,
-      defaultCapacity: Number(courseType.max_students),
       candidates: body.slots,
-      requestedSlots: body.requestedSlots || [],
       templates: (templateResult.data || []) as BookingAvailabilityTemplateRow[],
       scheduleSlots,
       bookingSessions,

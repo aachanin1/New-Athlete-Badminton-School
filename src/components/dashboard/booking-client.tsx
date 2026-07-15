@@ -22,7 +22,8 @@ import {
 } from 'lucide-react'
 import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption, type TimeSlot } from '@/lib/schedule-template-utils'
-import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
+import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, formatPricingTierRange, type CourseCategory, type PricingTierInput, type SelectedPricingTierEvidence } from '@/lib/pricing'
+import { formatLearnerDisplayName, joinLearnerDisplayNames } from '@/lib/learner-display-name'
 import { fmtTime } from '@/lib/utils'
 import {
   getBookingAvailabilitySlotKey,
@@ -145,6 +146,10 @@ interface LegacyBookingPreview {
   totalPrice: number
   grossPrice: number
   discountAmount: number
+  selectedTier: SelectedPricingTierEvidence
+  existingSessions: number
+  existingPaid: number
+  totalSessionsAfter: number
   expectedScopeRevision?: undefined
   legacyBaselineSessions?: undefined
   legacyBaselineFingerprint?: undefined
@@ -163,6 +168,7 @@ interface ProgressiveBookingPreview {
   cumulativeAfterSessions: number
   ratePerSession: number
   sourceKind: 'progressive_kids_group_v1'
+  selectedTier: SelectedPricingTierEvidence
 }
 
 type AuthoritativeBookingPreview = LegacyBookingPreview | ProgressiveBookingPreview
@@ -197,8 +203,8 @@ const STEPS: { key: Step; label: string }[] = [
 const SETTLED_BOOKING_STATUSES = ['paid', 'verified']
 
 const COURSE_TYPES: { value: CourseTypeName; label: string; desc: string; icon: typeof Users }[] = [
-  { value: 'kids_group', label: 'เด็ก (กลุ่ม)', desc: 'กลุ่มเล็ก 4-6 คน • 2 ชม.', icon: Users },
-  { value: 'adult_group', label: 'ผู้ใหญ่ (กลุ่ม)', desc: '1-6 คน • 2 ชม.', icon: User },
+  { value: 'kids_group', label: 'เด็ก (กลุ่ม)', desc: 'เรียนแบบกลุ่ม • 2 ชม.', icon: Users },
+  { value: 'adult_group', label: 'ผู้ใหญ่ (กลุ่ม)', desc: 'เรียนแบบกลุ่ม • 2 ชม.', icon: User },
   { value: 'private', label: 'Private', desc: 'เด็ก & ผู้ใหญ่ • 1 ชม.', icon: Star },
 ]
 
@@ -330,7 +336,8 @@ function isSameVisiblePreview(left: AuthoritativeBookingPreview | null, right: A
     && left.mode === right.mode
     && left.grossPrice === right.grossPrice
     && left.discountAmount === right.discountAmount
-    && left.totalPrice === right.totalPrice,
+    && left.totalPrice === right.totalPrice
+    && left.selectedTier.id === right.selectedTier.id,
   )
 }
 
@@ -766,8 +773,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     bookingId: editBooking?.id || null,
     courseTypeId: selectedCourseType?.id || null,
     candidates: availabilityCandidates.map(getBookingAvailabilitySlotKey).sort(),
-    requested: requestedAvailabilitySlots.map(getBookingAvailabilitySlotKey).sort(),
-  }), [availabilityCandidates, editBooking?.id, requestedAvailabilitySlots, selectedCourseType?.id])
+  }), [availabilityCandidates, editBooking?.id, selectedCourseType?.id])
   const previewFingerprintRef = useRef(previewFingerprint)
   const availabilityFingerprintRef = useRef(availabilityFingerprint)
 
@@ -853,7 +859,6 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           bookingId: editBooking?.id || null,
           courseTypeId: selectedCourseType.id,
           slots: availabilityCandidates,
-          requestedSlots: requestedAvailabilitySlots,
         }),
       })
       const result = await response.json()
@@ -870,7 +875,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         setAvailabilityLoadingFingerprint(null)
       }
     }
-  }, [availabilityCandidates, editBooking?.id, requestedAvailabilitySlots, selectedCourseType])
+  }, [availabilityCandidates, editBooking?.id, selectedCourseType])
 
   useEffect(() => () => {
     previewAbortRef.current?.abort()
@@ -878,7 +883,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   }, [])
 
   useEffect(() => {
-    if (!draftReady || courseType !== 'kids_group' || bookingSessionCount <= 0
+    if (!draftReady || !courseType || bookingSessionCount <= 0
       || (step !== 'calendar' && step !== 'summary')
       || previewRecord?.fingerprint === previewFingerprint
       || previewLoadingFingerprint === previewFingerprint) return
@@ -967,11 +972,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const progressiveKidsPreview = courseType === 'kids_group' && authoritativePreview?.mode === 'progressive'
     ? authoritativePreview
     : null
-  const kidsPreviewPending = courseType === 'kids_group' && !authoritativePreview
-  const isZeroChargeKidsTrueUp = courseType === 'kids_group'
-    && authoritativePreview?.mode === 'legacy'
-    && !!kidsIncremental
-    && finalPrice === 0
+  const selectedTier = authoritativePreview?.selectedTier || null
+  const pricingPreviewPending = Boolean(courseType && allSelectedSessions.length > 0 && !selectedTier)
+  const isZeroCharge = Boolean(authoritativePreview && finalPrice === 0)
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
@@ -1111,13 +1114,17 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const availabilityBySlotKey = useMemo(() => new Map(
     (authoritativeAvailability?.slots || []).map((slot) => [slot.key, slot]),
   ), [authoritativeAvailability])
+  const requestedAvailabilitySlotKeys = useMemo(
+    () => new Set(requestedAvailabilitySlots.map(getBookingAvailabilitySlotKey)),
+    [requestedAvailabilitySlots],
+  )
   const selectedAvailabilityIssues = useMemo(() => (
     authoritativeAvailability?.mode === 'progressive'
       ? authoritativeAvailability.slots.filter((slot) => (
-          slot.requestedSeats > 0 && (!slot.valid || !slot.canFitRequestedSeats)
+          requestedAvailabilitySlotKeys.has(slot.key) && !slot.valid
         ))
       : []
-  ), [authoritativeAvailability])
+  ), [authoritativeAvailability, requestedAvailabilitySlotKeys])
 
   const getAvailabilityForSlot = (day: number, slot: TimeSlot, branchId: string) => (
     availabilityBySlotKey.get(getBookingAvailabilitySlotKey({
@@ -1131,10 +1138,6 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
   const formatAvailabilityIssue = (slot: BookingSlotAvailability) => {
     const dateTime = `${formatThaiDateWithWeekday(slot.date)} ${fmtTime(slot.startTime)}–${fmtTime(slot.endTime)}`
-    if (slot.full) return `รอบ${dateTime} เต็มแล้ว กรุณาเลือกวันเรียนใหม่`
-    if (slot.unavailableReason === 'insufficient_remaining') {
-      return `รอบ${dateTime} เหลือ ${slot.remainingSeats} ที่ ไม่พอสำหรับผู้เรียนที่เลือก กรุณาเลือกรอบอื่น`
-    }
     return `รอบ${dateTime} ไม่พร้อมให้จองแล้ว กรุณาเลือกรอบเรียนใหม่`
   }
 
@@ -1168,10 +1171,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         return
       }
       if (authoritativeAvailability?.mode === 'progressive' && slotAvailability) {
-        const cannotAddSeat = !slotAvailability.valid
-          || slotAvailability.full
-          || slotAvailability.requestedSeats >= slotAvailability.remainingSeats
-        if (cannotAddSeat) {
+        if (!slotAvailability.valid) {
           setError(formatAvailabilityIssue(slotAvailability))
           return
         }
@@ -1221,7 +1221,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           ])
           const availabilityIssues = refreshedAvailability?.mode === 'progressive'
             ? refreshedAvailability.slots.filter((slot) => (
-                slot.requestedSeats > 0 && (!slot.valid || !slot.canFitRequestedSeats)
+                requestedAvailabilitySlotKeys.has(slot.key) && !slot.valid
               ))
             : []
           if (availabilityIssues.length > 0) {
@@ -1336,7 +1336,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       ])
       const availabilityIssues = submissionAvailability?.mode === 'progressive'
         ? submissionAvailability.slots.filter((slot) => (
-            slot.requestedSeats > 0 && (!slot.valid || !slot.canFitRequestedSeats)
+             requestedAvailabilitySlotKeys.has(slot.key) && !slot.valid
           ))
         : []
       if (availabilityIssues.length > 0) {
@@ -1426,22 +1426,6 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
         const result = await response.json()
         if (!response.ok) {
-          if (result.code === 'PROGRESSIVE_CAPACITY_EXCEEDED') {
-            try {
-              const refreshedAvailability = await fetchAuthoritativeAvailability(availabilityFingerprint)
-              const fullSlot = refreshedAvailability.slots.find((slot) => (
-                slot.requestedSeats > 0 && (!slot.valid || !slot.canFitRequestedSeats)
-              ))
-              setError(fullSlot
-                ? formatAvailabilityIssue(fullSlot)
-                : 'รอบเรียนที่เลือกเต็มแล้ว กรุณาเลือกวันหรือเวลาใหม่')
-            } catch {
-              setError('รอบเรียนที่เลือกเต็มแล้ว กรุณาเลือกวันหรือเวลาใหม่')
-            }
-            setStep('calendar')
-            setLoading(false)
-            return
-          }
           setError(result.error || 'สร้างการจองไม่สำเร็จ กรุณาลองใหม่')
           setLoading(false)
           return
@@ -1523,7 +1507,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           {courseType && (
             <Card>
               <CardContent className="p-4">
-                <h4 className="font-bold text-[#153c85] mb-3">ตารางเรทราคา — {COURSE_TYPES.find((c) => c.value === courseType)?.label}</h4>
+                <h4 className="font-bold text-[#153c85] mb-3">ตารางราคา — {COURSE_TYPES.find((c) => c.value === courseType)?.label}</h4>
                 {courseType === 'kids_group' && (
                   <>
                     <div className="overflow-x-auto">
@@ -1548,7 +1532,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                         </tbody>
                       </table>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">* กฎพี่น้อง: ลูกหลายคนนับรวมครั้งกัน → ได้เรทที่ถูกกว่า</p>
+                    <p className="text-xs text-gray-500 mt-2">* ผู้เรียนพี่น้องนับจำนวนครั้งรวมกันเพื่อเลือกช่วงราคา</p>
                   </>
                 )}
                 {courseType === 'adult_group' && (
@@ -1624,8 +1608,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                             {isSelected ? <CheckCircle2 className="h-5 w-5" /> : <User className="h-5 w-5 text-gray-400" />}
                           </div>
                           <div>
-                            <p className="font-medium">{child.full_name}</p>
-                            {child.nickname && <p className="text-xs text-gray-500">({child.nickname})</p>}
+                            <p className="font-medium">{formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname })}</p>
                           </div>
                         </CardContent>
                       </Card>
@@ -1636,7 +1619,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               {selectedChildIds.length > 1 && (
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>กฎพี่น้อง: เลือก {selectedChildIds.length} คน → ระบบจะรวมครั้งทุกคนเพื่อใช้เรทที่ดีกว่า + รวมบิลเดียว!</span>
+                  <span>เลือก {selectedChildIds.length} คน ระบบจะรวมจำนวนครั้งของทุกคนและออกบิลเดียว</span>
                 </div>
               )}
               {existingMonthData.sessions > 0 && selectedChildIds.length > 0 && (
@@ -1653,7 +1636,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 <p className="font-medium">คอร์ส Private</p>
                 <p>• เลือกได้หลายคน — ทุกคนเรียนรอบเวลาเดียวกัน</p>
                 <p>• ครั้งละ 1 ชั่วโมง ตามรอบเรียนของสาขา</p>
-                <p>• ราคาอ้างอิงจากตารางเรทปัจจุบันในระบบ</p>
+                <p>• ราคาอ้างอิงจากตารางราคาปัจจุบันในระบบ</p>
               </div>
               <p className="text-sm font-medium text-gray-600 mb-2">เลือกผู้เรียน (เลือกได้หลายคน)</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1677,7 +1660,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                           {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
                         </div>
                         <Users className="h-5 w-5 text-[#2748bf]" />
-                        <div><p className="font-medium text-sm">{c.full_name}</p><p className="text-xs text-gray-500">{c.nickname || 'ลูก/บุตรหลาน'}</p></div>
+                        <div><p className="font-medium text-sm">{formatLearnerDisplayName({ fullName: c.full_name, nickname: c.nickname })}</p><p className="text-xs text-gray-500">ลูก/บุตรหลาน</p></div>
                       </CardContent>
                     </Card>
                   )
@@ -1764,7 +1747,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                     variant={activeChildTab === cid ? 'default' : 'outline'}
                     className={activeChildTab === cid ? 'bg-[#2748bf]' : ''}
                     onClick={() => { setActiveChildTab(cid); setExpandedDate(null) }}>
-                    {child?.nickname || child?.full_name} {count > 0 && `(${count})`}
+                    {child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ไม่ระบุชื่อผู้เรียน'} {count > 0 && `(${count})`}
                   </Button>
                 )
               })}
@@ -1775,7 +1758,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           {courseType === 'kids_group' && (() => {
             const child = learnerChildren.find((c) => c.id === activeChildTab)
             return child ? (
-              <p className="text-sm text-gray-600">กำลังเลือกวันเรียนของ: <span className="font-medium text-[#153c85]">{child.full_name}</span></p>
+              <p className="text-sm text-gray-600">กำลังเลือกวันเรียนของ: <span className="font-medium text-[#153c85]">{formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname })}</span></p>
             ) : null
           })()}
 
@@ -1808,7 +1791,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                         {day}
                         <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                           {existingForDate.map((es, ei) => {
-                            const childName = es.child_id ? learnerChildren.find(c => c.id === es.child_id)?.nickname || learnerChildren.find(c => c.id === es.child_id)?.full_name || '' : 'ตัวเอง'
+                            const existingChild = es.child_id ? learnerChildren.find(c => c.id === es.child_id) : null
+                            const childName = existingChild ? formatLearnerDisplayName({ fullName: existingChild.full_name, nickname: existingChild.nickname }) : 'ตัวเอง'
                             const dotColors = ['bg-emerald-500', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500', 'bg-orange-500']
                             const childIdx = es.child_id ? learnerChildren.findIndex(c => c.id === es.child_id) : -1
                             const dotColor = childIdx >= 0 ? dotColors[childIdx % dotColors.length] : 'bg-gray-500'
@@ -1834,7 +1818,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       if (seen.has(key)) return null
                       seen.add(key)
                       const child = es.child_id ? learnerChildren.find(c => c.id === es.child_id) : null
-                      const name = child ? (child.nickname || child.full_name) : 'ตัวเอง'
+                      const name = child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ตัวเอง'
                       const idx = child ? learnerChildren.findIndex(c => c.id === es.child_id) : -1
                       const dotColor = idx >= 0 ? dotColors[idx % dotColors.length] : 'bg-gray-500'
                       return (
@@ -1869,7 +1853,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                         <p className="font-medium">จองแล้วในวันนี้:</p>
                         {existingHere.map((es, ei) => {
                           const child = es.child_id ? learnerChildren.find(c => c.id === es.child_id) : null
-                          const name = child ? (child.nickname || child.full_name) : 'ตัวเอง'
+                          const name = child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ตัวเอง'
                           const branch = branches.find(b => b.id === es.branch_id)
                           return (
                             <p key={ei}>• {name} — {fmtTime(es.start_time)}-{fmtTime(es.end_time)} @{branch?.name || '-'}</p>
@@ -1893,10 +1877,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                               const availabilityPending = courseType === 'kids_group'
                                 && (!authoritativeAvailability || availabilityLoading)
                               const unavailableProgressiveSlot = authoritativeAvailability?.mode === 'progressive'
-                                && (!slotAvailability
-                                  || !slotAvailability.valid
-                                  || slotAvailability.full
-                                  || (!isSlotSelected && slotAvailability.requestedSeats >= slotAvailability.remainingSeats))
+                                && (!slotAvailability || !slotAvailability.valid)
                               const disabled = Boolean(existingConflict || availabilityPending || unavailableProgressiveSlot)
                               return (
                                 <Button key={`${branch.id}-${slot.start}-${slot.end}`} size="sm"
@@ -1907,12 +1888,6 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                                   onClick={() => handleSlotSelect(day, slot, branch.id)}>
                                   <Clock className="h-3 w-3 mr-1" />{fmtTime(slot.start)} - {fmtTime(slot.end)}
                                   {existingConflict && <span className="ml-1 text-[10px]">จองแล้ว</span>}
-                                  {!existingConflict && slotAvailability?.full && (
-                                    <span className="ml-1 text-[10px]">เต็ม {slotAvailability.activeOccupancy}/{slotAvailability.capacity}</span>
-                                  )}
-                                  {!existingConflict && slotAvailability && !slotAvailability.full && authoritativeAvailability?.mode === 'progressive' && (
-                                    <span className="ml-1 text-[10px]">{slotAvailability.activeOccupancy}/{slotAvailability.capacity}</span>
-                                  )}
                                 </Button>
                               )
                             })}
@@ -1961,7 +1936,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                   if (childSess.length === 0) return null
                   return (
                     <div key={cid}>
-                      <p className="text-xs font-medium text-gray-600 mb-1">{child?.nickname || child?.full_name} ({childSess.length} ครั้ง)</p>
+                      <p className="text-xs font-medium text-gray-600 mb-1">{child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ไม่ระบุชื่อผู้เรียน'} ({childSess.length} ครั้ง)</p>
                       <div className="flex flex-wrap gap-1">
                         {childSess.map((s: SelectedSession, si: number) => {
                           const slotAvailability = availabilityBySlotKey.get(getBookingAvailabilitySlotKey({
@@ -1971,13 +1946,11 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                             branchId: s.branchId,
                             scheduleTemplateId: s.scheduleTemplateId || null,
                           }))
-                          const invalid = Boolean(slotAvailability
-                            && slotAvailability.requestedSeats > 0
-                            && (!slotAvailability.valid || !slotAvailability.canFitRequestedSeats))
+                          const invalid = Boolean(slotAvailability && !slotAvailability.valid)
                           return (
                             <Badge key={si} variant="outline" className={`text-xs py-0.5 px-1.5 gap-1 ${invalid ? 'border-red-300 bg-red-50 text-red-700' : ''}`}>
                               {formatThaiCompactDateWithWeekday(s.date)} {fmtTime(s.start)}-{fmtTime(s.end)}{selectedBranchIds.length > 1 && ` @${branchNameMap[s.branchId] || ''}`}
-                              {invalid && <span className="font-medium">เต็ม/ไม่พร้อม</span>}
+                              {invalid && <span className="font-medium">ไม่พร้อม</span>}
                               <button data-testid={`remove-session-${cid}-${s.date}-${s.start.slice(0, 5)}`} onClick={() => removeSession(cid, si)} className="ml-0.5 hover:text-red-500"><X className="h-3 w-3" /></button>
                             </Badge>
                           )
@@ -1997,24 +1970,22 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 )}
 
                 {/* Pricing */}
-                {kidsPreviewPending && (
+                {pricingPreviewPending && (
                   <div className="flex items-center justify-end gap-2 border-t pt-3 text-sm font-medium text-blue-700">
                     <Loader2 className="h-4 w-4 animate-spin" />กำลังคำนวณราคา...
                   </div>
                 )}
-                {pricing && !kidsPreviewPending && (
+                {pricing && selectedTier && !pricingPreviewPending && (
                   <div className="border-t pt-3 flex justify-between items-center">
                     <div>
-                      {progressiveKidsPreview ? (
-                        <p className="text-sm text-gray-600">เรท Progressive • {progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง</p>
-                      ) : (
-                        <p className="text-sm text-gray-600">{pricing.tierLabel} • {pricing.perSession} บาท/ครั้ง</p>
-                      )}
-                      {authoritativePreview?.mode === 'legacy' && kidsIncremental && existingMonthData.sessions > 0 && (
-                        <p className="text-xs text-green-600 font-medium">รวมทั้งเดือน {kidsIncremental.totalSessionsForMonth} ครั้ง → เรท {kidsIncremental.perSession} บาท/ครั้ง</p>
+                      <p className="text-sm text-gray-600">
+                        ช่วงราคา {formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}
+                      </p>
+                      {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && authoritativePreview.existingSessions > 0 && (
+                        <p className="text-xs text-green-600 font-medium">รวมทั้งเดือน {authoritativePreview.totalSessionsAfter} ครั้ง → {selectedTier.pricePerSession.toLocaleString()} บาท/ครั้ง</p>
                       )}
                       {authoritativePreview?.mode === 'legacy' && selectedChildIds.length > 1 && !existingMonthData.sessions && (
-                        <p className="text-xs text-green-600 font-medium">กฎพี่น้อง: รวม {allSelectedSessions.length} ครั้ง → ได้เรทที่ดีกว่า!</p>
+                        <p className="text-xs text-green-600 font-medium">รวมผู้เรียน {allSelectedSessions.length} ครั้งในรายการเดียว</p>
                       )}
                       {progressiveKidsPreview && appliedCoupon && (
                         <p className="text-xs text-green-600 font-medium">
@@ -2037,7 +2008,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           <h3 className="font-bold text-lg mb-4 text-[#153c85]">สรุปการจอง</h3>
           <Card>
             <CardContent className="p-6 space-y-4">
-              {kidsPreviewPending && (
+              {pricingPreviewPending && (
                 <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-700">
                   <Loader2 className="h-4 w-4 animate-spin" />กำลังคำนวณราคา...
                 </div>
@@ -2047,20 +2018,21 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 <div><p className="text-gray-500">สาขา</p><p className="font-medium">{selectedBranches.map((b) => b.name).join(', ')}</p></div>
                 <div><p className="text-gray-500">ผู้เรียน</p><p className="font-medium">
                   {courseType === 'kids_group'
-                    ? selectedChildIds.map((id) => learnerChildren.find((c) => c.id === id)?.full_name).join(', ')
+                    ? joinLearnerDisplayNames(selectedChildIds.map((id) => {
+                        const child = learnerChildren.find((candidate) => candidate.id === id)
+                        return { fullName: child?.full_name, nickname: child?.nickname }
+                      }))
                     : userName}
                 </p></div>
                 <div><p className="text-gray-500">เดือน</p><p className="font-medium">{calendarMonthDisplay}</p></div>
                 <div><p className="text-gray-500">จำนวนครั้ง</p><p className="font-medium">{allSelectedSessions.length} ครั้ง</p></div>
                 {pricing && (
                   <div>
-                    <p className="text-gray-500">เรท</p>
-                    {kidsPreviewPending ? (
+                    <p className="text-gray-500">ช่วงราคา</p>
+                    {pricingPreviewPending ? (
                       <p className="font-medium text-blue-700">กำลังคำนวณราคา...</p>
-                    ) : progressiveKidsPreview ? (
-                      <p className="font-medium">{progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง</p>
-                    ) : (
-                      <p className="font-medium">{pricing.perSession} บาท/ครั้ง ({pricing.tierLabel})</p>
+                    ) : selectedTier && (
+                      <p className="font-medium">{formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
                     )}
                   </div>
                 )}
@@ -2076,8 +2048,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                     return (
                       <div key={cid} className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex justify-between items-center mb-1">
-                          <p className="text-sm font-medium">{child?.full_name} — {childSess.length} ครั้ง</p>
-                          {kidsPreviewPending ? (
+                          <p className="text-sm font-medium">{child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ไม่ระบุชื่อผู้เรียน'} — {childSess.length} ครั้ง</p>
+                          {pricingPreviewPending ? (
                             <span className="text-xs font-medium text-blue-700">กำลังคำนวณราคา...</span>
                           ) : (
                             <p className="text-sm font-bold text-[#2748bf]">฿{childPrice.toLocaleString()}</p>
@@ -2108,47 +2080,44 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
               {progressiveKidsPreview && (
                 <div data-testid="booking-progressive-preview" className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
-                  <p className="font-medium">คำนวณราคา Progressive สำหรับการจองครั้งนี้</p>
-                  <p>สิทธิ์เดิมที่ใช้กำหนดเรท: {progressiveKidsPreview.legacyBaselineSessions} ครั้ง</p>
-                  <p>การจอง Progressive ก่อนหน้า: {progressiveKidsPreview.previousProgressiveActiveSessions} ครั้ง</p>
-                  <p>จองเพิ่มครั้งนี้: {progressiveKidsPreview.newBookingSessions} ครั้ง</p>
-                  <p>จำนวนสะสมหลังจอง: {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง</p>
-                  <p>เรทสำหรับการจองครั้งนี้: {progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง</p>
+                  <p className="font-medium">วิธีคิดราคาการจองครั้งนี้</p>
+                  <p>เดือนนี้มีรอบเรียนเดิม {progressiveKidsPreview.cumulativeAfterSessions - progressiveKidsPreview.newBookingSessions} ครั้ง</p>
+                  <p>ครั้งนี้เลือกเพิ่ม {progressiveKidsPreview.newBookingSessions} ครั้ง</p>
+                  <p>หลังจองจะรวมเป็น {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง</p>
+                  <p>จำนวนรวม {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง อยู่ในช่วงราคา {formatPricingTierRange(progressiveKidsPreview.selectedTier)}</p>
+                  <p>ราคาสำหรับการจองครั้งนี้ {progressiveKidsPreview.ratePerSession.toLocaleString()} บาทต่อครั้ง</p>
                   <p className="font-semibold">
-                    ราคาการจองใหม่: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท
+                    ยอดชำระครั้งนี้: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท
                   </p>
-                  <p className="text-xs">ยอดชำระเดิมเป็นประวัติของรายการเดิม และไม่ถูกนำมาหักจากราคาการจองครั้งนี้</p>
+                  <p className="text-xs">ยอดที่ชำระสำหรับรายการก่อนหน้าจะยังอยู่กับรายการเดิม และไม่ถูกหักจากการจองครั้งนี้</p>
                 </div>
               )}
 
-              {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && kidsIncremental && (existingMonthData.sessions > 0 || selectedChildIds.length > 1) && (
+              {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && selectedTier && (
                 <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
-                  <p className="font-medium">คำนวณตามเรทราคารวมของเดือนนี้</p>
-                  {existingMonthData.sessions > 0 && (
-                    <>
-                      <p>เคยจ่ายแล้ว: {existingMonthData.sessions} ครั้ง = ฿{existingMonthData.paid.toLocaleString()}</p>
-                      <p>จองเพิ่มครั้งนี้: {kidsIncremental.newSessions} ครั้ง</p>
-                      <p>รวมหลังจอง: {kidsIncremental.totalSessionsForMonth} ครั้ง</p>
-                    </>
-                  )}
-                  <p>เรทราคาใหม่: {kidsIncremental.tierLabel} = ฿{kidsIncremental.perSession.toLocaleString()}/ครั้ง</p>
-                  <p>ยอดรวมตามเรทใหม่: {kidsIncremental.totalSessionsForMonth} × ฿{kidsIncremental.perSession.toLocaleString()} = ฿{kidsIncremental.totalCostForMonth.toLocaleString()}</p>
-                  {existingMonthData.sessions > 0 && (
-                    <p>หักยอดที่จ่ายแล้ว: ฿{kidsIncremental.existingPaid.toLocaleString()}</p>
-                  )}
-                  <p className="font-semibold">ยอดที่ต้องชำระเพิ่ม: ฿{displayedBasePrice.toLocaleString()}</p>
-                  {kidsIncremental.creditDifference > 0 && (
-                    <>
-                      <p>ระบบได้หักเครดิตส่วนต่างที่คุณจ่ายเกินไว้แล้ว ฿{kidsIncremental.creditDifference.toLocaleString()}</p>
-                      <p>จึงสามารถใช้สิทธิ์เรียนรอบนี้ได้โดยไม่ต้องแนบสลิป</p>
-                    </>
-                  )}
-                  <p className="text-xs">หมายเหตุ: การจองครั้งถัดไปจะคำนวณต่อจากยอดสะสมเดือนนี้โดยอัตโนมัติ</p>
+                  <p className="font-medium">วิธีคิดราคาการจองครั้งนี้</p>
+                  <p>เดือนนี้มีรอบที่ชำระแล้ว {authoritativePreview.existingSessions} ครั้ง</p>
+                  <p>ครั้งนี้เลือกเพิ่ม {allSelectedSessions.length} ครั้ง</p>
+                  <p>หลังจองจะรวมเป็น {authoritativePreview.totalSessionsAfter} ครั้ง</p>
+                  <p>จำนวนรวม {authoritativePreview.totalSessionsAfter} ครั้ง อยู่ในช่วงราคา {formatPricingTierRange(selectedTier)}</p>
+                  <p>ยอดรวมของเดือนนี้: {authoritativePreview.totalSessionsAfter} × {selectedTier.pricePerSession.toLocaleString()} = {(authoritativePreview.totalSessionsAfter * selectedTier.pricePerSession).toLocaleString()} บาท</p>
+                  <p>หักยอดที่ชำระแล้วในเดือนนี้: {authoritativePreview.existingPaid.toLocaleString()} บาท</p>
+                  <p className="font-semibold">ยอดชำระครั้งนี้: {authoritativePreview.totalPrice.toLocaleString()} บาท</p>
+                </div>
+              )}
+
+              {authoritativePreview?.mode === 'legacy' && courseType !== 'kids_group' && selectedTier && (
+                <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 space-y-1">
+                  <p className="font-medium">วิธีคิดราคาการจองครั้งนี้</p>
+                  <p>ครั้งนี้เลือก {allSelectedSessions.length} {selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
+                  <p>อยู่ในช่วงราคา {formatPricingTierRange(selectedTier)}</p>
+                  <p>ราคาแพ็กเกจสำหรับการจองครั้งนี้ {displayedBasePrice.toLocaleString()} บาท</p>
+                  <p>เฉลี่ย {selectedTier.pricePerSession.toLocaleString()} บาทต่อ{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
                 </div>
               )}
 
               {/* Coupon input */}
-              {!isEditMode && !kidsPreviewPending && displayedBasePrice > 0 && (
+              {!isEditMode && !pricingPreviewPending && displayedBasePrice > 0 && (
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">คูปองส่วนลด</p>
                   {appliedCoupon ? (
@@ -2184,21 +2153,21 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
               )}
 
               <div className="border-t pt-4 space-y-2">
-                {appliedCoupon && !kidsPreviewPending && (
+                {appliedCoupon && !pricingPreviewPending && (
                   <div className="flex justify-between text-sm text-gray-500">
-                    <span>ยอดก่อนส่วนลด</span>
+                    <span>ราคาก่อนใช้คูปอง: {displayedBasePrice.toLocaleString()} บาท</span>
                     <span>฿{displayedBasePrice.toLocaleString()}</span>
                   </div>
                 )}
-                {appliedCoupon && !kidsPreviewPending && (
+                {appliedCoupon && !pricingPreviewPending && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>ส่วนลดคูปอง ({appliedCoupon.code})</span>
+                    <span>ส่วนลดคูปอง {appliedCoupon.code}: {displayedDiscountAmount.toLocaleString()} บาท</span>
                     <span>-฿{displayedDiscountAmount.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <p className="text-lg font-medium">ยอดชำระรวม</p>
-                  {kidsPreviewPending ? (
+                  <p className="text-lg font-medium">{appliedCoupon ? 'ยอดชำระหลังหักส่วนลด' : 'ยอดชำระครั้งนี้'}</p>
+                  {pricingPreviewPending ? (
                     <span className="flex items-center gap-2 text-sm font-medium text-blue-700">
                       <Loader2 className="h-4 w-4 animate-spin" />กำลังคำนวณราคา...
                     </span>
@@ -2208,11 +2177,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 </div>
               </div>
 
-              {isZeroChargeKidsTrueUp ? (
+              {isZeroCharge ? (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
-                  <p className="font-medium">หลังจากกดยืนยัน:</p>
-                  <p>• ระบบจะสร้างรายการจองที่ใช้สิทธิ์เรียนได้ทันที</p>
-                  <p>• ไม่ต้องแนบสลิป เพราะยอดที่ต้องชำระเพิ่มเป็น ฿0</p>
+                  <p className="font-medium">ยอดชำระครั้งนี้: 0 บาท</p>
+                  <p>ไม่ต้องแนบสลิปสำหรับรายการนี้</p>
                 </div>
               ) : (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
@@ -2238,12 +2206,12 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
           </Button>
         )}
         {step === 'summary' ? (
-          <Button data-testid="booking-confirm" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading || previewLoading || availabilityLoading || kidsPreviewPending || selectedAvailabilityIssues.length > 0}>
-            {loading || previewLoading || availabilityLoading || kidsPreviewPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroChargeKidsTrueUp ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
+          <Button data-testid="booking-confirm" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading || previewLoading || availabilityLoading || pricingPreviewPending || selectedAvailabilityIssues.length > 0}>
+            {loading || previewLoading || availabilityLoading || pricingPreviewPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
           </Button>
         ) : (
-          <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading || (step === 'calendar' && courseType === 'kids_group' && (availabilityLoading || !authoritativeAvailability || kidsPreviewPending || selectedAvailabilityIssues.length > 0))}>
-            {previewLoading || (step === 'calendar' && courseType === 'kids_group' && (availabilityLoading || kidsPreviewPending)) ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ถัดไป<ArrowRight className="ml-2 h-4 w-4" /></>}
+          <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && (availabilityLoading || !authoritativeAvailability || selectedAvailabilityIssues.length > 0))))}>
+            {previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && availabilityLoading))) ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ถัดไป<ArrowRight className="ml-2 h-4 w-4" /></>}
           </Button>
         )}
       </div>

@@ -74,8 +74,7 @@ interface TemplateRow {
 interface SlotRow {
   id: string
   branch_id: string
-  current_students: number
-  max_students: number
+  current_students?: number
   status: string
 }
 
@@ -331,7 +330,7 @@ async function adjustSlotCount(adminSupabase: AdminSupabase, slotId: string | nu
 
   const { data: slot, error } = await adminSupabase
     .from('schedule_slots')
-    .select('id, current_students, max_students, status')
+    .select('id, current_students, status')
     .eq('id', slotId)
     .maybeSingle() as unknown as { data: SlotRow | null; error: DbError | null }
 
@@ -391,10 +390,9 @@ async function ensureNoDuplicateLearnerSlot(
     .from('booking_sessions')
     .select('id, status, bookings!inner(user_id, course_type_id)')
     .eq('date', target.date)
-    .eq('start_time', normalizeTime(target.startTime))
-    .eq('end_time', normalizeTime(target.endTime))
-    .eq('branch_id', target.branchId)
-    .eq('bookings.course_type_id', credit.course_type_id)
+    .lt('start_time', normalizeTime(target.endTime))
+    .gt('end_time', normalizeTime(target.startTime))
+    .eq('bookings.user_id', credit.user_id)
 
   query = credit.child_id
     ? query.eq('child_id', credit.child_id)
@@ -404,19 +402,19 @@ async function ensureNoDuplicateLearnerSlot(
   if (error) throw new Error(`ตรวจสอบรอบซ้ำไม่สำเร็จ: ${error.message}`)
 
   const duplicate = (data || []).some((session) => !['rescheduled', 'walleted'].includes(session.status))
-  if (duplicate) throw new Error('ผู้เรียนคนนี้มีรอบเรียนในวันและเวลานี้แล้ว')
+  if (duplicate) throw new Error('ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว')
 }
 
-async function ensureSlotHasCapacity(adminSupabase: AdminSupabase, scheduleSlotId: string) {
+async function ensureSlotAcceptsEntry(adminSupabase: AdminSupabase, scheduleSlotId: string) {
   const { data: slot, error } = await adminSupabase
     .from('schedule_slots')
-    .select('id, branch_id, current_students, max_students, status')
+    .select('id, branch_id, status')
     .eq('id', scheduleSlotId)
     .maybeSingle() as unknown as { data: SlotRow | null; error: DbError | null }
 
   if (error || !slot) throw new Error(`โหลดรอบเรียนไม่สำเร็จ: ${error?.message || 'ไม่พบรอบเรียน'}`)
-  if (slot.status !== 'open') throw new Error('รอบเรียนนี้ไม่เปิดรับจองแล้ว')
-  if (Number(slot.current_students || 0) >= Number(slot.max_students || 0)) throw new Error('รอบเรียนนี้เต็มแล้ว')
+  if (slot.status === 'cancelled') throw new Error('รอบเรียนนี้ถูกยกเลิกแล้ว')
+  if (!['open', 'full'].includes(slot.status)) throw new Error('รอบเรียนนี้ไม่พร้อมใช้งานแล้ว')
 }
 
 async function expireDueCredits(adminSupabase: AdminSupabase, userId: string) {
@@ -633,7 +631,7 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
     endTime,
   })
 
-  await ensureSlotHasCapacity(adminSupabase, scheduleSlotId)
+  await ensureSlotAcceptsEntry(adminSupabase, scheduleSlotId)
   await ensureNoDuplicateLearnerSlot(adminSupabase, credit, {
     date: targetDate,
     startTime,

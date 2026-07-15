@@ -152,10 +152,9 @@ async function ensureLearnerHasNoDuplicateSlot(
     .from('booking_sessions')
     .select('id, status, bookings!inner(user_id, course_type_id)')
     .eq('date', target.targetDate)
-    .eq('start_time', normalizeTime(target.startTime))
-    .eq('end_time', normalizeTime(target.endTime))
-    .eq('branch_id', target.branchId)
-    .eq('bookings.course_type_id', session.bookings?.course_type_id || '')
+    .lt('start_time', normalizeTime(target.endTime))
+    .gt('end_time', normalizeTime(target.startTime))
+    .eq('bookings.user_id', userId)
     .neq('status', 'rescheduled')
     .neq('status', 'walleted')
     .neq('id', session.id)
@@ -169,7 +168,7 @@ async function ensureLearnerHasNoDuplicateSlot(
 
   const duplicate = (data || []).some((row) => !['rescheduled', 'walleted'].includes(row.status))
   if (duplicate) {
-    throw new Error('ผู้เรียนคนนี้มีรอบเรียนในวันและเวลานี้แล้ว')
+    throw new Error('ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว')
   }
 }
 

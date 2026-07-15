@@ -32,7 +32,6 @@ const scheduleSlots = [{
   date: candidate.date,
   start_time: '17:00:00',
   end_time: '19:00:00',
-  max_students: 6,
   status: 'open',
 }]
 const nowMs = new Date('2026-07-14T00:00:00.000Z').getTime()
@@ -48,12 +47,10 @@ function session(index, overrides = {}) {
   }
 }
 
-function snapshot({ occupancy = [], requestedSlots = [candidate], slots = scheduleSlots, availableTemplates = templates } = {}) {
+function snapshot({ occupancy = [], slots = scheduleSlots, availableTemplates = templates } = {}) {
   return buildBookingSlotAvailability({
     courseTypeId,
-    defaultCapacity: 6,
     candidates: [candidate],
-    requestedSlots,
     templates: availableTemplates,
     scheduleSlots: slots,
     bookingSessions: occupancy,
@@ -72,32 +69,30 @@ check('slot key contains only canonical non-personal slot identity', () => {
   assert.equal(getBookingAvailabilitySlotKey(candidate), `${branchId}|2026-07-22|17:00|19:00`)
 })
 
-check('capacity 6 occupancy 5 leaves one selectable seat', () => {
+check('occupancy 5 is informational and slot remains valid', () => {
   const result = snapshot({ occupancy: Array.from({ length: 5 }, (_, index) => session(index + 1)) })
   assert.equal(result.activeOccupancy, 5)
-  assert.equal(result.remainingSeats, 1)
-  assert.equal(result.full, false)
-  assert.equal(result.canFitRequestedSeats, true)
+  assert.equal(result.valid, true)
+  assert.equal(result.unavailableReason, null)
+  assert.equal('capacity' in result, false)
+  assert.equal('remainingSeats' in result, false)
+  assert.equal('full' in result, false)
 })
 
-check('capacity 6 occupancy 6 is full and not selectable', () => {
+check('occupancy 6 does not become a booking limit', () => {
   const result = snapshot({ occupancy: Array.from({ length: 6 }, (_, index) => session(index + 1)) })
   assert.equal(result.activeOccupancy, 6)
-  assert.equal(result.remainingSeats, 0)
-  assert.equal(result.full, true)
-  assert.equal(result.canFitRequestedSeats, false)
-  assert.equal(result.unavailableReason, 'full')
+  assert.equal(result.valid, true)
+  assert.equal(result.unavailableReason, null)
 })
 
-check('two requested learners cannot fit into one remaining seat', () => {
+check('occupancy 20 does not become a booking limit', () => {
   const result = snapshot({
-    occupancy: Array.from({ length: 5 }, (_, index) => session(index + 1)),
-    requestedSlots: [candidate, candidate],
+    occupancy: Array.from({ length: 20 }, (_, index) => session(index + 1)),
   })
-  assert.equal(result.requestedSeats, 2)
-  assert.equal(result.full, false)
-  assert.equal(result.canFitRequestedSeats, false)
-  assert.equal(result.unavailableReason, 'insufficient_remaining')
+  assert.equal(result.activeOccupancy, 20)
+  assert.equal(result.valid, true)
+  assert.equal(result.unavailableReason, null)
 })
 
 check('RPC exclusions remove rescheduled walleted cancelled and expired-pending rows', () => {
@@ -115,13 +110,12 @@ check('RPC exclusions remove rescheduled walleted cancelled and expired-pending 
     ],
   })
   assert.equal(result.activeOccupancy, 4)
-  assert.equal(result.remainingSeats, 2)
+  assert.equal(result.valid, true)
 })
 
 check('cancelled canonical slot is invalid even when occupancy is zero', () => {
   const result = snapshot({ slots: [{ ...scheduleSlots[0], status: 'cancelled' }] })
   assert.equal(result.valid, false)
-  assert.equal(result.canFitRequestedSeats, false)
   assert.equal(result.unavailableReason, 'cancelled_slot')
 })
 
@@ -132,12 +126,11 @@ check('inactive or missing recurring template is invalid', () => {
   assert.equal(result.unavailableReason, 'invalid_template')
 })
 
-check('no schedule-slot row uses course capacity and zero live occupancy', () => {
+check('no schedule-slot row is still valid with zero informational occupancy', () => {
   const result = snapshot({ slots: [], occupancy: [] })
-  assert.equal(result.capacity, 6)
   assert.equal(result.activeOccupancy, 0)
-  assert.equal(result.remainingSeats, 6)
-  assert.equal(result.canFitRequestedSeats, true)
+  assert.equal(result.valid, true)
+  assert.equal(result.unavailableReason, null)
 })
 
 console.log(`\nBooking slot availability executable checks passed: ${passed}`)

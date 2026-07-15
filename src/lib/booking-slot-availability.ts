@@ -24,7 +24,6 @@ export interface BookingAvailabilityScheduleSlotRow {
   date: string
   start_time: string
   end_time: string
-  max_students: number
   status: string
 }
 
@@ -43,8 +42,6 @@ export interface BookingAvailabilitySessionRow {
 }
 
 export type BookingAvailabilityReason =
-  | 'full'
-  | 'insufficient_remaining'
   | 'invalid_template'
   | 'cancelled_slot'
   | 'slot_mismatch'
@@ -57,13 +54,8 @@ export interface BookingSlotAvailability {
   branchId: string
   scheduleTemplateId: string | null
   scheduleSlotId: string | null
-  capacity: number
   activeOccupancy: number
-  remainingSeats: number
-  requestedSeats: number
-  full: boolean
   valid: boolean
-  canFitRequestedSeats: boolean
   unavailableReason: BookingAvailabilityReason | null
 }
 
@@ -122,9 +114,7 @@ function selectCanonicalTemplate(
 
 export function buildBookingSlotAvailability({
   courseTypeId,
-  defaultCapacity,
   candidates,
-  requestedSlots,
   templates,
   scheduleSlots,
   bookingSessions,
@@ -132,21 +122,13 @@ export function buildBookingSlotAvailability({
   excludeBookingId,
 }: {
   courseTypeId: string
-  defaultCapacity: number
   candidates: BookingAvailabilitySlotInput[]
-  requestedSlots: BookingAvailabilitySlotInput[]
   templates: BookingAvailabilityTemplateRow[]
   scheduleSlots: BookingAvailabilityScheduleSlotRow[]
   bookingSessions: BookingAvailabilitySessionRow[]
   nowMs: number
   excludeBookingId?: string | null
 }) {
-  const requestedCounts = new Map<string, number>()
-  for (const requested of requestedSlots) {
-    const key = getBookingAvailabilitySlotKey(requested)
-    requestedCounts.set(key, (requestedCounts.get(key) || 0) + 1)
-  }
-
   const occupancyBySlotId = new Map<string, number>()
   for (const session of bookingSessions) {
     if (!isActiveOccupancy(session, nowMs, excludeBookingId) || !session.schedule_slot_id) continue
@@ -164,7 +146,6 @@ export function buildBookingSlotAvailability({
     seen.add(key)
 
     const canonicalTemplate = selectCanonicalTemplate(candidate, courseTypeId, templates)
-    const requestedSeats = requestedCounts.get(key) || 0
     if (!canonicalTemplate) {
       result.push({
         key,
@@ -174,13 +155,8 @@ export function buildBookingSlotAvailability({
         branchId: candidate.branchId,
         scheduleTemplateId: candidate.scheduleTemplateId || null,
         scheduleSlotId: null,
-        capacity: defaultCapacity,
         activeOccupancy: 0,
-        remainingSeats: 0,
-        requestedSeats,
-        full: false,
         valid: false,
-        canFitRequestedSeats: false,
         unavailableReason: 'invalid_template',
       })
       continue
@@ -196,22 +172,14 @@ export function buildBookingSlotAvailability({
       || normalizeTime(matchingStartSlot.end_time) === normalizeTime(candidate.endTime)
     const slotCancelled = matchingStartSlot?.status === 'cancelled'
     const valid = slotMatchesEnd && !slotCancelled
-    const capacity = matchingStartSlot ? Number(matchingStartSlot.max_students) : defaultCapacity
     const activeOccupancy = matchingStartSlot
       ? occupancyBySlotId.get(matchingStartSlot.id) || 0
       : 0
-    const remainingSeats = Math.max(0, capacity - activeOccupancy)
-    const full = activeOccupancy >= capacity
-    const canFitRequestedSeats = valid && requestedSeats <= remainingSeats
     const unavailableReason: BookingAvailabilityReason | null = !slotMatchesEnd
       ? 'slot_mismatch'
       : slotCancelled
         ? 'cancelled_slot'
-        : full
-          ? 'full'
-          : !canFitRequestedSeats
-            ? 'insufficient_remaining'
-            : null
+        : null
 
     result.push({
       key,
@@ -221,13 +189,8 @@ export function buildBookingSlotAvailability({
       branchId: candidate.branchId,
       scheduleTemplateId: canonicalTemplate.id,
       scheduleSlotId: matchingStartSlot?.id || null,
-      capacity,
       activeOccupancy,
-      remainingSeats,
-      requestedSeats,
-      full,
       valid,
-      canFitRequestedSeats,
       unavailableReason,
     })
   }

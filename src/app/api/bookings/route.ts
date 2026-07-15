@@ -134,7 +134,7 @@ export async function PUT(request: NextRequest) {
 
     if (booking.pricing_scope_id) {
       if (!isUuid(body.clientRequestId) || !isNonNegativeInteger(body.expectedScopeRevision)) {
-        return NextResponse.json({ error: 'ข้อมูล revision สำหรับแก้ไข Progressive Booking ไม่ครบ', code: 'PROGRESSIVE_INVALID_REQUEST' }, { status: 409 })
+        return NextResponse.json({ error: 'ข้อมูลยืนยันราคาล่าสุดไม่ครบ กรุณาคำนวณราคาใหม่', code: 'PROGRESSIVE_INVALID_REQUEST' }, { status: 409 })
       }
       try {
         const { expectedScopeRevision } = await resolveProgressiveExpectedRevision({
@@ -302,6 +302,8 @@ interface DbQuery extends PromiseLike<{ data: unknown[] | null; error: DbError |
   in(column: string, values: unknown[]): DbQuery
   neq(column: string, value: unknown): DbQuery
   is(column: string, value: unknown): DbQuery
+  lt(column: string, value: unknown): DbQuery
+  gt(column: string, value: unknown): DbQuery
   limit(count: number): DbQuery
   select(columns: string): DbQuery
   single(): Promise<{ data: unknown; error: DbError | null }>
@@ -394,20 +396,13 @@ function serializeProgressiveResult(result: Awaited<ReturnType<typeof createProg
 function progressiveWriteError(error: unknown) {
   if (!(error instanceof ProgressiveBookingWriteError)) throw error
   const conflictCodes = new Set([
-    'PROGRESSIVE_BOOKING_CONFLICT', 'PROGRESSIVE_CAPACITY_EXCEEDED',
+    'PROGRESSIVE_BOOKING_CONFLICT',
     'PROGRESSIVE_DUPLICATE_SESSION', 'PROGRESSIVE_IDEMPOTENCY_CONFLICT',
     'PROGRESSIVE_LEGACY_BASELINE_CONFLICT', 'PROGRESSIVE_LEGACY_BASELINE_DRIFT',
     'PROGRESSIVE_SCOPE_LOCKED', 'PROGRESSIVE_SCOPE_REVISION_CONFLICT',
   ])
   const unavailableCodes = new Set(['PROGRESSIVE_RPC_UNAVAILABLE', 'PROGRESSIVE_WRITES_DISABLED', 'PROGRESSIVE_COUPON_LIFECYCLE_DISABLED'])
   const status = unavailableCodes.has(error.code) ? 503 : conflictCodes.has(error.code) ? 409 : 400
-  if (error.code === 'PROGRESSIVE_CAPACITY_EXCEEDED') {
-    console.warn('[booking] Progressive capacity rejected', { code: error.code })
-    return NextResponse.json({
-      error: 'รอบเรียนที่เลือกเต็มแล้ว กรุณาเลือกวันหรือเวลาใหม่',
-      code: error.code,
-    }, { status })
-  }
   return NextResponse.json({ error: error.message, code: error.code }, { status })
 }
 
@@ -506,13 +501,11 @@ function validateChildSessionIntegrity(
   return null
 }
 
-function getSessionIdentity(session: BookingSessionPayload) {
-  return [
-    getLearnerKey(session.childId),
-    session.date,
-    normalizeTime(session.startTime),
-    normalizeTime(session.endTime),
-  ].join('|')
+function sessionsOverlap(left: BookingSessionPayload, right: BookingSessionPayload) {
+  return getLearnerKey(left.childId) === getLearnerKey(right.childId)
+    && left.date === right.date
+    && normalizeTime(left.startTime) < normalizeTime(right.endTime)
+    && normalizeTime(left.endTime) > normalizeTime(right.startTime)
 }
 
 function formatDuplicateSessionMessage(session: BookingSessionPayload, childNames: Map<string, string>) {
@@ -526,21 +519,19 @@ async function assertNoDuplicateActiveSessions(
   childNames: Map<string, string>,
   excludeBookingId?: string
 ) {
-  const seen = new Set<string>()
-  for (const session of sessions) {
-    const key = getSessionIdentity(session)
-    if (seen.has(key)) {
-      throw new Error(`เลือกรอบซ้ำในรายการเดียวกัน: ${formatDuplicateSessionMessage(session, childNames)}`)
+  for (let index = 0; index < sessions.length; index += 1) {
+    const session = sessions[index]
+    if (sessions.slice(0, index).some((prior) => sessionsOverlap(prior, session))) {
+      throw new Error(`เลือกรอบเวลาซ้อนกันในรายการเดียวกัน: ${formatDuplicateSessionMessage(session, childNames)}`)
     }
-    seen.add(key)
   }
 
   for (const session of sessions) {
     let query = (adminSupabase.from('booking_sessions') as unknown as DbTable)
       .select('id, booking_id, date, start_time, end_time, branch_id, child_id, bookings!inner(id, user_id, status)')
       .eq('date', session.date)
-      .eq('start_time', normalizeTime(session.startTime))
-      .eq('end_time', normalizeTime(session.endTime))
+      .lt('start_time', normalizeTime(session.endTime))
+      .gt('end_time', normalizeTime(session.startTime))
       .eq('bookings.user_id', userId)
       .in('bookings.status', ACTIVE_BOOKING_STATUSES)
       .in('status', ACTIVE_SESSION_STATUSES)
@@ -554,7 +545,7 @@ async function assertNoDuplicateActiveSessions(
       throw new Error(`ตรวจสอบรอบเรียนซ้ำไม่สำเร็จ: ${error.message}`)
     }
     if (data && data.length > 0) {
-      throw new Error(`จองซ้ำไม่ได้: ${formatDuplicateSessionMessage(session, childNames)}`)
+      throw new Error(`จองรอบเวลาซ้ำหรือซ้อนกันไม่ได้: ${formatDuplicateSessionMessage(session, childNames)}`)
     }
   }
 }
@@ -819,7 +810,7 @@ export async function POST(request: NextRequest) {
       const dependency = getProgressiveBookingEntryDependencyState()
       if (!dependency.ready) {
         return NextResponse.json({
-          error: 'ระบบ Progressive Booking ยังไม่พร้อม กรุณาลองใหม่ภายหลัง',
+          error: 'ระบบสร้างการจองยังไม่พร้อม กรุณาลองใหม่ภายหลัง',
           code: 'PROGRESSIVE_BOOKING_DEPENDENCY_UNAVAILABLE',
         }, { status: 503 })
       }
@@ -828,7 +819,7 @@ export async function POST(request: NextRequest) {
         || !isNonNegativeInteger(body.expectedLegacyBaselineSessions)
         || !isSha256Fingerprint(body.expectedLegacyBaselineFingerprint)) {
         return NextResponse.json({
-          error: 'กรุณาคำนวณราคา Progressive ล่าสุดก่อนยืนยันการจอง',
+          error: 'กรุณาคำนวณราคาล่าสุดก่อนยืนยันการจอง',
           code: 'PROGRESSIVE_PREVIEW_REQUIRED',
         }, { status: 409 })
       }
@@ -1058,7 +1049,7 @@ export async function DELETE(request: NextRequest) {
 
     if (booking.pricing_scope_id) {
       if (!isUuid(body.clientRequestId) || !isNonNegativeInteger(body.expectedScopeRevision)) {
-        return NextResponse.json({ error: 'ข้อมูล revision สำหรับยกเลิก Progressive Booking ไม่ครบ', code: 'PROGRESSIVE_INVALID_REQUEST' }, { status: 409 })
+        return NextResponse.json({ error: 'ข้อมูลยืนยันรายการล่าสุดไม่ครบ กรุณารีเฟรชแล้วลองใหม่', code: 'PROGRESSIVE_INVALID_REQUEST' }, { status: 409 })
       }
       try {
         const { expectedScopeRevision } = await resolveProgressiveExpectedRevision({

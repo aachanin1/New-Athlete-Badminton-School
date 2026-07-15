@@ -9,7 +9,6 @@ export type ProgressiveBookingWriteErrorCode =
   | 'PROGRESSIVE_BOOKING_CONFLICT'
   | 'PROGRESSIVE_BOOKING_EXPIRED'
   | 'PROGRESSIVE_BOOKING_NOT_PENDING'
-  | 'PROGRESSIVE_CAPACITY_EXCEEDED'
   | 'PROGRESSIVE_COUPON_ALREADY_USED'
   | 'PROGRESSIVE_COUPON_COURSE_NOT_ALLOWED'
   | 'PROGRESSIVE_COUPON_EXPIRED'
@@ -42,7 +41,6 @@ const KNOWN_ERROR_CODES = new Set<ProgressiveBookingWriteErrorCode>([
   'PROGRESSIVE_BOOKING_CONFLICT',
   'PROGRESSIVE_BOOKING_EXPIRED',
   'PROGRESSIVE_BOOKING_NOT_PENDING',
-  'PROGRESSIVE_CAPACITY_EXCEEDED',
   'PROGRESSIVE_COUPON_ALREADY_USED',
   'PROGRESSIVE_COUPON_COURSE_NOT_ALLOWED',
   'PROGRESSIVE_COUPON_EXPIRED',
@@ -210,8 +208,10 @@ async function assertProgressiveCapability(client: ProgressiveRpcClient) {
   const { data, error } = await client.rpc('progressive_pricing_writes_capability_v1')
   if (error) throw mapRpcError(error)
 
-  const capability = data as { ready?: unknown; version?: unknown } | null
-  if (capability?.ready !== true || capability.version !== 2) {
+  const capability = data as { ready?: unknown; version?: unknown; slotEntryPolicy?: unknown } | null
+  if (capability?.ready !== true
+    || capability.version !== 2
+    || capability.slotEntryPolicy !== 'unlimited_learner_v1') {
     throw new ProgressiveBookingWriteError(
       'PROGRESSIVE_RPC_UNAVAILABLE',
       'Progressive pricing database capability is not ready.',

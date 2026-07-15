@@ -34,6 +34,7 @@ const paymentUpload = read('src/app/api/progressive-payments/upload/route.ts')
 const paymentSubmit = read('src/app/api/progressive-payments/submit/route.ts')
 const paymentRoute = read('src/lib/progressive-payment-route.ts')
 const compatibilityMigration = read('supabase/migrations/20260713210000_add_progressive_legacy_baseline_compatibility.sql')
+const unlimitedSlotMigration = read('supabase/migrations/20260715060541_unlimited_normal_slot_entry.sql')
 const syntheticUser = '11111111-1111-4111-8111-111111111111'
 
 let passed = 0
@@ -174,12 +175,14 @@ check('24 Legacy rows remain outside scope while Progressive mismatches fail clo
   compatibilityMigration.includes('booking.pricing_scope_id IS NULL')
   && compatibilityMigration.includes('booking.pricing_scope_id IS NOT NULL')
   && compatibilityMigration.includes('booking.pricing_scope_id IS DISTINCT FROM p_scope_id'))
-check('25 pricing write capability requires Option A version 2',
+check('25 pricing write capability requires Option A version 2 and unlimited slot entry',
   compatibilityMigration.includes("'version', 2")
-  && writeHelper.includes('capability.version !== 2'))
+  && writeHelper.includes('capability.version !== 2')
+  && unlimitedSlotMigration.includes("'slotEntryPolicy', 'unlimited_learner_v1'")
+  && writeHelper.includes("capability.slotEntryPolicy !== 'unlimited_learner_v1'"))
 
 const progressiveSummaryStart = bookingClient.indexOf('{progressiveKidsPreview && (')
-const legacySummaryStart = bookingClient.indexOf("{authoritativePreview?.mode === 'legacy' && courseType === 'kids_group'")
+const legacySummaryStart = bookingClient.indexOf("{authoritativePreview?.mode === 'legacy' && courseType === 'kids_group'", progressiveSummaryStart)
 const progressiveSummary = bookingClient.slice(progressiveSummaryStart, legacySummaryStart)
 const legacySummary = bookingClient.slice(legacySummaryStart, bookingClient.indexOf('{/* Coupon input */}', legacySummaryStart))
 
@@ -191,17 +194,17 @@ check('26 client keeps the complete authoritative Progressive summary contract',
   && bookingClient.includes('newBookingSessions: number')
   && bookingClient.includes('cumulativeAfterSessions: number')
   && bookingClient.includes('ratePerSession: number'))
-check('27 Progressive 4+4 summary is booking-level and contains no Legacy true-up copy',
+check('27 Progressive summary is booking-level and uses plain customer language',
   progressiveSummaryStart >= 0
   && legacySummaryStart > progressiveSummaryStart
-  && progressiveSummary.includes('สิทธิ์เดิมที่ใช้กำหนดเรท: {progressiveKidsPreview.legacyBaselineSessions} ครั้ง')
-  && progressiveSummary.includes('การจอง Progressive ก่อนหน้า: {progressiveKidsPreview.previousProgressiveActiveSessions} ครั้ง')
-  && progressiveSummary.includes('จองเพิ่มครั้งนี้: {progressiveKidsPreview.newBookingSessions} ครั้ง')
-  && progressiveSummary.includes('จำนวนสะสมหลังจอง: {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง')
-  && progressiveSummary.includes('เรทสำหรับการจองครั้งนี้: {progressiveKidsPreview.ratePerSession.toLocaleString()} บาท/ครั้ง')
-  && progressiveSummary.includes('ราคาการจองใหม่: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท')
-  && progressiveSummary.includes('ไม่ถูกนำมาหักจากราคาการจองครั้งนี้')
-  && !progressiveSummary.includes('ยอดรวมตามเรทใหม่')
+  && progressiveSummary.includes('วิธีคิดราคาการจองครั้งนี้')
+  && progressiveSummary.includes('เดือนนี้มีรอบเรียนเดิม {progressiveKidsPreview.cumulativeAfterSessions - progressiveKidsPreview.newBookingSessions} ครั้ง')
+  && progressiveSummary.includes('ครั้งนี้เลือกเพิ่ม {progressiveKidsPreview.newBookingSessions} ครั้ง')
+  && progressiveSummary.includes('หลังจองจะรวมเป็น {progressiveKidsPreview.cumulativeAfterSessions} ครั้ง')
+  && progressiveSummary.includes('อยู่ในช่วงราคา {formatPricingTierRange(progressiveKidsPreview.selectedTier)}')
+  && progressiveSummary.includes('ยอดชำระครั้งนี้: {progressiveKidsPreview.newBookingSessions} × {progressiveKidsPreview.ratePerSession.toLocaleString()} = {progressiveKidsPreview.grossPrice.toLocaleString()} บาท')
+  && progressiveSummary.includes('ไม่ถูกหักจากการจองครั้งนี้')
+  && !progressiveSummary.includes('Progressive สำหรับ')
   && !progressiveSummary.includes('หักยอดที่จ่ายแล้ว')
   && !progressiveSummary.includes('เครดิตส่วนต่าง'))
 check('28 Progressive coupon summary keeps authoritative gross, discount, and final amounts',
@@ -210,19 +213,19 @@ check('28 Progressive coupon summary keeps authoritative gross, discount, and fi
   && bookingClient.includes('const submissionFinalPrice = submissionPreview.totalPrice')
   && bookingClient.includes('const displayedBasePrice = authoritativePreview?.grossPrice ?? totalBatchPrice')
   && bookingClient.includes('? authoritativePreview.totalPrice')
-  && bookingClient.includes('ส่วนลดคูปอง ({appliedCoupon.code})'))
-check('29 Progressive zero-Legacy-baseline summary remains visible without Legacy copy',
-  progressiveSummary.includes('legacyBaselineSessions')
-  && !progressiveSummary.includes('legacyBaselineSessions > 0')
+  && bookingClient.includes('ส่วนลดคูปอง {appliedCoupon.code}: {displayedDiscountAmount.toLocaleString()} บาท'))
+check('29 Progressive zero-baseline summary remains visible without technical baseline copy',
+  !progressiveSummary.includes('legacyBaselineSessions')
   && !progressiveSummary.includes('existingMonthData')
   && !progressiveSummary.includes('kidsIncremental'))
-check('30 Legacy 4+4 true-up explanation remains unchanged behind the Legacy branch',
+check('30 Entry-off pricing formula remains behind a neutral customer explanation',
   legacySummaryStart >= 0
-  && legacySummary.includes('เคยจ่ายแล้ว: {existingMonthData.sessions} ครั้ง = ฿{existingMonthData.paid.toLocaleString()}')
-  && legacySummary.includes('ยอดรวมตามเรทใหม่: {kidsIncremental.totalSessionsForMonth} × ฿{kidsIncremental.perSession.toLocaleString()} = ฿{kidsIncremental.totalCostForMonth.toLocaleString()}')
-  && legacySummary.includes('หักยอดที่จ่ายแล้ว: ฿{kidsIncremental.existingPaid.toLocaleString()}')
-  && legacySummary.includes('ยอดที่ต้องชำระเพิ่ม: ฿{displayedBasePrice.toLocaleString()}')
-  && legacySummary.includes('เครดิตส่วนต่าง'))
+  && legacySummary.includes('เดือนนี้มีรอบที่ชำระแล้ว {authoritativePreview.existingSessions} ครั้ง')
+  && legacySummary.includes('ยอดรวมของเดือนนี้: {authoritativePreview.totalSessionsAfter} × {selectedTier.pricePerSession.toLocaleString()}')
+  && legacySummary.includes('หักยอดที่ชำระแล้วในเดือนนี้: {authoritativePreview.existingPaid.toLocaleString()} บาท')
+  && legacySummary.includes('ยอดชำระครั้งนี้: {authoritativePreview.totalPrice.toLocaleString()} บาท')
+  && !legacySummary.includes('kidsIncremental')
+  && !legacySummary.includes('เครดิตส่วนต่าง'))
 check('31 Adult Group and Private summary/pricing remain on their existing Legacy paths',
   bookingClient.includes("if (courseType === 'adult_group') return getAdultGroupTotal")
   && bookingClient.includes('return getPrivateTotal')

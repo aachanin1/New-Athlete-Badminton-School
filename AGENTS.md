@@ -116,6 +116,18 @@ Main portals:
 - `schedule_templates` is the DB source of truth for bookable recurring slots.
 - `schedule_slots` are real dated teaching slots and must be linked from `booking_sessions.schedule_slot_id`.
 - `src/lib/branch-schedules.ts` is legacy/reference only unless code inspection proves otherwise.
+- Normal teaching rounds have no fixed learner-capacity ceiling. Occupancy, configured
+  `max_students`, cached `current_students`, or a derived `full` state must not block
+  new User booking, pending-payment booking edit, User reschedule, Lesson Wallet
+  redemption, or makeup/replacement-date entry. The Head Coach divides learners into
+  groups and assigns coaches after booking.
+- Unlimited learner entry does not relax exact-learner duplicate/overlap prevention,
+  ownership or role authorization, active schedule-template and real
+  `schedule_slot_id` validation, future/not-started checks, booking/payment status,
+  same-month wallet/reschedule rules, idempotency, concurrency, atomicity, pricing,
+  coupon, Ledger, Finance, attendance, or coach-evidence safeguards.
+- Admin booking on behalf of users remains disabled; unlimited learner entry must not
+  restore `/admin/booking` or `POST /api/admin/booking`.
 - Lesson wallet credits can store a verified scheduled session only before the 48-hour cutoff, with no attendance and no started session.
 - Wallet redemption must stay in the same month and must not create a new payment.
 - Walleted sessions are not absent, not completed, not makeup-eligible, and not coach-payable.

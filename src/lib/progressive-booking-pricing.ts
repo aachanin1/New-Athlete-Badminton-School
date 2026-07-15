@@ -31,6 +31,7 @@ export interface ProgressivePricingTier {
   minSessions: number
   maxSessions: number | null
   ratePerSession: number
+  packagePrice?: number | null
 }
 
 export interface ProgressiveBookingInput {
@@ -50,6 +51,9 @@ export interface ProgressiveBookingPrice {
     id: string | null
     minSessions: number
     maxSessions: number | null
+    pricePerSession: number
+    packagePrice: number | null
+    unit: 'session'
   }
   ratePerSession: number
   grossBookingPrice: number
@@ -223,6 +227,9 @@ export function calculateProgressiveBookingPrice({
         id: selectedTier.id,
         minSessions: selectedTier.minSessions,
         maxSessions: selectedTier.maxSessions,
+        pricePerSession: selectedTier.ratePerSession,
+        packagePrice: selectedTier.packagePrice ?? null,
+        unit: 'session',
       },
       ratePerSession: selectedTier.ratePerSession,
       grossBookingPrice,

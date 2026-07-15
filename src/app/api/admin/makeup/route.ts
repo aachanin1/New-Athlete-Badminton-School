@@ -3,6 +3,7 @@ import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
+import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
 import type { AttendanceStatus, StudentType } from '@/types/database'
 
 type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
@@ -14,7 +15,7 @@ interface OriginalSessionRow {
   end_time: string | null
   status: string
   child_id: string | null
-  bookings?: { user_id: string | null } | null
+  bookings?: { user_id: string | null; course_type_id: string | null } | null
 }
 
 interface SourceSessionRow {
@@ -162,6 +163,18 @@ function getBangkokSessionEnd(date: string, endTime: string | null) {
 
 function isPastSession(date: string, endTime: string | null) {
   return getBangkokSessionEnd(date, endTime).getTime() < Date.now()
+}
+
+function normalizeSlotTime(value: string) {
+  return value.length === 5 ? `${value}:00` : value
+}
+
+function isFutureMakeupTarget(date: string, startTime: string) {
+  return new Date(`${date}T${normalizeSlotTime(startTime)}+07:00`).getTime() > Date.now()
+}
+
+function getDayOfWeek(date: string) {
+  return new Date(`${date}T00:00:00+07:00`).getDay()
 }
 
 function normalizeReason(value: unknown) {
@@ -529,7 +542,7 @@ export async function POST(req: NextRequest) {
 
     const { data: originalSession, error: originalError } = await supabaseAdmin
       .from('booking_sessions')
-      .select('id, booking_id, date, end_time, status, child_id, bookings(user_id)')
+      .select('id, booking_id, date, end_time, status, child_id, bookings(user_id, course_type_id)')
       .eq('id', originalSessionId)
       .single<OriginalSessionRow>()
 
@@ -541,6 +554,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'สร้างวันชดเชยได้เฉพาะรอบที่ขาดเรียนหรือเลยวันเรียนแล้วเท่านั้น' }, { status: 400 })
     }
 
+    if (originalSession.booking_id !== bookingId || !originalSession.bookings?.course_type_id) {
+      return NextResponse.json({ error: 'ข้อมูลการจองต้นทางไม่ตรงกับรอบเรียน' }, { status: 400 })
+    }
+
     const bounds = getMonthBounds(originalSession.date)
 
     if (Date.now() >= bounds.followingStart.getTime()) {
@@ -549,6 +566,57 @@ export async function POST(req: NextRequest) {
 
     if (!isInNextCalendarMonth(originalSession.date, makeupDate)) {
       return NextResponse.json({ error: 'วันชดเชยต้องอยู่ในเดือนถัดไปของเดือนเรียนเดิมเท่านั้น' }, { status: 400 })
+    }
+
+    if (!isFutureMakeupTarget(makeupDate, startTime)) {
+      return NextResponse.json({ error: 'วันและเวลาชดเชยต้องเป็นรอบที่ยังไม่เริ่ม' }, { status: 400 })
+    }
+
+    const { data: targetTemplates, error: templateError } = await supabaseAdmin
+      .from('schedule_templates')
+      .select('id, start_time, end_time')
+      .eq('branch_id', branchId)
+      .eq('course_type_id', originalSession.bookings.course_type_id)
+      .eq('day_of_week', getDayOfWeek(makeupDate))
+      .eq('is_active', true)
+
+    if (templateError) return NextResponse.json({ error: templateError.message }, { status: 500 })
+    const normalizedStart = normalizeSlotTime(startTime)
+    const normalizedEnd = normalizeSlotTime(endTime)
+    const targetTemplate = (targetTemplates || []).find((template) => (
+      normalizeSlotTime(template.start_time) <= normalizedStart
+      && normalizeSlotTime(template.end_time) >= normalizedEnd
+    ))
+    if (!targetTemplate) {
+      return NextResponse.json({ error: 'รอบชดเชยไม่ตรงกับรอบเรียนประจำที่เปิดใช้งาน' }, { status: 400 })
+    }
+
+    const scheduleSlotId = await ensureScheduleSlot({
+      supabase: supabaseAdmin,
+      templateId: targetTemplate.id,
+      branchId,
+      courseTypeId: originalSession.bookings.course_type_id,
+      date: makeupDate,
+      startTime,
+      endTime,
+    })
+
+    let conflictQuery = supabaseAdmin
+      .from('booking_sessions')
+      .select('id, status, bookings!inner(user_id)')
+      .eq('date', makeupDate)
+      .lt('start_time', normalizedEnd)
+      .gt('end_time', normalizedStart)
+      .eq('bookings.user_id', originalSession.bookings.user_id || '')
+      .neq('status', 'rescheduled')
+      .neq('status', 'walleted')
+    conflictQuery = originalSession.child_id
+      ? conflictQuery.eq('child_id', originalSession.child_id)
+      : conflictQuery.is('child_id', null)
+    const { data: conflicts, error: conflictError } = await conflictQuery
+    if (conflictError) return NextResponse.json({ error: conflictError.message }, { status: 500 })
+    if ((conflicts || []).length > 0) {
+      return NextResponse.json({ error: 'ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว' }, { status: 409 })
     }
 
     let sourceQuery = supabaseAdmin
@@ -596,6 +664,7 @@ export async function POST(req: NextRequest) {
       .from('booking_sessions')
       .insert({
         booking_id: bookingId,
+        schedule_slot_id: scheduleSlotId,
         date: makeupDate,
         start_time: startTime,
         end_time: endTime,

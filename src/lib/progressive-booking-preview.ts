@@ -156,7 +156,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
 
   const { data: tierData, error: tierError } = await client
     .from('pricing_tiers')
-    .select('id, min_sessions, max_sessions, price_per_session, valid_from, valid_to')
+    .select('id, min_sessions, max_sessions, price_per_session, package_price, valid_from, valid_to')
     .eq('course_type_id', input.courseTypeId)
     .lte('valid_from', today)
     .or(`valid_to.is.null,valid_to.gte.${today}`)
@@ -174,6 +174,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
         minSessions: Number(row.min_sessions),
         maxSessions: row.max_sessions === null ? null : Number(row.max_sessions),
         ratePerSession: Number(row.price_per_session),
+        packagePrice: row.package_price === null ? null : Number(row.package_price),
       })
     }
   }
@@ -258,6 +259,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
     newBookingSessions: input.entitlementSessions,
     cumulativeAfterSessions: price.value.cumulativeSessionsAfter,
     ratePerSession: price.value.ratePerSession,
+    selectedTier: price.value.selectedTier,
     sourceKind: 'progressive_kids_group_v1' as const,
     pricing: price.value,
   }

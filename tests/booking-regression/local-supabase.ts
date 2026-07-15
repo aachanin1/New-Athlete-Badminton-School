@@ -21,10 +21,18 @@ export const TEST_ACCOUNT = {
   password: 'LocalBooking!2026',
   fullName: 'ผู้ปกครองทดสอบ Booking Regression',
   childName: 'นักเรียนทดสอบ Progressive',
+  childNickname: 'โปรเกรสซีฟ',
+}
+
+export const TEST_ADMIN_ACCOUNT = {
+  email: 'booking-regression-admin@example.com',
+  password: TEST_ACCOUNT.password,
+  fullName: 'ผู้ดูแลทดสอบ Booking Regression',
 }
 
 export const BOOKING_DATES = ['2026-07-20', '2026-07-21', '2026-07-23', '2026-07-24'] as const
 export const FULL_DATE = '2026-07-22'
+export const OVERFULL_DATE = '2026-07-26'
 export const RACE_DATE = '2026-07-25'
 
 export interface LocalSupabaseEnv {
@@ -36,6 +44,7 @@ export interface LocalSupabaseEnv {
 export interface BookingFixture {
   userId: string
   otherUserId: string
+  adminUserId: string
   branchId: string
   kidsCourseId: string
   adultCourseId: string
@@ -132,6 +141,8 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
   const admin = createLocalAdmin()
   const userId = await createTestUser(admin, TEST_ACCOUNT.email, TEST_ACCOUNT.fullName)
   const otherUserId = await createTestUser(admin, 'booking-regression-occupancy@example.com', 'ผู้ปกครองทดสอบ Occupancy')
+  const adminUserId = await createTestUser(admin, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.fullName)
+  assertNoError((await admin.from('profiles').update({ role: 'super_admin' }).eq('id', adminUserId)).error, 'promote booking regression admin')
 
   assertNoError((await admin.from('branches').insert({
     id: IDS.branch,
@@ -168,11 +179,11 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     id: IDS.mainChild,
     parent_id: userId,
     full_name: TEST_ACCOUNT.childName,
-    nickname: 'โปรเกรสซีฟ',
+    nickname: TEST_ACCOUNT.childNickname,
     date_of_birth: '2016-01-01',
   })).error, 'insert main child')
 
-  const otherChildren = Array.from({ length: 6 }, (_, index) => ({
+  const otherChildren = Array.from({ length: 20 }, (_, index) => ({
     id: fixedUuid('7700000', index + 1),
     parent_id: otherUserId,
     full_name: `Occupancy ${index + 1}`,
@@ -181,7 +192,7 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
   }))
   assertNoError((await admin.from('children').insert(otherChildren)).error, 'insert occupancy children')
 
-  const dates = ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', ...BOOKING_DATES, FULL_DATE, RACE_DATE]
+  const dates = ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', ...BOOKING_DATES, FULL_DATE, OVERFULL_DATE, RACE_DATE]
   const days = Array.from(new Set(dates.map((date) => new Date(`${date}T00:00:00Z`).getUTCDay())))
   const templates: Record<string, string> = {}
   for (const day of days) {
@@ -240,8 +251,11 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     status: 'completed',
   })))).error, 'insert legacy baseline sessions')
 
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < 20; index += 1) {
     const bookingId = fixedUuid('bb00000', index + 1)
+    const occupiedDates = [OVERFULL_DATE]
+    if (index < 6) occupiedDates.push(FULL_DATE)
+    if (index < 5) occupiedDates.push(BOOKING_DATES[0], RACE_DATE)
     assertNoError((await admin.from('bookings').insert({
       id: bookingId,
       user_id: otherUserId,
@@ -251,16 +265,14 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
       course_type_id: IDS.kidsCourse,
       month: 7,
       year: 2026,
-      total_sessions: index < 5 ? 3 : 1,
+      total_sessions: occupiedDates.length,
       total_price: 0,
       status: 'verified',
-      entitlement_sessions: index < 5 ? 3 : 1,
-      created_at: `2026-07-10T0${index}:00:00Z`,
+      entitlement_sessions: occupiedDates.length,
+      created_at: new Date(Date.UTC(2026, 6, 10, 0, index, 0)).toISOString(),
     })).error, `insert occupancy booking ${index + 1}`)
-    const occupiedDates = [FULL_DATE]
-    if (index < 5) occupiedDates.push(BOOKING_DATES[0], RACE_DATE)
     assertNoError((await admin.from('booking_sessions').insert(occupiedDates.map((date, sessionIndex) => ({
-      id: fixedUuid(`cc0000${index}`, sessionIndex + 1),
+      id: fixedUuid('cc', index * 10 + sessionIndex + 1),
       booking_id: bookingId,
       schedule_slot_id: slots[date],
       date,
@@ -327,7 +339,7 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
   })).error, 'insert coupon course type')
 
   const fixture: BookingFixture = {
-    userId, otherUserId,
+    userId, otherUserId, adminUserId,
     branchId: IDS.branch,
     kidsCourseId: IDS.kidsCourse,
     adultCourseId: IDS.adultCourse,

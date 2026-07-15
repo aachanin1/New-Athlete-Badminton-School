@@ -32,6 +32,14 @@ interface ExistingBookingTable {
   select(columns: string): ExistingBookingQuery
 }
 
+export interface BookingBasePricePreview {
+  totalPrice: number
+  selectedTier: import('@/lib/pricing').SelectedPricingTierEvidence
+  existingSessions: number
+  existingPaid: number
+  totalSessionsAfter: number
+}
+
 export async function fetchPricingTiers(supabase: SupabaseQueryClient) {
   const pricingTable = supabase.from('pricing_tiers') as {
     select(columns: string): {
@@ -49,7 +57,7 @@ export async function fetchPricingTiers(supabase: SupabaseQueryClient) {
   return (data || []) as PricingTierInput[]
 }
 
-export async function calculateBookingBasePrice({
+export async function calculateBookingBasePricePreview({
   supabase,
   userId,
   courseTypeId,
@@ -82,12 +90,37 @@ export async function calculateBookingBasePrice({
     const existingSessions = existing.reduce((sum, booking) => sum + Number(booking.total_sessions || 0), 0)
     const existingPaid = existing.reduce((sum, booking) => sum + Number(booking.total_price || 0), 0)
     const pricing = getKidsGroupIncremental(existingSessions, existingPaid, newSessions, pricingTiers)
-    return pricing.incrementalPrice
+    return {
+      totalPrice: pricing.incrementalPrice,
+      selectedTier: pricing.selectedTier,
+      existingSessions,
+      existingPaid,
+      totalSessionsAfter: pricing.totalSessionsForMonth,
+    }
   }
 
   if (courseTypeName === 'adult_group') {
-    return getAdultGroupTotal(newSessions, pricingTiers).total
+    const pricing = getAdultGroupTotal(newSessions, pricingTiers)
+    return {
+      totalPrice: pricing.total,
+      selectedTier: pricing.selectedTier,
+      existingSessions: 0,
+      existingPaid: 0,
+      totalSessionsAfter: newSessions,
+    }
   }
 
-  return getPrivateTotal(newSessions, pricingTiers).total
+  const pricing = getPrivateTotal(newSessions, pricingTiers)
+  return {
+    totalPrice: pricing.total,
+    selectedTier: pricing.selectedTier,
+    existingSessions: 0,
+    existingPaid: 0,
+    totalSessionsAfter: newSessions,
+  }
+}
+
+export async function calculateBookingBasePrice(params: BookingPricingParams) {
+  const preview = await calculateBookingBasePricePreview(params)
+  return preview.totalPrice
 }

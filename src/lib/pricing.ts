@@ -45,6 +45,34 @@ export interface TotalPriceResult {
   total: number
   perSession: number
   tierLabel: string
+  selectedTier: SelectedPricingTierEvidence
+}
+
+export interface SelectedPricingTierEvidence {
+  id: string | null
+  minSessions: number
+  maxSessions: number | null
+  pricePerSession: number
+  packagePrice: number
+  unit: 'session' | 'hour'
+}
+
+function toTierEvidence(tier: PricingTierConfig, unit: SelectedPricingTierEvidence['unit']): SelectedPricingTierEvidence {
+  return {
+    id: tier.id || null,
+    minSessions: tier.min_sessions,
+    maxSessions: tier.max_sessions,
+    pricePerSession: tier.price_per_session,
+    packagePrice: tier.package_price,
+    unit,
+  }
+}
+
+export function formatPricingTierRange(tier: Pick<SelectedPricingTierEvidence, 'minSessions' | 'maxSessions' | 'unit'>) {
+  const unit = tier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'
+  if (tier.maxSessions === null) return `${tier.minSessions} ${unit}ขึ้นไป`
+  if (tier.minSessions === tier.maxSessions) return `${tier.minSessions} ${unit}`
+  return `${tier.minSessions}–${tier.maxSessions} ${unit}`
 }
 
 const COURSE_ORDER: CourseCategory[] = ['kids_group', 'adult_group', 'private']
@@ -218,6 +246,7 @@ export function getKidsGroupTotal(
     total: Math.round(tier.price_per_session * totalSessions),
     perSession: tier.price_per_session,
     tierLabel: formatTierLabel(tier),
+    selectedTier: toTierEvidence(tier, 'session'),
   }
 }
 
@@ -228,7 +257,7 @@ export function getKidsGroupIncremental(
   pricing?: PricingTierInput[] | PricingCatalog | null
 ) {
   const totalSessionsForMonth = existingSessionsThisMonth + newSessions
-  const { perSession, tierLabel } = getKidsGroupTotal(totalSessionsForMonth, pricing)
+  const { perSession, tierLabel, selectedTier } = getKidsGroupTotal(totalSessionsForMonth, pricing)
   const totalCostForMonth = Math.round(perSession * totalSessionsForMonth)
   // Uses persisted booking totals; coupon true-up semantics need owner decision because pre-discount subtotal is not stored.
   const existingPaid = Math.max(0, Math.round(existingPaidThisMonth))
@@ -248,6 +277,7 @@ export function getKidsGroupIncremental(
     totalSessionsForMonth,
     totalCostForMonth,
     effectivePerSession,
+    selectedTier,
   }
 }
 
@@ -261,6 +291,7 @@ export function getAdultGroupTotal(
       total: Math.round(totalSessions * tier.price_per_session),
       perSession: tier.price_per_session,
       tierLabel: 'รายครั้ง',
+      selectedTier: toTierEvidence(tier, 'session'),
     }
   }
 
@@ -268,6 +299,7 @@ export function getAdultGroupTotal(
     total: tier.package_price,
     perSession: tier.price_per_session,
     tierLabel: formatTierLabel(tier),
+    selectedTier: toTierEvidence(tier, 'session'),
   }
 }
 
@@ -281,6 +313,7 @@ export function getPrivateTotal(
       total: Math.round(totalHours * tier.price_per_session),
       perSession: tier.price_per_session,
       tierLabel: 'รายชั่วโมง',
+      selectedTier: toTierEvidence(tier, 'hour'),
     }
   }
 
@@ -288,6 +321,7 @@ export function getPrivateTotal(
     total: tier.package_price,
     perSession: tier.price_per_session,
     tierLabel: formatTierLabel(tier, 'ชั่วโมง'),
+    selectedTier: toTierEvidence(tier, 'hour'),
   }
 }
 
