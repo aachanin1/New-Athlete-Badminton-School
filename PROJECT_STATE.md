@@ -101,8 +101,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Dashboard Booking Unlimited Slot Entry + Customer Price UX
 
-Status: **ACTIVE — PRODUCTION RELEASE PREFLIGHT COMPLETE;
-REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
+Status: **DONE — REMOTE MIGRATION APPLIED; EXACT SOURCE DEPLOYED;
+NO-WRITE PRODUCTION UAT PASSED**
 (Owner decision 2026-07-15).
 
 - Owner permanently removed the fixed learner-capacity ceiling from normal teaching
@@ -149,8 +149,8 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
   makes `current_students` informational, preserves cancelled slots, and exposes
   capability version `2` with
   `slotEntryPolicy=unlimited_learner_v1`. It has no table-data rewrite, tier change,
-  reprice, or historical backfill and has been applied only to disposable local
-  Supabase.
+  reprice, or historical backfill. It passed disposable local Supabase verification
+  before release and is now applied exactly once to the linked Production database.
 - Source commit is `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
   `397618a391f968ec1135084978ce3589a43f1d89`, on
   `origin/spike/next-major-security-upgrade`. The commit contains the approved
@@ -162,22 +162,55 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
   fixtures; 265 deterministic checks; 9 rendered Booking E2E cases with residue
   `0`; TypeScript, ESLint, mojibake, and production build. The post-build test server
   restarted from a clean `.next` and served the app/static assets during E2E.
-- Source/Test/Migration and context documentation are committed and pushed. The
-  2026-07-15 read-only Production release preflight passed: local/remote Git are
-  equal, `20260715060541` is the only pending migration, the old capacity/full DB
-  contract is still effective, and the exact Production deployment and safe
-  boolean controls remain unchanged. No remote migration, deploy,
-  environment/feature/allowlist change, Production business write/UAT,
-  pricing-tier/formula change, or financial/data repair occurred.
-  The deployed source remains
-  `7d98b062f850a4210fae052cefddd92b994889b8` in deployment
-  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`; Progressive Entry remains `true`, the
-  allowlist remains absent, and shared `SLIPOK_TEST_MODE=true` remains unchanged.
-- Production behavior is therefore unchanged: Booking still displays and blocks
-  capacity, Progressive create/edit can still return
-  `PROGRESSIVE_CAPACITY_EXCEEDED`, and Lesson Wallet redemption can still reject a
-  target based on cached capacity/full state. Remote migration, deploy, and
-  Production UAT are not started and require later Owner approval.
+- Owner approved and the coordinated Production release completed on 2026-07-15.
+  Remote migration `20260715060541` is applied exactly once. The effective lock,
+  refresh, and capability hashes are respectively
+  `40dd9123d4d7f2fecd06011fe0c27958`,
+  `1849aee5282c7f0e4af3a5a6281ceed4`, and
+  `7dbea01c93c1e29ee987d2ebd6a018d2`; capability returns `ready=true`, version `2`,
+  `slotEntryPolicy=unlimited_learner_v1`, and
+  `legacyBaselineContract=immutable_scope_v1`. Fixed search path and execute grants
+  remain limited to `postgres` and `service_role`.
+- Exact clean Source `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`, is deployed as Production deployment
+  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm`. It reached Ready about four minutes after the
+  migration verification gate, inside the approved 15-minute bridge, and all four
+  Production aliases point to it.
+- Authenticated no-write Production UAT passed with an existing Owner-controlled
+  User session. A real future Kids Group slot with aggregate active occupancy `15`
+  remained enabled/selectable without `x/6`, remaining-seat, full, or capacity
+  copy. The booking was not confirmed. The restored `4+1` draft showed range
+  `2–6`, rate `625`, gross `625`; a no-write `4+4` selection showed range `7–10`,
+  rate `500`, gross `2,000`. Steps 4-5 matched, used plain Thai explanation, kept
+  prior payments attached to prior bookings, and exposed none of the prohibited
+  internal pricing terms.
+- Available learner-name UAT passed for distinct child nickname/full name and
+  self/adult full name. The account had no existing no-nickname, equal-name, or
+  multi-child case, so those cases rely on the already-passed rendered Local E2E
+  evidence as approved. Adult Group remained `1` session / `600`, and Private
+  self-attend remained `1` hour / `900`. No existing safe coupon or zero-price
+  Production case was manufactured.
+- Browser console errors, hydration errors, and Next error overlays were `0`.
+  Deployment monitoring from `09:16:23Z` through `09:33:15Z` sampled `52` events:
+  error-level `0`, 5xx `0`, unexpected Booking `409/500/503` `0`, capacity error
+  `0`, capability/dependency/pricing-guard fault `0`, SlipOK activity `0`, and
+  business mutation requests `0`. Availability/preview requests used only the
+  approved read-only UAT contract and returned `200`.
+- Gate 1 and immediate post-migration protected evidence matched. Final counts
+  remained unchanged for every protected business/financial set except six
+  unrelated `reminder` notifications: four to two Head Coach recipients and two
+  to one Coach recipient between `09:21:01Z` and `09:46:49Z`; those were not
+  emitted by Booking preview/UAT.
+  Bookings, sessions, scopes, snapshots, receipts, coupons, payments, batches,
+  attempts, allocations, Ledger, wallet, attendance, tiers, and Finance counts
+  remained at the Gate 1 values. Release/UAT-attributable business-data and
+  financial delta are `0`.
+- Production Entry and four dependencies remain `true`; allowlist remains absent;
+  shared `SLIPOK_TEST_MODE=true` remains unchanged. No environment, tier, formula,
+  historical booking, payment, coupon, Ledger, Finance, wallet, attendance, or
+  business-data repair was performed. Controlled write UAT was not run and was not
+  required or authorized. Rollback was not used; any future rollback or forward fix
+  remains a separate Owner decision.
 - Admin Schedules Performance is now
   **PARKING LOT — AUDITED; FIX NOT STARTED**. Homepage LV Copy Audit remains parked
   and must not start while this Booking task is active.
@@ -207,7 +240,7 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
 ### Progressive Runtime
 
 - Current general-traffic functional source commit is
-  `7d98b062f850a4210fae052cefddd92b994889b8`, committed and pushed to
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, committed and pushed to
   `origin/spike/next-major-security-upgrade`.
 - Current source entry decision is server-only and default deny:
   - Entry disabled -> all new bookings remain Legacy.
@@ -241,25 +274,19 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
-- Latest pushed Unlimited Slot Entry release candidate is Source
+- Production-active Unlimited Slot Entry Source is
   `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
   `397618a391f968ec1135084978ce3589a43f1d89`, on
-  `origin/spike/next-major-security-upgrade`. It is committed and pushed, but its
-  migration is not remotely applied, it is not deployed, and it has no Production
-  UAT result.
-- Current Production-deployed functional Source remains
-  `7d98b062f850a4210fae052cefddd92b994889b8`, tree
-  `73294ca5419582492fa558623d395c5b3801af5e`, in Ready deployment
-  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`. Fresh Vercel metadata confirms the same
-  immutable CLI deployment and all four aliases; because the CLI deployment has no
-  Git SHA metadata, the exact Source/tree association remains the previously
-  verified artifact provenance rather than a new Vercel Git claim.
+  `origin/spike/next-major-security-upgrade`. Migration `20260715060541` is applied
+  remotely exactly once and the Source is Ready in deployment
+  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` on all four Production aliases. Vercel release
+  metadata records the exact Source, tree, and migration version.
 - Historical / superseded booking-regression evidence: commit `be61b68`, tree
   `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
   `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
   `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. None is the current runtime or an automatic
-  rollback target for the committed-but-undeployed Unlimited Slot Entry release
-  candidate. Restoring old Source or old DB helpers would restore some or all of
+  rollback target for the Production-active Unlimited Slot Entry release.
+  Restoring old Source or old DB helpers would restore some or all of
   the Owner-rejected capacity behavior and requires explicit Owner approval.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review based on the last value-level verification;
@@ -291,16 +318,18 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
   `git diff --check` passed. Post-build checks returned `/` `200`, generated
   `/_next/static/*` `200`, unauthenticated booking preview `401`, zero console
   errors, and no visible Next error overlay.
-- Migration `20260713210000` is applied remotely exactly once. Pricing-write
-  capability is Ready at version `2` with contract `immutable_scope_v1`; payment
-  batch and integration capabilities remain Ready at version `1`.
+- Migrations `20260713210000` and `20260715060541` are each applied remotely exactly
+  once. Pricing-write capability is Ready at version `2` with contracts
+  `immutable_scope_v1` and `unlimited_learner_v1`; payment batch and integration
+  capabilities remain Ready at version `1`.
 
 ### Production
 
-- Current deployment: `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, Ready, deployed from
+- Current deployment: `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm`, Ready, deployed from
   exact clean detached source commit
-  `7d98b062f850a4210fae052cefddd92b994889b8`, tree
-  `73294ca5419582492fa558623d395c5b3801af5e`.
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`, with release metadata naming remote
+  migration `20260715060541`.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and

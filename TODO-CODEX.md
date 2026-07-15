@@ -8,51 +8,40 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ## Current Active Work
 
-### 1. Dashboard Booking Unlimited Slot Entry + Customer Price UX
-
-Status: **ACTIVE — PRODUCTION RELEASE PREFLIGHT COMPLETE;
-REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**.
-
-- Remove fixed learner-capacity blocking consistently from new User booking,
-  pending-payment edit, User reschedule, Lesson Wallet redemption, and
-  makeup/replacement-date target selection while preserving every duplicate,
-  overlap, ownership, template/slot, timing, payment, same-month, idempotency,
-  concurrency, atomicity, Option A, coupon, Ledger, and Finance guard.
-- Replace customer `x/6`, full/remaining-seat states, and internal pricing terms
-  with non-blocking occupancy behavior and plain Thai price explanation sourced
-  from the authoritative selected `pricing_tiers` range.
-- Standardize Booking learner headings to distinct nickname plus full name, or full
-  name only, for child, self/adult, and multi-child cases.
-- Functional Source and executable tests now implement the approved behavior across
-  all five normal entry paths. The authoritative preview includes selected-tier
-  evidence, learner headings use the shared formatter, and customer Steps 4-5 no
-  longer require Progressive/Legacy terminology.
-- Additive migration Source
-  `20260715060541_unlimited_normal_slot_entry.sql` replaces the effective lock,
-  refresh, and capability functions without a data rewrite. It passed a complete
-  disposable local reset and runtime/rollback/concurrency checks; it has not been
-  applied remotely.
-- Verification passed 265 deterministic checks, 9 rendered Booking E2E cases with
-  residue `0`, TypeScript, ESLint, mojibake, and production build. Source commit
-  `4ab6a69e23de6f7989b51dfaf624ff631dde420f` (tree
-  `397618a391f968ec1135084978ce3589a43f1d89`) and this context closeout are pushed
-  to `origin/spike/next-major-security-upgrade`. Remote migration, deploy,
-  Production read/write/UAT, environment/feature/allowlist, pricing-tier/formula,
-  and financial/data state remain unchanged. Next gate is separate Owner approval
-  for coordinated Remote Migration + exact Deploy + Production UAT.
-- Read-only Production release preflight passed on 2026-07-15. Git provenance and
-  migration checksum match; the remote history matches local through
-  `20260713210000`, and `20260715060541` is the only pending migration. Production
-  remains on Ready deployment `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9` with Entry, four
-  dependencies, and shared SlipOK Test Mode still `true`, and allowlist absent.
-- Current DB capability remains Option A version `2` without
-  `slotEntryPolicy=unlimited_learner_v1`; the old lock still raises the capacity
-  error and refresh still derives `full`. Safe proposed order is therefore exact
-  migration first, verify functions/grants/capability, then deploy exact Source
-  `4ab6a69` within one bounded release window. No remote migration, deploy,
-  Production UAT, environment change, or Production data write was performed.
+No active implementation task is selected after the Unlimited Slot release
+closeout. Do not start a Parking Lot item until the Owner selects the next task.
 
 ## Recently Completed
+
+### Dashboard Booking Unlimited Slot Entry + Customer Price UX
+
+Status: **DONE — REMOTE MIGRATION APPLIED; EXACT SOURCE DEPLOYED;
+NO-WRITE PRODUCTION UAT PASSED**.
+
+- Remote migration `20260715060541_unlimited_normal_slot_entry.sql` is applied
+  exactly once. Effective lock/refresh/capability hashes match the committed
+  migration, capability advertises `slotEntryPolicy=unlimited_learner_v1`, and
+  fixed search path plus `postgres`/`service_role`-only grants remain intact.
+- Exact Source `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`, is Ready as deployment
+  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` on all four Production aliases.
+- Authenticated no-write Production UAT passed: a real future slot with aggregate
+  occupancy `15` remained selectable without capacity copy; restored `4+1` showed
+  `2–6 × 625 = 625`; no-write `4+4` showed `7–10 × 500 = 2,000`; Steps 4-5,
+  plain Thai explanation, distinct child nickname/full name, self/adult name,
+  Adult Group, and Private all matched the approved contracts.
+- Existing Production data did not provide child no-nickname, equal-name,
+  multi-child, coupon, or zero-price cases; those cases rely on the already-passed
+  rendered Local E2E evidence rather than manufactured Production state.
+- Console/hydration/overlay errors, 5xx, capacity/capability/dependency/pricing
+  faults, SlipOK activity, and UAT mutation requests were all `0`. No booking was
+  confirmed and no pending edit, Wallet, Reschedule, Makeup, or Payment action was
+  submitted.
+- Release/UAT-attributable business-data and financial delta are `0`. Six reminder
+  notifications to Head Coach/Coach recipients were unrelated live activity and
+  were separated by timestamp/category. Entry/dependencies remain `true`, allowlist
+  absent, and shared `SLIPOK_TEST_MODE=true`; no environment or pricing policy
+  changed. Controlled write UAT was not authorized or required.
 
 ### History Payment Selection 409 / Invalid Slip Modal State
 

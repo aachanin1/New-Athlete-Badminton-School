@@ -2,6 +2,187 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Closeout
+
+Status: **PASS — UNLIMITED SLOT RELEASE DEPLOYED;
+NO-WRITE PRODUCTION UAT PASSED; TASK DONE**.
+
+#### Gate 0 — exact release proof
+
+- Owner approved one coordinated release containing only the exact remote migration,
+  exact tested Source deploy, authenticated no-write Production UAT, bounded
+  monitoring/reconciliation, and documentation closeout. Production Booking,
+  Pending Edit, Wallet, Reschedule, Makeup, Payment, data-repair, environment,
+  pricing, Source/Test/Migration-source changes, and automatic rollback remained
+  prohibited.
+- Branch was `spike/next-major-security-upgrade`; starting local and fetched remote
+  HEAD were both `c978a24e863d42e1890faa94c7a1eaa90a144568`, ahead/behind
+  `0/0`. Exact release Source was
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`.
+- The committed migration blob
+  `20260715060541_unlimited_normal_slot_entry.sql` matched SHA-256
+  `130E1F7770ECB2F1D4C16CE19ED7CC8DFFD042F33D3602CCF6EC782BC0982BFD`.
+  Remote history matched local through `20260713210000`; `20260715060541` was the
+  sole pending migration.
+- Intentionally excluded dirty work was preserved: the unrelated `AGENTS.md`
+  remainder and untracked `docs/performance/`. Generated `.next`, test-result,
+  Playwright-report, fixture, backup, and local environment residue were absent.
+- Starting Production deployment was
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, Ready on all four aliases. Entry, pricing
+  writes, coupon lifecycle, payment batch, and payment review were `true`; allowlist
+  was absent; shared `SLIPOK_TEST_MODE=true`. No release environment value changed.
+
+#### Gate 1 — protected baseline
+
+- Baseline was captured at `2026-07-15T09:12:06Z` without personal output. Counts
+  and MD5 fingerprints were:
+
+| Protected set | Count | Gate 1 fingerprint |
+| --- | ---: | --- |
+| attendance | 1,663 | `9b3205a09c1a9ff224be68a190be140c` |
+| booking sessions | 2,833 | `2359b348534ad188cda1f4db8bd6c255` |
+| bookings | 526 | `eb8e143edd048185bf3da62733c55b90` |
+| coupon reservations / usages | 0 / 0 | `d41d8cd98f00b204e9800998ecf8427e` / `d41d8cd98f00b204e9800998ecf8427e` |
+| Finance expenses | 1 | `3049e3c7b305b34be859623eac21b858` |
+| Legacy payments | 473 | `73a58aa3936780d5313e6b5966ccd621` |
+| lesson-wallet credits | 61 | `7bc41470eec666042e21732264e02b83` |
+| mutation receipts | 12 | `9bf536a911098f7e51197b716f565fd2` |
+| notifications | 16,686 | `841f9451e6a1415af1d78922e0540d1c` |
+| payment batch members / batches | 27 / 20 | `90bfc588b859002c450287da85118fdc` / `a20825a63edb87b21ea9676c7d6952b2` |
+| payment Ledger | 475 | `7f0d3299c9635671a14b4e9b05bd6f96` |
+| pricing scopes / snapshots | 4 / 7 | `0618acdceb0761eb9f4434a387ea223a` / `52650a9a53611bdbea46086c1dbcf891` |
+| pricing tiers | 11 | `da1b6608a3f830fd936ad64eb60d94e1` |
+| Progressive allocations / bookings | 2 / 7 | `6553e26f4987c6d7e709bbbf5792d47f` / `52650a9a53611bdbea46086c1dbcf891` |
+| verification attempts | 2 | `39d611556e4fa5472936ed95701489fa` |
+
+#### Gate 2 — exact remote migration
+
+- `npx supabase db push --linked --yes` started at
+  `2026-07-15T09:12:27.8745538Z` and completed successfully at
+  `2026-07-15T09:12:32.3911341Z`. It applied only
+  `20260715060541_unlimited_normal_slot_entry`, exactly once; no other migration or
+  repair was applied.
+- Immediate post-migration verification at `2026-07-15T09:13:50Z` matched every
+  Gate 1 protected count/fingerprint. Release-attributable DML was `0`.
+- Effective function hashes became:
+  - `progressive_lock_booking_slots_v1(uuid,uuid,learner_type,uuid,uuid,jsonb,uuid,uuid[])`:
+    `40dd9123d4d7f2fecd06011fe0c27958`;
+  - `progressive_refresh_slot_capacity_v1(uuid[])`:
+    `1849aee5282c7f0e4af3a5a6281ceed4`;
+  - `progressive_pricing_writes_capability_v1()`:
+    `7dbea01c93c1e29ee987d2ebd6a018d2`.
+- Capability returned `ready=true`, version `2`,
+  `slotEntryPolicy=unlimited_learner_v1`, and
+  `legacyBaselineContract=immutable_scope_v1`. Lock/refresh remained invoker
+  functions; capability remained `SECURITY DEFINER`; every function retained fixed
+  `search_path=public, pg_temp` and execute grants only for `postgres` and
+  `service_role`. Dependent create/update/cancel definitions, hashes, signatures,
+  grants, and security mode were unchanged.
+
+#### Gate 3 — exact Production deployment
+
+- A first temporary `vercel link` attempt created `.env.local` and modified
+  `.gitignore` only inside an isolated disposable worktree. That worktree was not
+  deployed. It was removed after a second clean worktree was created; no repo Source,
+  local environment, or tracked release content was changed.
+- The deployed worktree was clean at exact Source/tree with no local `.env` file.
+  Deployment began at `2026-07-15T09:16:23.9448235Z`; Vercel build passed install,
+  Next.js compilation, TypeScript, and all 91 static pages. Deployment
+  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` reached Ready at
+  `2026-07-15T09:17:52.134Z`, about four minutes after the migration verification
+  gate and inside the approved 15-minute maximum.
+- Vercel metadata records Source
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`, and migration
+  `20260715060541`. The two aliases not automatically promoted by the CLI deploy
+  were explicitly assigned to the same new Ready artifact. Final inspection proved
+  all four Production aliases resolve to this deployment. Root and `/api/health`
+  returned `200`; unauthenticated Booking preview/create remained `401`.
+- Production environment, Entry/dependencies/allowlist/SlipOK values were not
+  changed. Both release worktrees were safely removed; unrelated pre-existing
+  worktrees were preserved.
+
+#### Gate 4 — authenticated no-write Production UAT
+
+- Used only the existing Owner-controlled authenticated User session. No account,
+  profile, child, booking, session, wallet credit, makeup entitlement, or payment
+  batch was created or repurposed.
+- A read-only aggregate query identified a future Kids Group round at Rama 2 on
+  2026-07-23 17:00–19:00 with `15` active learners. No learner identities were
+  read or documented. The slot rendered enabled and remained selectable. Booking
+  showed no `x/6`, remaining-seat, full, or capacity-disabled state. Confirmation
+  was not clicked.
+- The restored browser-local Kids Group draft recalculated successfully. Available
+  learner evidence showed distinct nickname/full name as
+  `น้อง Test - TEST System`; self/adult and Private self-attend showed the profile
+  full name once. The account contained no existing child with absent/equal
+  nickname and no multi-child selection, so those unavailable Production cases rely
+  on the passed rendered Local E2E suite as explicitly allowed.
+- Authoritative Kids Group pricing passed in both steps:
+  - `4+1`: range `2–6 ครั้ง`, rate `625`, gross/final `625`;
+  - `4+4`: range `7–10 ครั้ง`, rate `500`, gross/final `2,000`.
+  Step 5 stated previous `4`, new `4`, cumulative `8`, and
+  `4 × 500 = 2,000`. Prior payments remained attached to earlier bookings and were
+  not shown as a deduction.
+- Steps 4-5 used `วิธีคิดราคาการจองครั้งนี้` and exposed none of Progressive,
+  Legacy, baseline, scope, revision, ordered pricing, or true-up as required
+  customer terminology. There was no fallback price flash. No existing safe coupon
+  or zero-price case was available, so neither was manufactured; the passed Local
+  E2E evidence remains the acceptance evidence for those branches.
+- Adult Group remained one session in range `1 ครั้ง` at `600` total/average per
+  session. Private self-attend remained one hour in range `1 ชั่วโมง` at `900`
+  total/average per hour. Their pricing formulas and package semantics were not
+  changed.
+- Browser console errors `0`, hydration logs `0`, Next overlay `0`, and visible
+  error dialogs `0`. No Booking create, Pending Edit save, Wallet, Reschedule,
+  Makeup, Payment prepare/upload/submit, or SlipOK request was made. Controlled
+  write UAT was not run; it was not authorized and was not required for closeout.
+
+#### Gate 5 — monitoring and protected reconciliation
+
+- Deployment monitoring from `2026-07-15T09:16:23Z` through
+  `2026-07-15T09:33:15Z` sampled `52` request/log events: error/fatal `0`, 5xx `0`,
+  unexpected Booking `409/500/503` `0`, capacity error `0`, capability mismatch `0`,
+  dependency unavailable `0`, pricing revision/baseline fault `0`, SlipOK `0`, and
+  business mutation requests `0`. Six availability and fourteen preview events
+  returned `200`; duplicate middleware/serverless observations were not treated as
+  separate business actions.
+- Final protected counts matched Gate 1 for bookings `526`, booking sessions
+  `2,833`, attendance `1,663`, scopes `4`, pricing snapshots `7`, mutation receipts
+  `12`, coupon reservations/usages `0/0`, batches/members `20/27`, attempts `2`,
+  allocations `2`, Legacy payments `473`, Ledger `475`, wallet `61`, tiers `11`,
+  Finance expenses `1`, and Progressive bookings `7`.
+- Notifications increased from `16,686` to `16,692`. Aggregate-only reconciliation
+  classified all six as unrelated `reminder` notifications: four to two Head Coach
+  recipients and two to one Coach recipient, created between
+  `2026-07-15T09:21:01Z` and `09:46:49Z`. Booking preview/availability does not emit
+  them, and the monitored UAT made no mutation request. No personal identifier or
+  message content is recorded.
+- Expected and observed release/UAT-attributable business-data delta is `0`;
+  financial delta is `0`. The only release-attributable database change is the
+  approved function/capability schema migration. No Production data repair,
+  pricing-tier/formula change, historical reprice/backfill, environment change, or
+  rollback occurred.
+
+#### Closeout
+
+- Source/Test/Migration Source changed in this release round: **NO / NO / NO**.
+  Remote migration: **APPLIED EXACTLY ONCE**. Exact deploy: **READY ON ALL FOUR
+  ALIASES**. Authenticated Production UAT: **PASSED — NO-WRITE**. Controlled write
+  UAT: **NOT RUN — NOT AUTHORIZED**. Production business/financial data:
+  **NOT CHANGED BY RELEASE/UAT**.
+- Documentation closeout changes only `PROJECT_STATE.md`, `TODO-CODEX.md`, and this
+  record. `AGENTS.md` and `docs/performance/` remain excluded. The task moves to
+  Recently Completed; Admin Schedules Performance and Homepage LV remain parked.
+  No next task starts in this round.
+- Rollback was not used. Restoring old Source or old fixed-capacity DB functions
+  would reintroduce the rejected policy and still requires a separate Owner
+  decision. No remaining release blocker exists.
+
+Final classification:
+**PASS — UNLIMITED SLOT RELEASE DEPLOYED; NO-WRITE PRODUCTION UAT PASSED; TASK DONE**.
+
 ### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Preflight
 
 Status: **PRODUCTION RELEASE PREFLIGHT COMPLETE; DOCUMENTATION ALIGNED;
