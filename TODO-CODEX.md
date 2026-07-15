@@ -10,7 +10,7 @@ use `TODO.md` only as stale legacy reference after code verification.
 
 ### 1. Dashboard Booking Unlimited Slot Entry + Customer Price UX
 
-Status: **ACTIVE — SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED;
+Status: **ACTIVE — PRODUCTION RELEASE PREFLIGHT COMPLETE;
 REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**.
 
 - Remove fixed learner-capacity blocking consistently from new User booking,
@@ -40,6 +40,17 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**.
   Production read/write/UAT, environment/feature/allowlist, pricing-tier/formula,
   and financial/data state remain unchanged. Next gate is separate Owner approval
   for coordinated Remote Migration + exact Deploy + Production UAT.
+- Read-only Production release preflight passed on 2026-07-15. Git provenance and
+  migration checksum match; the remote history matches local through
+  `20260713210000`, and `20260715060541` is the only pending migration. Production
+  remains on Ready deployment `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9` with Entry, four
+  dependencies, and shared SlipOK Test Mode still `true`, and allowlist absent.
+- Current DB capability remains Option A version `2` without
+  `slotEntryPolicy=unlimited_learner_v1`; the old lock still raises the capacity
+  error and refresh still derives `full`. Safe proposed order is therefore exact
+  migration first, verify functions/grants/capability, then deploy exact Source
+  `4ab6a69` within one bounded release window. No remote migration, deploy,
+  Production UAT, environment change, or Production data write was performed.
 
 ## Recently Completed
 

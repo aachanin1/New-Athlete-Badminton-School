@@ -2,6 +2,157 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Preflight
+
+Status: **PRODUCTION RELEASE PREFLIGHT COMPLETE; DOCUMENTATION ALIGNED;
+MIGRATION/DEPLOY NOT STARTED**.
+
+#### Git and release-candidate proof
+
+- Read-only fetch confirmed branch `spike/next-major-security-upgrade` at matching
+  local/remote HEAD `5328c42551a52d4b18f3d8fae9d198d42791bc75`, ahead/behind
+  `0/0`. Source `4ab6a69e23de6f7989b51dfaf624ff631dde420f` and deployed
+  Source `7d98b062f850a4210fae052cefddd92b994889b8` are ancestors.
+- Release Source tree is `397618a391f968ec1135084978ce3589a43f1d89`.
+  Production Source tree remains
+  `73294ca5419582492fa558623d395c5b3801af5e` under the previously verified
+  immutable deployment association.
+- Committed migration
+  `20260715060541_unlimited_normal_slot_entry.sql` still has SHA-256
+  `130E1F7770ECB2F1D4C16CE19ED7CC8DFFD042F33D3602CCF6EC782BC0982BFD`.
+- Intentionally excluded work remains the unrelated `AGENTS.md` remainder and
+  `docs/performance/admin-schedules-supabase-log-analysis-2026-07-14.md`.
+
+#### Current Production deployment and controls
+
+- Vercel deployment `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9` is `READY`, target
+  `production`, source `cli`, and still serves all four aliases. Vercel exposes no
+  Git SHA/ref metadata for this CLI deployment; the deployment ID is unchanged
+  from the prior exact Source/tree proof.
+- All four public roots returned `200`; a generated `/_next/static/*` asset returned
+  `200`. Unauthenticated POST guards for Booking availability, preview, and create
+  each returned `401`; no browser draft or authenticated business request was made.
+- Safe boolean readback is unchanged: `PROGRESSIVE_PAYMENT_ENTRY_ENABLED=true`,
+  pricing writes `true`, coupon lifecycle `true`, payment batch `true`, payment
+  review `true`, and shared `SLIPOK_TEST_MODE=true`. The allowlist is absent; no
+  UUID member or secret was read or printed.
+- Bounded 24-hour logs for the current deployment contained capacity rejection
+  `0`, Booking dependency fault `0`, Progressive RPC unavailable `0`, and SlipOK
+  activity `0`. Separate observations were three `500` responses from
+  `PATCH /api/admin/makeup` and one error-level `/` request that still returned
+  `200`; neither matched the capacity/dependency/RPC/SlipOK searches and neither is
+  treated as proof about the Unlimited Slot target-creation path.
+
+#### Remote migration and current DB contract
+
+- Linked migration history matches local exactly through `20260713210000`, which
+  is present once. `20260715060541` is absent remotely and is the only local-only
+  migration; there is no unexpected migration before or after it. No remote DDL,
+  DML, migration repair, or data read beyond aggregate/metadata evidence occurred.
+- Current normalized effective function hashes (MD5 over whitespace-normalized
+  `pg_get_functiondef`) are:
+  - lock `progressive_lock_booking_slots_v1(uuid,uuid,learner_type,uuid,uuid,jsonb,uuid,uuid[])`:
+    `b5b871c3bda83668902d5ad3bf2b512c`;
+  - refresh `progressive_refresh_slot_capacity_v1(uuid[])`:
+    `7d63bf278bebebad3595319428026f14`;
+  - capability `progressive_pricing_writes_capability_v1()`:
+    `b87e256720c9c10e5f053bacc75223b0`.
+- Capability response is exactly `ready=true`, `version=2`,
+  `legacyBaselineContract=immutable_scope_v1`; `slotEntryPolicy` is absent. The
+  lock still contains `PROGRESSIVE_CAPACITY_EXCEEDED`, and refresh still derives a
+  `full` status from active occupancy.
+- The lock and refresh are invoker functions owned by `postgres`; the capability
+  and dependent create/update/cancel RPCs are `SECURITY DEFINER`. Every inspected
+  function has fixed `search_path=public, pg_temp` and an ACL limited to
+  `postgres`/`service_role`; `PUBLIC`, `anon`, and `authenticated` have no execute
+  grant. Create/update call lock and refresh; cancel calls refresh. Their signatures
+  and capability version remain the Option A contract expected before the new
+  migration.
+- Aggregate-only evidence found `25` future non-cancelled slots above six active
+  learners, none above twenty, and a maximum future active occupancy of `15`.
+  This supports a later no-write visible above-six selection check without exposing
+  learner or allowlist data.
+
+#### Source/DB compatibility matrix
+
+| State | Preview/UI | Create/edit and other entry paths | Fail-closed / customer effect | Short controlled interval |
+| --- | --- | --- | --- | --- |
+| Old Source `7d98b062` + old DB | Current Progressive preview works, but Booking shows occupancy/capacity and disables full slots. | Progressive create/edit can raise `PROGRESSIVE_CAPACITY_EXCEEDED`; old Wallet checks `open` and `current_students < max_students`; Reschedule and Makeup do not share that DB capacity RPC. | Existing capability passes old Source. Technically stable but violates the new Owner policy and still blocks valid customers. | Baseline only; not an acceptable final release. |
+| Old Source `7d98b062` + new Unlimited DB | Old preview/UI/availability still shows and blocks capacity. | DB lock no longer rejects capacity, but old client/server availability and Wallet can still block; duplicate, template, timing, ownership, Option A and atomic guards remain. | Old Source accepts capability version `2` even with the added policy field. No integrity guard is weakened by the new DB contract. | **YES**, migration-first bridge only; customer policy remains incomplete. |
+| New Source `4ab6a69` + old DB | New UI/preview removes capacity and returns authoritative tier text. | Progressive create/edit calls the capability and fails `503` because `slotEntryPolicy` is absent; Wallet/Reschedule/Makeup and Legacy paths are not protected by that same capability. | Intentional fail-closed mismatch creates a preview-then-confirm failure and inconsistent entry paths. | **NO**, including a deploy-first interval. |
+| New Source `4ab6a69` + new Unlimited DB | Non-blocking occupancy, shared learner names, authoritative range and plain Thai copy. | Progressive create/edit, Wallet, Reschedule and Makeup follow unlimited entry while preserving duplicate/lifecycle/template/payment/concurrency guards. | Capability matches `unlimited_learner_v1`; expected release state. | **YES**, target state after verification. |
+
+#### Proposed release order and bounded interval
+
+1. Repeat Git/Vercel/Supabase/env/log baseline immediately before release.
+2. Apply exactly `20260715060541`; do not include any other migration.
+3. Verify remote history, all three function hashes/definitions, signatures,
+   owner/security mode, grants/search path, and capability
+   `slotEntryPolicy=unlimited_learner_v1`.
+4. Deploy exact Source commit `4ab6a69e23de6f7989b51dfaf624ff631dde420f`
+   and verify the build provenance available from Vercel.
+5. Confirm every Production alias and generated static asset points to the new
+   Ready deployment.
+6. Run the bounded no-write UAT below, then scan errors/capability/capacity logs and
+   reconcile that no business-data write occurred.
+7. Close documentation only after all separately approved gates pass.
+
+- Migration-to-deploy target is immediate; proposed hard maximum is **15 minutes**
+  in one staffed release window. Do not apply the migration unless the exact Source
+  artifact and deploy operator are ready. If deployment cannot become Ready inside
+  that window, stop further actions and escalate; do not deploy new Source first.
+- Stop on migration/history/hash/signature/grant/capability mismatch, alias or static
+  asset mismatch, build/runtime error, new dependency/RPC fault, unexpected
+  business write, or any evidence that duplicate/template/timing/pricing/payment/
+  accounting guards changed.
+
+#### Rollback and failure limits
+
+- A Source alias rollback is technically possible, and old Source can operate
+  briefly against the new DB, but it restores old capacity UI/availability and
+  Wallet blocking. It is therefore not an automatic policy-compliant rollback.
+- Restoring old DB helper definitions restores the fixed capacity ceiling and makes
+  new Source fail closed. It requires explicit Owner approval and must never be
+  treated as a routine rollback or run independently of Source compatibility.
+- If migration verification passes but deploy fails, leave the new DB contract in
+  place, keep old Source only for the bounded bridge, and retry the exact deployment
+  or forward-fix. Prefer forward repair over restoring the rejected DB policy.
+- If deploy is healthy but no-write UAT fails, stop confirmation/UAT actions and
+  forward-fix. Repointing to old Source or restoring old DB functions requires a
+  separate Owner decision because either can restore prohibited capacity behavior.
+
+#### Proposed no-write Production UAT
+
+- Use only an existing Owner-controlled authenticated User state; do not create a
+  customer or server-side draft. Verify no `x/6`, full, or remaining-seat state and
+  confirm an existing future slot with aggregate occupancy above six remains
+  selectable without confirming.
+- Verify child `nickname - full name`, nickname-absent/equal/blank fallback, multiple
+  children, and self/adult full-name-only rendering.
+- Verify authoritative one-session, bounded, and open-ended tier copy; plain Thai
+  calculation; coupon gross/discount/final and zero-price copy; no customer-visible
+  Progressive, Legacy, baseline, scope, revision, ordered pricing, or true-up terms.
+- Where an existing safe history/draft permits, verify `4+1` selects range `2–6` at
+  `625` and `4+4` selects range `7–10` at `500`, plus restored browser-local draft
+  recalculation. Adult Group and Private must remain unchanged.
+- Confirm no console, hydration, or network error. Do not confirm Booking, save a
+  pending edit, redeem Wallet, submit Reschedule, create Makeup, or prepare/upload/
+  submit Payment. These mutation-success paths cannot be proven in Production by a
+  no-write UAT; if Owner requires live mutation proof, classify it separately as
+  **OWNER DECISION REQUIRED — CONTROLLED WRITE UAT**.
+
+#### Documentation alignment and remaining gate
+
+- Corrected present-tense claims that the release candidate was local, unstaged, or
+  uncommitted. Current docs now separate pushed candidate `4ab6a69` from deployed
+  Source `7d98b062` and do not name historical deployments as automatic rollback
+  targets for this release.
+- Source/tests/migration changed: **NO / NO / NO**. Remote migration/deploy/UAT:
+  **NO / NO / NOT RUN**. Environment and Production data: **NO CHANGE / NOT
+  CHANGED**. Task Done: **NO**.
+- Remaining gate is Owner approval or rejection of the coordinated exact migration,
+  exact deploy, and no-write Production UAT plan. No Production write is implied.
+
 ### 2026-07-15 - Dashboard Booking Unlimited Slot Entry Commit/Push Closeout
 
 Status: **SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED; PRODUCTION RELEASE NOT STARTED**.

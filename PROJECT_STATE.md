@@ -101,7 +101,7 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Dashboard Booking Unlimited Slot Entry + Customer Price UX
 
-Status: **ACTIVE — SOURCE COMPLETE, TESTED, COMMITTED AND PUSHED;
+Status: **ACTIVE — PRODUCTION RELEASE PREFLIGHT COMPLETE;
 REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
 (Owner decision 2026-07-15).
 
@@ -162,9 +162,13 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
   fixtures; 265 deterministic checks; 9 rendered Booking E2E cases with residue
   `0`; TypeScript, ESLint, mojibake, and production build. The post-build test server
   restarted from a clean `.next` and served the app/static assets during E2E.
-- Source/Test/Migration and context documentation are committed and pushed. No
-  remote migration, deploy, environment/feature/allowlist change, Production
-  read/write/UAT, pricing-tier/formula change, or financial/data repair occurred.
+- Source/Test/Migration and context documentation are committed and pushed. The
+  2026-07-15 read-only Production release preflight passed: local/remote Git are
+  equal, `20260715060541` is the only pending migration, the old capacity/full DB
+  contract is still effective, and the exact Production deployment and safe
+  boolean controls remain unchanged. No remote migration, deploy,
+  environment/feature/allowlist change, Production business write/UAT,
+  pricing-tier/formula change, or financial/data repair occurred.
   The deployed source remains
   `7d98b062f850a4210fae052cefddd92b994889b8` in deployment
   `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`; Progressive Entry remains `true`, the
@@ -237,18 +241,26 @@ REMOTE MIGRATION/DEPLOY OWNER APPROVAL REQUIRED**
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
-- Current committed and Production-deployed functional Source is
+- Latest pushed Unlimited Slot Entry release candidate is Source
+  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
+  `397618a391f968ec1135084978ce3589a43f1d89`, on
+  `origin/spike/next-major-security-upgrade`. It is committed and pushed, but its
+  migration is not remotely applied, it is not deployed, and it has no Production
+  UAT result.
+- Current Production-deployed functional Source remains
   `7d98b062f850a4210fae052cefddd92b994889b8`, tree
-  `73294ca5419582492fa558623d395c5b3801af5e`, on
-  `origin/spike/next-major-security-upgrade`. The newer Unlimited Slot Entry Source
-  Fix is local and unstaged only.
-- Current Production deployment is `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`, verified
-  Ready read-only on 2026-07-15 from that exact functional Source/tree.
+  `73294ca5419582492fa558623d395c5b3801af5e`, in Ready deployment
+  `dpl_Gj3mmRs8iVAxaXEw42ngsdaxh6Q9`. Fresh Vercel metadata confirms the same
+  immutable CLI deployment and all four aliases; because the CLI deployment has no
+  Git SHA metadata, the exact Source/tree association remains the previously
+  verified artifact provenance rather than a new Vercel Git claim.
 - Historical / superseded booking-regression evidence: commit `be61b68`, tree
   `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
   `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
-  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. None is the current runtime or a rollback
-  target for the local, uncommitted Unlimited Slot Entry Source Fix.
+  `dpl_CJVW2EMw9pfacn4NeAj4vqPsaSsS`. None is the current runtime or an automatic
+  rollback target for the committed-but-undeployed Unlimited Slot Entry release
+  candidate. Restoring old Source or old DB helpers would restore some or all of
+  the Owner-rejected capacity behavior and requires explicit Owner approval.
 - Dependency controls enabled: **yes** for pricing writes, coupon lifecycle,
   payment batch, and payment review based on the last value-level verification;
   all four names remain present in the read-only Production environment listing.
@@ -753,8 +765,9 @@ They are superseded for current-state decisions by `Current Source of Truth` abo
   preview `1`. Browser console warnings/errors and hydration errors were `0`.
 - Rollback was not used after the successful final activation. At that historical
   checkpoint, corrected Entry-off deployment
-  `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` was the rollback target; it is not a rollback
-  target for the current local, uncommitted Unlimited Slot Entry Source Fix. No
+  `dpl_GyGnKWq49mTU6NYNavWRVYLwmo3P` was the rollback target; it is not an automatic
+  rollback target for the current committed-but-undeployed Unlimited Slot Entry
+  release candidate. No
   Booking/Payment/business row, Legacy row, pricing tier, coupon policy, wallet,
   attendance, Ledger, Finance, Adult Group, or Private data changed.
 - Historical closeout classification recorded on 2026-07-13 and superseded by
