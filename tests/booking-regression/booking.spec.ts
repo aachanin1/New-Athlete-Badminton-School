@@ -274,9 +274,303 @@ test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page })
   })
   expect(walletResponse.status, JSON.stringify(walletResponse.body)).toBe(200)
   const { data: walletSlot } = await admin.from('schedule_slots').select('current_students,status').eq('id', fixture.slots[FULL_DATE]).single()
-  expect(walletSlot).toMatchObject({ current_students: 7, status: 'full' })
+  expect(walletSlot).toMatchObject({ current_students: 7, status: 'open' })
   expect(await countForUser('payments', fixture.userId)).toBe(paymentCountBefore)
   await expectNoBrowserErrors(browserErrors)
+})
+
+test('Lesson Wallet canonical Private Sunday redemption falls back safely and remains atomic', async ({ page }) => {
+  await login(page)
+  const admin = createLocalAdmin()
+  const targetDate = '2026-07-19'
+  const targetStart = '17:00'
+  const targetEnd = '18:00'
+  const privateBookingId = 'a1000000-0000-4000-8000-000000000001'
+  const sourceSessionId = 'a2000000-0000-4000-8000-000000000001'
+  const canonicalTemplateId = 'a3000000-0000-4000-8000-000000000001'
+  const otherBranchId = 'a4000000-0000-4000-8000-000000000001'
+  const otherBranchTemplateId = 'a5000000-0000-4000-8000-000000000001'
+  let creditSequence = 0
+  let conflictSequence = 0
+
+  const countTable = async (table: string) => {
+    const { count, error } = await admin.from(table).select('*', { count: 'exact', head: true })
+    if (error) throw new Error(`count ${table}: ${error.message}`)
+    return count || 0
+  }
+  const protectedTables = ['payments', 'coupon_usages', 'payment_ledger', 'finance_expenses']
+  const protectedBefore = Object.fromEntries(await Promise.all(protectedTables.map(async (table) => [table, await countTable(table)])))
+
+  const insertError = (await admin.from('branches').insert({
+    id: otherBranchId,
+    name: 'สาขาอื่นสำหรับทดสอบ Wallet',
+    slug: 'wallet-other-branch',
+    address: 'Disposable database only',
+    is_active: true,
+  })).error
+  if (insertError) throw new Error(insertError.message)
+  const templateError = (await admin.from('schedule_templates').insert([
+    {
+      id: canonicalTemplateId,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.privateCourseId,
+      day_of_week: 0,
+      start_time: '17:00:00',
+      end_time: '18:00:00',
+      is_active: true,
+      notes: 'Disposable canonical Wallet incident target',
+    },
+    {
+      id: otherBranchTemplateId,
+      branch_id: otherBranchId,
+      course_type_id: fixture.privateCourseId,
+      day_of_week: 0,
+      start_time: '17:00:00',
+      end_time: '18:00:00',
+      is_active: true,
+      notes: 'Disposable mismatched branch hint',
+    },
+  ])).error
+  if (templateError) throw new Error(templateError.message)
+  const bookingError = (await admin.from('bookings').insert({
+    id: privateBookingId,
+    user_id: fixture.userId,
+    learner_type: 'child',
+    child_id: fixture.mainChildId,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    month: 7,
+    year: 2026,
+    total_sessions: 1,
+    total_price: 1000,
+    status: 'verified',
+    entitlement_sessions: 1,
+  })).error
+  if (bookingError) throw new Error(bookingError.message)
+  const sourceError = (await admin.from('booking_sessions').insert({
+    id: sourceSessionId,
+    booking_id: privateBookingId,
+    date: '2026-07-25',
+    start_time: '16:00:00',
+    end_time: '17:00:00',
+    branch_id: fixture.branchId,
+    child_id: fixture.mainChildId,
+    status: 'walleted',
+  })).error
+  if (sourceError) throw new Error(sourceError.message)
+
+  const createCredit = async () => {
+    creditSequence += 1
+    const id = `a6000000-0000-4000-8000-${String(creditSequence).padStart(12, '0')}`
+    const { error } = await admin.from('lesson_wallet_credits').insert({
+      id,
+      user_id: fixture.userId,
+      booking_id: privateBookingId,
+      original_session_id: sourceSessionId,
+      child_id: fixture.mainChildId,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.privateCourseId,
+      original_date: '2026-07-25',
+      original_start_time: '16:00:00',
+      original_end_time: '17:00:00',
+      status: 'active',
+      expires_at: '2026-07-31T16:59:59Z',
+    })
+    if (error) throw new Error(error.message)
+    return id
+  }
+  const redeem = (creditId: string, scheduleTemplateId: string | null, overrides: Record<string, string> = {}) => page.evaluate(async (request) => {
+    const response = await fetch('/api/lesson-wallet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'redeem', ...request }),
+    })
+    return { status: response.status, body: await response.json() }
+  }, {
+    creditId,
+    targetDate,
+    startTime: targetStart,
+    endTime: targetEnd,
+    branchId: fixture.branchId,
+    scheduleTemplateId,
+    ...overrides,
+  })
+  const deleteCreditAndTarget = async (creditId: string) => {
+    const { data: credit } = await admin.from('lesson_wallet_credits').select('redeemed_session_id').eq('id', creditId).maybeSingle()
+    const sessionId = credit?.redeemed_session_id || null
+    await admin.from('lesson_wallet_credits').delete().eq('id', creditId)
+    if (sessionId) await admin.from('booking_sessions').delete().eq('id', sessionId)
+    await admin.from('schedule_slots')
+      .delete()
+      .eq('branch_id', fixture.branchId)
+      .eq('course_type_id', fixture.privateCourseId)
+      .eq('date', targetDate)
+      .eq('start_time', '17:00:00')
+  }
+  const expectSuccessfulCanonicalRedeem = async (hint: string | null) => {
+    const creditId = await createCredit()
+    const response = await redeem(creditId, hint)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const { data: credit, error: creditError } = await admin.from('lesson_wallet_credits')
+      .select('status,redeemed_session_id').eq('id', creditId).single()
+    if (creditError) throw new Error(creditError.message)
+    expect(credit.status).toBe('redeemed')
+    const { data: session, error: sessionError } = await admin.from('booking_sessions')
+      .select('id,schedule_slot_id,date,start_time,end_time').eq('id', credit.redeemed_session_id).single()
+    if (sessionError) throw new Error(sessionError.message)
+    expect(session).toMatchObject({ date: targetDate, start_time: '17:00:00', end_time: '18:00:00' })
+    const { data: slot, error: slotError } = await admin.from('schedule_slots')
+      .select('id,template_id,branch_id,course_type_id,date,start_time,end_time,current_students').eq('id', session.schedule_slot_id).single()
+    if (slotError) throw new Error(slotError.message)
+    expect(slot).toMatchObject({
+      template_id: canonicalTemplateId,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.privateCourseId,
+      date: targetDate,
+      start_time: '17:00:00',
+      end_time: '18:00:00',
+      current_students: 1,
+    })
+    await deleteCreditAndTarget(creditId)
+  }
+
+  const renderedCreditId = await createCredit()
+  await page.goto('/dashboard/lesson-wallet')
+  await expect(page.getByRole('heading', { name: 'กระเป๋าวันเรียน' })).toBeVisible()
+  await page.getByRole('button', { name: 'ใช้วันเรียน', exact: true }).click()
+  await page.getByRole('button', { name: '19', exact: true }).click()
+  const renderedBranch = page.getByText('สาขาทดสอบ Localhost', { exact: true }).locator('..')
+  await expect(renderedBranch).toBeVisible()
+  const renderedSlot = renderedBranch.getByRole('button', { name: /17:00-18:00/ })
+  await expect(renderedSlot).toBeEnabled()
+  await renderedSlot.click()
+  await expect(page.getByText(/17:00-18:00 · สาขาทดสอบ Localhost/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'ยืนยันใช้วันเรียน' })).toBeEnabled()
+  await page.getByRole('button', { name: 'ยกเลิก' }).click()
+  const { data: renderedCredit } = await admin.from('lesson_wallet_credits').select('status').eq('id', renderedCreditId).single()
+  expect(renderedCredit?.status).toBe('active')
+  await admin.from('lesson_wallet_credits').delete().eq('id', renderedCreditId)
+
+  await expectSuccessfulCanonicalRedeem(canonicalTemplateId)
+  await expectSuccessfulCanonicalRedeem('a9000000-0000-4000-8000-000000000001')
+  await expectSuccessfulCanonicalRedeem(otherBranchTemplateId)
+  await expectSuccessfulCanonicalRedeem(fixture.templates['0'])
+
+  await admin.from('schedule_templates').update({ is_active: false }).eq('id', canonicalTemplateId)
+  const inactiveCreditId = await createCredit()
+  const sessionsBeforeInactive = await countTable('booking_sessions')
+  const inactiveResponse = await redeem(inactiveCreditId, canonicalTemplateId)
+  expect(inactiveResponse).toMatchObject({ status: 400, body: { code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND' } })
+  expect(await countTable('booking_sessions')).toBe(sessionsBeforeInactive)
+  const { data: inactiveCredit } = await admin.from('lesson_wallet_credits').select('status').eq('id', inactiveCreditId).single()
+  expect(inactiveCredit?.status).toBe('active')
+  await admin.from('lesson_wallet_credits').delete().eq('id', inactiveCreditId)
+  await admin.from('schedule_templates').update({ is_active: true }).eq('id', canonicalTemplateId)
+
+  for (const interval of [['17:00:00', '18:00:00'], ['16:30:00', '17:30:00']]) {
+    conflictSequence += 1
+    const conflictId = `a7000000-0000-4000-8000-${String(conflictSequence).padStart(12, '0')}`
+    const { error } = await admin.from('booking_sessions').insert({
+      id: conflictId,
+      booking_id: privateBookingId,
+      date: targetDate,
+      start_time: interval[0],
+      end_time: interval[1],
+      branch_id: fixture.branchId,
+      child_id: fixture.mainChildId,
+      status: 'scheduled',
+    })
+    if (error) throw new Error(error.message)
+    const creditId = await createCredit()
+    const response = await redeem(creditId, canonicalTemplateId)
+    expect(response).toMatchObject({ status: 409, body: { code: 'LESSON_WALLET_TARGET_CONFLICT' } })
+    const { count: failedSlotCount } = await admin.from('schedule_slots')
+      .select('*', { count: 'exact', head: true })
+      .eq('branch_id', fixture.branchId)
+      .eq('course_type_id', fixture.privateCourseId)
+      .eq('date', targetDate)
+      .eq('start_time', '17:00:00')
+    expect(failedSlotCount || 0).toBe(0)
+    await admin.from('lesson_wallet_credits').delete().eq('id', creditId)
+    await admin.from('booking_sessions').delete().eq('id', conflictId)
+    await admin.from('schedule_slots').delete().eq('branch_id', fixture.branchId).eq('course_type_id', fixture.privateCourseId).eq('date', targetDate)
+  }
+
+  const fullSlotId = 'a8000000-0000-4000-8000-000000000001'
+  const { error: fullSlotError } = await admin.from('schedule_slots').insert({
+    id: fullSlotId,
+    template_id: canonicalTemplateId,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    date: targetDate,
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    max_students: 1,
+    current_students: 9,
+    status: 'full',
+  })
+  if (fullSlotError) throw new Error(fullSlotError.message)
+  const fullCreditId = await createCredit()
+  const fullResponse = await redeem(fullCreditId, canonicalTemplateId)
+  expect(fullResponse.status, JSON.stringify(fullResponse.body)).toBe(200)
+  const { data: refreshedFullSlot } = await admin.from('schedule_slots').select('current_students,status').eq('id', fullSlotId).single()
+  expect(refreshedFullSlot).toMatchObject({ current_students: 1, status: 'open' })
+  await deleteCreditAndTarget(fullCreditId)
+
+  const cancelledSlotId = 'a8000000-0000-4000-8000-000000000002'
+  await admin.from('schedule_slots').insert({
+    id: cancelledSlotId,
+    template_id: canonicalTemplateId,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    date: targetDate,
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    max_students: 1,
+    current_students: 0,
+    status: 'cancelled',
+  })
+  const cancelledCreditId = await createCredit()
+  const cancelledResponse = await redeem(cancelledCreditId, canonicalTemplateId)
+  expect(cancelledResponse).toMatchObject({ status: 409, body: { code: 'LESSON_WALLET_TARGET_UNAVAILABLE' } })
+  await admin.from('lesson_wallet_credits').delete().eq('id', cancelledCreditId)
+  await admin.from('schedule_slots').delete().eq('id', cancelledSlotId)
+
+  const pastCreditId = await createCredit()
+  const pastResponse = await redeem(pastCreditId, canonicalTemplateId, { targetDate: '2026-07-14' })
+  expect(pastResponse.status).toBe(400)
+  await admin.from('lesson_wallet_credits').delete().eq('id', pastCreditId)
+  const otherMonthCreditId = await createCredit()
+  const otherMonthResponse = await redeem(otherMonthCreditId, canonicalTemplateId, { targetDate: '2026-08-02' })
+  expect(otherMonthResponse.status).toBe(400)
+  await admin.from('lesson_wallet_credits').delete().eq('id', otherMonthCreditId)
+
+  const concurrentCreditId = await createCredit()
+  const concurrentResponses = await Promise.all([
+    redeem(concurrentCreditId, canonicalTemplateId),
+    redeem(concurrentCreditId, canonicalTemplateId),
+  ])
+  expect(concurrentResponses.map((response) => response.status).sort()).toEqual([200, 409])
+  const { data: concurrentCredit } = await admin.from('lesson_wallet_credits')
+    .select('status,redeemed_session_id').eq('id', concurrentCreditId).single()
+  expect(concurrentCredit?.status).toBe('redeemed')
+  const { data: concurrentSessions, error: concurrentSessionError } = await admin.from('booking_sessions')
+    .select('id,schedule_slot_id').eq('rescheduled_from_id', sourceSessionId).eq('date', targetDate)
+  if (concurrentSessionError) throw new Error(concurrentSessionError.message)
+  expect(concurrentSessions).toHaveLength(1)
+  expect(concurrentSessions?.[0].id).toBe(concurrentCredit?.redeemed_session_id)
+  const { data: concurrentSlot } = await admin.from('schedule_slots').select('current_students').eq('id', concurrentSessions?.[0].schedule_slot_id).single()
+  expect(concurrentSlot?.current_students).toBe(1)
+  const concurrentAssignmentCount = await admin.from('coach_assignment_group_students')
+    .select('*', { count: 'exact', head: true }).eq('booking_session_id', concurrentSessions?.[0].id)
+  expect(concurrentAssignmentCount.count || 0).toBe(0)
+  await deleteCreditAndTarget(concurrentCreditId)
+
+  for (const table of protectedTables) expect(await countTable(table), table).toBe(protectedBefore[table])
+  await admin.from('booking_sessions').delete().eq('id', sourceSessionId)
+  await admin.from('bookings').delete().eq('id', privateBookingId)
+  await admin.from('schedule_templates').delete().in('id', [canonicalTemplateId, otherBranchTemplateId])
+  await admin.from('branches').delete().eq('id', otherBranchId)
 })
 
 test('Admin Makeup selects a canonical slot above occupancy 20 without a capacity rejection', async ({ page }) => {

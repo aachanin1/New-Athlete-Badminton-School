@@ -1,11 +1,14 @@
 const fs = require('fs')
 const path = require('path')
+const { execFileSync } = require('child_process')
 const { createClient } = require('@supabase/supabase-js')
 
 const UAT_PREFIX = 'uat.nasc+lesson.wallet.'
 const UAT_DOMAIN = 'example.com'
 const UAT_PASSWORD = 'NascUat@2026'
 const UAT_MARKER = 'NASC_UAT_LESSON_WALLET'
+const UAT_BRANCH_ID = 'eb000000-0000-4000-8000-000000000001'
+const UAT_COURSE_TYPE_ID = 'ec000000-0000-4000-8000-000000000001'
 const STORE_CUTOFF_HOURS = 48
 const keepData = process.argv.includes('--keep')
 const cleanupOnly = process.argv.includes('--cleanup')
@@ -75,7 +78,7 @@ function addDays(dateInput, days) {
 
 function nextUatMonthDates() {
   const now = new Date()
-  const baseMonth = now.getDate() <= 18 ? now.getMonth() : now.getMonth() + 1
+  const baseMonth = now.getMonth() + 1
   const baseYear = now.getFullYear() + Math.floor(baseMonth / 12)
   const normalizedMonth = baseMonth % 12
 
@@ -224,6 +227,8 @@ async function cleanupUatData({ deleteAuthUsers = true } = {}) {
   await deleteWhereIn('schedule_slots', 'id', slotIds)
   await deleteWhereIn('schedule_templates', 'id', templateIds)
   await deleteWhereIn('profiles', 'id', profileIds)
+  await expectNoError(await supabase.from('branches').delete().eq('id', UAT_BRANCH_ID), 'delete disposable uat branch')
+  await expectNoError(await supabase.from('course_types').delete().eq('id', UAT_COURSE_TYPE_ID), 'delete disposable uat course type')
 
   if (deleteAuthUsers) {
     const authUsers = await listAllAuthUsers()
@@ -295,14 +300,39 @@ async function createProfiles() {
 }
 
 async function selectMasterData() {
-  const branch = await expectNoError(
-    await supabase.from('branches').select('id, name').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single(),
+  let branch = await expectNoError(
+    await supabase.from('branches').select('id, name').eq('is_active', true).order('created_at', { ascending: true }).limit(1).maybeSingle(),
     'fetch active branch',
   )
-  const courseType = await expectNoError(
-    await supabase.from('course_types').select('id, name').eq('name', 'kids_group').single(),
+  if (!branch) {
+    branch = await expectNoError(
+      await supabase.from('branches').insert({
+        id: UAT_BRANCH_ID,
+        name: 'UAT Lesson Wallet Disposable',
+        slug: 'uat-lesson-wallet-disposable',
+        address: UAT_MARKER,
+        is_active: true,
+      }).select('id, name').single(),
+      'create disposable uat branch',
+    )
+  }
+
+  let courseType = await expectNoError(
+    await supabase.from('course_types').select('id, name').eq('name', 'kids_group').maybeSingle(),
     'fetch kids_group course type',
   )
+  if (!courseType) {
+    courseType = await expectNoError(
+      await supabase.from('course_types').insert({
+        id: UAT_COURSE_TYPE_ID,
+        name: 'kids_group',
+        description: UAT_MARKER,
+        max_students: 6,
+        duration_hours: 2,
+      }).select('id, name').single(),
+      'create disposable uat course type',
+    )
+  }
 
   return { branch, courseType }
 }
@@ -343,7 +373,7 @@ async function createTemplateAndSlot({ branchId, courseTypeId, date, startTime, 
       max_students: maxStudents,
       current_students: currentStudents,
       status: 'open',
-    }).select('id, template_id, branch_id, course_type_id, date, start_time, end_time, current_students, max_students').single(),
+    }).select('id, template_id, branch_id, course_type_id, date, start_time, end_time, current_students, max_students, status').single(),
     `create slot ${date}`,
   )
 
@@ -566,7 +596,7 @@ async function redeemCredit({ credit, original, targetSlot, userId }) {
     await supabase.from('schedule_slots').select('current_students, max_students').eq('id', targetSlot.id).single(),
     'fetch target slot before redeem',
   )
-  assertCondition(Number(targetBefore.current_students) < Number(targetBefore.max_students), 'Target slot capacity guard failed')
+  assertCondition(targetSlot.status !== 'cancelled', 'Cancelled target slot must remain blocked')
 
   const newSession = await expectNoError(
     await supabase.from('booking_sessions').insert({
@@ -716,6 +746,11 @@ async function assertStoreBlockedCases({ parentId, childId, branchId, courseType
 }
 
 async function runUat() {
+  execFileSync(process.execPath, [path.join(process.cwd(), 'scripts/check-lesson-wallet-regression.mjs')], {
+    cwd: process.cwd(),
+    env: { ...process.env, TZ: 'UTC' },
+    stdio: 'inherit',
+  })
   await cleanupUatData()
 
   const ids = await createProfiles()
@@ -749,6 +784,8 @@ async function runUat() {
     date: dates.targetDate,
     startTime: '17:00',
     endTime: '19:00',
+    currentStudents: 6,
+    maxStudents: 6,
   })
   const duplicateSlot = await createTemplateAndSlot({
     branchId: branch.id,
@@ -984,7 +1021,7 @@ async function runUat() {
   assertCondition(finalCredit.redeemed_session_id === redeemedSession.id, 'Redeemed session id was not linked')
   assertCondition(redeemedSession.booking_id === original.booking.id, 'Redeemed session did not reuse original booking')
   assertCondition(redeemedSession.rescheduled_from_id === original.session.id, 'Redeemed session did not reference original session')
-  assertCondition(Number(finalTargetSlot.current_students) === 1, 'Target slot count was not incremented')
+  assertCondition(Number(finalTargetSlot.current_students) === 7, 'Target above historical capacity did not accept redemption')
   assertCondition(paymentCount === 1, 'Redeem flow should reuse the original paid booking without creating another payment')
 
   await assignCoach({
@@ -1008,7 +1045,7 @@ async function runUat() {
     await supabase.from('coach_assignment_group_students').select('id').eq('booking_session_id', redeemedSession.id),
     'verify redeemed assignment removed after re-wallet',
   )
-  assertCondition(Number(targetSlotAfterRewallet.current_students) === 0, 'Re-wallet did not decrement the redeemed target slot')
+  assertCondition(Number(targetSlotAfterRewallet.current_students) === 6, 'Re-wallet did not decrement the redeemed target slot')
   assertCondition(rewalletAssignmentAfterStore.length === 0, 'Re-wallet did not remove learner from assigned coach group')
 
   const secondRedeemedSession = await redeemCredit({
@@ -1059,7 +1096,7 @@ async function runUat() {
   console.log('PASS Store wallet: verified booking only, 48-hour guard, no attendance, original session -> walleted')
   console.log('PASS Store wallet: original slot count decremented and learner removed from coach group')
   console.log('PASS Coach assignment stability: remaining assigned learners stay assigned and emptied groups are left auditable without active students')
-  console.log('PASS Redeem wallet: same-month future slot, target capacity, new scheduled session created')
+  console.log('PASS Redeem wallet: same-month future slot above historical capacity, new scheduled session created')
   console.log('PASS Redeem wallet: original booking/payment reused; no additional charge path used')
   console.log('PASS Re-wallet chain: redeemed session can be stored again, assignment cleanup stays per learner, and payment count stays unchanged')
   console.log('PASS Guard checks: near cutoff blocked, attended session blocked, expired credit marked expired, wrong-month candidate detected')

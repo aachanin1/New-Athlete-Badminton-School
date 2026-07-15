@@ -1,9 +1,58 @@
 import type { CourseTypeName } from '@/types/database'
 
 const COURSE_TYPE_NAMES: CourseTypeName[] = ['kids_group', 'adult_group', 'private']
+const BANGKOK_TIME_ZONE = 'Asia/Bangkok'
 
 export function normalizeCourseTypeName(value: string | null | undefined): CourseTypeName | null {
   return COURSE_TYPE_NAMES.includes(value as CourseTypeName) ? (value as CourseTypeName) : null
+}
+
+export function getBangkokDayOfWeek(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) return null
+
+  return date.getUTCDay()
+}
+
+export function normalizeScheduleTime(value: string, targetDate = '2000-01-01'): string | null {
+  const trimmed = value.trim()
+  const plainTime = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/.exec(trimmed)
+
+  if (plainTime) {
+    const hours = Number(plainTime[1])
+    const minutes = Number(plainTime[2])
+    const seconds = Number(plainTime[3] || 0)
+    if (hours > 23 || minutes > 59 || seconds > 59) return null
+    return `${plainTime[1]}:${plainTime[2]}:${String(seconds).padStart(2, '0')}`
+  }
+
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed)) return null
+  const parsed = new Date(trimmed.includes('T') ? trimmed : `${targetDate}T${trimmed}`)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: BANGKOK_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(parsed)
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value
+  const hours = part('hour')
+  const minutes = part('minute')
+  const seconds = part('second')
+  return hours && minutes && seconds ? `${hours}:${minutes}:${seconds}` : null
 }
 
 export interface TimeSlot {

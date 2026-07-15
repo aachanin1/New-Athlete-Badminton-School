@@ -31,6 +31,7 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       ...process.env,
+      TZ: 'UTC',
       NEXT_PUBLIC_SUPABASE_URL: local.apiUrl,
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local.publishableKey,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: local.publishableKey,

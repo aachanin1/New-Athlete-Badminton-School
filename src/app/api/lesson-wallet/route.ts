@@ -5,6 +5,7 @@ import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
+import { getBangkokDayOfWeek, normalizeCourseTypeName, normalizeScheduleTime } from '@/lib/schedule-template-utils'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName, Database } from '@/types/database'
@@ -63,6 +64,7 @@ interface WalletCreditRow {
   original_end_time: string
   status: string
   expires_at: string
+  course_types?: { name: string | null } | null
 }
 
 interface TemplateRow {
@@ -73,7 +75,12 @@ interface TemplateRow {
 
 interface SlotRow {
   id: string
+  template_id?: string | null
   branch_id: string
+  course_type_id?: string
+  date?: string
+  start_time?: string
+  end_time?: string
   current_students?: number
   status: string
 }
@@ -134,6 +141,23 @@ interface PostWalletAssignmentState {
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
 
+type LessonWalletErrorCode =
+  | 'LESSON_WALLET_COURSE_INVALID'
+  | 'LESSON_WALLET_TEMPLATE_NOT_FOUND'
+  | 'LESSON_WALLET_TARGET_CONFLICT'
+  | 'LESSON_WALLET_TARGET_UNAVAILABLE'
+  | 'LESSON_WALLET_CREDIT_STALE'
+
+class LessonWalletError extends Error {
+  constructor(
+    readonly code: LessonWalletErrorCode,
+    message: string,
+    readonly status: number,
+  ) {
+    super(message)
+  }
+}
+
 function normalizeTime(value: string) {
   return value.length === 5 ? `${value}:00` : value
 }
@@ -170,17 +194,9 @@ function getMonthEndIso(date: string) {
   return new Date(nextMonthStart.getTime() - 1).toISOString()
 }
 
-function dayOfWeek(date: string) {
-  return new Date(`${date}T00:00:00+07:00`).getDay()
-}
-
-function timeToMinutes(value: string) {
-  const [hours, minutes] = shortTime(value).split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-function templateCoversSlot(template: TemplateRow, startTime: string, endTime: string) {
-  return timeToMinutes(template.start_time) <= timeToMinutes(startTime) && timeToMinutes(template.end_time) >= timeToMinutes(endTime)
+function templateMatchesSlot(template: TemplateRow, targetDate: string, startTime: string, endTime: string) {
+  return normalizeScheduleTime(template.start_time, targetDate) === normalizeScheduleTime(startTime, targetDate)
+    && normalizeScheduleTime(template.end_time, targetDate) === normalizeScheduleTime(endTime, targetDate)
 }
 
 function slotLabel(date: string, startTime: string, endTime: string) {
@@ -346,18 +362,28 @@ async function adjustSlotCount(adminSupabase: AdminSupabase, slotId: string | nu
   if (updateError) throw new Error(`อัปเดตจำนวนผู้เรียนในรอบไม่สำเร็จ: ${updateError.message}`)
 }
 
+async function refreshSlotOccupancy(adminSupabase: AdminSupabase, slotId: string) {
+  const { error } = await adminSupabase.rpc('progressive_refresh_slot_capacity_v1', {
+    p_slot_ids: [slotId],
+  }) as unknown as { error: DbError | null }
+  if (error) throw new Error(`อัปเดตจำนวนผู้เรียนในรอบไม่สำเร็จ: ${error.message}`)
+}
+
 async function findMatchingTemplate(
   adminSupabase: AdminSupabase,
   courseTypeId: string,
   payload: Required<Pick<StorePayload, 'targetDate' | 'startTime' | 'endTime' | 'branchId'>> & Pick<StorePayload, 'scheduleTemplateId'>
 ) {
+  const bangkokDayOfWeek = getBangkokDayOfWeek(payload.targetDate)
+  if (bangkokDayOfWeek === null) return null
+
   const loadTemplates = async (scheduleTemplateId?: string | null) => {
     let query = adminSupabase
       .from('schedule_templates')
       .select('id, start_time, end_time')
       .eq('branch_id', payload.branchId)
       .eq('course_type_id', courseTypeId)
-      .eq('day_of_week', dayOfWeek(payload.targetDate))
+      .eq('day_of_week', bangkokDayOfWeek)
       .eq('is_active', true)
 
     if (scheduleTemplateId) query = query.eq('id', scheduleTemplateId)
@@ -365,7 +391,7 @@ async function findMatchingTemplate(
     const { data, error } = await query as unknown as { data: TemplateRow[] | null; error: DbError | null }
     if (error) throw new Error(`โหลดรอบเรียนประจำไม่สำเร็จ: ${error.message}`)
 
-    return (data || []).find((template) => templateCoversSlot(template, payload.startTime, payload.endTime)) || null
+    return (data || []).find((template) => templateMatchesSlot(template, payload.targetDate, payload.startTime, payload.endTime)) || null
   }
 
   if (payload.scheduleTemplateId) {
@@ -402,19 +428,53 @@ async function ensureNoDuplicateLearnerSlot(
   if (error) throw new Error(`ตรวจสอบรอบซ้ำไม่สำเร็จ: ${error.message}`)
 
   const duplicate = (data || []).some((session) => !['rescheduled', 'walleted'].includes(session.status))
-  if (duplicate) throw new Error('ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว')
+  if (duplicate) {
+    throw new LessonWalletError(
+      'LESSON_WALLET_TARGET_CONFLICT',
+      'ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว',
+      409,
+    )
+  }
 }
 
-async function ensureSlotAcceptsEntry(adminSupabase: AdminSupabase, scheduleSlotId: string) {
+async function ensureSlotAcceptsEntry(
+  adminSupabase: AdminSupabase,
+  scheduleSlotId: string,
+  expected: {
+    templateId: string
+    branchId: string
+    courseTypeId: string
+    date: string
+    startTime: string
+    endTime: string
+  },
+) {
   const { data: slot, error } = await adminSupabase
     .from('schedule_slots')
-    .select('id, branch_id, status')
+    .select('id, template_id, branch_id, course_type_id, date, start_time, end_time, status')
     .eq('id', scheduleSlotId)
     .maybeSingle() as unknown as { data: SlotRow | null; error: DbError | null }
 
   if (error || !slot) throw new Error(`โหลดรอบเรียนไม่สำเร็จ: ${error?.message || 'ไม่พบรอบเรียน'}`)
-  if (slot.status === 'cancelled') throw new Error('รอบเรียนนี้ถูกยกเลิกแล้ว')
-  if (!['open', 'full'].includes(slot.status)) throw new Error('รอบเรียนนี้ไม่พร้อมใช้งานแล้ว')
+  const canonicalSlotMatches = slot.template_id === expected.templateId
+    && slot.branch_id === expected.branchId
+    && slot.course_type_id === expected.courseTypeId
+    && slot.date === expected.date
+    && normalizeScheduleTime(slot.start_time || '', expected.date) === expected.startTime
+    && normalizeScheduleTime(slot.end_time || '', expected.date) === expected.endTime
+  if (!canonicalSlotMatches) {
+    throw new LessonWalletError(
+      'LESSON_WALLET_TARGET_UNAVAILABLE',
+      'ข้อมูลรอบเรียนจริงไม่ตรงกับรอบเรียนประจำ กรุณาติดต่อผู้ดูแล',
+      409,
+    )
+  }
+  if (slot.status === 'cancelled') {
+    throw new LessonWalletError('LESSON_WALLET_TARGET_UNAVAILABLE', 'รอบเรียนนี้ถูกยกเลิกแล้ว', 409)
+  }
+  if (!['open', 'full'].includes(slot.status)) {
+    throw new LessonWalletError('LESSON_WALLET_TARGET_UNAVAILABLE', 'รอบเรียนนี้ไม่พร้อมใช้งานแล้ว', 409)
+  }
 }
 
 async function expireDueCredits(adminSupabase: AdminSupabase, userId: string) {
@@ -587,7 +647,7 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
 
   const { data: credit, error: creditError } = await adminSupabase
     .from('lesson_wallet_credits')
-    .select('id, user_id, booking_id, original_session_id, child_id, branch_id, course_type_id, original_date, original_start_time, original_end_time, status, expires_at')
+    .select('id, user_id, booking_id, original_session_id, child_id, branch_id, course_type_id, original_date, original_start_time, original_end_time, status, expires_at, course_types(name)')
     .eq('id', creditId)
     .maybeSingle() as unknown as { data: WalletCreditRow | null; error: DbError | null }
 
@@ -596,7 +656,10 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
   }
 
   if (credit.status !== 'active') {
-    return NextResponse.json({ error: 'สิทธิ์นี้ไม่พร้อมใช้งานแล้ว' }, { status: 400 })
+    return NextResponse.json({
+      code: 'LESSON_WALLET_CREDIT_STALE',
+      error: 'สิทธิ์กระเป๋านี้ถูกใช้ไปแล้วหรือไม่พร้อมใช้งาน กรุณารีเฟรชหน้า',
+    }, { status: 409 })
   }
   if (new Date(credit.expires_at).getTime() < Date.now()) {
     await expireDueCredits(adminSupabase, userId).catch(() => null)
@@ -609,17 +672,44 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
     return NextResponse.json({ error: 'ต้องเลือกรอบเรียนที่ยังไม่เริ่มเท่านั้น' }, { status: 400 })
   }
 
+  const courseType = normalizeCourseTypeName(credit.course_types?.name)
+  if (!courseType) {
+    return NextResponse.json({
+      code: 'LESSON_WALLET_COURSE_INVALID',
+      error: 'ข้อมูลคอร์สของสิทธิ์กระเป๋าไม่ถูกต้อง กรุณาติดต่อผู้ดูแล',
+    }, { status: 422 })
+  }
+
+  const normalizedStartTime = normalizeScheduleTime(startTime, targetDate)
+  const normalizedEndTime = normalizeScheduleTime(endTime, targetDate)
+  if (!normalizedStartTime || !normalizedEndTime || normalizedStartTime >= normalizedEndTime) {
+    return NextResponse.json({
+      code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND',
+      error: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก',
+    }, { status: 400 })
+  }
+
   const template = await findMatchingTemplate(adminSupabase, credit.course_type_id, {
     targetDate,
-    startTime,
-    endTime,
+    startTime: normalizedStartTime,
+    endTime: normalizedEndTime,
     branchId,
     scheduleTemplateId: scheduleTemplateId || null,
   })
 
   if (!template) {
-    return NextResponse.json({ error: 'รอบเรียนที่เลือกไม่ตรงกับรอบเรียนประจำในระบบ' }, { status: 400 })
+    return NextResponse.json({
+      code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND',
+      error: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก',
+    }, { status: 400 })
   }
+
+  await ensureNoDuplicateLearnerSlot(adminSupabase, credit, {
+    date: targetDate,
+    startTime: normalizedStartTime,
+    endTime: normalizedEndTime,
+    branchId,
+  })
 
   const scheduleSlotId = await ensureScheduleSlot({
     supabase: adminSupabase,
@@ -627,16 +717,17 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
     branchId,
     courseTypeId: credit.course_type_id,
     date: targetDate,
-    startTime,
-    endTime,
+    startTime: normalizedStartTime,
+    endTime: normalizedEndTime,
   })
 
-  await ensureSlotAcceptsEntry(adminSupabase, scheduleSlotId)
-  await ensureNoDuplicateLearnerSlot(adminSupabase, credit, {
-    date: targetDate,
-    startTime,
-    endTime,
+  await ensureSlotAcceptsEntry(adminSupabase, scheduleSlotId, {
+    templateId: template.id,
     branchId,
+    courseTypeId: credit.course_type_id,
+    date: targetDate,
+    startTime: normalizedStartTime,
+    endTime: normalizedEndTime,
   })
 
   const { data: newSession, error: insertError } = await adminSupabase
@@ -645,8 +736,8 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
       booking_id: credit.booking_id,
       schedule_slot_id: scheduleSlotId,
       date: targetDate,
-      start_time: normalizeTime(startTime),
-      end_time: normalizeTime(endTime),
+      start_time: normalizedStartTime,
+      end_time: normalizedEndTime,
       branch_id: branchId,
       child_id: credit.child_id,
       status: 'scheduled',
@@ -683,15 +774,19 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
   if (updateCreditError || !redeemedCredit) {
     await adjustSlotCount(adminSupabase, scheduleSlotId, -1).catch(() => null)
     await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
-    return NextResponse.json({
-      error: updateCreditError
-        ? `ใช้สิทธิ์ไม่สำเร็จ: ${updateCreditError.message}`
-        : 'สิทธิ์กระเป๋านี้ถูกใช้ไปแล้ว กรุณารีเฟรชหน้าแล้วลองใหม่',
+    await refreshSlotOccupancy(adminSupabase, scheduleSlotId).catch(() => null)
+    return NextResponse.json(updateCreditError ? {
+      error: 'ใช้สิทธิ์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
+    } : {
+      code: 'LESSON_WALLET_CREDIT_STALE',
+      error: 'สิทธิ์กระเป๋านี้ถูกใช้ไปแล้ว กรุณารีเฟรชหน้า',
     }, { status: updateCreditError ? 500 : 409 })
   }
 
+  await refreshSlotOccupancy(adminSupabase, scheduleSlotId).catch(() => null)
+
   const oldLabel = slotLabel(credit.original_date, credit.original_start_time, credit.original_end_time)
-  const newLabel = slotLabel(targetDate, startTime, endTime)
+  const newLabel = slotLabel(targetDate, normalizedStartTime, normalizedEndTime)
 
   await Promise.all([
     notifyHeadCoachesAndAssignedCoach(adminSupabase, branchId, [], {
@@ -717,7 +812,7 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
         newSessionId: newSession.id,
         scheduleSlotId,
         targetDate,
-        startTime,
+        startTime: normalizedStartTime,
         branchId,
       },
       ipAddress: request.headers.get('x-forwarded-for'),
@@ -733,8 +828,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json() as StorePayload
-    if (body.action === 'store') return storeInWallet(request, user.id, body)
-    if (body.action === 'redeem') return redeemWalletCredit(request, user.id, body)
+    if (body.action === 'store') return await storeInWallet(request, user.id, body)
+    if (body.action === 'redeem') return await redeemWalletCredit(request, user.id, body)
     if (body.action === 'expire_due') {
       const count = await expireDueCredits(getServiceRoleClient(), user.id)
       return NextResponse.json({ success: true, expiredCount: count })
@@ -742,7 +837,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'ไม่พบ action ที่รองรับ' }, { status: 400 })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
-    return NextResponse.json({ error: message }, { status: 500 })
+    if (error instanceof LessonWalletError) {
+      return NextResponse.json({ code: error.code, error: error.message }, { status: error.status })
+    }
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }, { status: 500 })
   }
 }
