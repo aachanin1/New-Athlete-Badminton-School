@@ -2,6 +2,76 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-15 - Admin Teaching Programs Default Today + Deterministic Ordering
+
+Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
+PRODUCTION UAT NOT RUN**.
+
+#### Initial Source-fix round (historical state observed before Build approval)
+
+- Owner selected `/admin/teaching-programs` as the single active task and limited
+  this round to Source Fix + Local Verification. Commit, push, deploy, migration,
+  Production data repair/write, and controlled write UAT were prohibited.
+- Gate 0 found branch `spike/next-major-security-upgrade`; local, upstream, and
+  read-only remote HEAD all matched
+  `74e26ee442cdb46cce5e1579df55a55d9a97bddf`, ahead/behind `0/0`. Pre-existing
+  unrelated dirty `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and
+  `docs/performance/` were preserved and excluded.
+- Audit proved that start/end date states were blank and filtering occurred only in
+  the client. Start-only was inclusive lower-bound, end-only inclusive upper-bound,
+  and both blank admitted all dates. The server supplied at most 800 programs in
+  `created_at DESC`; the client filtered and paginated that inherited order without
+  a slot date/time/branch sort.
+- `/admin/schedules` orders rounds by date, start time, branch name, and course type,
+  and its active branch query orders by name. `branches` has no `sort_order`; its
+  persisted unique slug identifies แจ้งวัฒนะ as `chaengwattana`.
+- Source now computes Bangkok today once on the server and uses it for both initial
+  date inputs. It joins branch slug with the existing slot relation, parses real
+  `HH:mm[:ss]` values, and sorts all filtered items before the unchanged 18-row
+  page slice by date, time, same-time `chaengwattana` priority, Thai branch name,
+  branch slug, slot id, and program id. Search/filter/review behavior is otherwise
+  unchanged; `/admin/schedules`, API contract, schema, and data were not changed.
+- Verification passed: deterministic date/time/branch/tie-breaker/cross-page
+  fixtures, Bangkok midnight UTC-boundary fixtures, `npx tsc --noEmit`, targeted
+  ESLint, full `npm run lint`, `npm run check:mojibake` (230 files), and
+  `git diff --check`. Local browser smoke reached the expected login redirect with
+  zero console errors, but authenticated smoke was unavailable because no signed-in
+  local browser session existed. No credentials were entered and no write action
+  was invoked.
+- State observed at the initial Source-only closeout: local Source was complete and
+  tested but remained uncommitted/unpushed/undeployed. Functional Production Source remains documented
+  as `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`; Production-active behavior and
+  Production UAT for this fix are not claimed. Task Done remains No.
+
+#### Build + Commit + Push closeout
+
+- Owner subsequently authorized Gate 0, Production Build, scoped functional Source
+  commit/push, and a separate documentation closeout commit/push. Deploy,
+  Production UAT/write, migration, environment, feature-control, allowlist, and
+  scope expansion remained prohibited.
+- Fresh Gate 0 verified authenticated GitHub CLI account `aachanin1`, branch
+  `spike/next-major-security-upgrade`, and matching local/upstream/read-only remote
+  HEAD `74e26ee442cdb46cce5e1579df55a55d9a97bddf`, ahead/behind `0/0`. The unrelated
+  dirty paths remained excluded and the staged set was initially empty.
+- Reviewed Source diff retained the approved sorting/default-date contract and had
+  no Review API, `/admin/schedules`, migration, server-cap, page-size, schema, or
+  data change.
+- Verification passed: ordering fixtures with 9 contract rows and 40 pagination
+  rows at page size 18; 2 Bangkok UTC-boundary cases; `npx tsc --noEmit`; full
+  `npm run lint`; mojibake 230 files; `npm run build` with 91/91 static pages; and
+  `git diff --check`. The clean post-build dev restart served root and a generated
+  static asset with `200`, preserved the Admin `307` login redirect, and produced
+  zero dev stderr or browser console warnings/errors.
+- Functional commit `039ad6e03ca0cb8c8c4334c81818c570b03b9287` contains exactly
+  the three Teaching Programs Source files and is pushed to
+  `origin/spike/next-major-security-upgrade`; local/upstream/read-only remote HEAD
+  matched and ahead/behind was `0/0` after that push.
+- State observed at this closeout: Source is committed and pushed and Build passed.
+  It is not deployed or Production-active, Production UAT and controlled write UAT
+  were not run, Production data did not change, and customer/financial impact is
+  none. Task Done remains No; next action is Owner review before a separately
+  authorized deployment round.
+
 ### 2026-07-15 - Production Lesson Wallet Canonical Redemption Regression
 
 Status: **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
@@ -128,8 +198,9 @@ PRODUCTION UAT PASSED**.
 - The former controlled-write/Task-Done fields were therefore documentation drift
   after the Owner's confirmation. Final classification:
   **PASS — LESSON WALLET PRODUCTION REDEMPTION OWNER-VERIFIED; TASK DONE**.
-  Active Task is now `NONE`; next action is to await Owner selection without
-  starting Admin Schedules Performance or Homepage LV automatically.
+  At that closeout, Active Task was `NONE`; the dated next action was to await
+  Owner selection without starting Admin Schedules Performance or Homepage LV
+  automatically.
 
 ### 2026-07-15 - Documentation Closeout Correction
 
@@ -152,8 +223,8 @@ Status: **DOCUMENTATION DRIFT CORRECTED; NO ACTIVE TASK SELECTED**.
   environment, feature control, allowlist, SlipOK mode, Production schema/data,
   customer behavior, or financial state. It performed no Production UAT or data
   repair.
-- Next action: await Owner selection. Do not start a Parking Lot task
-  automatically.
+- State observed at that closeout: next action was to await Owner selection and
+  not start a Parking Lot task automatically.
 
 ### 2026-07-15 - Dashboard Booking Unlimited Slot Production Release Closeout
 

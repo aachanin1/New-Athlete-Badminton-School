@@ -9,11 +9,22 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-No active implementation task is selected. Do not start a Parking Lot item until
-the Owner selects the next task.
+### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
 
-Next action: **Await Owner selection. Do not start a Parking Lot task
-automatically.**
+Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
+PRODUCTION UAT NOT RUN**.
+
+- Default start/end date is Bangkok today; manual one-day/range filters remain.
+- The filtered full set is ordered before unchanged pagination by date, real start
+  time, stable `chaengwattana` priority at the same time, Thai branch name, and
+  deterministic slot/program tie-breakers.
+- Functional Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is committed and
+  pushed. No migration, Production data/control change, deploy, Production UAT,
+  customer impact, or financial impact occurred.
+- Authoritative audit, verification, and current matrix are in `PROJECT_STATE.md`.
+
+Next action: **Owner review of pushed functional Source before separately
+authorized deployment.**
 
 ## Recently Completed
 
@@ -197,5 +208,5 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Await Owner selection. Do not start a Parking Lot task
-  automatically.**
+- Next action: **Owner review of pushed Admin Teaching Programs functional Source
+  before separately authorized deployment.**

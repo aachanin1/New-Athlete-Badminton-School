@@ -117,17 +117,109 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **NONE**. No active implementation task is selected.
-- Task Status: Production Lesson Wallet canonical recurring-round redemption is
-  **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
-  PRODUCTION UAT PASSED**. Functional Source
-  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` remains active in Production.
+- Active Task: **Admin Teaching Programs — Default Today + Date/Time/Branch
+  Ordering**.
+- Task Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
+  PRODUCTION UAT NOT RUN**. Owner approved Build + Commit + Push only on
+  2026-07-15; Deploy and Production actions remain unauthorized.
+- Git audit: branch `spike/next-major-security-upgrade`; functional Source commit
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is pushed to the matching upstream
+  and read-only remote branch. Ahead/behind was `0/0` after the functional push.
+  Pre-existing unrelated dirty paths `AGENTS.md`,
+  `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain excluded.
+- Functional Production Source remains
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` in Ready deployment
+  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at`; no deployment state was changed or newly
+  verified beyond the existing authoritative record.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await Owner selection. Do not start a Parking Lot task
-  automatically.**
+- Next Action: **Owner review of pushed functional Source before separately
+  authorized deployment.**
+
+### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
+
+Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
+PRODUCTION UAT NOT RUN** (Owner decisions 2026-07-15).
+
+- Root cause: `/admin/teaching-programs` initialized both date inputs to blank,
+  so its client-only date filter admitted every loaded row. The server query loaded
+  at most 800 programs ordered by `teaching_programs.created_at DESC`; the client
+  filtered that inherited order and sliced pagination without a date/slot-time/
+  branch sort contract.
+- Existing one-sided date behavior remains intact: start-only means `date >= start`,
+  end-only means `date <= end`, and both blank means no date filter. The normal
+  initial render now receives one server-computed `Asia/Bangkok` calendar date and
+  initializes both start and end to that value. No UTC date slicing is used. The
+  existing page has no URL date-query contract, so no user-selected URL state was
+  removed or reset.
+- `schedule_slots.start_time` is parsed as a real `HH:mm[:ss]` time value for sort;
+  displayed time text is not used. The complete filtered set is sorted before the
+  unchanged 18-item pagination slice: `date ASC -> start_time ASC -> branch slug
+  chaengwattana first at the same time -> Thai branch name ASC -> branch slug ->
+  schedule_slot_id -> teaching_program.id`.
+- `branches` has no `sort_order`. `/admin/schedules` uses branch name as its stable
+  branch order after date/time; Teaching Programs retains that fallback while using
+  the unique persisted slug `chaengwattana` to identify แจ้งวัฒนะ reliably. No
+  `/admin/schedules` source changed.
+- Search and the existing status, coach, branch, course type, and one-/two-sided
+  date filters remain client-side and unchanged apart from deterministic ordering.
+  Review API, approval/return actions, permissions, detail panel, page size, schema,
+  and database data are unchanged.
+- Functional Source commit
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287` contains exactly the three scoped
+  Source files and is pushed to `origin/spike/next-major-security-upgrade`.
+- Verification on the committed Source passed: deterministic ordering fixtures
+  with 9 contract rows and 40 pagination rows at page size 18; 2 Bangkok UTC-
+  boundary cases; `npx tsc --noEmit`; full `npm run lint`;
+  `npm run check:mojibake` (230 files); `npm run build` with 91/91 static pages;
+  and `git diff --check`. After the build, the old Next dev server was stopped,
+  the verified repo-local `.next` was removed, and a clean dev server restarted at
+  `127.0.0.1:3000`. Root and a generated static asset returned `200`; the Admin
+  route returned the expected `307` login redirect; dev stderr and browser console
+  errors/warnings were `0`.
+- Authenticated UI smoke was unavailable because the local in-app browser had no
+  signed-in session. No credentials were entered and no review action was invoked.
+  This was not a commit blocker under the Owner-approved verification contract.
+- No migration, deploy, feature-control/allowlist change, Production UAT/read/write,
+  data repair, customer impact, or financial impact occurred.
+
+#### Current Admin Teaching Programs State Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Admin Teaching Programs — Default Today + Date/Time/Branch Ordering |
+| Task Status | PASS — Source committed and pushed; build passed; not deployed; Production UAT not run |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation closeout commit containing this matrix; functional Source is `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
+| Remote HEAD | Matching pushed documentation closeout commit; exact SHA verified in final Git closeout |
+| Ahead/Behind | `0/0` after final documentation push |
+| Source Complete | Yes |
+| Tests Passed | Yes — ordering 9, pagination 40, Bangkok boundary 2, TypeScript, ESLint, mojibake 230, diff check |
+| Build Passed | Yes — 91/91 static pages; clean dev restart/root/static/auth-redirect/runtime checks passed |
+| Committed | Yes — functional Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
+| Pushed | Yes — functional Source and documentation closeout |
+| Current Source | `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
+| Deployed | No |
+| Deployed Source | `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` remains the documented Functional Production Source |
+| Deployment ID | `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remains the documented Ready Production deployment |
+| Migration Source | None; not required and prohibited this round |
+| Migration Applied | No; not required |
+| Feature Enabled | Not applicable; no feature control added or changed |
+| Allowlisted | Not applicable; no allowlist added or changed |
+| Production Active | No — new ordering/default-date Source is not deployed |
+| Production UAT | Not run |
+| Controlled Write UAT | Not run; not required and prohibited |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | None this round; committed/pushed Source is not deployed |
+| Financial Impact | None |
+| Task Done | No — deploy and Production UAT remain separate Owner-approved gates |
+| Blocker | None for committed/pushed Source; deployment authority not granted |
+| Remaining Work | Owner review, then separately authorized deploy and read-only Production UAT |
+| Next Gate / Next Action | Owner review of pushed functional Source before separately authorized deployment |
+| Parking Lot authorization state | Admin Schedules Performance and Homepage LV remain not authorized |
 
 ### Production Lesson Wallet Canonical Redemption Regression
 
@@ -234,9 +326,9 @@ PRODUCTION UAT PASSED** (Owner decision 2026-07-15).
 - This reconciles the prior **DOCUMENTATION DRIFT**. Classification:
   **PASS — LESSON WALLET PRODUCTION REDEMPTION OWNER-VERIFIED; TASK DONE**.
 
-#### Current Lesson Wallet State Matrix
+#### Historical Lesson Wallet Final Closeout Matrix (state observed 2026-07-15)
 
-| Field | Current value |
+| Field | Value at that closeout |
 | --- | --- |
 | Active Task | NONE |
 | Task Status | Done; Source deployed; no-write and Owner-verified controlled-write Production UAT passed |
