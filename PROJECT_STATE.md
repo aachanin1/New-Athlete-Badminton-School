@@ -117,31 +117,31 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **Admin Teaching Programs — Default Today + Date/Time/Branch
-  Ordering**.
-- Task Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
-  PRODUCTION UAT NOT RUN**. Owner approved Build + Commit + Push only on
-  2026-07-15; Deploy and Production actions remain unauthorized.
+- Active Task: **NONE**.
+- Task Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
+  Owner authorized the exact-source Production deployment, read-only Production
+  UAT, conditional rollback, and documentation closeout on 2026-07-15.
 - Git audit: branch `spike/next-major-security-upgrade`; functional Source commit
   `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is pushed to the matching upstream
   and read-only remote branch. Ahead/behind was `0/0` after the functional push.
   Pre-existing unrelated dirty paths `AGENTS.md`,
   `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain excluded.
-- Functional Production Source remains
-  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` in Ready deployment
-  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at`; no deployment state was changed or newly
-  verified beyond the existing authoritative record.
+- Functional Production Source is
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287` in Ready deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production aliases. Previous
+  Ready deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remains the verified
+  rollback target; rollback was not required.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner review of pushed functional Source before separately
-  authorized deployment.**
+- Next Action: **Await Owner selection; do not start a Parking Lot task
+  automatically.**
 
 ### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
 
-Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
-PRODUCTION UAT NOT RUN** (Owner decisions 2026-07-15).
+Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**
+(Owner decisions 2026-07-15).
 
 - Root cause: `/admin/teaching-programs` initialized both date inputs to blank,
   so its client-only date filter admitted every loaded row. The server query loaded
@@ -179,18 +179,40 @@ PRODUCTION UAT NOT RUN** (Owner decisions 2026-07-15).
   `127.0.0.1:3000`. Root and a generated static asset returned `200`; the Admin
   route returned the expected `307` login redirect; dev stderr and browser console
   errors/warnings were `0`.
-- Authenticated UI smoke was unavailable because the local in-app browser had no
-  signed-in session. No credentials were entered and no review action was invoked.
-  This was not a commit blocker under the Owner-approved verification contract.
-- No migration, deploy, feature-control/allowlist change, Production UAT/read/write,
-  data repair, customer impact, or financial impact occurred.
+- Exact-source deployment used a clean detached worktree pinned to functional
+  Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
+  `1d716a275505ffbc688487f0f245920c31a5619b`. The Vercel Production build passed
+  91/91 static pages and produced Ready deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`. All four Production aliases resolve to that
+  artifact; public root, `/api/health`, and generated static JavaScript returned
+  `200`. The two protected project aliases retained their existing Vercel SSO
+  behavior while their deployment mapping converged correctly.
+- Authenticated Super Admin read-only Production UAT passed. Fresh/reloaded entry
+  set both date fields to Bangkok `2026-07-15` and showed only the five rows for
+  that date. A `2026-07-14` single-day selection showed seven rows for that day;
+  the `2026-07-14` through `2026-07-15` range showed twelve rows ordered by date
+  then start time. At both `15:00` and `17:00` on July 14, แจ้งวัฒนะ preceded other
+  branches at the same time. Start-only, end-only, both-clear, search, status,
+  coach, branch, and course-type filters passed.
+- Pagination was exercised with 362 visible rows: page 1 ended at June 6 `09:00`
+  and page 2 began at `10:00`, with 18 rows on each page and zero overlapping row
+  labels. Selecting the June 6 `10:00` Ratchaphruek-Taling Chan row opened the
+  matching coach/date/branch detail, while the existing Approve/Return buttons
+  remained present and were not clicked. Two fresh reloads produced identical
+  five-row today ordering.
+- Browser console warnings/errors, hydration errors, and React #418 were `0`.
+  Deployment runtime logs contained only GET requests during UAT; focused queries
+  found zero POST/PUT/PATCH/DELETE and zero 4xx/5xx. No migration, environment,
+  feature-control, allowlist, schema, Review action, Production business-data
+  write, or data repair occurred. Customer impact is the corrected Admin display
+  behavior; financial impact is none.
 
 #### Current Admin Teaching Programs State Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Teaching Programs — Default Today + Date/Time/Branch Ordering |
-| Task Status | PASS — Source committed and pushed; build passed; not deployed; Production UAT not run |
+| Active Task | NONE |
+| Task Status | DONE — Exact Source deployed; read-only Production UAT passed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; functional Source is `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
 | Remote HEAD | Matching pushed documentation closeout commit; exact SHA verified in final Git closeout |
@@ -201,24 +223,24 @@ PRODUCTION UAT NOT RUN** (Owner decisions 2026-07-15).
 | Committed | Yes — functional Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
 | Pushed | Yes — functional Source and documentation closeout |
 | Current Source | `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
-| Deployed | No |
-| Deployed Source | `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` remains the documented Functional Production Source |
-| Deployment ID | `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remains the documented Ready Production deployment |
+| Deployed | Yes |
+| Deployed Source | `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
+| Deployment ID | `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` — Ready on all four Production aliases |
 | Migration Source | None; not required and prohibited this round |
 | Migration Applied | No; not required |
 | Feature Enabled | Not applicable; no feature control added or changed |
 | Allowlisted | Not applicable; no allowlist added or changed |
-| Production Active | No — new ordering/default-date Source is not deployed |
-| Production UAT | Not run |
-| Controlled Write UAT | Not run; not required and prohibited |
+| Production Active | Yes — corrected default-date and ordering behavior is active on all four aliases |
+| Production UAT | Passed — authenticated read-only UAT |
+| Controlled Write UAT | Not required/not run |
 | Data Repaired | No |
 | Production Data Changed | No |
-| Customer Impact | None this round; committed/pushed Source is not deployed |
+| Customer Impact | Admin display behavior corrected; no customer data changed |
 | Financial Impact | None |
-| Task Done | No — deploy and Production UAT remain separate Owner-approved gates |
-| Blocker | None for committed/pushed Source; deployment authority not granted |
-| Remaining Work | Owner review, then separately authorized deploy and read-only Production UAT |
-| Next Gate / Next Action | Owner review of pushed functional Source before separately authorized deployment |
+| Task Done | Yes |
+| Blocker | None |
+| Remaining Work | None for this task |
+| Next Gate / Next Action | Await Owner selection; do not start a Parking Lot task automatically |
 | Parking Lot authorization state | Admin Schedules Performance and Homepage LV remain not authorized |
 
 ### Production Lesson Wallet Canonical Redemption Regression
@@ -499,10 +521,11 @@ NO-WRITE PRODUCTION UAT PASSED**
 ### Progressive Runtime
 
 - Current general-traffic functional source commit is
-  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, committed and pushed to
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, committed and pushed to
   `origin/spike/next-major-security-upgrade`; it contains the Lesson Wallet fix and
-  leaves Progressive routing/pricing behavior unchanged. It is also the current
-  Production-active Progressive Source.
+  the Admin Teaching Programs display correction while leaving Progressive
+  routing/pricing behavior unchanged. It is also the current Production-active
+  Progressive Source.
 - Current source entry decision is server-only and default deny:
   - Entry disabled -> all new bookings remain Legacy.
   - Entry enabled + server-resolved `kids_group` -> Progressive for general users;
@@ -536,13 +559,13 @@ NO-WRITE PRODUCTION UAT PASSED**
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
 - Production-active Unlimited Slot Entry Source is
-  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
-  `c29de52987297e316d046faabcaee630878525dd`, on
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
+  `1d716a275505ffbc688487f0f245920c31a5619b`, on
   `origin/spike/next-major-security-upgrade`. Migration `20260715060541` is applied
   remotely exactly once and the Source is Ready in deployment
-  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` on all four Production aliases. The later
-  Lesson Wallet-only Source change did not alter the Unlimited Slot contract or
-  require another migration.
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production aliases. The later
+  Lesson Wallet and Admin Teaching Programs Source changes did not alter the
+  Unlimited Slot contract or require another migration.
 - Historical / superseded booking-regression evidence: commit `be61b68`, tree
   `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
   `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
@@ -587,11 +610,13 @@ NO-WRITE PRODUCTION UAT PASSED**
 
 ### Production
 
-- Current deployment: `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at`, Ready, deployed from
+- Current deployment: `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`, Ready, deployed from
   exact clean detached functional source commit
-  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
-  `c29de52987297e316d046faabcaee630878525dd`. No migration was required for this
-  release. All four Production aliases point to this artifact.
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
+  `1d716a275505ffbc688487f0f245920c31a5619b`. No migration was required for this
+  release. All four Production aliases point to this artifact. Previous Ready
+  deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remains the verified rollback
+  target for the Admin Teaching Programs release.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and

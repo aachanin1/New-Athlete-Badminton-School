@@ -4,8 +4,7 @@
 
 ### 2026-07-15 - Admin Teaching Programs Default Today + Deterministic Ordering
 
-Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
-PRODUCTION UAT NOT RUN**.
+Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
 
 #### Initial Source-fix round (historical state observed before Build approval)
 
@@ -71,6 +70,61 @@ PRODUCTION UAT NOT RUN**.
   were not run, Production data did not change, and customer/financial impact is
   none. Task Done remains No; next action is Owner review before a separately
   authorized deployment round.
+
+#### Exact Source Production deployment + read-only UAT closeout
+
+- Owner subsequently authorized exact-source Production deployment from functional
+  Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, authenticated read-only
+  Production UAT, immediate rollback to `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` if
+  any mandatory gate failed, and a scoped documentation commit/push. Source,
+  migration, environment, feature-control, allowlist, Review action, and
+  Production business-data changes remained prohibited.
+- Gate 0 verified branch `spike/next-major-security-upgrade`; local, upstream, and
+  read-only remote HEAD `1056cff8f97a43571681721877ed6352334fc798`;
+  ahead/behind `0/0`; the functional commit as an ancestor; and exactly the three
+  approved Source files in that commit. Unrelated dirty `AGENTS.md`,
+  `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remained excluded.
+  The prior Production deployment and rollback target
+  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` was Ready, and the pre-deploy custom/canonical
+  root, health, and generated static asset checks passed.
+- Deployment used a clean detached worktree at exact HEAD
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
+  `1d716a275505ffbc688487f0f245920c31a5619b`. Vercel build passed 91/91 static
+  pages and produced Ready deployment `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` at
+  `new-athlete-badminton-school-6t4c92z0k-aachanin1s-projects.vercel.app`.
+  All four established Production aliases were explicitly converged to that
+  deployment. The public root, `/api/health`, and a generated static JavaScript
+  asset returned `200`; the two protected project aliases retained their existing
+  Vercel SSO behavior and were independently confirmed by `vercel inspect` to map
+  to the new deployment.
+- Existing authenticated Super Admin Chrome state enabled UAT without entering
+  credentials. Fresh load and two reloads set both date inputs to Bangkok
+  `2026-07-15`, displayed exactly five rows for that date, and produced identical
+  ordering. Today ordered `13:00` before `17:00`; at `17:00`, แจ้งวัฒนะ preceded
+  Rama 2 and Suvarnabhumi.
+- Manual date/range UAT passed. Single-day `2026-07-14` displayed seven rows only
+  for that date. Range `2026-07-14` through `2026-07-15` displayed twelve rows in
+  date-then-time order; at both July 14 `15:00` and `17:00`, แจ้งวัฒนะ preceded
+  other branches at the same time. Start-only retained inclusive `>=`, end-only
+  retained inclusive `<=`, and clearing both fields restored all-date behavior.
+- Search and status, coach, branch, and course-type filters all changed the visible
+  set correctly. Pagination was exercised on all 362 rows at the unchanged page
+  size 18: page 1 had 18 rows, page 2 had 18 rows, overlap was zero, and the
+  boundary advanced from June 6 `09:00` to `10:00`. Selecting the June 6 `10:00`
+  Ratchaphruek-Taling Chan row opened the matching coach/date/branch detail. The
+  Approve and Return buttons remained present and were not clicked.
+- Browser console warning/error count, hydration errors, and React #418 were zero.
+  Runtime log review found only GET requests during UAT; focused queries returned
+  zero POST, PUT, PATCH, DELETE, 4xx, and 5xx events. No credential entry, Review
+  action, form submission, Production business-data write, data repair, migration,
+  environment, feature-control, allowlist, schema, server-cap, page-size, or
+  `/admin/schedules` change occurred. Rollback was not performed because every
+  mandatory gate passed.
+- State observed at this closeout: exact functional Source is deployed and active,
+  read-only Production UAT passed, customer impact is corrected Admin display
+  behavior, financial impact is none, Task Done is Yes, Active Task is NONE, and
+  the next action is to await Owner selection without automatically starting a
+  Parking Lot task.
 
 ### 2026-07-15 - Production Lesson Wallet Canonical Redemption Regression
 

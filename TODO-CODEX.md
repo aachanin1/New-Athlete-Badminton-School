@@ -9,24 +9,28 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
+**NONE**.
 
-Status: **PASS — SOURCE COMMITTED AND PUSHED; BUILD PASSED; NOT DEPLOYED;
-PRODUCTION UAT NOT RUN**.
-
-- Default start/end date is Bangkok today; manual one-day/range filters remain.
-- The filtered full set is ordered before unchanged pagination by date, real start
-  time, stable `chaengwattana` priority at the same time, Thai branch name, and
-  deterministic slot/program tie-breakers.
-- Functional Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is committed and
-  pushed. No migration, Production data/control change, deploy, Production UAT,
-  customer impact, or financial impact occurred.
-- Authoritative audit, verification, and current matrix are in `PROJECT_STATE.md`.
-
-Next action: **Owner review of pushed functional Source before separately
-authorized deployment.**
+Next action: **Await Owner selection; do not start a Parking Lot task
+automatically.**
 
 ## Recently Completed
+
+### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
+
+Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
+
+- Functional Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is active in
+  Ready deployment `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production
+  aliases.
+- Authenticated read-only Production UAT passed default Bangkok today, date/time/
+  same-time แจ้งวัฒนะ ordering, manual one-/two-sided date filters, search/status/
+  coach/branch/course filters, pagination, detail selection, reload stability,
+  console/hydration, and no-write/runtime gates.
+- No migration, environment/feature-control/allowlist change, Review action,
+  Production business-data write, data repair, or financial impact occurred.
+- Authoritative current state and the full consistency matrix are in
+  `PROJECT_STATE.md`; dated deployment/UAT evidence is in `DEVELOPMENT_TODO.md`.
 
 ### Production Lesson Wallet Canonical Recurring-Round Redemption
 
