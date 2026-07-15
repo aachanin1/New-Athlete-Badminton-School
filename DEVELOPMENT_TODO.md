@@ -2,6 +2,96 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-15 - Production Lesson Wallet Canonical Redemption Regression
+
+Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED WRITE UAT
+NOT RUN**.
+
+#### Gate 0 and exact incident audit
+
+- Owner selected this regression as the single active task and authorized one
+  coordinated gated audit/fix/test/commit/push/deploy/verification/docs round.
+  No migration, Production repair/test-data creation, real-customer redeem,
+  pricing/payment/coupon/Ledger/Finance/payroll/attendance/SlipOK change, or
+  Reschedule/Makeup redesign was authorized.
+- Starting branch was `spike/next-major-security-upgrade`; local and remote HEAD
+  were both `9a678b9224ea3941db0727071d2337aaf714fcd1`, ahead/behind `0/0`.
+  Unrelated `AGENTS.md` and `docs/performance/` work remained excluded.
+- Existing deployment `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` was Ready on all four
+  Production aliases. Its documented exact functional source remained `4ab6a69`;
+  no contrary deployment evidence or documentation drift was found.
+- Vercel logs contained exactly one incident `POST /api/lesson-wallet` `400` at
+  `2026-07-15T11:20:10.294Z` and the supplied response was
+  `รอบเรียนที่เลือกไม่ตรงกับรอบเรียนประจำในระบบ`. The request body was not retained,
+  so the historical hint ID is `Unknown / Need verification`; one click sent one
+  request.
+- Exact target evidence was Ramintra / Private / Sunday 2026-07-19 /
+  17:00-18:00, canonical template `508d96b1-c160-4127-87e1-353577ec4990`, and
+  pre-existing dated slot `fa0f0797-023d-44c1-a137-b2b253fb7539`. Rama 2 had a
+  separate valid same-time template, but the visible incident branch was Ramintra.
+- Two sanitized matching credits originated from Private Saturday 2026-07-25
+  16:00-17:00. Both were active at the failed request and later redeemed by the
+  real user to a different target. They are real-customer entitlements and cannot
+  be used for controlled Production write UAT.
+- Incident-window fingerprints found no credit/session/slot/assignment/
+  notification/activity/payment/coupon/Ledger/Finance change. Failure occurred
+  before slot resolution and mutation.
+
+#### Root cause and Source correction
+
+- `dayOfWeek()` used `new Date(date + 'T00:00:00+07:00').getDay()`. On a UTC host,
+  Bangkok Sunday midnight is Saturday 17:00 UTC, so Vercel queried weekday `6`
+  instead of Sunday `0`. Both the supplied-ID query and canonical fallback used
+  that wrong predicate. Historical stale-ID fallback and no-Kids-default fixes were
+  still intact.
+- Commit `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
+  `c29de52987297e316d046faabcaee630878525dd`, is pushed. It adds host-independent
+  Bangkok weekday calculation, robust exact time normalization, hint-then-canonical
+  lookup by authoritative credit course, strict real-slot evidence, typed Thai
+  errors, conflict-before-slot ordering, and post-CAS occupancy reconciliation.
+- No migration Source changed or is required. No product UI, pricing, payment,
+  coupon, Ledger, Finance, payroll, attendance, SlipOK, Reschedule, Makeup,
+  capacity, or Production business-data change was made.
+
+#### Verification observed before deployment
+
+- `npm run test:lesson-wallet-regression`: 17/17 passed under `TZ=UTC`.
+- `npm run uat:lesson-wallet`: passed on disposable local Supabase and cleaned 3
+  profiles, 10 slots, 12 sessions, and 5 credits.
+- Full rendered booking regression: 10/10 passed; auth/database residue `0`.
+  Coverage includes the exact Ramintra Private Sunday selection, correct/stale/
+  nonexistent/cross-branch/cross-course hints, time normalization, no canonical
+  template, exact/overlap conflicts without slot residue, above-capacity entry,
+  inactive/cancelled/past/different-month rejection, one-winner concurrent redeem,
+  canonical slot persistence, no target assignment, and unchanged Payment/coupon/
+  Ledger/Finance counts.
+- `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake`, `npm run build`, and
+  `git diff --check` passed. After clean `.next` removal/restart, root, health, and
+  a generated static asset returned `200`.
+- Functional Source was deployed from a clean detached worktree pinned to
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
+  `c29de52987297e316d046faabcaee630878525dd`. No migration delta existed.
+  Deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` reached Ready, and explicit alias
+  convergence placed all four Production aliases on the same artifact. Root,
+  `/api/health`, and generated static assets returned `200` on every alias.
+- Vercel environment-name pre/post comparison retained the same 11 expected names.
+  Progressive controls, Entry, shared `SLIPOK_TEST_MODE`, server-only credentials,
+  and the absent allowlist were unchanged. No 5xx appeared in post-release logs.
+- Protected pre-deploy and post-no-write-UAT credit/session/template/slot/payment/
+  coupon/Progressive/Finance counts and fingerprints matched. Production business-
+  data change attributable to this release/UAT was zero.
+- Authenticated no-write UAT opened the real User Wallet, selected Ramintra /
+  Private / Sunday 2026-07-19 / 17:00-18:00, verified the selected evidence and an
+  enabled confirmation action, found no capacity/full block and no console,
+  hydration, or network-preflight error, and cancelled without confirming. Runtime
+  logs show the Wallet GETs returning `200` and no redemption POST.
+- Controlled write UAT was not run: the two incident credits are real-customer
+  entitlements and had already been redeemed, while no existing Owner-controlled
+  Production test credit/account was independently proved. Remaining gate:
+  **NEED REVIEW — REAL CUSTOMER CREDIT CANNOT BE USED FOR WRITE UAT**. Owner must
+  provide safe existing test evidence or accept the completed no-write closeout;
+  substitute Production test data must not be created.
+
 ### 2026-07-15 - Documentation Closeout Correction
 
 Status: **DOCUMENTATION DRIFT CORRECTED; NO ACTIVE TASK SELECTED**.

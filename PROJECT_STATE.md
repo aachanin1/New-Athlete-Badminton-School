@@ -88,6 +88,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   Ledger/Finance/coupon/Booking changes, migration/environment/Entry/allowlist/
   dependency changes, guard weakening, and Production data repair remained
   prohibited.
+- Owner selected the Production Lesson Wallet recurring-round regression as the
+  single urgent active task on 2026-07-15 and approved one gated round covering
+  read-only audit, narrow Source fix, disposable verification, commit/push,
+  exact-source Production deployment, Production verification, and documentation
+  closeout. Production business-data repair, real-customer credit consumption,
+  Production test-data creation, migration, pricing/payment/coupon/Ledger/Finance/
+  payroll/attendance/SlipOK changes, and Reschedule/Makeup redesign remain
+  prohibited. A controlled Production redeem requires independently proven
+  Owner-controlled test data.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -101,15 +110,138 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **NONE**. No active implementation task is selected.
-- Task Status: Dashboard Booking Unlimited Slot Entry + Customer Price UX is
-  **DONE**. The completed release state is recorded below.
+- Active Task: **Production Lesson Wallet canonical recurring-round redemption
+  regression**.
+- Task Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED
+  WRITE UAT NOT RUN**. Functional Source
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` is active in Production. The
+  identified incident credits are real-customer entitlements and cannot be
+  consumed for controlled-write UAT.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await Owner selection. Do not start a Parking Lot task
-  automatically.**
+- Next Action: **Owner direction is required for the remaining write-UAT gate:
+  either provide an independently proved existing Owner-controlled test credit/
+  account or accept the completed no-write Production UAT as closeout. Do not
+  create substitute Production data or consume a real customer credit.**
+
+### Production Lesson Wallet Canonical Redemption Regression
+
+Status: **PASS — DEPLOYED; PRODUCTION NO-WRITE UAT PASSED; CONTROLLED WRITE UAT
+NOT RUN** (Owner decision 2026-07-15).
+
+- Gate 0 verified branch `spike/next-major-security-upgrade`; starting local and
+  remote HEAD were both `9a678b9224ea3941db0727071d2337aaf714fcd1`, ahead/
+  behind `0/0`. The pre-existing unrelated `AGENTS.md` and `docs/performance/`
+  changes remain excluded. Prior Production deployment
+  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` was Ready on all four aliases and still served
+  functional Source `4ab6a69e23de6f7989b51dfaf624ff631dde420f` at this gate.
+- Read-only incident evidence found exactly one Production
+  `POST /api/lesson-wallet` `400` at `2026-07-15T11:20:10.294Z`, matching the
+  supplied Thai recurring-round mismatch error. Production request logs did not
+  retain the POST body, so the exact historical `scheduleTemplateId` is
+  `Unknown / Need verification`; current client construction would send the
+  selected template hint. One click produced one request.
+- The exact visible incident target is **Ramintra** (`ram-intra`), Private, Sunday
+  2026-07-19, 17:00-18:00. The active canonical template is
+  `508d96b1-c160-4127-87e1-353577ec4990`; a matching pre-existing open dated slot
+  `fa0f0797-023d-44c1-a137-b2b253fb7539` links to it. A separate valid Rama 2
+  template also exists, but the supplied visible-branch evidence and exact credit
+  scope identify Ramintra; no cross-branch template mix was proved.
+- The two sanitized candidate credits originated from Private Saturday 2026-07-25
+  16:00-17:00. Both were active at the failed incident and were later consumed by
+  the real user in two successful redemptions at `11:27:56Z` and `11:28:10Z` to a
+  different Ramintra target. They are real-customer entitlements and are not safe
+  controlled-write UAT data.
+- Incident-window read-only checks found zero changes to the candidate credits,
+  booking sessions, target slot, assignments, notifications, activity logs,
+  payments, coupon usages, payment Ledger, or Finance. The API failed before
+  canonical slot resolution or any business mutation.
+- Exact root cause: the API built `2026-07-19T00:00:00+07:00` but called host-local
+  `Date#getDay()`. On Vercel's UTC runtime that timestamp is Saturday
+  `2026-07-18T17:00:00Z`, producing weekday `6`; both the supplied-ID lookup and
+  canonical fallback therefore filtered Saturday and missed the valid Sunday
+  template. The earlier stale-ID fallback and no-`kids_group`-default fixes were
+  still present and were not the regression.
+- Functional Source commit `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
+  `c29de52987297e316d046faabcaee630878525dd`, is committed and pushed to
+  `origin/spike/next-major-security-upgrade`. It derives weekday from validated
+  Bangkok calendar components, normalizes plain and timezone-bearing times,
+  treats `scheduleTemplateId` only as a hint, falls back by authoritative credit
+  course + branch + Bangkok weekday + exact normalized interval, verifies the real
+  dated slot against canonical evidence, keeps learner overlap before slot
+  creation, returns typed Thai course/template/conflict/stale-credit errors, and
+  reconciles informational occupancy after concurrent CAS cleanup.
+- No migration Source changed and no migration is required. Pricing, payments,
+  coupons, Ledger, Finance, payroll, attendance, SlipOK, Reschedule, Makeup,
+  capacity policy, and customer data are unchanged.
+- Verification passed on the exact functional tree: 17 deterministic Wallet
+  checks; extended `npm run uat:lesson-wallet` against disposable local data; all
+  10 serial rendered booking regressions with auth/database residue `0`; exact
+  Ramintra Private Sunday UI selection; correct/stale/cross-branch/cross-course
+  template hints; time normalization; inactive/cancelled/past/month guards;
+  exact and overlapping learner conflicts; historical-capacity entry; one-winner
+  double redemption; canonical slot persistence; no target assignment; unchanged
+  Payment/coupon/Ledger/Finance counts; TypeScript; ESLint; mojibake; production
+  build; `git diff --check`; and post-build root/health/static responses `200`.
+- The fix was deployed from a clean detached worktree pinned to functional commit
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
+  `c29de52987297e316d046faabcaee630878525dd`. Deployment
+  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` reached Ready. All four Production aliases
+  resolve to that artifact; root, `/api/health`, and generated static asset checks
+  returned `200`. No migration, environment, feature-control, allowlist, or
+  SlipOK change occurred, and post-release logs contained no 5xx.
+- Protected pre-deploy and post-no-write-UAT state matched: two candidate credits
+  and their two redeemed target sessions, one active canonical template, one open
+  dated target slot, one related payment, zero coupon usage, zero Progressive
+  batch members/allocations, and one protected Finance row retained their captured
+  fingerprints. The release and no-write UAT produced no business-data write.
+- Authenticated Production no-write UAT displayed and selected Ramintra / Private /
+  Sunday 2026-07-19 / 17:00-18:00 from the canonical active template. The selected
+  evidence matched branch/date/time, the confirm action became enabled, no
+  capacity/full block appeared, and console/hydration/network-preflight errors were
+  absent. The dialog was cancelled without confirmation. Deployment logs show
+  only `GET /dashboard/lesson-wallet` `200` for this UAT and no redemption POST.
+- Controlled Production redeem was not run. The exact incident credits had already
+  been redeemed by the real customer, and no existing Owner-controlled test credit
+  was independently proved. Classification:
+  **NEED REVIEW — REAL CUSTOMER CREDIT CANNOT BE USED FOR WRITE UAT**.
+
+#### Current Lesson Wallet State Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Production Lesson Wallet canonical recurring-round redemption regression |
+| Task Status | Deployed; Production no-write UAT passed; controlled write UAT not run |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | `spike/next-major-security-upgrade` documentation-closeout branch tip |
+| Remote HEAD | Same documentation-closeout branch tip after push |
+| Ahead/Behind | `0/0` |
+| Source Complete | Yes |
+| Tests Passed | Yes |
+| Committed | Yes |
+| Pushed | Yes |
+| Current Source | `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` |
+| Deployed | Yes |
+| Deployed Source | `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` |
+| Deployment ID | `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` |
+| Migration Source | None |
+| Migration Applied | Not required |
+| Feature Enabled | Existing controls unchanged |
+| Allowlisted | No; existing allowlist remains absent |
+| Production Active | Yes on all four aliases |
+| Production UAT | No-write UAT passed |
+| Controlled Write UAT | Not run; identified credits are real-customer entitlements |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | Regression fix is active; displayed canonical target is selectable again |
+| Financial Impact | None |
+| Task Done | No; Production no-write UAT is complete, but controlled write UAT remains an Owner gate |
+| Blocker | Controlled write proof lacks independently verified Owner-controlled Production credit/account |
+| Remaining Work | Controlled Production redeem UAT only, if Owner supplies safe existing test entitlement or accepts no-write closeout |
+| Next Gate / Next Action | Owner direction on controlled write UAT; never consume the real-customer credits |
+| Parking Lot authorization state | Admin Schedules Performance and Homepage LV remain not authorized |
 
 ### Dashboard Booking Unlimited Slot Entry + Customer Price UX
 
@@ -249,8 +381,10 @@ NO-WRITE PRODUCTION UAT PASSED**
 ### Progressive Runtime
 
 - Current general-traffic functional source commit is
-  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, committed and pushed to
-  `origin/spike/next-major-security-upgrade`.
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, committed and pushed to
+  `origin/spike/next-major-security-upgrade`; it contains the Lesson Wallet fix and
+  leaves Progressive routing/pricing behavior unchanged. It is also the current
+  Production-active Progressive Source.
 - Current source entry decision is server-only and default deny:
   - Entry disabled -> all new bookings remain Legacy.
   - Entry enabled + server-resolved `kids_group` -> Progressive for general users;
@@ -284,12 +418,13 @@ NO-WRITE PRODUCTION UAT PASSED**
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
 - Production-active Unlimited Slot Entry Source is
-  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
-  `397618a391f968ec1135084978ce3589a43f1d89`, on
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
+  `c29de52987297e316d046faabcaee630878525dd`, on
   `origin/spike/next-major-security-upgrade`. Migration `20260715060541` is applied
   remotely exactly once and the Source is Ready in deployment
-  `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm` on all four Production aliases. Vercel release
-  metadata records the exact Source, tree, and migration version.
+  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` on all four Production aliases. The later
+  Lesson Wallet-only Source change did not alter the Unlimited Slot contract or
+  require another migration.
 - Historical / superseded booking-regression evidence: commit `be61b68`, tree
   `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
   `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
@@ -334,11 +469,11 @@ NO-WRITE PRODUCTION UAT PASSED**
 
 ### Production
 
-- Current deployment: `dpl_DX9gCUMG4XeWtT27cFHXJgKwbAkm`, Ready, deployed from
-  exact clean detached source commit
-  `4ab6a69e23de6f7989b51dfaf624ff631dde420f`, tree
-  `397618a391f968ec1135084978ce3589a43f1d89`, with release metadata naming remote
-  migration `20260715060541`.
+- Current deployment: `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at`, Ready, deployed from
+  exact clean detached functional source commit
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae`, tree
+  `c29de52987297e316d046faabcaee630878525dd`. No migration was required for this
+  release. All four Production aliases point to this artifact.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
