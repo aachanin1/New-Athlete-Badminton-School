@@ -4439,3 +4439,39 @@ State observed at this publish closeout on 2026-07-17:
   read-only preflight remains clear, and exact-source deploy plus authenticated
   Production UAT. Permanent `AGENTS.md` rule work remains a separate documentation
   task and was not mixed with the pre-existing dirty file.
+
+## 2026-07-17 — Documentation Drift Corrected: Coach Base Owns Five Learners
+
+State observed at this corrective documentation closeout on 2026-07-17:
+
+- Fresh read-only Production reconciliation matched the Owner-confirmed state.
+  Coach Base group `2e7d4b1f-ddf1-4edc-9667-efb07dadfcfc` still has coach
+  `c1a5d3ca-9f90-48fb-943c-d96ac5a6afbe`, stored name `ยังไม่จัดกลุ่ม`, and five
+  raw/active members. Their latest active levels are LV 15, 6, 6, 3, and 8; every
+  learner resolves to `basic / ชุดพื้นฐาน`. The deterministic proposed name
+  therefore remains `ชุดพื้นฐาน`.
+- Former waiting group `924d0a7c-2d0d-4f75-a2f9-03617cb9d23a` has
+  `coach_id = null` and zero raw/active members. Owner confirmed that the three
+  learner moves into Coach Base were intentional and the learners must not be
+  moved back.
+- Activity logs `1db62d59-1ae9-4ae6-8129-1da7fdb7f0c1`,
+  `51bb003e-6d0c-4867-8f23-60a60b4e80fe`, and
+  `727b2194-cf2d-47d9-9ee3-7a79086e13c1` record three normal Production-user
+  `attendance_gap_move_learner_to_existing_group` actions at 20:14:17, 20:14:39,
+  and 20:14:53 ICT. They moved booking sessions
+  `3919671b-805d-4cb4-b1cd-ee7b24267e91`,
+  `e1aae95f-1698-4262-99ee-c246b42211b7`, and
+  `11a55e1b-b01c-404f-89b9-c790b026b5ea` from `924...` to `2e7...` for Coach
+  Base. Actor `860c4d76-ca08-4252-8e18-68f9802ca60e` was a Production user, not
+  Codex. Every log records attendance write `false`, booking-session status change
+  `false`, and coach-evidence deletion `false`.
+- Classified as `DOCUMENTATION DRIFT CORRECTED — OWNER CONFIRMED COACH BASE OWNS
+  FIVE LEARNERS`. This round changed only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`; Source/Test/Migration and Production data were not
+  changed. Production migration history still ends at `20260715060541`.
+- Coach Base was **not renamed**; remediation Source remains **not deployed**;
+  Production migration remains **not applied**; Production UAT was **not run**;
+  Task Done remains **No**. Next gate requires separate Owner approval for the
+  exact Coach Base name-only repair to `ชุดพื้นฐาน`, Production migration apply,
+  and exact-source deploy plus authenticated Production UAT. No Production action
+  starts automatically.
