@@ -1,9 +1,9 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-15
-Source: local source/git/docs audit plus read-only Vercel CLI and Production
-Supabase read-model verification. Items not confirmed are marked
-`Unknown / Need verification`.
+Last updated: 2026-07-17
+Source: current local/remote Git and documentation audit plus the read-only Vercel
+CLI and Production Supabase evidence verified on 2026-07-15. Items not confirmed
+are marked `Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -126,6 +126,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   and read-only remote branch. Ahead/behind was `0/0` after the functional push.
   Pre-existing unrelated dirty paths `AGENTS.md`,
   `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain excluded.
+- Documentation-only reconciliation on 2026-07-17 corrected the superseded
+  Teaching Programs next-action line and made the prior Lesson Wallet deployment
+  wording explicitly historical. Source, deployment, Production UAT, environment,
+  migration, feature controls, allowlists, and Production data did not change.
 - Functional Production Source is
   `039ad6e03ca0cb8c8c4334c81818c570b03b9287` in Ready deployment
   `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production aliases. Previous
@@ -214,8 +218,8 @@ Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**
 | Active Task | NONE |
 | Task Status | DONE — Exact Source deployed; read-only Production UAT passed |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; functional Source is `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
-| Remote HEAD | Matching pushed documentation closeout commit; exact SHA verified in final Git closeout |
+| Local HEAD | Documentation consistency correction commit containing this matrix; functional Source is `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
+| Remote HEAD | Matching pushed documentation consistency correction commit; exact SHA verified in final Git closeout |
 | Ahead/Behind | `0/0` after final documentation push |
 | Source Complete | Yes |
 | Tests Passed | Yes — ordering 9, pagination 40, Bangkok boundary 2, TypeScript, ESLint, mojibake 230, diff check |

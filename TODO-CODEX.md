@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-15
+Last updated: 2026-07-17
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -37,8 +37,10 @@ Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
 Status: **DONE — SOURCE DEPLOYED; NO-WRITE AND OWNER-VERIFIED CONTROLLED WRITE
 PRODUCTION UAT PASSED**.
 
-- Functional Source `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` remains active in
-  Ready deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` on all four aliases.
+- At its 2026-07-15 closeout, Functional Source
+  `bb7bd8b8015fb3fa7f0998b5bf8a1e5220e034ae` was active in Ready deployment
+  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` on all four aliases. Current Production
+  deployment state is authoritative only in `PROJECT_STATE.md`.
 - Read-only reconciliation distinguished exactly one successful redemption and a
   separate subsequent Owner Wallet-store action. Canonical target evidence is
   intact; active duplicate/overlap, orphan, Payment, coupon, Ledger, allocation,
@@ -212,5 +214,5 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Owner review of pushed Admin Teaching Programs functional Source
-  before separately authorized deployment.**
+- Next action: **Await Owner selection; do not start a Parking Lot task
+  automatically.**

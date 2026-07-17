@@ -2,6 +2,32 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-17 - Admin Teaching Programs Documentation Consistency Correction
+
+Status: **DOCUMENTATION-ONLY CORRECTION — CURRENT CLOSEOUT STATE RECONCILED**.
+
+- A fresh read-only Git audit verified branch
+  `spike/next-major-security-upgrade`; local, upstream, and read-only remote HEAD
+  matched before this correction, with ahead/behind `0/0`. Pre-existing unrelated
+  dirty `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/`
+  remained excluded.
+- The current Admin Teaching Programs state already recorded Functional Source
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, Ready Production deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`, Production-active behavior, and authenticated
+  read-only Production UAT passed on 2026-07-15.
+- Documentation Drift was limited to two current-tense lines in `TODO-CODEX.md`:
+  its Session Exit Checklist still awaited deployment, and the prior Lesson Wallet
+  summary said its superseded deployment remained active. The next action now
+  consistently awaits Owner task selection, and the Lesson Wallet deployment
+  statement is explicitly scoped to its 2026-07-15 closeout.
+- The dated 2026-07-15 Teaching Programs implementation, deployment, and UAT
+  history remains unchanged. This correction did not change Source, deployment,
+  Production UAT, migration, environment, feature controls, allowlists, Production
+  data, customer behavior, or financial state.
+- Current state remains Active Task `NONE`, Task Done `Yes`, Remaining Work `None`,
+  and Next Action: await Owner selection without starting Admin Schedules
+  Performance, Homepage LV, or any other Parking Lot task automatically.
+
 ### 2026-07-15 - Admin Teaching Programs Default Today + Deterministic Ordering
 
 Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
