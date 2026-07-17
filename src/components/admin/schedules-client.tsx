@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
+import { getAdminScheduleRoundLearnerBuckets } from '@/lib/admin-schedule-assignment-state'
 
 interface BranchOption {
   id: string
@@ -68,7 +69,9 @@ interface ScheduleRoundGroup {
   id: string
   name: string
   coach_id: string | null
+  coach_profile_id: string | null
   coach_name: string | null
+  coach_role: string | null
   level_min: number | null
   level_max: number | null
   sort_order: number
@@ -205,46 +208,9 @@ function formatActualGroupLevelRange(learners: ScheduleSession[]) {
   return `เด็กในกลุ่ม ${levelLabel}`
 }
 
-function isWalletedLearner(session: ScheduleSession) {
-  return session.status === 'walleted'
-}
-
-function getRoundLearnerBuckets(round: ScheduleRound) {
-  const walletedLearners: ScheduleSession[] = []
-  const displayGroups = round.groups
-    .map((group) => {
-      const activeLearners = group.learners.filter((learner) => {
-        if (isWalletedLearner(learner)) {
-          walletedLearners.push(learner)
-          return false
-        }
-        return true
-      })
-
-      return {
-        ...group,
-        learners: activeLearners,
-      }
-    })
-    .filter((group) => group.learners.length > 0)
-  const unassignedLearners = round.unassigned_learners.filter((learner) => {
-    if (isWalletedLearner(learner)) {
-      walletedLearners.push(learner)
-      return false
-    }
-    return true
-  })
-
-  return {
-    displayGroups,
-    unassignedLearners,
-    walletedLearners,
-    coachedLearnerCount: displayGroups.reduce((sum, group) => sum + group.learners.length, 0),
-    waitingCoachCount: unassignedLearners.length,
-  }
-}
-
-type RoundLearnerBuckets = ReturnType<typeof getRoundLearnerBuckets>
+type RoundLearnerBuckets = ReturnType<
+  typeof getAdminScheduleRoundLearnerBuckets<ScheduleSession, ScheduleRoundGroup>
+>
 
 function getRoundTimePhase(round: ScheduleRound, now: Date): RoundTimePhase {
   const bangkokDate = getBangkokDateString(now)
@@ -431,7 +397,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     const map = new Map<string, RoundLearnerBuckets>()
 
     filteredMonthRounds.forEach((round) => {
-      map.set(round.key, getRoundLearnerBuckets(round))
+      map.set(round.key, getAdminScheduleRoundLearnerBuckets(round))
     })
 
     return map
@@ -458,7 +424,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
   ), [roundsByDate, selectedDate])
   const selectedRoundItems = useMemo(() => selectedRounds.map((round) => ({
     round,
-    buckets: roundSummaryByKey.get(round.key) || getRoundLearnerBuckets(round),
+    buckets: roundSummaryByKey.get(round.key) || getAdminScheduleRoundLearnerBuckets(round),
   })), [roundSummaryByKey, selectedRounds])
   const daySummaries = useMemo(() => Object.entries(roundsByDate)
     .map(([date, dayRounds]) => {
@@ -758,13 +724,14 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                     const roundTimePhase = getRoundTimePhase(round, now)
                     const roundStatus = getRoundStatusFromBuckets(buckets, roundTimePhase)
                     const {
-                      displayGroups,
+                      assignedGroups,
+                      unassignedGroups,
                       unassignedLearners,
                       walletedLearners,
                       coachedLearnerCount,
                       waitingCoachCount,
                     } = buckets
-                    const groupCount = displayGroups.length
+                    const groupCount = assignedGroups.length + unassignedGroups.length
 
                     return (
                       <div key={round.key} className="rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50">
@@ -809,7 +776,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                               )}
                               <span className="flex items-center gap-1">
                                 {groupCount > 0
-                                  ? `${groupCount} กลุ่มโค้ช`
+                                  ? `${groupCount} กลุ่มผู้เรียน`
                                   : walletedLearners.length > 0 && waitingCoachCount === 0
                                     ? 'ไม่ต้องจัดโค้ช'
                                     : 'ยังไม่มีกลุ่มโค้ช'}
@@ -819,7 +786,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                         </div>
 
                         <div className="mt-3 space-y-3">
-                          {displayGroups.map((group) => {
+                          {assignedGroups.map((group) => {
                             const program = group.teaching_program
                             const programStatus = program ? PROGRAM_STATUS_CONFIG[program.status] : null
                             const actualLevelRangeLabel = formatActualGroupLevelRange(group.learners)
@@ -854,6 +821,61 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                                       <p className="line-clamp-2 text-gray-700">โปรแกรมสอนรอบนี้: {getProgramPreview(program)}</p>
                                     ) : (
                                       <p className="text-gray-400">ยังไม่พบโปรแกรมสอนของรอบนี้</p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 grid gap-2">
+                                  {group.learners.map((learner) => {
+                                    const learnerStatus = getDailyBoardLearnerStatus(learner, roundTimePhase)
+                                    return (
+                                      <div key={learner.id} className="rounded-md bg-white px-3 py-2">
+                                        <div className="min-w-0">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <p className="font-medium text-[#153c85]">{learner.learner_name}</p>
+                                            <Badge variant="outline" className="text-[10px]">{formatLevel(learner)}</Badge>
+                                            <Badge className={`text-[10px] ${learnerStatus.badge}`}>{learnerStatus.label}</Badge>
+                                            {learner.is_makeup && (
+                                              <Badge variant="outline" className="border-orange-200 text-[10px] text-orange-600">
+                                                <RotateCcw className="mr-1 h-3 w-3" />
+                                                ชดเชย
+                                              </Badge>
+                                            )}
+                                            {learner.has_missing_child_link && (
+                                              <Badge variant="outline" className="border-red-200 bg-red-50 text-[10px] text-red-700">
+                                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                                ข้อมูลเด็กไม่ครบ
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {learner.parent_name && <p className="mt-0.5 text-xs text-gray-500">ผู้ปกครอง: {learner.parent_name}</p>}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          })}
+
+                          {unassignedGroups.map((group) => {
+                            const actualLevelRangeLabel = formatActualGroupLevelRange(group.learners)
+                            return (
+                              <div key={group.id} className="rounded-md border border-red-200 bg-red-50/50 p-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="font-semibold text-red-800">{group.name || 'กลุ่มผู้เรียน'}</p>
+                                    <Badge className="bg-red-100 text-[10px] text-red-700">
+                                      <AlertTriangle className="mr-1 h-3 w-3" />
+                                      ยังไม่ได้มอบหมายโค้ช
+                                    </Badge>
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-red-700">
+                                    <span>ผู้เรียนในกลุ่มนี้ {group.learners.length} คน</span>
+                                    {actualLevelRangeLabel && (
+                                      <Badge variant="outline" className="border-red-200 bg-white text-[10px] text-red-700">
+                                        {actualLevelRangeLabel}
+                                      </Badge>
                                     )}
                                   </div>
                                 </div>

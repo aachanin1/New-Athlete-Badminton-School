@@ -10,6 +10,8 @@
     "build": "next build --webpack",
     "check:mojibake": "node scripts/check-mojibake.js",
     "test:lesson-wallet-regression": "node scripts/check-lesson-wallet-regression.mjs",
+    "test:admin-schedule-assignment": "node scripts/check-admin-schedule-assignment-state.mjs",
+    "test:admin-schedule-assignment:e2e": "playwright test --config=playwright.admin-schedule.config.ts",
     "test:booking-regression:e2e": "playwright test --config=playwright.booking.config.ts",
     "test:history-payment:e2e": "playwright test --config=playwright.history.config.ts",
     "seed:realistic": "node scripts/seed-realistic-data.js",

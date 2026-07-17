@@ -10,7 +10,7 @@ import {
 import {
   type AttendanceSessionRow,
 } from '@/lib/session-attendance-status'
-import type { LevelCategory, ProgramStatus, StudentType } from '@/types/database'
+import type { LevelCategory, ProgramStatus, StudentType, UserRole } from '@/types/database'
 
 interface ScheduleSessionRow {
   id: string
@@ -49,7 +49,7 @@ interface GroupRow extends AdminAttendanceGroupRow {
   level_min: number | null
   level_max: number | null
   sort_order: number
-  profiles?: { full_name: string | null } | null
+  profiles?: { id: string; full_name: string | null; role: UserRole } | null
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
 
@@ -324,7 +324,7 @@ async function fetchGroupsBySlotIds(
         level_min,
         level_max,
         sort_order,
-        profiles!coach_assignment_groups_coach_id_fkey(full_name),
+        profiles!coach_assignment_groups_coach_id_fkey(id, full_name, role),
         coach_assignment_group_students(booking_session_id)
       `)
       .in('schedule_slot_id', chunk) as unknown as Promise<GroupQueryResult>)
@@ -605,7 +605,9 @@ export default async function SchedulesPage({ searchParams }: SchedulesPageProps
       id: string
       name: string
       coach_id: string | null
+      coach_profile_id: string | null
       coach_name: string | null
+      coach_role: UserRole | null
       level_min: number | null
       level_max: number | null
       sort_order: number
@@ -668,7 +670,9 @@ export default async function SchedulesPage({ searchParams }: SchedulesPageProps
         id: group.id,
         name: group.name,
         coach_id: group.coach_id,
+        coach_profile_id: group.profiles?.id || null,
         coach_name: group.profiles?.full_name || null,
+        coach_role: group.profiles?.role || null,
         level_min: group.level_min,
         level_max: group.level_max,
         sort_order: group.sort_order,
