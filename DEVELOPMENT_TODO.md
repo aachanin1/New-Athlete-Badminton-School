@@ -4475,3 +4475,44 @@ State observed at this corrective documentation closeout on 2026-07-17:
   exact Coach Base name-only repair to `ชุดพื้นฐาน`, Production migration apply,
   and exact-source deploy plus authenticated Production UAT. No Production action
   starts automatically.
+
+## 2026-07-17 — Exact Coach Base Name-Only Production Repair
+
+State observed at this controlled repair closeout on 2026-07-17:
+
+- Owner approved only an exact name change for Coach Base group
+  `2e7d4b1f-ddf1-4edc-9667-efb07dadfcfc`, from `ยังไม่จัดกลุ่ม` to
+  `ชุดพื้นฐาน`. Moving learners, changing coach or legacy assignments, deleting
+  the empty former group, applying the migration, deploying Source, and every
+  attendance/check-in/teaching/payroll/financial write remained prohibited.
+- Fresh read-only Production preflight matched every hard condition: target coach
+  `c1a5d3ca-9f90-48fb-943c-d96ac5a6afbe`, expected old name, target slot
+  `150b25ba-b55a-448f-9aad-19748ba36b93`, raw/active members `5/5`, and five valid
+  active learners at LV 15, 6, 6, 3, and 8, all resolving to
+  `basic / ชุดพื้นฐาน`. Former group
+  `924d0a7c-2d0d-4f75-a2f9-03617cb9d23a` remained `coach_id = null` with raw/
+  active members `0/0`.
+- At `2026-07-17 21:23:20 ICT`, one conditional update constrained by the exact
+  target group id, exact Coach Base id, expected old name, five raw/active members,
+  the five valid Level resolutions, and the empty former group changed only
+  `name = ชุดพื้นฐาน`. Affected rows were exactly `1`; `updated_at` became
+  `2026-07-17T14:23:20.536145+00:00`.
+- Independent post-write reconciliation confirmed the same five exact member rows,
+  learner/session ids, Coach Base id, and target-slot legacy row
+  `9943df09-2e07-4cd6-9b52-112cc0fb51a0`. Former group `924...` remained empty and
+  unassigned. Ramintra group `d0b68d67-1ae3-416c-b2f2-99e9ee994449`, Coach Nice,
+  and legacy row `b31c3bce-d319-489b-b7a2-ff5382497c0c` remained unchanged.
+- Before/after fingerprints matched for members, legacy rows, former/Ramintra
+  groups, attendance, check-in, teaching programs, teaching hours, weekly
+  summaries, payouts, payments, and finance metadata. Financial impact is
+  **None**; no historical operational evidence changed.
+- Authenticated Super Admin read-only Admin Schedules UAT for Ratchada on
+  2026-07-17 passed. The target card shows `ชุดพื้นฐาน`, Coach Base, all five
+  learners, Level range 3–15, and dynamic `ผู้เรียนในกลุ่มนี้ 5 คน`.
+  `ยังไม่จัดกลุ่ม` is absent for this target; console, warning, page, and hydration
+  errors were `0`. No Save or application mutation action was triggered.
+- Source changed **No**; Production data changed **Yes — name-only one row**; Data
+  Repaired **Yes — Coach Base group name only**; Migration Applied **No**;
+  Deployed **No**; Production UAT for the new remediation Source **No**. Task Done
+  remains **No**. The next Gate is separate Owner approval for Production migration
+  after a fresh read-only preflight; deploy/UAT requires another later approval.

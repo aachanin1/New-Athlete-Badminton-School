@@ -11,8 +11,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **DOCUMENTATION DRIFT CORRECTED — OWNER CONFIRMED COACH BASE OWNS FIVE
-LEARNERS; SOURCE COMPLETE/PUSHED; PRODUCTION ACTIONS AWAIT OWNER**.
+Status: **COACH BASE NAME-ONLY PRODUCTION REPAIR COMPLETE; SOURCE COMPLETE/PUSHED;
+PRODUCTION MIGRATION/DEPLOY AWAIT OWNER**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -30,21 +30,25 @@ LEARNERS; SOURCE COMPLETE/PUSHED; PRODUCTION ACTIONS AWAIT OWNER**.
   Production-user actions intentionally moved its learners into Coach Base group
   `2e7...`; Owner confirmed Coach Base now owns all five learners and they must not
   be moved back. Former group `924...` has no coach and zero members. All five
-  current Coach Base learners resolve to `basic / ชุดพื้นฐาน`, so the proposed
-  name remains `ชุดพื้นฐาน`; no Production rename occurred. No Production migration, deploy,
-  Production UAT, attendance/check-in/teaching-hours/payroll or financial change,
-  flag, or allowlist change occurred in this publish round. Pre-existing dirty
+  current Coach Base learners resolve to `basic / ชุดพื้นฐาน`. A fresh exact
+  preflight passed and one conditional Production update changed only group
+  `2e7...` name from `ยังไม่จัดกลุ่ม` to `ชุดพื้นฐาน`; affected rows `1`.
+  Coach, five members, target legacy row, former group, Ramintra/Nice, attendance,
+  check-in, teaching-hours/payroll, and financial evidence reconciled unchanged.
+  Authenticated read-only Admin Schedules UAT shows Coach Base, `ชุดพื้นฐาน`, and
+  the dynamic five-member count without console/page/hydration errors. No
+  Production migration, Source deploy, flag, or allowlist change occurred.
+  Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Await separate Owner approval for (1) the exact Coach Base
-Production rename to `ชุดพื้นฐาน`, (2) Production migration apply after a fresh
-read-only preflight remains clear, and (3) exact-source deploy plus authenticated
-Production UAT. Do not move the five Coach Base learners back and do not start a
-Parking Lot task automatically.**
+Next action: **Await Owner approval for Production migration apply after a fresh
+read-only preflight. Exact-source deploy and authenticated Production UAT remain a
+later separate Gate. Do not move the five Coach Base learners back and do not start
+a Parking Lot task automatically.**
 
 ## Recently Completed
 
