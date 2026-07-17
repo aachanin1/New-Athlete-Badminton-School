@@ -122,6 +122,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   feature-control/allowlist changes, Production business-data writes, assignment
   saves, attendance/check-in/payroll writes, auto-assignment, Admin Schedules
   Performance, Homepage LV, and all other new work remained prohibited.
+- Owner subsequently authorized documentation correction only for stale
+  post-release current-state wording. Read-only Git/Vercel verification and a
+  scoped commit/push of `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md` are authorized; Source/Test changes, deploy/alias actions,
+  Production UAT repetition, migration, environment/feature-control/allowlist
+  changes, Production writes, and Parking Lot work remain prohibited.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -138,9 +144,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Active Task: **NONE**.
 - Task Status: **DONE — EXACT SOURCE DEPLOYED; AUTHENTICATED READ-ONLY
   PRODUCTION UAT PASSED**.
-- Git audit: branch `spike/next-major-security-upgrade`; pre-closeout Local HEAD,
-  upstream HEAD, and fetched remote HEAD matched documentation commit
-  `487b63ee7faa0e0b14703a9603d287035fccddec` with ahead/behind `0/0`.
+- Git audit: branch `spike/next-major-security-upgrade`; before this documentation
+  correction, Local HEAD, upstream HEAD, and fetched remote HEAD matched release
+  closeout commit `4e139b9e3b563818e1fc65e2647282529295d98b` with ahead/behind `0/0`.
   Functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` is an ancestor and
   contains exactly the seven approved Source/Test files. Pre-existing unrelated
   dirty paths `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and
@@ -239,14 +245,14 @@ PASSED** (Owner decisions 2026-07-17).
 | Active Task | NONE |
 | Task Status | Done — exact Source deployed; authenticated read-only Production UAT passed |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Final documentation closeout branch tip; functional Source is `0226e363f6677b078430f93459c2ee2ede6484e8` |
-| Remote HEAD | Matching pushed final documentation closeout branch tip; exact SHA verified in final Git closeout |
+| Local HEAD | Documentation correction branch tip; functional Source is `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Remote HEAD | Matching pushed documentation correction branch tip; exact SHA verified in final Git closeout |
 | Ahead/Behind | `0/0` after final documentation push |
 | Source Complete | Yes — functional Source pushed |
 | Tests Passed | Yes — deterministic 12, disposable browser E2E 1 with residue 0, TypeScript, targeted/full ESLint, mojibake 231, diff check, and authenticated read-only Production UAT |
 | Build Passed | Yes — local and exact Vercel Production builds passed with 91/91 static pages; root/health/static/auth checks passed |
 | Committed | Yes — functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` |
-| Pushed | Yes — functional Source and final documentation closeout |
+| Pushed | Yes — functional Source, release closeout, and documentation correction |
 | Current Source | `0226e363f6677b078430f93459c2ee2ede6484e8` |
 | Deployed | Yes — exact functional Source |
 | Deployed Source | `0226e363f6677b078430f93459c2ee2ede6484e8` |
@@ -313,8 +319,9 @@ Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**
   Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
   `1d716a275505ffbc688487f0f245920c31a5619b`. The Vercel Production build passed
   91/91 static pages and produced Ready deployment
-  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`. All four Production aliases resolve to that
-  artifact; public root, `/api/health`, and generated static JavaScript returned
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`. At that 2026-07-15 release closeout, all
+  four Production aliases resolved to that artifact; public root, `/api/health`,
+  and generated static JavaScript returned
   `200`. The two protected project aliases retained their existing Vercel SSO
   behavior while their deployment mapping converged correctly.
 - Authenticated Super Admin read-only Production UAT passed. Fresh/reloaded entry
@@ -650,12 +657,13 @@ NO-WRITE PRODUCTION UAT PASSED**
 
 ### Progressive Runtime
 
-- Current general-traffic functional source commit is
-  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, committed and pushed to
-  `origin/spike/next-major-security-upgrade`; it contains the Lesson Wallet fix and
-  the Admin Teaching Programs display correction while leaving Progressive
-  routing/pricing behavior unchanged. It is also the current Production-active
-  Progressive Source.
+- Current global Production functional Source is
+  `0226e363f6677b078430f93459c2ee2ede6484e8` in Ready deployment
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. It descends from subsystem-origin Source
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, which introduced the Lesson Wallet
+  and Admin Teaching Programs release changes while leaving Progressive routing/
+  pricing behavior unchanged. `039ad6e...` is retained as historical Progressive
+  subsystem provenance, not the current global Production artifact.
 - Current source entry decision is server-only and default deny:
   - Entry disabled -> all new bookings remain Legacy.
   - Entry enabled + server-resolved `kids_group` -> Progressive for general users;
@@ -688,14 +696,15 @@ NO-WRITE PRODUCTION UAT PASSED**
   every extant profile whose current role is `admin` or `super_admin`; the profile
   schema has no separate active/inactive field. The existing user notification is
   unchanged.
-- Production-active Unlimited Slot Entry Source is
+- Unlimited Slot Entry originated in Source
   `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
-  `1d716a275505ffbc688487f0f245920c31a5619b`, on
-  `origin/spike/next-major-security-upgrade`. Migration `20260715060541` is applied
-  remotely exactly once and the Source is Ready in deployment
-  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production aliases. The later
-  Lesson Wallet and Admin Teaching Programs Source changes did not alter the
-  Unlimited Slot contract or require another migration.
+  `1d716a275505ffbc688487f0f245920c31a5619b`; migration `20260715060541` remains
+  applied remotely exactly once. That subsystem contract is included unchanged in
+  current global Production Source `0226e363f6677b078430f93459c2ee2ede6484e8`
+  and Ready deployment `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. Previous deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` is the immediate rollback target, not the
+  current artifact. The later Admin Schedules change did not alter the Unlimited
+  Slot contract or require another migration.
 - Historical / superseded booking-regression evidence: commit `be61b68`, tree
   `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
   `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
@@ -740,13 +749,15 @@ NO-WRITE PRODUCTION UAT PASSED**
 
 ### Production
 
-- Current deployment: `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`, Ready, deployed from
-  exact clean detached functional source commit
-  `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
-  `1d716a275505ffbc688487f0f245920c31a5619b`. No migration was required for this
-  release. All four Production aliases point to this artifact. Previous Ready
-  deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remains the verified rollback
-  target for the Admin Teaching Programs release.
+- Current global Production deployment:
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`, Ready, deployed from exact clean detached
+  functional Source `0226e363f6677b078430f93459c2ee2ede6484e8`, tree
+  `d1b371bfcaef19494c4ac723b89f3e3e9e416ec0`. No migration was required for the
+  Admin Schedules release. Read-only verification on 2026-07-17 reconfirmed that
+  all four Production aliases point to this artifact. Previous Ready deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` is the immediate rollback target;
+  `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` is older historical release evidence and is
+  not the current automatic rollback target.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and

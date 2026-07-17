@@ -39,9 +39,11 @@ PASSED**.
 
 Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
 
-- Functional Source `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is active in
-  Ready deployment `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production
-  aliases.
+- At its 2026-07-15 release closeout, subsystem-origin Source
+  `039ad6e03ca0cb8c8c4334c81818c570b03b9287` was active in Ready deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`. The feature remains included in the newer
+  global Production Source; authoritative current deployment state is only in
+  `PROJECT_STATE.md`.
 - Authenticated read-only Production UAT passed default Bangkok today, date/time/
   same-time แจ้งวัฒนะ ordering, manual one-/two-sided date filters, search/status/
   coach/branch/course filters, pagination, detail selection, reload stability,
@@ -233,6 +235,5 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Await Owner approval to deploy exact functional Source
-  `0226e363f6677b078430f93459c2ee2ede6484e8` and run authenticated read-only
-  Production UAT. Do not start a Parking Lot task.**
+- Next action: **Await Owner selection. Do not start a Parking Lot task
+  automatically.**

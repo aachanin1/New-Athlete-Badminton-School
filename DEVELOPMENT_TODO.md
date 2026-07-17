@@ -11,7 +11,8 @@ Status: **DOCUMENTATION-ONLY CORRECTION — CURRENT CLOSEOUT STATE RECONCILED**.
   matched before this correction, with ahead/behind `0/0`. Pre-existing unrelated
   dirty `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/`
   remained excluded.
-- The current Admin Teaching Programs state already recorded Functional Source
+- State observed at that 2026-07-17 closeout: Admin Teaching Programs already
+  recorded Functional Source
   `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, Ready Production deployment
   `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`, Production-active behavior, and authenticated
   read-only Production UAT passed on 2026-07-15.
@@ -24,8 +25,9 @@ Status: **DOCUMENTATION-ONLY CORRECTION — CURRENT CLOSEOUT STATE RECONCILED**.
   history remains unchanged. This correction did not change Source, deployment,
   Production UAT, migration, environment, feature controls, allowlists, Production
   data, customer behavior, or financial state.
-- Current state remains Active Task `NONE`, Task Done `Yes`, Remaining Work `None`,
-  and Next Action: await Owner selection without starting Admin Schedules
+- State observed at that closeout remained Active Task `NONE`, Task Done `Yes`,
+  Remaining Work `None`, and Next Action: await Owner selection without starting
+  Admin Schedules
   Performance, Homepage LV, or any other Parking Lot task automatically.
 
 ### 2026-07-15 - Admin Teaching Programs Default Today + Deterministic Ordering
@@ -4160,10 +4162,14 @@ Notes:
   financial impact is none. Task Done remains No. The next gate is Owner approval
   for exact-source deployment and authenticated read-only Production UAT.
 
-### Exact-source Production deployment + authenticated read-only UAT closeout
+### 2026-07-17 — Admin Schedules Unassigned Coach Group Production Release Closeout
 
 State observed at this closeout on 2026-07-17:
 
+- Root cause: Admin Schedules treated exact learner group membership alone as
+  Assigned without requiring a non-null group `coach_id`, matching resolved coach
+  profile, non-empty coach name, and `coach|head_coach` role. That made an
+  unassigned learner group green and incorrectly counted its learners as coached.
 - Owner authorized only fresh Git/Vercel preflight, exact-source Production
   deployment, convergence of the established aliases, authenticated read-only
   Production UAT, runtime monitoring, and final documentation closeout. No
