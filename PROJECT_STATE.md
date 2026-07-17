@@ -183,6 +183,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   operational evidence, and financial data remained unchanged. Production
   migration, Source deploy, controlled application-write UAT, and every other
   Production action remain prohibited pending separate approval.
+- Owner subsequently approved applying only committed migration
+  `20260717070225_coach_assignment_conflict_guards.sql` after a fresh zero-blocker
+  read-only preflight. The migration was applied exactly once and reconciled;
+  Source deploy and Production write UAT remain prohibited pending a separate
+  approval.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -198,14 +203,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 - Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
   Semantics**.
-- Task Status: **COACH BASE NAME-ONLY PRODUCTION REPAIR COMPLETE; SOURCE
-  COMPLETE/PUSHED; PRODUCTION MIGRATION/DEPLOY REMAIN UNAPPROVED**.
+- Task Status: **PRODUCTION MIGRATION APPLIED AND VERIFIED; SOURCE
+  COMPLETE/PUSHED; SOURCE DEPLOY/UAT REMAIN UNAPPROVED**.
 - Git publish: branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
   Owner-confirmed membership-drift correction is
-  `33b9d1888977e4e0fdbbc86d864f03d6e1c6aadc`, followed by the name-repair
-  documentation closeout commit containing this current-state matrix. All were
+  `33b9d1888977e4e0fdbbc86d864f03d6e1c6aadc`, name-repair documentation closeout
+  is `90be20707d3a8ef8f2f3459d0721412295742c59`, followed by the Production
+  migration documentation closeout commit containing this current-state matrix. All were
   pushed non-force to
   `origin/spike/next-major-security-upgrade`; post-push fetch confirms Local/Remote
   HEAD convergence and ahead/behind `0/0`. Pre-existing unrelated dirty paths
@@ -239,22 +245,27 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   name-only repair changed Coach Base group `2e7...` from `ยังไม่จัดกลุ่ม` to
   `ชุดพื้นฐาน` with affected row count `1`. Authenticated read-only Admin Schedules
   UAT shows Coach Base, the five unchanged learners, and the dynamic `5 คน` count,
-  with no old placeholder label or console/page/hydration error. No Production
-  migration, Source deploy, feature-control change, or allowlist change occurred.
+  with no old placeholder label or console/page/hydration error. Production
+  migration `20260717070225` is now applied exactly once: the fresh preflight found
+  active exact groups `966`, current/future candidates `235`, blocking conflicts
+  `0`, and historical report-only conflicts `8`; backfill produced `235`
+  reservations with no missing, stale, orphan, or mismatched row. Production
+  business data remained unchanged. No Source deploy, feature-control change, or
+  allowlist change occurred.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await separate Owner approval for Production migration apply after
-  a fresh read-only preflight. Do not deploy or start Production UAT automatically;
-  those require a later explicit Gate. Coach Base owns all five learners and is now
+- Next Action: **Await separate Owner approval for exact-source deploy and
+  authenticated Production UAT. Do not deploy or start Production UAT
+  automatically. Coach Base owns all five learners and is now
   named `ชุดพื้นฐาน`; do not move them back. Permanent `AGENTS.md` rule work remains
   separate and its pre-existing dirty file was not included.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **SOURCE COMPLETE; TESTS PASSED; DATA NAME REPAIRED; COMMITTED/PUSHED;
-NOT DEPLOYED**
+Status: **SOURCE COMPLETE; TESTS PASSED; DATA NAME REPAIRED; MIGRATION APPLIED;
+COMMITTED/PUSHED; SOURCE NOT DEPLOYED**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -277,8 +288,9 @@ NOT DEPLOYED**
   exact group, including pre-existing placeholder-named groups; it does not repair
   names or historical rows. Triggers resynchronize reservations after group coach/
   slot changes, member insert/move/delete, slot date/time changes, booking-session
-  lifecycle/slot changes, and booking lifecycle changes. The migration is local
-  only.
+  lifecycle/slot changes, and booking lifecycle changes. The exact committed
+  migration is now applied to Production; the remediation Source remains
+  undeployed.
 - `ยังไม่จัดกลุ่ม` is excluded from exact-assignment classification even if stale
   `coach_id` data exists, its learners count in the existing waiting bucket, and
   no exact coach chip is rendered. A newly created ungrouped draft now starts with
@@ -368,40 +380,68 @@ NOT DEPLOYED**
   the card shows `ชุดพื้นฐาน`, Coach Base, the same five learners, and dynamic
   `ผู้เรียนในกลุ่มนี้ 5 คน`; `ยังไม่จัดกลุ่ม` locator count is `0`, and console,
   page, and hydration errors are `0`. No application mutation was triggered.
+- Fresh Production migration preflight reported active exact groups `966`,
+  current/future reservation candidates `235`, current/future blocking conflicts
+  `0`, and historical report-only conflicts `8`. The committed migration blob
+  SHA-256 was
+  `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; the
+  pending remote set contained only `20260717070225`.
+- Migration `20260717070225_coach_assignment_conflict_guards.sql` applied
+  successfully exactly once. Remote history now ends at `20260717070225`, and a
+  second dry-run reports no pending migration. Reservation backfill reconciles
+  `235/235`, with missing `0`, stale/orphan `0`, field mismatch `0`, and
+  current/future conflict `0`.
+- Production schema verification found the reservation table, GiST exclusion
+  constraint, five enabled synchronization triggers, twelve expected functions,
+  fixed `search_path = public`, and committed service-role grants. RLS is enabled
+  with no anon/auth table DML grant. Supabase advisors report the intentional
+  no-policy RLS table as informational and `btree_gist` in `public` as a warning;
+  neither changed the approved migration or required an ad-hoc repair.
+- Before/after fingerprints matched for groups, group members, legacy assignments,
+  attendance, booking sessions, bookings, coach check-ins, teaching hours, weekly
+  summaries, payouts, teaching programs, payments, wallet credits, and finance
+  expenses. Coach Base remains `ชุดพื้นฐาน` with `5/5`; former group `924...`
+  remains empty/unassigned; Ramintra/Nice exact and legacy rows remain unchanged.
+  Production business and financial data did not change.
+- Read-only runtime checks passed: `/` `200`, `/api/health` `200`, static asset
+  `200`, unauthenticated Admin Schedules guard `307` to login, and authenticated
+  Admin Schedules rendering with Coach Base, `ชุดพื้นฐาน`, five learners, and no
+  new console/page/hydration error. Production deployment remains
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`; no deploy or application write UAT occurred.
 
 #### Current Coach Assignment Remediation Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Coach Base name-only Production repair complete; Source complete/pushed; awaiting separate Production migration approval |
+| Task Status | Production migration applied and verified; Source complete/pushed; exact-source deploy/UAT remain unapproved |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Name-repair documentation closeout commit on top of `33b9d1888977e4e0fdbbc86d864f03d6e1c6aadc` and Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; exact closeout SHA is the commit containing this matrix |
-| Remote HEAD | Same name-repair documentation closeout commit after non-force push |
+| Local HEAD | Production-migration documentation closeout commit on top of name-repair docs `90be20707d3a8ef8f2f3459d0721412295742c59` and Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; exact closeout SHA is the commit containing this matrix |
+| Remote HEAD | Same Production-migration documentation closeout commit after non-force push |
 | Ahead/Behind | `0/0` after fetch |
 | Source Complete | Yes — committed and pushed, not deployed |
 | Tests Passed | Yes — DB 21, deterministic 24, browser 2, TypeScript, ESLint, mojibake 234, Build 91/91, residue 0 |
-| Committed | Yes — Source/Test/Migration `1b995396f432d11b133c1cf4b5604b6db875b63b`; prior docs through `33b9d1888977e4e0fdbbc86d864f03d6e1c6aadc`; name-repair docs is the commit containing this matrix |
+| Committed | Yes — Source/Test/Migration `1b995396f432d11b133c1cf4b5604b6db875b63b`; name-repair docs `90be20707d3a8ef8f2f3459d0721412295742c59`; migration closeout docs is the commit containing this matrix |
 | Pushed | Yes — all scoped commits, non-force |
 | Current Source | Pushed remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; Production remains `0226e363f6677b078430f93459c2ee2ede6484e8` |
 | Deployed | No — remediation not deployed |
 | Deployed Source | `0226e363f6677b078430f93459c2ee2ede6484e8` (pre-remediation Production source) |
 | Deployment ID | `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` — Ready; unchanged |
-| Migration Source | `20260717070225_coach_assignment_conflict_guards.sql` plus standalone read-only preflight — local only |
-| Migration Applied | Local reset/apply/rollback/re-apply passed; Production not applied and remote history ends at `20260715060541` |
+| Migration Source | `20260717070225_coach_assignment_conflict_guards.sql`; SHA-256 `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; standalone preflight is read-only |
+| Migration Applied | Yes — Production applied exactly once; remote history ends at `20260717070225`; pending set empty; reservations `235/235` with reconciliation issues `0` |
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | Source remediation: No; controlled Nice/Ratchada repair, Owner-confirmed five-member Coach Base state, and Coach Base name `ชุดพื้นฐาน`: Yes |
-| Production UAT | Name-only data repair: authenticated read-only Admin Schedules UAT passed; new remediation Source: No, because it is not deployed |
+| Production Active | Database reservation/exclusion protection: Yes; remediation Source behavior: No; prior scoped data repairs remain active |
+| Production UAT | Migration and old-Source read-only runtime checks passed; new remediation Source UAT: No, because it is not deployed |
 | Controlled Write UAT | Application write UAT: No; exact direct name-only repair affected one row and passed independent reconciliation |
 | Data Repaired | Yes — scoped Nice/Ratchada repair plus Coach Base name-only repair; latest affected row count `1` |
-| Production Data Changed | Overall active task: Yes — earlier controlled Nice repair, three Owner-confirmed Production-user membership moves, and this round one Coach Base name-only row |
-| Customer Impact | Nice collision remains removed; Coach Base correctly shows `ชุดพื้นฐาน` with five active learners; former waiting group is empty; undeployed overlap/name/display guards remain pending |
+| Production Data Changed | This migration round: Yes — schema and `235` derived reservation rows only; Production business data unchanged. Overall active task retains earlier approved/business-user changes |
+| Customer Impact | Database now prevents concurrent exact overlap at the reservation layer; old Production Source remains active, so new validation, warning, auto-name, and display behavior still await deploy |
 | Financial Impact | None — attendance/check-in/teaching/payroll/payment/finance evidence reconciled unchanged |
-| Blocker | Owner approval required before every Production action |
-| Remaining Work | Production migration apply approval after fresh preflight; later exact-source deploy/UAT approval; permanent `AGENTS.md` rule documentation handled separately |
+| Blocker | Owner approval required before exact-source deploy and Production UAT |
+| Remaining Work | Exact-source deploy plus authenticated Production UAT; permanent `AGENTS.md` rule documentation handled separately |
 | Task Done | No |
-| Next Gate / Next Action | Await Owner approval for Production migration only; deploy/UAT remains a later separate Gate; do not move the five Coach Base learners back |
+| Next Gate / Next Action | Await Owner approval for exact-source deploy and authenticated Production UAT; do not move the five Coach Base learners back |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

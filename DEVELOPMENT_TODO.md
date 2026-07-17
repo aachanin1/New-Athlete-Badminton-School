@@ -4516,3 +4516,66 @@ State observed at this controlled repair closeout on 2026-07-17:
   Deployed **No**; Production UAT for the new remediation Source **No**. Task Done
   remains **No**. The next Gate is separate Owner approval for Production migration
   after a fresh read-only preflight; deploy/UAT requires another later approval.
+
+## 2026-07-17 — Coach Assignment Conflict Guard Production Migration Apply
+
+State observed at this Production migration closeout on 2026-07-17:
+
+- Owner authorized only a fresh read-only preflight, exact apply of committed
+  migration `20260717070225_coach_assignment_conflict_guards.sql`, post-migration
+  reconciliation, old-Source runtime health checks, and documentation closeout.
+  Source/Test/Migration edits, deploy, application write UAT, business-data repair,
+  environment/feature/allowlist changes, and every other migration remained
+  prohibited.
+- Gate 0 matched branch `spike/next-major-security-upgrade`, local/remote HEAD
+  `90be20707d3a8ef8f2f3459d0721412295742c59`, and ahead/behind `0/0`.
+  Pre-existing dirty `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and
+  `docs/performance/` were preserved. The committed migration SHA-256 was exactly
+  `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`.
+  Remote history ended at `20260715060541`, and the pending set contained only the
+  approved `20260717070225` migration. The standalone preflight was confirmed
+  read-only.
+- Fresh Production preflight reported active exact groups `966`, current/future
+  reservation candidates `235`, current/future blocking conflicts `0`, and
+  historical report-only conflicts `8`. The zero-blocker hard gate therefore
+  passed.
+- Standard linked migration apply completed successfully and applied only
+  `20260717070225`. Remote migration history contains it exactly once and now ends
+  at that version; a second dry-run reports the remote database is up to date and
+  the pending set is empty.
+- Reservation reconciliation passed: candidates/reservations `235/235`, missing
+  reservations `0`, stale/orphan reservations `0`, field mismatches `0`, and
+  current/future exact conflicts `0`. The reservation table and `btree_gist`
+  extension exist; the expected primary/foreign/check constraints and GiST
+  exclusion constraint exist; all five synchronization triggers are enabled; all
+  twelve expected functions are present with fixed `search_path = public`; and
+  table/RPC grants match the committed migration. The reservation table has RLS
+  enabled, no anon/auth DML grants, and service-role CRUD access.
+- Supabase advisors reported the intentional RLS-with-no-policy reservation table
+  as informational and the committed `btree_gist` placement in `public` as a
+  warning. These did not fail the approved gate and no ad-hoc schema change was
+  made.
+- Exact before/after fingerprints matched for `coach_assignment_groups` `1028`,
+  `coach_assignment_group_students` `2430`, legacy `coach_assignments` `1002`,
+  `attendance` `1739`, `booking_sessions` `2899`, `bookings` `543`, coach check-ins
+  `703`, teaching hours `0`, weekly summaries `9`, payouts `0`, teaching programs
+  `379`, payments `480`, wallet credits `70`, and finance expenses `1`.
+  Production business and financial data therefore remained unchanged.
+- Target reconciliation also remained exact: Coach Base group `2e7...` is
+  `ชุดพื้นฐาน` with the same coach and raw/active members `5/5`; former group
+  `924...` remains `coach_id = null` with `0/0`; Ramintra group `d0b...`, Coach
+  Nice, and the exact target legacy rows remain unchanged.
+- Read-only runtime health passed on the unchanged Production deployment
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`: `/` `200`, `/api/health` `200`, a generated
+  static asset `200`, and unauthenticated `/admin/schedules` `307` to login.
+  Authenticated Super Admin Admin Schedules rendered Coach Base, `ชุดพื้นฐาน`, the
+  five learners, and the dynamic member count with new console/warning/page/
+  hydration errors `0`. No Save, application mutation, deploy, redeploy, or alias
+  action occurred.
+- State at this closeout: Production DB changed **Yes — schema plus 235 derived
+  reservation rows**; Production business data changed **No**; Source changed
+  **No**; Coach/member/legacy data changed **No**; Financial impact **None**;
+  Deployed **No**; Production UAT for the new Source **No**; controlled write UAT
+  **No**; Task Done **No**. Next Gate requires separate Owner approval for the exact
+  Source deploy and authenticated Production UAT. No next step starts
+  automatically.

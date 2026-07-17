@@ -11,14 +11,14 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **COACH BASE NAME-ONLY PRODUCTION REPAIR COMPLETE; SOURCE COMPLETE/PUSHED;
-PRODUCTION MIGRATION/DEPLOY AWAIT OWNER**.
+Status: **PRODUCTION MIGRATION APPLIED AND VERIFIED; SOURCE COMPLETE/PUSHED;
+EXACT-SOURCE DEPLOY/UAT AWAIT OWNER**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
   standalone read-only preflight, existing-group reservation backfill, lifecycle
-  synchronization, and the local-only concurrent-write migration are implemented
-  and verified.
+  synchronization, and the concurrent-write migration are implemented and
+  verified.
 - Source/Test/Migration commit
   `1b995396f432d11b133c1cf4b5604b6db875b63b`, initial documentation
   `20721178ae1924fd594d3ba5ce3a232f33925e7c`, and the corrective documentation
@@ -36,8 +36,14 @@ PRODUCTION MIGRATION/DEPLOY AWAIT OWNER**.
   Coach, five members, target legacy row, former group, Ramintra/Nice, attendance,
   check-in, teaching-hours/payroll, and financial evidence reconciled unchanged.
   Authenticated read-only Admin Schedules UAT shows Coach Base, `ชุดพื้นฐาน`, and
-  the dynamic five-member count without console/page/hydration errors. No
-  Production migration, Source deploy, flag, or allowlist change occurred.
+  the dynamic five-member count without console/page/hydration errors. Fresh
+  migration preflight reported active exact groups `966`, current/future
+  candidates `235`, blocking conflicts `0`, and historical report-only conflicts
+  `8`. Approved migration `20260717070225` applied exactly once; remote pending is
+  empty, reservations reconcile `235/235`, and missing/stale/orphan/mismatch rows
+  are `0`. Production business data fingerprints and Coach/member/legacy targets
+  remained unchanged. Production Source remains undeployed; no flag or allowlist
+  change occurred.
   Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
@@ -45,10 +51,9 @@ PRODUCTION MIGRATION/DEPLOY AWAIT OWNER**.
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Await Owner approval for Production migration apply after a fresh
-read-only preflight. Exact-source deploy and authenticated Production UAT remain a
-later separate Gate. Do not move the five Coach Base learners back and do not start
-a Parking Lot task automatically.**
+Next action: **Await Owner approval for exact-source deploy and authenticated
+Production UAT. Do not move the five Coach Base learners back and do not start a
+Parking Lot task automatically.**
 
 ## Recently Completed
 
