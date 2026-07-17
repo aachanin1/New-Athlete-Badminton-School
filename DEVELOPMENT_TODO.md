@@ -4579,3 +4579,62 @@ State observed at this Production migration closeout on 2026-07-17:
   **No**; Task Done **No**. Next Gate requires separate Owner approval for the exact
   Source deploy and authenticated Production UAT. No next step starts
   automatically.
+
+## 2026-07-18 — Coach Assignment Exact-Source Production Deploy
+
+State observed at this infrastructure-only deployment closeout on 2026-07-18:
+
+- Owner authorized only exact-source Production deployment of functional commit
+  `1b995396f432d11b133c1cf4b5604b6db875b63b`, clean detached-worktree
+  provenance, Ready/four-alias verification, root/health/static infrastructure
+  checks, and documentation closeout. Authenticated Production UAT was explicitly
+  deferred until tomorrow. Controlled write UAT, Save/mutation requests, Source,
+  database migration, business data, environment, feature-control, allowlist, and
+  Parking Lot changes remained prohibited.
+- Gate 0 matched branch `spike/next-major-security-upgrade`, local/remote HEAD
+  `86fbdc5331011de4caee8164d769c20bba9a5ef0`, and ahead/behind `0/0`.
+  Migration `20260717070225` remained applied once with derived reservations
+  `235`. Previous Production deployment and exact rollback target
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` was Ready. Pre-existing dirty `AGENTS.md`,
+  `src/lib/schedule-slot-utils.ts`, and `docs/performance/` were preserved.
+- Deployment worktree was detached at exact commit
+  `1b995396f432d11b133c1cf4b5604b6db875b63b`, tree
+  `24504017e59e597fc66d8d467186249290981bb6`, with tracked status clean before
+  upload. The successful Vercel remote Production build completed TypeScript and
+  generated `91/91` static pages.
+- New deployment `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` reached `Ready`, target
+  `production`, at URL
+  `https://new-athlete-badminton-school-2xt5m1d26-aachanin1s-projects.vercel.app`.
+  Initial deployment creation left the established aliases on the old artifact;
+  explicit promotion of the same Ready deployment completed successfully. Final
+  read-only inspection confirmed all four established Production aliases resolve
+  to `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F`:
+  - `https://www.newathleteschool.com`;
+  - `https://new-athlete-badminton-school.vercel.app`;
+  - `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`;
+  - `https://new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+- Infrastructure-only checks passed on both public aliases. `/` returned `200`
+  HTML, `/api/health` returned `200` JSON with `status = ok`, and generated asset
+  `/_next/static/css/4e4fe59c9141653c.css` returned `200` CSS. Final deployment
+  inspection remained Ready. Rollback was not required; the database migration
+  was not rolled back.
+- A first `vercel pull` in the randomly named detached directory created an
+  unintended empty Vercel project named
+  `nasc-exact-deploy-295bc76f9193419a9565139c6b2c1cbe`. It had no deployment and
+  was immediately deleted. Follow-up inspection confirms the project no longer
+  exists. The worktree was then linked explicitly to existing project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`.
+- Local prebuilt build installed dependencies but failed before producing a
+  deployment because Vercel CLI on Windows returned `spawn cmd.exe ENOENT`.
+  Tracked `.gitignore` was restored byte-for-byte to HEAD before the successful
+  remote build. No deployment resulted from the failed local attempt. The exact
+  detached worktree and downloaded temporary environment files were removed after
+  verification.
+- Source/Test/Migration changed **No**. Production DB/business data changed
+  **No** in this deployment round. Environment, feature control, and allowlist
+  changed **No**. Deployed **Yes**. Production Active **Yes** for the exact Source
+  and previously applied reservation protection. Authenticated Production UAT
+  Passed **No — scheduled for tomorrow**. Controlled write UAT **No**. Financial
+  impact **None**. Task Done **No**. Next action is to wait for the Owner's
+  scheduled instruction tomorrow before authenticated read-only Production UAT;
+  no next task starts automatically.

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -11,8 +11,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **PRODUCTION MIGRATION APPLIED AND VERIFIED; SOURCE COMPLETE/PUSHED;
-EXACT-SOURCE DEPLOY/UAT AWAIT OWNER**.
+Status: **EXACT SOURCE DEPLOYED; INFRASTRUCTURE HEALTH PASSED; AUTHENTICATED
+PRODUCTION UAT NOT RUN — SCHEDULED FOR TOMORROW**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -23,9 +23,9 @@ EXACT-SOURCE DEPLOY/UAT AWAIT OWNER**.
   `1b995396f432d11b133c1cf4b5604b6db875b63b`, initial documentation
   `20721178ae1924fd594d3ba5ce3a232f33925e7c`, and the corrective documentation
   follow-up were pushed non-force. Post-push fetch confirms Local/Remote HEAD
-  match and ahead/behind `0/0`. Production Source remains unchanged on
-  `0226e363f6677b078430f93459c2ee2ede6484e8` / deployment
-  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. The Owner-authorized Nice/Ratchada repair is
+  match and ahead/behind `0/0`. Production now runs exact Source
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` in deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F`. The Owner-authorized Nice/Ratchada repair is
   complete: exact group update `1` and matching legacy delete `1`. Three later
   Production-user actions intentionally moved its learners into Coach Base group
   `2e7...`; Owner confirmed Coach Base now owns all five learners and they must not
@@ -42,8 +42,13 @@ EXACT-SOURCE DEPLOY/UAT AWAIT OWNER**.
   `8`. Approved migration `20260717070225` applied exactly once; remote pending is
   empty, reservations reconcile `235/235`, and missing/stale/orphan/mismatch rows
   are `0`. Production business data fingerprints and Coach/member/legacy targets
-  remained unchanged. Production Source remains undeployed; no flag or allowlist
-  change occurred.
+  remained unchanged. Exact Source
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` is now active in Ready deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` on all four Production aliases. Production
+  Build passed `91/91`; public `/`, `/api/health`, and generated static assets
+  returned `200`. No authenticated Production UAT, mutation request, environment,
+  flag, allowlist, migration, or Production-data change occurred in the deploy
+  round.
   Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
@@ -51,9 +56,10 @@ EXACT-SOURCE DEPLOY/UAT AWAIT OWNER**.
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Await Owner approval for exact-source deploy and authenticated
-Production UAT. Do not move the five Coach Base learners back and do not start a
-Parking Lot task automatically.**
+Next action: **Wait for the Owner's scheduled instruction tomorrow, then run only
+authenticated read-only Production UAT. Controlled write UAT remains prohibited.
+Do not move the five Coach Base learners back and do not start a Parking Lot task
+automatically.**
 
 ## Recently Completed
 

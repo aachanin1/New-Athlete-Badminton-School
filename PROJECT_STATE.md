@@ -1,9 +1,9 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 Source: current local/remote Git and documentation audit plus read-only Vercel,
 Production Supabase, and authenticated Production UAT evidence verified through
-2026-07-17. Items not confirmed are marked `Unknown / Need verification`.
+2026-07-18. Items not confirmed are marked `Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -188,6 +188,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   read-only preflight. The migration was applied exactly once and reconciled;
   Source deploy and Production write UAT remain prohibited pending a separate
   approval.
+- Owner subsequently approved only exact-source Production deployment of
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` from a clean detached worktree,
+  infrastructure-only health checks, and documentation closeout. The deployment
+  completed and all four aliases converged. Authenticated Production UAT and every
+  controlled write remain prohibited and are scheduled for tomorrow by Owner.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -203,26 +208,29 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 - Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
   Semantics**.
-- Task Status: **PRODUCTION MIGRATION APPLIED AND VERIFIED; SOURCE
-  COMPLETE/PUSHED; SOURCE DEPLOY/UAT REMAIN UNAPPROVED**.
+- Task Status: **EXACT SOURCE DEPLOYED; INFRASTRUCTURE HEALTH PASSED; PRODUCTION
+  UAT NOT RUN — SCHEDULED FOR TOMORROW**.
 - Git publish: branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
   Owner-confirmed membership-drift correction is
   `33b9d1888977e4e0fdbbc86d864f03d6e1c6aadc`, name-repair documentation closeout
   is `90be20707d3a8ef8f2f3459d0721412295742c59`, followed by the Production
-  migration documentation closeout commit containing this current-state matrix. All were
+  migration documentation closeout is
+  `86fbdc5331011de4caee8164d769c20bba9a5ef0`, followed by the exact-source
+  deployment documentation closeout commit containing this current-state matrix. All were
   pushed non-force to
   `origin/spike/next-major-security-upgrade`; post-push fetch confirms Local/Remote
   HEAD convergence and ahead/behind `0/0`. Pre-existing unrelated dirty paths
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   preserved and excluded.
-- Exact functional Source `0226e363f6677b078430f93459c2ee2ede6484e8`
-  was deployed from a clean detached worktree and is active in Ready deployment
-  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. All four established Production aliases
-  converge to that artifact. The immediately preceding healthy deployment
-  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` was verified before deployment and remains
-  the immediate rollback target; rollback was not used.
+- Exact remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`, tree
+  `24504017e59e597fc66d8d467186249290981bb6`, was deployed from a clean detached
+  worktree and is active in Ready deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F`. All four established Production aliases
+  converge to that artifact. Previous healthy deployment
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` remains the exact rollback target; rollback
+  was not required.
 - Authenticated Super Admin read-only Production UAT passed the exact 2026-07-16
   Rama 2 Kids Group 17:00–19:00 reproduction: `7 มีโค้ช / 5 รอจัดโค้ช /
   2 อยู่ในกระเป๋า`. The no-coach group is red with
@@ -235,10 +243,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   no mutation request. At that checkpoint, no environment, feature-control,
   allowlist, migration, Production business-data, repair, or financial state had
   changed for this task; the later controlled repair is recorded below.
-- Current Production still runs functional Source
-  `0226e363f6677b078430f93459c2ee2ede6484e8` in Ready deployment
-  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. The local overlap/display remediation is not
-  deployed or Production-active. The separately authorized exact Nice/Ratchada
+- Current Production runs exact remediation Source
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` in Ready deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F`. The overlap/display remediation is deployed
+  and Production-active, but authenticated Production UAT has not run. The
+  separately authorized exact Nice/Ratchada
   data repair is Production-active. The Owner-confirmed Production-user moves put
   five active learners under Coach Base and left the former waiting group empty;
   those moves were not made by Codex. The separately approved conditional
@@ -250,22 +259,25 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   active exact groups `966`, current/future candidates `235`, blocking conflicts
   `0`, and historical report-only conflicts `8`; backfill produced `235`
   reservations with no missing, stale, orphan, or mismatched row. Production
-  business data remained unchanged. No Source deploy, feature-control change, or
-  allowlist change occurred.
+  business data remained unchanged. Exact-source Production Build passed `91/91`;
+  all four aliases converge, and public `/`, `/api/health`, and generated static
+  asset checks return `200`. No authenticated UAT, mutation request, environment,
+  feature-control, allowlist, or Production-data change occurred in the deployment
+  round.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await separate Owner approval for exact-source deploy and
-  authenticated Production UAT. Do not deploy or start Production UAT
-  automatically. Coach Base owns all five learners and is now
+- Next Action: **Run authenticated read-only Production UAT tomorrow only after the
+  Owner's scheduled instruction. Do not run it now and do not perform controlled
+  write UAT. Coach Base owns all five learners and is now
   named `ชุดพื้นฐาน`; do not move them back. Permanent `AGENTS.md` rule work remains
   separate and its pre-existing dirty file was not included.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
 Status: **SOURCE COMPLETE; TESTS PASSED; DATA NAME REPAIRED; MIGRATION APPLIED;
-COMMITTED/PUSHED; SOURCE NOT DEPLOYED**
+COMMITTED/PUSHED; EXACT SOURCE DEPLOYED; PRODUCTION UAT SCHEDULED FOR TOMORROW**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -289,8 +301,7 @@ COMMITTED/PUSHED; SOURCE NOT DEPLOYED**
   names or historical rows. Triggers resynchronize reservations after group coach/
   slot changes, member insert/move/delete, slot date/time changes, booking-session
   lifecycle/slot changes, and booking lifecycle changes. The exact committed
-  migration is now applied to Production; the remediation Source remains
-  undeployed.
+  migration and exact remediation Source are now active in Production.
 - `ยังไม่จัดกลุ่ม` is excluded from exact-assignment classification even if stale
   `coach_id` data exists, its learners count in the existing waiting bucket, and
   no exact coach chip is rendered. A newly created ungrouped draft now starts with
@@ -316,12 +327,13 @@ COMMITTED/PUSHED; SOURCE NOT DEPLOYED**
   Build 91/91 static pages; and `git diff --check`. Browser console, page, hydration,
   and layout errors were `0`. Existing counters, attendance labels, teaching
   program, and wallet display remained unchanged.
-- Local migration reset/apply, rollback of the last local migration, re-apply, and
-  test passed. The exact standalone Production read-only preflight ran before any
-  migration and reported active exact groups `968`, current/future reservation
+- At the earlier local-only gate, migration reset/apply, rollback of the last local
+  migration, re-apply, and test passed. The exact standalone Production read-only
+  preflight then reported active exact groups `968`, current/future reservation
   candidates `237`, current/future blocking conflicts `0`, and historical
-  report-only conflicts `8`. Production migration history still ends at
-  `20260715060541`; `20260717070225` was not applied to Production.
+  report-only conflicts `8`. At that checkpoint, Production migration history
+  ended at `20260715060541`; the later migration record below supersedes that
+  historical state.
 - Exact controlled Production repair completed at `2026-07-17 15:23 ICT`:
   - Keep Coach Nice `4bad40cc-7367-49a2-aa81-42f35d840d79` at Ramintra exact group
     `d0b68d67-1ae3-416c-b2f2-99e9ee994449`, slot
@@ -403,45 +415,69 @@ COMMITTED/PUSHED; SOURCE NOT DEPLOYED**
   expenses. Coach Base remains `ชุดพื้นฐาน` with `5/5`; former group `924...`
   remains empty/unassigned; Ramintra/Nice exact and legacy rows remain unchanged.
   Production business and financial data did not change.
-- Read-only runtime checks passed: `/` `200`, `/api/health` `200`, static asset
+- At the migration-only checkpoint, read-only runtime checks passed: `/` `200`,
+  `/api/health` `200`, static asset
   `200`, unauthenticated Admin Schedules guard `307` to login, and authenticated
   Admin Schedules rendering with Coach Base, `ชุดพื้นฐาน`, five learners, and no
-  new console/page/hydration error. Production deployment remains
-  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`; no deploy or application write UAT occurred.
+  new console/page/hydration error. Production deployment at that checkpoint was
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`; no deploy or application write UAT occurred
+  in that migration-only round.
+- Exact-source deployment used a clean detached worktree at commit
+  `1b995396f432d11b133c1cf4b5604b6db875b63b`, tree
+  `24504017e59e597fc66d8d467186249290981bb6`. Vercel Production Build completed
+  TypeScript and `91/91` static pages. Deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` reached Ready and was promoted; all four
+  established Production aliases resolve to it.
+- Infrastructure-only checks passed on both public Production aliases: `/` `200`,
+  `/api/health` `200` with `status = ok`, and generated
+  `/_next/static/css/4e4fe59c9141653c.css` `200` as CSS. Migration
+  `20260717070225` remains applied once and derived reservations remain `235`.
+  No authenticated page was opened, no Save or mutation request was sent, and no
+  environment, feature-control, allowlist, database, business-data, or financial
+  change occurred in this deployment round.
+- A first non-interactive Vercel pull in the randomly named worktree created an
+  unintended empty Vercel project named after the temp directory. It contained no
+  deployment and was immediately deleted; read-only follow-up confirms it no
+  longer exists. The worktree was then explicitly linked to project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`. Local prebuilt build was abandoned after the
+  Windows CLI returned `spawn cmd.exe ENOENT`; no deployment resulted from that
+  attempt. The successful deployment used Vercel's remote Production build. The
+  temporary detached worktree and its downloaded environment files were removed
+  after verification.
 
 #### Current Coach Assignment Remediation Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Production migration applied and verified; Source complete/pushed; exact-source deploy/UAT remain unapproved |
+| Task Status | Exact Source deployed; infrastructure health passed; authenticated Production UAT not run and scheduled for tomorrow |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Production-migration documentation closeout commit on top of name-repair docs `90be20707d3a8ef8f2f3459d0721412295742c59` and Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; exact closeout SHA is the commit containing this matrix |
-| Remote HEAD | Same Production-migration documentation closeout commit after non-force push |
+| Local HEAD | Exact-source deploy documentation closeout commit on top of migration docs `86fbdc5331011de4caee8164d769c20bba9a5ef0` and Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; exact closeout SHA is the commit containing this matrix |
+| Remote HEAD | Same exact-source deploy documentation closeout commit after non-force push |
 | Ahead/Behind | `0/0` after fetch |
-| Source Complete | Yes — committed and pushed, not deployed |
-| Tests Passed | Yes — DB 21, deterministic 24, browser 2, TypeScript, ESLint, mojibake 234, Build 91/91, residue 0 |
-| Committed | Yes — Source/Test/Migration `1b995396f432d11b133c1cf4b5604b6db875b63b`; name-repair docs `90be20707d3a8ef8f2f3459d0721412295742c59`; migration closeout docs is the commit containing this matrix |
+| Source Complete | Yes — committed, pushed, and exact Source deployed |
+| Tests Passed | Yes — prior DB 21, deterministic 24, browser 2, TypeScript, ESLint, mojibake 234, residue 0; Production Build 91/91 and infrastructure health passed |
+| Committed | Yes — Source/Test/Migration `1b995396f432d11b133c1cf4b5604b6db875b63b`; migration docs `86fbdc5331011de4caee8164d769c20bba9a5ef0`; deploy closeout docs is the commit containing this matrix |
 | Pushed | Yes — all scoped commits, non-force |
-| Current Source | Pushed remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; Production remains `0226e363f6677b078430f93459c2ee2ede6484e8` |
-| Deployed | No — remediation not deployed |
-| Deployed Source | `0226e363f6677b078430f93459c2ee2ede6484e8` (pre-remediation Production source) |
-| Deployment ID | `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` — Ready; unchanged |
+| Current Source | `1b995396f432d11b133c1cf4b5604b6db875b63b` — pushed and deployed from exact clean tree |
+| Deployed | Yes — exact remediation Source; infrastructure-only checks passed |
+| Deployed Source | `1b995396f432d11b133c1cf4b5604b6db875b63b` |
+| Deployment ID | `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` — Ready on all four established Production aliases; rollback target `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` was not used |
 | Migration Source | `20260717070225_coach_assignment_conflict_guards.sql`; SHA-256 `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; standalone preflight is read-only |
 | Migration Applied | Yes — Production applied exactly once; remote history ends at `20260717070225`; pending set empty; reservations `235/235` with reconciliation issues `0` |
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | Database reservation/exclusion protection: Yes; remediation Source behavior: No; prior scoped data repairs remain active |
-| Production UAT | Migration and old-Source read-only runtime checks passed; new remediation Source UAT: No, because it is not deployed |
+| Production Active | Yes — database reservation/exclusion protection and exact remediation Source are active; authenticated behavior UAT remains pending |
+| Production UAT | No — exact Source UAT was prohibited in this round and is scheduled for tomorrow |
 | Controlled Write UAT | Application write UAT: No; exact direct name-only repair affected one row and passed independent reconciliation |
 | Data Repaired | Yes — scoped Nice/Ratchada repair plus Coach Base name-only repair; latest affected row count `1` |
-| Production Data Changed | This migration round: Yes — schema and `235` derived reservation rows only; Production business data unchanged. Overall active task retains earlier approved/business-user changes |
-| Customer Impact | Database now prevents concurrent exact overlap at the reservation layer; old Production Source remains active, so new validation, warning, auto-name, and display behavior still await deploy |
+| Production Data Changed | Deploy round: No. Earlier migration changed schema plus `235` derived reservations only; Production business data remained unchanged. Overall active task retains earlier approved/business-user changes |
+| Customer Impact | Exact overlap validation, legacy warnings, auto-name, dynamic count, and corrected ungrouped semantics are deployed; only infrastructure health is confirmed until authenticated UAT tomorrow |
 | Financial Impact | None — attendance/check-in/teaching/payroll/payment/finance evidence reconciled unchanged |
-| Blocker | Owner approval required before exact-source deploy and Production UAT |
-| Remaining Work | Exact-source deploy plus authenticated Production UAT; permanent `AGENTS.md` rule documentation handled separately |
+| Blocker | Authenticated Production UAT intentionally deferred by Owner until tomorrow |
+| Remaining Work | Authenticated read-only Production UAT tomorrow; permanent `AGENTS.md` rule documentation handled separately |
 | Task Done | No |
-| Next Gate / Next Action | Await Owner approval for exact-source deploy and authenticated Production UAT; do not move the five Coach Base learners back |
+| Next Gate / Next Action | Wait for Owner's tomorrow instruction, then run authenticated read-only Production UAT only; controlled write UAT remains prohibited |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification
