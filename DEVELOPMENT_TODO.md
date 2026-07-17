@@ -4105,3 +4105,57 @@ Notes:
 - [ ] Level recommendation system.
 - [ ] Adult package usage across 10 months.
 - [ ] Waitlist and class capacity enhancements.
+
+## 2026-07-17 - Admin Schedules Unassigned Group Classification Audit/Fix
+
+- Owner selected this as the single urgent active task and authorized only
+  read-only audit, narrow Source fix, local verification, and documentation.
+- Read-only Production evidence confirmed the source contract failure on the
+  2026-07-16 Rama 2 Kids Group 17:00-19:00 round: exact group
+  `476fb938-af93-4689-82cb-377acd108d0d` has five active learner memberships and
+  `coach_id = null`; same-slot legacy coaches are not exact learner evidence.
+  Production data was not changed.
+- Root cause: Admin Schedules treated any group membership as Assigned and rendered
+  every non-empty group green. It did not require a resolved coach profile/role.
+- Scoped Source fix: `src/lib/admin-schedule-assignment-state.ts` now owns the
+  exact-valid predicate and round buckets; the schedule page supplies profile id,
+  name, and role; the client renders grouped-but-unassigned learners in a red
+  warning group and counts them in `รอจัดโค้ช`. Wallet and valid-group behavior
+  remain unchanged.
+- Verification passed: deterministic checks `12/12`, disposable authenticated
+  desktop/mobile Playwright `1/1` with residue `0`, TypeScript, targeted/full
+  ESLint, mojibake `231`, `git diff --check`, visual screenshot inspection, and
+  agent-browser dev health. Build was not required/run.
+- State observed at this closeout: Source complete locally; tests passed; not
+  committed, pushed, deployed, enabled, allowlisted, or Production-active; no
+  migration, Production write, data repair, customer-data change, or financial
+  impact. Next gate is Owner approval for commit/push/deploy and authenticated
+  read-only Production UAT. Admin Schedules Performance and Homepage LV remain
+  unauthorized Parking Lot items.
+
+### Build + Commit + Push closeout (state observed 2026-07-17)
+
+- Owner subsequently authorized re-verification, Production Build, post-build
+  clean restart, a scoped Source/Test commit and push, and a separate documentation
+  closeout commit and push. Deploy, Production UAT, Production data changes,
+  migration, auto-assignment, Admin Schedules Performance, and Homepage LV remained
+  prohibited.
+- Verification passed again: deterministic assignment-state checks `12/12`;
+  disposable authenticated desktop/mobile Playwright `1/1` with fixture residue
+  `0`; visual artifact inspection; TypeScript; targeted and full ESLint; mojibake
+  `231`; and scoped/staged `git diff --check`.
+- Production Build passed with 91/91 static pages. The verified repo-local `.next`
+  directory was removed, the dev server restarted cleanly on `127.0.0.1:3000`,
+  root and a generated static asset returned `200`, and `/admin/schedules` returned
+  the expected `307` login redirect with no server error.
+- Functional commit `0226e363f6677b078430f93459c2ee2ede6484e8` contains exactly
+  the seven approved Source/Test files and is pushed to
+  `origin/spike/next-major-security-upgrade`. The unrelated dirty `AGENTS.md`,
+  content-identical/stat-dirty `src/lib/schedule-slot-utils.ts`, and
+  `docs/performance/` remained excluded.
+- State observed at this closeout: Source is tested, built, committed, and pushed;
+  deployment has not started; Production-active behavior and Production UAT for
+  this fix are not claimed; Production data did not change; customer impact remains
+  the existing misleading Admin/Head Coach classification until deployment; and
+  financial impact is none. Task Done remains No. The next gate is Owner approval
+  for exact-source deployment and authenticated read-only Production UAT.

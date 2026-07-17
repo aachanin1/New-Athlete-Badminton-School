@@ -9,10 +9,23 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**NONE**.
+### Admin Schedules — Unassigned Coach Group Incorrectly Shown as Green
 
-Next action: **Await Owner selection; do not start a Parking Lot task
-automatically.**
+Status: **SOURCE TESTED, BUILT, COMMITTED AND PUSHED; DEPLOYMENT NOT STARTED**.
+
+- Confirmed Source bug: group membership alone was counted/rendered as assigned;
+  a group with no exact valid coach appeared green and its active learners were
+  omitted from `รอจัดโค้ช`.
+- Functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` passed deterministic,
+  desktop/mobile disposable browser, TypeScript, targeted/full ESLint, mojibake,
+  diff, Production Build, and post-build clean-restart checks; it is committed and
+  pushed. Production data was audited read-only and not changed.
+- Deploy, Production UAT, migration, data repair, auto-assignment, Admin Schedules
+  Performance, and Homepage LV remain unauthorized.
+
+Next action: **Await Owner approval to deploy exact functional Source
+`0226e363f6677b078430f93459c2ee2ede6484e8` and run authenticated read-only
+Production UAT. Do not start a Parking Lot task.**
 
 ## Recently Completed
 
@@ -214,5 +227,6 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Await Owner selection; do not start a Parking Lot task
-  automatically.**
+- Next action: **Await Owner approval to deploy exact functional Source
+  `0226e363f6677b078430f93459c2ee2ede6484e8` and run authenticated read-only
+  Production UAT. Do not start a Parking Lot task.**

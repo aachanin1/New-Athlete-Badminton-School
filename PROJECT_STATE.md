@@ -104,6 +104,17 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   existing actions read-only and close documentation; no replay, repair, new
   credit, migration, deploy, environment change, or next-task selection is
   authorized.
+- Owner selected **Admin Schedules — Unassigned Coach Group Incorrectly Shown as
+  Green** as the single urgent active task on 2026-07-17. This supersedes the prior
+  `NONE` active-task state. Authorized scope is read-only Production/Git audit,
+  narrow Source fix, executable/local browser verification, and documentation.
+  Commit, push, deploy, migration, Production data repair/write UAT, auto-assignment,
+  Admin Schedules Performance, and Homepage LV remain prohibited.
+- Owner subsequently approved re-verification, Production Build, post-build clean
+  restart, scoped Source/Test commit and push, and a separate documentation commit
+  and push for this exact fix. Deploy, Production UAT, Production data changes,
+  migration, auto-assignment, Admin Schedules Performance, and Homepage LV remain
+  prohibited.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -117,30 +128,120 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **NONE**.
-- Task Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**.
-  Owner authorized the exact-source Production deployment, read-only Production
-  UAT, conditional rollback, and documentation closeout on 2026-07-15.
-- Git audit: branch `spike/next-major-security-upgrade`; functional Source commit
-  `039ad6e03ca0cb8c8c4334c81818c570b03b9287` is pushed to the matching upstream
-  and read-only remote branch. Ahead/behind was `0/0` after the functional push.
-  Pre-existing unrelated dirty paths `AGENTS.md`,
+- Active Task: **Admin Schedules — Unassigned Coach Group Incorrectly Shown as
+  Green**.
+- Task Status: **SOURCE TESTED, BUILT, COMMITTED AND PUSHED; DEPLOYMENT NOT
+  STARTED — OWNER APPROVAL REQUIRED**.
+- Git audit: branch `spike/next-major-security-upgrade`; Local HEAD, upstream HEAD,
+  and read-only remote branch matched functional Source
+  `0226e363f6677b078430f93459c2ee2ede6484e8` after its push; ahead/behind was
+  `0/0`. Pre-existing unrelated dirty paths `AGENTS.md`,
   `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain excluded.
-- Documentation-only reconciliation on 2026-07-17 corrected the superseded
-  Teaching Programs next-action line and made the prior Lesson Wallet deployment
-  wording explicitly historical. Source, deployment, Production UAT, environment,
-  migration, feature controls, allowlists, and Production data did not change.
+- Functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` contains only the
+  seven approved Source/Test files and is pushed to the matching branch. The
+  documentation closeout is separate from the functional commit.
 - Functional Production Source is
   `039ad6e03ca0cb8c8c4334c81818c570b03b9287` in Ready deployment
   `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` on all four Production aliases. Previous
   Ready deployment `dpl_9ijGRLyvmMa9aT3EkP5zbqxkf6at` remains the verified
-  rollback target; rollback was not required.
+  rollback target. Read-only Vercel inspection on 2026-07-17 reconfirmed the
+  deployment id/status; the CLI-built artifact exposes no Git SHA metadata, so
+  its Source SHA remains supported by the prior clean-worktree deployment record.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await Owner selection; do not start a Parking Lot task
-  automatically.**
+- Next Action: **Await Owner approval to deploy exact functional Source
+  `0226e363f6677b078430f93459c2ee2ede6484e8` and run authenticated read-only
+  Production UAT. Do not start a Parking Lot task.**
+
+### Admin Schedules — Exact Coach Assignment Classification
+
+Status: **SOURCE TESTED, BUILT, COMMITTED AND PUSHED; DEPLOYMENT NOT STARTED**
+(Owner decision 2026-07-17).
+
+- Confirmed root cause: `src/app/(admin)/admin/schedules/page.tsx` added every
+  exact group member to `assignedSessionIds` without validating the group's
+  `coach_id` or resolved coach profile. `src/components/admin/schedules-client.tsx`
+  then treated every non-empty group as coached, counted all of its active learners
+  in `มีโค้ชแล้ว`, and rendered the group with green assignment styling. Grouped
+  therefore incorrectly meant Assigned.
+- Read-only Production snapshot for 2026-07-17 currently has no invalid grouped
+  learner: all visible exact memberships resolve to a `coach` or `head_coach`
+  profile. No data was changed. The supplied screenshot cannot be uniquely mapped
+  to a currently invalid 2026-07-17 row after later assignment saves, so that exact
+  historical row remains `Unknown / Need verification`.
+- A current same-flow Production reproduction is 2026-07-16, Rama 2 Kids Group,
+  17:00–19:00, slot `b2c6ec1a-2136-48c5-b0ba-4141d5923d94`. Group
+  `476fb938-af93-4689-82cb-377acd108d0d` (`พื้นฐาน / เริ่มต้น (3 คน)`) has five
+  active exact learner memberships but `coach_id = null` and no coach profile.
+  Two same-slot legacy coaches belong to other valid groups and are not exact
+  evidence for these five learners. Current Production classifies the round as
+  `12 coached / 0 waiting / 2 walleted`; the exact contract requires
+  `7 coached / 5 waiting / 2 walleted`.
+- The narrow fix adds `hasExactValidCoachAssignment` and one shared round bucketer.
+  Assigned now requires exact group membership plus matching resolved profile id,
+  non-empty coach name, and role `coach|head_coach`. Invalid groups stay visible as
+  learner groups but use a red border and `ยังไม่ได้มอบหมายโค้ช`; their active
+  learners count in `รอจัดโค้ช`. Walleted learners remain separate and excluded.
+  Legacy slot assignments are not inputs to the predicate.
+- Valid assigned groups retain their green styling, coach label, attendance labels,
+  learner LV display, and teaching-program box. No assignment workflow, query
+  waterfall/performance work, attendance, check-in, payroll, Booking, Payment,
+  Pricing, Wallet, Makeup, API mutation, schema, migration, or Production data
+  changed.
+- Local verification passed: deterministic assignment-state checks `12/12`;
+  disposable authenticated Playwright desktop/mobile regression `1/1` with
+  database residue `0`; TypeScript; targeted ESLint; full ESLint; mojibake guard
+  `231` files; and `git diff --check`. The browser fixture verified valid green,
+  invalid red, standalone waiting, wallet exclusion,
+  `1 coached / 2 waiting / 1 walleted`, teaching-program box preservation, 390px
+  warning containment, and zero console/page/hydration errors.
+- Production Build passed with 91/91 static pages. Per the post-build protocol,
+  the repo-local `.next` directory was verified and removed, a clean dev server
+  restarted on `127.0.0.1:3000`, root and a generated static asset returned `200`,
+  and `/admin/schedules` returned the expected `307` login redirect without a
+  server error.
+- Functional commit `0226e363f6677b078430f93459c2ee2ede6484e8` contains exactly
+  the seven approved Source/Test files and is pushed. No deployment, Production
+  UAT, migration, feature-control/allowlist change, auto-assignment, Production
+  data write, or data repair occurred.
+
+#### Current Admin Schedules Assignment State Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Admin Schedules — Unassigned Coach Group Incorrectly Shown as Green |
+| Task Status | Source tested, built, committed and pushed; deployment not started |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation closeout commit containing this matrix; functional Source is `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Remote HEAD | Matching pushed documentation closeout commit; exact SHA verified in final Git closeout |
+| Ahead/Behind | `0/0` after final documentation push |
+| Source Complete | Yes — functional Source pushed |
+| Tests Passed | Yes — deterministic 12, browser E2E 1 with residue 0, TypeScript, targeted/full ESLint, mojibake 231, diff check |
+| Build Passed | Yes — 91/91 static pages; clean restart root/static/auth checks passed |
+| Committed | Yes — functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Pushed | Yes — functional Source and documentation closeout |
+| Current Source | `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Deployed | No for this fix |
+| Deployed Source | `039ad6e03ca0cb8c8c4334c81818c570b03b9287` — prior release, fix absent |
+| Deployment ID | `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` — Ready; unchanged |
+| Migration Source | None; not required and prohibited |
+| Migration Applied | No; not required |
+| Feature Enabled | Not applicable; no feature control added or changed |
+| Allowlisted | Not applicable; no allowlist added or changed |
+| Production Active | No — current Production still has the classification bug |
+| Production UAT | Not run — fix is not deployed |
+| Controlled Write UAT | Not authorized/not run |
+| Data Repaired | No |
+| Production Data Changed | No — read-only queries only |
+| Customer Impact | Current Production may mislead Head Coach/Admin for grouped learners without a valid coach; local fix is ready |
+| Financial Impact | None |
+| Task Done | No — Source/local verification complete; release gates remain |
+| Blocker | Owner approval required for exact-source deploy and authenticated read-only Production UAT |
+| Remaining Work | Exact-source deploy, authenticated read-only Production UAT, and final release closeout after approval |
+| Next Gate / Next Action | Await Owner approval for exact-source deploy and authenticated read-only Production UAT |
+| Parking Lot authorization state | Admin Schedules Performance and Homepage LV remain not authorized |
 
 ### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
 
@@ -211,11 +312,11 @@ Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**
   write, or data repair occurred. Customer impact is the corrected Admin display
   behavior; financial impact is none.
 
-#### Current Admin Teaching Programs State Matrix
+#### Historical Admin Teaching Programs State Matrix (state observed 2026-07-15)
 
-| Field | Current value |
+| Field | Value at that closeout |
 | --- | --- |
-| Active Task | NONE |
+| Active Task | NONE at that closeout |
 | Task Status | DONE — Exact Source deployed; read-only Production UAT passed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation consistency correction commit containing this matrix; functional Source is `039ad6e03ca0cb8c8c4334c81818c570b03b9287` |
@@ -244,7 +345,7 @@ Status: **DONE — EXACT SOURCE DEPLOYED; READ-ONLY PRODUCTION UAT PASSED**
 | Task Done | Yes |
 | Blocker | None |
 | Remaining Work | None for this task |
-| Next Gate / Next Action | Await Owner selection; do not start a Parking Lot task automatically |
+| Next Gate / Next Action | At that closeout: await Owner selection; do not start a Parking Lot task automatically |
 | Parking Lot authorization state | Admin Schedules Performance and Homepage LV remain not authorized |
 
 ### Production Lesson Wallet Canonical Redemption Regression
