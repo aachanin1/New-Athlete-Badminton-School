@@ -24,6 +24,7 @@ import {
 import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import { getAdminScheduleRoundLearnerBuckets } from '@/lib/admin-schedule-assignment-state'
+import { stripDynamicMemberCount } from '@/lib/coach-assignment-group-naming'
 
 interface BranchOption {
   id: string
@@ -795,7 +796,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                                 <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <p className="font-semibold text-emerald-800">{group.name || 'กลุ่มโค้ช'}</p>
+                                      <p className="font-semibold text-emerald-800">{stripDynamicMemberCount(group.name) || 'กลุ่มโค้ช'}</p>
                                       <Badge variant="outline" className="border-emerald-200 bg-white text-[10px] text-emerald-700">
                                         <UserCog className="mr-1 h-3 w-3" />
                                         โค้ช: {group.coach_name || 'ยังไม่ระบุโค้ช'}
@@ -864,7 +865,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                               <div key={group.id} className="rounded-md border border-red-200 bg-red-50/50 p-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="font-semibold text-red-800">{group.name || 'กลุ่มผู้เรียน'}</p>
+                                    <p className="font-semibold text-red-800">{stripDynamicMemberCount(group.name) || 'กลุ่มผู้เรียน'}</p>
                                     <Badge className="bg-red-100 text-[10px] text-red-700">
                                       <AlertTriangle className="mr-1 h-3 w-3" />
                                       ยังไม่ได้มอบหมายโค้ช

@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -896,6 +897,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         return
       }
 
+      if (result?.warnings) toast.warning(result.warnings)
       setReviewSession(null)
       router.refresh()
     } catch {
@@ -978,6 +980,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         return
       }
 
+      if (result?.warnings) toast.warning(result.warnings)
       setReplacementGroup(null)
       router.refresh()
     } catch {
@@ -1032,6 +1035,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         return
       }
 
+      if (result?.warnings) toast.warning(result.warnings)
       setMoveGroup(null)
       router.refresh()
     } catch {
@@ -1178,6 +1182,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           setError(result?.error || 'มอบหมายโค้ชให้รอบนี้ไม่สำเร็จ')
           return
         }
+        if (result?.warnings) toast.warning(result.warnings)
       } else {
         const action = unassignedMode === 'return_entitlement' ? 'return_entitlement' : 'close_review'
 

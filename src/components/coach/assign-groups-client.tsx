@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   AlertTriangle,
   Building2,
@@ -34,6 +35,12 @@ import {
   formatThaiMonthYear,
   formatThaiShortDate,
 } from '@/lib/date-format'
+import {
+  formatAutoGroupNameError,
+  resolveAssignmentGroupName,
+  UNASSESSED_GROUP_NAME,
+  UNGROUPED_ASSIGNMENT_NAME,
+} from '@/lib/coach-assignment-group-naming'
 import { cn, fmtTime } from '@/lib/utils'
 import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
 import type { LevelCategory, StudentType } from '@/types/database'
@@ -55,6 +62,7 @@ interface AssignmentStudent {
   level: number | null
   levelName: string | null
   levelCategory: LevelCategory | null
+  levelProgramName: string | null
   coachMemory: CoachMemoryEntry[]
   suggestedCoachId: string | null
   suggestedCoachName: string | null
@@ -143,19 +151,18 @@ function getLevelLabel(student: AssignmentStudent) {
   return `${student.levelName || `Level ${level}`} (LV ${level})`
 }
 
-function getLevelBand(student: AssignmentStudent) {
+function getStudentAutoGroup(student: AssignmentStudent) {
   const level = student.level ?? 0
-
-  if (level <= 10) {
-    return { key: 'lv-0-10', name: 'พื้นฐาน / เริ่มต้น', levelMin: 0, levelMax: 10 }
+  if (level <= 0) {
+    return { key: 'unassessed', name: UNASSESSED_GROUP_NAME }
   }
-  if (level <= 30) {
-    return { key: 'lv-11-30', name: 'กำลังพัฒนา', levelMin: 11, levelMax: 30 }
+  if (!student.levelCategory || !student.levelProgramName?.trim()) {
+    return { key: 'incomplete-level-definition', name: '' }
   }
-  if (level <= 50) {
-    return { key: 'lv-31-50', name: 'กลาง-สูง', levelMin: 31, levelMax: 50 }
+  return {
+    key: student.levelCategory,
+    name: student.levelProgramName.trim(),
   }
-  return { key: 'lv-51-up', name: 'ระดับสูง', levelMin: 51, levelMax: 70 }
 }
 
 function isPrivateCourse(courseType: string) {
@@ -226,30 +233,29 @@ function createAutoGroups(slot: AssignmentSlot): GroupDraft[] {
     }))
   }
 
-  const grouped = new Map<string, { name: string; levelMin: number; levelMax: number; students: AssignmentStudent[] }>()
+  const grouped = new Map<string, { name: string; students: AssignmentStudent[] }>()
   slot.students.forEach((student) => {
-    const band = getLevelBand(student)
-    if (!grouped.has(band.key)) {
-      grouped.set(band.key, {
-        name: band.name,
-        levelMin: band.levelMin,
-        levelMax: band.levelMax,
+    const autoGroup = getStudentAutoGroup(student)
+    if (!grouped.has(autoGroup.key)) {
+      grouped.set(autoGroup.key, {
+        name: autoGroup.name,
         students: [],
       })
     }
-    grouped.get(band.key)?.students.push(student)
+    grouped.get(autoGroup.key)?.students.push(student)
   })
 
   const usedCoachIds = new Set<string>()
   return Array.from(grouped.values()).map((group, index) => {
     const coachId = pickAvailableCoachIdForStudents(group.students, usedCoachIds, slot.suggestedCoachId)
     if (coachId) usedCoachIds.add(coachId)
+    const levels = group.students.map((student) => student.level ?? 0)
     return {
       localId: `${slot.key}-auto-${index}`,
-      name: `${group.name} (${group.students.length} คน)`,
+      name: group.name,
       coachId,
-      levelMin: group.levelMin,
-      levelMax: group.levelMax,
+      levelMin: Math.min(...levels),
+      levelMax: Math.max(...levels),
       sortOrder: index,
       studentSessionIds: group.students.map((student) => student.bookingSessionId),
     }
@@ -261,25 +267,34 @@ function createInitialDrafts(slot: AssignmentSlot): GroupDraft[] {
     const assignedIds = new Set(slot.assignmentGroups.flatMap((group) => group.studentSessionIds))
     const drafts: GroupDraft[] = slot.assignmentGroups
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((group, index) => ({
-        localId: group.id,
-        persistedId: group.id,
-        name: group.name,
-        coachId: group.coachId,
-        levelMin: group.levelMin,
-        levelMax: group.levelMax,
-        sortOrder: index,
-        studentSessionIds: group.studentSessionIds,
-      }))
+      .map((group, index) => {
+        const groupSessionIds = new Set(group.studentSessionIds)
+        const groupStudents = slot.students.filter((student) => groupSessionIds.has(student.bookingSessionId))
+        const resolvedName = resolveAssignmentGroupName({ currentName: group.name, students: groupStudents })
+        return {
+          localId: group.id,
+          persistedId: group.id,
+          name: resolvedName.name || group.name,
+          coachId: group.coachId,
+          levelMin: resolvedName.autoNamed ? resolvedName.levelMin : group.levelMin,
+          levelMax: resolvedName.autoNamed ? resolvedName.levelMax : group.levelMax,
+          sortOrder: index,
+          studentSessionIds: group.studentSessionIds,
+        }
+      })
 
     const unassignedStudents = slot.students.filter((student) => !assignedIds.has(student.bookingSessionId))
     if (unassignedStudents.length > 0) {
+      const resolvedName = resolveAssignmentGroupName({
+        currentName: UNGROUPED_ASSIGNMENT_NAME,
+        students: unassignedStudents,
+      })
       drafts.push({
         localId: `${slot.key}-unassigned`,
-        name: 'ยังไม่จัดกลุ่ม',
-        coachId: slot.suggestedCoachId,
-        levelMin: null,
-        levelMax: null,
+        name: resolvedName.name || UNGROUPED_ASSIGNMENT_NAME,
+        coachId: null,
+        levelMin: resolvedName.levelMin,
+        levelMax: resolvedName.levelMax,
         sortOrder: drafts.length,
         studentSessionIds: unassignedStudents.map((student) => student.bookingSessionId),
       })
@@ -574,16 +589,35 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       return
     }
 
-    const submittedGroups = groups
-      .filter((group) => group.studentSessionIds.length > 0)
-      .map((group, index) => ({
-        name: group.name.trim() || `กลุ่ม ${index + 1}`,
+    const nonEmptyGroups = groups.filter((group) => group.studentSessionIds.length > 0)
+    const submittedGroups = [] as Array<{
+      name: string
+      coachId: string | null
+      levelMin: number | null
+      levelMax: number | null
+      sortOrder: number
+      studentSessionIds: string[]
+    }>
+
+    for (const [index, group] of nonEmptyGroups.entries()) {
+      const resolvedName = resolveAssignmentGroupName({
+        currentName: group.name,
+        students: getGroupStudents(slot, group),
+      })
+      const namingError = resolvedName.error
+      if (!resolvedName.name && namingError) {
+        setErrorsBySlot((prev) => ({ ...prev, [slot.key]: formatAutoGroupNameError(namingError) }))
+        return
+      }
+      submittedGroups.push({
+        name: resolvedName.name || group.name.trim(),
         coachId: group.coachId,
-        levelMin: group.levelMin,
-        levelMax: group.levelMax,
+        levelMin: resolvedName.autoNamed ? resolvedName.levelMin : group.levelMin,
+        levelMax: resolvedName.autoNamed ? resolvedName.levelMax : group.levelMax,
         sortOrder: index,
         studentSessionIds: group.studentSessionIds,
-      }))
+      })
+    }
 
     if (submittedGroups.length === 0) {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'ต้องมีอย่างน้อย 1 กลุ่มที่มีผู้เรียน' }))
@@ -619,6 +653,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
         return
       }
 
+      if (json?.warnings) toast.warning(json.warnings)
       router.refresh()
     } catch {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }))
@@ -921,7 +956,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-500">
                             <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{slot.branchName}</span>
-                            <span className="flex items-center gap-1"><UserCog className="h-3 w-3" />เดิม: {slot.legacyAssignedCoachName || 'ยังไม่มอบหมาย'}</span>
+                            <span className="flex items-center gap-1"><UserCog className="h-3 w-3" />ข้อมูลโค้ชเดิมของรอบ — ยังไม่ใช่ผู้รับผิดชอบกลุ่ม: {slot.legacyAssignedCoachName || 'ยังไม่พบข้อมูล'}</span>
                           </div>
                           {slot.suggestedCoachName && (
                             <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">

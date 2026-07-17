@@ -23,6 +23,7 @@ export interface AdminAttendanceSessionBase {
 
 export interface AdminAttendanceGroupRow {
   schedule_slot_id: string
+  name?: string | null
   profiles?: { full_name?: string | null; email?: string | null } | null
   coach_assignment_group_students?: { booking_session_id: string | null }[] | null
 }
@@ -78,6 +79,8 @@ export function buildAdminAttendanceState<TSession extends AdminAttendanceSessio
 
     groupSessionIds.forEach((sessionId) => {
       groupScopeBySessionId.set(sessionId, groupSessionIds)
+
+      if (group.name?.trim() === 'ยังไม่จัดกลุ่ม') return
 
       const coachName = group.profiles?.full_name || group.profiles?.email
       if (!coachName) return

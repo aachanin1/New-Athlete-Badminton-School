@@ -120,7 +120,7 @@ test.beforeAll(async () => {
       id: IDS.unassignedGroup,
       schedule_slot_id: IDS.slot,
       coach_id: null,
-      name: 'Fixture Unassigned Group',
+      name: 'ยังไม่จัดกลุ่ม',
       sort_order: 1,
       created_by: fixture.adminUserId,
     },
@@ -142,6 +142,18 @@ test.beforeAll(async () => {
   ])).error, 'insert fixture group memberships')
 })
 
+test('production-active assignment write routes reject anonymous callers', async ({ request }) => {
+  const groupWrite = await request.post('/api/coach/assignment-groups', {
+    data: { scheduleSlotId: IDS.slot, branchId: 'anonymous', groups: [] },
+  })
+  expect(groupWrite.status()).toBe(401)
+
+  const makeupWrite = await request.patch('/api/admin/makeup', {
+    data: { action: 'assign_coach_to_round', session_ids: [IDS.sessions[0]] },
+  })
+  expect(makeupWrite.status()).toBe(401)
+})
+
 test('Daily Board separates valid, unassigned-group, standalone, and walleted learners on desktop and mobile', async ({ page }, testInfo) => {
   const browserErrors: string[] = []
   page.on('console', (message) => {
@@ -154,17 +166,19 @@ test('Daily Board separates valid, unassigned-group, standalone, and walleted le
   await page.goto('/admin/schedules?year=2026&month=7')
 
   await expect(page.getByText('Fixture Assigned Group', { exact: true })).toBeVisible()
-  await expect(page.getByText('Fixture Unassigned Group', { exact: true })).toBeVisible()
+  await expect(page.getByText('ยังไม่จัดกลุ่ม', { exact: true })).toBeVisible()
   await expect(page.getByText('ยังไม่ได้มอบหมายโค้ช', { exact: true })).toBeVisible()
   await expect(page.getByText('โค้ช: Fixture Coach', { exact: true })).toBeVisible()
+  await expect(page.getByText('โค้ช: Fixture Coach', { exact: true })).toHaveCount(1)
   await expect(page.getByText('มีโค้ชแล้ว 1 คน', { exact: true })).toBeVisible()
   await expect(page.getByText('รอจัดโค้ช 2 คน', { exact: true })).toBeVisible()
   await expect(page.getByText('อยู่ในกระเป๋า 1 คน', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('โปรแกรมสอนรอบนี้', { exact: true })).toBeVisible()
 
-  const unassignedCard = page.getByText('Fixture Unassigned Group', { exact: true }).locator('xpath=ancestor::div[contains(@class,"border-red-200")]')
+  const unassignedCard = page.getByText('ยังไม่จัดกลุ่ม', { exact: true }).locator('xpath=ancestor::div[contains(@class,"border-red-200")]')
   const assignedCard = page.getByText('Fixture Assigned Group', { exact: true }).locator('xpath=ancestor::div[contains(@class,"border-emerald-100")]')
   await expect(unassignedCard).toBeVisible()
+  await expect(unassignedCard.getByText('โค้ช: Fixture Coach', { exact: true })).toHaveCount(0)
   await expect(assignedCard).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('desktop.png'), fullPage: true })
 

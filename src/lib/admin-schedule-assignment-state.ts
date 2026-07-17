@@ -4,6 +4,7 @@ export interface AdminScheduleLearnerAssignmentRow {
 }
 
 export interface AdminScheduleCoachAssignmentEvidence {
+  name?: string | null
   coach_id: string | null
   coach_profile_id: string | null
   coach_name: string | null
@@ -19,7 +20,8 @@ export function hasExactValidCoachAssignment(
   group: AdminScheduleCoachAssignmentEvidence,
 ) {
   return Boolean(
-    group.coach_id
+    group.name?.trim() !== 'ยังไม่จัดกลุ่ม'
+    && group.coach_id
     && group.coach_profile_id === group.coach_id
     && group.coach_name?.trim()
     && (group.coach_role === 'coach' || group.coach_role === 'head_coach'),

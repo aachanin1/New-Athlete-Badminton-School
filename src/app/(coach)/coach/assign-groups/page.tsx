@@ -57,6 +57,7 @@ interface LevelRow {
   id: number
   name: string
   category: LevelCategory
+  program_name: string | null
 }
 
 interface StudentLevelRow {
@@ -88,6 +89,7 @@ interface AssignmentStudentForClient {
   level: number | null
   levelName: string | null
   levelCategory: LevelCategory | null
+  levelProgramName: string | null
   coachMemory: CoachMemoryEntry[]
   suggestedCoachId: string | null
   suggestedCoachName: string | null
@@ -314,7 +316,8 @@ export default async function AssignGroupsPage() {
       : Promise.resolve({ data: [] }),
     supabase
       .from('levels')
-      .select('id, name, category') as unknown as PromiseLike<{ data: LevelRow[] | null }>,
+      .select('id, name, category, program_name')
+      .eq('is_active', true) as unknown as PromiseLike<{ data: LevelRow[] | null }>,
   ])
 
   const legacyAssignmentMap = (legacyAssignments || []).reduce((map, item) => {
@@ -400,6 +403,7 @@ export default async function AssignGroupsPage() {
       level: latestLevel?.level ?? 0,
       levelName: levelDefinition?.name || 'Level 0',
       levelCategory: levelDefinition?.category || null,
+      levelProgramName: levelDefinition?.program_name || null,
       coachMemory: memory?.coaches || [],
       suggestedCoachId: memory?.suggestedCoach?.coachId || null,
       suggestedCoachName: memory?.suggestedCoach?.coachName || null,
