@@ -4159,3 +4159,67 @@ Notes:
   the existing misleading Admin/Head Coach classification until deployment; and
   financial impact is none. Task Done remains No. The next gate is Owner approval
   for exact-source deployment and authenticated read-only Production UAT.
+
+### Exact-source Production deployment + authenticated read-only UAT closeout
+
+State observed at this closeout on 2026-07-17:
+
+- Owner authorized only fresh Git/Vercel preflight, exact-source Production
+  deployment, convergence of the established aliases, authenticated read-only
+  Production UAT, runtime monitoring, and final documentation closeout. No
+  Source/Test change, migration, environment/feature-control/allowlist change,
+  Production business-data write, assignment save, attendance/check-in/payroll
+  write, auto-assignment, performance work, Homepage LV work, or new task was
+  authorized or performed.
+- Gate 0 passed on branch `spike/next-major-security-upgrade`: pre-closeout Local,
+  upstream, and fetched remote HEAD were
+  `487b63ee7faa0e0b14703a9603d287035fccddec`, ahead/behind `0/0`; functional
+  Source `0226e363f6677b078430f93459c2ee2ede6484e8` was an ancestor and contained
+  exactly the seven approved Source/Test files. Unrelated dirty `AGENTS.md`,
+  `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remained excluded.
+- Pre-deploy Gate 1 verified Ready rollback deployment
+  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr`, its four established aliases, healthy root/
+  health/static/auth responses, and the unchanged set of eleven Production
+  environment variable names. The older pre-Teaching-Programs deployment was not
+  selected as the rollback target.
+- Exact Source `0226e363f6677b078430f93459c2ee2ede6484e8` was deployed from a
+  clean detached worktree with tree
+  `d1b371bfcaef19494c4ac723b89f3e3e9e416ec0`. Vercel Production Build passed
+  with 91/91 static pages. Ready deployment
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` was created and all four established aliases
+  converged to it:
+  - `www.newathleteschool.com`
+  - `new-athlete-badminton-school.vercel.app`
+  - `new-athlete-badminton-school-aachanin1s-projects.vercel.app`
+  - `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`
+- Post-deploy root, `/api/health`, generated static asset, and Admin auth guard
+  checks passed. Production environment names remained unchanged; no feature flag,
+  allowlist, migration, or local environment/link file changed. Rollback was not
+  used.
+- Authenticated Super Admin read-only Production UAT passed the exact reproduction:
+  2026-07-16, Rama 2, Kids Group, 17:00–19:00, slot
+  `b2c6ec1a-2136-48c5-b0ba-4141d5923d94`, group
+  `476fb938-af93-4689-82cb-377acd108d0d`. The group with `coach_id = null` rendered
+  red with `ยังไม่ได้มอบหมายโค้ช`; its five active learners counted in
+  `รอจัดโค้ช`, same-slot legacy coaches did not make them assigned, and two
+  walleted learners remained excluded. Exact counters were
+  `7 มีโค้ช / 5 รอจัดโค้ช / 2 อยู่ในกระเป๋า`.
+- Both valid exact assigned groups in that round remained emerald/green with coach
+  names. Learner LV, attendance labels, and teaching-program boxes remained
+  visible. Desktop and explicit 390x844 mobile UAT passed; the red warning was
+  readable and stayed inside its card with no horizontal overflow. Browser
+  console, hydration, and page errors were `0`.
+- Monitoring for the UAT window found runtime errors/5xx `0`, PUT/PATCH/DELETE
+  requests `0`, and no assignment, attendance, or check-in mutation. Shared
+  Production logs contained two normal `POST /api/reschedule` requests from
+  unrelated user traffic; neither was attributable to the Admin Schedules UAT.
+  The UAT itself issued no business-data mutation request.
+- Final state: Source complete **Yes**; tests/build **Passed**; functional Source
+  committed/pushed **Yes**; deployed/Production active **Yes**; authenticated
+  read-only Production UAT **Passed**; controlled-write UAT **Not required/not
+  run**; data repaired **No**; Production data changed by this task **No**;
+  customer impact **corrected Admin/Head Coach assignment classification**;
+  financial impact **None**; Task Done **Yes**; Active Task **NONE**; blocker and
+  remaining work **None**. Next action is to await Owner selection without starting
+  Admin Schedules Performance, Homepage LV, or another Parking Lot task
+  automatically.

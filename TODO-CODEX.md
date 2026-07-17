@@ -9,25 +9,31 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### Admin Schedules — Unassigned Coach Group Incorrectly Shown as Green
+**NONE.**
 
-Status: **SOURCE TESTED, BUILT, COMMITTED AND PUSHED; DEPLOYMENT NOT STARTED**.
-
-- Confirmed Source bug: group membership alone was counted/rendered as assigned;
-  a group with no exact valid coach appeared green and its active learners were
-  omitted from `รอจัดโค้ช`.
-- Functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` passed deterministic,
-  desktop/mobile disposable browser, TypeScript, targeted/full ESLint, mojibake,
-  diff, Production Build, and post-build clean-restart checks; it is committed and
-  pushed. Production data was audited read-only and not changed.
-- Deploy, Production UAT, migration, data repair, auto-assignment, Admin Schedules
-  Performance, and Homepage LV remain unauthorized.
-
-Next action: **Await Owner approval to deploy exact functional Source
-`0226e363f6677b078430f93459c2ee2ede6484e8` and run authenticated read-only
-Production UAT. Do not start a Parking Lot task.**
+Next action: **Await Owner selection. Do not start a Parking Lot task
+automatically.**
 
 ## Recently Completed
+
+### Admin Schedules — Unassigned Coach Group Incorrectly Shown as Green
+
+Status: **DONE — EXACT SOURCE DEPLOYED; AUTHENTICATED READ-ONLY PRODUCTION UAT
+PASSED**.
+
+- Exact functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` is active in
+  Ready deployment `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` on all four established
+  Production aliases.
+- Exact 2026-07-16 Rama 2 Kids Group 17:00–19:00 read-only UAT passed with
+  `7 มีโค้ช / 5 รอจัดโค้ช / 2 อยู่ในกระเป๋า`; the no-coach group is red and both
+  valid assigned groups remain green. Desktop, mobile 390x844, console/hydration,
+  and runtime gates passed.
+- No migration, environment/feature-control/allowlist change, auto-assignment,
+  assignment/attendance/check-in write, Production business-data change, repair,
+  or financial effect occurred for this task. Rollback was not used.
+- Authoritative current state and the full consistency matrix are in
+  `PROJECT_STATE.md`; detailed deployment/UAT evidence is in
+  `DEVELOPMENT_TODO.md`.
 
 ### Admin Teaching Programs — Default Today + Date/Time/Branch Ordering
 
