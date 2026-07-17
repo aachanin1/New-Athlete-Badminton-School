@@ -128,6 +128,44 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `DEVELOPMENT_TODO.md` are authorized; Source/Test changes, deploy/alias actions,
   Production UAT repetition, migration, environment/feature-control/allowlist
   changes, Production writes, and Parking Lot work remain prohibited.
+- Owner selected **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
+  Semantics** as the single urgent active task on 2026-07-17. The Owner confirmed
+  six remediation decisions: (1) Coach Nice must remain at Ramintra for the
+  2026-07-17 17:00–19:00 collision; (2) one coach may own only one active exact
+  group in any overlapping interval, including the same slot/branch; (3)
+  `ยังไม่จัดกลุ่ม` must never communicate an exact responsible coach, and any
+  legacy/suggested coach must be explicitly non-exact; (4) exact/current conflicts
+  hard-block while legacy-only conflicts warn and are never auto-deleted; (5)
+  protect current/future writes first and report historical conflicts separately;
+  and (6) historical attendance, check-in, teaching hours, and payroll remain
+  unchanged unless separately approved.
+- Authorized scope for this round is Source, local-only migration, local tests,
+  Production repair dry-run, and documentation only. Commit, push, Production
+  migration, Production data repair/write, deploy, historical evidence changes,
+  Performance, Homepage LV, and other Parking Lot work remain prohibited.
+- Owner subsequently authorized one controlled Production data repair only for
+  Coach Nice at Ratchada on 2026-07-17 17:00–19:00. The repair is complete: the
+  exact Ratchada group was unassigned and only its matching legacy row was
+  deleted. Source/Test, migration, commit, push, deploy, Ramintra, Coach Base,
+  group membership, historical evidence, and financial data remained out of
+  scope and unchanged.
+- Owner then confirmed the local auto-group naming and migration-safety policy:
+  the three Nice/Ratchada learners may intentionally remain without a replacement
+  coach and display `ยังไม่ได้มอบหมายโค้ช`; Coach Base is the real exact coach of
+  the other two Ratchada learners and must keep its coach, members, and legacy row,
+  but its placeholder name must later be repaired to a real group name. Exact
+  coached groups with blank/placeholder names must auto-name from the learners'
+  current active Level definition, stored names must not embed member counts, and
+  valid user-authored names must not be overwritten. This round authorizes only
+  local Source/migration/tests, a Coach Base rename dry-run, and documentation;
+  commit, push, Production migration, Coach Base Production repair, and deploy
+  remain prohibited.
+- Owner subsequently accepted the Coach Base dry-run name `ชุดพื้นฐาน` and
+  authorized only a scoped two-commit publish round: re-verify, commit the exact
+  Source/Test/Migration set, commit the three current-state documents separately,
+  and push both commits non-force. Production rename, Production migration,
+  deploy/aliases, Production UAT/write, feature/environment/allowlist changes,
+  historical cleanup, and Parking Lot work remain prohibited.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -141,16 +179,17 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **NONE**.
-- Task Status: **DONE — EXACT SOURCE DEPLOYED; AUTHENTICATED READ-ONLY
-  PRODUCTION UAT PASSED**.
-- Git audit: branch `spike/next-major-security-upgrade`; before this documentation
-  correction, Local HEAD, upstream HEAD, and fetched remote HEAD matched release
-  closeout commit `4e139b9e3b563818e1fc65e2647282529295d98b` with ahead/behind `0/0`.
-  Functional Source `0226e363f6677b078430f93459c2ee2ede6484e8` is an ancestor and
-  contains exactly the seven approved Source/Test files. Pre-existing unrelated
-  dirty paths `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and
-  `docs/performance/` remain preserved and excluded.
+- Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
+  Semantics**.
+- Task Status: **SOURCE COMPLETE; TESTS PASSED; SOURCE/TEST/MIGRATION COMMITTED AND
+  PUSHED; COACH BASE RENAME AND PRODUCTION MIGRATION/DEPLOY REMAIN UNAPPROVED**.
+- Git publish: branch `spike/next-major-security-upgrade`; exact functional Source/
+  Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
+  followed by this documentation closeout commit. Both commits were pushed
+  non-force to `origin/spike/next-major-security-upgrade`; post-push fetch confirms
+  Local/Remote HEAD convergence and ahead/behind `0/0`. Pre-existing unrelated dirty paths
+  `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
+  preserved and excluded.
 - Exact functional Source `0226e363f6677b078430f93459c2ee2ede6484e8`
   was deployed from a clean detached worktree and is active in Ready deployment
   `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. All four established Production aliases
@@ -162,17 +201,151 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   2 อยู่ในกระเป๋า`. The no-coach group is red with
   `ยังไม่ได้มอบหมายโค้ช`, while both exact valid groups remain green. Desktop and
   390x844 mobile checks passed with console, hydration, and page errors `0`.
-- Deployment/UAT monitoring found no errors or 5xx and no assignment, attendance,
-  or check-in mutation attributable to this release. Two concurrent Production
+- At the prior deployment/UAT checkpoint, monitoring found no errors or 5xx and
+  no assignment, attendance, or check-in mutation attributable to that release.
+  Two concurrent Production
   `POST /api/reschedule` requests belonged to unrelated user traffic; the UAT made
-  no mutation request. No environment, feature-control, allowlist, migration,
-  Production business-data, repair, or financial state changed for this task.
+  no mutation request. At that checkpoint, no environment, feature-control,
+  allowlist, migration, Production business-data, repair, or financial state had
+  changed for this task; the later controlled repair is recorded below.
+- Current Production still runs functional Source
+  `0226e363f6677b078430f93459c2ee2ede6484e8` in Ready deployment
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. The local overlap/display remediation is not
+  deployed or Production-active. The separately authorized exact Nice/Ratchada
+  data repair is Production-active; no Production migration, attendance/check-in/
+  teaching-hours/payroll change, feature-control change, or allowlist change
+  occurred.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await Owner selection. Do not start a Parking Lot task
-  automatically.**
+- Next Action: **Await separate Owner approval for the exact Coach Base Production
+  rename, Production migration apply after a fresh read-only preflight, and
+  exact-source deploy/UAT. The three Nice/Ratchada learners may remain intentionally
+  unassigned; no replacement-coach action is required in this round. Permanent
+  `AGENTS.md` rule work remains separate and its pre-existing dirty file was not
+  included.**
+
+### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
+
+Status: **SOURCE COMPLETE; TESTS PASSED; COMMITTED/PUSHED; NOT DEPLOYED**
+(Owner decisions 2026-07-17).
+
+- Root cause confirmed: normal Head Coach group saves checked duplicate coaches
+  only inside one submitted slot and wrote group/member/legacy rows in separate
+  calls. Admin Makeup exact-assignment actions had same-slot checks in selected
+  paths but no shared cross-slot interval rule. The database had no exclusion or
+  reservation guard, so concurrent exact writes could race. Admin Schedules also
+  treated a persisted group named `ยังไม่จัดกลุ่ม` with a valid `coach_id` as an
+  exact assignment, while the Head Coach draft builder copied a suggested coach
+  into a newly created ungrouped bucket.
+- Shared server validation now checks active exact groups by coach, Bangkok date,
+  strict interval overlap, same/different branch, same-slot multiple groups, self
+  exclusion, and full-slot replacement. Exact conflicts return `409` with date,
+  time, branch, group name, and group id. Legacy-only overlap returns a warning
+  and does not block or delete the legacy row.
+- The normal Head Coach save is now one local database RPC transaction. A derived
+  exact-reservation table with a GiST exclusion constraint closes concurrent-write
+  races. After a separately runnable read-only preflight proves zero current/future
+  blockers, the migration backfills reservations for every current/future active
+  exact group, including pre-existing placeholder-named groups; it does not repair
+  names or historical rows. Triggers resynchronize reservations after group coach/
+  slot changes, member insert/move/delete, slot date/time changes, booking-session
+  lifecycle/slot changes, and booking lifecycle changes. The migration is local
+  only.
+- `ยังไม่จัดกลุ่ม` is excluded from exact-assignment classification even if stale
+  `coach_id` data exists, its learners count in the existing waiting bucket, and
+  no exact coach chip is rendered. A newly created ungrouped draft now starts with
+  `coachId = null`. Existing legacy coach display reads
+  `ข้อมูลโค้ชเดิมของรอบ — ยังไม่ใช่ผู้รับผิดชอบกลุ่ม`.
+- Auto-name now uses each learner's latest `student_levels` row joined to an active
+  `levels` definition and uses the confirmed `levels.program_name` when all members
+  share one category/program. All-unassessed groups use the existing
+  `ยังไม่ประเมิน` label. Mixed categories, mixed assessed/unassessed membership,
+  or incomplete/inactive Level definitions fail with a manual-name instruction;
+  no new combined-name rule is invented. Valid manual names are preserved, legacy
+  `(N คน)` suffixes are removed, and both Coach/Admin UIs derive the count from the
+  current member arrays.
+- Production-active exact write coverage: `POST /api/coach/assignment-groups` and
+  the authorized Admin Makeup actions `move_learner_to_existing_coach_group`,
+  `replace_coach_for_past_round`, `assign_coach_to_round`,
+  `resolve_unassigned_round`, plus retrospective `mark_attendance` when it creates
+  an exact group. Existing route/menu/branch authorization remains intact.
+- Local verification passed: conflict/concurrency database checks `21/21`;
+  deterministic display/authorization/naming checks `24/24`; authenticated disposable
+  Playwright desktop/mobile and anonymous write-route checks `2/2`; fixture and
+  reservation residue `0`; TypeScript; full ESLint; mojibake guard `234`; Production
+  Build 91/91 static pages; and `git diff --check`. Browser console, page, hydration,
+  and layout errors were `0`. Existing counters, attendance labels, teaching
+  program, and wallet display remained unchanged.
+- Local migration reset/apply, rollback of the last local migration, re-apply, and
+  test passed. The exact standalone Production read-only preflight ran before any
+  migration and reported active exact groups `968`, current/future reservation
+  candidates `237`, current/future blocking conflicts `0`, and historical
+  report-only conflicts `8`. Production migration history still ends at
+  `20260715060541`; `20260717070225` was not applied to Production.
+- Exact controlled Production repair completed at `2026-07-17 15:23 ICT`:
+  - Keep Coach Nice `4bad40cc-7367-49a2-aa81-42f35d840d79` at Ramintra exact group
+    `d0b68d67-1ae3-416c-b2f2-99e9ee994449`, slot
+    `98f60622-d02b-4333-9d65-8f4f7a86d8b1`, 17:00–19:00, one learner; keep legacy
+    row `b31c3bce-d319-489b-b7a2-ff5382497c0c`.
+  - Cleared only the Nice `coach_id` from
+    Ratchada exact group `924d0a7c-2d0d-4f75-a2f9-03617cb9d23a`, slot
+    `150b25ba-b55a-448f-9aad-19748ba36b93`, 17:00–19:00, three learners, and remove
+    only matching legacy row `3bcafc20-f927-4814-a586-da7819445d60`. Exact affected
+    counts were group update `1` and legacy delete `1`.
+  - The three Ratchada learners remain in the same group and intentionally remain
+    unassigned under the latest Owner decision: ปฐพี จินตานนท์
+    (`35d68dc4-ddcb-4dd4-8b6e-52af8e27f321`), ญาณพัฒน์ คูศุภรเจริญ
+    (`5477519d-9447-41f5-aea1-17e3815b3ae1`), and นภิสา จินตานนท์
+    (`d64ea638-d350-4d96-9793-d75309a82139`). The Ramintra learner remains
+    wynn udompanit (`8563888b-b813-4b7b-a617-772da1658178`).
+  - Ratchada placeholder group `2e7d4b1f-ddf1-4edc-9667-efb07dadfcfc` has exact
+    Coach Base `c1a5d3ca-9f90-48fb-943c-d96ac5a6afbe` and two learners. Fresh
+    read-only dry-run confirms LV 6 and LV 3, both active category `basic` with
+    `program_name = ชุดพื้นฐาน`; the deterministic proposed rename is
+    `ชุดพื้นฐาน`. Coach/member/legacy data remain unchanged and no Production
+    rename was performed.
+- Fresh preflight, transaction assertions, and independent post-write
+  reconciliation confirmed that group memberships, Ramintra, Coach Base, and the
+  other group/member totals did not change. Attendance, check-in, teaching
+  program, teaching-hours, weekly-summary, and payout dependencies for this
+  target were empty before and after. Historical evidence and all financial data
+  remain unchanged.
+
+#### Current Coach Assignment Remediation Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
+| Task Status | Source complete; tests passed; Source/Test/Migration and documentation committed/pushed; awaiting separate Production approvals |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation follow-up commit on top of Source commit `1b995396f432d11b133c1cf4b5604b6db875b63b`; exact documentation SHA is the commit containing this matrix |
+| Remote HEAD | Same documentation follow-up commit after non-force push |
+| Ahead/Behind | `0/0` after fetch |
+| Source Complete | Yes — committed and pushed, not deployed |
+| Tests Passed | Yes — DB 21, deterministic 24, browser 2, TypeScript, ESLint, mojibake 234, Build 91/91, residue 0 |
+| Committed | Yes — Source/Test/Migration `1b995396f432d11b133c1cf4b5604b6db875b63b`; documentation is the follow-up commit containing this matrix |
+| Pushed | Yes — both commits, non-force |
+| Current Source | Pushed remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`; Production remains `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Deployed | No — remediation not deployed |
+| Deployed Source | `0226e363f6677b078430f93459c2ee2ede6484e8` (pre-remediation Production source) |
+| Deployment ID | `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` — Ready; unchanged |
+| Migration Source | `20260717070225_coach_assignment_conflict_guards.sql` plus standalone read-only preflight — local only |
+| Migration Applied | Local reset/apply/rollback/re-apply passed; Production not applied and remote history ends at `20260715060541` |
+| Feature Enabled | Not applicable; no feature flag changed |
+| Allowlisted | Not applicable; no allowlist changed |
+| Production Active | Source remediation: No; controlled Nice/Ratchada data repair: Yes |
+| Production UAT | New Source not run; deployment prohibited. Production DB preflight and Coach Base dry-run were read-only only |
+| Controlled Write UAT | Application write UAT not run; exact controlled data repair reconciled successfully |
+| Data Repaired | Yes — scoped Nice/Ratchada repair only: exact group update `1`, legacy delete `1` |
+| Production Data Changed | Overall active task: Yes — only the earlier two authorized Nice/Ratchada rows; current auto-name/migration-safety round: No |
+| Customer Impact | Nice collision removed from Ratchada; three learners intentionally remain unassigned; Coach Base still shows the old placeholder until separately repaired; undeployed overlap/name/display guards remain pending |
+| Financial Impact | None; attendance/check-in/teaching-hours/weekly-summary/payroll/payout and financial data unchanged |
+| Blocker | Owner approval required before every Production action |
+| Remaining Work | Optional exact Coach Base rename approval; separate Production migration apply approval; deploy/UAT approval; permanent `AGENTS.md` rule documentation handled separately |
+| Task Done | No |
+| Next Gate / Next Action | Await separate Owner approval for exact Coach Base rename, Production migration, and deploy/UAT; no replacement coach is required for the three Nice/Ratchada learners in this round |
 
 ### Admin Schedules — Exact Coach Assignment Classification
 
@@ -238,7 +411,7 @@ PASSED** (Owner decisions 2026-07-17).
   auto-assignment, Production business-data write, data repair, or financial
   effect occurred for this task. Rollback was not used.
 
-#### Current Admin Schedules Assignment State Matrix
+#### Historical Admin Schedules Assignment State Matrix (state observed at the prior release closeout)
 
 | Field | Current value |
 | --- | --- |

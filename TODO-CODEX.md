@@ -9,10 +9,39 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**NONE.**
+### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Next action: **Await Owner selection. Do not start a Parking Lot task
-automatically.**
+Status: **SOURCE COMPLETE; TESTS PASSED; SOURCE/TEST/MIGRATION AND DOCUMENTATION
+COMMITTED/PUSHED; PRODUCTION ACTIONS AWAIT OWNER**.
+
+- Shared exact-overlap validation, legacy-only warnings, ungrouped display
+  semantics, Level-source auto-name, dynamic member counts, atomic normal save,
+  standalone read-only preflight, existing-group reservation backfill, lifecycle
+  synchronization, and the local-only concurrent-write migration are implemented
+  and verified.
+- Source/Test/Migration commit
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` and its separate documentation
+  follow-up were pushed non-force. Post-push fetch confirms Local/Remote HEAD
+  match and ahead/behind `0/0`. Production Source remains unchanged on
+  `0226e363f6677b078430f93459c2ee2ede6484e8` / deployment
+  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. The Owner-authorized Nice/Ratchada repair is
+  complete: exact group update `1`, matching legacy delete `1`, three Ratchada
+  learners preserved and intentionally waiting, Ramintra/Coach Base preserved.
+  Fresh Coach Base dry-run proposes `ชุดพื้นฐาน` from its two real learners (LV 6
+  and LV 3); no Production rename occurred. No Production migration, deploy,
+  Production UAT, attendance/check-in/teaching-hours/payroll or financial change,
+  flag, or allowlist change occurred in this publish round. Pre-existing dirty
+  `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
+  excluded; permanent `AGENTS.md` rule work remains separate.
+- Exact current matrix, Owner decisions, affected row ids, local test evidence,
+  and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
+  **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
+
+Next action: **Await separate Owner approval for (1) the exact Coach Base
+Production rename to `ชุดพื้นฐาน`, (2) Production migration apply after a fresh
+read-only preflight remains clear, and (3) exact-source deploy plus authenticated
+Production UAT. The three Nice/Ratchada learners may remain unassigned; do not
+start a Parking Lot task automatically.**
 
 ## Recently Completed
 
