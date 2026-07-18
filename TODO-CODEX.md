@@ -11,8 +11,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **EXACT SOURCE DEPLOYED; INFRASTRUCTURE HEALTH PASSED; AUTHENTICATED
-PRODUCTION UAT NOT RUN — SCHEDULED FOR TOMORROW**.
+Status: **EMERGENCY ROLLBACK COMPLETE; NEW SOURCE PRODUCTION UAT FAILED FROM REAL
+OPERATIONS EVIDENCE; INCIDENT WRITES IDENTIFIED; TASK NOT DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -22,10 +22,12 @@ PRODUCTION UAT NOT RUN — SCHEDULED FOR TOMORROW**.
 - Source/Test/Migration commit
   `1b995396f432d11b133c1cf4b5604b6db875b63b`, initial documentation
   `20721178ae1924fd594d3ba5ce3a232f33925e7c`, and the corrective documentation
-  follow-up were pushed non-force. Post-push fetch confirms Local/Remote HEAD
-  match and ahead/behind `0/0`. Production now runs exact Source
-  `1b995396f432d11b133c1cf4b5604b6db875b63b` in deployment
-  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F`. The Owner-authorized Nice/Ratchada repair is
+  follow-up were pushed non-force. Production deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` was rolled back after confirmed Head Coach
+  assignment and mixed-Level grouping regression. All four Production aliases now
+  run restored Source `0226e363f6677b078430f93459c2ee2ede6484e8` in Ready
+  deployment `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. The Owner-authorized
+  Nice/Ratchada repair is
   complete: exact group update `1` and matching legacy delete `1`. Three later
   Production-user actions intentionally moved its learners into Coach Base group
   `2e7...`; Owner confirmed Coach Base now owns all five learners and they must not
@@ -37,18 +39,26 @@ PRODUCTION UAT NOT RUN — SCHEDULED FOR TOMORROW**.
   check-in, teaching-hours/payroll, and financial evidence reconciled unchanged.
   Authenticated read-only Admin Schedules UAT shows Coach Base, `ชุดพื้นฐาน`, and
   the dynamic five-member count without console/page/hydration errors. Fresh
-  migration preflight reported active exact groups `966`, current/future
+  migration-apply checkpoint preflight reported active exact groups `966`, current/future
   candidates `235`, blocking conflicts `0`, and historical report-only conflicts
-  `8`. Approved migration `20260717070225` applied exactly once; remote pending is
-  empty, reservations reconcile `235/235`, and missing/stale/orphan/mismatch rows
-  are `0`. Production business data fingerprints and Coach/member/legacy targets
-  remained unchanged. Exact Source
-  `1b995396f432d11b133c1cf4b5604b6db875b63b` is now active in Ready deployment
-  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` on all four Production aliases. Production
-  Build passed `91/91`; public `/`, `/api/health`, and generated static assets
-  returned `200`. No authenticated Production UAT, mutation request, environment,
-  flag, allowlist, migration, or Production-data change occurred in the deploy
-  round.
+  `8`. At the migration-apply checkpoint, approved migration `20260717070225`
+  applied exactly once; remote pending was empty, reservations reconciled
+  `235/235`, and missing/stale/orphan/mismatch rows were `0`. Production business
+  data fingerprints and Coach/member/legacy targets
+  remained unchanged. Exact Source `1b995396f432d11b133c1cf4b5604b6db875b63b`
+  remains pushed but is no longer Production-active. Rollback infrastructure
+  passed: old deployment Ready, aliases `4/4`, `/`, `/api/health`, and static asset
+  all `200`. Migration `20260717070225` remains applied exactly once. Pre/post
+  rollback fingerprints match for groups `1026`, members `2432`, legacy `1000`,
+  and reservations `234`; the rollback changed no database row.
+  Narrow authenticated read-only Head Coach verification shows the restored page
+  at `36/39` assigned, `3` unassigned, `135` learners, and all four 2026-07-18
+  rounds assigned. No Save/mutation was triggered by Codex.
+  Incident activity logs show `51` successful normal Save operations across `47`
+  slots, six Head Coaches, and six branches. Current surviving incident-window
+  rows are `55` exact groups, `97` members, `50` legacy assignments, and `50`
+  derived reservations. These operational writes were not controlled UAT and were
+  not repaired; exact row IDs and evidence limitations are in `DEVELOPMENT_TODO.md`.
   Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
@@ -56,10 +66,10 @@ PRODUCTION UAT NOT RUN — SCHEDULED FOR TOMORROW**.
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Wait for the Owner's scheduled instruction tomorrow, then run only
-authenticated read-only Production UAT. Controlled write UAT remains prohibited.
-Do not move the five Coach Base learners back and do not start a Parking Lot task
-automatically.**
+Next action: **Stop. Await Owner review and separate approval for read-only Source
+diagnosis before any forward fix. Any repair of the 47 incident slots requires a
+separate exact-row approval. Do not roll back the database migration, run write
+UAT, or start a Parking Lot task automatically.**
 
 ## Recently Completed
 

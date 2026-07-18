@@ -4638,3 +4638,215 @@ State observed at this infrastructure-only deployment closeout on 2026-07-18:
   impact **None**. Task Done **No**. Next action is to wait for the Owner's
   scheduled instruction tomorrow before authenticated read-only Production UAT;
   no next task starts automatically.
+
+## 2026-07-18 — Emergency Production Rollback and Head Coach Incident Audit
+
+State observed at this emergency rollback closeout on 2026-07-18:
+
+- Real Head Coach operations confirmed that Source deployment
+  `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` blocked assignment visibility and mixed-Level
+  grouping. Owner authorized only an immediate rollback of the four Production
+  aliases to `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`, narrow read-only incident
+  verification, activity-log reconciliation, and documentation closeout.
+- Rollback succeeded. Target deployment is Ready and all four aliases resolve to
+  it. `/`, `/api/health`, and static asset
+  `/_next/static/css/4e4fe59c9141653c.css` returned `200`. Current Production
+  Source is restored to `0226e363f6677b078430f93459c2ee2ede6484e8`.
+- Database migration `20260717070225` remains applied exactly once. Pre/post
+  rollback fingerprints are identical: groups `1026` /
+  `a19dc8518421d7d04618ec377bc3aa2b`; members `2432` /
+  `68e30e1fccf733555392b7a35720cf88`; legacy `1000` /
+  `2f63d86390d5b47186209f293a515a5e`; reservations `234` /
+  `2ffff002063db9e9ba46eb8c24402e10`. Therefore rollback changed no database or
+  reservation row. The earlier `235` count is historical; normal Production
+  assignment activity had already changed current reservations to `234` before
+  rollback.
+- Authenticated read-only Head Coach verification after rollback showed `36/39`
+  assigned slots, `3` unassigned, `135` learners, and 2026-07-18 with all `4/4`
+  rounds assigned. The widespread false `ยังไม่ได้มอบหมาย` state was gone. No
+  Save or mutation request was issued by Codex.
+- Incident window reviewed: bad deployment creation at
+  `2026-07-17T17:01:38Z` through post-rollback reconciliation. There were `51`
+  successful `save_coach_assignment_groups` activity rows, first at
+  `2026-07-17T18:26:13.466854Z` and last at
+  `2026-07-18T05:19:24.350726Z`; `47` distinct slots, six actors, six branches,
+  submitted totals `62` groups / `118` learner placements, and four saves with no
+  coach. Actor/branch totals: แจ้งวัฒนะ/โคัช ตี๋ `21` saves (`21` slots);
+  สุวรรณภูมิ/โคัช แบม `20` (`17`); เทพารักษ์/โคัช เบล `4` (`3`);
+  พระราม 2/โคัช จ้า `2` (`2`); รัชดา/โคัช เบส `2` (`2`); and
+  รามอินทรา/โคัช อิค `2` (`2`).
+- The committed RPC deletes and recreates exact groups/members and slot legacy
+  rows before inserting submitted state; reservation triggers synchronize derived
+  protection. Current surviving rows for those slots are `55` exact groups, `97`
+  member rows, `50` legacy rows, and `50` reservations. Every surviving row was
+  created during the incident window. Repeated saves mean deleted/replaced row IDs
+  and exact pre-save values are not retained in activity-log details; no repair may
+  infer them.
+- Exact affected slot IDs (`47`):
+  `0c42e0ae-803e-46e6-94ee-9b7e69a9debd`,
+  `0dba39b3-b144-42ef-86b5-b14522ee9973`,
+  `1402f9f7-ed69-49d0-be41-6a2508cf56e1`,
+  `172ec432-ea04-4b8f-b051-643078d97929`,
+  `1c77289d-7c81-422a-a907-8d459e171cc8`,
+  `24da232d-9464-499e-bfac-a88d1da76cd3`,
+  `2600c26d-66ec-4541-b138-222adc60887d`,
+  `2c8a78e2-5a8d-4c65-9ea4-082fad61ddbc`,
+  `2d74f803-035f-4b3e-81d2-ac1de4f453c2`,
+  `30de9108-4f5d-4b7b-a973-d6034395d85b`,
+  `38cb731d-4d3d-47a0-a8c7-a05e27eaf14f`,
+  `3e4a9116-3b94-4d4a-8e8d-589999a109d3`,
+  `41264f66-b892-499b-8184-773e966756d5`,
+  `49398c94-9b06-40e0-af41-bc931b9124be`,
+  `4ccef74d-2ba4-43a2-a46d-ce259464e3ba`,
+  `4edff3c8-d353-4407-b3cb-e59c3f5b88ad`,
+  `510bb353-deda-41af-9b43-4cdd88a031e6`,
+  `5266ddfb-8491-4cd2-9214-7c226b2a9bb0`,
+  `540e5de9-f7ab-4be0-89f7-6ad272685a1f`,
+  `5f6a33e8-eca6-407a-9cba-e5d2a6d2a4ff`,
+  `748bead5-a0d7-4d62-9e04-9b225187e05e`,
+  `77fd55b4-588a-41eb-a7f3-6be621c6d4b1`,
+  `8325e74f-a202-40bb-bc6f-cef6521367c3`,
+  `88be346a-fc92-4b06-af48-d7277856e042`,
+  `8fb032a4-5303-40bd-bbeb-091c8033050e`,
+  `910c6b5e-e969-42e5-8e32-4d8b9aba59b3`,
+  `91b9b803-6696-453b-8802-82f0b409ce3f`,
+  `92945dc6-497e-4c18-9ef1-a5cda54115fb`,
+  `94696a94-42d8-4056-9063-44fcf77db060`,
+  `a356af6f-a317-4b04-97d1-d1570d0cc11d`,
+  `aa05ef02-c713-44a1-bfd1-352168409346`,
+  `afa91321-aa6a-453b-8163-481e4feeb1ad`,
+  `afe3d174-b3da-4bb9-b9ba-4a57ceffc1f8`,
+  `bc4d18d4-9050-40d6-be97-982c35744e54`,
+  `c1d5849f-7eef-4162-a7cc-a2a9cac8912e`,
+  `c6526b09-b8e4-462b-95b5-a5eb3a44df27`,
+  `da36347f-8ff6-4eca-aae4-30282ec44f2c`,
+  `dbb11f93-7225-4489-bb66-833124a53a51`,
+  `e35bd1b2-309e-4fc4-b48d-37291ae7bd7a`,
+  `e4a16451-fd7a-455f-8765-c4cc759c09be`,
+  `eaedfc9f-a0f3-4c0a-bcf2-95e0f512074d`,
+  `ede40674-b21d-4f50-9c98-0cf2f1f20347`,
+  `ee62b870-ea74-4765-a5e2-a70b37538ce4`,
+  `f003625e-1d0b-4a05-9987-afd2ebe421d6`,
+  `f585924d-bb63-47a2-a562-1f07423a9c73`,
+  `f79a05cf-d9bc-4f6e-8a9b-9b796a1a1638`,
+  `fa88ea5b-9986-4117-b5a7-6cf007e8068f`.
+- Exact surviving group IDs (`55`):
+  `09429650-5c5d-402b-b2db-b0314cee553e`, `0ce9dab5-bb62-496f-a485-aae50cbad2a9`,
+  `0e1848e0-ca02-4469-ac85-5b3c4d5d9e90`, `1075cccd-227e-4b49-a8c8-d7162f88ff3b`,
+  `132a4c78-2e39-4be9-a6e1-4be4f924e948`, `1a86d15d-49ec-4a06-9a4f-e4dbd9271813`,
+  `223b9479-2267-4d9d-9871-6df51a3006b6`, `25f4050f-21fc-4a46-93f9-77076d229a67`,
+  `27c5dab4-4f7d-4834-b545-e6e0b63cfeaa`, `2a247c84-fe81-4c49-abbf-0c64f306f06f`,
+  `322b7599-6e06-4d72-b5c8-6ad15a330932`, `327cf9df-ffc5-492b-9e39-04ffed183424`,
+  `37d790de-338e-4447-bc09-f9e969a4af1e`, `4183f82a-56bc-4316-a15e-22a8a8f610ac`,
+  `41eb13dd-6a73-4b38-9bd3-b93f66ceaabc`, `42b4dcea-478e-47f3-bc85-10b22b1cb0f6`,
+  `454e3b97-79ac-45c2-8ed3-8f67e5d4fc5a`, `477d7c44-ac11-4963-a40f-5c603b98409c`,
+  `4ca63923-5913-4be1-8986-a967a8bfb645`, `4e7e5914-befd-442d-8178-dc81caf30df7`,
+  `519798a5-ace0-4203-b80b-1a27d93603fd`, `54a46a53-e115-4084-a624-727accc2e8bd`,
+  `59773d52-5b90-4a74-90e4-c23d297a9226`, `620f865e-19e8-44c2-b923-ea60b2e99722`,
+  `7261c16c-9c37-41d5-aa74-4580d326246b`, `76a0ec4c-244c-47dc-8e3a-25659490a75c`,
+  `7838f9be-7bfe-40f3-a54b-95309e361301`, `78e56458-8e33-47f3-89b5-0a6b22b5a3b6`,
+  `7e577cdc-5d67-4d26-b0f6-bfc6a788860a`, `8412ee17-e58b-45e2-b6c0-79bf1c356e5a`,
+  `8cdf83df-fe79-4440-95c1-de11fa4de065`, `8f5f6f91-0ee1-4106-8e50-2a5db7ee6aaf`,
+  `93ccc54d-570b-4af0-9ae3-be2a032579d9`, `94da159f-d5ff-4045-b6a6-ade565064ad4`,
+  `9a87df14-bf93-4e72-8d8b-4df2c97101aa`, `9d36f878-905f-497c-87e0-d88bcfd55333`,
+  `9edbe1e6-fb74-46a7-8dcb-97728ad1dcf0`, `a2ef1d33-a909-47a5-8862-0fcc4797bb23`,
+  `b7989c00-8405-4eed-b03e-28958e9147c8`, `bcffe278-f755-4cc6-974e-3b97dc8435cb`,
+  `bd085fd4-7558-4ed1-997d-4d9a8f82b054`, `c45f4d05-a7c9-4729-8923-8274099d376a`,
+  `c4a4dd69-e931-4fb1-89fb-84864095bb21`, `c792c352-de6a-4125-b90a-5120e0642670`,
+  `c980f02f-8b5f-43b7-99f3-c21bffaa0b0f`, `d582674d-de4a-4dfc-be6f-e97f943852b8`,
+  `da9adf4c-4720-4a5c-8adc-28113913396b`, `de65e8fb-7a65-422d-a862-c02a35a0649f`,
+  `e6f92092-295f-4c4a-a59a-5dcc1772817a`, `e743e64c-b064-4ce1-b7d9-142c9d90539a`,
+  `ee880163-62ee-4c2b-9b8f-e5cd44fa36d9`, `ef7cf43e-31ef-46ab-be5e-6ac5a7b2c542`,
+  `fadfe63f-f507-4785-a448-c24075c4dc22`, `fce44625-4a23-49b7-825f-a0a8320834a4`,
+  `fd256a86-13d2-46a6-a604-c8337cdf9bcf`.
+- Exact surviving member-row IDs (`97`):
+  `01829e3b-d38e-4a1b-a55e-bc838d49158b`, `0224c72c-c195-47bd-8291-3c49a8c51cad`,
+  `02a3a74e-b0bc-4bf8-a431-d99bc1a5c6a3`, `03ca8c70-fd1b-46e3-a29a-441d3a34736e`,
+  `047e2242-5c60-4219-ba14-33e905afa07a`, `063872fd-22fd-4a25-b465-b1eb93e082d2`,
+  `0729d836-f120-409e-aed0-432415e17954`, `0aa9c433-809a-4c57-b7d2-bcd3c75c37e9`,
+  `15cc0b0a-a4c7-4bcc-b045-c877d8dcab96`, `16d41b04-4568-45de-b012-6009b88a3ef0`,
+  `17462cdc-d18b-4bae-90f8-f5ce124b9ff1`, `186dcbac-2579-486a-8f41-b221ded10c8d`,
+  `1a3da4a9-8376-446e-a440-76b0734983d7`, `2038838d-ca3a-483f-ae4c-27a58420c813`,
+  `20613a90-8cfa-426f-a38a-b0e24a4446db`, `224c24b0-f25a-4acc-bbee-6058efa4c95b`,
+  `227ec28c-57a3-4adf-8f33-04d5acc91b72`, `229707d1-3081-4ec9-901d-05bf55adc3fe`,
+  `267ad715-e9b8-4824-862d-83d65910950e`, `272d0b8e-5988-4f7e-b032-51566bf52dd2`,
+  `2742dbcf-84ae-4599-8aa6-a876cf457506`, `2af4490e-6b91-45b7-b0b0-2231a1b576fb`,
+  `2b82673f-76b0-456c-91d3-3f68d0f15055`, `34384dc6-c649-43e2-8c81-a6436864d5b2`,
+  `34fc4601-bf24-4df8-b015-06336b86a6fb`, `35d07e7a-67cd-42e3-a482-a9c1784f92f8`,
+  `36b1e8d1-a320-4c20-8755-8fbba678d202`, `377d0dce-de9c-43ca-af38-0f6b9cc24ffd`,
+  `37c1d214-1325-47ba-b376-14a75b3e71bd`, `3cd4f3de-7432-4855-8f69-1e78d7cb5f8b`,
+  `3d50d443-e57f-458c-abd5-9e33caeced7f`, `3dbb7014-b521-49b1-9f57-e495ce5b0efe`,
+  `40e26c18-cf12-41d4-ad47-754bc5316d67`, `442f6efb-4223-4880-a6a8-0397ec8686ba`,
+  `46d69d0c-6b81-4e62-8c25-552615c2ef31`, `4a9d96f5-6339-4a4a-9ed3-e5fd718a0406`,
+  `4b1e7dee-6e00-41d5-b5b4-32515bac9ffc`, `4eb39b54-7b14-4e18-9931-66d3b1dcb36b`,
+  `4f91faf2-a1b8-4b49-bcb1-9a1e4625166b`, `558486ab-3176-4db9-813f-4ae63d558b81`,
+  `59390d97-18f7-45b2-85ac-cc443f0c0927`, `5a070183-bc0a-4e88-b914-53b259ebaaa1`,
+  `5a845d17-2e5f-4736-906f-9c6fecc94dbe`, `5c973e97-c2af-409e-8c9f-19cc901e3ac7`,
+  `5d61aa0c-eb4d-489b-a3c0-cdb353d3deb6`, `5e49656d-7360-4463-8d52-ebf9cd3511be`,
+  `5fb5ecb8-9b0a-4874-9e43-22365b289463`, `6137f87a-31f0-4dac-9d7f-6ff190b6fcac`,
+  `6579f0c3-c36c-45e8-8d21-a74bcdca3e19`, `6691402d-8f08-44f4-9609-4e9e985833ac`,
+  `68b7a21e-8b42-4b42-966d-e8fb40663155`, `6ac90dd6-acf0-4390-b234-37dc0348cc95`,
+  `71b87ea8-0947-4768-ba51-39b3b1dd99c5`, `71ed8252-d7fc-4a08-8bc6-d7dc539a0d51`,
+  `735b87a0-b7fd-4784-853c-e62b3698663e`, `776115f2-fb88-4a2d-bff2-154067fa08f6`,
+  `79f84999-5c84-47b6-8da7-98da79951e7d`, `7d45050f-1e2f-4ce2-8a3a-09b4c4508583`,
+  `7eabbf19-20ab-4b8c-adfd-f5dc70ab9303`, `8311fb9b-28ec-431e-a896-4093b76245c5`,
+  `8615f9d8-6e87-4ea5-bd08-2d1143d838d3`, `8adb39a5-dfc8-4bf9-bb52-4d4deedde760`,
+  `8ce00005-b5fa-4aec-9ab5-ffb7a3e665ad`, `91a5c3c3-f788-4bf3-ad54-1d5da1e7ad17`,
+  `939dea14-1991-4795-9822-20d97ece6265`, `a733ac50-25d0-465b-aeb4-a7c8bcb95ecf`,
+  `a8115ca1-eaf6-4062-883b-4ff3dab83064`, `a8fb30d0-454e-4bd4-ae60-b8eb6959f1ae`,
+  `b02fd160-42d1-4227-9493-fc00298beada`, `b069a0ec-3830-451e-9469-64cca66c9a90`,
+  `b2afa0c7-b7c9-427c-b686-a2d140c84348`, `c239aed7-8dab-40a9-8781-2b6672db0287`,
+  `c3cb066b-fffa-4a83-adc9-46412b4062d9`, `c4f8c205-e276-4ba3-ade1-8c56cd2eca6d`,
+  `c666da02-46f5-4aa2-a17d-5e8e99a6e750`, `c750f2c7-3928-4444-9f74-7e13480e4a30`,
+  `c96198cc-adf9-46ce-9ebc-e46c273133bd`, `cd02fbe6-60d2-421c-b522-50ce516529ea`,
+  `d36704c5-db7d-4eac-994b-36d3b8c71887`, `d47dfea9-237a-4959-9a1c-9bc1841e5df0`,
+  `d506b04e-980e-407c-b99f-7b1577d5dd01`, `d5fd230e-ae00-4419-b999-36e8bb4e4011`,
+  `d68b214a-0c26-4ec8-945b-3a4a348961e6`, `dc950cde-a0a0-42d3-9d41-9c15ff494e4b`,
+  `ddbb665a-ffff-4a1e-bf8b-5ba602d0eb1b`, `df4d31bd-1dad-4082-b91e-530ec3710f5d`,
+  `e14b51ed-e454-47d2-a946-33f5b63232eb`, `e54b0563-5e6f-4fe9-a81e-595d6375bc43`,
+  `e8ae21d6-fa0a-4d4d-af6f-ac52079e2c18`, `e9705dd0-1bb3-4372-b519-93772ba04c24`,
+  `e9e8d0de-c0de-4af0-978f-885b8dc58fd1`, `ec9fa697-13c0-4831-a556-9e49c1a2afa9`,
+  `ef8441fb-1036-471a-bdee-8312748d06ee`, `f387db49-b775-4581-80d9-7ab79f086f85`,
+  `f57002e4-763c-4da3-b831-e0d9bd524cc3`, `f5f6d149-7501-4b9d-ac2c-fadec1cfbb5c`,
+  `f93ee351-d4b8-4d2c-bd29-34665aa4ff70`.
+- Exact surviving legacy-row IDs (`50`):
+  `04705b4f-9209-4579-aa9a-4c6e4d6680d0`, `058336da-6529-470c-a9d5-d3d53c6a6070`,
+  `062e024e-38a7-46d6-b124-c552cbf52525`, `0724af16-5f34-4378-a148-a9bd28935591`,
+  `0c8ad94e-a3a6-4e60-bd56-4c9a83c98b91`, `0ec52a89-dc72-428d-9c55-0595ded23d5a`,
+  `1339e0bb-c828-4532-976d-80352cad9cc1`, `1546a0c3-442a-438f-b52e-6c055c235db2`,
+  `18313ce5-e04d-4d9a-bb23-d31d448817cf`, `1f7c2f7c-e94c-46de-a595-5eaf51c574a6`,
+  `2006899f-c661-4532-b4d8-bfe9a3acebc3`, `2334cfa8-21f0-4ecf-9e69-bf88266aba88`,
+  `23bfa3d4-3643-49ec-8670-f966e13c4dfa`, `27f4d402-0947-4169-bdf7-66bec2f8d598`,
+  `29b19ab4-1be6-4bb2-9f50-b8a428db8c10`, `2c2df60b-2de9-41dd-8810-c9749b498ab5`,
+  `320d7d24-0d7e-4281-ab91-14334c9a457c`, `3303d05a-6c58-4dc0-8699-c7ec450639c2`,
+  `3493e326-ecf9-4d8b-91ff-74a0c0db5f55`, `38d4516d-a4ae-4240-98d3-3e204fcc94a9`,
+  `39398fa5-1e01-4069-946a-2f302bf8cec1`, `411d1528-9593-45db-809f-b1ae8d84e238`,
+  `43315187-b1f9-49bb-9a10-8dc64caa9118`, `559634b0-2384-4450-b92f-008fdb25b95c`,
+  `574cc46d-e6a8-4896-8c6e-c74b089c47dd`, `58640154-b700-490d-a2f1-5b3b515a8163`,
+  `5a86f54e-25c7-4640-bebf-6719f1339b9a`, `69c1c123-af72-4740-818d-6cda79def236`,
+  `72d4fbce-3dbe-401e-88e2-7889bae90bfc`, `79ad3a82-4d7c-4088-8a36-de4ce1e135c3`,
+  `81410e60-ab09-447a-8e02-0599c86289d1`, `8e77edce-5b85-4688-a375-0c5ab06116fc`,
+  `95e6ea56-e8ec-4cde-9c0a-0fbaf14ab2db`, `97cefe9f-a10b-4bc3-b882-a1e68fa27cac`,
+  `983545a1-6b03-4380-9138-c5746d5f3498`, `98b47832-ef35-479c-82a6-aa755bc2e05f`,
+  `a15df721-f2ba-4d27-a877-25bf7a02ed96`, `a2e8647a-00ae-4d50-b4a1-b55402664681`,
+  `a82c5451-2c75-4b7b-8b32-46aba50e57a2`, `bcfddd28-28dd-4c8c-a7dd-d9cd174d967a`,
+  `bef5f11e-f73e-46df-b411-d3f9e0711856`, `c8abbaac-86ba-4e42-982a-ec0c440ad561`,
+  `cf2ce0be-35d2-4912-bd8b-7577a01668f7`, `e0be897b-680a-4aa7-9338-1242c122a23c`,
+  `e5e23c71-d2c4-4ec9-a62b-bee9fde1f6ea`, `e67d9b68-bd89-4831-bd84-7d28ec897a8a`,
+  `ef521638-0acf-4fba-a95c-279895e5f708`, `f0c154e8-8900-48f2-9dab-dd6591132661`,
+  `f2f19497-ac61-49e3-9edb-2f0908a52811`, `f32afb67-dbc3-410a-9690-7bf6f17fd7a3`.
+- Exact reservation row key is `group_id`; there are `50`, equal to the coach-
+  bearing subset of the exact `55` group IDs above. The five unreserved groups are
+  `0ce9dab5-bb62-496f-a485-aae50cbad2a9`,
+  `1075cccd-227e-4b49-a8c8-d7162f88ff3b`,
+  `42b4dcea-478e-47f3-bc85-10b22b1cb0f6`,
+  `54a46a53-e115-4084-a624-727accc2e8bd`, and
+  `9edbe1e6-fb74-46a7-8dcb-97728ad1dcf0` because their current exact group has no
+  coach.
+- No Source, migration, environment, feature flag, allowlist, attendance,
+  check-in, teaching-hours, payroll, payment, wallet, or finance write occurred in
+  the rollback round. Financial impact is **None**. The incident assignment rows
+  remain untouched pending Owner review. New Source Production UAT is **Failed
+  from real operations evidence**; Task Done is **No**. Next Gate requires
+  separate approval for read-only Source diagnosis, followed by separate decisions
+  for any forward fix or exact-row data repair.
