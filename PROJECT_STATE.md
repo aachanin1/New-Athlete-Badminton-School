@@ -209,6 +209,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   attendance/check-in/payroll/financial writes, and unrelated Source remain
   prohibited. If the local/deployment/no-write gates pass, this minimal containment
   may be deployed immediately and documented; the task must remain open.
+- Owner then authorized a forward Source correction based exactly on
+  `1b995396f432d11b133c1cf4b5604b6db875b63b`, with Local tests plus scoped
+  commit/push only. The approved policy preserves valid exact `coach_id`
+  assignments regardless of placeholder/legacy names, treats wide or mixed Level
+  as non-blocking, uses `กลุ่มผสม` as the approved mixed fallback, preserves manual
+  names, strips stored member-count suffixes, and requires all exact-assignment
+  writes to use the atomic RPC contract. Deploy, containment removal, Production
+  mutation/UAT, migration change, and repair of the 3 damaged slots remain
+  prohibited pending separate Owner approval.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -224,9 +233,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 - Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
   Semantics**.
-- Task Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; NEW SOURCE
-  PRODUCTION UAT FAILED; FORWARD FIX AND THREE CONFIRMED DAMAGED SLOTS REMAIN;
-  TASK NOT DONE**.
+- Task Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE
+  COMPLETE AND PUSHED BUT NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED;
+  THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -241,7 +250,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `3ad8a52dbda95b645608bce2f05917824e9763a6` was created from exact base
   `0226e363f6677b078430f93459c2ee2ede6484e8` and pushed non-force on branch
   `codex/emergency-coach-assignment-containment-20260718`. The documentation
-  closeout is the commit containing this current-state matrix. Pre-existing unrelated dirty paths
+  closeout is the commit containing this current-state matrix. Forward-fix Source/Test
+  commit `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`, tree
+  `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`, was created directly on parent
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` and pushed non-force on branch
+  `codex/coach-assignment-forward-fix-20260718`. Pre-existing unrelated dirty paths
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   preserved and excluded.
 - Exact remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`, tree
@@ -290,6 +303,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   once and was not rolled back. Fresh protected totals before and after the
   authorized no-write check are identical: groups `1022`, members `2426`, legacy
   assignments `996`, and reservations `230`.
+- Forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` is complete and
+  pushed but not deployed. It preserves exact assignments by valid persisted
+  `coach_id`, makes mixed/wide Level non-blocking, normalizes blank/placeholder and
+  legacy count-suffix names without overwriting valid manual names, displays
+  member counts from live membership, and routes all five active Admin Makeup
+  exact-assignment paths through the same atomic RPC used by normal Save. Local
+  verification passed assignment/naming checks `30/30`, database conflict and
+  concurrency checks `22/22` with fixture residue `0`, authenticated Playwright
+  desktop/mobile `3/3` with residue `0`, Lesson Wallet regression `17/17`,
+  TypeScript, ESLint, mojibake `234`, `git diff --check`, Production Build `91/91`,
+  local migration reset/down/re-apply, and post-build clean restart with `/`,
+  `/api/health`, and static asset `200`.
 - Authenticated Head Coach verification after containment activation shows the
   read-only assignment page still renders `36/39` assigned slots, `3` unassigned,
   and `135` learners. One Owner-authorized containment check attempted the normal
@@ -314,15 +339,17 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Correct the forward Source fix locally, then request exact evidence
-  and Owner approval to repair the 3 confirmed damaged slots separately. Do not
-  roll back the database migration, repair data, re-enable assignment writes, or
-  start a Parking Lot task automatically.**
+- Next Action: **Owner review of exact forward Source
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; any deploy, containment removal,
+  or Production UAT requires separate approval. Obtain exact evidence and separate
+  Owner approval before repairing any of the 3 damaged slots. Do not start a
+  Parking Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; NEW SOURCE PRODUCTION UAT FAILED;
-FORWARD FIX AND THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
+Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; FORWARD SOURCE COMPLETE/PUSHED BUT
+NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED; THREE CONFIRMED DAMAGED
+SLOTS REMAIN; TASK NOT DONE**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -498,16 +525,16 @@ FORWARD FIX AND THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Emergency Production write containment active; new Source Production UAT failed; forward fix and 3 confirmed damaged slots remain; Task not done |
+| Task Status | Emergency Production write containment active; forward Source complete/pushed but not deployed; prior new-Source Production UAT failed; 3 confirmed damaged slots remain; Task not done |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; containment Source is separately committed at `3ad8a52dbda95b645608bce2f05917824e9763a6` |
 | Remote HEAD | Same documentation closeout after non-force push; containment branch also pushed non-force |
 | Ahead/Behind | `0/0` after fetch |
-| Source Complete | Emergency containment: Yes. Correct forward Source fix: No. Regression Source `1b995396...`: pushed but not Production-active |
-| Tests Passed | Containment targeted checks `7/7`, assignment regression `12/12`, TypeScript, full ESLint, mojibake `231`, diff check, Production Build `91/91`, post-build clean restart, infrastructure health, authenticated read rendering, and authorized no-write `503` passed. New Source Production UAT remains failed |
-| Committed | Yes — containment Source `3ad8a52dbda95b645608bce2f05917824e9763a6`; documentation closeout is the commit containing this matrix |
-| Pushed | Yes — containment and documentation scoped commits, non-force |
-| Current Source | Containment `3ad8a52dbda95b645608bce2f05917824e9763a6`, based exactly on restored Source `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Source Complete | Emergency containment: Yes. Correct forward Source: Yes locally at `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; not Production-active |
+| Tests Passed | Forward Source: assignment/naming `30/30`; conflict/concurrency `22/22` with residue `0`; authenticated Playwright desktop/mobile `3/3` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint; mojibake `234`; diff check; Production Build `91/91`; local migration reset/down/re-apply; post-build clean restart `200/200/200`. Prior new-Source Production UAT remains failed |
+| Committed | Yes — containment Source `3ad8a52dbda95b645608bce2f05917824e9763a6`; forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; documentation closeout is the commit containing this matrix |
+| Pushed | Yes — containment, forward Source, and documentation scoped commits, non-force |
+| Current Source | Production: containment `3ad8a52dbda95b645608bce2f05917824e9763a6` based on `0226e363f6677b078430f93459c2ee2ede6484e8`. Forward candidate: `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` |
 | Deployed | Yes — containment-only release active; rollback deployment remains the fallback |
 | Deployed Source | `3ad8a52dbda95b645608bce2f05917824e9763a6` (base `0226e363f6677b078430f93459c2ee2ede6484e8`; regression Source excluded) |
 | Deployment ID | `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` — Ready on all four established Production aliases; fallback `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` |
@@ -515,17 +542,17 @@ FORWARD FIX AND THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 | Migration Applied | Yes — Production applied exactly once; not rolled back; current reservations `230` and pre/post containment fingerprint identical |
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Regression/remediation Source `1b995396...`: No |
-| Production UAT | Failed — real Head Coach operations confirmed assignment visibility and mixed-Level grouping regression under the new Source. Containment-only no-write verification passed |
+| Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Forward Source `c70f5a4...`: No |
+| Production UAT | Forward Source `c70f5a4...`: No. Prior regression Source `1b995396...`: Failed from real Head Coach evidence. Containment-only no-write verification passed |
 | Controlled Write UAT | No successful write UAT. One authorized containment check returned `503`; successful assignment Save logs after activation `0` |
 | Data Repaired | No — no incident data was repaired in this containment round; 3 damaged slots remain pending separate evidence and approval |
 | Production Data Changed | Containment round: no business-data change. Protected totals/fingerprints stayed groups `1022`, members `2426`, legacy `996`, reservations `230`. Historical incident writes remain unrepaired |
-| Customer Impact | Further Head Coach/Admin Makeup exact-assignment writes are contained; assignment reads remain available. Group creation/reassignment is intentionally blocked until a correct forward fix is approved |
+| Customer Impact | Further Head Coach/Admin Makeup exact-assignment writes are contained; assignment reads remain available. Group creation/reassignment remains intentionally blocked until forward deploy/UAT and containment removal are separately approved |
 | Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
-| Blocker | Correct forward Source fix is not complete; exact repair evidence is still required for each of the 3 confirmed damaged slots |
-| Remaining Work | Correct forward Source fix locally; obtain exact evidence and separate Owner approval for the 3 damaged-slot repairs; later approve re-enable/deploy/UAT; permanent `AGENTS.md` rule remains separate |
+| Blocker | Owner approval is required before forward deploy/containment removal/Production UAT; exact repair evidence is still required for each of the 3 confirmed damaged slots |
+| Remaining Work | Owner review and separate approval for forward deploy/UAT/write re-enable; obtain exact evidence and separate Owner approval for the 3 damaged-slot repairs; permanent `AGENTS.md` rule remains separate |
 | Task Done | No |
-| Next Gate / Next Action | Correct forward Source fix locally and request evidence for 3 separate slot repairs; no data repair or write re-enable without Owner approval |
+| Next Gate / Next Action | Owner review of forward commit `c70f5a4...`; no deploy, containment removal, Production UAT, data repair, or write re-enable without separate approval |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

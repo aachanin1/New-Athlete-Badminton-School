@@ -4919,3 +4919,79 @@ State observed at this containment closeout on 2026-07-18:
   and separate Owner approval for each of the 3 damaged-slot repairs. Do not repair
   Production data, re-enable writes, roll back the migration, or start a Parking
   Lot task automatically.
+
+## 2026-07-18 — Coach Assignment Forward Source Fix Local/Publish Gate
+
+State observed at this local/publish closeout on 2026-07-18:
+
+- Owner authorized a correct forward Source from exact parent
+  `1b995396f432d11b133c1cf4b5604b6db875b63b`, Local verification, and scoped
+  commit/push only. Deploy, Production containment removal, Production write/UAT,
+  migration change, and repair of the 3 confirmed damaged slots were prohibited.
+- Two release interactions caused the incident. Regression Source `1b995396...`
+  classified some persisted exact-coach groups through placeholder/name-derived
+  draft state and auto-split/blocked mixed or wide Level groups, causing real Head
+  Coach assignment visibility and grouping failures. After rollback, restored old
+  Source `0226e363...` still used separate group/member/legacy DML and could submit
+  a stored `(N คน)` name against the already-active new check constraint; a later
+  insert failure could therefore follow earlier committed deletion. The forward
+  fix combines the applied atomic RPC contract with corrected classification and
+  naming semantics.
+- Forward Source/Test commit
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`, tree
+  `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`, was created directly on parent
+  `1b995396f432d11b133c1cf4b5604b6db875b63b` and pushed non-force to
+  `codex/coach-assignment-forward-fix-20260718`; local/remote ahead/behind is
+  `0/0`.
+- Changed Source/Test files were:
+  `src/lib/admin-schedule-assignment-state.ts`,
+  `src/lib/coach-assignment-group-naming.ts`,
+  `src/lib/coach-assignment-atomic-save.ts`,
+  `src/components/coach/assign-groups-client.tsx`,
+  `src/app/api/admin/makeup/route.ts`,
+  `scripts/check-admin-schedule-assignment-state.mjs`,
+  `scripts/check-coach-assignment-conflicts.mjs`,
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`, and
+  `tests/booking-regression/local-supabase.ts`. No migration file changed.
+- Existing valid exact `coach_id` is now authoritative even when the persisted name
+  is blank, `ยังไม่จัดกลุ่ม`, or has a legacy member-count suffix. No exact coach
+  means unassigned; suggested coach remains non-exact. Mixed/wide Level is warning-
+  only. Blank/placeholder auto-names use the active Level program for one shared
+  category, `กลุ่มผสม` for mixed/incomplete combinations, and `ยังไม่ประเมิน` when
+  all members are unassessed. Valid manual names are preserved, and `(N คน)` is
+  removed from stored names while UI count remains membership-derived.
+- Normal Head Coach Save already uses `save_coach_assignment_groups_v1`. All five
+  Production-active Admin Makeup exact-assignment paths now load the current slot
+  snapshot and invoke that same RPC exactly once for group/member/legacy/
+  reservation all-or-nothing behavior. Constraint and invalid-member simulations
+  proved byte-for-byte-equivalent logical fingerprints across all four protected
+  sets before/after failure; concurrent conflict allowed one winner only and left
+  fixture residue `0`.
+- Local verification passed: assignment/naming/authorization checks `30/30`;
+  database conflict/backfill/concurrency/lifecycle checks `22/22` with residue `0`;
+  authenticated Playwright desktop/mobile `3/3` with fixture residue `0` and no
+  console/page/hydration error; Lesson Wallet regression `17/17`; TypeScript;
+  ESLint with zero warnings; mojibake `234`; `git diff --check`; Production Build
+  `91/91`; and post-build clean restart with `/`, `/api/health`, and generated
+  static asset all `200`.
+- Local migration verification reset/applied through `20260717070225`, rolled back
+  only the last migration to `20260715060541`, and re-applied only
+  `20260717070225`; final local conflict suite remained `22/22`. The committed
+  migration blob checksum remains
+  `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`.
+- Fresh read-only Production verification found containment deployment
+  `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` Ready on all four established aliases; `/`,
+  `/api/health`, and static asset returned `200`. Migration `20260717070225`
+  remains applied exactly once. Protected counts remain groups `1022`, members
+  `2426`, legacy assignments `996`, reservations `230`; successful assignment
+  Save activity after containment activation remains `0`.
+- Production Write Containment is **Active**. Forward Source Deployed is **No**.
+  Production UAT for the forward Source is **No**; the earlier regression Source
+  UAT remains **Failed**. Production business data changed **No** in this round.
+  Data Repaired is **No**; confirmed damaged slots remain `3`. Financial impact is
+  **None**. Task Done is **No**.
+- Proposed next release, only after separate Owner approval: deploy exact commit
+  `c70f5a4...`, keep writes contained until explicit authenticated UAT approval,
+  and use current containment deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` as
+  the Source rollback target without rolling back database migration
+  `20260717070225`. Damaged-slot repair remains a separate evidence/approval gate.

@@ -11,8 +11,9 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; NEW SOURCE PRODUCTION
-UAT FAILED; FORWARD FIX AND 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
+Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE
+COMPLETE/PUSHED BUT NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED;
+3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -65,14 +66,21 @@ UAT FAILED; FORWARD FIX AND 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
   Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
+- Correct forward Source/Test commit
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` (tree
+  `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`) is pushed non-force on
+  `codex/coach-assignment-forward-fix-20260718`. It is based directly on
+  `1b995396...`, passes the full Local gate recorded in `PROJECT_STATE.md`, and is
+  not deployed. Production containment remains active and Production assignment
+  writes remain disabled. No damaged slot was repaired.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Correct the forward Source fix locally, then request exact evidence
-and separate Owner approval for each of the 3 confirmed damaged-slot repairs. Do
-not roll back the database migration, re-enable assignment writes, repair data, or
-start a Parking Lot task automatically.**
+Next action: **Owner review of forward commit `c70f5a4...`; request separate
+approval before deploy, containment removal, or Production UAT. Obtain exact
+evidence and separate Owner approval for each of the 3 damaged-slot repairs. Do
+not start a Parking Lot task automatically.**
 
 ## Recently Completed
 
