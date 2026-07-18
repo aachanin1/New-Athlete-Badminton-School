@@ -234,8 +234,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
   Semantics**.
 - Task Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE
-  COMPLETE AND PUSHED BUT NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED;
-  THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
+  DARK CANARY READY BUT UNPROMOTED; READ-ONLY CANARY UAT NOT PASSED BECAUSE ONE
+  HYDRATION ERROR WAS OBSERVED; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT
+  DONE**.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -304,7 +305,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   authorized no-write check are identical: groups `1022`, members `2426`, legacy
   assignments `996`, and reservations `230`.
 - Forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` is complete and
-  pushed but not deployed. It preserves exact assignments by valid persisted
+  pushed. It is deployed only as unpromoted dark Production-target artifact
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD`; it is not Production-active. It preserves
+  exact assignments by valid persisted
   `coach_id`, makes mixed/wide Level non-blocking, normalizes blank/placeholder and
   legacy count-suffix names without overwriting valid manual names, displays
   member counts from live membership, and routes all five active Admin Makeup
@@ -315,6 +318,31 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   TypeScript, ESLint, mojibake `234`, `git diff --check`, Production Build `91/91`,
   local migration reset/down/re-apply, and post-build clean restart with `/`,
   `/api/health`, and static asset `200`.
+- Fresh dark-canary preflight found migration `20260717070225` applied exactly
+  once, successful assignment activity after containment `0`, no active
+  assignment DML, current/future blocking conflicts `0`, and protected totals
+  groups `1022`, members `2426`, legacy `996`, reservations `230`. Exact commit
+  `c70f5a4...` was deployed from a clean detached worktree to Ready deployment
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD` with `--prod --skip-domain`; `/`,
+  `/api/health`, and its generated static asset returned `200`. All four
+  Production aliases remain on containment `dpl_HTeRJn...`.
+- Authenticated Head Coach dark-canary read-only checks confirmed that persisted
+  exact coaches remain selected, count-suffix names render normalized, member
+  counts come from live membership, no-coach draft groups remain unassigned,
+  suggested coaches remain suggestions, mixed/wide Level is warning-only, manual
+  names remain intact, and blank mixed draft naming resolves to `กลุ่มผสม`.
+  Desktop and 390x844 mobile layout, Coach Attendance, Teaching Programs, Lesson
+  Wallet, and the Head Coach Admin guard otherwise rendered without page or
+  server error. However, the first `/admin/schedules` guard redirect produced one
+  client React hydration error `#418`. A fresh Canary reproduction and the
+  containment Production baseline did not reproduce it, and Canary runtime logs
+  contained no error/fatal/5xx. The explicit zero-error gate is therefore **not
+  passed**; no controlled write or alias promotion is permitted.
+- Pre/post read-only Canary fingerprints were identical: groups
+  `36ff11873681dd9b550d8bfe61b078d9`, members
+  `ad6abedcd22ded678b45a42695cb03f8`, legacy
+  `649a57dd7cc12a2928e053243bb647e3`, and reservation semantic fingerprint
+  `3969e246d4ace794ca6562727fa8e80e`. No assignment activity row was created.
 - Authenticated Head Coach verification after containment activation shows the
   read-only assignment page still renders `36/39` assigned slots, `3` unassigned,
   and `135` learners. One Owner-authorized containment check attempted the normal
@@ -339,20 +367,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner review of exact forward Source
-  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`. Because this exact commit does not
-  contain the temporary `503` lock, deploying it inherently removes containment;
-  that combined deploy/write-reenable gate and any Production UAT require explicit
-  Owner approval. If containment must remain during deployment, a separate
-  integration Source change requires new approval. Obtain exact evidence and
-  separate Owner approval before repairing any of the 3 damaged slots. Do not
-  start a Parking Lot task automatically.**
+- Next Action: **Owner review of the single non-reproducible Canary hydration
+  `#418` observation and a separate decision whether to authorize read-only
+  diagnosis/retest. Do not request or execute a Controlled Write payload, promote
+  `dpl_CeoUkk...`, remove containment, or repair any of the 3 damaged slots while
+  the zero-error Canary gate is not passed. Do not start a Parking Lot task
+  automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; FORWARD SOURCE COMPLETE/PUSHED BUT
-NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED; THREE CONFIRMED DAMAGED
-SLOTS REMAIN; TASK NOT DONE**
+Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK CANARY READY
+BUT UNPROMOTED; READ-ONLY CANARY UAT NOT PASSED BECAUSE ONE HYDRATION ERROR WAS
+OBSERVED; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -528,34 +554,34 @@ SLOTS REMAIN; TASK NOT DONE**
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Emergency Production write containment active; forward Source complete/pushed but not deployed; prior new-Source Production UAT failed; 3 confirmed damaged slots remain; Task not done |
+| Task Status | Emergency Production write containment active; forward Source dark Canary Ready but unpromoted; read-only Canary UAT not passed because one hydration error was observed; 3 confirmed damaged slots remain; Task not done |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; containment Source is separately committed at `3ad8a52dbda95b645608bce2f05917824e9763a6` |
 | Remote HEAD | Same documentation closeout after non-force push; containment branch also pushed non-force |
 | Ahead/Behind | `0/0` after fetch |
 | Source Complete | Emergency containment: Yes. Correct forward Source: Yes locally at `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; not Production-active |
-| Tests Passed | Forward Source: assignment/naming `30/30`; conflict/concurrency `22/22` with residue `0`; authenticated Playwright desktop/mobile `3/3` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint; mojibake `234`; diff check; Production Build `91/91`; local migration reset/down/re-apply; post-build clean restart `200/200/200`. Prior new-Source Production UAT remains failed |
+| Tests Passed | Local forward Source gate passed: assignment/naming `30/30`; conflict/concurrency `22/22` with residue `0`; authenticated Playwright desktop/mobile `3/3` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint; mojibake `234`; diff check; Production Build `91/91`; local migration reset/down/re-apply; post-build clean restart `200/200/200`. Dark Canary read-only zero-error gate did not pass because one React hydration `#418` was observed, although fresh reproduction was clean |
 | Committed | Yes — containment Source `3ad8a52dbda95b645608bce2f05917824e9763a6`; forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; documentation closeout is the commit containing this matrix |
 | Pushed | Yes — containment, forward Source, and documentation scoped commits, non-force |
 | Current Source | Production: containment `3ad8a52dbda95b645608bce2f05917824e9763a6` based on `0226e363f6677b078430f93459c2ee2ede6484e8`. Forward candidate: `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` |
-| Deployed | Yes — containment-only release active; rollback deployment remains the fallback |
+| Deployed | Containment release: Yes and Production-active. Forward Source: Yes as dark unpromoted artifact only; not Production-active |
 | Deployed Source | `3ad8a52dbda95b645608bce2f05917824e9763a6` (base `0226e363f6677b078430f93459c2ee2ede6484e8`; regression Source excluded) |
-| Deployment ID | `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` — Ready on all four established Production aliases; fallback `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` |
+| Deployment ID | Production aliases: `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` Ready `4/4`. Dark unpromoted forward artifact: `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD` Ready. Fallback: `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` |
 | Migration Source | `20260717070225_coach_assignment_conflict_guards.sql`; SHA-256 `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; standalone preflight is read-only |
 | Migration Applied | Yes — Production applied exactly once; not rolled back; current reservations `230` and pre/post containment fingerprint identical |
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Forward Source `c70f5a4...`: No |
-| Production UAT | Forward Source `c70f5a4...`: No. Prior regression Source `1b995396...`: Failed from real Head Coach evidence. Containment-only no-write verification passed |
+| Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Forward Source `c70f5a4...`: No; its dark artifact has no Production alias |
+| Production UAT | Forward Source dark Canary read-only UAT: Not passed because one non-reproducible hydration `#418` violated the zero-error gate. Prior regression Source `1b995396...`: Failed from real Head Coach evidence. Containment-only no-write verification passed |
 | Controlled Write UAT | No successful write UAT. One authorized containment check returned `503`; successful assignment Save logs after activation `0` |
 | Data Repaired | No — no incident data was repaired in this containment round; 3 damaged slots remain pending separate evidence and approval |
 | Production Data Changed | Containment round: no business-data change. Protected totals/fingerprints stayed groups `1022`, members `2426`, legacy `996`, reservations `230`. Historical incident writes remain unrepaired |
 | Customer Impact | Further Head Coach/Admin Makeup exact-assignment writes are contained; assignment reads remain available. Group creation/reassignment remains intentionally blocked until forward deploy/UAT and containment removal are separately approved |
 | Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
-| Blocker | Direct deploy of forward commit `c70f5a4...` inherently removes the current `503` containment; Owner approval is required for that combined deploy/write-reenable gate and Production UAT. Exact repair evidence is still required for each of the 3 confirmed damaged slots |
-| Remaining Work | Owner review and explicit approval for direct forward deploy plus containment removal/UAT, or new approval for a separate containment-on-forward integration change; obtain exact evidence and separate Owner approval for the 3 damaged-slot repairs; permanent `AGENTS.md` rule remains separate |
+| Blocker | One client React hydration `#418` occurred during the first Head Coach `/admin/schedules` guard redirect on the dark Canary. It did not reproduce on a fresh Canary run or containment baseline, but the approved gate requires zero console/hydration errors. Exact repair evidence is still required for each damaged slot |
+| Remaining Work | Owner decision on read-only diagnosis/retest of the hydration signal; only after a clean gate may Owner separately approve exact Controlled Write payload and conditional promotion. Obtain exact evidence and separate approval for the 3 damaged-slot repairs; permanent `AGENTS.md` rule remains separate |
 | Task Done | No |
-| Next Gate / Next Action | Owner review of forward commit `c70f5a4...`; direct deployment also removes containment, so no deploy/write re-enable, Production UAT, data repair, or integration Source change without explicit approval |
+| Next Gate / Next Action | Owner review of the one Canary hydration `#418` signal. No Controlled Write payload, alias promotion, containment removal, data repair, or Source change until separately approved |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

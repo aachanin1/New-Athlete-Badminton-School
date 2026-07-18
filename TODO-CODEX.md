@@ -11,9 +11,9 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE
-COMPLETE/PUSHED BUT NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED;
-3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
+Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK
+CANARY READY BUT UNPROMOTED; READ-ONLY CANARY UAT NOT PASSED BECAUSE ONE
+HYDRATION ERROR WAS OBSERVED; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -71,18 +71,24 @@ COMPLETE/PUSHED BUT NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED;
   `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`) is pushed non-force on
   `codex/coach-assignment-forward-fix-20260718`. It is based directly on
   `1b995396...`, passes the full Local gate recorded in `PROJECT_STATE.md`, and is
-  not deployed. Production containment remains active and Production assignment
-  writes remain disabled. No damaged slot was repaired.
+  deployed only as Ready unpromoted dark artifact
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD`. Production aliases remain `4/4` on
+  containment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`; assignment writes remain
+  disabled. Read-only Canary assignment semantics, mobile layout, Attendance,
+  Teaching Programs, Wallet, DB fingerprints, and runtime 5xx checks otherwise
+  passed, but one client React hydration `#418` occurred during the first Head
+  Coach `/admin/schedules` guard redirect. It did not reproduce on a fresh Canary
+  run or containment baseline, yet the explicit zero-error gate is not passed.
+  No Controlled Write, promotion, or damaged-slot repair occurred.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Owner review of forward commit `c70f5a4...`. Direct deployment of
-that commit inherently removes the temporary `503` containment, so deploy/write
-reenable and Production UAT require explicit Owner approval as one gate. If the
-lock must remain during deployment, request approval for a separate integration
-Source change. Obtain exact evidence and separate approval for each of the 3
-damaged-slot repairs. Do not start a Parking Lot task automatically.**
+Next action: **Owner review of the one non-reproducible Canary hydration `#418`
+observation and decision whether to authorize read-only diagnosis/retest. Do not
+request or execute a Controlled Write payload, promote the dark artifact, remove
+containment, change Source, or repair any damaged slot without separate approval.
+Do not start a Parking Lot task automatically.**
 
 ## Recently Completed
 

@@ -5000,3 +5000,51 @@ State observed at this local/publish closeout on 2026-07-18:
   deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` is the proposed Source rollback
   target and database migration `20260717070225` must remain applied. Damaged-slot
   repair remains a separate evidence/approval gate.
+
+## 2026-07-18 — Coach Assignment Dark Canary Read-Only Gate
+
+State observed at this unpromoted Canary checkpoint on 2026-07-18:
+
+- Owner confirmed the Head Coach operations freeze and authorized preflight,
+  Production-target dark deployment without alias promotion, and authenticated
+  read-only Canary UAT only. Controlled Write, alias promotion, containment
+  removal, damaged-slot repair, Source change, and migration change remained
+  prohibited.
+- Fresh preflight confirmed exact forward commit
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`, tree
+  `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`; migration
+  `20260717070225` applied exactly once; current/future blocking conflicts `0`;
+  successful assignment Save activity after containment `0`; and protected totals
+  groups `1022`, members `2426`, legacy `996`, reservations `230`.
+- A clean detached worktree produced Ready Production-target deployment
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD` using the verified Vercel
+  `--prod --skip-domain` flow. Its unique URL returned `200` for `/`,
+  `/api/health`, and generated static CSS. No alias was promoted: all four
+  Production aliases remain Ready on containment deployment
+  `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`.
+- Authenticated Head Coach read-only checks confirmed persisted exact coaches
+  remain selected; old `(N คน)` suffixes are removed from displayed group names;
+  member counts are membership-derived; no-coach groups remain unassigned;
+  suggested coaches remain non-exact; mixed/wide Level remains warning-only;
+  manual names remain intact; and the blank mixed draft preview is `กลุ่มผสม`.
+  Desktop and 390x844 mobile layout were usable without the Level warning covering
+  controls. Coach Attendance, Teaching Programs, Lesson Wallet, and Head Coach
+  role guarding rendered their expected data/authorization behavior.
+- The first Head Coach navigation to `/admin/schedules` redirected correctly to
+  `/coach` but produced one client React hydration error `#418`. A fresh Canary
+  reproduction of the same guard and a containment Production baseline were clean.
+  Canary runtime log queries returned no error/fatal/5xx. Because the approved gate
+  explicitly requires zero console/page/hydration errors, read-only Canary UAT is
+  **Not passed** and the Controlled Write/promotion gate was not opened.
+- Pre/post read-only fingerprints were identical: groups
+  `36ff11873681dd9b550d8bfe61b078d9`, members
+  `ad6abedcd22ded678b45a42695cb03f8`, legacy
+  `649a57dd7cc12a2928e053243bb647e3`, and reservation semantic fingerprint
+  `3969e246d4ace794ca6562727fa8e80e`. No assignment activity row was created;
+  Production business data and financial data changed **No/No**.
+- Production Write Containment remains **Active**; forward Source Production-active
+  is **No**; Controlled Write UAT is **Not run**; alias promotion is **No**; Data
+  Repaired is **No**; confirmed damaged slots remain `3`; Task Done is **No**.
+  Next Gate is Owner review and separate authorization for read-only
+  diagnosis/retest of the single non-reproducible hydration signal. Exact payload
+  collection, write UAT, promotion, containment removal, and repairs remain closed.
