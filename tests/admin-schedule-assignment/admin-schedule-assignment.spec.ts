@@ -337,6 +337,22 @@ test('forward fix saves wide/mixed Levels atomically and renders assigned state 
   await expect(page.locator('input[value="พื้นฐาน"]')).toBeVisible()
   await expect(page.getByText('Level ห่างมาก', { exact: true }).first()).toBeVisible()
 
+  const manualNameInput = page.locator('input[value="พื้นฐาน"]')
+  await manualNameInput.fill('ระดับสูง')
+  const saveButton = page.getByRole('button', { name: 'บันทึก/ยืนยันการมอบหมาย', exact: true })
+  await expect(saveButton).toHaveCount(1)
+  await saveButton.click()
+  await expect(page.getByText('มีการแก้ไขยังไม่บันทึก', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('รอบนี้มอบหมายแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง', { exact: true })).toBeVisible()
+  await expect(page.locator('input[value="ระดับสูง"]')).toBeVisible()
+
+  const { data: refetchedManualName, error: refetchedManualNameError } = await admin.from('coach_assignment_groups')
+    .select('name')
+    .eq('schedule_slot_id', IDS.forwardSlot)
+    .single()
+  assertNoError(refetchedManualNameError, 'read manual name after UI save/refetch')
+  expect(refetchedManualName?.name).toBe('ระดับสูง')
+
   await page.setViewportSize({ width: 390, height: 844 })
   const warning = page.getByText('Level ห่างมาก', { exact: true }).first()
   const warningBox = await warning.boundingBox()

@@ -195,6 +195,19 @@ check('valid user-authored group name is preserved', () => {
   assert.deepEqual([result.name, result.autoNamed], ['ทีมวันพุธ', false])
 })
 
+check('legacy labels typed as manual names are preserved', () => {
+  for (const name of ['ระดับสูง', 'กลาง-สูง', 'พื้นฐาน', 'เริ่มต้น', 'ชุดพื้นฐาน', 'กลุ่มผสม']) {
+    const result = resolveAssignmentGroupName({
+      currentName: name,
+      students: [
+        namingStudent(8),
+        namingStudent(53, 'athlete_1', 'ชุดเตรียมนักกีฬา ชุด C'),
+      ],
+    })
+    assert.deepEqual([result.name, result.autoNamed, result.error], [name, false, null])
+  }
+})
+
 check('multiple actual levels in one confirmed category use the same source program name', () => {
   const result = deriveAssignmentGroupAutoName([namingStudent(1), namingStudent(20), namingStudent(34)])
   assert.deepEqual([result.name, result.levelMin, result.levelMax], ['ชุดพื้นฐาน', 1, 34])
@@ -233,6 +246,27 @@ check('legacy member counts are stripped without overwriting the underlying manu
   })
   assert.equal(result.name, 'ระดับสูง')
   assert.doesNotMatch(result.name, /\(\d+ คน\)$/u)
+})
+
+check('legacy manual labels with member counts are stripped and preserved', () => {
+  for (const [submitted, expected] of [
+    ['ระดับสูง (3 คน)', 'ระดับสูง'],
+    ['กลาง-สูง (2 คน)', 'กลาง-สูง'],
+  ]) {
+    const result = resolveAssignmentGroupName({
+      currentName: submitted,
+      students: [namingStudent(8), namingStudent(29)],
+    })
+    assert.deepEqual([result.name, result.autoNamed, result.error], [expected, false, null])
+  }
+})
+
+check('explicit generic placeholders still derive an automatic program name', () => {
+  const result = resolveAssignmentGroupName({
+    currentName: 'กลุ่ม 2',
+    students: [namingStudent(8), namingStudent(29)],
+  })
+  assert.deepEqual([result.name, result.autoNamed, result.error], ['ชุดพื้นฐาน', true, null])
 })
 
 check('placeholder with a legacy member-count suffix is replaced by a valid automatic name', () => {
