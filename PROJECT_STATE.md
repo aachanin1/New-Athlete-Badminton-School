@@ -201,6 +201,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   and documentation closeout. Database migration `20260717070225` must remain
   applied; Source/data repair, forward fix, mutation UAT, environment/feature/
   allowlist changes, and all financial/attendance/payroll writes remain prohibited.
+- Owner then authorized an emergency write-containment release only, based on
+  restored Production Source `0226e363f6677b078430f93459c2ee2ede6484e8`. The
+  Head Coach assignment Save and the exact-group-writing Admin Makeup actions must
+  authenticate and authorize normally, then return `503` before the first database
+  mutation. Migration rollback/change, data repair, forward-fix behavior,
+  attendance/check-in/payroll/financial writes, and unrelated Source remain
+  prohibited. If the local/deployment/no-write gates pass, this minimal containment
+  may be deployed immediately and documented; the task must remain open.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -216,9 +224,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 - Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
   Semantics**.
-- Task Status: **EMERGENCY ROLLBACK COMPLETE; NEW SOURCE PRODUCTION UAT FAILED
-  FROM REAL OPERATIONS EVIDENCE; INCIDENT WRITES IDENTIFIED; TASK NOT DONE**.
-- Git publish: branch `spike/next-major-security-upgrade`; exact functional Source/
+- Task Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; NEW SOURCE
+  PRODUCTION UAT FAILED; FORWARD FIX AND THREE CONFIRMED DAMAGED SLOTS REMAIN;
+  TASK NOT DONE**.
+- Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
   Owner-confirmed membership-drift correction is
@@ -227,18 +236,22 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   migration documentation closeout is
   `86fbdc5331011de4caee8164d769c20bba9a5ef0`, followed by the exact-source
   deployment documentation closeout `005cea2f278d9148e4542362c24f62d0a064a80f`,
-  followed by the emergency rollback documentation closeout commit containing
-  this current-state matrix. All were pushed non-force to
-  `origin/spike/next-major-security-upgrade`; post-push fetch confirms Local/Remote
-  HEAD convergence and ahead/behind `0/0`. Pre-existing unrelated dirty paths
+  followed by emergency rollback documentation closeout
+  `6ecf79eaf7cc8373979f57dab5ac2b7a43ef6181`. Emergency containment Source commit
+  `3ad8a52dbda95b645608bce2f05917824e9763a6` was created from exact base
+  `0226e363f6677b078430f93459c2ee2ede6484e8` and pushed non-force on branch
+  `codex/emergency-coach-assignment-containment-20260718`. The documentation
+  closeout is the commit containing this current-state matrix. Pre-existing unrelated dirty paths
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   preserved and excluded.
 - Exact remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`, tree
   `24504017e59e597fc66d8d467186249290981bb6`, was deployed in
   `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` and then rolled back after confirmed real
-  operations regression. All four established Production aliases now resolve to
-  Ready deployment `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`, whose Source is
-  `0226e363f6677b078430f93459c2ee2ede6484e8`. Rollback performed: **Yes**.
+  operations regression. Rollback performed: **Yes**. The subsequently approved
+  containment-only Source `3ad8a52dbda95b645608bce2f05917824e9763a6`, based on
+  restored Source `0226e363f6677b078430f93459c2ee2ede6484e8`, is now active in
+  Ready deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`; all four established
+  Production aliases resolve to it.
 - Authenticated Super Admin read-only Production UAT passed the exact 2026-07-16
   Rama 2 Kids Group 17:00–19:00 reproduction: `7 มีโค้ช / 5 รอจัดโค้ช /
   2 อยู่ในกระเป๋า`. The no-coach group is red with
@@ -251,11 +264,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   no mutation request. At that checkpoint, no environment, feature-control,
   allowlist, migration, Production business-data, repair, or financial state had
   changed for this task; the later controlled repair is recorded below.
-- Current Production runs restored Source
-  `0226e363f6677b078430f93459c2ee2ede6484e8` in Ready deployment
-  `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. The new overlap/display Source is no longer
-  Production-active; its Production UAT result is **Failed from real operations
-  evidence**. The
+- Current Production runs containment Source
+  `3ad8a52dbda95b645608bce2f05917824e9763a6` in Ready deployment
+  `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`. It contains only the temporary write lock on
+  top of restored base `0226e363f6677b078430f93459c2ee2ede6484e8`; it does not
+  reactivate regression Source `1b995396...`. The new overlap/display Source is not
+  Production-active; its Production UAT result remains **Failed from real
+  operations evidence**. The
   separately authorized exact Nice/Ratchada
   data repair is Production-active. The Owner-confirmed Production-user moves put
   five active learners under Coach Base and left the former waiting group empty;
@@ -269,19 +284,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   active exact groups `966`, current/future candidates `235`, blocking conflicts
   `0`, and historical report-only conflicts `8`; backfill produced `235`
   reservations with no missing, stale, orphan, or mismatched row. Production
-  business data remained unchanged during migration apply. Emergency rollback
-  checks confirm all four aliases on the old Ready deployment and public `/`,
-  `/api/health`, and generated static asset `200`. Migration `20260717070225`
-  remains applied exactly once. Pre/post rollback fingerprints match exactly for
-  groups `1026`, members `2432`, legacy assignments `1000`, and reservations
-  `234`; the rollback itself changed no database row. The reservation count had
-  already changed through normal Production assignment activity before rollback,
-  so the earlier migration-closeout count `235` is historical, not current.
-- Authenticated read-only Head Coach verification after rollback succeeded. The
-  restored page shows `36/39` assigned slots, only `3` unassigned, `135` learners,
-  and 2026-07-18 with all `4/4` rounds assigned; the widespread false
-  `ยังไม่ได้มอบหมาย` state observed under the new deployment is no longer present.
-  No Save control or mutation request was used during verification.
+  business data remained unchanged during migration apply. Containment deployment
+  checks confirm Ready status, aliases `4/4`, and public `/`, `/api/health`, and
+  generated static asset `200`. Migration `20260717070225` remains applied exactly
+  once and was not rolled back. Fresh protected totals before and after the
+  authorized no-write check are identical: groups `1022`, members `2426`, legacy
+  assignments `996`, and reservations `230`.
+- Authenticated Head Coach verification after containment activation shows the
+  read-only assignment page still renders `36/39` assigned slots, `3` unassigned,
+  and `135` learners. One Owner-authorized containment check attempted the normal
+  Save and received `503` with code
+  `COACH_ASSIGNMENT_SAVE_TEMPORARILY_DISABLED`; Vercel request logs confirm the
+  response status, the Thai lock message rendered, successful assignment activity
+  logs after activation remained `0`, and protected fingerprints did not change.
 - Activity logs prove `51` successful `save_coach_assignment_groups` operations
   during the bad-deployment incident window, covering `47` distinct slots, six
   Head Coaches, and six branches. Submitted payload totals were `62` groups and
@@ -291,21 +306,23 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   window. The atomic RPC replaces prior slot groups/members and legacy rows, so
   deleted/replaced pre-save row IDs and their exact before-values are not present
   in `activity_logs`; these rows require Owner review and must not be repaired from
-  inference. Exact current IDs are retained in the dated incident record in
-  `DEVELOPMENT_TODO.md`.
+  inference. Those `47` slots are the broader incident-window Save population, not
+  proof that all `47` are damaged. Current confirmed damaged-slot count is `3`;
+  their repair evidence and exact before-state must be approved separately. Exact
+  current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Stop after this rollback closeout. Owner review is required before
-  any Source diagnosis/forward fix or any repair decision for the 47 incident
-  slots. Do not roll back the database migration, mutate incident rows, run
-  controlled write UAT, or start a Parking Lot task.**
+- Next Action: **Correct the forward Source fix locally, then request exact evidence
+  and Owner approval to repair the 3 confirmed damaged slots separately. Do not
+  roll back the database migration, repair data, re-enable assignment writes, or
+  start a Parking Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **SOURCE COMPLETE LOCALLY; TESTS PASSED LOCALLY; DATA NAME REPAIRED;
-MIGRATION APPLIED; NEW SOURCE ROLLED BACK AFTER PRODUCTION REGRESSION; TASK NOT DONE**
+Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; NEW SOURCE PRODUCTION UAT FAILED;
+FORWARD FIX AND THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -329,7 +346,8 @@ MIGRATION APPLIED; NEW SOURCE ROLLED BACK AFTER PRODUCTION REGRESSION; TASK NOT 
   names or historical rows. Triggers resynchronize reservations after group coach/
   slot changes, member insert/move/delete, slot date/time changes, booking-session
   lifecycle/slot changes, and booking lifecycle changes. The exact committed
-  migration and exact remediation Source are now active in Production.
+  migration is active in Production; the exact remediation Source was rolled back
+  and is not Production-active.
 - `ยังไม่จัดกลุ่ม` is excluded from exact-assignment classification even if stale
   `coach_id` data exists, its learners count in the existing waiting bucket, and
   no exact coach chip is rendered. A newly created ungrouped draft now starts with
@@ -343,7 +361,8 @@ MIGRATION APPLIED; NEW SOURCE ROLLED BACK AFTER PRODUCTION REGRESSION; TASK NOT 
   no new combined-name rule is invented. Valid manual names are preserved, legacy
   `(N คน)` suffixes are removed, and both Coach/Admin UIs derive the count from the
   current member arrays.
-- Production-active exact write coverage: `POST /api/coach/assignment-groups` and
+- Remediation Source exact-write coverage (not currently Production-active):
+  `POST /api/coach/assignment-groups` and
   the authorized Admin Makeup actions `move_learner_to_existing_coach_group`,
   `replace_coach_for_past_round`, `assign_coach_to_round`,
   `resolve_unassigned_round`, plus retrospective `mark_attendance` when it creates
@@ -479,34 +498,34 @@ MIGRATION APPLIED; NEW SOURCE ROLLED BACK AFTER PRODUCTION REGRESSION; TASK NOT 
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Emergency rollback complete; new Source Production UAT failed from real operations evidence; incident writes identified; Task not done |
+| Task Status | Emergency Production write containment active; new Source Production UAT failed; forward fix and 3 confirmed damaged slots remain; Task not done |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Emergency rollback documentation closeout commit on top of deploy docs `005cea2f278d9148e4542362c24f62d0a064a80f`; exact closeout SHA is the commit containing this matrix |
-| Remote HEAD | Same emergency rollback documentation closeout commit after non-force push |
+| Local HEAD | Documentation closeout commit containing this matrix; containment Source is separately committed at `3ad8a52dbda95b645608bce2f05917824e9763a6` |
+| Remote HEAD | Same documentation closeout after non-force push; containment branch also pushed non-force |
 | Ahead/Behind | `0/0` after fetch |
-| Source Complete | Yes locally/pushed for `1b995396...`, but not Production-active after rollback |
-| Tests Passed | Local suites and Production Build passed previously; new Source Production UAT failed from real operations evidence; rollback infrastructure and narrow read-only Head Coach verification passed |
-| Committed | Yes — Source/Test/Migration `1b995396f432d11b133c1cf4b5604b6db875b63b`; deploy docs `005cea2f278d9148e4542362c24f62d0a064a80f`; emergency rollback docs is the commit containing this matrix |
-| Pushed | Yes — all scoped commits, non-force |
-| Current Source | `1b995396f432d11b133c1cf4b5604b6db875b63b` — pushed remediation Source; not Production-active |
-| Deployed | Yes — rollback performed; restored old Source is active |
-| Deployed Source | `0226e363f6677b078430f93459c2ee2ede6484e8` |
-| Deployment ID | `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` — Ready on all four established Production aliases; bad deployment `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` rolled back |
+| Source Complete | Emergency containment: Yes. Correct forward Source fix: No. Regression Source `1b995396...`: pushed but not Production-active |
+| Tests Passed | Containment targeted checks `7/7`, assignment regression `12/12`, TypeScript, full ESLint, mojibake `231`, diff check, Production Build `91/91`, post-build clean restart, infrastructure health, authenticated read rendering, and authorized no-write `503` passed. New Source Production UAT remains failed |
+| Committed | Yes — containment Source `3ad8a52dbda95b645608bce2f05917824e9763a6`; documentation closeout is the commit containing this matrix |
+| Pushed | Yes — containment and documentation scoped commits, non-force |
+| Current Source | Containment `3ad8a52dbda95b645608bce2f05917824e9763a6`, based exactly on restored Source `0226e363f6677b078430f93459c2ee2ede6484e8` |
+| Deployed | Yes — containment-only release active; rollback deployment remains the fallback |
+| Deployed Source | `3ad8a52dbda95b645608bce2f05917824e9763a6` (base `0226e363f6677b078430f93459c2ee2ede6484e8`; regression Source excluded) |
+| Deployment ID | `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` — Ready on all four established Production aliases; fallback `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` |
 | Migration Source | `20260717070225_coach_assignment_conflict_guards.sql`; SHA-256 `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; standalone preflight is read-only |
-| Migration Applied | Yes — Production applied exactly once; not rolled back; pre/post deployment rollback reservations `234` with identical fingerprint |
+| Migration Applied | Yes — Production applied exactly once; not rolled back; current reservations `230` and pre/post containment fingerprint identical |
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | Old Source `0226e363...`: Yes; database reservation protection: Yes; new remediation Source `1b995396...`: No after rollback |
-| Production UAT | Failed — real Head Coach operations confirmed assignment visibility and mixed-Level grouping regression under the new Source |
-| Controlled Write UAT | No; not run. Real operational users made 51 successful normal Save operations during the incident; these were not UAT |
-| Data Repaired | Yes — scoped Nice/Ratchada repair plus Coach Base name-only repair; latest affected row count `1` |
-| Production Data Changed | By rollback: No. During incident: Yes by real Head Coach Saves — 51 logs/47 slots; current surviving 55 groups, 97 members, 50 legacy rows, and 50 derived reservations. No repair performed |
-| Customer Impact | Confirmed: Head Coach assignment visibility and mixed-Level grouping were blocked under the new Source; restored old Source now renders prior assignments again |
-| Financial Impact | None — successful Save path changed assignment/group/member/legacy/reservation/activity data only; no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write was made by this rollback round |
-| Blocker | New Source regression requires separate diagnosis; incident slot before-values are not fully recoverable from activity logs |
-| Remaining Work | Owner review of incident rows; separate approval for Source diagnosis/forward fix and any scoped data repair; permanent `AGENTS.md` rule documentation remains separate |
+| Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Regression/remediation Source `1b995396...`: No |
+| Production UAT | Failed — real Head Coach operations confirmed assignment visibility and mixed-Level grouping regression under the new Source. Containment-only no-write verification passed |
+| Controlled Write UAT | No successful write UAT. One authorized containment check returned `503`; successful assignment Save logs after activation `0` |
+| Data Repaired | No — no incident data was repaired in this containment round; 3 damaged slots remain pending separate evidence and approval |
+| Production Data Changed | Containment round: no business-data change. Protected totals/fingerprints stayed groups `1022`, members `2426`, legacy `996`, reservations `230`. Historical incident writes remain unrepaired |
+| Customer Impact | Further Head Coach/Admin Makeup exact-assignment writes are contained; assignment reads remain available. Group creation/reassignment is intentionally blocked until a correct forward fix is approved |
+| Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
+| Blocker | Correct forward Source fix is not complete; exact repair evidence is still required for each of the 3 confirmed damaged slots |
+| Remaining Work | Correct forward Source fix locally; obtain exact evidence and separate Owner approval for the 3 damaged-slot repairs; later approve re-enable/deploy/UAT; permanent `AGENTS.md` rule remains separate |
 | Task Done | No |
-| Next Gate / Next Action | Stop. Await Owner approval for read-only Source diagnosis first; no data repair, forward fix, deploy, or write UAT |
+| Next Gate / Next Action | Correct forward Source fix locally and request evidence for 3 separate slot repairs; no data repair or write re-enable without Owner approval |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

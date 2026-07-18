@@ -4850,3 +4850,72 @@ State observed at this emergency rollback closeout on 2026-07-18:
   from real operations evidence**; Task Done is **No**. Next Gate requires
   separate approval for read-only Source diagnosis, followed by separate decisions
   for any forward fix or exact-row data repair.
+
+## 2026-07-18 — Emergency Coach Assignment Write Containment
+
+State observed at this containment closeout on 2026-07-18:
+
+- Owner authorized only a minimal emergency write lock based on restored
+  Production Source `0226e363f6677b078430f93459c2ee2ede6484e8`. Migration
+  `20260717070225`, business data, attendance/check-in, teaching hours/payroll,
+  payment/wallet/finance, environment, feature flags, allowlists, and the 3
+  confirmed damaged slots were not changed or repaired.
+- Scoped containment Source commit
+  `3ad8a52dbda95b645608bce2f05917824e9763a6` was created and pushed non-force on
+  `codex/emergency-coach-assignment-containment-20260718`. It changes only:
+  `src/app/api/coach/assignment-groups/route.ts`,
+  `src/app/api/admin/makeup/route.ts`,
+  `src/lib/coach-assignment-write-containment.ts`, and
+  `scripts/check-coach-assignment-write-containment.mjs`. Pre-existing dirty
+  `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` were not
+  staged, overwritten, or included.
+- `POST /api/coach/assignment-groups` preserves authentication, Head Coach role,
+  branch authorization, slot/branch validation, and the existing past-round lock,
+  then returns `503` with code
+  `COACH_ASSIGNMENT_SAVE_TEMPORARILY_DISABLED` before any group/member/legacy
+  mutation. Admin Makeup preserves `requireAdminMenuAccess('makeup')` and returns
+  the same `503` before the four approved exact-assignment actions. Generic
+  `mark_attendance` is blocked only when no exact coach exists and the action would
+  create a retrospective exact group; unrelated Makeup actions remain available.
+- Local verification passed: containment checks `7/7`, existing Admin Schedules
+  assignment checks `12/12`, TypeScript, full ESLint with zero warnings, mojibake
+  `231`, `git diff --check`, Production Build `91/91`, and post-build clean restart.
+  Local `/`, `/api/health`, and `/_next/static/css/app/layout.css` returned `200`;
+  anonymous Head Coach POST and Admin Makeup PATCH remained `401`. Read-only route
+  Source was not changed.
+- Production deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` reached Ready and was
+  promoted. All four established aliases point to its deployment URL
+  `new-athlete-badminton-school-cuqr5a2km-aachanin1s-projects.vercel.app`. `/`,
+  `/api/health`, and generated static asset
+  `/_next/static/css/866485655583332e.css` returned `200`.
+- Authenticated Head Coach page rendering remained available with `36/39` assigned,
+  `3` unassigned, and `135` learners. One Owner-authorized no-write containment
+  check returned `503`; Vercel request log
+  `jl2h8-1784356901567-cd2150f1cfc2` records the exact Production POST at
+  `2026-07-18T06:41:41.567Z`. The Thai temporary-lock message was visible and the
+  browser console had no warning/error. No Save was expected or allowed to succeed.
+- Fresh protected Production totals and MD5 fingerprints matched before and after
+  the containment check: groups `1022` /
+  `36ff11873681dd9b550d8bfe61b078d9`; members `2426` /
+  `ad6abedcd22ded678b45a42695cb03f8`; legacy assignments `996` /
+  `649a57dd7cc12a2928e053243bb647e3`; reservations `230` /
+  `182ea9769ece1c3deca0b4624351da41`. Successful
+  `save_coach_assignment_groups` activity rows after containment activation were
+  `0`.
+- Migration history still contains `20260717070225` exactly once. The latest
+  `coach_assignment_exact_group_name_check` database error in the inspected log
+  occurred at `2026-07-18T06:24:04.104Z`, before containment activation; no new
+  occurrence appeared after activation. The database migration was not rolled back.
+- The prior `51` successful incident-window Saves across `47` slots remain broader
+  investigation evidence; they do not prove all 47 slots are damaged. Confirmed
+  damaged slots are `3`. Data Repaired is **No** for this containment round. Exact
+  evidence and separate Owner approval are required before any repair.
+- Production UAT for regression Source `1b995396...` remains **Failed**. Production
+  Write Containment is **Active**. Production business data changed **No** in this
+  round. Financial impact is **None**. Customer impact is that read-only assignment
+  pages remain available, while Head Coach/Admin Makeup exact-assignment writes are
+  intentionally blocked to prevent further loss. Task Done is **No**.
+- Next action: correct the forward Source fix locally, then request exact evidence
+  and separate Owner approval for each of the 3 damaged-slot repairs. Do not repair
+  Production data, re-enable writes, roll back the migration, or start a Parking
+  Lot task automatically.
