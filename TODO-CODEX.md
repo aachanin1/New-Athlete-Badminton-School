@@ -9,12 +9,21 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
+### NONE
+
+Status: **NO ACTIVE TASK — AWAITING OWNER SELECTION**.
+
+- The most recent Coach Assignment remediation task is complete and recorded
+  below. Do not start the separate auth-session follow-up, historical incident
+  cleanup, permanent dirty `AGENTS.md` work, or a Parking Lot task automatically.
+
+## Recently Completed
+
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY CANARY AND
-CONTROLLED WRITE UAT PASSED; WRITE CONTAINMENT REMOVED; 1 DAMAGED SLOT CONFIRMED
-REPAIRED; 2 POST-PROMOTION HEAD COACH SAVES REQUIRE OWNER CONFIRMATION; TASK NOT
-DONE**.
+Status: **DONE — CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY AND
+CONTROLLED WRITE UAT PASSED; WRITE CONTAINMENT REMOVED; ALL 3 CONFIRMED DAMAGED
+SLOTS REPAIRED AND OWNER-CONFIRMED**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -142,19 +151,18 @@ DONE**.
 - The later activity includes the 22 and 29 July Suvarnabhumi slots. Each now has
   one `กลุ่มผสม`, three members, one exact coach, one legacy row, and one matching
   reservation. These rows are technically complete, but Codex did not receive the
-  intended payloads before the real-user Saves; repair correctness is **Unknown /
-  Need Owner confirmation**. Task Done remains **No**.
+  intended payloads before the real-user Saves, so correctness initially remained
+  Unknown. Owner subsequently confirmed both actual payloads are correct. All
+  three confirmed damaged slots are repaired and Task Done is **Yes**.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Owner/Head Coach must confirm whether the actual post-promotion
-payloads for 22 and 29 July Suvarnabhumi are intended. If yes, close them using
-read-only reconciliation; if no, request separate exact correction approval. Do
-not infer payloads, send another Save, use direct SQL, start the auth follow-up, or
-start a Parking Lot task.**
+Next action: **Await Owner selection of the next single task. Do not start the
+auth follow-up, historical cleanup, permanent dirty `AGENTS.md` work, or a Parking
+Lot task automatically.**
 
-## Recently Completed
+## Earlier Completed
 
 ### Admin Schedules — Unassigned Coach Group Incorrectly Shown as Green
 

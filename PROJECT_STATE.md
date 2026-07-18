@@ -238,12 +238,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
-  Semantics**.
-- Task Status: **CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY CANARY AND
-  CONTROLLED WRITE UAT PASSED; WRITE CONTAINMENT REMOVED BY EXACT-ARTIFACT
-  PROMOTION; ONE DAMAGED SLOT CONFIRMED REPAIRED; TWO DAMAGED SLOTS RECEIVED
-  POST-PROMOTION HEAD COACH SAVES BUT REQUIRE OWNER CONFIRMATION; TASK NOT DONE**.
+- Active Task: **NONE — awaiting Owner selection**.
+- Task Status: **ADMIN SCHEDULES COACH OVERLAP / UNGROUPED SEMANTICS DONE;
+  CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY AND CONTROLLED WRITE UAT
+  PASSED; ALL THREE CONFIRMED DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -444,8 +442,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   Suvarnabhumi slots. The two damaged slots each now contain one `กลุ่มผสม`, three
   learners, one exact coach, one legacy row, and one reservation, with no missing,
   mismatch, orphan, 500, or constraint error. Because their exact payloads were
-  not supplied to Codex before those real-user Saves, repair correctness remains
-  **Unknown / Need Owner confirmation**; they are not closed as repaired.
+  not supplied to Codex before those real-user Saves, repair correctness initially
+  remained Unknown. Owner subsequently confirmed that both actual payloads are
+  correct; all three confirmed damaged slots are now closed as repaired.
 - Pre/post read-only Canary fingerprints were identical: groups
   `36ff11873681dd9b550d8bfe61b078d9`, members
   `ad6abedcd22ded678b45a42695cb03f8`, legacy
@@ -479,25 +478,23 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   deleted/replaced pre-save row IDs and their exact before-values are not present
   in `activity_logs`; these rows require Owner review and must not be repaired from
   inference. Those `47` slots are the broader incident-window Save population, not
-  proof that all `47` are damaged. One confirmed damaged slot is repaired; the
-  other two now have technically complete post-promotion Saves but remain pending
-  Owner payload confirmation. Exact
+  proof that all `47` are damaged. All three confirmed damaged slots are repaired
+  and Owner-confirmed; the remaining incident-window population is report-only and
+  must not be changed without separate evidence and approval. Exact
   current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
 - Admin Schedules Performance is
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner/Head Coach must confirm whether the actual post-promotion
-  Saves for 2026-07-22 and 2026-07-29 Suvarnabhumi are the intended exact
-  payloads. If confirmed, close them after read-only reconciliation; if not,
-  request a separate exact corrective payload and approval. Do not infer payloads,
-  use direct SQL, start the auth follow-up, or start a Parking Lot task.**
+- Next Action: **Await Owner selection of the next single task. Do not start the
+  separate auth-session follow-up, historical incident cleanup, permanent dirty
+  `AGENTS.md` work, or any Parking Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY CANARY AND
-CONTROLLED WRITE UAT PASSED; WRITE CONTAINMENT REMOVED; ONE DAMAGED SLOT CONFIRMED
-REPAIRED; TWO POST-PROMOTION SAVES REQUIRE OWNER CONFIRMATION; TASK NOT DONE**
+Status: **DONE — CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY AND
+CONTROLLED WRITE UAT PASSED; WRITE CONTAINMENT REMOVED; ALL THREE CONFIRMED
+DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -671,8 +668,8 @@ REPAIRED; TWO POST-PROMOTION SAVES REQUIRE OWNER CONFIRMATION; TASK NOT DONE**
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; 1 damaged slot confirmed repaired; 2 post-promotion Head Coach Saves require Owner payload confirmation; Task not done |
+| Active Task | NONE — awaiting Owner selection |
+| Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; corrective Source is separately committed at `9ef1ee30035a083426743aed3e326ad9676d65c4` |
 | Remote HEAD | Same documentation closeout after non-force push; corrective Source branch also pushed non-force |
@@ -692,14 +689,14 @@ REPAIRED; TWO POST-PROMOTION SAVES REQUIRE OWNER CONFIRMATION; TASK NOT DONE**
 | Production Active | Corrective Forward Source and database reservation protection: Yes. Emergency write containment: No after exact-artifact promotion |
 | Production UAT | Passed — bounded read-only Canary plus authenticated post-promotion rendering. Original hydration `#418`: Unknown / Non-reproducible after `56/56` clean cycles. Containment auth baseline remains accepted non-blocking |
 | Controlled Write UAT | Passed — one corrective Owner/Head Coach Save on slot `53c3556a...` persisted `ระดับสูง` / `กลาง-สูง`, retained exact `2/5/2/2` mapping, and left no partial state or unsaved indicator |
-| Data Repaired | Yes — 2026-07-21 Chaeng Watthana confirmed repaired. The 22 and 29 July live Saves are technically complete but repair correctness is Unknown / Need Owner confirmation |
+| Data Repaired | Yes — 2026-07-21 Chaeng Watthana plus 2026-07-22 and 2026-07-29 Suvarnabhumi are reconciled and Owner-confirmed |
 | Production Data Changed | Yes — by Owner/Head Coach controlled and live Saves only. Corrective Save atomically replaced target `2/5/2/2`; three later live Saves were recorded. Fresh totals `1026/2436/1000/234`; current/future reservation reconciliation `221/221`, missing/orphan/mismatch `0/0/0` |
-| Customer Impact | Assignment writes are enabled and live atomic Saves are succeeding. The 21 July slot is confirmed correct; the 22 and 29 July data is present but needs Owner confirmation before being called repaired |
+| Customer Impact | Resolved for the confirmed incident scope — assignment writes are enabled, live atomic Saves are succeeding, and all 3 confirmed damaged slots are correct |
 | Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
-| Blocker | Exact intended payloads for the post-promotion 22 and 29 July Saves have not been confirmed to Codex; correctness cannot be inferred |
-| Remaining Work | Owner/Head Coach confirm whether the actual 22 and 29 July Saves are intended; then close read-only or separately approve an exact correction. Auth follow-up and permanent `AGENTS.md` rule remain separate and unauthorized |
-| Task Done | No |
-| Next Gate / Next Action | Owner confirmation of the two actual post-promotion payloads; no additional write unless a separately approved correction is required |
+| Blocker | None for this task |
+| Remaining Work | None for the confirmed task scope. Auth follow-up, broader historical incident review/cleanup, and permanent dirty `AGENTS.md` work remain separate and unauthorized |
+| Task Done | Yes |
+| Next Gate / Next Action | Await Owner selection; do not start another task automatically |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

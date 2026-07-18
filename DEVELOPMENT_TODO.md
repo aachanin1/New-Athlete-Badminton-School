@@ -5293,3 +5293,44 @@ State observed at this corrective release closeout on 2026-07-18:
   otherwise request separate exact corrective approval. Do not infer payloads,
   send another Save, use direct SQL,
   start the separate auth-session follow-up, or start another task automatically.
+
+## 2026-07-18 — Owner Confirmation and Final Damaged-Slot Closeout
+
+State observed at this final read-only closeout on 2026-07-18:
+
+- Owner confirmed that the actual post-promotion payloads saved by Head Coach for
+  2026-07-22 and 2026-07-29 Suvarnabhumi are correct. This confirmation changes
+  status only; Codex sent no Save or mutation and changed no Production data.
+- Fresh read-only reconciliation remained exact:
+  - 2026-07-22 slot `316c9e10-e05f-48f0-973e-04ea429a65dc`, 15:00–17:00,
+    group `bf8284a1-352b-4bf6-8e78-817ba91f88ff`, name `กลุ่มผสม`, Coach
+    `61b94e69-b1d9-4342-91e8-e40b3015ea36`, booking-session members
+    `686f6563-a655-45d3-899d-dbdee6f9b287`,
+    `7de8af7f-a114-49e7-89b3-a0b3ae1315be`, and
+    `89adc1f4-57dc-43f1-b5a2-329cc1638b8d`; counts `1/3/1/1`.
+  - 2026-07-29 slot `d62b0bba-c9b9-4e0a-a6c1-d54ce7c73887`, 15:00–17:00,
+    group `bc89970f-2b8b-4d82-b53f-bc0eccc94411`, name `กลุ่มผสม`, Coach
+    `61b94e69-b1d9-4342-91e8-e40b3015ea36`, booking-session members
+    `413c5fe2-4a64-48ca-a8f7-8a500a82a0ba`,
+    `e4c67b10-5883-4b0b-86bb-e424f7aed6e5`, and
+    `ef5210a7-156f-421f-9794-022af773fe53`; counts `1/3/1/1`.
+- Matching successful activity rows remain
+  `f243c7f2-8210-4ad7-ad41-02a265b69217` and
+  `11e5d7f4-3b2c-4be9-a6ee-8888d3be1d0f`, both by Head Coach
+  `5393eb51-46b1-4e15-890f-4dd139fdb78f`. Global protected totals remain groups
+  `1026`, members `2436`, legacy `1000`, reservations `234`.
+- Production deployment `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` remains Ready on all
+  four established aliases. Corrective Source, atomic RPC, and reservation
+  protection remain Production-active; migration `20260717070225` remains applied
+  once. No rollback, Source, migration, environment, feature, allowlist, attendance,
+  check-in, teaching-hours, payroll, payment, wallet, or financial change occurred
+  in this confirmation round.
+- Final result for the confirmed scope: all three damaged slots are repaired and
+  Owner-confirmed; Source Complete **Yes**; Tests Passed **Yes**;
+  Committed/Pushed/Deployed/Production Active **Yes**; Production UAT and
+  Controlled Write UAT **Passed**; Data Repaired **Yes**; Financial Impact
+  **None**; Customer Impact **Resolved**; Task Done **Yes**.
+- Active Task is **NONE**. Next Action is to await Owner selection. The separate
+  containment auth-session baseline, broader historical incident population,
+  permanent dirty `AGENTS.md` work, and Parking Lot tasks remain unauthorized and
+  must not start automatically.
