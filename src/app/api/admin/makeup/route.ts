@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
+import {
+  getCoachAssignmentWriteContainmentPayload,
+  isCoachAssignmentWriteContainmentEnabled,
+  isContainedAdminMakeupAssignmentAction,
+} from '@/lib/coach-assignment-write-containment'
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
@@ -722,6 +727,10 @@ export async function PATCH(req: NextRequest) {
     const targetGroupId = typeof (body as { target_group_id?: unknown }).target_group_id === 'string'
       ? ((body as { target_group_id?: string }).target_group_id || '').trim()
       : ''
+
+    if (isContainedAdminMakeupAssignmentAction(action)) {
+      return NextResponse.json(getCoachAssignmentWriteContainmentPayload(), { status: 503 })
+    }
 
     if (action === 'move_learner_to_existing_coach_group') {
       const sessionIds = normalizeSessionIds((body as { session_ids?: unknown }).session_ids)
@@ -1948,6 +1957,10 @@ export async function PATCH(req: NextRequest) {
     let retrospectiveGroupId: string | null = null
 
     if (!hasAssignedCoach && action === 'mark_attendance') {
+      if (isCoachAssignmentWriteContainmentEnabled()) {
+        return NextResponse.json(getCoachAssignmentWriteContainmentPayload(), { status: 503 })
+      }
+
       if (!selectedCoachId) {
         return NextResponse.json({ error: 'กรุณาเลือกโค้ชจริงก่อนบันทึกย้อนหลัง' }, { status: 400 })
       }

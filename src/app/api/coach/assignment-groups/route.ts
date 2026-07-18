@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import {
+  getCoachAssignmentWriteContainmentPayload,
+  isCoachAssignmentWriteContainmentEnabled,
+} from '@/lib/coach-assignment-write-containment'
 import { notifyAssignedCoachesForSlot } from '@/lib/coach-notifications'
 import { createClient } from '@/lib/supabase/server'
 import type { StudentType } from '@/types/database'
@@ -143,6 +147,10 @@ export async function POST(request: NextRequest) {
 
     if (isAssignmentLocked(slot.date, slot.start_time)) {
       return NextResponse.json({ error: 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว ไม่สามารถมอบหมาย/แก้ไขกลุ่มได้ กรุณาใช้ flow ตรวจสอบ attendance gap หรือข้อมูลย้อนหลังแทน' }, { status: 409 })
+    }
+
+    if (isCoachAssignmentWriteContainmentEnabled()) {
+      return NextResponse.json(getCoachAssignmentWriteContainmentPayload(), { status: 503 })
     }
 
     const submittedSessionIds = Array.from(new Set(groups.flatMap((group) => group.studentSessionIds || [])))
