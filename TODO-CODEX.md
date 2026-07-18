@@ -13,7 +13,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK
 CANARY READY BUT UNPROMOTED; FORWARD CANARY READ-ONLY UAT PASSED; CONTROLLED WRITE
-UAT NOT RUN; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
+UAT FAILED MANUAL-NAME PRESERVATION AFTER ONE ATOMIC SAVE; 3 CONFIRMED DAMAGED
+SLOTS REMAIN; TASK NOT DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -66,7 +67,7 @@ UAT NOT RUN; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
   Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
-- Correct forward Source/Test commit
+- Forward candidate Source/Test commit
   `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` (tree
   `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`) is pushed non-force on
   `codex/coach-assignment-forward-fix-20260718`. It is based directly on
@@ -85,8 +86,9 @@ UAT NOT RUN; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
   `0`. Canary assignment semantics re-passed read-only. However, containment
   emitted one distinct middleware `refresh_token_not_found` error on `GET /`
   during the logout/login cycles, with response `200`; Canary runtime
-  error/fatal/5xx remained `0/0/0`. Therefore the overall zero-runtime-error gate
-  is still not passed. Protected assignment counts/fingerprints remained groups
+  error/fatal/5xx remained `0/0/0`. At that intermediate checkpoint the overall
+  zero-runtime-error gate was not passed; Owner later accepted this distinct
+  containment baseline as non-blocking. Protected assignment counts/fingerprints remained groups
   `1022`, members `2426`, legacy `996`, reservations `230`; reservation business
   fields reconciled `230/230` with mismatch `0`; successful assignment Saves after
   containment remained `0`. One reservation timestamp-only refresh was traced to
@@ -98,18 +100,26 @@ UAT NOT RUN; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
   Forward Canary, did not fail login or HTTP, and is unrelated to the Coach
   Assignment diff. Preserve it as an unauthorized separate follow-up. Forward
   Canary read-only UAT is **Passed**; original React `#418` remains **Unknown /
-  Non-reproducible after clean bounded retest**; Controlled Write UAT is **Not
-  run**; aliases promoted **No**.
+  Non-reproducible after clean bounded retest**; aliases promoted **No**.
+- Owner/Head Coach then confirmed and saved one exact dark-Canary payload for slot
+  `53c3556a-6067-4ad1-813c-ca8410d17994` exactly once. The Save was atomic:
+  groups/members/legacy/reservations changed from `0/0/0/0` to `2/5/2/2`, global
+  totals are `1024/2431/998/232`, and no orphan, mismatch, conflict, partial
+  deletion, console error, or attendance/check-in/program/payment/wallet change
+  was found. Controlled Write UAT nevertheless **Failed** because submitted manual
+  names `ระดับสูง` and `กลาง-สูง` were stored as `กลุ่มผสม` and `ชุดพื้นฐาน` on
+  groups `c56af2cf...` and `ec77cf98...`. The Source treats those legacy labels as
+  auto-generated before the RPC. Do not Save again or promote. The slot is not
+  closed as repaired; confirmed damaged slots remain `3`.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Request one exact Owner/Head Coach-confirmed damaged-slot payload:
-slot ID, date/time/branch, complete learner list, learner-to-group mapping, group
-names, exact coach per group, and learners who must remain unassigned. Do not infer
-the payload, perform a write, promote the dark artifact, remove containment, start
-the auth follow-up, or repair another slot without separate approval. Do not start
-a Parking Lot task automatically.**
+Next action: **Owner review of the failed manual-name-preservation gate. Separate
+approval is required for a scoped Local Source/Test correction, a new dark
+artifact/repeat UAT plan, and any exact name-only repair of `c56af2cf...` and
+`ec77cf98...`. Do not Save again, promote the dark artifact, remove containment,
+change Production data, start the auth follow-up, or start a Parking Lot task.**
 
 ## Recently Completed
 

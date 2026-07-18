@@ -234,9 +234,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Active Task: **Admin Schedules — Coach Overlap Guard and Ungrouped Coach
   Semantics**.
 - Task Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE
-  DARK CANARY READY BUT UNPROMOTED; READ-ONLY CANARY UAT NOT PASSED BECAUSE ONE
-  HYDRATION ERROR WAS OBSERVED; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT
-  DONE**.
+  DARK CANARY READY BUT UNPROMOTED; READ-ONLY CANARY UAT PASSED; CONTROLLED WRITE
+  UAT FAILED MANUAL-NAME PRESERVATION AFTER ONE ATOMIC SAVE; THREE CONFIRMED
+  DAMAGED SLOTS REMAIN; TASK NOT DONE**.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -304,12 +304,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   once and was not rolled back. Fresh protected totals before and after the
   authorized no-write check are identical: groups `1022`, members `2426`, legacy
   assignments `996`, and reservations `230`.
-- Forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` is complete and
-  pushed. It is deployed only as unpromoted dark Production-target artifact
+- Forward candidate `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` is pushed but is
+  **not Source Complete for release** after the Controlled Write failure recorded
+  below. It is deployed only as unpromoted dark Production-target artifact
   `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD`; it is not Production-active. It preserves
   exact assignments by valid persisted
   `coach_id`, makes mixed/wide Level non-blocking, normalizes blank/placeholder and
-  legacy count-suffix names without overwriting valid manual names, displays
+  legacy count-suffix names and was intended to preserve valid manual names, displays
   member counts from live membership, and routes all five active Admin Makeup
   exact-assignment paths through the same atomic RPC used by normal Save. Local
   verification passed assignment/naming checks `30/30`, database conflict and
@@ -336,8 +337,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   server error. However, the first `/admin/schedules` guard redirect produced one
   client React hydration error `#418`. A fresh Canary reproduction and the
   containment Production baseline did not reproduce it, and Canary runtime logs
-  contained no error/fatal/5xx. The explicit zero-error gate is therefore **not
-  passed**; no controlled write or alias promotion is permitted.
+  contained no error/fatal/5xx. At that intermediate checkpoint the explicit
+  zero-error gate was **not passed**; the later bounded retest and Owner decision
+  superseded that blocker before the separately recorded Controlled Write.
 - The Owner-authorized bounded retest preserved that original observation and
   completed deterministic client checks on both environments: direct `/coach`
   `5/5`, hard reload `/coach` `5/5`, `/admin/schedules` role-guard redirect
@@ -358,8 +360,31 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   request, and is unrelated to the Forward Source assignment diff. Owner confirms
   it is not a Coach Assignment release blocker. Forward Canary read-only UAT is
   therefore **Passed**. The auth baseline remains preserved as a separate follow-up
-  that is not authorized to start. Controlled Write is still **Not run** and alias
-  promotion remains **No**.
+  that is not authorized to start. The later Controlled Write result is recorded
+  below; alias promotion remains **No**.
+- Owner/Head Coach confirmed the exact 2026-07-21 17:00-19:00 Chaeng Watthana
+  payload for slot `53c3556a-6067-4ad1-813c-ca8410d17994` and performed exactly
+  one Save through dark Canary `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD`. Pre-write
+  target state was groups/members/legacy/reservations `0/0/0/0`; global protected
+  totals were `1022/2426/996/230`; both selected coaches had zero exact conflicts
+  and zero legacy warnings. The atomic Save created exactly two groups, five
+  members, two legacy assignments, and two reservations; post-write totals are
+  `1024/2431/998/232`. Activity log
+  `7eaa3080-adc6-416a-ad8d-1b9e3e657980` records one Save by Head Coach
+  `95bf2081-e9f9-4aa1-883c-7294d2b8ce33`. No orphan, reservation mismatch,
+  coach conflict, console error, partial deletion, or change to target attendance,
+  check-in, teaching program, payment, or wallet evidence was found.
+- Controlled Write UAT is **Failed** because manual names were not preserved.
+  Submitted UI names `ระดับสูง` and `กลาง-สูง` were stored as `กลุ่มผสม` on group
+  `c56af2cf-d9da-464b-a1c6-602709eab7c1` and `ชุดพื้นฐาน` on group
+  `ec77cf98-8768-4181-865d-ccad7befabc8`. Source inspection attributes this to
+  `LEGACY_AUTO_GROUP_NAMES` treating both submitted labels as auto-generated;
+  `resolveAssignmentGroupName()` then derives category/program names before the
+  atomic RPC. The Canary UI retains the submitted draft names after refetch and
+  therefore shows `มีการแก้ไขยังไม่บันทึก`. Do not Save again, promote aliases,
+  or repair these names without separate Owner approval. The slot assignment is
+  atomically present, but it does not satisfy the exact approved payload, so it is
+  not closed as repaired and the confirmed damaged-slot count remains `3`.
 - Pre/post read-only Canary fingerprints were identical: groups
   `36ff11873681dd9b550d8bfe61b078d9`, members
   `ad6abedcd22ded678b45a42695cb03f8`, legacy
@@ -400,19 +425,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Request Owner/Head Coach confirmation of one exact damaged-slot
-  payload for Controlled Write UAT on dark Canary `dpl_CeoUkk...`. Required fields:
-  slot ID, date/time/branch, every learner, each learner's group, each group name,
-  exact coach per group, and learners who must remain unassigned. Do not infer the
-  payload, write Production, promote aliases, remove containment, repair another
-  slot, start the auth follow-up, or start a Parking Lot task until separately
-  authorized.**
+- Next Action: **Owner review of the failed manual-name-preservation gate. Separate
+  approval is required for a scoped Local Source/Test fix, a new dark artifact and
+  repeat UAT plan, and any exact name-only repair of groups `c56af2cf...` and
+  `ec77cf98...`. Do not Save again, promote aliases, remove containment, repair
+  Production data, start the auth follow-up, or start a Parking Lot task.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
 Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK CANARY READY
-BUT UNPROMOTED; FORWARD CANARY READ-ONLY UAT PASSED; CONTROLLED WRITE UAT NOT
-RUN; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
+BUT UNPROMOTED; FORWARD CANARY READ-ONLY UAT PASSED; CONTROLLED WRITE UAT FAILED
+MANUAL-NAME PRESERVATION AFTER ONE ATOMIC SAVE; THREE CONFIRMED DAMAGED SLOTS
+REMAIN; TASK NOT DONE**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -588,13 +612,13 @@ RUN; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Emergency Production write containment active; forward Source dark Canary Ready but unpromoted; Forward Canary read-only UAT passed after `56/56` clean bounded client cycles; Containment auth-session baseline accepted non-blocking; Controlled Write UAT not run; 3 confirmed damaged slots remain; Task not done |
+| Task Status | Emergency Production write containment active; forward Source dark Canary Ready but unpromoted; Forward Canary read-only UAT passed; Controlled Write UAT failed manual-name preservation after one atomic Save; aliases not promoted; 3 confirmed damaged slots remain; Task not done |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; containment Source is separately committed at `3ad8a52dbda95b645608bce2f05917824e9763a6` |
 | Remote HEAD | Same documentation closeout after non-force push; containment branch also pushed non-force |
 | Ahead/Behind | `0/0` after fetch |
-| Source Complete | Emergency containment: Yes. Correct forward Source: Yes locally at `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; not Production-active |
-| Tests Passed | Local forward Source gate passed: assignment/naming `30/30`; conflict/concurrency `22/22` with residue `0`; authenticated Playwright desktop/mobile `3/3` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint; mojibake `234`; diff check; Production Build `91/91`; local migration reset/down/re-apply; post-build clean restart `200/200/200`. Bounded client retest passed `56/56` with React `#418`/hydration/console/page errors and redirect loops `0`; Canary runtime error/fatal/5xx `0/0/0`; assignment read-only semantics passed. Containment auth-session error is Owner-accepted non-blocking baseline |
+| Source Complete | Emergency containment: Yes. Forward candidate `c70f5a4...`: No for release because Controlled Write exposed a manual-name-preservation defect; Source was not changed in this checkpoint |
+| Tests Passed | Local suites and bounded read-only Canary checks passed as previously recorded, but release gate is No: Controlled Write UAT failed manual-name preservation. Atomicity, reconciliation, and console checks for the one Save passed |
 | Committed | Yes — containment Source `3ad8a52dbda95b645608bce2f05917824e9763a6`; forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; documentation closeout is the commit containing this matrix |
 | Pushed | Yes — containment, forward Source, and documentation scoped commits, non-force |
 | Current Source | Production: containment `3ad8a52dbda95b645608bce2f05917824e9763a6` based on `0226e363f6677b078430f93459c2ee2ede6484e8`. Forward candidate: `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` |
@@ -602,20 +626,20 @@ RUN; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 | Deployed Source | `3ad8a52dbda95b645608bce2f05917824e9763a6` (base `0226e363f6677b078430f93459c2ee2ede6484e8`; regression Source excluded) |
 | Deployment ID | Production aliases: `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` Ready `4/4`. Dark unpromoted forward artifact: `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD` Ready. Fallback: `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8` |
 | Migration Source | `20260717070225_coach_assignment_conflict_guards.sql`; SHA-256 `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; standalone preflight is read-only |
-| Migration Applied | Yes — Production applied exactly once; not rolled back; current reservations `230` and pre/post containment fingerprint identical |
+| Migration Applied | Yes — Production applied exactly once; not rolled back; current reservations `232` after the one controlled atomic Save |
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
 | Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Forward Source `c70f5a4...`: No; its dark artifact has no Production alias |
 | Production UAT | Forward Source dark Canary read-only UAT: Passed. Original hydration `#418`: Unknown / Non-reproducible after `56/56` clean bounded client cycles. Containment auth-session baseline: Accepted non-blocking. Prior regression Source `1b995396...`: Failed from real Head Coach evidence |
-| Controlled Write UAT | Forward Canary: Not run. One earlier authorized containment no-write check returned `503`; it was not a successful write UAT. Successful assignment Save logs after activation remain `0` |
-| Data Repaired | No — no incident data was repaired in this containment round; 3 damaged slots remain pending separate evidence and approval |
-| Production Data Changed | By this bounded retest: No. Normal real-world coach check-in and attendance activity occurred independently and refreshed one reservation `updated_at`; groups/members/legacy and all reservation business fields remained unchanged. Historical incident writes remain unrepaired |
-| Customer Impact | Head Coach/Admin Makeup exact-assignment writes remain contained; assignment reads remain available. Group creation/reassignment stays intentionally blocked until one exact Controlled Write UAT passes and Owner separately approves conditional promotion/containment removal |
+| Controlled Write UAT | Failed manual-name preservation. Owner/Head Coach performed one dark-Canary Save for slot `53c3556a...`; atomic rows were complete, but submitted `ระดับสูง` / `กลาง-สูง` were stored as `กลุ่มผสม` / `ชุดพื้นฐาน`. Do not retry or promote |
+| Data Repaired | No — target assignment rows now exist atomically, but stored names do not match the exact approved payload; the slot is not closed as repaired and 3 damaged slots remain |
+| Production Data Changed | Yes — by the Owner/Head Coach controlled Canary Save only: groups `+2` (`c56af2cf...`, `ec77cf98...`), members `+5`, legacy `+2`, reservations `+2`; totals `1024/2431/998/232`. No other assignment row was touched in the controlled window |
+| Customer Impact | Main aliases remain on containment and general assignment writes stay disabled. The controlled slot now has complete exact coach/member data, but its persisted names are wrong and Canary shows an unsaved-draft indicator; Forward Source cannot be promoted |
 | Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
-| Blocker | Exact Controlled Write payload for one damaged slot is not yet confirmed by Owner/Head Coach. Original hydration `#418` is Unknown / Non-reproducible; Containment auth-session baseline is Owner-accepted non-blocking. Exact repair evidence is still required for each damaged slot |
-| Remaining Work | Obtain one exact Owner/Head Coach-confirmed damaged-slot payload; run one separately controlled Canary write and reconciliation; conditionally promote the exact existing artifact only if that gate passes; reconcile the remaining damaged slots one at a time. Auth follow-up and permanent `AGENTS.md` rule remain separate and unauthorized |
+| Blocker | Forward Source misclassifies submitted legacy labels `ระดับสูง` and `กลาง-สูง` as auto-generated and overwrites them before the atomic RPC. Controlled Write UAT failed; exact name-only repair and Source correction are not authorized |
+| Remaining Work | Owner review; separately authorize a scoped Local Source/Test correction, new dark artifact/repeat UAT plan, and exact name-only repair if desired. Keep containment active. Auth follow-up and permanent `AGENTS.md` rule remain separate and unauthorized |
 | Task Done | No |
-| Next Gate / Next Action | Owner/Head Coach confirmation of one exact damaged-slot payload: slot ID, date/time/branch, complete learner list, learner-to-group mapping, group names, exact coach per group, and any learners who remain unassigned. No write or promotion until that payload is confirmed |
+| Next Gate / Next Action | Owner review of failed manual-name preservation. No repeat Save, alias promotion, containment removal, Source fix, or Production name repair without separate approval |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

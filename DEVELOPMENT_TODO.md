@@ -5133,3 +5133,55 @@ State confirmed by Owner after reviewing the bounded retest evidence on
   Codex must not infer this payload from activity logs or incomplete screenshots.
   No Production write, alias promotion, containment removal, damaged-slot repair,
   Source change, auth follow-up, or Parking Lot task is authorized by this decision.
+
+### Controlled Write UAT — atomic save succeeded, manual-name preservation failed
+
+State observed at this controlled dark-Canary checkpoint on 2026-07-18:
+
+- Owner/Head Coach confirmed slot `53c3556a-6067-4ad1-813c-ca8410d17994`,
+  2026-07-21 17:00-19:00 Chaeng Watthana, with two exact groups and five active
+  learners. Confirmed manual names were `ระดับสูง` for Coach
+  `20b2f808-e6a5-4e9f-ae95-3cc6561e0fde` with three learners and `กลาง-สูง` for
+  Coach `95bf2081-e9f9-4aa1-883c-7294d2b8ce33` with two learners; no learner was
+  to remain unassigned.
+- Fresh pre-write state was target groups/members/legacy/reservations `0/0/0/0`;
+  global totals `1022/2426/996/230`; both coaches had exact conflicts `0` and
+  legacy warnings `0`; successful assignment Saves after containment were `0`.
+  The Owner/Head Coach clicked Save exactly once through dark Canary
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD`.
+- The atomic write completed at `2026-07-18T10:46:16.416897Z`. It created exact
+  groups `c56af2cf-d9da-464b-a1c6-602709eab7c1` and
+  `ec77cf98-8768-4181-865d-ccad7befabc8`; five exact member rows; legacy rows
+  `fc730760-e1f8-49c1-a832-9d3c424bdfa1` and
+  `19b19c1a-b299-494c-b813-e8c881947a70`; and two matching reservations. Global
+  totals became `1024/2431/998/232`. Activity log
+  `7eaa3080-adc6-416a-ad8d-1b9e3e657980` records one Save by Head Coach
+  `95bf2081-e9f9-4aa1-883c-7294d2b8ce33` with group/student counts `2/5`.
+- Atomic safety passed: group/member/legacy/reservation rows are complete; target
+  orphan and reservation mismatch counts are `0`; both coaches have no exact
+  conflict or legacy warning after self-exclusion; no other assignment row was
+  created/updated in the controlled window. Target attendance, check-in, teaching
+  program, payment, and wallet fingerprints remained unchanged. Console
+  warning/error count was `0`. Financial impact is **None**.
+- Manual-name preservation failed. The server stored group `c56af2cf...` as
+  `กลุ่มผสม` instead of submitted `ระดับสูง`, and group `ec77cf98...` as
+  `ชุดพื้นฐาน` instead of submitted `กลาง-สูง`. The Canary client retained the
+  submitted draft after refetch and showed `มีการแก้ไขยังไม่บันทึก`; the apparent
+  contradiction is a client draft versus persisted server-name mismatch, not a
+  partial database write.
+- Read-only Source inspection attributes the failure to
+  `src/lib/coach-assignment-group-naming.ts`: `LEGACY_AUTO_GROUP_NAMES` includes
+  both `ระดับสูง` and `กลาง-สูง`, so `resolveAssignmentGroupName()` treats the
+  submitted labels as auto-generated and derives `กลุ่มผสม` / `ชุดพื้นฐาน`
+  before `save_coach_assignment_groups_v1`. No Source change was authorized or
+  made in this checkpoint.
+- Controlled Write UAT is **Failed**; aliases promoted **No**; containment remains
+  active on `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`; the forward artifact remains dark
+  and unpromoted. Production data changed **Yes** by the one Owner/Head
+  Coach-controlled Save. Data Repaired remains **No** because persisted names do
+  not match the exact approved payload; confirmed damaged slots remain `3`; Task
+  Done is **No**.
+- Next Gate is Owner review. Separate approval is required for a scoped Local
+  Source/Test correction, a new dark artifact/repeat UAT plan, and any exact
+  name-only repair of the two groups. Do not retry Save, promote aliases, remove
+  containment, repair Production data, or start another task automatically.
