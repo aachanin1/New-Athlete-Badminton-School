@@ -5185,3 +5185,111 @@ State observed at this controlled dark-Canary checkpoint on 2026-07-18:
   Source/Test correction, a new dark artifact/repeat UAT plan, and any exact
   name-only repair of the two groups. Do not retry Save, promote aliases, remove
   containment, repair Production data, or start another task automatically.
+
+## 2026-07-18 — Manual Name Preservation Corrective Canary, Controlled Save, and Promotion
+
+State observed at this corrective release closeout on 2026-07-18:
+
+- Owner authorized a scoped correction from forward parent
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`, full Local verification,
+  non-force Source/Test publish, an unpromoted Production-target Canary, one
+  repeat controlled Save for slot `53c3556a-6067-4ad1-813c-ca8410d17994`, and
+  conditional promotion of the exact same artifact. Direct SQL repair, migration
+  change, additional Production Saves, and repair of other slots remained out of
+  scope.
+- Root cause was `LEGACY_AUTO_GROUP_NAMES` in
+  `src/lib/coach-assignment-group-naming.ts`: it classified legitimate submitted
+  labels `ระดับสูง` and `กลาง-สูง` as generated names, so the server replaced
+  them before the atomic RPC. Corrective contract now treats every trimmed,
+  non-placeholder name as manual after removing a trailing `(N คน)` suffix.
+  Auto-name runs only for blank, exact `ยังไม่จัดกลุ่ม`, or generic `กลุ่ม N`.
+- Corrective Source/Test commit
+  `9ef1ee30035a083426743aed3e326ad9676d65c4`, tree
+  `94fe2410f0361acf639c47a4be7245c01128f21d`, parent
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`, was pushed non-force on branch
+  `codex/coach-assignment-manual-name-fix-20260718`; ahead/behind was `0/0`.
+  Changed files were `src/lib/coach-assignment-group-naming.ts`,
+  `scripts/check-admin-schedule-assignment-state.mjs`, and
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`. Migration,
+  API authorization, and client TSX files did not change.
+- Local gates passed: assignment/naming/authorization `33/33`; database conflict,
+  concurrency, lifecycle, and residue `22/22` / `0`; authenticated Playwright
+  desktop/mobile `3/3` with residue `0`; Lesson Wallet regression `17/17`;
+  TypeScript; ESLint; mojibake `234`; `git diff --check`; Production Build; and
+  post-build clean restart with `/`, `/api/health`, and generated static asset
+  `200`. The first clean-restart attempt lacked the ignored local environment in
+  the detached worktree; after copying the ignored local env without committing
+  it, the same exact Source passed. No secret or environment file entered Git.
+- A clean detached worktree created Production-target, unpromoted Canary
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` with `--prod --skip-domain`. Its unique URL,
+  `/api/health`, and generated CSS returned `200`; deployment was Ready. Before
+  Controlled Write, all four aliases still pointed to containment
+  `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`.
+- Fresh pre-write reconciliation confirmed the target remained exact
+  groups/members/legacy/reservations `2/5/2/2`; coaches and learner mapping matched
+  the Owner payload; persisted names were still `กลุ่มผสม` and `ชุดพื้นฐาน`; and
+  no later assignment mutation had occurred. The Owner/Head Coach changed only
+  the two names and clicked Save exactly once through the corrective Canary.
+- Activity log `82086719-9171-4170-8f57-7dbc5ca2ba6e` records that single Save by
+  Head Coach `95bf2081-e9f9-4aa1-883c-7294d2b8ce33` at
+  `2026-07-18T14:48:21.129295Z`. Persisted result:
+  - group `66a59351-19f4-41fd-b5f3-1e989b931237`, name `ระดับสูง`, Coach
+    `20b2f808-e6a5-4e9f-ae95-3cc6561e0fde`, exact original three learners;
+  - group `9757d065-2553-48b0-a4ba-81ceb4b50d2b`, name `กลาง-สูง`, Coach
+    `95bf2081-e9f9-4aa1-883c-7294d2b8ce33`, exact original two learners;
+  - legacy rows `db2baac1-a2b7-4f56-a4ef-38834e4559e8` and
+    `8457aa44-cb0e-426b-9ca1-9e848e58b85e`;
+  - two reservations linked to the new exact groups.
+- Post-save target counts remained `2/5/2/2`. Exact coach/member mapping was
+  unchanged; no partial deletion, orphan, reservation mismatch, conflict,
+  unsaved-draft indicator, console error, runtime/500/name-constraint error, or
+  change to attendance, check-in, teaching program, teaching hours, payroll,
+  payment, wallet, or finance fingerprints was found. Financial impact is
+  **None**. Controlled Write UAT is **Passed** and the 2026-07-21 17:00–19:00
+  Chaeng Watthana damaged slot is repaired.
+- The exact corrective Canary artifact was promoted without rebuild. Deployment
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` is Ready; all four established Production
+  aliases point to it. Public `/`, `/api/health`, and static assets return `200`.
+  Authenticated Head Coach read-only rendering shows `ระดับสูง` / `กลาง-สูง`,
+  dynamic `3 + 2` counts, assigned state, and no unsaved indicator or console
+  error. Post-promotion error/fatal/500/name-constraint log queries returned zero.
+  Temporary `503` containment is inactive and normal authorized atomic assignment
+  writes are enabled. Rollback was not required; containment
+  `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` remains the rollback target.
+- Migration `20260717070225` remains applied exactly once. Immediately after the
+  controlled Save, current/future reservation candidates/rows reconciled
+  `219/219`; after later live Saves they reconcile `221/221`. Missing, physical
+  orphan, and field mismatch are `0/0/0`. Thirteen historical reservations are dated 2026-07-17 and
+  were created before the repeat Save; they are not release-created stale rows.
+  Before later live Saves, totals were groups `1024`, members `2429`, legacy `998`,
+  reservations `232`; early member-count movement outside the target slot was
+  traced to ordinary reschedule lifecycle activity.
+- Three real Head Coach Saves occurred after promotion and before documentation
+  closeout, all by user `5393eb51-46b1-4e15-890f-4dd139fdb78f`:
+  - activity `396a890d-94dd-46ad-861c-0bf0f69e4f50`, slot
+    `83adbc97-f7f0-4552-8e16-2215097e9eb7`, 2026-07-19 16:00–18:00
+    Suvarnabhumi, two groups / nine learners;
+  - activity `f243c7f2-8210-4ad7-ad41-02a265b69217`, slot
+    `316c9e10-e05f-48f0-973e-04ea429a65dc`, 2026-07-22 15:00–17:00
+    Suvarnabhumi, group `bf8284a1-352b-4bf6-8e78-817ba91f88ff` named `กลุ่มผสม`,
+    Coach `61b94e69-b1d9-4342-91e8-e40b3015ea36`, three learners;
+  - activity `11e5d7f4-3b2c-4be9-a6ee-8888d3be1d0f`, slot
+    `d62b0bba-c9b9-4e0a-a6c1-d54ce7c73887`, 2026-07-29 15:00–17:00
+    Suvarnabhumi, group `bc89970f-2b8b-4d82-b53f-bc0eccc94411` named `กลุ่มผสม`,
+    Coach `61b94e69-b1d9-4342-91e8-e40b3015ea36`, three learners.
+  Each affected slot has group/member/legacy/reservation completeness, and no
+  post-promotion runtime/500/name-constraint error was found. Fresh totals became
+  `1026/2436/1000/234`. The two previously damaged slots have technically complete
+  data, but because their exact intended payloads were not supplied to Codex before
+  the live Saves, repair correctness is **Unknown / Need Owner confirmation**.
+- Current status: Source Complete **Yes**; Tests Passed **Yes**; Committed/Pushed
+  **Yes**; Deployed/Production Active **Yes**; Forward Production UAT and
+  Controlled Write UAT **Passed**; Data Repaired **Yes for the 21 July slot**;
+  Production Data Changed **Yes by Owner/Head Coach controlled Saves only**;
+  Financial Impact **None**; Task Done **No**. The 2026-07-22 and 2026-07-29
+  Suvarnabhumi payloads remain pending Owner confirmation.
+- Next Gate: Owner/Head Coach must confirm whether the two actual post-promotion
+  payloads are intended. If confirmed, close them after read-only reconciliation;
+  otherwise request separate exact corrective approval. Do not infer payloads,
+  send another Save, use direct SQL,
+  start the separate auth-session follow-up, or start another task automatically.

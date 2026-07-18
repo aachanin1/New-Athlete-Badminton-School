@@ -11,10 +11,10 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
-Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK
-CANARY READY BUT UNPROMOTED; FORWARD CANARY READ-ONLY UAT PASSED; CONTROLLED WRITE
-UAT FAILED MANUAL-NAME PRESERVATION AFTER ONE ATOMIC SAVE; 3 CONFIRMED DAMAGED
-SLOTS REMAIN; TASK NOT DONE**.
+Status: **CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY CANARY AND
+CONTROLLED WRITE UAT PASSED; WRITE CONTAINMENT REMOVED; 1 DAMAGED SLOT CONFIRMED
+REPAIRED; 2 POST-PROMOTION HEAD COACH SAVES REQUIRE OWNER CONFIRMATION; TASK NOT
+DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -27,8 +27,9 @@ SLOTS REMAIN; TASK NOT DONE**.
   grouping regression and rollback. Emergency containment commit
   `3ad8a52dbda95b645608bce2f05917824e9763a6` was built from restored Source
   `0226e363f6677b078430f93459c2ee2ede6484e8`, pushed non-force on its scoped
-  branch, and deployed as Ready deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`.
-  All four Production aliases point to the containment deployment. The Owner-authorized
+  branch, and was deployed as Ready deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`.
+  It is now the verified rollback target; all four Production aliases have since
+  moved to the corrective Forward deployment recorded below. The Owner-authorized
   Nice/Ratchada repair is
   complete: exact group update `1` and matching legacy delete `1`. Three later
   Production-user actions intentionally moved its learners into Coach Base group
@@ -48,12 +49,12 @@ SLOTS REMAIN; TASK NOT DONE**.
   `235/235`, and missing/stale/orphan/mismatch rows were `0`. Production business
   data fingerprints and Coach/member/legacy targets
   remained unchanged. Exact Source `1b995396f432d11b133c1cf4b5604b6db875b63b`
-  remains pushed but is no longer Production-active. Containment infrastructure
-  passed: deployment Ready, aliases `4/4`, `/`, `/api/health`, and static asset all
+  remains pushed but is no longer Production-active. At the containment checkpoint,
+  containment infrastructure passed: deployment Ready, aliases `4/4`, `/`, `/api/health`, and static asset all
   `200`. Migration `20260717070225` remains applied exactly once. Protected totals
   and fingerprints matched before/after the no-write check: groups `1022`, members
   `2426`, legacy `996`, reservations `230`.
-  Authenticated Head Coach rendering remains available at `36/39` assigned, `3`
+  At that checkpoint, authenticated Head Coach rendering was available at `36/39` assigned, `3`
   unassigned, and `135` learners. One authorized containment check returned `503`
   with code `COACH_ASSIGNMENT_SAVE_TEMPORARILY_DISABLED`; successful assignment
   Save activity after activation remained `0`.
@@ -62,12 +63,12 @@ SLOTS REMAIN; TASK NOT DONE**.
   rows are `55` exact groups, `97` members, `50` legacy assignments, and `50`
   derived reservations. These operational writes were not controlled UAT and were
   not repaired. The 47 slots are the broader incident-window Save population;
-  confirmed damaged slots are `3`. Exact repair evidence is still required for
-  each damaged slot; row IDs and evidence limitations are in `DEVELOPMENT_TODO.md`.
+  confirmed damaged slots were `3` at that incident checkpoint. Exact repair evidence is still required for
+  each remaining damaged slot; row IDs and evidence limitations are in `DEVELOPMENT_TODO.md`.
   Pre-existing dirty
   `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
   excluded; permanent `AGENTS.md` rule work remains separate.
-- Forward candidate Source/Test commit
+- Historical failed-name checkpoint: Forward candidate Source/Test commit
   `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` (tree
   `0fecabd92e2f2c65b7bd59227b8d6b743e6bd820`) is pushed non-force on
   `codex/coach-assignment-forward-fix-20260718`. It is based directly on
@@ -94,14 +95,14 @@ SLOTS REMAIN; TASK NOT DONE**.
   containment remained `0`. One reservation timestamp-only refresh was traced to
   normal coach check-in/attendance activity, not an assignment mutation. No
   Controlled Write, promotion, or damaged-slot repair occurred.
-- Owner classified the one Containment-only
+- Historical bounded-retest Owner decision: Owner classified the one Containment-only
   `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` as
   **ACCEPTED NON-BLOCKING CONTAINMENT AUTH-SESSION BASELINE**. It did not occur on
   Forward Canary, did not fail login or HTTP, and is unrelated to the Coach
   Assignment diff. Preserve it as an unauthorized separate follow-up. Forward
   Canary read-only UAT is **Passed**; original React `#418` remains **Unknown /
   Non-reproducible after clean bounded retest**; aliases promoted **No**.
-- Owner/Head Coach then confirmed and saved one exact dark-Canary payload for slot
+- Historical first Controlled Write checkpoint: Owner/Head Coach then confirmed and saved one exact dark-Canary payload for slot
   `53c3556a-6067-4ad1-813c-ca8410d17994` exactly once. The Save was atomic:
   groups/members/legacy/reservations changed from `0/0/0/0` to `2/5/2/2`, global
   totals are `1024/2431/998/232`, and no orphan, mismatch, conflict, partial
@@ -109,17 +110,49 @@ SLOTS REMAIN; TASK NOT DONE**.
   was found. Controlled Write UAT nevertheless **Failed** because submitted manual
   names `ระดับสูง` and `กลาง-สูง` were stored as `กลุ่มผสม` and `ชุดพื้นฐาน` on
   groups `c56af2cf...` and `ec77cf98...`. The Source treats those legacy labels as
-  auto-generated before the RPC. Do not Save again or promote. The slot is not
-  closed as repaired; confirmed damaged slots remain `3`.
+  auto-generated before the RPC. At that checkpoint another Save and promotion
+  were prohibited; the slot was not closed as repaired and damaged slots remained
+  `3`. The corrective checkpoint below supersedes this historical gate.
+- Corrective manual-name Source/Test commit
+  `9ef1ee30035a083426743aed3e326ad9676d65c4`, tree
+  `94fe2410f0361acf639c47a4be7245c01128f21d`, is pushed non-force from parent
+  `c70f5a4...`. It preserves every trimmed non-placeholder manual name and
+  auto-names only blank, exact `ยังไม่จัดกลุ่ม`, or generic `กลุ่ม N` input after
+  removing a trailing `(N คน)` suffix. Local gates passed: assignment/naming/
+  authorization `33/33`, DB conflict/concurrency/lifecycle `22/22`, Playwright
+  desktop/mobile `3/3`, Lesson Wallet `17/17`, TypeScript, ESLint, mojibake, diff
+  check, Production Build, clean restart, and residue `0`.
+- Owner/Head Coach performed one corrective Save on slot
+  `53c3556a-6067-4ad1-813c-ca8410d17994` through dark Canary
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`. Controlled Write UAT passed: persisted names
+  are `ระดับสูง` and `กลาง-สูง`; exact coach/member mapping remained `2/5`; legacy
+  and reservation rows remained complete `2/2`; no partial write, orphan,
+  mismatch, conflict, unsaved indicator, console/runtime/500/constraint error, or
+  attendance/check-in/payroll/financial change was found. The 21 July Chaeng
+  Watthana slot is repaired.
+- The exact same Canary artifact was promoted without rebuild and is now Ready on
+  all four Production aliases. Corrective Forward Source is Production-active;
+  assignment writes are enabled and temporary containment is inactive. Public
+  `/`, `/api/health`, static assets, authenticated Head Coach rendering, and
+  post-promotion logs passed. Three later real Head Coach Saves succeeded without
+  runtime/500/constraint errors. Current/future reservations reconcile `221/221`;
+  missing/physical orphan/mismatch `0/0/0`. Fresh totals are groups `1026`, members
+  `2436`, legacy `1000`, reservations `234`. Rollback target
+  remains `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`; migration remains applied once.
+- The later activity includes the 22 and 29 July Suvarnabhumi slots. Each now has
+  one `กลุ่มผสม`, three members, one exact coach, one legacy row, and one matching
+  reservation. These rows are technically complete, but Codex did not receive the
+  intended payloads before the real-user Saves; repair correctness is **Unknown /
+  Need Owner confirmation**. Task Done remains **No**.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Owner review of the failed manual-name-preservation gate. Separate
-approval is required for a scoped Local Source/Test correction, a new dark
-artifact/repeat UAT plan, and any exact name-only repair of `c56af2cf...` and
-`ec77cf98...`. Do not Save again, promote the dark artifact, remove containment,
-change Production data, start the auth follow-up, or start a Parking Lot task.**
+Next action: **Owner/Head Coach must confirm whether the actual post-promotion
+payloads for 22 and 29 July Suvarnabhumi are intended. If yes, close them using
+read-only reconciliation; if no, request separate exact correction approval. Do
+not infer payloads, send another Save, use direct SQL, start the auth follow-up, or
+start a Parking Lot task.**
 
 ## Recently Completed
 
