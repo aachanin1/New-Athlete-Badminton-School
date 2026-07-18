@@ -37,8 +37,8 @@ import {
 } from '@/lib/date-format'
 import {
   formatAutoGroupNameError,
+  MIXED_GROUP_NAME,
   resolveAssignmentGroupName,
-  UNASSESSED_GROUP_NAME,
   UNGROUPED_ASSIGNMENT_NAME,
 } from '@/lib/coach-assignment-group-naming'
 import { cn, fmtTime } from '@/lib/utils'
@@ -151,20 +151,6 @@ function getLevelLabel(student: AssignmentStudent) {
   return `${student.levelName || `Level ${level}`} (LV ${level})`
 }
 
-function getStudentAutoGroup(student: AssignmentStudent) {
-  const level = student.level ?? 0
-  if (level <= 0) {
-    return { key: 'unassessed', name: UNASSESSED_GROUP_NAME }
-  }
-  if (!student.levelCategory || !student.levelProgramName?.trim()) {
-    return { key: 'incomplete-level-definition', name: '' }
-  }
-  return {
-    key: student.levelCategory,
-    name: student.levelProgramName.trim(),
-  }
-}
-
 function isPrivateCourse(courseType: string) {
   const value = courseType.toLowerCase()
   return value.includes('private') || value.includes('ส่วนตัว')
@@ -233,33 +219,20 @@ function createAutoGroups(slot: AssignmentSlot): GroupDraft[] {
     }))
   }
 
-  const grouped = new Map<string, { name: string; students: AssignmentStudent[] }>()
-  slot.students.forEach((student) => {
-    const autoGroup = getStudentAutoGroup(student)
-    if (!grouped.has(autoGroup.key)) {
-      grouped.set(autoGroup.key, {
-        name: autoGroup.name,
-        students: [],
-      })
-    }
-    grouped.get(autoGroup.key)?.students.push(student)
+  const resolvedName = resolveAssignmentGroupName({
+    currentName: UNGROUPED_ASSIGNMENT_NAME,
+    students: slot.students,
   })
-
-  const usedCoachIds = new Set<string>()
-  return Array.from(grouped.values()).map((group, index) => {
-    const coachId = pickAvailableCoachIdForStudents(group.students, usedCoachIds, slot.suggestedCoachId)
-    if (coachId) usedCoachIds.add(coachId)
-    const levels = group.students.map((student) => student.level ?? 0)
-    return {
-      localId: `${slot.key}-auto-${index}`,
-      name: group.name,
-      coachId,
-      levelMin: Math.min(...levels),
-      levelMax: Math.max(...levels),
-      sortOrder: index,
-      studentSessionIds: group.students.map((student) => student.bookingSessionId),
-    }
-  })
+  const levels = slot.students.map((student) => student.level ?? 0)
+  return [{
+    localId: `${slot.key}-auto-0`,
+    name: resolvedName.name || MIXED_GROUP_NAME,
+    coachId: pickAvailableCoachIdForStudents(slot.students, new Set<string>(), slot.suggestedCoachId),
+    levelMin: Math.min(...levels),
+    levelMax: Math.max(...levels),
+    sortOrder: 0,
+    studentSessionIds: slot.students.map((student) => student.bookingSessionId),
+  }]
 }
 
 function createInitialDrafts(slot: AssignmentSlot): GroupDraft[] {
@@ -399,6 +372,21 @@ function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[]) {
   return slot.assignmentGroups.length > 0 ? 'changed' : 'unassigned'
 }
 
+function hasCompletePersistedExactAssignment(slot: AssignmentSlot) {
+  const activeStudentIds = new Set(slot.students.map((student) => student.bookingSessionId))
+  if (activeStudentIds.size === 0 || slot.assignmentGroups.length === 0) return false
+
+  const assignedStudentIds = new Set<string>()
+  for (const group of slot.assignmentGroups) {
+    const activeGroupStudentIds = group.studentSessionIds.filter((sessionId) => activeStudentIds.has(sessionId))
+    if (activeGroupStudentIds.length === 0) continue
+    if (!group.coachId) return false
+    activeGroupStudentIds.forEach((sessionId) => assignedStudentIds.add(sessionId))
+  }
+
+  return assignedStudentIds.size === activeStudentIds.size
+}
+
 function getStateLabel(state: SlotDraftState) {
   if (state === 'saved') return 'มอบหมายแล้ว'
   if (state === 'changed') return 'มีการแก้ไขยังไม่บันทึก'
@@ -413,10 +401,10 @@ function getStateBadgeClass(state: SlotDraftState) {
   return 'bg-red-100 text-red-700'
 }
 
-function shouldShowForStatusFilter(state: SlotDraftState, filter: AssignmentStatusFilter) {
+function shouldShowForStatusFilter(isAssigned: boolean, filter: AssignmentStatusFilter) {
   if (filter === 'all') return true
-  if (filter === 'saved') return state === 'saved'
-  return state !== 'saved'
+  if (filter === 'saved') return isAssigned
+  return !isAssigned
 }
 
 function getMonthKey(date: string) {
@@ -445,12 +433,12 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
 
   const stats = useMemo(() => {
     const totalStudents = slots.reduce((sum, slot) => sum + slot.students.length, 0)
-    const savedSlots = slots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) === 'saved').length
-    const unassignedSlots = slots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) !== 'saved').length
+    const savedSlots = slots.filter(hasCompletePersistedExactAssignment).length
+    const unassignedSlots = slots.length - savedSlots
     const needsReview = slots.filter((slot) => hasWideLevelGap(slot.students)).length
 
     return { totalStudents, savedSlots, unassignedSlots, needsReview }
-  }, [draftsBySlot, slots])
+  }, [slots])
 
   const groupedByDateAll = useMemo(() => {
     return Object.entries(slots.reduce((map, slot) => {
@@ -465,12 +453,12 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       .filter(([date]) => getMonthKey(date) === selectedMonth)
       .map(([date, dateSlots]) => {
       const visibleSlots = dateSlots.filter((slot) => shouldShowForStatusFilter(
-        getSlotDraftState(slot, draftsBySlot[slot.key] || []),
+        hasCompletePersistedExactAssignment(slot),
         statusFilter,
       ))
       const totalStudents = dateSlots.reduce((sum, slot) => sum + slot.students.length, 0)
-      const savedSlots = dateSlots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) === 'saved').length
-      const unassignedSlots = dateSlots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) !== 'saved').length
+      const savedSlots = dateSlots.filter(hasCompletePersistedExactAssignment).length
+      const unassignedSlots = dateSlots.length - savedSlots
       const needsReview = dateSlots.filter((slot) => hasWideLevelGap(slot.students)).length
       const draftIssues = dateSlots.filter((slot) => getDuplicateCoachIds(draftsBySlot[slot.key] || []).size > 0).length
       const changedSlots = dateSlots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) === 'changed').length
@@ -497,10 +485,10 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
   const activeDateSlots = useMemo(() => {
     const dateSlots = groupedByDateAll.find(([date]) => date === activeDate)?.[1] || []
     return dateSlots.filter((slot) => shouldShowForStatusFilter(
-      getSlotDraftState(slot, draftsBySlot[slot.key] || []),
+      hasCompletePersistedExactAssignment(slot),
       statusFilter,
     ))
-  }, [activeDate, draftsBySlot, groupedByDateAll, statusFilter])
+  }, [activeDate, groupedByDateAll, statusFilter])
 
   const activeSlot = activeDateSlots.find((slot) => slot.key === selectedSlotKey) || activeDateSlots[0] || null
   const activeDateSummary = dateSummaries.find((date) => date.date === activeDate)
@@ -885,7 +873,8 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                         const hasDuplicateCoaches = getDuplicateCoachIds(slotGroups).size > 0
                         const slotDraftState = getSlotDraftState(slot, slotGroups)
                         const isActiveSlot = slot.key === activeSlot?.key
-                        const isUnassigned = slotDraftState === 'unassigned' || slotDraftState === 'empty'
+                        const isPersistedAssigned = hasCompletePersistedExactAssignment(slot)
+                        const isUnassigned = !isPersistedAssigned
 
                         return (
                           <button
@@ -896,7 +885,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                               'rounded-lg border bg-white p-3 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50',
                               isActiveSlot && 'border-[#2748bf] bg-blue-50 ring-2 ring-[#2748bf]/15',
                               isUnassigned && !isActiveSlot && 'border-red-200 bg-red-50/40',
-                              slotDraftState === 'saved' && !isActiveSlot && 'border-emerald-200 bg-emerald-50/30',
+                              isPersistedAssigned && !isActiveSlot && 'border-emerald-200 bg-emerald-50/30',
                               hasDuplicateCoaches && !isActiveSlot && 'border-red-200 bg-red-50/40',
                             )}
                           >
@@ -907,7 +896,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                               </div>
                               {isUnassigned || hasDuplicateCoaches ? (
                                 <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
-                              ) : slotDraftState === 'saved' ? (
+                              ) : isPersistedAssigned ? (
                                 <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                               ) : (
                                 <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
@@ -916,7 +905,9 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               <Badge className="bg-blue-100 text-[10px] text-blue-700">{slot.courseType || 'คอร์ส'}</Badge>
                               <Badge variant="outline" className="bg-white text-[10px]">{slot.students.length} คน</Badge>
-                              <Badge className={cn('text-[10px]', getStateBadgeClass(slotDraftState))}>{getStateLabel(slotDraftState)}</Badge>
+                              <Badge className={cn('text-[10px]', isPersistedAssigned ? getStateBadgeClass('saved') : getStateBadgeClass(slotDraftState))}>
+                                {isPersistedAssigned ? 'มอบหมายแล้ว' : getStateLabel(slotDraftState)}
+                              </Badge>
                               {hasDuplicateCoaches && (
                                 <Badge className="bg-red-100 text-[10px] text-red-700">โค้ชซ้ำ</Badge>
                               )}
@@ -968,7 +959,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                         <div className="flex flex-wrap gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => resetAutoGroups(slot)} disabled={isAssignmentLocked}>
                             <RefreshCw className="mr-2 h-4 w-4" />
-                            จัดตาม Level (ยังไม่บันทึก)
+                            จัดกลุ่มอัตโนมัติ (ยังไม่บันทึก)
                           </Button>
                           <Button type="button" variant="outline" size="sm" onClick={() => addGroup(slot)} disabled={isAssignmentLocked}>
                             <Plus className="mr-2 h-4 w-4" />

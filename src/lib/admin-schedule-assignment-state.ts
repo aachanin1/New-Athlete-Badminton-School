@@ -20,8 +20,7 @@ export function hasExactValidCoachAssignment(
   group: AdminScheduleCoachAssignmentEvidence,
 ) {
   return Boolean(
-    group.name?.trim() !== 'ยังไม่จัดกลุ่ม'
-    && group.coach_id
+    group.coach_id
     && group.coach_profile_id === group.coach_id
     && group.coach_name?.trim()
     && (group.coach_role === 'coach' || group.coach_role === 'head_coach'),

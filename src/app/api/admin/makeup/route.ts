@@ -10,11 +10,7 @@ import {
   formatExactCoachConflict,
   formatLegacyCoachWarnings,
 } from '@/lib/coach-assignment-conflicts'
-import {
-  formatAutoGroupNameError,
-  resolveAssignmentGroupName,
-} from '@/lib/coach-assignment-group-naming'
-import { loadAssignmentGroupNamingStudents } from '@/lib/coach-assignment-group-naming-server'
+import { mutateAtomicAssignmentGroups } from '@/lib/coach-assignment-atomic-save'
 import type { AttendanceStatus, StudentType } from '@/types/database'
 
 type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
@@ -343,37 +339,6 @@ async function findPopulatedCoachGroupForCoachInRound(
   }) || null
 }
 
-async function ensureLegacyCoachAssignment({
-  supabaseAdmin,
-  scheduleSlotId,
-  coachId,
-  actorId,
-}: {
-  supabaseAdmin: ReturnType<typeof getServiceRoleClient>
-  scheduleSlotId: string
-  coachId: string
-  actorId: string
-}) {
-  const { data: existingLegacy } = await supabaseAdmin
-    .from('coach_assignments')
-    .select('id')
-    .eq('schedule_slot_id', scheduleSlotId)
-    .eq('coach_id', coachId)
-    .maybeSingle() as unknown as { data: { id: string } | null }
-
-  if (!existingLegacy) {
-    const { error } = await supabaseAdmin
-      .from('coach_assignments')
-      .insert({
-        coach_id: coachId,
-        schedule_slot_id: scheduleSlotId,
-        assigned_by: actorId,
-      })
-
-    if (error) throw new Error(error.message)
-  }
-}
-
 async function ensureRetrospectiveAssignment({
   supabaseAdmin,
   session,
@@ -394,69 +359,50 @@ async function ensureRetrospectiveAssignment({
     throw new Error('Cannot resolve student for retrospective assignment')
   }
 
-  const { data: existingStudents } = await supabaseAdmin
+  const { data: existingStudents, error: existingStudentsError } = await supabaseAdmin
     .from('coach_assignment_group_students')
     .select(`
-      id,
       group_id,
       coach_assignment_groups!inner(schedule_slot_id, coach_id)
     `)
     .eq('booking_session_id', session.id)
     .eq('coach_assignment_groups.schedule_slot_id', session.schedule_slot_id) as unknown as {
       data: {
-        id: string
         group_id: string
         coach_assignment_groups?: { schedule_slot_id: string; coach_id: string | null } | null
       }[] | null
+      error: { message: string } | null
     }
 
+  if (existingStudentsError) throw new Error(existingStudentsError.message)
   const existingForCoach = (existingStudents || []).find((row) => row.coach_assignment_groups?.coach_id === coachId)
   if (existingForCoach) return existingForCoach.group_id
 
-  if ((existingStudents || []).length > 0) {
-    const { error: deleteError } = await supabaseAdmin
-      .from('coach_assignment_group_students')
-      .delete()
-      .in('id', (existingStudents || []).map((row) => row.id))
-
-    if (deleteError) throw new Error(deleteError.message)
-  }
-
-  const { data: insertedGroupId, error: groupError } = await supabaseAdmin.rpc(
-    'create_exact_coach_assignment_group_v1',
-    {
-      p_schedule_slot_id: session.schedule_slot_id,
-      p_coach_id: coachId,
-      p_name: 'บันทึกย้อนหลังโดย Admin',
-      p_sort_order: 999,
-      p_notes: 'Retroactive assignment created from Admin attendance gap resolution',
-      p_actor_id: actorId,
-      p_booking_session_ids: [session.id],
-    },
-  )
-
-  if (groupError || !insertedGroupId) {
-    throw new Error(groupError?.message || 'Cannot create retrospective assignment group')
-  }
-
-  const { data: existingLegacy } = await supabaseAdmin
-    .from('coach_assignments')
-    .select('id')
-    .eq('schedule_slot_id', session.schedule_slot_id)
-    .eq('coach_id', coachId)
-    .maybeSingle() as unknown as { data: { id: string } | null }
-
-  if (!existingLegacy) {
-    await supabaseAdmin
-      .from('coach_assignments')
-      .insert({
-        coach_id: coachId,
-        schedule_slot_id: session.schedule_slot_id,
-        assigned_by: actorId,
+  let targetIndex = -1
+  const saved = await mutateAtomicAssignmentGroups({
+    supabase: supabaseAdmin,
+    scheduleSlotId: session.schedule_slot_id,
+    actorId,
+    mutate: (groups) => {
+      groups.forEach((group) => {
+        group.studentSessionIds = group.studentSessionIds.filter((sessionId) => sessionId !== session.id)
       })
-  }
+      targetIndex = groups.length
+      groups.push({
+        name: 'บันทึกย้อนหลังโดย Admin',
+        coachId,
+        levelMin: null,
+        levelMax: null,
+        sortOrder: groups.length,
+        studentSessionIds: [session.id],
+      })
+      return groups
+    },
+  })
 
-  return insertedGroupId as string
+  const savedGroupId = saved.groups[targetIndex]?.id
+  if (!savedGroupId) throw new Error('Cannot create retrospective assignment group')
+  return savedGroupId
 }
 
 async function upsertRetrospectiveAttendance({
@@ -1004,36 +950,29 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: assignmentValidation.error }, { status: 409 })
       }
 
-      if (updateMembershipIds.length > 0) {
-        const { error: updateMembershipError } = await supabaseAdmin
-          .from('coach_assignment_group_students')
-          .update({ group_id: targetGroupId })
-          .in('id', updateMembershipIds)
-
-        if (updateMembershipError) {
-          const message = formatCoachAssignmentDatabaseError(updateMembershipError.message)
-          return NextResponse.json({ error: message || updateMembershipError.message }, { status: message ? 409 : 500 })
-        }
-      }
-
-      if (insertMemberships.length > 0) {
-        const { error: insertMembershipError } = await supabaseAdmin
-          .from('coach_assignment_group_students')
-          .insert(insertMemberships)
-
-        if (insertMembershipError) {
-          const message = formatCoachAssignmentDatabaseError(insertMembershipError.message)
-          return NextResponse.json({ error: message || insertMembershipError.message }, { status: message ? 409 : 500 })
-        }
-      }
-
+      let savedTargetGroupId = ''
       try {
-        await ensureLegacyCoachAssignment({
-          supabaseAdmin,
+        let targetIndex = -1
+        const saved = await mutateAtomicAssignmentGroups({
+          supabase: supabaseAdmin,
           scheduleSlotId: firstSession.schedule_slot_id,
-          coachId: selectedCoachId,
           actorId: access.ctx.user.id,
+          mutate: (groups) => {
+            targetIndex = groups.findIndex((group) => group.persistedId === targetGroupId)
+            if (targetIndex < 0) throw new Error('ไม่พบกลุ่มโค้ชปลายทางใน snapshot ล่าสุด')
+
+            groups.forEach((group) => {
+              group.studentSessionIds = group.studentSessionIds.filter((sessionId) => !sessionIds.includes(sessionId))
+            })
+            groups[targetIndex].studentSessionIds = Array.from(new Set([
+              ...groups[targetIndex].studentSessionIds,
+              ...sessionIds,
+            ]))
+            return groups
+          },
         })
+        savedTargetGroupId = saved.groups[targetIndex]?.id || ''
+        if (!savedTargetGroupId) throw new Error('บันทึกกลุ่มโค้ชปลายทางแบบ atomic ไม่สำเร็จ')
       } catch (error) {
         return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
       }
@@ -1047,7 +986,8 @@ export async function PATCH(req: NextRequest) {
           details: {
             reason,
             scheduleSlotId: session.schedule_slot_id,
-            targetGroupId,
+            targetGroupId: savedTargetGroupId,
+            previousTargetGroupId: targetGroupId,
             targetCoachId: selectedCoachId,
             previousGroupIds: Array.from(previousGroupIds),
             movedSessionIds,
@@ -1071,7 +1011,7 @@ export async function PATCH(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        target_group_id: targetGroupId,
+        target_group_id: savedTargetGroupId,
         target_coach_id: selectedCoachId,
         moved_session_ids: movedSessionIds,
         attached_session_ids: attachedSessionIds,
@@ -1213,94 +1153,52 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: assignmentValidation.error }, { status: 409 })
       }
 
-      const linkedSessionIds = new Set(targetGroupRows.flatMap((group) => (
-        group.coach_assignment_group_students || []
-      ).map((student) => student.booking_session_id)))
-      const sessionsWithoutGroup = targetSessions.filter((session) => !linkedSessionIds.has(session.id))
-
-      if (targetGroupIds.size > 0) {
-        const targetGroup = targetGroupRows[0]
-        const futureMemberSessionIds = Array.from(new Set([
-          ...(targetGroup.coach_assignment_group_students || []).map((student) => student.booking_session_id),
-          ...sessionsWithoutGroup.map((session) => session.id),
-        ]))
-        const namingStudentsBySessionId = await loadAssignmentGroupNamingStudents(supabaseAdmin, futureMemberSessionIds)
-        const resolvedName = resolveAssignmentGroupName({
-          currentName: targetGroup.name,
-          students: futureMemberSessionIds
-            .map((sessionId) => namingStudentsBySessionId.get(sessionId))
-            .filter((student): student is NonNullable<typeof student> => Boolean(student)),
-        })
-        if (!resolvedName.name && resolvedName.error) {
-          return NextResponse.json({ error: formatAutoGroupNameError(resolvedName.error) }, { status: 400 })
-        }
-
-        const { error: updateGroupError } = await supabaseAdmin
-          .from('coach_assignment_groups')
-          .update({ coach_id: selectedCoachId, name: resolvedName.name || targetGroup.name })
-          .in('id', Array.from(targetGroupIds))
-
-        if (updateGroupError) {
-          const message = formatCoachAssignmentDatabaseError(updateGroupError.message)
-          return NextResponse.json({ error: message || updateGroupError.message }, { status: message ? 409 : 500 })
-        }
-      }
-
-      let insertedGroup: AssignmentGroupInsertRow | null = null
-      if (sessionsWithoutGroup.length > 0) {
-        const existingTargetGroupId = Array.from(targetGroupIds)[0]
-        if (existingTargetGroupId) {
-          const groupStudents: GroupStudentInsertRow[] = sessionsWithoutGroup.map((session) => {
-            const { studentId, studentType } = getStudentContext(session)
-            if (!studentId) throw new Error('Cannot resolve student for replacement assignment')
-            return {
-              group_id: existingTargetGroupId,
-              booking_session_id: session.id,
-              student_id: studentId,
-              student_type: studentType,
-            }
-          })
-          const { error: groupStudentError } = await supabaseAdmin
-            .from('coach_assignment_group_students')
-            .insert(groupStudents)
-          if (groupStudentError) {
-            const message = formatCoachAssignmentDatabaseError(groupStudentError.message)
-            return NextResponse.json({ error: message || groupStudentError.message }, { status: message ? 409 : 500 })
-          }
-        } else {
-          const { data: insertedGroupId, error: groupError } = await supabaseAdmin.rpc(
-            'create_exact_coach_assignment_group_v1',
-            {
-              p_schedule_slot_id: firstSession.schedule_slot_id,
-              p_coach_id: selectedCoachId,
-              p_name: 'เปลี่ยนโค้ชย้อนหลังโดย Admin',
-              p_sort_order: 999,
-              p_notes: `Coach replaced retrospectively from Admin review without attendance write: ${reason}`,
-              p_actor_id: access.ctx.user.id,
-              p_booking_session_ids: sessionsWithoutGroup.map((session) => session.id),
-            },
-          )
-          if (groupError || !insertedGroupId) {
-            const message = formatCoachAssignmentDatabaseError(groupError?.message || '')
-            return NextResponse.json({ error: message || groupError?.message || 'สร้างกลุ่มมอบหมายโค้ชย้อนหลังไม่สำเร็จ' }, { status: message ? 409 : 500 })
-          }
-          insertedGroup = { id: insertedGroupId as string }
-        }
-      }
-
+      let changedGroupIds: string[] = []
       try {
-        await ensureLegacyCoachAssignment({
-          supabaseAdmin,
+        let targetIndex = -1
+        const existingTargetGroupId = targetGroupRows[0]?.id
+        const saved = await mutateAtomicAssignmentGroups({
+          supabase: supabaseAdmin,
           scheduleSlotId: firstSession.schedule_slot_id,
-          coachId: selectedCoachId,
           actorId: access.ctx.user.id,
+          mutate: (groups) => {
+            targetIndex = existingTargetGroupId
+              ? groups.findIndex((group) => group.persistedId === existingTargetGroupId)
+              : -1
+
+            groups.forEach((group, index) => {
+              if (index !== targetIndex) {
+                group.studentSessionIds = group.studentSessionIds.filter((sessionId) => !sessionIds.includes(sessionId))
+              }
+            })
+
+            if (targetIndex >= 0) {
+              groups[targetIndex].coachId = selectedCoachId
+              groups[targetIndex].studentSessionIds = Array.from(new Set([
+                ...groups[targetIndex].studentSessionIds,
+                ...sessionIds,
+              ]))
+              return groups
+            }
+
+            targetIndex = groups.length
+            groups.push({
+              name: 'เปลี่ยนโค้ชย้อนหลังโดย Admin',
+              coachId: selectedCoachId,
+              levelMin: null,
+              levelMax: null,
+              sortOrder: groups.length,
+              studentSessionIds: sessionIds,
+            })
+            return groups
+          },
         })
+        const savedGroupId = saved.groups[targetIndex]?.id
+        if (!savedGroupId) throw new Error('บันทึกการเปลี่ยนโค้ชแบบ atomic ไม่สำเร็จ')
+        changedGroupIds = [savedGroupId]
       } catch (error) {
         return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
       }
-
-      const changedGroupIds = Array.from(targetGroupIds)
-      if (insertedGroup) changedGroupIds.push(insertedGroup.id)
 
       for (const session of targetSessions) {
         await logActivity({
@@ -1455,32 +1353,32 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: assignmentValidation.error }, { status: 409 })
       }
 
-      const { data: insertedGroupId, error: groupError } = await supabaseAdmin.rpc(
-        'create_exact_coach_assignment_group_v1',
-        {
-          p_schedule_slot_id: firstSession.schedule_slot_id,
-          p_coach_id: selectedCoachId,
-          p_name: 'มอบหมายโค้ชย้อนหลังทั้งรอบโดย Admin',
-          p_sort_order: 999,
-          p_notes: `Coach assigned from Admin no-coach round review without attendance write: ${reason}`,
-          p_actor_id: access.ctx.user.id,
-          p_booking_session_ids: sessionIds,
-        },
-      )
-
-      if (groupError || !insertedGroupId) {
-        const message = formatCoachAssignmentDatabaseError(groupError?.message || '')
-        return NextResponse.json({ error: message || groupError?.message || 'สร้างกลุ่มมอบหมายโค้ชไม่สำเร็จ' }, { status: message ? 409 : 500 })
-      }
-      const insertedGroup = { id: insertedGroupId as string }
-
+      let insertedGroup: AssignmentGroupInsertRow
       try {
-        await ensureLegacyCoachAssignment({
-          supabaseAdmin,
+        let targetIndex = -1
+        const saved = await mutateAtomicAssignmentGroups({
+          supabase: supabaseAdmin,
           scheduleSlotId: firstSession.schedule_slot_id,
-          coachId: selectedCoachId,
           actorId: access.ctx.user.id,
+          mutate: (groups) => {
+            groups.forEach((group) => {
+              group.studentSessionIds = group.studentSessionIds.filter((sessionId) => !sessionIds.includes(sessionId))
+            })
+            targetIndex = groups.length
+            groups.push({
+              name: 'มอบหมายโค้ชย้อนหลังทั้งรอบโดย Admin',
+              coachId: selectedCoachId,
+              levelMin: null,
+              levelMax: null,
+              sortOrder: groups.length,
+              studentSessionIds: sessionIds,
+            })
+            return groups
+          },
         })
+        const insertedGroupId = saved.groups[targetIndex]?.id
+        if (!insertedGroupId) throw new Error('สร้างกลุ่มมอบหมายโค้ชแบบ atomic ไม่สำเร็จ')
+        insertedGroup = { id: insertedGroupId }
       } catch (error) {
         return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
       }
@@ -1638,32 +1536,32 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: assignmentValidation.error }, { status: 409 })
       }
 
-      const { data: insertedGroupId, error: groupError } = await supabaseAdmin.rpc(
-        'create_exact_coach_assignment_group_v1',
-        {
-          p_schedule_slot_id: firstSession.schedule_slot_id,
-          p_coach_id: selectedCoachId,
-          p_name: 'บันทึกย้อนหลังทั้งรอบโดย Admin',
-          p_sort_order: 999,
-          p_notes: `Retroactive round assignment created from Admin unassigned-round resolution: ${reason}`,
-          p_actor_id: access.ctx.user.id,
-          p_booking_session_ids: sessionIds,
-        },
-      )
-
-      if (groupError || !insertedGroupId) {
-        const message = formatCoachAssignmentDatabaseError(groupError?.message || '')
-        return NextResponse.json({ error: message || groupError?.message || 'สร้างกลุ่มมอบหมายย้อนหลังไม่สำเร็จ' }, { status: message ? 409 : 500 })
-      }
-      const insertedGroup = { id: insertedGroupId as string }
-
+      let insertedGroup: AssignmentGroupInsertRow
       try {
-        await ensureLegacyCoachAssignment({
-          supabaseAdmin,
+        let targetIndex = -1
+        const saved = await mutateAtomicAssignmentGroups({
+          supabase: supabaseAdmin,
           scheduleSlotId: firstSession.schedule_slot_id,
-          coachId: selectedCoachId,
           actorId: access.ctx.user.id,
+          mutate: (groups) => {
+            groups.forEach((group) => {
+              group.studentSessionIds = group.studentSessionIds.filter((sessionId) => !sessionIds.includes(sessionId))
+            })
+            targetIndex = groups.length
+            groups.push({
+              name: 'บันทึกย้อนหลังทั้งรอบโดย Admin',
+              coachId: selectedCoachId,
+              levelMin: null,
+              levelMax: null,
+              sortOrder: groups.length,
+              studentSessionIds: sessionIds,
+            })
+            return groups
+          },
         })
+        const insertedGroupId = saved.groups[targetIndex]?.id
+        if (!insertedGroupId) throw new Error('สร้างกลุ่มมอบหมายย้อนหลังแบบ atomic ไม่สำเร็จ')
+        insertedGroup = { id: insertedGroupId }
       } catch (error) {
         return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
       }

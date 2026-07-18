@@ -138,6 +138,31 @@ async function expectConflict(resultPromise, name) {
   check(name)
 }
 
+async function assignmentFingerprint(slotId) {
+  const groups = noError(await admin.from('coach_assignment_groups')
+    .select('id, schedule_slot_id, coach_id, name, level_min, level_max, sort_order, created_by')
+    .eq('schedule_slot_id', slotId)
+    .order('id'), 'fingerprint groups')
+  const groupIds = groups.map((group) => group.id)
+  const members = groupIds.length > 0
+    ? noError(await admin.from('coach_assignment_group_students')
+      .select('id, group_id, booking_session_id, student_id, student_type')
+      .in('group_id', groupIds)
+      .order('id'), 'fingerprint members')
+    : []
+  const legacy = noError(await admin.from('coach_assignments')
+    .select('id, coach_id, schedule_slot_id, assigned_by')
+    .eq('schedule_slot_id', slotId)
+    .order('id'), 'fingerprint legacy')
+  const reservations = groupIds.length > 0
+    ? noError(await admin.from('coach_assignment_exact_reservations')
+      .select('group_id, coach_id, schedule_slot_id, teaching_date, teaching_time_range')
+      .in('group_id', groupIds)
+      .order('group_id'), 'fingerprint reservations')
+    : []
+  return JSON.stringify({ groups, members, legacy, reservations })
+}
+
 async function cleanup() {
   if (slotIds.length) {
     await admin.from('coach_assignment_groups').delete().in('schedule_slot_id', slotIds)
@@ -306,10 +331,24 @@ try {
   check('concurrent Admin-style group creation rolls back the losing command without an empty group')
 
   const invalidNameSlot = await addSlot('2026-08-12', '17:00', '19:00')
-  const invalidNameResult = await save(invalidNameSlot.slotId, invalidNameSlot.sessions, 'ยังไม่จัดกลุ่ม')
+  noError(await save(invalidNameSlot.slotId, invalidNameSlot.sessions, 'Existing safe group'), 'seed invalid-name rollback fixture')
+  const invalidNameBefore = await assignmentFingerprint(invalidNameSlot.slotId)
+  const invalidNameResult = await save(invalidNameSlot.slotId, invalidNameSlot.sessions, 'ระดับสูง (2 คน)')
   assert.ok(invalidNameResult.error)
   assert.match(invalidNameResult.error.message, /coach_assignment_exact_group_name_check/)
-  check('database rejects an exact coach group that keeps the placeholder name')
+  const invalidNameAfter = await assignmentFingerprint(invalidNameSlot.slotId)
+  assert.equal(invalidNameAfter, invalidNameBefore)
+  check('current Migration rejects ระดับสูง (2 คน) and rolls back groups, members, legacy and reservations exactly')
+
+  const rpcFailureSlot = await addSlot('2026-08-12', '20:00', '22:00')
+  noError(await save(rpcFailureSlot.slotId, rpcFailureSlot.sessions, 'Existing RPC-safe group'), 'seed RPC failure rollback fixture')
+  const rpcFailureBefore = await assignmentFingerprint(rpcFailureSlot.slotId)
+  const rpcFailure = await save(rpcFailureSlot.slotId, [randomUUID()], 'Valid replacement name')
+  assert.ok(rpcFailure.error)
+  assert.match(rpcFailure.error.message, /พบผู้เรียนที่ไม่ได้อยู่ในรอบสอนนี้/)
+  const rpcFailureAfter = await assignmentFingerprint(rpcFailureSlot.slotId)
+  assert.equal(rpcFailureAfter, rpcFailureBefore)
+  check('simulated RPC member failure rolls back groups, members, legacy and reservations exactly')
 
   const lifecycle = await addSlot('2026-08-13', '17:00', '19:00')
   noError(await save(lifecycle.slotId, lifecycle.sessions, 'Lifecycle exact group'), 'seed lifecycle group')

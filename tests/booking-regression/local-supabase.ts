@@ -1,10 +1,14 @@
 import { execFileSync, execSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, dirname, resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 export const ROOT = resolve(__dirname, '../..')
 export const FIXTURE_PATH = resolve(ROOT, '.playwright/booking-fixture.json')
+const SUPABASE_PROJECT_ID = readFileSync(resolve(ROOT, 'supabase/config.toml'), 'utf8')
+  .match(/^project_id\s*=\s*"([^"]+)"/mu)?.[1]
+
+if (!SUPABASE_PROJECT_ID) throw new Error('supabase/config.toml is missing project_id')
 
 export const IDS = {
   branch: '11000000-0000-4000-8000-000000000001',
@@ -119,7 +123,7 @@ function fixedUuid(prefix: string, index: number) {
 
 export function resetLocalDatabase() {
   execSync('npx.cmd supabase db reset', { cwd: ROOT, stdio: 'inherit' })
-  execFileSync('docker', ['restart', `supabase_kong_${basename(ROOT)}`], {
+  execFileSync('docker', ['restart', `supabase_kong_${SUPABASE_PROJECT_ID}`], {
     cwd: ROOT,
     stdio: 'ignore',
   })
