@@ -12,8 +12,9 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
 Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK
-CANARY READY BUT UNPROMOTED; READ-ONLY CANARY UAT NOT PASSED BECAUSE ONE
-HYDRATION ERROR WAS OBSERVED; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
+CANARY READY BUT UNPROMOTED; HYDRATION #418 NON-REPRODUCIBLE IN BOUNDED RETEST
+BUT OVERALL ZERO-RUNTIME-ERROR GATE NOT PASSED; 3 CONFIRMED DAMAGED SLOTS REMAIN;
+TASK NOT DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -78,17 +79,30 @@ HYDRATION ERROR WAS OBSERVED; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
   Teaching Programs, Wallet, DB fingerprints, and runtime 5xx checks otherwise
   passed, but one client React hydration `#418` occurred during the first Head
   Coach `/admin/schedules` guard redirect. It did not reproduce on a fresh Canary
-  run or containment baseline, yet the explicit zero-error gate is not passed.
-  No Controlled Write, promotion, or damaged-slot repair occurred.
+  run or containment baseline. The Owner-authorized bounded retest then completed
+  `56/56` clean client cycles across Canary and containment: direct `/coach`, hard
+  reload, role-guard redirect, mobile 390x844, and three fresh logins per
+  environment all had React `#418`/hydration/console/page errors and redirect loops
+  `0`. Canary assignment semantics re-passed read-only. However, containment
+  emitted one distinct middleware `refresh_token_not_found` error on `GET /`
+  during the logout/login cycles, with response `200`; Canary runtime
+  error/fatal/5xx remained `0/0/0`. Therefore the overall zero-runtime-error gate
+  is still not passed. Protected assignment counts/fingerprints remained groups
+  `1022`, members `2426`, legacy `996`, reservations `230`; reservation business
+  fields reconciled `230/230` with mismatch `0`; successful assignment Saves after
+  containment remained `0`. One reservation timestamp-only refresh was traced to
+  normal coach check-in/attendance activity, not an assignment mutation. No
+  Controlled Write, promotion, or damaged-slot repair occurred.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Owner review of the one non-reproducible Canary hydration `#418`
-observation and decision whether to authorize read-only diagnosis/retest. Do not
-request or execute a Controlled Write payload, promote the dark artifact, remove
-containment, change Source, or repair any damaged slot without separate approval.
-Do not start a Parking Lot task automatically.**
+Next action: **Owner review of the bounded retest. The original Canary hydration
+`#418` is Unknown / Non-reproducible, but one distinct containment auth
+refresh-token middleware error keeps the overall zero-runtime-error gate closed.
+Do not request or execute a Controlled Write payload, promote the dark artifact,
+remove containment, change Source, or repair any damaged slot without separate
+approval. Do not start a Parking Lot task automatically.**
 
 ## Recently Completed
 

@@ -5048,3 +5048,57 @@ State observed at this unpromoted Canary checkpoint on 2026-07-18:
   Next Gate is Owner review and separate authorization for read-only
   diagnosis/retest of the single non-reproducible hydration signal. Exact payload
   collection, write UAT, promotion, containment removal, and repairs remain closed.
+
+### Hydration `#418` bounded read-only diagnosis and deterministic retest
+
+State observed at this bounded retest closeout on 2026-07-18:
+
+- The original observation remains preserved: at
+  `2026-07-18T09:25:12.810Z`, the first Head Coach navigation to Canary
+  `/admin/schedules` redirected correctly to `/coach` and produced one minified
+  React hydration `#418`. Its stack was confined to the shared React runtime chunk
+  `/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js`; no stack frame attributed
+  the signal to a file changed between `1b995396...` and `c70f5a4...`.
+- Owner authorized read-only diagnosis/retest only. Production aliases stayed
+  `4/4` on Ready containment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`; Ready Canary
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD` remained unpromoted. No Save, mutation,
+  Controlled Write, Source change, containment removal, repair, or promotion was
+  performed.
+- Deterministic client results were clean on both environments: direct `/coach`
+  `5/5`, hard reload `/coach` `5/5`, `/admin/schedules` guard redirect `10/10`,
+  mobile 390x844 guard redirect `5/5`, and fresh login to `/coach` `3/3` per
+  environment. Across `56/56` cycles, React `#418`, hydration, console
+  warning/error, page error, and redirect loop counts were `0`.
+- Canary assignment read-only regression checks also passed: persisted exact
+  coach assignments remained assigned; no-coach groups remained unassigned;
+  suggested coaches remained non-exact; blank mixed draft naming rendered
+  `กลุ่มผสม`; wide/mixed Level remained warning-only; valid manual names remained;
+  legacy `(N คน)` suffixes were removed from display; live member counts were used;
+  and desktop/mobile rendering had no page/console/hydration error. Save was not
+  clicked.
+- The original `#418` is classified **Unknown / Non-reproducible**. The required
+  clean label `NON-REPRODUCIBLE TRANSIENT OBSERVATION — BOUNDED RETEST CLEAN` was
+  not used because a distinct containment runtime error occurred during the
+  authorized fresh-login cycles.
+- At `2026-07-18T10:06:40.831Z` (`17:06:40` Bangkok), containment middleware logged
+  one `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` for `GET /`;
+  the HTTP response was `200`. Canary runtime error/fatal/5xx was `0/0/0`;
+  containment fatal/5xx was `0/0`, but error was `1`. This signal occurred on the
+  containment deployment only and is not attribution to the forward assignment
+  diff, but the explicit runtime-error `0` pass condition means the overall gate
+  remains **Not passed**.
+- Post-checks found groups `1022` /
+  `36ff11873681dd9b550d8bfe61b078d9`, members `2426` /
+  `ad6abedcd22ded678b45a42695cb03f8`, legacy `996` /
+  `649a57dd7cc12a2928e053243bb647e3`, reservations `230`, migration
+  `20260717070225` exactly once, and successful assignment Saves after containment
+  `0`. All `230/230` reservation business rows matched exact group/coach/slot/date/
+  time source fields with mismatch `0`. One reservation `updated_at` changed after
+  normal real-world coach check-in and three attendance writes for slot
+  `ab042e90-d93c-46c5-9e2b-74e129abaf5e`; the reservation business fields did not
+  change and the retest did not perform those operations.
+- Current result: Containment Active **Yes**; alias promotion **No**; Controlled
+  Write UAT **Not run**; Production business data changed by this retest **No**;
+  damaged slots `3`; Task Done **No**. Next Gate is Owner review of the distinct
+  containment auth-session error. Controlled Write payload collection, promotion,
+  containment removal, Source change, and data repair remain closed.
