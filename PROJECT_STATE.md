@@ -340,10 +340,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
 - Next Action: **Owner review of exact forward Source
-  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; any deploy, containment removal,
-  or Production UAT requires separate approval. Obtain exact evidence and separate
-  Owner approval before repairing any of the 3 damaged slots. Do not start a
-  Parking Lot task automatically.**
+  `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`. Because this exact commit does not
+  contain the temporary `503` lock, deploying it inherently removes containment;
+  that combined deploy/write-reenable gate and any Production UAT require explicit
+  Owner approval. If containment must remain during deployment, a separate
+  integration Source change requires new approval. Obtain exact evidence and
+  separate Owner approval before repairing any of the 3 damaged slots. Do not
+  start a Parking Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
@@ -549,10 +552,10 @@ SLOTS REMAIN; TASK NOT DONE**
 | Production Data Changed | Containment round: no business-data change. Protected totals/fingerprints stayed groups `1022`, members `2426`, legacy `996`, reservations `230`. Historical incident writes remain unrepaired |
 | Customer Impact | Further Head Coach/Admin Makeup exact-assignment writes are contained; assignment reads remain available. Group creation/reassignment remains intentionally blocked until forward deploy/UAT and containment removal are separately approved |
 | Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
-| Blocker | Owner approval is required before forward deploy/containment removal/Production UAT; exact repair evidence is still required for each of the 3 confirmed damaged slots |
-| Remaining Work | Owner review and separate approval for forward deploy/UAT/write re-enable; obtain exact evidence and separate Owner approval for the 3 damaged-slot repairs; permanent `AGENTS.md` rule remains separate |
+| Blocker | Direct deploy of forward commit `c70f5a4...` inherently removes the current `503` containment; Owner approval is required for that combined deploy/write-reenable gate and Production UAT. Exact repair evidence is still required for each of the 3 confirmed damaged slots |
+| Remaining Work | Owner review and explicit approval for direct forward deploy plus containment removal/UAT, or new approval for a separate containment-on-forward integration change; obtain exact evidence and separate Owner approval for the 3 damaged-slot repairs; permanent `AGENTS.md` rule remains separate |
 | Task Done | No |
-| Next Gate / Next Action | Owner review of forward commit `c70f5a4...`; no deploy, containment removal, Production UAT, data repair, or write re-enable without separate approval |
+| Next Gate / Next Action | Owner review of forward commit `c70f5a4...`; direct deployment also removes containment, so no deploy/write re-enable, Production UAT, data repair, or integration Source change without explicit approval |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification

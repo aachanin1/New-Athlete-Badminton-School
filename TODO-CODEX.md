@@ -77,10 +77,12 @@ COMPLETE/PUSHED BUT NOT DEPLOYED; PRIOR NEW-SOURCE PRODUCTION UAT FAILED;
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Owner review of forward commit `c70f5a4...`; request separate
-approval before deploy, containment removal, or Production UAT. Obtain exact
-evidence and separate Owner approval for each of the 3 damaged-slot repairs. Do
-not start a Parking Lot task automatically.**
+Next action: **Owner review of forward commit `c70f5a4...`. Direct deployment of
+that commit inherently removes the temporary `503` containment, so deploy/write
+reenable and Production UAT require explicit Owner approval as one gate. If the
+lock must remain during deployment, request approval for a separate integration
+Source change. Obtain exact evidence and separate approval for each of the 3
+damaged-slot repairs. Do not start a Parking Lot task automatically.**
 
 ## Recently Completed
 

@@ -4990,8 +4990,13 @@ State observed at this local/publish closeout on 2026-07-18:
   UAT remains **Failed**. Production business data changed **No** in this round.
   Data Repaired is **No**; confirmed damaged slots remain `3`. Financial impact is
   **None**. Task Done is **No**.
-- Proposed next release, only after separate Owner approval: deploy exact commit
-  `c70f5a4...`, keep writes contained until explicit authenticated UAT approval,
-  and use current containment deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` as
-  the Source rollback target without rolling back database migration
-  `20260717070225`. Damaged-slot repair remains a separate evidence/approval gate.
+- Direct deployment of exact commit `c70f5a4...` inherently removes the temporary
+  `503` containment because the commit is based on `1b995396...` and intentionally
+  contains the forward behavior rather than the containment patch. Therefore the
+  next gate must explicitly approve direct deploy plus write re-enable and bounded
+  Production UAT together. If Owner instead requires the `503` lock to remain
+  during deployment, a separate containment-on-forward integration Source change
+  must be authorized and tested first. In either plan, current containment
+  deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` is the proposed Source rollback
+  target and database migration `20260717070225` must remain applied. Damaged-slot
+  repair remains a separate evidence/approval gate.
