@@ -12,9 +12,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
 Status: **EMERGENCY PRODUCTION WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK
-CANARY READY BUT UNPROMOTED; HYDRATION #418 NON-REPRODUCIBLE IN BOUNDED RETEST
-BUT OVERALL ZERO-RUNTIME-ERROR GATE NOT PASSED; 3 CONFIRMED DAMAGED SLOTS REMAIN;
-TASK NOT DONE**.
+CANARY READY BUT UNPROMOTED; FORWARD CANARY READ-ONLY UAT PASSED; CONTROLLED WRITE
+UAT NOT RUN; 3 CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**.
 
 - Shared exact-overlap validation, legacy-only warnings, ungrouped display
   semantics, Level-source auto-name, dynamic member counts, atomic normal save,
@@ -93,16 +92,24 @@ TASK NOT DONE**.
   containment remained `0`. One reservation timestamp-only refresh was traced to
   normal coach check-in/attendance activity, not an assignment mutation. No
   Controlled Write, promotion, or damaged-slot repair occurred.
+- Owner classified the one Containment-only
+  `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` as
+  **ACCEPTED NON-BLOCKING CONTAINMENT AUTH-SESSION BASELINE**. It did not occur on
+  Forward Canary, did not fail login or HTTP, and is unrelated to the Coach
+  Assignment diff. Preserve it as an unauthorized separate follow-up. Forward
+  Canary read-only UAT is **Passed**; original React `#418` remains **Unknown /
+  Non-reproducible after clean bounded retest**; Controlled Write UAT is **Not
+  run**; aliases promoted **No**.
 - Exact current matrix, Owner decisions, affected row ids, local test evidence,
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Owner review of the bounded retest. The original Canary hydration
-`#418` is Unknown / Non-reproducible, but one distinct containment auth
-refresh-token middleware error keeps the overall zero-runtime-error gate closed.
-Do not request or execute a Controlled Write payload, promote the dark artifact,
-remove containment, change Source, or repair any damaged slot without separate
-approval. Do not start a Parking Lot task automatically.**
+Next action: **Request one exact Owner/Head Coach-confirmed damaged-slot payload:
+slot ID, date/time/branch, complete learner list, learner-to-group mapping, group
+names, exact coach per group, and learners who must remain unassigned. Do not infer
+the payload, perform a write, promote the dark artifact, remove containment, start
+the auth follow-up, or repair another slot without separate approval. Do not start
+a Parking Lot task automatically.**
 
 ## Recently Completed
 

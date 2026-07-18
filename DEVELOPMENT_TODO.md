@@ -5102,3 +5102,34 @@ State observed at this bounded retest closeout on 2026-07-18:
   damaged slots `3`; Task Done **No**. Next Gate is Owner review of the distinct
   containment auth-session error. Controlled Write payload collection, promotion,
   containment removal, Source change, and data repair remain closed.
+
+### Owner decision — accept Containment auth baseline and reopen Canary gate
+
+State confirmed by Owner after reviewing the bounded retest evidence on
+2026-07-18:
+
+- The single Containment-only
+  `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` is classified
+  **ACCEPTED NON-BLOCKING CONTAINMENT AUTH-SESSION BASELINE**. The evidence remains
+  preserved; it must not be rewritten as though it never occurred. It did not
+  occur on Forward Canary, did not fail login or the HTTP request, and is unrelated
+  to the Coach Assignment files in `c70f5a4...`.
+- Owner confirms this baseline is not a blocker for the Coach Assignment release.
+  Any auth-session investigation is a separate follow-up and is not authorized to
+  start automatically.
+- Forward Canary read-only UAT is **Passed** based on `56/56` clean client cycles,
+  hydration/React `#418`/console/page/redirect errors `0`, Canary runtime
+  error/fatal/5xx `0/0/0`, read-only assignment semantics passing, and protected
+  business fingerprints unchanged. Original React `#418` remains **Unknown /
+  Non-reproducible after clean bounded retest**.
+- Production aliases remain `4/4` on containment
+  `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti`; dark Canary
+  `dpl_CeoUkkLs2pSvcuLBzzdVNXn3dygD` remains Ready and unpromoted. Controlled Write
+  UAT is **Not run**; Production business data changed by this decision **No**;
+  damaged slots remain `3`; Task Done is **No**.
+- Next Gate is exact Owner/Head Coach confirmation of one damaged-slot payload:
+  slot ID, date/time/branch, every learner in the round, each learner's group,
+  group names, exact coach per group, and learners who must remain unassigned.
+  Codex must not infer this payload from activity logs or incomplete screenshots.
+  No Production write, alias promotion, containment removal, damaged-slot repair,
+  Source change, auth follow-up, or Parking Lot task is authorized by this decision.

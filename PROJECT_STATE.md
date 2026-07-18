@@ -347,16 +347,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   assignment semantics and desktop/mobile rendering also re-passed read-only.
   The original `#418` is therefore **Unknown / Non-reproducible**, and its shared
   React runtime stack does not attribute it to a file changed by `c70f5a4...`.
-- The bounded retest is still **not a clean overall zero-runtime-error gate**.
-  Containment emitted one distinct middleware error at
+- Owner reviewed the bounded retest and accepted the distinct Containment auth
+  signal as **ACCEPTED NON-BLOCKING CONTAINMENT AUTH-SESSION BASELINE**.
+  Containment emitted one middleware error at
   `2026-07-18T10:06:40.831Z` (`17:06:40` Bangkok):
   `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` on `GET /`, with
   response `200`, during the authorized logout/login cycles. Canary had
   error/fatal/5xx `0/0/0`; Containment had fatal/5xx `0/0` but error `1`. This
-  signal occurred only on the containment Source and is not evidence that the
-  forward assignment fix failed, but it violates the explicit runtime-error `0`
-  pass rule. Controlled Write payload collection and alias promotion remain
-  closed pending Owner review.
+  signal occurred only on the containment Source, did not fail login or the HTTP
+  request, and is unrelated to the Forward Source assignment diff. Owner confirms
+  it is not a Coach Assignment release blocker. Forward Canary read-only UAT is
+  therefore **Passed**. The auth baseline remains preserved as a separate follow-up
+  that is not authorized to start. Controlled Write is still **Not run** and alias
+  promotion remains **No**.
 - Pre/post read-only Canary fingerprints were identical: groups
   `36ff11873681dd9b550d8bfe61b078d9`, members
   `ad6abedcd22ded678b45a42695cb03f8`, legacy
@@ -397,20 +400,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner review of the bounded retest: the original Canary hydration
-  `#418` is Unknown / Non-reproducible after `56/56` clean client cycles, but one
-  distinct containment auth refresh-token middleware error means the overall
-  zero-runtime-error gate is still not passed. Do not request or execute a
-  Controlled Write payload, promote `dpl_CeoUkk...`, remove containment, repair
-  any of the 3 damaged slots, or change Source without separate approval. Do not
-  start a Parking Lot task automatically.**
+- Next Action: **Request Owner/Head Coach confirmation of one exact damaged-slot
+  payload for Controlled Write UAT on dark Canary `dpl_CeoUkk...`. Required fields:
+  slot ID, date/time/branch, every learner, each learner's group, each group name,
+  exact coach per group, and learners who must remain unassigned. Do not infer the
+  payload, write Production, promote aliases, remove containment, repair another
+  slot, start the auth follow-up, or start a Parking Lot task until separately
+  authorized.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
 Status: **EMERGENCY WRITE CONTAINMENT ACTIVE; FORWARD SOURCE DARK CANARY READY
-BUT UNPROMOTED; HYDRATION #418 NON-REPRODUCIBLE IN BOUNDED RETEST BUT OVERALL
-ZERO-RUNTIME-ERROR GATE NOT PASSED; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK
-NOT DONE**
+BUT UNPROMOTED; FORWARD CANARY READ-ONLY UAT PASSED; CONTROLLED WRITE UAT NOT
+RUN; THREE CONFIRMED DAMAGED SLOTS REMAIN; TASK NOT DONE**
 (Owner decisions 2026-07-17).
 
 - Root cause confirmed: normal Head Coach group saves checked duplicate coaches
@@ -586,13 +588,13 @@ NOT DONE**
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics |
-| Task Status | Emergency Production write containment active; forward Source dark Canary Ready but unpromoted; original hydration `#418` was not reproduced in `56/56` bounded client cycles, but the overall zero-runtime-error gate remains not passed because containment emitted one auth refresh-token middleware error; 3 confirmed damaged slots remain; Task not done |
+| Task Status | Emergency Production write containment active; forward Source dark Canary Ready but unpromoted; Forward Canary read-only UAT passed after `56/56` clean bounded client cycles; Containment auth-session baseline accepted non-blocking; Controlled Write UAT not run; 3 confirmed damaged slots remain; Task not done |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; containment Source is separately committed at `3ad8a52dbda95b645608bce2f05917824e9763a6` |
 | Remote HEAD | Same documentation closeout after non-force push; containment branch also pushed non-force |
 | Ahead/Behind | `0/0` after fetch |
 | Source Complete | Emergency containment: Yes. Correct forward Source: Yes locally at `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; not Production-active |
-| Tests Passed | Local forward Source gate passed: assignment/naming `30/30`; conflict/concurrency `22/22` with residue `0`; authenticated Playwright desktop/mobile `3/3` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint; mojibake `234`; diff check; Production Build `91/91`; local migration reset/down/re-apply; post-build clean restart `200/200/200`. Bounded client retest passed `56/56` with React `#418`/hydration/console/page errors and redirect loops `0`, but the overall zero-runtime-error gate did not pass because containment emitted one distinct auth refresh-token middleware error |
+| Tests Passed | Local forward Source gate passed: assignment/naming `30/30`; conflict/concurrency `22/22` with residue `0`; authenticated Playwright desktop/mobile `3/3` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint; mojibake `234`; diff check; Production Build `91/91`; local migration reset/down/re-apply; post-build clean restart `200/200/200`. Bounded client retest passed `56/56` with React `#418`/hydration/console/page errors and redirect loops `0`; Canary runtime error/fatal/5xx `0/0/0`; assignment read-only semantics passed. Containment auth-session error is Owner-accepted non-blocking baseline |
 | Committed | Yes — containment Source `3ad8a52dbda95b645608bce2f05917824e9763a6`; forward Source `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9`; documentation closeout is the commit containing this matrix |
 | Pushed | Yes — containment, forward Source, and documentation scoped commits, non-force |
 | Current Source | Production: containment `3ad8a52dbda95b645608bce2f05917824e9763a6` based on `0226e363f6677b078430f93459c2ee2ede6484e8`. Forward candidate: `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` |
@@ -604,16 +606,16 @@ NOT DONE**
 | Feature Enabled | Not applicable; no feature flag changed |
 | Allowlisted | Not applicable; no allowlist changed |
 | Production Active | Emergency assignment-write containment: Yes. Database reservation protection: Yes. Forward Source `c70f5a4...`: No; its dark artifact has no Production alias |
-| Production UAT | Forward Source dark Canary read-only UAT: Not passed overall. The original hydration `#418` is Unknown / Non-reproducible after `56/56` clean client cycles and assignment regression checks passed, but containment emitted one auth refresh-token middleware error during fresh-login retest. Prior regression Source `1b995396...`: Failed from real Head Coach evidence |
-| Controlled Write UAT | No successful write UAT. One authorized containment check returned `503`; successful assignment Save logs after activation `0` |
+| Production UAT | Forward Source dark Canary read-only UAT: Passed. Original hydration `#418`: Unknown / Non-reproducible after `56/56` clean bounded client cycles. Containment auth-session baseline: Accepted non-blocking. Prior regression Source `1b995396...`: Failed from real Head Coach evidence |
+| Controlled Write UAT | Forward Canary: Not run. One earlier authorized containment no-write check returned `503`; it was not a successful write UAT. Successful assignment Save logs after activation remain `0` |
 | Data Repaired | No — no incident data was repaired in this containment round; 3 damaged slots remain pending separate evidence and approval |
 | Production Data Changed | By this bounded retest: No. Normal real-world coach check-in and attendance activity occurred independently and refreshed one reservation `updated_at`; groups/members/legacy and all reservation business fields remained unchanged. Historical incident writes remain unrepaired |
-| Customer Impact | Further Head Coach/Admin Makeup exact-assignment writes are contained; assignment reads remain available. Group creation/reassignment remains intentionally blocked until forward deploy/UAT and containment removal are separately approved |
+| Customer Impact | Head Coach/Admin Makeup exact-assignment writes remain contained; assignment reads remain available. Group creation/reassignment stays intentionally blocked until one exact Controlled Write UAT passes and Owner separately approves conditional promotion/containment removal |
 | Financial Impact | None — no attendance/check-in/teaching-hours/payroll/payment/wallet/finance write occurred |
-| Blocker | Original client React hydration `#418` remains Unknown / Non-reproducible after `56/56` clean bounded client cycles. The overall gate is still blocked by one distinct containment middleware `refresh_token_not_found` error during logout/login; the approved pass rule requires runtime error/fatal/5xx `0`. Exact repair evidence is still required for each damaged slot |
-| Remaining Work | Owner decision on the distinct containment auth-session runtime error and whether to authorize Local-only diagnosis/retest; only after a fully clean gate may Owner separately approve an exact Controlled Write payload and conditional promotion. Obtain exact evidence and separate approval for the 3 damaged-slot repairs; permanent `AGENTS.md` rule remains separate |
+| Blocker | Exact Controlled Write payload for one damaged slot is not yet confirmed by Owner/Head Coach. Original hydration `#418` is Unknown / Non-reproducible; Containment auth-session baseline is Owner-accepted non-blocking. Exact repair evidence is still required for each damaged slot |
+| Remaining Work | Obtain one exact Owner/Head Coach-confirmed damaged-slot payload; run one separately controlled Canary write and reconciliation; conditionally promote the exact existing artifact only if that gate passes; reconcile the remaining damaged slots one at a time. Auth follow-up and permanent `AGENTS.md` rule remain separate and unauthorized |
 | Task Done | No |
-| Next Gate / Next Action | Owner review of the bounded retest and the containment auth refresh-token error. No Controlled Write payload, alias promotion, containment removal, data repair, or Source change until separately approved |
+| Next Gate / Next Action | Owner/Head Coach confirmation of one exact damaged-slot payload: slot ID, date/time/branch, complete learner list, learner-to-group mapping, group names, exact coach per group, and any learners who remain unassigned. No write or promotion until that payload is confirmed |
 | Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification
