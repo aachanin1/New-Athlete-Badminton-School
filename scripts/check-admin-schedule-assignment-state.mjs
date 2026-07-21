@@ -16,8 +16,9 @@ import {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
-const page = read('src/app/(admin)/admin/schedules/page.tsx')
 const client = read('src/components/admin/schedules-client.tsx')
+const schedulesRead = read('src/lib/admin-schedules-read.ts')
+const schedulesModel = read('src/lib/admin-schedules-model.ts')
 const assignmentRoute = read('src/app/api/coach/assignment-groups/route.ts')
 const makeupRoute = read('src/app/api/admin/makeup/route.ts')
 
@@ -127,8 +128,9 @@ check('legacy slot assignments are absent from the assignment predicate', () => 
 })
 
 check('server query resolves coach profile id, name and role', () => {
-  assert.equal(page.includes('profiles!coach_assignment_groups_coach_id_fkey(id, full_name, role)'), true)
-  for (const field of ['coach_profile_id:', 'coach_name:', 'coach_role:']) assert.equal(page.includes(field), true)
+  assert.equal(schedulesRead.includes("profileSelection = detailed ? 'id, full_name, role' : 'id, role'"), true)
+  assert.equal(schedulesRead.includes('profiles!coach_assignment_groups_coach_id_fkey(${profileSelection})'), true)
+  for (const field of ['coach_profile_id:', 'coach_name:', 'coach_role:']) assert.equal(schedulesModel.includes(field), true)
 })
 
 check('unassigned groups render a visible red warning without changing valid green groups', () => {

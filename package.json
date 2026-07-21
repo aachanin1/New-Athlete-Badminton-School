@@ -11,6 +11,7 @@
     "check:mojibake": "node scripts/check-mojibake.js",
     "test:lesson-wallet-regression": "node scripts/check-lesson-wallet-regression.mjs",
     "test:admin-schedule-assignment": "node scripts/check-admin-schedule-assignment-state.mjs",
+    "test:admin-schedules-performance": "node scripts/check-admin-schedules-performance.mjs",
     "test:coach-assignment-conflicts": "node scripts/check-coach-assignment-conflicts.mjs",
     "test:admin-schedule-assignment:e2e": "playwright test --config=playwright.admin-schedule.config.ts",
     "test:booking-regression:e2e": "playwright test --config=playwright.booking.config.ts",

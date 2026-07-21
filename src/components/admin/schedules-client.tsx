@@ -25,6 +25,10 @@ import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import { getAdminScheduleRoundLearnerBuckets } from '@/lib/admin-schedule-assignment-state'
 import { stripDynamicMemberCount } from '@/lib/coach-assignment-group-naming'
+import {
+  getAdminScheduleSummaryTotals,
+  type AdminScheduleMonthSummary,
+} from '@/lib/admin-schedules-model'
 
 interface BranchOption {
   id: string
@@ -96,8 +100,12 @@ interface ScheduleRound {
 }
 
 interface SchedulesClientProps {
-  sessions: ScheduleSession[]
-  rounds: ScheduleRound[]
+  summary: AdminScheduleMonthSummary
+  initialPerformance: {
+    durationMs: number
+    externalCalls: number
+    rows: Record<string, number>
+  }
   branches: BranchOption[]
   initialYear: number
   initialMonth: number
@@ -276,7 +284,21 @@ function getProgramPreview(program: TeachingProgramSummary) {
   return program.program_content.replace(/\s+/g, ' ').trim()
 }
 
-export function SchedulesClient({ sessions, rounds, branches, initialYear, initialMonth }: SchedulesClientProps) {
+interface ScheduleSearchResult {
+  roundKeys: string[]
+  dates: string[]
+  matchCount: number
+  learnerCount: number
+  truncated: boolean
+  limit: number
+}
+
+interface ScheduleDayDetail {
+  sessions: ScheduleSession[]
+  rounds: ScheduleRound[]
+}
+
+export function SchedulesClient({ summary, initialPerformance, branches, initialYear, initialMonth }: SchedulesClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const pendingNavigationRef = useRef(false)
@@ -287,10 +309,13 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
   const [selectedBranch, setSelectedBranch] = useState<string>('all')
   const [selectedCourse, setSelectedCourse] = useState<string>('all')
   const [search, setSearch] = useState('')
-  const [selectedDate, setSelectedDate] = useState<string | null>(() => {
-    const todayDate = new Date(`${today}T00:00:00`)
-    return todayDate.getMonth() === month && todayDate.getFullYear() === year ? today : null
-  })
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [dayDetail, setDayDetail] = useState<ScheduleDayDetail | null>(null)
+  const [dayDetailStatus, setDayDetailStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [searchResult, setSearchResult] = useState<ScheduleSearchResult | null>(null)
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const dayRequestGeneration = useRef(0)
+  const searchRequestGeneration = useRef(0)
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000)
@@ -301,88 +326,116 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     pendingNavigationRef.current = false
   }, [month, year])
 
-  const filteredMonthSessions = useMemo(() => {
-    const q = search.trim().toLowerCase()
+  useEffect(() => {
+    if (!selectedDate) {
+      dayRequestGeneration.current += 1
+      setDayDetail(null)
+      setDayDetailStatus('idle')
+      return
+    }
 
-    return sessions.filter((session) => {
-      const date = new Date(`${session.date}T00:00:00`)
-      if (date.getMonth() !== month || date.getFullYear() !== year) return false
-      if (selectedBranch !== 'all' && session.branch_id !== selectedBranch) return false
-      if (selectedCourse !== 'all' && session.course_type !== selectedCourse) return false
+    const controller = new AbortController()
+    const generation = dayRequestGeneration.current + 1
+    dayRequestGeneration.current = generation
+    setDayDetail(null)
+    setDayDetailStatus('loading')
 
-      if (!q) return true
+    const params = new URLSearchParams({ date: selectedDate, year: String(year), month: String(month + 1) })
+    fetch(`/api/admin/schedules/day?${params}`, { signal: controller.signal, cache: 'no-store' })
+      .then(async (response) => {
+        const payload = await response.json()
+        if (!response.ok) throw new Error(payload.error || 'โหลดรายละเอียดไม่สำเร็จ')
+        return payload as ScheduleDayDetail
+      })
+      .then((payload) => {
+        if (generation !== dayRequestGeneration.current) return
+        setDayDetail({ sessions: payload.sessions, rounds: payload.rounds })
+        setDayDetailStatus('ready')
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || generation !== dayRequestGeneration.current) return
+        void error
+        setDayDetailStatus('error')
+      })
 
-      return [
-        session.learner_name,
-        session.parent_name || '',
-        session.branch_name,
-        session.course_type,
-        session.booking_status,
-        ...session.coach_names,
-      ].some((value) => value.toLowerCase().includes(q))
+    return () => controller.abort()
+  }, [selectedDate, year, month])
+
+  useEffect(() => {
+    const query = search.normalize('NFC').trim()
+    if (!query) {
+      searchRequestGeneration.current += 1
+      setSearchResult(null)
+      setSearchStatus('idle')
+      return
+    }
+
+    const controller = new AbortController()
+    const generation = searchRequestGeneration.current + 1
+    searchRequestGeneration.current = generation
+    setSearchResult(null)
+    setSearchStatus('loading')
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams({
+        q: query,
+        year: String(year),
+        month: String(month + 1),
+        branch: selectedBranch,
+        course: selectedCourse,
+      })
+      fetch(`/api/admin/schedules/search?${params}`, { signal: controller.signal, cache: 'no-store' })
+        .then(async (response) => {
+          const payload = await response.json()
+          if (!response.ok) throw new Error(payload.error || 'ค้นหาไม่สำเร็จ')
+          return payload as ScheduleSearchResult
+        })
+        .then((payload) => {
+          if (generation !== searchRequestGeneration.current) return
+          setSearchResult(payload)
+          setSearchStatus('ready')
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted || generation !== searchRequestGeneration.current) return
+          void error
+          setSearchResult(null)
+          setSearchStatus('error')
+        })
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [search, selectedBranch, selectedCourse, year, month])
+
+  const searchIsApplied = Boolean(search.trim() && searchStatus === 'ready' && searchResult)
+  const matchingRoundKeys = useMemo(() => (
+    searchIsApplied && searchResult ? new Set(searchResult.roundKeys) : null
+  ), [searchIsApplied, searchResult])
+
+  const filteredSummaryRounds = useMemo(() => summary.rounds.filter((round) => (
+    (selectedBranch === 'all' || round.branch_id === selectedBranch)
+    && (selectedCourse === 'all' || round.course_type === selectedCourse)
+    && (!searchIsApplied || Boolean(matchingRoundKeys?.has(round.key)))
+  )), [summary.rounds, selectedBranch, selectedCourse, searchIsApplied, matchingRoundKeys])
+
+  const summaryRoundsByDate = useMemo(() => {
+    const map: Record<string, typeof filteredSummaryRounds> = {}
+    filteredSummaryRounds.forEach((round) => {
+      if (!map[round.date]) map[round.date] = []
+      map[round.date].push(round)
     })
-  }, [sessions, month, year, selectedBranch, selectedCourse, search])
-
-  const filteredMonthRounds = useMemo(() => {
-    const q = search.trim().toLowerCase()
-
-    return rounds.filter((round) => {
-      const date = new Date(`${round.date}T00:00:00`)
-      if (date.getMonth() !== month || date.getFullYear() !== year) return false
-      if (selectedBranch !== 'all' && round.branch_id !== selectedBranch) return false
-      if (selectedCourse !== 'all' && round.course_type !== selectedCourse) return false
-
-      if (!q) return true
-
-      const learners = [
-        ...round.groups.flatMap((group) => group.learners),
-        ...round.unassigned_learners,
-      ]
-      return [
-        round.branch_name,
-        round.course_type,
-        ...round.groups.flatMap((group) => [group.name, group.coach_name || '']),
-        ...learners.flatMap((learner) => [
-          learner.learner_name,
-          learner.parent_name || '',
-          `lv ${learner.level}`,
-          learner.level_name || '',
-        ]),
-      ].some((value) => value.toLowerCase().includes(q))
-    })
-  }, [rounds, month, year, selectedBranch, selectedCourse, search])
-
-  const sessionsByDate = useMemo(() => {
-    const map: Record<string, ScheduleSession[]> = {}
-
-    filteredMonthSessions.forEach((session) => {
-      if (!map[session.date]) map[session.date] = []
-      map[session.date].push(session)
-    })
-
-    Object.values(map).forEach((items) => {
-      items.sort((a, b) => a.start_time.localeCompare(b.start_time))
-    })
-
     return map
-  }, [filteredMonthSessions])
-
-  const daySlotCounts = useMemo(() => {
-    const counts: Record<string, number> = {}
-
-    Object.entries(sessionsByDate).forEach(([date, daySessions]) => {
-      counts[date] = new Set(
-        daySessions.map((session) => `${session.branch_id}:${session.start_time}:${session.end_time}:${session.course_type}`),
-      ).size
-    })
-
-    return counts
-  }, [sessionsByDate])
+  }, [filteredSummaryRounds])
 
   const roundsByDate = useMemo(() => {
     const map: Record<string, ScheduleRound[]> = {}
 
-    filteredMonthRounds.forEach((round) => {
+    ;(dayDetail?.rounds || []).filter((round) => (
+      (selectedBranch === 'all' || round.branch_id === selectedBranch)
+      && (selectedCourse === 'all' || round.course_type === selectedCourse)
+      && (!searchIsApplied || Boolean(matchingRoundKeys?.has(round.key)))
+    )).forEach((round) => {
       if (!map[round.date]) map[round.date] = []
       map[round.date].push(round)
     })
@@ -392,17 +445,17 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     })
 
     return map
-  }, [filteredMonthRounds])
+  }, [dayDetail, selectedBranch, selectedCourse, searchIsApplied, matchingRoundKeys])
 
   const roundSummaryByKey = useMemo(() => {
     const map = new Map<string, RoundLearnerBuckets>()
 
-    filteredMonthRounds.forEach((round) => {
+    ;(dayDetail?.rounds || []).forEach((round) => {
       map.set(round.key, getAdminScheduleRoundLearnerBuckets(round))
     })
 
     return map
-  }, [filteredMonthRounds])
+  }, [dayDetail])
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1)
@@ -427,17 +480,11 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
     round,
     buckets: roundSummaryByKey.get(round.key) || getAdminScheduleRoundLearnerBuckets(round),
   })), [roundSummaryByKey, selectedRounds])
-  const daySummaries = useMemo(() => Object.entries(roundsByDate)
+  const daySummaries = useMemo(() => Object.entries(summaryRoundsByDate)
     .map(([date, dayRounds]) => {
       const learnerCount = dayRounds.reduce((sum, round) => sum + round.learner_count, 0)
-      const waitingCoachCount = dayRounds.reduce(
-        (sum, round) => sum + (roundSummaryByKey.get(round.key)?.waitingCoachCount || 0),
-        0,
-      )
-      const walletedCount = dayRounds.reduce(
-        (sum, round) => sum + (roundSummaryByKey.get(round.key)?.walletedLearners.length || 0),
-        0,
-      )
+      const waitingCoachCount = dayRounds.reduce((sum, round) => sum + round.waiting_coach_count, 0)
+      const walletedCount = dayRounds.reduce((sum, round) => sum + round.walleted_count, 0)
 
       return {
         date,
@@ -447,17 +494,15 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
         roundCount: dayRounds.length,
       }
     })
-    .sort((a, b) => a.date.localeCompare(b.date)), [roundSummaryByKey, roundsByDate])
-  const totalLearners = useMemo(() => (
-    new Set(filteredMonthSessions.map((session) => `${session.parent_name || ''}:${session.learner_name}`)).size
-  ), [filteredMonthSessions])
-  const totalBranches = useMemo(() => (
-    new Set(filteredMonthSessions.map((session) => session.branch_id)).size
-  ), [filteredMonthSessions])
-  const totalSlots = filteredMonthRounds.length
-  const unassignedSessions = useMemo(() => (
-    filteredMonthRounds.reduce((sum, round) => sum + (roundSummaryByKey.get(round.key)?.waitingCoachCount || 0), 0)
-  ), [filteredMonthRounds, roundSummaryByKey])
+    .sort((a, b) => a.date.localeCompare(b.date)), [summaryRoundsByDate])
+  const baseTotals = getAdminScheduleSummaryTotals(summary, selectedBranch, selectedCourse)
+  const totalLearners = searchIsApplied ? (searchResult?.learnerCount || 0) : baseTotals.learnerCount
+  const totalBranches = new Set(filteredSummaryRounds.map((round) => round.branch_id)).size
+  const totalSlots = filteredSummaryRounds.length
+  const filteredSessionCount = searchIsApplied
+    ? (searchResult?.matchCount || 0)
+    : baseTotals.sessionCount
+  const unassignedSessions = filteredSummaryRounds.reduce((sum, round) => sum + round.waiting_coach_count, 0)
   const navigateToMonth = (targetYear: number, targetMonth: number) => {
     if (isPending || pendingNavigationRef.current) return
     pendingNavigationRef.current = true
@@ -487,7 +532,14 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
   }
 
   return (
-    <div className="relative space-y-5" aria-busy={isPending}>
+    <div
+      className="relative space-y-5"
+      aria-busy={isPending || dayDetailStatus === 'loading' || searchStatus === 'loading'}
+      data-testid="admin-schedules-root"
+      data-summary-duration-ms={initialPerformance.durationMs}
+      data-summary-external-calls={initialPerformance.externalCalls}
+      data-summary-row-counts={JSON.stringify(initialPerformance.rows)}
+    >
       {isPending && (
         <div className="fixed inset-x-0 top-0 z-50 border-b border-blue-100 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-3 text-sm font-medium text-[#153c85]">
@@ -512,13 +564,13 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
           <Button variant="outline" size="sm" onClick={goToToday} disabled={isPending}>
             วันนี้
           </Button>
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth} disabled={isPending}>
+          <Button data-testid="admin-schedule-previous-month" variant="outline" size="icon" className="h-9 w-9" onClick={goToPreviousMonth} disabled={isPending}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="w-36 text-center text-sm font-bold text-[#153c85] sm:w-48 sm:text-base">
             {MONTH_NAMES_TH[month]} {year + 543}
           </div>
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={goToNextMonth} disabled={isPending}>
+          <Button data-testid="admin-schedule-next-month" variant="outline" size="icon" className="h-9 w-9" onClick={goToNextMonth} disabled={isPending}>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -538,7 +590,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
               <p className="text-xs text-gray-500">รายการจอง</p>
-              <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{filteredMonthSessions.length}</p>
+              <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{filteredSessionCount}</p>
             </div>
             <Users className="h-5 w-5 text-emerald-500" />
           </CardContent>
@@ -574,6 +626,11 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                 placeholder="ค้นหาผู้เรียน ผู้ปกครอง โค้ช สาขา..."
                 className="pl-10"
               />
+              {searchStatus === 'loading' && <p className="mt-1 text-xs text-gray-400">กำลังค้นหาทั้งเดือน...</p>}
+              {searchStatus === 'error' && <p className="mt-1 text-xs text-red-600">ค้นหาไม่สำเร็จ กรุณาลองใหม่</p>}
+              {searchStatus === 'ready' && searchResult?.truncated && (
+                <p className="mt-1 text-xs text-amber-600">แสดงผลลัพธ์ไม่เกิน {searchResult.limit} รอบแรก</p>
+              )}
             </div>
 
             <Select value={selectedBranch} onValueChange={setSelectedBranch}>
@@ -601,7 +658,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
             </Select>
 
             <p className="text-sm text-gray-500 xl:text-right">
-              {filteredMonthSessions.length} รายการ • {totalBranches} สาขา
+              {filteredSessionCount} รายการ • {totalBranches} สาขา
             </p>
           </div>
         </CardContent>
@@ -621,15 +678,20 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                 if (day === null) return <div key={`empty-${index}`} className="min-h-14 sm:min-h-[5.25rem]" />
 
                 const date = getDateString(year, month, day)
-                const daySessions = sessionsByDate[date] || []
+                const dayRounds = summaryRoundsByDate[date] || []
                 const isToday = date === today
                 const isSelected = selectedDate === date
-                const daySlots = daySlotCounts[date] || 0
+                const daySessionCount = dayRounds.reduce((sum, round) => sum + round.session_count, 0)
+                const dayMarkers = dayRounds.flatMap((round) => Array.from(
+                  { length: Math.min(round.session_count, 10) },
+                  (_, markerIndex) => ({ key: `${round.key}:${markerIndex}`, courseType: round.course_type }),
+                )).slice(0, 10)
 
                 return (
                   <button
                     key={date}
                     type="button"
+                    data-testid={`admin-schedule-calendar-day-${date}`}
                     onClick={() => setSelectedDate(isSelected ? null : date)}
                     className={`min-h-14 rounded-md border p-1 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50/40 sm:min-h-[5.25rem] sm:p-2 ${
                       isSelected ? 'border-[#2748bf] bg-blue-50 ring-1 ring-[#2748bf]' : 'border-gray-100'
@@ -639,20 +701,20 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                       <span className={`text-xs font-semibold ${isToday ? 'text-[#f57e3b]' : index % 7 === 0 ? 'text-rose-500' : 'text-gray-700'}`}>
                         {day}
                       </span>
-                      {daySessions.length > 0 && (
-                        <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-500">{daySessions.length}</span>
+                      {daySessionCount > 0 && (
+                        <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-500">{daySessionCount}</span>
                       )}
                     </div>
 
-                    {daySessions.length > 0 && (
+                    {daySessionCount > 0 && (
                       <div className="mt-2 space-y-1">
                         <div className="flex flex-wrap gap-1">
-                          {daySessions.slice(0, 10).map((session) => {
-                            const course = COURSE_CONFIG[session.course_type] || { dot: 'bg-gray-400' }
-                            return <span key={session.id} className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
+                          {dayMarkers.map((marker) => {
+                            const course = COURSE_CONFIG[marker.courseType] || { dot: 'bg-gray-400' }
+                            return <span key={marker.key} className={`h-1.5 w-1.5 rounded-full ${course.dot}`} />
                           })}
                         </div>
-                        <p className="text-[10px] text-gray-500">{daySlots} รอบ</p>
+                        <p className="text-[10px] text-gray-500">{dayRounds.length} รอบ</p>
                       </div>
                     )}
                   </button>
@@ -681,7 +743,7 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
             </div>
 
             {!selectedDate ? (
-              <div className="min-h-[28rem] p-4">
+              <div className="min-h-[28rem] p-4" data-testid="admin-schedule-month-summary">
                 <div className="flex min-h-64 flex-col items-center justify-center rounded-md border border-dashed border-blue-100 bg-blue-50/30 px-4 py-8 text-center">
                   <CalendarDays className="mb-3 h-8 w-8 text-[#2748bf]" />
                   <p className="font-semibold text-[#153c85]">เลือกวันที่ในปฏิทินเพื่อดูรายละเอียดรอบเรียน</p>
@@ -712,6 +774,21 @@ export function SchedulesClient({ sessions, rounds, branches, initialYear, initi
                     ))}
                   </div>
                 )}
+              </div>
+            ) : dayDetailStatus === 'loading' ? (
+              <div className="flex min-h-[28rem] items-center justify-center text-sm text-[#2748bf]" data-testid="admin-schedule-day-loading">
+                กำลังโหลดรายละเอียดของวันที่เลือก...
+              </div>
+            ) : dayDetailStatus === 'error' ? (
+              <div className="flex min-h-[28rem] flex-col items-center justify-center gap-3 px-4 text-center text-sm text-red-600" data-testid="admin-schedule-day-error">
+                <p>โหลดรายละเอียดตารางเรียนไม่สำเร็จ</p>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const date = selectedDate
+                  setSelectedDate(null)
+                  window.setTimeout(() => setSelectedDate(date), 0)
+                }}>
+                  ลองใหม่
+                </Button>
               </div>
             ) : selectedRoundItems.length === 0 ? (
               <div className="flex min-h-[28rem] items-center justify-center text-sm text-gray-400">

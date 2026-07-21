@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -22,7 +23,7 @@ export function getServiceRoleClient() {
   return createAdminClient(url, serviceKey)
 }
 
-export async function getCurrentUserWithRole() {
+export const getCurrentUserWithRole = cache(async () => {
   const supabase = await createClient()
   const {
     data: { user },
@@ -44,7 +45,7 @@ export async function getCurrentUserWithRole() {
     role: (profile?.role || null) as UserRole | null,
     profile: profile || null,
   }
-}
+})
 
 export async function requireAdminUser() {
   const { supabase, user, role, profile } = await getCurrentUserWithRole()
