@@ -192,10 +192,15 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Current next action is owned by the Active Work section above: **Owner/PM reviews
-the pushed Admin Schedules Phase B commits, then Owner separately decides whether
-to authorize Deploy.** Do not start the auth follow-up,
-historical cleanup, permanent dirty `AGENTS.md` work, or another Parking Lot task.
+Current next action is owned by the Active Work section above and the authoritative
+matrix in `PROJECT_STATE.md`: **Admin Schedules Performance remains active; Phase B
+Canary functional UAT passed, the performance gate failed, the Canary remains
+unpromoted, and Task Done is No. Owner/PM reviews the Canary diagnosis and
+explicitly chooses a Source Fix, Database, Infrastructure, or
+performance-exception gate.** Do not promote, deploy, perform Production UAT,
+migrate, change Production controls/data, or start the auth follow-up, historical
+cleanup, permanent dirty `AGENTS.md` work, or another Parking Lot task without a
+new Owner gate.
 
 ## Earlier Completed
 
@@ -399,7 +404,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Owner/PM reviews the pushed Phase B commits, then Owner separately
-  decides whether to authorize Deploy. Do not deploy, perform Production UAT, or
-  start any other Parking Lot task
-  automatically.**
+- Next action: **Owner/PM reviews the Canary diagnosis and explicitly chooses a
+  Source Fix, Database, Infrastructure, or performance-exception gate. Do not
+  promote, deploy, perform Production UAT, migrate, change Production controls/
+  data, or start another task automatically.**
