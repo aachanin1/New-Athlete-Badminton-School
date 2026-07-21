@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-18
+Last updated: 2026-07-21
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,13 +9,33 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### NONE
+### Admin Schedules Performance
 
-Status: **NO ACTIVE TASK — AWAITING OWNER SELECTION**.
+Status: **ACTIVE — PHASE B COMMITTED/PUSHED; LOCAL TESTS PASSED; AWAITING
+SEPARATE OWNER DEPLOY DECISION**.
 
-- The most recent Coach Assignment remediation task is complete and recorded
-  below. Do not start the separate auth-session follow-up, historical incident
-  cleanup, permanent dirty `AGENTS.md` work, or a Parking Lot task automatically.
+- Owner approved Phase B Source Fix + Local Test and confirmed authenticated
+  month-wide server-side Search on demand for learner, parent, Coach, branch,
+  course, and booking status. The approved `3s/5s` normal/P95 budgets and 10-minute
+  low-volatility reference-cache default remain unchanged.
+- Source now uses a bounded monthly aggregate, authenticated selected-day detail,
+  and authenticated bounded Search. Initial RSC does not preload full-month person,
+  Level, Program, or Attendance detail; cancellation/generation guards prevent
+  stale day and Search results.
+- Local verification passed: Phase B `17/17`, assignment state `24/24`, Lesson
+  Wallet `17/17`, disposable browser `5/5` with residue `0`, TypeScript, full
+  ESLint, mojibake, build, clean restart/static smoke, and diff check. Local cold/
+  warm-P95/day/Search were `2512.8/1187.8/187.3/473.7 ms` on the 2026-07-21
+  resumed run. Docker/repo-local Supabase stayed on `127.0.0.1`; browser E2E
+  passed `5/5` with residue `0`.
+- Detailed Phase B report:
+  `docs/performance/admin-schedules-phase-b-source-local-test-2026-07-20.md`.
+- Source/Test commit `3d32401b13873592d5462e6776b0e847335d2d43` and the
+  documentation closeout are pushed non-force. Owner waived repeat `.next`
+  cleanup/clean-restart for this publish gate; the exact worktree had passed that
+  smoke on 2026-07-20. Do not deploy, migrate, access/UAT/write Production, change
+  environment/feature controls/allowlists, or start other work without separate
+  Owner approval.
 
 ## Recently Completed
 
@@ -158,9 +178,10 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
   and controlled Production repair evidence are authoritative in `PROJECT_STATE.md` under
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
-Next action: **Await Owner selection of the next single task. Do not start the
-auth follow-up, historical cleanup, permanent dirty `AGENTS.md` work, or a Parking
-Lot task automatically.**
+Current next action is owned by the Active Work section above: **Owner/PM reviews
+the pushed Admin Schedules Phase B commits, then Owner separately decides whether
+to authorize Deploy.** Do not start the auth follow-up,
+historical cleanup, permanent dirty `AGENTS.md` work, or another Parking Lot task.
 
 ## Earlier Completed
 
@@ -235,25 +256,6 @@ Status: **DONE**.
   Production UAT evidence remains in `DEVELOPMENT_TODO.md`.
 
 ## Parking Lot
-
-### Admin Schedules 20+ Second Performance Investigation
-
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
-
-- Read-only Supabase evidence confirms request fan-out/waterfall: a 100-request
-  snapshot spanned `24.816` seconds with all requests returning `200`.
-- July scope contains `1,373` verified non-rescheduled sessions, `418` slots, and
-  `252` learners. Current chunking/loading produces about `50` Supabase data
-  requests per schedules render before Auth/Profile/Layout work.
-- No single 20-second SQL query, Supabase outage, timeout, deadlock, connection
-  exhaustion, or schedules-correlated 5xx was found.
-- Admin latency is confirmed. System-wide User impact is
-  `Unknown / Need verification`; shared-capacity risk requires correlated Browser,
-  Vercel/RSC, Supabase, and connection/compute evidence.
-- Continue from
-  `docs/performance/admin-schedules-supabase-log-analysis-2026-07-14.md`.
-- The existing audit does not authorize implementation. Await explicit Owner
-  selection before any further work.
 
 ### Homepage LV Copy Audit/Fix
 
@@ -383,5 +385,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Await Owner selection. Do not start a Parking Lot task
+- Next action: **Owner/PM reviews the pushed Phase B commits, then Owner separately
+  decides whether to authorize Deploy. Do not deploy, perform Production UAT, or
+  start any other Parking Lot task
   automatically.**

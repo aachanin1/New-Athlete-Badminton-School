@@ -1,9 +1,11 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-18
-Source: current local/remote Git and documentation audit plus read-only Vercel,
-Production Supabase, and authenticated Production UAT evidence verified through
-2026-07-18. Items not confirmed are marked `Unknown / Need verification`.
+Last updated: 2026-07-21
+Source: current local/upstream Git metadata, Source, documentation, and disposable
+local verification and Git publish state reviewed on 2026-07-21; read-only Vercel, Production Supabase, and
+authenticated Production UAT evidence remains verified through 2026-07-18 unless
+a later dated section says otherwise. Items not confirmed are marked
+`Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -225,6 +227,32 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   artifact only after complete reconciliation. The corrective Save and promotion
   passed. Direct SQL repair, migration change, and repair of the remaining two
   damaged slots remain prohibited without separate evidence and approval.
+- Owner selected **Admin Schedules Performance** as the next single Active Task on
+  2026-07-19 and authorized **Phase A only**: read-only Source review, evidence
+  reconciliation, performance design, and documentation. The primary scope is
+  `/admin/schedules`; the approved UX is a true monthly-summary-first flow that
+  loads detail only after a date is selected. Initial performance budget is normal
+  load at or below 3 seconds and P95 at or below 5 seconds. Cache is allowed only
+  for low-volatility reference data within 5–15 minutes. Admin/Super Admin and
+  Coach slowness are Owner-confirmed observations; system-wide User impact remains
+  Unknown / Need verification and must be measured separately. Region relocation
+  is not the first fix. Source/Test changes, migration, commit, push, deploy,
+  Production UAT/write, and changes to Coach/User/Payments behavior remain
+  prohibited until a separate Phase approval.
+- Owner explicitly approved **Admin Schedules Performance Phase B Source Fix +
+  Local Test** on 2026-07-20 and confirmed authenticated month-wide server-side
+  Search on demand for learner, parent, Coach, branch, course, and booking status.
+  The initial page must be a true monthly summary, detail must load only after date
+  selection, and the default low-volatility reference-cache window is 10 minutes.
+  Migration/RPC/index work, commit, push, branch change, deploy, Production access/
+  UAT/write, environment/feature/allowlist change, and Coach/User/Payments portal
+  changes remain prohibited.
+- Owner approved the Phase B Source and documentation Commit + Push gate on
+  2026-07-21. After the first publish attempt stopped because Docker was unavailable,
+  the resumed disposable local E2E passed `5/5` with residue `0`. Owner then
+  explicitly waived repeat `.next` cleanup/clean-restart for this gate because it
+  is an ignored local-generated artifact. Deploy, Production access/UAT/write,
+  migration, environment, feature-control, and allowlist actions remain prohibited.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -238,10 +266,9 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Current Execution State
 
-- Active Task: **NONE — awaiting Owner selection**.
-- Task Status: **ADMIN SCHEDULES COACH OVERLAP / UNGROUPED SEMANTICS DONE;
-  CORRECTIVE FORWARD SOURCE PRODUCTION-ACTIVE; READ-ONLY AND CONTROLLED WRITE UAT
-  PASSED; ALL THREE CONFIRMED DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**.
+- Active Task: **ADMIN SCHEDULES PERFORMANCE**.
+- Task Status: **PHASE B SOURCE AND DOCUMENTATION COMMITTED/PUSHED; LOCAL TESTS
+  PASSED; AWAITING SEPARATE OWNER DEPLOY DECISION**.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -468,6 +495,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `COACH_ASSIGNMENT_SAVE_TEMPORARILY_DISABLED`; Vercel request logs confirm the
   response status, the Thai lock message rendered, successful assignment activity
   logs after activation remained `0`, and protected fingerprints did not change.
+- Admin Schedules Performance Phase B Source/Test commit
+  `3d32401b13873592d5462e6776b0e847335d2d43` was pushed non-force to
+  `origin/spike/next-major-security-upgrade`; the documentation closeout is the
+  commit containing this current matrix.
 - Activity logs prove `51` successful `save_coach_assignment_groups` operations
   during the bad-deployment incident window, covering `47` distinct slots, six
   Head Coaches, and six branches. Submitted payload totals were `62` groups and
@@ -482,13 +513,16 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   and Owner-confirmed; the remaining incident-window population is report-only and
   must not be changed without separate evidence and approval. Exact
   current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
-- Admin Schedules Performance is
-  **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+- Admin Schedules Performance is the selected Active Task. Phase B Source and
+  local verification are complete and the scoped Source/documentation commits are
+  pushed. Phase B remains undeployed and not Production-verified.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Await Owner selection of the next single task. Do not start the
-  separate auth-session follow-up, historical incident cleanup, permanent dirty
-  `AGENTS.md` work, or any Parking Lot task automatically.**
+- Next Action: **Owner/PM reviews the pushed Phase B commits, then Owner separately
+  decides whether to authorize Deploy. Do not deploy, perform Production UAT, or
+  start the auth-session follow-up, historical
+  incident cleanup, permanent dirty
+  `AGENTS.md` work, or any other Parking Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
@@ -668,7 +702,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 
 | Field | Current value |
 | --- | --- |
-| Active Task | NONE — awaiting Owner selection |
+| Active Task | Admin Schedules Performance — Phase B committed/pushed; awaiting separate Deploy decision |
 | Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; corrective Source is separately committed at `9ef1ee30035a083426743aed3e326ad9676d65c4` |
@@ -696,8 +730,8 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 | Blocker | None for this task |
 | Remaining Work | None for the confirmed task scope. Auth follow-up, broader historical incident review/cleanup, and permanent dirty `AGENTS.md` work remain separate and unauthorized |
 | Task Done | Yes |
-| Next Gate / Next Action | Await Owner selection; do not start another task automatically |
-| Parking Lot authorization state | Admin Schedules Performance, Homepage LV, and every other Parking Lot task remain not authorized |
+| Next Gate / Next Action | Owner/PM review of pushed Admin Schedules Phase B and separate Deploy decision |
+| Parking Lot authorization state | Admin Schedules Performance was selected and removed from Parking Lot; Homepage LV and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification
 
@@ -1297,17 +1331,19 @@ NO-WRITE PRODUCTION UAT PASSED**
   `SLIPOK_TEST_MODE=true` for both Legacy and Progressive. A successful upload uses
   the normal auto-approve/verify transition and makes no live SlipOK request.
 
-### Admin Schedules Performance Investigation (2026-07-14)
+### Admin Schedules Performance (Audit 2026-07-14; Phase A 2026-07-19; Phase B 2026-07-20)
 
-- Current authorization: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED
-  TO START**. The completed read-only audit classified the issue as confirmed Admin
-  latency/request waterfall; no Source fix has started.
+- Current authorization supersedes the original Parking Lot state: Owner selected
+  this as the single Active Task on 2026-07-19, then explicitly authorized Phase B
+  Source Fix + Local Test on 2026-07-20. Phase B Source, local verification, and
+  publish are complete; Deploy and Production gates remain unapproved.
 - Read-only Supabase inspection found a 100-request API snapshot spanning `24.816`
   seconds; every request returned `200`. The project remained `ACTIVE_HEALTHY`, and
   no schedules-correlated timeout, deadlock, connection exhaustion, or 5xx was found.
-- July 2026 currently has `1,373` verified non-rescheduled booking sessions, `418`
-  distinct schedule slots, and `252` distinct learners in the schedules scope.
-- Current source chunks related ids by `100` and loads monthly sessions, wallet
+- At the 2026-07-14 audit checkpoint, July 2026 had `1,373` verified
+  non-rescheduled booking sessions, `418` distinct schedule slots, and `252`
+  distinct learners in the schedules scope.
+- At the Phase A checkpoint, source chunked related ids by `100` and loaded monthly sessions, wallet
   credits, assignment groups, slot sessions, teaching programs, levels, and
   attendance in several dependent phases. The observed July shape produces about
   `50` Supabase data requests per schedules render before Auth/Profile/Layout work.
@@ -1329,6 +1365,94 @@ NO-WRITE PRODUCTION UAT PASSED**
 - This investigation changed source/tests/deployment/environment/migration/
   Production business data: **no / no / no / no / no / no**. Only read-only logs,
   advisors, counts, and query statistics were inspected.
+
+#### Phase A Source Review (2026-07-19)
+
+- Phase A Source review confirmed that the existing UI was summary-first only at
+  render time. The Server still loaded full-month wallet, assignment-group/member, slot-session,
+  teaching-program, Level, and attendance detail before `SchedulesClient` is sent.
+  Therefore selecting a day does not trigger a new bounded read; it only filters
+  arrays already loaded into the Browser.
+- Confirmed primary Code causes are full-month overfetch, serial chunk loops, and
+  dependent query phases. Secondary review findings are the second monthly
+  `booking_sessions` read, full-month RSC serialization, possible Layout/Page auth
+  duplication, and selective Link prefetch. Region distance, RLS advisories, and
+  index gaps remain amplifiers or secondary candidates, not the first fix.
+- Recommended Phase B design is a bounded monthly-summary read plus an
+  authenticated selected-day detail read. Low-volatility branches and active
+  Level definitions may use a 5–15 minute cache; attendance, wallet, assignments,
+  payment state, and per-user auth context must not use a shared stale cache.
+- At the Phase A checkpoint, month-wide Search depended on full learner/parent/
+  Coach detail in the Browser. Phase A recommended authenticated server-side search on demand so this
+  capability could remain without preloading every person's detail. Owner decision
+  on this search contract was the next gate at that Phase A checkpoint and was
+  superseded by the 2026-07-20 Phase B authorization above.
+- Detailed Phase A report:
+  `docs/performance/admin-schedules-phase-a-code-review-2026-07-19.md`.
+- Owner additionally classifies Admin/Super Admin and Coach slowness as confirmed
+  operational observations. Only Admin schedules is in the Source-fix scope;
+  Coach and system-wide User impact remain separate correlated measurements.
+
+#### Phase B Source + Local Test (2026-07-20)
+
+- Initial navigation now returns only a bounded monthly aggregate. Authenticated
+  no-store boundaries load one selected day or bounded month-wide Search on demand.
+  Search preserves learner, parent, Coach, branch, course, booking status,
+  one-character Thai input, selected-month bounds, and branch/course filters.
+- Existing Attendance, Wallet, and exact coach-assignment helpers preserve the
+  business invariants. Auth/Profile work is request-memoized; only active branches
+  and active Level definitions use a 10-minute non-PII reference cache.
+- Local verification passed: Phase B `17/17`, assignment-state `24/24`, Lesson
+  Wallet `17/17`, disposable browser `5/5` with residue `0`, TypeScript, full
+  ESLint, mojibake `241`, local Production build, post-build clean restart/static
+  smoke, and diff check.
+- On the 2026-07-21 resume, Docker and repo-local Supabase were verified on
+  `127.0.0.1`; E2E passed `5/5` with residue `0`. Latest cold/warm-P95/month/day/
+  Search were `2512.8/1187.8/220.8/187.3/473.7 ms`. Owner explicitly waived the
+  repeat `.next` cleanup/clean-restart for this publish gate; the exact Phase B
+  worktree had already passed clean restart/static smoke on 2026-07-20.
+- Local cold/warm-P95/month/day/Search were
+  `2780.1/1039.9/211.0/230.9/463.3 ms`. Boundary data calls were `4/8/3` for
+  summary/day/Search. Initial RSC/document body was `91,089` bytes and local-dev
+  transferred bytes were `3,248,407`. Production P95 remains Unknown / Need
+  verification.
+- Detailed Phase B report:
+  `docs/performance/admin-schedules-phase-b-source-local-test-2026-07-20.md`.
+
+#### Current Admin Schedules Performance Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Admin Schedules Performance |
+| Task Status | Phase B Source and documentation committed/pushed; local verification passed; awaiting separate Owner Deploy decision |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation closeout commit containing this matrix; Phase B Source/Test commit is `3d32401b13873592d5462e6776b0e847335d2d43` |
+| Remote HEAD | Same documentation closeout after non-force push; Source commit `3d32401...` verified by `git ls-remote` before documentation closeout |
+| Ahead/Behind | `0/0` after documentation push |
+| Source Complete | Yes — within the Owner-approved Phase B Source-only scope |
+| Tests Passed | Yes — Phase B `17/17`; assignment `24/24`; wallet `17/17`; disposable browser `5/5`, residue `0`; TypeScript, full ESLint, mojibake `241`, build, clean restart/static smoke, diff check |
+| Committed | Yes — Source/Test `3d32401b13873592d5462e6776b0e847335d2d43`; documentation closeout is the commit containing this matrix |
+| Pushed | Yes — Source/Test and documentation commits pushed non-force to `origin/spike/next-major-security-upgrade` |
+| Current Source | Pushed Phase B Source `3d32401b13873592d5462e6776b0e847335d2d43` |
+| Deployed | No for Phase B |
+| Deployed Source | Existing Production source unchanged; Phase B is not deployed |
+| Deployment ID | No Phase B deployment; existing Production deployment unchanged |
+| Migration Source | None for this task |
+| Migration Applied | No |
+| Feature Enabled | Not applicable; no feature control changed |
+| Allowlisted | Not applicable; no allowlist changed |
+| Production Active | No — Phase B is local only |
+| Production UAT | No / Unknown — prohibited and not run |
+| Controlled Write UAT | No / not applicable; read-only Source scope |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | None in this round because Source is not deployed; existing Admin latency remains Production-active; Coach/User impact not changed or measured |
+| Financial Impact | None; no financial data or semantics changed |
+| Blocker | No Source/local/publish blocker; Deploy requires a separate Owner gate |
+| Remaining Work | Owner/PM review, separately authorized Deploy, and later Production performance/UAT verification |
+| Task Done | No — publish gate complete; overall performance task remains open |
+| Next Gate / Next Action | Owner/PM reviews pushed Phase B commits and Owner separately decides whether to authorize Deploy |
+| Parking Lot authorization state | Admin Schedules Performance selected and active; Homepage LV and all other Parking Lot work remain unauthorized |
 
 ## Historical / Superseded 2026-07-13–14 Records
 

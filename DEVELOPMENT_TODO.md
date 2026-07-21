@@ -2,6 +2,76 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-20 - Admin Schedules Performance Phase B Source + Local Test
+
+Status: **PASS — COMMITTED AND PUSHED; LOCAL TESTS PASSED; NOT DEPLOYED OR
+PRODUCTION-VERIFIED**.
+
+- Owner explicitly authorized Phase B Source Fix + Local Test and confirmed the
+  authenticated month-wide server-side Search-on-demand contract. Search must keep
+  learner, parent, Coach, branch, course, and booking-status behavior within the
+  selected month. Commit, push, deploy, migration, Production access/UAT/write,
+  environment, feature controls, and allowlists remained prohibited.
+- State observed at this closeout: initial `/admin/schedules` is a bounded monthly
+  aggregate. Selected-day detail and bounded month-wide Search are separate
+  Admin-menu-authorized no-store read routes. The Client cancels and rejects stale
+  day/Search responses, and the initial RSC no longer contains full-month learner,
+  parent, Coach-name, Level, Program, or Attendance detail.
+- Exact learner/Attendance, Wallet, and coach-assignment semantics remain on the
+  existing helpers. Request Auth/Profile work is memoized. Only active branches and
+  active Level definitions use a 10-minute non-PII reference cache.
+- Local results: Phase B `17/17`, assignment-state `24/24`, Lesson Wallet `17/17`,
+  disposable browser `5/5` with residue `0`, TypeScript, full ESLint, mojibake
+  `241`, build, clean restart/static smoke, and diff check passed. Local cold/warm
+  P95/day/Search were `2780.1/1039.9/230.9/463.3 ms`; summary/day/Search boundary
+  calls were `4/8/3`; initial RSC/document body was `91,089` bytes and local-dev
+  transferred bytes were `3,248,407`.
+- Detailed implementation and measurement record:
+  `docs/performance/admin-schedules-phase-b-source-local-test-2026-07-20.md`.
+- The first 2026-07-21 publish attempt stopped before staging because Docker was
+  unavailable. On resume, Docker and repo-local Supabase were verified on
+  `127.0.0.1`; E2E passed `5/5`, residue `0`, with no Production connection. Owner
+  then waived repeat `.next` cleanup/clean-restart because `.next` is an ignored
+  local-generated artifact; the exact worktree had passed that smoke on 2026-07-20.
+- Source/Test commit `3d32401b13873592d5462e6776b0e847335d2d43` was pushed
+  non-force to `origin/spike/next-major-security-upgrade`; the documentation
+  closeout is the commit containing this record. Migration **No**; Deploy **No**;
+  Production UAT **No / Unknown**; Production data change **No**; customer and
+  financial impact in this gate **No**. Task Done remains **No**. Next gate is
+  Owner/PM review and separate Owner authorization for Deploy.
+
+### 2026-07-19 - Admin Schedules Performance Phase A Code Review
+
+Status: **ACTIVE TASK — PHASE A READ-ONLY CODE REVIEW COMPLETE; PHASE B NOT
+AUTHORIZED**.
+
+- Owner selected Admin Schedules Performance as the next single Active Task and
+  authorized Phase A only. Confirmed decisions are `/admin/schedules` as the
+  primary scope, true monthly-summary-first and selected-day detail UX, initial
+  normal/P95 budget `3s/5s`, 5–15 minute Cache only for low-volatility reference
+  data, separate Coach/User impact measurement, no Region move as the first fix,
+  and approval one Phase at a time.
+- State observed at this Phase A closeout: Source review confirms that the Client
+  hides full-month detail until a day is selected, but the Server still loads all
+  monthly wallet, assignment group/member, slot-session, program, Level, and
+  attendance detail before render. Serial chunk loops and dependent phases match
+  the observed 52–53 external calls and 15–18 second response.
+- Recommended Phase B design is a bounded monthly-summary read plus an
+  authenticated selected-day detail read. Current month-wide Search depends on
+  preloaded learner, parent, and Coach detail; Phase A recommends authenticated
+  server-side Search on demand and leaves that contract for Owner confirmation.
+- Admin/Super Admin latency is supported by correlated Vercel evidence. Coach
+  slowness is Owner-confirmed operational evidence. System-wide User impact remains
+  Unknown / Need verification and is not included in the Source-fix scope.
+- Detailed report is
+  `docs/performance/admin-schedules-phase-a-code-review-2026-07-19.md`.
+- Phase A changed no functional Source, Test Source, Migration Source, deployment,
+  environment, feature control, allowlist, Production data, customer behavior, or
+  financial data. Documentation changes are uncommitted and unpushed. Overall task
+  was not done; the next gate at that Phase A closeout was Owner confirmation of
+  the Search contract and separate approval for Phase B Source + Local
+  verification. That gate was later granted on 2026-07-20.
+
 ### 2026-07-17 - Admin Teaching Programs Documentation Consistency Correction
 
 Status: **DOCUMENTATION-ONLY CORRECTION — CURRENT CLOSEOUT STATE RECONCILED**.
