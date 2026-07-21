@@ -2,6 +2,94 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-21 - Admin Schedules Phase B Canary Remediation Publish
+
+Status: **PASS — COMMITTED AND PUSHED; NOT DEPLOYED**.
+
+- State observed at this publish closeout: Owner approved the scoped Source/Test
+  and documentation Commit + Push gate on existing branch
+  `spike/next-major-security-upgrade`. Starting HEAD and actual remote were
+  `358040d25c37398811f05611b53fc6a5f4ec099c`, staged state was empty, and
+  ahead/behind was `0/0`.
+- Source/Test commit `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`
+  (`perf(admin-schedules): reduce canary read fan-out`) contains only the five
+  approved remediation Source/Test files. This documentation closeout is the
+  separate scoped documentation commit. Both are pushed non-force to the existing
+  branch; no PR was created.
+- Mandatory publish-gate verification passed on the exact Source worktree:
+  remediation `24/24`, assignment `24/24`, Lesson Wallet `17/17`, TypeScript,
+  ESLint, mojibake `243`, diff check, local Production build, and disposable
+  browser E2E `5/5` with fixture residue `0`. Docker Engine was available and all
+  Supabase URLs used by the E2E environment were `127.0.0.1` only.
+- The publish-gate E2E measured cold `1985.5 ms`; warm samples
+  `1074.4/1060.8/1226.0/1170.4/1117.0 ms` with P95 `1226.0 ms`; month change
+  `273.5 ms`; summary server `136.5 ms` with four calls; cold day server
+  `40.4 ms` with seven calls; learner/Coach/status Search server
+  `105.9/124.3/152.0 ms` with `6/7/8` bounded calls. Local evidence is not a
+  Production P95 claim.
+- Owner explicitly accepted skipping repeat `.next` cleanup/clean-restart for the
+  exact verified worktree. `.next` was not deleted or touched by this gate, the
+  repeat smoke was not run, and this record does not claim otherwise.
+- Pre-existing dirty `AGENTS.md` and `src/lib/schedule-slot-utils.ts` retained
+  SHA-256 `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`
+  and `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  neither was edited, staged, or committed by this gate. Migration/RPC/index,
+  environment/feature/allowlist, deploy, new Canary, promotion, Production
+  access/UAT/write, data repair, and customer/financial change were all **No**.
+- Prior Canary remained unpromoted according to the latest authorized evidence.
+  Production Active **No**; Production UAT/P95 **Unknown / Need verification**;
+  Task Done **No**. Next action is Owner/PM review before a separately authorized
+  Canary Deploy + Performance UAT gate.
+
+### 2026-07-21 - Admin Schedules Phase B Canary Source Remediation + Local Test
+
+Status: **PASS — SOURCE ONLY; PASS — LOCAL TEST ONLY; UNCOMMITTED AND
+UNPUSHED**.
+
+- Owner authorized Source-only performance remediation and Local Test after the
+  unpromoted Canary failed its performance gate. Starting/final Git HEAD remained
+  `358040d25c37398811f05611b53fc6a5f4ec099c` on
+  `spike/next-major-security-upgrade`; no commit, push, deploy, promotion,
+  Production access/write, environment/feature/allowlist, Infrastructure, or
+  database schema change occurred.
+- Summary assignment groups now use an explicitly paginated
+  `schedule_slots!inner(date)` read. The deterministic July-equivalent shape of
+  1,437 sessions, 439 unique slots, 54 wallet IDs, and 576 groups changed from
+  `2 + 1 + 5 = 8` warm calls to `2 + 1 + 1 = 4`; group calls no longer scale by
+  100-slot chunks.
+- Selected-day derives non-rescheduled/non-walleted slot-session attendance scope
+  from the exact verified day sessions already loaded. The duplicate
+  `booking_sessions` read is removed; warm local samples used 5–6 calls and the
+  cold Level-reference path used 7 while exact child/adult Attendance, Wallet,
+  Coach assignment, Level, and Teaching Program semantics remained unchanged.
+- Search is authenticated, month-bounded, candidate-first, deterministic, and
+  capped before detail reads. Fixed-column `ilike` queries escape literal `%`,
+  `_`, and backslash without raw filter grammar; enum course names are resolved
+  through a small reference read then matched by course ID. Thai one-character,
+  NFC, parent, Coach, branch, course, status, filter, month-isolation, ordering,
+  200-round truncation, stale/cancel, and PII-free response/log behavior passed.
+- Final local checks passed: remediation `24/24`, assignment `24/24`, Lesson
+  Wallet `17/17`, TypeScript, ESLint, mojibake `243`, diff check, local Production
+  build, and disposable browser E2E `5/5` with fixture residue `0`. The
+  high-cardinality local fixture had 250 July sessions and 207 groups; summary
+  still used one group page and four total calls.
+- Final local performance: cold `2359.8 ms`; five warm samples
+  `2178.1/2311.7/2470.2/2745.9/2273.6 ms`, P95 `2745.9 ms`; month change
+  `433.4 ms`; selected-day low/medium/high client `153.5/100.6/121.6 ms` with
+  server `29.0/24.8/24.0 ms`; learner/Coach/status Search client
+  `614.3/204.8/198.1 ms` with server `80.2/84.6/85.6 ms`. Document body was
+  `222,466` bytes and transferred bytes `3,252,965` under the deliberately larger
+  local fixture. Local latency does not prove Production P95.
+- After the build, execution policy rejected the exact-path `.next` cleanup
+  command before execution. No bypass was attempted; repeat clean restart/static
+  smoke is not claimed. Normal final-worktree E2E still passed after the build.
+- Production Active **No**; Production UAT **No**; Production P95 **Unknown / Need
+  verification**; Production Data Changed **No**; Customer Impact **No direct
+  Production change**; Financial Impact **None**; Task Done **No**. Next action is
+  Owner/PM review and a separately approved Commit + Push gate.
+- Detailed evidence:
+  `docs/performance/admin-schedules-phase-b-canary-source-remediation-local-test-2026-07-21.md`.
+
 ### 2026-07-21 - Admin Schedules Phase B Canary Performance Diagnosis
 
 Status: **PASS — READ-ONLY PERFORMANCE DIAGNOSIS; CANARY NOT PROMOTED**.

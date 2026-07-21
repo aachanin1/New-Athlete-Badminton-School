@@ -11,8 +11,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules Performance
 
-Status: **ACTIVE — PHASE B CANARY FUNCTIONAL UAT PASSED; PERFORMANCE GATE
-FAILED; CANARY UNPROMOTED; READ-ONLY DIAGNOSIS COMPLETE**.
+Status: **ACTIVE — SOURCE-ONLY CANARY REMEDIATION COMMITTED/PUSHED; PRIOR
+CANARY UNPROMOTED; NEW DEPLOY/PERFORMANCE UAT NOT AUTHORIZED**.
 
 - Owner approved Phase B Source Fix + Local Test and confirmed authenticated
   month-wide server-side Search on demand for learner, parent, Coach, branch,
@@ -46,10 +46,28 @@ FAILED; CANARY UNPROMOTED; READ-ONLY DIAGNOSIS COMPLETE**.
   phases are proven primary; cross-region RTT is inferred as an amplifier.
 - Detailed diagnosis:
   `docs/performance/admin-schedules-phase-b-canary-performance-diagnosis-2026-07-21.md`.
-- Next Action: **Owner/PM reviews the diagnosis and explicitly chooses a Source
-  Fix, Database, Infrastructure, or performance-exception gate. Do not promote,
-  deploy, migrate, access/write Production, change environment/feature controls/
-  allowlists, or start another task without separate Owner approval.**
+- Owner approved and the local worktree completed a Source-only remediation:
+  date-scoped assignment-group pagination reduces the July-equivalent warm summary
+  formula from `8` to `4` calls, selected-day removes the duplicate session read,
+  and bounded candidate-first Search no longer loads detailed month-wide person/
+  group data for sparse results.
+- Final local evidence passed: remediation `24/24`, assignment `24/24`, wallet
+  `17/17`, TypeScript, ESLint, mojibake `243`, diff check, build, and disposable
+  browser E2E `5/5` with residue `0`. Warm P95 was `2745.9 ms`; summary used `4`
+  calls; warm day samples used `5–6`; representative Search used `6–8` bounded
+  calls. Execution policy rejected repeat `.next` cleanup before execution, so
+  repeat clean restart/static smoke is not claimed.
+- Detailed remediation report:
+  `docs/performance/admin-schedules-phase-b-canary-source-remediation-local-test-2026-07-21.md`.
+- Source/Test commit `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` and this
+  documentation closeout are published non-force on the existing branch. Owner
+  waived repeat `.next` cleanup/clean-restart for the exact verified worktree; the
+  smoke was not rerun and is not claimed.
+- Next Action: **Owner/PM reviews the publish result and explicitly decides
+  whether to authorize a separate Canary Deploy + Performance UAT gate. Do not
+  promote, deploy, migrate, access/write Production, change
+  environment/feature controls/allowlists, or start another task without a new
+  Owner gate.**
 
 ## Recently Completed
 
@@ -195,12 +213,12 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
 Current next action is owned by the Active Work section above and the authoritative
 matrix in `PROJECT_STATE.md`: **Admin Schedules Performance remains active; Phase B
 Canary functional UAT passed, the performance gate failed, the Canary remains
-unpromoted, and Task Done is No. Owner/PM reviews the Canary diagnosis and
-explicitly chooses a Source Fix, Database, Infrastructure, or
-performance-exception gate.** Do not promote, deploy, perform Production UAT,
-migrate, change Production controls/data, or start the auth follow-up, historical
-cleanup, permanent dirty `AGENTS.md` work, or another Parking Lot task without a
-new Owner gate.
+unpromoted, Source-only remediation/local tests are committed and pushed, and Task
+Done is No. Owner/PM reviews the publish result and explicitly decides whether to
+authorize a separate Canary Deploy + Performance UAT gate.** Do not promote,
+deploy, perform Production UAT, migrate, change Production
+controls/data, or start the auth follow-up, historical cleanup, permanent dirty
+`AGENTS.md` work, or another Parking Lot task without a new Owner gate.
 
 ## Earlier Completed
 
@@ -404,7 +422,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Owner/PM reviews the Canary diagnosis and explicitly chooses a
-  Source Fix, Database, Infrastructure, or performance-exception gate. Do not
-  promote, deploy, perform Production UAT, migrate, change Production controls/
-  data, or start another task automatically.**
+- Next action: **Owner/PM reviews the Admin Schedules remediation publish result
+  and explicitly decides whether to authorize a separate Canary Deploy +
+  Performance UAT gate. Do not promote, deploy, perform Production UAT, migrate,
+  change Production controls/data, or start another task automatically.**
