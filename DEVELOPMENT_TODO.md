@@ -2,6 +2,133 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-21 — Admin Schedules Remediation Canary Performance Gate Failed
+
+Status: **STOP — CANARY PERFORMANCE GATE FAILED; NOT PROMOTED**.
+
+#### Authorization and exact deployment identity
+
+- State observed at this closeout: Owner approved a Production-target unpromoted
+  remediation Canary plus bounded authenticated read-only performance UAT from
+  branch `spike/next-major-security-upgrade` at exact input commit
+  `67a08fa5a11ee714d8ec23be3fb125732e255b54`. Functional Source was
+  `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`.
+- Deployment `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` at
+  `https://new-athlete-badminton-school-hm0ntpqx2-aachanin1s-projects.vercel.app`
+  became `READY` on target `production`. Its exact tree was
+  `ad1a35b38d19bd1b203bb8d644946ea73db3c466`.
+- Vercel `gitCommitSha` metadata was `null`. Exactness was therefore established
+  from the clean detached worktree and deploy input identity, not from Vercel Git
+  metadata. Build duration was `81.021 s`; build region was `cle1`, function region
+  `iad1`, deployment metadata region `sfo1`, runtime Node.js `24.x`, and framework
+  Next.js `16.2.6`.
+- Custom/Production alias count on the Canary was `0`. Automatic deployment aliases
+  were not treated as promotion. The four established Production aliases remained
+  on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` before and after deployment/UAT. Promotion
+  and rollback were **No**.
+
+#### Infrastructure and partial functional UAT
+
+- Infrastructure smoke passed: `/` returned `200` (`80,237` bytes, `0.235 s`),
+  `/api/health` returned `200` with status `ok` (`1,782` bytes), one generated
+  `_next/static/*` asset returned `200` (`529` bytes, `0.138 s`), and anonymous
+  `/admin/schedules` returned the expected `307` auth redirect. No build/runtime
+  5xx was observed.
+- Existing Super Admin authentication worked. Monthly-summary-first, no day detail
+  before selection, desktop layout without horizontal overflow, and console
+  warning/error count `0` passed before the mandatory performance stop. July summary
+  metrics reported sessions `1,439`, groups `586`, and wallet rows `54`.
+- Month-change, selected-day, Search, mobile `390x844`, and Standard Admin checks
+  were intentionally **not run**. The gate required an immediate stop after the
+  warm-navigation P95 budget failed.
+
+#### Raw performance evidence
+
+- Initial untimed navigation used five calls and reported summary server duration
+  `3.3282 s`.
+- The bounded cold/reference-cache-miss sample was browser `5.889 s`, summary
+  server `3.0914 s`, and five calls: two session pages + one date-scoped group page
+  + one wallet call + one branch-reference miss.
+- Ten warm samples, in test order:
+
+| Sample | Browser total | Summary server | External calls |
+| ---: | ---: | ---: | ---: |
+| 1 | `4.365 s` | `2.5529 s` | 4 |
+| 2 | `4.145 s` | `2.5762 s` | 4 |
+| 3 | `3.989 s` | `2.2107 s` | 4 |
+| 4 | `3.910 s` | `2.1769 s` | 4 |
+| 5 | `7.907 s` | `4.3137 s` | 4 |
+| 6 | `4.125 s` | `2.6932 s` | 4 |
+| 7 | `5.664 s` | `3.1271 s` | 5 |
+| 8 | `5.228 s` | `2.9898 s` | 4 |
+| 9 | `3.969 s` | `2.1832 s` | 4 |
+| 10 | `5.130 s` | `2.5651 s` | 4 |
+
+- Nearest-rank P95 for `n=10` selects rank `ceil(0.95 * 10) = 10` after sorting,
+  yielding `7.907 s`. This exceeds the mandatory `5.000 s` budget.
+- Nine of ten warm samples used the intended formula `2 session pages + 1
+  date-scoped group page + 1 wallet call + 0 cached branch call = 4`. Sample 7 was
+  the branch-cache miss and used five calls. The worst browser and server sample was
+  sample 5 on the normal four-call path.
+
+#### No-write, logs, and repository safety
+
+- The bounded deployment-scoped Vercel window contained `500` events, all `GET`.
+  Schedule requests were `30`; schedule/business `POST/PUT/PATCH/DELETE` were
+  `0/0/0/0`; 5xx/fatal/error/warn were `0/0/0/0`; email/phone/JWT/search-term
+  marker matches were `0`. No business-data write occurred.
+- This Canary gate did not run direct Supabase SQL or collect direct RTT/comparison
+  telemetry. The previously verified Supabase region remains `ap-northeast-2`.
+- The main worktree stayed on exact HEAD/upstream
+  `67a08fa5a11ee714d8ec23be3fb125732e255b54`, ahead/behind `0/0`, with staged state
+  empty. The detached deployment worktree remained clean. Pre-existing dirty
+  `AGENTS.md` and `src/lib/schedule-slot-utils.ts` retained SHA-256
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source, Test, documentation, migration, environment, feature control, allowlist,
+  Production data, and financial data changed by the Canary gate: **No**. This later
+  closeout changes documentation only.
+
+#### Proven findings
+
+1. The Source remediation changed the normal warm summary from the prior eight-call
+   shape to the designed four-call shape in `9/10` samples.
+2. The remediation Canary still failed the warm-navigation performance gate at
+   P95 `7.907 s`.
+3. The worst latency occurred on the four-call path. A branch-cache miss does not
+   explain that worst sample.
+4. The Canary remained unpromoted; Production aliases and business data did not
+   change.
+
+#### Observed, not proven causal
+
+- Functions ran in `iad1`; the previously verified Supabase region is
+  `ap-northeast-2`. Residual region/network/runtime cost may contribute, but this
+  gate collected no direct RTT or controlled regional comparison and does not claim
+  the region difference as a proven root cause.
+
+#### State observed at this closeout
+
+| Field | Result |
+| --- | --- |
+| Active Task | Admin Schedules Performance |
+| Source Complete | Yes — remediation committed/pushed |
+| Local Tests | Passed — prior evidence |
+| New Canary | `READY`, Production-target, unpromoted |
+| Performance Gate | Failed — warm P95 `7.907 s` > `5.000 s` |
+| Production Active | No |
+| Production UAT Passed | No |
+| Production Data Changed | No |
+| Customer Impact | No direct Production change |
+| Financial Impact | None |
+| Task Done | No |
+| Next Action | Owner/PM selects Source Fix, Database, Infrastructure, or explicit performance-exception scope; no option is authorized automatically |
+
+Read-only Infrastructure Diagnosis may be considered as one recommendation, but it
+is **OWNER APPROVAL REQUIRED — NOT AUTHORIZED TO START**. No Source, Database,
+Infrastructure, performance-exception, promotion, or Production UAT gate starts
+automatically.
+
 ### 2026-07-21 - Admin Schedules Phase B Canary Remediation Publish
 
 Status: **PASS — COMMITTED AND PUSHED; NOT DEPLOYED**.
