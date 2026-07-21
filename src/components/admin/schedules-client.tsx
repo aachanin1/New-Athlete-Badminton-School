@@ -105,6 +105,7 @@ interface SchedulesClientProps {
     durationMs: number
     externalCalls: number
     rows: Record<string, number>
+    calls: Record<string, number>
   }
   branches: BranchOption[]
   initialYear: number
@@ -539,6 +540,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
       data-summary-duration-ms={initialPerformance.durationMs}
       data-summary-external-calls={initialPerformance.externalCalls}
       data-summary-row-counts={JSON.stringify(initialPerformance.rows)}
+      data-summary-call-counts={JSON.stringify(initialPerformance.calls)}
     >
       {isPending && (
         <div className="fixed inset-x-0 top-0 z-50 border-b border-blue-100 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">

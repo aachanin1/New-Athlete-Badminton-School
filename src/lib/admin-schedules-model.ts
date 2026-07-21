@@ -462,8 +462,59 @@ export function getAdminScheduleAttendanceScopeIds(input: {
   return getAdminAttendanceScopeSessionIds(input.sessions, input.groups, input.slotSessions)
 }
 
-function normalizeAdminScheduleSearch(value: string) {
+export function deriveAdminScheduleSlotSessions(
+  sessions: AdminScheduleSessionRow[],
+): AdminScheduleSlotSessionRow[] {
+  return sessions.flatMap((session) => (
+    session.schedule_slot_id
+    && session.status !== 'rescheduled'
+    && session.status !== 'walleted'
+      ? [{ id: session.id, schedule_slot_id: session.schedule_slot_id }]
+      : []
+  ))
+}
+
+export function normalizeAdminScheduleSearch(value: string) {
   return value.normalize('NFC').trim().toLocaleLowerCase('th-TH')
+}
+
+export function escapeAdminScheduleLikePattern(value: string) {
+  return `%${value.replace(/([\\%_])/g, '\\$1')}%`
+}
+
+export function buildAdminScheduleSearchCandidateResult(input: {
+  sessions: AdminScheduleSessionRow[]
+  walletCredits: AdminScheduleWalletCreditRow[]
+  startDate: string
+  endDate: string
+  limit: number
+  sourceTruncated: boolean
+}) {
+  const sessions = filterVisibleAdminScheduleSessions(input.sessions, input.walletCredits)
+    .filter((session) => session.date >= input.startDate && session.date <= input.endDate)
+    .slice()
+    .sort((a, b) => (
+      a.date.localeCompare(b.date)
+      || a.start_time.localeCompare(b.start_time)
+      || a.id.localeCompare(b.id)
+    ))
+  const roundKeys = Array.from(new Set(sessions.map(getAdminScheduleRoundKey)))
+  const boundedRoundKeys = roundKeys.slice(0, input.limit)
+  const boundedSet = new Set(boundedRoundKeys)
+  const boundedSessions = sessions.filter((session) => boundedSet.has(getAdminScheduleRoundKey(session)))
+  const learnerKeys = new Set(sessions.flatMap((session) => {
+    const student = getAdminScheduleStudentRef(session)
+    return student ? [`${student.type}:${student.id}`] : []
+  }))
+
+  return {
+    roundKeys: boundedRoundKeys,
+    dates: Array.from(new Set(boundedSessions.map((session) => session.date))),
+    matchCount: sessions.length,
+    learnerCount: learnerKeys.size,
+    truncated: input.sourceTruncated || roundKeys.length > input.limit,
+    limit: input.limit,
+  }
 }
 
 export function buildAdminScheduleSearchResult(input: {

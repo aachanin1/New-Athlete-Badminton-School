@@ -23,6 +23,11 @@ const IDS = {
   ],
   validGroup: 'a5000000-0000-4000-8000-000000000001',
   unassignedGroup: 'a5000000-0000-4000-8000-000000000002',
+  bulkBooking: 'b2000000-0000-4000-8000-000000000001',
+  augustBooking: 'b2000000-0000-4000-8000-999999999999',
+  augustChild: 'b3000000-0000-4000-8000-999999999999',
+  augustSlot: 'b1000000-0000-4000-8000-999999999999',
+  augustSession: 'b4000000-0000-4000-8000-999999999999',
 } as const
 
 let coachUserId = ''
@@ -97,13 +102,26 @@ test.beforeAll(async () => {
     status: 'open',
   })).error, 'insert fixture slot')
 
+  const learnerNames = [
+    { fullName: 'Schedule Fixture Learner 1', nickname: 'SF1' },
+    { fullName: 'Café Fixture Learner', nickname: 'ก' },
+    { fullName: 'Literal % _ \\ , () Fixture Learner', nickname: 'LIT' },
+    { fullName: 'Schedule Fixture Learner 4', nickname: 'SF4' },
+  ]
   assertNoError((await admin.from('children').insert(IDS.children.map((id, index) => ({
     id,
     parent_id: fixture.userId,
-    full_name: `Schedule Fixture Learner ${index + 1}`,
-    nickname: `SF${index + 1}`,
+    full_name: learnerNames[index].fullName,
+    nickname: learnerNames[index].nickname,
     date_of_birth: '2015-01-01',
   })))).error, 'insert fixture learners')
+  assertNoError((await admin.from('children').insert({
+    id: IDS.augustChild,
+    parent_id: fixture.userId,
+    full_name: 'August Only Marker',
+    nickname: 'AUGONLY',
+    date_of_birth: '2015-01-01',
+  })).error, 'insert outside-month fixture learner')
 
   assertNoError((await admin.from('bookings').insert({
     id: IDS.booking,
@@ -164,6 +182,99 @@ test.beforeAll(async () => {
       student_type: 'child',
     },
   ])).error, 'insert fixture group memberships')
+
+  const bulkDates = Array.from({ length: 31 }, (_, index) => index + 1).filter((day) => day !== 17)
+  const bulkSlots = Array.from({ length: 205 }, (_, index) => {
+    const hour = 6 + (index % 7) * 2
+    const day = bulkDates[Math.floor(index / 7)]
+    return {
+      id: `b1000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      template_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: `2026-07-${String(day).padStart(2, '0')}`,
+      start_time: `${String(hour).padStart(2, '0')}:00`,
+      end_time: `${String(hour + 2).padStart(2, '0')}:00`,
+      max_students: 1,
+      current_students: 1,
+      status: 'open' as const,
+    }
+  })
+  assertNoError((await admin.from('schedule_slots').insert([
+    ...bulkSlots,
+    {
+      id: IDS.augustSlot,
+      template_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: '2026-08-01',
+      start_time: '06:00',
+      end_time: '08:00',
+      max_students: 1,
+      current_students: 1,
+      status: 'open' as const,
+    },
+  ])).error, 'insert high-cardinality fixture slots')
+  assertNoError((await admin.from('bookings').insert([
+    {
+      id: IDS.bulkBooking,
+      user_id: fixture.userId,
+      learner_type: 'child',
+      child_id: IDS.children[3],
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      month: 7,
+      year: 2026,
+      total_sessions: 205,
+      total_price: 0,
+      status: 'verified' as const,
+    },
+    {
+      id: IDS.augustBooking,
+      user_id: fixture.userId,
+      learner_type: 'child',
+      child_id: IDS.augustChild,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      month: 8,
+      year: 2026,
+      total_sessions: 1,
+      total_price: 0,
+      status: 'verified' as const,
+    },
+  ])).error, 'insert high-cardinality fixture bookings')
+  assertNoError((await admin.from('booking_sessions').insert([
+    ...bulkSlots.map((slot, index) => ({
+      id: `b4000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      booking_id: IDS.bulkBooking,
+      schedule_slot_id: slot.id,
+      date: slot.date,
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      branch_id: fixture.branchId,
+      child_id: IDS.children[3],
+      status: 'scheduled' as const,
+    })),
+    {
+      id: IDS.augustSession,
+      booking_id: IDS.augustBooking,
+      schedule_slot_id: IDS.augustSlot,
+      date: '2026-08-01',
+      start_time: '06:00',
+      end_time: '08:00',
+      branch_id: fixture.branchId,
+      child_id: IDS.augustChild,
+      status: 'scheduled' as const,
+    },
+  ])).error, 'insert high-cardinality fixture sessions')
+  assertNoError((await admin.from('coach_assignment_groups').insert(bulkSlots.map((slot, index) => ({
+    id: `b5000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    schedule_slot_id: slot.id,
+    coach_id: null,
+    name: `Bulk Fixture Group ${index + 1}`,
+    sort_order: 0,
+    created_by: fixture.adminUserId,
+  })))).error, 'insert high-cardinality fixture groups')
 })
 
 test('production-active assignment write routes reject anonymous callers', async ({ request }) => {
@@ -193,6 +304,12 @@ test('local performance instrumentation measures summary, month, day, search, ca
   const summaryRoot = page.getByTestId('admin-schedules-root')
   const summaryDurationMs = Number(await summaryRoot.getAttribute('data-summary-duration-ms'))
   const summaryExternalCalls = Number(await summaryRoot.getAttribute('data-summary-external-calls'))
+  const summaryRows = JSON.parse(await summaryRoot.getAttribute('data-summary-row-counts') || '{}')
+  const summaryCalls = JSON.parse(await summaryRoot.getAttribute('data-summary-call-counts') || '{}')
+  expect(summaryExternalCalls).toBe(4)
+  expect(summaryCalls.groupPages).toBe(1)
+  expect(summaryRows.groups).toBe(207)
+  expect(summaryRows.sessions).toBeGreaterThanOrEqual(209)
   const initialTransferredBytes = await page.evaluate(() => {
     const navigation = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[]
     const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
@@ -229,6 +346,58 @@ test('local performance instrumentation measures summary, month, day, search, ca
   const searchResponse = await searchResponsePromise
   const searchPayload = await searchResponse.json()
   const searchLatencyMs = Math.round((performance.now() - searchStarted) * 10) / 10
+  expect(dayPayload.performance.calls.sessionPages).toBe(1)
+  expect(dayPayload.performance.calls.slotSessionPages).toBeUndefined()
+  expect(dayPayload.performance.rows.slotSessionsDerived).toBe(3)
+  expect(searchPayload.performance.externalCalls).toBe(6)
+  expect(searchPayload.performance.rows.candidateSessions).toBe(1)
+  expect(searchPayload.performance.rows.sessions).toBeUndefined()
+  const dayProfiles = [
+    { profile: 'low', date: '2026-07-31' },
+    { profile: 'medium', date: '2026-07-17' },
+    { profile: 'high', date: '2026-07-01' },
+  ]
+  const selectedDaySamples = []
+  for (const sample of dayProfiles) {
+    const started = performance.now()
+    const response = await page.request.get(`/api/admin/schedules/day?date=${sample.date}&year=2026&month=7`)
+    expect(response.status()).toBe(200)
+    const payload = await response.json()
+    selectedDaySamples.push({
+      profile: sample.profile,
+      clientMs: Math.round((performance.now() - started) * 10) / 10,
+      serverMs: payload.performance.durationMs,
+      externalCalls: payload.performance.externalCalls,
+      sessionRows: payload.performance.rows.sessions || 0,
+    })
+    expect(payload.performance.externalCalls).toBeLessThanOrEqual(6)
+  }
+  const searchProfiles = [
+    { profile: 'coach', value: 'Fixture Coach' },
+    { profile: 'status', value: 'verified' },
+  ]
+  const representativeSearchSamples = [{
+    profile: 'learner',
+    clientMs: searchLatencyMs,
+    serverMs: searchPayload.performance.durationMs,
+    externalCalls: searchPayload.performance.externalCalls,
+    candidateRows: searchPayload.performance.rows.candidateSessions || 0,
+  }]
+  for (const sample of searchProfiles) {
+    const started = performance.now()
+    const response = await page.request.get(
+      `/api/admin/schedules/search?q=${encodeURIComponent(sample.value)}&year=2026&month=7`,
+    )
+    expect(response.status()).toBe(200)
+    const payload = await response.json()
+    representativeSearchSamples.push({
+      profile: sample.profile,
+      clientMs: Math.round((performance.now() - started) * 10) / 10,
+      serverMs: payload.performance.durationMs,
+      externalCalls: payload.performance.externalCalls,
+      candidateRows: payload.performance.rows.candidateSessions || 0,
+    })
+  }
   console.log('ADMIN_SCHEDULE_PERFORMANCE', JSON.stringify({
     coldNavigationMs,
     warmNavigationSamples,
@@ -242,6 +411,13 @@ test('local performance instrumentation measures summary, month, day, search, ca
     dayExternalCalls: dayPayload.performance.externalCalls,
     searchServerDurationMs: searchPayload.performance.durationMs,
     searchExternalCalls: searchPayload.performance.externalCalls,
+    summaryCalls,
+    summaryRows,
+    dayCalls: dayPayload.performance.calls,
+    searchCalls: searchPayload.performance.calls,
+    searchRows: searchPayload.performance.rows,
+    selectedDaySamples,
+    representativeSearchSamples,
     documentBytes,
     initialTransferredBytes,
   }))
@@ -260,13 +436,40 @@ test('authenticated Super Admin and standard Admin can use bounded day/search re
     'สาขาทดสอบ Localhost',
     'kids_group',
     'verified',
+    'ก',
+    'Cafe\u0301',
+    '%',
+    '_',
+    '\\',
+    ',',
+    '(',
   ]) {
     const response = await superPage.request.get(`/api/admin/schedules/search?q=${encodeURIComponent(query)}&year=2026&month=7`)
     expect(response.status()).toBe(200)
     const payload = await response.json()
     expect(payload.matchCount).toBeGreaterThan(0)
     expect(payload.dates.every((date: string) => date.startsWith('2026-07-'))).toBe(true)
+    const serialized = JSON.stringify(payload)
+    for (const forbidden of ['Café Fixture Learner', 'Literal % _', 'Fixture Coach', TEST_ACCOUNT.fullName]) {
+      expect(serialized).not.toContain(forbidden)
+    }
   }
+  const isolatedJuly = await superPage.request.get('/api/admin/schedules/search?q=AUGONLY&year=2026&month=7')
+  expect(isolatedJuly.status()).toBe(200)
+  expect((await isolatedJuly.json()).matchCount).toBe(0)
+  const isolatedAugust = await superPage.request.get('/api/admin/schedules/search?q=AUGONLY&year=2026&month=8')
+  expect(isolatedAugust.status()).toBe(200)
+  expect((await isolatedAugust.json()).matchCount).toBe(1)
+  const filtered = await superPage.request.get(
+    `/api/admin/schedules/search?q=SF1&year=2026&month=7&branch=${encodeURIComponent(readBookingFixture().branchId)}&course=kids_group`,
+  )
+  expect(filtered.status()).toBe(200)
+  expect((await filtered.json()).matchCount).toBe(1)
+  const bounded = await superPage.request.get('/api/admin/schedules/search?q=verified&year=2026&month=7')
+  expect(bounded.status()).toBe(200)
+  const boundedPayload = await bounded.json()
+  expect(boundedPayload.roundKeys).toHaveLength(200)
+  expect(boundedPayload.truncated).toBe(true)
   await superContext.close()
 
   const adminContext = await browser.newContext()

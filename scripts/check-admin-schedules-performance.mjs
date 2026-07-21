@@ -17,7 +17,11 @@ registerHooks({
 const {
   buildAdminScheduleDayDetail,
   buildAdminScheduleMonthSummary,
+  buildAdminScheduleSearchCandidateResult,
   buildAdminScheduleSearchResult,
+  deriveAdminScheduleSlotSessions,
+  escapeAdminScheduleLikePattern,
+  normalizeAdminScheduleSearch,
 } = await import('../src/lib/admin-schedules-model.ts')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 let passed = 0
@@ -109,6 +113,48 @@ check('walleted learners never enter waiting-coach totals', () => {
   assert.deepEqual([slotB?.waiting_coach_count, slotB?.walleted_count], [1, 1])
 })
 
+check('July-equivalent summary reduces slot fan-out from eight calls to four warm calls', () => {
+  const julySessions = Array.from({ length: 1437 }, (_, index) => session({
+    id: `july-${index}`,
+    slotId: `july-slot-${index % 439}`,
+    status: index < 54 ? 'walleted' : 'scheduled',
+  }))
+  const julyGroups = Array.from({ length: 576 }, (_, index) => group({
+    id: `july-group-${index}`,
+    slotId: `july-slot-${index % 439}`,
+    members: index < 439 ? [`july-${index}`] : [`unrelated-${index}`],
+  }))
+  const julyWallet = Array.from({ length: 54 }, (_, index) => ({
+    original_session_id: `july-${index}`,
+    status: 'active',
+  }))
+  const summary = buildAdminScheduleMonthSummary({
+    sessions: julySessions,
+    groups: julyGroups,
+    walletCredits: julyWallet,
+  })
+  const sessionPages = Math.ceil(julySessions.length / 1000)
+  const walletChunks = Math.ceil(julyWallet.length / 100)
+  const oldGroupChunks = Math.ceil(439 / 100)
+  const dateScopedGroupPages = Math.ceil(julyGroups.length / 1000)
+  assert.deepEqual({ sessionPages, walletChunks, oldGroupChunks, dateScopedGroupPages }, {
+    sessionPages: 2, walletChunks: 1, oldGroupChunks: 5, dateScopedGroupPages: 1,
+  })
+  assert.equal(sessionPages + walletChunks + oldGroupChunks, 8)
+  assert.equal(sessionPages + walletChunks + dateScopedGroupPages, 4)
+  assert.equal(summary.totalsByFilter['all:all'].sessionCount, 1437)
+  assert.equal(summary.totalsByFilter['all:all'].walletedCount, 54)
+})
+
+check('date-scoped assignment read paginates groups and never chunks by slot ids', () => {
+  const source = read('src/lib/admin-schedules-read.ts')
+  const groupRead = source.slice(source.indexOf('async function fetchGroupsForDateRange'), source.indexOf('type SearchCandidateDimension'))
+  assert.equal(groupRead.includes('schedule_slots!inner(date)'), true)
+  assert.equal(groupRead.includes(".gte('schedule_slots.date', startDate).lte('schedule_slots.date', endDate)"), true)
+  assert.equal(groupRead.includes(".in('schedule_slot_id', ids)"), false)
+  assert.equal(groupRead.includes('.range(start, start + QUERY_PAGE_SIZE - 1)'), true)
+})
+
 check('selected-day detail uses exact child attendance and ignores another student row', () => {
   const detail = buildAdminScheduleDayDetail({
     sessions,
@@ -148,6 +194,19 @@ check('selected-day detail maps self/adult attendance to bookings.user_id', () =
     teachingPrograms: [],
   })
   assert.equal(detail.sessions[0]?.status, 'absent')
+})
+
+check('selected-day slot attendance scope is derived without the duplicate booking_sessions read', () => {
+  const derived = deriveAdminScheduleSlotSessions([
+    session({ id: 'scheduled' }),
+    session({ id: 'walleted', status: 'walleted' }),
+    session({ id: 'rescheduled', status: 'rescheduled' }),
+    session({ id: 'fallback', slotId: null }),
+  ])
+  assert.deepEqual(derived, [{ id: 'scheduled', schedule_slot_id: 'slot-a' }])
+  const source = read('src/lib/admin-schedules-read.ts')
+  assert.equal(source.includes('fetchSlotSessions'), false)
+  assert.equal(source.includes('deriveAdminScheduleSlotSessions(sessions)'), true)
 })
 
 const searchable = [
@@ -195,6 +254,45 @@ check('month-wide search returns a bounded round-key payload', () => {
   assert.equal(result.roundKeys.length, 200)
   assert.equal(result.matchCount, 205)
   assert.equal(result.truncated, true)
+})
+
+check('candidate-first search keeps deterministic ordering, wallet visibility, and the 200-round bound', () => {
+  const manySessions = Array.from({ length: 205 }, (_, index) => session({
+    id: `candidate-${String(index).padStart(3, '0')}`,
+    slotId: `candidate-slot-${String(index).padStart(3, '0')}`,
+    status: index === 0 ? 'walleted' : 'scheduled',
+  }))
+  const result = buildAdminScheduleSearchCandidateResult({
+    sessions: manySessions,
+    walletCredits: [{ original_session_id: 'candidate-000', status: 'redeemed' }],
+    startDate: '2026-07-01',
+    endDate: '2026-07-31',
+    limit: 200,
+    sourceTruncated: false,
+  })
+  assert.equal(result.roundKeys.length, 200)
+  assert.equal(result.roundKeys[0], 'slot:candidate-slot-001')
+  assert.equal(result.matchCount, 204)
+  assert.equal(result.truncated, true)
+  assert.deepEqual(Object.keys(result).sort(), ['dates', 'learnerCount', 'limit', 'matchCount', 'roundKeys', 'truncated'])
+})
+
+check('search normalization preserves Thai one-character and NFC behavior', () => {
+  assert.equal(normalizeAdminScheduleSearch('  ก  '), 'ก')
+  assert.equal(normalizeAdminScheduleSearch('Cafe\u0301'), 'café')
+})
+
+check('search LIKE escaping preserves literal percent, underscore, backslash, and filter controls', () => {
+  assert.equal(escapeAdminScheduleLikePattern('a%_\\,()'), '%a\\%\\_\\\\,()%')
+})
+
+check('production search is candidate-first and never invokes the full detailed-month loader', () => {
+  const source = read('src/lib/admin-schedules-read.ts')
+  const searchBlock = source.slice(source.indexOf('export async function searchAdminSchedulesMonth'))
+  assert.equal(searchBlock.includes('fetchSessions('), false)
+  assert.equal(searchBlock.includes('fetchSearchCandidateSessions'), true)
+  assert.equal(searchBlock.includes('ADMIN_SCHEDULE_SEARCH_CANDIDATE_LIMIT'), true)
+  assert.equal(searchBlock.includes('buildAdminScheduleSearchResult'), false)
 })
 
 check('initial RSC serializes summary only and does not preload day detail', () => {
