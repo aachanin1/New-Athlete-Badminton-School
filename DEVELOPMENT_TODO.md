@@ -2,6 +2,50 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-21 - Admin Schedules Phase B Canary Performance Diagnosis
+
+Status: **PASS — READ-ONLY PERFORMANCE DIAGNOSIS; CANARY NOT PROMOTED**.
+
+- State observed at this closeout: Production-target Canary
+  `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` was `READY` on exact commit
+  `b0bada3d076302d24ebe3b594c03b22bf0997869`; functional Source remains
+  `3d32401b13873592d5462e6776b0e847335d2d43`. Super Admin functional Canary
+  UAT passed, but the performance gate failed. Warm navigation P95 was `5.344 s`,
+  July summary Server duration was `2.766–3.447 s`, selected-day exceeded `3 s`
+  in `3/5`, and Search was `4.654–5.937 s`.
+- Canary remained unpromoted. All four Production aliases remained on
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`. The audit made no Source, Test,
+  migration, index, RPC, environment, feature, allowlist, infrastructure, alias,
+  Production business-data, or financial-data change.
+- Actual July read-only counts were 1,437 qualifying sessions (two 1,000-row
+  pages), 54 walleted session IDs (one 100-ID chunk), and 439 unique schedule-slot
+  IDs (five 100-ID chunks). The observed warm summary count is therefore exactly
+  `2 + 1 + 5 + 0 cached branch = 8` external calls. Search repeats the same two
+  detailed pages, one wallet chunk, and five group chunks on every request.
+- Vercel Admin Schedule functions were in `iad1`; Supabase was
+  `ap-northeast-2`. Bounded direct SQL plans used the session date index and
+  completed in `3.981–27.898 ms` with shared-buffer hits and no disk/temp spill.
+  Assignment and Teaching Program Seq Scans were bounded to 1,061 and 422 rows;
+  current evidence does not prove that an index is the primary fix.
+- `pg_stat_statements` was already available in schema `extensions` and was read
+  without reset. Connection evidence showed 25/60 connections, 14 idle
+  `ClientRead`, one active, and no idle-in-transaction, timeout, deadlock, or
+  connection-limit signal. Deployment-scoped Vercel logs were 100% GET with no
+  5xx/fatal.
+- Proven primary causes are Data API fan-out/dependent phases, full detailed-month
+  Search reads, and fixed selected-day phases. Cross-region RTT, PostgREST/RLS/JSON
+  overhead, cold start, and Standard Admin's extra permission round trip remain
+  inferred or incompletely measured.
+- Detailed evidence and separate Source-only, Database, and Infrastructure options
+  are recorded in
+  `docs/performance/admin-schedules-phase-b-canary-performance-diagnosis-2026-07-21.md`.
+  Database options require a separate Owner-approved Migration/Database Gate;
+  infrastructure options require a separate Owner-approved Infrastructure Gate.
+- Task Done remained **No**. Production Active **No**; Production UAT **No**;
+  Production P95 **not passed**; Production Data Changed **No**; direct customer
+  and financial impact **No**. Next action is an explicit Owner choice of Source
+  Fix, Database, Infrastructure, or performance-exception scope.
+
 ### 2026-07-20 - Admin Schedules Performance Phase B Source + Local Test
 
 Status: **PASS — COMMITTED AND PUSHED; LOCAL TESTS PASSED; NOT DEPLOYED OR

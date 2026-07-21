@@ -1,7 +1,8 @@
 # Admin Schedules Performance Phase B — Source + Local Test
 
-Date: 2026-07-20; publish closeout updated 2026-07-21
-Authorization: Owner-approved Source Fix + Local Test, followed by Commit + Push
+Date: 2026-07-20; publish/Canary closeout updated 2026-07-21
+Authorization: Owner-approved Source Fix + Local Test, Commit + Push, subsequent
+Production-target Canary, and read-only performance diagnosis
 
 ## Confirmed root cause
 
@@ -77,14 +78,39 @@ Verification results:
   had already passed clean restart and page/static smoke on 2026-07-20; this report
   does not claim that the waived step was repeated on 2026-07-21.
 
+## Subsequent Canary result — 2026-07-21
+
+Owner later authorized a Production-target, unpromoted Canary and a separate
+read-only performance diagnosis. Canary
+`dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` is `READY` on exact commit
+`b0bada3d076302d24ebe3b594c03b22bf0997869`. Super Admin functional UAT
+passed, but the performance gate failed: warm navigation P95 was `5.344 s`, July
+summary Server duration was `2.766–3.447 s`, selected-day exceeded `3 s` in
+`3/5` samples, and Search was `4.654–5.937 s`.
+
+The Canary was not promoted. All four Production aliases remained on
+`dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`. The read-only diagnosis found 1,437
+qualifying July sessions, 54 walleted session IDs, and 439 unique slot IDs. Warm
+summary call accounting is exactly two session pages + one wallet chunk + five
+group chunks + a branch-cache hit = eight calls. Bounded direct SQL plans were
+milliseconds; the primary proven pattern is Data API fan-out and dependent phases,
+while the `iad1` Vercel to `ap-northeast-2` Supabase region difference is a likely
+but not directly timed amplifier.
+
+Detailed evidence:
+`docs/performance/admin-schedules-phase-b-canary-performance-diagnosis-2026-07-21.md`.
+
 ## Limits and next gate
 
-- Production performance and Production UAT: **Unknown / Need verification**.
+- Canary performance gate: **Failed**. Production aliases were not changed, so
+  Phase B Production UAT remains **No** and Production P95 is **not passed**.
 - Coach portal and User portal impact were not measured or changed in Phase B.
 - The local fixture is intentionally small; Production row shape and network
   distance can change absolute latency.
 - No migration, RPC, index, dependency, environment, feature flag, allowlist,
   Production read/write, business-data change, or financial-data change occurred.
 - Source/Test commit `3d32401b13873592d5462e6776b0e847335d2d43` and the
-  documentation closeout are pushed non-force. Deploy and all Production
-  verification still require a separate explicit Owner gate.
+  publish documentation closeout are pushed non-force. Phase B is deployed only
+  to the unpromoted Canary. The next gate requires an explicit Owner choice of
+  Source Fix, Database, Infrastructure, or performance exception; promotion and
+  Production UAT remain prohibited.

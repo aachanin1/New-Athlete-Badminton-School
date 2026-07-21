@@ -253,6 +253,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   explicitly waived repeat `.next` cleanup/clean-restart for this gate because it
   is an ignored local-generated artifact. Deploy, Production access/UAT/write,
   migration, environment, feature-control, and allowlist actions remain prohibited.
+- Owner later approved one Production-target, unpromoted Phase B Canary and then a
+  read-only performance-diagnosis gate. Canary
+  `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` is `READY` on exact commit
+  `b0bada3d076302d24ebe3b594c03b22bf0997869`; Super Admin functional UAT passed,
+  but the performance gate failed. Warm navigation P95 was `5.344 s`, July summary
+  Server duration was `2.766–3.447 s`, selected-day exceeded `3 s` in `3/5`
+  samples, and Search was `4.654–5.937 s`. Owner prohibited promotion, Source fix,
+  migration/index/RPC, infrastructure/config change, and Production writes in the
+  diagnosis gate.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -267,8 +276,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 ### Current Execution State
 
 - Active Task: **ADMIN SCHEDULES PERFORMANCE**.
-- Task Status: **PHASE B SOURCE AND DOCUMENTATION COMMITTED/PUSHED; LOCAL TESTS
-  PASSED; AWAITING SEPARATE OWNER DEPLOY DECISION**.
+- Task Status: **PHASE B CANARY FUNCTIONAL UAT PASSED; PERFORMANCE GATE FAILED;
+  CANARY UNPROMOTED; READ-ONLY DIAGNOSIS COMPLETE**.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -497,8 +506,11 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   logs after activation remained `0`, and protected fingerprints did not change.
 - Admin Schedules Performance Phase B Source/Test commit
   `3d32401b13873592d5462e6776b0e847335d2d43` was pushed non-force to
-  `origin/spike/next-major-security-upgrade`; the documentation closeout is the
-  commit containing this current matrix.
+  `origin/spike/next-major-security-upgrade`. Production-target Canary
+  `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` contains exact commit
+  `b0bada3d076302d24ebe3b594c03b22bf0997869` and remains unpromoted after its
+  performance gate failed. The diagnosis documentation closeout is the commit
+  containing this current matrix.
 - Activity logs prove `51` successful `save_coach_assignment_groups` operations
   during the bad-deployment incident window, covering `47` distinct slots, six
   Head Coaches, and six branches. Submitted payload totals were `62` groups and
@@ -515,12 +527,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
 - Admin Schedules Performance is the selected Active Task. Phase B Source and
   local verification are complete and the scoped Source/documentation commits are
-  pushed. Phase B remains undeployed and not Production-verified.
+  pushed. Phase B is deployed only to an unpromoted Canary; it is not active on
+  Production aliases and Production UAT has not passed.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner/PM reviews the pushed Phase B commits, then Owner separately
-  decides whether to authorize Deploy. Do not deploy, perform Production UAT, or
-  start the auth-session follow-up, historical
+- Next Action: **Owner/PM reviews the Canary diagnosis, then Owner chooses a
+  separate Source Fix, Database, Infrastructure, or explicit performance-exception
+  gate. Do not promote or deploy, perform Production UAT, or start the auth-session
+  follow-up, historical
   incident cleanup, permanent dirty
   `AGENTS.md` work, or any other Parking Lot task automatically.**
 
@@ -702,7 +716,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Schedules Performance — Phase B committed/pushed; awaiting separate Deploy decision |
+| Active Task | Admin Schedules Performance — Canary functional UAT passed; performance gate failed; Canary unpromoted |
 | Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; corrective Source is separately committed at `9ef1ee30035a083426743aed3e326ad9676d65c4` |
@@ -730,7 +744,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 | Blocker | None for this task |
 | Remaining Work | None for the confirmed task scope. Auth follow-up, broader historical incident review/cleanup, and permanent dirty `AGENTS.md` work remain separate and unauthorized |
 | Task Done | Yes |
-| Next Gate / Next Action | Owner/PM review of pushed Admin Schedules Phase B and separate Deploy decision |
+| Next Gate / Next Action | Owner/PM review of the Admin Schedules Canary diagnosis and explicit Source Fix, Database, Infrastructure, or performance-exception decision |
 | Parking Lot authorization state | Admin Schedules Performance was selected and removed from Parking Lot; Homepage LV and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification
@@ -1419,39 +1433,66 @@ NO-WRITE PRODUCTION UAT PASSED**
 - Detailed Phase B report:
   `docs/performance/admin-schedules-phase-b-source-local-test-2026-07-20.md`.
 
+#### Phase B Canary Performance Diagnosis (2026-07-21)
+
+- Production-target Canary `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` is `READY` on
+  exact commit `b0bada3d076302d24ebe3b594c03b22bf0997869`. Super Admin
+  functional UAT passed, but performance failed: warm navigation P95 `5.344 s`,
+  July summary Server duration `2.766–3.447 s`, selected-day over `3 s` in `3/5`
+  samples, and Search `4.654–5.937 s`.
+- Read-only Production counts for July were 1,437 qualifying sessions, 54 walleted
+  session IDs, and 439 unique schedule-slot IDs. Warm summary calls are exactly
+  two session pages + one wallet chunk + five group chunks + zero branch calls on
+  a cache hit = eight. Search repeats the two detailed pages, one wallet chunk,
+  and five group chunks for every query.
+- Vercel Admin Schedule functions run in `iad1`; Supabase is in
+  `ap-northeast-2`. Bounded SQL plans used the session date index and completed in
+  milliseconds with shared-buffer hits and no disk/temp spill. The proven primary
+  issue is Data API fan-out/dependent phases; cross-region RTT is a credible but
+  not directly measured amplifier. Current evidence does not support claiming an
+  index as the primary fix.
+- Canary is unpromoted. All four Production aliases still point to
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`. No Source, Test, migration, index, RPC,
+  environment, feature, allowlist, alias, Production data, or financial data was
+  changed by the diagnosis.
+- Detailed diagnosis:
+  `docs/performance/admin-schedules-phase-b-canary-performance-diagnosis-2026-07-21.md`.
+
 #### Current Admin Schedules Performance Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules Performance |
-| Task Status | Phase B Source and documentation committed/pushed; local verification passed; awaiting separate Owner Deploy decision |
+| Task Status | Phase B Canary functional UAT passed; performance gate failed; Canary unpromoted; read-only diagnosis complete |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; Phase B Source/Test commit is `3d32401b13873592d5462e6776b0e847335d2d43` |
-| Remote HEAD | Same documentation closeout after non-force push; Source commit `3d32401...` verified by `git ls-remote` before documentation closeout |
-| Ahead/Behind | `0/0` after documentation push |
+| Local HEAD | Diagnosis documentation commit containing this matrix; starting Canary/docs HEAD was `b0bada3d076302d24ebe3b594c03b22bf0997869` |
+| Remote HEAD | Same diagnosis documentation commit after non-force push; remote was reverified at `b0bada3d076302d24ebe3b594c03b22bf0997869` before staging |
+| Ahead/Behind | `0/0` after diagnosis documentation push |
 | Source Complete | Yes — within the Owner-approved Phase B Source-only scope |
 | Tests Passed | Yes — Phase B `17/17`; assignment `24/24`; wallet `17/17`; disposable browser `5/5`, residue `0`; TypeScript, full ESLint, mojibake `241`, build, clean restart/static smoke, diff check |
-| Committed | Yes — Source/Test `3d32401b13873592d5462e6776b0e847335d2d43`; documentation closeout is the commit containing this matrix |
-| Pushed | Yes — Source/Test and documentation commits pushed non-force to `origin/spike/next-major-security-upgrade` |
+| Committed | Yes — Source/Test `3d32401b13873592d5462e6776b0e847335d2d43`; publish docs `b0bada3d076302d24ebe3b594c03b22bf0997869`; diagnosis docs are the commit containing this matrix |
+| Pushed | Yes — Source/Test, publish documentation, and diagnosis documentation pushed non-force to `origin/spike/next-major-security-upgrade` |
 | Current Source | Pushed Phase B Source `3d32401b13873592d5462e6776b0e847335d2d43` |
-| Deployed | No for Phase B |
-| Deployed Source | Existing Production source unchanged; Phase B is not deployed |
-| Deployment ID | No Phase B deployment; existing Production deployment unchanged |
+| Deployed | Canary only — not promoted |
+| Deployed Source | Canary exact commit `b0bada3d076302d24ebe3b594c03b22bf0997869`, containing functional Source `3d32401b13873592d5462e6776b0e847335d2d43`; existing Production source unchanged |
+| Deployment ID | Canary `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4`; Production aliases remain on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` |
 | Migration Source | None for this task |
 | Migration Applied | No |
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | No — Phase B is local only |
-| Production UAT | No / Unknown — prohibited and not run |
+| Production Active | No — Phase B Canary is unpromoted |
+| Production UAT | No — functional UAT passed on Canary only; Production aliases were not tested with Phase B |
+| Performance Gate | Failed on Canary — warm navigation P95 `5.344 s`; Production P95 not passed |
 | Controlled Write UAT | No / not applicable; read-only Source scope |
 | Data Repaired | No |
 | Production Data Changed | No |
-| Customer Impact | None in this round because Source is not deployed; existing Admin latency remains Production-active; Coach/User impact not changed or measured |
+| Customer Impact | No direct Production change; Phase B is visible only on the unpromoted Canary |
 | Financial Impact | None; no financial data or semantics changed |
-| Blocker | No Source/local/publish blocker; Deploy requires a separate Owner gate |
-| Remaining Work | Owner/PM review, separately authorized Deploy, and later Production performance/UAT verification |
-| Task Done | No — publish gate complete; overall performance task remains open |
-| Next Gate / Next Action | Owner/PM reviews pushed Phase B commits and Owner separately decides whether to authorize Deploy |
+| Blocker | Canary performance gate failed: warm P95 `5.344 s`, selected-day target missed in `3/5`, Search `4.654–5.937 s` |
+| Remaining Work | Owner chooses a Source Fix, Database, Infrastructure, or explicit performance-exception gate; promotion and Production UAT remain prohibited |
+| Task Done | No — functional Source is complete but performance/Production gates remain open |
+| Documentation Drift | No after the diagnosis documentation commit; current state is reconciled to verified Git/deployment/alias evidence |
+| Next Gate / Next Action | Owner/PM reviews the diagnosis and explicitly selects Source Fix, Database, Infrastructure, or performance-exception scope |
 | Parking Lot authorization state | Admin Schedules Performance selected and active; Homepage LV and all other Parking Lot work remain unauthorized |
 
 ## Historical / Superseded 2026-07-13–14 Records

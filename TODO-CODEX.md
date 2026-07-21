@@ -11,8 +11,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules Performance
 
-Status: **ACTIVE — PHASE B COMMITTED/PUSHED; LOCAL TESTS PASSED; AWAITING
-SEPARATE OWNER DEPLOY DECISION**.
+Status: **ACTIVE — PHASE B CANARY FUNCTIONAL UAT PASSED; PERFORMANCE GATE
+FAILED; CANARY UNPROMOTED; READ-ONLY DIAGNOSIS COMPLETE**.
 
 - Owner approved Phase B Source Fix + Local Test and confirmed authenticated
   month-wide server-side Search on demand for learner, parent, Coach, branch,
@@ -32,10 +32,24 @@ SEPARATE OWNER DEPLOY DECISION**.
   `docs/performance/admin-schedules-phase-b-source-local-test-2026-07-20.md`.
 - Source/Test commit `3d32401b13873592d5462e6776b0e847335d2d43` and the
   documentation closeout are pushed non-force. Owner waived repeat `.next`
-  cleanup/clean-restart for this publish gate; the exact worktree had passed that
-  smoke on 2026-07-20. Do not deploy, migrate, access/UAT/write Production, change
-  environment/feature controls/allowlists, or start other work without separate
-  Owner approval.
+  cleanup/clean-restart for the publish gate; the exact worktree had passed that
+  smoke on 2026-07-20.
+- Production-target Canary `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` is `READY` on
+  exact commit `b0bada3d076302d24ebe3b594c03b22bf0997869` and remains
+  unpromoted. Super Admin functional UAT passed, but warm navigation P95 was
+  `5.344 s`, selected-day exceeded `3 s` in `3/5`, and Search was
+  `4.654–5.937 s`; the performance gate failed.
+- Read-only diagnosis proves the warm July summary's eight data calls are two
+  session pages + one wallet chunk + five assignment-group chunks with a branch
+  cache hit. Vercel functions run in `iad1`, Supabase in `ap-northeast-2`, and
+  bounded core SQL plans completed in milliseconds. Request fan-out/dependent
+  phases are proven primary; cross-region RTT is inferred as an amplifier.
+- Detailed diagnosis:
+  `docs/performance/admin-schedules-phase-b-canary-performance-diagnosis-2026-07-21.md`.
+- Next Action: **Owner/PM reviews the diagnosis and explicitly chooses a Source
+  Fix, Database, Infrastructure, or performance-exception gate. Do not promote,
+  deploy, migrate, access/write Production, change environment/feature controls/
+  allowlists, or start another task without separate Owner approval.**
 
 ## Recently Completed
 
