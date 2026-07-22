@@ -1,12 +1,11 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 Source: current local/upstream Git metadata, Source, documentation, disposable
-local verification, Git publish state, and Owner-supplied remediation-Canary gate
-evidence reviewed on 2026-07-21; read-only Vercel, Production Supabase, and
-authenticated Production UAT evidence remains verified through 2026-07-18 unless
-a later dated section says otherwise. Items not confirmed are marked
-`Unknown / Need verification`.
+local verification, Git publish state, Owner-supplied remediation-Canary gate
+evidence, and the Owner-approved Phase B Closure Gate B1 read-only diagnosis
+completed on 2026-07-22. Items not confirmed are marked `Unknown / Need
+verification`.
 
 ## Current Source of Truth
 
@@ -277,11 +276,17 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `7.907 s`, above the `5.000 s` mandatory budget. The gate stopped before month,
   selected-day, Search, mobile, or Standard Admin checks; no promotion, alias move,
   or business-data write occurred.
-- Owner now authorizes only this documentation-only Canary failure closeout and its
-  scoped non-force commit/push. Source/Test/config, deploy/redeploy, promotion,
-  Production access/retest/write, migration/index/RPC, Infrastructure, environment,
-  feature-control, allowlist, data repair, and technical remediation remain
-  prohibited without a new explicit Owner gate.
+- Owner approved **Phase B Closure Gate B1 — Final Read-only Bottleneck Diagnosis**
+  on 2026-07-22 using only the existing unpromoted remediation Canary. B1 completed
+  bounded monthly, month-navigation, selected-day, Search, Vercel, and Supabase/
+  Postgres diagnosis without Source/Test/documentation/Git change, deploy,
+  promotion, alias movement, configuration/database change, or Production write.
+- Owner now authorizes only this documentation-only B1 closeout and its scoped
+  non-force commit/push. An Infrastructure Region Experiment, Source/Test/config
+  change, deploy/redeploy, promotion, Production UAT/write, migration/index/RPC,
+  environment/feature-control/allowlist change, data repair, performance exception,
+  and every other technical remediation remain prohibited without a new explicit
+  Owner gate.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -296,7 +301,8 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 ### Current Execution State
 
 - Active Task: **ADMIN SCHEDULES PERFORMANCE**.
-- Task Status: **REMEDIATION CANARY PERFORMANCE GATE FAILED; CANARY UNPROMOTED**.
+- Task Status: **B1 DIAGNOSIS COMPLETE; PERFORMANCE GATE FAILED; CANARY
+  UNPROMOTED**.
 - Remediation Canary `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` is `READY` on target
   `production` with zero custom/Production aliases. Its exact input identity is
   branch HEAD `67a08fa5a11ee714d8ec23be3fb125732e255b54`, tree
@@ -304,6 +310,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`. Vercel `gitCommitSha` metadata was
   `null`; exactness was established from the clean detached worktree and deploy
   input identity, not from Vercel Git metadata.
+- Phase B Closure Gate B1 completed read-only diagnosis on the same Canary. Twenty
+  warm monthly samples had Browser/Server/Residual P95
+  `6.574/4.171/3.406 s`; 18/20 used the intended four-call path. Bounded SQL plans
+  remained milliseconds with no disk/temp spill, while Vercel Active CPU was low
+  relative to route duration and aggregate outbound Supabase latency was `620 ms`.
+  Data API/network wait is the primary Server hypothesis with strong supporting
+  evidence, and Browser/RSC residual is a separate material bottleneck. Region
+  alignment has not been proven to close the gate.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -326,9 +340,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   commit `9ef1ee30035a083426743aed3e326ad9676d65c4`, tree
   `94fe2410f0361acf639c47a4be7245c01128f21d`, was created directly on parent
   `c70f5a4ab92e8c3d33beb036e494d85e6e9bc0f9` and pushed non-force on branch
-  `codex/coach-assignment-manual-name-fix-20260718`. Pre-existing unrelated dirty paths
-  `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and `docs/performance/` remain
-  preserved and excluded.
+  `codex/coach-assignment-manual-name-fix-20260718`. The B1 documentation closeout
+  is the commit containing the current Admin Schedules Performance matrix.
+  Pre-existing unrelated dirty paths `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts` remain preserved and excluded.
 - Exact remediation Source `1b995396f432d11b133c1cf4b5604b6db875b63b`, tree
   `24504017e59e597fc66d8d467186249290981bb6`, was deployed in
   `dpl_Ga9NvYaYCcNG4BzVdqeCt3pBbQ4F` and then rolled back after confirmed real
@@ -559,18 +574,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   must not be changed without separate evidence and approval. Exact
   current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
 - Admin Schedules Performance is the selected Active Task. Prior Phase B and the
-  Source-only remediation Source/documentation are committed and pushed. The prior
-  Canary and the new remediation Canary are both unpromoted; neither is active on
-  Production aliases. The remediation Canary reduced the normal warm summary to
-  four calls in `9/10` samples, but warm navigation P95 was `7.907 s`, so the
-  Performance Gate failed and Production UAT has not passed.
+  Source-only remediation Source/documentation are committed and pushed. B1
+  diagnosis is complete and recorded by this documentation-only closeout. The
+  prior Canary and the remediation Canary are both unpromoted; neither is active
+  on Production aliases. B1 confirmed the four-call shape in `18/20` monthly
+  samples, but warm Browser P95 remained `6.574 s`; the Performance Gate failed
+  and Production UAT has not passed.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner/PM explicitly selects a Source Fix, Database,
-  Infrastructure, or performance-exception gate. No option is authorized
-  automatically. Do not promote/deploy, perform Production UAT, migrate, change
-  Production controls/data, or start another Parking Lot task without a new Owner
-  gate.**
+- Next Action: **Owner/PM considers a separate Infrastructure Region Experiment
+  Gate: change only the Function region on an unpromoted same-Source Canary, do not
+  change business logic or promote, retain a rollback plan, and remeasure the same
+  bounded flows. This experiment is not authorized by the B1 closeout and is not a
+  guaranteed fix. Do not start it or another Parking Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
@@ -750,7 +766,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Schedules Performance — Remediation Canary Performance Gate Failed; Canary Unpromoted |
+| Active Task | Admin Schedules Performance — B1 Diagnosis Complete; Performance Gate Failed; Canary Unpromoted |
 | Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; corrective Source is separately committed at `9ef1ee30035a083426743aed3e326ad9676d65c4` |
@@ -778,7 +794,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 | Blocker | None for this task |
 | Remaining Work | None for the confirmed task scope. Auth follow-up, broader historical incident review/cleanup, and permanent dirty `AGENTS.md` work remain separate and unauthorized |
 | Task Done | Yes |
-| Next Gate / Next Action | Owner/PM explicitly selects Source Fix, Database, Infrastructure, or performance-exception scope; no option is authorized automatically |
+| Next Gate / Next Action | Current active-work gate: Owner approval required for the separately scoped Admin Schedules Infrastructure Region Experiment; it is not authorized automatically |
 | Parking Lot authorization state | Admin Schedules Performance was selected and removed from Parking Lot; Homepage LV and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification
@@ -1558,20 +1574,58 @@ NO-WRITE PRODUCTION UAT PASSED**
 - Detailed evidence:
   `docs/performance/admin-schedules-remediation-canary-performance-gate-2026-07-21.md`.
 
+#### Phase B Closure Gate B1 — Final Read-only Bottleneck Diagnosis (2026-07-22)
+
+- Result: **PASS — PHASE B CLOSURE BOTTLENECK DIAGNOSED; NO CHANGES MADE**.
+  B1 reused remediation Canary `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF`, which remained
+  `READY`, unpromoted, and assigned zero custom/Production aliases. All four
+  Production aliases remained on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`.
+- Twenty warm July samples confirmed the query-shape remediation in `18/20`
+  four-call paths; the other two were branch-reference cache misses. Browser
+  min/P50/P90/P95/max was `3.926/4.905/6.329/6.574/7.577 s`; Server P95 was
+  `4.171 s`; Browser-residual P95 was `3.406 s`. The normal `3 s` and P95 `5 s`
+  budgets still failed.
+- Three month-navigation cycles showed that low-volume August Server duration fell
+  to `0.359–0.752 s` while Browser total remained `4.600–5.029 s`. Selected-day
+  combined P50/P95/max was `2.827/3.874/3.874 s`. Search client total P50/P95/max
+  was `5.795/7.868/7.930 s`, including the fixed `0.300 s` debounce; post-debounce
+  P50/P95/max was `5.495/7.568/7.630 s`. Standard Admin and mobile remain
+  **Unknown / Need verification** because no existing Standard Admin session was
+  available and the controlled mobile viewport could not be established reliably.
+- Bounded Vercel evidence was GET-only with business mutation methods and 5xx/
+  error/fatal counts `0`. The route-level aggregate showed low Active CPU relative
+  to duration and average outbound Supabase latency `620 ms`, but that panel covered
+  all environments/deployments and is not Canary-only. Supabase remained
+  `ACTIVE_HEALTHY` in `ap-northeast-2`; no timeout, deadlock, exhaustion, or lock
+  pressure was found. Bounded read-only plans completed in `0.817–31.341 ms` with
+  no disk/temp spill.
+- **Strongly Supported primary Server contribution:** Vercel-to-Supabase Data API/
+  network wait, with cross-region `iad1 → ap-northeast-2` as the leading hypothesis
+  and remaining request waves as a multiplier. SQL execution and Active CPU are
+  not primary bottlenecks. **Separate material contribution:** Browser/RSC residual.
+  A region move has not been tested and is not a guaranteed fix; Browser residual
+  may still keep the overall budget failing after Server improvement.
+- Detailed B1 evidence:
+  `docs/performance/admin-schedules-phase-b-closure-b1-bottleneck-diagnosis-2026-07-22.md`.
+- B1 changed Source, Test, configuration, migration, deployment, aliases,
+  Production data, customer behavior, and financial state: **No**. This later
+  Owner-approved closeout records the B1 result in documentation only.
+
 #### Current Admin Schedules Performance Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules Performance |
-| Task Status | Remediation Canary Performance Gate Failed; Canary Unpromoted |
+| Task Status | B1 Diagnosis Complete; Performance Gate Failed; Canary Unpromoted |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; pre-closeout HEAD `67a08fa5a11ee714d8ec23be3fb125732e255b54` |
-| Remote HEAD | Same documentation closeout after the approved non-force push |
+| Local HEAD | B1 documentation-only closeout commit containing this matrix; starting HEAD `07a8bdf3368ed1b37c316a218c1e7321c93cde89` |
+| Remote HEAD | Same B1 documentation-only closeout after the approved non-force push |
 | Ahead/Behind | `0/0` after publish verification |
-| Source Complete | Yes — committed/pushed Source-only Canary remediation scope |
-| Tests Passed | Yes — remediation `24/24`; assignment `24/24`; wallet `17/17`; disposable local-only browser `5/5`, residue `0`; TypeScript, ESLint, mojibake `243`, diff check, build. Repeat post-build `.next` cleanup/clean-restart was Owner-waived and is not claimed as rerun |
-| Committed | Yes — Source/Test `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`; this Canary-failure documentation closeout is the commit containing this matrix |
-| Pushed | Yes — Source/Test and documentation closeouts pushed non-force to `origin/spike/next-major-security-upgrade` |
+| B1 Diagnosis | Complete — read-only bottleneck diagnosis recorded; no technical change |
+| Source Complete | Yes — prior committed/pushed Source-only Canary remediation scope |
+| Tests Passed | Yes — prior local evidence only: remediation `24/24`; assignment `24/24`; wallet `17/17`; disposable local browser `5/5`, residue `0`; TypeScript, ESLint, mojibake `243`, diff check, build. No Source test was rerun in B1 or this documentation-only closeout |
+| Committed | Yes — prior Source/Test `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`; B1 documentation-only closeout is the commit containing this matrix |
+| Pushed | Yes — prior Source/Test and B1 documentation-only closeout pushed non-force to `origin/spike/next-major-security-upgrade` |
 | Current Source | Pushed remediation Source `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` |
 | Deployed | Canary only — new remediation Canary and prior Canary are unpromoted |
 | Deployed Source | Remediation Canary input `67a08fa5a11ee714d8ec23be3fb125732e255b54`, tree `ad1a35b38d19bd1b203bb8d644946ea73db3c466`, functional Source `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`; prior Canary input `b0bada3d076302d24ebe3b594c03b22bf0997869`, functional Source `3d32401b13873592d5462e6776b0e847335d2d43` |
@@ -1581,19 +1635,19 @@ NO-WRITE PRODUCTION UAT PASSED**
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
 | Production Active | No — both Admin Schedules Performance Canaries are unpromoted |
-| Production UAT | No — remediation Canary testing stopped after the mandatory performance failure; prior Canary functional UAT does not make the feature Production-active |
-| Performance Gate | Failed — remediation Canary warm navigation P95 `7.907 s` > `5.000 s`; prior Canary warm P95 was `5.344 s` |
-| Production P95 | Failed for this Production-target Canary; Production aliases were not moved or UAT-tested with the remediation |
+| Production UAT | No — B1 remained Canary-only and did not move Production aliases; prior Canary functional UAT does not make the remediation Production-active |
+| Performance Gate | Failed — B1 20-sample warm Browser P95 `6.574 s` > `5.000 s`; earlier remediation-Canary stop-gate P95 was `7.907 s` |
+| Production P95 | Not passed — Production-target Canary failed; Production aliases were not moved or UAT-tested with the remediation |
 | Controlled Write UAT | No / not applicable; read-only Source scope |
 | Data Repaired | No |
 | Production Data Changed | No |
 | Customer Impact | No direct Production change; remediation is visible only on the unpromoted Canary |
 | Financial Impact | None; no financial data or semantics changed |
-| Blocker | Mandatory warm-navigation P95 budget failed despite the intended four-call query shape |
-| Remaining Work | Owner/PM chooses Source Fix, Database, Infrastructure, or an explicit performance-exception gate |
+| Blocker | Warm-navigation budget failed after call reduction; Data API/network wait is the strongly supported primary Server contribution and Browser/RSC residual is separately material |
+| Remaining Work | Owner/PM decides whether to authorize the separately scoped Infrastructure Region Experiment; region alignment is not proven to close the gate |
 | Task Done | No — Performance Gate failed; Canary remains unpromoted and Production UAT has not passed |
-| Documentation Drift | No after this Canary failure closeout |
-| Next Gate / Next Action | Owner/PM explicitly selects Source Fix, Database, Infrastructure, or performance-exception scope; no option is authorized automatically |
+| Documentation Drift | No after the successful B1 documentation-only commit and non-force push |
+| Next Gate / Next Action | Owner approval required for Infrastructure Region Experiment Gate: same business Source, unpromoted Canary, Function-region-only experiment, no promotion, rollback plan, bounded remeasurement |
 | Parking Lot authorization state | Admin Schedules Performance selected and active; Homepage LV and all other Parking Lot work remain unauthorized |
 
 ## Historical / Superseded 2026-07-13–14 Records

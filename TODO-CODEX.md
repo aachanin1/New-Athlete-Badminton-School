@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -11,7 +11,7 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules Performance
 
-Status: **ACTIVE — REMEDIATION CANARY PERFORMANCE GATE FAILED; CANARY
+Status: **ACTIVE — B1 DIAGNOSIS COMPLETE; PERFORMANCE GATE FAILED; CANARY
 UNPROMOTED**.
 
 - Owner approved Phase B Source Fix + Local Test and confirmed authenticated
@@ -66,16 +66,26 @@ UNPROMOTED**.
 - Remediation Canary `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` is `READY` and
   unpromoted. The query-shape change produced the intended four-call warm summary
   path in `9/10` samples, but warm navigation P95 was `7.907 s` against the
-  `5.000 s` mandatory budget. The Performance Gate failed, so testing stopped
-  before month/day/Search/mobile/Standard Admin. Production aliases and data did
-  not change. See the authoritative matrix in `PROJECT_STATE.md` and detailed
-  report in
+  `5.000 s` mandatory budget. That gate stopped before month/day/Search/mobile/
+  Standard Admin; the later Owner-approved B1 read-only diagnosis completed the
+  bounded monthly, month-change, selected-day, Search, Vercel, and Supabase/
+  Postgres evidence needed for root-cause ranking. Production aliases and data did
+  not change. Prior stop-gate evidence is in
   `docs/performance/admin-schedules-remediation-canary-performance-gate-2026-07-21.md`.
+- B1 result: **PASS — PHASE B CLOSURE BOTTLENECK DIAGNOSED; NO CHANGES MADE**.
+  Twenty monthly samples had Browser/Server/Residual P95
+  `6.574/4.171/3.406 s`; 18/20 used four calls. SQL plans remained milliseconds
+  and Active CPU was low relative to route duration. Vercel-to-Supabase Data API/
+  network wait is the primary Server hypothesis with strong supporting evidence;
+  Browser/RSC residual is a separate material bottleneck. Region alignment has
+  not been tested and is not a guaranteed fix.
+- Detailed B1 report:
+  `docs/performance/admin-schedules-phase-b-closure-b1-bottleneck-diagnosis-2026-07-22.md`.
 - Task Done: **No**.
-- Next Action: **Owner/PM explicitly selects a Source Fix, Database,
-  Infrastructure, or performance-exception gate. No option starts automatically.
-  Do not promote/deploy, perform Production UAT, migrate, change Production
-  controls/data, or start another task without a new Owner gate.**
+- Next Action: **Owner/PM considers separate approval for an Infrastructure Region
+  Experiment Gate using the same business Source on an unpromoted Canary, changing
+  only Function region, with no promotion and a rollback plan. This experiment is
+  not authorized by the B1 closeout and must not start automatically.**
 
 ## Recently Completed
 
@@ -220,14 +230,14 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
 
 Current next action is owned by the Active Work section above and the authoritative
 matrix in `PROJECT_STATE.md`: **Admin Schedules Performance remains active; Phase B
-Canary functional UAT passed, the performance gate failed, the Canary remains
-unpromoted, Source-only remediation/local tests are committed and pushed, and Task
-Done is No. The remediation Canary also failed its warm-navigation Performance
-Gate and remains unpromoted. Owner/PM explicitly selects a Source Fix, Database,
-Infrastructure, or performance-exception gate; no option is authorized
-automatically.** Do not promote/deploy, perform Production UAT, migrate, change Production
-controls/data, or start the auth follow-up, historical cleanup, permanent dirty
-`AGENTS.md` work, or another Parking Lot task without a new Owner gate.
+B1 diagnosis is complete, the performance gate failed, the remediation Canary
+remains unpromoted, Source-only remediation/local tests are committed and pushed,
+and Task Done is No. Owner/PM decides whether to authorize a separate
+Infrastructure Region Experiment Gate; region alignment is not yet proven and no
+experiment starts automatically.** Do not promote/deploy, perform Production UAT,
+migrate, change Production controls/data, or start the auth follow-up, historical
+cleanup, permanent dirty `AGENTS.md` work, or another Parking Lot task without a
+new Owner gate.
 
 ## Earlier Completed
 
@@ -413,7 +423,8 @@ Confirmed final state:
 ## Worktree / Safety Notes
 
 - Branch: `spike/next-major-security-upgrade`.
-- The pre-existing unrelated unstaged `AGENTS.md` remainder remains excluded.
+- The pre-existing unrelated unstaged `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts` changes remain excluded.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.
@@ -431,7 +442,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Owner/PM explicitly selects a Source Fix, Database,
-  Infrastructure, or performance-exception gate. Do not promote/deploy, perform
-  Production UAT, migrate, change Production controls/data, or start another task
-  automatically.**
+- Next action: **Owner/PM considers separate approval for an Infrastructure Region
+  Experiment Gate using the same business Source on an unpromoted Canary, changing
+  only Function region, with no promotion and a rollback plan. Do not start that
+  experiment or another task automatically.**

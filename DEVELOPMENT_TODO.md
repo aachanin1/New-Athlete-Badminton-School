@@ -2,6 +2,98 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-22 — Admin Schedules Phase B Closure Gate B1 Bottleneck Diagnosis
+
+Status: **PASS — PHASE B CLOSURE BOTTLENECK DIAGNOSED; NO CHANGES MADE;
+DOCUMENTATION-ONLY CLOSEOUT COMMITTED AND PUSHED**.
+
+#### Authorization and state observed at this closeout
+
+- Owner approved final read-only B1 diagnosis using existing remediation Canary
+  `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF`, followed by this documentation-only closeout
+  commit and non-force branch push. B1 did not authorize or perform Source/Test/
+  configuration/migration change, deploy/redeploy, promotion, alias movement,
+  Production UAT/write, data repair, region change, or performance exception.
+- Canary remained `READY`, Production-target, unpromoted, with zero custom/
+  Production aliases. The four established Production aliases remained on
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` before and after B1. Functional remediation
+  Source remains `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`.
+- Documentation-only work was based on branch
+  `spike/next-major-security-upgrade` starting at
+  `07a8bdf3368ed1b37c316a218c1e7321c93cde89`, with actual remote equal and
+  ahead/behind `0/0`. Pre-existing dirty `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts` were preserved and excluded.
+
+#### B1 measurement result
+
+- Twenty warm July monthly samples used the intended four-call path in `18/20`;
+  two branch-reference cache misses used five calls. Browser
+  min/P50/P90/P95/max was `3.926/4.905/6.329/6.574/7.577 s`; Server P95 was
+  `4.171 s`; Browser-residual P95 was `3.406 s`. The normal `3 s` and P95 `5 s`
+  budgets failed.
+- Three complete adjacent-month cycles showed low-volume August Server duration
+  `0.359–0.752 s` while Browser total remained `4.600–5.029 s`. Selected-day
+  combined P50/P95/max was `2.827/3.874/3.874 s`. Search client total
+  P50/P95/max was `5.795/7.868/7.930 s`, including the fixed `0.300 s` debounce;
+  post-debounce P50/P95/max was `5.495/7.568/7.630 s`.
+- Search learner/parent/Coach/branch/course/status/Thai-one-character behavior,
+  branch/course-filter retention, bounded round-key response, PII-free response
+  contract, and rapid latest-query protection passed. Raw Search terms and PII
+  are not recorded. Rapid day-change stale-response protection passed.
+- Standard Admin is **Unknown / Need verification** because no existing session was
+  available. Mobile `390x844` is **Unknown / Need verification** because browser
+  control did not establish the requested document viewport reliably. No account,
+  credential, permission, session, or Production data was created or changed.
+
+#### Evidence and ranked diagnosis
+
+- The bounded deployment window contained 899 GET and business
+  POST/PUT/PATCH/DELETE `0/0/0/0`; HTTP 5xx and warning/error/fatal were all `0`.
+  Vercel functions were in `iad1`. A 12-hour all-environment/deployment aggregate,
+  not Canary-only, showed Active CPU P75 `210 ms` and 2.7K outbound Supabase calls
+  averaging `620 ms` with errors `0%`.
+- Supabase remained `ACTIVE_HEALTHY` in `ap-northeast-2`. Connection, timeout,
+  deadlock, exhaustion, and lock-pressure evidence was clean. Bounded read-only
+  plans completed in `0.817–31.341 ms` with shared-buffer hits and no disk/temp
+  spill. `pg_stat_statements` was read without reset.
+- **Proven:** call reduction works; bounded SQL is milliseconds; Active CPU is low
+  relative to duration; Server duration and Browser residual both contribute;
+  low-volume August retains a high Browser residual; Canary/aliases/data did not
+  change.
+- **Strongly Supported:** the primary Server contribution is Vercel-to-Supabase
+  Data API/network wait, multiplied by remaining request waves. Browser/RSC
+  residual is a separate material bottleneck.
+- **Inferred:** cross-region `iad1 → ap-northeast-2` is the leading explanation for
+  much of the wait, with PostgREST/RLS/JSON materialization and remaining dependent
+  phases contributing. The exact residual breakdown remains uninstrumented.
+- **Unknown / Need verification:** the result of a same-artifact regional A/B,
+  Canary-only outbound spans, detailed PostgREST phases, selected-day/Search
+  per-sample server phases, Standard Admin overhead, reliable mobile behavior, and
+  the internal composition of Browser/RSC residual.
+
+#### Decision and closeout state
+
+- The single recommended next technical path is a separately Owner-approved
+  **Infrastructure Region Experiment Gate** using the same business Source on an
+  unpromoted Canary, changing only Function region, retaining a rollback plan, and
+  repeating the bounded measurements without promotion. This is an experiment,
+  not a proven or guaranteed fix. Browser/RSC residual may still keep the overall
+  budget failing even if Server latency improves.
+- Detailed methodology, raw monthly/day/Search samples, Vercel/Supabase evidence,
+  limitations, root-cause classification, recommendation, and fallback are in
+  `docs/performance/admin-schedules-phase-b-closure-b1-bottleneck-diagnosis-2026-07-22.md`.
+- State observed at this closeout: Source Complete **Yes — prior remediation**;
+  Tests Passed **Yes — prior local evidence only**; B1 Diagnosis **Complete**;
+  Committed/Pushed **Yes — documentation only**; Deployed **No new deployment**;
+  Performance Gate **Failed**; Production Active/UAT **No/No**; Controlled Write
+  UAT **No / not applicable**; Data Repaired/Production Data Changed **No/No**;
+  Customer Impact **No direct Production change**; Financial Impact **None**;
+  Documentation Drift **No after this successful documentation-only push**; Task
+  Done **No**; Active Task **Admin Schedules Performance**.
+- Exact next action: Owner/PM decides whether to authorize the separately scoped
+  Infrastructure Region Experiment Gate. It is not authorized by this closeout
+  and must not start automatically.
+
 ### 2026-07-21 — Admin Schedules Remediation Canary Performance Gate Failed
 
 Status: **STOP — CANARY PERFORMANCE GATE FAILED; NOT PROMOTED**.
