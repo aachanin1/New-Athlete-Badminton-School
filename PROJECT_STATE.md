@@ -277,16 +277,15 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   selected-day, Search, mobile, or Standard Admin checks; no promotion, alias move,
   or business-data write occurred.
 - Owner approved **Phase B Closure Gate B1 — Final Read-only Bottleneck Diagnosis**
-  on 2026-07-22 using only the existing unpromoted remediation Canary. B1 completed
-  bounded monthly, month-navigation, selected-day, Search, Vercel, and Supabase/
-  Postgres diagnosis without Source/Test/documentation/Git change, deploy,
-  promotion, alias movement, configuration/database change, or Production write.
-- Owner now authorizes only this documentation-only B1 closeout and its scoped
-  non-force commit/push. An Infrastructure Region Experiment, Source/Test/config
-  change, deploy/redeploy, promotion, Production UAT/write, migration/index/RPC,
-  environment/feature-control/allowlist change, data repair, performance exception,
-  and every other technical remediation remain prohibited without a new explicit
-  Owner gate.
+  on 2026-07-22, then separately approved an Infrastructure Region Experiment and
+  authenticated read-only continuation. Treatment deployment
+  `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` ran the same business Source in `icn1` and
+  passed the 20/20 monthly gate without promotion or alias movement.
+- Owner then approved permanent `icn1` repository configuration, Local validation,
+  and two scoped non-force publishes. Configuration commit
+  `77db099607dd7ee8dfe265929a6720818e2015d1` is pushed. No new deployment,
+  promotion, Production UAT/write, migration/index/RPC, environment/feature-control/
+  allowlist change, or data repair is authorized by this documentation closeout.
 - Confirmed examples from the supplied Owner instruction and executable Progressive
   scenario checks:
   - one booking of 10 sessions = `5,000`;
@@ -301,23 +300,24 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 ### Current Execution State
 
 - Active Task: **ADMIN SCHEDULES PERFORMANCE**.
-- Task Status: **B1 DIAGNOSIS COMPLETE; PERFORMANCE GATE FAILED; CANARY
-  UNPROMOTED**.
-- Remediation Canary `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` is `READY` on target
-  `production` with zero custom/Production aliases. Its exact input identity is
-  branch HEAD `67a08fa5a11ee714d8ec23be3fb125732e255b54`, tree
-  `ad1a35b38d19bd1b203bb8d644946ea73db3c466`, containing functional Source
-  `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`. Vercel `gitCommitSha` metadata was
-  `null`; exactness was established from the clean detached worktree and deploy
-  input identity, not from Vercel Git metadata.
-- Phase B Closure Gate B1 completed read-only diagnosis on the same Canary. Twenty
-  warm monthly samples had Browser/Server/Residual P95
-  `6.574/4.171/3.406 s`; 18/20 used the intended four-call path. Bounded SQL plans
-  remained milliseconds with no disk/temp spill, while Vercel Active CPU was low
-  relative to route duration and aggregate outbound Supabase latency was `620 ms`.
-  Data API/network wait is the primary Server hypothesis with strong supporting
-  evidence, and Browser/RSC residual is a separate material bottleneck. Region
-  alignment has not been proven to close the gate.
+- Task Status: **REGION EXPERIMENT PERFORMANCE GATE PASSED; PERMANENT `icn1`
+  CONFIGURATION COMMITTED/PUSHED; CANARY UNPROMOTED; PRODUCTION UAT NOT RUN**.
+- Control `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` (`iad1`) and Treatment
+  `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` (`icn1`) are `READY`, Production-target,
+  unpromoted, and have zero custom/Production aliases. They contain the same Admin
+  Schedules business Source; functional remediation identity is
+  `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`.
+- Paired monthly A/B completed `20/20` samples per environment. Treatment Browser
+  P50/P95 was `2.203/2.640 s`, Server P95 improved approximately `57.46%`, Browser
+  P95 improved `59.82%`, and residual P95 improved approximately `46.55%`.
+  Selected-day, corrected Search `21/21` GET `200`, verified mobile `390x844`, and
+  functional read-only smoke passed. Standard Admin was not run. No business-data
+  mutation occurred.
+- Permanent repository configuration `"regions": ["icn1"]` passed Local tests and
+  build, then was committed/pushed as
+  `77db099607dd7ee8dfe265929a6720818e2015d1`. It has not been deployed and is not
+  Production-active. Browser/RSC residual remains material and must be remeasured
+  on a Canary built from the committed configuration.
 - Git publish: documentation branch `spike/next-major-security-upgrade`; exact functional Source/
   Test/Migration commit is `1b995396f432d11b133c1cf4b5604b6db875b63b`,
   initial documentation commit is `20721178ae1924fd594d3ba5ce3a232f33925e7c`,
@@ -573,20 +573,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   and Owner-confirmed; the remaining incident-window population is report-only and
   must not be changed without separate evidence and approval. Exact
   current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
-- Admin Schedules Performance is the selected Active Task. Prior Phase B and the
-  Source-only remediation Source/documentation are committed and pushed. B1
-  diagnosis is complete and recorded by this documentation-only closeout. The
-  prior Canary and the remediation Canary are both unpromoted; neither is active
-  on Production aliases. B1 confirmed the four-call shape in `18/20` monthly
-  samples, but warm Browser P95 remained `6.574 s`; the Performance Gate failed
-  and Production UAT has not passed.
+- Admin Schedules Performance is the selected Active Task. The Region Experiment
+  compared the existing `iad1` Control with same-business-Source `icn1` Treatment.
+  Treatment passed 20/20 monthly samples at Browser P50/P95 `2.203/2.640 s`, plus
+  selected-day, corrected Search, mobile, and functional read-only smoke. Both
+  experiment deployments remain unpromoted and Production UAT has not passed.
+- Permanent `"regions": ["icn1"]` repository configuration passed Local tests/build
+  and is committed/pushed as `77db099607dd7ee8dfe265929a6720818e2015d1`.
+  It has not been deployed and is not Production-active.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner/PM considers a separate Infrastructure Region Experiment
-  Gate: change only the Function region on an unpromoted same-Source Canary, do not
-  change business logic or promote, retain a rollback plan, and remeasure the same
-  bounded flows. This experiment is not authorized by the B1 closeout and is not a
-  guaranteed fix. Do not start it or another Parking Lot task automatically.**
+- Next Action: **Owner approval required for Permanent `icn1` Config Canary Deploy
+  + Full Read-only UAT Gate; no Promotion. Do not start that gate or another Parking
+  Lot task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
@@ -766,7 +765,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Schedules Performance — B1 Diagnosis Complete; Performance Gate Failed; Canary Unpromoted |
+| Active Task | Admin Schedules Performance — Region Experiment Performance Gate Passed; permanent `icn1` config committed/pushed; Canary unpromoted; Production UAT not run |
 | Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; corrective Source is separately committed at `9ef1ee30035a083426743aed3e326ad9676d65c4` |
@@ -794,7 +793,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 | Blocker | None for this task |
 | Remaining Work | None for the confirmed task scope. Auth follow-up, broader historical incident review/cleanup, and permanent dirty `AGENTS.md` work remain separate and unauthorized |
 | Task Done | Yes |
-| Next Gate / Next Action | Current active-work gate: Owner approval required for the separately scoped Admin Schedules Infrastructure Region Experiment; it is not authorized automatically |
+| Next Gate / Next Action | Current active-work gate: Owner approval required for Permanent `icn1` Config Canary Deploy + Full Read-only UAT Gate; no Promotion |
 | Parking Lot authorization state | Admin Schedules Performance was selected and removed from Parking Lot; Homepage LV and every other Parking Lot task remain not authorized |
 
 ### Admin Schedules — Exact Coach Assignment Classification
@@ -1397,9 +1396,10 @@ NO-WRITE PRODUCTION UAT PASSED**
 
 - Current authorization supersedes the original Parking Lot state: Owner selected
   this as the single Active Task on 2026-07-19, then explicitly authorized Phase B,
-  Source remediation, publish, and two unpromoted Canary gates. Source/local work
-  and publish are complete. The remediation Canary Performance Gate failed;
-  promotion and Production UAT remain unapproved.
+  Source remediation, publish, B1 diagnosis, the unpromoted Region Experiment,
+  authenticated read-only measurement, permanent `icn1` configuration, Local
+  validation, and the two scoped publishes recorded here. The Region Experiment
+  performance gate passed; promotion and Production UAT remain unapproved.
 - Read-only Supabase inspection found a 100-request API snapshot spanning `24.816`
   seconds; every request returned `200`. The project remained `ACTIVE_HEALTHY`, and
   no schedules-correlated timeout, deadlock, connection exhaustion, or 5xx was found.
@@ -1611,43 +1611,70 @@ NO-WRITE PRODUCTION UAT PASSED**
   Production data, customer behavior, and financial state: **No**. This later
   Owner-approved closeout records the B1 result in documentation only.
 
+#### Infrastructure Region Experiment + Permanent `icn1` Configuration (2026-07-22)
+
+- Same-business-Source A/B compared Control
+  `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` in `iad1` with Treatment
+  `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` in `icn1`. Both remain `READY`, Production-
+  target, unpromoted, and have zero custom/Production aliases. The four established
+  Production aliases remain on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`.
+- Paired monthly measurement completed `20/20` samples per environment. Treatment
+  Browser P50/P95 was `2.203/2.640 s`; Server P95 improved approximately `57.46%`,
+  Browser P95 improved `59.82%`, and residual P95 improved approximately `46.55%`.
+  Treatment passed the `3 s` normal and `5 s` P95 Browser budgets.
+- Treatment selected-day passed all 15 samples with combined P50/P95/max
+  `1.058/1.436/1.436 s`; corrected Search returned `21/21` GET `200`; verified
+  mobile `390x844` and functional read-only smoke passed. Standard Admin was not
+  run. Business-data mutation, Production data change, console/runtime error,
+  promotion, and alias movement were all zero/no.
+- Permanent repository configuration now contains only `"regions": ["icn1"]` as
+  the scoped `vercel.json` change. JSON assertion, Admin Schedules `24/24`,
+  assignment `24/24`, wallet `17/17`, TypeScript, ESLint, mojibake, build (`91/91`
+  pages), and diff check passed on the exact configuration worktree. Configuration
+  commit `77db099607dd7ee8dfe265929a6720818e2015d1` is pushed non-force.
+- The permanent configuration is not deployed and is not Production-active. The
+  experiment supports regional alignment as a major Server improvement, not as a
+  guarantee for every future deployment. Browser/RSC residual remains material.
+- Detailed evidence:
+  `docs/performance/admin-schedules-phase-b-region-experiment-permanent-icn1-2026-07-22.md`.
+
 #### Current Admin Schedules Performance Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | Admin Schedules Performance |
-| Task Status | B1 Diagnosis Complete; Performance Gate Failed; Canary Unpromoted |
+| Task Status | Region Experiment Performance Gate Passed; permanent `icn1` config committed/pushed; Canary unpromoted; Production UAT not run |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | B1 documentation-only closeout commit containing this matrix; starting HEAD `07a8bdf3368ed1b37c316a218c1e7321c93cde89` |
-| Remote HEAD | Same B1 documentation-only closeout after the approved non-force push |
+| Local HEAD | Documentation closeout commit containing this matrix; configuration parent `77db099607dd7ee8dfe265929a6720818e2015d1` |
+| Remote HEAD | Same documentation closeout after the approved non-force push |
 | Ahead/Behind | `0/0` after publish verification |
 | B1 Diagnosis | Complete — read-only bottleneck diagnosis recorded; no technical change |
-| Source Complete | Yes — prior committed/pushed Source-only Canary remediation scope |
-| Tests Passed | Yes — prior local evidence only: remediation `24/24`; assignment `24/24`; wallet `17/17`; disposable local browser `5/5`, residue `0`; TypeScript, ESLint, mojibake `243`, diff check, build. No Source test was rerun in B1 or this documentation-only closeout |
-| Committed | Yes — prior Source/Test `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`; B1 documentation-only closeout is the commit containing this matrix |
-| Pushed | Yes — prior Source/Test and B1 documentation-only closeout pushed non-force to `origin/spike/next-major-security-upgrade` |
-| Current Source | Pushed remediation Source `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` |
-| Deployed | Canary only — new remediation Canary and prior Canary are unpromoted |
-| Deployed Source | Remediation Canary input `67a08fa5a11ee714d8ec23be3fb125732e255b54`, tree `ad1a35b38d19bd1b203bb8d644946ea73db3c466`, functional Source `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`; prior Canary input `b0bada3d076302d24ebe3b594c03b22bf0997869`, functional Source `3d32401b13873592d5462e6776b0e847335d2d43` |
-| Deployment ID | Remediation Canary `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF`; prior Canary `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4`; Production aliases remain on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` |
+| Source Complete | Yes — permanent `icn1` configuration plus prior business Source remediation |
+| Tests Passed | Yes — Local exact-config evidence: Admin Schedules `24/24`; assignment `24/24`; wallet `17/17`; TypeScript; ESLint; mojibake `245`; diff check; build `91/91`. Region Experiment authenticated read-only A/B and functional smoke passed |
+| Committed | Yes — configuration `77db099607dd7ee8dfe265929a6720818e2015d1`; documentation closeout is the commit containing this matrix |
+| Pushed | Yes — configuration and documentation closeout pushed non-force to `origin/spike/next-major-security-upgrade` |
+| Current Source | Pushed business remediation `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` plus permanent `icn1` configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1` |
+| Deployed | Existing Region Experiment Canary only; no deployment from the permanent configuration |
+| Deployed Source | Control and Treatment use the same Admin Schedules business Source. Permanent `icn1` configuration commit is not deployed |
+| Deployment ID | Control `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` (`iad1`); Treatment `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` (`icn1`); Production aliases remain on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` |
 | Migration Source | None for this task |
 | Migration Applied | No |
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | No — both Admin Schedules Performance Canaries are unpromoted |
-| Production UAT | No — B1 remained Canary-only and did not move Production aliases; prior Canary functional UAT does not make the remediation Production-active |
-| Performance Gate | Failed — B1 20-sample warm Browser P95 `6.574 s` > `5.000 s`; earlier remediation-Canary stop-gate P95 was `7.907 s` |
-| Production P95 | Not passed — Production-target Canary failed; Production aliases were not moved or UAT-tested with the remediation |
+| Production Active | No — Control and Treatment remain unpromoted; permanent configuration is not deployed |
+| Production UAT | No — Region Experiment was authenticated Canary-only read-only verification; Production aliases were not moved |
+| Performance Gate | Passed on Treatment — Browser P50/P95 `2.203/2.640 s`; permanent-config Canary re-verification remains required |
+| Production P95 | Unknown / Need verification — no Production-alias UAT from the permanent configuration |
 | Controlled Write UAT | No / not applicable; read-only Source scope |
 | Data Repaired | No |
 | Production Data Changed | No |
-| Customer Impact | No direct Production change; remediation is visible only on the unpromoted Canary |
+| Customer Impact | No direct Production change; region experiment remains unpromoted |
 | Financial Impact | None; no financial data or semantics changed |
-| Blocker | Warm-navigation budget failed after call reduction; Data API/network wait is the strongly supported primary Server contribution and Browser/RSC residual is separately material |
-| Remaining Work | Owner/PM decides whether to authorize the separately scoped Infrastructure Region Experiment; region alignment is not proven to close the gate |
-| Task Done | No — Performance Gate failed; Canary remains unpromoted and Production UAT has not passed |
-| Documentation Drift | No after the successful B1 documentation-only commit and non-force push |
-| Next Gate / Next Action | Owner approval required for Infrastructure Region Experiment Gate: same business Source, unpromoted Canary, Function-region-only experiment, no promotion, rollback plan, bounded remeasurement |
+| Blocker | Permanent `icn1` configuration has not been deployed or given full read-only Canary UAT; Browser/RSC residual remains a material risk |
+| Remaining Work | Owner decides whether to authorize a Canary deploy from the committed configuration and full read-only UAT without promotion |
+| Task Done | No — permanent configuration is not deployed, Production-active, promoted, or Production-UAT-passed |
+| Documentation Drift | No after the documentation commit containing this matrix is pushed and remote-verified |
+| Next Gate / Next Action | Owner approval required for Permanent `icn1` Config Canary Deploy + Full Read-only UAT Gate; no Promotion |
 | Parking Lot authorization state | Admin Schedules Performance selected and active; Homepage LV and all other Parking Lot work remain unauthorized |
 
 ## Historical / Superseded 2026-07-13–14 Records

@@ -2,6 +2,86 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-22 — Admin Schedules Region Experiment and Permanent `icn1` Closeout
+
+Status: **PASS — REGION EXPERIMENT PERFORMANCE GATE; PERMANENT `icn1`
+CONFIGURATION COMMITTED AND PUSHED; DOCUMENTATION CLOSEOUT COMMITTED AND PUSHED;
+NO PROMOTION**.
+
+#### Authorization and state observed at this closeout
+
+- Owner separately approved the Function-region-only unpromoted experiment,
+  authenticated read-only measurement continuation, permanent repository region
+  configuration plus Local validation, configuration commit/push, and this
+  documentation-only closeout commit/push.
+- Control `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` ran in `iad1`; Treatment
+  `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` ran in `icn1`. Both were `READY`, Production-
+  target, unpromoted, and had zero custom/Production aliases. The four established
+  Production aliases remained on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`.
+- Both deployments used the same Admin Schedules business Source; functional
+  remediation identity was `62ac775d81aa8a702cbab744fdfb2a7ab15791b7`.
+  Authentication was the only POST exception, with credentials/MFA entered by the
+  Owner. No credential, session value, raw Search term, or PII was retained.
+
+#### Region Experiment result
+
+- Paired July monthly A/B completed `20/20` valid samples per environment after two
+  excluded warm-ups per deployment. Control Browser/Server/residual P95 was
+  `6.570/3.7189/2.8511 s`; Treatment was `2.640/1.5824/1.5243 s`.
+- Treatment Browser P50/P95 was `2.203/2.640 s`, passing the `3.000/5.000 s`
+  normal/P95 budgets. Server P95 improved approximately `57.46%`, Browser P95
+  `59.82%`, and residual P95 approximately `46.55%`. Control cache hit/miss was
+  `19/1`; Treatment was `10/10`, and both observed the same `1,440/586/54`
+  sessions/groups/wallet counts.
+- Three month-navigation cycles passed. Low-volume August Browser/Server/residual
+  ranges were `0.735–0.802/0.133–0.147/0.602–0.655 s`. Selected-day combined
+  P50/P95/max was `1.058/1.436/1.436 s`, with `0/15` samples over `3 s`.
+- Corrected Search produced `21/21` GET `200` across Q1–Q7, with combined client
+  min/P50/P95/max `1.726/1.979/2.614/3.150 s` including the fixed `0.300 s`
+  debounce. All round-key counts remained `<=200`; rapid latest-query and filter
+  persistence checks passed. Raw terms and PII are not recorded.
+- Verified mobile `390x844`, monthly/selected-day/Search functional smoke, rapid
+  stale-response protection, truncation warning, and no-overflow checks passed.
+  Console/hydration/runtime errors were `0`. Standard Admin was not run because it
+  was outside the continuation authorization.
+- Available corrected-Search telemetry contained 21 Search-path GET `200` events;
+  business POST/PUT/PATCH/DELETE, 4xx/5xx, warning/error/fatal, and PII/search-term
+  marker findings were all `0`.
+
+#### Permanent configuration and Local validation
+
+- `vercel.json` received the only approved configuration change:
+  `"regions": ["icn1"]`. JSON parse/exact assertion, Admin Schedules `24/24`,
+  assignment `24/24`, Lesson Wallet `17/17`, TypeScript, ESLint with zero warnings,
+  mojibake (`245` files), Production build (`91/91` pages), and diff check passed on
+  the exact configuration worktree.
+- Configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1` was pushed
+  non-force to `origin/spike/next-major-security-upgrade`. This documentation
+  closeout is the subsequent commit containing this record and was also pushed
+  non-force.
+- Local build validation does not prove the deployed Function region. No deployment
+  was created from the permanent configuration, so it is not Production-active.
+  The Treatment result strongly supports regional alignment as a major Server
+  improvement but does not guarantee every future deployment; Browser/RSC residual
+  remains material and requires Canary remeasurement.
+
+#### Closeout state and next action
+
+- State observed at this closeout: Source Complete **Yes — permanent `icn1`
+  configuration**; Tests Passed **Yes — Local**; Committed/Pushed **Yes —
+  configuration plus documentation only**; Deployed **No new deployment**; Existing
+  Region Canary **READY/unpromoted**; Permanent `icn1` Production Active **No**;
+  Production UAT **No**; Controlled Write UAT **No / not applicable**; Data
+  Repaired/Production Data Changed **No/No**; Customer Impact **No direct Production
+  change**; Financial Impact **None**; Documentation Drift **No after this
+  documentation push**; Task Done **No**; Active Task **Admin Schedules
+  Performance**.
+- Detailed evidence:
+  `docs/performance/admin-schedules-phase-b-region-experiment-permanent-icn1-2026-07-22.md`.
+- Exact next action: Owner approval required for **Permanent `icn1` Config Canary
+  Deploy + Full Read-only UAT Gate; no Promotion**. This closeout does not authorize
+  deployment, Production UAT, promotion, or another Parking Lot task.
+
 ### 2026-07-22 — Admin Schedules Phase B Closure Gate B1 Bottleneck Diagnosis
 
 Status: **PASS — PHASE B CLOSURE BOTTLENECK DIAGNOSED; NO CHANGES MADE;

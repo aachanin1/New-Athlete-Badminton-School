@@ -11,81 +11,34 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Admin Schedules Performance
 
-Status: **ACTIVE — B1 DIAGNOSIS COMPLETE; PERFORMANCE GATE FAILED; CANARY
-UNPROMOTED**.
+Status: **ACTIVE — REGION EXPERIMENT PERFORMANCE GATE PASSED; PERMANENT `icn1`
+CONFIG COMMITTED/PUSHED; CANARY UNPROMOTED; PRODUCTION UAT NOT RUN**.
 
-- Owner approved Phase B Source Fix + Local Test and confirmed authenticated
-  month-wide server-side Search on demand for learner, parent, Coach, branch,
-  course, and booking status. The approved `3s/5s` normal/P95 budgets and 10-minute
-  low-volatility reference-cache default remain unchanged.
-- Source now uses a bounded monthly aggregate, authenticated selected-day detail,
-  and authenticated bounded Search. Initial RSC does not preload full-month person,
-  Level, Program, or Attendance detail; cancellation/generation guards prevent
-  stale day and Search results.
-- Local verification passed: Phase B `17/17`, assignment state `24/24`, Lesson
-  Wallet `17/17`, disposable browser `5/5` with residue `0`, TypeScript, full
-  ESLint, mojibake, build, clean restart/static smoke, and diff check. Local cold/
-  warm-P95/day/Search were `2512.8/1187.8/187.3/473.7 ms` on the 2026-07-21
-  resumed run. Docker/repo-local Supabase stayed on `127.0.0.1`; browser E2E
-  passed `5/5` with residue `0`.
-- Detailed Phase B report:
-  `docs/performance/admin-schedules-phase-b-source-local-test-2026-07-20.md`.
-- Source/Test commit `3d32401b13873592d5462e6776b0e847335d2d43` and the
-  documentation closeout are pushed non-force. Owner waived repeat `.next`
-  cleanup/clean-restart for the publish gate; the exact worktree had passed that
-  smoke on 2026-07-20.
-- Production-target Canary `dpl_5x2vzwUxAmxNaT8HZGJeBQ32JVr4` is `READY` on
-  exact commit `b0bada3d076302d24ebe3b594c03b22bf0997869` and remains
-  unpromoted. Super Admin functional UAT passed, but warm navigation P95 was
-  `5.344 s`, selected-day exceeded `3 s` in `3/5`, and Search was
-  `4.654–5.937 s`; the performance gate failed.
-- Read-only diagnosis proves the warm July summary's eight data calls are two
-  session pages + one wallet chunk + five assignment-group chunks with a branch
-  cache hit. Vercel functions run in `iad1`, Supabase in `ap-northeast-2`, and
-  bounded core SQL plans completed in milliseconds. Request fan-out/dependent
-  phases are proven primary; cross-region RTT is inferred as an amplifier.
-- Detailed diagnosis:
-  `docs/performance/admin-schedules-phase-b-canary-performance-diagnosis-2026-07-21.md`.
-- Owner approved and the local worktree completed a Source-only remediation:
-  date-scoped assignment-group pagination reduces the July-equivalent warm summary
-  formula from `8` to `4` calls, selected-day removes the duplicate session read,
-  and bounded candidate-first Search no longer loads detailed month-wide person/
-  group data for sparse results.
-- Final local evidence passed: remediation `24/24`, assignment `24/24`, wallet
-  `17/17`, TypeScript, ESLint, mojibake `243`, diff check, build, and disposable
-  browser E2E `5/5` with residue `0`. Warm P95 was `2745.9 ms`; summary used `4`
-  calls; warm day samples used `5–6`; representative Search used `6–8` bounded
-  calls. Execution policy rejected repeat `.next` cleanup before execution, so
-  repeat clean restart/static smoke is not claimed.
-- Detailed remediation report:
-  `docs/performance/admin-schedules-phase-b-canary-source-remediation-local-test-2026-07-21.md`.
-- Source/Test commit `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` and this
-  documentation closeout are published non-force on the existing branch. Owner
-  waived repeat `.next` cleanup/clean-restart for the exact verified worktree; the
-  smoke was not rerun and is not claimed.
-- Remediation Canary `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` is `READY` and
-  unpromoted. The query-shape change produced the intended four-call warm summary
-  path in `9/10` samples, but warm navigation P95 was `7.907 s` against the
-  `5.000 s` mandatory budget. That gate stopped before month/day/Search/mobile/
-  Standard Admin; the later Owner-approved B1 read-only diagnosis completed the
-  bounded monthly, month-change, selected-day, Search, Vercel, and Supabase/
-  Postgres evidence needed for root-cause ranking. Production aliases and data did
-  not change. Prior stop-gate evidence is in
-  `docs/performance/admin-schedules-remediation-canary-performance-gate-2026-07-21.md`.
-- B1 result: **PASS — PHASE B CLOSURE BOTTLENECK DIAGNOSED; NO CHANGES MADE**.
-  Twenty monthly samples had Browser/Server/Residual P95
-  `6.574/4.171/3.406 s`; 18/20 used four calls. SQL plans remained milliseconds
-  and Active CPU was low relative to route duration. Vercel-to-Supabase Data API/
-  network wait is the primary Server hypothesis with strong supporting evidence;
-  Browser/RSC residual is a separate material bottleneck. Region alignment has
-  not been tested and is not a guaranteed fix.
-- Detailed B1 report:
+- Authoritative current matrix: `PROJECT_STATE.md` → **Current Admin Schedules
+  Performance Matrix**.
+- B1 confirmed Vercel-to-Supabase Data API/network wait as the strongly supported
+  primary Server contribution and Browser/RSC residual as a separate material
+  contribution. Detailed B1 report:
   `docs/performance/admin-schedules-phase-b-closure-b1-bottleneck-diagnosis-2026-07-22.md`.
+- Same-business-Source Region A/B compared Control
+  `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` (`iad1`) with Treatment
+  `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` (`icn1`). Treatment completed monthly
+  `20/20` at Browser P50/P95 `2.203/2.640 s`; Server P95 improved approximately
+  `57.46%`, Browser P95 `59.82%`, and residual P95 approximately `46.55%`.
+- Selected-day, corrected Search `21/21` GET `200`, verified mobile `390x844`, and
+  functional read-only smoke passed. Standard Admin was not run. Both experiment
+  deployments remain `READY`/unpromoted, Production aliases did not move, and no
+  business-data mutation occurred.
+- Permanent `"regions": ["icn1"]` passed Local Admin Schedules `24/24`, assignment
+  `24/24`, wallet `17/17`, TypeScript, ESLint, mojibake, build, and diff check.
+  Configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1` and this
+  documentation closeout are published non-force. The permanent configuration is
+  not deployed or Production-active.
+- Detailed Region Experiment/permanent-config report:
+  `docs/performance/admin-schedules-phase-b-region-experiment-permanent-icn1-2026-07-22.md`.
 - Task Done: **No**.
-- Next Action: **Owner/PM considers separate approval for an Infrastructure Region
-  Experiment Gate using the same business Source on an unpromoted Canary, changing
-  only Function region, with no promotion and a rollback plan. This experiment is
-  not authorized by the B1 closeout and must not start automatically.**
+- Next Action: **Owner approval required for Permanent `icn1` Config Canary Deploy
+  + Full Read-only UAT Gate; no Promotion. Do not start automatically.**
 
 ## Recently Completed
 
