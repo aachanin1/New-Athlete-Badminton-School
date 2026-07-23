@@ -1,11 +1,10 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-22
-Source: current local/upstream Git metadata, Source, documentation, disposable
-local verification, Git publish state, Owner-supplied remediation-Canary gate
-evidence, and the Owner-approved Phase B Closure Gate B1 read-only diagnosis
-completed on 2026-07-22. Items not confirmed are marked `Unknown / Need
-verification`.
+Last updated: 2026-07-23
+Source: current local/upstream Git metadata, Source, documentation, prior Local
+verification, fresh read-only Vercel deployment/alias inspection, and the
+Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
+2026-07-23. Items not confirmed are marked `Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -364,10 +363,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   no mutation request. At that checkpoint, no environment, feature-control,
   allowlist, migration, Production business-data, repair, or financial state had
   changed for this task; the later controlled repair is recorded below.
-- Current Production runs corrective Forward Source
-  `9ef1ee30035a083426743aed3e326ad9676d65c4` in Ready deployment
-  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`; all four established aliases point to the
-  same exact artifact. The temporary `503` write containment is no longer active,
+- Current Production includes corrective Forward Source
+  `9ef1ee30035a083426743aed3e326ad9676d65c4` in the later global deployment
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`; all four established aliases point to that
+  later exact artifact. Coach-remediation deployment
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` remains the exact pre-Phase-B rollback
+  target. The temporary `503` write containment is no longer active,
   and normal authorized atomic assignment writes are enabled. Containment
   deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` remains the verified rollback
   target. Regression Source `1b995396...` was not redeployed. The
@@ -502,9 +503,10 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   orphan, field mismatch, unsaved-draft indicator, console error, 500, or check-
   constraint error was found. Attendance, check-in, teaching program, payment,
   wallet, teaching-hours, payroll, and finance fingerprints were unchanged.
-- The exact same Canary artifact was promoted without rebuild. Deployment
-  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` is Ready and all four Production aliases now
-  point to it. Public `/`, `/api/health`, and generated static assets return `200`;
+- At that coach-remediation checkpoint, the exact same Canary artifact was
+  promoted without rebuild. Deployment `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` was
+  Ready and all four Production aliases pointed to it. Public `/`, `/api/health`,
+  and generated static assets returned `200`;
   authenticated Head Coach read-only rendering shows both correct names, dynamic
   `3 + 2` member counts, assigned state, and no unsaved indicator or console error.
   Post-promotion runtime error/fatal/500/name-constraint searches returned zero.
@@ -573,19 +575,18 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   and Owner-confirmed; the remaining incident-window population is report-only and
   must not be changed without separate evidence and approval. Exact
   current incident IDs remain in the dated incident record in `DEVELOPMENT_TODO.md`.
-- Admin Schedules Performance is the selected Active Task. The Region Experiment
-  compared the existing `iad1` Control with same-business-Source `icn1` Treatment.
-  Treatment passed 20/20 monthly samples at Browser P50/P95 `2.203/2.640 s`, plus
-  selected-day, corrected Search, mobile, and functional read-only smoke. Both
-  experiment deployments remain unpromoted and Production UAT has not passed.
-- Permanent `"regions": ["icn1"]` repository configuration passed Local tests/build
-  and is committed/pushed as `77db099607dd7ee8dfe265929a6720818e2015d1`.
-  It has not been deployed and is not Production-active.
+- Admin Schedules Performance Phase B is complete. The Region Experiment compared
+  the existing `iad1` Control with same-business-Source `icn1` Treatment. Treatment
+  passed 20/20 monthly samples at Browser P50/P95 `2.203/2.640 s`, plus selected-
+  day, corrected Search, mobile, and functional read-only smoke. The permanent-
+  config artifact later passed protection-aware Production smoke and authenticated
+  Super Admin/Standard Admin read-only UAT.
+- Permanent `"regions": ["icn1"]` repository configuration passed Local tests/build,
+  is committed/pushed as `77db099607dd7ee8dfe265929a6720818e2015d1`, and is
+  Production-active in `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`.
 - Homepage LV remains parked and must not start until the Owner explicitly selects
   it as the next single active task.
-- Next Action: **Owner approval required for Permanent `icn1` Config Canary Deploy
-  + Full Read-only UAT Gate; no Promotion. Do not start that gate or another Parking
-  Lot task automatically.**
+- Next Action: **Await Owner selection; do not start another task automatically.**
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
@@ -765,12 +766,12 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Schedules Performance — Region Experiment Performance Gate Passed; permanent `icn1` config committed/pushed; Canary unpromoted; Production UAT not run |
+| Active Task | NONE |
 | Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Documentation closeout commit containing this matrix; corrective Source is separately committed at `9ef1ee30035a083426743aed3e326ad9676d65c4` |
 | Remote HEAD | Same documentation closeout after non-force push; corrective Source branch also pushed non-force |
-| Ahead/Behind | `0/0` after fetch |
+| Ahead/Behind | `0/0` after publish verification |
 | Source Complete | Yes — corrective Forward Source `9ef1ee30035a083426743aed3e326ad9676d65c4`, tree `94fe2410f0361acf639c47a4be7245c01128f21d`, on forward parent `c70f5a4...` |
 | Tests Passed | Yes — naming/assignment/authorization `33/33`; DB conflict/concurrency/lifecycle `22/22`; Playwright `3/3`; Lesson Wallet `17/17`; TypeScript, ESLint, mojibake, diff check, build, clean restart; corrective Controlled Write and post-promotion gates passed |
 | Committed | Yes — containment Source `3ad8a52...`; forward Source `c70f5a4...`; corrective Source `9ef1ee30035a083426743aed3e326ad9676d65c4`; documentation closeout is the commit containing this matrix |
@@ -778,7 +779,7 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 | Current Source | Production: corrective Forward Source `9ef1ee30035a083426743aed3e326ad9676d65c4` on parent `c70f5a4...` |
 | Deployed | Yes — exact corrective Canary artifact promoted without rebuild |
 | Deployed Source | `9ef1ee30035a083426743aed3e326ad9676d65c4` |
-| Deployment ID | Production aliases `4/4`: `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` Ready. Rollback target: containment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` |
+| Deployment ID | At the coach-remediation checkpoint, aliases `4/4` used `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`. Current global Production is `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`; authoritative current deployment detail is in the Admin Schedules Performance matrix |
 | Migration Source | `20260717070225_coach_assignment_conflict_guards.sql`; SHA-256 `2124C57725AA8891BD456927C37530F180019B8C0710EE73E6E9717174926EF8`; standalone preflight is read-only |
 | Migration Applied | Yes — Production applied exactly once; not rolled back; current reservations `234` after controlled and later live atomic Saves |
 | Feature Enabled | Not applicable; no feature flag changed |
@@ -793,8 +794,8 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
 | Blocker | None for this task |
 | Remaining Work | None for the confirmed task scope. Auth follow-up, broader historical incident review/cleanup, and permanent dirty `AGENTS.md` work remain separate and unauthorized |
 | Task Done | Yes |
-| Next Gate / Next Action | Current active-work gate: Owner approval required for Permanent `icn1` Config Canary Deploy + Full Read-only UAT Gate; no Promotion |
-| Parking Lot authorization state | Admin Schedules Performance was selected and removed from Parking Lot; Homepage LV and every other Parking Lot task remain not authorized |
+| Next Gate / Next Action | Await Owner selection; do not start another task automatically |
+| Parking Lot authorization state | No Parking Lot task is authorized automatically |
 
 ### Admin Schedules — Exact Coach Assignment Classification
 
@@ -1322,11 +1323,11 @@ NO-WRITE PRODUCTION UAT PASSED**
   `039ad6e03ca0cb8c8c4334c81818c570b03b9287`, tree
   `1d716a275505ffbc688487f0f245920c31a5619b`; migration `20260715060541` remains
   applied remotely exactly once. That subsystem contract is included unchanged in
-  current global Production Source `0226e363f6677b078430f93459c2ee2ede6484e8`
-  and Ready deployment `dpl_CsuBEfun5RtPWpSgC5iQjYjbH7j8`. Previous deployment
-  `dpl_6QCDg6omy3ZTFCm36W8G3AH7YqNr` is the immediate rollback target, not the
-  current artifact. The later Admin Schedules change did not alter the Unlimited
-  Slot contract or require another migration.
+  current global Production deployment
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`. The older deployment identities in this
+  paragraph are historical task checkpoints, not the current artifact. The later
+  Admin Schedules changes did not alter the Unlimited Slot contract or require
+  another migration.
 - Historical / superseded booking-regression evidence: commit `be61b68`, tree
   `22296e88b9dafbfe369ae559257ac5900aac3c36`, deployment
   `dpl_2GQ4hgxrqSxoy5JCMcUYMJQ4x4Bn`, and its earlier rollback reference
@@ -1372,12 +1373,14 @@ NO-WRITE PRODUCTION UAT PASSED**
 ### Production
 
 - Current global Production deployment:
-  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`, Ready, containing corrective Forward Source
-  `9ef1ee30035a083426743aed3e326ad9676d65c4`, tree
-  `94fe2410f0361acf639c47a4be7245c01128f21d`. The remediation Canary gate
-  reconfirmed that all four Production aliases remained on this artifact. Ready
-  containment deployment `dpl_HTeRJnDLS5Z5ayEPGUvT2E4RGxti` remains the verified
-  rollback target. Neither Admin Schedules Performance Canary is promoted.
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, `READY`, from exact input HEAD
+  `a39424bdbd0f78dee10d367800b833d8d3544d5d`, tree
+  `a2a391a36b28e250dece4317e050ba52cb89f42e`, containing the permanent
+  `icn1` configuration and prior business Source. All four established Production
+  aliases map to this artifact. Exact pre-gate deployment
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` is the verified rollback target for the
+  Phase B promotion history; rollback was not required after corrected
+  protection-aware re-promotion.
 - Production aliases: `https://www.newathleteschool.com`,
   `https://new-athlete-badminton-school.vercel.app`,
   `https://new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
@@ -1398,8 +1401,10 @@ NO-WRITE PRODUCTION UAT PASSED**
   this as the single Active Task on 2026-07-19, then explicitly authorized Phase B,
   Source remediation, publish, B1 diagnosis, the unpromoted Region Experiment,
   authenticated read-only measurement, permanent `icn1` configuration, Local
-  validation, and the two scoped publishes recorded here. The Region Experiment
-  performance gate passed; promotion and Production UAT remain unapproved.
+  validation, the two scoped publishes, permanent-config Canary deployment/UAT,
+  exact-artifact promotion, corrected protection-aware re-promotion, and final
+  documentation closeout recorded here. Phase B is now Production-active and its
+  read-only Production UAT passed with the Owner-accepted limitations below.
 - Read-only Supabase inspection found a 100-request API snapshot spanning `24.816`
   seconds; every request returned `200`. The project remained `ACTIVE_HEALTHY`, and
   no schedules-correlated timeout, deadlock, connection exhaustion, or 5xx was found.
@@ -1616,8 +1621,9 @@ NO-WRITE PRODUCTION UAT PASSED**
 - Same-business-Source A/B compared Control
   `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` in `iad1` with Treatment
   `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` in `icn1`. Both remain `READY`, Production-
-  target, unpromoted, and have zero custom/Production aliases. The four established
-  Production aliases remain on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX`.
+  target, unpromoted, and had zero custom/Production aliases at that experiment
+  checkpoint. The four established Production aliases remained on
+  `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` at that checkpoint.
 - Paired monthly measurement completed `20/20` samples per environment. Treatment
   Browser P50/P95 was `2.203/2.640 s`; Server P95 improved approximately `57.46%`,
   Browser P95 improved `59.82%`, and residual P95 improved approximately `46.55%`.
@@ -1632,50 +1638,85 @@ NO-WRITE PRODUCTION UAT PASSED**
   assignment `24/24`, wallet `17/17`, TypeScript, ESLint, mojibake, build (`91/91`
   pages), and diff check passed on the exact configuration worktree. Configuration
   commit `77db099607dd7ee8dfe265929a6720818e2015d1` is pushed non-force.
-- The permanent configuration is not deployed and is not Production-active. The
-  experiment supports regional alignment as a major Server improvement, not as a
-  guarantee for every future deployment. Browser/RSC residual remains material.
+- At that checkpoint, the permanent configuration was not deployed or
+  Production-active. The experiment supported regional alignment as a major
+  Server improvement, not as a guarantee for every future deployment. The final
+  Production outcome is recorded below.
 - Detailed evidence:
   `docs/performance/admin-schedules-phase-b-region-experiment-permanent-icn1-2026-07-22.md`.
+
+#### Phase B Final Production Closeout (2026-07-23)
+
+- Exact permanent-config deployment `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H` is
+  `READY` in `icn1`. Fresh read-only inspection confirmed all four established
+  Production aliases map to that exact deployment; public health returned `200`
+  with `icn1` Function routing evidence.
+- The exact artifact was initially promoted, then conservatively rolled back when
+  smoke automation misclassified expected Vercel Deployment Protection `302`
+  responses on the two protected project aliases as application failures. No
+  application 5xx, runtime error, Source failure, Region failure, or business write
+  was proven. After Owner approval, the same artifact was re-promoted without a
+  rebuild. Protection-aware smoke classified the protected `302`, application auth
+  `307`, and anonymous API `401` responses correctly and passed.
+- Authenticated read-only Production UAT passed for both Super Admin and Standard
+  Admin, including monthly summary, month navigation, selected day, Search,
+  permission/filter behavior, stale-response protection, and verified mobile
+  `390x844`. Application 5xx, relevant runtime/console/hydration errors, and
+  UAT-initiated business mutations were `0`.
+- Five post-warm-up monthly observations per role produced Super Admin outer/server
+  P95 `1.540/0.860 s` and Standard Admin outer/server P95 `2.450/1.523 s`.
+  Outer samples above `5 s` and Server samples above `3 s` were `0/5` for each
+  role. These outer timings are bounded Production observations, not a substitute
+  for unavailable page-internal timing.
+- Owner accepted the Performance Evidence Exception: page-internal timing was
+  unavailable; live forced error/retry was not run; Local error/loading/empty/stale
+  evidence had passed previously; the retry handler is present; and live retry
+  interaction remains **Unknown / not explicitly proven**.
+- Rollback was not required after corrected re-promotion. Production data changed
+  by UAT **No**; Controlled Write UAT **No / not applicable**; Data Repaired **No /
+  not applicable**; Financial Impact **None**. Customer impact is the active
+  `icn1` Admin Schedules performance remediation.
+- Detailed final evidence:
+  `docs/performance/admin-schedules-phase-b-final-production-closeout-2026-07-23.md`.
 
 #### Current Admin Schedules Performance Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Admin Schedules Performance |
-| Task Status | Region Experiment Performance Gate Passed; permanent `icn1` config committed/pushed; Canary unpromoted; Production UAT not run |
+| Active Task | NONE |
+| Task Status | DONE — Admin Schedules Performance Phase B is Production-active; read-only Production UAT passed with Owner-accepted timing/retry limitations |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; configuration parent `77db099607dd7ee8dfe265929a6720818e2015d1` |
+| Local HEAD | Documentation closeout commit containing this matrix; starting parent `a39424bdbd0f78dee10d367800b833d8d3544d5d` |
 | Remote HEAD | Same documentation closeout after the approved non-force push |
 | Ahead/Behind | `0/0` after publish verification |
 | B1 Diagnosis | Complete — read-only bottleneck diagnosis recorded; no technical change |
 | Source Complete | Yes — permanent `icn1` configuration plus prior business Source remediation |
-| Tests Passed | Yes — Local exact-config evidence: Admin Schedules `24/24`; assignment `24/24`; wallet `17/17`; TypeScript; ESLint; mojibake `245`; diff check; build `91/91`. Region Experiment authenticated read-only A/B and functional smoke passed |
+| Tests Passed | Yes — prior Local exact-config evidence: Admin Schedules `24/24`; assignment `24/24`; wallet `17/17`; TypeScript; ESLint; mojibake; diff check; build `91/91`. Region Experiment and final read-only Production UAT also passed within their stated scopes |
 | Committed | Yes — configuration `77db099607dd7ee8dfe265929a6720818e2015d1`; documentation closeout is the commit containing this matrix |
 | Pushed | Yes — configuration and documentation closeout pushed non-force to `origin/spike/next-major-security-upgrade` |
 | Current Source | Pushed business remediation `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` plus permanent `icn1` configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1` |
-| Deployed | Existing Region Experiment Canary only; no deployment from the permanent configuration |
-| Deployed Source | Control and Treatment use the same Admin Schedules business Source. Permanent `icn1` configuration commit is not deployed |
-| Deployment ID | Control `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` (`iad1`); Treatment `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` (`icn1`); Production aliases remain on `dpl_GSYEioBLHodQWLu2CRmbBQeWnhXX` |
+| Deployed | Yes — exact permanent-config artifact is Production-active |
+| Deployed Source | Exact deployment input HEAD `a39424bdbd0f78dee10d367800b833d8d3544d5d`, tree `a2a391a36b28e250dece4317e050ba52cb89f42e`, containing the pushed business remediation and permanent `icn1` configuration |
+| Deployment ID | `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, `READY`, `icn1`; all four established Production aliases map to this deployment |
 | Migration Source | None for this task |
-| Migration Applied | No |
+| Migration Applied | No — not required |
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | No — Control and Treatment remain unpromoted; permanent configuration is not deployed |
-| Production UAT | No — Region Experiment was authenticated Canary-only read-only verification; Production aliases were not moved |
-| Performance Gate | Passed on Treatment — Browser P50/P95 `2.203/2.640 s`; permanent-config Canary re-verification remains required |
-| Production P95 | Unknown / Need verification — no Production-alias UAT from the permanent configuration |
+| Production Active | Yes — permanent `icn1` configuration is active on all four Production aliases |
+| Production UAT | Passed — Super Admin, Standard Admin, and mobile read-only Production UAT, with Owner-accepted page-timing/live-retry limitations |
+| Performance Gate | Passed — Region Experiment; bounded Production observations had Super/Standard outer P95 `1.540/2.450 s` and server P95 `0.860/1.523 s` |
+| Production P95 | Bounded outer observation only; page-internal timing unavailable and accepted by Owner. Outer samples over `5 s`: `0/5` for each role |
 | Controlled Write UAT | No / not applicable; read-only Source scope |
-| Data Repaired | No |
-| Production Data Changed | No |
-| Customer Impact | No direct Production change; region experiment remains unpromoted |
+| Data Repaired | No / not applicable |
+| Production Data Changed | No — no Production business-data change by UAT or this documentation gate |
+| Customer Impact | `icn1` Admin Schedules performance remediation is Production-active |
 | Financial Impact | None; no financial data or semantics changed |
-| Blocker | Permanent `icn1` configuration has not been deployed or given full read-only Canary UAT; Browser/RSC residual remains a material risk |
-| Remaining Work | Owner decides whether to authorize a Canary deploy from the committed configuration and full read-only UAT without promotion |
-| Task Done | No — permanent configuration is not deployed, Production-active, promoted, or Production-UAT-passed |
+| Blocker | None for Phase B; accepted timing/retry limitations remain documented |
+| Remaining Work | None for Phase B |
+| Task Done | Yes — Phase B |
 | Documentation Drift | No after the documentation commit containing this matrix is pushed and remote-verified |
-| Next Gate / Next Action | Owner approval required for Permanent `icn1` Config Canary Deploy + Full Read-only UAT Gate; no Promotion |
-| Parking Lot authorization state | Admin Schedules Performance selected and active; Homepage LV and all other Parking Lot work remain unauthorized |
+| Next Gate / Next Action | Await Owner selection; do not start another task automatically |
+| Parking Lot authorization state | No Parking Lot task is authorized automatically |
 
 ## Historical / Superseded 2026-07-13–14 Records
 

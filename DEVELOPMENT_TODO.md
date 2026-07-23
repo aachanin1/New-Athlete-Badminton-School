@@ -2,6 +2,67 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-23 — Admin Schedules Phase B Final Production Closeout
+
+Status: **PASS — EXACT `icn1` ARTIFACT PRODUCTION-ACTIVE; PROTECTION-AWARE SMOKE
+AND READ-ONLY PRODUCTION UAT PASSED; PHASE B DONE**.
+
+#### Authorization and state observed at this closeout
+
+- Owner authorized exact-artifact promotion, corrected protection-aware
+  re-promotion after a conservative false-positive rollback, read-only Production
+  UAT, the Performance Evidence Exception, and this documentation-only final
+  closeout. This record does not authorize or perform Source/Test/config/migration
+  changes, another deploy/promotion/rollback, alias changes, or Production writes.
+- Exact deployment `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H` is `READY` in `icn1`.
+  Fresh read-only inspection found all four established Production aliases mapped
+  to that deployment and public health `200` with `icn1` Function routing evidence.
+
+#### Promotion, rollback, and corrected smoke timeline
+
+1. The exact permanent-config artifact was promoted without a rebuild.
+2. Smoke automation observed `302` on protected project aliases and triggered a
+   conservative rollback.
+3. Review proved the `302` responses were expected Vercel Deployment Protection,
+   not an application failure; correlated application 5xx/runtime errors and UAT
+   business writes were `0`.
+4. Owner authorized corrected deployment-protection-aware re-promotion.
+5. The same exact artifact was re-promoted without a rebuild.
+6. Corrected smoke and authenticated read-only Production UAT passed.
+7. State observed at this closeout: rollback is not required and permanent
+   `icn1` remains Production-active.
+
+#### Production UAT and performance evidence
+
+- Super Admin and Standard Admin passed monthly summary, month/day/Search flows,
+  permission/filter behavior, stale-response protection, and desktop/mobile
+  read-only checks. Verified mobile viewport was `390x844`. Relevant application
+  5xx/runtime/console/hydration errors and UAT business mutations were `0`.
+- After two warm-ups, five monthly observations per role produced Super Admin
+  outer/server P95 `1.540/0.860 s` and Standard Admin outer/server P95
+  `2.450/1.523 s`. Outer samples above `5 s` and Server samples above `3 s` were
+  `0/5` for both roles.
+- Owner accepted that page-internal timing was unavailable and live forced
+  error/retry was not run. Prior Local error/loading/empty/stale evidence passed,
+  the retry handler is present, and live retry interaction remains **Unknown / not
+  explicitly proven**. The bounded outer observations are not relabeled as
+  page-internal measurements.
+
+#### Final matrix and next action
+
+- State observed at this closeout: Source Complete **Yes — Phase B**; Tests Passed
+  **Yes — prior Local evidence**; Committed/Pushed **Yes**; Deployed **Yes**;
+  Permanent `icn1` Production Active **Yes**; Production UAT **Passed with
+  Owner-accepted limitations**; Controlled Write UAT **No / not applicable**; Data
+  Repaired **No / not applicable**; Production Data Changed by UAT/this gate
+  **No**; Customer Impact **`icn1` performance remediation active**; Financial
+  Impact **None**; Documentation Drift **No after this documentation push**; Task
+  Done **Yes — Phase B**; Active Task **NONE**.
+- Detailed final evidence:
+  `docs/performance/admin-schedules-phase-b-final-production-closeout-2026-07-23.md`.
+- Exact next action: await Owner selection; do not start another task
+  automatically.
+
 ### 2026-07-22 — Admin Schedules Region Experiment and Permanent `icn1` Closeout
 
 Status: **PASS — REGION EXPERIMENT PERFORMANCE GATE; PERMANENT `icn1`

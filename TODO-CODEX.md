@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,38 +9,31 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### Admin Schedules Performance
+Status: **NONE**.
 
-Status: **ACTIVE — REGION EXPERIMENT PERFORMANCE GATE PASSED; PERMANENT `icn1`
-CONFIG COMMITTED/PUSHED; CANARY UNPROMOTED; PRODUCTION UAT NOT RUN**.
-
-- Authoritative current matrix: `PROJECT_STATE.md` → **Current Admin Schedules
+- No task is authorized automatically.
+- Next Action: **Await Owner selection; do not start another task automatically.**
+- Authoritative current state: `PROJECT_STATE.md` → **Current Admin Schedules
   Performance Matrix**.
-- B1 confirmed Vercel-to-Supabase Data API/network wait as the strongly supported
-  primary Server contribution and Browser/RSC residual as a separate material
-  contribution. Detailed B1 report:
-  `docs/performance/admin-schedules-phase-b-closure-b1-bottleneck-diagnosis-2026-07-22.md`.
-- Same-business-Source Region A/B compared Control
-  `dpl_FGxnuXQ4nQ77MBgw7uBWtg64JhFF` (`iad1`) with Treatment
-  `dpl_DvJ2gVNSqmqUCcdgcoiPTwJVSYh2` (`icn1`). Treatment completed monthly
-  `20/20` at Browser P50/P95 `2.203/2.640 s`; Server P95 improved approximately
-  `57.46%`, Browser P95 `59.82%`, and residual P95 approximately `46.55%`.
-- Selected-day, corrected Search `21/21` GET `200`, verified mobile `390x844`, and
-  functional read-only smoke passed. Standard Admin was not run. Both experiment
-  deployments remain `READY`/unpromoted, Production aliases did not move, and no
-  business-data mutation occurred.
-- Permanent `"regions": ["icn1"]` passed Local Admin Schedules `24/24`, assignment
-  `24/24`, wallet `17/17`, TypeScript, ESLint, mojibake, build, and diff check.
-  Configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1` and this
-  documentation closeout are published non-force. The permanent configuration is
-  not deployed or Production-active.
-- Detailed Region Experiment/permanent-config report:
-  `docs/performance/admin-schedules-phase-b-region-experiment-permanent-icn1-2026-07-22.md`.
-- Task Done: **No**.
-- Next Action: **Owner approval required for Permanent `icn1` Config Canary Deploy
-  + Full Read-only UAT Gate; no Promotion. Do not start automatically.**
 
 ## Recently Completed
+
+### Admin Schedules Performance Phase B
+
+Status: **DONE — PERMANENT `icn1` PRODUCTION-ACTIVE; READ-ONLY PRODUCTION UAT
+PASSED WITH OWNER-ACCEPTED LIMITATIONS**.
+
+- Permanent configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1`
+  is included in Production deployment `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, which
+  is `READY` in `icn1`; all four established Production aliases map to it.
+- Deployment-protection-aware smoke, Super Admin, Standard Admin, and verified
+  mobile `390x844` read-only Production UAT passed. UAT business mutations and
+  relevant application 5xx/runtime errors were `0`; rollback was not required.
+- Owner accepted unavailable page-internal timing and unrun live forced
+  error/retry. Prior Local error/loading/empty/stale evidence passed; live retry
+  interaction remains unknown/not explicitly proven.
+- Task Done: **Yes — Phase B**. Detailed final report:
+  `docs/performance/admin-schedules-phase-b-final-production-closeout-2026-07-23.md`.
 
 ### Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics
 
@@ -182,15 +175,10 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
 Current next action is owned by the Active Work section above and the authoritative
-matrix in `PROJECT_STATE.md`: **Admin Schedules Performance remains active; Phase B
-B1 diagnosis is complete, the performance gate failed, the remediation Canary
-remains unpromoted, Source-only remediation/local tests are committed and pushed,
-and Task Done is No. Owner/PM decides whether to authorize a separate
-Infrastructure Region Experiment Gate; region alignment is not yet proven and no
-experiment starts automatically.** Do not promote/deploy, perform Production UAT,
-migrate, change Production controls/data, or start the auth follow-up, historical
-cleanup, permanent dirty `AGENTS.md` work, or another Parking Lot task without a
-new Owner gate.
+matrix in `PROJECT_STATE.md`: **Admin Schedules Performance Phase B is complete;
+Active Task is NONE. Await Owner selection and do not start the auth follow-up,
+historical cleanup, permanent dirty `AGENTS.md` work, Homepage LV, or another
+Parking Lot task without a new Owner gate.**
 
 ## Earlier Completed
 
