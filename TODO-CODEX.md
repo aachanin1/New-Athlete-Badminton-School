@@ -383,7 +383,6 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Owner/PM considers separate approval for an Infrastructure Region
-  Experiment Gate using the same business Source on an unpromoted Canary, changing
-  only Function region, with no promotion and a rollback plan. Do not start that
-  experiment or another task automatically.**
+- Next action: **Await Owner selection; do not start Homepage LV, the auth
+  follow-up, historical cleanup, permanent dirty-file work, or another Parking Lot
+  task automatically.**
