@@ -115,6 +115,11 @@ interface GroupDraft {
 type SlotDraftState = 'empty' | 'saved' | 'unassigned' | 'changed'
 type AssignmentStatusFilter = 'needs_assignment' | 'saved' | 'all'
 
+interface SavedSlotSnapshot {
+  draftSignature: string
+  serverSignatureAtSave: string
+}
+
 interface AssignGroupsClientProps {
   coaches: CoachOption[]
   slots: AssignmentSlot[]
@@ -388,29 +393,32 @@ function normalizeGroupsForCompare(groups: Array<Pick<GroupDraft, 'name' | 'coac
     })
 }
 
-function areGroupsSaved(slot: AssignmentSlot, groups: GroupDraft[]) {
-  if (slot.assignmentGroups.length === 0) return false
-  return JSON.stringify(normalizeGroupsForCompare(groups)) === JSON.stringify(normalizeGroupsForCompare(slot.assignmentGroups))
+function getGroupsSignature(groups: Array<Pick<GroupDraft, 'name' | 'coachId' | 'levelMin' | 'levelMax' | 'studentSessionIds'>>) {
+  return JSON.stringify(normalizeGroupsForCompare(groups))
 }
 
-function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[]) {
+function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[], savedSnapshot?: SavedSlotSnapshot) {
   const nonEmptyGroups = groups.filter((group) => group.studentSessionIds.length > 0)
   if (nonEmptyGroups.length === 0) return 'empty'
-  if (areGroupsSaved(slot, groups)) return 'saved'
+  const draftSignature = getGroupsSignature(groups)
+  const serverSignature = getGroupsSignature(slot.assignmentGroups)
+  if (slot.assignmentGroups.length > 0 && draftSignature === serverSignature) return 'saved'
+  if (savedSnapshot && savedSnapshot.serverSignatureAtSave === serverSignature) {
+    if (savedSnapshot.draftSignature === draftSignature) return 'saved'
+    return 'changed'
+  }
   return slot.assignmentGroups.length > 0 ? 'changed' : 'unassigned'
 }
 
 function getStateLabel(state: SlotDraftState) {
   if (state === 'saved') return 'มอบหมายแล้ว'
-  if (state === 'changed') return 'มีการแก้ไขยังไม่บันทึก'
-  if (state === 'empty') return 'ยังไม่มีกลุ่ม'
+  if (state === 'changed') return 'มีการเปลี่ยนแปลง รอตรวจและบันทึก'
   return 'ยังไม่ได้มอบหมาย'
 }
 
 function getStateBadgeClass(state: SlotDraftState) {
   if (state === 'saved') return 'bg-emerald-100 text-emerald-700'
   if (state === 'changed') return 'bg-amber-100 text-amber-800'
-  if (state === 'empty') return 'bg-gray-100 text-gray-600'
   return 'bg-red-100 text-red-700'
 }
 
@@ -418,6 +426,20 @@ function shouldShowForStatusFilter(state: SlotDraftState, filter: AssignmentStat
   if (filter === 'all') return true
   if (filter === 'saved') return state === 'saved'
   return state !== 'saved'
+}
+
+function countSlotStates(
+  slots: AssignmentSlot[],
+  draftsBySlot: Record<string, GroupDraft[]>,
+  savedSnapshotsBySlot: Record<string, SavedSlotSnapshot>,
+) {
+  return slots.reduce((counts, slot) => {
+    const state = getSlotDraftState(slot, draftsBySlot[slot.key] || [], savedSnapshotsBySlot[slot.key])
+    if (state === 'saved') counts.savedSlots += 1
+    else if (state === 'changed') counts.changedSlots += 1
+    else counts.unassignedSlots += 1
+    return counts
+  }, { savedSlots: 0, changedSlots: 0, unassignedSlots: 0 })
 }
 
 function getMonthKey(date: string) {
@@ -437,6 +459,7 @@ function formatMonth(monthKey: string) {
 export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGroupsClientProps) {
   const router = useRouter()
   const [draftsBySlot, setDraftsBySlot] = useState<Record<string, GroupDraft[]>>(() => createInitialDraftMap(slots))
+  const [savedSnapshotsBySlot, setSavedSnapshotsBySlot] = useState<Record<string, SavedSlotSnapshot>>({})
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [errorsBySlot, setErrorsBySlot] = useState<Record<string, string>>({})
   const [selectedDate, setSelectedDate] = useState(() => slots[0]?.date || '')
@@ -446,12 +469,11 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
 
   const stats = useMemo(() => {
     const totalStudents = slots.reduce((sum, slot) => sum + slot.students.length, 0)
-    const savedSlots = slots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) === 'saved').length
-    const unassignedSlots = slots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) !== 'saved').length
     const needsReview = slots.filter((slot) => hasWideLevelGap(slot.students)).length
+    const stateCounts = countSlotStates(slots, draftsBySlot, savedSnapshotsBySlot)
 
-    return { totalStudents, savedSlots, unassignedSlots, needsReview }
-  }, [draftsBySlot, slots])
+    return { totalStudents, needsReview, ...stateCounts }
+  }, [draftsBySlot, savedSnapshotsBySlot, slots])
 
   const groupedByDateAll = useMemo(() => {
     return Object.entries(slots.reduce((map, slot) => {
@@ -466,15 +488,17 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       .filter(([date]) => getMonthKey(date) === selectedMonth)
       .map(([date, dateSlots]) => {
       const visibleSlots = dateSlots.filter((slot) => shouldShowForStatusFilter(
-        getSlotDraftState(slot, draftsBySlot[slot.key] || []),
+        getSlotDraftState(slot, draftsBySlot[slot.key] || [], savedSnapshotsBySlot[slot.key]),
         statusFilter,
       ))
       const totalStudents = dateSlots.reduce((sum, slot) => sum + slot.students.length, 0)
-      const savedSlots = dateSlots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) === 'saved').length
-      const unassignedSlots = dateSlots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) !== 'saved').length
+      const { savedSlots, changedSlots, unassignedSlots } = countSlotStates(
+        dateSlots,
+        draftsBySlot,
+        savedSnapshotsBySlot,
+      )
       const needsReview = dateSlots.filter((slot) => hasWideLevelGap(slot.students)).length
       const draftIssues = dateSlots.filter((slot) => getDuplicateCoachIds(draftsBySlot[slot.key] || []).size > 0).length
-      const changedSlots = dateSlots.filter((slot) => getSlotDraftState(slot, draftsBySlot[slot.key] || []) === 'changed').length
 
       return {
         date,
@@ -489,7 +513,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       }
     })
       .filter((summary) => summary.visibleSlots > 0)
-  }, [draftsBySlot, groupedByDateAll, selectedMonth, statusFilter])
+  }, [draftsBySlot, groupedByDateAll, savedSnapshotsBySlot, selectedMonth, statusFilter])
 
   const activeDate = dateSummaries.some((date) => date.date === selectedDate)
     ? selectedDate
@@ -498,10 +522,10 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
   const activeDateSlots = useMemo(() => {
     const dateSlots = groupedByDateAll.find(([date]) => date === activeDate)?.[1] || []
     return dateSlots.filter((slot) => shouldShowForStatusFilter(
-      getSlotDraftState(slot, draftsBySlot[slot.key] || []),
+      getSlotDraftState(slot, draftsBySlot[slot.key] || [], savedSnapshotsBySlot[slot.key]),
       statusFilter,
     ))
-  }, [activeDate, draftsBySlot, groupedByDateAll, statusFilter])
+  }, [activeDate, draftsBySlot, groupedByDateAll, savedSnapshotsBySlot, statusFilter])
 
   const activeSlot = activeDateSlots.find((slot) => slot.key === selectedSlotKey) || activeDateSlots[0] || null
   const activeDateSummary = dateSummaries.find((date) => date.date === activeDate)
@@ -573,6 +597,8 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
 
   const saveSlot = async (slot: AssignmentSlot) => {
     const groups = draftsBySlot[slot.key] || []
+    const requestDraftSignature = getGroupsSignature(groups)
+    const serverSignatureAtSave = getGroupsSignature(slot.assignmentGroups)
     if (slot.assignmentLocked) {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: slot.assignmentLockReason || 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว ไม่สามารถมอบหมายย้อนหลังได้' }))
       return
@@ -657,19 +683,30 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       const savedGroupsByLocalId = new Map(
         nonEmptyGroups.map((group, index) => [group.localId, submittedGroups[index]]),
       )
+      const savedDraftSignature = getGroupsSignature(submittedGroups)
+      setSavedSnapshotsBySlot((prev) => ({
+        ...prev,
+        [slot.key]: {
+          draftSignature: savedDraftSignature,
+          serverSignatureAtSave,
+        },
+      }))
       setDraftsBySlot((prev) => ({
         ...prev,
-        [slot.key]: (prev[slot.key] || []).map((group) => {
-          const savedGroup = savedGroupsByLocalId.get(group.localId)
-          return savedGroup ? {
-            ...group,
-            name: savedGroup.name,
-            levelMin: savedGroup.levelMin,
-            levelMax: savedGroup.levelMax,
-          } : group
-        }),
+        [slot.key]: getGroupsSignature(prev[slot.key] || []) === requestDraftSignature
+          ? (prev[slot.key] || []).map((group) => {
+            const savedGroup = savedGroupsByLocalId.get(group.localId)
+            return savedGroup ? {
+              ...group,
+              name: savedGroup.name,
+              levelMin: savedGroup.levelMin,
+              levelMax: savedGroup.levelMax,
+            } : group
+          })
+          : (prev[slot.key] || []),
       }))
       if (json?.warnings) toast.warning(json.warnings)
+      toast.success('บันทึกการมอบหมายสำเร็จ')
       router.refresh()
     } catch {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }))
@@ -691,7 +728,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Card className="shadow-sm">
           <CardContent className="p-3">
             <p className="text-xs text-gray-500">โค้ชที่เลือกได้</p>
@@ -702,6 +739,12 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
           <CardContent className="p-3">
             <p className="text-xs text-gray-500">ยังไม่ได้มอบหมาย</p>
             <p className="mt-1 text-2xl font-bold text-red-600">{stats.unassignedSlots}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-3">
+            <p className="text-xs text-gray-500">รอตรวจและบันทึก</p>
+            <p className="mt-1 text-2xl font-bold text-amber-600">{stats.changedSlots}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
@@ -769,7 +812,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                 </div>
                 <div className="grid grid-cols-3 gap-1 rounded-lg border bg-white p-1 text-xs">
                   {[
-                    { key: 'needs_assignment' as const, label: 'ต้องมอบหมาย' },
+                    { key: 'needs_assignment' as const, label: 'ต้องดำเนินการ' },
                     { key: 'saved' as const, label: 'มอบหมายแล้ว' },
                     { key: 'all' as const, label: 'ทั้งหมด' },
                   ].map((filter) => (
@@ -800,7 +843,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                     <Badge className="bg-red-100 text-red-700">{activeDateSummary.unassignedSlots} ยังไม่ได้มอบหมาย</Badge>
                   )}
                   {activeDateSummary.changedSlots > 0 && (
-                    <Badge className="bg-amber-100 text-amber-800">{activeDateSummary.changedSlots} แก้ไขค้าง</Badge>
+                    <Badge className="bg-amber-100 text-amber-800">{activeDateSummary.changedSlots} รอตรวจและบันทึก</Badge>
                   )}
                   {(activeDateSummary.needsReview > 0 || activeDateSummary.draftIssues > 0) && (
                     <Badge className="bg-amber-100 text-amber-800">
@@ -829,7 +872,8 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                       'rounded-lg border bg-white p-3 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50',
                       isActive && 'border-[#2748bf] bg-blue-50 ring-2 ring-[#2748bf]/15',
                       summary.unassignedSlots > 0 && !isActive && 'border-red-200 bg-red-50/40',
-                      summary.unassignedSlots === 0 && (summary.needsReview > 0 || summary.draftIssues > 0 || summary.changedSlots > 0) && !isActive && 'border-amber-200 bg-amber-50/40',
+                      summary.unassignedSlots === 0 && summary.changedSlots > 0 && !isActive && 'border-amber-200 bg-amber-50/40',
+                      summary.unassignedSlots === 0 && summary.changedSlots === 0 && !isActive && 'border-emerald-200 bg-emerald-50/30',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -839,19 +883,23 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                       </div>
                       {summary.unassignedSlots > 0 ? (
                         <AlertTriangle className="h-4 w-4 text-red-500" />
-                      ) : summary.savedSlots === summary.slots ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      ) : (summary.needsReview > 0 || summary.draftIssues > 0 || summary.changedSlots > 0) && (
+                      ) : summary.changedSlots > 0 ? (
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       )}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1">
                       <Badge variant="outline" className="bg-white text-[10px]">{summary.slots} รอบ</Badge>
                       <Badge variant="outline" className="bg-white text-[10px]">{summary.totalStudents} คน</Badge>
-                      {summary.unassignedSlots > 0 ? (
+                      {summary.savedSlots > 0 && (
+                        <Badge className="bg-emerald-100 text-[10px] text-emerald-700">{summary.savedSlots} มอบหมายแล้ว</Badge>
+                      )}
+                      {summary.unassignedSlots > 0 && (
                         <Badge className="bg-red-100 text-[10px] text-red-700">{summary.unassignedSlots} ยังไม่ได้มอบหมาย</Badge>
-                      ) : (
-                        <Badge className="bg-emerald-100 text-[10px] text-emerald-700">ครบแล้ว</Badge>
+                      )}
+                      {summary.changedSlots > 0 && (
+                        <Badge className="bg-amber-100 text-[10px] text-amber-800">{summary.changedSlots} รอตรวจและบันทึก</Badge>
                       )}
                     </div>
                   </button>
@@ -899,7 +947,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                       {activeDateSlots.map((slot) => {
                         const slotGroups = draftsBySlot[slot.key] || []
                         const hasDuplicateCoaches = getDuplicateCoachIds(slotGroups).size > 0
-                        const slotDraftState = getSlotDraftState(slot, slotGroups)
+                        const slotDraftState = getSlotDraftState(slot, slotGroups, savedSnapshotsBySlot[slot.key])
                         const isActiveSlot = slot.key === activeSlot?.key
                         const isUnassigned = slotDraftState === 'unassigned' || slotDraftState === 'empty'
 
@@ -912,6 +960,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                               'rounded-lg border bg-white p-3 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50',
                               isActiveSlot && 'border-[#2748bf] bg-blue-50 ring-2 ring-[#2748bf]/15',
                               isUnassigned && !isActiveSlot && 'border-red-200 bg-red-50/40',
+                              slotDraftState === 'changed' && !isActiveSlot && 'border-amber-200 bg-amber-50/40',
                               slotDraftState === 'saved' && !isActiveSlot && 'border-emerald-200 bg-emerald-50/30',
                               hasDuplicateCoaches && !isActiveSlot && 'border-red-200 bg-red-50/40',
                             )}
@@ -950,7 +999,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                 const slotError = errorsBySlot[slot.key]
                 const duplicateCoachIds = getDuplicateCoachIds(slotGroups)
                 const hasDuplicateCoaches = duplicateCoachIds.size > 0
-                const slotDraftState = getSlotDraftState(slot, slotGroups)
+                const slotDraftState = getSlotDraftState(slot, slotGroups, savedSnapshotsBySlot[slot.key])
                 const isAssignmentLocked = slot.assignmentLocked
 
                 return (
@@ -1022,12 +1071,14 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                         'rounded-lg border px-3 py-2 text-sm',
                         slotDraftState === 'saved'
                           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : 'border-orange-200 bg-orange-50 text-orange-700',
+                          : slotDraftState === 'changed'
+                            ? 'border-amber-200 bg-amber-50 text-amber-800'
+                            : 'border-red-200 bg-red-50 text-red-700',
                       )}>
                         {slotDraftState === 'saved'
                           ? 'รอบนี้มอบหมายแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง'
                           : slotDraftState === 'changed'
-                            ? 'มีการแก้ไขการมอบหมายในหน้าจอนี้ แต่โค้ชผู้สอนจะยังเห็นข้อมูลเดิมจนกว่าจะกดบันทึก/ยืนยันการมอบหมาย'
+                            ? 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การมอบหมายที่บันทึกไว้เดิมยังมีผล และการเปลี่ยนแปลงนี้จะยังไม่ส่งให้โค้ชจนกว่าจะกดบันทึกอีกครั้ง'
                             : 'รอบนี้ยังไม่ได้มอบหมายให้โค้ชผู้สอน ระบบแนะนำกลุ่มไว้เบื้องต้นเท่านั้น ต้องกดบันทึก/ยืนยันการมอบหมายก่อนโค้ชจึงจะเห็นงานนี้'}
                       </div>
 

@@ -771,16 +771,81 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   await expect(page.getByText('Level ห่างมาก', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Level ต่างหมวด — เตือนเท่านั้น', { exact: true })).toBeVisible()
   await expect(page.getByText('ผู้เรียนอยู่คนละหมวด Level และยังไม่มีกฎชื่อรวม กรุณาตั้งชื่อกลุ่มเองหรือใช้ “จัดตาม Level”', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'ต้องดำเนินการ', exact: true })).toBeVisible()
+  await expect(page.getByText('รอบนี้ยังไม่ได้มอบหมายให้โค้ชผู้สอน ระบบแนะนำกลุ่มไว้เบื้องต้นเท่านั้น ต้องกดบันทึก/ยืนยันการมอบหมายก่อนโค้ชจึงจะเห็นงานนี้', { exact: true })).toBeVisible()
 
   const saveButton = page.getByRole('button', { name: 'บันทึก/ยืนยันการมอบหมาย', exact: true })
   await expect(saveButton).toBeEnabled()
+  let assignmentPostCount = 0
+  page.on('request', (request) => {
+    if (request.url().includes('/api/coach/assignment-groups') && request.method() === 'POST') {
+      assignmentPostCount += 1
+    }
+  })
+
+  await page.route('**/api/coach/assignment-groups', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'จำลองการบันทึกล้มเหลว' }),
+    })
+  }, { times: 1 })
+  const failedSaveResponse = page.waitForResponse((response) => (
+    response.url().includes('/api/coach/assignment-groups') && response.request().method() === 'POST'
+  ))
+  await saveButton.click()
+  expect((await failedSaveResponse).status()).toBe(500)
+  await expect(page.getByText('จำลองการบันทึกล้มเหลว', { exact: true })).toBeVisible()
+  await expect(page.getByText('บันทึกการมอบหมายสำเร็จ', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('รอบนี้มอบหมายแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง', { exact: true })).toHaveCount(0)
+  await expect(saveButton).toBeEnabled()
+  browserErrors.length = 0
+
+  let releaseRefresh: () => void = () => {}
+  let markRefreshStarted: () => void = () => {}
+  let refreshRequestStarted = false
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = () => resolve()
+  })
+  const refreshStarted = new Promise<void>((resolve) => {
+    markRefreshStarted = () => resolve()
+  })
+  const refreshRoutePattern = '**/coach/assign-groups**'
+  await page.route(refreshRoutePattern, async (route) => {
+    if (route.request().headers().rsc === '1') {
+      refreshRequestStarted = true
+      markRefreshStarted()
+      await refreshGate
+    }
+    await route.continue()
+  })
+  const refreshResponse = page.waitForResponse((response) => (
+    response.url().includes('/coach/assign-groups')
+    && response.request().method() === 'GET'
+    && response.request().headers().rsc === '1'
+  ))
   const genericSaveResponse = page.waitForResponse((response) => (
     response.url().includes('/api/coach/assignment-groups') && response.request().method() === 'POST'
   ))
   await saveButton.click()
   expect((await genericSaveResponse).status()).toBe(200)
+  await refreshStarted
+  expect(refreshRequestStarted).toBe(true)
+  expect(assignmentPostCount).toBe(2)
   await expect(page.locator('input[value="กลุ่ม 1"]')).toBeVisible()
+  await expect(page.getByText('บันทึกการมอบหมายสำเร็จ', { exact: true })).toBeVisible()
   await expect(page.getByText('รอบนี้มอบหมายแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'มอบหมายแล้ว', exact: true }).last()).toBeDisabled()
+
+  await groupInput.fill('Draft after success')
+  await expect(page.getByText('มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การมอบหมายที่บันทึกไว้เดิมยังมีผล และการเปลี่ยนแปลงนี้จะยังไม่ส่งให้โค้ชจนกว่าจะกดบันทึกอีกครั้ง', { exact: true })).toBeVisible()
+  await expect(page.getByText('มีการเปลี่ยนแปลง รอตรวจและบันทึก', { exact: true }).last()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'บันทึก/ยืนยันการมอบหมาย', exact: true })).toBeEnabled()
+  expect(assignmentPostCount).toBe(2)
+
+  releaseRefresh()
+  await refreshResponse
+  await page.unroute(refreshRoutePattern)
 
   await page.reload()
   const reloadedDateButton = page.getByRole('button').filter({ hasText: '30 ก.ค.' }).first()

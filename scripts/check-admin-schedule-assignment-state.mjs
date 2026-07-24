@@ -23,6 +23,8 @@ const schedulesRead = read('src/lib/admin-schedules-read.ts')
 const schedulesModel = read('src/lib/admin-schedules-model.ts')
 const assignmentRoute = read('src/app/api/coach/assignment-groups/route.ts')
 const makeupRoute = read('src/app/api/admin/makeup/route.ts')
+const assignmentClient = read('src/components/coach/assign-groups-client.tsx')
+const coachAssignedSchedule = read('src/lib/coach-assigned-schedule.ts')
 
 let passed = 0
 function check(name, action) {
@@ -148,10 +150,53 @@ check('attendance labels and teaching program boxes remain present', () => {
 })
 
 check('legacy coach copy explicitly says it is not an exact group responsibility', () => {
-  const assignmentClient = read('src/components/coach/assign-groups-client.tsx')
   assert.equal(assignmentClient.includes('ข้อมูลโค้ชเดิมของรอบ — ยังไม่ใช่ผู้รับผิดชอบกลุ่ม'), true)
   assert.equal(assignmentClient.includes('currentName: UNGROUPED_ASSIGNMENT_NAME'), true)
   assert.equal(assignmentClient.includes('coachId: null'), true)
+})
+
+check('Coach assignment status labels map empty/unassigned, changed, and saved to three Owner-visible states', () => {
+  assert.equal(assignmentClient.includes("if (state === 'saved') return 'มอบหมายแล้ว'"), true)
+  assert.equal(assignmentClient.includes("if (state === 'changed') return 'มีการเปลี่ยนแปลง รอตรวจและบันทึก'"), true)
+  assert.equal(assignmentClient.includes("return 'ยังไม่ได้มอบหมาย'"), true)
+  assert.equal(assignmentClient.includes("if (state === 'empty') return 'ยังไม่มีกลุ่ม'"), false)
+})
+
+check('Coach assignment summaries count every slot in exactly one state bucket', () => {
+  assert.equal(assignmentClient.includes("if (state === 'saved') counts.savedSlots += 1"), true)
+  assert.equal(assignmentClient.includes("else if (state === 'changed') counts.changedSlots += 1"), true)
+  assert.equal(assignmentClient.includes('else counts.unassignedSlots += 1'), true)
+  assert.equal(assignmentClient.includes("getSlotDraftState(slot, draftsBySlot[slot.key] || []) !== 'saved'"), false)
+})
+
+check('Coach action filter and date cards keep changed separate from truly unassigned', () => {
+  assert.equal(assignmentClient.includes("{ key: 'needs_assignment' as const, label: 'ต้องดำเนินการ' }"), true)
+  assert.equal(assignmentClient.includes("return state !== 'saved'"), true)
+  assert.equal(assignmentClient.includes('summary.unassignedSlots > 0 && ('), true)
+  assert.equal(assignmentClient.includes('summary.changedSlots > 0 && ('), true)
+  assert.equal(assignmentClient.includes("slotDraftState === 'changed' && !isActiveSlot && 'border-amber-200 bg-amber-50/40'"), true)
+})
+
+check('Coach changed detail explains persisted responsibility until the next save', () => {
+  assert.equal(assignmentClient.includes('มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การมอบหมายที่บันทึกไว้เดิมยังมีผล และการเปลี่ยนแปลงนี้จะยังไม่ส่งให้โค้ชจนกว่าจะกดบันทึกอีกครั้ง'), true)
+})
+
+check('Coach save success is immediate, duplicate-safe, and invalidated by draft or newer server evidence', () => {
+  assert.equal(assignmentClient.includes("toast.success('บันทึกการมอบหมายสำเร็จ')"), true)
+  assert.equal(assignmentClient.includes('savedSnapshot.serverSignatureAtSave === serverSignature'), true)
+  assert.equal(assignmentClient.includes('savedSnapshot.draftSignature === draftSignature'), true)
+  assert.equal(assignmentClient.includes('getGroupsSignature(prev[slot.key] || []) === requestDraftSignature'), true)
+  assert.equal(assignmentClient.includes('if (json?.warnings) toast.warning(json.warnings)'), true)
+  assert.ok(assignmentClient.indexOf("toast.success('บันทึกการมอบหมายสำเร็จ')") < assignmentClient.indexOf('router.refresh()'))
+  assert.equal(assignmentClient.includes('setTimeout('), false)
+})
+
+check('Coach assigned schedule remains persisted-membership and visible-lifecycle only', () => {
+  assert.equal(coachAssignedSchedule.includes(".from('coach_assignment_groups')"), true)
+  assert.equal(coachAssignedSchedule.includes('coach_assignment_group_students(booking_session_id)'), true)
+  assert.equal(coachAssignedSchedule.includes("const BOOKING_VISIBLE_STATUSES = ['verified']"), true)
+  assert.equal(coachAssignedSchedule.includes("const SESSION_VISIBLE_STATUSES: SessionStatus[] = ['scheduled', 'completed', 'absent']"), true)
+  assert.equal(coachAssignedSchedule.includes('draftsBySlot'), false)
 })
 
 check('all production-active exact write surfaces retain authorization and shared validation', () => {
@@ -314,7 +359,6 @@ check('legacy member counts are removed from display and auto-name detection', (
 })
 
 check('member counts are rendered dynamically from current arrays', () => {
-  const assignmentClient = read('src/components/coach/assign-groups-client.tsx')
   assert.equal(assignmentClient.includes('{groupStudents.length} คน'), true)
   assert.equal(client.includes('ผู้เรียนในกลุ่มนี้ {group.learners.length} คน'), true)
   assert.equal(client.includes('stripDynamicMemberCount(group.name)'), true)
