@@ -7,8 +7,9 @@ Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
 2026-07-23, plus the Coach Assignment mixed-Level publish/deploy history,
 Owner-reported staged UAT result, read-only Production reconciliation, the
 authoritative-name publish/deploy/read-only UAT, and the exact Controlled Write +
-two-name repair closeout on 2026-07-24. Items not confirmed are marked `Unknown /
-Need verification`.
+two-name repair closeout on 2026-07-24, plus the Owner-approved Coach Assignment
+Status Communication + Save Feedback Source/Local and Commit + Push closeout.
+Items not confirmed are marked `Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -18,6 +19,19 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Owner Policy
 
+- Owner selected **Coach Assignment Status Communication + Save Feedback** as the
+  single Active Task on 2026-07-24 and first authorized Source Fix + Local Test.
+  The Coach assignment page must expose three mutually exclusive user-facing
+  states: red `ยังไม่ได้มอบหมาย` for internal `unassigned`/`empty`, amber
+  `มีการเปลี่ยนแปลง รอตรวจและบันทึก` for internal `changed`, and green
+  `มอบหมายแล้ว` for `saved`. The action filter is `ต้องดำเนินการ` and includes
+  red plus amber. HTTP Save success must show an immediate success toast and
+  saved UI without masking later draft edits or newer Server props. Owner later
+  authorized the exact functional Commit + normal non-force Push, one retry after
+  the first GitHub Internal Server Error, and a separate documentation closeout
+  Commit + normal non-force Push. Deploy, Vercel/alias operations, Production
+  access/UAT/write, migration, environment, feature-control, allowlist changes,
+  and PR creation remain prohibited pending a separate Owner gate.
 - Owner selected **Coach Assignment Mixed-Level Save Regression** as the single
   Active Task on 2026-07-24 and confirmed that Coach/Head Coach may intentionally
   place learners from different Level categories in one group. Mixed categories,
@@ -334,12 +348,58 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
   `Unknown / Need verification`.
 
+### Current Project Matrix — Coach Assignment Status Communication + Save Feedback
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Coach Assignment Status Communication + Save Feedback |
+| Task Status | SOURCE FIX + LOCAL TEST AND COMMIT + PUSH GATES COMPLETE; FUNCTIONAL AND DOCUMENTATION SOURCE COMMITTED/PUSHED; UNDEPLOYED; AWAIT OWNER REVIEW BEFORE DEPLOY |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation closeout commit containing this matrix; parent `fc9f228fa5fc165a3b961636267c6d8614f852cf` |
+| Remote HEAD | Documentation closeout commit containing this matrix on `origin/spike/next-major-security-upgrade`; independently verified after normal non-force push |
+| Ahead/Behind | `0/0` |
+| Protected dirty files | Excluded and checksum-exact before/after: `AGENTS.md` = `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; `src/lib/schedule-slot-utils.ts` = `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
+| Root Cause | Coach UI counted every state other than `saved` as unassigned and then counted `changed` again; Save success had warning handling plus `router.refresh()` but no success toast or local saved evidence during the refresh gap |
+| Source Complete | Yes — functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf`, tree `d75793ad61fc0c02dbbc2631cfb957fd8f4ae5d7`, parent `b79e4d5a2bf31c232f55ceba921012635a357807`. Red/amber/green counts are mutually exclusive at page/date/date-card/slot-card levels; filter/copy are Owner-approved; a per-slot normalized saved signature provides immediate success feedback and is accepted only while the Server baseline and current draft signatures still match |
+| Tests Passed | Yes — Local only: deterministic assignment checks `38/38`; Local Supabase Playwright E2E `6/6` with residue `0`; focused save-state E2E `1/1` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint with zero warnings; mojibake `247` files; Next.js 16.2.6 build `91/91` static pages; post-build `.next` cleanup, clean dev restart, localhost `/` `200`, static CSS `200`; final `git diff --check` passed |
+| Committed | Yes — exact functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf` contains only the Coach client and two approved regression files; separate documentation closeout commit containing this matrix uses subject `docs: close coach assignment status publish` |
+| Pushed | Yes — the first functional push failed with GitHub Internal Server Error request `EA08:392386:5E8D4:65A84:6A638F2A`; the one Owner-approved normal non-force retry succeeded and GitHub independently returned the exact SHA/tree/parent and three-file list; the separate documentation closeout commit was then pushed normal non-force |
+| Current Source | Functional Source/Test commit `fc9f228fa5fc165a3b961636267c6d8614f852cf` plus the separate documentation closeout commit containing this matrix |
+| Deployed | No — this fix has no deployment |
+| Deployed Source | Previous Production source remains unchanged from the completed Coach Assignment Mixed-Level Save Regression release; this local fix is absent |
+| Deployment ID | No new deployment. Existing Production deployment remains `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`; no deployment/alias inspection or mutation occurred in this gate |
+| Migration Source | None |
+| Migration Applied | No — not required |
+| Environment Change | No |
+| Feature Enabled | Not applicable; no feature control changed |
+| Allowlisted | Not applicable; no allowlist changed |
+| Production Active | No — this fix is pushed but not deployed |
+| Production UAT | Not run |
+| Controlled Write UAT | Not run |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | None yet from this undeployed fix; real users continue to receive the previously deployed behavior until a separately approved release |
+| Financial Impact | None |
+| Performance / Call Count | No API/query/polling/timer added. Existing Local E2E external-call assertions remained summary/day/search `4/7/6`; no call-count regression was observed |
+| Blocker | None for the completed Commit + Push gate; the first transient GitHub push error was resolved by the single Owner-approved retry |
+| Remaining Work | Owner review before any separately authorized Deploy gate; Deploy and Production UAT remain unauthorized |
+| Task Done | Yes for the authorized Source/Local and Commit + Push gates; No for release/Production activation |
+| Documentation Drift | No — this closeout reconciles Owner authorization, functional/documentation Git state, Local test evidence, and Production non-change; previous release matrices remain historical |
+| Next Gate / Next Action | Owner review before Deploy |
+| Parking Lot authorization state | No Parking Lot task is authorized |
+
+## Historical / Superseded Completed Task Records
+
+All task sections and matrices below preserve their dated closeout state. Any
+`Active Task`, `Current`, `Remaining Work`, or `Next Action` wording inside them is
+historical and is superseded by the current matrix above.
+
 ### Historical Execution State (superseded snapshot through 2026-07-23)
 
 The present-tense and `Current` wording retained inside this section describes the
 state observed at its individual earlier checkpoints. It is superseded for current
-decisions by **Current Project Matrix — Coach Assignment Mixed-Level Save
-Regression** below; it must not be used as the current Active Task or Next Action.
+decisions by **Current Project Matrix — Coach Assignment Status Communication +
+Save Feedback** above; it must not be used as the current Active Task or Next Action.
 
 - Active Task: **ADMIN SCHEDULES PERFORMANCE**.
 - Task Status: **REGION EXPERIMENT PERFORMANCE GATE PASSED; PERMANENT `icn1`
@@ -1726,7 +1786,10 @@ NO-WRITE PRODUCTION UAT PASSED**
 - Detailed final evidence:
   `docs/performance/admin-schedules-phase-b-final-production-closeout-2026-07-23.md`.
 
-#### Current Project Matrix — Coach Assignment Mixed-Level Save Regression
+#### Historical / Superseded Project Matrix — Coach Assignment Mixed-Level Save Regression
+
+State observed at that completed release closeout. It is preserved as historical
+evidence and is not the current Active Task or current mutable matrix.
 
 | Field | Current value |
 | --- | --- |

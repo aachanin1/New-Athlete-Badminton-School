@@ -2,6 +2,126 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-24 — Coach Assignment Status Communication + Save Feedback Source/Local Gate
+
+Status at this local checkpoint: **PASS — SOURCE FIX + LOCAL TEST ONLY; UNSTAGED /
+UNCOMMITTED / UNPUSHED / UNDEPLOYED; PRODUCTION UNTOUCHED**.
+
+State observed at this closeout:
+
+- Owner selected this task and authorized only Source Fix + Local Test. Fresh Gate
+  0 verified repository root, branch `spike/next-major-security-upgrade`, local /
+  upstream / remote HEAD `b79e4d5a2bf31c232f55ceba921012635a357807`,
+  Ahead/Behind `0/0`, empty staged/untracked sets, and only the two known excluded
+  dirty files. Their SHA-256 values matched before work:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source audit confirmed the UI root cause: overall/date summaries classified
+  every state other than `saved` as unassigned and also counted `changed`
+  separately. Date cards therefore showed red plus amber for the same changed
+  slot. The Save success path normalized the local draft, retained API warning
+  toast, and called `router.refresh()`, but had no success toast or local evidence
+  to hold the saved state until refreshed Server props arrived.
+- The Coach client now maps internal `unassigned` and `empty` to red
+  `ยังไม่ได้มอบหมาย`, `changed` to amber
+  `มีการเปลี่ยนแปลง รอตรวจและบันทึก`, and `saved` to green `มอบหมายแล้ว`.
+  Page/date/date-card/slot-card summaries use one exclusive reducer, preserving
+  `saved + changed + unassigned = total slots`. Date-card priority is red when
+  true unassigned exists, otherwise amber for changed, otherwise green; mixed
+  dates show separate red/amber/green count badges. The action filter label is
+  `ต้องดำเนินการ` and continues to include every non-saved state.
+- Changed detail copy is the exact Owner-approved statement that the prior saved
+  assignment remains effective and the change is not sent to the Coach until
+  Save. Coach-facing schedule semantics remain persisted-group membership plus
+  visible lifecycle only. Admin exact-assignment classification remains unchanged.
+- HTTP success now shows `toast.success('บันทึกการมอบหมายสำเร็จ')`, preserves the
+  existing API warning toast, and records a normalized per-slot saved signature
+  tied to the Server signature observed at Save. The marker is set only after a
+  successful response. It renders saved/disabled immediately while refresh is
+  intentionally held, returns to changed/enabled after any later draft edit, and
+  is ignored when refreshed Server props no longer match its baseline. Response
+  normalization updates the local draft only when the user has not edited that
+  draft while the request was in flight.
+- No API/RPC/database/migration, payload, validation, authorization, atomic save,
+  notification, Admin Schedules runtime, Coach Today, environment, feature,
+  allowlist, package, or dependency file changed. No API/query, polling, timer,
+  global state, or Production path was added. Existing Local E2E call counts stayed
+  summary/day/search `4/7/6`.
+- Regression coverage increased deterministic checks from `32` to `38` and adds
+  status mapping, exclusive summary buckets, action-filter/date-card semantics,
+  exact changed copy, safe success-signature invalidation, retained warning toast,
+  and persisted Coach schedule visibility assertions. The Local Supabase browser
+  flow now proves HTTP error has no success/green transition and remains retryable;
+  successful retry makes exactly one success POST, shows toast plus immediate
+  green/disabled state while `router.refresh()` is held, then a draft edit returns
+  amber/enabled. Existing name persistence, warning-only mixed Level, empty-name
+  pre-write rejection, atomic/conflict behavior, Admin classification, mobile,
+  and residue assertions remain covered.
+- Final Local evidence passed: `npm.cmd run test:admin-schedule-assignment`
+  `38/38`; `npm.cmd run test:admin-schedule-assignment:e2e` `6/6` with fixture
+  residue `0`; focused Save-state E2E `1/1` with residue `0`; Lesson Wallet
+  `17/17`; `npx.cmd tsc --noEmit`; ESLint with zero warnings; mojibake `247` files;
+  Next.js 16.2.6 build `91/91` static pages. Post-build cleanup removed only the
+  ignored repository `.next` directory after an exact `git clean -ndX -- .next`
+  dry run; clean hidden dev restart on `127.0.0.1:3000` passed `/` `200` and CSS
+  asset `200` (`text/css`). Final diff/checksum/safety results are recorded in the
+  current `PROJECT_STATE.md` matrix.
+- Source Complete: **Yes — authorized local scope only**. Tests Passed: **Yes —
+  Local only**. Committed/Pushed/Deployed: **No/No/No**. Feature/Allowlist/
+  Environment/Migration change: **No**. Production Active for this fix: **No**.
+  Production UAT and Controlled Write UAT: **Not run**. Data Repaired: **No**.
+  Production Data Changed: **No**. Customer impact from this local change:
+  **None yet**. Financial impact: **None**.
+- Task Done: **Yes for the authorized Source Fix + Local Test round; No for
+  release/Production activation**. Next Action: **Owner review before Commit +
+  Push**. No later gate is authorized automatically.
+
+#### Owner-approved retry push + documentation closeout
+
+State observed at this Commit + Push closeout on 2026-07-24:
+
+- Owner authorized one retry of the exact functional normal non-force push after
+  the first attempt was rejected by GitHub with Internal Server Error request
+  `EA08:392386:5E8D4:65A84:6A638F2A`, followed only after successful functional
+  Remote verification by a separate three-file documentation closeout commit and
+  normal non-force push. Deploy, Vercel/alias operations, Production access/UAT/
+  write, PR creation, history rewrite, and all Source/Test changes remained
+  prohibited.
+- Fresh Gate 0 verified branch `spike/next-major-security-upgrade`; exact local
+  functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf`; parent
+  `b79e4d5a2bf31c232f55ceba921012635a357807`; tree
+  `d75793ad61fc0c02dbbc2631cfb957fd8f4ae5d7`; Ahead/Behind `1/0`; empty staged
+  and untracked sets; exact functional/documentation/protected hashes; working
+  GitHub authentication; and live Remote HEAD at the expected parent.
+- The functional commit contains exactly
+  `src/components/coach/assign-groups-client.tsx`,
+  `scripts/check-admin-schedule-assignment-state.mjs`, and
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`. The single
+  authorized retry succeeded normal non-force. `git ls-remote` and the GitHub
+  commit API independently returned exact SHA `fc9f228...`, tree `d75793a...`,
+  parent `b79e4d5...`, and the same three-file list.
+- Local verification was not repeated because the exact functional commit and all
+  three functional SHA-256 checkpoints remained unchanged. The authoritative
+  prior Local evidence remains deterministic `38/38`, Local E2E `6/6` residue
+  `0`, focused Save-state E2E `1/1` residue `0`, Lesson Wallet `17/17`, TypeScript,
+  zero-warning ESLint, mojibake `247`, build `91/91`, clean dev restart/static-
+  asset smoke, and call counts summary/day/search `4/7/6`.
+- The documentation closeout is the separate commit containing this record with
+  subject `docs: close coach assignment status publish`; only `PROJECT_STATE.md`,
+  `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md` are included, and it was pushed
+  normal non-force after documentation checks and Remote-parent verification.
+- Source Complete: **Yes**. Tests Passed: **Yes — Local checkpoint unchanged**.
+  Functional and Documentation Committed/Pushed: **Yes/Yes**. Deployed: **No**.
+  Feature/Allowlist/Environment/Migration change: **No**. Production Active for
+  this fix: **No**. Production UAT and Controlled Write UAT: **Not run**. Data
+  Repaired: **No**. Production Data Changed: **No**. Customer Impact: **None yet**.
+  Financial Impact: **None**. Documentation Drift: **No**.
+- Task Done: **Yes for Source/Local and Commit + Push gates; No for release/
+  Production activation**. Blocker: **None**. Next Action: **Owner review before
+  Deploy**. Deploy remains unauthorized pending a separate Owner gate.
+
 ### 2026-07-24 — Coach Assignment Mixed-Level Save Regression Source/Local Gate
 
 Status at the Source/Local checkpoint: **PASS — NEW OWNER-RULE SOURCE/LOCAL TEST

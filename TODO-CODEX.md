@@ -9,8 +9,29 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**NONE — await explicit Owner selection. Do not start another task or Parking Lot
-item automatically.**
+### Coach Assignment Status Communication + Save Feedback
+
+Status: **SOURCE FIX + LOCAL TEST AND COMMIT + PUSH GATES COMPLETE; FUNCTIONAL /
+DOCUMENTATION SOURCE COMMITTED AND PUSHED; UNDEPLOYED; PRODUCTION UNTOUCHED**.
+
+- `/coach/assign-groups` now separates red `unassigned/empty`, amber `changed`,
+  and green `saved` without overlapping counts; `ต้องดำเนินการ` includes red plus
+  amber.
+- HTTP success shows success toast and immediate saved UI through a per-slot
+  signature bound to the pre-Save Server baseline; a later draft edit or newer
+  mismatching Server state invalidates the saved display.
+- Local gates passed: deterministic `38/38`, Local E2E `6/6` residue `0`, focused
+  Save E2E `1/1` residue `0`, Lesson Wallet `17/17`, TypeScript, ESLint, mojibake
+  `247`, build `91/91`, and post-build clean local restart/static-asset smoke.
+- Functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf` is pushed
+  normal non-force with the exact approved three-file scope. The first push failed
+  with GitHub request `EA08:392386:5E8D4:65A84:6A638F2A`; the single
+  Owner-approved retry succeeded. The separate documentation closeout commit is
+  also pushed normal non-force.
+- Authoritative mutable state and full matrix: `PROJECT_STATE.md` → **Current
+  Project Matrix — Coach Assignment Status Communication + Save Feedback**.
+- Next Action: **Owner review before Deploy**. Do not deploy, access Production,
+  open a PR, or start another task automatically.
 
 ## Recently Completed
 
@@ -108,9 +129,10 @@ OWNER POST-PROMOTION LIVE SAVE AND READ-ONLY PRODUCTION RECONCILIATION PASSED**.
   Changed: **Yes — expected Owner Assignment Save; `0` from the read-only audit
   and documentation gate**. Financial Impact: **None detected**. Blocker:
   **None**. Task Done: **Yes**.
-- Next Action: **Await Owner selection; do not start another task automatically.**
-- Authoritative current state: `PROJECT_STATE.md` → **Current Project Matrix —
-  Coach Assignment Mixed-Level Save Regression**.
+- Historical closeout next action: **Await Owner selection; do not start another
+  task automatically.** This was superseded by the Active Work above.
+- Historical release detail: `PROJECT_STATE.md` → **Historical / Superseded
+  Project Matrix — Coach Assignment Mixed-Level Save Regression**.
 
 ### Admin Schedules Performance Phase B
 
@@ -269,11 +291,11 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
 Current next action is owned by the Active Work section above and the authoritative
-matrix in `PROJECT_STATE.md`: **Owner review before a separate Coach Assignment
-Mixed-Level Save Regression Deploy gate. Do not repair, perform an additional
-Commit/Push, deploy, run Production write/UAT, promote, start the auth follow-up,
-historical cleanup, permanent dirty `AGENTS.md` work, Homepage LV, or another
-Parking Lot task without a new Owner gate.**
+matrix in `PROJECT_STATE.md`: **Owner review before a separate Deploy gate for
+Coach Assignment Status Communication + Save Feedback. Do not deploy, run
+Production UAT/write, open a PR, start the auth follow-up, historical cleanup,
+permanent dirty `AGENTS.md` work, Homepage LV, or another Parking Lot task without
+a new Owner gate.**
 
 ## Earlier Completed
 
@@ -478,7 +500,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Await explicit Owner selection. Do not perform another
-  Save/repair, Commit/Push, deploy, Production write/UAT, promote, start Homepage
-  LV, the auth follow-up, historical cleanup, permanent dirty-file work, or
-  another Parking Lot task automatically.**
+- Next action: **Owner review before a separate Deploy gate for Coach Assignment
+  Status Communication + Save Feedback. Do not deploy, perform Production
+  UAT/write, promote, open a PR, start Homepage LV, the auth follow-up, historical
+  cleanup, permanent dirty-file work, or another Parking Lot task automatically.**
