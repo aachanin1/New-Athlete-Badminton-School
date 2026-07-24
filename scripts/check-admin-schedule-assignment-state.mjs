@@ -190,7 +190,7 @@ check('valid user-authored group name is preserved', () => {
   assert.deepEqual([result.name, result.autoNamed], ['ทีมวันพุธ', false])
 })
 
-check('Coach mixed categories with a generic name use a non-blocking fallback', () => {
+check('Coach mixed categories preserve the visible generic name and remain warning-only', () => {
   const result = resolveCoachAssignmentGroupName({
     currentName: 'กลุ่ม 1',
     students: [
@@ -200,7 +200,7 @@ check('Coach mixed categories with a generic name use a non-blocking fallback', 
   })
   assert.deepEqual(
     [result.name, result.error, result.levelMin, result.levelMax],
-    ['กลุ่มผสม', null, 8, 35],
+    ['กลุ่ม 1', null, 8, 35],
   )
   assert.equal(getCoachAssignmentLevelWarning([
     namingStudent(8),
@@ -208,25 +208,25 @@ check('Coach mixed categories with a generic name use a non-blocking fallback', 
   ]), 'mixed_level_categories')
 })
 
-check('Coach assessed plus unassessed group uses a non-blocking fallback', () => {
+check('Coach assessed plus unassessed group preserves the visible name', () => {
   const result = resolveCoachAssignmentGroupName({
-    currentName: 'ยังไม่จัดกลุ่ม',
+    currentName: 'กลุ่ม 2',
     students: [namingStudent(8), namingStudent(0, null, null)],
   })
   assert.deepEqual(
     [result.name, result.error, result.levelMin, result.levelMax],
-    ['กลุ่มผสม', null, 0, 8],
+    ['กลุ่ม 2', null, 0, 8],
   )
 })
 
-check('Coach incomplete Level definition uses a non-blocking fallback', () => {
+check('Coach incomplete Level definition preserves the visible name and warns separately', () => {
   const result = resolveCoachAssignmentGroupName({
-    currentName: '',
+    currentName: 'Incomplete Squad',
     students: [namingStudent(8), namingStudent(9, null, null)],
   })
   assert.deepEqual(
     [result.name, result.error, result.levelMin, result.levelMax],
-    ['กลุ่มผสม', null, 8, 9],
+    ['Incomplete Squad', null, 8, 9],
   )
   assert.equal(
     getCoachAssignmentLevelWarning([namingStudent(8), namingStudent(9, null, null)]),
@@ -234,12 +234,12 @@ check('Coach incomplete Level definition uses a non-blocking fallback', () => {
   )
 })
 
-check('Coach manual mixed-Level names and legacy Thai labels are preserved', () => {
+check('Coach manual Thai, English, generic and legacy names are preserved', () => {
   const mixedStudents = [
     namingStudent(8),
     namingStudent(35, 'athlete_1', 'ชุดเตรียมนักกีฬา ชุด C'),
   ]
-  for (const name of ['พื้นฐาน', 'ระดับสูง', 'กลาง-สูง', 'ชุดพื้นฐาน', 'กลุ่มผสม', 'Mixed Squad']) {
+  for (const name of ['กลุ่ม 1', 'กลุ่ม 2', 'พื้นฐาน', 'ระดับสูง', 'กลาง-สูง', 'ชุดพื้นฐาน', 'กลุ่มผสม', 'Mixed Squad']) {
     const result = resolveCoachAssignmentGroupName({ currentName: name, students: mixedStudents })
     assert.deepEqual(
       [result.name, result.autoNamed, result.error, result.levelMin, result.levelMax],
@@ -256,14 +256,25 @@ check('Coach strips member-count suffix without reinterpreting a manual name', (
   assert.deepEqual([result.name, result.autoNamed, result.error], ['กลาง-สูง', false, null])
 })
 
-check('Coach same-category generic name still derives the active program and actual range', () => {
+check('Coach same-category generic name remains authoritative with the actual range', () => {
   const result = resolveCoachAssignmentGroupName({
     currentName: 'กลุ่ม 2',
     students: [namingStudent(8), namingStudent(29)],
   })
   assert.deepEqual(
     [result.name, result.autoNamed, result.error, result.levelMin, result.levelMax],
-    ['ชุดพื้นฐาน', true, null, 8, 29],
+    ['กลุ่ม 2', false, null, 8, 29],
+  )
+})
+
+check('Coach rejects an empty visible name without inventing a replacement', () => {
+  const result = resolveCoachAssignmentGroupName({
+    currentName: '   ',
+    students: [namingStudent(8), namingStudent(29)],
+  })
+  assert.deepEqual(
+    [result.name, result.autoNamed, result.error, result.levelMin, result.levelMax],
+    [null, false, 'empty_name', 8, 29],
   )
 })
 

@@ -614,6 +614,60 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   })
   expect(duplicateCoach.status).toBe(400)
 
+  const sameCategoryGeneric = await saveGroups({
+    groups: [
+      { name: 'กลุ่ม 1', coachId: null, studentSessionIds: IDS.forwardSessions.slice(0, 2) },
+      { name: 'กลุ่ม 2', coachId: null, studentSessionIds: [IDS.forwardSessions[2]] },
+    ],
+  })
+  expect(sameCategoryGeneric.status, JSON.stringify(sameCategoryGeneric.body)).toBe(200)
+
+  const { data: sameCategoryGroups, error: sameCategoryGroupsError } = await admin
+    .from('coach_assignment_groups')
+    .select('name, coach_id, level_min, level_max, sort_order, coach_assignment_group_students(booking_session_id)')
+    .eq('schedule_slot_id', IDS.forwardSlot)
+    .order('sort_order')
+  assertNoError(sameCategoryGroupsError, 'read same-category generic Coach save')
+  expect(sameCategoryGroups).toEqual([
+    {
+      name: 'กลุ่ม 1',
+      coach_id: null,
+      level_min: 8,
+      level_max: 29,
+      sort_order: 0,
+      coach_assignment_group_students: expect.arrayContaining([
+        { booking_session_id: IDS.forwardSessions[0] },
+        { booking_session_id: IDS.forwardSessions[1] },
+      ]),
+    },
+    {
+      name: 'กลุ่ม 2',
+      coach_id: null,
+      level_min: 35,
+      level_max: 35,
+      sort_order: 1,
+      coach_assignment_group_students: [{ booking_session_id: IDS.forwardSessions[2] }],
+    },
+  ])
+
+  const emptyName = await saveGroups({
+    groups: [{
+      name: '   ',
+      coachId: null,
+      studentSessionIds: [...IDS.forwardSessions],
+    }],
+  })
+  expect(emptyName.status).toBe(400)
+  expect(emptyName.body).toMatchObject({ error: 'กรุณากรอกชื่อกลุ่มก่อนบันทึก' })
+
+  const { data: groupsAfterEmptyName, error: groupsAfterEmptyNameError } = await admin
+    .from('coach_assignment_groups')
+    .select('name, coach_id, level_min, level_max, sort_order, coach_assignment_group_students(booking_session_id)')
+    .eq('schedule_slot_id', IDS.forwardSlot)
+    .order('sort_order')
+  assertNoError(groupsAfterEmptyNameError, 'verify empty-name request did not write')
+  expect(groupsAfterEmptyName).toEqual(sameCategoryGroups)
+
   const genericMixed = await saveGroups({
     groups: [{
       name: 'กลุ่ม 1',
@@ -629,7 +683,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
     .eq('schedule_slot_id', IDS.forwardSlot)
     .single()
   assertNoError(genericGroupError, 'read generic mixed-Level Coach save')
-  expect(genericGroup?.name).toBe('กลุ่มผสม')
+  expect(genericGroup?.name).toBe('กลุ่ม 1')
   expect(genericGroup?.coach_id).toBe(coachUserId)
   expect([genericGroup?.level_min, genericGroup?.level_max]).toEqual([8, 35])
   expect((genericGroup?.coach_assignment_group_students || []).map((row) => row.booking_session_id).toSorted())
@@ -725,17 +779,24 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   ))
   await saveButton.click()
   expect((await genericSaveResponse).status()).toBe(200)
-  await expect(page.locator('input[value="กลุ่มผสม"]')).toBeVisible()
+  await expect(page.locator('input[value="กลุ่ม 1"]')).toBeVisible()
   await expect(page.getByText('รอบนี้มอบหมายแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง', { exact: true })).toBeVisible()
 
-  const persistedInput = page.locator('input[value="กลุ่มผสม"]')
-  await persistedInput.fill('ระดับสูง')
+  await page.reload()
+  const reloadedDateButton = page.getByRole('button').filter({ hasText: '30 ก.ค.' }).first()
+  await expect(reloadedDateButton).toBeVisible()
+  await reloadedDateButton.click()
+  await page.getByRole('button').filter({ hasText: '17:00 - 19:00' }).first().click()
+  await expect(page.locator('input[value="กลุ่ม 1"]')).toBeVisible()
+
+  const persistedInput = page.locator('input[value="กลุ่ม 1"]')
+  await persistedInput.fill('  Mixed Squad (3 คน)  ')
   const manualSaveResponse = page.waitForResponse((response) => (
     response.url().includes('/api/coach/assignment-groups') && response.request().method() === 'POST'
   ))
   await page.getByRole('button', { name: 'บันทึก/ยืนยันการมอบหมาย', exact: true }).click()
   expect((await manualSaveResponse).status()).toBe(200)
-  await expect(page.locator('input[value="ระดับสูง"]')).toBeVisible()
+  await expect(page.locator('input[value="Mixed Squad"]')).toBeVisible()
 
   const { data: refetchedManual, error: refetchedManualError } = await admin
     .from('coach_assignment_groups')
@@ -743,7 +804,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
     .eq('schedule_slot_id', IDS.forwardSlot)
     .single()
   assertNoError(refetchedManualError, 'refetch Head Coach manual mixed-Level name')
-  expect(refetchedManual?.name).toBe('ระดับสูง')
+  expect(refetchedManual?.name).toBe('Mixed Squad')
   expect([refetchedManual?.level_min, refetchedManual?.level_max]).toEqual([8, 35])
   expect(refetchedManual?.coach_assignment_group_students).toHaveLength(3)
 
@@ -757,6 +818,18 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0)
   expect(browserErrors).toEqual([])
+
+  const visibleName = page.locator('input[value="Mixed Squad"]')
+  await visibleName.fill('   ')
+  let emptyNamePostCount = 0
+  page.on('request', (request) => {
+    if (request.url().includes('/api/coach/assignment-groups') && request.method() === 'POST') {
+      emptyNamePostCount += 1
+    }
+  })
+  await page.getByRole('button', { name: 'บันทึก/ยืนยันการมอบหมาย', exact: true }).click()
+  await expect(page.getByText('กรุณากรอกชื่อกลุ่มก่อนบันทึก', { exact: true })).toBeVisible()
+  expect(emptyNamePostCount).toBe(0)
 })
 
 test('day-detail loading, empty, error, and stale-response states are deterministic', async ({ page }) => {

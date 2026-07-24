@@ -2,8 +2,6 @@ import type { LevelCategory } from '@/types/database'
 
 export const UNGROUPED_ASSIGNMENT_NAME = 'ยังไม่จัดกลุ่ม'
 export const UNASSESSED_GROUP_NAME = 'ยังไม่ประเมิน'
-export const MIXED_ASSIGNMENT_GROUP_NAME = 'กลุ่มผสม'
-
 const LEGACY_AUTO_GROUP_NAMES = new Set([
   'พื้นฐาน / เริ่มต้น',
   'กำลังพัฒนา',
@@ -21,6 +19,7 @@ export interface AssignmentGroupNamingStudent {
 }
 
 export type AutoGroupNameError =
+  | 'empty_name'
   | 'no_members'
   | 'incomplete_level_definition'
   | 'mixed_level_categories'
@@ -121,10 +120,6 @@ function getAssignmentGroupLevelRange(students: AssignmentGroupNamingStudent[]) 
   }
 }
 
-function isCoachAutoNamePlaceholder(name: string) {
-  return !name || name === UNGROUPED_ASSIGNMENT_NAME || GENERIC_AUTO_GROUP_NAME.test(name)
-}
-
 export function getCoachAssignmentLevelWarning(
   students: AssignmentGroupNamingStudent[],
 ): Extract<AutoGroupNameError, 'incomplete_level_definition' | 'mixed_level_categories'> | null {
@@ -143,33 +138,25 @@ export function resolveCoachAssignmentGroupName({
   const value = stripDynamicMemberCount(currentName)
   const levelRange = getAssignmentGroupLevelRange(students)
 
-  if (!isCoachAutoNamePlaceholder(value)) {
+  if (!value) {
     return {
-      name: value,
+      name: null,
       autoNamed: false,
-      error: null as AutoGroupNameError | null,
+      error: 'empty_name' as AutoGroupNameError,
       ...levelRange,
     }
   }
 
-  const derived = deriveAssignmentGroupAutoName(students)
-  if (derived.error === 'incomplete_level_definition' || derived.error === 'mixed_level_categories') {
-    return {
-      name: MIXED_ASSIGNMENT_GROUP_NAME,
-      autoNamed: true,
-      error: null as AutoGroupNameError | null,
-      levelMin: derived.levelMin,
-      levelMax: derived.levelMax,
-    }
-  }
-
   return {
-    ...derived,
-    autoNamed: Boolean(derived.name),
+    name: value,
+    autoNamed: false,
+    error: null as AutoGroupNameError | null,
+    ...levelRange,
   }
 }
 
 export function formatAutoGroupNameError(error: AutoGroupNameError) {
+  if (error === 'empty_name') return 'กรุณากรอกชื่อกลุ่มก่อนบันทึก'
   if (error === 'no_members') return 'ต้องมีผู้เรียนในกลุ่มก่อนตั้งชื่ออัตโนมัติ'
   if (error === 'incomplete_level_definition') {
     return 'ข้อมูล Level ของผู้เรียนไม่ครบหรือไม่อยู่ใน Level ที่เปิดใช้งาน กรุณาตรวจข้อมูลหรือตั้งชื่อกลุ่มเอง'
