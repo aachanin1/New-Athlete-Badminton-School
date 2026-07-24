@@ -12,7 +12,7 @@ import {
 } from '@/lib/coach-assignment-conflicts'
 import {
   formatAutoGroupNameError,
-  resolveAssignmentGroupName,
+  resolveCoachAssignmentGroupName,
 } from '@/lib/coach-assignment-group-naming'
 import { loadAssignmentGroupNamingStudents } from '@/lib/coach-assignment-group-naming-server'
 import { createClient } from '@/lib/supabase/server'
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       const namingStudents = studentSessionIds
         .map((sessionId) => namingStudentsBySessionId.get(sessionId))
         .filter((student): student is NonNullable<typeof student> => Boolean(student))
-      const resolvedName = resolveAssignmentGroupName({ currentName: group.name, students: namingStudents })
+      const resolvedName = resolveCoachAssignmentGroupName({ currentName: group.name, students: namingStudents })
 
       if (!resolvedName.name && resolvedName.error) {
         return NextResponse.json({ error: formatAutoGroupNameError(resolvedName.error) }, { status: 400 })
@@ -220,8 +220,8 @@ export async function POST(request: NextRequest) {
       normalizedGroups.push({
         name: resolvedName.name || (group.name || '').trim(),
         coachId: group.coachId || null,
-        levelMin: resolvedName.autoNamed ? resolvedName.levelMin : normalizeLevel(group.levelMin),
-        levelMax: resolvedName.autoNamed ? resolvedName.levelMax : normalizeLevel(group.levelMax),
+        levelMin: resolvedName.levelMin ?? normalizeLevel(group.levelMin),
+        levelMax: resolvedName.levelMax ?? normalizeLevel(group.levelMax),
         sortOrder: Number.isFinite(Number(group.sortOrder)) ? Number(group.sortOrder) : index,
         studentSessionIds,
       })

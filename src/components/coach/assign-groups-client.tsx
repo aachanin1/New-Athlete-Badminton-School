@@ -37,7 +37,8 @@ import {
 } from '@/lib/date-format'
 import {
   formatAutoGroupNameError,
-  resolveAssignmentGroupName,
+  getCoachAssignmentLevelWarning,
+  resolveCoachAssignmentGroupName,
   UNASSESSED_GROUP_NAME,
   UNGROUPED_ASSIGNMENT_NAME,
 } from '@/lib/coach-assignment-group-naming'
@@ -270,14 +271,14 @@ function createInitialDrafts(slot: AssignmentSlot): GroupDraft[] {
       .map((group, index) => {
         const groupSessionIds = new Set(group.studentSessionIds)
         const groupStudents = slot.students.filter((student) => groupSessionIds.has(student.bookingSessionId))
-        const resolvedName = resolveAssignmentGroupName({ currentName: group.name, students: groupStudents })
+        const resolvedName = resolveCoachAssignmentGroupName({ currentName: group.name, students: groupStudents })
         return {
           localId: group.id,
           persistedId: group.id,
           name: resolvedName.name || group.name,
           coachId: group.coachId,
-          levelMin: resolvedName.autoNamed ? resolvedName.levelMin : group.levelMin,
-          levelMax: resolvedName.autoNamed ? resolvedName.levelMax : group.levelMax,
+          levelMin: resolvedName.levelMin,
+          levelMax: resolvedName.levelMax,
           sortOrder: index,
           studentSessionIds: group.studentSessionIds,
         }
@@ -285,7 +286,7 @@ function createInitialDrafts(slot: AssignmentSlot): GroupDraft[] {
 
     const unassignedStudents = slot.students.filter((student) => !assignedIds.has(student.bookingSessionId))
     if (unassignedStudents.length > 0) {
-      const resolvedName = resolveAssignmentGroupName({
+      const resolvedName = resolveCoachAssignmentGroupName({
         currentName: UNGROUPED_ASSIGNMENT_NAME,
         students: unassignedStudents,
       })
@@ -600,7 +601,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
     }>
 
     for (const [index, group] of nonEmptyGroups.entries()) {
-      const resolvedName = resolveAssignmentGroupName({
+      const resolvedName = resolveCoachAssignmentGroupName({
         currentName: group.name,
         students: getGroupStudents(slot, group),
       })
@@ -612,8 +613,8 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       submittedGroups.push({
         name: resolvedName.name || group.name.trim(),
         coachId: group.coachId,
-        levelMin: resolvedName.autoNamed ? resolvedName.levelMin : group.levelMin,
-        levelMax: resolvedName.autoNamed ? resolvedName.levelMax : group.levelMax,
+        levelMin: resolvedName.levelMin,
+        levelMax: resolvedName.levelMax,
         sortOrder: index,
         studentSessionIds: group.studentSessionIds,
       })
@@ -653,6 +654,21 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
         return
       }
 
+      const savedGroupsByLocalId = new Map(
+        nonEmptyGroups.map((group, index) => [group.localId, submittedGroups[index]]),
+      )
+      setDraftsBySlot((prev) => ({
+        ...prev,
+        [slot.key]: (prev[slot.key] || []).map((group) => {
+          const savedGroup = savedGroupsByLocalId.get(group.localId)
+          return savedGroup ? {
+            ...group,
+            name: savedGroup.name,
+            levelMin: savedGroup.levelMin,
+            levelMax: savedGroup.levelMax,
+          } : group
+        }),
+      }))
       if (json?.warnings) toast.warning(json.warnings)
       router.refresh()
     } catch {
@@ -1021,6 +1037,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                           const bestCoach = pickBestCoachForStudents(groupStudents)
                           const usedCoachMap = getUsedCoachMap(slotGroups)
                           const actualLevelRangeLabel = formatActualGroupLevelRange(groupStudents)
+                          const levelWarning = getCoachAssignmentLevelWarning(groupStudents)
 
                           return (
                             <div
@@ -1117,6 +1134,13 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                                 <Badge variant="outline" className="bg-gray-50">{groupStudents.length} คน</Badge>
                                 {hasWideLevelGap(groupStudents) && (
                                   <Badge className="bg-amber-100 text-amber-800">Level ห่างมาก</Badge>
+                                )}
+                                {levelWarning && (
+                                  <Badge className="bg-amber-100 text-amber-800">
+                                    {levelWarning === 'mixed_level_categories'
+                                      ? 'Level ต่างหมวด — เตือนเท่านั้น'
+                                      : 'ข้อมูล Level ไม่ครบ — เตือนเท่านั้น'}
+                                  </Badge>
                                 )}
                               </div>
 

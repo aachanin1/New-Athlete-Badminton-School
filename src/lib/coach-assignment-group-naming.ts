@@ -2,6 +2,7 @@ import type { LevelCategory } from '@/types/database'
 
 export const UNGROUPED_ASSIGNMENT_NAME = 'ยังไม่จัดกลุ่ม'
 export const UNASSESSED_GROUP_NAME = 'ยังไม่ประเมิน'
+export const MIXED_ASSIGNMENT_GROUP_NAME = 'กลุ่มผสม'
 
 const LEGACY_AUTO_GROUP_NAMES = new Set([
   'พื้นฐาน / เริ่มต้น',
@@ -105,6 +106,63 @@ export function resolveAssignmentGroupName({
   }
 
   const derived = deriveAssignmentGroupAutoName(students)
+  return {
+    ...derived,
+    autoNamed: Boolean(derived.name),
+  }
+}
+
+function getAssignmentGroupLevelRange(students: AssignmentGroupNamingStudent[]) {
+  if (students.length === 0) return { levelMin: null, levelMax: null }
+  const levels = students.map((student) => student.level ?? 0)
+  return {
+    levelMin: Math.min(...levels),
+    levelMax: Math.max(...levels),
+  }
+}
+
+function isCoachAutoNamePlaceholder(name: string) {
+  return !name || name === UNGROUPED_ASSIGNMENT_NAME || GENERIC_AUTO_GROUP_NAME.test(name)
+}
+
+export function getCoachAssignmentLevelWarning(
+  students: AssignmentGroupNamingStudent[],
+): Extract<AutoGroupNameError, 'incomplete_level_definition' | 'mixed_level_categories'> | null {
+  const error = deriveAssignmentGroupAutoName(students).error
+  if (error === 'incomplete_level_definition' || error === 'mixed_level_categories') return error
+  return null
+}
+
+export function resolveCoachAssignmentGroupName({
+  currentName,
+  students,
+}: {
+  currentName: string | null | undefined
+  students: AssignmentGroupNamingStudent[]
+}) {
+  const value = stripDynamicMemberCount(currentName)
+  const levelRange = getAssignmentGroupLevelRange(students)
+
+  if (!isCoachAutoNamePlaceholder(value)) {
+    return {
+      name: value,
+      autoNamed: false,
+      error: null as AutoGroupNameError | null,
+      ...levelRange,
+    }
+  }
+
+  const derived = deriveAssignmentGroupAutoName(students)
+  if (derived.error === 'incomplete_level_definition' || derived.error === 'mixed_level_categories') {
+    return {
+      name: MIXED_ASSIGNMENT_GROUP_NAME,
+      autoNamed: true,
+      error: null as AutoGroupNameError | null,
+      levelMin: derived.levelMin,
+      levelMax: derived.levelMax,
+    }
+  }
+
   return {
     ...derived,
     autoNamed: Boolean(derived.name),
