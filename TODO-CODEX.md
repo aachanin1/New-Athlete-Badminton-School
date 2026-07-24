@@ -9,11 +9,34 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
+**NONE — await explicit Owner selection. Do not start another task or Parking Lot
+item automatically.**
+
+## Recently Completed
+
 ### Coach Assignment Mixed-Level Save Regression
 
-Status: **FORWARD SOURCE COMMITTED AND PUSHED / LOCAL TESTS PASSED; READ-ONLY
-PRODUCTION RECONCILIATION COMPLETE — UNDEPLOYED FIX; TWO DATA REPAIR CANDIDATES;
-CURRENT STAGED ARTIFACT MUST NOT BE PROMOTED**.
+Status: **DONE — AUTHORITATIVE-NAME SOURCE COMMITTED/PUSHED/DEPLOYED/PROMOTED;
+PRODUCTION-ACTIVE; LOCAL AND STAGED GATES PASSED; PRIOR EXACT REPAIR PASSED;
+OWNER POST-PROMOTION LIVE SAVE AND READ-ONLY PRODUCTION RECONCILIATION PASSED**.
+
+- Owner's post-promotion Production Save on exact เทพารักษ์ slot
+  `6e27b409-27e8-4b67-966b-75b27248c13d`, 2026-07-25 09:00–11:00, is accepted
+  business UAT evidence. `กลุ่มโค้ชชาติ` / Coach ชาติ / 5 learners / LV `3–11`
+  and `กลุ่มโค้ชเบล` / Head Coach เบล / 4 learners / LV `7–35` persisted exactly.
+  Mixed-Level remained warning-only and the UI settled to `มอบหมายแล้ว`.
+- Vercel request `d2wlk-1784886263183-64f29b35ccf7` was the exact
+  `POST /api/coach/assignment-groups` `200`; activity row
+  `468e0e9f-7032-480a-8e17-43c779ae50de` records `2` groups / `9` students.
+  Groups/members/legacy/reservations reconcile `2/9/2/2`, active verified
+  learners are `9/9` exactly once, and all orphan/duplicate/identity/range/legacy/
+  reservation mismatch counts are `0`. Notification delta was `0`.
+- The observed 16:00–18:00 count change `5 → 4` was independent: learner session
+  `cf4c224a-fe4c-4a5b-a24d-bd6a7b3f72fd` was rescheduled at
+  `2026-07-24T09:18:32Z`, with activity `26ca576d-a53f-45be-8096-b919af161ce6`,
+  about 26 minutes before the 09:44 Assignment Save. The successful Save's
+  `router.refresh()` exposed that already-current count; Assignment Source/RPC
+  has no booking/session/payment/wallet/attendance/payroll write path.
 
 - Owner superseded the automatic Coach Save naming rule after Controlled Write
   UAT: every cleaned non-empty name visible at Save is authoritative; only outer
@@ -33,25 +56,61 @@ CURRENT STAGED ARTIFACT MUST NOT BE PROMOTED**.
   ESLint with zero warnings, mojibake `247`, secret-addition scan, and diff check.
   The prior unchanged-worktree Production build `91/91` was not rerun; its
   post-build `.next` cleanup/clean restart remains not claimed.
-- New forward fix is committed and pushed but remains undeployed and not
-  Production-active. Existing
-  staged deployment `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` contains superseded
-  behavior, remains unaliased/unpromoted, and must not be promoted.
+- Exact HEAD `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, is deployed as Production-target
+  artifact `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`, now `READY` / `PROMOTED`, Current,
+  and Production-active through all four established aliases. Pinned Vercel CLI
+  `56.5.0` promoted the existing exact artifact once with exit `0`; no deployment,
+  rebuild, force, retry, rollback, or separate alias command occurred.
+- Exactly four Production aliases moved from
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H` to `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`;
+  missing/extra aliases were `0/0` and branch-preview aliases were unchanged. No
+  application route, Production API/database, environment, feature, allowlist,
+  migration, or business-data write was exercised. Existing staged deployment
+  `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` contains superseded behavior, remains
+  unaliased/unpromoted, and must not be promoted.
+- Owner-approved Chrome read-only staged UAT passed on the exact new artifact.
+  Existing Head Coach authentication/authorization, page/data load, exact 24 July
+  17:00–19:00 Thepharak slot, 2 groups / 7 learners, current persisted names,
+  Coach/member mapping, desktop `1920x855`, and mobile `390x844` rendering passed.
+  Console, page, hydration, Next.js overlay, 4xx/5xx, Vercel warning/error, and
+  application mutation counts were `0`; all 50 unique Vercel requests were `GET`.
+  That gate did not exercise Save; the later controlled gate below supplies the
+  write proof.
 - Read-only Production reconciliation found exact slot
   `8e2ede37-f7d3-4733-b63a-bd8504503f6f`, เทพารักษ์, 2026-07-24 17:00–19:00.
   Current groups/members/legacy/reservations reconcile `2/7/2/2` with all orphan,
   duplicate, range, identity, legacy, and reservation mismatches `0`.
-- Persisted names remain `ชุดเตรียมนักกีฬา ชุด C` and `ชุดพื้นฐาน`; both are Data
-  Repair Candidates against Owner-reported visible `กลุ่ม 1` and `กลุ่ม 2`.
-  No repair was performed or authorized. One schedule notification was created
-  for Coach ชาติ by the first UAT Save; protected business/financial fingerprints
-  matched pre/post audit.
-- Next Action: **Owner review before a separate Deploy gate. No repair, deploy,
-  Production write/UAT, promotion, or alias movement is authorized automatically.**
+- Owner-approved combined Controlled Write + exact repair then used the staged
+  artifact once. The only mutation was request
+  `xdlkj-1784881343649-b67b7bea8a1e`, `POST /api/coach/assignment-groups`, `200`.
+  New group `bc51314c-7708-4ecb-bf56-98f3813fbdd5` persists `กลุ่ม 1` with the
+  original Coach/four sessions/range `38–57`; new group
+  `17df9379-0b77-49b2-a6ae-3d79569323e6` persists `กลุ่ม 2` with the original
+  Coach/three sessions/range `9–22`.
+- Post-write groups/members/legacy/reservations remained `2/7/2/2`; old group IDs
+  were absent; all orphan/duplicate/range/identity/legacy/reservation mismatches
+  were `0`. Exactly one activity row was added, notification delta was `0`, and
+  booking/payment/wallet/attendance/check-in/teaching/payroll fingerprints were
+  unchanged. No retry or restoration Save occurred.
+- Data Repaired: **Yes — exact approved slot/two names only**. Production Data
+  Changed: **Yes — atomic assignment-row replacement by the one approved Save**.
+  Financial Impact: **None detected**. Production data changed by the Promotion
+  gate: **0**. The authoritative-name Source is Production-active by control-plane
+  evidence.
+- The earlier read-only checkpoint's four deployment-wide booking availability/
+  preview POSTs remain historical attribution evidence only. They did not match
+  the Coach burst, and Source confirms both endpoints are SELECT-only; Owner
+  accepted the later live Save as the closing business UAT evidence.
+- Production UAT: **Passed — Owner post-promotion live Save**. Authoritative Save
+  behavior and Controlled Write UAT: **Passed**. Data Repaired: **Yes — prior
+  exact two-name repair only; this Save was normal Owner use**. Production Data
+  Changed: **Yes — expected Owner Assignment Save; `0` from the read-only audit
+  and documentation gate**. Financial Impact: **None detected**. Blocker:
+  **None**. Task Done: **Yes**.
+- Next Action: **Await Owner selection; do not start another task automatically.**
 - Authoritative current state: `PROJECT_STATE.md` → **Current Project Matrix —
   Coach Assignment Mixed-Level Save Regression**.
-
-## Recently Completed
 
 ### Admin Schedules Performance Phase B
 
@@ -419,8 +478,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Owner review before a separate Coach Assignment Mixed-Level Save
-  Regression Deploy gate. Do not repair, perform an additional Commit/Push,
-  deploy, run Production write/UAT, promote, start Homepage LV, the auth follow-up,
-  historical cleanup, permanent dirty-file work, or another Parking Lot task
-  automatically.**
+- Next action: **Await explicit Owner selection. Do not perform another
+  Save/repair, Commit/Push, deploy, Production write/UAT, promote, start Homepage
+  LV, the auth follow-up, historical cleanup, permanent dirty-file work, or
+  another Parking Lot task automatically.**

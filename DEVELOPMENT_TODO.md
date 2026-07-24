@@ -249,6 +249,477 @@ State observed at the 2026-07-24 publish closeout:
   staged artifact must not be promoted, and no data repair, Production write/UAT,
   alias movement, deploy, or promotion is authorized automatically.**
 
+#### Owner-approved authoritative-name staged Deploy gate
+
+State observed at the 2026-07-24 staged deployment closeout:
+
+- Fresh Git Gate 0 matched repository root, branch
+  `spike/next-major-security-upgrade`, local/upstream/remote HEAD
+  `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, and Ahead/Behind `0/0`.
+  Staged/untracked sets were empty; the only dirty files remained the excluded
+  `AGENTS.md` and `src/lib/schedule-slot-utils.ts`, checksum-exact at
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  `git diff --check` passed; `vercel.json` remained unchanged with configured
+  region `["icn1"]`; package, configuration, and migration diffs were `0`.
+- Pinned cached Vercel CLI `56.5.0` was authenticated to project
+  `new-athlete-badminton-school` / `prj_v034HOI6AjaMpBezWvuvT0W24pTp` in
+  organization `team_gw8Y6CPd602WAKRsVFobPGCL`. Fresh CLI help defined
+  `--skip-domain` as disabling automatic promotion/aliasing of relevant domains.
+- At the pre-deploy timestamp `2026-07-24T06:42:44.2912477Z`, all four established
+  Production aliases mapped to `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`. The old
+  superseded staged artifact `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` remained
+  `READY` / `STAGED`, target `production`, `autoAssignCustomDomains=false`, with
+  zero attached aliases. Existing automatic branch preview
+  `dpl_5mxJ9uHHUWJSg18oCf3nV5tKfeTy` predated this gate and was recorded separately;
+  it was not used or promoted.
+- A task-specific detached worktree was created under
+  `C:\Users\aacha\AppData\Local\Temp\codex-nasc-coach-authoritative-deploy-b6d974c-20260724\worktree`.
+  It was clean at the exact approved HEAD/tree and did not inherit either excluded
+  dirty file, `.env`, credentials, token, `.next`, `node_modules`, or generated
+  artifact. Only the verified `.vercel/project.json` linkage metadata was copied.
+- The exact command
+  `vercel deploy --prod --skip-domain --yes --scope team_gw8Y6CPd602WAKRsVFobPGCL --no-color`
+  ran once from that detached worktree with pinned CLI `56.5.0`; exit code was `0`.
+  No `--force` or retry was used. Exactly one post-baseline deployment was created:
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`, unique URL
+  `https://new-athlete-badminton-school-5p92e6c1p-aachanin1s-projects.vercel.app`.
+- Control-plane metadata verified target `production`, state `READY`,
+  `readySubstate=STAGED`, `autoAssignCustomDomains=false`, source `cli`, actor
+  `codex`, and Git SHA `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67` / ref
+  `HEAD`. Exact tree identity is proven by the clean detached deployment input at
+  `271908ac3f84be95391819fb01a47ac197460489`.
+- Remote build succeeded in `79.057 s`: build execution region `cle1`, build
+  metadata region `sfo1`, Next.js `16.2.6`, Node.js `24.x` / `nodejs24.x`, and
+  static page generation `91/91`. Permanent configured region and the Coach
+  assignment Function region remained `icn1`. The build's npm audit reported one
+  low and six high dependency vulnerabilities; no dependency change was authorized
+  or made in this gate.
+- The new deployment has zero attached custom/Production aliases and is not
+  Current. Post-deploy inspection found the same eight project aliases in total;
+  the four established Production aliases remained exactly on
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, and no alias was added, removed, or moved.
+  Old staged artifact `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` remained `READY` /
+  `STAGED`, unpromoted, and unaliased.
+- No application route or unique deployment URL was opened. Production
+  application API/database access and mutation requests were `0`. No environment,
+  feature, allowlist, migration, Source/Test/configuration, Production data, or
+  financial data change occurred. Promotion, rollback, and alias mutation were
+  not performed.
+- Evidence capture ended at `2026-07-24T06:45:32.8675049Z`. The exact detached
+  worktree was removed with `git worktree remove`; its verified-empty task parent
+  was removed non-recursively, and no task worktree or temporary file remained.
+- Source Complete: **Yes — Coach flow only**. Tests Passed: **Yes — Local only**;
+  the successful remote build is deployment evidence, not Production UAT.
+  Committed/Pushed: **Yes/Yes**. Deployed: **Yes — staged Production-target
+  artifact only**. Promoted/Production Active/Production UAT/Controlled Write UAT
+  for the new fix: **No/No/No/No**. Feature/Allowlist/Environment/Migration change:
+  **No**. Data Repaired: **No**. Production Data Changed by this gate: **0**.
+  Customer impact: **No direct Production change**; the two reconciled persisted
+  naming repair candidates remain. Financial impact: **None detected**. Task Done:
+  **No**.
+- These documentation changes are local, unstaged, and uncommitted. Next Action:
+  **Owner review before a separately approved read-only staged-deployment UAT gate.
+  Do not promote, move aliases, run Production UAT/write, or repair data
+  automatically.**
+
+#### Owner-approved authoritative-name read-only staged UAT gate
+
+State observed during the 2026-07-24 Chrome read-only UAT:
+
+- Fresh Git Gate 0 matched branch `spike/next-major-security-upgrade`, exact
+  local/upstream/remote HEAD `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, and Ahead/Behind `0/0`.
+  Staged/untracked sets were empty. Dirty scope was exactly the three authorized
+  local documentation files plus excluded `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts`; their SHA-256 values remained
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  Source/Test/configuration/package/migration/`vercel.json` diffs were `0`, and
+  `git diff --check` passed.
+- Pre-UAT Vercel control-plane evidence confirmed exact deployment
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`, Git SHA
+  `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, target `production`, state
+  `READY`, `readySubstate=STAGED`, `autoAssignCustomDomains=false`, source `cli`,
+  configured/Function region `icn1`, and attached alias count `0`. All four
+  established Production aliases remained on
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`; superseded old artifact
+  `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` remained `READY` / `STAGED`, unpromoted,
+  and unaliased.
+- The first staged navigation redirected to
+  `/auth/login?redirect=%2Fcoach%2Fassign-groups`. Codex stopped without entering
+  credentials or reading cookies/storage/session secrets and handed the exact
+  staged tab to the Owner. After the Owner logged in personally, the exact staged
+  hostname/path loaded `/coach/assign-groups` and visibly identified the session
+  as `โคัช เบล NA เทพารักษ์ (หัวหน้า)`. Authentication and Head Coach
+  authorization therefore passed without opening a Production alias.
+- The page already selected Friday 24 July 2026 and the exact 17:00–19:00
+  Thepharak slot `8e2ede37-f7d3-4733-b63a-bd8504503f6f`; no date/slot click was
+  needed. It rendered one assigned slot, two groups, and all seven learners:
+  - `ชุดเตรียมนักกีฬา ชุด C`, Coach `โคัช เบล NA เทพารักษ์ (ตนเอง) - หัวหน้าโค้ช`,
+    displayed range `LV 38-57`, four learners: สเปน LV57, สปิน LV40, ตินติน LV41,
+    and ภัทร LV38;
+  - `ชุดพื้นฐาน`, Coach `โค้ช ชาติ NA เทพารัก - โค้ช`, displayed range
+    `LV 9-22`, three learners: พอล LV9, นอฟ LV22, and เอวา LV9.
+  This matches the reconciled persisted/current mapping. The assignment state
+  displayed `มอบหมายแล้ว`; its Save/status button was disabled. No form control
+  was focused, typed into, selected, or changed. `จัดตาม Level (ยังไม่บันทึก)`,
+  add/delete, coach, learner-group, Save, and Confirm controls were not clicked.
+- Desktop `1920x855` rendering and mobile viewport `390x844` rendering passed.
+  Both retained the exact slot, names, ranges, coaches, and seven learners. Desktop
+  and mobile document width equaled client width; horizontal overflow was absent.
+  Mobile inspection found zero controls outside the viewport and no overlapping or
+  unreadable group/control layout in screenshot evidence. The temporary viewport
+  override was reset before browser closeout.
+- Browser console warning/error entries were `0`. Next.js error-overlay count,
+  page error, hydration/React error, authorization error, and active JavaScript
+  dialog were `0`. No unsaved-draft state was introduced by this gate.
+- UAT log interval was `2026-07-24T07:47:42.636Z` through
+  `2026-07-24T07:50:56.172Z`. Pinned Vercel CLI `56.5.0` found `50` unique
+  requests, all `GET`: `/coach` `7x200`; `/auth/register` `6x200` plus `5x307`;
+  `/coach/today` `6x200`; `/` `4x200`; `/coach/students`,
+  `/coach/assign-groups`, and `/coach/notifications` `3x200` each;
+  `/coach/hours`, `/coach/checkin`, `/profile`, `/coach/attendance`,
+  `/coach/levels`, and `/coach/programs` `2x200` each; and `/auth/login` `1x200`.
+  The Coach/auth route fan-out and `307 /auth/register` entries were automatic
+  Next.js prefetch/navigation behavior, not clicked routes or business writes.
+- Application `POST`, `PUT`, `PATCH`, and `DELETE` counts were `0`.
+  `/api/coach/assignment-groups` POST count, Save/Confirm request count, 4xx, 5xx,
+  warning-level, error-level, and runtime-error counts were all `0`. No direct
+  Production database/API query was made; Production data write attributable to
+  this gate was `0`.
+- Post-UAT metadata remained `production / READY / STAGED`, unpromoted, region
+  `icn1`, `autoAssignCustomDomains=false`, with attached alias count `0`. All four
+  Production aliases remained on `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`; no alias
+  was added, removed, or moved. The old staged artifact remained unpromoted.
+- Read-only staged UAT: **Passed**. Authoritative Save behavior: **Unknown / Need
+  Controlled Write UAT** because no draft or Save may be exercised in this gate.
+  Source Complete: **Yes — Coach flow only**. Tests Passed: **Yes — Local only**.
+  Committed/Pushed: **Yes/Yes**. Deployed: **Yes — staged artifact only**.
+  Promoted/Production Active/Controlled Write UAT: **No/No/No**. Feature/
+  Allowlist/Environment/Migration change: **No**. Data Repaired: **No**.
+  Production Data Changed by this gate: **0**. Customer impact: **No direct
+  Production change; the two persisted naming repair candidates remain**.
+  Financial impact: **None detected**. Task Done: **No**.
+- Documentation is local, unstaged, and uncommitted. Next Action: **Owner review
+  before a separately approved Controlled Write UAT and/or Data Repair gate.
+  Promotion remains unauthorized; do not Save, repair, write Production data,
+  promote, or move aliases automatically.**
+
+#### Owner-approved combined Controlled Write UAT + exact two-name repair
+
+State observed during the 2026-07-24 controlled staged-write closeout:
+
+- Owner authorized exactly one Save through staged deployment
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9` for exact slot
+  `8e2ede37-f7d3-4733-b63a-bd8504503f6f`, 2026-07-24 17:00–19:00 Bangkok,
+  เทพารักษ์. Only sort-0/sort-1 names could change to `กลุ่ม 1` / `กลุ่ม 2`; coach,
+  member, sort, Level, and slot changes were prohibited. Retry and restoration Save
+  were not authorized.
+- Fresh Gate 0 at `2026-07-24T15:14:16.672` Bangkok matched branch
+  `spike/next-major-security-upgrade`, local/upstream/remote HEAD
+  `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, Ahead/Behind `0/0`, staged/untracked
+  `0/0`, and the expected three documentation plus two excluded dirty files.
+  `git diff --check` passed. Excluded checksums remained `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Fresh Vercel control-plane evidence matched exact Git SHA, target `production`,
+  `READY / STAGED`, `autoAssignCustomDomains=false`, source `cli`, region `icn1`,
+  attached aliases `0`, and not Current. All four Production aliases remained on
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H` before the write.
+- Fresh Production SELECT baseline at `15:19:58.359231` Bangkok found slot status
+  `open`, no activity in the preceding 15 minutes, and zero attendance, check-in,
+  teaching-program/hour, weekly-summary, or payout evidence. Pre-click recheck at
+  `15:22:09.094457` still had `recent_activity_15m=0`, check-ins `0`, attendance
+  `0`, and time before 17:00.
+- Exact baseline groups/members/legacy/reservations were `2/7/2/2`. Sort 0 group
+  `a6bac691-d7d1-4a4d-acdc-e22d0f417c78` persisted
+  `ชุดเตรียมนักกีฬา ชุด C`, Coach
+  `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`, range `38–57`, and sessions
+  `34842d9d...`, `0e8b4c91...`, `933297a0...`, `92a87e2d...`. Sort 1 group
+  `f460017e-4a6f-44e7-8068-b82a6a2af5b2` persisted `ชุดพื้นฐาน`, Coach
+  `a5d186f6-8466-4249-83a2-64d7fd1d0848`, range `9–22`, and sessions
+  `1244d5eb...`, `d5ffb13a...`, `f8ec2fa0...`. All seven were active verified and
+  assigned exactly once; every baseline orphan/duplicate/identity/range/legacy/
+  reservation mismatch count was `0`.
+- Protected pre-write fingerprints were booking sessions `11` /
+  `6c7f5c281df5e841bcccae4c862256f5`, bookings `9` /
+  `02e59344694f12d7b76b189dfb06fa7b`, payments `9` /
+  `ed2cb447f5140790a402aa3427e7ebd0`, wallet credits `2` /
+  `6de466f7f1aa0f205ec9eeba2e4d34de`; attendance, check-ins, teaching programs,
+  teaching hours, weekly summaries, and payouts were each `0` with digest
+  `d41d8cd98f00b204e9800998ecf8427e`. Slot-specific matching assignment
+  notifications were `4`, digest `39b8a1c5c362f66642134995e650209c`.
+- Existing Owner/Head Coach Chrome authentication showed
+  `โคัช เบล NA เทพารักษ์ (หัวหน้า)`. The exact staged hostname and target slot
+  rendered the baseline mapping. Codex changed only the two name inputs. The
+  approved client payload was slot `8e2ede37...`, branch `da5ff28b...`, and two
+  ordered groups: `กลุ่ม 1` / Coach `05ca3f2e...` / range `38–57` / the original
+  four sessions; and `กลุ่ม 2` / Coach `a5d186f6...` / range `9–22` / the original
+  three sessions. Coaches and all seven learner-group controls remained unchanged
+  before Save.
+- Save was clicked exactly once at `2026-07-24T08:22:20.611Z`. Vercel request
+  `xdlkj-1784881343649-b67b7bea8a1e` is the one and only application mutation:
+  `POST /api/coach/assignment-groups`, staged hostname, status `200`, log timestamp
+  `2026-07-24T08:22:23.649Z`. No retry, double-click, confirmation repeat, or
+  restoration occurred. The raw response body/duration was not exposed by the
+  available Chrome/Vercel log surfaces; the route contract plus UI and exact
+  database reconciliation prove the success/result semantics.
+- The atomic RPC created sort-0 group
+  `bc51314c-7708-4ecb-bf56-98f3813fbdd5` as `กลุ่ม 1`, Coach `05ca3f2e...`, range
+  `38–57`, and sort-1 group `17df9379-0b77-49b2-a6ae-3d79569323e6` as `กลุ่ม 2`,
+  Coach `a5d186f6...`, range `9–22`, at
+  `2026-07-24T08:22:25.349542Z`. The exact seven session/student mappings remained
+  semantically identical. UI refetch settled to `มอบหมายแล้ว`, retained the two
+  names/ranges/coaches/members, and showed no unsaved indicator.
+- Post-write groups/members/legacy/reservations were `2/7/2/2`. Old group IDs were
+  absent; group-without-member, duplicate session, member/session orphan, slot or
+  learner identity mismatch, stored-range mismatch, legacy missing/extra/duplicate,
+  and reservation missing/extra/mismatch counts were all `0`. Active verified
+  learners remained `7/7`, each exactly once.
+- Activity delta was exactly one row:
+  `c858de48-c346-468f-b079-3b25e1579e00`, actor Head Coach `05ca3f2e...`, action
+  `save_coach_assignment_groups`, groupCount `2`, studentCount `7`, both exact coach
+  IDs, created `2026-07-24T08:22:25.625655Z`. Notification delta was `0`, and the
+  prior notification count/digest remained `4` /
+  `39b8a1c5c362f66642134995e650209c`.
+- Every protected fingerprint was unchanged: booking sessions, bookings, payments,
+  wallet, attendance, check-ins, teaching programs/hours, weekly summaries, and
+  payouts matched the pre-write counts/digests. Financial/protected delta was `0`.
+  Chrome console warning/error, page/hydration/React/Next.js error, Vercel 4xx/5xx,
+  and runtime error/fatal counts were all `0`. The bounded Vercel interval contained
+  `41` unique requests: exactly one POST `200` and `40` navigation/prefetch GETs.
+- Post-write deployment remained `production / READY / STAGED`, unpromoted, region
+  `icn1`, `autoAssignCustomDomains=false`, attached aliases `0`. All four established
+  Production aliases still pointed to `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`; no
+  deployment, promotion, rollback, alias, environment, feature, allowlist, migration,
+  Source/Test, payment, wallet, attendance, check-in, teaching, or payroll mutation
+  occurred beyond the one approved assignment Save.
+- Controlled Write UAT: **Passed**. Authoritative Save behavior: **Passed for the
+  exact approved payload**. Data Repaired: **Yes — exact slot/two names only**.
+  Production Data Changed: **Yes — expected atomic assignment-row replacement and
+  one activity row; no residual protected/financial change**. Customer impact: the
+  two exact persisted naming mismatches are repaired. Financial impact: **None**.
+  Source Complete/Tests Passed/Committed/Pushed/Deployed: **Yes/Yes/Yes/Yes/Yes —
+  deployment remains staged only**. Promoted/Production Active: **No/No**. Task
+  Done: **No**.
+- Documentation remains local, unstaged, and uncommitted. Next Action: **Owner
+  review before a separately authorized Promotion gate. Do not Save again, repair
+  another row, deploy, promote, roll back, or move aliases automatically.**
+
+#### Owner-approved exact-artifact Promotion — no rebuild
+
+State observed during the 2026-07-24 Promotion-only closeout:
+
+- Owner authorized only Promotion of exact deployment
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`, unique URL
+  `https://new-athlete-badminton-school-5p92e6c1p-aachanin1s-projects.vercel.app`,
+  Git SHA `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, without rebuild. Production route
+  access, authenticated UAT, API/database access, business write, deploy, rollback,
+  retry, and separate alias commands were prohibited and did not occur.
+- Fresh Git Gate 0 matched branch `spike/next-major-security-upgrade`, exact
+  local/upstream/remote HEAD and tree, Ahead/Behind `0/0`, staged/untracked `0/0`,
+  and exactly the known three documentation plus two excluded dirty files.
+  `git diff --check` passed; Source/Test/config/package/migration/`vercel.json`
+  diffs were `0`. Excluded SHA-256 checksums matched the approved values.
+- Cached pinned Vercel CLI `56.5.0` and authenticated account `aachanin1` matched
+  project `new-athlete-badminton-school`, project ID
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, and organization
+  `team_gw8Y6CPd602WAKRsVFobPGCL`. Fresh `vercel promote --help` confirmed ID/URL,
+  `--yes`, `--scope`, and `--no-color` support and that Promote makes an existing
+  deployment Current.
+- Pre-promotion target metadata was exact: `production / READY / STAGED`, source
+  `cli`, Git SHA matched, region `icn1`, deployment-level
+  `autoAssignCustomDomains=false`, attached aliases `0`. Current Production was
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`. The two unbranched project domains plus two
+  automatic Production aliases formed the exact approved set of four; all pointed
+  to the previous Current deployment. Four separate branch-preview aliases were
+  identified and were outside the Production target set.
+- Exact command
+  `vercel promote dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9 --yes --scope team_gw8Y6CPd602WAKRsVFobPGCL --no-color`
+  ran once from `2026-07-24T16:01:20.7047308+07:00` to
+  `2026-07-24T16:01:25.8707679+07:00`, exit `0`. Promotion command count was `1`;
+  deploy/build/rebuild/rollback/alias-command/force/retry counts were each `0`.
+- Post-promotion control-plane reconciliation found target `READY / PROMOTED` and
+  Current with the same creation/build/ready timestamps and max deployment
+  `createdAt=1784875390875`, proving no deployment or rebuild was created. Exactly
+  four Production aliases moved to `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`:
+  `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+  Missing/extra moved Production aliases were `0/0`; all branch-preview aliases
+  remained on their prior deployments. Superseded
+  `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` remained `READY / STAGED`.
+- Application routes exercised, Production API/database access, and Production
+  mutation requests were each `0`. Post-promotion runtime/UAT was **Not run —
+  outside this Promotion-only gate**. Production Data Changed by this gate was
+  `0`; prior exact two-name Data Repair and Controlled Write UAT remain Passed.
+- Source Complete/Tests Passed/Committed/Pushed/Deployed/Promoted/Production Active:
+  **Yes/Yes/Yes/Yes/Yes/Yes/Yes**, with Tests scoped to prior Local evidence.
+  Production UAT: **staged artifact passed; post-promotion not run**. Financial
+  Impact: **None**. Task Done: **No**.
+- Documentation remains local, unstaged, and uncommitted. Next Action: **Owner
+  review before a separately approved read-only post-promotion Production UAT
+  gate. Do not run UAT, Save, repair, deploy, rollback, additional Promotion,
+  alias movement, Commit, or Push automatically.**
+
+#### Owner-approved read-only post-promotion Production UAT — network gate incomplete
+
+State observed during the 2026-07-24 post-promotion read-only checkpoint:
+
+- Fresh Gate 0 matched branch `spike/next-major-security-upgrade`, exact local/
+  upstream/remote HEAD `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, Ahead/Behind `0/0`, staged/untracked
+  `0/0`, expected dirty scope, exact excluded checksums, and zero Source/Test/
+  config/package/migration/`vercel.json` diff. Pinned CLI `56.5.0`, account,
+  project, organization, and region `icn1` matched.
+- Vercel control plane before and after UAT kept exact deployment
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9` as `READY / PROMOTED / Current`. All four
+  established Production aliases remained on that deployment with missing/wrong
+  targets `0/0`. Deploy/rebuild/Promotion/rollback/alias-command counts were `0`.
+- Existing Chrome session authenticated as Head Coach
+  `โคัช เบล NA เทพารักษ์(หัวหน้า)` at exact hostname/path
+  `www.newathleteschool.com/coach/assign-groups`. Authorization passed without a
+  login redirect or credential handling.
+- Exact 2026-07-24 17:00–19:00 เทพารักษ์ slot rendered `2` groups, `7`
+  learners, disabled `มอบหมายแล้ว` state, and no gate-created unsaved
+  state. `กลุ่ม 1` retained Head Coach, LV `38–57`, and ภัทร/สเปน/ตินติน/
+  สปิน. `กลุ่ม 2` retained โค้ช ชาติ, LV `9–22`, and เอวา/นอฟ/พอล.
+  Input values remained exactly `กลุ่ม 1` / `กลุ่ม 2`; no form control was
+  focused, typed, selected, or changed.
+- Desktop `1920x855` and mobile `390x844` screenshots were captured. Both had
+  horizontal overflow `false`, offscreen visible-control count `0`, and overlay
+  count `0`. Mobile viewport was reset and the agent tab was finalized after
+  evidence capture.
+- Bounded browser interval was `2026-07-24T09:22:01.017Z`–
+  `2026-07-24T09:25:05.684Z`. Chrome console warning/error count, JavaScript
+  dialog count, and Next.js overlay count were `0`. The attributable Coach load
+  burst contained `19` unique `GET 200` requests: one exact
+  `/coach/assign-groups` load and `18` automatic Coach navigation prefetches.
+  `/api/coach/assignment-groups POST`, Save/Confirm, and attributable business
+  mutation counts were `0`; Vercel 4xx/5xx and warning/error/fatal counts were `0`.
+- The deployment-wide interval also contained four later `POST 200` requests:
+  `/api/bookings/availability` IDs `db485-1784884936846-3c8e9748cb4d` and
+  `j85gd-1784884992883-e88d3a5d986b`, plus `/api/bookings/preview` IDs
+  `5z454-1784884950349-4e9aef321345` and
+  `bc4r2-1784884992883-02050b9a52de`. They did not match the Coach request burst;
+  Source inspection found both endpoint paths use read-only SELECT operations.
+  However, browser-level request attribution was unavailable and direct Production
+  database reconciliation was prohibited, so the strict expected GET/HEAD-only
+  network gate is **Incomplete**. Browser interaction stopped and was not resumed.
+- Application page read through the Production alias: **Yes**. Direct Production
+  API/database access: **0**. UAT-attributable Production business write/data
+  delta: **0**. No Save, repair, deploy, rebuild, Promotion, rollback, alias,
+  environment, feature, allowlist, Source/Test, Commit, or Push occurred.
+- Production remains active and visible rendering passed, but overall
+  post-promotion Production UAT is **Incomplete**, not Passed. Task Done: **No**.
+  Next Action: **Owner review before a separate isolated read-only network-
+  attribution/retest gate; documentation publication remains unauthorized.**
+
+#### Owner-accepted post-promotion live Save and read-only Production closeout
+
+State observed during the 2026-07-24 documentation closeout after Owner accepted
+the live Production Save as business UAT evidence:
+
+- Owner supplied two screenshots for เทพารักษ์, 2026-07-25 09:00–11:00. The
+  pre-Save image shows `kids_group`, `9` learners, custom names
+  `กลุ่มโค้ชชาติ` / `กลุ่มโค้ชเบล`, Coach ชาติ / Head Coach เบล, and
+  `Level ต่างหมวด — เตือนเท่านั้น` on the mixed group. The post-Save image keeps
+  both names and mappings and shows `มอบหมายแล้ว`. Owner accepted this exact
+  post-promotion live Save as the closing business UAT evidence.
+- Fresh Git Gate 0 matched repository root, branch
+  `spike/next-major-security-upgrade`, starting local/upstream/actual remote HEAD
+  `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, tree
+  `271908ac3f84be95391819fb01a47ac197460489`, Ahead/Behind `0/0`, staged/untracked
+  `0/0`, and exactly the known three documentation plus two excluded dirty files.
+  `git diff --check` passed and Source/Test/config/package/migration/`vercel.json`
+  diffs were `0`. Excluded SHA-256 checksums matched the approved values.
+- Exact Production slot is `6e27b409-27e8-4b67-966b-75b27248c13d`, branch
+  `da5ff28b-23a3-4cdb-87ad-8dc5a39a78c5`, เทพารักษ์, `kids_group`,
+  2026-07-25 09:00–11:00. Active verified learners are `9/9`, each assigned
+  exactly once.
+- Sort 0 group `bcd619de-1138-4a90-9504-e11332b8d729` persists
+  `กลุ่มโค้ชชาติ`, Coach ชาติ `a5d186f6-8466-4249-83a2-64d7fd1d0848`, and
+  stored/actual range `3–11`. Exact members are วิน LV3 session
+  `e2b9f979-9e1b-4f0d-8295-e98679aefec7`, อคิณ LV3
+  `4f2391a6-a020-46de-8578-00c07e680f43`, พั้นช์ LV6
+  `ffeede93-683e-4c80-bc64-7e557f726cb2`, เฌอ LV6
+  `ce2ba0fe-c5aa-4ac8-b44d-d1285aa7b8fa`, and ต้นไม้ LV11
+  `af1cf4b5-77d4-444c-bac1-92815200ba7b`.
+- Sort 1 group `6edff27a-6d34-44b6-a00f-8a4403ad4544` persists
+  `กลุ่มโค้ชเบล`, Head Coach เบล `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`, and
+  stored/actual range `7–35`. Exact members are ผิง LV7 session
+  `cc6d9d61-0ba9-4844-9754-686a48e94f02`, น้องณดา LV31
+  `519c946d-3dab-4265-99ce-6c1b84ded6b3`, ZJ LV35
+  `8da4f047-67fb-446e-ae52-f1ca7df0a5f3`, and ภูดิส LV35
+  `9c251f24-ba89-45fa-b8f7-3dc91f24c7c4`.
+- Groups/members/legacy/reservations reconcile `2/9/2/2`. Group-without-member,
+  duplicate booking session, group/member/session orphan, slot/learner identity,
+  stored Level range, legacy missing/extra/duplicate, and reservation missing/
+  extra/mismatch counts are all `0`. Group/member/legacy/reservation rows share
+  atomic creation timestamp `2026-07-24T09:44:24.071162Z`.
+- Vercel request `d2wlk-1784886263183-64f29b35ccf7`, timestamp
+  `2026-07-24T09:44:23.183Z`, is the exact Production-host
+  `POST /api/coach/assignment-groups`, status `200`, on deployment
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`. Matching activity row
+  `468e0e9f-7032-480a-8e17-43c779ae50de`, actor Head Coach เบล, action
+  `save_coach_assignment_groups`, records the exact slot, branch, both coach IDs,
+  `groupCount=2`, and `studentCount=9` at `2026-07-24T09:44:24.360240Z`.
+- Notification delta near the Save was `0`. The two exact coach/date assignment
+  messages already existed from earlier assignments and `notifyCoachOnce` deduped
+  them; no new notification row was required for the accepted Save.
+- Fresh Production function inspection found active
+  `save_coach_assignment_groups_v1` definition digest
+  `1fb7551cc0236c7c872ada7eebff2f83` with direct write targets only
+  `coach_assignment_groups`, `coach_assignment_group_students`, and
+  `coach_assignments`. Reservation sync definition digest
+  `4b2a30ba581c232b212b759b29da47f9` writes only
+  `coach_assignment_exact_reservations`. The API then performs deduped coach
+  notification handling and one activity-log insert. There is no Assignment Save
+  write target for booking sessions, bookings, payments, wallet, attendance,
+  check-in, teaching programs/hours, weekly summaries, or payouts.
+- Current post-Save protected fingerprints at `2026-07-24T10:02:09.855132Z` were:
+  booking sessions `9` / `fa5867a1254f403cc6adbec3ebaee50e`, bookings `6` /
+  `1537f47ebabafcd0c82e205bd429a4a3`, payments `5` /
+  `a493511ad8972f3d32f563b5b8d9a10c`, wallet credits `0`, and attendance,
+  check-ins, teaching programs/hours, weekly summaries, and payouts each `0`.
+  Empty-set digest was `d41d8cd98f00b204e9800998ecf8427e`; protected RPC write targets were `0`.
+- The screenshot's 16:00–18:00 learner count change `5 → 4` is independently
+  explained. Exact slot `7ffceb27-6ac9-433f-b23a-a43af919f660` currently has
+  seven physical sessions: four active verified and three rescheduled. Session
+  `cf4c224a-fe4c-4a5b-a24d-bd6a7b3f72fd` for กัสโซ่ changed to `rescheduled`
+  at `2026-07-24T09:18:32.437741Z`; activity
+  `26ca576d-a53f-45be-8096-b919af161ce6` records
+  `reschedule_booking_session` at `09:18:33.109843Z` to new session
+  `ecfc5aea-0274-4550-818b-6c79507c670c`, 2026-07-31 10:00–12:00 รามอินทรา.
+  This occurred about 26 minutes before the 09:44 Assignment Save. The Coach
+  client calls `router.refresh()` after successful Save, so the post-Save image
+  exposed the already-current active count; the Assignment Save did not cause the
+  booking-session change. Later 16:00-slot assignment activity at 09:53Z is also
+  after, not the cause of, the screenshot's earlier count change.
+- Cached pinned Vercel CLI `56.5.0` remained authenticated as `aachanin1`.
+  Deployment `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9` remained target `production`,
+  `READY`, Current by exact four-alias mapping, Git SHA
+  `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`, and Function region `icn1`.
+  All four established Production aliases remained on that deployment; this gate
+  issued no deploy, rebuild, Promotion, rollback, alias, application mutation, or
+  SQL DML command.
+- The earlier four deployment-wide booking availability/preview POSTs remain
+  historical attribution evidence only. They were outside the attributable Coach
+  burst, their Source is SELECT-only, and Owner accepted the later exact live Save
+  plus this reconciliation as sufficient business UAT evidence.
+- Final state: Production UAT **Passed — Owner post-promotion live Save**;
+  Authoritative Save behavior **Passed**; Controlled Write UAT **Passed**;
+  Production Data Changed **Yes — expected Owner normal Assignment Save; `0` from
+  this read-only reconciliation/documentation gate**; Data Repaired **Yes — prior
+  exact two-name repair only, no new repair**; Financial Impact **None detected**;
+  Blocker **None**; Task Done **Yes**. Active Task is **NONE**. Next Action:
+  **Await Owner selection; do not start another task automatically.**
+
 The original Source/Local, publish, and staged Deploy evidence below is retained as
 historical evidence. Its automatic `กลุ่มผสม`/Level-derived naming policy is
 superseded and must not be treated as current.
