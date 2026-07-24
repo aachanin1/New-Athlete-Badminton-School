@@ -4,9 +4,10 @@ Last updated: 2026-07-24
 Source: current local/upstream Git metadata, Source, documentation, prior Local
 verification, fresh read-only Vercel deployment/alias inspection, and the
 Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
-2026-07-23, plus the Coach Assignment mixed-Level Source/Local and approved
-Commit + Push gates on 2026-07-24. Items not confirmed are marked
-`Unknown / Need verification`.
+2026-07-23, plus the Coach Assignment mixed-Level publish/deploy history,
+Owner-reported staged UAT result, read-only Production reconciliation, and the
+latest authoritative-name Commit + Push gate on 2026-07-24. Items not confirmed
+are marked `Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -20,11 +21,21 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   Active Task on 2026-07-24 and confirmed that Coach/Head Coach may intentionally
   place learners from different Level categories in one group. Mixed categories,
   wide Level gaps, assessed plus unassessed learners, and incomplete Level
-  definitions are warning-only in the Coach assignment flow. Owner subsequently
-  approved the exact two-commit, non-force Commit + Push gate on 2026-07-24.
-  Deploy, Production access/write/UAT, migration, feature-control, allowlist,
-  environment, branch, Admin Makeup, and Admin Schedules runtime changes remain
-  prohibited.
+  definitions remain warning-only in the Coach assignment flow.
+- After staged Controlled Write UAT exposed automatic renaming, Owner superseded
+  the earlier Coach Save naming rule on 2026-07-24: every non-empty name visible in
+  the Coach name field at Save is authoritative, including `กลุ่ม 1`, `กลุ่ม 2`,
+  and other Thai/English names. Coach Save may trim surrounding whitespace and
+  remove only a trailing dynamic `(N คน)` suffix; it must not derive or substitute
+  a Level-based name. Empty names must fail before any database write. `จัดตาม
+  Level` may change the visible draft before Save, and `levelMin/levelMax` must
+  still come from actual members. Shared/default naming and Admin Makeup remain
+  unchanged.
+- Owner approved the new Coach Source Fix + Local Test gate and then the exact
+  two-commit normal non-force Commit + Push gate completed in the current matrix.
+  Deploy, rebuild, promotion, alias/domain mutation, Production UAT/write or data
+  repair, migration, feature-control, allowlist, environment, branch, Admin
+  Makeup, and Admin Schedules runtime changes remain prohibited.
 
 - Owner confirmed on 2026-07-12 that Progressive replaces Legacy for general Kids
   Group Production traffic. Deploy, environment/flag/allowlist changes, Production
@@ -224,13 +235,14 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   may be deployed immediately and documented; the task must remain open.
 - Owner then authorized a forward Source correction based exactly on
   `1b995396f432d11b133c1cf4b5604b6db875b63b`, with Local tests plus scoped
-  commit/push only. The approved policy preserves valid exact `coach_id`
+  commit/push only. That historical policy preserved valid exact `coach_id`
   assignments regardless of placeholder/legacy names, treats wide or mixed Level
-  as non-blocking, uses `กลุ่มผสม` as the approved mixed fallback, preserves manual
+  as non-blocking, used `กลุ่มผสม` as the mixed fallback, preserved manual
   names, strips stored member-count suffixes, and requires all exact-assignment
   writes to use the atomic RPC contract. Deploy, containment removal, Production
   mutation/UAT, migration change, and repair of the 3 damaged slots remain
-  prohibited pending separate Owner approval.
+  prohibited pending separate Owner approval. Its automatic naming rule was
+  superseded by the latest 2026-07-24 Owner decision recorded above.
 - Owner subsequently authorized a scoped manual-name-preservation correction,
   Local verification and publish, a new unpromoted Production-target Canary,
   one repeat Owner/Head Coach controlled Save for exact slot
@@ -639,11 +651,15 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
   exact `coach_id` is unassigned; suggested and legacy slot coaches remain non-
   exact. A newly created ungrouped draft starts with `coachId = null`. Existing
   legacy coach display reads `ข้อมูลโค้ชเดิมของรอบ — ยังไม่ใช่ผู้รับผิดชอบกลุ่ม`.
-- Auto-name now uses each learner's latest `student_levels` row joined to an active
+- The currently Production-active historical Source auto-name uses each learner's
+  latest `student_levels` row joined to an active
   `levels` definition and uses the confirmed `levels.program_name` when all members
   share one category/program. All-unassessed groups use the existing
   `ยังไม่ประเมิน` label. Mixed categories, mixed assessed/unassessed membership,
-  or incomplete/inactive Level definitions use Owner-approved fallback `กลุ่มผสม`.
+  or incomplete/inactive Level definitions use fallback `กลุ่มผสม`. That automatic
+  Coach Save naming behavior is superseded Owner policy and is not present in the
+  committed/pushed forward fix; it remains runtime evidence until a separately
+  approved Deploy gate.
   Valid manual names are preserved, legacy
   `(N คน)` suffixes are removed, and both Coach/Admin UIs derive the count from the
   current member arrays.
@@ -1701,37 +1717,43 @@ NO-WRITE PRODUCTION UAT PASSED**
 | Field | Current value |
 | --- | --- |
 | Active Task | Coach Assignment Mixed-Level Save Regression |
-| Task Status | SOURCE COMPLETE / LOCAL TESTS PASSED / COMMITTED / PUSHED — Coach flow only; not deployed or Production-active |
+| Task Status | FORWARD SOURCE COMMITTED AND PUSHED / LOCAL TESTS PASSED; READ-ONLY PRODUCTION RECONCILIATION COMPLETE — new Owner naming rule remains undeployed and not Production-active; two persisted names are Data Repair Candidates and no repair is authorized |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; Source/Test commit is `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e` |
-| Remote HEAD | Same documentation closeout commit containing this matrix after the approved non-force push |
-| Ahead/Behind | `0/0` after push verification |
-| Root Cause | Current branch lineage does not contain prior corrective commit `9ef1ee30035a083426743aed3e326ad9676d65c4`; current Coach client and Coach API used the shared blocking naming resolver, and generic `กลุ่ม N` therefore failed mixed-Level naming before/at Save |
-| Source Complete | Yes — Coach flow only. A Coach-only resolver keeps shared/default behavior unchanged, preserves trimmed manual names, uses deterministic `กลุ่มผสม` fallback for generic mixed/incomplete groups, and reconciles canonical saved name/range in the Coach UI |
-| Tests Passed | Yes — Local only. Fresh Commit + Push gate reran `npm.cmd run test:admin-schedule-assignment` (`31/31`), `npm.cmd run test:coach-assignment-conflicts` (`21/21`, residue `0`), `npm.cmd run test:admin-schedules-performance` (`24/24`), `npm.cmd run test:lesson-wallet-regression` (`17/17`), `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:mojibake` (`247` files), and `git diff --check`; all passed. Playwright `6/6` and Production build `91/91` are prior exact-worktree Source/Local-gate evidence and were not rerun. Post-build `.next` cleanup/restart was also not rerun |
-| Committed | Yes — Source/Test commit `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`, tree `78ab18f2a92d4e1c81d053c728d08da87bf048c6`; documentation closeout commit containing this matrix |
-| Pushed | Yes — both commits pushed non-force to `origin/spike/next-major-security-upgrade` and remote-verified |
-| Current Source | Pushed Coach-only forward fix `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`; shared non-Coach naming default remains unchanged |
-| Deployed | No new deployment; existing Phase B Production deployment is unchanged |
-| Deployed Source | Exact deployment input HEAD `a39424bdbd0f78dee10d367800b833d8d3544d5d`, tree `a2a391a36b28e250dece4317e050ba52cb89f42e`, containing the pushed business remediation and permanent `icn1` configuration |
-| Deployment ID | `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, `READY`, `icn1`; all four established Production aliases map to this deployment |
+| Local HEAD | Documentation closeout commit containing this matrix; functional Source/Test commit is `a3a573975bb0b8874baf2557aa3fcf9f0786229a`, tree `84a2494919f87ed9e8b2f1fd78c1d8d53860f40e` |
+| Remote HEAD | Matching documentation closeout commit after the Owner-approved normal non-force push and read-only remote verification |
+| Ahead/Behind | `0/0` after final push verification |
+| Root Cause | The previously deployed Coach-only resolver still treated blank/`ยังไม่จัดกลุ่ม`/generic `กลุ่ม N` names as placeholders and re-derived names from Level during persisted-draft initialization and Save normalization. The Coach client and API both call that resolver, so Owner UAT observed `กลุ่ม 1` → `ชุดเตรียมนักกีฬา ชุด C` and `กลุ่ม 2` → `ชุดพื้นฐาน` despite the visible Save names |
+| Source Complete | Yes — Coach flow only under the superseding Owner rule. The Coach resolver now treats the cleaned visible non-empty name as authoritative, rejects empty names, preserves actual-member `levelMin/levelMax`, and leaves warning calculation separate. Shared/default naming and Admin Makeup are unchanged |
+| Tests Passed | Yes — Local only. Fresh Commit + Push gate reruns passed `npm.cmd run test:admin-schedule-assignment` `32/32`, Local Supabase browser/API E2E `6/6` with residue `0`, Coach conflict DB `21/21` with residue `0`, Admin Schedules performance `24/24`, Lesson Wallet `17/17`, TypeScript, ESLint with zero warnings, mojibake (`247` files), high-confidence secret-addition scan, and `git diff --check`. The prior Next.js 16.2.6 Production build passed `91/91` static pages on the same unchanged functional Source/Test worktree and was not rerun in this publish gate; its previously unrun post-build `.next` cleanup/clean restart is still not claimed |
+| Committed | Yes — new Owner-rule Source/Test commit `a3a573975bb0b8874baf2557aa3fcf9f0786229a`, tree `84a2494919f87ed9e8b2f1fd78c1d8d53860f40e`; documentation closeout is the following commit containing this matrix |
+| Pushed | Yes — Source/Test and documentation closeout commits after the Owner-approved normal non-force push and read-only remote verification |
+| Current Source | Committed and pushed Coach-only forward fix in `a3a573975bb0b8874baf2557aa3fcf9f0786229a`; existing Coach client/API call sites consume the corrected resolver without their own diff. Shared/default naming and Admin Makeup remain unchanged |
+| Deployed | No for the new forward fix. The prior superseded-behavior artifact remains staged, unpromoted, and not Current |
+| Deployed Source | Exact staged input HEAD `af9e7e6e71100eb0eada69164a7ab692523771f4`, tree `805c2c007a3f74f6eb19c08cda6ee86b831fc492`; functional Source/Test commit `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`. This artifact contains the superseded automatic-renaming behavior and must not be promoted |
+| Deployment ID | `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7`; unique URL `https://new-athlete-badminton-school-ajsdtbpvm-aachanin1s-projects.vercel.app`; target `production`; `READY` / `STAGED`; region `icn1`; zero attached custom/Production aliases |
+| Deployment Metadata | Vercel CLI `56.5.0`; command `vercel deploy --prod --skip-domain --yes`; build duration `83.232 s`; build region `cle1`; deployment metadata region `sfo1`; Next.js `16.2.6`; Node.js `24.x` / `nodejs24.x`; Coach assignment Function `icn1`; Vercel `gitCommitSha=af9e7e6e71100eb0eada69164a7ab692523771f4`, ref `HEAD`, source `cli`, actor `codex` |
+| Promotion | No — `readySubstate=STAGED`, `autoAssignCustomDomains=false`, and no alias/domain mutation occurred |
+| Production Alias Deployment | Fresh read-only pre/post audit evidence: all four established aliases remain on `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, target `production`, `READY`; staged deployment `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` remains `READY`, Coach Function `icn1`, and attached alias count `0` |
 | Migration Source | None for the new Coach fix |
 | Migration Applied | No — not required |
+| Environment Change | No |
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | No for the new Coach fix. Existing permanent `icn1` Phase B configuration remains Production-active and unchanged |
-| Production UAT | No for the new Coach fix; no Production access occurred in this gate. Prior Phase B read-only UAT status is unchanged |
+| Production Active | No for the new Coach fix; the staged artifact is not Current and the four Production aliases remain on the previous deployment |
+| Production UAT | Prior read-only staged-deployment UAT passed. This gate performed database/Vercel metadata reconciliation only, not a new application-route UAT. No Production UAT was run for the new local forward fix |
 | Performance Gate | Not applicable to this Coach-only fix; prior Admin Schedules Phase B gate remains passed |
-| Controlled Write UAT | No |
+| Controlled Write UAT | Failed the superseding naming contract. Staged Vercel logs and Production activity prove two `POST /api/coach/assignment-groups` responses `200` in the approved UAT/restoration sequence at `05:15:04.339Z` and `05:15:58.304Z`; corresponding activity rows are `eb33adf7-a749-4fd3-a29d-5e00c186722b` and `09205f63-02d2-4301-945a-9db744afac6d`. Request payloads were not retained, so the exact pre-Save membership/name baseline remains `Unknown / Need verification` |
+| Production Reconciliation | Complete for current state of exact slot `8e2ede37-f7d3-4733-b63a-bd8504503f6f`, เทพารักษ์, 2026-07-24 17:00–19:00. Current groups/members/legacy/reservations are `2/7/2/2`; active verified sessions are `7/7` assigned; orphan, duplicate, partial-write, identity, Level-range, legacy, and reservation mismatch counts are all `0`. The second Save recreated all current assignment rows at `2026-07-24T05:16:00.446856Z` |
+| Data Repair Candidates | Group `a6bac691-d7d1-4a4d-acdc-e22d0f417c78` persists `ชุดเตรียมนักกีฬา ชุด C` instead of Owner-reported visible `กลุ่ม 1`; group `f460017e-4a6f-44e7-8068-b82a6a2af5b2` persists `ชุดพื้นฐาน` instead of Owner-reported visible `กลุ่ม 2`. Candidate classification only; no repair was performed or authorized |
 | Data Repaired | No |
-| Production Data Changed | No |
-| Customer Impact | Current Production mixed-Level Coach Save issue remains until a separately approved release; existing `icn1` performance remediation remains active |
-| Financial Impact | None; no financial data or semantics changed |
-| Blocker | Deploy/release authorization is not part of this gate |
-| Remaining Work | Owner review before separately authorized deploy/UAT work |
+| Production Data Changed | Yes — the prior staged UAT/restoration sequence atomically recreated two groups, seven member rows, two legacy rows, and two reservations. Current structure reconciles exactly, but original pre-Save group/member row IDs and exact membership payload cannot be reconstructed because the RPC deletes/recreates the slot assignment on each Save |
+| Customer Impact | Current persisted names do not match the new Owner contract. One schedule notification row `750e306b-5e94-4069-bc13-5c627c29d633` was created for Coach ชาติ during the first Save; the second Save created no duplicate notification. No alias or Production Source changed |
+| Financial Impact | None detected. Related booking/session/payment/wallet and attendance/check-in/program/hours/payroll fingerprints matched before/after this audit, and all protected-row changes in the UAT window were `0` |
+| Blocker | New forward fix is not deployed or Production-active; staged artifact has superseded behavior and must not be promoted; two current persisted names require a separate Owner decision before any repair |
+| Remaining Work | Owner review before a separately approved Deploy gate and a separate decision for any data repair. Deploy, UAT, promotion, Production write, and repair remain unauthorized |
 | Task Done | No |
-| Documentation Drift | No after the documentation closeout commit containing this matrix is pushed and remote-verified |
-| Next Gate / Next Action | Owner review before a separate Deploy gate |
+| Documentation Drift | No after the Source/Test and documentation publish closeout |
+| Next Gate / Next Action | Owner review before a separate Deploy gate; do not repair, deploy, run Production write/UAT, promote, or move aliases automatically |
 | Parking Lot authorization state | No Parking Lot task is authorized automatically |
 
 ## Historical / Superseded 2026-07-13–14 Records

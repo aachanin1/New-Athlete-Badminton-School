@@ -4,8 +4,254 @@
 
 ### 2026-07-24 — Coach Assignment Mixed-Level Save Regression Source/Local Gate
 
-Status: **PASS — SOURCE/LOCAL TEST COMMITTED AND PUSHED; COACH FLOW ONLY; NO
-DEPLOY/PRODUCTION ACCESS**.
+Status at the Source/Local checkpoint: **PASS — NEW OWNER-RULE SOURCE/LOCAL TEST
+ONLY; UNSTAGED / UNCOMMITTED / UNPUSHED / UNDEPLOYED; THE STAGED ARTIFACT AT THAT
+CHECKPOINT MUST NOT BE PROMOTED**.
+
+#### Owner naming-rule supersession and new Source Fix + Local Test gate
+
+State observed at this 2026-07-24 local closeout:
+
+- Read-only staged UAT passed, then Owner Controlled Write UAT on deployment
+  `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` demonstrated that Save succeeded but changed
+  names visible at Save: `กลุ่ม 1` became `ชุดเตรียมนักกีฬา ชุด C` and `กลุ่ม 2`
+  became `ชุดพื้นฐาน`. This is Owner-reported evidence; this Source gate did not
+  access or write Production.
+- Owner superseded the earlier automatic-renaming policy. For Coach Save, every
+  non-empty name visible in the name field is authoritative, including `กลุ่ม 1`,
+  `กลุ่ม 2`, and other Thai/English names. Save may trim surrounding whitespace
+  and remove only a trailing dynamic `(N คน)` suffix. It must not reinterpret or
+  replace the visible name from Level. Empty names must fail before a database
+  write. `จัดตาม Level` may change the visible draft before Save; mixed/incomplete
+  Level remains warning-only; `levelMin/levelMax` still comes from actual members.
+- Root cause was confirmed in the Coach-only resolver used by persisted-draft
+  initialization, client pre-Save normalization, and API normalization: it treated
+  generic/placeholder names as candidates for Level-derived replacement. The
+  shared/default resolver used by Admin Makeup is separate and remains unchanged.
+- The Coach resolver now strips only the allowed suffix/outer whitespace, rejects
+  an empty result with `กรุณากรอกชื่อกลุ่มก่อนบันทึก`, otherwise returns the exact
+  cleaned visible name, and independently computes actual-member Level range.
+  Existing Coach client/API call sites therefore implement the corrected behavior
+  without requiring their own Source diff.
+- Deterministic coverage now proves same-category and mixed-Level `กลุ่ม 1/2`,
+  manual Thai/English names, dynamic-suffix removal, actual-member range, separate
+  warning-only behavior, and empty-name rejection. Browser/API coverage proves
+  Save/refetch name stability, `200` mixed Save, pre-write client empty-name
+  rejection, API empty-name `400` without state change, and existing atomic/
+  conflict protections.
+- Fresh Local results: `npm.cmd run test:admin-schedule-assignment` `32/32`;
+  `npm.cmd run test:admin-schedule-assignment:e2e` `6/6` against Local Supabase
+  with fixture residue `0`; Coach conflict DB `21/21` with residue `0`; Admin
+  Schedules performance `24/24`; Lesson Wallet `17/17`; TypeScript, ESLint,
+  mojibake (`247` files), Next.js 16.2.6 Production build (`91/91` static pages),
+  secret-addition scan, and `git diff --check` all passed. No Production endpoint
+  or data was used.
+- Post-build `.next` cleanup and clean local restart did not run: the tool execution
+  policy rejected removal even after exact resolved-path verification. The build
+  passed, but cleanup/restart is not claimed.
+- Source/Test changes are limited to
+  `src/lib/coach-assignment-group-naming.ts`,
+  `scripts/check-admin-schedule-assignment-state.mjs`, and
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`. The inspected
+  Coach client/API require no direct diff. Admin Makeup, Admin Schedules runtime,
+  `vercel.json`, packages, migrations, environment, feature controls, and allowlists
+  have no task diff.
+- The excluded dirty files remained unstaged and checksum-exact: `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source Complete: **Yes — local Coach flow only under the new Owner rule**. Tests
+  Passed: **Yes — Local only**. New fix Committed/Pushed/Deployed: **No/No/No**.
+  Existing staged artifact: **READY / unpromoted / superseded behavior; do not
+  promote**. Production Active for the new fix: **No**. Feature/Allowlist/
+  Environment/Migration change: **No**.
+- Controlled Write UAT: **Failed the new naming contract** based on Owner-reported
+  results. Production Data Changed: **Yes — Owner reports assignment data changed**.
+  Exact database reconciliation/restoration and Data Repaired remain **Unknown /
+  Need verification**. Customer impact from that data state is **Unknown / Need
+  verification**; no alias or Production Source changed. Financial impact is
+  **None known**, while exact protected financial fingerprints remain **Unknown /
+  Need verification**.
+- Documentation files are updated locally only and remain unstaged/uncommitted.
+  Task Done: **No**. Next Action: **Owner review before separately approved Commit
+  + Push and read-only Production reconciliation gates. No deploy, Production
+  write, or promotion is authorized.**
+
+#### Read-only Production reconciliation gate
+
+State observed during the Owner-approved 2026-07-24 read-only audit:
+
+- Fresh Git Gate 0 matched repository root, branch
+  `spike/next-major-security-upgrade`, local/upstream/remote HEAD
+  `af9e7e6e71100eb0eada69164a7ab692523771f4`, tree
+  `805c2c007a3f74f6eb19c08cda6ee86b831fc492`, and Ahead/Behind `0/0`.
+  Staged/untracked sets were empty. The new Coach fix remained local/uncommitted.
+  Excluded checksums remained exact: `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Cached Vercel CLI `56.5.0` read-only inspection verified staged deployment
+  `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` remained target `production`, state `READY`,
+  Coach assignment Function `icn1` / `nodejs24.x`, with alias count `0`. Before
+  and after the audit, all four established Production aliases remained on
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`. No promotion or alias mutation occurred.
+- Exact candidate search returned one and only one slot matching Owner evidence:
+  schedule slot `8e2ede37-f7d3-4733-b63a-bd8504503f6f`, branch
+  `da5ff28b-23a3-4cdb-87ad-8dc5a39a78c5` / เทพารักษ์, Kids Group,
+  `2026-07-24` 17:00–19:00, status `open`. The slot had eleven booking-session
+  rows: seven active `scheduled` sessions and four `rescheduled` rows; the exact
+  assignment contained all seven active verified learners.
+- Vercel historical request logs prove exactly two successful staged requests in
+  the approved UAT/restoration sequence:
+  - request `z9vtb-1784870104339-5fbd309e2785`, `POST
+    /api/coach/assignment-groups`, `200`, `2026-07-24T05:15:04.339Z`;
+  - request `dnvc5-1784870158304-e50037bf9adc`, the same route/method/status,
+    `2026-07-24T05:15:58.304Z`.
+  Matching Production activity rows are
+  `eb33adf7-a749-4fd3-a29d-5e00c186722b` at `05:15:07.510101Z` and
+  `09205f63-02d2-4301-945a-9db744afac6d` at `05:16:00.604159Z`. Both were created
+  by Head Coach `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`, recorded two groups,
+  seven students, and the same two coach IDs. Activity details do not retain
+  names or member IDs, so the exact first-request payload and exact pre-Save
+  membership baseline remain **Unknown / Need verification**.
+- The atomic RPC deletes and recreates all exact groups and legacy assignments on
+  each Save. Therefore current group/member/legacy/reservation IDs represent the
+  second request and were all created at `2026-07-24T05:16:00.446856Z`; IDs from
+  the first request are no longer present and were not reconstructed.
+- Current exact mapping after the second request:
+  - group `a6bac691-d7d1-4a4d-acdc-e22d0f417c78`, sort `0`, persisted name
+    `ชุดเตรียมนักกีฬา ชุด C`, stored/actual Level range `38–57`, Coach/Head Coach
+    `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`:
+    - session `34842d9d-847d-42f6-86b7-58d490ebaa93`, booking
+      `8a7451e4-d578-4d77-808e-f179da5051ae`, วุฒิภัทร พิญญะพันธุ์ (ภัทร), LV 38;
+    - session `0e8b4c91-900f-40d4-8157-49ce2eddeb4a`, booking
+      `5587bb4c-937d-42d2-ad44-3c2796c981f4`, เด็กชายสรัล วงษ์เชื่อม (สเปน), LV 57;
+    - session `933297a0-46fb-4d69-a34a-95ba4abb9d5d`, booking
+      `f6dbf16e-5c13-4cd4-9c7c-566bce6aaf1f`, โสภณวิชญ์ พุกกะณะสุต (ตินติน), LV 41;
+    - session `92a87e2d-a25b-4a7b-a351-dd223877cf9e`, booking
+      `2fe0532e-d0bf-4c42-a65c-f6ad0e7365a3`, เด็กชายธนกร วงษ์เชื่อม (สปิน), LV 40.
+  - group `f460017e-4a6f-44e7-8068-b82a6a2af5b2`, sort `1`, persisted name
+    `ชุดพื้นฐาน`, stored/actual Level range `9–22`, Coach
+    `a5d186f6-8466-4249-83a2-64d7fd1d0848`:
+    - session `1244d5eb-a803-4a23-9e7d-2923703d8dc7`, booking
+      `939c2049-a660-4377-9d32-cc9bc4e0745a`, มิลิน วงศ์พนิตนันท์ (เอวา), LV 9;
+    - session `d5ffb13a-6502-465e-b435-5dbe480fc015`, booking
+      `d0e5bd56-fc3e-49e3-9bfa-993764f84f8e`, ก้องเมธี ห่อประทุม (นอฟ), LV 22;
+    - session `f8ec2fa0-b651-43b4-b0a6-45e89533b557`, booking
+      `aa4602c0-2e59-4cb1-b9a0-58d56d40b904`, พอเพียง คำอ้าย (พอล), LV 9.
+- Legacy rows are complete and coach-set exact:
+  `06d5b431-7393-4582-accf-fbb7779750b0` for Head Coach
+  `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5` and
+  `ac9c1ed1-3bed-4a7f-bc17-1103addc054a` for Coach
+  `a5d186f6-8466-4249-83a2-64d7fd1d0848`. Reservations use the two current group
+  IDs, matching coaches/slot/date and exact Bangkok 17:00–19:00 range; their UTC
+  range is `[2026-07-24 10:00:00Z, 2026-07-24 12:00:00Z)`.
+- Reconciliation counts were groups/members/legacy/reservations `2/7/2/2`.
+  Groups without members, duplicate booking sessions, member group/session
+  orphans, slot mismatch, learner-identity mismatch, stored Level-range mismatch,
+  missing/extra/duplicate legacy coach rows, missing/orphan reservation, and
+  reservation coach/slot/date/time mismatches were all `0`. Active verified
+  sessions not present exactly once in a group were `0`.
+- Six historical notifications matched this slot label/filter. One notification
+  was created by the first UAT Save: row
+  `750e306b-5e94-4069-bc13-5c627c29d633`, type `schedule`, recipient Coach
+  `a5d186f6-8466-4249-83a2-64d7fd1d0848`, created
+  `2026-07-24T05:15:07.447918Z`, link `/coach/today?date=2026-07-24`, for one group
+  and three learners. Its rendered message labels the date `23 ก.ค. 69` despite
+  the link/slot date `2026-07-24`; this is recorded as observed evidence only and
+  no separate task was started. No additional notification was created by the
+  second request because the same notification content already existed.
+- Protected state at the audit baseline: booking sessions `11` digest
+  `6c7f5c281df5e841bcccae4c862256f5`; bookings `9`
+  `02e59344694f12d7b76b189dfb06fa7b`; approved payments `9`
+  `ed2cb447f5140790a402aa3427e7ebd0`; active wallet credits `2`
+  `6de466f7f1aa0f205ec9eeba2e4d34de`; attendance/check-ins/teaching programs/
+  teaching hours/weekly summaries/coach payouts each `0`, using empty digest
+  `ba2b45bdc11e2a4a6e86aab2ac693cbb`. Assignment digests were groups
+  `fe29f2e82b2436098b08335943244410`, members
+  `2f907f44acfe123dd5eb367b68a5e453`, legacy
+  `3d758d30b254bc99f303bc5e62427cdc`, reservations
+  `96ebd3454e4e395c564c7b3e7c8846d4`, activity
+  `f1385314344ee151eed6949fd9509cb1`, and notifications
+  `31d3e09f4e39dc99b64502248a897c68`.
+- Pre-audit capture `2026-07-24T05:57:26.441085Z` and post-audit capture
+  `2026-07-24T06:03:59.739120Z` matched for every count and digest. Related
+  booking-session, booking, payment, wallet, attendance, check-in, teaching
+  program/hour, weekly summary, and payout changes during the UAT window were all
+  `0`. Exact-slot assignment activity remained count `6` with latest timestamp
+  `05:16:00.604159Z`; no concurrent assignment Save occurred during this audit.
+- Every database statement in this gate was `SELECT`/read-only. Application
+  mutation requests from this gate were `0`; no application endpoint was opened.
+  No Source/Test/config/migration/environment/feature/allowlist, deployment,
+  alias, or Production data change occurred in this audit.
+- Reconciliation classification: current assignment structure is atomic and
+  internally consistent, but group `a6bac691-d7d1-4a4d-acdc-e22d0f417c78`
+  (`ชุดเตรียมนักกีฬา ชุด C`) and group
+  `f460017e-4a6f-44e7-8068-b82a6a2af5b2` (`ชุดพื้นฐาน`) do not match the
+  Owner-reported visible Save names `กลุ่ม 1` and `กลุ่ม 2`. They are **Data
+  Repair Candidates only**. Data Repaired: **No**. Financial impact: **None
+  detected**. Task Done: **No**.
+- Documentation remains local, unstaged, and uncommitted. Next Action: **Owner
+  review of this verified reconciliation and explicit selection of any separate
+  next gate. No repair, Commit/Push, deploy, Production write/UAT, or promotion is
+  authorized automatically.**
+
+#### Owner-approved authoritative-name Commit + Push gate
+
+State observed at the 2026-07-24 publish closeout:
+
+- Fresh Gate 0 matched repository root, branch
+  `spike/next-major-security-upgrade`, starting local/upstream/remote HEAD
+  `af9e7e6e71100eb0eada69164a7ab692523771f4`, tree
+  `805c2c007a3f74f6eb19c08cda6ee86b831fc492`, and Ahead/Behind `0/0`.
+  Staged/untracked sets were empty. The only out-of-scope dirty files remained
+  `AGENTS.md` and `src/lib/schedule-slot-utils.ts`, with their approved checksums.
+- Inspected functional diff remained limited to
+  `src/lib/coach-assignment-group-naming.ts`,
+  `scripts/check-admin-schedule-assignment-state.mjs`, and
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`. Coach client
+  and API continued to call the Coach-only resolver without direct diff. Shared/
+  default naming, Admin Makeup, Admin Schedules runtime, migrations, `vercel.json`,
+  packages, lockfiles, configuration, environment, feature controls, and allowlists
+  had no task diff. High-confidence credential/secret additions were `0`.
+- Fresh Local verification passed: deterministic assignment/isolation `32/32`;
+  Local Supabase browser/API E2E `6/6` with fixture residue `0`; Coach conflict DB
+  `21/21` with residue `0`; Admin Schedules performance `24/24`; Lesson Wallet
+  `17/17`; `npx.cmd tsc --noEmit`; ESLint with `--max-warnings=0`; mojibake `247`
+  files; and `git diff --check`. The prior Next.js 16.2.6 Production build passed
+  `91/91` static pages on the same unchanged functional Source/Test worktree and
+  was not rerun in this publish gate. Its previously unrun post-build `.next`
+  cleanup/clean restart remains explicitly not claimed.
+- Source/Test commit `a3a573975bb0b8874baf2557aa3fcf9f0786229a`, tree
+  `84a2494919f87ed9e8b2f1fd78c1d8d53860f40e`, parent
+  `af9e7e6e71100eb0eada69164a7ab692523771f4`, contains exactly the three authorized
+  functional files and uses message
+  `fix(coach): preserve visible assignment group names`.
+- The documentation closeout is the following commit containing this record and
+  the matching current matrix. Both commits were pushed normally without force to
+  `origin/spike/next-major-security-upgrade` and read-only remote verification
+  confirmed matching local/upstream/remote HEAD and Ahead/Behind `0/0`.
+- The two excluded dirty files remained unstaged, absent from both commits, and
+  checksum-exact: `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; and
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source Complete: **Yes — Coach flow only**. Tests Passed: **Yes — Local only**.
+  Committed/Pushed: **Yes/Yes**. Deployed/Production Active for the new fix:
+  **No/No**. Promoted: **No**. Feature Enabled/Allowlisted/Environment/Migration:
+  **No change**. Production UAT for the new fix: **No**. Controlled Write UAT on
+  the superseded staged artifact: **Failed the Owner naming contract**. Data
+  Repaired: **No**. Production Data Changed: **Yes from the prior Owner UAT and
+  `0` from this Commit + Push gate**. Customer impact: the two reconciled persisted
+  names remain inconsistent with the Owner contract. Financial impact: **None
+  detected**. Documentation Drift: **No**. Task Done: **No**.
+- Next Action: **Owner review before a separately approved Deploy gate. The old
+  staged artifact must not be promoted, and no data repair, Production write/UAT,
+  alias movement, deploy, or promotion is authorized automatically.**
+
+The original Source/Local, publish, and staged Deploy evidence below is retained as
+historical evidence. Its automatic `กลุ่มผสม`/Level-derived naming policy is
+superseded and must not be treated as current.
 
 #### Authorization and root cause
 
@@ -70,12 +316,13 @@ DEPLOY/PRODUCTION ACCESS**.
   `78ab18f2a92d4e1c81d053c728d08da87bf048c6`, and the documentation closeout
   commit containing this matrix were pushed to
   `origin/spike/next-major-security-upgrade` and remote-verified at `0/0`.
-- Committed/Pushed: **Yes**. Deployed/Production-active for this fix: **No**.
-  Production UAT, Controlled Write UAT, data repair, and Production data change:
-  **No**.
+- Committed/Pushed: **Yes**. Deployed: **Yes — staged Production-target artifact
+  only**. Promoted/Production-active for this fix: **No**. Production UAT,
+  Controlled Write UAT, data repair, and Production data change: **No**.
 - Current permanent `icn1` Production deployment and Phase B behavior were not
   touched. Financial impact: **None**. Task Done: **No**.
-- Next Action: **Owner review before a separate Deploy gate**.
+- Next Action: **Owner review before a separate Read-only staged-deployment UAT
+  gate; promotion remains separately prohibited**.
 
 #### Commit + Push closeout evidence
 
@@ -108,7 +355,83 @@ DEPLOY/PRODUCTION ACCESS**.
   Production Data Changed: **No**. Customer Impact: **Production issue remains
   until a separately approved deploy/release**. Financial Impact: **None**. Task
   Done: **No**. Active Task: **Coach Assignment Mixed-Level Save Regression**.
-  Next Action: **Owner review before a separate Deploy gate**.
+  Next Action at that publish closeout: **Owner review before a separate Deploy
+  gate**; this was superseded by the staged Deploy gate below.
+
+#### Staged Production-target Deploy gate
+
+State observed at this 2026-07-24 staged-deployment closeout:
+
+- Owner approved exactly one Production-target staged deployment from exact HEAD
+  `af9e7e6e71100eb0eada69164a7ab692523771f4`, tree
+  `805c2c007a3f74f6eb19c08cda6ee86b831fc492`, using Production build environment
+  and mandatory `--skip-domain`. Promotion, alias/domain mutation, route/browser/
+  API/database UAT, Production write, migration, environment, feature-control,
+  allowlist, Source/Test/config change, commit, and push remained prohibited.
+- Fresh Git Gate 0 matched branch `spike/next-major-security-upgrade`, local and
+  upstream HEAD `af9e7e6e71100eb0eada69164a7ab692523771f4`, tree
+  `805c2c007a3f74f6eb19c08cda6ee86b831fc492`, and Ahead/Behind `0/0`. Staged and
+  untracked sets were empty; only the two checksum-exact excluded dirty files were
+  present. `vercel.json` retained `regions: ["icn1"]`; package/config/migration
+  diff was empty; `git diff --check` passed.
+- Pinned cached Vercel CLI `56.5.0` was already authenticated/configured and its
+  help explicitly confirmed `--skip-domain` disables automatic promotion/
+  aliasing. Gate 0 verified all four established Production aliases on existing
+  `production` / `READY` deployment
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`. The separate push-created automatic branch
+  deployment `dpl_FYKfaL4gXuJjuaiCinpctdfcatvC` was `preview` / `READY` and was
+  not treated as this authorized deployment.
+- A clean detached worktree under
+  `C:\Users\aacha\AppData\Local\Temp\codex-nasc-coach-mixed-deploy-20260724`
+  matched the exact approved HEAD/tree. Only `.vercel/project.json` linkage for
+  project `prj_v034HOI6AjaMpBezWvuvT0W24pTp` and organization
+  `team_gw8Y6CPd602WAKRsVFobPGCL` was copied. No token, `.env`, session, `.next`,
+  `node_modules`, build output, or dirty excluded file was copied.
+- Exactly one command was issued from that worktree:
+  `vercel deploy --prod --skip-domain --yes --scope team_gw8Y6CPd602WAKRsVFobPGCL --no-color`.
+  Exit code was `0`; no force or retry was used. Exactly one new deployment was
+  observed after the pre-gate timestamp.
+- Deployment `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` reached `READY` with
+  `readySubstate=STAGED`, target `production`, unique URL
+  `https://new-athlete-badminton-school-ajsdtbpvm-aachanin1s-projects.vercel.app`,
+  and build duration `83.232 s` from Vercel `buildingAt` to `ready`. Build region
+  was `cle1`, deployment metadata region `sfo1`, configured/Deployment region was
+  `icn1`, and the Coach assignment Function was `icn1`. Framework/runtime were
+  Next.js `16.2.6`, Node.js `24.x` / `nodejs24.x`; the remote build generated
+  `91/91` static pages.
+- Vercel metadata supplied exact `gitCommitSha`
+  `af9e7e6e71100eb0eada69164a7ab692523771f4`, ref `HEAD`, source `cli`, and actor
+  `codex`. Exactness is additionally proven by the clean detached-worktree
+  HEAD/tree and the single deployment input. Functional Source/Test commit remains
+  `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`.
+- The new deployment had attached custom/Production alias count `0`,
+  `autoAssignCustomDomains=false`, and remained `STAGED`. Vercel metadata listed
+  two automatic-alias candidates, but read-only resolution proved neither moved:
+  all four established Production aliases remained on
+  `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H` before and after. The new deployment was not
+  Current/Promoted and received no traffic through those aliases.
+- No application URL or route was visited. `/`, `/api/health`, static assets,
+  Coach routes, APIs, browser/authenticated UAT, and Production database access
+  were not exercised. Promotion, rollback, alias mutation, environment,
+  feature-control, allowlist, migration, Production data write, and Controlled
+  Write were not performed.
+- The exact temporary worktree and task-specific parent were safely removed after
+  evidence capture. Main branch/HEAD/tree/upstream remained unchanged. The two
+  unrelated dirty files remained unstaged and checksum-exact:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source Complete: **Yes — Coach flow only**. Tests Passed: **Yes — Local only**.
+  Committed: **Yes**. Pushed: **Yes**. Deployed: **Yes — staged
+  Production-target artifact only**. Promoted: **No**. Feature Enabled,
+  Allowlisted, Environment, and Migration: **No change**. Production Active:
+  **No**. Production UAT: **No**. Controlled Write UAT: **No**. Data Repaired:
+  **No**. Production Data Changed: **No**. Customer Impact: **No direct Production
+  change; existing issue remains**. Financial Impact: **None**. Task Done: **No**.
+  Active Task: **Coach Assignment Mixed-Level Save Regression**. Next Action:
+  **Owner review before a separate Read-only staged-deployment UAT gate; promotion
+  remains separately prohibited**.
 
 ### 2026-07-23 — Admin Schedules Phase B Final Production Closeout
 

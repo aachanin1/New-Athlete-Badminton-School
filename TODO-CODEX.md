@@ -11,23 +11,43 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Coach Assignment Mixed-Level Save Regression
 
-Status: **SOURCE COMPLETE / LOCAL TESTS PASSED / COMMITTED / PUSHED — COACH FLOW
-ONLY; NOT DEPLOYED OR PRODUCTION-ACTIVE**.
+Status: **FORWARD SOURCE COMMITTED AND PUSHED / LOCAL TESTS PASSED; READ-ONLY
+PRODUCTION RECONCILIATION COMPLETE — UNDEPLOYED FIX; TWO DATA REPAIR CANDIDATES;
+CURRENT STAGED ARTIFACT MUST NOT BE PROMOTED**.
 
-- Root cause: current branch lineage omits prior corrective commit `9ef1ee3...`;
-  the Coach client and Coach assignment API used the shared blocking resolver, so
-  mixed-Level generic names such as `กลุ่ม N` stopped Save.
-- Local forward fix uses an explicit Coach-only resolver/warning policy. Shared
-  default behavior and `src/app/api/admin/makeup/route.ts` remain unchanged.
-- Source/Test commit `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`, tree
-  `78ab18f2a92d4e1c81d053c728d08da87bf048c6`, and the documentation closeout
-  commit containing the current matrix were pushed non-force and remote-verified.
-- Fresh publish-gate evidence passed: deterministic assignment/isolation `31/31`,
-  conflict DB `21/21` with residue `0`, Admin Schedules performance `24/24`,
-  Lesson Wallet `17/17`, TypeScript, ESLint, mojibake `247`, and diff check.
-  Playwright `6/6`, build `91/91`, and post-build `.next` cleanup/restart were not
-  rerun; Playwright/build remain prior exact-worktree evidence.
-- Next Action: **Owner review before a separate Deploy gate.**
+- Owner superseded the automatic Coach Save naming rule after Controlled Write
+  UAT: every cleaned non-empty name visible at Save is authoritative; only outer
+  whitespace and trailing `(N คน)` may be removed. Empty names must fail before a
+  write. Mixed/incomplete Level remains warning-only and actual members own the
+  saved Level range.
+- Root cause: the deployed Coach-only resolver still interpreted `กลุ่ม N` and
+  other placeholders from Level during draft initialization and Save. Owner
+  reports staged Save changed `กลุ่ม 1`/`กลุ่ม 2` to Level-derived names.
+- Coach-only forward fix commit `a3a573975bb0b8874baf2557aa3fcf9f0786229a`
+  and its documentation closeout are committed and pushed. Shared/default naming
+  and Admin Makeup remain unchanged; existing Coach client/API call sites consume
+  the corrected resolver without requiring their own diff.
+- Fresh Commit + Push gate Local evidence passed: deterministic assignment/isolation `32/32`, Local
+  Supabase browser/API E2E `6/6` with residue `0`, conflict DB `21/21` with residue
+  `0`, Admin Schedules performance `24/24`, Lesson Wallet `17/17`, TypeScript,
+  ESLint with zero warnings, mojibake `247`, secret-addition scan, and diff check.
+  The prior unchanged-worktree Production build `91/91` was not rerun; its
+  post-build `.next` cleanup/clean restart remains not claimed.
+- New forward fix is committed and pushed but remains undeployed and not
+  Production-active. Existing
+  staged deployment `dpl_vsnYY1QWBybnR3rF51DsqamnQLg7` contains superseded
+  behavior, remains unaliased/unpromoted, and must not be promoted.
+- Read-only Production reconciliation found exact slot
+  `8e2ede37-f7d3-4733-b63a-bd8504503f6f`, เทพารักษ์, 2026-07-24 17:00–19:00.
+  Current groups/members/legacy/reservations reconcile `2/7/2/2` with all orphan,
+  duplicate, range, identity, legacy, and reservation mismatches `0`.
+- Persisted names remain `ชุดเตรียมนักกีฬา ชุด C` and `ชุดพื้นฐาน`; both are Data
+  Repair Candidates against Owner-reported visible `กลุ่ม 1` and `กลุ่ม 2`.
+  No repair was performed or authorized. One schedule notification was created
+  for Coach ชาติ by the first UAT Save; protected business/financial fingerprints
+  matched pre/post audit.
+- Next Action: **Owner review before a separate Deploy gate. No repair, deploy,
+  Production write/UAT, promotion, or alias movement is authorized automatically.**
 - Authoritative current state: `PROJECT_STATE.md` → **Current Project Matrix —
   Coach Assignment Mixed-Level Save Regression**.
 
@@ -191,9 +211,10 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
 
 Current next action is owned by the Active Work section above and the authoritative
 matrix in `PROJECT_STATE.md`: **Owner review before a separate Coach Assignment
-Mixed-Level Save Regression Deploy gate. Do not start deploy/UAT, the auth
-follow-up, historical cleanup, permanent dirty `AGENTS.md` work, Homepage LV, or
-another Parking Lot task without a new Owner gate.**
+Mixed-Level Save Regression Deploy gate. Do not repair, perform an additional
+Commit/Push, deploy, run Production write/UAT, promote, start the auth follow-up,
+historical cleanup, permanent dirty `AGENTS.md` work, Homepage LV, or another
+Parking Lot task without a new Owner gate.**
 
 ## Earlier Completed
 
@@ -399,6 +420,7 @@ Confirmed final state:
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
 - Next action: **Owner review before a separate Coach Assignment Mixed-Level Save
-  Regression Deploy gate; do not start deploy/UAT, Homepage LV, the auth follow-up,
+  Regression Deploy gate. Do not repair, perform an additional Commit/Push,
+  deploy, run Production write/UAT, promote, start Homepage LV, the auth follow-up,
   historical cleanup, permanent dirty-file work, or another Parking Lot task
   automatically.**
