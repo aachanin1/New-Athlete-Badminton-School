@@ -2,6 +2,114 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-24 — Coach Assignment Mixed-Level Save Regression Source/Local Gate
+
+Status: **PASS — SOURCE/LOCAL TEST COMMITTED AND PUSHED; COACH FLOW ONLY; NO
+DEPLOY/PRODUCTION ACCESS**.
+
+#### Authorization and root cause
+
+- Owner confirmed that Coach/Head Coach may intentionally place learners from
+  different Level categories in the same group. Mixed categories, wide Level
+  gaps, assessed plus unassessed learners, and incomplete Level definitions are
+  warning-only for Coach assignment Save. `จัดตาม Level` remains optional.
+- Starting HEAD `eb2f2a998b84d73056a9f66df8fc2fa10907b8e9` did not contain prior
+  corrective commit `9ef1ee30035a083426743aed3e326ad9676d65c4` as an ancestor. The
+  current Coach client and Coach API both called the shared blocking naming
+  resolver; generic `กลุ่ม N` therefore produced `mixed_level_categories` and
+  blocked Save before or at the API.
+- The prior commit was inspected read-only and was not cherry-picked because its
+  shared-default change would also affect Admin Makeup and its lineage predates
+  later Phase B/Production configuration.
+
+#### Forward fix and isolation
+
+- Added an explicit Coach-only naming resolver while preserving the shared
+  resolver's default behavior. Manual names are trimmed and preserved, a trailing
+  dynamic `(N คน)` suffix is removed, same-category generic names still derive
+  from the active Level definition, and generic mixed/incomplete groups use the
+  deterministic non-blocking name `กลุ่มผสม` with actual member `levelMin/levelMax`.
+- Coach UI keeps wide/mixed/incomplete Level warnings visible without disabling
+  Save or showing the blocking mixed-category error. After a successful Save it
+  reconciles the canonical saved name and Level range before refresh.
+- Coach API applies the same policy server-side. Existing authorization, atomic
+  RPC, exact coach/member/legacy/reservation semantics, duplicate-coach rejection,
+  and exact overlap conflict behavior remain unchanged.
+- `src/app/api/admin/makeup/route.ts` has no diff and does not opt into the
+  Coach-only resolver. `vercel.json`, Admin Schedules runtime Source, migrations,
+  and permanent `regions: ["icn1"]` remain unchanged.
+
+#### Local evidence
+
+- `npm run test:admin-schedule-assignment`: `31/31` passed, including Coach mixed,
+  assessed/unassessed, incomplete-definition, manual/legacy Thai name, suffix,
+  same-category auto-name, range, and shared-default isolation checks.
+- `npm run test:admin-schedule-assignment:e2e`: `6/6` passed against Local Supabase
+  `http://127.0.0.1:54321`. Head Coach generic mixed Save returned `200`, persisted
+  `กลุ่มผสม`, manual rename/refetch remained exact, duplicate and overlapping
+  Coach rules remained blocked, groups/members/legacy/reservations were complete,
+  desktop/mobile `390x844` passed, browser console/page errors were `0`, and
+  disposable fixture residue was `0`.
+- `npm run test:coach-assignment-conflicts`: `21/21`, residue `0`;
+  `npm run test:admin-schedules-performance`: `24/24`;
+  `npm run test:lesson-wallet-regression`: `17/17`.
+- TypeScript, ESLint, mojibake, `git diff --check`, and Next.js 16.2.6 Production
+  build passed; build generated `91/91` static pages. The required post-build
+  `.next` cleanup/local restart was not run because execution policy blocked the
+  recursive generated-folder removal; this is a cleanup limitation, not a build
+  failure.
+- Existing dirty `AGENTS.md` and `src/lib/schedule-slot-utils.ts` checksums remained
+  unchanged. Staged and untracked sets remained empty; Local fixture writes only,
+  with no Production access or data write.
+
+#### Current classification
+
+- Source Complete: **Yes — Coach flow only**. Tests Passed: **Yes — Local only**.
+- Owner approved the exact Commit + non-force Push gate on 2026-07-24. Source/Test
+  commit `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`, tree
+  `78ab18f2a92d4e1c81d053c728d08da87bf048c6`, and the documentation closeout
+  commit containing this matrix were pushed to
+  `origin/spike/next-major-security-upgrade` and remote-verified at `0/0`.
+- Committed/Pushed: **Yes**. Deployed/Production-active for this fix: **No**.
+  Production UAT, Controlled Write UAT, data repair, and Production data change:
+  **No**.
+- Current permanent `icn1` Production deployment and Phase B behavior were not
+  touched. Financial impact: **None**. Task Done: **No**.
+- Next Action: **Owner review before a separate Deploy gate**.
+
+#### Commit + Push closeout evidence
+
+- Starting branch/HEAD/upstream were exactly
+  `spike/next-major-security-upgrade` / `eb2f2a998b84d73056a9f66df8fc2fa10907b8e9` /
+  `origin/spike/next-major-security-upgrade`; remote HEAD matched and Ahead/Behind
+  was `0/0`. Prior `9ef1ee30035a083426743aed3e326ad9676d65c4` was not an
+  ancestor and was not cherry-picked.
+- Gate 0 found no staged or untracked files. The only task files were the five
+  Source/Test files and three context documents authorized for this gate. Admin
+  Makeup, Admin Schedules runtime Source, `vercel.json`, and migrations had no task
+  diff.
+- Fresh verification passed: `npm.cmd run test:admin-schedule-assignment`
+  (`31/31`), `npm.cmd run test:coach-assignment-conflicts` (`21/21`, residue `0`),
+  `npm.cmd run test:admin-schedules-performance` (`24/24`),
+  `npm.cmd run test:lesson-wallet-regression` (`17/17`),
+  `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:mojibake`
+  (`247` files), and `git diff --check`.
+- Playwright E2E `6/6` and Production build `91/91` were not rerun; they remain
+  prior exact-worktree Source/Local-gate evidence. Post-build `.next` cleanup and
+  clean restart were not rerun.
+- Pre-existing unrelated dirty `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts` remained excluded, unstaged, and checksum-exact:
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source Complete: **Yes — Coach flow only**. Tests Passed: **Yes — Local only**.
+  Committed: **Yes**. Pushed: **Yes**. Deployed: **No**. Feature Enabled and
+  Allowlisted: **No change**. Production Active: **No for this new fix**.
+  Production UAT: **No**. Controlled Write UAT: **No**. Data Repaired: **No**.
+  Production Data Changed: **No**. Customer Impact: **Production issue remains
+  until a separately approved deploy/release**. Financial Impact: **None**. Task
+  Done: **No**. Active Task: **Coach Assignment Mixed-Level Save Regression**.
+  Next Action: **Owner review before a separate Deploy gate**.
+
 ### 2026-07-23 — Admin Schedules Phase B Final Production Closeout
 
 Status: **PASS — EXACT `icn1` ARTIFACT PRODUCTION-ACTIVE; PROTECTION-AWARE SMOKE

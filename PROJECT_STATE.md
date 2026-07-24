@@ -1,10 +1,12 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 Source: current local/upstream Git metadata, Source, documentation, prior Local
 verification, fresh read-only Vercel deployment/alias inspection, and the
 Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
-2026-07-23. Items not confirmed are marked `Unknown / Need verification`.
+2026-07-23, plus the Coach Assignment mixed-Level Source/Local and approved
+Commit + Push gates on 2026-07-24. Items not confirmed are marked
+`Unknown / Need verification`.
 
 ## Current Source of Truth
 
@@ -13,6 +15,16 @@ The repo currently uses Next.js 16.2.6 App Router, React 18, TypeScript 5,
 TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Owner Policy
+
+- Owner selected **Coach Assignment Mixed-Level Save Regression** as the single
+  Active Task on 2026-07-24 and confirmed that Coach/Head Coach may intentionally
+  place learners from different Level categories in one group. Mixed categories,
+  wide Level gaps, assessed plus unassessed learners, and incomplete Level
+  definitions are warning-only in the Coach assignment flow. Owner subsequently
+  approved the exact two-commit, non-force Commit + Push gate on 2026-07-24.
+  Deploy, Production access/write/UAT, migration, feature-control, allowlist,
+  environment, branch, Admin Makeup, and Admin Schedules runtime changes remain
+  prohibited.
 
 - Owner confirmed on 2026-07-12 that Progressive replaces Legacy for general Kids
   Group Production traffic. Deploy, environment/flag/allowlist changes, Production
@@ -296,7 +308,12 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
   `Unknown / Need verification`.
 
-### Current Execution State
+### Historical Execution State (superseded snapshot through 2026-07-23)
+
+The present-tense and `Current` wording retained inside this section describes the
+state observed at its individual earlier checkpoints. It is superseded for current
+decisions by **Current Project Matrix — Coach Assignment Mixed-Level Save
+Regression** below; it must not be used as the current Active Task or Next Action.
 
 - Active Task: **ADMIN SCHEDULES PERFORMANCE**.
 - Task Status: **REGION EXPERIMENT PERFORMANCE GATE PASSED; PERMANENT `icn1`
@@ -762,9 +779,9 @@ DAMAGED SLOTS REPAIRED AND OWNER-CONFIRMED**
   temporary detached worktree and its downloaded environment files were removed
   after verification.
 
-#### Current Coach Assignment Remediation Matrix
+#### Historical Coach Assignment Remediation Matrix (state observed at its prior closeout)
 
-| Field | Current value |
+| Field | Value observed at that closeout |
 | --- | --- |
 | Active Task | NONE |
 | Task Status | Done — corrective Forward Source Production-active; Canary read-only and Controlled Write UAT passed; exact artifact promoted; write containment removed; all 3 confirmed damaged slots repaired and Owner-confirmed |
@@ -1679,43 +1696,42 @@ NO-WRITE PRODUCTION UAT PASSED**
 - Detailed final evidence:
   `docs/performance/admin-schedules-phase-b-final-production-closeout-2026-07-23.md`.
 
-#### Current Admin Schedules Performance Matrix
+#### Current Project Matrix — Coach Assignment Mixed-Level Save Regression
 
 | Field | Current value |
 | --- | --- |
-| Active Task | NONE |
-| Task Status | DONE — Admin Schedules Performance Phase B is Production-active; read-only Production UAT passed with Owner-accepted timing/retry limitations |
+| Active Task | Coach Assignment Mixed-Level Save Regression |
+| Task Status | SOURCE COMPLETE / LOCAL TESTS PASSED / COMMITTED / PUSHED — Coach flow only; not deployed or Production-active |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; starting parent `a39424bdbd0f78dee10d367800b833d8d3544d5d` |
-| Remote HEAD | Same documentation closeout after the approved non-force push |
-| Ahead/Behind | `0/0` after publish verification |
-| B1 Diagnosis | Complete — read-only bottleneck diagnosis recorded; no technical change |
-| Source Complete | Yes — permanent `icn1` configuration plus prior business Source remediation |
-| Tests Passed | Yes — prior Local exact-config evidence: Admin Schedules `24/24`; assignment `24/24`; wallet `17/17`; TypeScript; ESLint; mojibake; diff check; build `91/91`. Region Experiment and final read-only Production UAT also passed within their stated scopes |
-| Committed | Yes — configuration `77db099607dd7ee8dfe265929a6720818e2015d1`; documentation closeout is the commit containing this matrix |
-| Pushed | Yes — configuration and documentation closeout pushed non-force to `origin/spike/next-major-security-upgrade` |
-| Current Source | Pushed business remediation `62ac775d81aa8a702cbab744fdfb2a7ab15791b7` plus permanent `icn1` configuration commit `77db099607dd7ee8dfe265929a6720818e2015d1` |
-| Deployed | Yes — exact permanent-config artifact is Production-active |
+| Local HEAD | Documentation closeout commit containing this matrix; Source/Test commit is `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e` |
+| Remote HEAD | Same documentation closeout commit containing this matrix after the approved non-force push |
+| Ahead/Behind | `0/0` after push verification |
+| Root Cause | Current branch lineage does not contain prior corrective commit `9ef1ee30035a083426743aed3e326ad9676d65c4`; current Coach client and Coach API used the shared blocking naming resolver, and generic `กลุ่ม N` therefore failed mixed-Level naming before/at Save |
+| Source Complete | Yes — Coach flow only. A Coach-only resolver keeps shared/default behavior unchanged, preserves trimmed manual names, uses deterministic `กลุ่มผสม` fallback for generic mixed/incomplete groups, and reconciles canonical saved name/range in the Coach UI |
+| Tests Passed | Yes — Local only. Fresh Commit + Push gate reran `npm.cmd run test:admin-schedule-assignment` (`31/31`), `npm.cmd run test:coach-assignment-conflicts` (`21/21`, residue `0`), `npm.cmd run test:admin-schedules-performance` (`24/24`), `npm.cmd run test:lesson-wallet-regression` (`17/17`), `npx.cmd tsc --noEmit`, `npm.cmd run lint`, `npm.cmd run check:mojibake` (`247` files), and `git diff --check`; all passed. Playwright `6/6` and Production build `91/91` are prior exact-worktree Source/Local-gate evidence and were not rerun. Post-build `.next` cleanup/restart was also not rerun |
+| Committed | Yes — Source/Test commit `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`, tree `78ab18f2a92d4e1c81d053c728d08da87bf048c6`; documentation closeout commit containing this matrix |
+| Pushed | Yes — both commits pushed non-force to `origin/spike/next-major-security-upgrade` and remote-verified |
+| Current Source | Pushed Coach-only forward fix `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`; shared non-Coach naming default remains unchanged |
+| Deployed | No new deployment; existing Phase B Production deployment is unchanged |
 | Deployed Source | Exact deployment input HEAD `a39424bdbd0f78dee10d367800b833d8d3544d5d`, tree `a2a391a36b28e250dece4317e050ba52cb89f42e`, containing the pushed business remediation and permanent `icn1` configuration |
 | Deployment ID | `dpl_h51j7Kk6E5FJ1ox3bVLRAL61gv4H`, `READY`, `icn1`; all four established Production aliases map to this deployment |
-| Migration Source | None for this task |
+| Migration Source | None for the new Coach fix |
 | Migration Applied | No — not required |
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | Yes — permanent `icn1` configuration is active on all four Production aliases |
-| Production UAT | Passed — Super Admin, Standard Admin, and mobile read-only Production UAT, with Owner-accepted page-timing/live-retry limitations |
-| Performance Gate | Passed — Region Experiment; bounded Production observations had Super/Standard outer P95 `1.540/2.450 s` and server P95 `0.860/1.523 s` |
-| Production P95 | Bounded outer observation only; page-internal timing unavailable and accepted by Owner. Outer samples over `5 s`: `0/5` for each role |
-| Controlled Write UAT | No / not applicable; read-only Source scope |
-| Data Repaired | No / not applicable |
-| Production Data Changed | No — no Production business-data change by UAT or this documentation gate |
-| Customer Impact | `icn1` Admin Schedules performance remediation is Production-active |
+| Production Active | No for the new Coach fix. Existing permanent `icn1` Phase B configuration remains Production-active and unchanged |
+| Production UAT | No for the new Coach fix; no Production access occurred in this gate. Prior Phase B read-only UAT status is unchanged |
+| Performance Gate | Not applicable to this Coach-only fix; prior Admin Schedules Phase B gate remains passed |
+| Controlled Write UAT | No |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | Current Production mixed-Level Coach Save issue remains until a separately approved release; existing `icn1` performance remediation remains active |
 | Financial Impact | None; no financial data or semantics changed |
-| Blocker | None for Phase B; accepted timing/retry limitations remain documented |
-| Remaining Work | None for Phase B |
-| Task Done | Yes — Phase B |
-| Documentation Drift | No after the documentation commit containing this matrix is pushed and remote-verified |
-| Next Gate / Next Action | Await Owner selection; do not start another task automatically |
+| Blocker | Deploy/release authorization is not part of this gate |
+| Remaining Work | Owner review before separately authorized deploy/UAT work |
+| Task Done | No |
+| Documentation Drift | No after the documentation closeout commit containing this matrix is pushed and remote-verified |
+| Next Gate / Next Action | Owner review before a separate Deploy gate |
 | Parking Lot authorization state | No Parking Lot task is authorized automatically |
 
 ## Historical / Superseded 2026-07-13–14 Records

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,12 +9,27 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **NONE**.
+### Coach Assignment Mixed-Level Save Regression
 
-- No task is authorized automatically.
-- Next Action: **Await Owner selection; do not start another task automatically.**
-- Authoritative current state: `PROJECT_STATE.md` → **Current Admin Schedules
-  Performance Matrix**.
+Status: **SOURCE COMPLETE / LOCAL TESTS PASSED / COMMITTED / PUSHED — COACH FLOW
+ONLY; NOT DEPLOYED OR PRODUCTION-ACTIVE**.
+
+- Root cause: current branch lineage omits prior corrective commit `9ef1ee3...`;
+  the Coach client and Coach assignment API used the shared blocking resolver, so
+  mixed-Level generic names such as `กลุ่ม N` stopped Save.
+- Local forward fix uses an explicit Coach-only resolver/warning policy. Shared
+  default behavior and `src/app/api/admin/makeup/route.ts` remain unchanged.
+- Source/Test commit `8aea07aaa06cf82cf3ece7bf421e8211ef421c9e`, tree
+  `78ab18f2a92d4e1c81d053c728d08da87bf048c6`, and the documentation closeout
+  commit containing the current matrix were pushed non-force and remote-verified.
+- Fresh publish-gate evidence passed: deterministic assignment/isolation `31/31`,
+  conflict DB `21/21` with residue `0`, Admin Schedules performance `24/24`,
+  Lesson Wallet `17/17`, TypeScript, ESLint, mojibake `247`, and diff check.
+  Playwright `6/6`, build `91/91`, and post-build `.next` cleanup/restart were not
+  rerun; Playwright/build remain prior exact-worktree evidence.
+- Next Action: **Owner review before a separate Deploy gate.**
+- Authoritative current state: `PROJECT_STATE.md` → **Current Project Matrix —
+  Coach Assignment Mixed-Level Save Regression**.
 
 ## Recently Completed
 
@@ -175,10 +190,10 @@ SLOTS REPAIRED AND OWNER-CONFIRMED**.
   **Admin Schedules — Coach Overlap Guard and Ungrouped Coach Semantics**.
 
 Current next action is owned by the Active Work section above and the authoritative
-matrix in `PROJECT_STATE.md`: **Admin Schedules Performance Phase B is complete;
-Active Task is NONE. Await Owner selection and do not start the auth follow-up,
-historical cleanup, permanent dirty `AGENTS.md` work, Homepage LV, or another
-Parking Lot task without a new Owner gate.**
+matrix in `PROJECT_STATE.md`: **Owner review before a separate Coach Assignment
+Mixed-Level Save Regression Deploy gate. Do not start deploy/UAT, the auth
+follow-up, historical cleanup, permanent dirty `AGENTS.md` work, Homepage LV, or
+another Parking Lot task without a new Owner gate.**
 
 ## Earlier Completed
 
@@ -383,6 +398,7 @@ Confirmed final state:
   state, risks/blockers, or the next task changes.
 - Put long reconciliation/release history in `DEVELOPMENT_TODO.md`.
 - Run `npm.cmd run check:mojibake` and `git diff --check` for documentation edits.
-- Next action: **Await Owner selection; do not start Homepage LV, the auth
-  follow-up, historical cleanup, permanent dirty-file work, or another Parking Lot
-  task automatically.**
+- Next action: **Owner review before a separate Coach Assignment Mixed-Level Save
+  Regression Deploy gate; do not start deploy/UAT, Homepage LV, the auth follow-up,
+  historical cleanup, permanent dirty-file work, or another Parking Lot task
+  automatically.**
