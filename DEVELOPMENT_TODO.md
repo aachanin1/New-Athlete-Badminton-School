@@ -122,6 +122,414 @@ State observed at this Commit + Push closeout on 2026-07-24:
   Production activation**. Blocker: **None**. Next Action: **Owner review before
   Deploy**. Deploy remains unauthorized pending a separate Owner gate.
 
+#### Owner-approved staged Production-target deploy gate
+
+State observed at this staged deployment closeout on 2026-07-24:
+
+- Owner authorized exactly one Production-target Vercel deployment from exact clean
+  commit `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, tree
+  `56cd0afb02f64aedba047caef205725a56381b06`, with `--prod --skip-domain`, public
+  read-only smoke, alias reconciliation, and local documentation only. Promotion,
+  alias commands, authenticated UAT, application/Production writes, retry/force/
+  rollback, migration, environment/feature/allowlist changes, Source/Test/config/
+  package edits, and documentation Commit/Push remained prohibited.
+- Fresh Gate 0 verified branch/local/upstream/live Remote at exact `5544c8a...`,
+  Ahead/Behind `0/0`, tree `56cd0af...`, functional ancestor `fc9f228...`, empty
+  staged/untracked sets, exact approved and protected hashes, cached Vercel CLI
+  `56.5.0`, authenticated account `aachanin1`, project/team linkage, and region
+  `icn1`. The Production baseline was `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`,
+  `READY/PROMOTED`, Git SHA `b6d974cdc8bee7966ca5d18e012bf069f1fe0e67`;
+  its exact Production aliases `www.newathleteschool.com`,
+  `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`, plus
+  four branch-preview aliases, were captured.
+- A uniquely named detached worktree at
+  `C:\Users\aacha\AppData\Local\Temp\codex-coach-status-deploy-20260724-235530-947d89d0`
+  was clean at the approved HEAD/tree. Only verified `.vercel/project.json` linkage
+  was copied; no environment/token/credential, `node_modules`, `.next`, build
+  output, or protected dirty file was copied. The worktree was removed safely
+  after evidence collection and is no longer present or registered.
+- Exactly one deployment command created
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` at
+  `https://new-athlete-badminton-school-255g5cr3r-aachanin1s-projects.vercel.app`.
+  Control-plane metadata is target `production`, state/substate `READY/STAGED`,
+  current/promoted **No**, source `cli`, `autoAssignCustomDomains=false`, attached
+  aliases `0`, Git SHA exact `5544c8a...`, and function region `icn1`. It was
+  created `2026-07-24T16:57:43.411Z`, entered build at
+  `2026-07-24T16:57:44.522Z`, and became Ready at
+  `2026-07-24T16:58:54.970Z`; build duration was `70.448s`.
+- Remote build passed using Vercel CLI `56.5.0`, Node `24.x`, and Next.js `16.2.6`.
+  Compilation and TypeScript passed, static generation completed `91/91`, output
+  build completed in `56s`, build ran in `cle1`, and functions remain configured
+  for `icn1`. The log scan found no build error and no error-level runtime record;
+  it did report the existing npm audit summary (`7` vulnerabilities) and Node
+  engine auto-upgrade warning. No dependency or package file was changed.
+- Public unauthenticated application smoke was **Not passed**: direct requests to
+  `/`, `/api/health`, and `/_next/static/*` each returned `302` to Vercel SSO due
+  to Deployment Protection. Following the redirect returned the Vercel sign-in
+  page (`200 text/html`), not application health/static content. No authenticated
+  bypass or application request was attempted.
+- Post-deploy reconciliation found exactly one post-baseline deployment and one
+  production-target deployment from this gate. All eight captured alias mappings
+  remained exact: the four established Production aliases still point to
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`, all four branch-preview aliases are
+  unchanged, the new artifact has zero aliases, and missing/extra/moved aliases
+  are `0/0/0`.
+- Operation counts: deployment `1`; retry `0`; force `0`; promotion `0`; alias
+  command `0`; rollback `0`. Source/Test/config/package/migration/environment/
+  feature/allowlist changes: **No**. Authenticated UAT and Production business-data
+  write: **No**. Production Data Changed: **No**. Data Repaired: **No**. Customer
+  Impact: **None**. Financial Impact: **None**.
+- Source Complete: **Yes**. Tests Passed: **Yes — prior Local checkpoint
+  unchanged**. Committed/Pushed: **Yes — prior gate**. Artifact creation/build:
+  **Passed**. Deployed: **Yes — staged Production-target artifact only**.
+  Promoted: **No**. Production Active for this fix: **No**. Production UAT and
+  Controlled Write UAT: **Not run**. Overall previous Deploy Gate result:
+  **Partial**, because mandatory public application smoke did not reach the app.
+  Documentation was updated locally only and remained unstaged, uncommitted, and
+  unpushed.
+- Blocker at that checkpoint: **Vercel Deployment Protection prevented
+  unauthenticated public staged application smoke**. Historical next action was
+  Owner review before separately authorized read-only staged UAT. Promotion was
+  prohibited.
+
+#### Owner-approved authenticated read-only staged application UAT
+
+State observed at this read-only staged UAT closeout on 2026-07-25:
+
+- Owner authorized only authenticated read-only UAT of exact staged deployment
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` through an existing authorized browser/Vercel/
+  Head Coach session. Navigation, GET reads, desktop/mobile rendering, console/
+  network/log inspection, and one non-persisted name draft followed by reload were
+  authorized. Save, assignment POST, all application/Production writes,
+  Controlled Write, promotion/alias movement, deploy/rebuild/retry/rollback,
+  direct Production API/database access, Source/Test/config/package/migration/
+  environment/feature/allowlist change, Commit/Push, and credential/session
+  extraction remained prohibited.
+- Fresh Gate 0 verified branch/local/upstream/live Remote
+  `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, tree `56cd0af...`, Ahead/Behind
+  `0/0`, exact five-file dirty scope, empty staged/untracked sets, all documentation/
+  protected/functional hashes, no functional/config/migration diff, pinned Vercel
+  CLI `56.5.0`, account/project/team, and no deployment operation in progress.
+  Artifact preflight was exact `production/READY/STAGED`, Git SHA `5544c8a...`,
+  source `cli`, region `icn1`, aliases `0`; Production baseline and all four
+  aliases remained on `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`.
+- Source inspection reconfirmed that group-name `onChange` changes only local React
+  draft state. Persistence exists only inside explicit `saveSlot()` POST bound to
+  `บันทึก/ยืนยันการมอบหมาย`. The browser runtime exposed no request-interception
+  capability, so no guard could be installed; the Save control was never clicked,
+  and zero mutation was independently proven from bounded deployment logs.
+- An existing Chrome session loaded only
+  `https://new-athlete-badminton-school-255g5cr3r-aachanin1s-projects.vercel.app/coach/assign-groups`
+  as Head Coach without login or authorization redirect. No cookie, storage,
+  password, token, browser profile, or session file was inspected or extracted.
+  UAT ran from `2026-07-24T17:15:52.116Z` to
+  `2026-07-24T17:20:37.836Z` UTC.
+- Natural status evidence was available on 27 July 2026 at เทพารักษ์: green saved
+  `10:00–12:00` with two learners, existing amber `17:00–19:00` with three
+  learners, and red unassigned `20:00–22:00` with one learner. Page counts were
+  total `20`, saved/changed/unassigned `8/6/6`; the invariant held. Date counts
+  were exclusive `1/1/1`, with separate green/amber/red cards and no overlap.
+- The only draft interaction selected the naturally saved `10:00–12:00` slot and
+  changed group name `พื้นฐาน / เริ่มต้น` to
+  `พื้นฐาน / เริ่มต้น [UAT-READONLY]`. No other field or control changed. The slot
+  became amber with exact label `มีการเปลี่ยนแปลง รอตรวจและบันทึก`, exact approved
+  detail copy, and enabled-but-unclicked Save button. Counts became `7/7/6` while
+  total remained `20`; red did not increase. `ต้องดำเนินการ` included the edited
+  slot and natural red/amber slots while saved-only 25/26 July dates were excluded.
+- Reload discarded the client draft. Reopening 27 July restored original group
+  name `พื้นฐาน / เริ่มต้น`, removed `[UAT-READONLY]`, returned the slot to green
+  with disabled `มอบหมายแล้ว`, and restored counts to `8/6/6`. Existing data did
+  not appear changed.
+- Desktop `1920x855` and mobile `390x844` passed. Cards, exclusive badges, filter,
+  green/red/amber states, exact changed detail copy, and action area remained
+  readable. Document width stayed within viewport, horizontal overflow was absent,
+  and Next.js overlay count was `0`. Screenshots were captured during the browser
+  evidence session; temporary viewport override was reset before closeout.
+- Browser console warning/error counts were `0`; page/hydration/overlay errors were
+  `0`. Bounded Vercel logs contained `26` unique requests with method distribution
+  `GET:26`, status distribution `200:23, 304:3`; assignment-group POST, all
+  application POST/PUT/PATCH/DELETE, 4xx, 5xx, error, and fatal counts were all
+  `0`. Save click count was `0`. Save-success toast, duplicate-submit, and refresh-
+  gap behavior were **Not run on staged — prohibited**; prior Local E2E remains the
+  only evidence for that write-path behavior.
+- Post-UAT control-plane state remained exact `production/READY/STAGED`, Git SHA
+  `5544c8a...`, source `cli`, region `icn1`, aliases `0`, unpromoted/current **No**.
+  No deployment was created during UAT, and all four Production aliases remained
+  on `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`. Deployment/rebuild/promotion/alias/
+  rollback counts were `0/0/0/0/0`.
+- Read-only Staged Application UAT: **Passed**. Source Complete: **Yes**. Tests:
+  **Passed — prior Local checkpoint unchanged**. Committed/Pushed: **Yes — prior
+  gate**. Artifact Build: **Passed**. Deployed: **Yes — staged only**. Promoted:
+  **No**. Production Active: **No**. Production UAT and Controlled Write UAT:
+  **Not run**. Data Repaired: **No**. Production Data Changed: **No**. Customer
+  Impact: **None**. Financial Impact: **None**. Task Done: **Yes through the
+  authorized read-only staged UAT; No for promotion/release**.
+- Known Documentation Drift is reconciled: artifact creation/build passed, the
+  previous Deploy Gate was **Partial** before authenticated application proof, and
+  this separately authorized staged application UAT now **Passed**. Documentation
+  remains local, unstaged, uncommitted, and unpushed. Blocker: **None for this UAT**.
+  Next Action: **Owner review before separately authorized Promotion gate**.
+
+#### Owner-approved Documentation Drift correction + resumed exact-artifact Promotion gate
+
+State observed before the resumed Promotion preflight on 2026-07-25:
+
+- The first Promotion attempt Hard Stopped before any Vercel command because
+  `TODO-CODEX.md` contained two present-tense duplicate `Deploy gate` next-action
+  statements while Current Active Work and the authoritative `PROJECT_STATE.md`
+  matrix correctly pointed to a Promotion gate. This violated the single-owner /
+  no-duplicated-mutable-state documentation contract.
+- That stopped attempt issued Vercel promotion/deploy/build/rebuild/retry/force/
+  rollback/separate-alias commands `0/0/0/0/0/0/0/0`; application synthetic GET,
+  POST/PUT/PATCH/DELETE, Save, Production API/database access, business-data write,
+  and data repair counts were all `0`.
+- Owner explicitly authorized correction of Documentation Drift in only
+  `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`, followed by a
+  fresh Git/Remote/Vercel/control-plane gate and one conditional promotion of exact
+  artifact `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` without rebuild.
+- Promotion has not occurred at this checkpoint. External Vercel/Production state
+  is `Unknown / Need fresh verification` until the new Fresh Gate 0 passes. Any
+  mismatch requires Hard Stop. Production application UAT, Controlled Write, Save,
+  deploy/rebuild, retry/force/rollback, separate alias command, Production data
+  access/write, Source/Test/API/RPC/config/package/migration/environment/feature/
+  allowlist change, Commit, and Push remain unauthorized.
+- Conditional next action: run Fresh Gate 0 and promote only the exact artifact if
+  every expected Git/Vercel/deployment/alias value matches.
+
+State observed at the completed Promotion closeout on 2026-07-25:
+
+- Documentation correction passed before Vercel mutation: mojibake `247`, scoped
+  `git diff --check`, current-state matrix, secret-like additions `0`, forbidden
+  diff `0`, independent present-tense `Deploy gate` next actions `0`, and exact
+  functional/protected hashes. The three documentation files remained local,
+  unstaged, uncommitted, and unpushed.
+- Fresh Git Gate 0 verified repository root, branch
+  `spike/next-major-security-upgrade`, local/upstream/live Remote HEAD
+  `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, tree
+  `56cd0afb02f64aedba047caef205725a56381b06`, Ahead/Behind `0/0`, functional
+  ancestor `fc9f228...`, empty staged/untracked sets, exact five-file dirty scope,
+  and no Source/Test/API/RPC/config/package/migration diff.
+- Fresh Vercel Gate 0 verified cached CLI `56.5.0`, account `aachanin1`, project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, and configured/function region `icn1`. Exact
+  target `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` was
+  `production/READY/STAGED`, source `cli`, Git SHA `5544c8a...`, aliases `0`,
+  `autoAssignCustomDomains=false`, and not queued. Baseline
+  `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9` was `READY/PROMOTED`, Git SHA `b6d974c...`.
+  Four Production aliases pointed to the baseline and four branch-preview aliases
+  matched their prior deployments. Deployment inventory page count was `20`, the
+  latest deployment was the exact target created at `1784912263411`, and pending
+  operations were `0`.
+- Exactly one command ran:
+  `vercel promote dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E --yes --scope team_gw8Y6CPd602WAKRsVFobPGCL --no-color`.
+  It started `2026-07-25T07:23:14.0186485Z`, ended
+  `2026-07-25T07:23:19.4718722Z`, exited `0`, and promoted that exact artifact.
+- Post-promotion control plane reports target/state/substate
+  `production/READY/PROMOTED`, Git SHA `5544c8a...`, source `cli`, and region
+  `icn1`. Creation `1784912263411`, build start `1784912264522`, Ready
+  `1784912334970`, boot, and build-container timestamps did not change. Deployment
+  inventory remained page count `20`, latest ID `dpl_93iq...`, latest creation
+  `1784912263411`; therefore no deployment or rebuild was created.
+- All four established Production aliases moved from `dpl_9Hb6...` to
+  `dpl_93iq...`; missing/extra/wrong were `0/0/0`. Branch-preview aliases remained
+  exact on `dpl_2T8K7...`, `dpl_7uqAnv...`, `dpl_Cnu2A6...`, and `dpl_3CbHauh...`.
+  No separate alias command was issued. Bounded logs since promotion contained
+  error/fatal/5xx records `0/0/0`.
+- Operation counts for this resumed gate: promotion `1`; deploy/build/rebuild/
+  retry/force/rollback/separate-alias `0/0/0/0/0/0/0`. Application route and
+  synthetic GET `0`; Save and application POST/PUT/PATCH/DELETE `0`; Production
+  API/database access, business-data write, data repair, migration, environment,
+  feature, allowlist, Source/Test/config/package change, Commit, and Push were all
+  `0`.
+- Source Complete: **Yes**. Tests Passed: **Yes — prior Local checkpoint**.
+  Committed/Pushed: **Yes — prior gate**. Deployed/Promoted: **Yes/Yes**.
+  Production Active: **Yes — control-plane evidence only**. Production UAT and
+  Controlled Write UAT: **Not run**. Production Data Changed: **No**. Customer
+  Impact: exact Source now receives Production traffic after four aliases moved.
+  Financial Impact: **None from this gate**. Documentation Drift: **No** after the
+  approved correction. Task Done: **No** pending post-promotion Production UAT and
+  documentation publication.
+- Next Action: **Owner review before separately authorized read-only post-promotion
+  Production UAT**. Do not start UAT, Save, Controlled Write, Commit/Push, or
+  another task automatically.
+
+#### Owner-approved read-only post-promotion Production UAT — blocked pre-route
+
+State observed at this blocked UAT checkpoint on 2026-07-25:
+
+- Owner authorized only authenticated read-only Production UAT at
+  `https://www.newathleteschool.com/coach/assign-groups` through an existing Head
+  Coach session. Filter/date/slot selection, reload, desktop/mobile rendering,
+  console/network capture, bounded Vercel logs, and local documentation were in
+  scope. Editable-field focus/change, draft mutation, Save, application mutation,
+  Controlled Write, Production database/API access, release operations, Source/
+  Test/config/package/migration/environment/feature/allowlist change, Commit, and
+  Push remained prohibited.
+- Source was freshly read and confirmed that filter/date/slot buttons update only
+  React selection state. Persistence remains isolated to explicit `saveSlot()` and
+  its `POST /api/coach/assignment-groups`; editable inputs, coach/group controls,
+  Add group, Level arrangement, learner moves, and Save were excluded from the
+  planned browser interactions.
+- Local Fresh Gate 0 evidence matched: branch
+  `spike/next-major-security-upgrade`, HEAD and local upstream-tracking ref
+  `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, tree
+  `56cd0afb02f64aedba047caef205725a56381b06`, local Ahead/Behind `0/0`, functional
+  ancestor exact, staged/untracked empty, expected five-file dirty scope, no
+  forbidden Source/Test/config/migration diff, exact three documentation hashes,
+  and exact functional/protected hashes.
+- Mandatory live Remote verification failed before Vercel or browser access:
+  `git ls-remote origin refs/heads/spike/next-major-security-upgrade` could not
+  connect to `github.com:443` from the managed Developer environment. Per the
+  Owner Hard Stop, the gate stopped immediately. The local upstream-tracking ref
+  is exact but is not a substitute for live Remote evidence.
+- UAT classification: **Blocked / Not run**. Vercel preflight/postflight, browser
+  session/role/hostname access, Production route navigation, desktop/mobile UI,
+  natural red/amber/green cases, current counts/invariant, filters, amber copy,
+  browser console/network, bounded UAT logs, and post-UAT alias/deployment
+  comparison were not run and must not be claimed.
+- Operation counts from this attempt: Production route/application GET `0`;
+  editable-field or client-draft changes `0`; Save `0`; application POST/PUT/PATCH/
+  DELETE `0`; Production API/database access and business-data writes `0`;
+  deploy/build/rebuild/promotion/retry/force/rollback/separate alias commands `0`;
+  Source/Test/config/package/migration/environment/feature/allowlist changes `0`;
+  Commit/Push `0`.
+- Production Active remains **Yes at the last successful Promotion closeout**;
+  fresh external Vercel/alias state is `Unknown / Need verification` for this
+  blocked UAT attempt. Production UAT Passed: **No — Blocked / Not run**.
+  Controlled Write UAT: **Not run**. Production Data Changed: **No**. Customer
+  impact from this attempt: **None**. Financial impact: **None**. Task Done:
+  **No**, pending Production UAT and documentation publication.
+- Next Action: **Owner review of the network blocker, then rerun Fresh Gate 0 and
+  the already authorized read-only post-promotion Production UAT from a network-
+  enabled Developer environment**. Do not start Controlled Write, Save, Commit/
+  Push, or another task automatically.
+
+#### Owner-approved read-only post-promotion Production UAT retry — passed
+
+State observed at this successful retry closeout on 2026-07-25:
+
+- Owner approved a fresh, read-only retry for exact artifact
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`. Authorized scope was Git/documentation and
+  Vercel read-only gates, existing-session Head Coach browser UAT at only
+  `https://www.newathleteschool.com/coach/assign-groups`, passive evidence,
+  bounded logs, and local documentation. Editable focus/change, client draft,
+  Save, application mutation, direct Production API/database access, Controlled
+  Write, data repair, deploy/build/rebuild/Promotion/rollback/alias mutation,
+  environment/feature/allowlist change, Source/Test/config/package/migration
+  change, Commit, Push, PR, and other tasks remained prohibited.
+- Fresh Git Gate 0 passed from the repository root: branch
+  `spike/next-major-security-upgrade`; local/upstream/live Remote HEAD
+  `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`; tree
+  `56cd0afb02f64aedba047caef205725a56381b06`; functional ancestor
+  `fc9f228fa5fc165a3b961636267c6d8614f852cf`; Ahead/Behind `0/0`; staged and
+  untracked `0/0`; exact five-file known dirty scope; forbidden Source/Test/API/
+  RPC/config/package/migration diff `0`. Fresh `git ls-remote` returned the exact
+  live Remote SHA. Protected, functional, and three starting documentation
+  SHA-256 hashes matched the Owner-provided values.
+- Vercel preflight passed with cached CLI `56.5.0`, account `aachanin1`, project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, and region `icn1`. The exact deployment was
+  `production/READY/PROMOTED`, Current through all four established Production
+  aliases, source `cli`, Git SHA exact, concurrent/system queues `false/false`,
+  and pending operations `0`. Inventory page count was `20`; latest deployment
+  remained the exact target URL with creation `1784912263411`. Production alias
+  missing/extra/wrong was `0/0/0`. The four branch-preview mappings were captured
+  on `dpl_2T8K7...`, `dpl_7uqAnv...`, `dpl_Cnu2A6...`, and `dpl_3CbHauh...`.
+- Browser UAT window was `2026-07-25T09:29:46.145Z` through
+  `2026-07-25T09:33:01.353Z`. A new tab in the existing authorized Chrome session
+  loaded the canonical Production hostname without login or authorization
+  redirect. Visible identity was `โค้ช A'Arm Chanin(หัวหน้า)`, classified as Head
+  Coach. Final hostname remained `www.newathleteschool.com`.
+- Desktop `1920x855` passed: no horizontal overflow, Next.js overlay, or hidden
+  critical status content. Natural state totals were saved/changed/unassigned
+  `85/11/25`, and `85 + 11 + 25 = 121`. The selected 25 July date separated
+  `16` saved + `4` changed + `0` unassigned = `20`; 26 July separated `14` saved
+  + `2` changed + `2` unassigned = `18`, proving changed was not double-counted
+  as red. Green `มอบหมายแล้ว`, red `ยังไม่ได้มอบหมาย`, and amber
+  `มีการเปลี่ยนแปลง รอตรวจและบันทึก` were all naturally present.
+- The exact natural amber detail copy matched:
+  `มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การมอบหมายที่บันทึกไว้เดิมยังมีผล และการเปลี่ยนแปลงนี้จะยังไม่ส่งให้โค้ชจนกว่าจะกดบันทึกอีกครั้ง`.
+  `ต้องดำเนินการ` on 26 July showed exactly the two red + two amber slots and
+  saved `0`; `มอบหมายแล้ว` on 25 July showed saved `16`, red/amber `0/0`;
+  `ทั้งหมด` restored `20` with saved/changed/unassigned `16/4/0`. Date and slot
+  clicks never focused an editable control or changed a draft.
+- Mobile `390x844` passed: status cards, badges, filters, slot cards, detail, and
+  disabled action area were readable; horizontal overflow, clipped filter/action,
+  hidden critical content, overlay, and focused editable controls were `0`.
+  Reload returned the canonical hostname and preserved Server state at global
+  `85/11/25 = 121` and selected-date `16/4/0 = 20`.
+- Browser console warning/error count was `0`; observed Next overlay, page,
+  hydration, and visible rendering errors were `0`. The Chrome control surface did
+  not expose request interception/network events; therefore mutation proof was
+  taken from bounded Vercel request logs rather than invented browser evidence.
+  Those logs contained `27` unique requests, method distribution `GET:27`, status
+  distribution `200:27`, level distribution `info:27`. Application GET/HEAD/
+  OPTIONS was `27`; application POST/PUT/PATCH/DELETE `0`; exact
+  `POST /api/coach/assignment-groups` `0`; application 4xx/5xx `0`; bounded
+  error/fatal/5xx `0/0/0`.
+- Postflight at `2026-07-25T09:34:44.7219988Z` kept exact artifact, project/team,
+  Git SHA, `production/READY/PROMOTED`, region, creation/build/Ready timestamps,
+  inventory page count `20`, latest ID/creation, four Production aliases, and four
+  branch-preview mappings unchanged. Pending operations and deployment/rebuild/
+  Promotion/rollback/separate-alias mutation during UAT were all `0`.
+- Save clicks `0`; client draft changes `0`; assignment POST `0`; application
+  mutation `0`; Production business-data writes `0`; Production data repair `0`;
+  Source/Test/API/RPC/config/package/migration/environment/feature/allowlist
+  changes `0`; Commit/Push/PR `0`. No direct Production API/database inspection
+  occurred.
+- Final classification: **PASS — READ-ONLY PRODUCTION UAT**. Source Complete and
+  prior Local Tests/Commit/Push/Deploy/Promotion remain **Yes**; Production Active
+  **Yes**; Production UAT Passed **Yes — read-only**; Controlled Write UAT **Not
+  run / unauthorized**; Data Repaired **No**; Production Data Changed **No**;
+  Customer impact from this retry **None beyond read-only application requests**;
+  Financial impact **None**; Documentation Drift **No** after closeout.
+- Task Done remains **No** only because this local documentation is unstaged,
+  uncommitted, and unpushed. Next Action: **Owner review; if separately approved,
+  Commit + normal non-force Push only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`**. Do not start Controlled Write, Save, deploy, alias
+  mutation, PR, Parking Lot, or another task automatically.
+
+#### Owner-approved documentation-only publication closeout
+
+State observed at this documentation publication closeout on 2026-07-25:
+
+- Owner approved closeout wording, exactly one documentation-only commit, exactly
+  one normal non-force Push to `spike/next-major-security-upgrade`, and live Remote
+  verification. Only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md` were authorized. Protected dirty files, Source/Test/API/
+  RPC/migration/package/config, Browser/Vercel/Production access, Save, data write,
+  deploy/rebuild/Promotion/rollback/alias change, PR, merge/rebase/reset/amend,
+  force push, and every other task remained prohibited.
+- Fresh Gate 0 started from exact parent
+  `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, tree
+  `56cd0afb02f64aedba047caef205725a56381b06`, functional ancestor
+  `fc9f228fa5fc165a3b961636267c6d8614f852cf`, branch
+  `spike/next-major-security-upgrade`, local/upstream/live Remote exact, and
+  Ahead/Behind `0/0`. Staged/untracked sets were empty; the dirty scope was the
+  expected three documentation files plus excluded `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts`. Documentation/protected/functional hashes
+  matched the approved checkpoints, and forbidden functional diff was `0`.
+- The publication unit is the documentation-only commit containing this record,
+  with subject `docs: close coach assignment status release`; its exact SHA, tree,
+  parent, three-file list, stat, and successful normal non-force Push result are
+  reported in the final handoff. No second commit is created to embed its own SHA.
+- This closeout changes documentation state only. Source/Test/runtime, deployment,
+  Promotion, aliases, environment/feature/allowlist, Production application/data,
+  customer behavior, and financial state did not change. Browser/Vercel/
+  Production application/API/database access, Save, Controlled Write, data repair,
+  and Production write counts were all `0` for this publication gate.
+- Final task state after live Remote convergence: Source Complete **Yes**; Tests
+  Passed **Yes — prior Local suite unchanged**; functional and documentation
+  Committed/Pushed **Yes**; Deployed/Promoted/Production Active **Yes**; Production
+  UAT **Passed — read-only**; Controlled Write UAT **Not run / unauthorized / not
+  required**; Data Repaired **No**; Production Data Changed **No**; Customer impact
+  from this closeout **None**; Financial impact **None**; Documentation Drift
+  **No**; Blocker **None**; Remaining Work **None**; Task Done **Yes**.
+- Active Task: **NONE**. Next Action: **Await Owner selection; do not start another
+  task automatically**. No Parking Lot item is authorized to start automatically.
+
 ### 2026-07-24 — Coach Assignment Mixed-Level Save Regression Source/Local Gate
 
 Status at the Source/Local checkpoint: **PASS — NEW OWNER-RULE SOURCE/LOCAL TEST

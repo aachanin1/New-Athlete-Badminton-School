@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 Source: current local/upstream Git metadata, Source, documentation, prior Local
 verification, fresh read-only Vercel deployment/alias inspection, and the
 Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
@@ -8,7 +8,9 @@ Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
 Owner-reported staged UAT result, read-only Production reconciliation, the
 authoritative-name publish/deploy/read-only UAT, and the exact Controlled Write +
 two-name repair closeout on 2026-07-24, plus the Owner-approved Coach Assignment
-Status Communication + Save Feedback Source/Local and Commit + Push closeout.
+Status Communication + Save Feedback Source/Local, Commit + Push, staged
+Production-target artifact, authenticated read-only staged UAT closeout, exact-
+artifact Promotion, and successful read-only post-promotion Production UAT retry.
 Items not confirmed are marked `Unknown / Need verification`.
 
 ## Current Source of Truth
@@ -29,9 +31,50 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   saved UI without masking later draft edits or newer Server props. Owner later
   authorized the exact functional Commit + normal non-force Push, one retry after
   the first GitHub Internal Server Error, and a separate documentation closeout
-  Commit + normal non-force Push. Deploy, Vercel/alias operations, Production
-  access/UAT/write, migration, environment, feature-control, allowlist changes,
-  and PR creation remain prohibited pending a separate Owner gate.
+  Commit + normal non-force Push. Owner then authorized exactly one Production-
+  target Vercel deployment from clean commit `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`
+  with `--prod --skip-domain`, leaving the artifact staged and unpromoted. Alias
+  promotion, application writes, migrations, environment/feature-control/
+  allowlist changes, and another task remained prohibited. After the public smoke
+  was blocked by Vercel Deployment Protection, Owner authorized authenticated
+  read-only staged UAT through an existing authorized Head Coach/Vercel browser
+  session, including only local draft editing followed by reload. Save, Controlled
+  Write, Production aliases/UAT, deploy/rebuild, direct Production API/database
+  access, and Commit/Push remained prohibited.
+- The first Promotion attempt on 2026-07-25 stopped before any Vercel command
+  because `TODO-CODEX.md` retained a contradictory present-tense `Deploy gate`
+  next action. Owner then authorized correction of that Documentation Drift and
+  conditional resumption of the exact-artifact Promotion gate for
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`. The fresh Git/Vercel/control-plane gate
+  passed and that exact artifact was promoted once without rebuild. Production
+  application UAT, Controlled Write, Save, deploy/rebuild, rollback/retry,
+  separate alias commands, Production data access/write, and Commit/Push remain
+  unauthorized.
+- Owner then authorized read-only post-promotion Production UAT through the
+  canonical Production alias, using only an existing authorized Head Coach browser
+  session and non-editing filter/date/slot navigation. The gate Hard Stopped before
+  Vercel or browser access because the managed Developer environment could not
+  connect to `github.com:443`, so live Remote HEAD could not be freshly verified.
+  No Production route, browser session, Vercel control plane, application request,
+  draft, Save, mutation, data access/write, or release operation was opened by
+  this UAT attempt.
+- Owner approved a fresh retry on 2026-07-25 for exact artifact
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`. Fresh live GitHub and Vercel gates passed,
+  and the authenticated read-only Production UAT passed at the canonical alias.
+  Natural red/amber/green states, exclusive counts, filters, exact amber detail
+  copy, reload stability, desktop/mobile layout, browser console, bounded runtime
+  logs, and no-mutation evidence passed. Save, client draft changes, Controlled
+  Write, Production data access/write, deploy/rebuild/Promotion/rollback/alias
+  mutation, environment/feature/allowlist change, and Commit/Push remained
+  prohibited and did not occur.
+- Owner then approved one documentation-only closeout Commit and normal non-force
+  Push containing only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`. This publication closes Coach Assignment Status
+  Communication + Save Feedback as Done and returns Active Task to `NONE` after
+  the containing commit reaches the live Remote. Protected dirty files, Source/
+  Test/API/RPC/migration/package/config, Browser/Vercel/Production access, Save,
+  data write, deploy/rebuild/Promotion/rollback/alias mutation, PR, and every other
+  task remain prohibited.
 - Owner selected **Coach Assignment Mixed-Level Save Regression** as the single
   Active Task on 2026-07-24 and confirmed that Coach/Head Coach may intentionally
   place learners from different Level categories in one group. Mixed categories,
@@ -352,40 +395,50 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 | Field | Current value |
 | --- | --- |
-| Active Task | Coach Assignment Status Communication + Save Feedback |
-| Task Status | SOURCE FIX + LOCAL TEST AND COMMIT + PUSH GATES COMPLETE; FUNCTIONAL AND DOCUMENTATION SOURCE COMMITTED/PUSHED; UNDEPLOYED; AWAIT OWNER REVIEW BEFORE DEPLOY |
+| Active Task | NONE |
+| Task Status | DONE — SOURCE/LOCAL, FUNCTIONAL COMMIT + PUSH, ARTIFACT BUILD, AUTHENTICATED STAGED UAT, EXACT-ARTIFACT PROMOTION, PRODUCTION-ACTIVE VERIFICATION, READ-ONLY POST-PROMOTION PRODUCTION UAT, AND DOCUMENTATION PUBLICATION COMPLETE |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation closeout commit containing this matrix; parent `fc9f228fa5fc165a3b961636267c6d8614f852cf` |
-| Remote HEAD | Documentation closeout commit containing this matrix on `origin/spike/next-major-security-upgrade`; independently verified after normal non-force push |
-| Ahead/Behind | `0/0` |
+| Local HEAD | Documentation closeout commit containing this record; exact SHA/tree/parent are reported in the final handoff. Its parent is `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`; functional ancestor is `fc9f228fa5fc165a3b961636267c6d8614f852cf` |
+| Remote HEAD | Same documentation closeout commit after one successful normal non-force Push; exact live Remote SHA is reported in the final handoff |
+| Ahead/Behind | `0/0` after documentation publication verification |
 | Protected dirty files | Excluded and checksum-exact before/after: `AGENTS.md` = `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; `src/lib/schedule-slot-utils.ts` = `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
 | Root Cause | Coach UI counted every state other than `saved` as unassigned and then counted `changed` again; Save success had warning handling plus `router.refresh()` but no success toast or local saved evidence during the refresh gap |
 | Source Complete | Yes — functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf`, tree `d75793ad61fc0c02dbbc2631cfb957fd8f4ae5d7`, parent `b79e4d5a2bf31c232f55ceba921012635a357807`. Red/amber/green counts are mutually exclusive at page/date/date-card/slot-card levels; filter/copy are Owner-approved; a per-slot normalized saved signature provides immediate success feedback and is accepted only while the Server baseline and current draft signatures still match |
 | Tests Passed | Yes — Local only: deterministic assignment checks `38/38`; Local Supabase Playwright E2E `6/6` with residue `0`; focused save-state E2E `1/1` with residue `0`; Lesson Wallet `17/17`; TypeScript; ESLint with zero warnings; mojibake `247` files; Next.js 16.2.6 build `91/91` static pages; post-build `.next` cleanup, clean dev restart, localhost `/` `200`, static CSS `200`; final `git diff --check` passed |
-| Committed | Yes — exact functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf` contains only the Coach client and two approved regression files; separate documentation closeout commit containing this matrix uses subject `docs: close coach assignment status publish` |
-| Pushed | Yes — the first functional push failed with GitHub Internal Server Error request `EA08:392386:5E8D4:65A84:6A638F2A`; the one Owner-approved normal non-force retry succeeded and GitHub independently returned the exact SHA/tree/parent and three-file list; the separate documentation closeout commit was then pushed normal non-force |
-| Current Source | Functional Source/Test commit `fc9f228fa5fc165a3b961636267c6d8614f852cf` plus the separate documentation closeout commit containing this matrix |
-| Deployed | No — this fix has no deployment |
-| Deployed Source | Previous Production source remains unchanged from the completed Coach Assignment Mixed-Level Save Regression release; this local fix is absent |
-| Deployment ID | No new deployment. Existing Production deployment remains `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`; no deployment/alias inspection or mutation occurred in this gate |
+| Committed | Yes — exact functional commit `fc9f228fa5fc165a3b961636267c6d8614f852cf`; prior documentation baseline `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`; and the documentation-only closeout commit containing this record with subject `docs: close coach assignment status release` |
+| Pushed | Yes — functional and prior documentation commits were already pushed; the documentation-only closeout commit containing this record was published once by normal non-force Push and verified against the live Remote in the final handoff |
+| Current Source | Functional Source/Test commit `fc9f228fa5fc165a3b961636267c6d8614f852cf`, prior release documentation baseline `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, and the documentation-only closeout commit containing this record |
+| Artifact Build | Passed — exact staged artifact build completed with Next.js `16.2.6`, static generation `91/91`, and no build error |
+| Previous Deploy Gate | Partial — artifact creation/build/control-plane verification passed, but mandatory unauthenticated application smoke did not pass because Vercel Deployment Protection redirected application paths to SSO |
+| Deployed | Yes — the previously built Production-target artifact was promoted without a new deployment or rebuild |
+| Promoted | Yes — exact command `vercel promote dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E --yes --scope team_gw8Y6CPd602WAKRsVFobPGCL --no-color` ran once from `2026-07-25T07:23:14.0186485Z` to `2026-07-25T07:23:19.4718722Z`, exit `0` |
+| Deployed Source | Production-active artifact contains exact clean commit `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, tree `56cd0afb02f64aedba047caef205725a56381b06`; Vercel metadata reports the same Git SHA |
+| Deployment ID | Current exact artifact `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`, unique URL `https://new-athlete-badminton-school-255g5cr3r-aachanin1s-projects.vercel.app`, target/state/substate `production/READY/PROMOTED`, source `cli`, `autoAssignCustomDomains=false`, region `icn1`. Creation `2026-07-24T16:57:43.411Z`, build start `2026-07-24T16:57:44.522Z`, and Ready `2026-07-24T16:58:54.970Z` timestamps remained unchanged |
+| Production Alias Baseline | Current `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`: `www.newathleteschool.com`; `new-athlete-badminton-school.vercel.app`; `new-athlete-badminton-school-aachanin1s-projects.vercel.app`; `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`. All four moved from prior baseline `dpl_9Hb6invegeJEFo7o8Tt7EJ95Y6t9`; missing/extra/wrong `0/0/0` |
 | Migration Source | None |
 | Migration Applied | No — not required |
 | Environment Change | No |
 | Feature Enabled | Not applicable; no feature control changed |
 | Allowlisted | Not applicable; no allowlist changed |
-| Production Active | No — this fix is pushed but not deployed |
-| Production UAT | Not run |
-| Controlled Write UAT | Not run |
+| Production Active | Yes — fresh preflight/postflight kept exact artifact `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` `production/READY/PROMOTED`, Git SHA exact, Current through all four established Production aliases, region `icn1`, and authenticated application rendering at the canonical hostname |
+| Production UAT | Passed — Owner-approved read-only post-promotion Production UAT from `2026-07-25T09:29:46.145Z` to `2026-07-25T09:33:01.353Z`; existing Head Coach session, desktop `1920x855`, mobile `390x844`, natural green/red/amber, exclusive counts, filters, exact amber copy, reload, no-overflow, console/overlay/hydration, bounded logs, and no-mutation gates passed |
+| Controlled Write UAT | Not run / unauthorized / not required for this read-only release closeout |
 | Data Repaired | No |
 | Production Data Changed | No |
-| Customer Impact | None yet from this undeployed fix; real users continue to receive the previously deployed behavior until a separately approved release |
+| Customer Impact | Exact Source is Production-active and verified readable for Head Coach; this documentation-only closeout causes no runtime or customer-data change |
 | Financial Impact | None |
 | Performance / Call Count | No API/query/polling/timer added. Existing Local E2E external-call assertions remained summary/day/search `4/7/6`; no call-count regression was observed |
-| Blocker | None for the completed Commit + Push gate; the first transient GitHub push error was resolved by the single Owner-approved retry |
-| Remaining Work | Owner review before any separately authorized Deploy gate; Deploy and Production UAT remain unauthorized |
-| Task Done | Yes for the authorized Source/Local and Commit + Push gates; No for release/Production activation |
-| Documentation Drift | No — this closeout reconciles Owner authorization, functional/documentation Git state, Local test evidence, and Production non-change; previous release matrices remain historical |
-| Next Gate / Next Action | Owner review before Deploy |
+| Staged Deploy Verification | Vercel CLI `56.5.0`; one deploy command, zero retry/force/promotion/alias/rollback commands; Next.js `16.2.6` build passed with static generation `91/91`; build ran in `cle1`, functions configured for `icn1`; control plane found exactly one post-gate production-target deployment, no error-level runtime log record, and no alias mismatch. Unauthenticated requests to `/`, `/api/health`, and `/_next/static/*` were redirected `302` to Vercel SSO, so the previous gate was Partial pending authorized session-based application verification |
+| Staged Application UAT | Passed — existing authorized Chrome session loaded the exact staged hostname as Head Coach without login/authorization redirect. Desktop `1920x855` and mobile `390x844` passed. Natural states were green `27 ก.ค. 69 10:00–12:00`, red `27 ก.ค. 69 20:00–22:00`, and existing amber `27 ก.ค. 69 17:00–19:00`. Client-only rename of green group `พื้นฐาน / เริ่มต้น` to `พื้นฐาน / เริ่มต้น [UAT-READONLY]` changed counts from saved/changed/unassigned `8/6/6` to `7/7/6` with total `20`, exact amber label/detail and action-filter behavior passed, and reload restored `8/6/6`, original name, green/disabled state, and removed the marker. Save clicks `0`; bounded logs contained `26` unique requests, all `GET`, assignment POST `0`, all application mutations `0`, console warning/error `0`, overlay/hydration/page error `0`, runtime error/fatal/4xx/5xx `0`. Save-success toast/refresh-gap staged proof was not run because Save was prohibited; prior Local E2E remains its evidence |
+| Promotion Verification | Passed — pinned CLI `56.5.0`, exact artifact promoted once with no deploy/build/rebuild/retry/force/rollback/separate alias command. Pre/post deployment inventory page count remained `20`; latest deployment ID/timestamp remained `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` / `1784912263411`; target creation/build/Ready timestamps were unchanged. Production aliases moved `4/4`; four branch-preview mappings were unchanged; bounded post-promotion error/fatal/5xx logs were `0/0/0`. No application route or synthetic request was opened, so this is not Production UAT |
+| Post-promotion Production UAT | Passed — Fresh Git/live Remote and Vercel preflight passed; canonical hostname remained exact with Head Coach role. Global saved/changed/unassigned was `85/11/25`, total `121`; 25 July was `16/4/0 = 20`, while 26 July was `14/2/2 = 18`. `ต้องดำเนินการ` showed red + amber and excluded saved, `มอบหมายแล้ว` showed only saved, `ทั้งหมด` restored all. Exact amber detail copy matched. Reload preserved Server state. Mobile/desktop overflow, Next overlay, hydration/page/console warnings/errors were `0`. Bounded Vercel logs contained `27` unique requests, all `GET/200/info`; application POST/PUT/PATCH/DELETE, assignment POST, 4xx/5xx, error/fatal were `0`. Save clicks and client draft changes were `0` |
+| Documentation Publication | Complete — one documentation-only commit containing this record, exact three-file scope, one normal non-force Push, and live Remote convergence; exact commit SHA/tree/parent are reported in the final handoff |
+| Blocker | None |
+| Remaining Work | None for Coach Assignment Status Communication + Save Feedback |
+| Task Done | Yes |
+| Documentation Drift | No — authoritative current matrix, short execution index, and dated evidence agree after this documentation publication closeout |
+| Documentation State | Published by the documentation-only closeout commit containing this record; exact SHA and normal non-force Push result are reported in the final handoff |
+| Next Gate / Next Action | Await Owner selection; do not start another task automatically |
 | Parking Lot authorization state | No Parking Lot task is authorized |
 
 ## Historical / Superseded Completed Task Records
