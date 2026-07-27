@@ -8131,3 +8131,438 @@ State observed at this documentation closeout on 2026-07-27:
   visible behavior was confirmed by Owner. Active Task is **NONE**. Blocker
   **None**. Remaining Work **None within this task**. Next Action: **Await Owner
   selection; do not start another task or Parking Lot item automatically**.
+
+## 2026-07-27 — Reschedule-In Exact Coach Assignment / Legacy Fallback Isolation
+
+Historical / superseded initial checkpoint from the first Owner-authorized Source
+Fix + Local Test gate. Its claim that all Reschedule-in learners remained
+unassigned proved only exact-model slots and did not cover genuine legacy-only
+fallback. The current Owner Plan A decision and corrected local-only result are the
+Decision Record and closeout appended below.
+
+### Gate 0 and Owner decision
+
+- Repository root was the required
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`.
+  Branch was `spike/next-major-security-upgrade`; Local HEAD and upstream were
+  both `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, ahead/behind `0/0`.
+- Pre-existing dirty files were `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts`. Their diffs/content were inspected read-only
+  and both were preserved. The schedule utility working content equalled HEAD
+  blob `4521281d099efb189429a744909552d67871ff23`.
+- The earlier `Active Task: NONE` was valid historical state but was superseded
+  by the Owner's new single Active Task. No other unexplained Documentation Drift
+  was found.
+- Owner policy: the existence of any exact group row makes the slot exact-model,
+  even if the group is empty. Legacy is authoritative only for a slot with zero
+  exact rows. A rescheduled-in learner remains unassigned until Head Coach review
+  and a successful save. Suggestions remain non-persisted suggestions. No
+  auto-assignment, attendance, absence, makeup, payroll, or historical repair.
+
+### Fresh Source audit
+
+| Surface | Previous exact predicate | Previous Legacy predicate | Empty exact/new learner behavior | Confirmed risk |
+| --- | --- | --- | --- | --- |
+| Coach teaching schedule | Slot counted as exact only when a group joined at least one member | Any Legacy coach slot not in that member-bearing set | Empty exact group reopened Legacy and included all verified active learners | Incorrect schedule visibility and downstream authorization context |
+| Coach check-in | Any exact row blocked Legacy; coach needed an exact group with a member | Only zero exact rows | Correctly denied empty exact group and new unassigned learner | Predicate was sound but independently implemented |
+| Attendance read/write | Target learner exact membership for the coach | Used when that target membership was missing | New learner could authorize through stale Legacy despite another exact row | Unauthorized attendance read/write |
+| Teaching Program read/write | Any exact group for the coach, without requiring a member | Used when the coach had no group | Empty group could grant access; stale Legacy could grant a new learner | Unauthorized program read/write; genuine Legacy picker omission |
+| Coach-visible student/access | Any exact slot row suppressed Legacy per candidate, but source selection was global | Used only when the coach had no exact session anywhere | Incident path was blocked, but a coach with some exact work could lose genuine Legacy-only learners | Inconsistent visibility and compatibility |
+| Coach student history/suggestion | Exact learner membership | Legacy when exact learner membership was absent | Stale Legacy could be presented as learner history in an exact-model slot | Suggestion could be based on invalid assignment evidence |
+| Teaching Hours/payroll evidence | Exact joins filtered through coach-specific assignment results | Legacy candidates not independently checked against every slot's exact-model state | Exact rows outside the filtered result could allow Legacy evidence to reappear | Ghost teaching-hour/payroll evidence |
+| Assignment notification/action state | Assignment page correctly classified new learners as red/unassigned or amber/changed; suggestions stayed draft-only | Not used for persisted page status | Reschedule emitted generic notifications to all branch coaches | Head Coach/Admin did not get an explicit save-required action; message could imply ordinary schedule change |
+| Admin/Head Coach assignment status | Persisted learner membership plus current roster | Suggestions were display-only | Already preserved unassigned/red and changed/amber behavior | No Source change needed in assignment UI |
+| Attendance Gap classification | Exact coach membership for target learner | Used when target membership was missing | Stale Legacy could be returned as the assigned coach for an exact-model slot | Gap could be misattributed and stale Legacy mistaken for teaching evidence |
+
+The incident-equivalent Source path was therefore confirmed independently of the
+Production report: an empty exact group was invisible to the teaching-schedule
+exact-slot set, the surviving Legacy row became authoritative, and an active
+unassigned reschedule-in learner was included. This is a Source/authorization
+consistency defect, not a cache diagnosis.
+
+### Source implementation
+
+- Added `src/lib/coach-assignment-resolution.ts` as the pure shared definition of
+  exact-model slot precedence, genuine Legacy-only compatibility, slot access,
+  and learner access.
+- Updated Coach teaching schedule, Check-in, Attendance, Teaching Programs,
+  program schedule selection, student access/history, and Teaching Hours to use
+  any exact group row as the Legacy suppression boundary. Exact-model learner
+  access requires the relevant persisted exact membership; genuine zero-row
+  Legacy-only slots retain their previous compatibility.
+- Updated Admin makeup Attendance Gap coach resolution to return exact membership
+  coaches, possibly none, whenever any exact row exists. It no longer treats a
+  stale Legacy slot row as proof of who taught an exact-model learner.
+- Preserved Reschedule eligibility and transaction/rollback structure. The old
+  session deletes only its own exact membership; the new session creates no exact
+  membership. Head Coach and Admin/Super Admin receive explicit action-required
+  notification copy saying the roster changed, no coach was auto-assigned, and
+  assignment must be reviewed and saved. No general branch-coach assignment
+  notice is sent.
+- Added a deterministic focused resolver regression script and npm command. No
+  assignment UI change, Migration, RPC, schema, RLS, trigger, dependency,
+  environment, feature-control, or allowlist change was required.
+
+### Local verification
+
+- `npm.cmd run test:coach-assignment-resolution` — passed `20/20`: incident empty
+  exact group + stale Legacy, valid exact assignment, mixed groups, genuine
+  Legacy-only, reschedule-out isolation, reschedule-in unassigned/action-required,
+  past unassigned gap classification, and no ghost payroll evidence.
+- `npm.cmd run test:admin-schedule-assignment` — passed `38/38`.
+- `npm.cmd run test:lesson-wallet-regression` — passed `17/17`.
+- `npm.cmd run test:notification-date-regression` — passed `26/26`.
+- `npx.cmd tsc --noEmit --incremental false` — passed.
+- `npm.cmd run lint` — passed with zero warnings.
+- `npm.cmd run check:mojibake` — passed for `249` files before documentation
+  closeout; rerun is recorded in the final current-state verification.
+- `git diff --check` — passed; line-ending notices were informational only.
+- High-confidence secret-like addition scan — `0` findings.
+- `npm.cmd run build` — passed compile, type checking, and static generation
+  `91/91`. Generated `.next` was removed afterward from this exact repo.
+- DB-writing `test:coach-assignment-conflicts`, Local Playwright Admin assignment
+  E2E, and Local Attendance Gap fixture UAT were **not run**. Their guards/config
+  were inspected, but `supabase status` could not prove a live isolated Local
+  origin because Docker Desktop's Linux engine was unavailable. Production ref
+  `tvnhholicwjtxdhlxfqs` was never contacted. Fixture residue introduced by this
+  gate is `0` / not applicable.
+- The required post-build port-3000 restart/root/static smoke was **not run**.
+  Port `3000` belonged to an unrelated `dragonsword-save-editor` development
+  process, which was preserved rather than stopped. No Production hostname was
+  opened.
+
+### Superseded initial gate result
+
+- Source Complete was reported **Yes at this superseded checkpoint**, before the
+  genuine legacy-only path and notification/query failure requirements were added.
+  All then-executed tests/checks passed; the isolated
+  DB-writing/E2E suites and port-3000 smoke remain explicitly blocked/not run.
+- Committed **No**; Pushed **No**; Deployed/Promoted **No**; Production Active
+  **No** for this fix; Production UAT and Controlled Write UAT **Not run**;
+  Migration **No**; Feature/Allowlist changes **No**; Data Repaired **No**;
+  Production Data Changed **No**; Customer runtime change **No**; Financial/
+  Payroll impact **None**.
+- Historical Attendance Gaps are unchanged and remain queued for a later verified
+  resolution. Task Done **No**. Next action is Owner/PM review before a separately
+  authorized Commit + Push gate.
+
+### Decision Record — PLAN A: USER RESCHEDULE-IN NEVER INHERITS LEGACY COACH
+
+Status: **CURRENT OWNER DECISION — 2026-07-27**.
+
+- User Reschedule-in moves only the learner's right to attend the destination
+  round. It never moves or inherits coach responsibility automatically, including
+  in a genuine legacy-only destination slot.
+- Until Head Coach Save persists exact membership, Admin/Head Coach must see the
+  learner as action-required/unassigned; a Legacy coach cannot gain that learner's
+  roster, learner-level Attendance, Program, history/suggestion, Teaching Hours,
+  Payroll, or Attendance Gap attribution.
+- Genuine Legacy compatibility remains only for legitimate learners who are not a
+  pending User Reschedule-in. In mixed slots, the Coach retains only those
+  legitimate learners. A pending-only slot cannot create slot-level Coach evidence
+  from a Legacy row alone.
+- `rescheduled_from_id` is not a standalone provenance marker. User Reschedule,
+  Lesson Wallet redemption, and Admin Makeup all write it. `is_makeup=true`
+  identifies Makeup. A matching `lesson_wallet_credits.redeemed_session_id`
+  identifies Wallet redemption. Wallet provenance must be batch-loaded and query
+  failure must fail closed. Wallet and Makeup business semantics remain unchanged.
+- Any Exact/provenance query failure fails closed. Write/authorization APIs deny or
+  return 5xx; read surfaces expose unavailable/error state and never reinterpret a
+  failed query as confirmed zero rows that reopen Legacy.
+- Assignment-review notification recipient lookup, existence check, and insert
+  failures must be observable and cannot be reported as delivery success. Because
+  notification happens after Reschedule data commits, notification failure returns
+  a success response with an explicit warning plus activity-log/console evidence;
+  it does not return a retry-inducing post-commit 5xx.
+- Historical Attendance Gaps are review-only. No auto-attendance, auto-absence,
+  auto-makeup, auto-payroll, stale-coach attribution repair, or historical repair
+  is authorized.
+
+### Fresh Plan A Gate 0 and provenance audit
+
+- Required repository root:
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`.
+- Branch `spike/next-major-security-upgrade`; Local HEAD and locally known upstream
+  HEAD both `cc48b03f79b916221e0d86099fa017d0c9cc57a6`; ahead/behind `0/0`.
+  No fetch/network was used. Staged diff was empty.
+- Protected files remained untouched: `AGENTS.md` SHA-256
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`,
+  expected/current HEAD blob `4521281d099efb189429a744909552d67871ff23`.
+- Documentation Drift was confirmed and explained: the superseded checkpoint
+  claimed `Source Complete = Yes` and universal Reschedule-in isolation after
+  proving only exact-model precedence. Owner Plan A added genuine legacy-only
+  isolation, explicit provenance, fail-closed query behavior, and notification
+  observability. No other unexplained current-state conflict was found.
+- The prior PM command was stale for Plan A because most assertions checked source
+  strings and did not behavior-test genuine legacy-only provenance, query failure,
+  notification failure, Attendance Gap attribution, or payroll evidence.
+
+| Session/assignment case | Reliable facts | Classification / result |
+| --- | --- | --- |
+| Normal booking session | `rescheduled_from_id IS NULL` | `normal`; Legacy-compatible when the slot is genuine legacy-only |
+| User Reschedule-in | `rescheduled_from_id IS NOT NULL`, `is_makeup=false`, no matching Wallet `redeemed_session_id` | `user_reschedule`; pending until exact membership is saved; never Legacy-compatible |
+| Lesson Wallet redeemed session | `lesson_wallet_credits.redeemed_session_id = booking_sessions.id` | `lesson_wallet`; not misclassified; existing Wallet semantics retained |
+| Admin Makeup session | `is_makeup=true` | `admin_makeup`; not misclassified; existing Makeup semantics retained |
+| Exact-assigned session | Exact group member row for the learner and coach | Exact is authoritative, including a User Reschedule-in after Head Coach Save |
+| Exact-unassigned session | Slot has any exact group row but learner lacks persisted exact membership | No Legacy fallback; action-required/unassigned |
+| Genuine legacy-only learner | Slot has zero exact group rows plus Legacy coach row | Allowed only when the learner is not pending User Reschedule-in |
+
+### Consumer matrix after Plan A fix
+
+| Surface | Exact predicate | Legacy predicate | Access/evidence level | Error behavior | Pending User Reschedule-in | Wallet / Makeup |
+| --- | --- | --- | --- | --- | --- | --- |
+| Coach schedule / Today / Check-in picker / Attendance picker | Any exact row is the slot boundary; Coach roster requires persisted member in Coach group | Zero exact rows + Legacy coach + at least one provenance-eligible active verified learner | Slot and learner roster | Exact, roster, attendance, check-in, or provenance error throws unavailable; no Legacy reopen | Filtered from Legacy roster; pending-only slot disappears and produces no Coach evidence | Remain eligible under existing lifecycle rules |
+| Check-in write API | Exact group for Coach with persisted member | Zero exact rows + Legacy coach + eligible learner count > 0 | Slot-level write authorization | Exact/Legacy/learner/provenance error becomes 5xx; no permission grant | Pending-only Legacy slot denied; mixed legitimate slot still check-in eligible | Remain eligible |
+| Attendance write API | Exact membership for exact learner + Coach | Zero exact rows + Legacy coach + target provenance not `user_reschedule` | Exact learner read/write | Exact/Legacy/provenance/check-in query error becomes 5xx | No read/write authorization | Remain eligible; Admin retrospective role bypass unchanged |
+| Teaching Programs picker/write | Exact Coach group must have persisted member | Zero exact rows + Legacy coach + eligible learner count > 0 | Slot-level picker/write | Read throws unavailable; write returns 5xx on data failure | Pending-only slot absent/denied; mixed legitimate slot remains usable | Remain eligible |
+| Coach student access / Levels | Exact member sessions for Coach | Genuine legacy-only slot plus provenance-eligible sessions | Learner-level read/manage | Query failure throws unavailable | Not visible through Legacy | Remain visible per existing rules; Head Coach branch authority unchanged |
+| Learner history / Coach suggestion | Exact learner membership | Genuine legacy-only historical row only when provenance is eligible | Learner history/suggestion | Session/exact/Legacy/provenance failure throws unavailable | Current pending session does not claim stale Legacy coach; legitimate earlier history remains history | Remain valid history |
+| Teaching Hours / Payroll | Exact Coach group with payable persisted members | Genuine legacy-only row plus provenance-eligible payable sessions | Slot/learner evidence | Assignment/session/provenance/check-in/attendance failure throws unavailable | Excluded from learner and attendance counts; pending-only slot emits no row | Existing evidence semantics retained |
+| Admin Attendance Gap | Exact coach membership for the target learner | Genuine legacy-only coach only when target provenance is eligible | Learner attribution/review | Exact/Legacy/provenance failure becomes 5xx | Returns no stale Legacy coach attribution; stays review-only | Existing review semantics retained |
+| Head Coach assignment page | Persisted exact learner membership only; Legacy is suggestion text | Never considered saved responsibility | Admin/Head Coach action state | Roster/exact/Legacy query failure throws unavailable | Remains unassigned/action-required until Save | Existing Wallet/Makeup roster semantics unchanged |
+| Reschedule notifications | Not an assignment authorization predicate | Not applicable | Communication after data commit | Recipient/existence/insert failures aggregate as failed delivery; response remains success with warning and activity-log/console detail | Explicit Head Coach/Admin review action | No Wallet/Makeup change |
+
+### Plan A Source implementation
+
+- `src/lib/coach-assignment-resolution.ts` now owns pure provenance, pending User
+  Reschedule-in, exact/Legacy access, Attendance Gap coach resolution, and
+  fail-closed query rules. Wallet evidence is loaded in bounded batches; no
+  per-learner N+1 query was introduced.
+- `src/lib/coach-notification-delivery.ts` owns testable recipient/existence/insert
+  delivery results. `src/lib/coach-notifications.ts` adapts the existing typed
+  notification producers to it.
+- Coach schedule, Check-in, Attendance, Teaching Programs, student access,
+  student memory/suggestions, Teaching Hours/Payroll, Admin Attendance Gap, and
+  Head Coach assignment loading now check exact/provenance errors and apply Plan A.
+- `/api/reschedule` still removes only the old exact membership and creates no new
+  exact membership. After commit it aggregates assignment-review delivery results,
+  records them in `reschedule_booking_session` activity details, logs failed
+  delivery, and returns warning code `ASSIGNMENT_REVIEW_NOTIFICATION_FAILED`
+  without post-commit 5xx retry behavior.
+- No Assignment UI redesign, auto-assignment, Migration, schema, RLS, trigger,
+  RPC, Wallet/Makeup semantics, dependency, lockfile, environment, feature,
+  allowlist, pricing, payment, entitlement, or historical repair change occurred.
+
+### Plan A Local verification and closeout
+
+- `npm.cmd run test:coach-assignment-resolution` passed behavior assertions
+  `20/20`: exact empty/stale Legacy, genuine Legacy normal/User Reschedule, mixed
+  roster, pending-only evidence, Head Coach exact Save, Wallet, Makeup, exact and
+  Wallet query failures, batch provenance, notification recipient/existence/insert
+  failures, delivery success, Attendance Gap, and no ghost Payroll evidence.
+- `npm.cmd run test:admin-schedule-assignment` passed `38/38`.
+- `npm.cmd run test:lesson-wallet-regression` passed `17/17`.
+- `npm.cmd run test:notification-date-regression` passed `26/26`.
+- `npx.cmd tsc --noEmit --incremental false`, ESLint zero warnings, mojibake,
+  `git diff --check`, high-confidence secret-like addition scan, and Next.js build
+  compile/type/static generation `91/91` passed. Final counts are recorded in the
+  current `PROJECT_STATE.md` matrix after documentation closeout.
+- Local DB-writing conflict/E2E and Attendance Gap fixture UAT were not run. Local
+  config identifies `New-Athlete-Badminton-School` at ports `54321/54322`, but no
+  Local Supabase CLI is installed and Docker `desktop-linux` has no reachable
+  server/engine, so Local origin/project identity could not be proven. No remote
+  fallback occurred; Production ref `tvnhholicwjtxdhlxfqs` was never contacted.
+  Fixture residue is `0` / not applicable.
+- Build-created `.next` was removed only from the target repository. Port `3000`
+  is owned by unrelated `dragonsword-save-editor` Node PID `10416`; that process
+  was preserved, so restart/root/static smoke was Blocked/Not run.
+- Source Complete **Local only**. Tests Passed **Yes for every permitted executed
+  check**; DB-writing/E2E and port smoke remain explicitly Blocked/Not run.
+  Committed **No**; Pushed **No**; Deployed/Promoted **No**; Production Active
+  **No**; Production UAT/Controlled Write **Not run**; Feature/Allowlist changes
+  **No**; Data Repaired **No**; Production Data Changed **No**; Customer runtime
+  change **No**; Financial/Payroll change **None**. Historical gaps remain
+  unrepaired. Task Done **No**. Next action: Owner/PM fresh worktree review and
+  await explicit direction; do not start another gate automatically.
+
+### Correction Round — Required Assignment-Review Notification Correctness
+
+State observed at this local closeout on 2026-07-27. This record remains under
+the current **PLAN A: USER RESCHEDULE-IN NEVER INHERITS LEGACY COACH** Decision
+Record above. Owner authorized notification correctness, deterministic tests, and
+current documentation only; learner UI, Commit, Push, Deploy, Production access/
+write, migration/schema/RLS/RPC, feature/allowlist, and business-policy expansion
+remained prohibited.
+
+- Fresh Gate 0 remained at repository root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, Local/upstream HEAD
+  `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, ahead/behind `0/0`, with no staged
+  files. No fetch or network access occurred. The pre-existing scoped Plan A
+  worktree was preserved.
+- Protected files remained byte-identical: `AGENTS.md` SHA-256
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`, expected/
+  current HEAD blob `4521281d099efb189429a744909552d67871ff23`.
+- Correction root cause: zero Admin/Super Admin or branch Head Coach recipients
+  were treated as successful delivery; Admin lookup and insert shared one opaque
+  stage; an insert exception was mislabeled `existence_check`; and Reschedule
+  activity counts excluded the Admin/Super Admin audience.
+- Admin/Super Admin and Head Coach delivery now use the same structured report:
+  recipient IDs, `recipientLookupError`, `recipientEmpty`, and a per-recipient
+  delivery result carrying `success`, `skipped`, `stage`, and error. Returned and
+  thrown recipient lookup, existence-check, and insert failures remain distinct.
+  A thrown insert is now `stage=insert`.
+- Required audiences are Admin/Super Admin and new-branch Head Coach, plus old-
+  branch Head Coach only when an Exact membership was removed. An empty required
+  recipient set is a `recipient_empty` failure. The combined report records
+  required audience, recipient, attempt, successful recipient, skipped, failed
+  recipient, audience failure, total failure, and detailed failure data across
+  every included audience.
+- After the Reschedule mutation commits, any notification failure remains
+  non-retry-inducing: the API response is `success:true` with warning code
+  `ASSIGNMENT_REVIEW_NOTIFICATION_FAILED`; the activity log receives the complete
+  totals/details and a console error is emitted. No new Exact membership or
+  auto-assignment is created. Successful delivery returns `warning:null`.
+- The warning is **API/operator-visible only** in this gate through the JSON
+  response, activity detail, and console error. Learner-visible warning UI was not
+  changed and requires separate Owner authorization.
+- Deterministic focused behavior passed `29/29`, covering zero recipients for all
+  required audiences, returned/thrown recipient lookup, existence, and insert
+  failures with exact stages, structured Admin results, complete three-audience
+  totals, post-commit success-with-warning, successful no-warning, and all prior
+  Plan A provenance/Exact/Legacy/Attendance Gap/Payroll safeguards.
+- Additional permitted verification passed: Admin assignment `38/38`, Lesson
+  Wallet `17/17`, notification-date `26/26`, TypeScript `--noEmit --incremental
+  false`, ESLint zero warnings, mojibake `250` files, `git diff --check`, high-
+  confidence secret-like addition scan `0` findings across `21` dirty files,
+  documentation consistency matrix bad fields `0/29`, and Next.js build compile/
+  type/static generation `91/91`. Build-created `.next` was removed only from this
+  repository.
+- Local DB-writing/E2E and Attendance Gap fixture UAT remained Blocked/Not run:
+  no trusted isolated Local Supabase runtime could be proven and no remote fallback
+  was allowed. Fixture residue is `0`. Port `3000` still belongs to unrelated
+  `dragonsword-save-editor` Node PID `10416`, so it was preserved and post-build
+  root/static smoke remained Blocked/Not run.
+- Source Complete **Local only**; Tests Passed **Yes for every permitted executed
+  check**; Committed/Pushed/Deployed/Production Active **No**; Feature/Allowlist
+  changes, Data Repair, Production Data Change, customer runtime impact, and
+  financial/payroll change **None**. Historical gaps remain unrepaired. Task Done
+  **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
+  FALLBACK ISOLATION**. Next action is Owner/PM fresh worktree review; do not
+  propose Commit + Push or start another gate automatically.
+
+### 2026-07-28 Follow-up — Post-Build Local Smoke / Documentation Reconciliation
+
+State observed at this follow-up closeout. Owner authorized only a fresh read-only
+Gate 0, conditional existing regression/build/local smoke, cleanup, and current
+documentation reconciliation under the existing Plan A Active Task. Source/Test/
+package changes, learner UI, Commit, Push, Deploy, Production/Vercel/Supabase
+remote access, DB writes, migration/schema/RLS/RPC, feature/allowlist, data repair,
+and Parking Lot work remained prohibited.
+
+- Gate 0 confirmed repository root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, Local and locally known upstream HEAD
+  `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, ahead/behind `0/0`, no staged
+  files, and `.next` absent. No fetch or network access occurred.
+- The PM snapshot had observed port `3000` free. Fresh Gate 0 and a second bounded
+  read-only recheck instead found the unrelated `dragonsword-save-editor` Node
+  process PID `10416` listening from
+  `C:\Users\aacha\Documents\Codex\2026-07-27\z\work\dragonsword-save-editor`.
+  This process was not started by this gate and was not stopped.
+- The mandatory free-port precondition failed before implementation step A.
+  Therefore the follow-up did **not** rerun the focused regression, build, dev
+  server, loopback root request, Next static-asset request, or browser verification.
+  Dev-server PID started by this gate: **None**. Root/static status: **Blocked/Not
+  run**. Previous `29/29` focused and build `91/91` evidence remains dated prior
+  evidence and was not relabeled as a new run.
+- No build ran, no generated cleanup was needed, and `.next` remained absent.
+  Final port `3000` state remained the unrelated PID `10416`; no process tree was
+  terminated.
+- `AGENTS.md` and `src/lib/schedule-slot-utils.ts` retained their protected hashes
+  and the schedule utility retained HEAD blob
+  `4521281d099efb189429a744909552d67871ff23`. All 17 dirty Source/Test/package
+  files were hashed before documentation edits and remained byte-identical after
+  the follow-up. Only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md` changed in this follow-up.
+- Local Supabase DB-writing/E2E remains Blocked/Not run: Supabase CLI was absent,
+  Docker context was `desktop-linux`, and no Docker server/engine was reachable.
+  No remote fallback, fixture, DB read/write, or authenticated/API route was used.
+  Fixture residue is `0`.
+- Plan A and notification policy did not change. User Reschedule-in still never
+  inherits a coach automatically, and the notification warning remains API/
+  operator-visible only; learner-visible UI still requires separate Owner scope.
+
+Safety/status at this follow-up: Source Complete **Local only**; new focused test
+and build **Blocked/Not run by the port precondition**; prior deterministic/build
+evidence remains passed; root/static smoke **Blocked/Not run**; Committed **No**;
+Pushed **No**; Deployed/Promoted **No**; Production accessed/active **No**;
+Production UAT and Controlled Write UAT **Not run**; Migration **No**; Feature/
+Allowlist changes **No**; Data Repaired **No**; Production Data Changed **No**;
+customer runtime impact **No**; financial/payroll impact **None**; historical
+Attendance Gaps remain unrepaired; Task Done **No**. Active Task remains
+**RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION**. Next action
+is Owner/PM review; no Commit + Push or later gate is implied or authorized.
+
+### 2026-07-28 Publish Closeout — Plan A Source/Test and Documentation
+
+State observed at this publish closeout. Owner accepted the unresolved local
+root/static smoke and isolated Local Supabase DB-writing/E2E risks and authorized
+exactly one 16-file functional commit/push followed by one three-file
+documentation closeout commit/push on the existing branch. Deploy, Promotion,
+Production/Vercel/Supabase remote access, migration/schema/RLS/RPC, feature/
+allowlist, Controlled Write, data repair, learner-visible warning UI, and Parking
+Lot work remained prohibited.
+
+- Fresh Gate 0 confirmed repository root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, Local and fetched remote HEAD
+  `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, ahead/behind `0/0`, no staged
+  files, and the expected `18` modified plus `3` untracked worktree. The fetch was
+  limited to the exact current branch on configured `origin`; remote preflight
+  remained unchanged, so no merge/rebase/reset/force operation was needed.
+- Protected dirty files stayed outside both commits. Before functional staging,
+  `AGENTS.md` SHA-256 was
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` SHA-256 was
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  its filtered working blob and HEAD blob were both
+  `4521281d099efb189429a744909552d67871ff23`.
+- Fresh pre-stage verification passed: focused Plan A behavior `29/29`, Admin
+  assignment `38/38`, Lesson Wallet `17/17`, notification-date `26/26`, TypeScript
+  `--noEmit --incremental false`, ESLint zero warnings, mojibake `250` files, and
+  `git diff --check`. The prior build compile/type/static generation `91/91` is
+  retained dated evidence and was not rerun in this Commit Gate.
+- Functional staged scope was exactly the Owner-approved 16 files: missing `0`,
+  extra `0`, cached diff check passed, and high-confidence staged secret-like
+  addition scan returned `0` findings. No documentation or protected file was
+  included.
+- Functional commit evidence: SHA
+  `54752bcc2a914b7d2f67f344c62e50f642f890ac`; tree
+  `a3fc7b3d01a3fd6a9a0eb7eae4403e427a13dfac`; parent
+  `cc48b03f79b916221e0d86099fa017d0c9cc57a6`; subject
+  `fix(coach): isolate reschedule-in assignments`. The normal non-force push to
+  `origin/spike/next-major-security-upgrade` succeeded, fetched remote HEAD matched
+  the functional SHA, and ahead/behind returned `0/0` before documentation work.
+- Documentation closeout scope was exactly `PROJECT_STATE.md`, `TODO-CODEX.md`,
+  and `DEVELOPMENT_TODO.md`. Its subject is
+  `docs: record reschedule assignment publish`; the commit containing this record
+  was pushed normally as the branch head, with the functional commit as its direct
+  ancestor. Exact documentation SHA/tree/parent are recorded in final Git evidence
+  because a commit cannot embed its own content-derived SHA.
+- Post-build root/static smoke remains Blocked/Not run. Port `3000` ownership is
+  intermittent: PID `10416` from unrelated `dragonsword-save-editor` was observed
+  again at documentation closeout and preserved, but this is not asserted as a
+  permanent listener state. `.next` was absent. Local Supabase DB-writing/E2E and
+  Attendance Gap fixture UAT also remain Blocked/Not run because Supabase CLI was
+  absent and Docker `desktop-linux` had no reachable server/engine. No remote
+  fallback or fixture was used; fixture residue is `0`.
+- Plan A remains unchanged: User Reschedule-in never auto-inherits a coach in any
+  slot; normal genuine Legacy, Wallet, and Makeup compatibility remains; exact/
+  provenance failures fail closed; and notification warning is API/operator-
+  visible only. Historical Attendance Gaps were not repaired.
+
+Status at this publish closeout: Source Complete **Yes**; fresh required checks
+**Passed**; prior build `91/91` **retained/not rerun**; root/static smoke and Local
+DB/E2E/fixture UAT **Blocked/Not run**; Committed **Yes**; Pushed **Yes**;
+Deployed/Promoted **No**; Production accessed/active **No**; Production UAT and
+Controlled Write UAT **Not run**; Migration **No**; Environment change **No**;
+Feature/Allowlist change **No**; Data Repaired **No**; Production Data Changed
+**No**; customer runtime impact **No**; financial/payroll impact **None**. Task
+Done remains **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT /
+LEGACY FALLBACK ISOLATION**. Next action is Owner/PM review before a separately
+authorized Deploy/Release Readiness gate; no Deploy is automatic.

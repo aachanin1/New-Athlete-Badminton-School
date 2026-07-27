@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,13 +9,45 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### NONE — Await Owner Selection
+### RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION
 
-Status: **NO ACTIVE TASK**.
+Status: **SOURCE COMPLETE — COMMITTED AND PUSHED; FRESH COMMIT-GATE
+VERIFICATION PASSED; DEPLOY/PRODUCTION NOT STARTED; TASK NOT DONE**.
 
-- The latest Coach Notification Bangkok Date Consistency task is complete.
-- Authoritative current state and next action are in `PROJECT_STATE.md`.
-- Await explicit Owner selection. Do not start a Parking Lot item automatically.
+- Owner Plan A: User Reschedule-in never inherits a coach automatically, including
+  genuine legacy-only slots. Legacy remains compatible only for legitimate
+  non-User-Reschedule learners; Head Coach Save persists the Exact membership.
+  `rescheduled_from_id` is shared provenance, so Makeup uses `is_makeup` and Wallet
+  uses batched `lesson_wallet_credits.redeemed_session_id`; Wallet/Makeup semantics
+  are unchanged.
+- Scoped Coach/Admin consumers now exclude pending User Reschedule-in from Legacy
+  roster/access/history/program/check-in/payroll/Attendance Gap attribution while
+  preserving mixed-slot legitimate learners. Exact/provenance failures fail closed.
+  Assignment-review reports now keep Admin/Super Admin and Head Coach recipient
+  lookup, empty required set, existence, insert, success, and skipped results
+  distinct. Required Admin/new-branch Head Coach audiences—and old-branch Head
+  Coach when Exact membership was removed—fail with `recipient_empty` when empty.
+  A post-commit Reschedule still returns `success:true` with
+  `ASSIGNMENT_REVIEW_NOTIFICATION_FAILED`, complete activity totals/details, and
+  console evidence rather than a retry-inducing 5xx.
+- Functional Source/Test commit
+  `54752bcc2a914b7d2f67f344c62e50f642f890ac` was committed and pushed normally
+  to `origin/spike/next-major-security-upgrade`; this exact three-file
+  documentation closeout is the second publish commit. Fresh focused behavior
+  `29/29`, Admin assignment `38/38`, Wallet `17/17`, notification date `26/26`,
+  TypeScript, lint, mojibake, diff, staged scope, and staged secret checks passed.
+  Prior build `91/91` is retained dated evidence and was not rerun.
+- Post-build root/static smoke remains Blocked/Not run due intermittent external
+  port-3000 ownership; PID `10416` was observed at documentation closeout but is
+  not asserted as permanent. `.next` was absent. Local Supabase DB-writing/E2E and
+  Attendance Gap fixture UAT remain Blocked/Not run because no trusted isolated
+  Local runtime is available. Fixture residue and Production/data changes are `0`.
+- Authoritative mutable state, blockers, and matrix are in `PROJECT_STATE.md`.
+- The warning is API/operator-visible only in this gate. Learner-visible warning UI
+  was not changed and requires separate Owner scope.
+- Next action: Owner/PM review before a separately authorized Deploy/Release
+  Readiness gate. Do not Deploy, access Production, repair data, or start another
+  gate or Parking Lot item automatically.
 
 ## Recently Completed
 
@@ -32,7 +64,7 @@ DOCUMENTATION PUBLISHED**.
   Coach notification date and linked Attendance destination date match.
 - Historical stored rows remain unchanged. No Codex data repair, Controlled Write
   UAT, financial change, or task-specific Production mutation occurred.
-- Authoritative final state: `PROJECT_STATE.md` → **Current Project Matrix — Coach
+- Historical final state: `PROJECT_STATE.md` → **Historical / Superseded Project Matrix — Coach
   Notification Bangkok Date Consistency**. Detailed dated evidence is in
   `DEVELOPMENT_TODO.md`.
 
@@ -57,7 +89,7 @@ PASSED; DOCUMENTATION PUBLISHED**.
 - One documentation-only closeout commit containing this summary and the
   authoritative matrix was published by normal non-force Push. Exact commit SHA,
   tree, and parent are reported in the final handoff.
-- Authoritative final state: `PROJECT_STATE.md` → **Current Project Matrix — Coach
+- Historical final state: `PROJECT_STATE.md` → **Historical / Superseded Project Matrix — Coach
   Assignment Status Communication + Save Feedback**. Detailed dated evidence is in
   `DEVELOPMENT_TODO.md`.
 

@@ -1,8 +1,10 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-27
-Source: current local/upstream Git metadata, Source, documentation, prior Local
-verification, fresh read-only Vercel deployment/alias inspection, and the
+Last updated: 2026-07-28
+Source: current local/upstream Git metadata, fresh scoped Source/Test/Migration
+inspection, local non-writing verification, and prior documented release state.
+No Production, Supabase remote, Vercel, or Production browser access occurred in
+the current gate. Prior context includes the
 Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
 2026-07-23, plus the Coach Assignment mixed-Level publish/deploy history,
 Owner-reported staged UAT result, read-only Production reconciliation, the
@@ -13,17 +15,24 @@ Production-target artifact, authenticated read-only staged UAT closeout, exact-
 artifact Promotion, and successful read-only post-promotion Production UAT retry.
 Items not confirmed are marked `Unknown / Need verification`.
 
-The latest completed task is **Coach Notification Bangkok Date Consistency**.
-Generation-time and stored-message display fixes are Production-active through
-promoted artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`. The presentation fix
-derives the display/search message from an allowlisted title plus an exact date in
-a relative internal Coach link without changing historical stored rows. Owner
-confirmed through normal Production use on 2026-07-27 that the displayed
-notification date and linked Attendance destination date match. Production UAT /
-business confirmation therefore passed. No Codex repair, task-specific data
-mutation, Controlled Write UAT, deployment, rebuild, retry, rollback, or separate
-alias mutation occurred during this documentation closeout. Active Task is
-**NONE** and Codex must await Owner selection.
+The single Active Task is **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
+FALLBACK ISOLATION**. Owner authorized **SOURCE FIX + LOCAL TEST only**. Fresh
+Source audit confirmed inconsistent exact/Legacy predicates across Coach schedule,
+Attendance, Teaching Program, student access/history, Teaching Hours, Reschedule
+notifications, and Attendance Gap classification. It also confirmed the previously
+missed genuine legacy-only path: a new User Reschedule-in inherited the slot's
+Legacy coach unless provenance was checked. The Plan A Source/Test package is now
+complete, committed, and pushed in functional commit
+`54752bcc2a914b7d2f67f344c62e50f642f890ac`; this documentation closeout is the
+second Owner-authorized publish commit. Fresh deterministic/static verification
+passed before staging. The prior build `91/91` is retained dated evidence and was
+not rerun in the Commit Gate. Local Supabase write/E2E, Attendance Gap fixture UAT,
+and post-build root/static smoke remain Blocked/Not run as accepted residual risks.
+At documentation closeout, port `3000` was again owned by intermittent external
+`dragonsword-save-editor` PID `10416`; it was not stopped and `.next` was absent.
+Deploy, Production access/UAT, Controlled Write, migration, and data repair remain
+prohibited and were not performed. Task Done is **No**; the next action is Owner/PM
+review before any separately authorized Deploy/Release Readiness gate.
 
 ## Current Source of Truth
 
@@ -33,6 +42,31 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Owner Policy
 
+- Owner selected **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK
+  ISOLATION** as the single Active Task on 2026-07-27 and authorized Source Fix +
+  Local Test only. A slot enters the exact model when at least one
+  `coach_assignment_groups` row exists, including an empty group; all Coach
+  visibility/authorization/evidence surfaces must then ignore Legacy fallback.
+  Legacy remains compatible only for legitimate non-User-Reschedule learners in a
+  genuine legacy-only slot with zero exact group rows. User Reschedule-in moves only
+  the lesson entitlement and must never inherit a coach automatically, including in
+  genuine legacy-only slots; it remains pending until Head Coach Save persists exact
+  membership. `rescheduled_from_id` alone is not provenance because Lesson Wallet
+  redemption and Admin Makeup also use it. Makeup is distinguished by `is_makeup`;
+  Wallet is distinguished through batched `lesson_wallet_credits.redeemed_session_id`
+  evidence. Wallet and Makeup semantics do not change. Exact/provenance query errors
+  fail closed. Assignment-review notification lookup/delivery failure must be
+  observable without returning a retry-inducing 5xx after the Reschedule commit.
+  Admin/Super Admin, new-branch Head Coach, and—when Exact membership was
+  removed—old-branch Head Coach are required recipient audiences; an empty
+  required set is a `recipient_empty` failure. The warning is API/operator-visible
+  through the JSON response, activity details, and console error. Learner-visible
+  warning UI requires separate Owner scope and is not authorized in this gate.
+  Historical Attendance Gaps remain queued without auto-attendance, auto-absence,
+  makeup, payroll, attribution repair, or any historical repair. Commit, Push, Deploy,
+  Production/Vercel/Supabase access, Production UAT/write/data repair, migration/
+  schema/RLS/RPC, policy expansion, environment/feature/allowlist/dependency
+  changes, and the protected dirty files remain prohibited.
 - Owner selected **Coach Notification Bangkok Date Consistency** as the single
   Active Task on 2026-07-27. This gate authorizes fresh Audit First, bounded
   Production SELECT-only notification/schedule evidence, a narrow Source fix,
@@ -493,7 +527,50 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
   `Unknown / Need verification`.
 
-### Current Project Matrix — Coach Notification Bangkok Date Consistency
+### Current Project Matrix — Reschedule-In Exact Coach Assignment / Legacy Fallback Isolation
+
+| Field | Current value |
+| --- | --- |
+| Active Task | `RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION` |
+| Task Status | SOURCE COMPLETE — COMMITTED AND PUSHED; functional Source/Test commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` and this documentation closeout were published on the existing branch. Fresh required Commit-Gate checks passed. Deploy/Production remain unchanged; accepted smoke and isolated DB/E2E residual risks remain; Owner/PM review is required |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation closeout commit containing this matrix, with functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` as its parent; exact documentation SHA is verified in final Git evidence |
+| Remote HEAD | Same documentation closeout commit on `origin/spike/next-major-security-upgrade`; functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` is its direct ancestor |
+| Ahead/Behind | `0/0` after the documentation push |
+| Protected dirty files | Preserved and not edited in this task: `AGENTS.md` SHA-256 `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; `src/lib/schedule-slot-utils.ts` SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`, expected/current HEAD blob `4521281d099efb189429a744909552d67871ff23` |
+| Documentation Drift | Reconciled. Current mutable state now records the exact functional publish and separates fresh Commit-Gate verification from retained build evidence and Blocked/Not run smoke/DB suites. Port `3000` ownership is recorded only as an intermittent observation: PID `10416` was present at this closeout, not asserted as permanent. Earlier Plan A drift remains corrected |
+| Owner Policy | Any `coach_assignment_groups` row places the slot in the exact model, including an empty group. Exact membership is authoritative. In zero-exact-row genuine legacy-only slots, Legacy remains valid only for legitimate non-User-Reschedule learners. User Reschedule-in never auto-assigns; it stays pending until Head Coach Save. `rescheduled_from_id` is shared by User Reschedule, Wallet, and Makeup, so Makeup uses `is_makeup` and Wallet uses batched `lesson_wallet_credits.redeemed_session_id` evidence. Wallet/Makeup semantics remain unchanged. Exact/provenance errors fail closed; notification failures remain observable; historical gaps are not repaired |
+| Root Cause | The first local fix corrected exact-row precedence but left genuine legacy-only fallback slot-wide, so every active session—including a new User Reschedule-in—still inherited the Legacy coach. Consumers also ignored several Supabase errors and treated failed exact/provenance queries as empty data, reopening Legacy. The notification follow-up still treated zero required recipients as success, conflated Admin recipient lookup with insert, classified thrown inserts as existence-check failures, and counted only Head Coach recipients in activity details |
+| Provenance classification | Normal = no `rescheduled_from_id`; User Reschedule-in = `rescheduled_from_id` present + `is_makeup=false` + no Wallet redemption row; Lesson Wallet = `lesson_wallet_credits.redeemed_session_id` matches the session; Admin Makeup = `is_makeup=true`. Wallet evidence is loaded in bounded batches, never one query per learner |
+| Source Complete | **Yes — committed and pushed.** Functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`, tree `a3fc7b3d01a3fd6a9a0eb7eae4403e427a13dfac`, parent `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, subject `fix(coach): isolate reschedule-in assignments`. Shared Plan A provenance/assignment rules, exact/Legacy isolation, fail-closed consumers, and structured notification failure behavior are published. This is Source publication only, not Deployment or Production activation |
+| Tests Passed | Fresh Commit-Gate checks passed: focused behavior `29/29`; Admin assignment `38/38`; Lesson Wallet `17/17`; notification-date `26/26`; TypeScript `--noEmit --incremental false`; ESLint zero warnings; mojibake `250` files; `git diff --check`; staged checks and high-confidence staged secret scan `0` findings. Prior build compile/type/static generation `91/91` is retained dated evidence and was not rerun. Post-build root/static smoke, Local DB-writing/E2E, and Attendance Gap fixture UAT remain Blocked/Not run |
+| Committed | Yes — exact 16-file functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` plus exact three-file documentation closeout commit containing this matrix |
+| Pushed | Yes — functional commit and the documentation closeout commit were pushed normally, non-force, to `origin/spike/next-major-security-upgrade` |
+| Current Source | Published branch Source with functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` as the exact Plan A Source/Test artifact |
+| Deployed | No — prohibited and not run |
+| Promoted | No — prohibited and not run |
+| Deployed Source | Unchanged from the prior documented deployment; not accessed or reverified in this gate |
+| Deployment ID | Prior documented current artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; not accessed or changed in this gate |
+| Migration Source | None |
+| Migration Applied | No — prohibited and not required |
+| Environment Change | No |
+| Feature Enabled | No change; no task-specific feature control was enabled |
+| Allowlisted | No change; no task-specific allowlist was changed |
+| Production Active | No — this exact-assignment fix exists only as local uncommitted Source |
+| Production UAT | Not run — prohibited |
+| Controlled Write UAT | Not run — prohibited |
+| Data Repaired | No |
+| Production Data Changed | No; no Production access occurred |
+| Customer Impact | No new runtime impact from this gate. The Production incident and any equivalent stale-Legacy exposure remain unchanged until a separately approved release and verified UAT |
+| Financial Impact | None from this gate; no payment, booking entitlement, wallet, coupon, finance, payroll, or Production data changed |
+| Attendance Gap status | Source now returns no stale Legacy coach attribution for a pending User Reschedule-in. Historical and newly classified unassigned past rounds remain in review only; no auto-attendance, auto-absence, auto-makeup, auto-payroll, attribution repair, or historical repair occurred |
+| Blocker | No blocker to the completed Source publish. Accepted residual verification gaps remain: no trusted isolated Local Supabase runtime for DB-writing/E2E or Attendance Gap fixture UAT, and post-build root/static smoke was not run because port `3000` ownership was intermittent. PID `10416` was observed at this closeout and preserved; `.next` was absent |
+| Remaining Work | Owner/PM review before any separately authorized Deploy/Release Readiness gate. Optional future residual-risk closure requires a stable free local port and a provable isolated Local Supabase runtime. Learner-visible warning UI and historical repair remain outside scope |
+| Task Done | No |
+| Next Gate / Next Action | Owner/PM review and decision for a separate Deploy/Release Readiness gate; do not Deploy automatically |
+| Parking Lot authorization state | No Parking Lot task is authorized |
+
+### Historical / Superseded Project Matrix — Coach Notification Bangkok Date Consistency
 
 | Field | Current value |
 | --- | --- |
@@ -600,9 +677,10 @@ historical and is superseded by the current matrix above.
 ### Historical Execution State (superseded snapshot through 2026-07-23)
 
 The present-tense and `Current` wording retained inside this section describes the
-state observed at its individual earlier checkpoints. It is superseded for current
-decisions by **Current Project Matrix — Coach Assignment Status Communication +
-Save Feedback** above; it must not be used as the current Active Task or Next Action.
+state observed at its individual earlier checkpoints. Its prior Coach Assignment
+Status Communication matrix is also historical; current decisions come only from
+**Current Project Matrix — Reschedule-In Exact Coach Assignment / Legacy Fallback
+Isolation** above.
 
 - Active Task: **ADMIN SCHEDULES PERFORMANCE**.
 - Task Status: **REGION EXPERIMENT PERFORMANCE GATE PASSED; PERMANENT `icn1`
