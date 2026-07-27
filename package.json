@@ -14,6 +14,7 @@
     "test:admin-schedule-assignment": "node scripts/check-admin-schedule-assignment-state.mjs",
     "test:admin-schedules-performance": "node scripts/check-admin-schedules-performance.mjs",
     "test:coach-assignment-conflicts": "node scripts/check-coach-assignment-conflicts.mjs",
+    "test:coach-assignment-resolution": "node --no-warnings scripts/check-coach-assignment-resolution.mjs",
     "test:admin-schedule-assignment:e2e": "playwright test --config=playwright.admin-schedule.config.ts",
     "test:booking-regression:e2e": "playwright test --config=playwright.booking.config.ts",
     "test:history-payment:e2e": "playwright test --config=playwright.history.config.ts",

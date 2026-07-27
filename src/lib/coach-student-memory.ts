@@ -1,4 +1,10 @@
 import type { StudentType, UserRole } from '@/types/database'
+import {
+  classifyCoachAssignmentSessionProvenance,
+  getExactModelSlotIds,
+  loadWalletRedeemedSessionIds,
+  requireCoachAssignmentQueryData,
+} from '@/lib/coach-assignment-resolution'
 
 type SupabaseQuery = PromiseLike<unknown> & {
   eq: (column: string, value: unknown) => SupabaseQuery
@@ -45,6 +51,8 @@ interface BookingSessionMemoryRow {
   child_id: string | null
   date: string
   status: string
+  rescheduled_from_id: string | null
+  is_makeup: boolean | null
   branches?: { name: string | null } | null
   bookings?: {
     user_id: string
@@ -72,6 +80,10 @@ interface AssignmentGroupStudentMemoryRow {
       role: UserRole | null
     } | null
   } | null
+}
+
+interface AssignmentGroupSlotRow {
+  schedule_slot_id: string
 }
 
 interface MemoryCoachAssignment {
@@ -125,13 +137,16 @@ export async function getCoachStudentMemoryMap(
   if (uniqueStudents.length === 0) return emptyMap
 
   const today = new Date().toISOString().split('T')[0]
-  const sessionQueries: PromiseLike<{ data: BookingSessionMemoryRow[] | null }>[] = []
+  const sessionQueries: PromiseLike<{
+    data: BookingSessionMemoryRow[] | null
+    error?: { message: string } | null
+  }>[] = []
 
   if (childIds.length > 0) {
     sessionQueries.push(supabase
       .from('booking_sessions')
       .select(`
-        id, schedule_slot_id, child_id, date, status,
+        id, schedule_slot_id, child_id, date, status, rescheduled_from_id, is_makeup,
         branches(name),
         bookings!inner(user_id, learner_type, status, course_types(name))
       `)
@@ -140,14 +155,17 @@ export async function getCoachStudentMemoryMap(
       .in('bookings.status', LEARNED_BOOKING_STATUSES)
       .neq('status', 'rescheduled')
       .lte('date', today)
-      .order('date', { ascending: false }) as PromiseLike<{ data: BookingSessionMemoryRow[] | null }>)
+      .order('date', { ascending: false }) as PromiseLike<{
+        data: BookingSessionMemoryRow[] | null
+        error?: { message: string } | null
+      }>)
   }
 
   if (adultIds.length > 0) {
     sessionQueries.push(supabase
       .from('booking_sessions')
       .select(`
-        id, schedule_slot_id, child_id, date, status,
+        id, schedule_slot_id, child_id, date, status, rescheduled_from_id, is_makeup,
         branches(name),
         bookings!inner(user_id, learner_type, status, course_types(name))
       `)
@@ -158,17 +176,25 @@ export async function getCoachStudentMemoryMap(
       .in('bookings.status', LEARNED_BOOKING_STATUSES)
       .neq('status', 'rescheduled')
       .lte('date', today)
-      .order('date', { ascending: false }) as PromiseLike<{ data: BookingSessionMemoryRow[] | null }>)
+      .order('date', { ascending: false }) as PromiseLike<{
+        data: BookingSessionMemoryRow[] | null
+        error?: { message: string } | null
+      }>)
   }
 
   const sessionResults = await Promise.all(sessionQueries)
-  const sessions = sessionResults.flatMap((result) => result.data || [])
+  const sessions = sessionResults.flatMap((result, index) => (
+    requireCoachAssignmentQueryData(
+      result,
+      `Coach student history session query ${index + 1} failed`,
+    ) || []
+  ))
   const slotIds = unique(sessions.map((session) => session.schedule_slot_id || ''))
 
   if (slotIds.length === 0) return emptyMap
 
   const sessionIds = sessions.map((session) => session.id)
-  const { data: groupStudents } = await supabase
+  const groupStudentResult = await supabase
     .from('coach_assignment_group_students')
     .select(`
       booking_session_id,
@@ -177,7 +203,14 @@ export async function getCoachStudentMemoryMap(
         profiles!coach_assignment_groups_coach_id_fkey(full_name, role)
       )
     `)
-    .in('booking_session_id', sessionIds) as { data: AssignmentGroupStudentMemoryRow[] | null }
+    .in('booking_session_id', sessionIds) as {
+      data: AssignmentGroupStudentMemoryRow[] | null
+      error?: { message: string } | null
+    }
+  const groupStudents = requireCoachAssignmentQueryData(
+    groupStudentResult,
+    'Coach student history exact membership query failed',
+  ) || []
 
   const groupStudentMap = new Map<string, MemoryCoachAssignment[]>()
   ;(groupStudents || []).forEach((row) => {
@@ -190,13 +223,39 @@ export async function getCoachStudentMemoryMap(
     })
   })
 
-  const { data: assignments } = await supabase
-    .from('coach_assignments')
-    .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name, role)')
-    .in('schedule_slot_id', slotIds) as { data: CoachAssignmentMemoryRow[] | null }
+  const [assignmentResult, exactGroupResult] = await Promise.all([
+    supabase
+      .from('coach_assignments')
+      .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name, role)')
+      .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{
+        data: CoachAssignmentMemoryRow[] | null
+        error?: { message: string } | null
+      }>,
+    supabase
+      .from('coach_assignment_groups')
+      .select('schedule_slot_id')
+      .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{
+        data: AssignmentGroupSlotRow[] | null
+        error?: { message: string } | null
+      }>,
+  ])
+  const assignments = requireCoachAssignmentQueryData(
+    assignmentResult,
+    'Coach student history Legacy assignment query failed',
+  ) || []
+  const exactGroupSlots = requireCoachAssignmentQueryData(
+    exactGroupResult,
+    'Coach student history exact-model boundary query failed',
+  ) || []
+  const exactModelSlotIds = getExactModelSlotIds(exactGroupSlots)
+  const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+    supabase,
+    sessions,
+    'Coach student history',
+  )
 
   const assignmentMap = new Map<string, CoachAssignmentMemoryRow[]>()
-  ;(assignments || []).forEach((assignment) => {
+  ;assignments.forEach((assignment) => {
     if (!assignment.schedule_slot_id) return
     if (!assignmentMap.has(assignment.schedule_slot_id)) assignmentMap.set(assignment.schedule_slot_id, [])
     assignmentMap.get(assignment.schedule_slot_id)?.push(assignment)
@@ -243,9 +302,17 @@ export async function getCoachStudentMemoryMap(
 
     const key = getStudentKey(studentType, studentId)
     const groupAssignments = groupStudentMap.get(session.id) || []
+    const legacyAllowed = classifyCoachAssignmentSessionProvenance(
+      session,
+      walletRedeemedSessionIds,
+    ) !== 'user_reschedule'
     const relatedAssignments = groupAssignments.length > 0
       ? groupAssignments
-      : assignmentMap.get(session.schedule_slot_id) || []
+      : exactModelSlotIds.has(session.schedule_slot_id)
+        ? []
+        : legacyAllowed
+          ? assignmentMap.get(session.schedule_slot_id) || []
+          : []
 
     for (const assignment of relatedAssignments) {
       addCoachMemory(key, assignment, session)

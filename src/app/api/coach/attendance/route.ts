@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
+import {
+  classifyCoachAssignmentSessionProvenance,
+  loadWalletRedeemedSessionIds,
+  requireCoachAssignmentQueryData,
+  resolveCoachLearnerAccess,
+} from '@/lib/coach-assignment-resolution'
 import { formatNotificationSlotDateTime } from '@/lib/date-format'
 import { notifyUserOnce } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
@@ -36,6 +42,8 @@ interface BookingSessionAuthRow {
   id: string
   schedule_slot_id: string
   child_id: string | null
+  rescheduled_from_id: string | null
+  is_makeup: boolean | null
   bookings?: {
     user_id: string
   } | null
@@ -51,6 +59,7 @@ interface GroupAuthRow {
   id: string
   coach_id: string | null
   schedule_slot_id: string
+  coach_assignment_group_students?: { booking_session_id: string | null }[] | null
 }
 
 interface LegacyAssignmentRow {
@@ -107,11 +116,18 @@ async function getAttendanceAuthContext(
   studentId: string,
   studentType: StudentType,
 ): Promise<AttendanceAuthContext> {
-  const { data: session } = await supabase
+  const sessionResult = await supabase
     .from('booking_sessions')
-    .select('id, schedule_slot_id, child_id, bookings!inner(user_id), schedule_slots(date, start_time, end_time, branches(name))')
+    .select('id, schedule_slot_id, child_id, rescheduled_from_id, is_makeup, bookings!inner(user_id), schedule_slots(date, start_time, end_time, branches(name))')
     .eq('id', bookingSessionId)
-    .single() as unknown as { data: BookingSessionAuthRow | null }
+    .single() as unknown as {
+      data: BookingSessionAuthRow | null
+      error: DbError | null
+    }
+  const session = requireCoachAssignmentQueryData(
+    sessionResult,
+    'Coach attendance learner query failed',
+  )
 
   if (!session?.schedule_slot_id) {
     return { allowed: false, scheduleSlotId: null, recipientUserId: null, slotLabel: null }
@@ -129,37 +145,68 @@ async function getAttendanceAuthContext(
     return { allowed: true, scheduleSlotId: session.schedule_slot_id, recipientUserId, slotLabel }
   }
 
-  const { data: groupRows } = await supabase
-    .from('coach_assignment_group_students')
+  const adminSupabase = getServiceRoleClient()
+  const groupResult = await adminSupabase
+    .from('coach_assignment_groups')
     .select(`
-      group_id,
-      coach_assignment_groups!inner(id, coach_id, schedule_slot_id)
+      id,
+      coach_id,
+      schedule_slot_id,
+      coach_assignment_group_students(booking_session_id)
     `)
-    .eq('booking_session_id', bookingSessionId) as unknown as {
-      data: { coach_assignment_groups?: GroupAuthRow | null }[] | null
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as {
+      data: GroupAuthRow[] | null
+      error: DbError | null
     }
 
-  const groups = (groupRows || [])
-    .map((row) => row.coach_assignment_groups)
-    .filter((group): group is GroupAuthRow => Boolean(group))
-
-  if (groups.length > 0) {
-    return {
-      allowed: groups.some((group) => group.coach_id === actor.id && group.schedule_slot_id === session.schedule_slot_id),
-      scheduleSlotId: session.schedule_slot_id,
-      recipientUserId,
-      slotLabel,
-    }
+  const groups = requireCoachAssignmentQueryData(
+    groupResult,
+    'Coach attendance exact assignment query failed',
+  ) || []
+  if (groups.length > 0) return {
+    allowed: resolveCoachLearnerAccess({
+      exactGroups: groups,
+      coachId: actor.id,
+      bookingSessionId,
+      hasLegacyAssignment: false,
+      sessionProvenance: 'normal',
+    }).allowed,
+    scheduleSlotId: session.schedule_slot_id,
+    recipientUserId,
+    slotLabel,
   }
 
-  const { data: legacyAssignment } = await supabase
+  const legacyResult = await adminSupabase
     .from('coach_assignments')
     .select('coach_id')
     .eq('coach_id', actor.id)
     .eq('schedule_slot_id', session.schedule_slot_id)
-    .maybeSingle() as unknown as { data: LegacyAssignmentRow | null }
+    .maybeSingle() as unknown as { data: LegacyAssignmentRow | null; error: DbError | null }
+  const legacyAssignment = requireCoachAssignmentQueryData(
+    legacyResult,
+    'Coach attendance Legacy assignment query failed',
+  )
+  const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+    adminSupabase,
+    [session],
+    'Coach attendance',
+  )
 
-  return { allowed: Boolean(legacyAssignment), scheduleSlotId: session.schedule_slot_id, recipientUserId, slotLabel }
+  return {
+    allowed: resolveCoachLearnerAccess({
+      exactGroups: groups,
+      coachId: actor.id,
+      bookingSessionId,
+      hasLegacyAssignment: Boolean(legacyAssignment),
+      sessionProvenance: classifyCoachAssignmentSessionProvenance(
+        session,
+        walletRedeemedSessionIds,
+      ),
+    }).allowed,
+    scheduleSlotId: session.schedule_slot_id,
+    recipientUserId,
+    slotLabel,
+  }
 }
 
 async function hasCheckedInForSlot(
@@ -167,12 +214,19 @@ async function hasCheckedInForSlot(
   coachId: string,
   scheduleSlotId: string,
 ) {
-  const { data: checkin } = await supabase
+  const result = await supabase
     .from('coach_checkins')
     .select('id')
     .eq('coach_id', coachId)
     .eq('schedule_slot_id', scheduleSlotId)
-    .maybeSingle<ExistingCheckinRow>()
+    .maybeSingle<ExistingCheckinRow>() as unknown as {
+      data: ExistingCheckinRow | null
+      error: DbError | null
+    }
+  const checkin = requireCoachAssignmentQueryData(
+    result,
+    'Coach attendance check-in query failed',
+  )
 
   return Boolean(checkin)
 }

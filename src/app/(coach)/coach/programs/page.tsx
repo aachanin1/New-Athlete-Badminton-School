@@ -1,4 +1,11 @@
 import { ProgramsClient } from '@/components/coach/programs-client'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import {
+  getGenuineLegacyOnlySlotIds,
+  getLegacyEligibleSessions,
+  loadWalletRedeemedSessionIds,
+  requireCoachAssignmentQueryData,
+} from '@/lib/coach-assignment-resolution'
 import { createClient } from '@/lib/supabase/server'
 import type { ProgramStatus } from '@/types/database'
 
@@ -40,6 +47,18 @@ interface AssignedSlotRow {
   } | null
 }
 
+interface LegacyAssignedSlotRow {
+  schedule_slot_id: string
+  schedule_slots?: AssignedSlotRow['schedule_slots']
+}
+
+interface LegacyProgramSessionRow {
+  id: string
+  schedule_slot_id: string
+  rescheduled_from_id: string | null
+  is_makeup: boolean | null
+}
+
 interface ProgramTemplateRow {
   id: string
   title: string
@@ -65,6 +84,7 @@ export default async function ProgramsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  const adminSupabase = getServiceRoleClient()
 
   const { data: programs } = await supabase
     .from('teaching_programs')
@@ -76,16 +96,86 @@ export default async function ProgramsPage() {
     .order('created_at', { ascending: false })
     .limit(50) as unknown as { data: TeachingProgramRow[] | null }
 
-  const { data: assignedGroups } = await supabase
-    .from('coach_assignment_groups')
-    .select(`
-      id, name, schedule_slot_id,
-      coach_assignment_group_students(booking_session_id),
-      schedule_slots!inner(id, date, start_time, end_time, branches(name), course_types(name))
-    `)
-    .eq('coach_id', user.id)
-    .gte('schedule_slots.date', new Date().toISOString().slice(0, 10))
-    .limit(80) as unknown as { data: AssignedSlotRow[] | null }
+  const today = new Date().toISOString().slice(0, 10)
+  const [assignedGroupResult, legacyAssignmentResult] = await Promise.all([
+    adminSupabase
+      .from('coach_assignment_groups')
+      .select(`
+        id, name, schedule_slot_id,
+        coach_assignment_group_students(booking_session_id),
+        schedule_slots!inner(id, date, start_time, end_time, branches(name), course_types(name))
+      `)
+      .eq('coach_id', user.id)
+      .gte('schedule_slots.date', today)
+      .limit(80) as unknown as PromiseLike<{
+        data: AssignedSlotRow[] | null
+        error: { message: string } | null
+      }>,
+    adminSupabase
+      .from('coach_assignments')
+      .select(`
+        schedule_slot_id,
+        schedule_slots!inner(id, date, start_time, end_time, branches(name), course_types(name))
+      `)
+      .eq('coach_id', user.id)
+      .gte('schedule_slots.date', today)
+      .limit(80) as unknown as PromiseLike<{
+        data: LegacyAssignedSlotRow[] | null
+        error: { message: string } | null
+      }>,
+  ])
+  const assignedGroups = requireCoachAssignmentQueryData(
+    assignedGroupResult,
+    'Coach program picker exact assignment query failed',
+  ) || []
+  const legacyAssignments = requireCoachAssignmentQueryData(
+    legacyAssignmentResult,
+    'Coach program picker Legacy assignment query failed',
+  ) || []
+
+  const legacySlotIds = Array.from(new Set(legacyAssignments.map((row) => row.schedule_slot_id)))
+  const exactGroupResult = legacySlotIds.length > 0
+    ? await adminSupabase
+      .from('coach_assignment_groups')
+      .select('schedule_slot_id')
+      .in('schedule_slot_id', legacySlotIds) as unknown as {
+        data: { schedule_slot_id: string }[] | null
+        error: { message: string } | null
+      }
+    : { data: [] as { schedule_slot_id: string }[], error: null }
+  const exactGroupsForLegacySlots = requireCoachAssignmentQueryData(
+    exactGroupResult,
+    'Coach program picker exact-model boundary query failed',
+  ) || []
+  const genuineLegacyOnlySlotIds = new Set(getGenuineLegacyOnlySlotIds(
+    legacySlotIds,
+    exactGroupsForLegacySlots,
+  ))
+  const genuineLegacyOnlyIds = Array.from(genuineLegacyOnlySlotIds)
+  const legacySessionResult = genuineLegacyOnlyIds.length > 0
+    ? await adminSupabase
+      .from('booking_sessions')
+      .select('id, schedule_slot_id, rescheduled_from_id, is_makeup, bookings!inner(status)')
+      .in('schedule_slot_id', genuineLegacyOnlyIds)
+      .in('status', ['scheduled', 'completed', 'absent'])
+      .eq('bookings.status', 'verified') as unknown as {
+        data: LegacyProgramSessionRow[] | null
+        error: { message: string } | null
+      }
+    : { data: [] as LegacyProgramSessionRow[], error: null }
+  const legacySessions = requireCoachAssignmentQueryData(
+    legacySessionResult,
+    'Coach program picker Legacy learner query failed',
+  ) || []
+  const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+    adminSupabase,
+    legacySessions,
+    'Coach program picker',
+  )
+  const eligibleLegacySlotIds = new Set(
+    getLegacyEligibleSessions(legacySessions, walletRedeemedSessionIds)
+      .map((session) => session.schedule_slot_id),
+  )
 
   const { data: templates } = await supabase
     .from('coach_program_templates')
@@ -131,7 +221,7 @@ export default async function ProgramsPage() {
     groupNames: string[]
   }>()
 
-  ;(assignedGroups || []).forEach((group) => {
+  ;assignedGroups.forEach((group) => {
     if ((group.coach_assignment_group_students || []).length === 0) return
     const slot = group.schedule_slots
     if (!slot?.id) return
@@ -146,6 +236,22 @@ export default async function ProgramsPage() {
     }
     current.groupNames.push(group.name)
     slotMap.set(slot.id, current)
+  })
+
+  ;legacyAssignments.forEach((assignment) => {
+    if (!genuineLegacyOnlySlotIds.has(assignment.schedule_slot_id)) return
+    if (!eligibleLegacySlotIds.has(assignment.schedule_slot_id)) return
+    const slot = assignment.schedule_slots
+    if (!slot?.id || slotMap.has(slot.id)) return
+    slotMap.set(slot.id, {
+      id: slot.id,
+      date: slot.date,
+      startTime: slot.start_time,
+      endTime: slot.end_time,
+      branchName: slot.branches?.name || '-',
+      courseType: slot.course_types?.name || '-',
+      groupNames: [],
+    })
   })
 
   const assignedSlots = Array.from(slotMap.values()).sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))

@@ -15,6 +15,12 @@ import {
   resolveAssignmentGroupName,
 } from '@/lib/coach-assignment-group-naming'
 import { loadAssignmentGroupNamingStudents } from '@/lib/coach-assignment-group-naming-server'
+import {
+  classifyCoachAssignmentSessionProvenance,
+  loadWalletRedeemedSessionIds,
+  requireCoachAssignmentQueryData,
+  resolveAssignedCoachIds,
+} from '@/lib/coach-assignment-resolution'
 import type { AttendanceStatus, StudentType } from '@/types/database'
 
 type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
@@ -44,6 +50,7 @@ interface ReviewSessionRow {
   end_time: string | null
   status: string
   is_makeup: boolean | null
+  rescheduled_from_id?: string | null
   child_id: string | null
   bookings?: {
     user_id: string | null
@@ -239,35 +246,70 @@ function getStudentContext(session: ReviewSessionRow) {
 async function getAssignedCoachIds(supabaseAdmin: ReturnType<typeof getServiceRoleClient>, session: ReviewSessionRow) {
   if (!session.schedule_slot_id) return []
 
-  const { data: groups } = await supabaseAdmin
+  const groupResult = await supabaseAdmin
     .from('coach_assignment_groups')
     .select('coach_id, coach_assignment_group_students(booking_session_id)')
-    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: AssignmentGroupRow[] | null }
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as {
+      data: AssignmentGroupRow[] | null
+      error: { message: string } | null
+    }
+  const groups = requireCoachAssignmentQueryData(
+    groupResult,
+    'Admin Attendance Gap exact assignment query failed',
+  ) || []
+  const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+    supabaseAdmin,
+    [session],
+    'Admin Attendance Gap',
+  )
+  const sessionProvenance = classifyCoachAssignmentSessionProvenance(
+    session,
+    walletRedeemedSessionIds,
+  )
 
-  const groupCoachIds = (groups || [])
-    .filter((group) => (group.coach_assignment_group_students || []).some((student) => student.booking_session_id === session.id))
-    .map((group) => group.coach_id)
-    .filter((coachId): coachId is string => Boolean(coachId))
+  if (groups.length > 0) return resolveAssignedCoachIds({
+    exactGroups: groups,
+    bookingSessionId: session.id,
+    legacyCoachIds: [],
+    sessionProvenance,
+  })
 
-  if (groupCoachIds.length > 0) return Array.from(new Set(groupCoachIds))
-
-  const { data: assignments } = await supabaseAdmin
+  const assignmentResult = await supabaseAdmin
     .from('coach_assignments')
     .select('coach_id')
-    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: CoachAssignmentRow[] | null }
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as {
+      data: CoachAssignmentRow[] | null
+      error: { message: string } | null
+    }
+  const assignments = requireCoachAssignmentQueryData(
+    assignmentResult,
+    'Admin Attendance Gap Legacy assignment query failed',
+  ) || []
 
-  return Array.from(new Set((assignments || []).map((assignment) => assignment.coach_id).filter(Boolean)))
+  return resolveAssignedCoachIds({
+    exactGroups: groups,
+    bookingSessionId: session.id,
+    legacyCoachIds: assignments.map((assignment) => assignment.coach_id),
+    sessionProvenance,
+  })
 }
 
 async function getStrictGroupCoachIds(supabaseAdmin: ReturnType<typeof getServiceRoleClient>, session: ReviewSessionRow) {
   if (!session.schedule_slot_id) return []
 
-  const { data: groups } = await supabaseAdmin
+  const result = await supabaseAdmin
     .from('coach_assignment_groups')
     .select('coach_id, coach_assignment_group_students(booking_session_id)')
-    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as { data: AssignmentGroupRow[] | null }
+    .eq('schedule_slot_id', session.schedule_slot_id) as unknown as {
+      data: AssignmentGroupRow[] | null
+      error: { message: string } | null
+    }
+  const groups = requireCoachAssignmentQueryData(
+    result,
+    'Admin Attendance Gap strict exact assignment query failed',
+  ) || []
 
-  return Array.from(new Set((groups || [])
+  return Array.from(new Set(groups
     .filter((group) => (group.coach_assignment_group_students || []).some((student) => student.booking_session_id === session.id))
     .map((group) => group.coach_id)
     .filter((coachId): coachId is string => Boolean(coachId))))
@@ -1751,7 +1793,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('booking_sessions')
-      .select('id, booking_id, branch_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, bookings(user_id, course_type_id, learner_type)')
+      .select('id, booking_id, branch_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, rescheduled_from_id, child_id, bookings(user_id, course_type_id, learner_type)')
       .eq('id', sessionId)
       .single<ReviewSessionRow>()
 

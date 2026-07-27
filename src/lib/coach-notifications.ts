@@ -2,6 +2,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { Database, NotificationType } from '@/types/database'
 import {
+  deliverAdminAssignmentReviewNotifications,
+  deliverCoachNotificationOnce,
+  deliverHeadCoachAssignmentReviewNotifications,
+  type AssignmentReviewNotificationReport,
+  type CoachNotificationDeliveryResult,
+} from '@/lib/coach-notification-delivery'
+import {
   addCalendarDaysToDateKey,
   formatNotificationSlotDateTime,
   getBangkokDateKey,
@@ -52,17 +59,7 @@ interface AttendanceRow {
   student_id: string
 }
 
-interface NotificationInsertRow {
-  user_id: string
-  title: string
-  message: string
-  type: NotificationType
-  link_url: string | null
-}
-
-interface NotificationInsertTable {
-  insert: (values: NotificationInsertRow) => Promise<{ error: { message: string } | null }>
-}
+export type { AssignmentReviewNotificationReport, CoachNotificationDeliveryResult }
 
 function formatThaiSlotDate(slot: CoachSlotInfo) {
   return formatNotificationSlotDateTime(slot.date, slot.start_time, slot.end_time)
@@ -74,44 +71,34 @@ function getSlotLabel(slot: CoachSlotInfo) {
   return `${formatThaiSlotDate(slot)} · ${branchName} · ${courseName}`
 }
 
-async function notificationExists(
-  supabase: SupabaseClient<Database>,
-  notification: CoachNotificationInput,
-) {
-  let query = supabase
-    .from('notifications')
-    .select('id')
-    .eq('user_id', notification.userId)
-    .eq('title', notification.title)
-    .eq('message', notification.message)
-    .limit(1)
-
-  query = notification.linkUrl
-    ? query.eq('link_url', notification.linkUrl)
-    : query.is('link_url', null)
-
-  const { data, error } = await query
-  if (error) return false
-  return Boolean(data?.length)
-}
-
 export async function notifyCoachOnce(
   supabase: SupabaseClient<Database>,
   notification: CoachNotificationInput,
 ) {
-  const exists = await notificationExists(supabase, notification)
-  if (exists) return { error: null, skipped: true }
+  return deliverCoachNotificationOnce(supabase, notification)
+}
 
-  const notificationTable = supabase.from('notifications') as unknown as NotificationInsertTable
-  const { error } = await notificationTable.insert({
-    user_id: notification.userId,
-    title: notification.title,
-    message: notification.message,
-    type: notification.type || 'system',
-    link_url: notification.linkUrl || null,
-  })
+export async function notifyHeadCoachesForAssignmentReview(
+  supabase: SupabaseClient<Database>,
+  input: {
+    branchId: string
+    title: string
+    message: string
+    linkUrl: string
+  },
+) : Promise<AssignmentReviewNotificationReport> {
+  return deliverHeadCoachAssignmentReviewNotifications(supabase, input)
+}
 
-  return { error, skipped: false }
+export async function notifyAdminsForAssignmentReview(
+  supabase: SupabaseClient<Database>,
+  input: {
+    title: string
+    message: string
+    linkUrl: string
+  },
+): Promise<AssignmentReviewNotificationReport> {
+  return deliverAdminAssignmentReviewNotifications(supabase, input)
 }
 
 export async function notifyAssignedCoachesForSlot(

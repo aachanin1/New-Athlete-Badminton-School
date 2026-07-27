@@ -1,5 +1,11 @@
 import type { User } from '@supabase/supabase-js'
 
+import {
+  getGenuineLegacyOnlySlotIds,
+  getLegacyEligibleSessions,
+  loadWalletRedeemedSessionIds,
+  requireCoachAssignmentQueryData,
+} from '@/lib/coach-assignment-resolution'
 import type { StudentType, UserRole } from '@/types/database'
 
 type SupabaseQuery = PromiseLike<unknown> & {
@@ -48,6 +54,8 @@ interface VisibleSessionRow {
   date: string
   child_id: string | null
   branch_id: string | null
+  rescheduled_from_id: string | null
+  is_makeup: boolean | null
   bookings?: {
     user_id: string
     learner_type: 'self' | 'child'
@@ -89,20 +97,22 @@ function isCoachRole(role: UserRole | null | undefined) {
 
 export async function getCoachRole(supabaseClient: unknown, userId: string): Promise<UserRole | null> {
   const supabase = supabaseClient as SupabaseLike
-  const { data } = await supabase
+  const result = await supabase
     .from('profiles')
     .select('role')
     .eq('id', userId)
-    .single() as { data: CoachProfileRow | null }
+    .single() as { data: CoachProfileRow | null; error?: { message: string } | null }
+  const data = requireCoachAssignmentQueryData(result, 'Coach student role query failed')
 
   return data?.role || null
 }
 
 async function getCoachBranches(supabase: SupabaseLike, userId: string) {
-  const { data } = await supabase
+  const result = await supabase
     .from('coach_branches')
     .select('branch_id, branches(name)')
-    .eq('coach_id', userId) as { data: CoachBranchRow[] | null }
+    .eq('coach_id', userId) as { data: CoachBranchRow[] | null; error?: { message: string } | null }
+  const data = requireCoachAssignmentQueryData(result, 'Coach student branch query failed')
 
   const branchMap = new Map<string, string>()
   ;(data || []).forEach((row) => {
@@ -116,22 +126,27 @@ async function getCoachBranches(supabase: SupabaseLike, userId: string) {
 }
 
 async function getAssignedSlotIds(supabase: SupabaseLike, userId: string) {
-  const { data } = await supabase
+  const result = await supabase
     .from('coach_assignments')
     .select('schedule_slot_id')
-    .eq('coach_id', userId) as { data: CoachAssignmentRow[] | null }
+    .eq('coach_id', userId) as { data: CoachAssignmentRow[] | null; error?: { message: string } | null }
+  const data = requireCoachAssignmentQueryData(result, 'Coach student Legacy assignment query failed')
 
   return Array.from(new Set((data || []).map((row) => row.schedule_slot_id).filter(Boolean))) as string[]
 }
 
 async function getAssignedGroupSessionIds(supabase: SupabaseLike, userId: string) {
-  const { data } = await supabase
+  const result = await supabase
     .from('coach_assignment_group_students')
     .select(`
       booking_session_id,
       coach_assignment_groups!inner(coach_id, schedule_slot_id)
     `)
-    .eq('coach_assignment_groups.coach_id', userId) as { data: AssignmentGroupStudentRow[] | null }
+    .eq('coach_assignment_groups.coach_id', userId) as {
+      data: AssignmentGroupStudentRow[] | null
+      error?: { message: string } | null
+    }
+  const data = requireCoachAssignmentQueryData(result, 'Coach student exact membership query failed')
 
   return Array.from(new Set((data || []).map((row) => row.booking_session_id).filter(Boolean)))
 }
@@ -139,10 +154,14 @@ async function getAssignedGroupSessionIds(supabase: SupabaseLike, userId: string
 async function getGroupedSlotIds(supabase: SupabaseLike, slotIds: string[]) {
   if (slotIds.length === 0) return new Set<string>()
 
-  const { data } = await supabase
+  const result = await supabase
     .from('coach_assignment_groups')
     .select('schedule_slot_id')
-    .in('schedule_slot_id', slotIds) as { data: { schedule_slot_id: string }[] | null }
+    .in('schedule_slot_id', slotIds) as {
+      data: { schedule_slot_id: string }[] | null
+      error?: { message: string } | null
+    }
+  const data = requireCoachAssignmentQueryData(result, 'Coach student exact-model boundary query failed')
 
   return new Set((data || []).map((row) => row.schedule_slot_id))
 }
@@ -150,10 +169,10 @@ async function getGroupedSlotIds(supabase: SupabaseLike, slotIds: string[]) {
 async function getSessionsByIds(supabase: SupabaseLike, sessionIds: string[]) {
   if (sessionIds.length === 0) return []
 
-  const { data } = await supabase
+  const result = await supabase
     .from('booking_sessions')
     .select(`
-      id, date, child_id, branch_id, schedule_slot_id,
+      id, date, child_id, branch_id, schedule_slot_id, rescheduled_from_id, is_makeup,
       bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name)),
       children(id, full_name, nickname)
     `)
@@ -161,18 +180,21 @@ async function getSessionsByIds(supabase: SupabaseLike, sessionIds: string[]) {
     .neq('status', 'rescheduled')
     .neq('status', 'walleted')
     .in('bookings.status', BOOKING_VISIBLE_STATUSES)
-    .order('date', { ascending: false }) as { data: VisibleSessionRow[] | null }
+    .order('date', { ascending: false }) as {
+      data: VisibleSessionRow[] | null
+      error?: { message: string } | null
+    }
 
-  return data || []
+  return requireCoachAssignmentQueryData(result, 'Coach student exact learner query failed') || []
 }
 
 async function getSessionsBySlots(supabase: SupabaseLike, slotIds: string[]) {
   if (slotIds.length === 0) return []
 
-  const { data } = await supabase
+  const result = await supabase
     .from('booking_sessions')
     .select(`
-      id, date, child_id, branch_id, schedule_slot_id,
+      id, date, child_id, branch_id, schedule_slot_id, rescheduled_from_id, is_makeup,
       bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name)),
       children(id, full_name, nickname)
     `)
@@ -180,18 +202,21 @@ async function getSessionsBySlots(supabase: SupabaseLike, slotIds: string[]) {
     .neq('status', 'rescheduled')
     .neq('status', 'walleted')
     .in('bookings.status', BOOKING_VISIBLE_STATUSES)
-    .order('date', { ascending: false }) as { data: VisibleSessionRow[] | null }
+    .order('date', { ascending: false }) as {
+      data: VisibleSessionRow[] | null
+      error?: { message: string } | null
+    }
 
-  return data || []
+  return requireCoachAssignmentQueryData(result, 'Coach student Legacy learner query failed') || []
 }
 
 async function getSessionsByBranches(supabase: SupabaseLike, branchIds: string[]) {
   if (branchIds.length === 0) return []
 
-  const { data } = await supabase
+  const result = await supabase
     .from('booking_sessions')
     .select(`
-      id, date, child_id, branch_id, schedule_slot_id,
+      id, date, child_id, branch_id, schedule_slot_id, rescheduled_from_id, is_makeup,
       bookings!inner(user_id, learner_type, status, profiles!bookings_user_id_fkey(id, full_name)),
       children(id, full_name, nickname)
     `)
@@ -199,9 +224,12 @@ async function getSessionsByBranches(supabase: SupabaseLike, branchIds: string[]
     .neq('status', 'rescheduled')
     .neq('status', 'walleted')
     .in('bookings.status', BOOKING_VISIBLE_STATUSES)
-    .order('date', { ascending: false }) as { data: VisibleSessionRow[] | null }
+    .order('date', { ascending: false }) as {
+      data: VisibleSessionRow[] | null
+      error?: { message: string } | null
+    }
 
-  return data || []
+  return requireCoachAssignmentQueryData(result, 'Head Coach branch learner query failed') || []
 }
 
 async function getVisibleSessionRows(
@@ -210,36 +238,55 @@ async function getVisibleSessionRows(
   role: UserRole,
   branchIds: string[],
 ) {
-  const groupSessionIds = await getAssignedGroupSessionIds(supabase, userId)
+  const [groupSessionIds, assignedSlotIds] = await Promise.all([
+    getAssignedGroupSessionIds(supabase, userId),
+    getAssignedSlotIds(supabase, userId),
+  ])
 
-  if (groupSessionIds.length > 0) {
+  if (groupSessionIds.length > 0 || assignedSlotIds.length > 0) {
+    const exactModelSlotIds = await getGroupedSlotIds(supabase, assignedSlotIds)
+    const fallbackSlotIds = getGenuineLegacyOnlySlotIds(
+      assignedSlotIds,
+      Array.from(exactModelSlotIds, (schedule_slot_id) => ({ schedule_slot_id })),
+    )
+    const [exactRows, loadedLegacyRows] = await Promise.all([
+      getSessionsByIds(supabase, groupSessionIds),
+      getSessionsBySlots(supabase, fallbackSlotIds),
+    ])
+    const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+      supabase,
+      loadedLegacyRows,
+      'Coach student access',
+    )
+    const legacyRows = getLegacyEligibleSessions(
+      loadedLegacyRows,
+      walletRedeemedSessionIds,
+    )
+    const sourceBySessionId = new Map<string, 'assignment_group' | 'assigned_slot'>()
+    exactRows.forEach((row) => sourceBySessionId.set(row.id, 'assignment_group'))
+    legacyRows.forEach((row) => {
+      if (!sourceBySessionId.has(row.id)) sourceBySessionId.set(row.id, 'assigned_slot')
+    })
+
     return {
-      rows: await getSessionsByIds(supabase, groupSessionIds),
-      source: 'assignment_group' as const,
-    }
-  }
-
-  const assignedSlotIds = await getAssignedSlotIds(supabase, userId)
-  if (assignedSlotIds.length > 0) {
-    const groupedSlotIds = await getGroupedSlotIds(supabase, assignedSlotIds)
-    const fallbackSlotIds = assignedSlotIds.filter((slotId) => !groupedSlotIds.has(slotId))
-
-    return {
-      rows: await getSessionsBySlots(supabase, fallbackSlotIds),
-      source: 'assigned_slot' as const,
+      rows: Array.from(new Map([...exactRows, ...legacyRows].map((row) => [row.id, row])).values()),
+      sourceBySessionId,
+      fallbackSource: 'assigned_slot' as const,
     }
   }
 
   if ((role === 'head_coach' || role === 'super_admin') && branchIds.length > 0) {
     return {
       rows: await getSessionsByBranches(supabase, branchIds),
-      source: 'head_coach_branch' as const,
+      sourceBySessionId: new Map<string, 'head_coach_branch'>(),
+      fallbackSource: 'head_coach_branch' as const,
     }
   }
 
   return {
     rows: [],
-    source: 'assigned_slot' as const,
+    sourceBySessionId: new Map<string, 'assigned_slot'>(),
+    fallbackSource: 'assigned_slot' as const,
   }
 }
 
@@ -252,10 +299,11 @@ export async function getCoachVisibleStudents(
   if (!role || (!isCoachRole(role) && !isStaffAllAccess(role))) return []
 
   const { branchIds, branchMap } = await getCoachBranches(supabase, user.id)
-  const { rows, source } = await getVisibleSessionRows(supabase, user.id, role, branchIds)
+  const { rows, sourceBySessionId, fallbackSource } = await getVisibleSessionRows(supabase, user.id, role, branchIds)
   const students = new Map<string, CoachVisibleStudent>()
 
   for (const session of rows) {
+    const source = sourceBySessionId.get(session.id) || fallbackSource
     const branchName = session.branch_id ? branchMap.get(session.branch_id) || null : null
 
     if (session.child_id && session.children) {

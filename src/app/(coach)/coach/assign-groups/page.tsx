@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 
 import { AssignGroupsClient } from '@/components/coach/assign-groups-client'
+import { requireCoachAssignmentQueryData } from '@/lib/coach-assignment-resolution'
 import { getCoachMemoryKey, getCoachStudentMemoryMap, type CoachMemoryEntry } from '@/lib/coach-student-memory'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
@@ -257,7 +258,7 @@ export default async function AssignGroupsPage() {
   let sessionRows: SessionRow[] = []
 
   if (branchIds.length > 0) {
-    const { data } = await supabase
+    const result = await supabase
       .from('booking_sessions')
       .select(`
         id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status,
@@ -273,9 +274,15 @@ export default async function AssignGroupsPage() {
       .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
       .order('date', { ascending: true })
-      .order('start_time', { ascending: true }) as unknown as { data: SessionRow[] | null }
+      .order('start_time', { ascending: true }) as unknown as {
+        data: SessionRow[] | null
+        error: { message: string } | null
+      }
 
-    sessionRows = data || []
+    sessionRows = requireCoachAssignmentQueryData(
+      result,
+      'Head Coach assignment learner roster query failed',
+    ) || []
   }
 
   const slotIds = Array.from(new Set(sessionRows.map((row) => row.schedule_slot_id).filter(Boolean))) as string[]
@@ -285,17 +292,20 @@ export default async function AssignGroupsPage() {
   const studentIds = Array.from(new Set(studentRefs.map((student) => student.id)))
 
   const [
-    { data: legacyAssignments },
-    { data: assignmentGroups },
-    { data: levelRows },
-    { data: levelDefinitions },
+    legacyAssignmentResult,
+    assignmentGroupResult,
+    levelResult,
+    levelDefinitionResult,
   ] = await Promise.all([
     slotIds.length > 0
       ? supabase
         .from('coach_assignments')
         .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name)')
-        .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: LegacyAssignmentRow[] | null }>
-      : Promise.resolve({ data: [] }),
+        .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{
+          data: LegacyAssignmentRow[] | null
+          error: { message: string } | null
+        }>
+      : Promise.resolve({ data: [] as LegacyAssignmentRow[], error: null }),
     slotIds.length > 0
       ? supabase
         .from('coach_assignment_groups')
@@ -305,20 +315,45 @@ export default async function AssignGroupsPage() {
           coach_assignment_group_students(booking_session_id)
         `)
         .in('schedule_slot_id', slotIds)
-        .order('sort_order') as unknown as PromiseLike<{ data: ExistingGroupRow[] | null }>
-      : Promise.resolve({ data: [] }),
+        .order('sort_order') as unknown as PromiseLike<{
+          data: ExistingGroupRow[] | null
+          error: { message: string } | null
+        }>
+      : Promise.resolve({ data: [] as ExistingGroupRow[], error: null }),
     studentIds.length > 0
       ? supabase
         .from('student_levels')
         .select('student_id, student_type, level, created_at')
         .in('student_id', studentIds)
-        .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: StudentLevelRow[] | null }>
-      : Promise.resolve({ data: [] }),
+        .order('created_at', { ascending: false }) as unknown as PromiseLike<{
+          data: StudentLevelRow[] | null
+          error: { message: string } | null
+        }>
+      : Promise.resolve({ data: [] as StudentLevelRow[], error: null }),
     supabase
       .from('levels')
       .select('id, name, category, program_name')
-      .eq('is_active', true) as unknown as PromiseLike<{ data: LevelRow[] | null }>,
+      .eq('is_active', true) as unknown as PromiseLike<{
+        data: LevelRow[] | null
+        error: { message: string } | null
+      }>,
   ])
+  const legacyAssignments = requireCoachAssignmentQueryData(
+    legacyAssignmentResult,
+    'Head Coach assignment Legacy suggestion query failed',
+  ) || []
+  const assignmentGroups = requireCoachAssignmentQueryData(
+    assignmentGroupResult,
+    'Head Coach assignment exact membership query failed',
+  ) || []
+  const levelRows = requireCoachAssignmentQueryData(
+    levelResult,
+    'Head Coach assignment learner level query failed',
+  ) || []
+  const levelDefinitions = requireCoachAssignmentQueryData(
+    levelDefinitionResult,
+    'Head Coach assignment level definition query failed',
+  ) || []
 
   const legacyAssignmentMap = (legacyAssignments || []).reduce((map, item) => {
     if (!map[item.schedule_slot_id]) {

@@ -3,7 +3,17 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
-import { notifyCoachesByBranch, notifyRoles } from '@/lib/notifications'
+import {
+  notifyAdminsForAssignmentReview,
+  notifyHeadCoachesForAssignmentReview,
+} from '@/lib/coach-notifications'
+import {
+  buildRescheduleSuccessResponse,
+  summarizeAssignmentReviewNotifications,
+  type AssignmentReviewAudienceReport,
+  type AssignmentReviewNotificationFailure,
+  type RescheduleAssignmentNotificationSummary,
+} from '@/lib/coach-notification-delivery'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
 import type { CourseTypeName, Database } from '@/types/database'
 
@@ -177,50 +187,82 @@ async function notifyReschedule(
   userId: string,
   oldBranchId: string,
   newBranchId: string,
+  oldDate: string,
+  oldStartTime: string,
+  oldEndTime: string,
   targetDate: string,
-  startTime: string
-) {
-  const [{ data: profile }, { data: branch }] = await Promise.all([
+  startTime: string,
+  endTime: string,
+  removedExactMembershipCount: number,
+): Promise<RescheduleAssignmentNotificationSummary> {
+  const [profileResult, oldBranchResult, newBranchResult] = await Promise.all([
     adminSupabase
       .from('profiles')
       .select('full_name')
       .eq('id', userId)
-      .maybeSingle() as unknown as Promise<{ data: ProfileRow | null }>,
+      .maybeSingle() as unknown as Promise<{ data: ProfileRow | null; error: DbError | null }>,
+    adminSupabase
+      .from('branches')
+      .select('name')
+      .eq('id', oldBranchId)
+      .maybeSingle() as unknown as Promise<{ data: BranchRow | null; error: DbError | null }>,
     adminSupabase
       .from('branches')
       .select('name')
       .eq('id', newBranchId)
-      .maybeSingle() as unknown as Promise<{ data: BranchRow | null }>,
+      .maybeSingle() as unknown as Promise<{ data: BranchRow | null; error: DbError | null }>,
   ])
 
-  const userName = profile?.full_name || 'ผู้ใช้'
-  const branchName = branch?.name || 'สาขาใหม่'
-  const message = `${userName} เปลี่ยนวันเรียนเป็น ${targetDate} ${shortTime(startTime)} ที่ ${branchName}`
+  const contextFailures: AssignmentReviewNotificationFailure[] = []
+  ;[
+    { stage: 'profile', error: profileResult.error },
+    { stage: 'old_branch', error: oldBranchResult.error },
+    { stage: 'new_branch', error: newBranchResult.error },
+  ].forEach(({ stage, error }) => {
+    if (error) contextFailures.push({
+      audience: 'context',
+      stage: 'context_lookup',
+      message: `${stage}: ${error.message}`,
+    })
+  })
+
+  const userName = profileResult.data?.full_name || 'ผู้ใช้'
+  const oldBranchName = oldBranchResult.data?.name || 'สาขาเดิม'
+  const newBranchName = newBranchResult.data?.name || 'สาขาใหม่'
+  const oldSlotLabel = `${oldDate} ${shortTime(oldStartTime)}-${shortTime(oldEndTime)} ที่ ${oldBranchName}`
+  const newSlotLabel = `${targetDate} ${shortTime(startTime)}-${shortTime(endTime)} ที่ ${newBranchName}`
+  const message = `${userName} เปลี่ยนรอบเรียนจาก ${oldSlotLabel} เป็น ${newSlotLabel} นักเรียนในรอบใหม่ยังไม่ได้มอบหมายโค้ชอัตโนมัติ ต้องให้ Head Coach ตรวจและบันทึก/ยืนยันการมอบหมายก่อนเริ่มรอบ`
   const notificationClient = adminSupabase as unknown as SupabaseClient<Database>
 
-  await notifyRoles(notificationClient, {
-    roles: ['admin', 'super_admin'],
-    title: 'มีการเปลี่ยนวัน/สาขา',
-    message,
-    type: 'schedule',
-    link_url: '/admin/schedules',
-  })
-
-  await notifyCoachesByBranch(notificationClient, newBranchId, {
-    title: 'มีการเปลี่ยนวัน/สาขา',
-    message,
-    type: 'schedule',
-    link_url: '/coach/today',
-  })
-
-  if (oldBranchId !== newBranchId) {
-    await notifyCoachesByBranch(notificationClient, oldBranchId, {
-      title: 'มีการเปลี่ยนวัน/สาขา',
+  const audienceReports: AssignmentReviewAudienceReport[] = []
+  audienceReports.push({
+    audience: 'admin',
+    report: await notifyAdminsForAssignmentReview(notificationClient, {
+      title: 'Reschedule เปลี่ยนรายชื่อรอบสอน ต้องตรวจการมอบหมาย',
       message,
-      type: 'schedule',
-      link_url: '/coach/today',
+      linkUrl: '/admin/schedules',
+    }),
+  })
+
+  const newBranchReport = await notifyHeadCoachesForAssignmentReview(notificationClient, {
+    branchId: newBranchId,
+    title: 'มีนักเรียนย้ายเข้ารอบ ต้องตรวจและบันทึกการมอบหมาย',
+    message: `${userName} ย้ายเข้ารอบ ${newSlotLabel} โดยยังไม่ได้มอบหมายโค้ชอัตโนมัติ กรุณาตรวจกลุ่มและกดบันทึก/ยืนยันการมอบหมายก่อนเริ่มรอบ`,
+    linkUrl: `/coach/assign-groups?month=${targetDate.slice(0, 7)}`,
+  })
+  audienceReports.push({ audience: 'new_branch_head_coach', report: newBranchReport })
+
+  if (removedExactMembershipCount > 0) {
+    const oldBranchReport = await notifyHeadCoachesForAssignmentReview(notificationClient, {
+      branchId: oldBranchId,
+      title: 'รายชื่อรอบเดิมเปลี่ยน ต้องตรวจและบันทึกการมอบหมายใหม่',
+      message: `${userName} ย้ายออกจากรอบ ${oldSlotLabel} ระบบถอดเฉพาะสมาชิกเดิมออกแล้ว กรุณาตรวจรายชื่อและกดบันทึก/ยืนยันการมอบหมายใหม่ โดยระบบไม่ได้มอบหมายหรือบันทึก attendance อัตโนมัติ`,
+      linkUrl: `/coach/assign-groups?month=${oldDate.slice(0, 7)}`,
     })
+    audienceReports.push({ audience: 'old_branch_head_coach', report: oldBranchReport })
   }
+
+  return summarizeAssignmentReviewNotifications(audienceReports, contextFailures)
 }
 
 export async function POST(request: NextRequest) {
@@ -344,10 +386,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `สร้างรอบเรียนใหม่ไม่สำเร็จ: ${insertError?.message || 'ไม่พบข้อมูลรอบเรียนใหม่'}` }, { status: 500 })
     }
 
-    const { error: assignmentCleanupError } = await adminSupabase
+    const { data: removedAssignmentMemberships, error: assignmentCleanupError } = await adminSupabase
       .from('coach_assignment_group_students')
       .delete()
-      .eq('booking_session_id', session.id) as unknown as { error: DbError | null }
+      .eq('booking_session_id', session.id)
+      .select('id') as unknown as { data: { id: string }[] | null; error: DbError | null }
 
     if (assignmentCleanupError) {
       await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
@@ -355,7 +398,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Clean up old coach assignment group failed: ${assignmentCleanupError.message}` }, { status: 500 })
     }
 
-    await notifyReschedule(adminSupabase, user.id, session.branch_id, branchId, targetDate, startTime).catch(() => null)
+    const removedExactMembershipCount = (removedAssignmentMemberships || []).length
+    let notificationReport: RescheduleAssignmentNotificationSummary
+    try {
+      notificationReport = await notifyReschedule(
+        adminSupabase,
+        user.id,
+        session.branch_id,
+        branchId,
+        session.date,
+        session.start_time,
+        session.end_time,
+        targetDate,
+        startTime,
+        endTime,
+        removedExactMembershipCount,
+      )
+    } catch (error) {
+      notificationReport = summarizeAssignmentReviewNotifications(
+        [],
+        [{
+          audience: 'unexpected',
+          stage: 'unexpected',
+          message: error instanceof Error ? error.message : 'Unknown assignment-review notification failure',
+        }],
+        removedExactMembershipCount > 0 ? 3 : 2,
+      )
+    }
+    if (!notificationReport.success) {
+      console.error('Reschedule assignment-review notification warning:', notificationReport.failures)
+    }
 
     await logActivity({
       userId: user.id,
@@ -370,10 +442,27 @@ export async function POST(request: NextRequest) {
         newStartTime: startTime,
         branchId,
         scheduleSlotId,
+        removedExactMembershipCount,
+        assignmentReviewRequired: true,
+        autoAssigned: false,
+        notificationDeliverySucceeded: notificationReport.success,
+        notificationRequiredAudienceCount: notificationReport.requiredAudienceCount,
+        notificationRecipientCount: notificationReport.recipientCount,
+        notificationAttemptCount: notificationReport.attemptCount,
+        notificationSuccessfulRecipientCount: notificationReport.successfulRecipientCount,
+        notificationSkippedCount: notificationReport.skippedCount,
+        notificationFailedRecipientCount: notificationReport.failedRecipientCount,
+        notificationAudienceFailureCount: notificationReport.audienceFailureCount,
+        notificationFailureCount: notificationReport.failureCount,
+        notificationFailures: notificationReport.failures,
       },
     })
 
-    return NextResponse.json({ success: true, sessionId: newSession.id, scheduleSlotId })
+    return NextResponse.json(buildRescheduleSuccessResponse(
+      newSession.id,
+      scheduleSlotId,
+      notificationReport,
+    ))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
     return NextResponse.json({ error: message }, { status: 500 })

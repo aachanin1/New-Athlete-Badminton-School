@@ -3,6 +3,12 @@ import type { SupabaseClient, User } from '@supabase/supabase-js'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import {
+  getLegacyEligibleSessions,
+  loadWalletRedeemedSessionIds,
+  requireCoachAssignmentQueryData,
+  resolveCoachSlotAccess,
+} from '@/lib/coach-assignment-resolution'
 import { notifyRoles } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
 import type { ProgramStatus, UserRole } from '@/types/database'
@@ -34,6 +40,12 @@ interface ExistingProgramRow {
   id: string
   status: ProgramStatus
   schedule_slot_id: string | null
+}
+
+interface LegacyProgramSessionRow {
+  id: string
+  rescheduled_from_id: string | null
+  is_makeup: boolean | null
 }
 
 type ProgramMutationChain = PromiseLike<{ data?: InsertedProgramRow | null; error: DbError | null }> & {
@@ -70,26 +82,73 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
 }
 
-async function isAssignedToSlot(supabase: Awaited<ReturnType<typeof createClient>>, coach: User, scheduleSlotId: string) {
-  const { data: group } = await supabase
+async function isAssignedToSlot(coach: User, scheduleSlotId: string) {
+  const adminSupabase = getServiceRoleClient()
+  const groupResult = await adminSupabase
     .from('coach_assignment_groups')
-    .select('id')
-    .eq('coach_id', coach.id)
-    .eq('schedule_slot_id', scheduleSlotId)
-    .limit(1)
-    .maybeSingle()
+    .select('id, coach_id, schedule_slot_id, coach_assignment_group_students(booking_session_id)')
+    .eq('schedule_slot_id', scheduleSlotId) as unknown as { data: {
+      id: string
+      coach_id: string | null
+      schedule_slot_id: string
+      coach_assignment_group_students?: { booking_session_id: string }[] | null
+    }[] | null; error: DbError | null }
 
-  if (group) return true
+  const exactGroups = requireCoachAssignmentQueryData(
+    groupResult,
+    'Coach program exact assignment query failed',
+  ) || []
+  if (exactGroups.length > 0) return resolveCoachSlotAccess({
+    exactGroups,
+    coachId: coach.id,
+    hasLegacyAssignment: false,
+    legacyEligibleLearnerCount: 0,
+  }).allowed
 
-  const { data: legacyAssignment } = await supabase
+  const legacyResult = await adminSupabase
     .from('coach_assignments')
     .select('id')
     .eq('coach_id', coach.id)
     .eq('schedule_slot_id', scheduleSlotId)
     .limit(1)
-    .maybeSingle()
+    .maybeSingle() as unknown as { data: { id: string } | null; error: DbError | null }
+  const legacyAssignment = requireCoachAssignmentQueryData(
+    legacyResult,
+    'Coach program Legacy assignment query failed',
+  )
 
-  return Boolean(legacyAssignment)
+  let legacyEligibleLearnerCount = 0
+  if (legacyAssignment) {
+    const sessionResult = await adminSupabase
+      .from('booking_sessions')
+      .select('id, rescheduled_from_id, is_makeup, bookings!inner(status)')
+      .eq('schedule_slot_id', scheduleSlotId)
+      .in('status', ['scheduled', 'completed', 'absent'])
+      .eq('bookings.status', 'verified') as unknown as {
+        data: LegacyProgramSessionRow[] | null
+        error: DbError | null
+      }
+    const sessions = requireCoachAssignmentQueryData(
+      sessionResult,
+      'Coach program Legacy learner query failed',
+    ) || []
+    const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+      adminSupabase,
+      sessions,
+      'Coach program',
+    )
+    legacyEligibleLearnerCount = getLegacyEligibleSessions(
+      sessions,
+      walletRedeemedSessionIds,
+    ).length
+  }
+
+  return resolveCoachSlotAccess({
+    exactGroups,
+    coachId: coach.id,
+    hasLegacyAssignment: Boolean(legacyAssignment),
+    legacyEligibleLearnerCount,
+  }).allowed
 }
 
 async function getOwnedProgram(supabase: Awaited<ReturnType<typeof createClient>>, coach: User, programId: string) {
@@ -171,7 +230,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'กรุณากรอกเนื้อหาโปรแกรม' }, { status: 400 })
     }
 
-    const assigned = await isAssignedToSlot(supabase, coach, scheduleSlotId)
+    const assigned = await isAssignedToSlot(coach, scheduleSlotId)
     if (!assigned) {
       return NextResponse.json({ error: 'คุณไม่มีสิทธิ์ส่งโปรแกรมให้รอบสอนนี้' }, { status: 403 })
     }

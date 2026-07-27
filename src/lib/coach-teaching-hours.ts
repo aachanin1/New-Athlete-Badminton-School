@@ -1,4 +1,9 @@
 import type { CoachEmploymentType } from '@/types/database'
+import {
+  getGenuineLegacyOnlySlotIds,
+  getLegacyEligibleSessions,
+  loadWalletRedeemedSessionIds,
+} from '@/lib/coach-assignment-resolution'
 
 const BOOKING_PAYABLE_STATUSES = ['verified']
 const SESSION_ATTENDANCE_STATUSES = ['scheduled', 'completed', 'absent']
@@ -66,6 +71,8 @@ interface LegacyAssignmentRow {
 interface BookingSessionRow {
   id: string
   schedule_slot_id: string
+  rescheduled_from_id: string | null
+  is_makeup: boolean | null
 }
 
 interface BookingSessionIdRow {
@@ -213,6 +220,18 @@ async function getAssignmentGroups(supabase: SupabaseLike, options: TeachingHour
   return (data || []).filter((group) => group.coach_id && group.schedule_slots)
 }
 
+async function getExactGroupsForSlots(supabase: SupabaseLike, slotIds: string[]) {
+  return runPayrollInChunks<{ schedule_slot_id: string }>(
+    slotIds,
+    'exact assignment model slots',
+    (chunkSlotIds) => supabase
+      .from('coach_assignment_groups')
+      .select('schedule_slot_id')
+      .in('schedule_slot_id', chunkSlotIds)
+      .limit(10000),
+  )
+}
+
 async function getLegacyAssignments(supabase: SupabaseLike, options: TeachingHoursRangeOptions) {
   let query = supabase
     .from('coach_assignments')
@@ -242,7 +261,7 @@ async function getPayableSessionsBySlot(supabase: SupabaseLike, slotIds: string[
   const data = await runPayrollInChunks<BookingSessionRow>(slotIds, 'payable sessions by slot', (chunkSlotIds) =>
     supabase
       .from('booking_sessions')
-      .select('id, schedule_slot_id, bookings!inner(status)')
+      .select('id, schedule_slot_id, rescheduled_from_id, is_makeup, bookings!inner(status)')
       .in('schedule_slot_id', chunkSlotIds)
       .in('status', SESSION_ATTENDANCE_STATUSES)
       .in('bookings.status', BOOKING_PAYABLE_STATUSES)
@@ -397,8 +416,15 @@ export async function getCoachTeachingHourSourceRows(
     getLegacyAssignments(supabase, options),
   ])
 
-  const groupedSlotIds = new Set(groups.map((group) => group.schedule_slot_id))
-  const legacyRows = legacyAssignments.filter((assignment) => !groupedSlotIds.has(assignment.schedule_slot_id))
+  const exactGroupsForLegacySlots = await getExactGroupsForSlots(
+    supabase,
+    legacyAssignments.map((assignment) => assignment.schedule_slot_id),
+  )
+  const genuineLegacyOnlySlotIds = new Set(getGenuineLegacyOnlySlotIds(
+    legacyAssignments.map((assignment) => assignment.schedule_slot_id),
+    exactGroupsForLegacySlots,
+  ))
+  const legacyRows = legacyAssignments.filter((assignment) => genuineLegacyOnlySlotIds.has(assignment.schedule_slot_id))
   const slotIds = Array.from(new Set([
     ...groups.map((group) => group.schedule_slot_id),
     ...legacyRows.map((assignment) => assignment.schedule_slot_id),
@@ -415,8 +441,23 @@ export async function getCoachTeachingHourSourceRows(
     getPayableSessionIds(supabase, rawGroupedSessionIds),
   ])
 
+  const loadedLegacySessions = legacyRows.flatMap(
+    (assignment) => sessionsBySlot.get(assignment.schedule_slot_id) || [],
+  )
+  const walletRedeemedSessionIds = await loadWalletRedeemedSessionIds(
+    supabase,
+    loadedLegacySessions,
+    'Coach teaching hours',
+  )
+  const eligibleLegacySessionIds = new Set(
+    getLegacyEligibleSessions(loadedLegacySessions, walletRedeemedSessionIds)
+      .map((session) => session.id),
+  )
+
   const groupedSessionIds = rawGroupedSessionIds.filter((sessionId) => payableGroupedSessionIds.has(sessionId))
-  const legacySessionIds = slotIds.flatMap((slotId) => (sessionsBySlot.get(slotId) || []).map((session) => session.id))
+  const legacySessionIds = loadedLegacySessions
+    .filter((session) => eligibleLegacySessionIds.has(session.id))
+    .map((session) => session.id)
   const attendanceCounts = await getAttendanceCounts(supabase, Array.from(new Set([...groupedSessionIds, ...legacySessionIds])))
 
   const rows: CoachTeachingHourSourceRow[] = []
@@ -457,7 +498,9 @@ export async function getCoachTeachingHourSourceRows(
 
   legacyRows.forEach((assignment) => {
     if (!assignment.schedule_slots) return
-    const sessions = sessionsBySlot.get(assignment.schedule_slot_id) || []
+    const sessions = (sessionsBySlot.get(assignment.schedule_slot_id) || [])
+      .filter((session) => eligibleLegacySessionIds.has(session.id))
+    if (sessions.length === 0) return
     const attendanceStats = sessions.reduce<AttendanceStats>((stats, session) => {
       const sessionStats = attendanceCounts.get(session.id)
       if (!sessionStats) return stats
