@@ -57,7 +57,7 @@ function isValidDate(value: Date) {
   return !Number.isNaN(value.getTime())
 }
 
-function isValidDateKey(value: string) {
+export function isValidDateKey(value: string) {
   if (!INPUT_DATE_PATTERN.test(value)) return false
 
   const [year, month, day] = value.split('-').map(Number)

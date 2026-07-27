@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatThaiDateTimeWithWeekday, getBangkokDateKey } from '@/lib/date-format'
+import {
+  matchesNotificationDisplaySearch,
+  normalizeNotificationDisplayMessage,
+} from '@/lib/notification-display'
 import { Bell, BellRing, CheckCheck, Clock, Search, Circle } from 'lucide-react'
 
 interface NotificationRow {
@@ -56,6 +60,11 @@ export function NotificationsClient({
     return notifications.map((notification) => ({
       ...notification,
       is_read: notification.is_read || localReadIds.has(notification.id),
+      displayMessage: normalizeNotificationDisplayMessage({
+        title: notification.title,
+        message: notification.message,
+        linkUrl: notification.link_url,
+      }),
     }))
   }, [notifications, localReadIds])
 
@@ -63,8 +72,7 @@ export function NotificationsClient({
     return mergedNotifications.filter((notification) => {
       if (filterType !== 'all' && notification.type !== filterType) return false
       if (!search) return true
-      const query = search.toLowerCase()
-      return notification.title.toLowerCase().includes(query) || notification.message.toLowerCase().includes(query)
+      return matchesNotificationDisplaySearch(notification.title, notification.displayMessage, search)
     })
   }, [mergedNotifications, filterType, search])
 
@@ -193,7 +201,7 @@ export function NotificationsClient({
                         <Badge className={`text-[10px] ${typeConfig.color}`}>{typeConfig.label}</Badge>
                         {!notification.is_read && <Circle className="h-2 w-2 fill-blue-500 text-blue-500" />}
                       </div>
-                      <p className="mt-0.5 text-xs text-gray-500">{notification.message}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">{notification.displayMessage}</p>
                       <div className="mt-1.5 flex items-center gap-3 text-[11px] text-gray-400">
                         <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(notification.created_at)}</span>
                       </div>

@@ -16,10 +16,16 @@ import {
   formatNotificationSlotDateTime,
   getBangkokDateKey,
 } from '../src/lib/date-format.ts'
+import {
+  matchesNotificationDisplaySearch,
+  normalizeNotificationDisplayMessage,
+} from '../src/lib/notification-display.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 const dateFormatUrl = pathToFileURL(path.join(root, 'src/lib/date-format.ts')).href
+const notificationDisplayUrl = pathToFileURL(path.join(root, 'src/lib/notification-display.ts')).href
+const tsAliasLoaderUrl = pathToFileURL(path.join(root, 'scripts/ts-alias-loader.mjs')).href
 
 let passed = 0
 async function check(name, action) {
@@ -119,12 +125,123 @@ function runFormatterInTimezone(timeZone) {
   return result.stdout
 }
 
+function runDisplayNormalizerInTimezone(timeZone) {
+  const input = {
+    title: 'ยังเช็คชื่อนักเรียนไม่ครบ',
+    message: 'รอบ 25 ก.ค. 69 17:00-19:00 · รามอินทรา · kids_group ยังขาดการเช็คชื่อ 2 คน',
+    linkUrl: '/coach/attendance?date=2026-07-26&slot=slot-1',
+  }
+  const script = `import { normalizeNotificationDisplayMessage } from ${JSON.stringify(notificationDisplayUrl)}; process.stdout.write(normalizeNotificationDisplayMessage(${JSON.stringify(input)}))`
+  const result = spawnSync(process.execPath, [
+    '--no-warnings',
+    '--experimental-loader',
+    tsAliasLoaderUrl,
+    '--input-type=module',
+    '-e',
+    script,
+  ], {
+    cwd: root,
+    env: { ...process.env, TZ: timeZone, NODE_NO_WARNINGS: '1' },
+    encoding: 'utf8',
+  })
+  assert.equal(result.status, 0, result.stderr)
+  return result.stdout
+}
+
 await check('date-only slot renders as 26 ก.ค. 69 under TZ=UTC', () => {
   assert.equal(runFormatterInTimezone('UTC'), '26 ก.ค. 69 17:00-19:00')
 })
 
 await check('date-only slot renders identically under TZ=Asia/Bangkok', () => {
   assert.equal(runFormatterInTimezone('Asia/Bangkok'), '26 ก.ค. 69 17:00-19:00')
+})
+
+await check('stored incident date is normalized from the canonical attendance link date', () => {
+  assert.equal(normalizeNotificationDisplayMessage({
+    title: 'ยังเช็คชื่อนักเรียนไม่ครบ',
+    message: 'รอบ 25 ก.ค. 69 17:00-19:00 · รามอินทรา · kids_group ยังขาดการเช็คชื่อ 2 คน',
+    linkUrl: '/coach/attendance?date=2026-07-26&slot=slot-1',
+  }), 'รอบ 26 ก.ค. 69 17:00-19:00 · รามอินทรา · kids_group ยังขาดการเช็คชื่อ 2 คน')
+})
+
+await check('assignment display accepts the canonical date from an internal Coach today link', () => {
+  assert.equal(normalizeNotificationDisplayMessage({
+    title: 'ได้รับมอบหมายรอบสอน',
+    message: 'คุณได้รับมอบหมายให้สอน 25 ก.ค. 69 17:00-19:00 · รามอินทรา',
+    linkUrl: '/coach/today?date=2026-07-26',
+  }), 'คุณได้รับมอบหมายให้สอน 26 ก.ค. 69 17:00-19:00 · รามอินทรา')
+})
+
+await check('check-in-success display accepts the canonical date from an attendance link', () => {
+  assert.equal(normalizeNotificationDisplayMessage({
+    title: 'เช็คอินสำเร็จ อย่าลืมเช็คชื่อ',
+    message: 'รอบ 25 ก.ค. 69 17:00-19:00 เช็คอินเรียบร้อยแล้ว',
+    linkUrl: '/coach/attendance?date=2026-07-26&slot=slot-1',
+  }), 'รอบ 26 ก.ค. 69 17:00-19:00 เช็คอินเรียบร้อยแล้ว')
+})
+
+await check('already-correct stored display message remains byte-identical', () => {
+  const message = 'รอบ 26 ก.ค. 69 17:00-19:00 · รามอินทรา'
+  assert.strictEqual(normalizeNotificationDisplayMessage({
+    title: 'ยังเช็คชื่อนักเรียนไม่ครบ',
+    message,
+    linkUrl: '/coach/attendance?date=2026-07-26&slot=slot-1',
+  }), message)
+})
+
+await check('generic Coach link without an exact date remains unchanged', () => {
+  const message = 'รอบ 25 ก.ค. 69 17:00-19:00'
+  assert.equal(normalizeNotificationDisplayMessage({ title: 'ยังเช็คชื่อนักเรียนไม่ครบ', message, linkUrl: '/coach/checkin' }), message)
+})
+
+await check('null link remains unchanged', () => {
+  const message = 'รอบ 25 ก.ค. 69 17:00-19:00'
+  assert.equal(normalizeNotificationDisplayMessage({ title: 'ยังเช็คชื่อนักเรียนไม่ครบ', message, linkUrl: null }), message)
+})
+
+await check('malformed or invalid link date remains unchanged', () => {
+  const input = { title: 'ยังเช็คชื่อนักเรียนไม่ครบ', message: 'รอบ 25 ก.ค. 69 17:00-19:00' }
+  assert.equal(normalizeNotificationDisplayMessage({ ...input, linkUrl: '/coach/attendance?date=2026-02-30' }), input.message)
+  assert.equal(normalizeNotificationDisplayMessage({ ...input, linkUrl: '/coach/attendance?date=not-a-date' }), input.message)
+})
+
+await check('external URL remains unchanged', () => {
+  const message = 'รอบ 25 ก.ค. 69 17:00-19:00'
+  assert.equal(normalizeNotificationDisplayMessage({ title: 'ยังเช็คชื่อนักเรียนไม่ครบ', message, linkUrl: 'https://example.com/coach/attendance?date=2026-07-26' }), message)
+})
+
+await check('unrelated notification title remains unchanged', () => {
+  const message = 'รอบ 25 ก.ค. 69 17:00-19:00'
+  assert.equal(normalizeNotificationDisplayMessage({ title: 'ถึงเวลาเช็คอินรอบสอน', message, linkUrl: '/coach/today?date=2026-07-26' }), message)
+})
+
+await check('message without a recognizable slot-date token remains unchanged', () => {
+  const message = 'กรุณาเช็คชื่อนักเรียนให้ครบ'
+  assert.equal(normalizeNotificationDisplayMessage({ title: 'ยังเช็คชื่อนักเรียนไม่ครบ', message, linkUrl: '/coach/attendance?date=2026-07-26' }), message)
+})
+
+await check('normalization preserves time, branch, course, and missing count', () => {
+  const result = normalizeNotificationDisplayMessage({
+    title: 'ยังเช็คชื่อนักเรียนไม่ครบ',
+    message: 'รอบ 25 ก.ค. 69 17:00-19:00 · รามอินทรา · kids_group ยังขาดการเช็คชื่อ 2 คน',
+    linkUrl: '/coach/attendance?date=2026-07-26&slot=slot-1',
+  })
+  assert.equal(result.replace('26 ก.ค. 69', '<date>'), 'รอบ <date> 17:00-19:00 · รามอินทรา · kids_group ยังขาดการเช็คชื่อ 2 คน')
+})
+
+await check('stored-message normalization is identical under UTC and Asia/Bangkok', () => {
+  assert.equal(runDisplayNormalizerInTimezone('UTC'), runDisplayNormalizerInTimezone('Asia/Bangkok'))
+  assert.match(runDisplayNormalizerInTimezone('UTC'), /26 ก\.ค\. 69/)
+})
+
+await check('notification search matches the normalized date and not the stale stored date', () => {
+  const displayMessage = normalizeNotificationDisplayMessage({
+    title: 'ยังเช็คชื่อนักเรียนไม่ครบ',
+    message: 'รอบ 25 ก.ค. 69 17:00-19:00',
+    linkUrl: '/coach/attendance?date=2026-07-26&slot=slot-1',
+  })
+  assert.equal(matchesNotificationDisplaySearch('', displayMessage, '26 ก.ค. 69'), true)
+  assert.equal(matchesNotificationDisplaySearch('', displayMessage, '25 ก.ค. 69'), false)
 })
 
 await check('calendar lookback subtracts 14 date-key days without UTC shift', () => {
