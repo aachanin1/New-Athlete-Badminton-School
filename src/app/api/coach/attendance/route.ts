@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
+import { formatNotificationSlotDateTime } from '@/lib/date-format'
 import { notifyUserOnce } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
-import { fmtTime } from '@/lib/utils'
 import type { UserRole } from '@/types/database'
 
 type AttendanceStatus = 'present' | 'absent' | 'late'
@@ -82,13 +82,8 @@ function getSlotLabel(session: BookingSessionAuthRow | null) {
   const slot = session?.schedule_slots
   if (!slot) return null
 
-  const dateLabel = new Date(`${slot.date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
   const branchName = slot.branches?.name ? ` ที่${slot.branches.name}` : ''
-  return `${dateLabel} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}${branchName}`
+  return `${formatNotificationSlotDateTime(slot.date, slot.start_time, slot.end_time)}${branchName}`
 }
 
 async function requireCoach(supabase: Awaited<ReturnType<typeof createClient>>) {

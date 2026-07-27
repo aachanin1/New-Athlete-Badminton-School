@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { NotificationsClient } from '@/components/dashboard/notifications-client'
+import { getBangkokDateKey } from '@/lib/date-format'
 import type { NotificationType } from '@/types/database'
 
 interface NotificationRow {
@@ -27,5 +28,5 @@ export default async function NotificationsPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false }) as unknown as { data: NotificationRow[] | null }
 
-  return <NotificationsClient notifications={notifications || []} />
+  return <NotificationsClient notifications={notifications || []} todayDateKey={getBangkokDateKey()} />
 }

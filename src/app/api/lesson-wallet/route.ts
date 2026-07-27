@@ -3,11 +3,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { formatNotificationSlotDateTime } from '@/lib/date-format'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
 import { getBangkokDayOfWeek, normalizeCourseTypeName, normalizeScheduleTime } from '@/lib/schedule-template-utils'
 import { createClient } from '@/lib/supabase/server'
-import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName, Database } from '@/types/database'
 
 const STORE_CUTOFF_HOURS = 48
@@ -200,12 +200,7 @@ function templateMatchesSlot(template: TemplateRow, targetDate: string, startTim
 }
 
 function slotLabel(date: string, startTime: string, endTime: string) {
-  const dateLabel = new Date(`${date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
-  return `${dateLabel} ${fmtTime(startTime)}-${fmtTime(endTime)}`
+  return formatNotificationSlotDateTime(date, startTime, endTime)
 }
 
 async function getCurrentUser() {

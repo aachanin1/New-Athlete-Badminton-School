@@ -1,7 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { Database, NotificationType } from '@/types/database'
-import { fmtTime, getBangkokDateString } from '@/lib/utils'
+import {
+  addCalendarDaysToDateKey,
+  formatNotificationSlotDateTime,
+  getBangkokDateKey,
+} from '@/lib/date-format'
 
 interface CoachNotificationInput {
   userId: string
@@ -60,24 +64,8 @@ interface NotificationInsertTable {
   insert: (values: NotificationInsertRow) => Promise<{ error: { message: string } | null }>
 }
 
-function addDays(date: Date, days: number) {
-  const next = new Date(date)
-  next.setDate(next.getDate() + days)
-  return next
-}
-
-function toDateKey(date: Date) {
-  return date.toISOString().slice(0, 10)
-}
-
 function formatThaiSlotDate(slot: CoachSlotInfo) {
-  const date = new Date(`${slot.date}T00:00:00+07:00`).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
-
-  return `${date} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}`
+  return formatNotificationSlotDateTime(slot.date, slot.start_time, slot.end_time)
 }
 
 function getSlotLabel(slot: CoachSlotInfo) {
@@ -178,9 +166,10 @@ function getAttendanceKey(row: { booking_session_id: string; student_id: string 
 export async function createCoachCheckinWindowNotifications(
   supabase: SupabaseClient<Database>,
   coachId: string,
+  options: { now?: Date } = {},
 ) {
-  const now = new Date()
-  const today = getBangkokDateString(now)
+  const now = options.now ?? new Date()
+  const today = getBangkokDateKey(now)
 
   const { data: groups } = await supabase
     .from('coach_assignment_groups')
@@ -237,12 +226,12 @@ export async function createCoachCheckinWindowNotifications(
 export async function createCoachAttendanceGapNotifications(
   supabase: SupabaseClient<Database>,
   coachId: string,
-  options: { lookbackDays?: number } = {},
+  options: { lookbackDays?: number; now?: Date } = {},
 ) {
   const lookbackDays = options.lookbackDays ?? 14
-  const now = new Date()
-  const today = getBangkokDateString(now)
-  const startDate = toDateKey(addDays(new Date(`${today}T00:00:00+07:00`), -lookbackDays))
+  const now = options.now ?? new Date()
+  const today = getBangkokDateKey(now)
+  const startDate = addCalendarDaysToDateKey(today, -lookbackDays)
 
   const { data: groups } = await supabase
     .from('coach_assignment_groups')

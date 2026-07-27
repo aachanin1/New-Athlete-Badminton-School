@@ -4,6 +4,7 @@ import {
   createCoachAttendanceGapNotifications,
   createCoachCheckinWindowNotifications,
 } from '@/lib/coach-notifications'
+import { getBangkokDateKey } from '@/lib/date-format'
 import { createClient } from '@/lib/supabase/server'
 import type { NotificationType } from '@/types/database'
 
@@ -43,6 +44,7 @@ export default async function CoachNotificationsPage() {
   return (
     <NotificationsClient
       notifications={notifications || []}
+      todayDateKey={getBangkokDateKey()}
       title="แจ้งเตือนโค้ช"
       description="ติดตามรอบสอนที่ได้รับมอบหมาย การเช็คอิน และงานเช็คชื่อที่ยังต้องปิดให้ครบ"
     />

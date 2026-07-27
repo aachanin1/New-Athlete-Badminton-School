@@ -9,6 +9,7 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "check:mojibake": "node scripts/check-mojibake.js",
+    "test:notification-date-regression": "node --no-warnings --experimental-loader ./scripts/ts-alias-loader.mjs scripts/check-notification-bangkok-date-consistency.mjs",
     "test:lesson-wallet-regression": "node scripts/check-lesson-wallet-regression.mjs",
     "test:admin-schedule-assignment": "node scripts/check-admin-schedule-assignment-state.mjs",
     "test:admin-schedules-performance": "node scripts/check-admin-schedules-performance.mjs",

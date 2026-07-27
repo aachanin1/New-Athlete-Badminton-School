@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
+import { formatThaiDateTimeWithWeekday, getBangkokDateKey } from '@/lib/date-format'
 import { Bell, BellRing, CheckCheck, Clock, Search, Circle } from 'lucide-react'
 
 interface NotificationRow {
@@ -23,6 +23,7 @@ interface NotificationRow {
 
 interface NotificationsClientProps {
   notifications: NotificationRow[]
+  todayDateKey: string
   title?: string
   description?: string
 }
@@ -39,6 +40,7 @@ const NOTIFICATIONS_PER_PAGE = 10
 
 export function NotificationsClient({
   notifications,
+  todayDateKey,
   title = 'แจ้งเตือนของฉัน',
   description = 'ติดตามสถานะการจอง การชำระเงิน และข้อความจากระบบ',
 }: NotificationsClientProps) {
@@ -67,6 +69,9 @@ export function NotificationsClient({
   }, [mergedNotifications, filterType, search])
 
   const unreadCount = mergedNotifications.filter((notification) => !notification.is_read).length
+  const todayCount = mergedNotifications.filter(
+    (notification) => getBangkokDateKey(notification.created_at) === todayDateKey,
+  ).length
   const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE))
   const safePage = Math.min(page, totalPages)
   const startIndex = (safePage - 1) * NOTIFICATIONS_PER_PAGE
@@ -131,7 +136,7 @@ export function NotificationsClient({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-[#2748bf]">{mergedNotifications.length}</p><p className="text-xs text-gray-500">ทั้งหมด</p></CardContent></Card>
         <Card className={unreadCount > 0 ? 'ring-2 ring-orange-300' : ''}><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-orange-500">{unreadCount}</p><p className="text-xs text-gray-500">ยังไม่อ่าน</p></CardContent></Card>
-        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{mergedNotifications.filter((notification) => new Date(notification.created_at).toISOString().split('T')[0] === new Date().toISOString().split('T')[0]).length}</p><p className="text-xs text-gray-500">วันนี้</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{todayCount}</p><p className="text-xs text-gray-500">วันนี้</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">

@@ -57,6 +57,16 @@ function isValidDate(value: Date) {
   return !Number.isNaN(value.getTime())
 }
 
+function isValidDateKey(value: string) {
+  if (!INPUT_DATE_PATTERN.test(value)) return false
+
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day
+}
+
 export function getBangkokDateKey(date: Date | string = new Date()): string {
   if (typeof date === 'string' && INPUT_DATE_PATTERN.test(date)) return date
 
@@ -68,6 +78,15 @@ export function getBangkokDateKey(date: Date | string = new Date()): string {
 
 export function parseBangkokDate(dateKey: string): Date {
   return new Date(`${dateKey}T00:00:00+07:00`)
+}
+
+export function addCalendarDaysToDateKey(dateKey: string, days: number): string {
+  if (!isValidDateKey(dateKey) || !Number.isInteger(days)) return dateKey
+
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  parsed.setUTCDate(parsed.getUTCDate() + days)
+  return parsed.toISOString().slice(0, 10)
 }
 
 function getWeekday(dateKey: string, compact = false) {
@@ -82,6 +101,14 @@ export function formatThaiShortDate(value: Date | string): string {
   const dateKey = getBangkokDateKey(value)
   if (!INPUT_DATE_PATTERN.test(dateKey)) return dateKey || '-'
   return thaiShortDateFormatter.format(parseBangkokDate(dateKey))
+}
+
+export function formatNotificationSlotDateTime(
+  dateKey: string,
+  startTime: string,
+  endTime: string,
+): string {
+  return `${formatThaiShortDate(dateKey)} ${startTime.slice(0, 5)}-${endTime.slice(0, 5)}`
 }
 
 export function formatThaiLongDate(value: Date | string): string {
