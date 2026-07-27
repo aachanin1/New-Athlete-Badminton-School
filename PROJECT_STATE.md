@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-25
+Last updated: 2026-07-27
 Source: current local/upstream Git metadata, Source, documentation, prior Local
 verification, fresh read-only Vercel deployment/alias inspection, and the
 Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
@@ -13,6 +13,12 @@ Production-target artifact, authenticated read-only staged UAT closeout, exact-
 artifact Promotion, and successful read-only post-promotion Production UAT retry.
 Items not confirmed are marked `Unknown / Need verification`.
 
+The current mutable state is the Owner-approved **Coach Notification Bangkok Date
+Consistency** Commit + Push publication gate recorded below. The scoped Source/Test
+commit is exact; the documentation publication and one normal non-force Push are
+the remaining actions in this gate. Deploy, Production access/UAT/write, and data
+repair remain unauthorized.
+
 ## Current Source of Truth
 
 New Athlete Badminton School is a multi-portal badminton school management app.
@@ -21,6 +27,23 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Owner Policy
 
+- Owner selected **Coach Notification Bangkok Date Consistency** as the single
+  Active Task on 2026-07-27. This gate authorizes fresh Audit First, bounded
+  Production SELECT-only notification/schedule evidence, a narrow Source fix,
+  deterministic Local tests, and current-state documentation only. Commit, Push,
+  branch change, Deploy/Promotion/alias/rollback, authenticated Coach Production
+  pages, Controlled Write UAT, Production notification/data repair, migration,
+  schema/RLS/RPC, environment, feature, allowlist, and dependency changes remain
+  prohibited. Stored incorrect messages are a later Owner repair/deduplication
+  decision and must not be rewritten in this gate.
+- After PM review of the exact local worktree, Owner approved a fresh Commit +
+  Push Gate 0, unchanged-scope re-verification, one exact 10-file functional
+  Source/Test/Package commit, one exact 3-file current-documentation commit, and
+  exactly one normal non-force Push of both commits on the existing branch.
+  Source redesign, scope expansion, branch change, force Push, PR, Deploy,
+  Production access/UAT/write, Supabase access, migration/schema/RLS/RPC,
+  dependency, environment, feature, allowlist, Controlled Write UAT, and stored-
+  notification repair remain unauthorized.
 - Owner selected **Coach Assignment Status Communication + Save Feedback** as the
   single Active Task on 2026-07-24 and first authorized Source Fix + Local Test.
   The Coach assignment page must expose three mutually exclusive user-facing
@@ -391,7 +414,49 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
   containing “Formula And Ordering / Scenario Matrix” was not present in the repo:
   `Unknown / Need verification`.
 
-### Current Project Matrix — Coach Assignment Status Communication + Save Feedback
+### Current Project Matrix — Coach Notification Bangkok Date Consistency
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Coach Notification Bangkok Date Consistency |
+| Task Status | SOURCE COMPLETE; TESTS PASSED; EXACT SOURCE/TEST AND DOCUMENTATION COMMITS PUBLISHED TO THE LIVE REMOTE; NOT DEPLOYED OR PRODUCTION-ACTIVE; OWNER REVIEW REQUIRED BEFORE DEPLOY |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Documentation commit containing this record; its parent is functional commit `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28`. Exact documentation SHA/tree/parent are reported in the final handoff |
+| Remote HEAD | Same documentation commit after the one authorized normal non-force Push and final live Remote verification; exact SHA is reported in the final handoff |
+| Ahead/Behind | `0/0` after successful final live Remote convergence verification |
+| Protected dirty files | Preserved checksum-exact: `AGENTS.md` = `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; `src/lib/schedule-slot-utils.ts` = `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
+| Documentation Drift | No — the prior Active Task `NONE` drift was corrected, and the current matrix, short execution index, dated evidence, Source, Git, and verified live Remote state agree after this publication |
+| Root Cause | Date-only slot values were converted to Bangkok-midnight `Date` objects and formatted without `timeZone`, so UTC runtimes displayed the previous Thai calendar date. Attendance-gap lookback then used `toISOString()`, shifting the calendar boundary one day early. Shared NotificationsClient compared UTC ISO keys instead of Bangkok date keys |
+| Source Complete | Yes — scoped local Source uses the established Bangkok formatter on the raw `YYYY-MM-DD`, uses UTC-stable date-key calendar arithmetic, supplies a server-derived Bangkok `todayDateKey`, and corrects only Coach notification, Coach Attendance notification-label, and Lesson Wallet notification-label paths |
+| Tests Passed | Yes — focused notification date regression `13/13`; Lesson Wallet regression `17/17`; Progressive payment notification regression `16/16`; attendance reconciliation dry-run checked `2,621` sessions and `2,205` rows with student/status/orphan mismatch `0/0/0`; TypeScript passed; ESLint passed with zero warnings; mojibake passed `247` files; Next.js build generated `91/91`; post-build exact `.next` cleanup and clean dev restart returned localhost `/` and `/_next/static/chunks/webpack.js` `200/200` |
+| Committed | Yes — functional commit `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28`, tree `4f36ecc54ae9bf2fc09c589e3cedd97c86c50682`, parent `f8ef800398e7104b6b625f2c2720219cf874f6ce`, plus the exact documentation commit containing this record |
+| Pushed | Yes — exactly one authorized normal non-force Push published both commits and final live Remote verification converged Local/Remote at `0/0`; exact documentation commit SHA is reported in the final handoff |
+| Current Source | Functional Source/Test commit `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28` plus the documentation commit containing this record |
+| Deployed | No — no deployment/rebuild/promotion/alias action was authorized or run |
+| Deployed Source | Unchanged prior authoritative Production source: commit `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216` in artifact `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`; no fresh Vercel control-plane verification was authorized in this gate |
+| Deployment ID | Unchanged prior authoritative value `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`; no deployment mutation occurred |
+| Migration Source | None — not required |
+| Migration Applied | No — not required and prohibited |
+| Environment Change | No |
+| Feature Enabled | Not applicable; no feature control exists or changed for this correction |
+| Allowlisted | Not applicable; no allowlist exists or changed for this correction |
+| Production Active | No for this fix — Production SELECT evidence confirms the old runtime-dependent stored-message behavior remains present |
+| Production Read-only Audit | Completed through authorized Supabase SELECTs only. Proven one-day-early rows with exact date/slot evidence: assignment `2,017` (`860` unread / `1,157` read), check-in-success `885` (`402/483`), attendance-gap `416` (`157/259`). Correct-label rows: assignment `2` unread and attendance-gap `6` (`5/1`). Generic-link populations remain `Unknown / Need verification` per row: check-in-window `759` (`364/395`), absent/late `138` (`124/14`), and wallet-related `1,242` across generic/month-only links |
+| Incident Evidence | Ramintra slot `3c4a2227-0a0e-4134-9a1a-d382e124e6c8`, `2026-07-26 17:00–19:00`, has assigned `3`, attendance `1`, missing `2`; exact notification link/slot date is `2026-07-26` while audited stored messages say `25 ก.ค. 69` |
+| Production UAT | Not run — fix is not deployed and authenticated Coach Production pages were prohibited |
+| Controlled Write UAT | Not run / unauthorized |
+| Data Repaired | No |
+| Production Data Changed | No — SELECT-only audit; no notification or business-data mutation |
+| Existing-message Decision | Deferred to a later Owner gate. Because `notifyCoachOnce` deduplicates by message text plus link, corrected future generation may coexist with an old incorrect stored message after deployment; no schema redesign, repair SQL, or stored-message change is included here |
+| Customer Impact | Production behavior remains unchanged until a separately approved deployment; current Production users can still see wrong stored dates until deployment and any separately approved historical-message decision |
+| Financial Impact | None; Attendance, Booking, assignment, Lesson Wallet, Payment, entitlement, payroll, and accounting mutation semantics are unchanged |
+| Blocker | None for the approved Commit + Push gate; deployment and Production verification require a separate Owner decision |
+| Remaining Work | Separate Owner Deploy/UAT decision; separately decide whether existing wrong messages need repair/deduplication handling |
+| Task Done | No — Source/Test publication is complete, but deployment, Production correctness, and stored-message policy remain incomplete |
+| Next Gate / Next Action | Owner review before Deploy |
+| Parking Lot authorization state | No Parking Lot task is authorized |
+
+### Historical / Superseded Project Matrix — Coach Assignment Status Communication + Save Feedback
 
 | Field | Current value |
 | --- | --- |

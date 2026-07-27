@@ -7326,3 +7326,197 @@ State observed at this final read-only closeout on 2026-07-18:
   containment auth-session baseline, broader historical incident population,
   permanent dirty `AGENTS.md` work, and Parking Lot tasks remain unauthorized and
   must not start automatically.
+
+## 2026-07-27 — Coach Notification Bangkok Date Consistency (Audit First + Source Fix + Local Test)
+
+State observed at this local closeout on 2026-07-27:
+
+### Owner Evidence and Authorized Gate
+
+- Owner selected **Coach Notification Bangkok Date Consistency** as the single
+  Active Task. Authorized scope was fresh Audit First, bounded Production
+  notification/schedule SELECTs through existing access, narrow Source fix,
+  deterministic Local tests, and current-state documentation.
+- Commit, Push, branch change, Deploy/Promotion/alias/rollback, authenticated Coach
+  Production pages, Controlled Write UAT, Production notification/data repair,
+  migration/schema/RLS/RPC, environment, feature, allowlist, and dependency
+  changes were not authorized and did not occur.
+- The prior current documents still said Active Task `NONE`. This was classified
+  as `DOCUMENTATION DRIFT — NEW OWNER DECISION NOT YET RECORDED` and corrected
+  locally without committing.
+
+### Gate 0 and Source Reproduction
+
+- Repository root was exact. Fresh Git fetch confirmed branch
+  `spike/next-major-security-upgrade`, Local/Remote HEAD
+  `f8ef800398e7104b6b625f2c2720219cf874f6ce`, ahead/behind `0/0`, no staged or
+  untracked files, and only the two known protected dirty paths.
+- Protected SHA-256 fingerprints before Source work were and remain:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  Neither file was edited by this task.
+- Every proposed Source/Test/Documentation file was clean at Gate 0. No unrelated
+  active work or conflicting affected-file diff was found.
+- Deterministic pre-fix reproduction of
+  `new Date('2026-07-26T00:00:00+07:00').toLocaleDateString('th-TH', ...)`
+  returned `25 ก.ค. 69` under `TZ=UTC` and `26 ก.ค. 69` under
+  `TZ=Asia/Bangkok`. The same pre-fix lookback path returned `2026-07-12` for
+  Bangkok today `2026-07-27` minus `14`, instead of the intended calendar date
+  `2026-07-13`.
+- Source inspection confirmed Coach assignment, check-in-window,
+  check-in-success, and attendance-gap notifications share the unsafe label;
+  assignment/attendance links preserve raw `slot.date`; NotificationsClient used
+  UTC ISO keys; Coach Attendance absent/late and Lesson Wallet store/redeem labels
+  repeated the unsafe formatter.
+- Local and remote notification schema inspection found only primary/foreign-key
+  constraints and per-user RLS policies; there is no notification-content unique
+  constraint. Existing `notifyCoachOnce` is application-level idempotence by exact
+  user/title/message/link. No migration, Supabase package/API, RLS, or schema
+  change is required for this Source fix.
+
+### Production Read-only Evidence
+
+- Existing authorized Supabase access was used for SELECT statements only. No
+  application route, authenticated Coach page, SQL mutation, RPC, repair SQL, or
+  credential output occurred.
+- Exact date/date+slot links prove one-day-early stored labels for:
+  - `ได้รับมอบหมายรอบสอน`: `2,017` rows (`860` unread / `1,157` read); `2`
+    additional unread rows have the correct label.
+  - `เช็คอินสำเร็จ อย่าลืมเช็คชื่อ`: `885` rows (`402` unread / `483` read), all
+    proven one day early in the audited population.
+  - `ยังเช็คชื่อนักเรียนไม่ครบ`: `416` rows (`157` unread / `259` read); `6`
+    rows (`5` unread / `1` read) have the correct label.
+- Exact reported incident evidence is Ramintra slot
+  `3c4a2227-0a0e-4134-9a1a-d382e124e6c8`, date `2026-07-26`,
+  `17:00–19:00`: assigned learners `3`, exact attendance rows `1`, missing `2`.
+  Matching notification links and `schedule_slots.date` are `2026-07-26`, while
+  the audited stored message date is `25 ก.ค. 69`.
+- Generic/month-only links cannot prove an individual stored message against an
+  exact slot without guessing. Population only, label correctness
+  `Unknown / Need verification`:
+  - check-in-window `759` (`364` unread / `395` read);
+  - Coach Attendance absent/late `138` (`124` unread / `14` read);
+  - Lesson Wallet-related `1,242`: store `648`, group-review after store `109`,
+    redeem `485`.
+- Existing incorrect messages were not changed. Because corrected copy no longer
+  equals old copy, a future post-deploy generation may create a corrected row next
+  to an old wrong row under the existing idempotence contract. Repair/deduplication
+  remains a later Owner decision.
+
+### Local Source Implementation
+
+- `src/lib/date-format.ts`: added UTC-stable `YYYY-MM-DD` calendar arithmetic and
+  one Bangkok-safe notification slot label helper based on the established
+  formatter.
+- `src/lib/coach-notifications.ts`: all four Coach notification paths now format
+  raw `slot.date` through the shared helper; attendance lookback uses date-key
+  arithmetic; optional injected `now` keeps deterministic tests without changing
+  runtime defaults.
+- `src/components/dashboard/notifications-client.tsx`,
+  `src/app/(coach)/coach/notifications/page.tsx`, and
+  `src/app/(dashboard)/dashboard/notifications/page.tsx`: shared "วันนี้" count
+  compares notification `created_at` Bangkok date keys against one server-derived
+  Bangkok `todayDateKey` primitive.
+- `src/app/api/coach/attendance/route.ts`: absent/late user notification label now
+  uses the shared formatter; authorization, attendance write-through, recipient,
+  copy, and link behavior are unchanged.
+- `src/app/api/lesson-wallet/route.ts`: store/redeem old/new round labels now use
+  the shared formatter; wallet cutoff, eligibility, store/redeem mutations,
+  recipients, links, and business rules are unchanged.
+- `scripts/check-notification-bangkok-date-consistency.mjs` and
+  `scripts/ts-alias-loader.mjs`: added a local fake-client executable regression;
+  `package.json` adds only its focused test command. No dependency changed.
+
+### Local Test Evidence
+
+- Focused notification date regression passed `13/13`: UTC/Bangkok formatter
+  identity, all four Coach messages, date/link identity, lookback boundary,
+  Bangkok early-morning "today", Coach Attendance label use, Lesson Wallet old/new
+  labels, existing idempotence, unsafe-pattern absence, and notification-only fake
+  mutation scope.
+- Existing regressions passed: Lesson Wallet `17/17`; Progressive payment
+  notifications `16/16`; attendance reconciliation dry-run checked `2,621`
+  verified teaching sessions and `2,205` attendance rows with student-scope,
+  status, and booking-without-attendance mismatches `0/0/0`.
+- `npx tsc --noEmit` passed. `npm run lint` passed with zero warnings.
+  Mojibake passed `247` files.
+- Next.js `16.2.6` Production build passed and generated `91/91` pages. Before the
+  build no port-3000 listener existed. After build, only this repository's exact
+  `.next` was removed; dev restarted hidden on `127.0.0.1:3000`; `/` and
+  `/_next/static/chunks/webpack.js` returned `200/200`.
+- Final documentation consistency/mojibake/diff checks are recorded in the final
+  handoff. No Production write test or write-capable attendance/wallet UAT script
+  was run.
+
+### Local Gate Closeout
+
+- Source Complete **Yes**; Tests Passed **Yes**; Committed **No**; Pushed **No**;
+  Deployed **No**; Feature Enabled **Not applicable/unchanged**; Allowlisted **Not
+  applicable/unchanged**; Production Active for this fix **No**; Production UAT
+  **Not run**; Controlled Write UAT **Not run**; Data Repaired **No**; Production
+  Data Changed **No**; Customer Impact **current Production stored/future-generated
+  labels remain affected until an approved release**; Financial Impact **None**;
+  Task Done **No**.
+- Active Task remains **Coach Notification Bangkok Date Consistency**. Remaining
+  work is PM/Owner evidence review, then a separately approved Commit + Push gate;
+  Deploy/UAT and any existing-message repair require later separate Owner gates.
+  Next Action: **PM/Owner review before any Commit + Push approval**.
+
+### Owner-approved Commit + Push Publication Gate
+
+State observed at this publication closeout on 2026-07-27:
+
+- Owner approved a fresh Commit + Push Gate 0, re-verification of the unchanged
+  scoped worktree, one exact 10-file functional Source/Test/Package commit, one
+  exact 3-file current-documentation commit, and exactly one normal non-force
+  Push on the existing `spike/next-major-security-upgrade` branch. Source redesign,
+  branch/PR operations, Deploy, Production/Supabase access, UAT/write/data repair,
+  migration/schema/RLS/RPC, dependency, environment, feature, and allowlist
+  changes remained prohibited and did not occur.
+- Fresh Gate 0 reconfirmed repository root and branch, Local/upstream/live Remote
+  HEAD `f8ef800398e7104b6b625f2c2720219cf874f6ce`, ahead/behind `0/0`, no staged
+  files, exactly the intended 10 functional files plus 3 documentation files and
+  the 2 protected dirty files, and no unrelated or untracked work. Added-line
+  secret scanning found `0` hits; no migration, generated type, lockfile,
+  dependency, credential, or private environment change was present.
+- Protected files remained unstaged and checksum-exact throughout:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Pre-commit re-verification passed notification date regression `13/13`, Lesson
+  Wallet regression `17/17`, Progressive payment notification regression `16/16`,
+  TypeScript with no incremental output, ESLint with zero warnings, mojibake `247`
+  files, and `git diff --check`. Prior exact-worktree evidence retained without
+  Production access: Next.js build `91/91` and attendance reconciliation dry-run
+  `2,621` sessions / `2,205` rows with mismatches `0/0/0`.
+- Functional commit `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28`, tree
+  `4f36ecc54ae9bf2fc09c589e3cedd97c86c50682`, parent
+  `f8ef800398e7104b6b625f2c2720219cf874f6ce`, subject
+  `fix(notifications): use Bangkok dates consistently`, contains exactly:
+  `package.json`; `src/app/(coach)/coach/notifications/page.tsx`;
+  `src/app/(dashboard)/dashboard/notifications/page.tsx`;
+  `src/app/api/coach/attendance/route.ts`;
+  `src/app/api/lesson-wallet/route.ts`;
+  `src/components/dashboard/notifications-client.tsx`;
+  `src/lib/coach-notifications.ts`; `src/lib/date-format.ts`;
+  `scripts/check-notification-bangkok-date-consistency.mjs`; and
+  `scripts/ts-alias-loader.mjs`. Committed-addition secret scanning found `0`
+  hits; `git show --check` passed.
+- The documentation commit containing this record contains exactly
+  `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`; its exact
+  SHA/tree/parent are reported in the final handoff. Exactly one normal non-force
+  Push published the functional and documentation commits, and final live Remote
+  verification converged Local/Remote at `0/0`.
+- Source Complete **Yes**; Tests Passed **Yes**; Committed **Yes**; Pushed **Yes**;
+  Deployed **No**; Migration Source **None**; Migration Applied **No**; Environment
+  Change **No**; Feature Enabled **Not applicable/unchanged**; Allowlisted **Not
+  applicable/unchanged**; Production Active for this fix **No**; Production UAT
+  **Not run**; Controlled Write UAT **Not run**; Data Repaired **No**; Production
+  Data Changed **No**; Customer Impact **Production behavior remains unchanged
+  until deployment**; Financial Impact **None**; Task Done **No**.
+- Active Task remains **Coach Notification Bangkok Date Consistency**. Remaining
+  work is a separate Owner Deploy/UAT decision and a separate stored-message
+  repair/deduplication policy decision. Next Action: **Owner review before Deploy**.

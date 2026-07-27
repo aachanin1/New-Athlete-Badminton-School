@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-25
+Last updated: 2026-07-27
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,10 +9,24 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### NONE
+### Coach Notification Bangkok Date Consistency
 
-No task is active. Next Action: **Await Owner selection; do not start another task
-automatically**. No Parking Lot item is authorized to start automatically.
+Status: **SOURCE/TEST AND DOCUMENTATION COMMITTED AND PUSHED; LIVE REMOTE
+CONVERGED; NOT DEPLOYED OR PRODUCTION-ACTIVE**.
+
+- Corrects runtime-dependent notification slot labels, the 14-day Bangkok
+  calendar lookback, and shared notification "today" count without changing
+  Attendance or Lesson Wallet mutation behavior.
+- Existing incorrect stored messages were not repaired; their later correction
+  and deduplication effect require a separate Owner decision.
+- Functional Source/Test commit:
+  `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28`. The exact documentation commit
+  containing this publication record was pushed with it and is identified in the
+  final handoff.
+- Authoritative current evidence and matrix: `PROJECT_STATE.md` → **Current
+  Project Matrix — Coach Notification Bangkok Date Consistency**.
+- Next Action: **Owner review before Deploy**. Production UAT/write, data repair,
+  stored-message policy work, and every Parking Lot item remain unauthorized.
 
 ## Recently Completed
 
