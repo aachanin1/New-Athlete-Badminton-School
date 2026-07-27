@@ -7821,3 +7821,313 @@ State observed at this publication closeout on 2026-07-27:
   work is a separate Owner-approved Deploy gate; persisted notification repair
   remains unapproved and unnecessary for this display approach. Next Action:
   **Owner review before Deploy**.
+
+### Owner-approved Stored-message Display Staged Deploy — Duplicate Artifact Hard Stop
+
+State observed at this pre-Deploy Hard Stop on 2026-07-27:
+
+- Owner authorized fresh Git/Vercel Gate 0, a clean detached disposable worktree,
+  specified Local verification, and at most one Vercel CLI `56.5.0`
+  `deploy --prod --skip-domain` command for exact release
+  `11754057f9d82f71c7b69248a77997e491f5069c`. Promotion, alias/domain mutation,
+  retry/force/rollback, Production/Supabase access, authenticated Coach routes,
+  business-data requests, repair, Source/config changes, Commit, and Push were
+  prohibited. The gate explicitly required a Hard Stop before Deploy if an exact-
+  SHA artifact already existed.
+- Git Gate 0 passed: repository root and branch were exact; Local/upstream/live
+  Remote all equaled `11754057f9d82f71c7b69248a77997e491f5069c` at `0/0`;
+  staged/untracked and task Source/Test/docs dirty were `0/0/0`; only protected
+  `AGENTS.md` and `src/lib/schedule-slot-utils.ts` were dirty. Their SHA-256 values
+  remained respectively
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Release identity was exact: SHA/tree/parent
+  `11754057f9d82f71c7b69248a77997e491f5069c` /
+  `275191b84e537e00a217dbc6a267528750f913c6` /
+  `c7f970a3f22cd7ba73f043f529c8bdbcb818da78`. Functional identity remained
+  SHA/tree/parent `c7f970a3f22cd7ba73f043f529c8bdbcb818da78` /
+  `6dffe07c29b5a14c2a38d35a81536de00b180f89` /
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`. Commit membership was exact
+  documentation `3/3`, functional `4/4`, combined `7/7`; combined added-line
+  secret hits and forbidden migration/dependency/lockfile/environment paths were
+  `0/0`.
+- Vercel identity matched CLI `56.5.0`, project
+  `new-athlete-badminton-school` / `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, and functions region `icn1`.
+- The 100-item deployment inventory page already contained one exact-release
+  artifact before Codex could create a worktree: deployment
+  `dpl_CzbKmahkF22HWhHM7YLMkJ2E9AKK`, unique URL
+  `https://new-athlete-badminton-school-ic6n4p3m8-aachanin1s-projects.vercel.app`,
+  Git SHA `11754057f9d82f71c7b69248a77997e491f5069c`, target/state
+  `preview/READY`, created/building/READY milliseconds
+  `1785138794296/1785138795268/1785138863805`, and branch alias
+  `new-athlete-badminton-school-git-spi-6a0ce4-aachanin1s-projects.vercel.app`.
+  This was a Git-integrated Preview deployment, not a Codex Production-target
+  staged deployment.
+- Read-only build-log inspection showed the existing Preview cloned exact commit
+  `1175405`, used Vercel CLI `56.5.0` and Next.js `16.2.6`, compiled successfully,
+  passed TypeScript, generated static pages `91/91`, built in `cle1`, deployed
+  functions to `icn1`, and completed READY. This evidence does not waive the
+  explicit duplicate-artifact Hard Stop.
+- All four established Production aliases remained on prior promoted artifact
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z`: `www.newathleteschool.com`;
+  `new-athlete-badminton-school.vercel.app`;
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`; and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+  No alias moved, no artifact was promoted, and Production remains unchanged.
+- The Safety Gate Hard Stopped before disposable-worktree creation, dependency
+  installation, fresh isolated Local verification, deploy, smoke, or runtime-log
+  requests. Deploy command count was `0`; no retry/force/rebuild/rollback,
+  application request, authenticated session, `/coach/*`, POST/PUT/PATCH/DELETE,
+  Supabase access, payment investigation, or Production-data operation occurred.
+- Source Complete **Yes**; published Source Tests Passed **Yes**, while fresh
+  isolated deploy-gate verification was **Not run due Gate 0 Hard Stop**;
+  Committed **Yes**; Pushed **Yes**; Owner-approved Production-target staged
+  Deploy **No**; existing exact-SHA Preview **Yes / READY**; Promoted for the
+  display fix **No**; Feature Enabled and Allowlisted **Not applicable/unchanged**;
+  generation-time Bangkok fix Production Active **Yes**; stored-message display
+  fix Production Active **No**; Production UAT **Not run**; Controlled Write UAT
+  **Not run**; Data Repaired **No**; Production Data Changed by Codex **No**;
+  Customer Impact **Production still displays original stored messages**;
+  Financial Impact **None**; Task Done **No**.
+- `PROJECT_STATE.md`, `TODO-CODEX.md`, and this dated record were corrected
+  local-only to resolve the exact-SHA Preview documentation drift. They remain
+  unstaged, uncommitted, and unpushed. Active Task remains **Coach Notification
+  Bangkok Date Consistency**. Blocker: the existing exact-SHA READY Preview
+  artifact. Next Action: **Owner decides whether the Preview ends this attempt or
+  explicitly authorizes a revised Production-target staged Deploy despite it;
+  no Deploy or Promotion before that decision**.
+
+### Revised Stored-message Display Staged Deploy — Failed POST Safety Hard Stop
+
+State observed at this revised pre-Deploy Hard Stop on 2026-07-27:
+
+- Owner superseded only the prior duplicate rule: exact-SHA Preview artifacts no
+  longer block creation of a separate Production-target staged artifact. The
+  existing `dpl_CzbKmahkF22HWhHM7YLMkJ2E9AKK` (`preview/READY`) was explicitly
+  allowed; only a pre-existing exact-SHA `production/READY/STAGED` artifact would
+  block. Promotion, alias mutation, retry/force/rebuild/rollback, application
+  mutation requests, Supabase/Production data access, and Source/config changes
+  remained prohibited.
+- Fresh Git Gate 0 passed at release
+  `11754057f9d82f71c7b69248a77997e491f5069c`, tree
+  `275191b84e537e00a217dbc6a267528750f913c6`, with Local/upstream/live Remote
+  converged at `0/0`, staged/untracked `0/0`, exact `4 functional + 3 docs`
+  membership, forbidden path hits `0`, and protected hashes unchanged.
+- Fresh Vercel Gate 0 passed revised duplicate semantics: CLI `56.5.0`, project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, region `icn1`; the existing exact-SHA artifact
+  remained Preview only; pre-existing exact-SHA Production artifacts were `0`;
+  and all four Production aliases remained on
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z`.
+- A clean detached disposable worktree was created from the exact release and
+  linked using only project/org/name identifiers. Lockfile-only dependency
+  installation completed inside it. Fresh Local verification passed notification
+  `26/26`, Lesson Wallet `17/17`, Progressive payment notifications `16/16`,
+  TypeScript with `--noEmit --incremental false`, ESLint zero warnings, mojibake
+  `248`, `git diff --check`, and focused added-line secret scan `0`. Worktree
+  HEAD/tree/status remained exact and clean.
+- While obtaining a bounded ID inventory before Deploy, the command
+  `vercel api /v6/deployments -F ...` exited `1`. Generate-only inspection then
+  proved that CLI `56.5.0` interpreted the helper as HTTP POST. Because the gate
+  requires an immediate Hard Stop if Codex sends any POST/PUT/PATCH/DELETE
+  request, the authorized `deploy --prod --skip-domain` command was not run.
+- A subsequent explicit read-only GET proved no deployment state was created:
+  deployments newer than baseline `1785138794296` were `0`, exact-SHA Production
+  artifacts were `0`, and the only exact-SHA artifact remained Preview
+  `dpl_CzbKmahkF22HWhHM7YLMkJ2E9AKK`. Production aliases and Production behavior
+  therefore remained unchanged.
+- Deploy command count `0`; promote/alias/retry/force/rebuild/rollback counts `0`;
+  staged smoke and exact-artifact logs were not run because no new artifact
+  exists. No application route, authenticated session, `/coach/*`, Supabase
+  access, payment investigation, repair, or Production business-data operation
+  occurred.
+- Source Complete **Yes**; Tests Passed **Yes**; Committed **Yes**; Pushed **Yes**;
+  revised Production-target staged Deploy **No**; existing Preview **Yes / READY**;
+  Promoted for display fix **No**; generation-time fix Production Active **Yes**;
+  stored-message display fix Production Active **No**; Production UAT **Not run**;
+  Controlled Write UAT **Not run**; Data Repaired **No**; Production Data Changed
+  **No**; Customer Impact **Production unchanged and continues to display original
+  stored messages**; Financial Impact **None**; Task Done **No**.
+- The first Preview Hard Stop record above remains valid historical evidence of
+  that earlier gate. This revised record supersedes only its current blocker.
+  Next Action: **Owner review and explicit revised authorization before any Deploy
+  or Promotion**.
+
+### Fresh Revised Stored-message Display Production-target Staged Deploy
+
+State observed at this staged-Deploy closeout on 2026-07-27:
+
+- Owner superseded only the preceding failed no-artifact POST Safety Hard Stop and
+  approved a fresh staged Deploy from exact release
+  `11754057f9d82f71c7b69248a77997e491f5069c`, tree
+  `275191b84e537e00a217dbc6a267528750f913c6`. Every deployment inventory read
+  used explicit `GET /v6/deployments` with `-X GET`, no `-F`, form data, or body.
+- Fresh Git Gate 0 passed at branch `spike/next-major-security-upgrade`: Local,
+  upstream, and live Remote were exact at `0/0`; staged/untracked `0/0`; task
+  Source/Test clean; exact membership `4 functional + 3 docs`; forbidden paths
+  and focused secret hits `0`; protected hashes unchanged.
+- Baseline and final pre-Deploy GET inventories each contained 100 IDs with ID-set
+  SHA-256 `67F5DB5ED406103F96507E9557415C7580106AF0970A181022617F2273D20395`.
+  Pre-existing exact-SHA `production/READY/STAGED` artifacts were `0`. Existing
+  Preview `dpl_CzbKmahkF22HWhHM7YLMkJ2E9AKK` remained allowed
+  `preview/READY` with its branch alias.
+- The immediately preceding exact-source Local results were retained rather than
+  rerun because SHA/tree/status were unchanged: notification `26/26`, Lesson
+  Wallet `17/17`, Progressive notifications `16/16`, TypeScript, ESLint zero
+  warnings, mojibake `248`, diff check, and secret scan `0`. A fresh clean detached
+  worktree reverified exact HEAD/tree/status and project/org-only linking.
+- Exactly one pinned Vercel CLI `56.5.0` command
+  `deploy --prod --skip-domain` ran from `2026-07-27T10:47:19.2212934Z` through
+  `2026-07-27T10:48:38.2246951Z`, exit `0`, and created
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4` at
+  `https://new-athlete-badminton-school-cr0k4vw6a-aachanin1s-projects.vercel.app`.
+  Artifact created/building/READY timestamps were respectively
+  `2026-07-27T10:47:28.769Z`, `2026-07-27T10:47:29.555Z`, and
+  `2026-07-27T10:48:38.695Z`.
+- Explicit GET postflight proved inventory added exactly one ID: the new artifact,
+  source `cli`, exact Git SHA, `production/READY/STAGED`; the 100-item window
+  dropped only its former oldest ID due pagination. V13 GET proved custom aliases
+  `0` and `autoAssignCustomDomains=false`. No retry, force, rebuild, redeploy,
+  Promotion, alias mutation, or rollback occurred.
+- Build passed Vercel CLI `56.5.0`, Next.js `16.2.6`, compile, TypeScript, and
+  static generation `91/91`; build ran in `cle1`, configured functions region was
+  `icn1`, and bounded build-log error lines were `0`.
+- Existing Preview and branch alias remained unchanged. All four Production
+  aliases remained on promoted generation-time artifact
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z`; the new artifact owns no alias and is not
+  Production-active.
+- Safe smoke used only unauthenticated no-follow GET to the exact staged `/` and
+  `/favicon.ico`; both returned Deployment Protection `302`, so staged smoke is
+  Partial and no bypass occurred. `/api/health` was intentionally not requested
+  because Source shows it performs Supabase SELECTs. Bounded exact-artifact runtime
+  logs for the deploy/smoke interval returned `0` events and attributable 5xx `0`.
+- Source Complete **Yes**; Tests Passed **Yes retained / not rerun**; Committed
+  **Yes**; Pushed **Yes**; Deployed **Yes — staged artifact**; Existing Preview
+  **Yes / unchanged**; Promoted for display fix **No**; Feature Enabled and
+  Allowlisted **Not applicable/unchanged**; generation-time fix Production Active
+  **Yes**; stored-message display fix Production Active **No**; Production UAT
+  **Partial staged smoke only**; Controlled Write UAT **Not run**; Data Repaired
+  **No**; Production Data Changed **No**; Customer Impact **Production unchanged**;
+  Financial Impact **None**; Task Done **No**.
+- Next Action: **Owner review before separate Promotion approval**.
+
+### Owner-approved Stored-message Display Exact-artifact Promotion
+
+State observed at this Promotion closeout on 2026-07-27:
+
+- Owner approved exactly one Promotion of Production-target staged artifact
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`, exact release
+  `11754057f9d82f71c7b69248a77997e491f5069c`, tree
+  `275191b84e537e00a217dbc6a267528750f913c6`. Only control-plane writes generated
+  inside that one pinned `vercel promote` command were authorized. Deploy/rebuild,
+  retry/force/rollback, separate alias/domain mutation, Coach application UAT,
+  `/api/health`, Supabase, application mutation, Production data repair, payment
+  investigation, Source/config changes, and documentation Commit/Push remained
+  prohibited.
+- Fresh Git Gate 0 passed on `spike/next-major-security-upgrade`: Local, upstream,
+  and fresh live Remote were exact release `11754057...` at `0/0`; staged and
+  untracked counts were `0/0`; task Source/Test was clean; functional ancestor
+  `c7f970a3f22cd7ba73f043f529c8bdbcb818da78` retained its exact reviewed four-file
+  membership; the release commit retained its exact three-document membership;
+  forbidden migration/dependency/lockfile/environment/credential diffs were `0`.
+  Protected file hashes remained exact.
+- Every Vercel API inventory/artifact/alias read used explicit `-X GET` with no
+  `-F`, form data, request body, or mutation flag. Preflight proved pinned CLI
+  `56.5.0`, project `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, configured functions region `icn1`, and target
+  artifact `production/READY/STAGED` with exact Git SHA, custom aliases `0`, and
+  `autoAssignCustomDomains=false`. Artifact created/building/READY timestamps were
+  unchanged at `2026-07-27T10:47:28.769Z`, `2026-07-27T10:47:29.555Z`, and
+  `2026-07-27T10:48:38.695Z`. No newer conflicting Production-target release was
+  present.
+- The pre-Promotion 100-item deployment ID set had SHA-256
+  `C18475A9A31A9E1079023ECBA74A7BB86699E1F912291BFB6AD42569B93D2608`. Existing
+  Preview `dpl_CzbKmahkF22HWhHM7YLMkJ2E9AKK` remained `preview/READY` with its
+  branch alias. All four established Production aliases pointed to
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z` before Promotion.
+- Exactly one command ran:
+  `vercel promote dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4 --yes --scope
+  team_gw8Y6CPd602WAKRsVFobPGCL --no-color`, from
+  `2026-07-27T12:45:42.8265046Z` through `2026-07-27T12:45:49.7296714Z`, duration
+  `6.903` seconds, exit `0`. Deploy, rebuild, retry, force, rollback, and separate
+  alias mutation command counts were all `0`.
+- Explicit GET-only postflight proved the same artifact ID, SHA, tree, and
+  creation/build/READY timestamps, now `production/READY/PROMOTED`. The compared
+  deployment inventory remained `100`; added and removed ID counts were `0/0`,
+  and the ID-set hash remained unchanged. Promotion did not create or rebuild an
+  artifact.
+- All four established Production aliases moved to
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`: `www.newathleteschool.com`;
+  `new-athlete-badminton-school.vercel.app`;
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`; and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+  Missing/extra/wrong mappings were `0/0/0`. The Preview branch alias remained
+  unchanged. Previous artifact `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z` remained READY
+  as a rollback candidate; no rollback was attempted.
+- Safe canonical Production smoke ran from `2026-07-27T12:47:08.5725578Z` through
+  `2026-07-27T12:47:10.7024221Z`. Unauthenticated no-follow `GET /` and
+  `GET /favicon.ico` both returned `200`. No `/coach/*`, authentication,
+  `/api/health`, application mutation, or Supabase access occurred.
+- Bounded exact-artifact runtime logs covered `2026-07-27T12:45:42Z` through
+  `2026-07-27T12:48:00Z`: parsed events `1`, error/fatal lines `0`, attributable
+  5xx `0`, and known smoke events `1` (`GET /` `200`). No unrelated event required
+  investigation.
+- Exact-source verification was retained from the staged-Deploy gate and was not
+  rerun during Promotion: notification `26/26`, Lesson Wallet `17/17`, Progressive
+  payment notifications `16/16`, TypeScript passed, ESLint zero warnings,
+  mojibake `248`, diff check passed, focused secret scan `0`, and artifact build
+  compile/TypeScript/static generation `91/91` passed.
+- Source Complete **Yes**; Tests Passed **Yes — retained exact-artifact evidence,
+  not rerun**; Committed/Pushed **Yes for release, No for current local docs**;
+  Deployed **Yes**; Promoted **Yes**; Existing Preview **Yes / unchanged**; Feature
+  Enabled and Allowlisted **Not applicable/unchanged**; generation-time fix
+  Production Active **Yes**; stored-message display fix Production Active **Yes**;
+  Production UAT **Not run**; safe Production smoke **Passed**; Controlled Write
+  UAT **Not run**; Data Repaired **No**; Production Data Changed **No**; Financial
+  Impact **None**; Task Done **No**.
+- Customer Impact: **Historical stored notification rows remain unchanged, but
+  supported notification messages are now displayed and searched using the
+  canonical date from `link_url`.** Active Task remains **Coach Notification
+  Bangkok Date Consistency**. Blocker **None**. Remaining work is Owner/PM review,
+  optional natural-use confirmation, and a separate documentation publication
+  decision. Next Action: **Owner/PM review and optional natural-use confirmation
+  before a separate documentation publication decision**.
+
+### Owner-confirmed Natural-use Production UAT and Task Closeout
+
+State observed at this documentation closeout on 2026-07-27:
+
+- Owner directly confirmed normal Production behavior with the statement
+  “ตรงกันครับผม”: the date displayed on the Coach notification and the date on
+  the linked Attendance destination matched. This Owner-confirmed natural-use
+  visual evidence closes the remaining Production business-confirmation gap.
+- External evidence capture:
+  `New Athlete Badminton School - Google Chrome 2569-07-27 19-58-29.mp4`,
+  SHA-256
+  `2EA696DF57D22188267BE86EB5A39A716B02186432CBBA7591524E64712A35B9`, size
+  `6,074,326` bytes. The media is external evidence only; it was not copied,
+  staged, or committed to Git.
+- Confirmed Production artifact remains
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`, exact release
+  `11754057f9d82f71c7b69248a77997e491f5069c`, tree
+  `275191b84e537e00a217dbc6a267528750f913c6`, state
+  `production/READY/PROMOTED`. This closeout did not access Vercel, Supabase, or
+  Production application routes and did not deploy, promote, rebuild, retry,
+  rollback, or change aliases/configuration.
+- Production UAT / business confirmation **Passed through normal Owner use**.
+  Controlled Write UAT was **Not run / not required** for this presentation fix.
+  Historical notification rows were not repaired or rewritten.
+- Production Data Changed: **No Codex repair or task-specific mutation; ordinary
+  Owner natural-use side effects were not audited**. Data Repaired **No**.
+  Financial Impact **None**.
+- Final status: Source Complete **Yes**; Tests Passed **Yes — retained exact-source
+  and exact-artifact evidence**; Committed/Pushed **Yes**; Deployed **Yes**;
+  Promoted **Yes**; Generation-time fix Production Active **Yes**; Stored-message
+  display fix Production Active **Yes**; Production UAT **Passed**; Controlled
+  Write UAT **Not run / not required**; Data Repaired **No**; Task Done **Yes**.
+- Customer Impact: historical stored rows remain unchanged, but supported
+  notification messages display/search using the canonical `link_url` date;
+  visible behavior was confirmed by Owner. Active Task is **NONE**. Blocker
+  **None**. Remaining Work **None within this task**. Next Action: **Await Owner
+  selection; do not start another task or Parking Lot item automatically**.
