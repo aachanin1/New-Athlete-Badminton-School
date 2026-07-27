@@ -7520,3 +7520,304 @@ State observed at this publication closeout on 2026-07-27:
 - Active Task remains **Coach Notification Bangkok Date Consistency**. Remaining
   work is a separate Owner Deploy/UAT decision and a separate stored-message
   repair/deduplication policy decision. Next Action: **Owner review before Deploy**.
+
+### Owner-approved Staged Deploy Gate
+
+State observed at this staged artifact closeout on 2026-07-27:
+
+- Owner authorized a fresh Deploy Gate 0, a clean detached exact-source worktree,
+  focused Local re-verification, exactly one pinned Vercel CLI `56.5.0`
+  `deploy --prod --skip-domain` command, read-only control-plane verification,
+  public root/proven-read-only-health/static smoke, bounded exact-artifact logs,
+  and local documentation updates. Promotion, alias/domain mutation, retry,
+  force, rollback, authenticated Coach routes, application or Supabase mutation,
+  Controlled Write UAT, stored-message repair, migration/schema/RLS/RPC,
+  environment/feature/allowlist/project-setting change, Commit, and Push were not
+  authorized and did not occur.
+- Source safety inspection confirmed both `src/app/(coach)/layout.tsx` and
+  `src/app/(coach)/coach/notifications/page.tsx` invoke
+  `createCoachCheckinWindowNotifications()` and
+  `createCoachAttendanceGapNotifications()` during GET hydration; those paths can
+  reach `notifyCoachOnce()` and `notifications.insert()`. Authenticated Coach GET
+  is therefore write-capable. No Coach route was opened in this gate, and Coach
+  application UAT is classified **PARTIAL / NOT RUN — WRITE-CAPABLE GET REQUIRES
+  SEPARATE OWNER DECISION**.
+- Fresh Gate 0 verified repository root, branch
+  `spike/next-major-security-upgrade`, Local/upstream/live Remote
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, ahead/behind `0/0`, staged `0`,
+  untracked `0`, and only the two protected dirty files. Release tree is
+  `da1f7f8370bc96385fa347e02cf1501cb8139735`, parent functional commit
+  `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28`; functional tree/parent remain
+  `4f36ecc54ae9bf2fc09c589e3cedd97c86c50682` /
+  `f8ef800398e7104b6b625f2c2720219cf874f6ce`. Exact `3 + 10` commit membership,
+  secret scan `0`, and no migration, lockfile, dependency, environment, or
+  credential change were reconfirmed.
+- Protected files remained checksum-exact:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Pre-deploy Vercel control-plane evidence confirmed CLI `56.5.0`, project
+  `new-athlete-badminton-school`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, and prior artifact
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` as `production/READY/PROMOTED`, source
+  `5544c8a3509fd2ca8e2c2cfc8c6aae871304e216`, region `icn1`, created/building/
+  READY at `2026-07-24T16:57:43.411Z` / `2026-07-24T16:57:44.522Z` /
+  `2026-07-24T16:58:54.970Z`. All four established Production aliases mapped to
+  that artifact before Deploy.
+- A new detached worktree was created at exact release
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, remained Git-clean, received only
+  ignored existing Vercel project-link metadata, and received no `.env.local` or
+  Source modification. Exact-lock dependency installation used
+  `npm ci --ignore-scripts`; no dependency or lockfile changed.
+- Isolated Local verification passed: notification date regression `13/13`,
+  Lesson Wallet regression `17/17`, Progressive payment notification regression
+  `16/16`, TypeScript with no incremental output, ESLint with zero warnings,
+  mojibake `247` files, and `git diff --check`.
+- Exactly one deploy command ran from `2026-07-27T06:04:16.3051547Z` to
+  `2026-07-27T06:05:37.5398014Z`, exit `0`, with pinned CLI `56.5.0`, `--prod`,
+  `--skip-domain`, `--yes`, the exact team scope, and no `--force` or retry. New
+  artifact `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z` has unique URL
+  `https://new-athlete-badminton-school-j4ju33ftu-aachanin1s-projects.vercel.app`,
+  exact Git SHA `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, target/state/substate
+  `production/READY/STAGED`, source `cli`, `autoAssignCustomDomains=false`, alias
+  count `0`, and region `icn1`. Creation/build-start/READY timestamps are
+  `2026-07-27T06:04:24.990Z` / `2026-07-27T06:04:26.317Z` /
+  `2026-07-27T06:05:37.212Z`.
+- Remote build passed Next.js `16.2.6`, compile, TypeScript, and static generation
+  `91/91`; build executed in `cle1` and functions remain in `icn1`. Deployment
+  inventory gained exactly the one new artifact. No additional deploy command and
+  no Promotion, alias/domain mutation, rollback, or project-setting command ran;
+  alias inspection was read-only.
+- All four established Production aliases remained before/after on
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`: `www.newathleteschool.com`;
+  `new-athlete-badminton-school.vercel.app`;
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`; and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+  Missing/extra/wrong Production alias mappings were `0/0/0`; the new artifact
+  remains unaliased and not Current.
+- Safe smoke sent exactly three unauthenticated requests to the unique artifact:
+  `GET /`, `GET /api/health`, and `GET /_next/static/chunks/webpack.js`. All
+  returned Vercel Deployment Protection `302`; redirects were not followed. The
+  health route was Source-proven to contain only GET plus SELECT/auth-read paths.
+  No Coach or other authenticated application route was requested. Bounded exact-
+  artifact logs contained one info-level `GET /`; error records `0`, attributable
+  fatal `0`, and 5xx `0`.
+- Source Complete **Yes**; Tests Passed **Yes**; Committed **Yes**; Pushed **Yes**;
+  Deployed **Yes — exact READY/STAGED artifact only**; Promoted **No**; Feature
+  Enabled **Not applicable/unchanged**; Allowlisted **Not applicable/unchanged**;
+  Production Active for this fix **No**; Production UAT **Partial / application
+  Coach UAT not run**; Controlled Write UAT **Not run**; Data Repaired **No**;
+  Production Data Changed **No**; Customer Impact **Production behavior remains
+  unchanged because aliases did not move**; Financial Impact **None**; Task Done
+  **No**.
+- Active Task remains **Coach Notification Bangkok Date Consistency**. Blocker is
+  that authenticated Coach GET is write-capable and cannot supply read-only UAT.
+  Next Action: **Owner chooses either Promote exact READY artifact
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z` or separately authorize a bounded Controlled
+  Write UAT if live Coach-page evidence is required**. Stored-message repair/
+  deduplication remains a separate later Owner decision.
+- `PROJECT_STATE.md`, `TODO-CODEX.md`, and this dated record are updated locally
+  only and remain unstaged, uncommitted, and unpushed in this gate.
+
+### Owner-approved Promotion Gate and Safety Hard Stop
+
+State observed at this Promotion closeout on 2026-07-27:
+
+- Owner authorized exactly one Promotion of staged artifact
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z`, with no rebuild/new deployment, automatic
+  movement of the four established Production aliases, read-only control-plane
+  verification, safe non-Coach GET-only smoke, bounded logs, and local
+  documentation updates. Deploy/build, retry, separate alias/domain mutation,
+  rollback, force, Coach routes, application/Supabase writes, Controlled Write
+  UAT, stored-message repair, migration/schema/RLS/RPC, environment/feature/
+  allowlist/project-setting change, Commit, and Push were not authorized.
+- Fresh Git Gate 0 verified repository root, branch
+  `spike/next-major-security-upgrade`, Local/upstream/live Remote
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, ahead/behind `0/0`, staged and
+  untracked `0/0`, and exactly five unstaged files: the three Deploy-closeout
+  documents plus protected `AGENTS.md` and `src/lib/schedule-slot-utils.ts`.
+  Deploy documentation diff scope and secret scan passed; release tree/parent and
+  functional ancestry remained exact.
+- Protected hashes remained exact:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Fresh Vercel Gate 0 verified pinned CLI `56.5.0`, exact project/team, target
+  artifact `production/READY/STAGED`, Git SHA
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, tree
+  `da1f7f8370bc96385fa347e02cf1501cb8139735`, function region `icn1`, zero
+  artifact aliases, and unchanged created/building/READY milliseconds
+  `1785132264990/1785132266317/1785132337212`. No project deployment was newer.
+  All four established Production aliases remained on prior artifact
+  `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E` before Promotion.
+- Exactly one command ran:
+  `vercel promote dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z --yes --scope
+  team_gw8Y6CPd602WAKRsVFobPGCL --no-color`, from
+  `2026-07-27T06:34:06.2101419Z` to `2026-07-27T06:34:12.5317624Z`, exit `0`.
+  No deploy/build/new artifact/retry/force/rollback/separate alias mutation ran.
+- Post-promotion control-plane evidence verified the same artifact ID/SHA/tree and
+  unchanged creation/build/READY timestamps, now `production/READY/PROMOTED`.
+  Deployment inventory remained `20` on the compared page, latest artifact stayed
+  `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z`, and newer artifact count remained `0`.
+  All four established aliases moved from `dpl_93iqL8StYmUCqpZzZNYmdcAXzw4E`
+  to the exact target with missing/extra/wrong `0/0/0`; prior artifact remains
+  READY and available as the known rollback candidate.
+- Codex safe smoke issued GET requests only and never requested `/coach/*`:
+  canonical `/` `200`; source-proven SELECT-only `/api/health` `200`; obsolete
+  `/_next/static/chunks/webpack.js` `404`; one root-discovery GET whose PowerShell
+  client failed during response parsing; a successful curl root-discovery GET
+  `200`; and existing `/_next/static/chunks/webpack-a1425f7572da71b3.js` `200`.
+  No authenticated Coach session, notification UI, POST/PUT/PATCH/DELETE, or
+  Supabase request was sent by Codex.
+- The bounded 10-minute exact-artifact log window contained `35` records: `34`
+  GET and one unexpected external
+  `POST /api/progressive-payments/a13326b3-a13f-474f-826b-50b87ad60ff5/cancel`
+  at `2026-07-27T06:34:18.08Z`. Coach-route records and error-level records were
+  `0`. The POST was not sent by Codex's GET-only smoke, but its data and financial
+  effects cannot be proven without prohibited Supabase access. The Safety Gate
+  therefore Hard Stopped all Vercel/application operations; no retry or rollback
+  was attempted.
+- Source Complete **Yes**; Tests Passed **Yes — prior Deploy-gate exact-artifact
+  evidence**; Committed/Pushed **Yes for release, No for current local docs**;
+  Deployed **Yes**; Promoted **Yes**; Feature Enabled and Allowlisted **Not
+  applicable/unchanged**; Production Active for future generation **Yes**;
+  Production Coach UAT **Partial / not run**; Controlled Write UAT **Not run**;
+  Data Repaired **No**; Production Data Changed **Unknown / Need verification for
+  the external POST, with `0` mutation request from Codex**; Customer Impact
+  **future generated labels use the Bangkok-consistent fix while stored messages
+  remain unchanged**; Financial Impact **None from Promotion, external POST effect
+  Unknown / Need verification**; Task Done **No**.
+- Active Task remains **Coach Notification Bangkok Date Consistency**. Blocker is
+  the Safety Hard Stop on the unexpected external POST plus write-capable Coach
+  GET hydration. Next Action: **PM/Owner review, then a separate documentation
+  publication and/or explicitly authorized SELECT-only observation gate**.
+- `PROJECT_STATE.md`, `TODO-CODEX.md`, and this Promotion closeout remain local,
+  unstaged, uncommitted, and unpushed.
+
+### Owner-approved Historical Stored-message Display Source Fix + Local Test
+
+State observed at this local closeout on 2026-07-27:
+
+- Owner supplied visible incident evidence: a historical notification displayed
+  `รอบ 25 ก.ค. 69 17:00-19:00`, while its internal attendance link carried
+  `date=2026-07-26` and the destination displayed `อาทิตย์ 26 ก.ค. 69`. Owner
+  authorized only a narrow presentation-layer Source fix, deterministic Local
+  tests, and local documentation. Production/Supabase/Vercel access, stored-row
+  repair, Commit, Push, Deploy, generator/deduplication changes, business
+  mutations, migration/schema/RLS/RPC, dependency, environment, feature, and
+  allowlist changes were prohibited and did not occur.
+- Fresh Gate 0 verified repository root, branch
+  `spike/next-major-security-upgrade`, Local/upstream/live Remote HEAD
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, ahead/behind `0/0`, staged and
+  untracked `0/0`, and exactly the five expected pre-existing dirty files:
+  `AGENTS.md`, `DEVELOPMENT_TODO.md`, `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `src/lib/schedule-slot-utils.ts`. The three proposed tracked functional/test
+  files and `package.json` were clean before editing. Protected hashes matched
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`
+  and `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Fresh Source audit reconfirmed that generation-time messages already use the
+  Bangkok-safe raw date-key formatter. The remaining cause was
+  `NotificationsClient`: it displayed and searched `notification.message`
+  directly, so a historical runtime-shifted stored date was not reconciled with
+  the canonical exact date already present in `link_url`.
+- Added pure `src/lib/notification-display.ts`. It accepts title, stored message,
+  and link; permits only `ได้รับมอบหมายรอบสอน`, `เช็คอินสำเร็จ อย่าลืมเช็คชื่อ`,
+  and `ยังเช็คชื่อนักเรียนไม่ครบ`; requires a relative internal `/coach/` URL
+  with exactly one valid `date=YYYY-MM-DD`; recognizes only the known slot-date
+  position before `HH:mm-HH:mm`; and formats the replacement through the shared
+  `formatThaiShortDate()` helper. Invalid, absent, external, generic, unrelated,
+  already-correct, or structurally unrecognized inputs return the original stored
+  message. Only the date token is replaced; all remaining bytes are preserved.
+- `NotificationsClient` derives `displayMessage` in its existing `useMemo`, uses
+  that derived value for both local search and rendering, and does not mutate the
+  Server notification object or persisted fields. `is_read`, `created_at`, title,
+  type, link, ordering, row identity, notification generation, and deduplication
+  behavior are unchanged.
+- Fresh executable verification passed: focused notification date regression
+  `26/26` (including the exact incident, assignment and attendance links,
+  byte-identical no-op, generic/null/invalid/external/unrelated/no-token fail-
+  closed cases, remainder preservation, UTC/Bangkok parity, and normalized search);
+  Lesson Wallet regression `17/17`; Progressive payment notification regression
+  `16/16`; TypeScript `npx.cmd tsc --noEmit --incremental false`; ESLint with zero
+  warnings; mojibake `248` files; and Next.js production build with compile,
+  TypeScript, and static generation `91/91`. The post-build protocol stopped the
+  repository-owned port `3000` server, removed only this repository's generated
+  `.next`, restarted the local dev server, and verified local `/` plus
+  `/_next/static/css/app/layout.css` at `200/200`. Final `git diff --check`
+  returned exit `0`, the untracked helper had zero trailing-whitespace hits, and
+  the focused added-line secret scan found `0` hits.
+- The previously observed external progressive-payment cancel POST is unrelated
+  external traffic, explicitly out of scope, and not a blocker for this
+  notification task. No payment or Supabase investigation was performed.
+- Source Complete **Yes locally**; Tests Passed **Yes**; Committed **No**; Pushed
+  **No**; Deployed for this display fix **No**; generation-time Bangkok fix
+  Production Active **Yes**; stored-message display fix Production Active **No**;
+  Production UAT **Not run**; Controlled Write UAT **Not run**; Data Repaired
+  **No**; Production Data Changed **No**; Customer Impact **Production continues
+  to show the original stored message until this display fix is published and
+  deployed**; Financial Impact **None**; Task Done **No**.
+- Active Task remains **Coach Notification Bangkok Date Consistency**. Remaining
+  work is PM/Owner review followed by a separately approved Commit + Push and
+  later Deploy gate. Production stored-message repair remains unapproved and is
+  not performed by this presentation approach. Next Action: **PM/Owner review
+  before Commit + Push**.
+
+### Owner-approved Stored-message Display Commit + Push Publication
+
+State observed at this publication closeout on 2026-07-27:
+
+- Owner approved only a fresh Gate 0, unchanged-scope verification, one exact
+  four-file functional commit, one exact three-file documentation publication
+  commit, and exactly one normal non-force Push on existing branch
+  `spike/next-major-security-upgrade`. Deploy, PR, Production/Supabase/Vercel/
+  browser access, data repair, Source expansion, branch change, migration/schema/
+  RLS/RPC, dependency/lockfile/environment/feature/allowlist change, and payment
+  investigation were prohibited and did not occur.
+- Fresh Gate 0 verified repository root; Local/upstream/live Remote baseline
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`; ahead/behind `0/0`; staged `0`;
+  the exact functional tracked/untracked and three-document scope; remote
+  `origin`; GitHub CLI `2.96.0` authenticated without exposing a credential; no
+  migration, dependency, lockfile, or environment change; and focused added-line
+  secret scan `0`.
+- Protected dirty files remained unstaged and checksum-exact:
+  `AGENTS.md` =
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`;
+  `src/lib/schedule-slot-utils.ts` =
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Fresh unchanged-worktree verification passed notification date regression
+  `26/26`, Lesson Wallet regression `17/17`, Progressive payment notification
+  regression `16/16`, TypeScript with `--noEmit --incremental false`, ESLint with
+  zero warnings, mojibake `248` files, `git diff --check`, and focused added-line
+  secret scan `0`. The prior exact-worktree Next.js build `91/91` and required
+  post-build cleanup/restart evidence were retained because Source did not change
+  after Gate 0.
+- Functional commit `c7f970a3f22cd7ba73f043f529c8bdbcb818da78`, tree
+  `6dffe07c29b5a14c2a38d35a81536de00b180f89`, parent
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`, subject
+  `fix(notifications): align displayed dates with links`, contains exactly:
+  `scripts/check-notification-bangkok-date-consistency.mjs`;
+  `src/components/dashboard/notifications-client.tsx`; `src/lib/date-format.ts`;
+  and `src/lib/notification-display.ts`. Staged/committed secret scan returned
+  `0`, and `git show --check` passed.
+- The documentation publication commit containing this record contains exactly
+  `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`; its exact
+  SHA/tree/parent are reported in the final handoff. Exactly one normal non-force
+  Push published both commits, and final Local/upstream/live Remote verification
+  converged at `0/0` with staged and task-untracked files `0/0`.
+- The previously observed progressive-payment cancel POST remains historical,
+  unrelated external traffic and explicitly out of scope. It was not investigated
+  and is not a blocker for this notification publication.
+- Source Complete **Yes**; Tests Passed **Yes**; Committed **Yes**; Pushed **Yes**;
+  Deployed for the display fix **No**; Feature Enabled and Allowlisted
+  **Not applicable/unchanged**; generation-time Bangkok fix Production Active
+  **Yes**; stored-message display fix Production Active **No**; Production UAT
+  **Not run**; Controlled Write UAT **Not run**; Data Repaired **No**; Production
+  Data Changed **No**; Customer Impact **Production continues to display the
+  original stored message until a separate Deploy gate**; Financial Impact
+  **None**; Task Done **No**.
+- Active Task remains **Coach Notification Bangkok Date Consistency**. Remaining
+  work is a separate Owner-approved Deploy gate; persisted notification repair
+  remains unapproved and unnecessary for this display approach. Next Action:
+  **Owner review before Deploy**.

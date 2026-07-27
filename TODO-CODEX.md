@@ -11,22 +11,43 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### Coach Notification Bangkok Date Consistency
 
-Status: **SOURCE/TEST AND DOCUMENTATION COMMITTED AND PUSHED; LIVE REMOTE
-CONVERGED; NOT DEPLOYED OR PRODUCTION-ACTIVE**.
+Status: **STORED-MESSAGE DISPLAY SOURCE/TEST AND DOCUMENTATION COMMITTED AND
+PUSHED; LIVE REMOTE CONVERGED; UNDEPLOYED / NOT PRODUCTION-ACTIVE**.
 
 - Corrects runtime-dependent notification slot labels, the 14-day Bangkok
   calendar lookback, and shared notification "today" count without changing
   Attendance or Lesson Wallet mutation behavior.
-- Existing incorrect stored messages were not repaired; their later correction
-  and deduplication effect require a separate Owner decision.
-- Functional Source/Test commit:
+- Existing incorrect stored messages are normalized only for display/search when
+  one of three proven Coach titles has a relative internal Coach link with one
+  valid exact date. Persisted rows, links, read state, ordering, generation, and
+  deduplication remain unchanged.
+- Prior generation-time functional Source/Test commit:
   `5e7df0c9e1001e6184c2a3f9bcb37f295d2b5b28`. The exact documentation commit
   containing this publication record was pushed with it and is identified in the
   final handoff.
+- Exact release `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4` is READY/PROMOTED in
+  artifact `dpl_7usUQp6R6GqKGoxu5xc6RYTS699Z` and owns all four Production
+  aliases without rebuild. Coach layout and notifications-page GET hydration may
+  insert notifications, so authenticated Coach UAT is not read-only and was not
+  run.
+- Stored-message display Source/Test is functional commit
+  `c7f970a3f22cd7ba73f043f529c8bdbcb818da78` (tree
+  `6dffe07c29b5a14c2a38d35a81536de00b180f89`, parent
+  `a6a876528b43557cf9b8d0cf5f52bfacdeb725c4`). The exact documentation
+  publication commit is identified in the final handoff. Both commits were
+  published by the one authorized normal non-force Push.
+- Fresh publication verification passed notification `26/26`, Lesson Wallet
+  `17/17`, Progressive payment notifications `16/16`, TypeScript, ESLint with
+  zero warnings, mojibake `248`, diff check, and focused secret scan `0`.
+- No Production access, data repair, Deploy, feature/allowlist/environment,
+  migration, schema, dependency, or payment operation occurred.
+- The previously observed external payment-cancel POST is unrelated traffic and
+  explicitly out of scope; it is not a blocker for this notification task.
 - Authoritative current evidence and matrix: `PROJECT_STATE.md` → **Current
   Project Matrix — Coach Notification Bangkok Date Consistency**.
-- Next Action: **Owner review before Deploy**. Production UAT/write, data repair,
-  stored-message policy work, and every Parking Lot item remain unauthorized.
+- Next Action: **Owner review before a separate Deploy gate**. Production
+  access/UAT, stored-message data repair, Deploy, and every Parking Lot item
+  remain unauthorized until a new Owner gate.
 
 ## Recently Completed
 
