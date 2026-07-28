@@ -556,7 +556,7 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 | Environment Change | No |
 | Feature Enabled | No change; no task-specific feature control was enabled |
 | Allowlisted | No change; no task-specific allowlist was changed |
-| Production Active | No — this exact-assignment fix exists only as local uncommitted Source |
+| Production Active | No — the exact-assignment fix is committed and pushed in functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`, but has not been deployed or promoted and is not active in Production |
 | Production UAT | Not run — prohibited |
 | Controlled Write UAT | Not run — prohibited |
 | Data Repaired | No |
