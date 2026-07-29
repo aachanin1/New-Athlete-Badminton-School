@@ -8647,3 +8647,750 @@ Changed **No**; Customer Impact **None**; Financial/Payroll Impact **None**; Tas
 Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
 FALLBACK ISOLATION**. Next action is Owner/PM review before a separately authorized
 Staged Deploy decision; no Deploy or Production action is automatic.
+
+### 2026-07-29 Staged Deploy — Local Vercel CLI Invocation Hard Stop
+
+State observed at this staged-Deploy Hard Stop on 2026-07-29. Owner authorized
+one Production-target `deploy --prod --skip-domain` command from exact Source
+`39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, read-only Vercel control-plane
+verification, safe disposable-worktree cleanup, and local-only documentation.
+Promotion, alias movement, retry/rebuild/rollback, application requests,
+Supabase/Production access, Source/Test/package/migration/environment changes,
+Commit, and Push remained prohibited.
+
+- Git Gate 0 passed at repository
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, exact HEAD
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`. Local/upstream/origin-tracking/live
+  Remote matched at ahead/behind `0/0`; functional commit `54752bcc...` remained an
+  ancestor with exact 16-file membership. Staged/untracked were `0/0`; unstaged
+  files were only the two protected paths with their expected hashes.
+- Source-scope audit found migration/schema/RLS/RPC, lockfile, dependency-version,
+  environment, and `vercel.json` changes `0`. Functional `package.json` changed
+  only by the approved `test:coach-assignment-resolution` script. Fresh Release
+  Readiness evidence was retained and not rerun: deterministic checks
+  `29/29`, `38/38`, `17/17`, and `26/26`; TypeScript; ESLint zero warnings;
+  mojibake `250`; secret-like scan `0/1,974`; fresh build/static generation
+  `91/91`; root smoke HTTP `500` remained the Owner-accepted Known Local
+  Environment Limitation.
+- Vercel preflight used cached CLI `56.5.0`, project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, project `new-athlete-badminton-school`, Node
+  `24.x`, and configured functions region `icn1`. Every manual API request used
+  explicit `-X GET`; no `-F`, input/body, or mutation method was used.
+- The final preflight deployment window contained `100` IDs with ID-set SHA-256
+  `E6F84457053D4D06EE22B59D23D8330F2EE10AEA1D3803B48829A1ED7610F0CE`.
+  Exact-SHA Preview count was `1`: pre-existing Git Preview
+  `dpl_ZKyt3Qj28EoVjN9Rph3jEHfq4fgZ`, `preview/READY/STAGED`. Exact-SHA
+  Production-target READY/STAGED count was `0`, so duplicate-artifact Gate 0
+  passed. All four established Production aliases pointed to prior promoted
+  artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; missing/wrong mappings were `0/0`.
+- A new detached disposable worktree at
+  `C:\Users\aacha\AppData\Local\Temp\codex-staged-deploy-39a56d3-20260729-01`
+  was exact and tracked-clean with no `node_modules`. Its local ignored
+  `.vercel/project.json` contained only the verified project/org/name linkage.
+- The authorized deploy command was invoked once at
+  `2026-07-29T04:49:42.8662984Z`, but PowerShell resolved `vercel` to the cached
+  `vercel.ps1` shim and Windows Execution Policy blocked that shim before the
+  deploy process entered Vercel CLI. The attempt ended locally at
+  `2026-07-29T04:49:42.9672204Z`, after `0.101` seconds. No Vercel deployment
+  request, authorized control-plane write, deployment record, remote build, or
+  artifact resulted. Gate policy prohibited retry, and no retry or alternate
+  invocation method was attempted.
+- Explicit-GET postflight proved the inventory count and ID-set hash remained
+  `100` and
+  `E6F84457053D4D06EE22B59D23D8330F2EE10AEA1D3803B48829A1ED7610F0CE`;
+  added/removed deployment IDs were `0/0`. The exact-SHA Preview remained
+  unchanged and no exact-SHA Production-target artifact existed. Alias inventory
+  remained `8/8`; all four Production mappings and all four branch Preview
+  mappings were byte-for-byte equivalent as structured evidence. Promotion and
+  alias mutation counts were `0/0`.
+- Application request, smoke, Vercel runtime-event generation, Supabase access,
+  Production application/data access, Production UAT, Controlled Write UAT,
+  feature/allowlist change, migration, data repair, customer impact, and
+  financial/payroll impact were all `0`/Not run/None as applicable.
+- The disposable worktree remained exact and tracked-clean after the local block.
+  `git worktree remove` succeeded against the validated exact path; the path no
+  longer exists and its worktree registration count is `0`. The separate protected
+  residual Junction at
+  `C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules`
+  remained untouched and still targets this repository's `node_modules`.
+
+Final safety matrix at this Hard Stop: Source Complete **Yes**; retained Fresh
+Release Readiness **Accepted with Known Local Environment Limitation**; current
+staged Deploy **No artifact created**; deploy invocation count **1**; deploy-
+process/control-plane write count **0/0**; Deployed/Promoted **No/No** for this
+exact Source; Production Active **No**; Production UAT and Controlled Write UAT
+**Not run**; Commit/Push **No/No** for this gate; Data Repaired **No**; Production
+Data Changed **No**; Customer Impact **None**; Financial/Payroll Impact **None**;
+Task Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT /
+LEGACY FALLBACK ISOLATION**. Blocker is the local PowerShell Execution Policy;
+next action is Owner/PM review and separate authorization before any new staged-
+Deploy attempt, staged UAT, Promotion, documentation publication, or Production
+action. No retry is automatic.
+
+### 2026-07-29 Staged Deploy Retry — Production-Target Artifact Ready/Staged
+
+State observed at this separately authorized retry closeout on 2026-07-29. The
+preceding **Local Vercel CLI Invocation Hard Stop** remains valid historical
+evidence: that first invocation never entered the deploy process and created no
+artifact. Owner then authorized fresh Gate 0, one retry through an explicit
+Windows `.cmd` or exact Node/CLI entrypoint, one Production-target
+`deploy --prod --skip-domain`, read-only postflight/build evidence, safe cleanup,
+and local-only documentation. Staged application UAT, Promotion, alias mutation,
+application requests, Supabase/Production access, Source/Test/config/package/
+migration/environment changes, Commit, and Push remained prohibited.
+
+- Fresh Git Gate 0 passed at branch `spike/next-major-security-upgrade`, exact HEAD
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`. Local/upstream/origin-tracking/live
+  Remote matched at ahead/behind `0/0`. Functional commit `54752bcc...` remained an
+  ancestor with exact 16-file membership, missing/extra `0/0`. Root staged and
+  untracked counts were `0/0`; modified files were exactly the three local Hard
+  Stop documents plus the two protected pre-existing paths.
+- Protected hashes remained exact before Deploy: `AGENTS.md`
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `src/lib/schedule-slot-utils.ts`
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  Source/Test/package/lockfile/migration/schema/RLS/RPC/environment and
+  `vercel.json` had no post-HEAD drift.
+- `Get-Command vercel -All` and `where.exe vercel` found no PATH command. Cached
+  candidate inspection found explicit `.cmd` launcher
+  `C:\Users\aacha\AppData\Local\npm-cache\_npx\630ee44d7c586e3f\node_modules\.bin\vercel.cmd`
+  and sibling `vercel.ps1`; exact chosen invocation used
+  `C:\Program Files\nodejs\node.exe` with entrypoint
+  `C:\Users\aacha\AppData\Local\npm-cache\_npx\630ee44d7c586e3f\node_modules\vercel\dist\vc.js`.
+  Local version verification returned `56.5.0`. Bare `vercel`, `vercel.ps1`,
+  `npx`, PATH mutation, `Set-ExecutionPolicy`, and Execution Policy bypass/change
+  counts were all `0`.
+- Vercel project linkage contained only `projectId`, `orgId`, and `projectName`,
+  matching `prj_v034HOI6AjaMpBezWvuvT0W24pTp`,
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, and
+  `new-athlete-badminton-school`; configured functions region remained `icn1`.
+  Every manual Vercel API request used explicit `-X GET`; no `-F`, request body,
+  input file, or mutation method was used.
+- Preflight inventory contained `100` IDs with ID-set SHA-256
+  `E6F84457053D4D06EE22B59D23D8330F2EE10AEA1D3803B48829A1ED7610F0CE`.
+  Exact-SHA Preview count was `1`: allowed Git Preview
+  `dpl_ZKyt3Qj28EoVjN9Rph3jEHfq4fgZ`, `preview/READY/STAGED`. Exact-SHA
+  Production-target READY/STAGED count was `0`. All four established Production
+  aliases pointed to `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; missing/extra/wrong
+  mappings were `0/0/0`, and all four branch Preview mappings were snapshotted.
+- New disposable path
+  `C:\Users\aacha\AppData\Local\Temp\codex-staged-deploy-39a56d3-20260729-02`
+  did not exist and had no prior registration. The detached worktree was exact and
+  tracked-clean with staged/untracked `0/0`, no `node_modules`, no Source/config/
+  environment modification, and only the verified three-property ignored
+  `.vercel/project.json`.
+- Exactly one authorized deploy invocation ran through the exact Node/CLI paths
+  from `2026-07-29T05:25:52.1750386Z` to
+  `2026-07-29T05:27:34.9923756Z`, duration `102.817` seconds, exit `0`. It created
+  artifact `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM` at unique URL
+  `https://new-athlete-badminton-school-3i6af9gtj-aachanin1s-projects.vercel.app`.
+  Deployment metadata is exact SHA
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, ref `HEAD`, local exact tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, target/state/substate
+  `production/READY/STAGED`, source `cli`, Node `24.x`, region `icn1`,
+  `autoAssignCustomDomains=false`, and alias count `0`. Creation/building/Ready
+  timestamps were `2026-07-29T05:25:59.339Z`,
+  `2026-07-29T05:26:00.227Z`, and `2026-07-29T05:27:34.751Z`.
+- Remote build ran in `cle1` with Vercel CLI `56.5.0` and Next.js `16.2.6`.
+  `npm ci`, optimized compile, TypeScript, build traces, and output deployment
+  completed; static generation passed `91/91`. Bounded read-only `inspect --logs`
+  covered `163` lines and found build error lines `0`. The existing broad Node
+  engine warning and remote npm audit notice `7 vulnerabilities` (`1 low`,
+  `6 high`) did not fail the build; no install/update or dependency/lockfile write
+  occurred locally, and this gate did not attempt remediation.
+- Postflight inventory remained a bounded `100` items with ID-set SHA-256
+  `48B6A74DE8D1C53BEEA2160BDDEDFBAA6EEF8217522825CCD4AEECEE45DCC8C4`.
+  Added ID was exactly `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM`; former oldest ID
+  `dpl_2Ptn416TvF5zKt1cGUoHxXCWXZsK` left only because the 100-item pagination
+  window advanced. Exact-SHA counts became Preview `1` and Production-target
+  READY/STAGED `1`; no retry/rebuild artifact was created.
+- Alias inventory remained `8/8`. All four Production aliases still point to
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; all four branch Preview mappings, including
+  `dpl_ZKyt3Qj28EoVjN9Rph3jEHfq4fgZ`, remained unchanged. New-artifact custom/
+  Production alias count was `0`; missing/extra/wrong mappings were `0/0/0`.
+- Deploy invocation and deploy-process/authorized-control-plane-command counts were
+  `1/1/1`. Retry/force/redeploy/rebuild/rollback counts were `0/0/0/0/0`.
+  Promotion/alias/manual-API mutation counts were `0/0/0`. Application, staged
+  smoke, runtime-event generation, Supabase, Production application/data request,
+  Production UAT, Controlled Write, and data-repair counts were all `0`/Not run.
+- The retry worktree remained exact and tracked-clean after Deploy, with no local
+  `node_modules` or tracked diff. Validated normal `git worktree remove` succeeded;
+  the path no longer exists and registration is `0`. The separate residual
+  Junction at
+  `C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules`
+  remained untouched and still targets the repository `node_modules`.
+
+Final safety matrix at this retry closeout: Source Complete **Yes**; retained
+Fresh Release Readiness **Accepted with Known Local Environment Limitation**;
+Tests **Passed retained / not rerun**; Committed/Pushed **Yes** through exact HEAD,
+but current documentation **No/No**; Deployed **Yes — READY/STAGED artifact only**;
+Promoted **No**; Feature/Allowlist change **No/No**; Production Active **No**;
+Production UAT and Controlled Write UAT **Not run**; Data Repaired **No**;
+Production Data Changed **No**; Customer Impact **None**; Financial/Payroll Impact
+**None**; Task Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH
+ASSIGNMENT / LEGACY FALLBACK ISOLATION**. No artifact blocker remains; residual
+risks are the Owner-accepted local root-smoke limitation and retained remote npm
+audit notice. Next action is Owner/PM review before separately authorized staged
+UAT, Promotion, documentation publication, or any Production action. No next gate
+starts automatically.
+
+### 2026-07-29 Authenticated Read-Only Staged UAT — Safety Hard Stop
+
+State observed at this separately authorized staged-UAT gate on 2026-07-29:
+
+- Owner authorized fresh Git/Vercel read-only preflight, existing-session
+  authenticated GET/HEAD access to exact staged artifact
+  `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM`, Head Coach read-only pages, optional existing
+  Admin-session pages, desktop/mobile and natural-row verification, bounded
+  exact-artifact logs, control-plane postflight, and local-only documentation.
+  Application mutation, direct Supabase/Production data access, fixture creation,
+  Deploy/retry/rebuild, Promotion/alias movement, Source/Test/config/package/
+  migration/environment changes, Commit, and Push remained prohibited.
+- Fresh Git Gate 0 matched branch `spike/next-major-security-upgrade`, exact local/
+  upstream/origin-tracking/live Remote HEAD
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`, and ahead/behind `0/0`.
+  Functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`
+  remained an ancestor with exact 16-file membership. Root staged/untracked were
+  `0/0`; status contained exactly the three local documentation files plus
+  protected `AGENTS.md` and `src/lib/schedule-slot-utils.ts`. Protected SHA-256
+  values remained
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  No Source/Test/package/lockfile/migration/schema/RLS/RPC/environment or
+  `vercel.json` drift was found.
+- The exact Node launcher
+  `C:\Program Files\nodejs\node.exe` and cached Vercel entrypoint
+  `C:\Users\aacha\AppData\Local\npm-cache\_npx\630ee44d7c586e3f\node_modules\vercel\dist\vc.js`
+  reported CLI `56.5.0`. Project/team/region linkage remained
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp` /
+  `team_gw8Y6CPd602WAKRsVFobPGCL` / `icn1`. Every manual Vercel API request used
+  explicit `-X GET`; there was no form/body or mutation method.
+- Control-plane preflight reconfirmed exact artifact SHA
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, target/state/substate
+  `production/READY/STAGED`, source `cli`, configured region `icn1`,
+  `autoAssignCustomDomains=false`, and alias count `0`. Creation/building/Ready
+  timestamps remained `2026-07-29T05:25:59.339Z`,
+  `2026-07-29T05:26:00.227Z`, and `2026-07-29T05:27:34.751Z`. Exact-SHA
+  Production READY/STAGED count was `1`; allowed Preview
+  `dpl_ZKyt3Qj28EoVjN9Rph3jEHfq4fgZ` remained `READY/STAGED` for the same SHA and
+  retained its branch Preview mapping. There was no newer conflicting
+  Production-target artifact.
+- Alias inventory remained eight entries. All four established Production aliases
+  still pointed to `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; missing/extra/wrong
+  mappings were `0/0/0`. No deployment, rebuild, Promotion, alias, domain, or
+  rollback command was run. Using the same canonicalization within this gate, the
+  bounded 100-ID deployment inventory hash was unchanged before/after at
+  `510777DF135260DF74BF9B42F61349B0BC1A9A6357F2BDB619FF1357A90C192C`; no
+  newer conflicting Production-target artifact appeared.
+- Source audit triggered the mandatory Hard Stop before browser access. Every Head
+  Coach `/coach/*` page is wrapped by `src/app/(coach)/layout.tsx`. For role
+  `head_coach`, that layout obtains a service-role client and awaits
+  `createCoachCheckinWindowNotifications()` plus
+  `createCoachAttendanceGapNotifications()` before rendering. Both use
+  `deliverCoachNotificationOnce()`, which checks for an existing notification and
+  inserts a missing row. A Head Coach page GET can therefore change Production
+  business data even though the browser method itself is GET.
+- This conflicts with the gate's required application mutation count `0` and
+  no-data-change contract. The staged hostname was not opened. No Chrome tab,
+  cookie, storage, credential, token, profile, or session state was inspected;
+  existing authenticated role/session availability was not evaluated. Head Coach
+  and Admin routes, desktop `1920x855`, mobile `390x844`, natural representative
+  User Reschedule/Exact/Wallet/Makeup rows, console/network/hydration/overlay, and
+  business-row behavior are **Not run / Not observable**. Application GET/HEAD/
+  POST/PUT/PATCH/DELETE counts attributable to this gate were all `0`.
+- A bounded read-only exact-artifact log query covered
+  `2026-07-29T05:28:50.908Z` through `2026-07-29T05:58:50.906Z` with `--no-follow`.
+  It returned events/error/fatal/4xx/5xx `0/0/0/0/0`; no runtime event was created
+  by this gate.
+- No Deploy/retry/rebuild/Promotion/alias mutation, direct Supabase access,
+  Production application/data request, Controlled Write, fixture, or repair
+  occurred. Production Data Changed **No**; Customer Impact **None**;
+  Financial/Payroll Impact **None**. The staged artifact remained unpromoted and
+  Production Active remained **No** for this fix.
+
+Final safety matrix at this Hard Stop: Source Complete **Yes**; retained tests and
+Release Readiness **Passed / not rerun; Accepted with Known Local Environment
+Limitation**; Committed/Pushed **Yes** through exact HEAD, current documentation
+**No/No**; Deployed **Yes — READY/STAGED artifact only**; Promoted **No**;
+Feature/Allowlist change **No/No**; Staged UAT **BLOCKER / Not run**; Production
+UAT and Controlled Write UAT **Not run**; Data Repaired **No**; Production Data
+Changed **No**; Task Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH
+ASSIGNMENT / LEGACY FALLBACK ISOLATION**. Blocker: authenticated Head Coach GET
+rendering may insert notifications and cannot meet a strictly read-only gate.
+Next action is Owner/PM direction on a separately authorized bounded write-capable/
+Controlled Write staged UAT, promotion without Head Coach staged application
+proof, or separate Source work. Do not retry UAT, Promote, access Supabase/
+Production, publish documentation, or start another gate automatically.
+
+### 2026-07-29 Super Admin-Only Read-Only Staged UAT Retry — Pre-Browser Safety Hard Stop
+
+State observed at this separately authorized read-only audit on 2026-07-29. Owner
+authorized an authenticated staged-UAT retry only through an already-existing,
+positively proven Super Admin session. Coach/Head Coach use, login/logout,
+impersonation, role change, new credentials, direct Supabase access, application
+mutation, Source/config change, Deploy/retry/rebuild, Promotion/alias movement,
+Commit, and Push remained prohibited. The complete automatic request/imported call
+path had to prove zero possible writes before Chrome or staged application access;
+Head Coach role-specific UAT was explicitly accepted as Not run.
+
+- Fresh Git Gate matched repository, branch `spike/next-major-security-upgrade`,
+  exact HEAD `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`, upstream/origin-tracking/live
+  Remote, and ahead/behind `0/0`. Functional commit `54752bcc...` remained an
+  ancestor with exact 16-file membership, missing/extra `0/0`. Staged/untracked
+  were `0/0`; modified paths were exactly the three local documentation files plus
+  the two protected pre-existing files. Protected SHA-256 values remained
+  `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E` and
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Exact approved Node/CLI paths reported Vercel CLI `56.5.0`; every manual API
+  request used explicit `-X GET`. Preflight and postflight both confirmed artifact
+  `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM`, exact SHA `39a56d3...`,
+  `production/READY/STAGED`, aliases `0`, and
+  `autoAssignCustomDomains=false`. The 100-ID inventory hash remained
+  `510777DF135260DF74BF9B42F61349B0BC1A9A6357F2BDB619FF1357A90C192C`;
+  no newer conflicting Production-target artifact appeared. All four established
+  Production aliases remained on `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4` with
+  missing/extra/wrong `0/0/0`.
+- The primary route trace first confirmed the intended Super Admin safeguard:
+  `src/app/(coach)/layout.tsx` invokes Coach notification generators only when
+  `profile.role` is `coach` or `head_coach`; `super_admin` does not enter that
+  condition. Proxy/session handling and layout profile/unread-count operations are
+  read/auth paths; no business-table mutation was found there for Super Admin.
+- The `/coach/assign-groups` server page and imported assignment/memory/provenance
+  helpers use SELECT-only data access. `AssignGroupsClient` imports no
+  `useEffect`, performs no automatic fetch on mount/hydration/filter change, and
+  contains one mutation request only inside explicit `saveSlot()`: POST
+  `/api/coach/assignment-groups`, bound to the Save button. No Save or draft
+  interaction would have been used.
+- Complete automatic-request tracing found a separate unresolved write path in
+  shared navigation. `CoachSidebar` renders a visible `/coach/notifications`
+  Next.js `<Link>` without `prefetch={false}`. The installed Next.js `16.2.6`
+  runtime sets `prefetchEnabled = prefetchProp !== false`, observes visible links,
+  and schedules prefetch tasks. The destination
+  `src/app/(coach)/coach/notifications/page.tsx` does not role-guard its hydration:
+  for any authenticated `user.id` it creates a service-role client and awaits both
+  Coach notification generators. Their shared delivery function can insert a
+  missing `notifications` row. Whether the dynamic destination Server Component
+  would execute during default partial/viewport prefetch could not be ruled out.
+- This possible implicit write violated the mandatory zero-data-change gate. The
+  entire UAT therefore stopped before browser connection. No existing tab/session
+  was inspected, so Super Admin status was not evaluated; this was not a session-
+  proof failure because the earlier call-path gate had already failed. The staged
+  hostname and canonical Production aliases were never opened. Routes actually
+  opened: none. Desktop/mobile, natural Pending User Reschedule, Exact precedence,
+  Legacy fallback, Wallet/Makeup, console, hydration, overlay, and browser network
+  evidence were **Not run / Not observable**.
+- Application GET/HEAD/POST/PUT/PATCH/DELETE counts were all `0`; assignment Save,
+  Attendance, Check-in, Makeup, Reschedule, and notification mutation counts were
+  all `0`. Direct Supabase, Production application/data, fixture, and repair counts
+  were `0`. A bounded exact-artifact log query from
+  `2026-07-29T08:29:44.621Z` through `2026-07-29T08:49:44.619Z` returned
+  events/error/fatal/4xx/5xx `0/0/0/0/0`.
+- Deploy/retry/rebuild/rollback/Promotion/alias/manual-API mutation counts were all
+  `0`. Source/Test/package/lockfile/migration/schema/RLS/RPC/environment/config
+  changes were `0`. Production Data Changed **No**; Customer Impact **None**;
+  Financial/Payroll Impact **None**. The first Head Coach read-only staged-UAT
+  Hard Stop remains preserved immediately above as historical evidence.
+
+Final safety matrix at this retry: classification **BLOCKER — POSSIBLE WRITE PATH
+FOUND DURING PRE-BROWSER SOURCE AUDIT**. Source Complete **Yes**; retained tests
+**Passed / not rerun**; existing Source Committed/Pushed **Yes/Yes**, current
+documentation **No/No**. Deployed **Yes — READY/STAGED artifact only**; Promoted **No**;
+Production Active **No**; Feature/Allowlist change **No/No**; Super Admin staged UAT **Not run**;
+Head Coach role-specific staged UAT **Not run — Owner-accepted limitation**;
+Production UAT and Controlled Write UAT **Not run**; Data Repaired **No**;
+Production Data Changed **No**; Task Done **No**. Active Task remains
+**RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION**. Next action
+is Owner/PM direction on separate Source work to remove the unsafe prefetch/write
+path, a bounded write-capable/Controlled Write staged UAT, or another release
+decision. Do not retry, Promote, mutate aliases, access Supabase/Production,
+publish documentation, or start another gate automatically.
+
+### Detailed Diagnostic Evidence — 2026-07-29 Exact-membership Request-size Diagnosis and Local Fix
+
+Detailed evidence for the separately authorized Source Fix + Local Test gate whose
+current closeout is appended after the two staged-UAT records below. Those two
+physically later records predate this diagnostic and remain valid historical
+evidence. Owner authorized read-only Vercel/Supabase/PostgREST diagnosis, one exact
+SELECT reproduction if needed, bounded-query comparison, a narrow fix only after
+request-size Root Cause proof, focused Local tests/build, and local-only current
+documentation. Business-rule changes, migration/schema/grant/RLS/RPC, package/
+lockfile/environment/Vercel configuration, browser/application UAT, Supabase data
+mutation/repair, Commit, Push, Deploy/rebuild, Promotion/alias/rollback, Production
+application access, and documentation publication remained prohibited.
+
+- Fresh documentation/Git Gate 0 passed. Branch was
+  `spike/next-major-security-upgrade`; local/upstream/origin/live Remote HEAD were
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`, ahead/behind `0/0`. Functional
+  ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac` retained exact 16-file
+  membership, missing/extra `0/0`. Staged/untracked were `0/0`; the five expected
+  pre-existing dirty paths and protected SHA-256 values were exact.
+- Read-only Vercel preflight passed through exact Node/CLI paths. Artifact
+  `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM` remained exact SHA `39a56d3...`,
+  `production/READY/STAGED`, `autoAssignCustomDomains=false`, aliases `0`, with no
+  newer deployment. All four Production aliases remained on prior artifact
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`. Exact-window logs retained one attributable
+  GET `/coach/assign-groups` runtime error with
+  `CoachAssignmentDataUnavailableError`, context `Coach student history exact
+  membership query failed: Bad Request`, and digest `233653541`.
+- Supabase project/log access was read-only. The project was ACTIVE_HEALTHY.
+  Management log retrieval returned no usable API/Postgres records: three bounded
+  log-read attempts returned `INVALID_ARGUMENT / Failed to get project's logs`.
+  The diagnostic therefore used the Owner-authorized SELECT reconstruction. No
+  credential, token, raw session UUID, or PII was printed or recorded.
+- Read-only catalog SELECT confirmed named FK
+  `coach_assignment_groups_coach_id_fkey` is
+  `FOREIGN KEY (coach_id) REFERENCES profiles(id) ON DELETE SET NULL`.
+  `booking_sessions`, `coach_assignment_group_students`,
+  `coach_assignment_groups`, `coach_branches`, and `profiles` were exposed with
+  SELECT grants for the inspected API roles. RLS was enabled on all five tables;
+  policy counts were respectively `4/2/2/2/5`. No grant, RLS, policy, schema,
+  relationship, or cache reload command was run.
+- Reconstructed staged characteristics contained two Head Coach candidates with
+  identical seven-branch sets, 328 future assignment-page sessions, 117 unique
+  learners (`105` child, `12` adult), and 1,048 returned historical sessions
+  (`1,000` child due the configured Data API row cap plus `48` adult), all session
+  IDs distinct. Counts only were retained; UUIDs/PII were not published.
+- The exact full membership SELECT was executed once with the existing source
+  columns and relationship. Its 1,048-ID encoded GET was 41,125 bytes and returned
+  HTTP `400 Bad Request`, content type `text/plain; charset=utf-8`. Complete
+  sanitized response fields were `code=null`, `message=Bad Request`,
+  `details=null`, and `hint=null`; the supabase-js error fields matched exactly.
+- The identical select/relation was then executed as 11 batches: ten batches of
+  100 IDs and one of 48. Request lengths were 2,125–4,153 bytes; all 11 returned
+  HTTP `200`, no batch error. Combined results were 1,041 rows / 1,041 distinct
+  membership session IDs with deterministic set MD5
+  `6071ed50a4986e3557ace397b45729ef`. Independent paginated SELECT of all 2,575
+  membership rows in three pages filtered to the same 1,041 rows and exact hash.
+  Therefore no target batch showed `PGRST200`, missing FK, stale relationship,
+  permission/grant/RLS, missing table/column, or query-syntax failure.
+- One auxiliary first pagination attempt—not a target exact-membership batch—used
+  an incomplete diagnostic `select` while filtering the embedded `bookings`
+  resource and returned `PGRST108`. The diagnostic query was corrected to include
+  the relation; no Source change was made for that harness error. A SQL-only
+  comparison was also not used as final equivalence evidence because the 1,000-row
+  child-history boundary has nondeterministic same-date ties. The independent
+  paginated membership baseline above supplied the conclusive count/hash proof.
+- Root Cause is **confirmed oversized single PostgREST `.in()` request**. The full
+  41,125-byte request failed before a structured PostgREST JSON error, while every
+  otherwise identical bounded request succeeded and the combined result was
+  complete. Relationship/schema/grant/RLS causes were ruled out by catalog and
+  successful embedded-relation evidence.
+- Local functional changes were exactly two files. In
+  `src/lib/coach-student-memory.ts`, a fixed
+  `COACH_STUDENT_HISTORY_EXACT_MEMBERSHIP_BATCH_SIZE = 100` applies only to the
+  history exact-membership lookup; session IDs are deduplicated, successful batch
+  rows are combined, and any error still throws
+  `CoachAssignmentDataUnavailableError` with `batch N failed` context. No Legacy
+  fallback, empty-data substitution, ordering/business-rule change, or unrelated
+  query refactor was added. `scripts/check-coach-assignment-resolution.mjs` added
+  four deterministic tests for one-query `<=100`, bounded multi-query `>100`, row
+  completeness/deduplication, and failed-batch fail-closed context.
+- Fresh verification passed: Coach assignment resolution `33/33`; Admin schedule
+  assignment `38/38`; Lesson Wallet `17/17`; notification Bangkok date `26/26`;
+  `npx tsc --noEmit`; ESLint `--max-warnings=0`; mojibake `250` files; Next.js
+  `16.2.6` optimized compile and TypeScript; static generation `91/91`; `git diff
+  --check`; cached diff check. Admin and Wallet deterministic scripts retained one
+  `MODULE_TYPELESS_PACKAGE_JSON` warning each and exited `0`; no ESLint/build
+  warning or error occurred. Port 3000 had no listener before build, so no existing
+  dev server/browser session required restart handling.
+- Supabase Data API request counts attributable to diagnostics/verification were
+  SELECT `45`, mutation `0`; read-only SQL SELECT count was `4`, for total Supabase
+  SELECT `49` and mutation `0`. The counts include the auxiliary `PGRST108`
+  diagnostic attempt. Separate Supabase management reads were project inventory
+  `1` and unsuccessful log reads `3`. The actual patched helper verification used
+  1,048 IDs and produced exactly 11 GETs, all HTTP `200`, request lengths
+  2,125–4,153 bytes, 1,041 rows, and the expected MD5; its mutation count was `0`.
+- Migration/schema/grant/RLS/policy/RPC, package/lockfile/environment/config,
+  feature/allowlist, and additional functional-file changes were `0`. Commit/Push,
+  Deploy/redeploy/rebuild, Promotion/alias mutation, browser/staged/Production UAT,
+  data repair, and Supabase mutation were all `0`/Not run. The existing staged
+  artifact remains unchanged, unpromoted, and broken because it contains the
+  unbatched Source.
+
+Final matrix at this gate: classification **PASS — LOCAL SOURCE/TEST FIX ONLY**.
+Source Complete **Yes — local only**; Tests Passed **Yes**; current fix
+Committed/Pushed **No/No**; existing broken artifact Deployed **Yes — READY/STAGED
+only**; current fix Deployed/Promoted **No/No**; Feature/Allowlist change **No/No**;
+Production Active **No**; Production UAT **Not run**; prior Controlled Write staged
+UAT **Failed / not retried**; Data Repaired **No**; Production Data Changed
+**Unknown / Need verification from the prior reminder window, with `0` mutation in
+this gate**; Customer Impact **no new runtime impact from the local fix; prior
+possible reminder-only impact remains Unknown / Need verification**; Financial/
+Payroll Impact **None**; Task Done **No**. Active Task remains **RESCHEDULE-IN
+EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION**. Exact next action: Owner/PM
+reviews the proven batching fix and fresh Local evidence, then separately decides
+whether to authorize Commit/Push. No Commit, Push, Deploy, UAT retry, Promotion,
+documentation publication, repair, or Parking Lot work starts automatically.
+
+### 2026-07-29 Owner-Approved Bounded Head Coach Controlled-Write Staged UAT — Existing Session Hard Stop
+
+State observed at this separately authorized staged-UAT gate on 2026-07-29. This
+record does not replace the two prior Hard Stops above; they remain valid dated
+historical evidence. Owner superseded only the prior Super Admin-only and strict
+zero-data-change constraints. The new gate permitted an existing Head Coach Chrome
+session and only natural `notifications` reminder INSERTs from
+`createCoachCheckinWindowNotifications()`,
+`createCoachAttendanceGapNotifications()`, and
+`deliverCoachNotificationOnce()` during initial Coach-layout/page rendering. The
+approved fingerprints were title `ถึงเวลาเช็คอินรอบสอน` with link
+`/coach/checkin`, or title `ยังเช็คชื่อนักเรียนไม่ครบ` with natural
+`/coach/attendance?date=<date>&slot=<slot-id>`. Save, assignment POST, Check-in,
+Attendance, Makeup, Reschedule, Wallet, notification read/delete, every other
+mutation, Source/config change, Commit, Push, Deploy/rebuild, Promotion, alias
+mutation, Direct Supabase access, Production UAT, and data repair remained
+prohibited.
+
+- Fresh documentation/Git Gate 0 passed. Active Task remained exact. Branch was
+  `spike/next-major-security-upgrade`; local/upstream/origin-tracking/live Remote
+  HEAD were `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`, ahead/behind `0/0`. Functional
+  ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac` retained exact 16-file
+  membership, missing/extra `0/0`. Staged/untracked were `0/0`; status contained
+  only the three local documentation files and the two protected pre-existing
+  paths. Protected SHA-256 values matched exactly.
+- Read-only Vercel preflight passed through exact `node.exe` and cached CLI
+  `56.5.0`. Project/team matched. Artifact
+  `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM` matched exact SHA `39a56d3...`, URL,
+  `production/READY/STAGED`, `autoAssignCustomDomains=false`, and aliases `0`.
+  The bounded 100-ID inventory hash was
+  `510777DF135260DF74BF9B42F61349B0BC1A9A6357F2BDB619FF1357A90C192C`, newer
+  deployment count `0`, and all four Production aliases pointed to prior artifact
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`.
+- Fresh Source call-path audit passed the authorized mutation boundary. Head Coach
+  renders through the Coach layout, which calls exactly the two allowed generators.
+  Their only write is `deliverCoachNotificationOnce()` inserting one missing
+  `notifications` row with type `reminder` and the approved title/link values.
+  `/coach/assign-groups` and its server helpers are SELECT-only.
+  `AssignGroupsClient` has no `useEffect` or automatic fetch; its only assignment
+  POST is inside `saveSlot()` behind the explicit Save button. Shared navigation
+  can prefetch `/coach/notifications`, but that destination invokes only the same
+  allowed generators and no additional automatic mutation path was found.
+- Observation began at `2026-07-29T09:41:00.251Z`. A new tab in the existing Chrome
+  state opened the exact staged `/coach/assign-groups` URL directly once at
+  `1920x855`. It redirected within the exact staged hostname to
+  `/auth/login?redirect=%2Fcoach%2Fassign-groups`. Visible state was the New Athlete
+  login form, not Head Coach application identity. This triggered the mandatory
+  **BLOCKER — EXISTING HEAD COACH SESSION CANNOT BE PROVEN**. No login, account or
+  role switch, credential/storage/cookie inspection, reload, retry, sidebar/menu
+  click, form/control change, Save, or second application navigation occurred.
+- Head Coach assignment-page access, branch scope, desktop business rendering,
+  mobile `390x844`, natural Pending User Reschedule isolation, Exact-membership
+  precedence, genuine Legacy fallback, Wallet preservation, and Makeup
+  preservation were **Not observable**. The blocked login page produced browser
+  console/hydration/overlay errors `0/0/0`.
+- The bounded exact-artifact runtime window from
+  `2026-07-29T09:41:00.251Z` through `2026-07-29T09:42:23.021Z` contained eight
+  application GETs: `/coach/assign-groups` `307`, `/auth/login` `200`, and six
+  automatic `/auth/register` prefetch requests `200`. HEAD was `0`;
+  POST/PUT/PATCH/DELETE were `0/0/0/0`; assignment POST/Save, Check-in,
+  Attendance, Makeup, Reschedule, Wallet, and notification read/delete mutations
+  were all `0`. Runtime error/fatal/4xx/5xx counts were `0/0/0/0`.
+- Because authentication redirected before the Coach layout rendered, allowed
+  notification-generator invocation evidence was `0` and notification delta was
+  `0` from available Source/browser/runtime evidence. Non-notification mutation
+  count was `0`. Direct Supabase/API/SQL/MCP access was not used. Production Data
+  Changed **No**; Customer Impact **None**; Financial/Payroll Impact **None**;
+  Data Repaired **No**.
+- Read-only Vercel and Git postflight passed. Artifact identity/state/aliases,
+  100-ID deployment inventory hash, four Production aliases, branch/HEAD/tree/
+  parent/live Remote, protected hashes, and staged/untracked `0/0` were unchanged.
+  No Source/Test/package/lockfile/API/config/environment/migration/schema/RLS/RPC
+  change, Commit, Push, Deploy/redeploy/rebuild, Promotion, alias/domain mutation,
+  rollback, Production UAT, or data repair occurred.
+
+Final safety matrix at this gate: Source Complete **Yes**; retained tests **Passed /
+not rerun**; existing Source Committed/Pushed **Yes/Yes**, current documentation
+**No/No**; Deployed **Yes — READY/STAGED artifact only**; Promoted **No**; Feature/
+Allowlist change **No/No**; Controlled Write staged UAT **Blocked before business-
+page render**; Production Active **No**; Production UAT **Not run**; Data Repaired
+**No**; Production Data Changed **No**; Customer Impact **None**; Financial/
+Payroll Impact **None**; Task Done **No**. Active Task remains **RESCHEDULE-IN EXACT
+COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION**. Exact next action: Owner/PM
+establishes an existing Head Coach Chrome session for the exact staged hostname
+outside this gate, then separately authorizes a fresh bounded staged-UAT retry.
+Do not login, retry, modify Source, Promote, access Supabase/Production, publish
+documentation, or start another gate automatically.
+
+### 2026-07-29 Owner-Approved Existing Head Coach Staged-UAT Retry — Exact-route Runtime Hard Stop
+
+State observed at this separately authorized retry on 2026-07-29. This record
+preserves and does not overwrite the earlier Head Coach zero-write, Super Admin
+prefetch, and unauthenticated-session Hard Stops. Owner confirmed that an existing
+Head Coach staged session was ready and authorized one bounded retry on the same
+artifact. Only natural reminder INSERTs with the previously approved check-in or
+attendance-gap fingerprints were permitted; every other mutation, Source/config
+change, Commit, Push, Deploy/rebuild, Promotion, alias mutation, Direct Supabase
+access, Production UAT, and data repair remained prohibited.
+
+- Fresh documentation/Git Gate 0 passed. Branch was
+  `spike/next-major-security-upgrade`; local/upstream/origin/live Remote HEAD were
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`, ahead/behind `0/0`. Functional
+  ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac` retained exact 16-file
+  membership with missing/extra `0/0`. Staged/untracked were `0/0`; the five
+  expected dirty paths and both protected SHA-256 values were unchanged.
+- Read-only Vercel preflight through exact `node.exe` and cached CLI `56.5.0`
+  passed. Artifact `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM` matched exact SHA
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, exact URL,
+  `production/READY/STAGED`, `autoAssignCustomDomains=false`, and aliases `0`.
+  The 100-item inventory contained no newer deployment. All four Production
+  aliases remained on prior artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`.
+- Fresh Source call-path audit again passed the bounded mutation boundary. The
+  shared Coach layout calls the two approved generators; their only write is
+  `deliverCoachNotificationOnce()` inserting a missing `notifications` reminder
+  with an approved title/link. Assignment page/helper queries are read-only;
+  `AssignGroupsClient` has no mount mutation and its assignment POST remains
+  behind the explicit Save button.
+- Existing visible Chrome state at the exact staged `/coach` route proved the
+  authenticated identity as `โค้ช Super Head Coach(หัวหน้า)`, exposed the Head
+  Coach-only `แบ่งกลุ่มนักเรียน` menu, and showed unread badge `99+` before the
+  observation window. No cookie, storage, credential, login, logout, or account/
+  role-switch inspection or action occurred.
+- Observation ran from `2026-07-29T10:05:55.383Z` through
+  `2026-07-29T10:06:19.196Z`. The same staged tab was set to desktop `1920x855`
+  and navigated directly to the exact `/coach/assign-groups` URL once. It stayed
+  on the exact hostname but showed `This page couldn’t load — A server error
+  occurred`, digest `233653541`, before business content rendered. The mandatory
+  runtime-error Hard Stop ended the gate without reload/retry, mobile `390x844`
+  resize, sidebar/menu click, passive business scroll, form/control change, Save,
+  or any second application navigation.
+- Exact-artifact runtime evidence identified
+  `CoachAssignmentDataUnavailableError: Coach student history exact membership
+  query failed: Bad Request` on GET `/coach/assign-groups`; HTTP response status
+  was `200`, but Server Component rendering failed. The bounded window contained
+  GET/HEAD `9/0`; POST/PUT/PATCH/DELETE `0/0/0/0`; assignment POST/Save,
+  Check-in, Attendance, Makeup, Reschedule, Wallet, and notification read/delete
+  mutations `0`. Browser attributable Server Component error was `1`, hydration
+  error `0`, visible error page/overlay `1`; runtime error/fatal/4xx/5xx counts
+  were `1/0/0/0`.
+- Head Coach identity proof **Passed**. Exact staged route business rendering and
+  desktop rendering **Failed**. Mobile rendering, branch scope, natural-row
+  availability, Pending User Reschedule isolation, Exact-membership precedence,
+  genuine Legacy fallback, Wallet preservation, and Makeup preservation were
+  **Not observable** due the Hard Stop. No fixture or direct data access was used.
+- Source proves only the two approved automatic notification paths are possible,
+  but available browser/runtime evidence did not expose generator invocation or
+  notification-row delta. The pre-window badge was saturated at `99+` and could
+  not provide a numeric delta. Allowed notification invocation/delta,
+  Production Data Changed, and Customer Impact are therefore **Unknown / Need
+  verification** without prohibited Direct Supabase access. Non-notification
+  mutation count was `0`; Data Repaired **No**; Financial/Payroll Impact **None**.
+- Read-only Vercel/Git postflight passed. Artifact identity/state/aliases, absence
+  of newer deployments, all four Production aliases, branch/HEAD/tree/parent,
+  ahead/behind, protected hashes, expected dirty paths, and staged/untracked
+  `0/0` remained unchanged. Source/Test/package/lockfile/API/config/environment/
+  migration/schema/RLS/RPC changes were `0`; Commit/Push, Deploy/redeploy/rebuild,
+  Promotion/alias mutation, Production UAT, and Direct Supabase access were all
+  `0`/Not run.
+
+Final safety matrix at this retry: classification **BLOCKER — EXACT STAGED
+ASSIGNMENT PAGE SERVER COMPONENT FAILED**. Source Complete **Yes**; retained tests
+**Passed / not rerun**; existing Source Committed/Pushed **Yes/Yes**, current
+documentation **No/No**; Deployed **Yes — READY/STAGED artifact only**; Promoted
+**No**; Feature/Allowlist change **No/No**; Controlled Write staged UAT **Failed /
+Hard Stopped before business content**; Production Active **No**; Production UAT
+**Not run**; Data Repaired **No**; Production Data Changed **Unknown / Need
+verification**; Customer Impact **Unknown / Need verification for possible natural
+Head Coach reminders only**; Financial/Payroll Impact **None**; Task Done **No**.
+Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK
+ISOLATION**. Exact next action: Owner/PM reviews digest `233653541` and the exact-
+membership query `Bad Request`, then separately authorizes any diagnostic/
+remediation gate. Do not retry, modify Source, Promote, access Supabase/Production,
+publish documentation, or start another gate automatically.
+
+### 2026-07-29 Owner-Approved Exact-membership Request-size Diagnosis and Local Fix — Current Closeout
+
+State observed at the current closeout. The full sanitized diagnostic, counts,
+catalog evidence, exact two-file patch, verification totals, and Supabase request
+accounting are recorded in **Detailed Diagnostic Evidence — 2026-07-29 Exact-
+membership Request-size Diagnosis and Local Fix** above. The intervening staged-
+UAT records are older preserved history and do not override this closeout.
+
+Root Cause is confirmed as the 41,125-byte, 1,048-ID single PostgREST `.in()`
+request. Eleven identical-relation batches at no more than 100 IDs all returned
+HTTP `200`; their 1,041-row deterministic hash matched independent pagination.
+The local two-file fix deduplicates and batches only this lookup while remaining
+fail-closed with batch context. Fresh Local verification passed assignment
+`33/33`, Admin `38/38`, Wallet `17/17`, notification `26/26`, TypeScript,
+zero-warning ESLint, mojibake `250`, build, and static generation `91/91`.
+
+Current classification is **PASS — LOCAL SOURCE/TEST FIX ONLY**. Source Complete
+**Yes — local only**; Tests Passed **Yes**; current fix Committed/Pushed **No/No**;
+existing broken artifact Deployed **Yes — READY/STAGED only**; current fix
+Deployed/Promoted **No/No**; Feature/Allowlist change **No/No**; Production Active
+**No**; Production UAT **Not run**; prior Controlled Write staged UAT **Failed /
+not retried**; Data Repaired **No**; Production Data Changed **Unknown / Need
+verification from the prior reminder window, with `0` mutation in this gate**;
+Customer Impact **no new runtime impact; prior possible reminder-only impact
+remains Unknown / Need verification**; Financial/Payroll Impact **None**; Task
+Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
+FALLBACK ISOLATION**. Exact next action: Owner/PM reviews the local batching fix
+and separately decides whether to authorize Commit/Push. No later gate starts
+automatically.
+
+### 2026-07-29 Owner-Approved Membership-query Fix Commit + Push — Current Publication Closeout
+
+State observed for the current publication gate. Owner authorized exactly one
+functional Source/Test commit, one documentation publication commit, and one
+normal non-force push on existing branch
+`spike/next-major-security-upgrade`. Deploy/rebuild, Promotion/alias movement,
+staged-UAT retry, Supabase/Vercel/browser access, PR/tag/release creation, and
+every other file remained prohibited.
+
+- Read-only `git fetch origin` completed without remote movement. Preflight local,
+  upstream, origin-tracking, and live Remote were all
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, tree
+  `bc436dac861c8a5748b150efdb6c49f84881201d`, parent
+  `7286748824c06cffb3650c9897028f7e7015d722`, ahead/behind `0/0`. Functional
+  ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac` retained exact 16-file
+  membership, missing/extra `0/0`. Staged/untracked were `0/0`; the exact seven
+  expected modified paths and both protected hashes matched.
+- Fresh verification passed before staging: Coach assignment `33/33`; Admin
+  assignment `38/38`; Lesson Wallet `17/17`; notification Bangkok date `26/26`;
+  TypeScript; ESLint with zero warnings; mojibake `250`; Next.js `16.2.6` build;
+  static generation `91/91`; and diff checks. The Admin and Wallet deterministic
+  scripts retained one `MODULE_TYPELESS_PACKAGE_JSON` warning each; both exited
+  `0`. Build warnings/errors were `0/0`. Port 3000 had no listener before build.
+- Functional commit `8166d669165e1dc51e71897423c7aeab524d9050`, tree
+  `3529036eab4e90e6b0ad68af8fe3fcbca67b80c5`, parent
+  `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, subject
+  `fix(coach): batch student history memberships`, contains exactly
+  `scripts/check-coach-assignment-resolution.mjs` and
+  `src/lib/coach-student-memory.ts`; missing/extra `0/0`.
+- The following documentation publication commit contains exactly
+  `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`. Its own
+  content-derived SHA/tree, parent order, single-push result, and verified
+  local/upstream/origin/live-Remote equality are reported in the final handoff;
+  its subject is `docs: record membership query fix`.
+- The two protected pre-existing dirty files remain excluded from both commits.
+  Package/lockfile, migration/schema/grant/RLS/policy/RPC, environment/config,
+  business rules, and additional Source/Test files changed `0`. Supabase, Vercel,
+  and browser access/mutation counts in this publication gate were all `0`.
+
+Final published classification is **PASS — SOURCE/TEST + DOCUMENTATION COMMITTED
+AND PUSHED; NOT DEPLOYED**. Source Complete **Yes**; Tests Passed **Yes**;
+Committed/Pushed **Yes/Yes** after verified push; current fix Deployed/Promoted
+**No/No**; existing broken artifact remains unchanged `READY/STAGED` and
+unpromoted; Feature/Allowlist change **No/No**; Production Active **No**;
+Production UAT **Not run**; prior Controlled Write staged UAT **Failed / not
+retried**; Data Repaired **No**; Production Data Changed **Unknown / Need
+verification from the prior reminder window, with no data access or mutation in
+this gate**; Customer Impact **no new runtime impact; prior possible reminder-only
+impact remains Unknown / Need verification**; Financial/Payroll Impact **None**;
+Task Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT /
+LEGACY FALLBACK ISOLATION**. Exact next action: Owner separately decides whether
+to authorize a new staged deployment. No later gate starts automatically.

@@ -2,9 +2,12 @@
 
 Last updated: 2026-07-29
 Source: current local/upstream Git metadata, fresh scoped Source/Test/Migration
-inspection, local non-writing verification, and prior documented release state.
-No Production, Supabase remote, Vercel, or Production browser access occurred in
-the current gate. Prior context includes the
+inspection, local verification, the Owner-authorized two-commit publication
+gate, read-only Vercel control-plane and Supabase/PostgREST diagnostic evidence,
+and prior documented release state. No Production application/browser access,
+Supabase access, Deploy, Promotion, or UAT occurred in the current publication
+gate.
+Prior context includes the
 Owner-approved Admin Schedules Phase B Production promotion/UAT evidence through
 2026-07-23, plus the Coach Assignment mixed-Level publish/deploy history,
 Owner-reported staged UAT result, read-only Production reconciliation, the
@@ -16,24 +19,44 @@ artifact Promotion, and successful read-only post-promotion Production UAT retry
 Items not confirmed are marked `Unknown / Need verification`.
 
 The single Active Task is **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
-FALLBACK ISOLATION**. The Plan A Source/Test package is complete, committed, and
-pushed in functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` and
-exact release Source `7286748824c06cffb3650c9897028f7e7015d722`. Fresh Release
-Readiness passed deterministic regressions, TypeScript, ESLint with zero warnings,
-mojibake, diff and secret-like checks, and a fresh Next.js build with static
-generation `91/91`. The isolated loopback root smoke returned HTTP `500` after the
-authorized Supabase-environment scrub because `src/proxy.ts` calls
-`updateSession()` before the public-route branch and the unchanged middleware
-requires Supabase URL/key configuration. Owner accepts this as a **Known Local
-Environment Limitation**, not evidence of a task Source regression; root smoke is
-not reported as passed. The unregistered disposable-workspace residual is one
-`node_modules` Junction at
-`C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules`
-pointing to this repository's `node_modules`; it is local housekeeping only and
-was not cleaned in this gate. Deploy, Production access/UAT, Controlled Write,
-migration, and data repair remain prohibited and were not performed. Task Done is
-**No**; the next action is Owner/PM review before any separately authorized Staged
-Deploy decision.
+FALLBACK ISOLATION**. The published Plan A package remains in functional commit
+`54752bcc2a914b7d2f67f344c62e50f642f890ac` and exact branch HEAD
+`39a56d3ad6fa79322ad7cb534b68a12214d4b99f`. Production-target artifact
+`dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM` remains `READY/STAGED`, unaliased,
+unpromoted, and runtime-broken on `/coach/assign-groups` with digest `233653541`.
+Owner authorized a read-only Vercel/Supabase/PostgREST diagnostic, a narrow Source
+fix only after proof, focused Local tests/build, and local-only documentation.
+Fresh Git/documentation/Source/Vercel Gate 0 passed. The exact full Data API query
+was reproduced once with 1,048 distinct historical session IDs: its encoded URL
+was 41,125 bytes and returned HTTP `400 Bad Request`, `text/plain`, with sanitized
+PostgREST fields `code=null`, `message=Bad Request`, `details=null`, and
+`hint=null`. The same select and named FK relationship succeeded in 11 batches of
+at most 100 IDs; request lengths were 2,125–4,153 bytes and every response was
+HTTP `200`. Combined batch results were 1,041 rows with deterministic session-ID-
+set MD5 `6071ed50a4986e3557ace397b45729ef`, exactly matching an independent
+paginated SELECT over 2,575 membership rows. Read-only catalog evidence confirmed
+the named FK, SELECT grants/exposure, RLS, and policies; no target batch showed a
+relationship, permission, schema-cache, or syntax error. Root Cause is therefore
+the oversized single `.in('booking_session_id', sessionIds)` request.
+`src/lib/coach-student-memory.ts` now deduplicates IDs, batches only that
+lookup at 100, combines successful rows, and remains fail-closed with batch-number
+context. `scripts/check-coach-assignment-resolution.mjs` adds four deterministic
+regressions. Fresh checks passed `33/33`, `38/38`, `17/17`, `26/26`, TypeScript,
+zero-warning ESLint, mojibake `250`, and Next.js build/static generation `91/91`.
+The actual patched helper also returned the same 1,041-row/hash result through 11
+HTTP `200` GETs. No migration/schema/grant/RLS/RPC, package/lockfile/environment,
+Deploy/rebuild, Promotion/alias, browser/UAT, Supabase access/mutation, or data
+repair occurred in this publication gate. Owner authorized two exact commits and
+one normal non-force push. Functional commit
+`8166d669165e1dc51e71897423c7aeab524d9050` (tree
+`3529036eab4e90e6b0ad68af8fe3fcbca67b80c5`, parent
+`39a56d3ad6fa79322ad7cb534b68a12214d4b99f`) contains exactly the two approved
+Source/Test files. The content-derived documentation commit SHA/tree and verified
+post-push local/upstream/origin/live-Remote equality are reported in the final
+handoff for this gate. The current fix is committed and published but undeployed;
+the existing staged artifact remains broken and unchanged. Task Done is **No**.
+Next action requires separate Owner authorization for a new staged deployment; no
+Deploy, UAT retry, or Promotion is implied.
 
 ## Current Source of Truth
 
@@ -42,6 +65,36 @@ The repo currently uses Next.js 16.2.6 App Router, React 18, TypeScript 5,
 TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 
 ### Owner Policy
+
+- On 2026-07-29 Owner authorized publication of the proven request-size batching
+  fix as exactly two commits: one functional commit containing only
+  `src/lib/coach-student-memory.ts` and
+  `scripts/check-coach-assignment-resolution.mjs`, followed by one documentation
+  commit containing only `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`; then exactly one normal non-force push to the existing
+  branch. Deploy/rebuild, Promotion/alias movement, staged-UAT retry, Supabase or
+  browser access, PR/tag/release creation, and every other file remained
+  prohibited.
+
+- On 2026-07-29 Owner authorized read-only Vercel/Supabase/PostgREST diagnosis of
+  digest `233653541`, a narrow Source fix only if request-size batching was proven,
+  focused Local tests/build, and local-only documentation. Only
+  `src/lib/coach-student-memory.ts` and
+  `scripts/check-coach-assignment-resolution.mjs` could change functionally.
+  Business rules, migrations, schema, grants, RLS, RPCs, packages, environment,
+  Commit, Push, Deploy/rebuild, Promotion/aliases, staged-UAT retry, Production
+  application access, and every data mutation remained prohibited.
+
+- On 2026-07-29 Owner superseded only the preceding Super Admin-only and strict
+  zero-data-change staged-UAT constraints. A bounded retry may use an existing
+  Head Coach Chrome session and may permit only natural `notifications` INSERTs
+  from `createCoachCheckinWindowNotifications()`,
+  `createCoachAttendanceGapNotifications()`, and
+  `deliverCoachNotificationOnce()`, with type `reminder` and only the approved
+  check-in or attendance-gap title/link fingerprint. Save, assignment POST,
+  Check-in, Attendance, Makeup, Reschedule, Wallet, notification read/delete,
+  every other mutation, Source change, Commit, Push, Deploy/rebuild, Promotion,
+  alias mutation, Direct Supabase access, and Production UAT remain prohibited.
 
 - Owner selected **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK
   ISOLATION** as the single Active Task on 2026-07-27 and authorized Source Fix +
@@ -533,45 +586,50 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 | Field | Current value |
 | --- | --- |
 | Active Task | `RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION` |
-| Task Status | SOURCE COMPLETE — COMMITTED AND PUSHED; FRESH RELEASE READINESS **ACCEPTED WITH KNOWN LOCAL ENVIRONMENT LIMITATION**. Deterministic/static/build checks passed; isolated root smoke returned HTTP `500` after the authorized Supabase-environment scrub and is not claimed as passed. Owner accepts the unchanged root/proxy requirement as a local environment limitation, not evidence of this task's Source regression. Deploy/Production remain unchanged and Task Done remains No |
+| Task Status | **SOURCE/TEST FIX COMMITTED AND PUBLISHED — NOT DEPLOYED OR UAT-RETRIED.** Request-size Root Cause is proven. The existing Production-target artifact remains READY/STAGED and broken with digest `233653541`; it is not promoted or Production-active. Task Done remains No |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation-only Release Readiness closeout commit containing this matrix, with parent exact release Source `7286748824c06cffb3650c9897028f7e7015d722`; exact final commit SHA/tree are reported in the final handoff |
-| Remote HEAD | After the single normal non-force Push, the same documentation-only Release Readiness closeout commit as Local HEAD on `origin/spike/next-major-security-upgrade`; exact final live Remote SHA is reported in the final handoff |
-| Ahead/Behind | `0/0` after the documentation push |
+| Local HEAD | Documentation publication commit on parent functional commit `8166d669165e1dc51e71897423c7aeab524d9050`; its content-derived SHA/tree are reported in the final handoff. Functional tree `3529036eab4e90e6b0ad68af8fe3fcbca67b80c5`, parent `39a56d3ad6fa79322ad7cb534b68a12214d4b99f` |
+| Remote HEAD | After the single authorized normal push, upstream, origin-tracking, and live GitHub branch equal the documentation publication commit. Its exact content-derived SHA is reported in the final handoff |
+| Ahead/Behind | `0/0` after the verified single normal non-force push; preflight was `0/0` at baseline `39a56d3ad6fa79322ad7cb534b68a12214d4b99f` |
 | Protected dirty files | Preserved and not edited in this task: `AGENTS.md` SHA-256 `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; `src/lib/schedule-slot-utils.ts` SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`, expected/current HEAD blob `4521281d099efb189429a744909552d67871ff23` |
-| Documentation Drift | No — the current snapshot, matrix, execution index, and dated evidence now separate passed deterministic/static/build checks from the HTTP `500` isolated root smoke and Owner-accepted Known Local Environment Limitation. Root smoke is not claimed as passed; Deployed, Production Active, UAT, data repair, and Task Done remain separate and unchanged |
+| Documentation Drift | No after publication reconciliation. Earlier safety/session/runtime Hard Stops remain preserved as dated history. Current state records the proven request-size Root Cause and published two-file fix separately from the unchanged broken staged artifact |
 | Owner Policy | Any `coach_assignment_groups` row places the slot in the exact model, including an empty group. Exact membership is authoritative. In zero-exact-row genuine legacy-only slots, Legacy remains valid only for legitimate non-User-Reschedule learners. User Reschedule-in never auto-assigns; it stays pending until Head Coach Save. `rescheduled_from_id` is shared by User Reschedule, Wallet, and Makeup, so Makeup uses `is_makeup` and Wallet uses batched `lesson_wallet_credits.redeemed_session_id` evidence. Wallet/Makeup semantics remain unchanged. Exact/provenance errors fail closed; notification failures remain observable; historical gaps are not repaired |
-| Root Cause | The first local fix corrected exact-row precedence but left genuine legacy-only fallback slot-wide, so every active session—including a new User Reschedule-in—still inherited the Legacy coach. Consumers also ignored several Supabase errors and treated failed exact/provenance queries as empty data, reopening Legacy. The notification follow-up still treated zero required recipients as success, conflated Admin recipient lookup with insert, classified thrown inserts as existence-check failures, and counted only Head Coach recipients in activity details |
+| Root Cause | **Confirmed request-size failure, not relationship/schema/permission failure.** The Coach memory loader sent 1,048 distinct historical `booking_session_id` values through one exact-membership `.in()` request. The 41,125-byte GET returned HTTP `400 Bad Request` with `code/details/hint=null`. The identical select/FK succeeded in 11 batches of at most 100 IDs at 2,125–4,153 bytes, combined to 1,041 rows, and matched independent pagination by count and deterministic ID-set hash. FK `coach_assignment_groups_coach_id_fkey`, grants/exposure, RLS, and policies were present; no target batch failed |
 | Provenance classification | Normal = no `rescheduled_from_id`; User Reschedule-in = `rescheduled_from_id` present + `is_makeup=false` + no Wallet redemption row; Lesson Wallet = `lesson_wallet_credits.redeemed_session_id` matches the session; Admin Makeup = `is_makeup=true`. Wallet evidence is loaded in bounded batches, never one query per learner |
-| Source Complete | **Yes — committed and pushed.** Functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`, tree `a3fc7b3d01a3fd6a9a0eb7eae4403e427a13dfac`, parent `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, subject `fix(coach): isolate reschedule-in assignments`. Shared Plan A provenance/assignment rules, exact/Legacy isolation, fail-closed consumers, and structured notification failure behavior are published. This is Source publication only, not Deployment or Production activation |
-| Tests Passed | **Fresh Release Readiness deterministic/static/build verification passed:** Coach assignment resolution `29/29`; Admin schedule assignment `38/38`; Lesson Wallet `17/17`; notification Bangkok date `26/26`; TypeScript `--noEmit --incremental false`; ESLint zero warnings; mojibake `250` files; `git diff --check`; high-confidence secret-like scan `0` findings across `1,974` functional added lines; fresh Next.js compile and TypeScript passed; static generation `91/91`. Two deterministic scripts emitted `MODULE_TYPELESS_PACKAGE_JSON` runtime notices; suites exited `0` and these were not ESLint warnings |
+| Source Complete | **Yes — committed and pushed, not deployed.** The published Plan A semantics remain unchanged. `src/lib/coach-student-memory.ts` adds a fixed 100-ID batch only around the proven failing exact-membership lookup, deduplicates IDs, combines all rows, and throws `CoachAssignmentDataUnavailableError` with failed-batch context. No Legacy fallback or silent error suppression was added |
+| Tests Passed | **Yes — fresh Local verification.** Coach assignment resolution `33/33`; Admin schedule assignment `38/38`; Lesson Wallet `17/17`; notification Bangkok date `26/26`; `npx tsc --noEmit`; ESLint zero warnings; mojibake `250`; Next.js 16.2.6 optimized build, TypeScript, and static generation `91/91`; `git diff --check` and cached check. Admin/Wallet scripts retained two `MODULE_TYPELESS_PACKAGE_JSON` notices; both exited `0`. The actual helper also passed the 1,048-ID SELECT-only verification as 11 HTTP `200` GETs with 1,041 rows and the expected hash |
 | Release Readiness | **ACCEPTED WITH KNOWN LOCAL ENVIRONMENT LIMITATION.** Deterministic/static/build checks passed. Isolated root smoke returned HTTP `500` because Supabase URL/key configuration was absent after the authorized environment scrub. Owner accepts this limitation; root smoke did not pass and the result is not evidence of a task Source regression |
 | Root smoke status | HTTP `500` on loopback `GET /`; static asset request was not run after the root gate failed. `src/proxy.ts` calls `updateSession()` before checking public routes, and unchanged `src/lib/supabase/middleware.ts` requires Supabase URL/key configuration. These files were not changed by functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`; no credential, Supabase access, Production access, or remote fallback was used |
 | Residual junction status | Local housekeeping residual only: `C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules` is a Junction, not a dependency copy, targeting `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School\node_modules`. The disposable worktree is unregistered; the Junction does not change tracked repository or Production state, is not a Deploy blocker, and must not be recursively deleted. Cleanup is outside this gate |
-| Committed | Yes — functional Source/Test and prior documentation corrections are committed; the current exact three-file documentation-only Release Readiness closeout commit contains this record. Its exact SHA/tree are reported in the final handoff because a commit cannot embed its own content-derived SHA |
-| Pushed | Yes — functional Source/Test, prior documentation corrections, and this documentation-only Release Readiness closeout are published normally, non-force, on `origin/spike/next-major-security-upgrade`; exact final live Remote SHA is reported in the final handoff |
-| Current Source | Exact committed/pushed release Source `7286748824c06cffb3650c9897028f7e7015d722`, tree `475c97c36df541f523635f3425a90b3f4efd98a8`; functional ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac` contains the exact 16-file Plan A Source/Test change |
-| Deployed | No — prohibited and not run |
+| Committed | **Yes.** Functional commit `8166d669165e1dc51e71897423c7aeab524d9050` contains exactly the approved two Source/Test files. The following documentation publication commit contains exactly the approved three documentation files; its content-derived SHA/tree are reported in the final handoff |
+| Pushed | **Yes — one normal non-force push.** Verified local/upstream/origin/live-Remote equality and exact invocation result are reported in the final handoff |
+| Current Source | Published branch Source includes functional commit `8166d669165e1dc51e71897423c7aeab524d9050`. No package/config/environment or additional functional file changed; the two protected pre-existing dirty files remain outside both commits |
+| Staged Deploy Gate | **Passed — one separately authorized retry invocation.** Exact `C:\Program Files\nodejs\node.exe` plus cached Vercel CLI entrypoint `C:\Users\aacha\AppData\Local\npm-cache\_npx\630ee44d7c586e3f\node_modules\vercel\dist\vc.js` ran once with `deploy --prod --skip-domain`; exit `0`. Bare `vercel`, `vercel.ps1`, `npx`, PATH change, and Execution Policy change/bypass were not used. Retry/force/redeploy/rebuild/rollback counts after this invocation were all `0` |
+| Vercel inventory | Fresh explicit-GET diagnostic preflight retained 100 deployments, exactly one matching artifact, newer count `0`, artifact aliases `0`, and all four Production aliases on prior artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`. No deploy/rebuild/Promotion/alias mutation occurred |
+| Exact-SHA Preview | Pre-existing Git Preview `dpl_ZKyt3Qj28EoVjN9Rph3jEHfq4fgZ`, `preview/READY/STAGED`, remained unchanged with its branch Preview alias; it is not the requested Production-target artifact |
+| Artifact Build | Passed — cached Vercel CLI `56.5.0`, Node `24.x`, Next.js `16.2.6`, compile and TypeScript passed, static generation `91/91`, build region `cle1`, configured functions region `icn1`, and bounded 163-line build-log error count `0`. Remote `npm ci` reported the retained dependency audit notice `7 vulnerabilities` (`1 low`, `6 high`) and the existing broad Node engine warning; neither failed the build and no dependency was changed |
+| Deployed | **Yes — staged artifact only.** Exact Source has one Production-target `READY/STAGED` artifact; it has not been promoted or assigned a Production/custom alias |
 | Promoted | No — prohibited and not run |
-| Deployed Source | Unchanged from the prior documented deployment; not accessed or reverified in this gate |
-| Deployment ID | Prior documented current artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; not accessed or changed in this gate |
+| Deployed Source | Staged artifact contains exact committed/pushed Source `39a56d3ad6fa79322ad7cb534b68a12214d4b99f`, local exact tree `bc436dac861c8a5748b150efdb6c49f84881201d`; functional ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac`. No Source/config/environment diff was introduced |
+| Deployment ID | `dpl_7g4Kt6VrZKrzugttUCNrqVDa2nDM`; unique URL `https://new-athlete-badminton-school-3i6af9gtj-aachanin1s-projects.vercel.app`; `production/READY/STAGED`; source `cli`; `autoAssignCustomDomains=false`; alias count `0`. Created `2026-07-29T05:25:59.339Z`, building `2026-07-29T05:26:00.227Z`, Ready `2026-07-29T05:27:34.751Z`. Prior promoted artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4` remains the target of all four Production aliases; missing/extra/wrong mappings `0/0/0` and branch Preview mappings are unchanged |
+| Staged UAT | **BLOCKER — EXACT ASSIGNMENT PAGE SERVER COMPONENT FAILED.** Source audit passed the bounded mutation boundary: Head Coach Coach-layout rendering can invoke only the two approved reminder generators through `deliverCoachNotificationOnce()`; assignment page/helper loading is SELECT-only; `AssignGroupsClient` has no mount mutation; its sole assignment POST is behind the explicit Save button. Existing staged `/coach` visible state proved `โค้ช Super Head Coach(หัวหน้า)`, the Head Coach-only assignment menu, staged hostname, and unread badge `99+` before the window. At `2026-07-29T10:05:55.383Z` the exact staged route was opened once at desktop `1920x855` and remained on that hostname, but showed `This page couldn’t load` / digest `233653541`. Runtime evidence identified `CoachAssignmentDataUnavailableError: Coach student history exact membership query failed: Bad Request`. No reload/retry/login/control interaction, Save, passive business scroll, or second navigation occurred. Desktop business rendering **Failed**; mobile `390x844` was **Not run due Hard Stop**. Branch scope and natural Pending User Reschedule, Exact precedence, Legacy fallback, Wallet, and Makeup rows are **Not observable**. The bounded window through `2026-07-29T10:06:19.196Z` contained GET `9`, HEAD `0`, POST/PUT/PATCH/DELETE `0/0/0/0`, assignment/Check-in/Attendance/Makeup/Reschedule/Wallet/notification-read mutations `0`, browser Server Component errors attributable to the window `1`, hydration error `0`, visible error page/overlay `1`, and runtime error/fatal/4xx/5xx `1/0/0/0`. Allowed generator invocation and notification delta are **Unknown / Need verification** because neither browser nor runtime logs expose those server-side insert details and Direct Supabase access was not used |
 | Migration Source | None |
 | Migration Applied | No — prohibited and not required |
 | Environment Change | No |
 | Feature Enabled | No change; no task-specific feature control was enabled |
 | Allowlisted | No change; no task-specific allowlist was changed |
-| Production Active | No — the exact-assignment fix is committed and pushed in functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`, but has not been deployed or promoted and is not active in Production |
+| Production Active | No — the exact-assignment fix now has an unaliased Production-target READY/STAGED artifact, but it has not been promoted; all established Production aliases still serve prior artifact `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4` |
 | Production UAT | Not run — prohibited |
-| Controlled Write UAT | Not run — prohibited |
+| Controlled Write UAT | Prior staged retry remains **Failed / Hard Stopped before business content**. No browser or staged-UAT retry occurred in this Source/Local gate |
 | Data Repaired | No |
-| Production Data Changed | No; no Production access occurred |
-| Customer Impact | None from this documentation closeout; the exact fix remains undeployed and not Production-active |
-| Financial Impact | None — no payment, booking entitlement, wallet, coupon, finance, payroll, accounting, or Production data changed |
+| Production Data Changed | **Unknown / Need verification from the prior staged UAT reminder window; this diagnostic/fix gate changed no data.** Supabase diagnostics used SELECT only and mutation count was `0` |
+| Customer Impact | No new customer runtime impact from this local-only fix. Prior possible natural Head Coach reminder INSERT impact remains **Unknown / Need verification**; the broken staged artifact and Production aliases are unchanged |
+| Financial Impact | None — no payment, booking entitlement, wallet, coupon, finance, payroll, or accounting mutation occurred; a possible natural reminder INSERT has no financial/payroll effect |
 | Attendance Gap status | Source now returns no stale Legacy coach attribution for a pending User Reschedule-in. Historical and newly classified unassigned past rounds remain in review only; no auto-attendance, auto-absence, auto-makeup, auto-payroll, attribution repair, or historical repair occurred |
-| Blocker | None to the Owner-accepted Release Readiness classification. The HTTP `500` isolated root smoke is an accepted Known Local Environment Limitation, not a passed smoke or evidence of task Source regression. Staged Deploy remains unauthorized pending Owner/PM review; local Junction cleanup is separate housekeeping and not a Deploy blocker |
-| Remaining Work | Owner/PM review before a separately authorized Staged Deploy decision. Production activation and UAT remain unverified; learner-visible warning UI, historical repair, and local Junction cleanup remain outside this gate |
+| Blocker | No Source/Test/publication blocker. The existing staged artifact still contains the unbatched Source and remains runtime-broken with digest `233653541`; the published fix is not deployed |
+| Remaining Work | Separate Owner authorization for a new staged deployment. Any later staged-UAT retry, Promotion, Production UAT, historical repair, or local Junction cleanup requires its own gate |
 | Task Done | No |
-| Next Gate / Next Action | Owner/PM review before a separately authorized Staged Deploy decision; do not Deploy, access Production, publish more documentation, or clean the residual Junction automatically |
+| Next Gate / Next Action | Owner separately decides whether to authorize a new staged deployment of the published fix. Do not deploy/rebuild, retry staged UAT, Promote, change aliases, repair data, or clean the residual Junction automatically |
 | Parking Lot authorization state | No Parking Lot task is authorized |
 
 ### Historical / Superseded Project Matrix — Coach Notification Bangkok Date Consistency
