@@ -96,6 +96,7 @@ interface MemoryCoachAssignment {
 
 const LEARNED_BOOKING_STATUSES = ['verified']
 const LEARNED_SESSION_STATUSES = ['completed', 'absent', 'scheduled']
+const COACH_STUDENT_HISTORY_EXACT_MEMBERSHIP_BATCH_SIZE = 100
 
 function getStudentKey(type: StudentType, id: string) {
   return `${type}:${id}`
@@ -112,6 +113,48 @@ function isKnownStudent(refs: Set<string>, type: StudentType, id: string) {
 function rankCoach(a: CoachMemoryEntry, b: CoachMemoryEntry) {
   if (b.totalSessions !== a.totalSessions) return b.totalSessions - a.totalSessions
   return b.lastTaughtDate.localeCompare(a.lastTaughtDate)
+}
+
+export async function loadCoachStudentHistoryExactMembershipRows(
+  supabaseClient: unknown,
+  sessionIds: readonly string[],
+) {
+  const supabase = supabaseClient as SupabaseLike
+  const uniqueSessionIds = Array.from(new Set(sessionIds.filter(Boolean)))
+  if (uniqueSessionIds.length === 0) return [] as AssignmentGroupStudentMemoryRow[]
+
+  const results = await Promise.all(
+    Array.from(
+      {
+        length: Math.ceil(
+          uniqueSessionIds.length / COACH_STUDENT_HISTORY_EXACT_MEMBERSHIP_BATCH_SIZE,
+        ),
+      },
+      (_, index) => uniqueSessionIds.slice(
+        index * COACH_STUDENT_HISTORY_EXACT_MEMBERSHIP_BATCH_SIZE,
+        (index + 1) * COACH_STUDENT_HISTORY_EXACT_MEMBERSHIP_BATCH_SIZE,
+      ),
+    ).map((batchIds) => supabase
+      .from('coach_assignment_group_students')
+      .select(`
+        booking_session_id,
+        coach_assignment_groups!inner(
+          coach_id,
+          profiles!coach_assignment_groups_coach_id_fkey(full_name, role)
+        )
+      `)
+      .in('booking_session_id', batchIds) as PromiseLike<{
+        data: AssignmentGroupStudentMemoryRow[] | null
+        error?: { message: string } | null
+      }>),
+  )
+
+  return results.flatMap((result, index) => (
+    requireCoachAssignmentQueryData(
+      result,
+      `Coach student history exact membership query batch ${index + 1} failed`,
+    ) || []
+  ))
 }
 
 export async function getCoachStudentMemoryMap(
@@ -193,24 +236,11 @@ export async function getCoachStudentMemoryMap(
 
   if (slotIds.length === 0) return emptyMap
 
-  const sessionIds = sessions.map((session) => session.id)
-  const groupStudentResult = await supabase
-    .from('coach_assignment_group_students')
-    .select(`
-      booking_session_id,
-      coach_assignment_groups!inner(
-        coach_id,
-        profiles!coach_assignment_groups_coach_id_fkey(full_name, role)
-      )
-    `)
-    .in('booking_session_id', sessionIds) as {
-      data: AssignmentGroupStudentMemoryRow[] | null
-      error?: { message: string } | null
-    }
-  const groupStudents = requireCoachAssignmentQueryData(
-    groupStudentResult,
-    'Coach student history exact membership query failed',
-  ) || []
+  const sessionIds = unique(sessions.map((session) => session.id))
+  const groupStudents = await loadCoachStudentHistoryExactMembershipRows(
+    supabase,
+    sessionIds,
+  )
 
   const groupStudentMap = new Map<string, MemoryCoachAssignment[]>()
   ;(groupStudents || []).forEach((row) => {

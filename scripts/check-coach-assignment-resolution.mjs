@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { register } from 'node:module'
+
+register(new URL('./ts-alias-loader.mjs', import.meta.url).href, import.meta.url)
 
 import {
   CoachAssignmentDataUnavailableError,
@@ -19,6 +22,10 @@ import {
   deliverHeadCoachAssignmentReviewNotifications,
   summarizeAssignmentReviewNotifications,
 } from '../src/lib/coach-notification-delivery.ts'
+
+const { loadCoachStudentHistoryExactMembershipRows } = await import(
+  '../src/lib/coach-student-memory.ts'
+)
 
 let passed = 0
 async function check(name, action) {
@@ -68,6 +75,47 @@ function thenableResult(result, thrownError = null) {
     ),
   }
   return chain
+}
+
+function createExactMembershipSupabase({ failedBatch = null } = {}) {
+  const queries = []
+  return {
+    queries,
+    from(table) {
+      assert.equal(table, 'coach_assignment_group_students')
+      return {
+        select(columns) {
+          assert.match(columns, /coach_assignment_groups_coach_id_fkey/)
+          let requestedIds = []
+          const chain = {
+            in(column, values) {
+              assert.equal(column, 'booking_session_id')
+              requestedIds = [...values]
+              return chain
+            },
+            then(resolve, reject) {
+              queries.push(requestedIds)
+              const batchNumber = queries.length
+              const result = batchNumber === failedBatch
+                ? { data: [], error: { message: 'forced exact membership failure' } }
+                : {
+                    data: requestedIds.map((booking_session_id) => ({
+                      booking_session_id,
+                      coach_assignment_groups: {
+                        coach_id: 'coach-a',
+                        profiles: { full_name: 'Coach A', role: 'coach' },
+                      },
+                    })),
+                    error: null,
+                  }
+              return Promise.resolve(result).then(resolve, reject)
+            },
+          }
+          return chain
+        },
+      }
+    },
+  }
 }
 
 function createNotificationSupabase({
@@ -260,6 +308,45 @@ await check('Exact assignment query failure fails closed as unavailable', () => 
     ),
     (error) => error instanceof CoachAssignmentDataUnavailableError
       && error.message.includes('exact lookup failed'),
+  )
+})
+
+await check('Coach student history exact membership uses one query for up to 100 IDs', async () => {
+  const supabase = createExactMembershipSupabase()
+  const sessionIds = Array.from({ length: 100 }, (_, index) => `session-${index + 1}`)
+  const rows = await loadCoachStudentHistoryExactMembershipRows(supabase, sessionIds)
+  assert.equal(supabase.queries.length, 1)
+  assert.equal(supabase.queries[0].length, 100)
+  assert.equal(rows.length, 100)
+})
+
+await check('Coach student history exact membership batches over 100 IDs without row loss', async () => {
+  const supabase = createExactMembershipSupabase()
+  const sessionIds = Array.from({ length: 205 }, (_, index) => `session-${index + 1}`)
+  const rows = await loadCoachStudentHistoryExactMembershipRows(supabase, sessionIds)
+  assert.deepEqual(supabase.queries.map((query) => query.length), [100, 100, 5])
+  assert.deepEqual(rows.map((row) => row.booking_session_id), sessionIds)
+})
+
+await check('Coach student history exact membership deduplicates session IDs before querying', async () => {
+  const supabase = createExactMembershipSupabase()
+  const uniqueSessionIds = Array.from({ length: 101 }, (_, index) => `session-${index + 1}`)
+  const rows = await loadCoachStudentHistoryExactMembershipRows(
+    supabase,
+    [...uniqueSessionIds, uniqueSessionIds[0], uniqueSessionIds[50]],
+  )
+  assert.deepEqual(supabase.queries.map((query) => query.length), [100, 1])
+  assert.deepEqual(rows.map((row) => row.booking_session_id), uniqueSessionIds)
+})
+
+await check('Coach student history exact membership batch failure remains fail-closed', async () => {
+  const supabase = createExactMembershipSupabase({ failedBatch: 2 })
+  const sessionIds = Array.from({ length: 101 }, (_, index) => `session-${index + 1}`)
+  await assert.rejects(
+    loadCoachStudentHistoryExactMembershipRows(supabase, sessionIds),
+    (error) => error instanceof CoachAssignmentDataUnavailableError
+      && error.message.includes('exact membership query batch 2 failed')
+      && error.message.includes('forced exact membership failure'),
   )
 })
 
