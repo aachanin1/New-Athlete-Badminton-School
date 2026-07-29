@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 Source: current local/upstream Git metadata, fresh scoped Source/Test/Migration
 inspection, local non-writing verification, and prior documented release state.
 No Production, Supabase remote, Vercel, or Production browser access occurred in
@@ -16,23 +16,24 @@ artifact Promotion, and successful read-only post-promotion Production UAT retry
 Items not confirmed are marked `Unknown / Need verification`.
 
 The single Active Task is **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
-FALLBACK ISOLATION**. Owner authorized **SOURCE FIX + LOCAL TEST only**. Fresh
-Source audit confirmed inconsistent exact/Legacy predicates across Coach schedule,
-Attendance, Teaching Program, student access/history, Teaching Hours, Reschedule
-notifications, and Attendance Gap classification. It also confirmed the previously
-missed genuine legacy-only path: a new User Reschedule-in inherited the slot's
-Legacy coach unless provenance was checked. The Plan A Source/Test package is now
-complete, committed, and pushed in functional commit
-`54752bcc2a914b7d2f67f344c62e50f642f890ac`; this documentation closeout is the
-second Owner-authorized publish commit. Fresh deterministic/static verification
-passed before staging. The prior build `91/91` is retained dated evidence and was
-not rerun in the Commit Gate. Local Supabase write/E2E, Attendance Gap fixture UAT,
-and post-build root/static smoke remain Blocked/Not run as accepted residual risks.
-At documentation closeout, port `3000` was again owned by intermittent external
-`dragonsword-save-editor` PID `10416`; it was not stopped and `.next` was absent.
-Deploy, Production access/UAT, Controlled Write, migration, and data repair remain
-prohibited and were not performed. Task Done is **No**; the next action is Owner/PM
-review before any separately authorized Deploy/Release Readiness gate.
+FALLBACK ISOLATION**. The Plan A Source/Test package is complete, committed, and
+pushed in functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` and
+exact release Source `7286748824c06cffb3650c9897028f7e7015d722`. Fresh Release
+Readiness passed deterministic regressions, TypeScript, ESLint with zero warnings,
+mojibake, diff and secret-like checks, and a fresh Next.js build with static
+generation `91/91`. The isolated loopback root smoke returned HTTP `500` after the
+authorized Supabase-environment scrub because `src/proxy.ts` calls
+`updateSession()` before the public-route branch and the unchanged middleware
+requires Supabase URL/key configuration. Owner accepts this as a **Known Local
+Environment Limitation**, not evidence of a task Source regression; root smoke is
+not reported as passed. The unregistered disposable-workspace residual is one
+`node_modules` Junction at
+`C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules`
+pointing to this repository's `node_modules`; it is local housekeeping only and
+was not cleaned in this gate. Deploy, Production access/UAT, Controlled Write,
+migration, and data repair remain prohibited and were not performed. Task Done is
+**No**; the next action is Owner/PM review before any separately authorized Staged
+Deploy decision.
 
 ## Current Source of Truth
 
@@ -532,21 +533,24 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 | Field | Current value |
 | --- | --- |
 | Active Task | `RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION` |
-| Task Status | SOURCE COMPLETE — COMMITTED AND PUSHED. The latest Release Readiness gate Hard Stopped before tests/build because this Current Matrix contained Documentation Drift in the Git ancestry. This gate corrects only that Documentation Drift. Deploy/Production remain unchanged, Task Done remains No, and Owner/PM review is required before any separately authorized fresh Release Readiness rerun |
+| Task Status | SOURCE COMPLETE — COMMITTED AND PUSHED; FRESH RELEASE READINESS **ACCEPTED WITH KNOWN LOCAL ENVIRONMENT LIMITATION**. Deterministic/static/build checks passed; isolated root smoke returned HTTP `500` after the authorized Supabase-environment scrub and is not claimed as passed. Owner accepts the unchanged root/proxy requirement as a local environment limitation, not evidence of this task's Source regression. Deploy/Production remain unchanged and Task Done remains No |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Documentation-only Git-chain correction commit containing this matrix, with parent `065c9c0574e4a9ea419939b602d92e52db4846d9`; exact final commit SHA/tree are reported in the final handoff. Pre-correction chain: `065c9c0574e4a9ea419939b602d92e52db4846d9` → `320549451385aef412bd9ed2c68ec7fbf09603f4` → `54752bcc2a914b7d2f67f344c62e50f642f890ac`; the functional commit is an ancestor, not the direct parent |
-| Remote HEAD | After the single normal non-force Push, the same documentation-only Git-chain correction commit as Local HEAD on `origin/spike/next-major-security-upgrade`, with parent `065c9c0574e4a9ea419939b602d92e52db4846d9`; functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` is an ancestor, not the direct parent. Exact final live Remote SHA is reported in the final handoff |
+| Local HEAD | Documentation-only Release Readiness closeout commit containing this matrix, with parent exact release Source `7286748824c06cffb3650c9897028f7e7015d722`; exact final commit SHA/tree are reported in the final handoff |
+| Remote HEAD | After the single normal non-force Push, the same documentation-only Release Readiness closeout commit as Local HEAD on `origin/spike/next-major-security-upgrade`; exact final live Remote SHA is reported in the final handoff |
 | Ahead/Behind | `0/0` after the documentation push |
 | Protected dirty files | Preserved and not edited in this task: `AGENTS.md` SHA-256 `9A8B1F8C6CB9358B0D5DE948CAA1CB26B85E5FFA838048A6011568FD6CF7ED2E`; `src/lib/schedule-slot-utils.ts` SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`, expected/current HEAD blob `4521281d099efb189429a744909552d67871ff23` |
-| Documentation Drift | Corrected by the current documentation-only Git-chain correction commit. Before correction, this Current Matrix incorrectly described functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` as the direct parent of current release HEAD. The verified pre-correction chain is `065c9c0574e4a9ea419939b602d92e52db4846d9` → `320549451385aef412bd9ed2c68ec7fbf09603f4` → `54752bcc2a914b7d2f67f344c62e50f642f890ac`. Release Readiness did not pass; it Hard Stopped before tests/build |
+| Documentation Drift | No — the current snapshot, matrix, execution index, and dated evidence now separate passed deterministic/static/build checks from the HTTP `500` isolated root smoke and Owner-accepted Known Local Environment Limitation. Root smoke is not claimed as passed; Deployed, Production Active, UAT, data repair, and Task Done remain separate and unchanged |
 | Owner Policy | Any `coach_assignment_groups` row places the slot in the exact model, including an empty group. Exact membership is authoritative. In zero-exact-row genuine legacy-only slots, Legacy remains valid only for legitimate non-User-Reschedule learners. User Reschedule-in never auto-assigns; it stays pending until Head Coach Save. `rescheduled_from_id` is shared by User Reschedule, Wallet, and Makeup, so Makeup uses `is_makeup` and Wallet uses batched `lesson_wallet_credits.redeemed_session_id` evidence. Wallet/Makeup semantics remain unchanged. Exact/provenance errors fail closed; notification failures remain observable; historical gaps are not repaired |
 | Root Cause | The first local fix corrected exact-row precedence but left genuine legacy-only fallback slot-wide, so every active session—including a new User Reschedule-in—still inherited the Legacy coach. Consumers also ignored several Supabase errors and treated failed exact/provenance queries as empty data, reopening Legacy. The notification follow-up still treated zero required recipients as success, conflated Admin recipient lookup with insert, classified thrown inserts as existence-check failures, and counted only Head Coach recipients in activity details |
 | Provenance classification | Normal = no `rescheduled_from_id`; User Reschedule-in = `rescheduled_from_id` present + `is_makeup=false` + no Wallet redemption row; Lesson Wallet = `lesson_wallet_credits.redeemed_session_id` matches the session; Admin Makeup = `is_makeup=true`. Wallet evidence is loaded in bounded batches, never one query per learner |
 | Source Complete | **Yes — committed and pushed.** Functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`, tree `a3fc7b3d01a3fd6a9a0eb7eae4403e427a13dfac`, parent `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, subject `fix(coach): isolate reschedule-in assignments`. Shared Plan A provenance/assignment rules, exact/Legacy isolation, fail-closed consumers, and structured notification failure behavior are published. This is Source publication only, not Deployment or Production activation |
-| Tests Passed | Retained Commit-Gate evidence remains: focused behavior `29/29`; Admin assignment `38/38`; Lesson Wallet `17/17`; notification-date `26/26`; TypeScript `--noEmit --incremental false`; ESLint zero warnings; mojibake `250` files; `git diff --check`; staged checks and staged secret scan `0` findings. Prior build compile/type/static generation `91/91` is also retained dated evidence and was not rerun. Fresh Release Readiness deterministic tests, TypeScript, lint, mojibake, secret scan, and build were **Not run** because the gate Hard Stopped before tests/build; retained evidence is not a fresh Release Readiness result |
-| Committed | Yes — four distinct commits: exact 16-file functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`; three-file documentation closeout `320549451385aef412bd9ed2c68ec7fbf09603f4`; prior one-file Production-status correction `065c9c0574e4a9ea419939b602d92e52db4846d9`; and the current one-file Git-chain correction commit containing only `PROJECT_STATE.md`. Exact current correction SHA/tree are reported in the final handoff |
-| Pushed | Yes — the functional commit, three-file documentation closeout, prior one-file Production-status correction, and current one-file Git-chain correction were pushed normally, non-force, to `origin/spike/next-major-security-upgrade`; exact final live Remote SHA is reported in the final handoff |
-| Current Source | Published branch Source with functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac` as the exact Plan A Source/Test artifact |
+| Tests Passed | **Fresh Release Readiness deterministic/static/build verification passed:** Coach assignment resolution `29/29`; Admin schedule assignment `38/38`; Lesson Wallet `17/17`; notification Bangkok date `26/26`; TypeScript `--noEmit --incremental false`; ESLint zero warnings; mojibake `250` files; `git diff --check`; high-confidence secret-like scan `0` findings across `1,974` functional added lines; fresh Next.js compile and TypeScript passed; static generation `91/91`. Two deterministic scripts emitted `MODULE_TYPELESS_PACKAGE_JSON` runtime notices; suites exited `0` and these were not ESLint warnings |
+| Release Readiness | **ACCEPTED WITH KNOWN LOCAL ENVIRONMENT LIMITATION.** Deterministic/static/build checks passed. Isolated root smoke returned HTTP `500` because Supabase URL/key configuration was absent after the authorized environment scrub. Owner accepts this limitation; root smoke did not pass and the result is not evidence of a task Source regression |
+| Root smoke status | HTTP `500` on loopback `GET /`; static asset request was not run after the root gate failed. `src/proxy.ts` calls `updateSession()` before checking public routes, and unchanged `src/lib/supabase/middleware.ts` requires Supabase URL/key configuration. These files were not changed by functional commit `54752bcc2a914b7d2f67f344c62e50f642f890ac`; no credential, Supabase access, Production access, or remote fallback was used |
+| Residual junction status | Local housekeeping residual only: `C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules` is a Junction, not a dependency copy, targeting `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School\node_modules`. The disposable worktree is unregistered; the Junction does not change tracked repository or Production state, is not a Deploy blocker, and must not be recursively deleted. Cleanup is outside this gate |
+| Committed | Yes — functional Source/Test and prior documentation corrections are committed; the current exact three-file documentation-only Release Readiness closeout commit contains this record. Its exact SHA/tree are reported in the final handoff because a commit cannot embed its own content-derived SHA |
+| Pushed | Yes — functional Source/Test, prior documentation corrections, and this documentation-only Release Readiness closeout are published normally, non-force, on `origin/spike/next-major-security-upgrade`; exact final live Remote SHA is reported in the final handoff |
+| Current Source | Exact committed/pushed release Source `7286748824c06cffb3650c9897028f7e7015d722`, tree `475c97c36df541f523635f3425a90b3f4efd98a8`; functional ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac` contains the exact 16-file Plan A Source/Test change |
 | Deployed | No — prohibited and not run |
 | Promoted | No — prohibited and not run |
 | Deployed Source | Unchanged from the prior documented deployment; not accessed or reverified in this gate |
@@ -561,13 +565,13 @@ TailwindCSS 3.4, shadcn/Radix UI, Supabase, and SlipOK.
 | Controlled Write UAT | Not run — prohibited |
 | Data Repaired | No |
 | Production Data Changed | No; no Production access occurred |
-| Customer Impact | No new runtime impact from this gate. The Production incident and any equivalent stale-Legacy exposure remain unchanged until a separately approved release and verified UAT |
-| Financial Impact | None from this gate; no payment, booking entitlement, wallet, coupon, finance, payroll, or Production data changed |
+| Customer Impact | None from this documentation closeout; the exact fix remains undeployed and not Production-active |
+| Financial Impact | None — no payment, booking entitlement, wallet, coupon, finance, payroll, accounting, or Production data changed |
 | Attendance Gap status | Source now returns no stale Legacy coach attribution for a pending User Reschedule-in. Historical and newly classified unassigned past rounds remain in review only; no auto-attendance, auto-absence, auto-makeup, auto-payroll, attribution repair, or historical repair occurred |
-| Blocker | No known Documentation Drift blocker remains after this correction. Fresh Release Readiness is not verified and requires separate Owner/PM review and authorization before rerun. Accepted residual verification gaps remain; they were not rerun or changed in this documentation-only gate |
-| Remaining Work | Owner/PM review before a separately authorized fresh Release Readiness rerun. Do not rerun Release Readiness or Deploy automatically. Optional future residual-risk closure, learner-visible warning UI, and historical repair remain outside this gate |
+| Blocker | None to the Owner-accepted Release Readiness classification. The HTTP `500` isolated root smoke is an accepted Known Local Environment Limitation, not a passed smoke or evidence of task Source regression. Staged Deploy remains unauthorized pending Owner/PM review; local Junction cleanup is separate housekeeping and not a Deploy blocker |
+| Remaining Work | Owner/PM review before a separately authorized Staged Deploy decision. Production activation and UAT remain unverified; learner-visible warning UI, historical repair, and local Junction cleanup remain outside this gate |
 | Task Done | No |
-| Next Gate / Next Action | Owner/PM review before a separately authorized fresh Release Readiness rerun; do not rerun Release Readiness or Deploy automatically |
+| Next Gate / Next Action | Owner/PM review before a separately authorized Staged Deploy decision; do not Deploy, access Production, publish more documentation, or clean the residual Junction automatically |
 | Parking Lot authorization state | No Parking Lot task is authorized |
 
 ### Historical / Superseded Project Matrix — Coach Notification Bangkok Date Consistency

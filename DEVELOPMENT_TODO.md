@@ -8566,3 +8566,84 @@ Feature/Allowlist change **No**; Data Repaired **No**; Production Data Changed
 Done remains **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT /
 LEGACY FALLBACK ISOLATION**. Next action is Owner/PM review before a separately
 authorized Deploy/Release Readiness gate; no Deploy is automatic.
+
+### 2026-07-29 Fresh Release Readiness — Owner-Accepted Local Environment Limitation
+
+State observed at this documentation closeout on 2026-07-29. Owner authorized
+only publication of the completed Fresh Release Readiness evidence in the three
+current documentation files, one documentation commit, and one normal non-force
+Push on the existing branch. Source/Test/package/dependency/lockfile/environment,
+PR, Deploy/Promotion/rebuild/rollback, Vercel/Supabase/Production access,
+Production UAT, Controlled Write, migration/schema/RLS/RPC, feature/allowlist,
+data repair, residual-Junction cleanup, and Parking Lot work remained prohibited.
+
+- Fresh Gate 0 confirmed repository root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, exact release Source
+  `7286748824c06cffb3650c9897028f7e7015d722`, tree
+  `475c97c36df541f523635f3425a90b3f4efd98a8`, parent
+  `065c9c0574e4a9ea419939b602d92e52db4846d9`, and Local/upstream/origin-
+  tracking/live Remote convergence at `0/0`. Functional commit
+  `54752bcc2a914b7d2f67f344c62e50f642f890ac`, tree
+  `a3fc7b3d01a3fd6a9a0eb7eae4403e427a13dfac`, parent
+  `cc48b03f79b916221e0d86099fa017d0c9cc57a6`, remained an ancestor with exact
+  16-file membership, missing/extra `0/0`.
+- Source-policy audit passed: any Exact group row, including an empty group,
+  keeps the slot in the Exact model; User Reschedule-in never auto-inherits a
+  Legacy coach; genuine Legacy-only compatibility remains limited to eligible
+  learners; Lesson Wallet and Admin Makeup provenance remain distinct; Exact and
+  provenance failures fail closed; notification failure remains observable; and
+  historical Attendance Gaps remain unrepaired.
+- Fresh deterministic verification passed: Coach assignment resolution `29/29`,
+  Admin schedule assignment `38/38`, Lesson Wallet `17/17`, notification Bangkok
+  date `26/26`, TypeScript `--noEmit --incremental false`, ESLint zero warnings,
+  mojibake `250` files, `git diff --check`, and a high-confidence secret-like scan
+  with `0` findings across `1,974` functional added lines. Two deterministic
+  scripts emitted `MODULE_TYPELESS_PACKAGE_JSON` runtime notices; both suites
+  exited `0`, and the notices were not ESLint warnings.
+- Fresh Next.js `16.2.6` webpack build passed compile and TypeScript. Static
+  generation completed `91/91`; this is fresh Release Readiness evidence, not the
+  earlier retained build result. No dependency install/update or lockfile change
+  occurred.
+- Isolated loopback root smoke did **not** pass: `GET /` returned HTTP `500` after
+  the authorized Supabase-environment scrub, and the static-asset request was not
+  run after that root gate failed. The sanitized cause was absence of the Supabase
+  URL/key configuration required to create the middleware client. No credential
+  value was read, recorded, supplied, or displayed.
+- The root result is not evidence of this task's functional Source regression.
+  `src/proxy.ts` invokes `updateSession()` before the public-route branch, and
+  unchanged `src/lib/supabase/middleware.ts` requires the Supabase configuration.
+  Functional commit `54752bcc...` changed neither file; root/proxy functional-diff
+  membership was `0`. Owner accepts the HTTP `500` as a **Known Local Environment
+  Limitation** and classifies Release Readiness as **ACCEPTED WITH KNOWN LOCAL
+  ENVIRONMENT LIMITATION**. Root smoke is not described as passed, and no remote
+  fallback was used.
+- Supabase, Vercel, Production application, `/api/health`, authenticated routes,
+  DB-writing/E2E, Attendance Gap fixture UAT, Production UAT, and Controlled Write
+  UAT were not accessed or run. Fixture residue is `0`; Production/data/customer/
+  financial/payroll changes attributable to this gate are `0`.
+- The detached disposable worktree used exact release Source and was tracked-clean
+  after verification. `git worktree remove` completed and unregistered it, leaving
+  one local housekeeping residual only:
+  `C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules`.
+  It is a Junction, not a dependency copy, targeting
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School\node_modules`.
+  It does not change tracked repository or Production state, is not a Deploy
+  blocker, and must not be recursively deleted. Junction cleanup was not attempted
+  in this documentation closeout and remains outside scope.
+- This dated record, the authoritative current matrix, and the short execution
+  index are published by the documentation-only commit containing this record.
+  Exact commit SHA/tree and the single normal non-force Push result are recorded in
+  the final handoff because a commit cannot embed its own content-derived SHA.
+
+Final safety matrix at this closeout: Source Complete **Yes**; Fresh deterministic/
+static/build verification **Passed**; Release Readiness **Accepted with Known Local
+Environment Limitation**; isolated root smoke **HTTP 500 / not passed / Owner-
+accepted limitation**; Committed/Pushed **Yes** for Source and documentation
+closeout; Deployed/Promoted **No**; Production accessed/active **No**; Production
+UAT and Controlled Write UAT **Not run**; Migration **No**; Environment,
+Feature, and Allowlist changes **No**; Data Repaired **No**; Production Data
+Changed **No**; Customer Impact **None**; Financial/Payroll Impact **None**; Task
+Done **No**. Active Task remains **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
+FALLBACK ISOLATION**. Next action is Owner/PM review before a separately authorized
+Staged Deploy decision; no Deploy or Production action is automatic.

@@ -11,8 +11,9 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION
 
-Status: **SOURCE COMPLETE — COMMITTED AND PUSHED; FRESH COMMIT-GATE
-VERIFICATION PASSED; DEPLOY/PRODUCTION NOT STARTED; TASK NOT DONE**.
+Status: **SOURCE COMPLETE — COMMITTED AND PUSHED; FRESH RELEASE READINESS
+ACCEPTED WITH KNOWN LOCAL ENVIRONMENT LIMITATION; DEPLOY/PRODUCTION NOT STARTED;
+TASK NOT DONE**.
 
 - Owner Plan A: User Reschedule-in never inherits a coach automatically, including
   genuine legacy-only slots. Legacy remains compatible only for legitimate
@@ -30,24 +31,30 @@ VERIFICATION PASSED; DEPLOY/PRODUCTION NOT STARTED; TASK NOT DONE**.
   A post-commit Reschedule still returns `success:true` with
   `ASSIGNMENT_REVIEW_NOTIFICATION_FAILED`, complete activity totals/details, and
   console evidence rather than a retry-inducing 5xx.
-- Functional Source/Test commit
-  `54752bcc2a914b7d2f67f344c62e50f642f890ac` was committed and pushed normally
-  to `origin/spike/next-major-security-upgrade`; this exact three-file
-  documentation closeout is the second publish commit. Fresh focused behavior
-  `29/29`, Admin assignment `38/38`, Wallet `17/17`, notification date `26/26`,
-  TypeScript, lint, mojibake, diff, staged scope, and staged secret checks passed.
-  Prior build `91/91` is retained dated evidence and was not rerun.
-- Post-build root/static smoke remains Blocked/Not run due intermittent external
-  port-3000 ownership; PID `10416` was observed at documentation closeout but is
-  not asserted as permanent. `.next` was absent. Local Supabase DB-writing/E2E and
-  Attendance Gap fixture UAT remain Blocked/Not run because no trusted isolated
-  Local runtime is available. Fixture residue and Production/data changes are `0`.
+- Exact release Source `7286748824c06cffb3650c9897028f7e7015d722` contains
+  functional ancestor `54752bcc2a914b7d2f67f344c62e50f642f890ac`. Fresh Release
+  Readiness passed focused behavior `29/29`, Admin assignment `38/38`, Wallet
+  `17/17`, notification date `26/26`, TypeScript, ESLint with zero warnings,
+  mojibake `250`, diff check, secret-like scan `0` across `1,974` functional added
+  lines, and fresh Next.js compile/type/static generation `91/91`. Two deterministic
+  scripts emitted `MODULE_TYPELESS_PACKAGE_JSON` notices but exited `0`; these were
+  not ESLint warnings.
+- Isolated loopback root smoke returned HTTP `500` after the authorized Supabase-
+  environment scrub; root smoke did not pass. Owner accepts the unchanged proxy/
+  middleware configuration requirement as a Known Local Environment Limitation,
+  not evidence of this task's Source regression. No Supabase, Vercel, Production,
+  credential, or remote fallback was used. Local DB/E2E and Attendance Gap fixture
+  UAT remain Not run; fixture residue is `0`.
+- Local housekeeping residual: `C:\Users\aacha\AppData\Local\Temp\codex-release-readiness-7286748-audit\node_modules`
+  remains a Junction to this repository's `node_modules`. It is not a dependency
+  copy or Deploy blocker, does not affect tracked/Production state, and must not be
+  recursively deleted; cleanup is outside this gate.
 - Authoritative mutable state, blockers, and matrix are in `PROJECT_STATE.md`.
 - The warning is API/operator-visible only in this gate. Learner-visible warning UI
   was not changed and requires separate Owner scope.
-- Next action: Owner/PM review before a separately authorized Deploy/Release
-  Readiness gate. Do not Deploy, access Production, repair data, or start another
-  gate or Parking Lot item automatically.
+- Next action: Owner/PM review before a separately authorized Staged Deploy
+  decision. Do not Deploy, access Production, clean the residual Junction, repair
+  data, or start another gate or Parking Lot item automatically.
 
 ## Recently Completed
 
