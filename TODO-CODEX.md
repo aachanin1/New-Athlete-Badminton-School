@@ -11,39 +11,39 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT
 
-Status: **PASS — COMMITTED AND PUSHED; ACCEPTED FUNCTIONAL/TEST BYTES UNCHANGED;
-FULL LOCAL BOOKING REGRESSION CHECKPOINT `11/11`; UNDEPLOYED; REMOTE MIGRATION AND
-PRODUCTION UNTOUCHED**. `Pushed: Yes` is effective only after the one authorized
-normal push and independent live-Remote verification succeed.
+Status: **PASS — COMMITTED AND PUSHED; UNDEPLOYED; TASK NOT DONE**, effective only
+after Commit B, the one authorized normal push, and independent live-Remote
+verification succeed; otherwise the publication handoff reports the actual
+blocker.
 
-- The additive local migration removes only the RPC restriction that required
-  every requested session branch to equal the primary booking branch. Per-session
-  active template and canonical-slot resolution plus all existing safety, Option
-  A, pricing, atomicity, idempotency, and concurrency guards remain in place.
-- Local multi-branch create and pending edit pass with correct per-session branch,
-  template, canonical slot, and exact nine-session baseline-zero price `4,500`.
-  Single-branch and guard/runtime regressions pass.
-- The Owner-approved test-only Correction Round moved the future-sensitive
-  single-branch fixture and directly linked month/year/wallet/makeup metadata to
-  deterministic July 2031 values. Intentional past/expired and ordering evidence,
-  occupancy `5/6/20`, pricing, same-month/next-month rules, and all assertions are
-  preserved; `MULTI_BRANCH_DATES` remains unchanged.
-- Focused availability, multi-branch, Admin Makeup, and rendered `4+4` tests pass
-  `1/1` each. Full `npm run test:booking-regression:e2e` passes `11/11`, skipped
-  `0`, exit `0`, teardown residue `0`, with prices `4,500` and `2,000` preserved.
-  TypeScript, zero-warning ESLint, and mojibake `250` also pass. Build/runtime SQL
-  were not rerun in this test-only round.
-- Authoritative Git, Source, migration, verification, release, and Production
-  states are recorded in `PROJECT_STATE.md`.
+- Authoritative mutable state is in `PROJECT_STATE.md`. Retained Owner-confirmed
+  prior-gate state: the multi-branch migration is applied remotely and Production
+  create UAT passed. Production pending-edit UI UAT failed because Edit selected
+  only the primary `bookings.branch_id` although sessions retained multiple
+  branches.
+- Local correction derives Edit branches from the ordered valid union of the
+  primary branch plus every session branch and applies that union only while
+  reconciling Edit drafts. New-booking draft behavior, primary branch semantics,
+  API/RPC/migration, canonical-slot validation, and pricing are unchanged.
+- Regression-first pre-fix failed exactly at the missing second Calendar branch
+  with residue `0`. Post-fix multi-branch and single-branch rendered Edit passed
+  focused `1/1` each; final full booking E2E passed `11/11`, skipped/unexpected/
+  flaky/retries/residue `0`, with multi-branch
+  `9 × 500 = 4,500` and Option A `4+4 = 2,000`. TypeScript, zero-warning ESLint,
+  mojibake `250`, build `91/91`, clean root/static `200/200`, and diff check pass.
+- Correction changes are exactly functional `1`, test `1`, documentation `3`.
+  No API/RPC/migration/remote/Production/data/financial mutation occurred here.
 - Functional/Test Commit A is
-  `f7ee7a1026a543df8e3d215944b9958083aee142` with tree
-  `716f194240db7584df0f6230ee428f25d943be35` and exactly the one migration plus
-  three approved test files. The containing documentation commit is limited to
-  task-specific hunks in the three context documents.
-- Next action: stop after publication reporting and await Owner review before a
-  separately authorized Deploy/remote-migration gate. Production UAT/write, data
-  repair, feature/allowlist/environment changes, and Parking Lot work remain
-  unauthorized.
+  `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`, tree
+  `6a1546920243344d3e60b7ef06b3ead498818745`, parent
+  `33eb3af1c95e43e2596455d24c316eb0812b30e4`, with exactly the accepted two
+  files. The following Commit B is limited to these task-specific hunks in the
+  three context documents; its exact SHA/tree are recorded in the publication
+  handoff. `Pushed: Yes` is effective only after the one authorized normal push
+  and independent live-Remote verification succeed.
+- Next action after successful push: stop and await Owner review before a separate
+  Deploy gate. Production UAT/write, data repair, feature/allowlist/environment
+  changes, and Parking Lot work remain unauthorized.
 
 ## Recently Completed
 

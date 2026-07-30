@@ -234,6 +234,161 @@ State observed for this publication closeout:
   separate Deploy/remote-migration gate. No Production or Parking Lot action
   starts automatically.
 
+#### 2026-07-30 Owner-Approved Rendered Pending-Edit UI Correction Round
+
+Status at this correction closeout: **PASS — LOCAL TEST ONLY; RENDERED EDIT
+SOURCE/REGRESSION COMPLETE; UNSTAGED / UNCOMMITTED / UNPUSHED / UNDEPLOYED;
+PRODUCTION UI CORRECTION NOT ACTIVE; TASK NOT DONE**.
+
+State observed at this correction closeout:
+
+- Owner retained **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT** as
+  the single Active Task and authorized Correction Source Fix + Local Test only.
+  The exact allowlist was one functional file, one test file, and task-specific
+  hunks in the three context documents. Commit, Push, Deploy, remote migration,
+  Production access/UAT/write, data repair, branch/remote changes, feature/
+  allowlist/environment/dependency changes, and Parking Lot work were prohibited.
+- Fresh Repository-only Gate 0 verified root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, local/configured-upstream HEAD
+  `33eb3af1c95e43e2596455d24c316eb0812b30e4`, Ahead/Behind `0/0` without fetch,
+  and an empty staged diff. Functional/test files were clean with initial blobs
+  `b44ae6d0fdea308d4a4e2cec8555a3efdd040592` and
+  `2aa1dde8706f8c543177890970ff1b3adbeba7ec`.
+- Gate 0 dirty worktree blobs were captured before editing: `AGENTS.md`
+  `e979a2c895dd8fe60a651b4e41f71d49ca020f35`, `DEVELOPMENT_TODO.md`
+  `326277d00df8f65e67ac67889f5525bf2e043fa0`, `PROJECT_STATE.md`
+  `6cf4d7de2eea8548f40bb765269eeb009c656998`, `TODO-CODEX.md`
+  `fcf0bad9188d1aad25982055b9c43982a0b03e17`, and
+  `src/lib/schedule-slot-utils.ts`
+  `4521281d099efb189429a744909552d67871ff23`. Protected `AGENTS.md` and
+  `schedule-slot-utils.ts` retained those exact blobs; no discard, restore,
+  clean, reset, stage, or overwrite occurred.
+- Retained Owner-confirmed state from the prior Production gate is now reconciled:
+  remote migration `20260730000000_fix_progressive_multibranch_booking.sql` is
+  applied, multi-branch database capability is active, and Production create UAT
+  passed. Production rendered pending-edit UAT failed because the page displayed
+  only the booking primary branch. No Production operation was performed in this
+  correction gate; exact deployed application Source/Deployment ID remain
+  `Unknown / Need verification` under the Repository-only restriction.
+- Fresh Source audit reconfirmed that the dashboard server page selects
+  `booking_sessions.branch_id` for every edit session and
+  `buildEditSessionsMap()` retains `s.branch_id`. The defect was isolated to
+  `selectedBranchIds` initialization from `editBooking.branch_id` alone and draft
+  sanitization filtering sessions against that collapsed set. The prior pending-
+  edit regression invoked API PUT inside `page.evaluate()` and therefore did not
+  prove rendered initialization, multi-branch labels/summary, or Save-button use.
+- Regression-first changed only `tests/booking-regression/booking.spec.ts`: after
+  a real UI-created pending multi-branch booking it removes the edit-draft key,
+  opens the real Edit URL without injecting a multi-branch edit draft, checks both
+  branches in Calendar/header/session labels, changes one round through calendar
+  controls, checks both Summary branches, clicks `บันทึกการแก้ไข`, verifies the
+  booking/session/canonical-slot/price database state, reloads Edit, and separately
+  restores a stale edit draft with primary-only `selectedBranchIds` and a valid
+  multi-branch `sessionsMap`.
+- The focused test against pre-fix Source exited `1` and failed `1/1` exactly at
+  the Calendar header: expected second branch `Multi Branch Localhost`, received
+  only primary `สาขาทดสอบ Localhost`. Skipped/retries were `0/0`; global teardown
+  residue was `0`. This is the expected regression-first proof.
+- The minimal functional change is only
+  `src/components/dashboard/booking-client.tsx`. Edit mode now derives an ordered
+  unique valid union of primary `editBooking.branch_id` followed by all session
+  `branch_id` values. Edit-only draft reconciliation prepends that required union
+  before sanitizing sessions. New Booking draft semantics remain unchanged;
+  `bookings.branch_id` remains the primary first element; per-session branch,
+  template hint, canonical slot, and API payload contracts remain intact.
+- Post-fix focused rendered Edit passed `1/1` with UI Save, reload, stale-draft,
+  browser-error, DB linkage, primary-branch, and `4,500` assertions; residue `0`.
+  Focused single-branch create/rendered Edit/UI Save passed `1/1` with canonical
+  linkage, unchanged `2,000` price, and residue `0`. Exact final full
+  `npm run test:booking-regression:e2e` passed `11/11` in `4.1m`, with
+  skipped/unexpected/flaky/retries `0/0/0/0`, residue `0`, multi-branch
+  `9 × 500 = 4,500`, Option A `4+4 = 2,000`, single-branch, occupancy,
+  concurrency, duplicate/overlap/past/cancelled-slot, and atomicity coverage.
+- `npx tsc --noEmit`, zero-warning `npm run lint`, mojibake `250`, and Next.js
+  `16.2.6` build compile/type/static generation `91/91` passed. The exact generated
+  repository `.next` path was removed, a hidden localhost dev process returned
+  HTTP `200` for root and `_next/static/css/app/layout.css`, that gate process was
+  stopped, and port `3000` was free. `git diff --check` passed.
+- Final correction blobs are functional
+  `a8243c7c1ef15a80b6b690649a15c4a098365429` and test
+  `d89c88cc50371f74db8825fe834617a30c381049`. Functional/Test/Documentation
+  counts are `1/1/3`. No API/RPC/migration/schema/package/lockfile/configuration,
+  remote/Production, data-repair, payment/coupon/Ledger/Finance/entitlement,
+  attendance/coach/payroll/accounting, customer-data, or financial mutation
+  occurred. Scope Expansion: **No**. Scope Breach: **No**.
+- Source Complete/Tests Passed: **Yes/Yes for Local correction scope**. Committed/
+  Pushed/Deployed: **No/No/No**. Migration changed/applied in this gate:
+  **No/No**; retained prior remote apply remains active. Feature/Allowlist change:
+  **No/No**. Production correction Active/UAT/Controlled Write UAT:
+  **No/Not run/Not run**. Data Repaired/Production Data Changed: **No/No**.
+  Customer impact from this gate: **None until deploy**; current Production users
+  editing affected pending multi-branch bookings still see the old collapsed UI.
+  Financial impact: **No confirmed change; pricing is unchanged**. Task Done:
+  **No**.
+- Next Action: stop and await Owner review before any separately authorized
+  Commit + Push gate. Do not start Deploy, Production UAT/write, repair, or another
+  task automatically.
+
+#### 2026-07-30 Rendered Pending-Edit Correction Publication Gate
+
+Status at this publication record: **PASS — COMMITTED AND PUSHED; UNDEPLOYED;
+PRODUCTION UI CORRECTION NOT ACTIVE; TASK NOT DONE**, effective only after Commit
+B, the one authorized normal push, and independent live-Remote verification
+succeed; otherwise the publication handoff reports the actual blocker.
+
+State observed for this publication gate:
+
+- Owner authorized exactly two commits and one normal non-force push for the
+  rendered pending-edit correction. Functional/Test bytes were locked to blobs
+  `a8243c7c1ef15a80b6b690649a15c4a098365429` and
+  `d89c88cc50371f74db8825fe834617a30c381049`. No test rerun, Deploy, remote
+  Supabase/migration, Production UAT/write, data repair, or feature/allowlist/
+  environment/dependency change was authorized.
+- Fresh Gate 0 matched repository root, branch
+  `spike/next-major-security-upgrade`, local/configured-upstream HEAD
+  `33eb3af1c95e43e2596455d24c316eb0812b30e4`, Ahead/Behind `0/0` without fetch,
+  empty staged and untracked sets, and the expected mixed worktree. Live Remote
+  preflight independently resolved the same branch to `33eb3af1...`.
+- Accepted worktree blobs matched exactly. Protected `AGENTS.md` and
+  `src/lib/schedule-slot-utils.ts` retained blobs
+  `e979a2c895dd8fe60a651b4e41f71d49ca020f35` and
+  `4521281d099efb189429a744909552d67871ff23`; the schedule helper retained no
+  content diff. Playwright's booking `.last-run.json` remained `passed` with no
+  failed tests, and the existing report artifact was inspected read-only.
+- Commit A `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`, tree
+  `6a1546920243344d3e60b7ef06b3ead498818745`, parent
+  `33eb3af1c95e43e2596455d24c316eb0812b30e4`, subject
+  `fix(bookings): preserve multi-branch pending edits`, contains exactly
+  `src/components/dashboard/booking-client.tsx` and
+  `tests/booking-regression/booking.spec.ts`. Post-commit verification reconfirmed
+  both accepted blobs and both protected worktree blobs unchanged.
+- Commit B is limited to task-specific rendered pending-edit correction and
+  publication hunks in `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`; unrelated pre-existing documentation hunks remain only in
+  the worktree. Its exact SHA/tree are recorded in the publication handoff.
+- Verification evidence is the accepted Local checkpoint and was not rerun:
+  focused post-fix multi-branch and single-branch rendered Edit `1/1` each; full
+  booking E2E `11/11`; skipped/unexpected/flaky/retries/residue `0/0/0/0/0`;
+  prices `9 × 500 = 4,500` and Option A `4+4 = 2,000`; TypeScript, zero-warning
+  ESLint, mojibake `250`, and build/static generation `91/91` passed.
+- `Pushed: Yes` becomes effective only after the one authorized
+  `git push origin HEAD:refs/heads/spike/next-major-security-upgrade` invocation
+  succeeds and local/upstream/origin/live-Remote equality is independently
+  verified. A failed push must remain a blocker with no retry.
+- Source Complete/Tests Passed/Committed: **Yes/Yes/Yes**. Deployed: **No**.
+  Migration changed/applied in this gate: **No/No**. Remote Supabase changed:
+  **No**. Production DB multi-branch capability remains active from the prior
+  gate; the rendered pending-edit UI correction remains not Production-active.
+  Production UAT/Controlled Write UAT in this gate: **Not run/Not run**. Data
+  Repaired/Production Data Changed: **No/No**. Customer impact from this
+  publication alone: **None until Deploy**. Financial impact: **None; pricing is
+  unchanged**. Documentation Drift is reconciled only for this Active Task.
+  Task Done remains **No**.
+- Next Action after successful push verification: stop and await Owner review
+  before a separately authorized Deploy gate. Do not start Deploy, Production UAT,
+  repair, Parking Lot work, or another task automatically.
+
 ### 2026-07-24 — Coach Assignment Status Communication + Save Feedback Source/Local Gate
 
 Status at this local checkpoint: **PASS — SOURCE FIX + LOCAL TEST ONLY; UNSTAGED /
