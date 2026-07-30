@@ -215,7 +215,7 @@ async function countTables(tables: readonly string[]) {
   return counts
 }
 
-test('Progressive Kids Group renders and persists 9-session multi-branch create plus pending edit at 4,500', async ({ page }) => {
+test('Progressive Kids Group renders and persists 9-session multi-branch create plus rendered pending edit at 4,500', async ({ page }) => {
   const browserErrors = observeBrowserErrors(page)
   const admin = createLocalAdmin()
   const protectedTables = [
@@ -268,8 +268,7 @@ test('Progressive Kids Group renders and persists 9-session multi-branch create 
   expect(created?.pricing_scope_id).toBeTruthy()
   if (!created?.id) throw new Error('multi-branch create did not return a booking id')
 
-  const assertCanonicalSessions = async (invertBranches: boolean) => {
-    const expected = multiBranchSessions(invertBranches)
+  const assertCanonicalSessions = async (expected: ReturnType<typeof multiBranchSessions>) => {
     const { data: sessions, error } = await admin.from('booking_sessions')
       .select('date,branch_id,schedule_slot_id')
       .eq('booking_id', created.id)
@@ -300,37 +299,52 @@ test('Progressive Kids Group renders and persists 9-session multi-branch create 
     }
   }
 
-  await assertCanonicalSessions(false)
-  const editSessions = multiBranchSessions(true)
-  const editResponse = await page.evaluate(async (payload) => {
-    const response = await fetch('/api/bookings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    return { status: response.status, body: await response.json() }
-  }, {
-    bookingId: created.id,
-    branchId: fixture.branchId,
-    courseTypeId: fixture.kidsCourseId,
-    month: 7,
-    year: 2030,
-    totalSessions: 9,
-    totalAmount: 4500,
-    expectedTotalPrice: 4500,
-    sessions: editSessions.map((session) => ({
-      date: session.date,
-      startTime: session.start,
-      endTime: session.end,
-      branchId: session.branchId,
-      childId: fixture.multiBranchChildId,
-      scheduleTemplateId: session.scheduleTemplateId,
-    })),
-    clientRequestId: randomUUID(),
-    expectedScopeRevision: 1,
-  })
-  expect(editResponse.status, JSON.stringify(editResponse.body)).toBe(200)
-  expect(editResponse.body).toMatchObject({ success: true, totalPrice: 4500, pricingRevision: 2 })
+  await assertCanonicalSessions(multiBranchSessions(false))
+
+  const { data: branchRows, error: branchError } = await admin.from('branches')
+    .select('id,name')
+    .in('id', [fixture.branchId, fixture.secondBranchId])
+  if (branchError) throw new Error(branchError.message)
+  const branchNames = new Map((branchRows || []).map((branch) => [branch.id, branch.name]))
+  const primaryBranchName = branchNames.get(fixture.branchId)
+  const secondBranchName = branchNames.get(fixture.secondBranchId)
+  if (!primaryBranchName || !secondBranchName) throw new Error('multi-branch fixture names are missing')
+
+  const editDraftKey = `nabs:booking-draft:v2:${fixture.multiBranchUserId}:edit:${created.id}`
+  await page.evaluate((key) => sessionStorage.removeItem(key), editDraftKey)
+  await page.goto(`/dashboard/booking?editBookingId=${created.id}`)
+
+  const calendarHeading = page.getByRole('heading', { name: /เลือกวันเรียน/ })
+  await expect(calendarHeading).toContainText(primaryBranchName)
+  await expect(calendarHeading).toContainText(secondBranchName)
+  await expect(page.getByText('รวมทั้งหมด 9 ครั้ง')).toBeVisible()
+  await expect(page.getByTestId(`remove-session-${fixture.multiBranchChildId}-${MULTI_BRANCH_DATES[0]}-17:00`).locator('..')).toContainText(`@${primaryBranchName}`)
+  await expect(page.getByTestId(`remove-session-${fixture.multiBranchChildId}-${MULTI_BRANCH_DATES[1]}-17:00`).locator('..')).toContainText(`@${secondBranchName}`)
+
+  await page.getByTestId(`remove-session-${fixture.multiBranchChildId}-${MULTI_BRANCH_DATES[0]}-17:00`).click()
+  await page.getByTestId(`booking-date-${MULTI_BRANCH_DATES[0]}`).click()
+  const replacementSlot = page.getByTestId(`booking-slot-${MULTI_BRANCH_DATES[0]}-${fixture.secondBranchId}-17:00`)
+  await expect(replacementSlot).toBeEnabled()
+  await replacementSlot.click()
+  await expect(page.getByText('รวมทั้งหมด 9 ครั้ง')).toBeVisible()
+  await page.getByRole('button', { name: /ถัดไป/ }).click()
+
+  await expect(page.getByTestId('booking-step5-total')).toHaveText('฿4,500')
+  const summaryBranch = page.getByText('สาขา', { exact: true }).locator('..')
+  await expect(summaryBranch).toContainText(primaryBranchName)
+  await expect(summaryBranch).toContainText(secondBranchName)
+  await expect(page.getByText(new RegExp(`@${secondBranchName}`)).first()).toBeVisible()
+  await page.getByTestId('booking-confirm').click()
+  await page.waitForURL(/\/dashboard\/history/)
+
+  const editedSessions = multiBranchSessions(false)
+  const replacementDay = String(new Date(`${MULTI_BRANCH_DATES[0]}T00:00:00Z`).getUTCDay())
+  editedSessions[0] = {
+    ...editedSessions[0],
+    branchId: fixture.secondBranchId,
+    scheduleTemplateId: fixture.secondTemplates[replacementDay],
+    scheduleSlotId: fixture.secondSlots[MULTI_BRANCH_DATES[0]],
+  }
 
   const { data: updated, error: updatedError } = await admin.from('bookings')
     .select('branch_id,total_sessions,total_price,status,entitlement_sessions,pricing_revision,cumulative_sessions_before,cumulative_sessions_after,pricing_rate_snapshot,gross_price_snapshot,coupon_discount_snapshot,final_price_snapshot')
@@ -351,7 +365,24 @@ test('Progressive Kids Group renders and persists 9-session multi-branch create 
     coupon_discount_snapshot: 0,
     final_price_snapshot: 4500,
   })
-  await assertCanonicalSessions(true)
+  await assertCanonicalSessions(editedSessions)
+
+  await page.goto(`/dashboard/booking?editBookingId=${created.id}`)
+  await expect(page.getByRole('heading', { name: /เลือกวันเรียน/ })).toContainText(secondBranchName)
+  await expect(page.getByText('รวมทั้งหมด 9 ครั้ง')).toBeVisible()
+
+  await page.evaluate(({ key, draft }) => sessionStorage.setItem(key, JSON.stringify(draft)), {
+    key: editDraftKey,
+    draft: {
+      ...multiBranchDraft(false),
+      selectedBranchIds: [fixture.branchId],
+    },
+  })
+  await page.reload()
+  await expect(page.getByText('กู้คืนแบบร่างการจองล่าสุดแล้ว')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /เลือกวันเรียน/ })).toContainText(secondBranchName)
+  await expect(page.getByText('รวมทั้งหมด 9 ครั้ง')).toBeVisible()
+  await expect(page.getByTestId(`remove-session-${fixture.multiBranchChildId}-${MULTI_BRANCH_DATES[1]}-17:00`).locator('..')).toContainText(`@${secondBranchName}`)
   expect(await countTables(protectedTables)).toEqual(protectedBefore)
   await expectNoBrowserErrors(browserErrors)
 })
@@ -975,6 +1006,50 @@ test('actual rendered 4+4 flow creates exactly 2,000 and leaves legacy/payment d
     .select('*', { count: 'exact', head: true }).eq('booking_id', created?.id)
   if (createdSessionsError) throw new Error(createdSessionsError.message)
   expect(createdSessions).toBe(4)
+  if (!created?.id) throw new Error('single-branch create did not return a booking id')
+
+  const { data: branchRows, error: branchError } = await admin.from('branches')
+    .select('id,name')
+    .in('id', [fixture.branchId, fixture.secondBranchId])
+  if (branchError) throw new Error(branchError.message)
+  const branchNames = new Map((branchRows || []).map((branch) => [branch.id, branch.name]))
+  const primaryBranchName = branchNames.get(fixture.branchId)
+  const secondBranchName = branchNames.get(fixture.secondBranchId)
+  if (!primaryBranchName || !secondBranchName) throw new Error('single-branch edit fixture names are missing')
+
+  const editDraftKey = `nabs:booking-draft:v2:${fixture.userId}:edit:${created.id}`
+  await page.evaluate((key) => sessionStorage.removeItem(key), editDraftKey)
+  await page.goto(`/dashboard/booking?editBookingId=${created.id}`)
+  const editHeading = page.getByRole('heading', { name: /เลือกวันเรียน/ })
+  await expect(editHeading).toContainText(primaryBranchName)
+  await expect(editHeading).not.toContainText(secondBranchName)
+  await expect(page.getByText('รวมทั้งหมด 4 ครั้ง')).toBeVisible()
+  await page.getByRole('button', { name: /ถัดไป/ }).click()
+  await expect(page.getByTestId('booking-step5-total')).toHaveText('฿2,000')
+  await page.getByTestId('booking-confirm').click()
+  await page.waitForURL(/\/dashboard\/history/)
+
+  const { data: singleBranchUpdated, error: singleBranchUpdateError } = await admin.from('bookings')
+    .select('branch_id,total_sessions,total_price,pricing_revision')
+    .eq('id', created.id)
+    .single()
+  if (singleBranchUpdateError) throw new Error(singleBranchUpdateError.message)
+  expect(singleBranchUpdated).toMatchObject({
+    branch_id: fixture.branchId,
+    total_sessions: 4,
+    total_price: 2000,
+    pricing_revision: 2,
+  })
+  const { data: singleBranchSessions, error: singleBranchSessionsError } = await admin.from('booking_sessions')
+    .select('date,branch_id,schedule_slot_id')
+    .eq('booking_id', created.id)
+    .order('date')
+  if (singleBranchSessionsError) throw new Error(singleBranchSessionsError.message)
+  expect(singleBranchSessions).toEqual(BOOKING_DATES.map((date) => ({
+    date,
+    branch_id: fixture.branchId,
+    schedule_slot_id: fixture.slots[date],
+  })))
 
   const { data: legacyAfter, error: legacyAfterError } = await admin.from('bookings')
     .select('id,total_sessions,total_price,pricing_scope_id,pricing_revision,gross_price_snapshot,final_price_snapshot')

@@ -253,6 +253,15 @@ function isValidSelectedSession(value: unknown, validBranchIds: Set<string>): va
   return true
 }
 
+function getEditSelectedBranchIds(editBooking: EditBookingData | null | undefined, branches: Branch[]) {
+  if (!editBooking) return []
+  const validBranchIds = new Set(branches.map((branch) => branch.id))
+  return Array.from(new Set([
+    editBooking.branch_id,
+    ...editBooking.sessions.map((session) => session.branch_id),
+  ].filter((branchId) => validBranchIds.has(branchId))))
+}
+
 function isMeaningfulDraft({
   courseType,
   learnerType,
@@ -370,7 +379,8 @@ function sanitizeBookingDraft(
   value: unknown,
   validCourseTypes: Set<string>,
   validChildIds: Set<string>,
-  validBranchIds: Set<string>
+  validBranchIds: Set<string>,
+  requiredBranchIds: readonly string[] = [],
 ): Omit<BookingDraft, 'version' | 'updatedAt'> | null {
   if (!isRecord(value)) return null
   if (value.version !== BOOKING_DRAFT_VERSION) return null
@@ -387,7 +397,10 @@ function sanitizeBookingDraft(
   if (!isRecord(value.sessionsMap)) return null
 
   const selectedChildIds = value.selectedChildIds.filter((childId) => validChildIds.has(childId))
-  const selectedBranchIds = value.selectedBranchIds.filter((branchId) => validBranchIds.has(branchId))
+  const selectedBranchIds = Array.from(new Set([
+    ...requiredBranchIds,
+    ...value.selectedBranchIds,
+  ].filter((branchId) => validBranchIds.has(branchId))))
   const selectedChildIdSet = new Set(selectedChildIds)
   const selectedBranchIdSet = new Set(selectedBranchIds)
   const courseType = value.courseType
@@ -429,10 +442,13 @@ function sanitizeBookingDraft(
 export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
+  const editSelectedBranchIds = useMemo(
+    () => getEditSelectedBranchIds(editBooking, branches),
+    [branches, editBooking],
+  )
 
   // Pre-fill from editBooking if in edit mode
   const editCourseTypeName = editBooking?.course_types?.name as CourseTypeName | undefined
-  const editBranchId = editBooking?.branch_id
 
   const [step, setStep] = useState<Step>(isEditMode ? 'calendar' : 'type')
   const [loading, setLoading] = useState(false)
@@ -453,7 +469,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   )
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>(editBooking?.childIds || [])
   const [privateSelfAttend, setPrivateSelfAttend] = useState(false)
-  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(editBranchId ? [editBranchId] : [])
+  const [selectedBranchIds, setSelectedBranchIds] = useState<string[]>(editSelectedBranchIds)
 
   // Calendar state — per-child sessions map
   const now = new Date()
@@ -540,7 +556,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         JSON.parse(rawDraft),
         validCourseTypes,
         validChildIds,
-        validBranchIds
+        validBranchIds,
+        isEditMode ? editSelectedBranchIds : [],
       )
 
       if (!restoredDraft) {
@@ -567,7 +584,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
       window.sessionStorage.removeItem(draftStorageKey)
       setDraftReady(true)
     }
-  }, [draftStorageKey, validBranchIds, validChildIds, validCourseTypes])
+  }, [draftStorageKey, editSelectedBranchIds, isEditMode, validBranchIds, validChildIds, validCourseTypes])
 
   useEffect(() => {
     if (draftReady && !clientRequestId) setClientRequestId(createClientRequestId())
