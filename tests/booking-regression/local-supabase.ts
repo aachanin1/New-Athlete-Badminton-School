@@ -8,10 +8,12 @@ export const FIXTURE_PATH = resolve(ROOT, '.playwright/booking-fixture.json')
 
 export const IDS = {
   branch: '11000000-0000-4000-8000-000000000001',
+  secondBranch: '11000000-0000-4000-8000-000000000002',
   kidsCourse: '22000000-0000-4000-8000-000000000001',
   adultCourse: '22000000-0000-4000-8000-000000000002',
   privateCourse: '22000000-0000-4000-8000-000000000003',
   mainChild: '33000000-0000-4000-8000-000000000001',
+  multiBranchChild: '33000000-0000-4000-8000-000000000002',
   coupon: '44000000-0000-4000-8000-000000000001',
   legacyBooking: '55000000-0000-4000-8000-000000000001',
 } as const
@@ -30,10 +32,35 @@ export const TEST_ADMIN_ACCOUNT = {
   fullName: 'ผู้ดูแลทดสอบ Booking Regression',
 }
 
-export const BOOKING_DATES = ['2026-07-20', '2026-07-21', '2026-07-23', '2026-07-24'] as const
-export const FULL_DATE = '2026-07-22'
-export const OVERFULL_DATE = '2026-07-26'
-export const RACE_DATE = '2026-07-25'
+export const MULTI_BRANCH_TEST_ACCOUNT = {
+  email: 'booking-regression-multibranch@example.com',
+  password: TEST_ACCOUNT.password,
+  fullName: 'Multi Branch Booking Parent',
+  childName: 'Multi Branch Booking Child',
+  childNickname: 'MultiBranch',
+}
+
+export const BOOKING_MONTH = 7
+export const BOOKING_YEAR = 2031
+export const LEGACY_BASELINE_DATES = ['2031-07-01', '2031-07-02', '2031-07-03', '2031-07-04'] as const
+export const BOOKING_DATES = ['2031-07-20', '2031-07-21', '2031-07-23', '2031-07-24'] as const
+export const FULL_DATE = '2031-07-22'
+export const OVERFULL_DATE = '2031-07-26'
+export const RACE_DATE = '2031-07-25'
+export const PRIVATE_TARGET_DATE = '2031-07-13'
+export const OTHER_MONTH_DATE = '2031-08-03'
+export const BOOKING_MONTH_END = '2031-07-31T16:59:59Z'
+export const MULTI_BRANCH_DATES = [
+  '2030-07-01',
+  '2030-07-02',
+  '2030-07-03',
+  '2030-07-04',
+  '2030-07-05',
+  '2030-07-06',
+  '2030-07-07',
+  '2030-07-08',
+  '2030-07-09',
+] as const
 
 export interface LocalSupabaseEnv {
   apiUrl: string
@@ -45,15 +72,20 @@ export interface BookingFixture {
   userId: string
   otherUserId: string
   adminUserId: string
+  multiBranchUserId: string
   branchId: string
+  secondBranchId: string
   kidsCourseId: string
   adultCourseId: string
   privateCourseId: string
   mainChildId: string
+  multiBranchChildId: string
   couponId: string
   legacyBookingId: string
   templates: Record<string, string>
   slots: Record<string, string>
+  secondTemplates: Record<string, string>
+  secondSlots: Record<string, string>
 }
 
 function requireLocalUrl(value: string) {
@@ -142,15 +174,29 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
   const userId = await createTestUser(admin, TEST_ACCOUNT.email, TEST_ACCOUNT.fullName)
   const otherUserId = await createTestUser(admin, 'booking-regression-occupancy@example.com', 'ผู้ปกครองทดสอบ Occupancy')
   const adminUserId = await createTestUser(admin, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.fullName)
+  const multiBranchUserId = await createTestUser(
+    admin,
+    MULTI_BRANCH_TEST_ACCOUNT.email,
+    MULTI_BRANCH_TEST_ACCOUNT.fullName,
+  )
   assertNoError((await admin.from('profiles').update({ role: 'super_admin' }).eq('id', adminUserId)).error, 'promote booking regression admin')
 
-  assertNoError((await admin.from('branches').insert({
-    id: IDS.branch,
-    name: 'สาขาทดสอบ Localhost',
-    slug: 'localhost-regression',
-    address: 'Disposable database only',
-    is_active: true,
-  })).error, 'insert branch')
+  assertNoError((await admin.from('branches').insert([
+    {
+      id: IDS.branch,
+      name: 'สาขาทดสอบ Localhost',
+      slug: 'localhost-regression',
+      address: 'Disposable database only',
+      is_active: true,
+    },
+    {
+      id: IDS.secondBranch,
+      name: 'Multi Branch Localhost',
+      slug: 'localhost-regression-second',
+      address: 'Disposable database only',
+      is_active: true,
+    },
+  ])).error, 'insert branches')
 
   assertNoError((await admin.from('course_types').insert([
     { id: IDS.kidsCourse, name: 'kids_group', description: 'Local progressive fixture', max_students: 6, duration_hours: 2 },
@@ -183,6 +229,14 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     date_of_birth: '2016-01-01',
   })).error, 'insert main child')
 
+  assertNoError((await admin.from('children').insert({
+    id: IDS.multiBranchChild,
+    parent_id: multiBranchUserId,
+    full_name: MULTI_BRANCH_TEST_ACCOUNT.childName,
+    nickname: MULTI_BRANCH_TEST_ACCOUNT.childNickname,
+    date_of_birth: '2016-01-02',
+  })).error, 'insert multi-branch child')
+
   const otherChildren = Array.from({ length: 20 }, (_, index) => ({
     id: fixedUuid('7700000', index + 1),
     parent_id: otherUserId,
@@ -192,7 +246,14 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
   }))
   assertNoError((await admin.from('children').insert(otherChildren)).error, 'insert occupancy children')
 
-  const dates = ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', ...BOOKING_DATES, FULL_DATE, OVERFULL_DATE, RACE_DATE]
+  const dates = [
+    ...LEGACY_BASELINE_DATES,
+    ...BOOKING_DATES,
+    FULL_DATE,
+    OVERFULL_DATE,
+    RACE_DATE,
+    ...MULTI_BRANCH_DATES,
+  ]
   const days = Array.from(new Set(dates.map((date) => new Date(`${date}T00:00:00Z`).getUTCDay())))
   const templates: Record<string, string> = {}
   for (const day of days) {
@@ -224,6 +285,39 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     status: 'open',
   })))).error, 'insert schedule slots')
 
+  const secondDays = Array.from(new Set(
+    MULTI_BRANCH_DATES.map((date) => new Date(`${date}T00:00:00Z`).getUTCDay()),
+  ))
+  const secondTemplates: Record<string, string> = {}
+  for (const day of secondDays) secondTemplates[String(day)] = fixedUuid('8810000', day + 1)
+  assertNoError((await admin.from('schedule_templates').insert(secondDays.map((day) => ({
+    id: secondTemplates[String(day)],
+    branch_id: IDS.secondBranch,
+    course_type_id: IDS.kidsCourse,
+    day_of_week: day,
+    start_time: '17:00',
+    end_time: '19:00',
+    is_active: true,
+    notes: 'Disposable multi-branch booking regression fixture',
+  })))).error, 'insert second-branch schedule templates')
+
+  const secondSlots: Record<string, string> = {}
+  for (const [index, date] of MULTI_BRANCH_DATES.entries()) {
+    secondSlots[date] = fixedUuid('9910000', index + 1)
+  }
+  assertNoError((await admin.from('schedule_slots').insert(MULTI_BRANCH_DATES.map((date) => ({
+    id: secondSlots[date],
+    template_id: secondTemplates[String(new Date(`${date}T00:00:00Z`).getUTCDay())],
+    branch_id: IDS.secondBranch,
+    course_type_id: IDS.kidsCourse,
+    date,
+    start_time: '17:00',
+    end_time: '19:00',
+    max_students: 6,
+    current_students: 0,
+    status: 'open',
+  })))).error, 'insert second-branch schedule slots')
+
   assertNoError((await admin.from('bookings').insert({
     id: IDS.legacyBooking,
     user_id: userId,
@@ -231,15 +325,15 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     child_id: IDS.mainChild,
     branch_id: IDS.branch,
     course_type_id: IDS.kidsCourse,
-    month: 7,
-    year: 2026,
+    month: BOOKING_MONTH,
+    year: BOOKING_YEAR,
     total_sessions: 4,
     total_price: 2500,
     status: 'verified',
     entitlement_sessions: 4,
     created_at: '2026-07-01T01:00:00Z',
   })).error, 'insert legacy baseline booking')
-  assertNoError((await admin.from('booking_sessions').insert(['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04'].map((date, index) => ({
+  assertNoError((await admin.from('booking_sessions').insert(LEGACY_BASELINE_DATES.map((date, index) => ({
     id: fixedUuid('aa00000', index + 1),
     booking_id: IDS.legacyBooking,
     schedule_slot_id: slots[date],
@@ -263,8 +357,8 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
       child_id: otherChildren[index].id,
       branch_id: IDS.branch,
       course_type_id: IDS.kidsCourse,
-      month: 7,
-      year: 2026,
+      month: BOOKING_MONTH,
+      year: BOOKING_YEAR,
       total_sessions: occupiedDates.length,
       total_price: 0,
       status: 'verified',
@@ -298,8 +392,8 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
       child_id: otherChildren[0].id,
       branch_id: IDS.branch,
       course_type_id: IDS.kidsCourse,
-      month: 7,
-      year: 2026,
+      month: BOOKING_MONTH,
+      year: BOOKING_YEAR,
       total_sessions: 1,
       total_price: 0,
       status: item.status,
@@ -329,7 +423,7 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     max_uses: 20,
     current_uses: 0,
     valid_from: '2026-01-01',
-    valid_to: '2026-12-31',
+    valid_to: `${BOOKING_YEAR}-12-31`,
     created_by: userId,
     is_active: true,
   })).error, 'insert coupon')
@@ -339,16 +433,20 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
   })).error, 'insert coupon course type')
 
   const fixture: BookingFixture = {
-    userId, otherUserId, adminUserId,
+    userId, otherUserId, adminUserId, multiBranchUserId,
     branchId: IDS.branch,
+    secondBranchId: IDS.secondBranch,
     kidsCourseId: IDS.kidsCourse,
     adultCourseId: IDS.adultCourse,
     privateCourseId: IDS.privateCourse,
     mainChildId: IDS.mainChild,
+    multiBranchChildId: IDS.multiBranchChild,
     couponId: IDS.coupon,
     legacyBookingId: IDS.legacyBooking,
     templates,
     slots,
+    secondTemplates,
+    secondSlots,
   }
   mkdirSync(dirname(FIXTURE_PATH), { recursive: true })
   writeFileSync(FIXTURE_PATH, JSON.stringify(fixture, null, 2))
@@ -363,10 +461,12 @@ export async function getFixtureResidueCount() {
   const admin = createLocalAdmin()
   const fixedRows = [
     ['branches', IDS.branch],
+    ['branches', IDS.secondBranch],
     ['course_types', IDS.kidsCourse],
     ['course_types', IDS.adultCourse],
     ['course_types', IDS.privateCourse],
     ['children', IDS.mainChild],
+    ['children', IDS.multiBranchChild],
     ['coupons', IDS.coupon],
     ['bookings', IDS.legacyBooking],
   ] as const

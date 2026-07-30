@@ -2,9 +2,16 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import {
   BOOKING_DATES,
+  BOOKING_MONTH,
+  BOOKING_MONTH_END,
+  BOOKING_YEAR,
   FULL_DATE,
   IDS,
+  MULTI_BRANCH_DATES,
+  MULTI_BRANCH_TEST_ACCOUNT,
+  OTHER_MONTH_DATE,
   OVERFULL_DATE,
+  PRIVATE_TARGET_DATE,
   RACE_DATE,
   TEST_ACCOUNT,
   TEST_ADMIN_ACCOUNT,
@@ -105,8 +112,8 @@ function bookingDraft(dates: readonly string[], step: 'calendar' | 'summary' = '
     selectedChildIds: [fixture.mainChildId],
     privateSelfAttend: false,
     selectedBranchIds: [fixture.branchId],
-    calMonth: 6,
-    calYear: 2026,
+    calMonth: BOOKING_MONTH - 1,
+    calYear: BOOKING_YEAR,
     sessionsMap: { [fixture.mainChildId]: dates.map(draftSession) },
     activeChildTab: fixture.mainChildId,
     clientRequestId: randomUUID(),
@@ -129,6 +136,11 @@ async function selectKidsFlow(page: Page, dates: readonly string[]) {
   await page.getByRole('button', { name: /ถัดไป/ }).click()
   await page.getByText('สาขาทดสอบ Localhost', { exact: true }).click()
   await page.getByRole('button', { name: /ถัดไป/ }).click()
+  await page.addInitScript(({ key, draft }) => sessionStorage.setItem(key, JSON.stringify(draft)), {
+    key: `nabs:booking-draft:v2:${fixture.userId}:new`,
+    draft: bookingDraft([]),
+  })
+  await page.reload()
   for (const date of dates) {
     await page.getByTestId(`booking-date-${date}`).click()
     const slot = page.getByTestId(`booking-slot-${date}-${fixture.branchId}-17:00`)
@@ -148,14 +160,210 @@ async function countForUser(table: string, userId: string) {
   return count || 0
 }
 
+function multiBranchSessions(invertBranches = false) {
+  return MULTI_BRANCH_DATES.map((date, index) => {
+    const useSecondBranch = invertBranches ? index % 2 === 0 : index % 2 === 1
+    const day = String(new Date(`${date}T00:00:00Z`).getUTCDay())
+    return {
+      date,
+      dayOfWeek: Number(day),
+      start: '17:00',
+      end: '19:00',
+      branchId: useSecondBranch ? fixture.secondBranchId : fixture.branchId,
+      scheduleTemplateId: useSecondBranch ? fixture.secondTemplates[day] : fixture.templates[day],
+      scheduleSlotId: useSecondBranch ? fixture.secondSlots[date] : fixture.slots[date],
+    }
+  })
+}
+
+function multiBranchDraft(invertBranches = false) {
+  return {
+    version: 2,
+    step: 'calendar',
+    courseType: 'kids_group',
+    learnerType: 'child',
+    selectedChildIds: [fixture.multiBranchChildId],
+    privateSelfAttend: false,
+    selectedBranchIds: [fixture.branchId, fixture.secondBranchId],
+    calMonth: 6,
+    calYear: 2030,
+    sessionsMap: { [fixture.multiBranchChildId]: multiBranchSessions(invertBranches) },
+    activeChildTab: fixture.multiBranchChildId,
+    clientRequestId: randomUUID(),
+    updatedAt: Date.now(),
+  }
+}
+
+async function restoreMultiBranchDraft(page: Page, bookingId?: string, invertBranches = false) {
+  await page.addInitScript(({ key, draft }) => sessionStorage.setItem(key, JSON.stringify(draft)), {
+    key: `nabs:booking-draft:v2:${fixture.multiBranchUserId}:${bookingId || 'new'}`,
+    draft: multiBranchDraft(invertBranches),
+  })
+  await page.goto(bookingId
+    ? `/dashboard/booking?editBookingId=${bookingId}`
+    : '/dashboard/booking')
+}
+
+async function countTables(tables: readonly string[]) {
+  const admin = createLocalAdmin()
+  const counts: Record<string, number> = {}
+  for (const table of tables) {
+    const { count, error } = await admin.from(table).select('*', { count: 'exact', head: true })
+    if (error) throw new Error(`count ${table}: ${error.message}`)
+    counts[table] = count || 0
+  }
+  return counts
+}
+
+test('Progressive Kids Group renders and persists 9-session multi-branch create plus pending edit at 4,500', async ({ page }) => {
+  const browserErrors = observeBrowserErrors(page)
+  const admin = createLocalAdmin()
+  const protectedTables = [
+    'payments',
+    'progressive_coupon_reservations',
+    'coupon_usages',
+    'progressive_payment_batches',
+    'progressive_payment_batch_bookings',
+    'progressive_payment_verification_attempts',
+    'progressive_payment_allocations',
+    'payment_ledger_allocations_v1',
+    'finance_expenses',
+    'lesson_wallet_credits',
+  ] as const
+  const protectedBefore = await countTables(protectedTables)
+
+  await loginAs(page, MULTI_BRANCH_TEST_ACCOUNT.email, MULTI_BRANCH_TEST_ACCOUNT.password)
+  await restoreMultiBranchDraft(page)
+  await expect(page.getByText('รวมทั้งหมด 9 ครั้ง')).toBeVisible()
+  await expect(page.getByText(/@Multi Branch Localhost/).first()).toBeVisible()
+  await expect(page.getByTestId('booking-step4-total')).toHaveText('฿4,500')
+  await page.getByRole('button', { name: /ถัดไป/ }).click()
+  await expect(page.getByTestId('booking-step5-total')).toHaveText('฿4,500')
+  await expect(page.getByTestId('booking-progressive-preview')).toContainText('ครั้งนี้เลือกเพิ่ม 9 ครั้ง')
+  await page.getByTestId('booking-confirm').click()
+  await page.waitForURL(/\/dashboard\/history/)
+
+  const { data: created, error: createdError } = await admin.from('bookings')
+    .select('id,branch_id,total_sessions,total_price,status,entitlement_sessions,pricing_scope_id,pricing_revision,cumulative_sessions_before,cumulative_sessions_after,pricing_rate_snapshot,gross_price_snapshot,coupon_discount_snapshot,final_price_snapshot')
+    .eq('user_id', fixture.multiBranchUserId)
+    .eq('course_type_id', fixture.kidsCourseId)
+    .eq('month', 7)
+    .eq('year', 2030)
+    .single()
+  if (createdError) throw new Error(createdError.message)
+  expect(created).toMatchObject({
+    branch_id: fixture.branchId,
+    total_sessions: 9,
+    total_price: 4500,
+    status: 'pending_payment',
+    entitlement_sessions: 9,
+    pricing_revision: 1,
+    cumulative_sessions_before: 0,
+    cumulative_sessions_after: 9,
+    pricing_rate_snapshot: 500,
+    gross_price_snapshot: 4500,
+    coupon_discount_snapshot: 0,
+    final_price_snapshot: 4500,
+  })
+  expect(created?.pricing_scope_id).toBeTruthy()
+  if (!created?.id) throw new Error('multi-branch create did not return a booking id')
+
+  const assertCanonicalSessions = async (invertBranches: boolean) => {
+    const expected = multiBranchSessions(invertBranches)
+    const { data: sessions, error } = await admin.from('booking_sessions')
+      .select('date,branch_id,schedule_slot_id')
+      .eq('booking_id', created.id)
+      .order('date')
+    if (error) throw new Error(error.message)
+    expect(sessions).toHaveLength(9)
+    expect(sessions).toEqual(expected.map((session) => ({
+      date: session.date,
+      branch_id: session.branchId,
+      schedule_slot_id: session.scheduleSlotId,
+    })))
+
+    const expectedSlots = expected.map((session) => session.scheduleSlotId)
+    const { data: slots, error: slotError } = await admin.from('schedule_slots')
+      .select('id,template_id,branch_id,date,start_time,end_time')
+      .in('id', expectedSlots)
+    if (slotError) throw new Error(slotError.message)
+    const slotsById = new Map((slots || []).map((slot) => [slot.id, slot]))
+    for (const session of expected) {
+      expect(slotsById.get(session.scheduleSlotId)).toMatchObject({
+        id: session.scheduleSlotId,
+        template_id: session.scheduleTemplateId,
+        branch_id: session.branchId,
+        date: session.date,
+        start_time: '17:00:00',
+        end_time: '19:00:00',
+      })
+    }
+  }
+
+  await assertCanonicalSessions(false)
+  const editSessions = multiBranchSessions(true)
+  const editResponse = await page.evaluate(async (payload) => {
+    const response = await fetch('/api/bookings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return { status: response.status, body: await response.json() }
+  }, {
+    bookingId: created.id,
+    branchId: fixture.branchId,
+    courseTypeId: fixture.kidsCourseId,
+    month: 7,
+    year: 2030,
+    totalSessions: 9,
+    totalAmount: 4500,
+    expectedTotalPrice: 4500,
+    sessions: editSessions.map((session) => ({
+      date: session.date,
+      startTime: session.start,
+      endTime: session.end,
+      branchId: session.branchId,
+      childId: fixture.multiBranchChildId,
+      scheduleTemplateId: session.scheduleTemplateId,
+    })),
+    clientRequestId: randomUUID(),
+    expectedScopeRevision: 1,
+  })
+  expect(editResponse.status, JSON.stringify(editResponse.body)).toBe(200)
+  expect(editResponse.body).toMatchObject({ success: true, totalPrice: 4500, pricingRevision: 2 })
+
+  const { data: updated, error: updatedError } = await admin.from('bookings')
+    .select('branch_id,total_sessions,total_price,status,entitlement_sessions,pricing_revision,cumulative_sessions_before,cumulative_sessions_after,pricing_rate_snapshot,gross_price_snapshot,coupon_discount_snapshot,final_price_snapshot')
+    .eq('id', created.id)
+    .single()
+  if (updatedError) throw new Error(updatedError.message)
+  expect(updated).toMatchObject({
+    branch_id: fixture.branchId,
+    total_sessions: 9,
+    total_price: 4500,
+    status: 'pending_payment',
+    entitlement_sessions: 9,
+    pricing_revision: 2,
+    cumulative_sessions_before: 0,
+    cumulative_sessions_after: 9,
+    pricing_rate_snapshot: 500,
+    gross_price_snapshot: 4500,
+    coupon_discount_snapshot: 0,
+    final_price_snapshot: 4500,
+  })
+  await assertCanonicalSessions(true)
+  expect(await countTables(protectedTables)).toEqual(protectedBefore)
+  await expectNoBrowserErrors(browserErrors)
+})
+
 test('authoritative availability keeps occupancy informational and does not disable learner 7', async ({ page }, testInfo) => {
   const browserErrors = observeBrowserErrors(page)
   await verifyRootAndStaticAssets(page)
   await verifyUnauthenticatedBookingGuards(page)
   await openBooking(page)
 
-  const availability = await page.evaluate(async ({ kidsCourseId, branchId, templates, FULL_DATE, OVERFULL_DATE }) => {
-    const candidates = ['2026-07-20', '2026-07-21', FULL_DATE, OVERFULL_DATE].map((date) => ({
+  const availability = await page.evaluate(async ({ kidsCourseId, branchId, templates, BOOKING_DATES, FULL_DATE, OVERFULL_DATE }) => {
+    const candidates = [BOOKING_DATES[0], BOOKING_DATES[1], FULL_DATE, OVERFULL_DATE].map((date) => ({
       date,
       startTime: '17:00',
       endTime: '19:00',
@@ -167,12 +375,12 @@ test('authoritative availability keeps occupancy informational and does not disa
       body: JSON.stringify({ courseTypeId: kidsCourseId, slots: candidates }),
     })
     return { status: response.status, body: await response.json() }
-  }, { ...fixture, FULL_DATE, OVERFULL_DATE })
+  }, { ...fixture, BOOKING_DATES, FULL_DATE, OVERFULL_DATE })
   expect(availability.status).toBe(200)
   const byDate = new Map(availability.body.slots.map((slot: { date: string; activeOccupancy: number; valid: boolean }) => [slot.date, slot]))
-  expect(byDate.get('2026-07-20')).toMatchObject({ activeOccupancy: 5, valid: true })
-  expect(byDate.get('2026-07-21')).toMatchObject({ activeOccupancy: 0, valid: true })
-  expect(byDate.get('2026-07-22')).toMatchObject({ activeOccupancy: 6, valid: true })
+  expect(byDate.get(BOOKING_DATES[0])).toMatchObject({ activeOccupancy: 5, valid: true })
+  expect(byDate.get(BOOKING_DATES[1])).toMatchObject({ activeOccupancy: 0, valid: true })
+  expect(byDate.get(FULL_DATE)).toMatchObject({ activeOccupancy: 6, valid: true })
   expect(byDate.get(OVERFULL_DATE)).toMatchObject({ activeOccupancy: 20, valid: true })
   for (const slot of availability.body.slots) {
     expect(slot).not.toHaveProperty('capacity')
@@ -192,15 +400,15 @@ test('authoritative availability keeps occupancy informational and does not disa
   await expect(overfullSlot).not.toContainText(/เต็ม|\/20/)
   await page.screenshot({ path: testInfo.outputPath('learner-7-slot-enabled.png'), fullPage: true })
 
-  const legacyModes = await page.evaluate(async ({ adultCourseId, privateCourseId }) => Promise.all(
+  const legacyModes = await page.evaluate(async ({ adultCourseId, privateCourseId, bookingMonth, bookingYear }) => Promise.all(
     [adultCourseId, privateCourseId].map(async (courseTypeId) => {
       const response = await fetch('/api/bookings/preview', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseTypeId, month: 7, year: 2026, totalSessions: 1 }),
+        body: JSON.stringify({ courseTypeId, month: bookingMonth, year: bookingYear, totalSessions: 1 }),
       })
       return (await response.json()).mode
     }),
-  ), fixture)
+  ), { ...fixture, bookingMonth: BOOKING_MONTH, bookingYear: BOOKING_YEAR })
   expect(legacyModes).toEqual(['legacy', 'legacy'])
   await expectNoBrowserErrors(browserErrors)
 })
@@ -223,8 +431,8 @@ test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page })
   const { error: sourceError } = await admin.from('booking_sessions').insert({
     id: sourceSessionId,
     booking_id: fixture.legacyBookingId,
-    schedule_slot_id: fixture.slots['2026-07-21'],
-    date: '2026-07-21', start_time: '17:00', end_time: '19:00',
+    schedule_slot_id: fixture.slots[BOOKING_DATES[1]],
+    date: BOOKING_DATES[1], start_time: '17:00', end_time: '19:00',
     branch_id: fixture.branchId, child_id: fixture.mainChildId, status: 'scheduled',
   })
   if (sourceError) throw new Error(sourceError.message)
@@ -255,8 +463,8 @@ test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page })
     child_id: fixture.mainChildId,
     branch_id: fixture.branchId,
     course_type_id: fixture.kidsCourseId,
-    original_date: '2026-07-21', original_start_time: '17:00', original_end_time: '19:00',
-    status: 'active', expires_at: '2026-07-31T16:59:59Z',
+    original_date: BOOKING_DATES[1], original_start_time: '17:00', original_end_time: '19:00',
+    status: 'active', expires_at: BOOKING_MONTH_END,
   })
   if (creditError) throw new Error(creditError.message)
   const paymentCountBefore = await countForUser('payments', fixture.userId)
@@ -282,7 +490,7 @@ test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page })
 test('Lesson Wallet canonical Private Sunday redemption falls back safely and remains atomic', async ({ page }) => {
   await login(page)
   const admin = createLocalAdmin()
-  const targetDate = '2026-07-19'
+  const targetDate = PRIVATE_TARGET_DATE
   const targetStart = '17:00'
   const targetEnd = '18:00'
   const privateBookingId = 'a1000000-0000-4000-8000-000000000001'
@@ -339,8 +547,8 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
     child_id: fixture.mainChildId,
     branch_id: fixture.branchId,
     course_type_id: fixture.privateCourseId,
-    month: 7,
-    year: 2026,
+    month: BOOKING_MONTH,
+    year: BOOKING_YEAR,
     total_sessions: 1,
     total_price: 1000,
     status: 'verified',
@@ -350,7 +558,7 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
   const sourceError = (await admin.from('booking_sessions').insert({
     id: sourceSessionId,
     booking_id: privateBookingId,
-    date: '2026-07-25',
+    date: RACE_DATE,
     start_time: '16:00:00',
     end_time: '17:00:00',
     branch_id: fixture.branchId,
@@ -370,11 +578,11 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
       child_id: fixture.mainChildId,
       branch_id: fixture.branchId,
       course_type_id: fixture.privateCourseId,
-      original_date: '2026-07-25',
+      original_date: RACE_DATE,
       original_start_time: '16:00:00',
       original_end_time: '17:00:00',
       status: 'active',
-      expires_at: '2026-07-31T16:59:59Z',
+      expires_at: BOOKING_MONTH_END,
     })
     if (error) throw new Error(error.message)
     return id
@@ -438,7 +646,7 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
   await page.goto('/dashboard/lesson-wallet')
   await expect(page.getByRole('heading', { name: 'กระเป๋าวันเรียน' })).toBeVisible()
   await page.getByRole('button', { name: 'ใช้วันเรียน', exact: true }).click()
-  await page.getByRole('button', { name: '19', exact: true }).click()
+  await page.getByRole('button', { name: String(Number(targetDate.slice(-2))), exact: true }).click()
   const renderedBranch = page.getByText('สาขาทดสอบ Localhost', { exact: true }).locator('..')
   await expect(renderedBranch).toBeVisible()
   const renderedSlot = renderedBranch.getByRole('button', { name: /17:00-18:00/ })
@@ -541,7 +749,7 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
   expect(pastResponse.status).toBe(400)
   await admin.from('lesson_wallet_credits').delete().eq('id', pastCreditId)
   const otherMonthCreditId = await createCredit()
-  const otherMonthResponse = await redeem(otherMonthCreditId, canonicalTemplateId, { targetDate: '2026-08-02' })
+  const otherMonthResponse = await redeem(otherMonthCreditId, canonicalTemplateId, { targetDate: OTHER_MONTH_DATE })
   expect(otherMonthResponse.status).toBe(400)
   await admin.from('lesson_wallet_credits').delete().eq('id', otherMonthCreditId)
 
@@ -586,11 +794,11 @@ test('Admin Makeup selects a canonical slot above occupancy 20 without a capacit
   const { error: bookingError } = await admin.from('bookings').insert({
     id: bookingId, user_id: fixture.otherUserId, learner_type: 'child', child_id: makeupChildId,
     branch_id: fixture.branchId, course_type_id: fixture.kidsCourseId,
-    month: 6, year: 2026, total_sessions: 1, total_price: 0, status: 'verified',
+    month: BOOKING_MONTH - 1, year: BOOKING_YEAR, total_sessions: 1, total_price: 0, status: 'verified',
   })
   if (bookingError) throw new Error(bookingError.message)
   const { error: sessionError } = await admin.from('booking_sessions').insert({
-    id: originalSessionId, booking_id: bookingId, date: '2026-06-20', start_time: '17:00', end_time: '19:00',
+    id: originalSessionId, booking_id: bookingId, date: `${BOOKING_YEAR}-06-20`, start_time: '17:00', end_time: '19:00',
     branch_id: fixture.branchId, child_id: makeupChildId, status: 'absent',
   })
   if (sessionError) throw new Error(sessionError.message)
