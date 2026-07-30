@@ -2,6 +2,238 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-30 — Progressive Kids Group Multi-Branch Create + Pending Edit Source/Local Gate
+
+Status at this local checkpoint: **PASS — SOURCE ONLY; SCOPED SOURCE AND FOCUSED
+LOCAL REGRESSIONS PASS; FULL BOOKING E2E COMMAND NOT GREEN DUE TO A PRE-EXISTING
+EXPIRED-DATE FIXTURE; UNSTAGED / UNCOMMITTED / UNPUSHED / UNDEPLOYED;
+PRODUCTION UNTOUCHED**.
+
+State observed at this closeout:
+
+- Owner selected this as the single Active Task and authorized Source Fix + Local
+  Test only. Fresh Gate 0 verified repository root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, local/upstream/origin HEAD
+  `7b7dd912d46b28d4ca299c9221f53abe4c67d075`, Ahead/Behind `0/0`, empty staged
+  and untracked sets, and the five disclosed pre-existing dirty paths.
+- Baseline worktree blob hashes were captured before the task: `AGENTS.md`
+  `e979a2c895dd8fe60a651b4e41f71d49ca020f35`;
+  `DEVELOPMENT_TODO.md` `b9ca8979e1965d59210344313292b25ff6ee0ea5`;
+  `PROJECT_STATE.md` `5703befbb08a7798a218dbd0eb20095d7be4c378`;
+  `TODO-CODEX.md` `f15da96c03bb3ed056edb012c7caf0c1bbf32ae7`;
+  and `src/lib/schedule-slot-utils.ts`
+  `4521281d099efb189429a744909552d67871ff23`. The two excluded files retain those
+  exact hashes and have no task-attributable diff; the three context documents
+  retain their prior hunks plus only this task's reconciliation.
+- Audit First confirmed the call chain
+  `booking-client → POST/PUT /api/bookings → createProgressiveBooking() /
+  updateProgressivePendingBooking() → progressive_requested_sessions_v1()`.
+  The UI already exposes multi-branch choice; the request/helper layers preserve
+  per-session `branch_id` and `schedule_template_id` while separately retaining
+  the primary `p_booking_branch_id`.
+- Root Cause is the effective function's isolated
+  `v_branch <> p_booking_branch_id` rejection. Its remaining active-template and
+  canonical-slot lookup already keys on each session's branch/course/day/time and
+  optional template hint. Create/update continue to keep `bookings.branch_id` as
+  the request primary branch and persist each requested session's own branch,
+  template, and canonical slot. Read-only consumer review found no need to change
+  API/UI payloads, booking-primary-branch semantics, authorization, or reporting.
+- Regression-first execution added the approved fixtures/tests, reset Local
+  Supabase to the previous effective schema, and proved the valid two-branch RPC
+  create fails exactly with `PROGRESSIVE_INVALID_REQUEST`; the transaction left
+  fixture/booking residue `0`. This expected pre-fix proof is not classified as a
+  final regression failure.
+- The exact functional change is one additive migration:
+  `supabase/migrations/20260730000000_fix_progressive_multibranch_booking.sql`.
+  It uses `CREATE OR REPLACE FUNCTION` and removes only the all-sessions-equal-
+  primary-branch rejection. Automated comparison matched the previous function
+  body minus that block. Signature, return contract, `plpgsql`, `STABLE`, invoker
+  security, `search_path`, owner, ACL/grants, ownership/timing/same-month/template,
+  duplicate/overlap, canonical-slot, idempotency/concurrency/atomicity, Option A,
+  and pricing behavior remain unchanged. There is no DML backfill or table/schema/
+  grant/RLS change.
+- Exact test changes are
+  `scripts/check-unlimited-slot-entry-runtime.sql`,
+  `tests/booking-regression/local-supabase.ts`, and
+  `tests/booking-regression/booking.spec.ts`. They add a disposable second branch
+  with active canonical templates/slots; valid two-branch create/pending edit;
+  exact baseline-zero `9 × 500 = 4,500`; per-session branch/template/slot linkage;
+  single-branch behavior; inactive/nonexistent/cross-branch template, past/started,
+  multi-month, unauthorized-child, duplicate/overlap, and cancelled-slot guards;
+  unlimited occupancy; idempotent replay/concurrency; and no-partial-artifact
+  assertions across bookings, sessions, scopes/snapshots/receipts, coupon/payment/
+  allocation, Ledger, Finance, wallet, and activity evidence. The retained
+  deterministic rendered `4+4 = 2,000` Option A assertion also passes.
+- Final Local evidence: `npx supabase db reset --local` passed the full migration
+  chain; direct runtime SQL passed and rolled back; focused new rendered/API E2E
+  passed `1/1` with teardown residue `0`; TypeScript, zero-warning ESLint,
+  mojibake `250`, Progressive entry `31/31`, Progressive pricing `17/17`, Option A
+  Legacy baseline `32/32`, Progressive transactions `33/33`, unlimited UX `27/27`,
+  and Legacy baseline concurrency `8/8` passed. Next.js `16.2.6` build passed
+  compile/type/static generation `91/91`; only the generated repository `.next`
+  was removed after exact-path validation, the dev server was restarted on
+  `127.0.0.1:3000`, and root plus CSS asset returned HTTP `200`. Local DB advisors
+  exited `0` and contained no reference to the changed function/migration.
+- Full `npm run test:booking-regression:e2e` is **Failed at command level only due
+  to pre-existing fixture age**: the new task test passes first, then the old
+  availability test times out clicking disabled past date `2026-07-22`; nine
+  serial tests are skipped and teardown residue remains `0`. The same failure was
+  reproduced before any task edit. Correcting that fixture is outside the exact
+  allowlist and was not attempted.
+- Exact allowlist/blast radius is one functional migration, three test files, and
+  three documentation files. No API, UI, helper, old migration, pricing/payment/
+  coupon/wallet/reschedule/makeup/attendance/coach/admin source, package/lockfile,
+  environment, feature control, allowlist, remote/Production resource, or data
+  changed. Scope Expansion: **No**. Scope Breach: **No**.
+- Source Complete: **Yes — authorized local scope only**. Tests Passed:
+  **Focused/required static and build checks yes; full E2E command no because of
+  the proved pre-existing expired fixture**. Migration Applied Locally: **Yes**.
+  Migration Applied Remotely: **No**. Committed/Pushed/Deployed: **No/No/No**.
+  Production Active/UAT/Controlled Write UAT: **No/Not run/Not run**. Data
+  Repaired/Production Data Changed: **No/No**. Customer/Financial impact from this
+  gate: **None/None**. Task Done: **No**.
+- Next Action: stop and await Owner/PM review. Any correction round, old-fixture
+  repair, Commit/Push, remote migration, Deploy, Production UAT/write, repair, or
+  Parking Lot work requires a new explicit Owner gate.
+
+#### 2026-07-30 Owner-Approved Test Fixture Correction Round
+
+Status at this correction closeout: **PASS — LOCAL TEST ONLY; FUNCTIONAL SOURCE
+UNCHANGED; FULL BOOKING E2E `11/11`; UNSTAGED / UNCOMMITTED / UNPUSHED /
+UNDEPLOYED; PRODUCTION UNTOUCHED**.
+
+State observed at this correction closeout:
+
+- Owner authorized only the two booking-regression fixture/spec files and the
+  three context documents. Functional/migration changes, Commit, Push, Deploy,
+  remote migration, Production access/UAT/write, data repair, and feature/
+  allowlist/environment/dependency changes remained prohibited.
+- Fresh Gate 0 matched root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, local/upstream/origin HEAD
+  `7b7dd912d46b28d4ca299c9221f53abe4c67d075`, Ahead/Behind `0/0`, and empty staged
+  diff. Status contained exactly the nine known prior-gate paths; the existing
+  multi-branch migration remained untracked. Baseline hashes were captured for
+  every path before correction.
+- Protected prior-gate content remained exact through this round: `AGENTS.md`
+  worktree blob `e979a2c895dd8fe60a651b4e41f71d49ca020f35`;
+  `scripts/check-unlimited-slot-entry-runtime.sql`
+  `4d1a489e7c26865a1e609bec4da0fa88b620b764`;
+  `src/lib/schedule-slot-utils.ts`
+  `4521281d099efb189429a744909552d67871ff23`; and untracked migration
+  `20260730000000_fix_progressive_multibranch_booking.sql`
+  `2e49f016cd5f168680cc112f5f7789dc5c7a0d5a`. No discard, restore, reset, clean,
+  stage, migration edit, or concealment operation occurred.
+- The prior Root Cause was reconfirmed without Source change. A direct focused
+  line-target run on the old fixture failed exactly at disabled
+  `booking-date-2026-07-22`, exit `1`, and teardown residue `0`. An earlier exact-
+  anchor grep invocation selected no test and is not counted as root-cause
+  evidence; its setup/teardown also left residue `0`.
+- Date audit classified `BOOKING_DATES`, `FULL_DATE`, `OVERFULL_DATE`, and
+  `RACE_DATE` as selectable/not-started; Legacy baseline sessions, booking scope,
+  wallet expiry, Private Sunday/other-month targets, and Admin Makeup source scope
+  as directly linked metadata; `2026-07-14` and pending-payment expiry as
+  intentional past/expired evidence; and pricing validity/created-at values as
+  historical ordering metadata. `MULTI_BRANCH_DATES` was already valid in 2030
+  and remained byte-identical.
+- The smallest test-only correction moved the single-branch fixture scope to
+  deterministic July 2031 constants, moved only directly linked metadata, and
+  reused those constants in `booking.spec.ts`. The rendered-flow helper uses the
+  existing validated draft contract through `page.addInitScript()` before reload,
+  avoiding calendar-click loops and eliminating a debounce race. No assertion,
+  timeout, retry, skip, force click, or disabled-element guard was weakened.
+- Relative semantics remain explicit: same-month booking/wallet rules, next-month
+  Admin Makeup, intentional past/expired rejection, active occupancy `5/6/20`,
+  FULL/OVERFULL and RACE behavior, Legacy baseline `4`, Option A `4+4 = 2,000`,
+  and multi-branch `9 × 500 = 4,500`.
+- Correction verification was regression-driven. Focused availability first
+  exposed that a future fixture month must be restored before date clicks; after
+  the deterministic draft correction it passed `1/1`. The first full run then
+  exposed linked Admin Makeup month metadata and stopped after `5` passes; focused
+  Admin Makeup passed `1/1` after moving its source scope with the target. The next
+  full run passed `10` tests before exposing the page-evaluate/debounce race in
+  actual `4+4`; focused actual `4+4` passed `1/1` after switching to init script.
+  Each failed run still reported global teardown residue `0`.
+- Final evidence passed: focused availability `1/1` (`8.8s`), focused multi-branch
+  `1/1` (`23.7s`), focused Admin Makeup `1/1` (`5.8s`), focused actual rendered
+  `4+4` `1/1` (`34.4s`), and exact `npm run test:booking-regression:e2e`
+  `11/11` in `3.7m`, skipped `0`, exit `0`, teardown residue `0`. The full run
+  included multi-branch `4,500` and rendered Option A `2,000` assertions with no
+  unexpected browser console/page errors. `npx tsc --noEmit`, zero-warning
+  `npm run lint`, and mojibake `250` passed. Build and runtime SQL were not rerun
+  because functional Source did not change.
+- Exact Correction Round change count is functional `0`, test `2`, documentation
+  `3`. No application Source/API/RPC/migration, package/lockfile, configuration,
+  environment, remote/Production resource, or data changed. Scope Expansion:
+  **No**. Scope Breach: **No**.
+- Source Complete: **Yes — authorized local Source remains unchanged**. Tests
+  Passed: **Yes — Local full booking regression**. Migration Applied Locally:
+  **Yes through disposable test resets; migration Source unchanged**. Migration
+  Applied Remotely: **No**. Committed/Pushed/Deployed: **No/No/No**. Feature/
+  Allowlist change: **No/No**. Production Active/UAT/Controlled Write UAT:
+  **No/Not run/Not run**. Data Repaired/Production Data Changed: **No/No**.
+  Customer/Financial Impact: **None/None**. Task Done: **No**.
+- Next Action: stop and await Owner/PM review before any separately authorized
+  Commit + Push gate. Do not start another correction, remote migration, Deploy,
+  UAT, repair, or Parking Lot task automatically.
+
+#### 2026-07-30 Owner-Approved Commit + Push Publication Gate
+
+Status represented by this containing documentation commit after successful live-
+Remote verification: **PASS — COMMITTED AND PUSHED; SOURCE COMPLETE; ACCEPTED LOCAL
+CHECKPOINT `11/11`; UNDEPLOYED; REMOTE MIGRATION AND PRODUCTION UNTOUCHED**.
+
+State observed for this publication closeout:
+
+- Owner authorized exactly one Functional/Test commit, one task-specific
+  documentation commit, and one normal non-force push on
+  `spike/next-major-security-upgrade`. Functional/Test editing, unrelated
+  documentation hunks, force/retry, pull/merge/rebase/cherry-pick, branch change,
+  Deploy, linked/remote migration, Production access/UAT/write, data repair,
+  feature/allowlist/environment/dependency changes, and Parking Lot work remained
+  prohibited.
+- Gate 0 matched repository root, original local/upstream/origin/live-Remote SHA
+  `7b7dd912d46b28d4ca299c9221f53abe4c67d075`, Ahead/Behind `0/0`, and empty staged
+  diff. Embedded Playwright report stats were total/expected `11/11`, unexpected/
+  flaky/skipped `0/0/0`, `ok=true`; `.last-run.json` was `passed`.
+- Accepted Functional/Test worktree blobs remained exact before staging:
+  migration `2e49f016cd5f168680cc112f5f7789dc5c7a0d5a`, runtime SQL
+  `4d1a489e7c26865a1e609bec4da0fa88b620b764`, Local fixture
+  `7239ae58d173276d440abed9a15b706e8791ab8f`, and rendered/API spec
+  `2aa1dde8706f8c543177890970ff1b3adbeba7ec`.
+- Functional/Test Commit A is
+  `f7ee7a1026a543df8e3d215944b9958083aee142`, tree
+  `716f194240db7584df0f6230ee428f25d943be35`, parent
+  `7b7dd912d46b28d4ca299c9221f53abe4c67d075`. Its membership is exactly
+  `supabase/migrations/20260730000000_fix_progressive_multibranch_booking.sql`,
+  `scripts/check-unlimited-slot-entry-runtime.sql`,
+  `tests/booking-regression/local-supabase.ts`, and
+  `tests/booking-regression/booking.spec.ts`.
+- The containing Commit B is limited to task-attributable hunks in
+  `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`. `Pushed: Yes`
+  and `PASS — COMMITTED AND PUSHED` are conditional on the one authorized push
+  succeeding and independent `git ls-remote` verification resolving the branch to
+  Commit B. If push fails, no retry is allowed and this conditional published
+  closeout does not take effect.
+- Tests were not rerun because all four accepted Functional/Test blobs remained
+  byte-identical. Accepted evidence remains full E2E `11/11`, skipped `0`, exit
+  `0`, teardown residue `0`, multi-branch `4,500`, Option A `2,000`, TypeScript,
+  zero-warning ESLint, and mojibake `250` passed.
+- Protected pre-existing dirty work remains local and uncommitted: `AGENTS.md`
+  blob `e979a2c895dd8fe60a651b4e41f71d49ca020f35` and
+  `src/lib/schedule-slot-utils.ts` blob
+  `4521281d099efb189429a744909552d67871ff23`.
+- Source Complete/Tests Passed/Committed: **Yes/Yes/Yes**. Pushed: **Yes only after
+  successful final live-Remote verification**. Deployed/Migration Applied
+  Remotely/Production Active: **No/No/No**. Migration Applied Locally: **Yes —
+  disposable Local only**. Production UAT/Controlled Write UAT: **Not run/Not
+  run**. Data Repaired/Production Data Changed: **No/No**. Customer/Financial
+  impact from this Git publication gate: **None/None**. Task Done: **No**.
+- Next Action after successful publication: stop and await Owner review before a
+  separate Deploy/remote-migration gate. No Production or Parking Lot action
+  starts automatically.
+
 ### 2026-07-24 — Coach Assignment Status Communication + Save Feedback Source/Local Gate
 
 Status at this local checkpoint: **PASS — SOURCE FIX + LOCAL TEST ONLY; UNSTAGED /

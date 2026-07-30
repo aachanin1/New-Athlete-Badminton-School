@@ -1,5 +1,14 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
+Last updated: 2026-07-30
+
+Current source: fresh local Git/Source audit, disposable Local Supabase migration
+chain and RPC regressions, localhost rendered/API regression, and retained prior
+release evidence. The authoritative mutable state for the active task is the
+matrix under **Current Active Work** below.
+
+## Superseded Current-State Snapshot — State Committed 2026-07-29
+
 Last updated: 2026-07-29
 Source: current local/upstream Git metadata, fresh scoped Source/Test/Migration
 inspection, local verification, the Owner-authorized two-commit publication
@@ -17,6 +26,14 @@ Status Communication + Save Feedback Source/Local, Commit + Push, staged
 Production-target artifact, authenticated read-only staged UAT closeout, exact-
 artifact Promotion, and successful read-only post-promotion Production UAT retry.
 Items not confirmed are marked `Unknown / Need verification`.
+
+The single Active Task is **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING
+EDIT** under an Owner-authorized **COMMIT + PUSH** publication gate for the exact
+seven-file allowlist. The accepted Functional/Test bytes remain unchanged, Commit
+A is complete, and the Pushed state is Yes only after the one authorized normal
+push and independent live-Remote verification succeed.
+
+Prior task context retained in this worktree:
 
 The single Active Task is **RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY
 FALLBACK ISOLATION**. The published Plan A package remains in functional commit
@@ -57,6 +74,112 @@ handoff for this gate. The current fix is committed and published but undeployed
 the existing staged artifact remains broken and unchanged. Task Done is **No**.
 Next action requires separate Owner authorization for a new staged deployment; no
 Deploy, UAT retry, or Promotion is implied.
+
+## Current Active Work — Progressive Kids Group Multi-Branch Create + Pending Edit
+
+Owner selected this as the single Active Task on 2026-07-30, first authorized the
+exact Source Fix + Local Test allowlist, then one test-fixture Correction Round,
+and now exactly two commits plus one normal non-force push on the existing branch.
+Commit A may contain only the one migration and three test files; Commit B may
+contain only task-specific hunks from the three context documents. Functional/Test
+editing, force/retry, branch integration/change, Deploy/Promotion, linked/remote
+migration, Production access/UAT/write, data repair, and feature/allowlist/
+environment/dependency changes remain prohibited.
+
+### Intended Behavior
+
+A User may create or edit a pending Progressive Kids Group booking whose valid
+sessions span multiple branches in one month. Each session must still resolve its
+own active template and canonical slot and retain every existing ownership,
+timing, same-month, duplicate/overlap, atomicity, idempotency, Option A baseline,
+and pricing guard. `bookings.branch_id` remains the request's primary branch;
+`booking_sessions.branch_id`, `schedule_template_id`, and `schedule_slot_id`
+remain session-specific.
+
+### Root Cause and Local Source Result
+
+- `booking-client.tsx` exposes multi-branch selection and sends a per-session
+  `branchId` and template hint. POST/PUT `/api/bookings` preserve that payload and
+  `createProgressiveBooking()` / `updateProgressivePendingBooking()` pass it to
+  `progressive_requested_sessions_v1()`.
+- The effective function in
+  `20260710170000_add_progressive_pricing_transactions.sql` rejected a valid
+  session solely when `v_branch <> p_booking_branch_id`, even though its remaining
+  template and canonical-slot resolution already uses each session's branch.
+- Additive migration
+  `20260730000000_fix_progressive_multibranch_booking.sql` uses `CREATE OR REPLACE
+  FUNCTION` with the same signature, return contract, `STABLE` volatility,
+  invoker security, `search_path`, owner, and grants. It removes only that
+  all-sessions-equal-primary-branch rejection. It contains no data backfill or
+  table/schema/grant/RLS change.
+- Regression-first execution against the previous local schema reproduced
+  `PROGRESSIVE_INVALID_REQUEST` for a valid two-branch request with zero residue.
+  After the additive migration, direct RPC create/edit, canonical linkage,
+  rejection/atomicity guards, and the focused rendered/API flow pass locally.
+
+### Owner-Approved Test Fixture Correction Round
+
+- The former full-suite blocker was reconfirmed before editing: the focused
+  availability test timed out on disabled `booking-date-2026-07-22`, exited `1`,
+  and global teardown reported residue `0`. No product Source change was needed.
+- Future-sensitive single-branch fixture dates and their directly linked month,
+  year, Legacy-baseline sessions, wallet expiry, Private Sunday, other-month, and
+  Admin Makeup metadata now use deterministic July 2031 values. Intentionally
+  expired/past and created-at ordering evidence remains historical; occupancy
+  `5/6/20`, same-month/next-month rules, pricing, and lifecycle assertions remain
+  unchanged. `MULTI_BRANCH_DATES` and its 2030 assertions were not changed.
+- The shared rendered-flow helper restores the approved fixture calendar through
+  the existing draft contract before clicking dates. It adds no skip, retry,
+  timeout increase, force click, disabled-element bypass, or weakened assertion.
+- Final Local evidence passed focused availability `1/1`, focused multi-branch
+  `1/1`, focused Admin Makeup `1/1`, focused rendered `4+4` `1/1`, and the full
+  `npm run test:booking-regression:e2e` command `11/11` with skipped `0`, exit `0`,
+  and teardown residue `0`. The same run preserved multi-branch `4,500` and
+  Option A `4+4 = 2,000`. TypeScript, zero-warning ESLint, and mojibake `250`
+  passed. Build and runtime SQL were not rerun in this test-only Correction Round.
+
+### Current Project Matrix — Progressive Kids Group Multi-Branch Create + Pending Edit
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT** |
+| Task Status | **PASS — COMMITTED AND PUSHED**, contingent on the one authorized normal push succeeding and live Remote resolving to the containing documentation commit; no Deploy or remote migration follows |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Containing documentation Commit B after commit creation; exact content-derived SHA/tree is verified in the publication-gate handoff |
+| Remote HEAD | Containing documentation Commit B only after the authorized push and independent `git ls-remote` verification succeed |
+| Ahead/Behind | `0/0` after successful live-Remote verification; Gate 0 was `0/0` at `7b7dd912d46b28d4ca299c9221f53abe4c67d075` |
+| Protected dirty files | Pre-existing `AGENTS.md` worktree blob `e979a2c895dd8fe60a651b4e41f71d49ca020f35` and `src/lib/schedule-slot-utils.ts` worktree/HEAD blob `4521281d099efb189429a744909552d67871ff23` were preserved; neither has a task-attributable delta |
+| Owner Policy | Publish exactly Commit A with the one migration plus three test files, then Commit B with only task-specific hunks from these three context documents, followed by one normal non-force push. Functional/Test edits, unrelated documentation hunks, retry/force, branch integration/change, Deploy, remote migration, Production access/UAT/write, data repair, feature/allowlist/environment/dependency changes, and Parking Lot work are prohibited |
+| Intended Behavior | Valid same-month Progressive Kids Group create and pending edit may contain sessions from multiple branches; every session retains its own active template, branch, and canonical slot while the primary booking branch semantics and all existing safety/pricing guards remain unchanged |
+| Root Cause | `progressive_requested_sessions_v1()` alone enforced `v_branch = p_booking_branch_id` before performing otherwise session-specific template and canonical-slot validation. UI/API/helper payloads already preserve per-session branch/template data, and write consumers already persist per-session branch/canonical slot without changing `bookings.branch_id` |
+| Source Complete | **Yes.** Accepted Functional/Test bytes are unchanged and committed in `f7ee7a1026a543df8e3d215944b9958083aee142` (tree `716f194240db7584df0f6230ee428f25d943be35`, parent `7b7dd912d46b28d4ca299c9221f53abe4c67d075`) |
+| Tests Passed | **Yes — accepted Local checkpoint.** Full E2E `11/11`, expected `11`, unexpected/flaky/skipped `0/0/0`, `ok=true`, exit `0`, residue `0`, prices `4,500` and `2,000`; TypeScript, zero-warning ESLint, and mojibake `250` passed. Tests were not rerun in this byte-identical publication gate |
+| Committed | **Yes.** Commit A contains exactly the four approved Functional/Test files; containing Commit B contains only the three task-specific documentation paths |
+| Pushed | **Yes only after successful final live-Remote verification** of the one authorized normal non-force push; otherwise this conditional closeout does not take effect |
+| Current Source | Commit A `f7ee7a1026a543df8e3d215944b9958083aee142` plus its containing task-specific documentation Commit B |
+| Deployed | No — prohibited and not attempted |
+| Deployed Source | Prior documented Production source remains `7b7dd912d46b28d4ca299c9221f53abe4c67d075`; not inspected or changed in this gate |
+| Deployment ID | Prior documented `dpl_GWfmXNEHFQCeSQZZfqRh1BZnPg7M`; not inspected or changed in this gate |
+| Migration Source | `supabase/migrations/20260730000000_fix_progressive_multibranch_booking.sql` — committed and pushed after successful live-Remote verification |
+| Migration Applied | Local disposable database: Yes. Linked/remote/Production: No |
+| Migration Applied Locally | Yes — disposable Local Supabase reset/chain applied it successfully |
+| Migration Applied Remotely | No — prohibited and not attempted |
+| Environment Change | No |
+| Feature Enabled | No change; prior documented Progressive controls were not inspected or changed |
+| Allowlisted | No change; prior documented allowlist state was not inspected or changed |
+| Production Active | No — committed/pushed Source is not deployed and the migration is not applied remotely |
+| Production UAT | Not run — prohibited |
+| Controlled Write UAT | Not run — prohibited |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | None from this gate; Git publication does not change deployed runtime or Production data |
+| Financial Impact | None from this gate; the verified local nine-session baseline-zero result remains `9 × 500 = 4,500` and no payment, coupon, Ledger, Finance, entitlement, or historical pricing data changed |
+| Blocker | No Commit/Push blocker after successful live-Remote verification; Deploy and remote-migration/Production gates remain unauthorized |
+| Remaining Work | Owner review before any separately authorized Deploy/remote-migration gate; no release or Production action starts automatically |
+| Task Done | No |
+| Next Gate / Next Action | Stop after Commit + Push reporting and await Owner review before a separate Deploy/remote-migration gate |
+| Documentation Drift | No after publication reconciliation; Source/Test, accepted Local evidence, commit/push, Deploy, migration application, Production, UAT, and data states remain separate |
+| Parking Lot authorization state | Unchanged; no Parking Lot item is authorized to start |
 
 ## Current Source of Truth
 

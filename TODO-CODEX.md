@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-29
+Last updated: 2026-07-30
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -8,6 +8,44 @@ use `TODO.md` only as stale legacy reference after code verification. Current
 mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
+
+### PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT
+
+Status: **PASS — COMMITTED AND PUSHED; ACCEPTED FUNCTIONAL/TEST BYTES UNCHANGED;
+FULL LOCAL BOOKING REGRESSION CHECKPOINT `11/11`; UNDEPLOYED; REMOTE MIGRATION AND
+PRODUCTION UNTOUCHED**. `Pushed: Yes` is effective only after the one authorized
+normal push and independent live-Remote verification succeed.
+
+- The additive local migration removes only the RPC restriction that required
+  every requested session branch to equal the primary booking branch. Per-session
+  active template and canonical-slot resolution plus all existing safety, Option
+  A, pricing, atomicity, idempotency, and concurrency guards remain in place.
+- Local multi-branch create and pending edit pass with correct per-session branch,
+  template, canonical slot, and exact nine-session baseline-zero price `4,500`.
+  Single-branch and guard/runtime regressions pass.
+- The Owner-approved test-only Correction Round moved the future-sensitive
+  single-branch fixture and directly linked month/year/wallet/makeup metadata to
+  deterministic July 2031 values. Intentional past/expired and ordering evidence,
+  occupancy `5/6/20`, pricing, same-month/next-month rules, and all assertions are
+  preserved; `MULTI_BRANCH_DATES` remains unchanged.
+- Focused availability, multi-branch, Admin Makeup, and rendered `4+4` tests pass
+  `1/1` each. Full `npm run test:booking-regression:e2e` passes `11/11`, skipped
+  `0`, exit `0`, teardown residue `0`, with prices `4,500` and `2,000` preserved.
+  TypeScript, zero-warning ESLint, and mojibake `250` also pass. Build/runtime SQL
+  were not rerun in this test-only round.
+- Authoritative Git, Source, migration, verification, release, and Production
+  states are recorded in `PROJECT_STATE.md`.
+- Functional/Test Commit A is
+  `f7ee7a1026a543df8e3d215944b9958083aee142` with tree
+  `716f194240db7584df0f6230ee428f25d943be35` and exactly the one migration plus
+  three approved test files. The containing documentation commit is limited to
+  task-specific hunks in the three context documents.
+- Next action: stop after publication reporting and await Owner review before a
+  separately authorized Deploy/remote-migration gate. Production UAT/write, data
+  repair, feature/allowlist/environment changes, and Parking Lot work remain
+  unauthorized.
+
+## Recently Completed
 
 ### RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION
 
