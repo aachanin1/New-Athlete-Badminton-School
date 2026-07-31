@@ -2,6 +2,66 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-07-31 — Policy Reset — Owner UAT + Continuous Delivery Decision and Closeout
+
+Status at this policy checkpoint: **DEVELOPING — PM-NA INITIAL POLICY COMMIT AND
+TARGET BASELINE COMMIT COMPLETE; TARGET POLICY INSTALLED LOCALLY; TARGET CLOSEOUT
+COMMIT AND ONE AUTHORIZED NORMAL PUSH REMAIN**.
+
+Owner decision:
+
+- Owner approved **POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY**. One approved
+  Scope Contract authorizes Developer Codex to execute continuously through audit,
+  implementation, focused verification, bounded corrections within Scope, diff
+  compliance, commit/push, staged artifact, and READY FOR OWNER UAT.
+- Owner PASS authorizes Promotion only of the exact tested artifact/SHA. Any
+  Source/configuration change after PASS invalidates that UAT. Developer then runs
+  automated Production health/error-log checks, updates documentation once, and
+  reports TASK DONE.
+- PM-NA remains permanently read-only. Both PM and Developer must challenge
+  conflicting assumptions, separate Fact/Inference/Unknown, and never use Owner UI
+  PASS to override failing technical/backend evidence.
+- This policy-maintenance task authorizes exactly three Target commits and one
+  normal non-force Push after all three, plus one local PM-NA Initial Commit. It
+  authorizes no Application Source/test/Migration/configuration/Environment,
+  manual Deploy/Promotion/Alias, Vercel/Supabase/Production, or data action.
+  Automatic Preview from the Target Push is an accepted Git-integration side
+  effect only and is not Production.
+
+Gate 0 and current evidence:
+
+- Target repository/branch/upstream matched
+  `spike/next-major-security-upgrade` at original HEAD
+  `829e0156c1af1f7b130ca280b8b5c191c9514b93`, Ahead/Behind `0/0`.
+  The five-path dirty set matched the authorized baseline exactly; no file was
+  staged. Protected `src/lib/schedule-slot-utils.ts` had no content diff and
+  SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Existing Target documentation described legitimate completed prior work, showed
+  no Active Task, and had no unresolved Documentation Drift.
+- Target baseline commit
+  `ddc2a15805f75b83234bca217ab6cf2e90608334` contains exactly `AGENTS.md`,
+  `DEVELOPMENT_TODO.md`, `PROJECT_STATE.md`, and `TODO-CODEX.md`.
+- PM-NA began as an unborn `master` repository with staged-new `AGENTS.md`,
+  untracked `TARGETS.md`, and no remote. Local Initial Commit
+  `ec810411157dfb72bc27fc5986a087fc1d1334ac` contains exactly the rewritten
+  `AGENTS.md` and byte-unchanged `TARGETS.md`. The first commit invocation created
+  no commit because author identity was absent; the successful invocation used the
+  already-verified Target author identity through command-scoped `git -c` values,
+  without writing Git configuration.
+- Target `AGENTS.md` now owns the Developer workflow: One Task, One Approval,
+  Continuous Delivery; strict Scope Contract; justified direct technical
+  dependencies; bounded corrections; Code Complete and READY FOR OWNER UAT;
+  screenshot/backend evidence limits; exact-artifact Owner PASS and Promotion;
+  post-Promotion health/log checks; one closeout update; material Hard Stops; and
+  No Yes-Man behavior. Permanent business and technical guardrails remain intact.
+- Functional File Count is `0`. Application Source, test, Migration, package,
+  configuration, Environment, Vercel, Supabase, Production, customer data, and
+  financial state did not change.
+- Next action at this checkpoint: create the containing Target policy commit,
+  verify exact membership, then produce the separate closeout commit. Do not Push
+  until all three Target commits exist.
+
 ### 2026-07-30 — Progressive Kids Group Multi-Branch Create + Pending Edit Source/Local Gate
 
 Status at this local checkpoint: **PASS — SOURCE ONLY; SCOPED SOURCE AND FOCUSED

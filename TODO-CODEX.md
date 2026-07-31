@@ -9,14 +9,26 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### None — Awaiting Owner Selection
+### POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY
 
-Status: **NO ACTIVE TASK**.
+Status: **DEVELOPING — PM-NA INITIAL POLICY COMMIT AND TARGET BASELINE COMMIT
+COMPLETE; TARGET POLICY COMMIT IS THE CONTAINING COMMIT; CLOSEOUT COMMIT AND ONE
+NORMAL PUSH REMAIN**.
 
-- The most recent task is closed as Done below. `PROJECT_STATE.md` is authoritative
-  for its final Git, Production, UAT, restore, data, customer, and financial state.
-- Next action: await Owner selection of a new Active Task. Do not start Parking Lot
-  work or another task automatically.
+- Owner approved One Task, One Approval, Continuous Delivery with a strict Scope
+  Contract, bounded corrections, Code Complete, READY FOR OWNER UAT, Owner PASS
+  authorization for the exact artifact/SHA, automated post-Promotion checks,
+  one closeout documentation update, material Hard Stops, and No Yes-Man rules.
+- Functional File Count is `0`. Application Source, tests, Migration,
+  configuration, Environment, Production, and data are unchanged.
+- Target baseline commit is
+  `ddc2a15805f75b83234bca217ab6cf2e90608334`. PM-NA local Initial Commit is
+  `ec810411157dfb72bc27fc5986a087fc1d1334ac`; PM-NA has no remote and was not
+  pushed.
+- `PROJECT_STATE.md` is authoritative for the transition matrix.
+- Next action: create the exact Target closeout commit, verify the three-commit
+  range, then perform the one authorized normal non-force Push. Do not call
+  Vercel; any Automatic Preview is an accepted side effect only.
 
 ## Recently Completed
 

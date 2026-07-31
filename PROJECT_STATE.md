@@ -2,12 +2,86 @@
 
 Last updated: 2026-07-31
 
-Current source: fresh local/live-Remote Git and Source attribution, accepted Local
-booking regressions, Owner-confirmed Production migration/create state, exact-
-artifact Promotion evidence, bounded rendered Production UAT plus Vercel request
-attribution, and post-UAT Supabase `BEGIN TRANSACTION READ ONLY` verification. The
-authoritative mutable release state and closed-task matrix are under **Current
-Active Work** below.
+Current source: fresh local Git evidence for the Owner-approved workflow policy
+reset plus the retained verified Production state of the last completed product
+task. The authoritative mutable state is the **Current Active Work** policy matrix
+below. Earlier release and gate records are Historical / Superseded.
+
+## Current Active Work — Policy Reset — Owner UAT + Continuous Delivery
+
+Status: **DEVELOPING — PM-NA INITIAL POLICY COMMIT AND TARGET BASELINE COMMIT
+COMPLETE; TARGET POLICY COMMIT IS THIS CONTAINING COMMIT; CLOSEOUT COMMIT AND ONE
+AUTHORIZED NORMAL PUSH REMAIN**.
+
+### Owner Decision and Intended Behavior
+
+On 2026-07-31 Owner approved **POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY**.
+One explicit Owner approval of a Scope Contract now authorizes Developer Codex to
+continue through audit, implementation, focused verification, bounded corrections,
+diff compliance, commit/push, staged artifact, and READY FOR OWNER UAT. Owner PASS
+authorizes Promotion only of the exact tested artifact/SHA. Developer then runs
+automated Production health/error-log checks, updates documentation once, and
+closes the task.
+
+This policy task authorizes documentation/governance only. It contains no
+Application Source, test, Migration, configuration, Environment, Vercel,
+Supabase, Production, or data action. A Git-integration Automatic Preview caused
+solely by the final Target Push is an accepted side effect only; it must not be
+manually retried, promoted, aliased, or treated as Production.
+
+### Policy Publication Evidence
+
+- Target pending baseline commit
+  `ddc2a15805f75b83234bca217ab6cf2e90608334` contains exactly `AGENTS.md`,
+  `DEVELOPMENT_TODO.md`, `PROJECT_STATE.md`, and `TODO-CODEX.md`.
+- PM-NA local Initial Commit
+  `ec810411157dfb72bc27fc5986a087fc1d1334ac` contains exactly `AGENTS.md` and
+  byte-unchanged `TARGETS.md`. PM-NA remains on `master`, has exactly one commit,
+  has no remote, and was not pushed.
+- The Target `AGENTS.md` in this containing policy commit installs One Task, One
+  Approval, Continuous Delivery; the Scope Contract; bounded corrections; Code
+  Complete and READY FOR OWNER UAT; exact-artifact Owner PASS/Promotion; automated
+  post-Promotion checks; material Hard Stops; and No Yes-Man requirements.
+- Functional File Count is `0`. Application Source/Test/Migration/Config/
+  Environment changed: **No**.
+
+### Current Project Matrix — Workflow Policy Reset
+
+| Field | Current value |
+| --- | --- |
+| Active Task | `POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY` |
+| Task Status | **DEVELOPING — policy installed locally; closeout commit and one normal Push remain** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | This containing Target policy commit; parent baseline commit `ddc2a15805f75b83234bca217ab6cf2e90608334`. Exact policy SHA is recorded by the closeout commit |
+| Remote HEAD | `829e0156c1af1f7b130ca280b8b5c191c9514b93` |
+| Ahead/Behind | `2/0` after this containing policy commit |
+| Source Complete | **Policy Source: Yes. Application Source: unchanged** |
+| Tests Passed | **Policy verification passed:** Markdown/diff checks and required/contradictory terminology searches. Application tests/build/browser UAT: Not Run — Functional File Count `0` and outside Scope |
+| Committed | **Target baseline: Yes. Target policy: this containing commit. Target closeout: No. PM-NA Initial Commit: Yes** |
+| Pushed | **No — one authorized Target Push remains; PM-NA has no remote** |
+| Current Source | Application bytes remain unchanged from original Target baseline `829e0156c1af1f7b130ca280b8b5c191c9514b93`; only approved policy/documentation changes exist above it |
+| Deployed Source | Unchanged retained product release `244853f5132393f0336d504362e81a45dec19101` |
+| Deployment ID | Unchanged retained Production artifact `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt` |
+| Migration Source | No policy-task Migration; retained product migration state unchanged |
+| Migration Applied | No policy-task Migration; retained Production state unchanged |
+| Feature Enabled | Unchanged retained Progressive general-entry state |
+| Allowlisted | No — retained general-entry state is not allowlist-scoped |
+| Production Active | No policy-task runtime change; retained product artifact remains Production-active |
+| Production UAT | No policy-task UAT; retained prior product UAT remains Passed |
+| Controlled Write UAT | No policy-task write; retained prior product closeout state unchanged |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | None |
+| Financial Impact | None |
+| Functional File Count | `0` |
+| Manual Deploy / Promotion / Alias | No / No / No |
+| Environment Change | No |
+| Automatic Preview | Accepted Git-integration side effect only after the final Push; not Production and no manual action authorized |
+| Documentation Drift | No — current policy transition has one authoritative state here |
+| Blocker | None |
+| Remaining Work | Create the exact Target closeout commit, verify the three-commit range, then perform one normal non-force Push |
+| Next Gate / Next Action | Target closeout commit, then one authorized normal Push; do not call Vercel |
+| Parking Lot authorization state | Unchanged; no Parking Lot item is authorized |
 
 ## Superseded Current-State Snapshot — State Committed 2026-07-29
 
@@ -197,7 +271,7 @@ user HTTP `500` attempts are Parking Lot evidence only and are not authorized fo
 diagnosis or remediation. Exact next action is await Owner selection; no Parking
 Lot or next task starts automatically.
 
-## Current Active Work — None / Awaiting Owner Selection
+## Historical / Superseded Completed Work — Progressive Kids Group Multi-Branch
 
 Owner closed **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT** on
 2026-07-31 after read-only release reconciliation. No Parking Lot item or next task
@@ -350,7 +424,7 @@ remain session-specific.
   `d958ceb6-4cf4-4fc1-825e-a37c3366bf50` remain intact at revision `12`; no
   direct data repair was performed.
 
-### Current Project Matrix — Progressive Kids Group Multi-Branch Release Closeout
+### Historical / Superseded Project Matrix — Progressive Kids Group Multi-Branch Release Closeout
 
 | Field | Current value |
 | --- | --- |

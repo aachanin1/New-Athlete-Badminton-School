@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-07-15
+Last updated: 2026-07-31
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -23,6 +23,144 @@ Before doing any work:
 8. Before finishing, apply the Session Closeout Protocol below and update
    `PROJECT_STATE.md` and `TODO-CODEX.md` when required.
 9. Report changed files, why they changed, what was verified, and what remains.
+
+## Default Execution Mode — One Task, One Approval, Continuous Delivery
+
+`ONE TASK, ONE APPROVAL, CONTINUOUS DELIVERY`
+
+One explicit Owner approval of a Scope Contract authorizes Developer Codex to
+execute the approved task continuously through:
+
+audit → implementation → focused local verification → bounded corrections within
+Scope → diff compliance → commit/push → staged artifact → READY FOR OWNER UAT
+
+Do not return for separate approval after each technical checkpoint when the
+checkpoint and action are already authorized by the Scope Contract.
+
+The primary task states are:
+
+- `DEVELOPING`
+- `READY FOR OWNER UAT`
+- `TASK DONE`
+
+Keep Source, tests, Commit, Push, artifact, Promotion, Production, UAT, Migration,
+feature-control, allowlist, and data states separate in technical evidence even
+when the Owner-facing task status uses these three concise states.
+
+### Scope Contract
+
+Every task must define:
+
+- Actor.
+- Current behavior.
+- Expected behavior.
+- Completion criteria.
+- Included business flows.
+- Protected and out-of-scope business flows.
+- Planned technical change set.
+- Authorized Git, Deploy, Environment, Migration, Production, and data actions.
+- Owner UAT steps and expected visible results.
+
+Use exact planned allowlists for functional files, tests, and documentation.
+Report expected functional-file count and blast radius, but never treat file count
+as a substitute for dependency or business-flow analysis.
+
+A technical file may be added to the planned change set without a new Owner round
+only when it is a proven direct dependency of the same Intended Behavior,
+introduces no additional business flow, touches no protected domain, has its reason
+written before editing, and is disclosed in the final report.
+
+Any new business behavior, role, portal, payment, pricing, entitlement,
+permission, attendance, payroll, accounting, Migration, Environment,
+feature-control, secret, or Production-data operation requires an Owner Hard Stop
+unless the Scope Contract already explicitly authorizes it.
+
+### Bounded Corrections and Scope Discipline
+
+- Bounded corrections need no new Owner approval while Root Cause, Intended
+  Behavior, business flow, and protected domains remain unchanged.
+- Hard Stop when Root Cause materially changes, the same failure remains after two
+  reasonable correction attempts, or safe completion requires another business
+  flow or protected domain.
+- Do not perform opportunistic refactors, cleanup, dependency upgrades, formatting
+  sweeps, or adjacent bug fixes.
+- Before every Commit, inspect `git diff --name-status`, `git diff --stat`, the
+  complete staged diff, every path against the Scope Contract, and the business
+  behavior actually changed.
+- An unexplained path outside the Scope Contract is
+  `SCOPE BREACH — REJECT RESULT`. Do not conceal it with reset, checkout, stash,
+  cleanup, or overwriting user work.
+
+### Code Complete and READY FOR OWNER UAT
+
+READY FOR OWNER UAT requires:
+
+- Focused regression coverage or documented substitute verification.
+- TypeScript, lint, and Production build when applicable.
+- Relevant deterministic tests passed.
+- Diff compliance passed.
+- Source committed and pushed.
+- A staged artifact tied to the exact tested Source SHA.
+- A short Owner handoff containing URL, required role, 3–7 UAT steps, expected
+  visible results, artifact ID/SHA, passed technical checks, and known limitations.
+
+Owner may perform manual UI/business UAT and return PASS or FAIL with screenshots.
+
+- Screenshots can confirm visible UI behavior.
+- Screenshots do not replace backend reconciliation for payment, pricing,
+  entitlement, permission, attendance, payroll, accounting, Migration, or data
+  writes.
+- Developer Codex remains responsible for technical and backend evidence.
+- Any Source or configuration change after Owner PASS invalidates that PASS and
+  requires a new artifact plus focused Owner retest.
+
+### Promotion and Closeout
+
+- Owner PASS authorizes Promotion only of the exact artifact/SHA the Owner tested.
+- Never Promote before Owner PASS and never rebuild between PASS and Promotion.
+- After Promotion, run automated Production health and error-log checks.
+- A second manual Owner Production UAT is optional unless Production differs from
+  staged behavior or the Scope Contract requires it.
+- Update current-state documentation once at closeout. If a material Hard Stop
+  ends execution before closeout, record one safe handoff instead of leaving
+  mutable state undocumented.
+- Publish the authorized closeout and report TASK DONE only after every required
+  technical and business condition passes.
+
+### Material Hard Stops
+
+Hard Stop for:
+
+- Ambiguous or conflicting business decisions.
+- Scope crossing another business flow or protected domain.
+- Unapproved Migration, Environment, feature-control, permission, secret, or
+  Production-data operation.
+- Destructive or irreversible data action without exact rows and rollback plan.
+- Material Root Cause change.
+- Required tests/build still failing after bounded correction.
+- Staged smoke failure.
+- Non-exact artifact/SHA identity.
+- Missing required rollback candidate.
+- Task-attributable Production regression.
+
+Unrelated Production traffic is not automatically a task failure. Attribute it
+before blocking unless it prevents a safe conclusion about a protected domain.
+
+### No Yes-Man
+
+PM and Developer must:
+
+- Challenge Owner assumptions when Source, tests, data, or business rules conflict.
+- Separate Fact, Inference, and Unknown.
+- Never report PASS while a required check fails.
+- Recommend the smallest safe solution.
+- Never expand vague wording into additional features.
+- Never minimize risk to make a task appear complete.
+- Never use Owner UI PASS to override failing technical or backend evidence.
+
+Read-only Audit remains available when the Owner asks only for investigation.
+Production Data Operation requires explicit authorization for exact rows, actions,
+effects, verification, and rollback.
 
 ## Documentation Roles
 
@@ -221,7 +359,8 @@ Main portals:
 
 ### B. Update Order
 
-Whenever current state changes, update documentation in this order:
+At the task closeout, or at one safe handoff when a material Hard Stop prevents
+continued execution, update documentation in this order:
 
 1. Verify actual Source, Git, Deployment, controls, Production, and data state.
 2. Replace the current values in `PROJECT_STATE.md`.
@@ -371,18 +510,21 @@ Never promote assumptions into facts.
 Before ending every session, answer and record as needed:
 
 1. Did Owner policy change or receive new confirmation?
-2. Did source change?
+2. Did Source change?
 3. Was the work committed or pushed?
-4. Was it deployed?
-5. Were any feature flags or allowlists changed?
-6. Did Production DB/data change?
-7. Are real users affected?
-8. Did known risks, limitations, or blockers change?
-9. Did the next task change?
-10. Which context files must be updated?
+4. Was a staged artifact created?
+5. Did Owner UAT pass for that exact artifact/SHA?
+6. Was it Promoted without rebuild?
+7. Did post-Promotion health and error-log checks pass?
+8. Were any feature controls or allowlists changed?
+9. Did Production DB/data change?
+10. Are real users affected?
+11. Did known risks, limitations, or blockers change?
+12. Did the next task change?
 
-If any answer changes current state, update `PROJECT_STATE.md` and `TODO-CODEX.md`
-in the same session before reporting completion. Put detailed history in
-`DEVELOPMENT_TODO.md` when needed. Context documentation must ship in the same
-commit as the work or in an explicit docs follow-up commit; do not leave material
-state drift across sessions.
+For normal continuous delivery, update `PROJECT_STATE.md` and `TODO-CODEX.md` once
+at closeout, then publish that closeout. Put one dated decision/closeout record in
+`DEVELOPMENT_TODO.md` when detailed history is needed. If a material Hard Stop
+prevents continuation, create one safe handoff update instead. Do not repeatedly
+rewrite documentation at every already-authorized technical checkpoint, and do
+not leave material state drift across sessions.
