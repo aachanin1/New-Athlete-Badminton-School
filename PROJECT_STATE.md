@@ -2,16 +2,16 @@
 
 Last updated: 2026-07-31
 
-Current source: fresh local Git evidence for the Owner-approved workflow policy
-reset plus the retained verified Production state of the last completed product
-task. The authoritative mutable state is the **Current Active Work** policy matrix
-below. Earlier release and gate records are Historical / Superseded.
+Current source: fresh local Git evidence for the completed Owner-approved workflow
+policy reset plus the retained verified Production state of the last completed
+product task. The authoritative published state is the **Current Active Work**
+matrix below. Earlier release and gate records are Historical / Superseded.
 
-## Current Active Work — Policy Reset — Owner UAT + Continuous Delivery
+## Current Active Work — None / Awaiting Owner Selection
 
-Status: **DEVELOPING — PM-NA INITIAL POLICY COMMIT AND TARGET BASELINE COMMIT
-COMPLETE; TARGET POLICY COMMIT IS THIS CONTAINING COMMIT; CLOSEOUT COMMIT AND ONE
-AUTHORIZED NORMAL PUSH REMAIN**.
+Status: **TASK DONE IN THE PUBLISHED STATE — PM-NA INITIAL POLICY COMMIT AND ALL
+THREE EXACT TARGET POLICY/DOCUMENTATION COMMITS COMPLETE; THE CONTAINING CLOSEOUT
+COMMIT IS PUBLISHED BY THE ONE AUTHORIZED NORMAL PUSH**.
 
 ### Owner Decision and Intended Behavior
 
@@ -29,37 +29,51 @@ Supabase, Production, or data action. A Git-integration Automatic Preview caused
 solely by the final Target Push is an accepted side effect only; it must not be
 manually retried, promoted, aliased, or treated as Production.
 
-### Policy Publication Evidence
+### Policy Publication and Closeout Evidence
 
 - Target pending baseline commit
   `ddc2a15805f75b83234bca217ab6cf2e90608334` contains exactly `AGENTS.md`,
   `DEVELOPMENT_TODO.md`, `PROJECT_STATE.md`, and `TODO-CODEX.md`.
+- Target policy commit
+  `230085958466558cce493e0a6226b1f361320de3` contains exactly `AGENTS.md`,
+  `DEVELOPMENT_TODO.md`, `PROJECT_STATE.md`, and `TODO-CODEX.md`.
+- The containing Target closeout commit contains exactly `PROJECT_STATE.md`,
+  `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`. Its exact SHA and verified
+  local/upstream/origin equality are recorded in the final handoff because a
+  commit cannot contain its own SHA and no fourth documentation commit is
+  authorized.
 - PM-NA local Initial Commit
   `ec810411157dfb72bc27fc5986a087fc1d1334ac` contains exactly `AGENTS.md` and
   byte-unchanged `TARGETS.md`. PM-NA remains on `master`, has exactly one commit,
   has no remote, and was not pushed.
-- The Target `AGENTS.md` in this containing policy commit installs One Task, One
-  Approval, Continuous Delivery; the Scope Contract; bounded corrections; Code
+- The Target policy commit installs One Task, One Approval, Continuous Delivery;
+  the Scope Contract; bounded corrections; Code
   Complete and READY FOR OWNER UAT; exact-artifact Owner PASS/Promotion; automated
   post-Promotion checks; material Hard Stops; and No Yes-Man requirements.
 - Functional File Count is `0`. Application Source/Test/Migration/Config/
   Environment changed: **No**.
+- At closeout creation, the three Target commits are pending the one authorized
+  normal non-force Push. No later documentation commit is authorized. Any
+  Automatic Preview created by that Push is an accepted Git-integration side
+  effect only and receives no manual inspection/write, retry, Promotion, or Alias.
+- Speed Insights remains **Not started**.
 
 ### Current Project Matrix — Workflow Policy Reset
 
 | Field | Current value |
 | --- | --- |
-| Active Task | `POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY` |
-| Task Status | **DEVELOPING — policy installed locally; closeout commit and one normal Push remain** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE in the published state — workflow policy installed in PM-NA and Target** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | This containing Target policy commit; parent baseline commit `ddc2a15805f75b83234bca217ab6cf2e90608334`. Exact policy SHA is recorded by the closeout commit |
-| Remote HEAD | `829e0156c1af1f7b130ca280b8b5c191c9514b93` |
-| Ahead/Behind | `2/0` after this containing policy commit |
+| Local HEAD | This containing closeout commit; parent policy commit `230085958466558cce493e0a6226b1f361320de3`. Exact closeout SHA is in the final handoff |
+| Remote HEAD | Becomes this containing closeout commit through the one authorized normal Push; final equality is in the handoff |
+| Ahead/Behind | `0/0` in the published state; mandatory pre-Push verification is exactly `3/0` |
 | Source Complete | **Policy Source: Yes. Application Source: unchanged** |
 | Tests Passed | **Policy verification passed:** Markdown/diff checks and required/contradictory terminology searches. Application tests/build/browser UAT: Not Run — Functional File Count `0` and outside Scope |
-| Committed | **Target baseline: Yes. Target policy: this containing commit. Target closeout: No. PM-NA Initial Commit: Yes** |
-| Pushed | **No — one authorized Target Push remains; PM-NA has no remote** |
+| Committed | **Yes — Target baseline `ddc2a158...`, Target policy `230085958...`, this containing closeout commit, and PM-NA Initial Commit `ec810411...`** |
+| Pushed | **Target: Yes only after the authorized single normal Push succeeds; exact result is in the final handoff. PM-NA: No / no remote** |
 | Current Source | Application bytes remain unchanged from original Target baseline `829e0156c1af1f7b130ca280b8b5c191c9514b93`; only approved policy/documentation changes exist above it |
+| Deployed | No policy-task Deploy; retained product deployment unchanged |
 | Deployed Source | Unchanged retained product release `244853f5132393f0336d504362e81a45dec19101` |
 | Deployment ID | Unchanged retained Production artifact `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt` |
 | Migration Source | No policy-task Migration; retained product migration state unchanged |
@@ -76,11 +90,13 @@ manually retried, promoted, aliased, or treated as Production.
 | Functional File Count | `0` |
 | Manual Deploy / Promotion / Alias | No / No / No |
 | Environment Change | No |
-| Automatic Preview | Accepted Git-integration side effect only after the final Push; not Production and no manual action authorized |
+| Automatic Preview | Accepted Git-integration side effect only; not inspected through a write action, not Production, and no retry/Promotion/Alias authorized |
+| Speed Insights | Not started |
 | Documentation Drift | No — current policy transition has one authoritative state here |
 | Blocker | None |
-| Remaining Work | Create the exact Target closeout commit, verify the three-commit range, then perform one normal non-force Push |
-| Next Gate / Next Action | Target closeout commit, then one authorized normal Push; do not call Vercel |
+| Remaining Work | None after the one authorized Push; no fourth documentation commit |
+| Task Done | **Yes in the published state** |
+| Next Gate / Next Action | Await Owner selection of a product task; do not start Parking Lot work automatically |
 | Parking Lot authorization state | Unchanged; no Parking Lot item is authorized |
 
 ## Superseded Current-State Snapshot — State Committed 2026-07-29

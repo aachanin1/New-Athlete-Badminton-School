@@ -9,28 +9,45 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY
+### None — Awaiting Owner Selection
 
-Status: **DEVELOPING — PM-NA INITIAL POLICY COMMIT AND TARGET BASELINE COMMIT
-COMPLETE; TARGET POLICY COMMIT IS THE CONTAINING COMMIT; CLOSEOUT COMMIT AND ONE
-NORMAL PUSH REMAIN**.
+Status: **NO ACTIVE TASK — POLICY RESET IS TASK DONE IN THE PUBLISHED STATE**.
 
-- Owner approved One Task, One Approval, Continuous Delivery with a strict Scope
-  Contract, bounded corrections, Code Complete, READY FOR OWNER UAT, Owner PASS
-  authorization for the exact artifact/SHA, automated post-Promotion checks,
-  one closeout documentation update, material Hard Stops, and No Yes-Man rules.
-- Functional File Count is `0`. Application Source, tests, Migration,
-  configuration, Environment, Production, and data are unchanged.
-- Target baseline commit is
-  `ddc2a15805f75b83234bca217ab6cf2e90608334`. PM-NA local Initial Commit is
-  `ec810411157dfb72bc27fc5986a087fc1d1334ac`; PM-NA has no remote and was not
-  pushed.
-- `PROJECT_STATE.md` is authoritative for the transition matrix.
-- Next action: create the exact Target closeout commit, verify the three-commit
-  range, then perform the one authorized normal non-force Push. Do not call
-  Vercel; any Automatic Preview is an accepted side effect only.
+- `PROJECT_STATE.md` is authoritative for the exact policy commits and final state
+  matrix.
+- Next action: await Owner selection of a product task. Do not start Parking Lot
+  work or another task automatically.
 
 ## Recently Completed
+
+### POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY
+
+Status: **DONE IN THE PUBLISHED STATE — PM-NA HAS ONE LOCAL INITIAL COMMIT; TARGET
+HAS THREE EXACT POLICY/DOCUMENTATION COMMITS AND ONE NORMAL PUSH; APPLICATION AND
+PRODUCTION UNCHANGED**.
+
+- Owner approved One Task, One Approval, Continuous Delivery with a strict Scope
+  Contract, bounded corrections, Code Complete, READY FOR OWNER UAT, exact
+  artifact/SHA Owner PASS and Promotion, automated post-Promotion checks, one
+  closeout update, material Hard Stops, and No Yes-Man rules.
+- Target baseline commit is
+  `ddc2a15805f75b83234bca217ab6cf2e90608334`; Target policy commit is
+  `230085958466558cce493e0a6226b1f361320de3`; the containing closeout commit has
+  exact membership `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`. Its SHA and post-Push equality are reported in the final
+  handoff; no fourth documentation commit is authorized.
+- PM-NA local Initial Commit
+  `ec810411157dfb72bc27fc5986a087fc1d1334ac` contains exactly `AGENTS.md` and
+  byte-unchanged `TARGETS.md`; PM-NA has no remote and was not pushed.
+- Functional File Count is `0`. Application Source, tests, Migration,
+  configuration, Environment, Production, and data are unchanged. Application
+  tests/build/browser UAT were Not Run because they are outside Scope.
+- Manual Deploy/Promotion/Alias/Environment/Production action: **No**. Automatic
+  Preview from the Target Push is an accepted Git-integration side effect only;
+  it is not Production and receives no manual retry, Promotion, or Alias.
+- Production Data Changed: No. Customer/Financial impact: None. Speed Insights:
+  Not started. Documentation Drift: No.
+- Next action: await Owner selection of a product task.
 
 ### PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT
 

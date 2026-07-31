@@ -4,9 +4,9 @@
 
 ### 2026-07-31 — Policy Reset — Owner UAT + Continuous Delivery Decision and Closeout
 
-Status at this policy checkpoint: **DEVELOPING — PM-NA INITIAL POLICY COMMIT AND
-TARGET BASELINE COMMIT COMPLETE; TARGET POLICY INSTALLED LOCALLY; TARGET CLOSEOUT
-COMMIT AND ONE AUTHORIZED NORMAL PUSH REMAIN**.
+Status at this closeout: **TASK DONE IN THE PUBLISHED STATE — PM-NA INITIAL POLICY
+COMMIT AND ALL THREE EXACT TARGET POLICY/DOCUMENTATION COMMITS COMPLETE; ONE
+AUTHORIZED NORMAL TARGET PUSH PUBLISHES THE CONTAINING CLOSEOUT**.
 
 Owner decision:
 
@@ -61,6 +61,45 @@ Gate 0 and current evidence:
 - Next action at this checkpoint: create the containing Target policy commit,
   verify exact membership, then produce the separate closeout commit. Do not Push
   until all three Target commits exist.
+
+Closeout evidence:
+
+- Target policy commit
+  `230085958466558cce493e0a6226b1f361320de3` contains exactly `AGENTS.md`,
+  `DEVELOPMENT_TODO.md`, `PROJECT_STATE.md`, and `TODO-CODEX.md`. It preserved all
+  permanent business rules and installed the approved Developer workflow.
+- The containing closeout commit contains exactly `PROJECT_STATE.md`,
+  `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`. Its exact SHA is reported in the
+  final handoff because a commit cannot contain its own SHA and the Owner
+  prohibited a fourth Target commit.
+- Target commits at closeout are exactly: baseline `ddc2a158...`, policy
+  `230085958...`, and this containing closeout. They are pending one authorized
+  normal non-force Push at commit creation. The final handoff records Push attempt/
+  retry count and local/upstream/origin equality; no post-Push documentation
+  commit is authorized.
+- PM-NA verification remains exactly one local root commit
+  `ec810411157dfb72bc27fc5986a087fc1d1334ac`, membership `AGENTS.md` and
+  `TARGETS.md`, no remote, and no Push.
+- Functional File Count is `0`. Application Source/Test/Migration/Config/
+  Environment changed: **No**. Application tests, npm commands, build, browser
+  UAT, Vercel, and Supabase checks were Not Run because they were outside Scope.
+- Policy verification passed `git diff --check`, Markdown heading inspection,
+  required-term searches, contradictory active-policy searches, exact commit
+  membership, and combined-diff allowlist review.
+- Protected `src/lib/schedule-slot-utils.ts` was never edited, staged, committed,
+  normalized, restored, moved, deleted, or cleaned. Gate 0 and closeout SHA-256 are
+  identical:
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Manual Deploy/Promotion/Alias/Environment/Production action counts are
+  `0/0/0/0/0`. No Vercel write API was called. An Automatic Preview caused solely
+  by the Target Push is an accepted Git-integration side effect only; it is not
+  Production and receives no manual retry, Promotion, Alias, or other mutation.
+- Production Data Changed: **No**. Data Repaired: **No**. Customer Impact:
+  **None**. Financial Impact: **None**. Speed Insights: **Not started**.
+  Documentation Drift: **No**. Scope Expansion/Breach: **No/No**.
+- Active Task in the published state: **None — Awaiting Owner Selection**. Next
+  action after the single Push: await Owner selection of a product task; do not
+  start Parking Lot work automatically.
 
 ### 2026-07-30 — Progressive Kids Group Multi-Branch Create + Pending Edit Source/Local Gate
 
