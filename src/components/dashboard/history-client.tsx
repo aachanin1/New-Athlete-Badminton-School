@@ -206,6 +206,27 @@ const PROGRESSIVE_PAYMENT_ERROR_COPY: Record<string, string> = {
 
 const DEFAULT_PROGRESSIVE_PAYMENT_ERROR = 'ไม่สามารถเตรียมรายการชำระเงินได้ กรุณาลองใหม่อีกครั้ง'
 const CANCEL_PROGRESSIVE_PAYMENT_ERROR = 'ยกเลิกรายการชำระเงินไม่สำเร็จ ระบบกำลังตรวจสอบสถานะ กรุณารอสักครู่'
+const PROGRESSIVE_PAYMENT_UNEXPECTED_ERROR = 'ระบบตอบกลับไม่สมบูรณ์ กรุณาลองส่งสลิปใหม่อีกครั้ง'
+const PAYMENT_SLIP_MAX_FILE_BYTES = 4 * 1024 * 1024
+
+class ProgressivePaymentTransportError extends Error {}
+
+async function fetchProgressivePayment(input: RequestInfo | URL, init?: RequestInit) {
+  try {
+    return await fetch(input, init)
+  } catch {
+    throw new ProgressivePaymentTransportError()
+  }
+}
+
+async function readJsonResponse<T extends object>(response: Response): Promise<Partial<T>> {
+  try {
+    const result: unknown = await response.json()
+    return result && typeof result === 'object' && !Array.isArray(result) ? result as Partial<T> : {}
+  } catch {
+    return {}
+  }
+}
 
 function progressivePaymentErrorCopy(result: ProgressivePaymentApiError) {
   return result.code ? PROGRESSIVE_PAYMENT_ERROR_COPY[result.code] || DEFAULT_PROGRESSIVE_PAYMENT_ERROR : DEFAULT_PROGRESSIVE_PAYMENT_ERROR
@@ -794,13 +815,8 @@ export function HistoryClient({
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      setError('กรุณาเลือกไฟล์รูปภาพเท่านั้น')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('ไฟล์ต้องมีขนาดไม่เกิน 5MB')
+    if (file.size > PAYMENT_SLIP_MAX_FILE_BYTES) {
+      setError('ไฟล์สลิปต้องมีขนาดไม่เกิน 4 MB')
       return
     }
 
@@ -825,21 +841,33 @@ export function HistoryClient({
     const verifyingTimer = window.setTimeout(() => {
       setUploadStep('verifying')
     }, 1200)
+    const failUpload = (message: string) => {
+      window.clearTimeout(verifyingTimer)
+      setError(message)
+      setLoading(false)
+      setUploadStep('failed')
+    }
 
     try {
       if (paymentMode === 'progressive') {
         const batchId = progressiveBatch?.batchId || progressiveBatch?.id
-        if (!batchId) throw new Error('ไม่พบ Progressive Payment Batch')
+        if (!batchId) {
+          failUpload('ไม่พบรายการชำระเงินที่พร้อมรับสลิป กรุณาอัปเดตรายการแล้วลองใหม่')
+          return
+        }
 
         const uploadForm = new FormData()
         uploadForm.append('batchId', batchId)
         uploadForm.append('file', slipFile)
-        const uploadResponse = await fetch('/api/progressive-payments/upload', { method: 'POST', body: uploadForm })
-        const uploadResult = await uploadResponse.json() as { error?: string }
-        if (!uploadResponse.ok) throw new Error(uploadResult.error || 'อัปโหลดสลิปไม่สำเร็จ')
+        const uploadResponse = await fetchProgressivePayment('/api/progressive-payments/upload', { method: 'POST', body: uploadForm })
+        const uploadResult = await readJsonResponse<ProgressivePaymentApiError>(uploadResponse)
+        if (!uploadResponse.ok) {
+          failUpload(uploadResult.error || 'อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+          return
+        }
 
         setUploadStep('verifying')
-        const submitResponse = await fetch('/api/progressive-payments/submit', {
+        const submitResponse = await fetchProgressivePayment('/api/progressive-payments/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -848,8 +876,15 @@ export function HistoryClient({
             attemptKey: crypto.randomUUID(),
           }),
         })
-        const submitResult = await submitResponse.json() as { batch?: ProgressiveBatchSummary; error?: string }
-        if (!submitResponse.ok || !submitResult.batch) throw new Error(submitResult.error || 'ตรวจสอบสลิปไม่สำเร็จ')
+        const submitResult = await readJsonResponse<ProgressivePaymentApiError & { batch: ProgressiveBatchSummary }>(submitResponse)
+        if (!submitResponse.ok) {
+          failUpload(submitResult.error || 'ตรวจสอบสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+          return
+        }
+        if (!submitResult.batch) {
+          failUpload(PROGRESSIVE_PAYMENT_UNEXPECTED_ERROR)
+          return
+        }
 
         window.clearTimeout(verifyingTimer)
         setProgressiveBatch(submitResult.batch)
@@ -919,9 +954,11 @@ export function HistoryClient({
           router.refresh()
         }, 2200)
       }
-    } catch {
+    } catch (caught) {
       window.clearTimeout(verifyingTimer)
-      setError('เชื่อมต่อระบบตรวจสอบสลิปไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')
+      setError(paymentMode === 'progressive' && !(caught instanceof ProgressivePaymentTransportError)
+        ? PROGRESSIVE_PAYMENT_UNEXPECTED_ERROR
+        : 'เชื่อมต่อระบบตรวจสอบสลิปไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')
       setLoading(false)
       setUploadStep('failed')
     }
@@ -1433,6 +1470,7 @@ export function HistoryClient({
                 className="cursor-pointer"
                 disabled={loading || (paymentMode === 'progressive' && !progressiveUploadEligible)}
               />
+              <p className="text-xs text-gray-500">รองรับไฟล์ JPEG, PNG และ WebP ขนาดไม่เกิน 4 MB</p>
             </div>
 
             {slipPreview && (

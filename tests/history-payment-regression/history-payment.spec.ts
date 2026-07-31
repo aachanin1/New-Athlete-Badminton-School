@@ -11,6 +11,12 @@ test.describe.configure({ mode: 'serial' })
 
 let fixture: HistoryPaymentFixture
 
+const JPEG_BYTES = [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]
+const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]
+const WEBP_BYTES = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]
+const GIF_BYTES = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0, 0, 0, 0, 0, 0]
+const HEIC_BYTES = [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63]
+
 test.beforeAll(() => {
   fixture = readHistoryPaymentFixture()
 })
@@ -69,11 +75,60 @@ async function readScope() {
 async function readBatches() {
   const admin = createLocalAdmin()
   const { data, error } = await admin.from('progressive_payment_batches')
-    .select('id,status,total_amount,member_count,slip_storage_path,slip_sha256')
+    .select('id,status,total_amount,member_count,slip_storage_path,slip_mime_type,slip_size_bytes,slip_sha256')
     .eq('user_id', fixture.userId)
     .order('created_at', { ascending: true })
   if (error) throw new Error(`read batches: ${error.message}`)
   return data
+}
+
+async function listBatchStorage(batchId: string) {
+  const admin = createLocalAdmin()
+  const { data, error } = await admin.storage.from('progressive-payment-slips')
+    .list(`${fixture.userId}/batches/${batchId}`, { limit: 100, offset: 0 })
+  if (error) throw new Error(`list batch storage: ${error.message}`)
+  return data
+}
+
+async function prepareCurrentBatch(page: Page) {
+  const scope = await readScope()
+  const prepared = await page.evaluate(async ({ scopeId, bookingIds, revision }) => {
+    const response = await fetch('/api/progressive-payments/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pricingScopeId: scopeId,
+        bookingIds,
+        expectedScopeRevision: revision,
+        idempotencyKey: crypto.randomUUID(),
+      }),
+    })
+    return { status: response.status, body: await response.json() }
+  }, { scopeId: fixture.scopeId, bookingIds: fixture.bookingIds, revision: scope.revision })
+  expect(prepared.status).toBe(200)
+  expect(prepared.body.batch).toMatchObject({ status: 'prepared', bookingIds: fixture.bookingIds })
+  return prepared.body.batch as { batchId: string; status: string }
+}
+
+async function uploadProgressiveFile(page: Page, input: {
+  batchId?: string
+  name?: string
+  mimeType?: string
+  bytes?: number[]
+  size?: number
+}) {
+  return page.evaluate(async ({ batchId, name, mimeType, bytes, size }) => {
+    const form = new FormData()
+    if (batchId) form.append('batchId', batchId)
+    if (name && bytes) {
+      const content = new Uint8Array(size || bytes.length)
+      content.set(bytes)
+      form.append('file', new File([content], name, mimeType ? { type: mimeType } : undefined))
+    }
+    const response = await fetch('/api/progressive-payments/upload', { method: 'POST', body: form })
+    const body = await response.json().catch(() => ({}))
+    return { status: response.status, body }
+  }, input)
 }
 
 async function financialSnapshot() {
@@ -82,6 +137,7 @@ async function financialSnapshot() {
     attempts: await countRows('progressive_payment_verification_attempts'),
     allocations: await countRows('progressive_payment_allocations'),
     ledger: await countRows('Ledger'),
+    ledgerAllocations: await countRows('payment_ledger_allocations_v1'),
     finance: await countRows('finance_expenses'),
     couponReservations: await countRows('progressive_coupon_reservations'),
     couponUsages: await countRows('coupon_usages'),
@@ -313,4 +369,214 @@ test('real payment guards preserve one-item prefix and reject a skipped prefix w
   expect(await countRows('progressive_payment_batch_bookings')).toBe(memberCountBefore)
   expect((await readScope()).locked_by_payment_batch_id).toBeNull()
   expect(browserErrors).toEqual([])
+})
+
+test('valid JPEG bytes declared as image/jpg upload without requiring a resave', async ({ page }) => {
+  await loginAndOpenHistory(page)
+  const batch = await prepareCurrentBatch(page)
+  const uploaded = await uploadProgressiveFile(page, {
+    batchId: batch.batchId,
+    name: 'android-line-slip.jpg',
+    mimeType: 'image/jpg',
+    bytes: JPEG_BYTES,
+  })
+  expect(uploaded).toMatchObject({
+    status: 200,
+    body: { success: true, upload: { mimeType: 'image/jpeg', sizeBytes: JPEG_BYTES.length } },
+  })
+  const cancelled = await page.evaluate(async (batchId) => {
+    const response = await fetch(`/api/progressive-payments/${batchId}/cancel`, { method: 'POST' })
+    return { status: response.status, body: await response.json() }
+  }, batch.batchId)
+  expect(cancelled).toMatchObject({ status: 200, body: { batch: { status: 'cancelled' } } })
+})
+
+test('Progressive upload client preserves Thai server errors and reserves the network message for transport failure', async ({ page }) => {
+  const financialBefore = await financialSnapshot()
+  const protectedBefore = await protectedBookingSnapshot()
+  await loginAndOpenHistory(page)
+  await selectTwo(page)
+  await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
+  await expect(page.getByTestId('payment-slip-modal')).toBeVisible()
+
+  await page.locator('#slip-upload').setInputFiles({
+    name: 'android-line-slip.jpg',
+    mimeType: 'image/jpg',
+    buffer: Buffer.from([...JPEG_BYTES, 0xe8]),
+  })
+  await expect(page.getByRole('button', { name: 'ส่งสลิปชำระเงิน' })).toBeEnabled()
+
+  const serverMessage = 'เนื้อไฟล์ไม่ใช่ JPEG, PNG หรือ WebP ที่ระบบรองรับ'
+  await page.route('**/api/progressive-payments/upload', async (route) => {
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'PROGRESSIVE_UPLOAD_UNSUPPORTED_FILE', error: serverMessage }),
+    })
+  })
+  await page.getByRole('button', { name: 'ส่งสลิปชำระเงิน' }).click()
+  await expect(page.getByText(serverMessage, { exact: true })).toBeVisible()
+  await expect(page.getByTestId('payment-slip-modal')).not.toContainText('ตรวจสอบอินเทอร์เน็ต')
+  await page.unroute('**/api/progressive-payments/upload')
+
+  await page.route('**/api/progressive-payments/upload', async (route) => {
+    await route.abort('internetdisconnected')
+  })
+  await page.getByRole('button', { name: 'ส่งสลิปชำระเงิน' }).evaluate((button) => {
+    ;(button as HTMLButtonElement).click()
+  })
+  await expect(page.getByText('เชื่อมต่อระบบตรวจสอบสลิปไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', { exact: true })).toBeVisible()
+  await page.unroute('**/api/progressive-payments/upload')
+
+  await page.getByTestId('payment-modal-cancel').evaluate((button) => {
+    ;(button as HTMLButtonElement).click()
+  })
+  await waitForLifecycle(page, 'idle')
+  expect(await financialSnapshot()).toEqual(financialBefore)
+  expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
+})
+
+test('Progressive upload trusts JPEG, PNG, and WebP magic bytes, rejects unsafe files, and keeps rejected batches zero-write', async ({ page }) => {
+  const financialBefore = await financialSnapshot()
+  const protectedBefore = await protectedBookingSnapshot()
+  await loginAndOpenHistory(page)
+  const batch = await prepareCurrentBatch(page)
+
+  const rejectedCases = [
+    {
+      expectedStatus: 400,
+      expectedCode: 'PROGRESSIVE_UPLOAD_INVALID_PAYLOAD',
+      input: {},
+    },
+    {
+      expectedStatus: 413,
+      expectedCode: 'PROGRESSIVE_UPLOAD_FILE_TOO_LARGE',
+      input: {
+        batchId: batch.batchId,
+        name: 'oversize.jpg',
+        mimeType: 'image/jpeg',
+        bytes: JPEG_BYTES,
+        size: 4 * 1024 * 1024 + 1,
+      },
+    },
+    {
+      expectedStatus: 400,
+      expectedCode: 'PROGRESSIVE_UPLOAD_UNSUPPORTED_FILE',
+      input: { batchId: batch.batchId, name: 'fake.jpg', mimeType: 'image/jpeg', bytes: Array(12).fill(0x41) },
+    },
+    {
+      expectedStatus: 400,
+      expectedCode: 'PROGRESSIVE_UPLOAD_UNSUPPORTED_FILE',
+      input: { batchId: batch.batchId, name: 'animated.gif', mimeType: 'image/gif', bytes: GIF_BYTES },
+    },
+    {
+      expectedStatus: 400,
+      expectedCode: 'PROGRESSIVE_UPLOAD_UNSUPPORTED_FILE',
+      input: { batchId: batch.batchId, name: 'phone.heic', mimeType: 'image/heic', bytes: HEIC_BYTES },
+    },
+  ]
+  for (const rejected of rejectedCases) {
+    const result = await uploadProgressiveFile(page, rejected.input)
+    expect(result).toMatchObject({
+      status: rejected.expectedStatus,
+      body: { code: rejected.expectedCode },
+    })
+    expect(String((result.body as { error?: string }).error || '')).toMatch(/[ก-๙]/)
+  }
+
+  const rejectedBatch = (await readBatches()).find((candidate) => candidate.id === batch.batchId)
+  expect(rejectedBatch).toMatchObject({
+    status: 'prepared',
+    slip_storage_path: null,
+    slip_mime_type: null,
+    slip_size_bytes: null,
+    slip_sha256: null,
+  })
+  expect(await listBatchStorage(batch.batchId)).toHaveLength(0)
+  expect(await financialSnapshot()).toEqual(financialBefore)
+  expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
+
+  const acceptedCases = [
+    { name: 'standard.jpg', mimeType: 'image/jpeg', bytes: [...JPEG_BYTES, 0xd1], expectedMime: 'image/jpeg' },
+    { name: 'android-alias.jpg', mimeType: 'image/jpg', bytes: [...JPEG_BYTES, 0xd2], expectedMime: 'image/jpeg' },
+    { name: 'untrusted.bin', mimeType: 'application/octet-stream', bytes: [...JPEG_BYTES, 0xd3], expectedMime: 'image/jpeg' },
+    { name: 'blank-mime.jpg', mimeType: '', bytes: [...JPEG_BYTES, 0xd4], expectedMime: 'image/jpeg' },
+    { name: 'standard.png', mimeType: 'image/png', bytes: [...PNG_BYTES, 0xd5], expectedMime: 'image/png' },
+    { name: 'standard.webp', mimeType: 'image/webp', bytes: [...WEBP_BYTES, 0xd6], expectedMime: 'image/webp' },
+  ]
+  for (const accepted of acceptedCases) {
+    const result = await uploadProgressiveFile(page, { batchId: batch.batchId, ...accepted })
+    expect(result).toMatchObject({
+      status: 200,
+      body: {
+        success: true,
+        upload: { mimeType: accepted.expectedMime, sizeBytes: accepted.bytes.length },
+      },
+    })
+  }
+
+  const uploadedBatch = (await readBatches()).find((candidate) => candidate.id === batch.batchId)
+  expect(uploadedBatch).toMatchObject({
+    status: 'prepared',
+    slip_mime_type: 'image/webp',
+    slip_size_bytes: WEBP_BYTES.length + 1,
+  })
+  expect((await listBatchStorage(batch.batchId)).length).toBeGreaterThanOrEqual(6)
+  expect(await financialSnapshot()).toEqual(financialBefore)
+  expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
+
+  const cancelled = await page.evaluate(async (batchId) => {
+    const response = await fetch(`/api/progressive-payments/${batchId}/cancel`, { method: 'POST' })
+    return { status: response.status, body: await response.json() }
+  }, batch.batchId)
+  expect(cancelled).toMatchObject({ status: 200, body: { batch: { status: 'cancelled' } } })
+  const notReady = await uploadProgressiveFile(page, {
+    batchId: batch.batchId,
+    name: 'retry.jpg',
+    mimeType: 'image/jpeg',
+    bytes: JPEG_BYTES,
+  })
+  expect(notReady).toMatchObject({
+    status: 409,
+    body: { code: 'PROGRESSIVE_UPLOAD_BATCH_NOT_READY' },
+  })
+})
+
+test('valid image/jpg completes the existing shared Test Mode approval transition', async ({ page }) => {
+  const financialBefore = await financialSnapshot()
+  await loginAndOpenHistory(page)
+  await selectTwo(page)
+  await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
+  await expect(page.getByTestId('payment-slip-modal')).toBeVisible()
+  await page.locator('#slip-upload').setInputFiles({
+    name: 'android-line-slip.jpg',
+    mimeType: 'image/jpg',
+    buffer: Buffer.from([...JPEG_BYTES, 0xe9]),
+  })
+
+  const uploadResponse = page.waitForResponse((response) => (
+    response.request().method() === 'POST'
+    && new URL(response.url()).pathname === '/api/progressive-payments/upload'
+  ))
+  const submitResponse = page.waitForResponse((response) => (
+    response.request().method() === 'POST'
+    && new URL(response.url()).pathname === '/api/progressive-payments/submit'
+  ))
+  await page.getByRole('button', { name: 'ส่งสลิปชำระเงิน' }).click()
+  expect((await uploadResponse).status()).toBe(200)
+  expect((await submitResponse).status()).toBe(200)
+  await expect(page.getByTestId('payment-slip-modal')).toHaveCount(0)
+
+  const batches = await readBatches()
+  expect(batches.at(-1)).toMatchObject({ status: 'approved', slip_mime_type: 'image/jpeg' })
+  const protectedAfter = await protectedBookingSnapshot()
+  expect(protectedAfter.bookings.map((booking) => booking.status)).toEqual(['verified', 'verified'])
+  expect(await readScope()).toMatchObject({ locked_by_payment_batch_id: null, locked_at: null })
+  const financialAfter = await financialSnapshot()
+  expect(financialAfter.payments).toBe(financialBefore.payments)
+  expect(financialAfter.attempts - financialBefore.attempts).toBe(1)
+  expect(financialAfter.allocations - financialBefore.allocations).toBe(2)
+  expect(financialAfter.ledger).toBe(financialBefore.ledger)
+  expect(financialAfter.ledgerAllocations - financialBefore.ledgerAllocations).toBe(2)
+  expect(financialAfter.finance).toBe(financialBefore.finance)
 })

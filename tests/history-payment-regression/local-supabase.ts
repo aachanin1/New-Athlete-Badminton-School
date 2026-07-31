@@ -90,7 +90,7 @@ export async function seedHistoryPaymentFixture() {
     notes: 'Disposable History payment fixture',
   })).error, 'insert History template')
 
-  const dates = Array.from({ length: 10 }, (_, index) => `2026-07-${String(20 + index).padStart(2, '0')}`)
+  const dates = Array.from({ length: 10 }, (_, index) => `2026-08-${String(3 + index).padStart(2, '0')}`)
   assertNoError((await admin.from('schedule_slots').insert(dates.map((date, index) => ({
     id: fixedUuid(index + 1),
     template_id: HISTORY_IDS.template,
@@ -108,7 +108,7 @@ export async function seedHistoryPaymentFixture() {
     user_id: userId,
     course_type_id: HISTORY_IDS.course,
     lesson_year: 2026,
-    lesson_month: 7,
+    lesson_month: 8,
     currency: 'THB',
     revision: 1,
     pricing_tier_version: 'history-e2e-v1',
@@ -151,12 +151,12 @@ export async function seedHistoryPaymentFixture() {
     child_id: HISTORY_IDS.child,
     branch_id: HISTORY_IDS.branch,
     course_type_id: HISTORY_IDS.course,
-    month: 7,
+    month: 8,
     year: 2026,
     status: 'pending_payment',
     pricing_scope_id: HISTORY_IDS.scope,
     coupon_discount_snapshot: 0,
-    expires_at: '2026-07-31T16:59:59Z',
+    expires_at: '2026-08-31T16:59:59Z',
     pricing_calculated_at: booking.created_at,
   })))).error, 'insert History bookings')
 
@@ -190,6 +190,7 @@ export function readHistoryPaymentFixture() {
 
 export async function getHistoryFixtureResidueCount() {
   const admin = createLocalAdmin()
+  const fixture = readHistoryPaymentFixture()
   let residue = 0
   for (const [table, id] of [
     ['branches', HISTORY_IDS.branch],
@@ -206,6 +207,11 @@ export async function getHistoryFixtureResidueCount() {
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
   assertNoError(error, 'count History auth residue')
   residue += data.users.filter((user) => user.email === HISTORY_ACCOUNT.email).length
+  const { data: storageEntries, error: storageError } = await admin.storage
+    .from('progressive-payment-slips')
+    .list(`${fixture.userId}/batches`, { limit: 100, offset: 0 })
+  assertNoError(storageError, 'count History storage residue')
+  residue += storageEntries?.length || 0
   return residue
 }
 

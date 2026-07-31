@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 
 export const PROGRESSIVE_PAYMENT_BUCKET = 'progressive-payment-slips'
-export const PROGRESSIVE_PAYMENT_MAX_FILE_BYTES = 5 * 1024 * 1024
+export const PROGRESSIVE_PAYMENT_MAX_FILE_BYTES = 4 * 1024 * 1024
 export const PROGRESSIVE_PAYMENT_SIGNED_URL_TTL_SECONDS = 5 * 60
 
 export type ProgressiveBatchStatus = 'prepared' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'cancelled'
