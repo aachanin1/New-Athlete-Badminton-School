@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,43 +9,58 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT
+### None — Awaiting Owner Selection
 
-Status: **PASS — COMMITTED AND PUSHED; UNDEPLOYED; TASK NOT DONE**, effective only
-after Commit B, the one authorized normal push, and independent live-Remote
-verification succeed; otherwise the publication handoff reports the actual
-blocker.
+Status: **NO ACTIVE TASK**.
 
-- Authoritative mutable state is in `PROJECT_STATE.md`. Retained Owner-confirmed
-  prior-gate state: the multi-branch migration is applied remotely and Production
-  create UAT passed. Production pending-edit UI UAT failed because Edit selected
-  only the primary `bookings.branch_id` although sessions retained multiple
-  branches.
-- Local correction derives Edit branches from the ordered valid union of the
-  primary branch plus every session branch and applies that union only while
-  reconciling Edit drafts. New-booking draft behavior, primary branch semantics,
-  API/RPC/migration, canonical-slot validation, and pricing are unchanged.
-- Regression-first pre-fix failed exactly at the missing second Calendar branch
-  with residue `0`. Post-fix multi-branch and single-branch rendered Edit passed
-  focused `1/1` each; final full booking E2E passed `11/11`, skipped/unexpected/
-  flaky/retries/residue `0`, with multi-branch
-  `9 × 500 = 4,500` and Option A `4+4 = 2,000`. TypeScript, zero-warning ESLint,
-  mojibake `250`, build `91/91`, clean root/static `200/200`, and diff check pass.
-- Correction changes are exactly functional `1`, test `1`, documentation `3`.
-  No API/RPC/migration/remote/Production/data/financial mutation occurred here.
-- Functional/Test Commit A is
-  `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`, tree
-  `6a1546920243344d3e60b7ef06b3ead498818745`, parent
-  `33eb3af1c95e43e2596455d24c316eb0812b30e4`, with exactly the accepted two
-  files. The following Commit B is limited to these task-specific hunks in the
-  three context documents; its exact SHA/tree are recorded in the publication
-  handoff. `Pushed: Yes` is effective only after the one authorized normal push
-  and independent live-Remote verification succeed.
-- Next action after successful push: stop and await Owner review before a separate
-  Deploy gate. Production UAT/write, data repair, feature/allowlist/environment
-  changes, and Parking Lot work remain unauthorized.
+- The most recent task is closed as Done below. `PROJECT_STATE.md` is authoritative
+  for its final Git, Production, UAT, restore, data, customer, and financial state.
+- Next action: await Owner selection of a new Active Task. Do not start Parking Lot
+  work or another task automatically.
 
 ## Recently Completed
+
+### PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT
+
+Status: **DONE — SOURCE/TEST COMMITTED AND PUSHED; EXACT ARTIFACT
+PRODUCTION/READY/PROMOTED; RENDERED PRODUCTION UAT PASSED AFTER READ-ONLY POST
+ATTRIBUTION; CONTROLLED RESTORE AND POST-UAT SELECT-ONLY VERIFICATION PASSED;
+FINANCIAL IMPACT NONE**.
+
+- Published release Source is
+  `244853f5132393f0336d504362e81a45dec19101`, tree
+  `b20afa51a2fd31e7ab5e8ae0ab973dbcd0c83f2f`; Functional/Test Commit A is
+  `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`. Accepted Local evidence remains
+  rendered focused `1/1 + 1/1`, full booking E2E `11/11`, skipped/unexpected/
+  flaky/retries/residue `0/0/0/0/0`, TypeScript, zero-warning ESLint, mojibake
+  `250`, and build/static generation `91/91`.
+- Exact artifact `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt` is
+  `production/READY/PROMOTED` with all four established Production aliases. The
+  one Promotion invocation exited `0`; retry/rebuild/rollback/separate alias
+  counts were `0/0/0/0`. Remote builder CLI `58.4.0` remains an Owner-accepted
+  exception for this artifact only.
+- Source proves automatic Edit-draft POSTs to `/api/bookings/availability` and
+  `/api/bookings/preview` are authenticated read-only validation/calculation; the
+  only RPC is SELECT-only `STABLE` `progressive_legacy_baseline_v1`. Actual Edit
+  Save uses `PUT /api/bookings`.
+- Exact Production UAT logs contain one `200` for each expected read-only POST and
+  no PUT, booking-create POST, PATCH, DELETE, unexpected write endpoint, 4xx/5xx,
+  or runtime error. Rendered UAT showed 10 sessions, all three branches, 4,330
+  baht, restored 7 August row, no 11 August replacement, and no
+  `PROGRESSIVE_INVALID_REQUEST` or console/page error.
+- Post-UAT `BEGIN TRANSACTION READ ONLY` returned `transaction_read_only=on` and
+  verified the target booking at 10 sessions/3 branches/4,330 baht, entitlement
+  `10`, rate `433`, canonical links `10/10`, original/replacement tuple counts
+  `1/0`, and all protected-domain/UAT-attributable mutation counts `0`.
+- Functional File Count is `0` for this closeout. No Source/Test/config,
+  environment, feature, allowlist, booking, DB/RPC, payment, coupon, Ledger,
+  Finance, or customer-data mutation occurred. Automatic Preview from the docs-
+  only Push is an accepted Git-integration side effect only and must not be
+  promoted or aliased.
+- Customer impact: the correction is Production-active and verified. Financial
+  impact: none. Documentation Drift: none after the closeout commit/push.
+- Next action: await Owner selection; Parking Lot remains unchanged and
+  unauthorized.
 
 ### RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION
 

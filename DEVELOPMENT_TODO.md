@@ -389,6 +389,136 @@ State observed for this publication gate:
   before a separately authorized Deploy gate. Do not start Deploy, Production UAT,
   repair, Parking Lot work, or another task automatically.
 
+#### 2026-07-31 Production Promotion/UAT Contract Reconciliation + Release Closeout
+
+Status at this closeout: **DONE — EXACT ARTIFACT PROMOTED AND PRODUCTION-ACTIVE;
+RENDERED UAT PASSED AFTER EXPECTED READ-ONLY POST ATTRIBUTION; CONTROLLED RESTORE
+AND POST-UAT SELECT-ONLY STATE VERIFIED; DOCUMENTATION COMMITTED/PUSHED; NO
+FINANCIAL IMPACT**. The documentation publication statement becomes effective
+only after the containing commit and single authorized normal push succeed; exact
+closeout SHA/tree and push result are recorded in the final handoff.
+
+State observed at this closeout:
+
+- Owner superseded the prior overbroad UAT transport prohibition only for the two
+  exact automatic calls `POST /api/bookings/availability` and
+  `POST /api/bookings/preview`, accepted both as expected read-only calls, and
+  authorized Source attribution, read-only Vercel reconciliation, post-UAT
+  `SELECT` verification, three-document reconciliation, one documentation commit,
+  and one normal push. No new browser UAT, `PUT /api/bookings`, booking-create
+  POST, PATCH/DELETE, DB/RPC write, Source/Test/config edit, Deploy/Promotion/
+  Retry/Rollback, manual alias/environment change, or Parking Lot work was
+  authorized or performed.
+- Fresh Git Gate 0 matched branch `spike/next-major-security-upgrade`, local/
+  configured-upstream/live-Remote HEAD
+  `244853f5132393f0336d504362e81a45dec19101`, tree
+  `b20afa51a2fd31e7ab5e8ae0ab973dbcd0c83f2f`, Ahead/Behind `0/0`, staged/
+  untracked `0/0`, and exactly the five expected pre-existing dirty paths.
+  Protected `AGENTS.md`, `src/lib/schedule-slot-utils.ts`, and
+  `.vercel/project.json` blobs remained
+  `e979a2c895dd8fe60a651b4e41f71d49ca020f35`,
+  `4521281d099efb189429a744909552d67871ff23`, and
+  `645408364e72fcd087ca314b6a566ff8774813d4`. Accepted Functional/Test blobs
+  remained `a8243c7c1ef15a80b6b690649a15c4a098365429` and
+  `d89c88cc50371f74db8825fe834617a30c381049`.
+- Source attribution proved `booking-client.tsx` automatically calls Preview and
+  Availability when an Edit draft is ready in Calendar/Summary. Availability
+  authenticates the User and reads course, booking, template, slot, and session
+  rows through SELECTs only. Preview authenticates, reads the same business
+  context, and its helper contains only SELECTs plus
+  `progressive_legacy_baseline_v1`. Migration `20260713210000` declares that
+  function `STABLE`; its body contains only validation and SELECT/aggregation.
+  No `.insert()`, `.update()`, `.upsert()`, or `.delete()` exists in these read
+  paths. The actual pending-booking edit mutation is the explicit Save handler's
+  `PUT /api/bookings`.
+- The prior Owner-authorized Promotion used pinned local Node `24.16.0` and cached
+  Vercel CLI `56.5.0` once against exact artifact
+  `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt`. Exact command shape was
+  `node.exe <cached-vercel-56.5.0-entrypoint> promote
+  dpl_9aqADgizA8jdh5WXsT84LPgb4gyt --yes --scope
+  team_gw8Y6CPd602WAKRsVFobPGCL --no-color`. It ran from
+  `2026-07-31T02:20:41.1424641Z` through `02:20:46.6958163Z`, duration `5.553`
+  seconds, exited `0`, and returned Promotion success. Invocation/retry counts
+  were `1/0`; no rebuild, new manual deployment, rollback, or separate alias
+  command occurred.
+- Fresh read-only Vercel evidence matched project
+  `prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+  `team_gw8Y6CPd602WAKRsVFobPGCL`, exact artifact/SHA/tree
+  `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt` /
+  `244853f5132393f0336d504362e81a45dec19101` /
+  `b20afa51a2fd31e7ab5e8ae0ab973dbcd0c83f2f`, and
+  `production/READY/PROMOTED`. Creation/build/Ready timestamps were unchanged,
+  `autoAssignCustomDomains=false`, the target remained the newest deployment,
+  and no later deployment/rebuild existed.
+- All four established Production aliases target the promoted artifact:
+  `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`. Prior
+  Production `dpl_GWfmXNEHFQCeSQZZfqRh1BZnPg7M` remains READY as a rollback
+  reference; no rollback occurred.
+- Existing authenticated Production UAT evidence was reused without reopening the
+  browser. `/dashboard/history` and read-only Edit showed `น้อง Test`, August
+  2569, 10 sessions, branches `345`, `แจ้งวัฒนะ`, and `ทวีวัฒนา`, and price
+  `4,330` baht. Edit preserved all three branches and all 10 rows, contained
+  `2026-08-07 17:00–19:00 @แจ้งวัฒนะ` once, omitted the 11 August replacement,
+  and showed no `PROGRESSIVE_INVALID_REQUEST`, console error, page error, or
+  overlay. No session was selected/removed and Save was not clicked.
+- Exact artifact runtime window `2026-07-31T02:23:20.119Z` through
+  `02:25:03.660Z` grouped 68 requests, all HTTP `200`. Application request
+  inventory contained exactly one `POST /api/bookings/availability 200` and one
+  `POST /api/bookings/preview 200`. `PUT /api/bookings`, booking-create POST,
+  PATCH, DELETE, unexpected write endpoint, 4xx/5xx, warning, error, and fatal
+  counts were all `0`.
+- Post-UAT Supabase verification ran as one bounded `BEGIN TRANSACTION READ ONLY`
+  audit and ended with `ROLLBACK`; `transaction_read_only=on`. Target booking
+  `fa9de48b-1589-4924-9510-be8eb73c4d6d` remains `pending_payment`, user
+  `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, child
+  `4209ef39-21cd-494e-9e1f-507e3f0a92d1`, primary branch
+  `14ae2056-374e-4a65-b516-a2c15220f0fc`, month/year `8/2026`, sessions/branches
+  `10/3`, branch names `345` / `แจ้งวัฒนะ` / `ทวีวัฒนา`, price/entitlement
+  `4,330/10`, pricing rate `433`, revision `12`, and canonical linkage `10/10`.
+- Exact restored original tuple count was `1`: `2026-08-07`, `17:00–19:00`,
+  branch `aa77eba0-d05e-4539-9606-f55fe8a530ca`, template
+  `c38a09c3-d37d-4ec8-8f8d-5d47220437bd`, canonical slot
+  `087433e1-c7cd-4192-bc96-63ff09b58a0b`. Replacement tuple count was `0` for
+  `2026-08-11`, the same branch/time, template
+  `680ba191-4e93-4904-92d4-5ff015b69263`, and slot
+  `55ce486e-5f50-44f1-b5c1-9448c90f950e`.
+- Target payments, coupon reservations/usages, batch memberships, Progressive
+  allocations, Ledger allocations, wallet credits, attendance, reschedule
+  descendants, coach assignment memberships, and exact-UAT-window Finance
+  expenses were `0/0/0/0/0/0/0/0/0/0/0`. UAT-window target receipts, target
+  activity, target booking updates, target session create/updates, and same-scope
+  booking updates were also all `0`.
+- The Owner's known UI restore receipt
+  `4c418e92-9fb8-4edf-9d77-5c4982ed17b5` and activity
+  `d958ceb6-4cf4-4fc1-825e-a37c3366bf50` remain intact: client request
+  `978ab1a5-8e39-449a-8488-101bf8886250`, expected/result scope revision
+  `11/12`, `ok=true`, `idempotentReplay=false`, total `4,330`, and no changed
+  sibling booking. This was an approved UI restore, not a direct data repair.
+- Documentation reconciliation changed only task-specific current-matrix/index/
+  dated-closeout hunks in `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`. Historical staged/unpromoted and prior Hard Stop records
+  remain explicitly dated history. Functional/Test/config/package/environment,
+  deployment, alias, feature/allowlist, booking, DB/RPC, payment, coupon, Ledger,
+  Finance, attendance, coach, payroll, and accounting mutation counts in this gate
+  are all `0`. Functional File Count is `0`; Scope Expansion and Scope Breach are
+  **No/No**.
+- The containing commit subject is `docs: close progressive multi-branch release`
+  and membership is exactly the three approved documents. One normal non-force
+  push to `origin/spike/next-major-security-upgrade` is authorized with retry `0`.
+  A Git-integration Automatic Preview is an accepted side effect only; it is not
+  Production and must not be promoted, aliased, retried, or recorded through a
+  second documentation commit.
+- Source Complete/Tests Passed/Source Committed/Source Pushed are
+  **Yes/Yes/Yes/Yes**. Deployed/Promoted/Production Active are **Yes/Yes/Yes**.
+  Production UAT is **Passed after read-only POST attribution**. Controlled Write
+  UAT is **Passed; final restore verified**. Data Repaired is **No direct repair**;
+  Production Data Changed in this gate is **No**. Customer impact is the active,
+  verified correction. Financial impact is **None**. Documentation Drift is
+  **No after commit/push**. Task Done is **Yes**. Active Task is **None**. Next
+  Action is await Owner selection; Parking Lot remains unchanged and unauthorized.
+
 ### 2026-07-24 — Coach Assignment Status Communication + Save Feedback Source/Local Gate
 
 Status at this local checkpoint: **PASS — SOURCE FIX + LOCAL TEST ONLY; UNSTAGED /

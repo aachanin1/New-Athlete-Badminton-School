@@ -1,11 +1,13 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
-Current source: fresh Repository-only Git/Source audit, disposable Local Supabase
-and rendered booking regressions, Owner-confirmed retained Production migration/
-UAT state, and prior release evidence. The authoritative mutable state for the
-active task is the matrix under **Current Active Work** below.
+Current source: fresh local/live-Remote Git and Source attribution, accepted Local
+booking regressions, Owner-confirmed Production migration/create state, exact-
+artifact Promotion evidence, bounded rendered Production UAT plus Vercel request
+attribution, and post-UAT Supabase `BEGIN TRANSACTION READ ONLY` verification. The
+authoritative mutable release state and closed-task matrix are under **Current
+Active Work** below.
 
 ## Superseded Current-State Snapshot — State Committed 2026-07-29
 
@@ -27,11 +29,16 @@ Production-target artifact, authenticated read-only staged UAT closeout, exact-
 artifact Promotion, and successful read-only post-promotion Production UAT retry.
 Items not confirmed are marked `Unknown / Need verification`.
 
-The single Active Task is **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING
-EDIT** under an Owner-authorized **COMMIT + PUSH** publication gate for the exact
-five-file allowlist. The accepted Functional/Test bytes remain unchanged. Commit A
-is `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`; the Pushed state is Yes only after
-the one authorized normal push and independent live-Remote verification succeed.
+There is no Active Task after the 2026-07-31 closeout. **PROGRESSIVE KIDS GROUP
+MULTI-BRANCH CREATE + PENDING EDIT** is Task Done: accepted Functional/Test Source
+is committed and pushed through release HEAD
+`244853f5132393f0336d504362e81a45dec19101`; exact artifact
+`dpl_9aqADgizA8jdh5WXsT84LPgb4gyt` is `production/READY/PROMOTED`; and all four
+established Production aliases point to it. Owner accepted remote builder CLI
+`58.4.0` only for that artifact. Rendered Production UAT passed after Source and
+runtime attribution classified its single `POST /api/bookings/availability` and
+single `POST /api/bookings/preview` as expected read-only calls; no booking write
+or protected-domain mutation occurred. Await Owner selection of a new Active Task.
 
 Prior task context retained in this worktree:
 
@@ -75,17 +82,11 @@ the existing staged artifact remains broken and unchanged. Task Done is **No**.
 Next action requires separate Owner authorization for a new staged deployment; no
 Deploy, UAT retry, or Promotion is implied.
 
-## Current Active Work — Progressive Kids Group Multi-Branch Create + Pending Edit
+## Current Active Work — None / Awaiting Owner Selection
 
-Owner retained this as the single Active Task on 2026-07-30 and authorized the
-**COMMIT + PUSH — RENDERED PENDING-EDIT CORRECTION ONLY** publication gate. Commit
-A contains only `src/components/dashboard/booking-client.tsx` and
-`tests/booking-regression/booking.spec.ts`; Commit B may contain only task-specific
-hunks in the three context documents. The accepted Functional/Test bytes must not
-change. Exactly one normal non-force push is authorized. Deploy/Promotion,
-linked/remote migration, Production access/UAT/write, data repair, branch/remote
-integration, and feature/allowlist/environment/dependency changes remain
-prohibited.
+Owner closed **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT** on
+2026-07-31 after read-only release reconciliation. No Parking Lot item or next task
+is authorized to start automatically.
 
 ### Intended Behavior
 
@@ -178,47 +179,109 @@ remain session-specific.
   is `3`. This gate made no API/RPC/migration/schema/package/configuration,
   remote/Production, data-repair, customer-data, or financial mutation.
 
-### Current Project Matrix — Progressive Kids Group Multi-Branch Create + Pending Edit
+### Production Closeout Evidence
+
+- Source attribution proves an Edit draft automatically calls authenticated
+  `POST /api/bookings/preview` and `POST /api/bookings/availability` when ready.
+  The availability route contains authenticated SELECTs only. The preview path
+  contains SELECTs plus only `progressive_legacy_baseline_v1`, whose migration
+  definition is `STABLE` and SELECT-only. The actual Edit mutation is the Save
+  handler's `PUT /api/bookings`; that request did not occur in the UAT window.
+- The one authorized Promotion invocation used pinned local Node `24.16.0` and
+  Vercel CLI `56.5.0` against exact artifact
+  `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt`. It ran from
+  `2026-07-31T02:20:41.1424641Z` through `02:20:46.6958163Z`, exited `0`, and had
+  invocation/retry counts `1/0`. No rebuild, new manual deployment, rollback, or
+  separate alias command occurred.
+- Read-only Vercel reconciliation reports the artifact as
+  `production/READY/PROMOTED`, exact SHA
+  `244853f5132393f0336d504362e81a45dec19101`, tree
+  `b20afa51a2fd31e7ab5e8ae0ab973dbcd0c83f2f`, and
+  `autoAssignCustomDomains=false`. All four established Production aliases point
+  to it; prior Production `dpl_GWfmXNEHFQCeSQZZfqRh1BZnPg7M` remains listed as a
+  rollback reference and was not rolled back.
+- Bounded Production UAT at `https://www.newathleteschool.com` rendered the target
+  History/Edit flow with `น้อง Test`, August 2569, 10 sessions, branches `345`,
+  `แจ้งวัฒนะ`, and `ทวีวัฒนา`, total `4,330` baht, and all 10 session rows. The
+  `2026-08-07 17:00–19:00` แจ้งวัฒนะ row was present exactly once; the
+  `2026-08-11 17:00–19:00` replacement was absent. No
+  `PROGRESSIVE_INVALID_REQUEST`, console error, page error, selection/removal, or
+  Save occurred.
+- Exact UAT runtime window `2026-07-31T02:23:20.119Z` through
+  `02:25:03.660Z` contained one `POST /api/bookings/availability 200` and one
+  `POST /api/bookings/preview 200`. All 68 bounded requests were HTTP `200`; no
+  `PUT /api/bookings`, booking-create POST, PATCH, DELETE, unexpected write
+  endpoint, 4xx/5xx, warning, error, or fatal record occurred.
+- Post-UAT `BEGIN TRANSACTION READ ONLY` verification returned
+  `transaction_read_only=on`. Booking
+  `fa9de48b-1589-4924-9510-be8eb73c4d6d` remains `pending_payment` for user
+  `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, child
+  `4209ef39-21cd-494e-9e1f-507e3f0a92d1`, and primary branch
+  `14ae2056-374e-4a65-b516-a2c15220f0fc`: 10 sessions, 3 branches, price/entitlement
+  `4,330/10`, rate snapshot `433`, and canonical matches `10/10`.
+- The restored original tuple count is `1`: date `2026-08-07`, time
+  `17:00–19:00`, branch `aa77eba0-d05e-4539-9606-f55fe8a530ca`, template
+  `c38a09c3-d37d-4ec8-8f8d-5d47220437bd`, slot
+  `087433e1-c7cd-4192-bc96-63ff09b58a0b`. The replacement tuple count is `0` for
+  date `2026-08-11`, the same branch/time, template
+  `680ba191-4e93-4904-92d4-5ff015b69263`, and slot
+  `55ce486e-5f50-44f1-b5c1-9448c90f950e`.
+- Payments, coupon reservations/usages, target batch memberships, Progressive
+  allocations, Ledger allocations, wallet credits, attendance, reschedule
+  descendants, coach assignment memberships, and UAT-window Finance expenses are
+  all `0`. UAT-window target receipts, activity, booking updates, session
+  create/updates, and same-scope booking updates are also `0`. The known Owner UI
+  restore receipt `4c418e92-9fb8-4edf-9d77-5c4982ed17b5` and activity
+  `d958ceb6-4cf4-4fc1-825e-a37c3366bf50` remain intact at revision `12`; no
+  direct data repair was performed.
+
+### Current Project Matrix — Progressive Kids Group Multi-Branch Release Closeout
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **PROGRESSIVE KIDS GROUP MULTI-BRANCH CREATE + PENDING EDIT** |
-| Task Status | **PASS — COMMITTED AND PUSHED; UNDEPLOYED**, effective only if the one authorized normal push succeeds and live Remote resolves to Commit B; otherwise the publication handoff reports the actual blocker |
+| Active Task | **None — awaiting Owner selection** |
+| Task Status | **DONE — SOURCE/TEST PUBLISHED; EXACT ARTIFACT PROMOTED AND PRODUCTION-ACTIVE; READ-ONLY PRODUCTION UAT, REQUEST ATTRIBUTION, CONTROLLED RESTORE, AND POST-UAT DATA VERIFICATION PASSED** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Commit B containing this publication record, whose parent is functional/test Commit A `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`; exact Commit B SHA/tree are recorded in the publication handoff |
-| Remote HEAD | Gate 0 and live preflight: `33eb3af1c95e43e2596455d24c316eb0812b30e4`. It becomes Commit B only if the one authorized normal push and independent post-push `git ls-remote` verification succeed |
-| Ahead/Behind | Gate 0: `0/0` without fetch. Final `0/0` is conditional on successful push and live-Remote verification |
+| Local HEAD | This containing task-specific documentation closeout commit; parent release HEAD `244853f5132393f0336d504362e81a45dec19101`, tree `b20afa51a2fd31e7ab5e8ae0ab973dbcd0c83f2f`. Exact closeout SHA/tree are in the final handoff |
+| Remote HEAD | Becomes the containing closeout commit only after the single authorized normal push succeeds; final live-Remote equality is recorded in the final handoff |
+| Ahead/Behind | `0/0` |
 | Protected dirty files | Pre-existing `AGENTS.md` worktree blob `e979a2c895dd8fe60a651b4e41f71d49ca020f35` and `src/lib/schedule-slot-utils.ts` worktree blob `4521281d099efb189429a744909552d67871ff23` remain exact; neither has a task-attributable delta |
-| Owner Policy | Publish exactly Commit A with the accepted one functional and one test file, then Commit B with only task-specific hunks from the three context documents, followed by one normal non-force push. Functional/Test byte changes, unrelated documentation hunks, test reruns, retry/force, branch integration/change, Deploy, remote migration, Production access/UAT/write, data repair, feature/allowlist/environment/dependency changes, and Parking Lot work are prohibited |
+| Owner Policy | Accept the two exact UAT POSTs as read-only transport, perform SELECT-only post-UAT verification, reconcile only task-specific hunks in the three context documents, then create one documentation commit and one normal push. Remote builder CLI `58.4.0` remains accepted only for `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt`. No new browser UAT, booking/DB write, Source/Test/config edit, Deploy/Promotion/Retry/Rollback, manual alias/environment change, or Parking Lot work |
 | Intended Behavior | Valid same-month Progressive Kids Group create and pending edit may contain sessions from multiple branches; every session retains its own active template, branch, and canonical slot while the primary booking branch semantics and all existing safety/pricing guards remain unchanged |
 | Root Cause | Rendered Edit initialized `selectedBranchIds` from primary `editBooking.branch_id` only although `editBooking.sessions` and `sessionsMap` retained per-session branches; draft sanitization then used the collapsed selection to filter secondary-branch sessions. The old regression bypassed UI initialization and Save by calling API PUT directly |
-| Source Complete | **Yes — committed, not deployed.** Edit selected branches are the ordered valid primary-plus-session union, and stale-draft reconciliation is Edit-only. Accepted Functional/Test bytes are preserved in Commit A `7110e6a49ce909635057c06bf0bcb7cf1b371ae6` |
-| Tests Passed | **Yes — accepted Local checkpoint; not rerun in this publication gate.** Regression-first pre-fix failed at the missing second branch with residue `0`; post-fix multi-branch and single-branch focused runs passed `1/1` each; final full E2E passed `11/11`, unexpected/flaky/skipped/retries `0/0/0/0`, residue `0`, prices `4,500` and `2,000`; TypeScript, zero-warning ESLint, mojibake `250`, and build `91/91` passed |
-| Committed | **Yes.** Functional/Test Commit A is `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`; the following Commit B contains only the task-specific publication hunks in the three context documents, with exact SHA/tree in the publication handoff |
-| Pushed | **Conditional.** Yes only after exactly one normal push and independent local/upstream/origin/live-Remote equality verification succeed; otherwise the final handoff reports the actual blocker |
-| Current Source | Commit A `7110e6a49ce909635057c06bf0bcb7cf1b371ae6` plus its following documentation Commit B; no Functional/Test bytes changed during publication |
-| Deployed | No for this UI correction; no Deploy is authorized or attempted in this gate |
-| Deployed Source | Exact current Production application source is **Unknown / Need verification** in this Repository-only gate; it does not include the published UI correction |
-| Deployment ID | **Unknown / Need verification** in this Repository-only gate; no deployment control-plane access was authorized |
+| Source Complete | **Yes — committed, pushed, deployed, promoted, and Production-active.** Edit selected branches are the ordered valid primary-plus-session union, and stale-draft reconciliation is Edit-only. Accepted Functional/Test bytes are preserved in Commit A `7110e6a49ce909635057c06bf0bcb7cf1b371ae6` |
+| Tests Passed | **Yes — accepted Local checkpoint; not rerun in this documentation gate.** Regression-first pre-fix failed at the missing second branch with residue `0`; post-fix multi-branch and single-branch focused runs passed `1/1` each; final full E2E passed `11/11`, unexpected/flaky/skipped/retries `0/0/0/0`, residue `0`, prices `4,500` and `2,000`; TypeScript, zero-warning ESLint, mojibake `250`, and build `91/91` passed |
+| Committed | **Yes.** Functional/Test Commit A is `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`; release/documentation parent is `244853f5132393f0336d504362e81a45dec19101`; this containing closeout commit has subject `docs: close progressive multi-branch release` and only the three approved documents |
+| Pushed | **Yes only after the authorized single normal push succeeds.** Attempt/retry must be `1/0`; exact result and live-Remote SHA are in the final handoff |
+| Current Source | Published HEAD `244853f5132393f0336d504362e81a45dec19101`, containing functional/test ancestor `7110e6a49ce909635057c06bf0bcb7cf1b371ae6`; accepted blobs remain `a8243c7c1ef15a80b6b690649a15c4a098365429` and `d89c88cc50371f74db8825fe834617a30c381049` |
+| Current gate Functional File Count | `0`; only task-specific local documentation hunks in the three approved context files may change |
+| Automatic Preview | Prior exact-release Preview `dpl_8xCbK71hn2mSzHxGAFx5hCQeXvtF` remains `preview/READY/STAGED`. A docs-only Push may create another Automatic Preview as an accepted Git-integration side effect; it is never Production and must not be promoted or aliased. Any resulting ID/state is reported read-only in the final handoff without a second documentation commit |
+| Production-target correction artifact | **Yes — promoted and active.** `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt` at `new-athlete-badminton-school-gk5it8d9n-aachanin1s-projects.vercel.app` is exact-SHA `production/READY/PROMOTED`, `autoAssignCustomDomains=false`; all four established Production aliases point to it |
+| Release Preflight | **Passed — read-only.** Project `new-athlete-badminton-school` / `prj_v034HOI6AjaMpBezWvuvT0W24pTp` / team `team_gw8Y6CPd602WAKRsVFobPGCL`; artifact identity and pre-Promotion alias mapping were exact |
+| Staged Deploy | **Completed — artifact only.** Invocation/retry counts were `1/0`. Pinned local Node/CLI were `24.16.0` / `56.5.0`; remote builder CLI was `58.4.0`, accepted by Owner only for this artifact. `npm ci`, Next.js `16.2.6`, compile, TypeScript, and static generation `91/91` passed. Promotion/Rollback/Alias/Environment mutation counts were `0/0/0/0` |
+| Deployed | **Yes — exact Production-target artifact; no rebuild after staged creation** |
+| Promoted | **Yes.** One invocation, retry `0`; four established Production aliases moved to the exact artifact automatically |
+| Deployed Source | Exact release HEAD `244853f5132393f0336d504362e81a45dec19101`, tree `b20afa51a2fd31e7ab5e8ae0ab973dbcd0c83f2f`; no Source/Test/config bytes changed in Promotion, UAT, or this documentation gate |
+| Deployment ID | Current Production is `dpl_9aqADgizA8jdh5WXsT84LPgb4gyt`, `production/READY/PROMOTED`. Aliases: `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`, `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` |
 | Migration Source | `supabase/migrations/20260730000000_fix_progressive_multibranch_booking.sql` — committed and pushed in the prior gate; unchanged here |
 | Migration Applied | Local disposable database: Yes. Remote/Production: **Yes — retained Owner-confirmed prior-gate state** |
 | Migration Applied Locally | Yes — disposable Local Supabase reset/chain applied it successfully |
-| Migration Applied Remotely | **Yes — prior gate; no remote command or mutation in this correction gate** |
+| Migration Applied Remotely | **Yes — prior gate; no remote command or mutation in this documentation gate** |
 | Environment Change | No |
 | Feature Enabled | Yes — retained prior Progressive general-entry state evidenced by successful Production multi-branch create; unchanged here |
 | Allowlisted | No — general entry is not allowlist-scoped; unchanged here |
-| Production Active | DB multi-branch capability and create flow: **Yes from prior gate**. Rendered pending-edit UI correction: **No — not deployed** |
-| Production UAT | Prior multi-branch create: **Passed**. Pending-edit rendered UI before correction: **Failed — collapsed to primary branch**. Correction Production UAT: Not run/prohibited in this gate |
-| Controlled Write UAT | Prior create write passed within the prior gate; correction controlled write UAT not run/prohibited here |
-| Data Repaired | No |
+| Production Active | **Yes.** DB multi-branch create and rendered pending-edit correction are both active on the exact artifact |
+| Production UAT | **Passed after read-only POST attribution.** Rendered 10 sessions/3 branches/4,330 baht, original date present, replacement absent, no `PROGRESSIVE_INVALID_REQUEST` or console/page error; only the two expected read-only POSTs occurred |
+| Controlled Write UAT | **Passed; final Owner UI restore verified.** Write 1 evidence and restore receipt/activity remain intact; post-UAT SELECT-only state is the restored baseline |
+| Data Repaired | **No direct repair.** Owner restored the approved test booking through the staged UI; this gate performed SELECTs only |
 | Production Data Changed | No |
-| Customer Impact | Published correction has no runtime effect until deployed. Current Production pending multi-branch users can still see an edit page collapsed to the primary branch and risk losing secondary-branch selections if they save the stale state |
-| Financial Impact | No confirmed Production financial change and no pricing change. Local regression preserves `9 × 500 = 4,500` and Option A `4+4 = 2,000`; payment, coupon, Ledger, Finance, entitlement, and historical rows are unchanged in this gate |
-| Blocker | No Source/Test/publication blocker if the one authorized push and live-Remote verification succeed; any push failure must be reported without retry. Exact Production deployment identity was not verified because this gate is Repository-only |
-| Remaining Work | After successful publication verification, separately authorized Deploy and Production UAT gates remain |
-| Task Done | No |
-| Next Gate / Next Action | After successful push verification, stop and await Owner review before any separate Deploy gate; do not start Deploy or Production UAT automatically |
-| Documentation Drift | **Reconciled only for this Active Task**: remote migration/create UAT, failed pending-edit UI, local correction, publication state, and release state are separated. Exact Production deployment source/ID remain explicitly Unknown / Need verification |
+| Customer Impact | Correction is Production-active and verified: affected Users now retain and see all valid branches/sessions when opening a pending multi-branch Edit |
+| Financial Impact | **None.** Price remains 4,330 baht; every target payment/coupon/Ledger/Finance/protected-domain count is `0`, and UAT caused no booking or financial mutation |
+| Blocker | None |
+| Remaining Work | None for this task; await Owner selection of a new Active Task |
+| Task Done | **Yes** |
+| Next Gate / Next Action | Await Owner selection. Do not start a Parking Lot item or another task automatically |
+| Documentation Drift | **No after this closeout is committed and pushed.** Production/Git/UAT/data state has one authoritative current value here; dated earlier staged/unpromoted claims remain historical evidence only |
 | Parking Lot authorization state | Unchanged; no Parking Lot item is authorized to start |
 
 ## Current Source of Truth
