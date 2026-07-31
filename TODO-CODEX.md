@@ -64,10 +64,11 @@ FINANCIAL IMPACT NONE**.
 
 ### RESCHEDULE-IN EXACT COACH ASSIGNMENT / LEGACY FALLBACK ISOLATION
 
-Status: **REQUEST-SIZE ROOT CAUSE PROVEN; NARROW SOURCE/TEST FIX COMMITTED AND
-PUSHED; CURRENT FIX NOT DEPLOYED OR UAT-RETRIED; EXISTING PRODUCTION-TARGET
-ARTIFACT REMAINS READY/STAGED, BROKEN, UNPROMOTED, AND NOT PRODUCTION-ACTIVE;
-TASK NOT DONE**.
+Status: **DONE — REQUEST-SIZE FIX COMMITTED/PUSHED; OWNER-ACCEPTED PARTIAL STAGED
+UAT COMPLETE; EXACT ARTIFACT READY/PROMOTED AND PRODUCTION-ACTIVE; CANONICAL
+PRODUCTION RENDER/SAFETY PASSED; READ-ONLY ATTRIBUTION PROVED ALL SEVEN ASSIGNMENT
+POSTS WERE CONCURRENT OTHER-USER TRAFFIC; PRODUCTION UAT AND CONTROLLED WRITE UAT
+PASSED WITHIN THE OWNER-APPROVED NATURAL-NOTIFICATION LIMITATION**.
 
 - Owner Plan A: User Reschedule-in never inherits a coach automatically, including
   genuine legacy-only slots. Legacy remains compatible only for legitimate
@@ -208,21 +209,195 @@ TASK NOT DONE**.
   equality are reported in the gate handoff. No PR, tag, release, Deploy,
   Promotion, alias movement, staged-UAT retry, browser, Vercel, or Supabase access
   occurred.
+- Owner then authorized at most one new Production-target staged deployment from
+  exact HEAD `7b7dd912d46b28d4ca299c9221f53abe4c67d075`, tree
+  `b488c57e9eec3a1e746a2b9d9a37bbd8288b1e7e`, through the pinned Node/Vercel
+  CLI `56.5.0` entrypoint and `--skip-domain`. Fresh Git/live-Remote, protected
+  hashes, project/linkage, duplicate-artifact, alias, and newer-Production checks
+  matched. Exact-SHA Preview `dpl_o3jCUwo95Mt8hHSQm3Wrx7QPnbbx` was allowed;
+  exact-SHA Production `READY/STAGED` count was `0`.
+- The clean detached worktree matched exact HEAD/tree and staged/untracked `0/0`.
+  The immediate Gate 0 script nevertheless exited `1` before the deploy line
+  because it compared Git's literal tab-delimited ahead/behind output `0\t0` with
+  `0 0`. Read-only diagnosis proved every Git identity matched and normalized
+  ahead/behind was `0/0`, but the Owner's no-retry rule required a Hard Stop.
+  Deploy invocation/process/control-plane counts are `0/0/0`; no new artifact or
+  remote build exists.
+- Explicit-GET postflight retained bounded deployment count/hash `100` /
+  `0DDB90A44E80ADA7C8CB171BD391A3E1D4BB9ABF5656FF98B39C84278365A189`, maximum
+  created time `1785332518781`, exact-SHA Production count `0`, and alias
+  count/hash `8` /
+  `BEC3771B0B721090AA765678B701EC66187FD1A7C33E866E241CD08EAA919644`.
+  All four Production aliases still target
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4`; all four branch Preview mappings are
+  unchanged. Promotion/alias/manual mutation and application/Supabase/data
+  request counts are `0`. The disposable worktree was safely removed and its
+  registration is `0`; the protected residual Junction was untouched.
+- Owner authorized a fresh attempt and allowed only ephemeral helper corrections
+  for formatting/tooling errors before deploy launch. Phase A helper correction/
+  run/rerun was `1/1/0`: it parsed ahead/behind numerically and used compatible
+  instance SHA-256 APIs. Fresh Git/live-Remote, five-file root status, protected
+  hashes, project/linkage, exact-SHA duplicate, alias, and newer-Production gates
+  passed. The validated temporary evidence file retained the sorted 100-ID list
+  and eight alias mappings.
+- Exactly one pinned `deploy --prod --skip-domain` process ran, exit `0`, and
+  created exact-HEAD artifact `dpl_GWfmXNEHFQCeSQZZfqRh1BZnPg7M` at
+  `https://new-athlete-badminton-school-7zqvx0cel-aachanin1s-projects.vercel.app`.
+  It is `production/READY/STAGED`, `autoAssignCustomDomains=false`, aliases `0`,
+  exact SHA/tree, unpromoted, and not Production-active. Created/building/Ready
+  were `2026-07-29T14:27:14.964Z`, `2026-07-29T14:27:16.669Z`, and
+  `2026-07-29T14:28:48.948Z`.
+- Remote `npm ci`, Next.js `16.2.6` compile, TypeScript, and static generation
+  `91/91` passed in `cle1`, with build-error count `0`, project Node `24.x`, and
+  functions region `icn1`. The gate nevertheless Hard Stopped because exact build
+  logs show remote Vercel builder CLI `58.1.0`, not the required `56.5.0`; local
+  invocation/inspection CLI remained pinned at `56.5.0`. No deploy retry is
+  allowed after process launch.
+- Postflight added exactly the new artifact and removed only bounded-window oldest
+  ID `dpl_4sJBJPvPJTumPNYWywcTqSC4pvUw`; pre/post inventory hashes were
+  `0DDB90A44E80ADA7C8CB171BD391A3E1D4BB9ABF5656FF98B39C84278365A189` /
+  `C849ED9BFA716AF9F133098529203F3F922D459EF93A0FC5D6DF24284C229A0C`.
+  Exact-SHA Production `READY/STAGED` changed `0 → 1`. Alias count/hash and all
+  eight Production/branch Preview mappings remained unchanged. Postflight helper
+  correction/rerun was `2/2`: stderr `NativeCommandError` handling, then correct
+  separation of timestamped remote CLI from the local banner. The worktree was
+  safely removed and unregistered; evidence file was retained in Temp.
 - No business rule, migration/schema/grant/RLS/RPC, package/lockfile/environment,
-  additional functional file, Supabase data, Commit, Push, Deploy/rebuild,
-  Promotion/alias, browser, or UAT changed. The old staged artifact still contains
-  the unbatched Source and remains broken/unpromoted. Authoritative current state
-  and the full diagnostic counts are in `PROJECT_STATE.md` and the latest dated
-  `DEVELOPMENT_TODO.md` record.
-- Authoritative mutable state, blockers, and matrix are in `PROJECT_STATE.md`.
+  additional functional file, Supabase data, Commit, Push, rebuild/redeploy,
+  Promotion/alias, browser, or UAT changed. The new artifact contains the fix but
+  is blocked by the remote CLI acceptance mismatch; Production aliases and runtime
+  remain unchanged. Authoritative current state and the full evidence are in
+  `PROJECT_STATE.md` and the latest dated `DEVELOPMENT_TODO.md` record.
+- Owner accepted remote builder CLI `58.1.0` only for
+  `dpl_GWfmXNEHFQCeSQZZfqRh1BZnPg7M` and authorized a bounded existing-Head-Coach
+  staged UAT. Fresh Git/live-Remote, Source automatic-write, artifact, inventory,
+  and alias gates passed. The exact route opened once at `1920x855` but initially
+  displayed `/auth/login?redirect=%2Fcoach%2Fassign-groups`; Head Coach identity
+  was therefore unproved and the gate Hard Stopped without login, reload, retry,
+  mobile resize, business-row inspection, Save, or any control interaction.
+  During read-only evidence collection the tab automatically moved to `/coach`,
+  but the assignment route was not reopened and UAT did not resume.
+- Bounded canonical artifact logs recorded GET/HEAD/POST/PUT/PATCH/DELETE
+  `49/0/0/0/0/0`, assignment Save POST `0`, status `200` throughout, and
+  fatal/error/4xx/5xx `0/0/0/0`; browser console warnings/errors were `0`.
+  Forbidden mutations were `0`. Notification delta is **Unknown / Need
+  verification — Direct Supabase prohibited**. Artifact/inventory/Production and
+  Preview alias postflight remained unchanged; no Deploy/rebuild, Promotion,
+  alias movement, Source change, Commit, or Push occurred.
+- Owner confirmed the existing staged Head Coach session was ready and authorized
+  a fresh bounded retry on the same artifact. Before assignment navigation, the
+  existing exact-host `/coach` tab visibly proved `โค้ช Super Head Coach(หัวหน้า)`,
+  the Head Coach-only `แบ่งกลุ่มนักเรียน` menu, exact staged hostname, and unread
+  badge `99+`. No new tab/profile or login/re-authentication was used.
+- The exact `/coach/assign-groups` route opened once at desktop `1920x855`, with
+  reload/retry `0/0`, and rendered real branch-scoped business content. The prior
+  digest `233653541`, `CoachAssignmentDataUnavailableError`, Server Component,
+  console, hydration, visible overlay, and responsive errors were all `0`. The
+  same tab then passed mobile `390x844` without reload, horizontal overflow, or
+  clipped text; viewport override was reset and the Owner tab was left open.
+- Natural evidence showed a Legacy coach explicitly labelled as not responsible
+  while Exact groups and assigned coaches remained authoritative, so Exact-
+  membership precedence passed. Pending User Reschedule isolation, genuine
+  Legacy-only fallback, Wallet preservation, and Makeup preservation were **Not
+  observable — no natural representative row**. No control was clicked or changed.
+- Bounded artifact logs for `2026-07-29T15:07:02.492Z` through
+  `2026-07-29T15:09:55.576Z` contained `26` unique log IDs and `25` canonical
+  requests. GET/HEAD/POST/PUT/PATCH/DELETE were `25/0/0/0/0/0`; every canonical
+  response was `200`; assignment Save POST, Save clicks, and non-notification
+  mutations were `0/0/0`; fatal/error/4xx/5xx were `0/0/0/0`. Notification delta
+  is **Unknown / Need verification — Direct Supabase prohibited**.
+- Read-only postflight preserved exact artifact/SHA/`production/READY/STAGED`/
+  zero-alias state, bounded inventory count/hash/max-created/newest ID, and all
+  eight Production/Preview alias mappings. Added/removed deployment IDs were
+  `0/0`; Deploy/rebuild/redeploy/rollback/retry, Promotion, alias mutation,
+  Source/Test/config, Commit, and Push counts were all `0` in this UAT retry.
+- Owner accepted the Partial staged-UAT result because Pending User Reschedule,
+  genuine Legacy-only fallback, Wallet, and Makeup retain deterministic regression
+  coverage, then authorized exactly one pinned Promotion of
+  `dpl_GWfmXNEHFQCeSQZZfqRh1BZnPg7M`. No Production application/browser UAT was
+  authorized in that gate.
+- Fresh Promotion Gate 0 matched exact Git/local/upstream/live Remote, five-file
+  root status, protected hashes, project/team linkage, local CLI `56.5.0`, artifact
+  `production/READY/STAGED`, retained timestamps/build, deployment inventory, and
+  all eight alias mappings. The target was newest and no newer conflicting
+  Production artifact existed.
+- Exactly one pinned `vercel promote` process/control-plane command ran from
+  `2026-07-29T15:30:02.7083065Z` through `2026-07-29T15:30:08.2740790Z`, duration
+  `5.566` seconds, exit `0`. Promotion invocation/process/control-plane counts were
+  `1/1/1`; retry/Deploy/rebuild/redeploy/rollback/separate-alias/manual-mutation
+  counts were all `0`.
+- GET-only postflight proved the same exact artifact is
+  `production/READY/PROMOTED`; SHA/URL/created/building/Ready timestamps and build
+  are unchanged. Deployment count/hash/max-created remained `100` /
+  `C849ED9BFA716AF9F133098529203F3F922D459EF93A0FC5D6DF24284C229A0C` /
+  `1785335234964`; added/removed IDs were `0/0`.
+- All four established Production aliases moved from
+  `dpl_61EJHnLchXS8KjcMXh3GEBR1jiF4` to the exact target, with missing/extra/wrong
+  mappings `0/0/0`. All four branch Preview mappings remained unchanged. The prior
+  artifact remains `READY` and listed as a rollback candidate; no rollback ran.
+  Production is now Active.
+- Owner then authorized one bounded canonical Production UAT using the existing
+  authenticated Head Coach tab. Fresh Git/live-Remote, Source automatic-write,
+  artifact, deployment, and alias gates passed. Before navigation, exact hostname,
+  visible `โค้ช Super Head Coach(หัวหน้า)`, the Head Coach-only
+  `แบ่งกลุ่มนักเรียน` menu, and unread badge `99+` proved the required session.
+  No new tab/profile, login, re-authentication, cookie/session inspection, or
+  notification-page access occurred.
+- The canonical `/coach/assign-groups` route opened once, with reload/retry `0/0`.
+  Desktop `1920x855` and same-tab mobile `390x844` rendered real multi-branch
+  business content without digest `233653541`,
+  `CoachAssignmentDataUnavailableError`, Server Component/console/hydration/
+  visible overlay error, clipped text, or horizontal overflow. Natural evidence
+  showed Exact groups/coach ownership remained authoritative while a Legacy coach
+  was labelled not responsible. Pending User Reschedule, genuine Legacy fallback,
+  Wallet, and Makeup were **Not observable — Owner-accepted deterministic
+  regression coverage**. Save clicks and assignment-control changes were `0/0`.
+- The initial runtime-log gate Hard Stopped. From
+  `2026-07-29T15:50:15.407Z` through `2026-07-29T15:52:53.953Z`, the exact
+  artifact/canonical domain had `37` unique/canonical log records after ID/content
+  deduplication: GET/HEAD/POST/PUT/PATCH/DELETE `30/0/7/0/0/0`, HTTP `200/500`
+  `34/3`, and all seven POST records targeted
+  `/api/coach/assignment-groups`. Log-level fatal/error and HTTP 4xx were `0/0`
+  and `0`; HTTP 5xx was `3`. Attribution and data delta were then Unknown within
+  that gate's prohibited-direct-data scope. This triggered the mandatory Hard Stop
+  despite zero Codex Save clicks; no route reload/retry followed.
+- GET-only postflight preserved exact artifact/SHA/
+  `production/READY/PROMOTED`, timestamps, deployment count/hash/max-created
+  `100` / `C849ED9BFA716AF9F133098529203F3F922D459EF93A0FC5D6DF24284C229A0C` /
+  `1785335234964`, alias count/hash `8` /
+  `C95897ED7724906A94437688EE2C858C1D4867F5F5E924E5FD4960F5D88C9D02`, all four
+  Production mappings, and all four Preview mappings. Added/removed deployment
+  IDs and Deploy/Promotion/rollback counts were `0/0` and `0/0/0`.
+- Owner then authorized one exact-window read-only attribution audit. Exact-HEAD
+  Source again proved passive render cannot POST: `saveSlot()` is the only client
+  caller and is reachable only from the explicit Save button. Sanitized Vercel
+  evidence separated the GET-only UAT navigation/RSC cluster on fingerprint hash
+  `30E6AF2FB89ADE62` from all seven POSTs and the other client's assignment-page
+  GETs on `F12B551451608526`.
+- The four HTTP `200` POSTs aligned one-for-one by timestamp/duration with four
+  exact-window `save_coach_assignment_groups` activity rows from one Head Coach
+  actor whose sanitized profile did not match the visible UAT identity. The three
+  HTTP `500` attempts shared the same external fingerprint and had no success
+  activity rows; Vercel exposed no trace ID, diagnostic text, crash marker, or
+  error code for those failures. No window widening or assignment-group query was
+  needed. Raw PII exposure was `0`.
+- Read-only Vercel postflight preserved artifact `production/READY/PROMOTED`, the
+  bounded `100`-ID deployment inventory/hash/max-created, all four Production
+  aliases, and all four Preview mappings. No deployment, Promotion, rollback,
+  alias mutation, browser/application request, Supabase mutation/RPC, repair,
+  Source/Test/config change, Commit, or Push occurred.
+- Production UAT is **Passed**. Controlled Write UAT is **Passed within the Owner-
+  approved natural-notification limitation**. No assignment or non-notification
+  mutation is attributable to Codex/UAT; possible natural-notification delta
+  remains **Unknown / Need verification**. Four ordinary successful assignment
+  saves by another Head Coach were observed. The three unrelated external HTTP
+  `500` attempts are a Parking Lot item and are not authorized for investigation.
+- Authoritative mutable state and the consistency matrix are in `PROJECT_STATE.md`.
 - The warning is API/operator-visible only in this gate. Learner-visible warning UI
   was not changed and requires separate Owner scope.
-- Next action: Owner separately decides whether to authorize a new staged
-  deployment of the published fix. Do not deploy/rebuild, retry staged UAT,
-  Promote, change aliases, repair data, clean the residual Junction, or start
-  another gate/Parking Lot item automatically.
-
-## Recently Completed
+- Next action: await Owner selection. Do not start the external assignment-POST/
+  HTTP `500` Parking Lot diagnosis, retry UAT, repair data, clean the residual
+  Junction, or begin another task automatically.
 
 ### Coach Notification Bangkok Date Consistency
 
@@ -598,6 +773,17 @@ Status: **DONE**.
   Production UAT evidence remains in `DEVELOPMENT_TODO.md`.
 
 ## Parking Lot
+
+### External Head Coach Assignment Save HTTP 500 Attempts
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- During the completed canonical Production UAT window, three assignment Save POST
+  attempts from the same conclusively external Head Coach client fingerprint
+  returned HTTP `500`.
+- The bounded attribution audit intentionally did not diagnose cause, inspect
+  request bodies, retry, repair data, or change Source/config/deployment state.
+- Await explicit Owner selection before any diagnosis or fix.
 
 ### Homepage LV Copy Audit/Fix
 

@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-06-04
+Last updated: 2026-07-15
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -11,13 +11,17 @@ Use the archive only when deeper historical context is needed.
 Before doing any work:
 
 1. Read `AGENTS.md`, `PROJECT_STATE.md`, and `TODO-CODEX.md`.
-2. If the task references older work, read only the relevant section of `DEVELOPMENT_TODO.md`.
+2. If the task references an older feature, decision, design contract, business formula,
+   or release, read only the relevant section of `DEVELOPMENT_TODO.md` and the
+   referenced design/source material. Do not rely on `PROJECT_STATE.md` alone when
+   the detailed policy or formula may live elsewhere.
 3. Summarize the current project state briefly.
 4. State the scope for this round, including likely files or flows.
 5. Do not edit files outside scope unless required to finish safely.
 6. Inspect the relevant source files before editing. Do not guess.
 7. After edits, run the appropriate checks for the scope.
-8. Before finishing, update `PROJECT_STATE.md` and `TODO-CODEX.md` when state, risks, or next work changed.
+8. Before finishing, apply the Session Closeout Protocol below and update
+   `PROJECT_STATE.md` and `TODO-CODEX.md` when required.
 9. Report changed files, why they changed, what was verified, and what remains.
 
 ## Documentation Roles
@@ -27,6 +31,29 @@ Before doing any work:
 - `TODO-CODEX.md`: active execution index and next work queue.
 - `DEVELOPMENT_TODO.md`: long historical backlog and detailed implementation notes. Do not read the whole file every session.
 - `TODO.md`: legacy backlog/reference only. Treat as stale until verified against code and `DEVELOPMENT_TODO.md`.
+
+## Project Context and Documentation Protocol
+
+- `PROJECT_STATE.md` records the prioritized current snapshot. It must distinguish
+  Owner policy, local source, pushed source, deployed source, enabled/allowlisted
+  state, Production-active behavior, UAT, and data repairs.
+- `TODO-CODEX.md` is the active execution index. Keep completed summaries short and
+  link to `PROJECT_STATE.md` or `DEVELOPMENT_TODO.md` for history.
+- Put long decision/reconciliation history in `DEVELOPMENT_TODO.md`; keep only the
+  current result, blocker, risk, and next action in the two primary context files.
+- Never write `PASS` for an end-to-end feature when Owner policy, source, and
+  Production runtime do not match. A narrower result may say `Source complete` or
+  `Data repaired` only when its scope is explicit.
+- Always keep these states separate: `Source complete`, `Pushed`, `Deployed`,
+  `Enabled`, `Allowlisted`, `Production active`, `UAT passed`, and `Data repaired`.
+- Every Production repair record must name the policy/formula used and its related
+  payment, coupon, wallet, entitlement, attendance, payroll, or accounting effects.
+- If docs conflict with source, git, or verified Production state, report
+  `Documentation Drift`, correct the docs, and do not automatically trust the older
+  document.
+- Owner-confirmed rules affecting money, pricing, entitlements, attendance,
+  payments, or payroll must be promoted to a searchable Hard Business Rule or
+  Decision Record.
 
 ## Current Project
 
@@ -110,6 +137,27 @@ Main portals:
 - Progressive pricing never deducts a Legacy stored/paid amount. Existing Legacy
   bookings must not be repriced, credited, refunded, assigned Progressive scopes or
   snapshots, or backfilled merely to enable Progressive entry.
+
+#### Permanent Kids Group Pricing Guardrail
+
+- Legacy and Progressive Kids Group pricing are different formulas. Never describe
+  them as one algorithm or silently apply one flow's repair rule to the other.
+- Legacy currently uses monthly true-up over settled (`paid`/`verified`) history:
+  `charge = max(0, cumulativeSessionsAfter * rateOf(cumulativeSessionsAfter) - existingSettledTotal)`.
+  Pending bookings are not settled history.
+- Owner-approved Progressive pricing is booking-level and ordered:
+  `previousActiveSessions` is the active entitlement count before the new booking,
+  `cumulativeAfter = previousActiveSessions + newBookingSessions`, and
+  `grossBookingPrice = newBookingSessions * rateOf(cumulativeAfter)`.
+- Progressive active ordering includes non-expired `pending_payment`, `paid`, and
+  `verified` bookings, ordered by `created_at` then booking id. Cancelled/expired
+  bookings do not contribute.
+- Progressive pricing has no retroactive monthly true-up, price-difference credit,
+  or rewrite of earlier bookings. With the verified current tier examples: one
+  10-session booking is `5,000`; split `5+5` is `3,125 + 2,500 = 5,625`; ten
+  one-session bookings total `5,825`.
+- If Owner policy and Production-active behavior differ, classify the state as
+  `PRODUCTION POLICY MISMATCH`; do not close it as `PASS`.
 
 ### Scheduling and Lesson Wallet
 
@@ -317,3 +365,24 @@ Next can serve stale `.next` static chunks in dev. Before handing UI back after 
 
 If code, DB state, deployed state, or business intent cannot be confirmed from local repo and current user instruction, write `Unknown / Need verification`.
 Never promote assumptions into facts.
+
+## Session Closeout Protocol
+
+Before ending every session, answer and record as needed:
+
+1. Did Owner policy change or receive new confirmation?
+2. Did source change?
+3. Was the work committed or pushed?
+4. Was it deployed?
+5. Were any feature flags or allowlists changed?
+6. Did Production DB/data change?
+7. Are real users affected?
+8. Did known risks, limitations, or blockers change?
+9. Did the next task change?
+10. Which context files must be updated?
+
+If any answer changes current state, update `PROJECT_STATE.md` and `TODO-CODEX.md`
+in the same session before reporting completion. Put detailed history in
+`DEVELOPMENT_TODO.md` when needed. Context documentation must ship in the same
+commit as the work or in an explicit docs follow-up commit; do not leave material
+state drift across sessions.
