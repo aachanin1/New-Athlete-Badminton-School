@@ -131,6 +131,57 @@ async function uploadProgressiveFile(page: Page, input: {
   }, input)
 }
 
+async function uploadLegacyFile(page: Page, input: {
+  bookingId?: string
+  expectedAmount?: number
+  name?: string
+  mimeType?: string
+  bytes?: number[]
+  size?: number
+}) {
+  return page.evaluate(async ({ bookingId, expectedAmount, name, mimeType, bytes, size }) => {
+    const form = new FormData()
+    if (bookingId) form.append('bookingIds', JSON.stringify([bookingId]))
+    if (expectedAmount !== undefined) form.append('expectedAmount', String(expectedAmount))
+    if (name && bytes) {
+      const content = new Uint8Array(size || bytes.length)
+      content.set(bytes)
+      form.append('file', new File([content], name, mimeType ? { type: mimeType } : undefined))
+    }
+    const response = await fetch('/api/verify-slip', { method: 'POST', body: form })
+    const body = await response.json().catch(() => ({}))
+    return { status: response.status, body }
+  }, input)
+}
+
+async function readLegacyBooking(bookingId: string) {
+  const admin = createLocalAdmin()
+  const { data, error } = await admin.from('bookings')
+    .select('id,status,total_price,pricing_scope_id')
+    .eq('id', bookingId)
+    .single()
+  if (error) throw new Error(`read Legacy booking: ${error.message}`)
+  return data
+}
+
+async function readLegacyPayment(bookingId: string) {
+  const admin = createLocalAdmin()
+  const { data, error } = await admin.from('payments')
+    .select('id,booking_id,status,amount,slip_image_url,notes')
+    .eq('booking_id', bookingId)
+    .maybeSingle()
+  if (error) throw new Error(`read Legacy payment: ${error.message}`)
+  return data
+}
+
+async function listLegacyStorage() {
+  const admin = createLocalAdmin()
+  const { data, error } = await admin.storage.from('payment-slips')
+    .list(fixture.userId, { limit: 100, offset: 0 })
+  if (error) throw new Error(`list Legacy storage: ${error.message}`)
+  return data
+}
+
 async function financialSnapshot() {
   return {
     payments: await countRows('payments'),
@@ -497,6 +548,13 @@ test('Progressive upload trusts JPEG, PNG, and WebP magic bytes, rejects unsafe 
   expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
 
   const acceptedCases = [
+    {
+      name: 'boundary.jpg',
+      mimeType: 'image/jpeg',
+      bytes: JPEG_BYTES,
+      size: 4 * 1024 * 1024,
+      expectedMime: 'image/jpeg',
+    },
     { name: 'standard.jpg', mimeType: 'image/jpeg', bytes: [...JPEG_BYTES, 0xd1], expectedMime: 'image/jpeg' },
     { name: 'android-alias.jpg', mimeType: 'image/jpg', bytes: [...JPEG_BYTES, 0xd2], expectedMime: 'image/jpeg' },
     { name: 'untrusted.bin', mimeType: 'application/octet-stream', bytes: [...JPEG_BYTES, 0xd3], expectedMime: 'image/jpeg' },
@@ -510,7 +568,7 @@ test('Progressive upload trusts JPEG, PNG, and WebP magic bytes, rejects unsafe 
       status: 200,
       body: {
         success: true,
-        upload: { mimeType: accepted.expectedMime, sizeBytes: accepted.bytes.length },
+        upload: { mimeType: accepted.expectedMime, sizeBytes: accepted.size || accepted.bytes.length },
       },
     })
   }
@@ -521,7 +579,7 @@ test('Progressive upload trusts JPEG, PNG, and WebP magic bytes, rejects unsafe 
     slip_mime_type: 'image/webp',
     slip_size_bytes: WEBP_BYTES.length + 1,
   })
-  expect((await listBatchStorage(batch.batchId)).length).toBeGreaterThanOrEqual(6)
+  expect((await listBatchStorage(batch.batchId)).length).toBeGreaterThanOrEqual(acceptedCases.length)
   expect(await financialSnapshot()).toEqual(financialBefore)
   expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
 
@@ -540,6 +598,164 @@ test('Progressive upload trusts JPEG, PNG, and WebP magic bytes, rejects unsafe 
     status: 409,
     body: { code: 'PROGRESSIVE_UPLOAD_BATCH_NOT_READY' },
   })
+})
+
+test('Legacy upload shares the four MiB magic-byte contract and keeps invalid requests zero-write', async ({ page }) => {
+  const financialBeforeInvalid = await financialSnapshot()
+  await loginAndOpenHistory(page)
+  expect(await listLegacyStorage()).toHaveLength(0)
+  expect(await readLegacyPayment(fixture.legacyInvalidBookingId)).toBeNull()
+  expect(await readLegacyBooking(fixture.legacyInvalidBookingId)).toMatchObject({
+    status: 'pending_payment',
+    pricing_scope_id: null,
+  })
+
+  const rejectedCases = [
+    {
+      expectedStatus: 400,
+      expectedCode: 'INVALID_SLIP_UPLOAD_PAYLOAD',
+      input: {},
+    },
+    {
+      expectedStatus: 413,
+      expectedCode: 'SLIP_FILE_TOO_LARGE',
+      input: {
+        bookingId: fixture.legacyInvalidBookingId,
+        expectedAmount: fixture.legacyAmount,
+        name: 'oversize.jpg',
+        mimeType: 'image/jpeg',
+        bytes: JPEG_BYTES,
+        size: 4 * 1024 * 1024 + 1,
+      },
+    },
+    {
+      expectedStatus: 400,
+      expectedCode: 'INVALID_SLIP_FILE_TYPE',
+      input: {
+        bookingId: fixture.legacyInvalidBookingId,
+        expectedAmount: fixture.legacyAmount,
+        name: 'fake.jpg',
+        mimeType: 'image/jpeg',
+        bytes: Array(12).fill(0x41),
+      },
+    },
+    {
+      expectedStatus: 400,
+      expectedCode: 'INVALID_SLIP_FILE_TYPE',
+      input: {
+        bookingId: fixture.legacyInvalidBookingId,
+        expectedAmount: fixture.legacyAmount,
+        name: 'animated.gif',
+        mimeType: 'image/gif',
+        bytes: GIF_BYTES,
+      },
+    },
+    {
+      expectedStatus: 400,
+      expectedCode: 'INVALID_SLIP_FILE_TYPE',
+      input: {
+        bookingId: fixture.legacyInvalidBookingId,
+        expectedAmount: fixture.legacyAmount,
+        name: 'phone.heic',
+        mimeType: 'image/heic',
+        bytes: HEIC_BYTES,
+      },
+    },
+  ]
+  for (const rejected of rejectedCases) {
+    const result = await uploadLegacyFile(page, rejected.input)
+    expect(result).toMatchObject({
+      status: rejected.expectedStatus,
+      body: { success: false, code: rejected.expectedCode },
+    })
+    expect(String((result.body as { error?: string }).error || '')).toMatch(/[ก-๙]/)
+  }
+
+  expect(await listLegacyStorage()).toHaveLength(0)
+  expect(await readLegacyPayment(fixture.legacyInvalidBookingId)).toBeNull()
+  expect(await readLegacyBooking(fixture.legacyInvalidBookingId)).toMatchObject({ status: 'pending_payment' })
+  expect(await financialSnapshot()).toEqual(financialBeforeInvalid)
+
+  const acceptedCases = [
+    {
+      name: 'boundary.jpg',
+      mimeType: 'image/jpeg',
+      bytes: JPEG_BYTES,
+      size: 4 * 1024 * 1024,
+      expectedMime: 'image/jpeg',
+      expectedExtension: 'jpg',
+    },
+    {
+      name: 'android-alias.jpg',
+      mimeType: 'image/jpg',
+      bytes: [...JPEG_BYTES, 0xe1],
+      expectedMime: 'image/jpeg',
+      expectedExtension: 'jpg',
+    },
+    {
+      name: 'blank-mime.jpg',
+      mimeType: '',
+      bytes: [...JPEG_BYTES, 0xe2],
+      expectedMime: 'image/jpeg',
+      expectedExtension: 'jpg',
+    },
+    {
+      name: 'untrusted.bin',
+      mimeType: 'application/octet-stream',
+      bytes: [...JPEG_BYTES, 0xe3],
+      expectedMime: 'image/jpeg',
+      expectedExtension: 'jpg',
+    },
+    {
+      name: 'standard.png',
+      mimeType: 'image/png',
+      bytes: [...PNG_BYTES, 0xe4],
+      expectedMime: 'image/png',
+      expectedExtension: 'png',
+    },
+    {
+      name: 'standard.webp',
+      mimeType: 'image/webp',
+      bytes: [...WEBP_BYTES, 0xe5],
+      expectedMime: 'image/webp',
+      expectedExtension: 'webp',
+    },
+  ]
+  const paymentsBeforeAccepted = await countRows('payments')
+  for (const [index, accepted] of acceptedCases.entries()) {
+    const bookingId = fixture.legacyBookingIds[index]
+    const result = await uploadLegacyFile(page, {
+      bookingId,
+      expectedAmount: fixture.legacyAmount,
+      ...accepted,
+    })
+    expect(result).toMatchObject({
+      status: 200,
+      body: {
+        success: true,
+        verified: true,
+        paymentStatus: 'approved',
+        bookingStatus: 'verified',
+      },
+    })
+    expect(await readLegacyBooking(bookingId)).toMatchObject({ status: 'verified', pricing_scope_id: null })
+    const payment = await readLegacyPayment(bookingId)
+    expect(payment).toMatchObject({
+      booking_id: bookingId,
+      status: 'approved',
+      amount: fixture.legacyAmount,
+    })
+    expect(payment?.notes).toContain('[TEST MODE] Auto-verified')
+    expect(payment?.slip_image_url).toMatch(new RegExp(`${bookingId}-\\d+\\.${accepted.expectedExtension}$`))
+    const stored = await fetch(payment!.slip_image_url!, { method: 'HEAD' })
+    expect(stored.ok).toBe(true)
+    expect(stored.headers.get('content-type')?.split(';')[0]).toBe(accepted.expectedMime)
+  }
+
+  expect(await countRows('payments') - paymentsBeforeAccepted).toBe(acceptedCases.length)
+  expect(await listLegacyStorage()).toHaveLength(acceptedCases.length)
+  expect(await readLegacyPayment(fixture.legacyInvalidBookingId)).toBeNull()
+  expect(await readLegacyBooking(fixture.legacyInvalidBookingId)).toMatchObject({ status: 'pending_payment' })
 })
 
 test('valid image/jpg completes the existing shared Test Mode approval transition', async ({ page }) => {

@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
+import {
+  inspectProgressiveSlip,
+  PROGRESSIVE_PAYMENT_MAX_FILE_BYTES,
+} from '@/lib/progressive-payment-integration'
 import { isSlipOKTimeout, validateSlipData, verifySlip, type SlipOKResponse } from '@/lib/slipok'
 import type { Database, PaymentStatus } from '@/types/database'
+
+export const runtime = 'nodejs'
 
 interface BookingRow {
   id: string
@@ -50,14 +56,18 @@ function parseBookingIds(value: string | null) {
   }
 }
 
-function buildSlipPublicPath(userId: string, bookingId: string, fileName: string) {
-  const fileExt = fileName.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || 'jpg'
-  return `${userId}/${bookingId}-${Date.now()}.${fileExt}`
+function buildSlipPublicPath(userId: string, bookingId: string, extension: string) {
+  return `${userId}/${bookingId}-${Date.now()}.${extension}`
+}
+
+function buildCanonicalSlipFileName(extension: string) {
+  return `slip.${extension}`
 }
 
 const VERIFY_SLIP_ERROR_CODES = {
   invalidPayload: 'INVALID_SLIP_UPLOAD_PAYLOAD',
   invalidFileType: 'INVALID_SLIP_FILE_TYPE',
+  fileTooLarge: 'SLIP_FILE_TOO_LARGE',
   bookingLoadFailed: 'BOOKING_LOAD_FAILED',
   bookingStateConflict: 'BOOKING_STATE_CONFLICT',
   amountMismatch: 'BOOKING_AMOUNT_MISMATCH',
@@ -91,7 +101,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData()
-    const file = formData.get('file') as File | null
+    const formFile = formData.get('file')
+    const file = formFile instanceof File ? formFile : null
     const bookingIds = parseBookingIds(formData.get('bookingIds') as string | null)
     const expectedAmount = Number(formData.get('expectedAmount'))
 
@@ -101,8 +112,22 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (!file.type.startsWith('image/')) {
-      return jsonError('กรุณาอัปโหลดไฟล์รูปภาพสลิปเท่านั้น', 400, {
+    if (file.size > PROGRESSIVE_PAYMENT_MAX_FILE_BYTES) {
+      return jsonError('ไฟล์สลิปต้องมีขนาดไม่เกิน 4 MB', 413, {
+        code: VERIFY_SLIP_ERROR_CODES.fileTooLarge,
+      })
+    }
+
+    if (file.size < 12) {
+      return jsonError('เนื้อไฟล์ไม่ใช่ JPEG, PNG หรือ WebP ที่ระบบรองรับ', 400, {
+        code: VERIFY_SLIP_ERROR_CODES.invalidFileType,
+      })
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer())
+    const inspected = inspectProgressiveSlip(fileBuffer)
+    if (!inspected) {
+      return jsonError('เนื้อไฟล์ไม่ใช่ JPEG, PNG หรือ WebP ที่ระบบรองรับ', 400, {
         code: VERIFY_SLIP_ERROR_CODES.invalidFileType,
       })
     }
@@ -144,13 +169,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer())
-    const fileName = buildSlipPublicPath(user.id, bookingIds[0], file.name)
+    const fileName = buildSlipPublicPath(user.id, bookingIds[0], inspected.extension)
 
     const { error: uploadError } = await supabase
       .storage
       .from('payment-slips')
-      .upload(fileName, fileBuffer, { contentType: file.type })
+      .upload(fileName, fileBuffer, { contentType: inspected.mimeType })
 
     if (uploadError) {
       console.error('[verify-slip] Slip upload failed', {
@@ -185,7 +209,11 @@ export async function POST(request: NextRequest) {
         } as SlipOKResponse['data'],
       }
     } else {
-      slipResult = await verifySlip(fileBuffer, file.name, expectedAmount)
+      slipResult = await verifySlip(
+        fileBuffer,
+        buildCanonicalSlipFileName(inspected.extension),
+        expectedAmount,
+      )
       const slipTimedOut = isSlipOKTimeout(slipResult)
 
       if (slipResult.success && slipResult.data) {

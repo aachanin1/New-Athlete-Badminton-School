@@ -9,6 +9,7 @@ const integration = read('src/lib/progressive-payment-integration.ts')
 const progressiveSlipok = read('src/lib/progressive-slipok.ts')
 const prepareRoute = read('src/app/api/progressive-payments/prepare/route.ts')
 const uploadRoute = read('src/app/api/progressive-payments/upload/route.ts')
+const legacyUploadRoute = read('src/app/api/verify-slip/route.ts')
 const submitRoute = read('src/app/api/progressive-payments/submit/route.ts')
 const statusRoute = read('src/app/api/progressive-payments/[batchId]/status/route.ts')
 const historyClient = read('src/components/dashboard/history-client.tsx')
@@ -124,5 +125,26 @@ check('24 legacy and progressive coexist without summing batch headers',
   && migration.includes("'progressive'::text")
   && financePage.includes('[...paymentList, ...progressivePaymentList]')
   && !financePage.includes('total_amount + allocated_amount'))
+check('25 Legacy upload reuses the four mebibyte magic-byte contract',
+  legacyUploadRoute.includes('PROGRESSIVE_PAYMENT_MAX_FILE_BYTES')
+  && legacyUploadRoute.includes('inspectProgressiveSlip(fileBuffer)')
+  && !legacyUploadRoute.includes("file.type.startsWith('image/')"))
+check('26 Legacy file rejection happens before Storage and payment writes',
+  legacyUploadRoute.indexOf('file.size > PROGRESSIVE_PAYMENT_MAX_FILE_BYTES') < legacyUploadRoute.indexOf(".from('payment-slips')")
+  && legacyUploadRoute.indexOf('inspectProgressiveSlip(fileBuffer)') < legacyUploadRoute.indexOf(".from('payment-slips')")
+  && legacyUploadRoute.indexOf('inspectProgressiveSlip(fileBuffer)') < legacyUploadRoute.indexOf(".from('payments')"))
+check('27 Legacy exposes stable Thai upload errors for payload, size, and content',
+  legacyUploadRoute.includes('INVALID_SLIP_UPLOAD_PAYLOAD')
+  && legacyUploadRoute.includes('SLIP_FILE_TOO_LARGE')
+  && legacyUploadRoute.includes('INVALID_SLIP_FILE_TYPE')
+  && legacyUploadRoute.includes("'ไฟล์สลิปต้องมีขนาดไม่เกิน 4 MB'")
+  && legacyUploadRoute.includes("'เนื้อไฟล์ไม่ใช่ JPEG, PNG หรือ WebP ที่ระบบรองรับ'"))
+check('28 Legacy Storage MIME and extension come only from inspected bytes',
+  legacyUploadRoute.includes('buildSlipPublicPath(user.id, bookingIds[0], inspected.extension)')
+  && legacyUploadRoute.includes('contentType: inspected.mimeType')
+  && !legacyUploadRoute.includes('contentType: file.type'))
+check('29 future Legacy live SlipOK uses a canonical detected extension',
+  legacyUploadRoute.includes('buildCanonicalSlipFileName(inspected.extension)')
+  && !legacyUploadRoute.includes('verifySlip(fileBuffer, file.name'))
 
 console.log(`Progressive payment integration checks passed: ${passed} checks.`)

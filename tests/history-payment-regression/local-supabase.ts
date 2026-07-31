@@ -22,6 +22,13 @@ export const HISTORY_IDS = {
   scope: '45000000-0000-4000-8000-000000000001',
   booking1: '56000000-0000-4000-8000-000000000001',
   booking2: '56000000-0000-4000-8000-000000000002',
+  legacyBooking1: '57000000-0000-4000-8000-000000000001',
+  legacyBooking2: '57000000-0000-4000-8000-000000000002',
+  legacyBooking3: '57000000-0000-4000-8000-000000000003',
+  legacyBooking4: '57000000-0000-4000-8000-000000000004',
+  legacyBooking5: '57000000-0000-4000-8000-000000000005',
+  legacyBooking6: '57000000-0000-4000-8000-000000000006',
+  legacyInvalidBooking: '57000000-0000-4000-8000-000000000007',
   template: '67000000-0000-4000-8000-000000000001',
 } as const
 
@@ -29,6 +36,9 @@ export interface HistoryPaymentFixture {
   userId: string
   scopeId: string
   bookingIds: [string, string]
+  legacyBookingIds: string[]
+  legacyInvalidBookingId: string
+  legacyAmount: number
   amounts: [number, number]
   total: number
 }
@@ -43,6 +53,15 @@ function assertNoError(error: { message?: string } | null, label: string) {
 
 export async function seedHistoryPaymentFixture() {
   const admin = createLocalAdmin()
+  const { data: legacySlipBucket, error: legacySlipBucketError } = await admin.storage
+    .getBucket('payment-slips')
+  if (legacySlipBucketError && legacySlipBucketError.message !== 'Bucket not found') {
+    throw new Error(`read disposable Legacy slip bucket: ${legacySlipBucketError.message}`)
+  }
+  if (!legacySlipBucket) {
+    assertNoError((await admin.storage.createBucket('payment-slips', { public: true })).error,
+      'create disposable Legacy slip bucket')
+  }
   const { data: auth, error: authError } = await admin.auth.admin.createUser({
     email: HISTORY_ACCOUNT.email,
     password: HISTORY_ACCOUNT.password,
@@ -160,6 +179,34 @@ export async function seedHistoryPaymentFixture() {
     pricing_calculated_at: booking.created_at,
   })))).error, 'insert History bookings')
 
+  const legacyBookingIds = [
+    HISTORY_IDS.legacyBooking1,
+    HISTORY_IDS.legacyBooking2,
+    HISTORY_IDS.legacyBooking3,
+    HISTORY_IDS.legacyBooking4,
+    HISTORY_IDS.legacyBooking5,
+    HISTORY_IDS.legacyBooking6,
+  ]
+  const legacyAmount = 125
+  assertNoError((await admin.from('bookings').insert([
+    ...legacyBookingIds,
+    HISTORY_IDS.legacyInvalidBooking,
+  ].map((id, index) => ({
+    id,
+    user_id: userId,
+    learner_type: 'child',
+    child_id: HISTORY_IDS.child,
+    branch_id: HISTORY_IDS.branch,
+    course_type_id: HISTORY_IDS.course,
+    month: 8,
+    year: 2026,
+    total_sessions: 1,
+    total_price: legacyAmount,
+    status: 'pending_payment',
+    entitlement_sessions: 1,
+    created_at: `2026-07-14T07:0${index}:00Z`,
+  })))).error, 'insert Legacy History bookings')
+
   assertNoError((await admin.from('booking_sessions').insert(dates.map((date, index) => ({
     id: fixedUuid(100 + index),
     booking_id: index < 8 ? HISTORY_IDS.booking1 : HISTORY_IDS.booking2,
@@ -176,6 +223,9 @@ export async function seedHistoryPaymentFixture() {
     userId,
     scopeId: HISTORY_IDS.scope,
     bookingIds: [HISTORY_IDS.booking1, HISTORY_IDS.booking2],
+    legacyBookingIds,
+    legacyInvalidBookingId: HISTORY_IDS.legacyInvalidBooking,
+    legacyAmount,
     amounts: [3464, 866],
     total: 4330,
   }
@@ -199,6 +249,13 @@ export async function getHistoryFixtureResidueCount() {
     ['booking_pricing_scopes', HISTORY_IDS.scope],
     ['bookings', HISTORY_IDS.booking1],
     ['bookings', HISTORY_IDS.booking2],
+    ['bookings', HISTORY_IDS.legacyBooking1],
+    ['bookings', HISTORY_IDS.legacyBooking2],
+    ['bookings', HISTORY_IDS.legacyBooking3],
+    ['bookings', HISTORY_IDS.legacyBooking4],
+    ['bookings', HISTORY_IDS.legacyBooking5],
+    ['bookings', HISTORY_IDS.legacyBooking6],
+    ['bookings', HISTORY_IDS.legacyInvalidBooking],
   ] as const) {
     const { count, error } = await admin.from(table).select('*', { count: 'exact', head: true }).eq('id', id)
     assertNoError(error, `count History residue ${table}`)
@@ -212,6 +269,11 @@ export async function getHistoryFixtureResidueCount() {
     .list(`${fixture.userId}/batches`, { limit: 100, offset: 0 })
   assertNoError(storageError, 'count History storage residue')
   residue += storageEntries?.length || 0
+  const { data: legacyStorageEntries, error: legacyStorageError } = await admin.storage
+    .from('payment-slips')
+    .list(fixture.userId, { limit: 100, offset: 0 })
+  assertNoError(legacyStorageError, 'count Legacy History storage residue')
+  residue += legacyStorageEntries?.length || 0
   return residue
 }
 

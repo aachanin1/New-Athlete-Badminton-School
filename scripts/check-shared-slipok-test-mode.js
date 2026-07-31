@@ -90,7 +90,8 @@ async function main() {
       assert.equal(result.providerReference, 'MOCK-LIVE')
       assert.equal(liveCalls, 1)
       assert.equal(loadCalls, 1)
-      assert(legacyRoute.includes('slipResult = await verifySlip(fileBuffer, file.name, expectedAmount)'))
+      assert(legacyRoute.includes('buildCanonicalSlipFileName(inspected.extension)'))
+      assert(!legacyRoute.includes('verifySlip(fileBuffer, file.name'))
     })
   })
 
