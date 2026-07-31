@@ -1,13 +1,126 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-07-31
+Last updated: 2026-08-01
 
-Current source: fresh local Git evidence for the completed Owner-approved workflow
-policy reset plus the retained verified Production state of the last completed
-product task. The authoritative published state is the **Current Active Work**
-matrix below. Earlier release and gate records are Historical / Superseded.
+Current source: verified Git, Supabase, Storage, Vercel control-plane/runtime, and
+rendered Production evidence for the completed Progressive Slip Upload Owner test
+cleanup and exact-artifact Promotion. The authoritative mutable state is the first
+**Current Active Work** matrix below. All later dated snapshots are Historical /
+Superseded.
 
 ## Current Active Work — None / Awaiting Owner Selection
+
+Status: **TASK DONE — OWNER TEST DATA CLEANUP, EXACT-ARTIFACT PROMOTION, PRODUCTION
+CHECKS, AND DOCUMENTATION CLOSEOUT COMPLETE**.
+
+### Owner Decision and Completed Scope
+
+Owner approved removal of only the Production-backed `TEST System` / `น้อง Test`
+child `4209ef39-21cd-494e-9e1f-507e3f0a92d1` and its directly owned test
+dependencies. Parent profile/Auth `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, real
+customer/shared data, protected Coach/group data, all 70 activity logs, and shared
+schedule cache remained outside the delete scope. Owner also confirmed that a
+target-only assignment Group/Membership UUID could be resolved fresh under lock
+without a new approval and that an existing `schedule_slots.current_students`
+cache mismatch was informational, outside scope, and must not be repaired.
+
+The verified encrypted backup at
+`C:\Users\aacha\AppData\Local\CodexBackups\New-Athlete-Badminton-School\owner-test-cleanup-20260731T171012Z`
+was restored in a verification pass before writing. A second encrypted snapshot
+captured the exact rows resolved inside the controlled transaction. No encryption
+key or Production secret was logged.
+
+### Cleanup, Promotion, and Production Evidence
+
+- The transaction locked all `45` distinct target `schedule_slots` in UUID order,
+  then re-resolved and locked the exact child-owned bookings, sessions, scopes,
+  batches, assignment groups, and memberships. Slot-lock acquisition took
+  `63.123 ms`; no timeout or post-lock concurrent target row was detected.
+- Exact committed DB deletes were: child `1`, bookings `14`, booking sessions
+  `48`, legacy payments `2`, pricing scopes `2`, mutation receipts `21`,
+  progressive batches `18`, batch members `25`, verification attempts `3`,
+  allocations `3`, target assignment memberships `4`, empty target-only groups
+  `4`, and Owner-approved notifications `7`.
+- The four current assignment memberships and four target-only groups passed
+  fresh ownership/shared-container guards. The superseded membership/group UUIDs
+  were absent. No shared group, Coach, reservation, schedule slot, legacy Coach
+  assignment, check-in, non-target session, protected group, or protected
+  membership was changed.
+- The Storage API deleted and independently verified absent exactly `6`
+  `payment-slips` objects and `3` `progressive-payment-slips` objects from the
+  verified backup manifest. DB and Storage postconditions passed before commit;
+  rollback/restore was not needed.
+- Independent post-commit and post-Promotion reconciliation returned zero for the
+  target child and every listed dependency, all nine Storage objects, target
+  Ledger/payment-review rows, and both target names. Parent profile/Auth remained
+  `1/1`, Parent notifications remained `13`, protected group/memberships remained
+  `1/2`, and the Owner-approved activity-log set was not deleted or updated.
+- Test Ledger impact was exactly `5` approved rows / `฿4,450` removed. This was
+  test reporting only: no real cash movement, refund, credit, coupon, wallet,
+  expense, attendance, payroll, or customer-data effect occurred.
+- Owner Controlled Write UAT had passed on exact staged artifact
+  `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne`, Source SHA
+  `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`. Its Production target,
+  `READY/STAGED` state, zero aliases, exact SHA, and original timestamps were
+  reconfirmed before one Promotion invocation. Promotion succeeded with retry,
+  rebuild, redeploy, separate-alias, and rollback counts all `0`.
+- All four established Production aliases now map to that exact artifact:
+  `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+  Artifact creation/build/ready timestamps did not change. Canonical `/`, `/api/health`,
+  and one real `_next/static/*` CSS asset returned HTTP `200`; unauthenticated
+  `/dashboard/history` returned the expected `307` login redirect. Bounded
+  task-attributable Vercel runtime error/fatal/5xx/database/storage failures were
+  `0`. Authenticated read-only Coach, Children, History, Schedule, and Ranking
+  checks plus the promoted public Ranking check contained neither target name.
+
+### Current Project Matrix — Progressive Slip Upload Production Closeout
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — cleanup, exact-artifact Promotion, Production verification, and closeout passed** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Application Source remains `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`; this containing documentation-only closeout commit is identified in the final handoff |
+| Remote HEAD | Equal to the containing documentation-only closeout commit after the authorized normal push; exact SHA is in the final handoff |
+| Ahead/Behind | `0/0` after the authorized normal push |
+| Source Complete | **Yes — Progressive Slip Upload Source was already complete; no Source changed in this operation** |
+| Tests Passed | **Yes — Owner Controlled Write UAT passed on the exact artifact; cleanup reconciliation and Production health/runtime/surface checks passed** |
+| Committed | **Yes — this containing commit changes only the three authorized documentation files** |
+| Pushed | **Yes — one normal non-force push; final equality is in the handoff** |
+| Current Source | `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4` |
+| Pushed Source | `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`; documentation-only closeout is layered above it |
+| Deployed | **Yes — exact artifact promoted without rebuild** |
+| Deployed Source | `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4` |
+| Deployment ID | `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne`, `production/READY/PROMOTED` |
+| Migration Source | No change |
+| Migration Applied | No change |
+| Feature Enabled | Progressive Slip Upload Production-active; controls unchanged |
+| Allowlisted | Unchanged; no allowlist action |
+| Production Active | **Yes — all four established aliases target the exact promoted artifact** |
+| Production UAT | **Passed — automated health/runtime and bounded rendered read-only checks** |
+| Controlled Write UAT | **PASS on exact staged artifact/SHA before Promotion** |
+| Data Repaired | **Yes — Owner test child and exact owned dependencies removed** |
+| Production Data Changed | **Yes — exact test data only** |
+| Customer Impact | None |
+| Financial Impact | Test Ledger decreased exactly `5` rows / `฿4,450`; no real cash, refund, or credit movement |
+| Functional File Count | `0` |
+| Test / Migration / Configuration File Count | `0 / 0 / 0` |
+| Promotion / Retry / Rebuild / Redeploy / Separate Alias | `1 / 0 / 0 / 0 / 0` |
+| Environment Change | No |
+| Automatic Preview | A documentation-push Preview may be created by Git integration; it is not inspected, retried, promoted, or aliased |
+| Documentation Drift | **No — resolved by this authoritative closeout** |
+| Blocker | None |
+| Remaining Work | None |
+| Task Done | **Yes** |
+| Next Gate / Next Action | Await Owner selection of the next task; do not start Parking Lot work automatically |
+| Parking Lot authorization state | Unchanged; no Parking Lot item is authorized |
+
+## Historical Workflow Policy Reset Snapshot — State Observed 2026-07-31
+
+The following section records the state observed at that closeout and is
+superseded by the current matrix above.
 
 Status: **TASK DONE IN THE PUBLISHED STATE — PM-NA INITIAL POLICY COMMIT AND ALL
 THREE EXACT TARGET POLICY/DOCUMENTATION COMMITS COMPLETE; THE CONTAINING CLOSEOUT
@@ -58,7 +171,7 @@ manually retried, promoted, aliased, or treated as Production.
   effect only and receives no manual inspection/write, retry, Promotion, or Alias.
 - Speed Insights remains **Not started**.
 
-### Current Project Matrix — Workflow Policy Reset
+### Historical Project Matrix — Workflow Policy Reset
 
 | Field | Current value |
 | --- | --- |

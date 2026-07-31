@@ -10907,3 +10907,121 @@ three external HTTP `500` attempts was not diagnosed. Financial/Payroll Impact:
 **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**. Exact next
 action: await Owner selection; do not start Parking Lot work or another task
 automatically.
+
+### 2026-08-01 — Progressive Slip Upload Owner Test Cleanup and Exact-Artifact Production Closeout
+
+State observed at this closeout: **TASK DONE**. Owner approved removal of only the
+Production-backed `TEST System` / `น้อง Test` child
+`4209ef39-21cd-494e-9e1f-507e3f0a92d1` and directly owned test dependencies,
+followed by Promotion of the already Owner-tested exact artifact. Parent profile
+and Auth account `e8a4b5c9-880d-4a43-b693-96cb0ce26316`, real learners,
+shared/protected Coach and schedule data, all 70 activity logs, and the existing
+informational `schedule_slots.current_students` cache state remained protected.
+Owner explicitly authorized fresh resolution of target-only assignment UUIDs by
+child ownership under lock and prohibited investigating the prior Coach Save.
+
+#### Backup and Locked Cleanup Evidence
+
+- The encrypted backup at
+  `C:\Users\aacha\AppData\Local\CodexBackups\New-Athlete-Badminton-School\owner-test-cleanup-20260731T171012Z`
+  passed DPAPI/AES-256-GCM restore verification, archive integrity verification,
+  and exact Storage manifest verification `9/9`. Archive SHA-256 was
+  `8bacc225c2cc2928f288f31a8da621b1efda18b43d2f7e4b9d4e11fcfb5ffd73`.
+  Plaintext verification material was removed. A second DPAPI-wrapped encrypted
+  snapshot captured the exact rows resolved under lock; no encryption key or
+  Production credential was printed or stored in Git.
+- Fresh bounded ownership audit returned child `1`, Parent profile/Auth `1/1`,
+  bookings `14`, sessions `48`, payments `2`, scopes `2`, mutation receipts `21`,
+  batches `18`, batch members `25`, verification attempts `3`, allocations `3`,
+  target assignment memberships/groups `4/4`, notifications `7`, Storage objects
+  `9`, and approved test Ledger `5 / ฿4,450`. Every target session belonged to the
+  child; every assignment membership matched the target child/session; every
+  deletable group had no other learner, Coach, or reservation.
+- The controlled transaction locked all `45` distinct target schedule slots in
+  ordered UUID sequence with bounded timeout, then locked and revalidated every
+  target container and relationship. Slot-lock acquisition took `63.123 ms`, no
+  timeout occurred, and no new target Group/Membership row appeared after lock.
+  Current assignment Membership IDs were `89002a9e-c6b5-4f34-b2de-128a2b8dee43`,
+  `b03d1ca7-ee18-488c-9fc6-c67f5b72e996`,
+  `c625ea0d-21d8-43ce-8e45-8d8e3ad88f1e`, and
+  `cd0624ad-4c52-4d43-b741-048c2c1dd171`. Current Group IDs were
+  `1ae2261f-96e4-48de-9325-6c697273d315`,
+  `6b64f79c-63cf-4c63-ad75-ab3e528bbae8`,
+  `9c31787c-296d-4bde-9fa7-d8c19bc74989`, and
+  `f49290e7-6cd0-4579-bf06-291f141a671d`. The superseded old UUIDs were absent.
+- Exact committed DB deletes were: `children 1`, `bookings 14`,
+  `booking_sessions 48`, `payments 2`, `booking_pricing_scopes 2`,
+  `progressive_booking_mutation_receipts 21`,
+  `progressive_payment_batches 18`,
+  `progressive_payment_batch_bookings 25`,
+  `progressive_payment_verification_attempts 3`,
+  `progressive_payment_allocations 3`,
+  `coach_assignment_group_students 4`, `coach_assignment_groups 4`, and
+  `notifications 7`.
+- While DB state was still guarded, the Supabase Storage API deleted exactly the
+  six approved `payment-slips` paths and three approved
+  `progressive-payment-slips` paths recorded in the backup manifest. Independent
+  Storage API and metadata checks returned absent `9/9`. DB/Storage postconditions
+  passed before DB commit; rollback and Storage compensation were not used.
+- Protected fingerprint comparisons passed inside the transaction: target
+  schedule slots, legacy Coach assignments, Coach check-ins, non-target sessions,
+  protected group `7f464902-42ec-411d-a939-f0749e45ecd3`, and protected
+  memberships `5301d3bf-21e3-4995-a2de-ae29adcba1fe` /
+  `f91917b1-b1fe-471c-a2e9-6caa5c45e974` were unchanged. No shared schedule cache
+  was edited or reconciled.
+
+#### Independent Reconciliation and Financial Effect
+
+- Independent post-commit and post-Promotion reads returned `0` for the target
+  child, both target names, bookings, sessions, payments, pricing scopes, mutation
+  receipts, batches, batch members, verification attempts, allocations,
+  assignment memberships/groups, seven notifications, nine Storage objects,
+  target Ledger rows/value, and payment-review rows.
+- Parent profile/Auth remained `1/1`; Parent other children remained `0`; Parent
+  notifications remained `13`; protected group/memberships remained `1/2`.
+  The cleanup issued no write against `activity_logs`, shared slots, Coach
+  assignments/check-ins, attendance, levels, achievements, coupons, wallet,
+  expenses, payroll, or real customer records.
+- Test Ledger derived reporting decreased by exactly `5` approved rows / `฿4,450`
+  to `0 / ฿0`. This removed test reporting only. Customer Impact: **None**.
+  Financial Impact: **no real cash movement, refund, credit, expense, coupon,
+  wallet, attendance, or payroll effect**.
+
+#### Exact-Artifact Promotion and Production Verification
+
+- Owner Controlled Write UAT was **PASS** on exact staged artifact
+  `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne` at Source SHA
+  `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`. Fresh pre-Promotion metadata
+  reconfirmed Production target, `READY/STAGED`, zero aliases, exact SHA, and no
+  intervening Source/configuration change.
+- Exactly one `vercel promote` invocation succeeded. Promotion/retry/rebuild/
+  redeploy/separate-alias/rollback counts were `1/0/0/0/0/0`. Artifact created,
+  building, and ready timestamps remained unchanged. All four established
+  Production aliases moved to this exact artifact: `www.newathleteschool.com`,
+  `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`. No new
+  deployment was created.
+- Canonical `/` and `/api/health` returned HTTP `200`; a real deployed
+  `_next/static/*` CSS asset returned `200 text/css`; unauthenticated
+  `/dashboard/history` preserved the expected `307` redirect to login. Bounded
+  task-attributable Vercel error/fatal/5xx/database/storage failures were `0`.
+  Authenticated read-only Coach, Children, History, Schedule, and Ranking checks
+  after cleanup and the promoted public Ranking check contained neither target
+  name. Independent Production DB reconciliation remained passed.
+- Application Source/Test/Migration/Configuration changed `0/0/0/0`; Environment,
+  feature controls, pricing, allowlists, and the booking system were unchanged.
+  Only `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md` changed for
+  this closeout. Pre-existing dirty `src/lib/schedule-slot-utils.ts` remained
+  untouched and excluded. A documentation-push Automatic Preview, if created by
+  Git integration, is not inspected, retried, promoted, or aliased.
+
+Final classification: Source Complete **Yes**; Tests Passed **Yes**; Committed and
+Pushed **Yes after the single normal documentation push**; Deployed **Yes**;
+Feature Enabled **unchanged / Production-active**; Allowlisted **unchanged**;
+Production Active **Yes**; Production UAT **Passed**; Controlled Write UAT
+**PASS on the exact staged artifact/SHA**; Data Repaired **Yes**; Production Data
+Changed **Yes, exact test data only**; Customer Impact **None**; Financial Impact
+**test Ledger -5 rows / -฿4,450 only, no cash movement**; Task Done **Yes**;
+Active Task **None**; Blocker **None**. Next action: await Owner selection; do not
+start Parking Lot work automatically.

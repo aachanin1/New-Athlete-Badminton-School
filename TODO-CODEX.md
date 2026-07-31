@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-07-31
+Last updated: 2026-08-01
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -11,14 +11,52 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### None — Awaiting Owner Selection
 
-Status: **NO ACTIVE TASK — POLICY RESET IS TASK DONE IN THE PUBLISHED STATE**.
+Status: **NO ACTIVE TASK — PROGRESSIVE SLIP UPLOAD OWNER TEST CLEANUP,
+EXACT-ARTIFACT PROMOTION, PRODUCTION CHECKS, AND CLOSEOUT ARE TASK DONE**.
 
-- `PROJECT_STATE.md` is authoritative for the exact policy commits and final state
-  matrix.
+- `PROJECT_STATE.md` is authoritative for exact cleanup, data impact, artifact,
+  Promotion, Production verification, and final Git state.
 - Next action: await Owner selection of a product task. Do not start Parking Lot
   work or another task automatically.
 
 ## Recently Completed
+
+### PROGRESSIVE SLIP UPLOAD — OWNER TEST CLEANUP + EXACT-ARTIFACT PRODUCTION CLOSEOUT
+
+Status: **DONE — EXACT TEST DATA REMOVED; ARTIFACT
+`dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne` / SOURCE
+`1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4` PROMOTED WITHOUT REBUILD;
+PRODUCTION RECONCILIATION, HEALTH, RUNTIME LOGS, AND SURFACE CHECKS PASSED**.
+
+- Verified encrypted backup and in-transaction encrypted snapshot passed restore
+  and integrity checks before commit. The transaction locked `45` target schedule
+  slots, resolved the current target-only assignment UUIDs by child ownership,
+  and detected no timeout, shared real learner, or post-lock concurrent target row.
+- Committed deletes: child `1`, bookings `14`, sessions `48`, payments `2`, scopes
+  `2`, receipts `21`, batches `18`, members `25`, attempts `3`, allocations `3`,
+  target assignment memberships/groups `4/4`, and notifications `7`. Storage
+  removed exactly `6 + 3 = 9` backed-up objects. Rollback/restore was not used.
+- Parent profile/Auth remained `1/1`; Parent notifications remained `13`; the
+  Owner-approved 70 activity logs were not deleted or updated. Shared/protected
+  groups, memberships, slots, Coach assignments/check-ins, and non-target sessions
+  were unchanged. Existing `schedule_slots.current_students` cache state was
+  explicitly outside scope and was neither repaired nor reconciled.
+- Independent reconciliation returned target child and all exact dependencies,
+  Storage objects, Ledger/payment-review rows, and target names as zero. Test
+  Ledger reporting decreased exactly `5` rows / `฿4,450`; no customer data, real
+  cash, refund, credit, coupon, wallet, Finance, attendance, or payroll changed.
+- Exact artifact Promotion invocation/retry/rebuild/redeploy/separate-alias/
+  rollback counts were `1/0/0/0/0/0`. All four Production aliases map to the exact
+  artifact; creation/build/ready timestamps were unchanged. Root, health, static
+  asset, route protection, bounded logs, post-Promotion DB reconciliation, and
+  authenticated/public target-name surface checks passed.
+- Functional/Test/Migration/Configuration file changes: `0/0/0/0`. This closeout
+  changes only `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md`.
+  The pre-existing dirty `src/lib/schedule-slot-utils.ts` remains excluded.
+- Production Data Changed: Yes, exact test data only. Customer Impact: None.
+  Financial Impact: test Ledger `-5 / -฿4,450`; no refund or cash movement.
+- Next action: await Owner selection; Parking Lot remains unchanged and
+  unauthorized.
 
 ### POLICY RESET — OWNER UAT + CONTINUOUS DELIVERY
 
