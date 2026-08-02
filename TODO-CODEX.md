@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,15 +9,27 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### None — Awaiting Owner Selection
+### MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
 
-Status: **NO ACTIVE TASK — PROGRESSIVE SLIP UPLOAD OWNER TEST CLEANUP,
-EXACT-ARTIFACT PROMOTION, PRODUCTION CHECKS, AND CLOSEOUT ARE TASK DONE**.
+Status: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED; EXACT-SHA
+STAGED ARTIFACT READY AND UNALIASED; PRODUCTION NOT PROMOTED**.
 
-- `PROJECT_STATE.md` is authoritative for exact cleanup, data impact, artifact,
-  Promotion, Production verification, and final Git state.
-- Next action: await Owner selection of a product task. Do not start Parking Lot
-  work or another task automatically.
+- `PROJECT_STATE.md` is authoritative for the complete current matrix, Git state,
+  exact staged artifact, prior Production artifact, and protected payment rule.
+- Application Source is `1c43a160a15932844a7c9fcee5e1cf0d30792f60`.
+  History payment E2E passed `10/10`; TypeScript, zero-warning lint, mojibake,
+  Production build `91/91`, and diff compliance passed.
+- Owner UAT artifact is `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` at
+  `https://new-athlete-badminton-school-397fiatpo-aachanin1s-projects.vercel.app`.
+  It has zero aliases and is tied to the exact tested Source SHA. Production
+  remains on its prior artifact.
+- The existing rule prohibiting slip upload after a teaching round starts remains
+  protected and unchanged. API, Migration, Environment, feature controls,
+  allowlists, Production data, and payment/accounting semantics did not change.
+- Next action: Owner UAT as User/Parent. After exact-artifact PASS, promote this
+  artifact without rebuild and run bounded Production health, error-log, and
+  read-only surface checks before final closeout.
+- LINE external-browser handoff remains Parking Lot only and is not authorized.
 
 ## Recently Completed
 
@@ -840,6 +852,16 @@ Status: **DONE**.
   Production UAT evidence remains in `DEVELOPMENT_TODO.md`.
 
 ## Parking Lot
+
+### LINE External-Browser Handoff Audit
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- No LINE user-agent detection, redirect, deep-link, external-browser handoff,
+  attached HTML script, Source audit, or implementation was included in the
+  mobile Payment Dialog task.
+- Await explicit Owner selection and a separate Scope Contract before any audit or
+  change.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
 

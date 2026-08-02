@@ -11025,3 +11025,88 @@ Changed **Yes, exact test data only**; Customer Impact **None**; Financial Impac
 **test Ledger -5 rows / -฿4,450 only, no cash movement**; Task Done **Yes**;
 Active Task **None**; Blocker **None**. Next action: await Owner selection; do not
 start Parking Lot work automatically.
+
+### 2026-08-02 — Mobile Payment Slip CTA Visibility and Scrollability — READY FOR OWNER UAT
+
+State observed at this closeout: Owner approved a one-functional-file correction
+to the shared User History Payment Dialog. The single existing
+`ส่งสลิปชำระเงิน` action was to move next to the latest confirmed total, remain
+visible and disabled before file selection, retain its existing eligibility,
+loading, and duplicate-submit conditions, and remain reachable while the account,
+file input, preview, errors, and status content scrolls. Progressive and Legacy
+payment semantics, APIs, amounts, SlipOK behavior, and lifecycle transitions were
+explicitly protected.
+
+#### Root Cause and Scoped Implementation
+
+- Rendered `360×640` evidence confirmed that the Radix dialog overlay locks the
+  page body while the Payment Dialog itself had no dynamic-viewport height bound
+  or scrolling region. Its CTA appeared after bank information, the file input,
+  and a fixed `h-64` image preview, so the preview could push the action outside
+  the mobile viewport.
+- Progressive and Legacy both use the same Payment Dialog and the same
+  `handleSubmitPayment` handler. The correction changed exactly
+  `src/components/dashboard/history-client.tsx`: a `100dvh`-bounded dialog, pinned
+  responsive amount/action region, and one `overflow-y-auto` content region were
+  added. The original CTA and handler were moved; no second submit action or
+  handler was introduced. Cancel and the Radix close control remain accessible.
+- `tests/history-payment-regression/history-payment.spec.ts` gained coverage for
+  the small mobile viewport, visible-disabled and file-enabled states, real
+  overflow, preview/file reachability, persistent action position, single CTA,
+  Legacy WebP selection, and desktop same-row layout. The existing valid
+  image/JPG Test Mode transition, rapid single-flight submission, stale conflict,
+  cancel failure, eligibility guard, and payment-lifecycle tests remained intact.
+- Before the fix, the focused regression failed `1/1` because the action/scroll
+  region did not exist; disposable residue was `0`. After the fix it passed
+  `1/1`. The final full History payment E2E passed `10/10`, with failed/skipped/
+  flaky/retry `0/0/0/0` and residue `0`.
+
+#### Verification, Publication, and Staged Artifact
+
+- `npx.cmd tsc --noEmit --incremental false`, zero-warning ESLint,
+  `npm.cmd run check:mojibake` over `250` files, and `git diff --check` passed.
+  Next.js `16.2.6` Production build passed compilation, TypeScript, and static
+  generation `91/91`. After build, the exact repo `.next` directory was removed,
+  the local dev server was restarted, and root/static asset checks returned
+  `200/200`.
+- Source/Test commit `1c43a160a15932844a7c9fcee5e1cf0d30792f60`
+  (tree `f9d59376bebc7e337c4c19f7c00109e4c70f2046`) contains exactly the one
+  functional file and one test file and was pushed normally to
+  `spike/next-major-security-upgrade`.
+- Exact staged artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` is
+  `production/READY/STAGED`, has zero aliases, and is tied by `gitCommitSha` to
+  exact tested Source `1c43a160...`. Its URL is
+  `https://new-athlete-badminton-school-397fiatpo-aachanin1s-projects.vercel.app`.
+  The remote build passed compilation, TypeScript, and `91/91` pages. Staged root,
+  health, and a real CSS asset returned `200`; unauthenticated History returned
+  the expected `307`; bounded error/fatal/5xx logs were `0/0/0`.
+- Production was not promoted. It remains on artifact
+  `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne`, Source
+  `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`, across the four established
+  aliases. Owner PASS must identify the exact staged artifact/SHA, after which it
+  may be promoted without rebuild and followed by automated Production checks.
+
+#### Protected State and Next Gate
+
+- Hard protected rule: slip upload is prohibited after a relevant teaching round
+  starts. The existing Progressive server eligibility guard for attendance,
+  wallet evidence, and Bangkok-time session start remains unchanged and was not
+  bypassed. No API, Migration, RPC, configuration, Environment, feature control,
+  allowlist, pricing, coupon, Ledger, Finance, accounting, booking/payment status,
+  SlipOK, or Production-data change occurred.
+- Functional/Test/Migration/Configuration counts are `1/1/0/0`. Production Data
+  Changed: **No**. Data Repaired: **No**. Customer Impact: **no new Production
+  impact; the prior Production UI remains active until Owner-approved Promotion**.
+  Financial Impact: **None**. Owner UAT and Controlled Write UAT: **Not run**.
+- The pre-existing dirty `src/lib/schedule-slot-utils.ts` was not edited, staged,
+  reset, checked out, or included. Added-line secret/customer-data scan returned
+  zero findings. The Owner-attached HTML script was not added to the repository.
+- Documentation Drift: **No after the containing documentation-only closeout
+  commit is published**. Task Done: **No**. Active Task remains **MOBILE PAYMENT
+  SLIP CTA VISIBILITY AND SCROLLABILITY**. Next gate: Owner UAT on the exact staged
+  URL as User/Parent; any Progressive UAT that would write payment-lifecycle data
+  still requires an exact disposable target and separate controlled-write
+  authorization.
+- **PARKING LOT — LINE EXTERNAL-BROWSER HANDOFF AUDIT; OWNER SELECTION REQUIRED;
+  NOT AUTHORIZED TO START.** No LINE detection, redirect, deep-link, browser
+  handoff audit, or implementation was performed.
