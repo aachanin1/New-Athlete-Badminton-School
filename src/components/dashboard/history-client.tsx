@@ -1394,19 +1394,52 @@ export function HistoryClient({
 
       {/* Payment Dialog */}
       <Dialog open={payDialogOpen} onOpenChange={(open) => void handlePayDialogOpenChange(open)}>
-        <DialogContent className="sm:max-w-md" data-testid="payment-slip-modal">
-          <DialogHeader>
+        <DialogContent
+          className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] grid-rows-[auto_auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-h-[calc(100dvh-2rem)] sm:w-full sm:max-w-md"
+          data-testid="payment-slip-modal"
+        >
+          <DialogHeader className="px-4 pb-3 pr-12 pt-5 sm:px-6 sm:pr-12 sm:pt-6">
             <DialogTitle className="text-[#153c85]">แนบสลิปโอนเงิน</DialogTitle>
-            <DialogDescription>
+          </DialogHeader>
+
+          <div
+            className="z-10 border-y bg-background px-4 py-3 shadow-sm sm:px-6"
+            data-testid="payment-slip-action-area"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <DialogDescription className="text-left" data-testid="payment-slip-total">
               {paymentMode === 'progressive'
                 ? `ยอดที่ระบบยืนยันล่าสุด ฿${payDialogTotal.toLocaleString()} · ${payBookingIds.length} รายการ`
                 : payBookingIds.length > 1
                 ? `ชำระรวม ${payBookingIds.length} รายการ — ยอด ฿${payDialogTotal.toLocaleString()}`
                 : `ยอดชำระ: ฿${selectedBooking?.total_price.toLocaleString()}`}
-            </DialogDescription>
-          </DialogHeader>
+              </DialogDescription>
+              <Button
+                type="button"
+                className="w-full bg-[#2748bf] hover:bg-[#153c85] sm:w-auto sm:shrink-0"
+                data-testid="payment-slip-submit"
+                onClick={handleSubmitPayment}
+                disabled={!slipFile || loading || Boolean(verifyResult) || (paymentMode === 'progressive' && !progressiveUploadEligible)}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {uploadStep === 'uploading' ? 'กำลังอัปโหลดสลิป...' : 'กำลังตรวจสอบสลิป...'}
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    ส่งสลิปชำระเงิน
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
 
-          <div className="space-y-4 mt-2">
+          <div
+            className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-4 pb-4 pt-3 sm:px-6 sm:pb-6"
+            data-testid="payment-slip-scroll-region"
+          >
             {paymentMode === 'progressive' && (
               <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                 ยอดชำระได้รับการตรวจสอบจากระบบล่าสุดแล้ว รายการในคอร์สและเดือนนี้จะถูกล็อกชั่วคราวระหว่างตรวจสลิป
@@ -1474,7 +1507,7 @@ export function HistoryClient({
             </div>
 
             {slipPreview && (
-              <div className="relative h-64 overflow-hidden rounded-lg border bg-gray-50">
+              <div className="relative h-64 overflow-hidden rounded-lg border bg-gray-50" data-testid="payment-slip-preview">
                 <Image src={slipPreview} alt="สลิป" fill sizes="(max-width: 640px) 100vw, 448px" className="object-contain" />
               </div>
             )}
@@ -1507,32 +1540,15 @@ export function HistoryClient({
             )}
 
             {!verifyResult && (
-              <div className="flex gap-2 pt-2">
+              <div className="pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1"
+                  className="w-full"
                   data-testid="payment-modal-cancel"
                   onClick={() => void handlePayDialogOpenChange(false)}
                   disabled={loading || progressiveControlsBlocked}
                 >
                   ยกเลิก
-                </Button>
-                <Button
-                  className="flex-1 bg-[#2748bf] hover:bg-[#153c85]"
-                  onClick={handleSubmitPayment}
-                  disabled={!slipFile || loading || (paymentMode === 'progressive' && !progressiveUploadEligible)}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {uploadStep === 'uploading' ? 'กำลังอัปโหลดสลิป...' : 'กำลังตรวจสอบสลิป...'}
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      ส่งสลิปชำระเงิน
-                    </>
-                  )}
                 </Button>
               </div>
             )}

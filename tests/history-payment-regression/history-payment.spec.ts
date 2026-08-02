@@ -211,6 +211,99 @@ async function protectedBookingSnapshot() {
   return { bookings, sessions }
 }
 
+async function verifyPaymentDialogLayout(page: Page) {
+  await page.setViewportSize({ width: 360, height: 640 })
+  await loginAndOpenHistory(page)
+  await selectTwo(page)
+  await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
+
+  const modal = page.getByTestId('payment-slip-modal')
+  const actionArea = page.getByTestId('payment-slip-action-area')
+  const scrollRegion = page.getByTestId('payment-slip-scroll-region')
+  const submit = page.getByRole('button', { name: 'ส่งสลิปชำระเงิน' })
+  await expect(modal).toBeVisible()
+  await expect(actionArea).toContainText('ยอดที่ระบบยืนยันล่าสุด ฿4,330 · 2 รายการ')
+  await expect(submit).toHaveCount(1)
+  await expect(submit).toBeVisible()
+  await expect(submit).toBeDisabled()
+
+  const initialMobileLayout = await modal.evaluate((element) => {
+    const action = element.querySelector<HTMLElement>('[data-testid="payment-slip-action-area"]')
+    const scroller = element.querySelector<HTMLElement>('[data-testid="payment-slip-scroll-region"]')
+    const button = element.querySelector<HTMLButtonElement>('button[data-testid="payment-slip-submit"]')
+    if (!action || !scroller || !button) throw new Error('Payment Dialog layout regions are missing')
+    const actionRect = action.getBoundingClientRect()
+    const buttonRect = button.getBoundingClientRect()
+    return {
+      actionTop: actionRect.top,
+      buttonBottom: buttonRect.bottom,
+      modalHeight: element.getBoundingClientRect().height,
+      overflowY: getComputedStyle(scroller).overflowY,
+      clientHeight: scroller.clientHeight,
+      scrollHeight: scroller.scrollHeight,
+    }
+  })
+  expect(initialMobileLayout.buttonBottom).toBeLessThanOrEqual(640)
+  expect(initialMobileLayout.modalHeight).toBeLessThanOrEqual(632)
+  expect(initialMobileLayout.overflowY).toMatch(/auto|scroll/)
+
+  await page.locator('#slip-upload').setInputFiles({
+    name: 'line-mobile-slip.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(PNG_BYTES),
+  })
+  await expect(submit).toBeEnabled()
+  await expect(page.getByTestId('payment-slip-preview')).toBeVisible()
+  await expect.poll(async () => scrollRegion.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+
+  const actionTopBeforeScroll = await actionArea.evaluate((element) => element.getBoundingClientRect().top)
+  await page.getByTestId('payment-slip-preview').scrollIntoViewIfNeeded()
+  await expect(page.locator('#slip-upload')).toBeVisible()
+  await expect(page.getByTestId('payment-slip-preview')).toBeVisible()
+  await expect(submit).toBeVisible()
+  const actionTopAfterScroll = await actionArea.evaluate((element) => element.getBoundingClientRect().top)
+  expect(Math.abs(actionTopAfterScroll - actionTopBeforeScroll)).toBeLessThan(1)
+  const submitBottomAfterScroll = await submit.evaluate((element) => element.getBoundingClientRect().bottom)
+  expect(submitBottomAfterScroll).toBeLessThanOrEqual(640)
+  await page.getByTestId('payment-modal-cancel').click()
+  await waitForLifecycle(page, 'idle')
+
+  const legacyOpen = page.getByRole('button', { name: /ชำระเงินรวม/ })
+  await legacyOpen.click()
+  await expect(modal).toBeVisible()
+  await expect(submit).toHaveCount(1)
+  await expect(submit).toBeVisible()
+  await expect(submit).toBeDisabled()
+  await page.locator('#slip-upload').setInputFiles({
+    name: 'line-mobile-slip.webp',
+    mimeType: 'image/webp',
+    buffer: Buffer.from(WEBP_BYTES),
+  })
+  await expect(submit).toBeEnabled()
+  await page.getByTestId('payment-modal-cancel').click()
+
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await legacyOpen.click()
+  await expect(modal).toBeVisible()
+  const desktopRow = await actionArea.evaluate((element) => {
+    const description = element.querySelector<HTMLElement>('[data-testid="payment-slip-total"]')
+    const button = element.querySelector<HTMLButtonElement>('button[data-testid="payment-slip-submit"]')
+    if (!description || !button) throw new Error('Payment Dialog desktop action row is missing')
+    const descriptionRect = description.getBoundingClientRect()
+    const buttonRect = button.getBoundingClientRect()
+    return {
+      descriptionTop: descriptionRect.top,
+      buttonTop: buttonRect.top,
+      buttonRight: buttonRect.right,
+      actionRight: element.getBoundingClientRect().right,
+    }
+  })
+  expect(Math.abs(desktopRow.buttonTop - desktopRow.descriptionTop)).toBeLessThan(8)
+  expect(desktopRow.buttonRight).toBeLessThanOrEqual(desktopRow.actionRight)
+  await expect(submit).toHaveCount(1)
+  await page.getByTestId('payment-modal-cancel').click()
+}
+
 test('rapid prepare is single-flight; cancel waits for refresh; reprepare uses the new revision', async ({ page }, testInfo) => {
   const browserErrors = observeBrowserErrors(page)
   const financialBefore = await financialSnapshot()
@@ -279,6 +372,10 @@ test('rapid prepare is single-flight; cancel waits for refresh; reprepare uses t
   expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
   expect(await countRows('activity_logs', { user_id: fixture.userId }) - activityBefore).toBe(4)
   expect(browserErrors).toEqual([])
+})
+
+test('Payment Dialog keeps one CTA visible above scrollable mobile content for Progressive and Legacy', async ({ page }) => {
+  await verifyPaymentDialogLayout(page)
 })
 
 test('stale revision returns typed 409, shows Thai error outside the modal, refreshes once, then retries safely', async ({ page }, testInfo) => {
