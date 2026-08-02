@@ -2,18 +2,108 @@
 
 Last updated: 2026-08-02
 
-Current source: verified Git, exact-artifact Owner UAT, one successful Vercel
-Promotion, post-Promotion alias/control-plane reconciliation, public Production
-surface checks, and bounded runtime logs for the completed mobile Payment Dialog
-correction. The authoritative mutable state is the first **Current Active Work**
-matrix below. All later dated snapshots are Historical / Superseded.
+Current source: verified Git, exact-SHA Vercel Preview, deterministic accuracy
+reconciliation, bounded server performance evidence, and protected regressions for
+**ADMIN PAYROLL ACCURACY + PERFORMANCE**. The authoritative mutable state is the
+first **Current Active Work** matrix below. All later task snapshots are
+Historical / Superseded.
 
-## Current Active Work — None / Awaiting Owner Selection
+## Current Active Work — Admin Payroll Accuracy + Performance
 
-Status: **TASK DONE — OWNER UAT PASSED; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
-PRODUCTION ALIASES, HEALTH, ROUTE PROTECTION, CSS, AND RUNTIME LOG GATES PASSED**.
+Status: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED; EXACT PREVIEW
+READY; PRODUCTION NOT PROMOTED**.
 
-### Owner UAT, Promotion, and Protected Rule
+### Current Result and Next Gate
+
+The annual one-shot `coach_assignment_groups` read was independently reproduced
+at exactly `1,000` returned rows while stable bounded pagination returned `1,332`;
+`332` assignments were silently omitted by the old read at this observation.
+Coach Cake reconciles to `5` counted rounds / `10` hours for
+2026-07-20..26. Coach Dome's 2026-08-01 17:00–18:00 Private assignment was at
+stable annual position `1,158`, after the old cutoff, and now appears as one
+counted Private hour.
+
+Application Source `fe424bbaa0e0366773cded241e78a0bcee71e43a` loads only the
+selected month expanded to complete intersecting Monday–Sunday weeks, asserts
+exact-count stable pagination, aggregates one result per Coach + slot, preserves
+Exact precedence and genuine Legacy fallback, serializes summaries first, and
+loads one Coach/week detail only on explicit expansion. It changes no employment
+threshold, rate, OT/payable formula, booking eligibility, attendance, check-in,
+photo, GPS, Wallet, Reschedule, Makeup, or weekly-close rule.
+
+Gate 0 browser warm navigation samples were `3.485/3.439/3.110/3.697/4.399s`
+(`P95 4.399s`) with `923,820` RSC script characters and about `1.059 MB` DOM.
+The old annual server source took `10.809s`, `74` Data API calls, and about
+`2.500 MB` raw Data API response bytes. Final bounded same-source server samples
+were warm July `1.666/1.886/1.339/1.246/1.273s` (`P95 1.886s`), month changes
+`1.059/1.347/1.075/1.306/1.059s` (`P95 1.347s`), and Cake detail
+`0.571/0.605/0.585/0.598/0.570s` (`P95 0.605s`). July summary used `34` calls,
+`6,699` returned source rows across phases, and a `60,039`-byte summary payload;
+full Coach/week evidence is absent from the initial RSC model. This is a `57.1%`
+P95 improvement against the Gate 0 warm navigation number and no final warm or
+detail server sample exceeded `5s`. The remaining visual browser/P95 confirmation
+must be performed after Super Admin signs into the host-scoped Preview session;
+Codex did not inspect, copy, or repurpose Production browser credentials.
+
+Exact Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is `READY`, target `null`
+(Preview), region `icn1`, URL
+`https://new-athlete-badminton-school-1tymwijlz-aachanin1s-projects.vercel.app`,
+and Vercel metadata ties it to exact Git SHA `fe424bbaa0e...`. Remote build passed,
+`/api/health` returned `200`, the protected staged login shell rendered, and
+bounded Preview error/fatal logs returned zero. Production remains unchanged on
+artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, Source
+`1c43a160a15932844a7c9fcee5e1cf0d30792f60`. No Promotion is authorized before
+Owner PASS on this exact Payroll artifact/SHA.
+
+### Current Project Matrix — Admin Payroll Accuracy + Performance
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ADMIN PAYROLL ACCURACY + PERFORMANCE** |
+| Task Status | **READY FOR OWNER UAT — exact Preview READY; Production unchanged** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Application Source is `fe424bbaa0e0366773cded241e78a0bcee71e43a`; the containing documentation-only handoff commit is identified in the final report |
+| Remote HEAD | Equal to the containing documentation-only handoff commit after the authorized normal push |
+| Ahead/Behind | `0/0` in the published handoff state |
+| Source Complete | **Yes — scoped Source and read model complete** |
+| Tests Passed | **Yes — completeness `18/18`, Payroll performance `13/13`, Admin assignment `38/38`, Admin Schedules performance `24/24`, Coach assignment resolution `33/33`, Lesson Wallet `17/17`, TypeScript, zero-warning lint, mojibake, build `91/91`, and diff checks passed** |
+| Performance Gate | **Server/data gate passed: warm P95 `1.886s`, month-change P95 `1.347s`, detail P95 `0.605s`, max `1.886s`; authenticated staged browser/visual sample remains Owner-UAT pending because auth is host-scoped** |
+| Accuracy Reconciliation | **100% deterministic fixtures; Production SELECT-only Cake `5/10`, Dome Private `1h`; no loss after 1,000** |
+| Committed | **Yes — Source/Test commit `fe424bbaa0e...`; containing documentation-only handoff commit follows** |
+| Pushed | **Yes — Source/Test pushed; documentation commit is pushed in the published handoff state** |
+| Current Source | `fe424bbaa0e0366773cded241e78a0bcee71e43a` |
+| Pushed Source | `fe424bbaa0e0366773cded241e78a0bcee71e43a` |
+| Deployed | **Preview only — exact artifact READY; no Production deploy/promotion** |
+| Deployed Source | Preview `fe424bbaa0e0366773cded241e78a0bcee71e43a`; Production remains `1c43a160a15932844a7c9fcee5e1cf0d30792f60` |
+| Deployment ID | Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA`, `READY`, target `null`, no Production alias |
+| Migration Source | No change |
+| Migration Applied | No task Migration |
+| Environment Changed | No |
+| Feature Enabled | No task feature-control change |
+| Allowlisted | Unchanged; no allowlist action |
+| Production Active | **No for this task; prior Production artifact remains active** |
+| Production UAT | Not run — no Promotion |
+| Owner UAT | **Pending on exact Preview/SHA** |
+| Controlled Write UAT | **Not run / prohibited; Owner must not press Close Week during this UAT** |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | None yet; Payroll correction is Preview-only |
+| Financial Impact | None; no payroll row, rate, summary, or business data was written |
+| Functional File Count | `5` |
+| Test / Configuration File Count | `2 / 1` |
+| Documentation File Count | `3` in the containing handoff commit |
+| Scope Expansion | No |
+| Scope Breach | No |
+| Documentation Drift | **No after the containing documentation-only handoff commit is published** |
+| Blocker | Owner UAT/sign-in on the exact Preview; authenticated staged browser wire/visual sample is pending there |
+| Remaining Work | Owner UAT; after PASS, promote only `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` without rebuild, then automated Production read-only checks and closeout |
+| Task Done | **No** |
+| Next Gate / Next Action | Owner Super Admin UAT on the exact Preview; do not Promote before explicit PASS |
+| Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
+
+## Historical / Superseded — Mobile Payment Slip CTA Production Closeout
+
+### Historical Owner UAT, Promotion, and Protected Rule
 
 Owner UAT passed on 2026-08-02 at viewport `430×932` for exact artifact
 `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, URL
@@ -55,7 +145,7 @@ or Legacy request, amount, SlipOK, status transition, pricing, coupon, Ledger,
 Finance, accounting, API, Migration, Environment, feature control, allowlist, or
 Production data.
 
-### Current Project Matrix — Mobile Payment Slip CTA Production Closeout
+### Historical Project Matrix — Mobile Payment Slip CTA Production Closeout
 
 | Field | Current value |
 | --- | --- |

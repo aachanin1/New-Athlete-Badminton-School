@@ -11188,3 +11188,160 @@ after the containing closeout commit is published**; Blocker **None**; Task Done
 **Yes**; Active Task **None**. Next action: await Owner selection and do not start
 another task automatically. **PARKING LOT — LINE EXTERNAL-BROWSER HANDOFF AUDIT;
 OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START.**
+
+### 2026-08-02 — Admin Payroll Accuracy + Performance — READY FOR OWNER UAT
+
+State observed at this handoff: Owner approved one continuous-delivery task to
+make Admin Payroll complete for a bounded selected month, aggregate before RSC
+serialization, and load Coach/week evidence only when requested while retaining
+all existing teaching-hour, employment, threshold, rate, OT/payable, assignment,
+booking, attendance, check-in, photo, GPS, Wallet, Reschedule, Makeup, and weekly-
+close semantics. Migration, RPC/View/Function/Trigger/Index, Supabase `max_rows`,
+Environment, secrets, feature controls, allowlists, Production writes, weekly-
+summary repair/backfill, and unrelated refactors were prohibited.
+
+#### Fresh Gate 0 and Confirmed Root Cause
+
+- Repository Gate 0 passed on `spike/next-major-security-upgrade` at baseline HEAD
+  `61d264ffbd871af1f5c70c1118700000b5341a71`, upstream `0/0`. The only
+  pre-existing dirty path was `src/lib/schedule-slot-utils.ts`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  it remained byte-exact, unstaged, and excluded throughout.
+- Independent Production SELECT-only reproduction showed the annual one-shot
+  `coach_assignment_groups` query returned exactly `1,000` rows while stable
+  ordered pages returned `1,000 + 332 = 1,332`. Thus `332` current assignments
+  were omitted after the Data API cutoff at this observation. The old annual
+  helper took `10.809s`, made `74` Data API calls, returned `945` full detail
+  source rows, and read about `2.500 MB` of raw Data API response bytes.
+- Dome's 2026-08-01 17:00–18:00 Private assignment was at stable annual position
+  `1,158`, after the cutoff. A bounded source read confirmed the full Dome day at
+  `3` rounds / `5` hours including the missing Private `1` hour. Cake
+  2026-07-20..26 independently reconciled to `5` evidence-complete rounds / `10`
+  hours; the old annual output had only `3` / `6`.
+- Authenticated Production browser Gate 0 warm navigation samples were
+  `3.485/3.439/3.110/3.697/4.399s`, P95 `4.399s`; RSC script characters were
+  `923,820` and DOM size was about `1.059 MB`. The old month selector was client-
+  only and did not change URL; one clean first switch measured `0.309s`, while a
+  later Radix automation sequence was nondeterministic and was excluded rather
+  than adjusted.
+- Current Supabase JavaScript documentation was checked before implementation:
+  `.range()` is zero-based/inclusive and depends on explicit ordering, and
+  repeated `.order()` calls provide deterministic multi-column ordering. A
+  Production SELECT-only probe confirmed joined slot date/start expressions work
+  for parent ordering. Admin Schedules was inspected only as a summary-first,
+  bounded-detail, metric-instrumentation pattern and was not edited.
+
+#### Scoped Implementation and Bounded Correction
+
+- `src/lib/coach-teaching-hours.ts` now rejects source ranges over `62` days,
+  pages all potentially capped reads at `1,000` with exact-count, terminal-page,
+  duplicate-row, and changed-count assertions, and orders assignments by joined
+  date, start time, slot, sort order, and ID. Query or incomplete-page failures
+  throw descriptive errors instead of returning partial hours.
+- Exact groups remain authoritative. All exact groups in the bounded period are
+  loaded before genuine Legacy-only slot resolution. Multiple exact groups for
+  one Coach + slot union eligible learners deterministically and produce one
+  teaching round, so hours cannot double-count. Duplicate learner membership or
+  duplicate Legacy assignment data fails closed into `review`; zero eligible
+  learners is emitted as `excluded` for Admin rather than disappearing. Protected
+  callers retain their prior default of omitting zero-eligible rows.
+- Related IDs are batched without Coach-chunk × slot-chunk fan-out. Independent
+  phases run in parallel, ID batches use bounded concurrency, and metrics expose
+  operation, duration, calls, rows, and phases without photo URL, GPS, learner PII,
+  secret, or financial detail values.
+- New `src/lib/admin-payroll-read.ts` parses server-authoritative `year/month`,
+  defaults invalid/missing values to the current Bangkok month, expands to full
+  Monday–Sunday weeks intersecting the month, applies unchanged
+  `calculateTeachingPayEntries`, and returns Coach/week summaries only. Initial
+  RSC props contain no full slot/evidence collection.
+- New Admin-protected, `private, no-store`
+  `GET /api/admin/coach-teaching-hours` validates UUID plus one canonical Monday–
+  Sunday range and returns only the requested Coach/week detail. Service-role
+  access remains server-only after Payroll authorization.
+- `src/components/admin/payroll-client.tsx` now navigates month through URL state
+  with a pending/disabled state, renders summaries first, and fetches detail only
+  on expansion. AbortController plus a request generation guard prevents an old
+  Coach/week response from overwriting a new selection/month. Loading, error,
+  empty, and success states are distinct; browser-native alert/confirm/prompt was
+  not introduced.
+- A preliminary final-server sample had warm P95 `3.057s`, exceeding the exact
+  `3.0s` ceiling by `57ms`. Bounded Source correction round `1/2` increased the
+  safe UUID batch from `100` to `150` and bounded concurrency from `4` to `6`.
+  No second correction was required. Final warm P95 became `1.886s` and calls
+  fell from `49` to `34`, with identical returned rows and accuracy totals.
+
+#### Accuracy, Performance, and Protected Verification
+
+- New completeness regression passed `18/18`: more than 1,000 assignments with a
+  payable target after 1,000; Dome Private `1h`; Cake `5/10`; Group/Private;
+  unchanged Full-/Half-/Part-Time thresholds and rates; back-to-back slots;
+  year-crossing week; multiple exact groups counted once; duplicate fail-closed;
+  Exact precedence; genuine Legacy fallback; verified/unverified booking; Wallet,
+  User Reschedule, and Makeup provenance; each missing evidence reason; no
+  eligible learner; query/incomplete pagination fail-closed; summary/detail
+  equality; weekly-close and Coach Hours protected source usage.
+- New Payroll performance architecture regression passed `13/13`: bounded week-
+  expanded reads, stable exact pagination, summary-only initial RSC model, lazy
+  detail endpoint, server URL state/pending UI, abort/stale protection, Payroll
+  authorization/no-store, bounded concurrency/no nested fan-out, PII-safe metrics,
+  no unrelated-month growth, and distinct detail states.
+- Protected regressions passed: Admin Schedule assignment `38/38`, Admin Schedules
+  performance `24/24`, Coach assignment resolution `33/33`, and Lesson Wallet
+  `17/17`. TypeScript, zero-warning lint, mojibake over `252` files,
+  `git diff --check`, and Next.js 16.2.6 Production compile/type/static generation
+  `91/91` passed. After each relevant build, the exact repo `.next` was removed,
+  dev restarted on `127.0.0.1:3000`, and root/static assets returned `200/200`.
+- Final bounded same-source samples: cold July `3.125s`; warm July
+  `1.666/1.886/1.339/1.246/1.273s` (P95 `1.886s`); month changes
+  `1.059/1.347/1.075/1.306/1.059s` (P95 `1.347s`); Cake detail
+  `0.571/0.605/0.585/0.598/0.570s` (P95 `0.605s`). No final warm/detail sample
+  exceeded `5s`. July used `34` calls, `6,699` returned rows across phases, and a
+  `60,039`-byte summary payload, with no annual/full-detail browser serialization.
+
+#### Publication, Exact Preview, and Owner UAT Gate
+
+- Source/Test commit `fe424bbaa0e0366773cded241e78a0bcee71e43a` contains exactly
+  eight allowed files: five functional (`coach-teaching-hours.ts`, new
+  `admin-payroll-read.ts`, Payroll page/client, and new detail route), two new
+  regression scripts, and `package.json`. It was pushed normally to
+  `spike/next-major-security-upgrade`; Migration/Environment/data deltas were zero.
+- Git integration created exact Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA`,
+  URL `https://new-athlete-badminton-school-1tymwijlz-aachanin1s-projects.vercel.app`,
+  `READY`, target `null`, region `icn1`, with metadata Git SHA `fe424bbaa0e...`.
+  Remote build completed; staged `/api/health` returned `200`; the Vercel-
+  protected login shell rendered; bounded Preview error/fatal logs were `0`.
+- The available Super Admin Chrome session is host-scoped to Production. Local
+  and Preview payroll navigation correctly reached the app login guard. Browser
+  policy prohibits reading/copying cookies, storage, passwords, or session data,
+  so Codex did not repurpose Production credentials. Authenticated staged wire
+  P95, desktop/mobile rendering, pending-state perception, and console/hydration
+  confirmation remain Owner-UAT-visible checks and are not falsely reported as
+  Developer PASS.
+- Production remains unchanged on `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, Source
+  `1c43a160a15932844a7c9fcee5e1cf0d30792f60`. Promotion, retry, rebuild,
+  redeploy, separate alias, rollback, feature/allowlist action, Controlled Write,
+  weekly close, repair/backfill, and Production data-write counts are all zero.
+
+Owner UAT requires Super Admin: (1) open July 2026 and confirm fast URL-driven
+navigation; (2) confirm Cake week 20–26 July shows `5` counted rounds / `10`
+hours; (3) open August and confirm Dome 1 August 17:00–18:00 Private `1` hour;
+(4) expand Coach/week and confirm detail loads only then and equals summary;
+(5) confirm incomplete evidence shows a reason rather than disappearing; and
+(6) test desktop/mobile plus loading states and report console/hydration failure.
+**Do not press Close Week.** Owner PASS must name exact artifact/SHA. Only then may
+that same artifact be promoted without rebuild, followed by Production health,
+static/auth/Payroll read-only checks, runtime error/5xx scan, and SELECT-only
+Cake/Dome reconciliation. No repair/backfill is authorized.
+
+Final classification at this handoff: Active Task **ADMIN PAYROLL ACCURACY +
+PERFORMANCE**; Task Status **READY FOR OWNER UAT**; Source Complete **Yes**;
+Tests Passed **Yes**; server/data Performance Gate **Passed**; authenticated
+staged browser gate **Owner-UAT pending**; Accuracy Reconciliation **Passed**;
+Committed/Pushed **Yes**; Staged Artifact/SHA **READY/exact**; Owner UAT
+**Pending**; Promoted/Production Active for this task **No**; Migration/
+Environment/Feature/Allowlist **unchanged**; Controlled Write UAT **Not run /
+prohibited**; Production Data Changed/Data Repaired **No/No**; Customer Impact
+**None yet**; Financial Impact **None**; Scope Expansion/Breach **No/No**;
+Documentation Drift **No after containing documentation commit is published**;
+Blocker **Owner UAT/sign-in**; Task Done **No**; Next Action **Owner UAT, then exact
+artifact Promotion only after explicit PASS**.

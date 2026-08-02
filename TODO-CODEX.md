@@ -9,15 +9,24 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### None — Awaiting Owner Selection
+### ADMIN PAYROLL ACCURACY + PERFORMANCE
 
-Status: **NO ACTIVE TASK — MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
-IS TASK DONE**.
+Status: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED; EXACT PREVIEW
+`dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` / SOURCE `fe424bbaa0e...` READY; PRODUCTION
+NOT PROMOTED**.
 
-- `PROJECT_STATE.md` is authoritative for the exact Owner UAT, Promotion,
-  Production aliases, automated verification, Git, and impact state.
-- Next action: await Owner selection. Do not start LINE external-browser handoff
-  or another Parking Lot item automatically.
+- `PROJECT_STATE.md` is authoritative for the exact Git, performance, accuracy,
+  Preview, Production, UAT, and impact state. Deterministic completeness and
+  protected regressions passed; Production SELECT-only reconciliation confirmed
+  Cake `5` rounds / `10` hours and Dome Private `1` hour after the old cutoff.
+- Next action: Owner Super Admin UAT on the exact Preview. Confirm July/August
+  navigation, Cake/Dome, lazy Coach/week detail, visible evidence reasons, and
+  desktop/mobile loading behavior. Do not press **Close Week**.
+- Do not Promote before explicit Owner PASS. After PASS, promote only the exact
+  artifact/SHA without rebuild, then run automated Production read-only checks
+  and the final closeout.
+- LINE external-browser handoff and every other Parking Lot item remain
+  unauthorized.
 
 ## Recently Completed
 
