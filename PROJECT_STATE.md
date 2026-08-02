@@ -2,107 +2,100 @@
 
 Last updated: 2026-08-02
 
-Current source: verified Git, focused Local browser regression, full History
-payment E2E, Production build, and exact-SHA staged Vercel evidence for the active
-mobile Payment Dialog correction. The authoritative mutable state is the first
-**Current Active Work** matrix below. All later dated snapshots are Historical /
-Superseded.
+Current source: verified Git, exact-artifact Owner UAT, one successful Vercel
+Promotion, post-Promotion alias/control-plane reconciliation, public Production
+surface checks, and bounded runtime logs for the completed mobile Payment Dialog
+correction. The authoritative mutable state is the first **Current Active Work**
+matrix below. All later dated snapshots are Historical / Superseded.
 
-## Current Active Work — Mobile Payment Slip CTA Visibility and Scrollability
+## Current Active Work — None / Awaiting Owner Selection
 
-Status: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED; EXACT-SHA
-PRODUCTION-TARGET ARTIFACT READY/STAGED AND UNALIASED; PRODUCTION NOT PROMOTED**.
+Status: **TASK DONE — OWNER UAT PASSED; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION ALIASES, HEALTH, ROUTE PROTECTION, CSS, AND RUNTIME LOG GATES PASSED**.
 
-### Owner Decision, Intended Behavior, and Protected Rule
+### Owner UAT, Promotion, and Protected Rule
 
-Owner approved moving the one existing `ส่งสลิปชำระเงิน` CTA next to the current
-confirmed total, with a mobile next-line layout, a persistent top action area, and
-a bounded dynamic-viewport Payment Dialog whose account, file, preview, error, and
-status content scrolls. The CTA must be visible and disabled before file selection,
-enabled only after the existing conditions accept a file, preserve loading and
-duplicate-submit protection, and exist only once. This shared visual surface covers
-both Progressive and Legacy payment dialogs without changing either payment flow.
+Owner UAT passed on 2026-08-02 at viewport `430×932` for exact artifact
+`dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, URL
+`https://new-athlete-badminton-school-397fiatpo-aachanin1s-projects.vercel.app`,
+and exact Application Source SHA
+`1c43a160a15932844a7c9fcee5e1cf0d30792f60`. Owner confirmed that the CTA is
+next to the latest confirmed amount, clearly visible, accepts a selected image and
+shows its preview, and remains usable while the Dialog content scrolls.
 
-Hard protected payment rule: **when any relevant teaching round has started, slip
-upload is prohibited**. The existing Progressive server guard remains authoritative:
-attendance, wallet evidence, or `(session.date + session.start_time) <= Bangkok
-transaction time` raises `PROGRESSIVE_BOOKING_NOT_PENDING`. This task does not
-weaken, bypass, or change that guard or any Legacy/Progressive request, amount,
-SlipOK, status-transition, pricing, coupon, Ledger, Finance, or accounting behavior.
+Exactly one pinned `vercel promote` invocation ran from
+`2026-08-02T07:51:09.0248867Z` through `07:51:15.9161178Z` and exited `0`.
+Promotion/retry/rebuild/redeploy/separate-alias/rollback counts are
+`1/0/0/0/0/0`. The promoted artifact remained exact-SHA
+`production/READY/PROMOTED`; created/building/ready timestamps remained
+`1785652847980/1785652848839/1785652928082`. Prior Production artifact
+`dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne` remains `READY` as the rollback candidate.
 
-### Root Cause, Source, and Verification
+All four established Production aliases point to the exact promoted artifact and
+the alias inventory remained eight rows, so no alias was added:
+`www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+`new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+`new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+Production `/` and `/api/health` returned `200`; real CSS
+`/_next/static/css/40506b9f4110c0bb.css?dpl=dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`
+returned `200 text/css`; unauthenticated `/dashboard/history` returned the
+expected `307` to `/auth/login?redirect=%2Fdashboard%2Fhistory`.
 
-- Rendered 360×640 evidence confirmed the shared Radix primitive locks background
-  body scroll while the Payment Dialog had only `sm:max-w-md`: no bounded height,
-  no modal scroll region, and the CTA followed bank information, file input, and a
-  fixed `h-64` preview. The preview could therefore push the CTA outside the mobile
-  viewport. Progressive and Legacy used the same modal and `handleSubmitPayment`.
-- Source commit `1c43a160a15932844a7c9fcee5e1cf0d30792f60`, tree
-  `f9d59376bebc7e337c4c19f7c00109e4c70f2046`, changes exactly one functional file
-  and one test file. The modal now uses `100dvh`-bounded grid rows, a pinned
-  amount/CTA action area, and one `overflow-y-auto` content region. The original
-  handler and loading copy were moved, not duplicated; the lower submit button was
-  removed; Cancel and the dialog Close control remain available.
-- Pre-fix focused regression failed `1/1` because the action/scroll regions were
-  absent; residue was `0`. Post-fix focused regression passed `1/1`. Final full
-  `npm.cmd run test:history-payment:e2e` passed `10/10`; failed/skipped/flaky/retry
-  counts were `0/0/0/0`, and disposable fixture residue was `0`.
-- Final TypeScript, zero-warning ESLint, mojibake (`250` files), and `git diff
-  --check` passed. Next.js `16.2.6` Production build passed compile, TypeScript,
-  and static generation `91/91`; exact repo `.next` was removed, dev restarted,
-  and local root/static asset returned `200/200`.
-- Exact staged artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` is
-  `production/READY/STAGED`, unaliased, and tied by `gitCommitSha` to exact tested
-  Source `1c43a160...`. URL:
-  `https://new-athlete-badminton-school-397fiatpo-aachanin1s-projects.vercel.app`.
-  Remote build passed compile, TypeScript, and `91/91` pages. Staged root, health,
-  and a real CSS asset returned `200`; unauthenticated History returned expected
-  `307`; bounded error/fatal/5xx logs were `0/0/0`.
-- Production remains on prior artifact `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne`, Source
-  `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`, across all four established aliases.
-  Promotion is prohibited until Owner PASS on the exact staged artifact/SHA.
+Bounded exact-artifact logs from `2026-08-02T07:51:09Z` through `07:54:36Z`
+contained `22` records. Error/fatal/HTTP 5xx and deployment/runtime/database/
+storage/payment failure matches were `0/0/0/0`. One successful
+`POST /api/coach/assignment-groups 200` was unrelated concurrent Production
+traffic and is not attributable to this UI Promotion.
 
-### Current Project Matrix — Mobile Payment Slip CTA Visibility and Scrollability
+Hard protected payment rule remains unchanged: **when any relevant teaching round
+has started, slip upload is prohibited**. The existing Progressive server guard
+continues to raise `PROGRESSIVE_BOOKING_NOT_PENDING` for attendance, wallet
+evidence, or a started Bangkok-time session. This release changes no Progressive
+or Legacy request, amount, SlipOK, status transition, pricing, coupon, Ledger,
+Finance, accounting, API, Migration, Environment, feature control, allowlist, or
+Production data.
+
+### Current Project Matrix — Mobile Payment Slip CTA Production Closeout
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY** |
-| Task Status | **READY FOR OWNER UAT** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — exact artifact promoted and automated Production verification passed** |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Application Source is `1c43a160a15932844a7c9fcee5e1cf0d30792f60`; the containing documentation-only closeout commit is identified in the final handoff |
 | Remote HEAD | Equal to the containing documentation-only closeout commit after the authorized normal push; exact SHA is in the final handoff |
 | Ahead/Behind | `0/0` after the authorized normal push |
 | Source Complete | **Yes — scoped UI correction complete** |
-| Tests Passed | **Yes — focused `1/1`; full History E2E `10/10`; TypeScript/lint/mojibake/build/diff passed** |
-| Committed | **Yes — Source/Test commit `1c43a160...`; containing documentation commit follows** |
-| Pushed | **Yes — Source/Test pushed; containing documentation commit is pushed in the published state** |
+| Tests Passed | **Yes — accepted exact-Source evidence: focused `1/1`; full History E2E `10/10`; TypeScript/lint/mojibake/build/diff passed; no Functional/Test change or rerun in this Promotion gate** |
+| Committed | **Yes — Source/Test commit `1c43a160...`; containing documentation-only closeout commit follows** |
+| Pushed | **Yes — Source/Test already pushed; containing documentation commit is pushed in the published state** |
 | Current Source | `1c43a160a15932844a7c9fcee5e1cf0d30792f60` |
 | Pushed Source | `1c43a160a15932844a7c9fcee5e1cf0d30792f60` |
-| Deployed | **Yes — staged artifact only; Production not changed** |
-| Deployed Source | Staged exact Source `1c43a160...`; Production unchanged Source `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4` |
-| Deployment ID | Staged `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, `production/READY/STAGED`, aliases `0`; Production unchanged `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne` |
+| Deployed | **Yes — exact existing artifact promoted without rebuild** |
+| Deployed Source | `1c43a160a15932844a7c9fcee5e1cf0d30792f60` |
+| Deployment ID | `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, `production/READY/PROMOTED`, four established Production aliases |
 | Migration Source | No change |
-| Migration Applied | No change |
+| Migration Applied | No task Migration; retained Production migration state unchanged |
 | Environment Changed | No |
 | Feature Enabled | Existing payment controls unchanged; no task feature control |
 | Allowlisted | Unchanged; no allowlist action |
-| Production Active | **No — this UI correction is staged only** |
-| Production UAT | **Not run** |
-| Controlled Write UAT | **Not run; no staged or Production slip submission performed** |
+| Production Active | **Yes — all four established aliases serve the exact promoted artifact** |
+| Production UAT | **Automated post-Promotion Production verification passed; manual Owner Production UAT was not run and was optional/not required. Owner staged visual UAT passed on the exact artifact** |
+| Controlled Write UAT | **Not run / prohibited; no prepare, submit, or slip upload was performed** |
 | Data Repaired | No |
 | Production Data Changed | No |
-| Customer Impact | No new Production impact; current Production retains the mobile CTA visibility defect until exact-artifact Promotion after Owner PASS |
+| Customer Impact | Corrected mobile Payment Dialog is Production-active for Users/Parents; no customer data changed |
 | Financial Impact | None |
-| Functional File Count | `1` |
-| Test / Migration / Configuration File Count | `1 / 0 / 0` |
+| Functional File Count | Promotion gate `0`; total task `1` |
+| Test / Migration / Configuration File Count | Promotion gate `0 / 0 / 0`; total task Test `1` |
 | Environment / Feature / Allowlist Change | `0 / 0 / 0` |
-| Promotion / Retry / Rebuild / Redeploy / Separate Alias | `0 / 0 / 0 / 0 / 0` |
-| Automatic Preview | Exact-SHA Git Preview exists separately; it is not the UAT artifact and is not promoted |
+| Promotion / Retry / Rebuild / Redeploy / Separate Alias / Rollback | `1 / 0 / 0 / 0 / 0 / 0` |
+| Automatic Preview | Separate Git Preview remains non-Production and was not promoted or aliased |
 | Documentation Drift | **No after this authoritative closeout is published** |
 | Blocker | None |
-| Remaining Work | Owner UAT; on PASS promote only `dpl_8qh3...` without rebuild, then run Production health/error-log/read-only surface checks and final closeout |
-| Task Done | **No** |
-| Next Gate / Next Action | Owner UAT on the exact staged URL as User/Parent |
+| Remaining Work | None for this task |
+| Task Done | **Yes** |
+| Next Gate / Next Action | Await Owner selection; do not start another task or Parking Lot item automatically |
 | Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
 
 ## Historical Workflow Policy Reset Snapshot — State Observed 2026-07-31

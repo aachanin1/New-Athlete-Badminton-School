@@ -9,29 +9,35 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
+### None — Awaiting Owner Selection
 
-Status: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED; EXACT-SHA
-STAGED ARTIFACT READY AND UNALIASED; PRODUCTION NOT PROMOTED**.
+Status: **NO ACTIVE TASK — MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
+IS TASK DONE**.
 
-- `PROJECT_STATE.md` is authoritative for the complete current matrix, Git state,
-  exact staged artifact, prior Production artifact, and protected payment rule.
-- Application Source is `1c43a160a15932844a7c9fcee5e1cf0d30792f60`.
-  History payment E2E passed `10/10`; TypeScript, zero-warning lint, mojibake,
-  Production build `91/91`, and diff compliance passed.
-- Owner UAT artifact is `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` at
-  `https://new-athlete-badminton-school-397fiatpo-aachanin1s-projects.vercel.app`.
-  It has zero aliases and is tied to the exact tested Source SHA. Production
-  remains on its prior artifact.
-- The existing rule prohibiting slip upload after a teaching round starts remains
-  protected and unchanged. API, Migration, Environment, feature controls,
-  allowlists, Production data, and payment/accounting semantics did not change.
-- Next action: Owner UAT as User/Parent. After exact-artifact PASS, promote this
-  artifact without rebuild and run bounded Production health, error-log, and
-  read-only surface checks before final closeout.
-- LINE external-browser handoff remains Parking Lot only and is not authorized.
+- `PROJECT_STATE.md` is authoritative for the exact Owner UAT, Promotion,
+  Production aliases, automated verification, Git, and impact state.
+- Next action: await Owner selection. Do not start LINE external-browser handoff
+  or another Parking Lot item automatically.
 
 ## Recently Completed
+
+### MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
+
+Status: **DONE — OWNER UAT PASSED; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION ALIAS, HEALTH, CSS, ROUTE-PROTECTION, AND RUNTIME-LOG GATES PASSED**.
+
+- Owner passed exact artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` at Application
+  Source `1c43a160a15932844a7c9fcee5e1cf0d30792f60`. One Promotion invocation
+  succeeded; retry/rebuild/redeploy/separate-alias/rollback counts were all zero.
+- All four established Production aliases now serve the exact artifact. Root,
+  health, real CSS, unauthenticated History protection, and bounded error/fatal/
+  5xx/payment-related failure checks passed.
+- Promotion-gate Functional/Test/Migration/Configuration changes were `0/0/0/0`.
+  Environment, feature controls, allowlists, payment semantics, and Production
+  data were unchanged. Customer-visible mobile Dialog behavior is now active;
+  financial impact is none.
+- The pre-existing dirty `src/lib/schedule-slot-utils.ts` remains excluded.
+  LINE external-browser handoff remains Parking Lot only and unauthorized.
 
 ### PROGRESSIVE SLIP UPLOAD — OWNER TEST CLEANUP + EXACT-ARTIFACT PRODUCTION CLOSEOUT
 

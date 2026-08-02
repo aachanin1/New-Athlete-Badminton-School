@@ -11110,3 +11110,81 @@ explicitly protected.
 - **PARKING LOT — LINE EXTERNAL-BROWSER HANDOFF AUDIT; OWNER SELECTION REQUIRED;
   NOT AUTHORIZED TO START.** No LINE detection, redirect, deep-link, browser
   handoff audit, or implementation was performed.
+
+### 2026-08-02 — Mobile Payment Slip CTA Exact-Artifact Production Closeout — TASK DONE
+
+State observed at this closeout: Owner UAT passed at viewport `430×932` on exact
+artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, URL
+`https://new-athlete-badminton-school-397fiatpo-aachanin1s-projects.vercel.app`,
+and exact Application Source SHA
+`1c43a160a15932844a7c9fcee5e1cf0d30792f60`. Owner confirmed that the CTA is
+next to the latest confirmed amount, clearly visible, accepts a selected image and
+shows its preview, and remains reachable while the Dialog content scrolls. This
+PASS authorized Promotion only of that exact artifact without rebuild.
+
+#### Fresh Gate 0 and Exact Promotion
+
+- Repository, branch, Local/upstream/origin/live Remote HEAD, and ahead/behind
+  passed at `558dcbb4f0824fbb9b3842a6ff226ece58ce5e5b` on
+  `spike/next-major-security-upgrade`, `0/0`. Source/Test commit `1c43a160...`
+  contains exactly `src/components/dashboard/history-client.tsx` and
+  `tests/history-payment-regression/history-payment.spec.ts`; the only later
+  commit before Promotion was documentation-only across the three current-state
+  documents. Repository configuration blobs were unchanged from the tested Source.
+- The pre-existing dirty `src/lib/schedule-slot-utils.ts` remained unstaged and
+  checksum-exact at SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Fresh Vercel metadata confirmed the target as exact ID/SHA,
+  `production/READY/STAGED`, aliases `0`, and immutable created/building/ready
+  timestamps `1785652847980/1785652848839/1785652928082`. Prior Production
+  artifact `dpl_2SCF7xZMovQ1SGkyqJrqf86Rmzne`, Source
+  `1cb6daa4c4186fae55d3312d6199c1a47ca4ffa4`, remained `READY` with all four
+  established aliases and therefore remained a valid rollback candidate.
+- Exactly one pinned Vercel CLI `58.4.4` Promotion invocation ran from
+  `2026-08-02T07:51:09.0248867Z` through `07:51:15.9161178Z` and exited `0`.
+  Promotion/retry/rebuild/redeploy/separate-alias/rollback counts were
+  `1/0/0/0/0/0`. No new deployment or artifact was created. Postflight retained
+  the exact SHA and all three timestamps and classified the artifact
+  `production/READY/PROMOTED`.
+
+#### Production Verification and Protected State
+
+- Alias inventory remained eight rows. The four established Production aliases
+  moved to the exact artifact with missing/extra/wrong counts `0/0/0`:
+  `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`.
+  No separate alias action occurred.
+- Canonical `/` and `/api/health` returned `200`. Real CSS
+  `/_next/static/css/40506b9f4110c0bb.css?dpl=dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`
+  returned `200 text/css`. Unauthenticated `/dashboard/history` returned the
+  expected `307` to `/auth/login?redirect=%2Fdashboard%2Fhistory`.
+- Bounded exact-artifact logs from `2026-08-02T07:51:09Z` through `07:54:36Z`
+  contained `22` records. Error/fatal/HTTP 5xx and deployment/runtime/database/
+  storage/payment-related failure matches were `0/0/0/0`. One successful
+  `POST /api/coach/assignment-groups 200` was unrelated concurrent Production
+  traffic and was separated from this UI Promotion; no task-attributable
+  regression was found and rollback was not used.
+- The server-side started-round rule and `PROGRESSIVE_BOOKING_NOT_PENDING` guard
+  remain unchanged. No UI evidence bypasses backend eligibility. Progressive and
+  Legacy amounts, requests, SlipOK, accounting, lifecycle transitions, APIs,
+  Migration, RPC, configuration, Environment, feature controls, and allowlists
+  were unchanged. Controlled Write UAT, prepare, submit, slip upload, and every
+  Production-data write were not run.
+- Promotion-gate Functional/Test/Migration/Configuration counts are `0/0/0/0`;
+  total task Functional/Test counts remain `1/1`. Accepted exact-Source tests
+  remain focused `1/1`, full History payment E2E `10/10` with failed/skipped/
+  flaky/retry `0/0/0/0`, TypeScript, zero-warning lint, mojibake `250`, Production
+  build `91/91`, and diff compliance. Tests were not rerun because no Source/Test
+  bytes changed after Owner PASS.
+
+Final classification at this closeout: Source Complete **Yes**; Tests Passed
+**Yes**; Owner UAT **PASS**; Deployed/Production Active **Yes**; Controlled Write
+UAT **Not run / prohibited**; Migration/Environment/Feature/Allowlist
+**unchanged**; Data Repaired **No**; Production Data Changed **No**; Customer
+Impact **the corrected mobile Payment Dialog is now Production-active, with no
+customer-data mutation**; Financial Impact **None**; Documentation Drift **No
+after the containing closeout commit is published**; Blocker **None**; Task Done
+**Yes**; Active Task **None**. Next action: await Owner selection and do not start
+another task automatically. **PARKING LOT — LINE EXTERNAL-BROWSER HANDOFF AUDIT;
+OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START.**
