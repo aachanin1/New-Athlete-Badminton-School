@@ -175,4 +175,23 @@ check('loading, error, empty, and success detail states are rendered separately'
   assert.match(client, /state\.status !== 'success'/)
 })
 
+check('counted, review, and excluded Payroll copy is truthful and remains presentation-only', () => {
+  const excludedReason = 'ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)'
+  const summaryCopy = 'ไม่มีผู้เรียนที่นับได้/ไม่นับชั่วโมง'
+  const stateLabels = ['นับชั่วโมง', 'รอหลักฐาน/ตรวจสอบ', 'ไม่นับชั่วโมง']
+  const classificationBadge = client.match(/function ClassificationBadge[\s\S]*?\n\}/)?.[0] || ''
+
+  assert.ok(client.includes(`no_eligible_learner: '${excludedReason}'`))
+  assert.ok(client.includes(summaryCopy))
+  assert.equal(client.includes('ไม่เข้าเกณฑ์เดิม'), false)
+  assert.doesNotMatch(client, />\s*ไม่เข้าเกณฑ์\s*</)
+  for (const label of stateLabels) assert.ok(classificationBadge.includes(label), `missing state label: ${label}`)
+  assert.equal(new Set(stateLabels).size, 3)
+
+  assert.match(source, /reasons\.push\('no_eligible_learner'\)/)
+  assert.match(payrollRead, /calculateTeachingPayEntries\(/)
+  assert.match(payrollRead, /getCoachTeachingHourSourceRead\(/)
+  assert.doesNotMatch(client, /calculateTeachingPayEntries|getCoachTeachingHourSourceRows|loadAdminPayrollMonthSummary|getServiceRoleClient|\bsupabase\s*\.from\(/)
+})
+
 console.log(`\nAdmin Payroll performance architecture checks passed: ${passed}`)

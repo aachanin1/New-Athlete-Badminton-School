@@ -65,7 +65,7 @@ const REASON_LABELS: Record<string, string> = {
   missing_photo: 'ไม่มีรูปเช็คอิน',
   missing_location: 'ไม่มีพิกัด',
   missing_attendance: 'ยังไม่มี Attendance',
-  no_eligible_learner: 'ไม่มีผู้เรียนที่เข้าเกณฑ์เดิม',
+  no_eligible_learner: 'ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)',
   duplicate_assignment_data: 'Assignment ซ้ำ/ขัดแย้ง ต้องตรวจสอบ',
 }
 
@@ -312,7 +312,7 @@ export function PayrollClient({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="โค้ชในช่วงนี้" value={formatNumber(totals.coach_count, 0)} detail={`${formatNumber(totals.assigned_round_count, 0)} รอบที่ได้รับมอบหมาย`} />
         <MetricCard label="หลักฐานครบ" value={`${formatNumber(totals.countable_round_count, 0)} รอบ`} detail={`${formatNumber(totals.total_hours)} ชั่วโมง`} tone="emerald" />
-        <MetricCard label="รอหลักฐาน / ตรวจสอบ" value={`${formatNumber(totals.review_round_count, 0)} รอบ`} detail={`ไม่เข้าเกณฑ์เดิม ${formatNumber(totals.excluded_round_count, 0)} รอบ`} tone="amber" />
+        <MetricCard label="รอหลักฐาน / ตรวจสอบ" value={`${formatNumber(totals.review_round_count, 0)} รอบ`} detail={`ไม่มีผู้เรียนที่นับได้/ไม่นับชั่วโมง ${formatNumber(totals.excluded_round_count, 0)} รอบ`} tone="amber" />
         <MetricCard label="ยอดจ่ายโดยประมาณ" value={`฿${formatCurrency(totals.payable_amount)}`} detail={`${formatNumber(totals.payable_hours)} ชั่วโมงที่จ่าย`} tone="violet" />
       </div>
 
@@ -406,7 +406,7 @@ export function PayrollClient({
                       <div>
                         <p className="font-semibold text-gray-950">{formatThaiDateRangeWithWeekday(week.week_start, week.week_end)}</p>
                         <p className="mt-1 text-xs text-gray-500">
-                          มอบหมาย {week.assigned_round_count} · ครบ {week.countable_round_count} · รอตรวจ {week.review_round_count} · ไม่เข้าเกณฑ์ {week.excluded_round_count}
+                          มอบหมาย {week.assigned_round_count} · ครบ {week.countable_round_count} · รอหลักฐาน/ตรวจสอบ {week.review_round_count} · ไม่มีผู้เรียนที่นับได้/ไม่นับชั่วโมง {week.excluded_round_count}
                         </p>
                       </div>
                       <div className="text-left sm:text-right">
@@ -422,7 +422,7 @@ export function PayrollClient({
                       {week.issue_counts.missing_photo > 0 && <Badge variant="destructive">ขาดรูป {week.issue_counts.missing_photo}</Badge>}
                       {week.issue_counts.missing_location > 0 && <Badge variant="destructive">ขาดพิกัด {week.issue_counts.missing_location}</Badge>}
                       {week.issue_counts.missing_attendance > 0 && <Badge variant="destructive">ขาด Attendance {week.issue_counts.missing_attendance}</Badge>}
-                      {week.issue_counts.no_eligible_learner > 0 && <Badge variant="secondary">ไม่มีผู้เรียนเข้าเกณฑ์ {week.issue_counts.no_eligible_learner}</Badge>}
+                      {week.issue_counts.no_eligible_learner > 0 && <Badge variant="secondary">ไม่มีผู้เรียนที่นับได้/ไม่นับชั่วโมง {week.issue_counts.no_eligible_learner}</Badge>}
                       {week.issue_counts.duplicate_assignment_data > 0 && <Badge variant="destructive">Assignment ต้องตรวจ {week.issue_counts.duplicate_assignment_data}</Badge>}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -549,7 +549,7 @@ function DetailPanel({ state, onRetry }: { state: DetailState; onRetry: () => vo
 
 function ClassificationBadge({ classification }: { classification: 'counted' | 'review' | 'excluded' }) {
   if (classification === 'counted') return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100"><CheckCircle2 className="mr-1 h-3.5 w-3.5" />นับชั่วโมง</Badge>
-  if (classification === 'excluded') return <Badge variant="secondary"><XCircle className="mr-1 h-3.5 w-3.5" />ไม่เข้าเกณฑ์เดิม</Badge>
+  if (classification === 'excluded') return <Badge variant="secondary"><XCircle className="mr-1 h-3.5 w-3.5" />ไม่นับชั่วโมง</Badge>
   return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100"><AlertCircle className="mr-1 h-3.5 w-3.5" />รอหลักฐาน/ตรวจสอบ</Badge>
 }
 
