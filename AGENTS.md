@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-07-31
+Last updated: 2026-08-03
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -118,6 +118,15 @@ Owner may perform manual UI/business UAT and return PASS or FAIL with screenshot
 
 - Owner PASS authorizes Promotion only of the exact artifact/SHA the Owner tested.
 - Never Promote before Owner PASS and never rebuild between PASS and Promotion.
+- In the current Vercel workflow, promoting a Preview deployment to Production
+  creates a distinct Production deployment and runs a new Production build.
+  Preview UAT therefore is not immutable Production-artifact UAT and must not be
+  used for a no-rebuild exact-artifact release contract.
+- When the Scope Contract requires no-rebuild exact-artifact Promotion, first
+  create a staged Production deployment with `vercel --prod --skip-domain`, UAT
+  that exact staged Production artifact, and then Promote that exact staged
+  Production artifact. Do not set another no-rebuild contract against a Preview
+  artifact.
 - After Promotion, run automated Production health and error-log checks.
 - A second manual Owner Production UAT is optional unless Production differs from
   staged behavior or the Scope Contract requires it.

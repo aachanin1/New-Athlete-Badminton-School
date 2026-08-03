@@ -2,150 +2,127 @@
 
 Last updated: 2026-08-03
 
-Current source: verified Git, Owner UAT PASS on the exact Payroll Preview,
-deterministic accuracy reconciliation, and a **Production Promotion material
-Hard Stop** for **ADMIN PAYROLL ACCURACY + PERFORMANCE**. Vercel rebuilt a new
-Production deployment instead of promoting the approved immutable deployment ID
-in place, so the release contract is not complete. The authoritative mutable
-state is the first **Current Active Work** matrix below. All later task snapshots
-are Historical / Superseded.
+Current source: verified Git and Vercel state for the completed **ADMIN PAYROLL
+ACCURACY + PERFORMANCE** release. Owner Preview UAT and Owner Production UAT both
+passed. Owner accepted Vercel's derived Production deployment and normal
+Preview-to-Production rebuild behavior, and the four established Production
+aliases now converge on the accepted artifact. The earlier release-workflow Hard
+Stop is resolved; it was not a Payroll Source defect. The authoritative mutable
+state is the first matrix below. All later task snapshots are Historical /
+Superseded.
 
-## Current Active Work — Admin Payroll Accuracy + Performance
+## Current Release Closeout — Admin Payroll Accuracy + Performance
 
-Status: **DEVELOPING — MATERIAL HARD STOP; OWNER DECISION REQUIRED BEFORE ANY
-ROLLBACK, ALIAS ACTION, RETRY, OR CLOSEOUT**.
+Status: **TASK DONE — OWNER PREVIEW UAT PASSED; OWNER PRODUCTION UAT PASSED;
+PRODUCTION ACTIVE; ALIASES 4/4**.
 
-### Current Result and Next Gate
+### Final Result
 
-Owner UAT **PASSED** on exact Preview
-`dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, URL
+Owner Preview UAT passed on `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, URL
 `https://new-athlete-badminton-school-pi4tpz8dp-aachanin1s-projects.vercel.app`,
-and exact Application Source SHA
-`03d08a93e77189d56b733bda009d9526400fa9b3`. That PASS authorized only a
-no-rebuild Promotion of the exact tested artifact.
+at Application Source SHA `03d08a93e77189d56b733bda009d9526400fa9b3`.
+Vercel's Promotion created derived Production deployment
+`dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, URL
+`https://new-athlete-badminton-school-q0xng3m0d-aachanin1s-projects.vercel.app`,
+with the same Source SHA. Owner accepted that derived artifact and the normal
+Preview-to-Production rebuild, then passed authenticated Super Admin Production
+UAT from screenshots and real use.
 
-Exactly one pinned Vercel CLI `58.4.4` invocation addressed that immutable ID
-from `2026-08-03T14:11:07.3952104Z` through `14:11:12.9220953Z` and exited `0`.
-However, current Vercel `promote` behavior created derived Production deployment
-`dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, cloned the repository at the same Source SHA,
-ran `npm ci` and `next build`, and then moved aliases. Its metadata records
-`action=promote` and
-`originalDeploymentId=dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, but it is a distinct
-artifact with timestamps
-`1785766273206/1785766274341/1785766349724`. The approved Preview remains
-`READY`, target `null`, with its original timestamps
-`1785764415527/1785764416691/1785764490157`. Therefore the required exact-ID,
-no-rebuild Promotion did **not** pass.
+The Owner authorized two alias reassignments only. Both pinned Vercel CLI
+`58.4.4` `vercel alias set` commands used the exact derived deployment hostname,
+without `--force`, and exited `0`:
 
-Alias inventory remained eight rows with no separate alias command, but only
-`www.newathleteschool.com` and `new-athlete-badminton-school.vercel.app` moved to
-the derived deployment. The branch Preview alias also moved automatically.
-`new-athlete-badminton-school-aachanin1s-projects.vercel.app` and
-`new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` remain on
-prior Production artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, which remains the
-verified rollback candidate. No rollback authorization exists, so no rollback,
-retry, rebuild command, redeploy command, or separate alias action was invoked.
+- `new-athlete-badminton-school-aachanin1s-projects.vercel.app` from
+  `2026-08-03T14:35:11.0566087Z` to `14:35:13.8330551Z`.
+- `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` from
+  `2026-08-03T14:35:38.0910464Z` to `14:35:40.6823614Z`.
 
-The annual one-shot `coach_assignment_groups` read was independently reproduced
-at exactly `1,000` returned rows while stable bounded pagination returned `1,332`;
-`332` assignments were silently omitted by the old read at this observation.
-Coach Cake reconciles to `5` counted rounds / `10` hours for
-2026-07-20..26. Coach Dome's 2026-08-01 17:00–18:00 Private assignment was at
-stable annual position `1,158`, after the old cutoff, and now appears as one
-counted Private hour.
+Alias inventory remained exactly eight rows. All four established Production
+aliases now resolve to the accepted derived artifact: `www.newathleteschool.com`,
+`new-athlete-badminton-school.vercel.app`,
+`new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+`new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`. No alias
+was added or removed. No deployment appeared after the pre-alias deployment
+baseline, and the accepted artifact remains `production/READY` with unchanged
+created/building/ready timestamps
+`1785766273206/1785766274341/1785766349724`.
 
-Application Source `03d08a93e77189d56b733bda009d9526400fa9b3` retains the
-bounded/read-model implementation from functional ancestor
-`fe424bbaa0e0366773cded241e78a0bcee71e43a`: selected month expanded to complete
-intersecting Monday–Sunday weeks, exact-count stable pagination, one result per
-Coach + slot, Exact precedence, genuine Legacy fallback, summary-first RSC, and
-lazy Coach/week detail. The new commit changes presentation copy only:
-`no_eligible_learner` now shows badge `ไม่นับชั่วโมง`, detailed reason
-`ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)`, and distinct
-review/excluded summary wording. It removes ambiguous Admin Payroll copy without
-changing the internal reason key, employment threshold, rate, OT/payable formula,
-booking eligibility, attendance, check-in, photo, GPS, Wallet, Reschedule,
-Makeup, or weekly-close rule.
+Production root returned `200`, `/api/health` returned `200 application/json`,
+real CSS `/_next/static/css/be7cc4444a49344a.css` returned `200 text/css`, and
+unauthenticated `/admin/payroll` returned the expected `307` login redirect. The
+two Vercel team aliases returned the expected protected `302` to Vercel SSO.
+Bounded Vercel error/fatal/HTTP 5xx and database/auth/payroll failure queries
+returned zero. Correctly parsed post-alias Supabase logs showed API/Auth entries
+`0/0`, Postgres `2` informational `LOG` entries, and failures `0`.
 
-Gate 0 browser warm navigation samples were `3.485/3.439/3.110/3.697/4.399s`
-(`P95 4.399s`) with `923,820` RSC script characters and about `1.059 MB` DOM.
-The old annual server source took `10.809s`, `74` Data API calls, and about
-`2.500 MB` raw Data API response bytes. Final bounded same-source server samples
-were warm July `1.666/1.886/1.339/1.246/1.273s` (`P95 1.886s`), month changes
-`1.059/1.347/1.075/1.306/1.059s` (`P95 1.347s`), and Cake detail
-`0.571/0.605/0.585/0.598/0.570s` (`P95 0.605s`). July summary used `34` calls,
-`6,699` returned source rows across phases, and a `60,039`-byte summary payload;
-full Coach/week evidence is absent from the initial RSC model. This is a `57.1%`
-P95 improvement against the Gate 0 warm navigation number and no final warm or
-detail server sample exceeded `5s`. Owner UAT subsequently passed on the exact
-host-scoped Preview/SHA. Codex did not inspect, copy, or repurpose Owner or
-Production browser credentials, so authenticated Production Payroll remains not
-run in this material-Hard-Stop gate.
+Deterministic post-alias reruns passed Teaching Hours completeness `18/18` and
+Payroll performance architecture `14/14`, including no row loss after 1,000,
+Cake `5` rounds / `10` hours, Dome Private `1h`, truthful excluded wording, and
+summary/detail equality. Owner Production UAT independently confirmed normal
+Admin Payroll behavior. No Source, test, Migration, configuration, Environment,
+feature-control, allowlist, or Production business data changed in the alias
+convergence gate. Close Week was not invoked.
 
-Automated containment checks on the derived Production deployment returned root
-`200`, `/api/health` `200 application/json`, real rebuilt CSS
-`/_next/static/css/be7cc4444a49344a.css` `200 text/css`, and unauthenticated
-`/admin/payroll` `307` to the expected login redirect. Bounded Vercel
-error/fatal/HTTP 5xx and database/auth/payroll failure-term queries returned zero.
-Supabase API/Auth/Postgres log queries returned no post-Promotion records in their
-available window. Deterministic completeness and Payroll architecture reruns
-passed `18/18` and `14/14`, including Cake `5/10`, Dome Private `1h`, truthful
-excluded copy, and summary/detail equality. Authenticated Production Payroll was
-not opened because no Owner credential was copied or repurposed. No Close Week,
-business-data write, weekly-summary operation, repair, or backfill occurred.
+The release-process correction is now permanent policy: a Preview-to-Production
+Promotion creates a distinct Production deployment/build. Future no-rebuild
+exact-artifact releases must stage Production with `vercel --prod --skip-domain`,
+UAT that exact staged Production artifact, and Promote that staged Production
+artifact. A no-rebuild contract must not be set against a Preview artifact.
 
-### Current Project Matrix — Admin Payroll Accuracy + Performance
+### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **ADMIN PAYROLL ACCURACY + PERFORMANCE** |
-| Task Status | **DEVELOPING — Production Promotion material Hard Stop; Owner decision required** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Application Source is `03d08a93e77189d56b733bda009d9526400fa9b3`; the containing documentation-only handoff commit is identified in the final report |
-| Remote HEAD | Equal to the containing documentation-only handoff commit after the authorized normal push |
-| Ahead/Behind | `0/0` in the published handoff state |
-| Source Complete | **Yes — scoped Source and read model complete** |
-| Tests Passed | **Yes for exact Source — post-Promotion deterministic rerun completeness `18/18` and Payroll performance `14/14`; accepted TypeScript, zero-warning lint, mojibake `252`, build `91/91`, and protected regressions remain unchanged** |
-| Performance Gate | **Server/data gate passed: warm P95 `1.886s`, month-change P95 `1.347s`, detail P95 `0.605s`, max `1.886s`; Owner visual UAT passed on the exact Preview** |
-| Accuracy Reconciliation | **100% deterministic fixtures; Cake `5/10`, Dome Private `1h`, summary/detail equality, and no loss after 1,000 all reran unchanged** |
-| Committed | **Yes — Application Source `03d08a93e771...`; containing material-Hard-Stop documentation commit follows** |
-| Pushed | **Yes — Application Source pushed; containing safe-handoff documentation commit is pushed in the published state** |
+| Local HEAD | Containing documentation/policy closeout commit; exact SHA is reported from Git in the final handoff |
+| Remote HEAD | Equal to Local HEAD after the authorized normal push |
+| Ahead/Behind | `0/0` in the published closeout state |
+| Source Complete | **Yes — scoped Payroll Source and read model complete** |
+| Tests Passed | **Yes — exact Source release suite passed; post-alias completeness `18/18` and Payroll performance `14/14`** |
+| Performance Gate | **Passed — warm P95 `1.886s`, month-change P95 `1.347s`, detail P95 `0.605s`, max `1.886s`** |
+| Accuracy Reconciliation | **Passed — Cake `5/10`, Dome Private `1h`, summary/detail equality, and no loss after 1,000** |
+| Committed | **Yes — Application Source `03d08a93e771...`; containing closeout commit identified in the final handoff** |
+| Pushed | **Yes — Application Source and containing closeout commit are pushed in the published state** |
 | Current Source | `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Pushed Source | `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Source Changed in Promotion Gate | No |
-| Tests Changed in Promotion Gate | No |
-| Deployed | **Yes, but non-conforming — Vercel created a rebuilt derived Production deployment instead of promoting the exact tested ID in place** |
-| Deployed Source | Derived Production metadata SHA `03d08a93e77189d56b733bda009d9526400fa9b3`; approved Preview remains the same SHA but target `null` |
-| Deployment ID | Derived Production `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, `READY`, `action=promote`, original `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`; rollback candidate `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` |
-| Promotion Result | **Invocation succeeded, release contract failed: exact ID was not promoted in place and Vercel rebuilt a derived deployment** |
-| Promotion / Retry / Rebuild / Redeploy / Separate Alias / Rollback | `1 / 0 / 1 / 0 / 0 / 0`; platform-created derived Production deployment `1` |
+| Source Changed in Alias Gate | No |
+| Tests Changed in Alias Gate | No |
+| Deployed | **Yes — Owner-accepted derived Production artifact** |
+| Deployed Source | `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Deployment ID | `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, `production/READY`, accepted by Owner |
+| Owner Preview UAT | **Passed — `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` / `03d08a93...`** |
+| Owner Production UAT | **Passed — accepted `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93...`** |
+| Promotion Result | **Owner accepted the derived Production artifact and platform rebuild as the verified Vercel workflow** |
+| Historical Promotion / Retry / Platform Rebuild | `1 / 0 / 1` |
+| Alias-Gate Promote / Retry / Rebuild / Redeploy / Alias Set / Rollback | `0 / 0 / 0 / 0 / 2 / 0` |
+| Alias Convergence | **Passed — all four established Production aliases point to the accepted artifact; inventory remains `8`** |
 | Migration Source | No change |
 | Migration Applied | No task Migration |
 | Environment Changed | No |
 | Feature Enabled | No task feature-control change |
 | Allowlisted | Unchanged; no allowlist action |
-| Production Active | **Partial/mixed — primary `www` and project `.vercel.app` aliases serve derived Payroll Source; two established team aliases remain on the rollback artifact** |
-| Production UAT | **Automated containment smoke/log checks passed; authenticated Production Payroll not run** |
-| Production Checks | Root `200`; health `200 application/json`; real CSS `200 text/css`; Payroll auth redirect `307`; bounded error/fatal/5xx/failure terms `0`; alias convergence failed `2/4` |
-| Owner UAT | **Passed on exact Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` / SHA `03d08a93...`; not valid for rebuilt derived artifact identity** |
+| Production Active | **Yes** |
+| Production UAT | **Passed by Owner with Super Admin on the accepted Production artifact** |
+| Production Checks | Root `200`; health `200 application/json`; real CSS `200 text/css`; Payroll auth redirect `307`; protected team aliases `302` to Vercel SSO; bounded error/fatal/5xx/task-failure logs `0`; aliases `4/4` |
 | Controlled Write UAT | **Not run / prohibited; Close Week was not invoked** |
 | Close Week Invoked | No |
 | Data Repaired | No |
 | Production Data Changed | No |
 | Financial Data Changed | No |
-| Customer Impact | Primary Production domains now serve the Payroll Source through a non-approved derived rebuild; two secondary established aliases still serve prior Production; no customer data changed |
+| Customer Impact | **Admin Payroll accuracy/performance correction is Production-active and Owner-verified; no customer data changed** |
 | Financial Impact | None; no payroll row, rate, summary, or business data was written |
-| Functional File Count | Original task `5`; bounded copy correction `1` |
-| Test / Configuration File Count | Original task `2 / 1`; bounded copy correction `1 / 0` |
-| Documentation File Count | `3` in the containing handoff commit |
+| Functional / Test / Migration / Configuration Changes in Alias Gate | `0 / 0 / 0 / 0` |
+| Documentation / Policy File Count | `4` in the containing closeout commit |
 | Scope Expansion | No |
-| Scope Breach | **Yes at platform outcome — Vercel created/rebuilt a different deployment and did not move all four established Production aliases** |
-| Documentation Drift | **No after the containing documentation-only handoff commit is published** |
-| Blocker | **Owner decision required: no automatic rollback is authorized after the non-conforming Vercel promotion result** |
-| Remaining Work | Owner must choose whether to authorize rollback to `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` or define a new acceptance/remediation path for derived `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`; no further action is authorized |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner decision on the material Hard Stop; do not retry, rollback, alias, or start another task automatically** |
-| Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT, ASSIGNMENT GROUP LIFECYCLE INTEGRITY, and THAI UI TERMINOLOGY & SHARED HELPER — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
+| Scope Breach | **No by Developer; Owner accepted the Vercel result as a release-workflow correction, not a Source defect** |
+| Documentation Drift | **No after the containing closeout commit is published** |
+| Blocker | None |
+| Remaining Work | None for Admin Payroll Accuracy + Performance |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Await Owner selection; do not start another task automatically** |
+| Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT, ASSIGNMENT GROUP LIFECYCLE INTEGRITY, THAI UI TERMINOLOGY & SHARED HELPER, and all other Parking Lot items remain OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
 
 ## Historical / Superseded — Mobile Payment Slip CTA Production Closeout
 

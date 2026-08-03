@@ -9,37 +9,40 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### ADMIN PAYROLL ACCURACY + PERFORMANCE
+**None — Awaiting Owner Selection.**
 
-Status: **DEVELOPING — MATERIAL HARD STOP; OWNER DECISION REQUIRED. OWNER UAT
-PASSED ON EXACT PREVIEW, BUT VERCEL CREATED AND REBUILT A DISTINCT PRODUCTION
-DEPLOYMENT AND MOVED ONLY PART OF THE ESTABLISHED PRODUCTION ALIASES**.
-
-- `PROJECT_STATE.md` is authoritative for the exact Git, performance, accuracy,
-  Preview, Production, UAT, and impact state. Deterministic completeness and
-  protected regressions passed; Production SELECT-only reconciliation confirmed
-  Cake `5` rounds / `10` hours and Dome Private `1` hour after the old cutoff.
-- `no_eligible_learner` now displays `ไม่นับชั่วโมง` and the truthful detail
-  `ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)`. Review and
-  excluded summaries are distinct; the former `ไม่เข้าเกณฑ์เดิม` copy is absent.
-  Prior Payroll Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is superseded for
-  UAT because Source changed.
-- Owner UAT passed on exact Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` / Source
-  `03d08a93e771...`. One exact-ID `vercel promote` invocation exited `0`, but
-  Vercel created derived Production deployment
-  `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, ran a fresh build, and moved only the `www`
-  and project `.vercel.app` Production aliases; two established team aliases
-  remain on rollback candidate `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`.
-- Automated root/health/real-CSS/route/log containment checks passed and
-  deterministic accuracy/performance reruns passed `18/18` and `14/14`.
-  Nevertheless, the exact-artifact/no-rebuild/all-alias release contract failed.
-- Next action: await Owner decision. No retry, rollback, rebuild, deploy, alias
-  action, Close Week, Production data write, repair, or new task is authorized.
-- LINE external-browser handoff, Assignment Group Lifecycle Integrity, Thai UI
-  Terminology & Shared Helper, and every other Parking Lot item remain
-  unauthorized.
+- `PROJECT_STATE.md` is authoritative for current Git, Production, UAT, controls,
+  data, and impact state.
+- Do not start a Parking Lot candidate or another task automatically.
 
 ## Recently Completed
+
+### ADMIN PAYROLL ACCURACY + PERFORMANCE
+
+Status: **DONE — OWNER PREVIEW UAT PASSED; OWNER PRODUCTION UAT PASSED; ACCEPTED
+PRODUCTION ARTIFACT ACTIVE; FOUR ESTABLISHED ALIASES CONVERGED**.
+
+- Owner passed Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` and accepted/passed
+  Production artifact `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, both at Application
+  Source `03d08a93e77189d56b733bda009d9526400fa9b3`.
+- Two and only two authorized `vercel alias set` actions exited `0`. All four
+  established Production aliases now point to the accepted artifact; alias
+  inventory remains eight. No deployment/build, Promotion, retry, redeploy,
+  rollback, alias addition, or alias deletion occurred in the convergence gate.
+- Production root/health/real-CSS/Payroll-auth/log checks passed. Deterministic
+  completeness and Payroll performance reruns passed `18/18` and `14/14`,
+  including Cake `5/10`, Dome Private `1h`, and summary/detail equality.
+- Functional/Test/Migration/Configuration changes were `0/0/0/0`. Environment,
+  feature controls, allowlists, Production data, financial data, and Close Week
+  were unchanged. The accepted Vercel rebuild is recorded as a release-workflow
+  correction, not a Payroll Source defect.
+- Future no-rebuild exact-artifact releases must stage Production with
+  `vercel --prod --skip-domain`, UAT that exact staged Production artifact, and
+  Promote that staged artifact. Preview artifacts must not carry a no-rebuild
+  contract.
+- LINE External-Browser Handoff Audit, Assignment Group Lifecycle Integrity,
+  Thai UI Terminology & Shared Helper, and every other Parking Lot candidate
+  remain Owner-selection-only and unauthorized.
 
 ### MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
 
