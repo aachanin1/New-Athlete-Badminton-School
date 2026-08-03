@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -11,22 +11,28 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### ADMIN PAYROLL ACCURACY + PERFORMANCE
 
-Status: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED; EXACT PREVIEW
-`dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` / SOURCE `fe424bbaa0e...` READY; PRODUCTION
-NOT PROMOTED**.
+Status: **READY FOR OWNER UAT — BOUNDED COPY CORRECTION COMMITTED AND PUSHED;
+EXACT PREVIEW `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` / SOURCE `03d08a93e771...`
+READY; PRODUCTION NOT PROMOTED**.
 
 - `PROJECT_STATE.md` is authoritative for the exact Git, performance, accuracy,
   Preview, Production, UAT, and impact state. Deterministic completeness and
   protected regressions passed; Production SELECT-only reconciliation confirmed
   Cake `5` rounds / `10` hours and Dome Private `1` hour after the old cutoff.
-- Next action: Owner Super Admin UAT on the exact Preview. Confirm July/August
-  navigation, Cake/Dome, lazy Coach/week detail, visible evidence reasons, and
-  desktop/mobile loading behavior. Do not press **Close Week**.
+- `no_eligible_learner` now displays `ไม่นับชั่วโมง` and the truthful detail
+  `ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)`. Review and
+  excluded summaries are distinct; the former `ไม่เข้าเกณฑ์เดิม` copy is absent.
+  Prior Payroll Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is superseded for
+  UAT because Source changed.
+- Next action: Owner Super Admin UAT on the exact new Preview. Confirm Cake/Dome,
+  Golf 25 July 12:00–14:00 copy, July/August navigation, lazy Coach/week detail,
+  desktop/mobile loading behavior, and console/hydration. Do not press **Close
+  Week**.
 - Do not Promote before explicit Owner PASS. After PASS, promote only the exact
   artifact/SHA without rebuild, then run automated Production read-only checks
   and the final closeout.
-- LINE external-browser handoff and every other Parking Lot item remain
-  unauthorized.
+- LINE external-browser handoff, Assignment Group Lifecycle Integrity, and every
+  other Parking Lot item remain unauthorized.
 
 ## Recently Completed
 
@@ -877,6 +883,19 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   mobile Payment Dialog task.
 - Await explicit Owner selection and a separate Scope Contract before any audit or
   change.
+
+### Assignment Group Lifecycle Integrity
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Preserve `absent` learners in assignment groups and prevent false changed/
+  unsaved state.
+- Audit and permanently prevent misleading empty active group headers after the
+  last learner reschedules or stores a session in Wallet.
+- A future Scope Contract must cover assignment save, Reschedule, Wallet,
+  Attendance, Exact/Legacy resolution, Payroll, and audit-history preservation.
+- No Production repair, deletion, migration, Source audit, or implementation is
+  authorized by the current Payroll task.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
 

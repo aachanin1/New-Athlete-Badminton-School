@@ -1,12 +1,12 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 Current source: verified Git, exact-SHA Vercel Preview, deterministic accuracy
-reconciliation, bounded server performance evidence, and protected regressions for
-**ADMIN PAYROLL ACCURACY + PERFORMANCE**. The authoritative mutable state is the
-first **Current Active Work** matrix below. All later task snapshots are
-Historical / Superseded.
+reconciliation, bounded server performance evidence, protected regressions, and
+the Owner-UAT bounded copy correction for **ADMIN PAYROLL ACCURACY +
+PERFORMANCE**. The authoritative mutable state is the first **Current Active
+Work** matrix below. All later task snapshots are Historical / Superseded.
 
 ## Current Active Work — Admin Payroll Accuracy + Performance
 
@@ -23,13 +23,18 @@ Coach Cake reconciles to `5` counted rounds / `10` hours for
 stable annual position `1,158`, after the old cutoff, and now appears as one
 counted Private hour.
 
-Application Source `fe424bbaa0e0366773cded241e78a0bcee71e43a` loads only the
-selected month expanded to complete intersecting Monday–Sunday weeks, asserts
-exact-count stable pagination, aggregates one result per Coach + slot, preserves
-Exact precedence and genuine Legacy fallback, serializes summaries first, and
-loads one Coach/week detail only on explicit expansion. It changes no employment
-threshold, rate, OT/payable formula, booking eligibility, attendance, check-in,
-photo, GPS, Wallet, Reschedule, Makeup, or weekly-close rule.
+Application Source `03d08a93e77189d56b733bda009d9526400fa9b3` retains the
+bounded/read-model implementation from functional ancestor
+`fe424bbaa0e0366773cded241e78a0bcee71e43a`: selected month expanded to complete
+intersecting Monday–Sunday weeks, exact-count stable pagination, one result per
+Coach + slot, Exact precedence, genuine Legacy fallback, summary-first RSC, and
+lazy Coach/week detail. The new commit changes presentation copy only:
+`no_eligible_learner` now shows badge `ไม่นับชั่วโมง`, detailed reason
+`ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)`, and distinct
+review/excluded summary wording. It removes ambiguous Admin Payroll copy without
+changing the internal reason key, employment threshold, rate, OT/payable formula,
+booking eligibility, attendance, check-in, photo, GPS, Wallet, Reschedule,
+Makeup, or weekly-close rule.
 
 Gate 0 browser warm navigation samples were `3.485/3.439/3.110/3.697/4.399s`
 (`P95 4.399s`) with `923,820` RSC script characters and about `1.059 MB` DOM.
@@ -45,15 +50,17 @@ detail server sample exceeded `5s`. The remaining visual browser/P95 confirmatio
 must be performed after Super Admin signs into the host-scoped Preview session;
 Codex did not inspect, copy, or repurpose Production browser credentials.
 
-Exact Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is `READY`, target `null`
+Exact Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` is `READY`, target `null`
 (Preview), region `icn1`, URL
-`https://new-athlete-badminton-school-1tymwijlz-aachanin1s-projects.vercel.app`,
-and Vercel metadata ties it to exact Git SHA `fe424bbaa0e...`. Remote build passed,
-`/api/health` returned `200`, the protected staged login shell rendered, and
-bounded Preview error/fatal logs returned zero. Production remains unchanged on
-artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, Source
+`https://new-athlete-badminton-school-pi4tpz8dp-aachanin1s-projects.vercel.app`,
+and Vercel metadata ties it to exact Git SHA `03d08a93e771...`. Remote build,
+root, `/api/health`, and a real deployment-stamped static CSS asset passed; bounded
+Preview error/fatal/HTTP 5xx logs returned zero. Prior Payroll artifact
+`dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is superseded for Owner UAT because Source
+changed. Production remains unchanged on artifact
+`dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, Source
 `1c43a160a15932844a7c9fcee5e1cf0d30792f60`. No Promotion is authorized before
-Owner PASS on this exact Payroll artifact/SHA.
+Owner PASS on the new exact Payroll artifact/SHA.
 
 ### Current Project Matrix — Admin Payroll Accuracy + Performance
 
@@ -62,20 +69,20 @@ Owner PASS on this exact Payroll artifact/SHA.
 | Active Task | **ADMIN PAYROLL ACCURACY + PERFORMANCE** |
 | Task Status | **READY FOR OWNER UAT — exact Preview READY; Production unchanged** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Application Source is `fe424bbaa0e0366773cded241e78a0bcee71e43a`; the containing documentation-only handoff commit is identified in the final report |
+| Local HEAD | Application Source is `03d08a93e77189d56b733bda009d9526400fa9b3`; the containing documentation-only handoff commit is identified in the final report |
 | Remote HEAD | Equal to the containing documentation-only handoff commit after the authorized normal push |
 | Ahead/Behind | `0/0` in the published handoff state |
 | Source Complete | **Yes — scoped Source and read model complete** |
-| Tests Passed | **Yes — completeness `18/18`, Payroll performance `13/13`, Admin assignment `38/38`, Admin Schedules performance `24/24`, Coach assignment resolution `33/33`, Lesson Wallet `17/17`, TypeScript, zero-warning lint, mojibake, build `91/91`, and diff checks passed** |
+| Tests Passed | **Yes — bounded correction rerun: completeness `18/18`, Payroll performance `14/14`, TypeScript, zero-warning lint, mojibake `252`, build `91/91`, post-build root/static `200/200`, and diff checks passed; prior protected Admin assignment `38/38`, Admin Schedules performance `24/24`, Coach assignment resolution `33/33`, and Lesson Wallet `17/17` remain accepted because their Source hashes did not change** |
 | Performance Gate | **Server/data gate passed: warm P95 `1.886s`, month-change P95 `1.347s`, detail P95 `0.605s`, max `1.886s`; authenticated staged browser/visual sample remains Owner-UAT pending because auth is host-scoped** |
-| Accuracy Reconciliation | **100% deterministic fixtures; Production SELECT-only Cake `5/10`, Dome Private `1h`; no loss after 1,000** |
-| Committed | **Yes — Source/Test commit `fe424bbaa0e...`; containing documentation-only handoff commit follows** |
+| Accuracy Reconciliation | **100% deterministic fixtures; Cake `5/10`, Dome Private `1h`, summary/detail equality, and no loss after 1,000 all reran unchanged** |
+| Committed | **Yes — copy/Test Source commit `03d08a93e771...`; canonical read-model ancestor `fe424bbaa0e...`; containing documentation-only handoff commit follows** |
 | Pushed | **Yes — Source/Test pushed; documentation commit is pushed in the published handoff state** |
-| Current Source | `fe424bbaa0e0366773cded241e78a0bcee71e43a` |
-| Pushed Source | `fe424bbaa0e0366773cded241e78a0bcee71e43a` |
+| Current Source | `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Pushed Source | `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Deployed | **Preview only — exact artifact READY; no Production deploy/promotion** |
-| Deployed Source | Preview `fe424bbaa0e0366773cded241e78a0bcee71e43a`; Production remains `1c43a160a15932844a7c9fcee5e1cf0d30792f60` |
-| Deployment ID | Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA`, `READY`, target `null`, no Production alias |
+| Deployed Source | Preview `03d08a93e77189d56b733bda009d9526400fa9b3`; Production remains `1c43a160a15932844a7c9fcee5e1cf0d30792f60` |
+| Deployment ID | Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, `READY`, target `null`, no Production alias; prior Payroll Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is superseded for UAT |
 | Migration Source | No change |
 | Migration Applied | No task Migration |
 | Environment Changed | No |
@@ -89,17 +96,17 @@ Owner PASS on this exact Payroll artifact/SHA.
 | Production Data Changed | No |
 | Customer Impact | None yet; Payroll correction is Preview-only |
 | Financial Impact | None; no payroll row, rate, summary, or business data was written |
-| Functional File Count | `5` |
-| Test / Configuration File Count | `2 / 1` |
+| Functional File Count | Original task `5`; bounded copy correction `1` |
+| Test / Configuration File Count | Original task `2 / 1`; bounded copy correction `1 / 0` |
 | Documentation File Count | `3` in the containing handoff commit |
 | Scope Expansion | No |
 | Scope Breach | No |
 | Documentation Drift | **No after the containing documentation-only handoff commit is published** |
 | Blocker | Owner UAT/sign-in on the exact Preview; authenticated staged browser wire/visual sample is pending there |
-| Remaining Work | Owner UAT; after PASS, promote only `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` without rebuild, then automated Production read-only checks and closeout |
+| Remaining Work | Owner UAT; after PASS, promote only `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` without rebuild, then automated Production read-only checks and closeout |
 | Task Done | **No** |
 | Next Gate / Next Action | Owner Super Admin UAT on the exact Preview; do not Promote before explicit PASS |
-| Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
+| Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT and ASSIGNMENT GROUP LIFECYCLE INTEGRITY — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
 
 ## Historical / Superseded — Mobile Payment Slip CTA Production Closeout
 

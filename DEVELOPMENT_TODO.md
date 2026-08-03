@@ -11345,3 +11345,93 @@ prohibited**; Production Data Changed/Data Repaired **No/No**; Customer Impact
 Documentation Drift **No after containing documentation commit is published**;
 Blocker **Owner UAT/sign-in**; Task Done **No**; Next Action **Owner UAT, then exact
 artifact Promotion only after explicit PASS**.
+
+### 2026-08-03 — Admin Payroll Owner-UAT Bounded Copy Correction — READY FOR OWNER UAT
+
+State observed at this handoff: Owner rejected the ambiguous Admin Payroll copy
+`ไม่เข้าเกณฑ์เดิม` and authorized one presentation-only correction within the
+existing Payroll task. The internal `no_eligible_learner` key, classification,
+calculation, query, payload, lazy-detail, stale-response, authorization, and Close
+Week contracts remain unchanged. Assignment Group lifecycle work was recorded as
+Parking Lot only and was not started.
+
+#### Scoped Source and Regression Evidence
+
+- Functional file: `src/components/admin/payroll-client.tsx`. Excluded detail now
+  reads `ไม่มีผู้เรียนที่นับได้ในรอบนี้ (เช่น ผู้เรียนย้ายออกจากรอบแล้ว)`, its
+  classification badge is `ไม่นับชั่วโมง`, and overall/weekly copy keeps
+  `รอหลักฐาน/ตรวจสอบ` distinct from
+  `ไม่มีผู้เรียนที่นับได้/ไม่นับชั่วโมง`. Admin Payroll contains zero occurrences
+  of `ไม่เข้าเกณฑ์เดิม` or standalone ambiguous `ไม่เข้าเกณฑ์`.
+- Test file: `scripts/check-admin-payroll-performance.mjs`. Regression-first
+  execution failed on the old reason text, then passed after the UI correction.
+  The new check asserts the exact truthful copy, absence of the rejected copy,
+  distinct counted/review/excluded states, retention of the internal reason key,
+  canonical calculation/read entry points, and absence of client-side payroll or
+  Supabase reads.
+- Exact Source/Test commit is
+  `03d08a93e77189d56b733bda009d9526400fa9b3`, containing only those two files,
+  pushed normally to `spike/next-major-security-upgrade`. Read/calculation/API/
+  Coach consumer hashes remained identical to the pre-correction baseline.
+  Pre-existing dirty `src/lib/schedule-slot-utils.ts` remained unstaged and
+  checksum-exact at
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+#### Verification and Retained Performance Gate
+
+- Payroll performance architecture passed `14/14`; Teaching Hours completeness
+  passed `18/18`, including Cake `5` rounds / `10` hours, Dome Private `1h`, more
+  than 1,000 assignments without loss, and summary/detail equality. TypeScript,
+  ESLint with zero warnings, mojibake `252`, Next.js 16.2.6 build/static
+  generation `91/91`, `git diff --check`, exact allowlist, protected-hash, banned-
+  copy, and secret-addition gates passed.
+- After build, the exact repository `.next` was removed, dev restarted on
+  `127.0.0.1:3000`, and root/static returned `200/200`.
+- The measured Payroll server/data performance gate is retained unchanged because
+  every data-read, calculation, endpoint, pagination, request, and payload-model
+  file remained byte-identical: Gate 0 warm P95 `4.399s`; staged warm P95
+  `1.886s`; month-change P95 `1.347s`; detail P95 `0.605s`; July `34` external
+  calls, `6,699` returned rows, and `60,039`-byte summary payload. No new annual
+  read, Data API call, pagination branch, N+1 path, or detail preload was added.
+
+#### Exact Preview and UAT Gate
+
+- Git integration created exact Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`,
+  URL `https://new-athlete-badminton-school-pi4tpz8dp-aachanin1s-projects.vercel.app`,
+  `READY`, target `null`, region `icn1`, metadata SHA `03d08a93e771...`. Remote
+  build completed; root, `/api/health`, and a deployment-stamped CSS asset returned
+  `200`; bounded Preview error/fatal/HTTP 5xx logs were zero.
+- Prior Payroll artifact `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is superseded for
+  Owner UAT. Production remains unchanged on
+  `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG` / Source `1c43a160...`. Promotion, rebuild,
+  retry, rollback, alias, Environment, feature, allowlist, Migration, Close Week,
+  Production write, repair, and backfill counts are zero.
+- Owner UAT requires Super Admin: confirm Cake 20–26 July remains `5/10`; open
+  Golf 20–26 July and confirm 25 July 12:00–14:00 shows `ไม่นับชั่วโมง` plus the
+  exact truthful detailed reason; confirm rejected copy is absent; confirm Dome
+  Private `1h`; verify desktop/mobile, speed, lazy detail, and console/hydration;
+  and do not press Close Week. Only an explicit PASS on this exact artifact/SHA
+  authorizes Promotion without rebuild.
+
+#### Parking Lot — Not Authorized
+
+**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — OWNER SELECTION REQUIRED; NOT AUTHORIZED
+TO START.** Candidate scope: preserve `absent` learners and prevent false unsaved
+state; prevent misleading empty active group headers after the last learner
+reschedules or stores a session in Wallet; cover assignment save, Reschedule,
+Wallet, Attendance, Exact/Legacy resolution, Payroll, and audit-history
+preservation. No Production repair, deletion, or migration is authorized.
+
+Final classification at this handoff: Active Task **ADMIN PAYROLL ACCURACY +
+PERFORMANCE**; Task Status **READY FOR OWNER UAT**; Source Complete **Yes**;
+Tests Passed **Yes**; Performance Gate **Passed/retained with byte-identical read
+contract**; Accuracy Reconciliation **Passed**; Committed/Pushed **Yes**; Staged
+Artifact/SHA **READY/exact**; Owner UAT **Pending**; Promoted/Production Active for
+this task **No**; Production Checks **Preview build/health/static/logs passed**;
+Migration/Environment/Feature/Allowlist **unchanged**; Controlled Write UAT **Not
+run / prohibited**; Production Data Changed/Data Repaired **No/No**; Customer
+Impact **None yet**; Financial Impact **None**; Scope Expansion/Breach **No/No**;
+Documentation Drift **No after the containing documentation commit is published**;
+Blocker **Owner UAT**; Task Done **No**; Next Action **Owner UAT on
+`dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, then exact-artifact Promotion only after
+explicit PASS**.
