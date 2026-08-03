@@ -11435,3 +11435,109 @@ Documentation Drift **No after the containing documentation commit is published*
 Blocker **Owner UAT**; Task Done **No**; Next Action **Owner UAT on
 `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, then exact-artifact Promotion only after
 explicit PASS**.
+
+### 2026-08-03 — Admin Payroll Exact-Promotion Material Hard Stop — OWNER DECISION REQUIRED
+
+State observed at this safe handoff: Owner UAT passed on exact Preview
+`dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, URL
+`https://new-athlete-badminton-school-pi4tpz8dp-aachanin1s-projects.vercel.app`,
+and Application Source SHA
+`03d08a93e77189d56b733bda009d9526400fa9b3`. Owner authorized one direct,
+no-rebuild Promotion of only that immutable artifact. Source, tests, Migration,
+configuration, Environment, feature controls, allowlists, and Production data
+were not authorized to change.
+
+#### Fresh Gate 0 and Invocation Evidence
+
+- Git root/branch/HEAD/upstream/ahead-behind passed at documentation HEAD
+  `d98a6672ea455cf3c989cc844efcbd83ff4ee213` on
+  `spike/next-major-security-upgrade`, `0/0`. Application Source `03d08a93...` is
+  its ancestor; the documentation HEAD contains only the three current-state
+  documents. The sole pre-existing dirty
+  `src/lib/schedule-slot-utils.ts` remained unstaged and checksum-exact at
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Preflight confirmed the approved Preview as `READY`, target `null`, region
+  `icn1`, exact metadata SHA `03d08a93...`, and immutable created/building/ready
+  timestamps `1785764415527/1785764416691/1785764490157`. Root, health, real CSS,
+  and bounded Preview error/fatal/5xx checks passed. Documentation-only Preview
+  `dpl_HbGYxvzBJHE7Jua97AuDXdXdjGSP` was separately identified at SHA
+  `d98a667...` and was not promoted.
+- Prior Production artifact `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`, Source
+  `1c43a160...`, remained `READY` and was verified as the rollback candidate.
+  Alias inventory had eight rows; its four established Production aliases pointed
+  to that artifact before the invocation.
+- Exactly one pinned Vercel CLI `58.4.4` command addressed immutable ID
+  `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` from
+  `2026-08-03T14:11:07.3952104Z` through `14:11:12.9220953Z` and exited `0`.
+  No branch alias, documentation Preview, old Preview, HEAD deployment, or other
+  artifact was supplied to the command.
+
+#### Non-Conforming Vercel Result
+
+- Vercel did not change the approved Preview to Production in place. It created
+  distinct Production deployment `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` with
+  metadata `action=promote`,
+  `originalDeploymentId=dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY`, and the same Git SHA
+  `03d08a93...`, then cloned the repository, ran `npm ci`, and ran a complete
+  `next build`. The new record's created/building/ready timestamps are
+  `1785766273206/1785766274341/1785766349724`. Build logs prove a new build and
+  deployment, so the required exact-ID/no-rebuild condition failed.
+- Final alias inventory remained eight rows and no separate alias command was
+  used. `www.newathleteschool.com` and
+  `new-athlete-badminton-school.vercel.app` moved to the derived deployment, and
+  the branch Preview alias moved automatically. The two established team aliases
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app` and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` remained
+  on `dpl_8qh3...`. Thus all four established Production aliases did not converge
+  on the approved artifact.
+- Promotion/retry/rebuild/redeploy/separate-alias/rollback counts are
+  `1/0/1/0/0/0`; platform-created derived Production deployment count is `1`.
+  No automatic rollback authorization exists, so no corrective Vercel write was
+  attempted after this result.
+
+#### Read-Only Containment and Protected State
+
+- On primary Production, `/` returned `200`, `/api/health` returned
+  `200 application/json`, rebuilt CSS
+  `/_next/static/css/be7cc4444a49344a.css` returned `200 text/css`, and
+  unauthenticated `/admin/payroll` returned the expected `307` login redirect.
+  Bounded derived-deployment error/fatal/HTTP 5xx and database/auth/payroll
+  failure-term queries returned zero. Supabase API/Auth/Postgres log queries
+  returned no post-Promotion records in their available window.
+- Deterministic post-Promotion reruns passed Teaching Hours completeness `18/18`
+  and Payroll architecture `14/14`, including no loss after 1,000, Cake `5`
+  rounds / `10` hours, Dome Private `1h`, the truthful excluded wording, and
+  summary/detail equality. Owner UAT remains PASS for the exact tested Preview,
+  but it does not authorize the distinct rebuilt artifact identity.
+- Authenticated Production Payroll was not opened because Owner credentials were
+  not read, copied, or repurposed. Close Week, weekly-summary mutation, Production
+  business-data write, repair, and backfill counts are zero. Functional/Test/
+  Migration/Configuration changes in this gate are `0/0/0/0`; Source changed
+  **No**; financial data changed **No**.
+
+Material Hard Stop classification: Active Task **ADMIN PAYROLL ACCURACY +
+PERFORMANCE**; Task Status **DEVELOPING — OWNER DECISION REQUIRED**; Source
+Complete **Yes**; Tests Passed **Yes**; Owner UAT **Passed on exact Preview/SHA**;
+exact-artifact/no-rebuild Promotion **Failed**; Deployed/Production Active
+**non-conforming and mixed across aliases**; Controlled Write UAT **Not run /
+prohibited**; Migration/Environment/Feature/Allowlist **unchanged**; Production
+Data Changed/Data Repaired **No/No**; Customer Impact **primary Production domains
+serve the Payroll Source through a derived rebuild while two secondary aliases
+remain on prior Production; no customer data changed**; Financial Impact **None**;
+Scope Expansion **No**; Scope Breach **Yes at Vercel platform outcome**;
+Documentation Drift **No after this safe-handoff commit is published**; Blocker
+**Owner decision before rollback or remediation**; Task Done **No**; Next Action
+**do not retry, rollback, alias, deploy, or start a new task until Owner directs**.
+
+#### Parking Lot — Owner Selection Required
+
+**THAI UI TERMINOLOGY & SHARED HELPER — OWNER SELECTION REQUIRED; NOT AUTHORIZED
+TO START.** Candidate scope: one shared user-visible terminology helper covering
+`kids_group = กลุ่มเด็ก`, `adult_group = กลุ่มผู้ใหญ่`, `private = ส่วนตัว`,
+`Present = มาเรียน`, `Late = สาย`, `Absent = ขาดเรียน`, context-appropriate
+Attendance wording, employment types, and other exposed technical codes; audit
+and adopt it across Admin, Coach, and User portals, including Admin Payroll, in
+one future task. Do not create a temporary Payroll-local mapping first. No audit,
+implementation, deploy, Migration, Production change, or data action is
+authorized. Assignment Group Lifecycle Integrity, LINE External-Browser Handoff
+Audit, and every existing Parking Lot item remain unchanged and unauthorized.

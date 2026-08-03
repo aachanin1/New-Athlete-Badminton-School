@@ -11,9 +11,9 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### ADMIN PAYROLL ACCURACY + PERFORMANCE
 
-Status: **READY FOR OWNER UAT — BOUNDED COPY CORRECTION COMMITTED AND PUSHED;
-EXACT PREVIEW `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` / SOURCE `03d08a93e771...`
-READY; PRODUCTION NOT PROMOTED**.
+Status: **DEVELOPING — MATERIAL HARD STOP; OWNER DECISION REQUIRED. OWNER UAT
+PASSED ON EXACT PREVIEW, BUT VERCEL CREATED AND REBUILT A DISTINCT PRODUCTION
+DEPLOYMENT AND MOVED ONLY PART OF THE ESTABLISHED PRODUCTION ALIASES**.
 
 - `PROJECT_STATE.md` is authoritative for the exact Git, performance, accuracy,
   Preview, Production, UAT, and impact state. Deterministic completeness and
@@ -24,15 +24,20 @@ READY; PRODUCTION NOT PROMOTED**.
   excluded summaries are distinct; the former `ไม่เข้าเกณฑ์เดิม` copy is absent.
   Prior Payroll Preview `dpl_G2Dc6u94oJTzGDeextAM9bKB1svA` is superseded for
   UAT because Source changed.
-- Next action: Owner Super Admin UAT on the exact new Preview. Confirm Cake/Dome,
-  Golf 25 July 12:00–14:00 copy, July/August navigation, lazy Coach/week detail,
-  desktop/mobile loading behavior, and console/hydration. Do not press **Close
-  Week**.
-- Do not Promote before explicit Owner PASS. After PASS, promote only the exact
-  artifact/SHA without rebuild, then run automated Production read-only checks
-  and the final closeout.
-- LINE external-browser handoff, Assignment Group Lifecycle Integrity, and every
-  other Parking Lot item remain unauthorized.
+- Owner UAT passed on exact Preview `dpl_7xuum5V7aFNxMeYSFnLqD2H8kdbY` / Source
+  `03d08a93e771...`. One exact-ID `vercel promote` invocation exited `0`, but
+  Vercel created derived Production deployment
+  `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC`, ran a fresh build, and moved only the `www`
+  and project `.vercel.app` Production aliases; two established team aliases
+  remain on rollback candidate `dpl_8qh3E8rEfVbWFyArqc48qNJW8arG`.
+- Automated root/health/real-CSS/route/log containment checks passed and
+  deterministic accuracy/performance reruns passed `18/18` and `14/14`.
+  Nevertheless, the exact-artifact/no-rebuild/all-alias release contract failed.
+- Next action: await Owner decision. No retry, rollback, rebuild, deploy, alias
+  action, Close Week, Production data write, repair, or new task is authorized.
+- LINE external-browser handoff, Assignment Group Lifecycle Integrity, Thai UI
+  Terminology & Shared Helper, and every other Parking Lot item remain
+  unauthorized.
 
 ## Recently Completed
 
@@ -896,6 +901,22 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   Attendance, Exact/Legacy resolution, Payroll, and audit-history preservation.
 - No Production repair, deletion, migration, Source audit, or implementation is
   authorized by the current Payroll task.
+
+### Thai UI Terminology & Shared Helper
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Create a shared helper for user-visible terminology with standard Thai labels:
+  `kids_group = กลุ่มเด็ก`, `adult_group = กลุ่มผู้ใหญ่`, `private = ส่วนตัว`,
+  `Present = มาเรียน`, `Late = สาย`, `Absent = ขาดเรียน`, and context-appropriate
+  `Attendance = ข้อมูลการเข้าเรียน/บันทึกการเข้าเรียน`.
+- Include course type, attendance status, employment type, and technical codes
+  that are currently user-visible.
+- A future single Scope Contract must audit and apply the helper across Admin,
+  Coach, and User portals, including Admin Payroll.
+- Do not add a Payroll-local mapping first and refactor it later.
+- No audit, implementation, deploy, migration, Production change, or data action
+  is authorized by the current Payroll task.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
 
