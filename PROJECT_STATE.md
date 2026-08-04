@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 Current source: verified Git and Vercel state for the completed **ADMIN PAYROLL
 ACCURACY + PERFORMANCE** release. Owner Preview UAT and Owner Production UAT both
@@ -122,7 +122,19 @@ artifact. A no-rebuild contract must not be set against a Preview artifact.
 | Remaining Work | None for Admin Payroll Accuracy + Performance |
 | Task Done | **Yes** |
 | Next Gate / Next Action | **Await Owner selection; do not start another task automatically** |
-| Parking Lot authorization state | **LINE EXTERNAL-BROWSER HANDOFF AUDIT, ASSIGNMENT GROUP LIFECYCLE INTEGRITY, THAI UI TERMINOLOGY & SHARED HELPER, and all other Parking Lot items remain OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
+| Parking Lot authorization state | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY, THAI UI TERMINOLOGY & SHARED HELPER, and ADMIN NOTIFICATIONS RECOMMENDATIONS are the latest Owner selection queue in that order. Notifications is analyzed and durably registered only. All Parking Lot items, including LINE EXTERNAL-BROWSER HANDOFF AUDIT, remain OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
+
+### Parking Lot Registration — 2026-08-04
+
+Owner registered **ADMIN NOTIFICATIONS RECOMMENDATIONS — ACTIONABILITY, BRANCH
+GROUPING & RENEWAL ACCURACY** as the third item in the latest Owner selection
+queue, after **Assignment Group Lifecycle Integrity** and **Thai UI Terminology &
+Shared Helper**. The Notifications candidate is analyzed and queued, but
+implementation remains **NOT AUTHORIZED TO START**. This registration changed
+documentation only; it did not change Application Source, tests, Migration,
+configuration, deployment, feature controls, allowlists, Production behavior,
+UAT, data, customer impact, or financial state. Active Task remains **None —
+Awaiting Owner Selection**, and Admin Payroll remains **TASK DONE**.
 
 ## Historical / Superseded — Mobile Payment Slip CTA Production Closeout
 

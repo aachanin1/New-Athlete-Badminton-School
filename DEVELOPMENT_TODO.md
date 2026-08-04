@@ -11640,3 +11640,80 @@ selection and do not start another task automatically**. Thai UI Terminology &
 Shared Helper, Assignment Group Lifecycle Integrity, LINE External-Browser
 Handoff Audit, and every other Parking Lot candidate remain OWNER SELECTION
 REQUIRED and NOT AUTHORIZED TO START.
+
+### 2026-08-04 — Admin Notifications Recommendations Documentation Registration
+
+This is a dated decision record for a Parking Lot candidate, not an implementation
+closeout and not a new Active Task.
+
+#### Fact
+
+- Source inspection found that “ติดตามลูกค้าเก่า” rebuilds its eligible list on
+  each server render and applies `.slice(0, 30)`. Sending a recommendation creates
+  rows in `notifications`; the client then refreshes the page. There is no
+  recommendation completion state, exclusion, or cooldown in this flow, so a
+  newly eligible customer can refill the visible list after one send.
+- Source inspection found that “รอบเรียนคนน้อย” combines eligible rounds across
+  branches into one flat list and applies `.slice(0, 20)`.
+- Source inspection found that the current near-course calculation derives usage
+  from the page's session input, while that input query is limited to session dates
+  from Bangkok `today` onward. The source therefore does not supply the complete
+  past-session population to that calculation.
+- The prior PM SELECT-only diagnostic snapshot reported: Customer follow-up
+  eligible `150` customers (`110` from the previous month and `40` older); at
+  least `4` already had a sent reminder Notification but remained eligible; Low-
+  enrollment eligible `141` rounds across `8` branches while the UI shows at most
+  `20`; past session rows excluded from the current formula input `178` across
+  `115` current bookings; current Source percentage differed from the diagnostic
+  full-session predicate for `114/168` bookings; current formula candidate `1`
+  versus diagnostic predicate candidate `25`; `21` bookings had more physical
+  session rows than `total_sessions`; and `14` bookings had rescheduled rows.
+- Those diagnostic counts are a point-in-time SELECT-only snapshot and supporting
+  evidence only. No Production write occurred.
+
+#### Owner Intended Behavior
+
+- After one customer is actioned, the currently viewed follow-up queue should
+  decrease `30 → 29`; it should not immediately pull the next eligible customer
+  into that same viewed queue.
+- Low-enrollment recommendations should be separated or grouped by branch so the
+  Admin can read branch context and understand the real eligible volume.
+
+#### Risk / Inference
+
+- Without durable action/exclusion semantics, refresh-based recomputation makes a
+  send action appear not to reduce the follow-up workload.
+- The flat cross-branch cap can hide eligible rounds and overrepresent whichever
+  rows happen to enter the first `20`.
+- The difference between the current formula and the diagnostic predicate shows a
+  material renewal-accuracy risk, but it does not prove that the diagnostic
+  predicate is the correct business formula.
+
+#### Unknown / Need Owner Decision
+
+- “ผู้เรียนใกล้หมดคอร์ส” does not yet have an approved business meaning. Owner
+  decision is required on entitlement, progress, and remaining-session semantics.
+- If Owner selects this task, the Scope Contract must first audit entitlement,
+  Lesson Wallet, Reschedule, Private, and multi-attendee semantics. Physical
+  session-row counts, `total_sessions`, rescheduled descendants, and the diagnostic
+  full-session predicate must not be promoted into business truth without that
+  decision.
+
+#### Authorization State
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; ANALYZED; NOT AUTHORIZED TO
+START**.
+
+The latest Owner selection queue is:
+
+1. Assignment Group Lifecycle Integrity
+2. Thai UI Terminology & Shared Helper
+3. Admin Notifications Recommendations — Actionability, Branch Grouping &
+   Renewal Accuracy
+
+Only documentation registration, an explicit three-file documentation stage, one
+documentation commit, and one normal push were authorized. No Application Source,
+test, Migration, configuration, database, Production, deployment, Promotion,
+feature-control, allowlist, permission, data, customer, or financial action was
+authorized or performed. Notifications implementation remains **NOT AUTHORIZED TO
+START**.

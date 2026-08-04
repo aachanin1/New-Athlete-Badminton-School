@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -882,6 +882,13 @@ Status: **DONE**.
 
 ## Parking Lot
 
+Latest Owner selection queue; this ordering is not authorization to start:
+
+1. Assignment Group Lifecycle Integrity
+2. Thai UI Terminology & Shared Helper
+3. Admin Notifications Recommendations — Actionability, Branch Grouping &
+   Renewal Accuracy
+
 ### LINE External-Browser Handoff Audit
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
@@ -920,6 +927,23 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Do not add a Payroll-local mapping first and refactor it later.
 - No audit, implementation, deploy, migration, Production change, or data action
   is authorized by the current Payroll task.
+
+### Admin Notifications Recommendations — Actionability, Branch Grouping & Renewal Accuracy
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; ANALYZED; NOT AUTHORIZED TO
+START**.
+
+- “ติดตามลูกค้าเก่า” แสดงได้สูงสุด `30` ราย แต่หลังส่งหนึ่งราย หน้า refresh แล้ว
+  คำนวณ eligibility ใหม่โดยไม่มี completion state, exclusion หรือ cooldown จึง
+  เติมรายถัดไปกลับมาเป็น `30`; Owner intended behavior สำหรับคิวชุดที่กำลังดูคือ
+  ลด `30 → 29` โดยไม่เติมรายถัดไปทันที.
+- “รอบเรียนคนน้อย” รวมรายการทุกสาขาเป็น flat list แล้วตัดสูงสุด `20` รายการ ทำให้
+  อ่านยากและไม่เห็นจำนวนจริง; งานอนาคตควรแยกหรือจัดกลุ่มตามสาขา.
+- ความหมาย “ผู้เรียนใกล้หมดคอร์ส” ยังกำกวม และสูตรปัจจุบันเสี่ยงจาก session input
+  ที่ไม่ครบ. Owner ต้องตัดสิน semantics ของ entitlement, progress และ remaining
+  sessions ก่อน implementation; ห้ามยกสูตร diagnostic ใหม่เป็น business truth.
+- ไม่มี Source, Migration, Production หรือ data action ใดได้รับอนุญาต. ต้องมี
+  Owner selection และ Scope Contract แยกก่อนเริ่มงานนี้.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
 
