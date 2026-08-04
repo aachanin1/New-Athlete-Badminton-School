@@ -24,19 +24,22 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
   auth-redirect and bounded unauthenticated logs pass. Current Production is
   unchanged. The prior runtime-failed candidate and both older blocked/rejected
   artifacts must never be Promoted.
-- Client-identical authenticated evidence passed current 4-31 August population,
-  pending message, `aria-busy`, two disabled month buttons, same-tick double-click
-  guard, empty September, responsive desktop/mobile, and clean client console.
-  It does not substitute for corrected-candidate server UAT.
-- Blocker: the corrected unique origin requires fresh Head Coach login. Its
-  historical UI/completeness, Back/Forward, candidate performance, console/
-  hydration, and desktop/mobile candidate gates are not verified. The available
-  20-sample current/today-forward comparison already measured P50/P95/max
-  `6.215/6.918/7.573s`, above the absolute P95 `5s` ceiling.
-- Next action: Owner signs in at the corrected candidate URL and asks Developer
-  Codex to resume exact-artifact read-only verification, or explicitly changes
-  the performance contract. `PROJECT_STATE.md` is authoritative. Do not Promote,
-  alias, mutate data, alter Source, or start another task automatically.
+- Authenticated corrected-candidate evidence passed current 4-31 August
+  today-forward `929/305`, full July 1-31 `1,415/437`, historical read-only lock,
+  pending target-month message, `aria-busy`, both disabled month buttons,
+  same-tick double-click guard, Back/Forward recovery, mobile `390×844`, desktop
+  `1440×900`, and zero console/hydration/error/fatal/5xx. Complete runtime path
+  grouping contained no API route; notification count remained `25,154`, delta
+  `0`. No protected write action ran.
+- Blocker: mandatory corrected-candidate Performance failed. Current 20-sample
+  min/P50/P95/max was `5.875/6.379/7.683/10.636s`; July was
+  `11.771/13.412/14.822/15.223s`. Both P95 values exceed `5s`, and current P95
+  regressed `0.765s` against the allowed `0.346s` tolerance. The task is not
+  READY FOR OWNER UAT and must not be Promoted.
+- Next action: Owner decides whether to amend the Performance contract or
+  authorize a separate bounded performance-correction scope. `PROJECT_STATE.md`
+  is authoritative. Do not start Owner UAT, Promote, alias, mutate data, alter
+  Source, or start another task automatically.
 
 ## Recently Completed
 

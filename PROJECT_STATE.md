@@ -3,19 +3,18 @@
 Last updated: 2026-08-04
 
 Current source: safe-handoff state for the single Active Task **ASSIGNMENT GROUP
-LIFECYCLE INTEGRITY** after the Owner amended current-month behavior to Bangkok
-today-forward and required complete paged historical reads plus navigation
-pending protection. Scoped Source and deterministic checks are committed and
-pushed. A corrected exact-SHA staged Production-target artifact exists without
-aliases, but authenticated candidate and mandatory performance gates have not
-passed, so the task is not READY FOR OWNER UAT and must not be Promoted. The
-authoritative mutable state is the first matrix below. All later task snapshots
-are Historical / Superseded.
+LIFECYCLE INTEGRITY** after authenticated technical verification of the corrected
+exact-SHA staged Production-target artifact. Scoped Source, deterministic tests,
+complete historical reads, historical read-only behavior, navigation protection,
+Back/Forward, responsive UI, console/hydration, and bounded runtime-error gates
+passed. Mandatory 20-sample current and July Performance gates failed, so the
+task remains a Material Hard Stop, is not READY FOR OWNER UAT, and must not be
+Promoted. The authoritative mutable state is the first matrix below. All later
+task snapshots are Historical / Superseded.
 
 ## Current Safe Handoff — Assignment Group Lifecycle Integrity
 
-Status: **DEVELOPING — MATERIAL HARD STOP; AUTHENTICATED CANDIDATE AND
-PERFORMANCE GATES NOT PASSED**.
+Status: **DEVELOPING — MATERIAL HARD STOP; PERFORMANCE GATE FAILED**.
 
 ### Current Project Matrix
 
@@ -27,17 +26,17 @@ PERFORMANCE GATES NOT PASSED**.
 | Local HEAD | Containing safe-handoff documentation commit; Application Source parent `b9b2bd7094080c3d1aa4710b1acd8922054421a1` |
 | Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
 | Ahead/Behind | `0/0` in the published safe-handoff state |
-| Source Complete | **Yes for the scoped Source behavior; release incomplete because authenticated candidate and Performance gates are not passed** |
+| Source Complete | **Yes for the scoped Source behavior; release incomplete because the mandatory Performance Gate failed** |
 | Tests Passed | **Yes — source-only lifecycle `28/28`, Admin Schedule assignment `38/38`, Admin Schedules performance `24/24`, Lesson Wallet `19/19`, Coach Teaching Hours `20/20`, Assignment Resolution `33/33` (`162` total), TypeScript, zero-warning ESLint, mojibake, build `91/91`, dev/static smoke, and diff checks** |
-| Performance Gate | **Not passed. A valid 20-sample warm current/today-forward comparison artifact measured min/P50/P95/max `5.874/6.215/6.918/7.573s` with stable `929` learner-sessions / `305` slots, exceeding the absolute P95 `5s` ceiling. Corrected candidate metrics are Unknown because its unique origin has no authenticated session. Authenticated Assignment RSC/wire bytes are Unknown; no DOM proxy is reported as wire bytes** |
-| Completeness / Calls | SELECT-only reconciliation: July roster `1,415` rows / `437` slots / `2` pages; August today-forward `929/305/1`; August full audit `1,098/354/2`. July coach history `2,520` rows / `806` slots with child/adult pages `3+1`; bounded 100-ID supporting reads returned Legacy `1,083/9` batches, exact-boundary `1,107/9`, exact membership `2,508/26`, and wallet provenance `30/3` from `296` candidates. No N+1; Client Data API calls `0` |
+| Performance Gate | **Failed. Corrected candidate 20-sample warm current today-forward min/P50/P95/max was `5.875/6.379/7.683/10.636s`, stable `929/305`. Against baseline `5.874/6.215/6.918/7.573s`, P50 increased `0.164s` within the `0.311s` tolerance, but P95 increased `0.765s`, exceeding the `0.346s` tolerance and the absolute `5s` ceiling. Corrected candidate July min/P50/P95/max was `11.771/13.412/14.822/15.223s`, stable `1,415/437`, also exceeding `5s`. Authenticated RSC/document transferred bytes and exact outbound Supabase timing are Unknown; no DOM proxy is reported as wire bytes** |
+| Completeness / Calls | SELECT-only reconciliation: July roster `1,415` rows / `437` slots / `2` pages; August today-forward `929/305/1`; August full audit `1,098/354/2`. Authenticated corrected-candidate UI repeated the exact `1,415/437` July aggregate in all `20` samples, showed July `1–31`, and repeated exact `929/305` in all `20` current samples. July coach history `2,520` rows / `806` slots with child/adult pages `3+1`; bounded 100-ID supporting reads returned Legacy `1,083/9` batches, exact-boundary `1,107/9`, exact membership `2,508/26`, and wallet provenance `30/3` from `296` candidates. No N+1; Client Data API calls `0` |
 | Committed | **Yes — functional/test commits `dd2595ebdb0eebc430f8ea4ac8e6eddac2ed35f9` and bounded correction `b9b2bd7094080c3d1aa4710b1acd8922054421a1`; containing documentation safe-handoff commit published separately** |
 | Pushed | **Yes — both functional/test commits and containing documentation safe handoff** |
 | Current Source | `b9b2bd7094080c3d1aa4710b1acd8922054421a1` on the branch; Production remains on Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Pushed Source | `b9b2bd7094080c3d1aa4710b1acd8922054421a1` |
 | Deployed | **Staged only; blocked from READY FOR OWNER UAT and Promotion. No task Source is Production-active** |
 | Deployed Source | Candidate staged-only `b9b2bd7094080c3d1aa4710b1acd8922054421a1`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Deployment ID | Corrected candidate `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`, URL `https://new-athlete-badminton-school-81fhn33yl-aachanin1s-projects.vercel.app`, `production/READY`, `icn1`, aliases `[]`, exact Source metadata; root/health/login/CSS/auth-redirect passed and bounded unauthenticated error/fatal/5xx logs were `0/0/0`. **Not READY and never Promote without new exact-artifact Owner PASS** |
+| Deployment ID | Corrected candidate `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`, URL `https://new-athlete-badminton-school-81fhn33yl-aachanin1s-projects.vercel.app`, `production/READY`, `icn1`, aliases `[]`, exact Source metadata `b9b2bd7094080c3d1aa4710b1acd8922054421a1`. Authenticated technical UI gates passed, but Performance failed. **Not READY; do not Promote without a new Owner decision and exact-artifact PASS** |
 | Rejected / Blocked Artifacts | Runtime-failed `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173` / `dd2595eb...` rendered current correctly but July failed on an oversized supporting Legacy request; blocked `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`; historically rejected `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ`. Retain only as evidence; never Promote |
 | Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
@@ -46,7 +45,7 @@ PERFORMANCE GATES NOT PASSED**.
 | Feature Enabled | No feature-control change |
 | Allowlisted | Unchanged; no allowlist action |
 | Production Active | **No for this task; current Production artifact/source unchanged** |
-| Owner UAT | **Not started on the corrected candidate; its unique origin requires a fresh Head Coach login. Prior rejected/blocked artifacts do not count** |
+| Owner UAT | **Not started. Owner provided an authenticated Head Coach session for Developer technical verification only and will perform Owner UAT separately only after the blocker is resolved. Prior rejected/blocked artifacts do not count** |
 | Production UAT | Not run; task is not Production-active |
 | Controlled Write UAT | Not run / prohibited |
 | DB Fixture / DB Write | `0 / 0` |
@@ -57,11 +56,11 @@ PERFORMANCE GATES NOT PASSED**.
 | Functional / Test / Documentation / Migration / Configuration Changes | `2 / 1 / 3 / 0 / 0`; functional/test diff from starting Source is `405` insertions / `41` deletions |
 | Scope Expansion | No |
 | Scope Breach | No |
-| Documentation Drift | **No after this safe-handoff commit is published** |
-| Blocker | Corrected unique artifact lacks an authenticated Head Coach session, so historical UI/completeness, Back/Forward, candidate performance, console/hydration, and desktop/mobile candidate gates are not verified. The available 20-sample current/today-forward comparison already exceeds the absolute P95 ceiling. No additional Source correction is justified without candidate measurements or an Owner performance decision |
-| Remaining Work | Owner signs in on the corrected unique URL and asks Developer Codex to resume exact-artifact read-only checks, or explicitly changes the performance contract. Do not Promote, alias, mutate data, or start another task automatically |
+| Documentation Drift | **No after this authenticated-gate safe-handoff commit is published** |
+| Blocker | Mandatory corrected-candidate Performance Gate failed: current P95 `7.683s` and July P95 `14.822s`, both above `5s`; current P95 also regressed `0.765s` against the allowed `0.346s`. All requested non-performance technical gates passed. The current Owner request prohibited Source changes, so no performance correction is authorized in this round |
+| Remaining Work | Owner decides whether to amend the performance contract or authorize a separate bounded performance-correction scope. Do not start Owner UAT, Promote, alias, mutate data, alter Source, or start another task automatically |
 | Task Done | **No** |
-| Next Gate / Next Action | **Authenticated Head Coach candidate verification plus 20-sample current/July performance; if the 5s P95 ceiling still fails, Owner decision is required** |
+| Next Gate / Next Action | **Owner decision on the failed Performance Gate; exact artifact remains staged-only and blocked** |
 | Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
 
 `src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
@@ -69,9 +68,17 @@ identical to its index at SHA-256
 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` and Git
 blob `4521281d099efb189429a744909552d67871ff23`; it was not edited, staged, reset,
 checked out, stashed, or normalized. Owner policy changed only the approved task
-semantics. The work created no Production write, DB fixture, repair, migration
+semantics. Exact-artifact technical verification created no notification row
+(`25,154 → 25,154`, delta `0`), Production write, DB fixture, repair, migration
 command, environment change, feature-control change, allowlist action, Production
-alias change, or Promotion.
+alias change, or Promotion. Historical July displayed the `ล็อกย้อนหลัง` state;
+all three visible assignment write actions and the active group-name input were
+disabled. Same-tick double-click moved July to August only once; loading status,
+target month, `aria-busy`, both disabled navigation buttons, recovery,
+Back/Forward, mobile `390×844`, desktop `1440×900`, console/hydration, and bounded
+error/fatal/5xx gates passed. Complete runtime path grouping returned `1,211`
+records, including `136` Assignment route records and no API route; filtered
+error/fatal/5xx counts were `0/0/0`.
 
 ## Historical / Superseded — Admin Payroll Accuracy + Performance
 

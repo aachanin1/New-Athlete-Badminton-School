@@ -11959,3 +11959,100 @@ change the performance contract. If the corrected artifact still exceeds the
 5-second P95 ceiling, stop for Owner decision. Never Promote or alias without
 Owner PASS on exact artifact `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM` / exact Source
 `b9b2bd7094080c3d1aa4710b1acd8922054421a1`.
+
+### 2026-08-04 — Authenticated Exact-Artifact Technical Gate Material Hard Stop
+
+Owner supplied an authenticated Head Coach session on exact staged artifact
+`dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`, exact Application Source
+`b9b2bd7094080c3d1aa4710b1acd8922054421a1`, and authorized only read-only
+technical verification. No Save, Reschedule, Wallet, Attendance, Close Week,
+Source, Migration, configuration, Environment, feature, allowlist, DB/data,
+alias, Promotion, or repair action was authorized or performed.
+
+#### Fact — Identity, Completeness, and UI
+
+- Fresh Git state was branch `spike/next-major-security-upgrade`, local/remote
+  containing documentation HEAD `82413d5667d2a13ea4b111fb54016e1d48ad4bcf`,
+  ahead/behind `0/0`, and only protected pre-existing stat-dirty
+  `src/lib/schedule-slot-utils.ts`. Its SHA-256/index blob remained
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` /
+  `4521281d099efb189429a744909552d67871ff23`. Migration SHA-256 remained
+  `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+- Vercel returned exact Source metadata, `production/READY`, region `icn1`, and
+  aliases `[]` for the candidate. Current Production remained
+  `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+  `03d08a93e77189d56b733bda009d9526400fa9b3`; no Promotion occurred.
+- Corrected-candidate current view showed Bangkok today-forward 4–31 August and
+  exact aggregate `929` learner-sessions / `305` slots in all `20` samples.
+  Corrected-candidate historical view showed July 1–31 and exact aggregate
+  `1,415/437` in all `20` samples, proving the UI result did not stop at `1,000`.
+  The audited Server plan remains roster pages `1` current / `2` July with stable
+  ordering, no duplicate IDs, no N+1, and Client Data API calls `0`.
+- July showed `ล็อกย้อนหลัง`; the three visible assignment write actions and
+  active group-name input were disabled. No historical write was attempted.
+- Same-tick double-click on July next-month moved to August exactly once. During
+  navigation, visible status was `กำลังโหลดข้อมูลเดือน... สิงหาคม 2569`,
+  `aria-busy=true`, and both month buttons were disabled. After commit, status
+  disappeared, `aria-busy=false`, both buttons re-enabled, and aggregate was
+  `929/305`. Browser Back returned July `1,415/437`; Forward returned August
+  `929/305`; buttons were enabled after both.
+- Mobile `390×844` July and desktop `1440×900` current checks had no horizontal
+  overflow, kept the month controls inside the viewport, and exposed both
+  32×32 navigation buttons. Browser console warning/error, hydration, and runtime
+  fatal counts were `0/0/0/0`.
+
+#### Fact — Performance, Runtime, and Data Safety
+
+- Sampler was fixed before measurement: same Head Coach role, exact origin,
+  `icn1`, exact route, full document/RSC reload to visible month controls with
+  `aria-busy=false`, one uncounted warm-up, then `20` warm samples per month.
+  Percentiles use nearest rank.
+- Corrected candidate current min/P50/P95/max was
+  `5.875/6.379/7.683/10.636s`. Comparison baseline was
+  `5.874/6.215/6.918/7.573s`: current P50 increased `0.164s`, within the
+  `0.311s` tolerance, but P95 increased `0.765s`, above the allowed `0.346s`,
+  and exceeded the absolute `5s` ceiling.
+- Corrected candidate July min/P50/P95/max was
+  `11.771/13.412/14.822/15.223s`, also exceeding the absolute `5s` P95 ceiling.
+- Complete Vercel grouped runtime evidence for the bounded authenticated window
+  returned `1,211` records: visible status groups were `1,034` HTTP 200 and `177`
+  HTTP 304. Complete request-path groups included `136` Assignment routes and
+  only non-API Coach/sidebar-prefetch paths. Filtered HTTP 5xx, error, and fatal
+  counts were `0/0/0`. Raw log enumeration exceeded the `1,000` line cap, so it
+  was not misreported as complete; grouped server-side results were used instead.
+- Notifications remained `25,154 → 25,154`, delta `0`, during the bounded test
+  window. Shared Coach layout sources
+  `createCoachCheckinWindowNotifications` / `createCoachAttendanceGapNotifications`
+  therefore created `0/0` new rows in this window. DB fixture/write remained
+  `0/0`; Production business data changed/repaired remained No/No.
+
+#### Inference / Unknown
+
+- The stable complete browser populations plus prior exact SELECT-only page proof
+  support complete roster delivery on the candidate. Exact outbound Supabase call
+  timing is not exposed by the available instrumentation.
+- Authenticated RSC/document transferred bytes, exact wire bytes, and exact
+  per-request Server metric are **Unknown**. No DOM-size proxy is labeled as wire
+  bytes. Exact HTTP-method totals are also Unknown because the CLI query is
+  full-text only and raw enumeration hit `1,000`; complete path grouping showed
+  no API route, and the browser workflow invoked no write control.
+
+#### State Observed at This Safe Handoff
+
+Source Complete **Yes for scoped behavior**; Tests Passed **Yes — prior exact
+Source suite `162` plus TypeScript/lint/mojibake/build/diff**; Performance Gate
+**Failed**; Committed/Pushed **Yes for Source; containing documentation-only
+safe-handoff commit follows**; staged artifact **READY/unaliased but blocked**;
+READY FOR OWNER UAT **No**; Owner/Production UAT **Not run**;
+Promoted/Production Active **No/No for this task**; Migration Source/Applied
+**unchanged/retained**; Environment/Feature/Allowlist **unchanged**; Controlled
+Write UAT **Not run/prohibited**; DB fixture/write **0/0**; Production Data
+Changed/Data Repaired **No/No**; Customer/Financial Impact **None/None**; Scope
+Expansion/Breach **No/No**; Documentation Drift **No after publication**; Task
+Done **No**.
+
+Material Hard Stop: mandatory current and July P95 gates failed after the
+authorized bounded correction sequence, and this verification round prohibited
+Source changes. Owner must decide whether to amend the Performance contract or
+authorize a separate bounded performance-correction scope. Do not start Owner
+UAT, Promote, alias, mutate data, alter Source, or begin another task.
