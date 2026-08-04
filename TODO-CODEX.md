@@ -9,11 +9,25 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**None — Awaiting Owner Selection.**
+**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP.**
 
-- `PROJECT_STATE.md` is authoritative for current Git, Production, UAT, controls,
-  data, and impact state.
-- Do not start a Parking Lot candidate or another task automatically.
+- The historical-month Source correction is committed and pushed at
+  `4102cc51e1d95257a43b0c10abb54e5627890df9`. New staged Production artifact
+  `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm` is `READY`, exact-SHA, `icn1`, and unaliased,
+  but it is blocked from Owner UAT and Promotion.
+- Mandatory performance gate failed: the required full August range includes
+  real 1-3 August data, increasing learner-session rows `929 -> 1000`, slots
+  `305 -> 325`, rendered-document proxy `1,060,368 -> 1,150,070` chars, and
+  identical-sampler warm P50/P95 `3.107/3.593s -> 3.531/4.281s`.
+- July historical navigation itself is correct and read-only: `315` slots,
+  `1000` learner-sessions, warm P95 `4.551s`, past controls locked. Empty September
+  retained month controls and loaded at P95 `1.294s`.
+- Blocker: removing the additional current-month rows would violate the approved
+  first-day-to-next-month range. Owner must choose either a documented performance
+  exception for full-month behavior or changed current-month semantics/scope.
+- `PROJECT_STATE.md` is authoritative for exact Git, staged/Production identity,
+  tests, controls, data, and impact state. Do not Promote, alias, redeploy, alter
+  Source, or start another task automatically.
 
 ## Recently Completed
 
@@ -40,9 +54,10 @@ PRODUCTION ARTIFACT ACTIVE; FOUR ESTABLISHED ALIASES CONVERGED**.
   `vercel --prod --skip-domain`, UAT that exact staged Production artifact, and
   Promote that staged artifact. Preview artifacts must not carry a no-rebuild
   contract.
-- LINE External-Browser Handoff Audit, Assignment Group Lifecycle Integrity,
-  Thai UI Terminology & Shared Helper, and every other Parking Lot candidate
-  remain Owner-selection-only and unauthorized.
+- Assignment Group Lifecycle Integrity was subsequently selected by the Owner;
+  its current blocked state is recorded above. LINE External-Browser Handoff
+  Audit, Thai UI Terminology & Shared Helper, and every other Parking Lot
+  candidate remain Owner-selection-only and unauthorized.
 
 ### MOBILE PAYMENT SLIP CTA VISIBILITY AND SCROLLABILITY
 
@@ -882,11 +897,11 @@ Status: **DONE**.
 
 ## Parking Lot
 
-Latest Owner selection queue; this ordering is not authorization to start:
+Latest remaining Owner selection queue; this ordering is not authorization to
+start:
 
-1. Assignment Group Lifecycle Integrity
-2. Thai UI Terminology & Shared Helper
-3. Admin Notifications Recommendations — Actionability, Branch Grouping &
+1. Thai UI Terminology & Shared Helper
+2. Admin Notifications Recommendations — Actionability, Branch Grouping &
    Renewal Accuracy
 
 ### LINE External-Browser Handoff Audit
@@ -899,9 +914,10 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Await explicit Owner selection and a separate Scope Contract before any audit or
   change.
 
-### Assignment Group Lifecycle Integrity
+### Historical Assignment Group Lifecycle Integrity Registration — Superseded
 
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+Status: **SUPERSEDED BY THE CURRENT OWNER-SELECTED ACTIVE TASK AND MATERIAL HARD
+STOP ABOVE**.
 
 - Preserve `absent` learners in assignment groups and prevent false changed/
   unsaved state.
@@ -909,8 +925,9 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   last learner reschedules or stores a session in Wallet.
 - A future Scope Contract must cover assignment save, Reschedule, Wallet,
   Attendance, Exact/Legacy resolution, Payroll, and audit-history preservation.
-- No Production repair, deletion, migration, Source audit, or implementation is
-  authorized by the current Payroll task.
+- This was the pre-selection registration only. Current authorization and the
+  exact safe-handoff state are in `PROJECT_STATE.md`; do not use this historical
+  paragraph to revoke or expand the active Scope Contract.
 
 ### Thai UI Terminology & Shared Helper
 

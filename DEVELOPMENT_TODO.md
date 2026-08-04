@@ -11717,3 +11717,111 @@ test, Migration, configuration, database, Production, deployment, Promotion,
 feature-control, allowlist, permission, data, customer, or financial action was
 authorized or performed. Notifications implementation remains **NOT AUTHORIZED TO
 START**.
+
+### 2026-08-04 — Assignment Group Lifecycle Historical-Month Correction Safe Handoff
+
+This dated record supersedes the prior Parking Lot status for this task. Owner
+selected **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** as the single Active Task,
+accepted the earlier lifecycle migration state, rejected staged artifact
+`dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ` / Source `fa78857...` for Promotion because
+the Assignment page could not open historical July, and authorized a Source-only,
+SELECT-only bounded correction with a mandatory performance guard.
+
+#### Fact
+
+- Gate 0 verified branch `spike/next-major-security-upgrade`, starting HEAD and
+  upstream `fa78857b9fa762866dad41c6cfd9e100eb6ad4bc`, ahead/behind `0/0`, empty
+  stage/untracked set, and only pre-existing stat-dirty
+  `src/lib/schedule-slot-utils.ts`. That protected file remained content-identical
+  to index blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Root cause was exact: the Server page ignored `searchParams.month` and queried
+  `.gte('date', today)` without an upper bound, while Client controls changed only
+  local month state. Existing Reschedule/Wallet links already supplied
+  `?month=YYYY-MM`. Baseline migration Source proves the B-tree
+  `idx_booking_sessions_date`; no query loop or new N+1 was introduced.
+- Regression-first source-only execution failed before any Local Supabase setup on
+  the missing Promise `searchParams.month` assertion. After correction, source-only
+  lifecycle checks passed `22/22`. Full fixture mode was not run; DB fixture/write
+  count was `0/0`.
+- Exact functional/test paths were `src/app/(coach)/coach/assign-groups/page.tsx`,
+  `src/components/coach/assign-groups-client.tsx`, and
+  `scripts/check-coach-assignment-lifecycle.mjs` (`2/1` files; `153` insertions,
+  `24` deletions). Migration/API/config/dependency changes were `0/0/0/0`.
+- Source now validates canonical `YYYY-MM`, falls back to the current Bangkok
+  month, applies the exact half-open selected-month range, and sends the validated
+  month to the Client. Client navigation uses canonical URL-driven Server reads,
+  timezone-stable adjacent-month arithmetic, always-visible controls/empty state,
+  existing Sonner fail-closed behavior for genuine edits/saves, no Client Supabase
+  read, and unchanged past-slot lock and lifecycle semantics.
+- Verification passed: source-only lifecycle `22/22`, Admin Schedule assignment
+  `38/38`, Admin Schedules performance architecture `24/24`, TypeScript, zero-
+  warning ESLint, mojibake, Next.js 16.2.6 build/static generation `91/91`, clean
+  post-build dev restart, root/health/static/auth smoke, and `git diff --check`.
+  Protected hashes, migration SHA-256
+  `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`,
+  package, APIs, and the schedule helper remained exact.
+- Functional/test commit `4102cc51e1d95257a43b0c10abb54e5627890df9`
+  (`fix: load assignment groups by selected month`) was normally pushed; branch
+  HEAD/upstream was `0/0`. New staged Production artifact
+  `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`, URL
+  `https://new-athlete-badminton-school-kgxcskso6-aachanin1s-projects.vercel.app`,
+  is `production/READY`, Source-exact, region `icn1`, source `cli`, aliases `[]`.
+  Root, health, CSS, and unauthenticated route-protection smoke passed; bounded
+  error/fatal/HTTP 5xx logs were zero.
+- Authenticated read-only Head Coach evidence on the new artifact showed July
+  label/URL correct, `315` slots / `1000` learner-sessions, and past controls
+  disabled with `ล็อกย้อนหลัง`. June/July/August URL navigation, invalid-month
+  Bangkok fallback, and empty September controls/state were observable. No Save,
+  Reschedule, Wallet, Attendance, Close Week, Controlled Write UAT, fixture, or
+  Production business-data write occurred. Existing absent visual evidence was
+  not separately labeled in the UI; deterministic/source evidence remains the
+  available proof for absent inclusion.
+
+#### Performance Evidence and Material Hard Stop
+
+Identical route/role/sampler warm measurements were:
+
+| Route | min | P50 | P95 | max | learner-session rows | slots | rendered-document proxy |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Rejected baseline current/today-forward | 2.794s | 3.107s | 3.593s | 3.593s | 929 | 305 | 1,059,319-1,060,368 chars |
+| Corrected current/full August | 2.977s | 3.531s | 4.281s | 4.281s | 1000 | 325 | 1,150,070 chars |
+| Corrected historical July | 2.790s | 3.044s | 4.551s | 4.551s | 1000 | 315 | 1,176,304 chars |
+| Corrected empty September | 1.073s | 1.113s | 1.294s | 1.294s | 0 | 0 | 97,996-98,488 chars |
+
+Historical July passed its required 5-second P95 ceiling. Source inspection shows
+no new fixed DB/Data API call site and no N+1; Client-observed Data API calls
+remain `0 -> 0`. The exact Server-side round-trip total, including the existing
+100-ID coach-history membership batches, is **Unknown / not exposed by the staged
+browser metrics**, so that mandatory numeric gate is not claimed as proven.
+Current-month P50/P95, row count, and payload proxy also exceed the mandatory
+baseline limits. The extra `71` learner-sessions and `20` slots are
+real 1-3 August rows required by the approved `date >= first day of selected
+month` range and excluded by the old 4-August-forward baseline. Removing them
+would violate the approved full-month behavior. Reducing payload without dropping
+the rows would require scope expansion such as another read/API/pagination model,
+which is not authorized.
+
+This is therefore a **Material Hard Stop — conflicting Owner requirements**, not
+a claim that architecture alone is fast. No second Source change was made after
+the measured failure because no bounded change within the exact two functional
+files can satisfy both conditions truthfully. The new staged artifact is blocked
+from Owner UAT and Promotion. The old rejected artifact remains historical and
+must never be Promoted. Current Production remains unchanged at
+`dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+`03d08a93e77189d56b733bda009d9526400fa9b3`.
+
+#### State Observed at This Safe Handoff
+
+Source Complete **Yes for approved behavior**; Tests Passed **Yes except the
+mandatory Performance Gate**; Committed/Pushed **Yes**; staged artifact **READY
+but blocked**; Production Active **No for this task**; Owner UAT **failed on the
+old artifact and not started on the new blocked artifact**; Feature/Environment/
+Allowlist/Migration change **No/No/No/No**; Controlled Write UAT **Not run /
+prohibited**; DB fixture/write **0/0**; Data Repaired/Production Data Changed
+**No/No**; Customer Impact **None direct because Production is unchanged**;
+Financial Impact **None**; Scope Expansion/Breach **No/No**; Task Done **No**;
+Active Task remains **ASSIGNMENT GROUP LIFECYCLE INTEGRITY**. Next Action:
+**Owner decides between accepting a documented current-month performance/volume
+exception for full-month behavior, or changing the current-month semantics/scope;
+do not deploy, Promote, alias, mutate data, or start another task automatically**.

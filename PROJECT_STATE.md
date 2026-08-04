@@ -2,16 +2,76 @@
 
 Last updated: 2026-08-04
 
-Current source: verified Git and Vercel state for the completed **ADMIN PAYROLL
-ACCURACY + PERFORMANCE** release. Owner Preview UAT and Owner Production UAT both
-passed. Owner accepted Vercel's derived Production deployment and normal
-Preview-to-Production rebuild behavior, and the four established Production
-aliases now converge on the accepted artifact. The earlier release-workflow Hard
-Stop is resolved; it was not a Payroll Source defect. The authoritative mutable
-state is the first matrix below. All later task snapshots are Historical /
-Superseded.
+Current source: safe-handoff state for the single Active Task **ASSIGNMENT GROUP
+LIFECYCLE INTEGRITY**. The authorized historical-month Source correction is
+committed, pushed, and staged, but the mandatory current-month performance gate
+failed because the required full-month range returns real 1-3 August rows that
+the old today-forward baseline excluded. No bounded change can both remove those
+rows and preserve the approved `date >= first day of selected month` behavior.
+The authoritative mutable state is the first matrix below. All later task
+snapshots are Historical / Superseded.
 
-## Current Release Closeout — Admin Payroll Accuracy + Performance
+## Current Safe Handoff — Assignment Group Lifecycle Integrity
+
+Status: **DEVELOPING — MATERIAL HARD STOP; OWNER DECISION REQUIRED ON THE
+FULL-MONTH/PERFORMANCE CONTRACT**.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
+| Task Status | **DEVELOPING — Material Hard Stop** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Containing safe-handoff documentation commit; Application Source parent `4102cc51e1d95257a43b0c10abb54e5627890df9` |
+| Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
+| Ahead/Behind | `0/0` in the published safe-handoff state |
+| Source Complete | **Yes for the approved historical-month behavior; release incomplete because the mandatory performance contract failed** |
+| Tests Passed | **Yes for source-only lifecycle `22/22`, Admin Schedule assignment `38/38`, Admin Schedules performance architecture `24/24`, TypeScript, ESLint, mojibake, build, dev/static smoke, and diff check; Performance Gate No** |
+| Performance Gate | **Failed. Identical 10-sample warm current-month baseline min/P50/P95/max `2.794/3.107/3.593/3.593s`; corrected `2.977/3.531/4.281/4.281s`. Learner-session rows `929 -> 1000`, slots `305 -> 325`, rendered-document proxy `1,060,368 -> 1,150,070` chars. Historical July `2.790/3.044/4.551/4.551s` passed the 5s P95 ceiling; empty September `1.073/1.113/1.294/1.294s`** |
+| DB/Data API Round Trips | Client-observed `0 -> 0`; Source adds no fixed query call or N+1. Exact Server-side count including existing 100-ID coach-history batches is **Unknown / not exposed**, so the numeric gate is not claimed as proven |
+| Committed | **Yes — functional/test correction `4102cc51e1d95257a43b0c10abb54e5627890df9`; containing documentation safe-handoff commit published separately** |
+| Pushed | **Yes — functional/test correction and containing documentation safe handoff** |
+| Current Source | `4102cc51e1d95257a43b0c10abb54e5627890df9` on the branch; Production remains on prior Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Pushed Source | `4102cc51e1d95257a43b0c10abb54e5627890df9` |
+| Deployed | **Staged only; blocked from Owner UAT and Promotion. No task Source is Production-active** |
+| Deployed Source | Staged-only `4102cc51e1d95257a43b0c10abb54e5627890df9`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Deployment ID | New blocked staged Production artifact `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`, URL `https://new-athlete-badminton-school-kgxcskso6-aachanin1s-projects.vercel.app`, `production/READY`, `icn1`, aliases `[]`; **not approved for Owner UAT or Promotion** |
+| Historical Rejected Artifact | `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ` / `fa78857b9fa762866dad41c6cfd9e100eb6ad4bc`; Owner UAT failed because historical-month navigation was unavailable; retain only as evidence and never Promote |
+| Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
+| Migration Applied | Retained from the prior approved gate; no migration command or DB mutation ran in this correction |
+| Environment Changed | No |
+| Feature Enabled | No feature-control change |
+| Allowlisted | Unchanged; no allowlist action |
+| Production Active | **No for this task; current Production artifact/source unchanged** |
+| Owner UAT | **Failed on the historical rejected artifact; not started on the new blocked artifact** |
+| Production UAT | Not run for this task correction |
+| Controlled Write UAT | Not run / prohibited |
+| DB Fixture / DB Write | `0 / 0` |
+| Data Repaired | No |
+| Production Data Changed | No |
+| Customer Impact | No direct change; historical-month correction is not Production-active |
+| Financial Impact | None |
+| Functional / Test / Migration / Configuration Changes | `2 / 1 / 0 / 0`; exactly the approved three paths |
+| Scope Expansion | No |
+| Scope Breach | No |
+| Documentation Drift | **No after this safe-handoff commit is published** |
+| Blocker | Approved full-month behavior requires the 1-3 August rows, while the mandatory performance gate requires current-month rows and payload not exceed the old 4-August-forward baseline. Both cannot be true for the verified data within the exact two-file functional allowlist |
+| Remaining Work | Owner must choose whether to accept a documented current-month row/payload/latency exception for full-month behavior, or change current-month semantics/scope. Do not alter Source, deploy, Promote, alias, or start another task automatically |
+| Task Done | **No** |
+| Next Gate / Next Action | **Owner decision on the conflicting full-month/performance requirements** |
+| Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
+
+`src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
+identical to its index at SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` and Git
+blob `4521281d099efb189429a744909552d67871ff23`; it was not edited, staged, reset,
+checked out, stashed, or normalized. The correction created no Production write,
+DB fixture, repair, migration command, environment change, feature-control
+change, allowlist action, alias change, or Promotion.
+
+## Historical / Superseded — Admin Payroll Accuracy + Performance
 
 Status: **TASK DONE — OWNER PREVIEW UAT PASSED; OWNER PRODUCTION UAT PASSED;
 PRODUCTION ACTIVE; ALIASES 4/4**.
@@ -69,7 +129,7 @@ exact-artifact releases must stage Production with `vercel --prod --skip-domain`
 UAT that exact staged Production artifact, and Promote that staged Production
 artifact. A no-rebuild contract must not be set against a Preview artifact.
 
-### Current Project Matrix
+### Historical Matrix at That Closeout
 
 | Field | Current value |
 | --- | --- |
