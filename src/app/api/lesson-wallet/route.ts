@@ -567,18 +567,18 @@ async function storeInWallet(request: NextRequest, userId: string, payload: Stor
     return NextResponse.json({ error: message }, { status: 500 })
   }
 
-  if (assignmentRows.length > 0) {
-    const { error: deleteAssignmentError } = await adminSupabase
-      .from('coach_assignment_group_students')
-      .delete()
-      .in('id', assignmentRows.map((row) => row.id)) as unknown as { error: DbError | null }
+  const { data: assignmentRetirement, error: deleteAssignmentError } = await adminSupabase
+    .rpc('retire_coach_assignment_membership_v1', {
+      p_booking_session_id: session.id,
+      p_actor_id: userId,
+      p_reason: 'wallet_store',
+    }) as unknown as { data: Record<string, unknown> | null; error: DbError | null }
 
-    if (deleteAssignmentError) {
-      await adminSupabase.from('booking_sessions').update({ status: 'scheduled' }).eq('id', session.id)
-      await adjustSlotCount(adminSupabase, session.schedule_slot_id, 1).catch(() => null)
-      await rollback()
-      return NextResponse.json({ error: `ถอดผู้เรียนจากกลุ่มโค้ชไม่สำเร็จ: ${deleteAssignmentError.message}` }, { status: 500 })
-    }
+  if (deleteAssignmentError) {
+    await adminSupabase.from('booking_sessions').update({ status: 'scheduled' }).eq('id', session.id)
+    await adjustSlotCount(adminSupabase, session.schedule_slot_id, 1).catch(() => null)
+    await rollback()
+    return NextResponse.json({ error: `ถอดผู้เรียนจากกลุ่มโค้ชไม่สำเร็จ: ${deleteAssignmentError.message}` }, { status: 500 })
   }
 
   const postWalletState = await fetchPostWalletAssignmentState(adminSupabase, session.schedule_slot_id)
@@ -602,7 +602,15 @@ async function storeInWallet(request: NextRequest, userId: string, payload: Stor
         date: session.date,
         startTime: session.start_time,
         cutoffHours: STORE_CUTOFF_HOURS,
-        removedAssignmentStudentIds: assignmentRows.map((row) => row.id),
+        removedAssignmentStudentIds: Array.isArray(assignmentRetirement?.removed_membership_ids)
+          ? assignmentRetirement.removed_membership_ids
+          : [],
+        removedExactMembershipCount: Number(assignmentRetirement?.removed_count || 0),
+        assignmentRetirementAuditId: (
+          assignmentRetirement?.audit
+          && typeof assignmentRetirement.audit === 'object'
+          && !Array.isArray(assignmentRetirement.audit)
+        ) ? (assignmentRetirement.audit as { id?: unknown }).id || null : null,
         notifiedCoachIds: postWalletState.needsReview ? assignedCoachIds : [],
         postWalletAssignmentState: {
           activeSessionCount: postWalletState.activeSessionIds.length,

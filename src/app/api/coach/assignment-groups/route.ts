@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyAssignedCoachesForSlot } from '@/lib/coach-notifications'
 import {
@@ -78,6 +77,30 @@ function getBangkokSlotStart(date: string, startTime: string) {
 
 function isAssignmentLocked(date: string, startTime: string, now = new Date()) {
   return now >= getBangkokSlotStart(date, startTime)
+}
+
+function getLifecycleConflict(errorMessage: string) {
+  if (errorMessage.includes('COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP')) {
+    return {
+      code: 'COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP',
+      error: 'พบผู้เรียนซ้ำข้ามกลุ่ม กรุณารีเฟรชและตรวจการแบ่งกลุ่มอีกครั้ง',
+    }
+  }
+  if (errorMessage.includes('COACH_ASSIGNMENT_ROSTER_CONFLICT')) {
+    return {
+      code: 'COACH_ASSIGNMENT_ROSTER_CONFLICT',
+      error: 'รายชื่อผู้เรียนในรอบเปลี่ยนแล้ว กรุณารีเฟรชและตรวจกลุ่มก่อนบันทึกอีกครั้ง',
+    }
+  }
+  return null
+}
+
+function getCanonicalGroups(saveResult: unknown) {
+  if (!saveResult || typeof saveResult !== 'object' || Array.isArray(saveResult)) return []
+  const snapshot = (saveResult as { snapshot?: unknown }).snapshot
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return []
+  const groups = (snapshot as { groups?: unknown }).groups
+  return Array.isArray(groups) ? groups : []
 }
 
 export async function POST(request: NextRequest) {
@@ -227,13 +250,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { data: saveResult, error: saveError } = await adminSupabase.rpc('save_coach_assignment_groups_v1', {
+    const { data: saveResult, error: saveError } = await adminSupabase.rpc('save_coach_assignment_groups_v2', {
       p_schedule_slot_id: scheduleSlotId,
       p_actor_id: manager.user.id,
       p_groups: normalizedGroups,
     })
 
     if (saveError) {
+      const lifecycleConflict = getLifecycleConflict(saveError.message)
+      if (lifecycleConflict) {
+        return NextResponse.json(lifecycleConflict, { status: 409 })
+      }
       const conflictMessage = formatCoachAssignmentDatabaseError(saveError.message)
       return NextResponse.json({
         error: conflictMessage || `บันทึกกลุ่มไม่สำเร็จ: ${saveError.message}`,
@@ -241,8 +268,6 @@ export async function POST(request: NextRequest) {
     }
 
     const assignedCoachIds = coachIds
-    const studentRows = submittedSessionIds
-
     await Promise.all(assignedCoachIds.map((coachId) => {
       const coachGroups = groups.filter((group) => group.coachId === coachId)
       const coachStudentCount = coachGroups.reduce((sum, group) => sum + (group.studentSessionIds?.length || 0), 0)
@@ -255,25 +280,11 @@ export async function POST(request: NextRequest) {
       })
     }))
 
-    await logActivity({
-      userId: manager.user.id,
-      action: 'save_coach_assignment_groups',
-      entityType: 'coach_assignment_group',
-      entityId: scheduleSlotId,
-      details: {
-        scheduleSlotId,
-        branchId,
-        groupCount: groups.length,
-        studentCount: studentRows.length,
-        coachIds,
-      },
-      ipAddress: request.headers.get('x-forwarded-for'),
-    })
-
     return NextResponse.json({
       success: true,
       scheduleSlotId,
       warnings: formatLegacyCoachWarnings(legacyWarnings),
+      canonicalGroups: getCanonicalGroups(saveResult),
       result: saveResult,
     })
   } catch (error: unknown) {

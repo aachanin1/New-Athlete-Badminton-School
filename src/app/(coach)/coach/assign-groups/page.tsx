@@ -270,7 +270,7 @@ export default async function AssignGroupsPage() {
       `)
       .gte('date', today)
       .in('branch_id', branchIds)
-      .in('status', ['scheduled', 'completed'])
+      .in('status', ['scheduled', 'completed', 'absent'])
       .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
       .order('date', { ascending: true })

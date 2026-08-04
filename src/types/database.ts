@@ -271,6 +271,28 @@ export interface Database {
       }
     }
     Functions: {
+      coach_assignment_slot_snapshot_v2: {
+        Args: {
+          p_schedule_slot_id: string
+        }
+        Returns: Json
+      }
+      save_coach_assignment_groups_v2: {
+        Args: {
+          p_schedule_slot_id: string
+          p_actor_id: string
+          p_groups: Json
+        }
+        Returns: Json
+      }
+      retire_coach_assignment_membership_v1: {
+        Args: {
+          p_booking_session_id: string
+          p_actor_id: string
+          p_reason: 'reschedule_out' | 'wallet_store'
+        }
+        Returns: Json
+      }
       progressive_pricing_writes_capability_v1: {
         Args: Record<string, never>
         Returns: Json

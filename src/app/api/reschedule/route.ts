@@ -386,11 +386,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `สร้างรอบเรียนใหม่ไม่สำเร็จ: ${insertError?.message || 'ไม่พบข้อมูลรอบเรียนใหม่'}` }, { status: 500 })
     }
 
-    const { data: removedAssignmentMemberships, error: assignmentCleanupError } = await adminSupabase
-      .from('coach_assignment_group_students')
-      .delete()
-      .eq('booking_session_id', session.id)
-      .select('id') as unknown as { data: { id: string }[] | null; error: DbError | null }
+    const { data: assignmentRetirement, error: assignmentCleanupError } = await adminSupabase
+      .rpc('retire_coach_assignment_membership_v1', {
+        p_booking_session_id: session.id,
+        p_actor_id: user.id,
+        p_reason: 'reschedule_out',
+      }) as unknown as { data: Record<string, unknown> | null; error: DbError | null }
 
     if (assignmentCleanupError) {
       await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
@@ -398,7 +399,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Clean up old coach assignment group failed: ${assignmentCleanupError.message}` }, { status: 500 })
     }
 
-    const removedExactMembershipCount = (removedAssignmentMemberships || []).length
+    const removedExactMembershipCount = Number(assignmentRetirement?.removed_count || 0)
+    const assignmentRetirementAuditId = (
+      assignmentRetirement?.audit
+      && typeof assignmentRetirement.audit === 'object'
+      && !Array.isArray(assignmentRetirement.audit)
+    ) ? (assignmentRetirement.audit as { id?: unknown }).id || null : null
     let notificationReport: RescheduleAssignmentNotificationSummary
     try {
       notificationReport = await notifyReschedule(
@@ -443,6 +449,7 @@ export async function POST(request: NextRequest) {
         branchId,
         scheduleSlotId,
         removedExactMembershipCount,
+        assignmentRetirementAuditId,
         assignmentReviewRequired: true,
         autoAssigned: false,
         notificationDeliverySucceeded: notificationReport.success,

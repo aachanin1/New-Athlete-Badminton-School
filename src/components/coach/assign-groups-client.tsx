@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -42,6 +42,11 @@ import {
   UNASSESSED_GROUP_NAME,
   UNGROUPED_ASSIGNMENT_NAME,
 } from '@/lib/coach-assignment-group-naming'
+import {
+  getAssignmentGroupsSignature,
+  parseCanonicalAssignmentGroups,
+  reconcileAssignmentDraft,
+} from '@/lib/coach-assignment-lifecycle'
 import { cn, fmtTime } from '@/lib/utils'
 import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
 import type { LevelCategory, StudentType } from '@/types/database'
@@ -319,6 +324,13 @@ function createInitialDraftMap(slots: AssignmentSlot[]) {
   }, {} as Record<string, GroupDraft[]>)
 }
 
+function createPersistedGroupMap(slots: AssignmentSlot[]) {
+  return slots.reduce((map, slot) => {
+    map[slot.key] = slot.assignmentGroups
+    return map
+  }, {} as Record<string, ExistingAssignmentGroup[]>)
+}
+
 function getGroupStudents(slot: AssignmentSlot, group: GroupDraft) {
   const ids = new Set(group.studentSessionIds)
   return slot.students.filter((student) => ids.has(student.bookingSessionId))
@@ -376,25 +388,8 @@ function getUsedCoachMap(groups: GroupDraft[]) {
   }, {} as Record<string, { groupId: string; name: string }[]>)
 }
 
-function normalizeGroupsForCompare(groups: Array<Pick<GroupDraft, 'name' | 'coachId' | 'levelMin' | 'levelMax' | 'studentSessionIds'>>) {
-  return groups
-    .filter((group) => group.studentSessionIds.length > 0)
-    .map((group) => ({
-      name: group.name.trim(),
-      coachId: group.coachId || null,
-      levelMin: group.levelMin,
-      levelMax: group.levelMax,
-      studentSessionIds: [...group.studentSessionIds].sort(),
-    }))
-    .sort((a, b) => {
-      const aKey = `${a.name}:${a.coachId || ''}:${a.studentSessionIds.join(',')}`
-      const bKey = `${b.name}:${b.coachId || ''}:${b.studentSessionIds.join(',')}`
-      return aKey.localeCompare(bKey)
-    })
-}
-
 function getGroupsSignature(groups: Array<Pick<GroupDraft, 'name' | 'coachId' | 'levelMin' | 'levelMax' | 'studentSessionIds'>>) {
-  return JSON.stringify(normalizeGroupsForCompare(groups))
+  return getAssignmentGroupsSignature(groups)
 }
 
 function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[], savedSnapshot?: SavedSlotSnapshot) {
@@ -459,13 +454,77 @@ function formatMonth(monthKey: string) {
 export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGroupsClientProps) {
   const router = useRouter()
   const [draftsBySlot, setDraftsBySlot] = useState<Record<string, GroupDraft[]>>(() => createInitialDraftMap(slots))
+  const [initialPersistedGroups] = useState(() => createPersistedGroupMap(slots))
   const [savedSnapshotsBySlot, setSavedSnapshotsBySlot] = useState<Record<string, SavedSlotSnapshot>>({})
+  const [serverChangesBySlot, setServerChangesBySlot] = useState<Record<string, boolean>>({})
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [errorsBySlot, setErrorsBySlot] = useState<Record<string, string>>({})
   const [selectedDate, setSelectedDate] = useState(() => slots[0]?.date || '')
   const [selectedSlotKey, setSelectedSlotKey] = useState('')
   const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(slots[0]?.date || new Date().toISOString().slice(0, 10)))
   const [statusFilter, setStatusFilter] = useState<AssignmentStatusFilter>('all')
+  const draftsBySlotRef = useRef(draftsBySlot)
+  const draftBaselinesBySlotRef = useRef(draftsBySlot)
+  const persistedGroupsBySlotRef = useRef(initialPersistedGroups)
+  const savedSnapshotsBySlotRef = useRef(savedSnapshotsBySlot)
+
+  useEffect(() => {
+    draftsBySlotRef.current = draftsBySlot
+  }, [draftsBySlot])
+
+  useEffect(() => {
+    savedSnapshotsBySlotRef.current = savedSnapshotsBySlot
+  }, [savedSnapshotsBySlot])
+
+  useEffect(() => {
+    const currentDrafts = draftsBySlotRef.current
+    const nextDrafts: Record<string, GroupDraft[]> = {}
+    const nextBaselines: Record<string, GroupDraft[]> = {}
+    const nextPersistedGroups: Record<string, ExistingAssignmentGroup[]> = {}
+    const nextServerChanges: Record<string, boolean> = {}
+
+    slots.forEach((slot) => {
+      const incomingDraft = createInitialDrafts(slot)
+      const currentDraft = currentDrafts[slot.key] || incomingDraft
+      const previousBaseline = draftBaselinesBySlotRef.current[slot.key] || currentDraft
+      const previousPersistedGroups = persistedGroupsBySlotRef.current[slot.key] || []
+      const savedSnapshot = savedSnapshotsBySlotRef.current[slot.key]
+      const incomingServerSignature = getGroupsSignature(slot.assignmentGroups)
+      const currentDraftSignature = getGroupsSignature(currentDraft)
+      const isStaleRefreshImmediatelyAfterSave = Boolean(
+        savedSnapshot
+        && incomingServerSignature === savedSnapshot.serverSignatureAtSave
+        && currentDraftSignature === savedSnapshot.draftSignature
+        && incomingServerSignature !== savedSnapshot.draftSignature,
+      )
+
+      if (isStaleRefreshImmediatelyAfterSave) {
+        nextDrafts[slot.key] = currentDraft
+        nextBaselines[slot.key] = previousBaseline
+        nextPersistedGroups[slot.key] = previousPersistedGroups
+        nextServerChanges[slot.key] = false
+        return
+      }
+
+      const reconciliation = reconcileAssignmentDraft({
+        currentDraft,
+        previousServerDerivedDraft: previousBaseline,
+        nextServerDerivedDraft: incomingDraft,
+        previousPersistedGroups,
+        nextPersistedGroups: slot.assignmentGroups,
+      })
+      nextDrafts[slot.key] = reconciliation.draft
+      nextBaselines[slot.key] = reconciliation.baseline
+      nextPersistedGroups[slot.key] = slot.assignmentGroups
+      nextServerChanges[slot.key] = reconciliation.needsRefreshReview
+    })
+
+    draftBaselinesBySlotRef.current = nextBaselines
+    persistedGroupsBySlotRef.current = nextPersistedGroups
+    draftsBySlotRef.current = nextDrafts
+    setDraftsBySlot(nextDrafts)
+    setServerChangesBySlot(nextServerChanges)
+  }, [slots])
 
   const stats = useMemo(() => {
     const totalStudents = slots.reduce((sum, slot) => sum + slot.students.length, 0)
@@ -595,10 +654,32 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
     setErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
   }
 
+  const acceptCurrentServerRoster = (slot: AssignmentSlot) => {
+    const nextDraft = createInitialDrafts(slot)
+    draftBaselinesBySlotRef.current = {
+      ...draftBaselinesBySlotRef.current,
+      [slot.key]: nextDraft,
+    }
+    persistedGroupsBySlotRef.current = {
+      ...persistedGroupsBySlotRef.current,
+      [slot.key]: slot.assignmentGroups,
+    }
+    setDraftsBySlot((prev) => ({ ...prev, [slot.key]: nextDraft }))
+    setSavedSnapshotsBySlot((prev) => {
+      const next = { ...prev }
+      delete next[slot.key]
+      return next
+    })
+    setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: false }))
+    setErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
+  }
+
   const saveSlot = async (slot: AssignmentSlot) => {
     const groups = draftsBySlot[slot.key] || []
     const requestDraftSignature = getGroupsSignature(groups)
-    const serverSignatureAtSave = getGroupsSignature(slot.assignmentGroups)
+    const serverSignatureAtSave = getGroupsSignature(
+      persistedGroupsBySlotRef.current[slot.key] || slot.assignmentGroups,
+    )
     if (slot.assignmentLocked) {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: slot.assignmentLockReason || 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว ไม่สามารถมอบหมายย้อนหลังได้' }))
       return
@@ -673,17 +754,56 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
 
       const json = await res.json().catch(() => null)
       if (!res.ok) {
+        const lifecycleConflict = [
+          'COACH_ASSIGNMENT_ROSTER_CONFLICT',
+          'COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP',
+        ].includes(json?.code)
         setErrorsBySlot((prev) => ({
           ...prev,
           [slot.key]: json?.error || 'บันทึกการแบ่งกลุ่มไม่สำเร็จ',
         }))
+        if (lifecycleConflict) {
+          setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: true }))
+          toast.warning('รายชื่อรอบเรียนเปลี่ยนแล้ว ระบบกำลังรีเฟรช กรุณาตรวจกลุ่มอีกครั้ง')
+          router.refresh()
+        }
         return
       }
 
-      const savedGroupsByLocalId = new Map(
-        nonEmptyGroups.map((group, index) => [group.localId, submittedGroups[index]]),
-      )
-      const savedDraftSignature = getGroupsSignature(submittedGroups)
+      const canonicalGroups = parseCanonicalAssignmentGroups(json?.canonicalGroups)
+      if (canonicalGroups.length === 0) {
+        setErrorsBySlot((prev) => ({
+          ...prev,
+          [slot.key]: 'บันทึกสำเร็จแต่โหลดผลลัพธ์ที่ยืนยันแล้วไม่ครบ กรุณารีเฟรชและตรวจสอบอีกครั้ง',
+        }))
+        setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: true }))
+        router.refresh()
+        return
+      }
+      const canonicalDrafts: GroupDraft[] = canonicalGroups.map((group) => ({
+        localId: group.id,
+        persistedId: group.id,
+        name: group.name,
+        coachId: group.coachId,
+        levelMin: group.levelMin,
+        levelMax: group.levelMax,
+        sortOrder: group.sortOrder,
+        studentSessionIds: [...group.studentSessionIds],
+      }))
+      const canonicalPersistedGroups: ExistingAssignmentGroup[] = canonicalGroups.map((group) => ({
+        ...group,
+        coachName: coaches.find((coach) => coach.id === group.coachId)?.name || null,
+        studentSessionIds: [...group.studentSessionIds],
+      }))
+      const savedDraftSignature = getGroupsSignature(canonicalDrafts)
+      draftBaselinesBySlotRef.current = {
+        ...draftBaselinesBySlotRef.current,
+        [slot.key]: canonicalDrafts,
+      }
+      persistedGroupsBySlotRef.current = {
+        ...persistedGroupsBySlotRef.current,
+        [slot.key]: canonicalPersistedGroups,
+      }
       setSavedSnapshotsBySlot((prev) => ({
         ...prev,
         [slot.key]: {
@@ -694,17 +814,10 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
       setDraftsBySlot((prev) => ({
         ...prev,
         [slot.key]: getGroupsSignature(prev[slot.key] || []) === requestDraftSignature
-          ? (prev[slot.key] || []).map((group) => {
-            const savedGroup = savedGroupsByLocalId.get(group.localId)
-            return savedGroup ? {
-              ...group,
-              name: savedGroup.name,
-              levelMin: savedGroup.levelMin,
-              levelMax: savedGroup.levelMax,
-            } : group
-          })
+          ? canonicalDrafts
           : (prev[slot.key] || []),
       }))
+      setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: false }))
       if (json?.warnings) toast.warning(json.warnings)
       toast.success('บันทึกการมอบหมายสำเร็จ')
       router.refresh()
@@ -1001,6 +1114,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                 const hasDuplicateCoaches = duplicateCoachIds.size > 0
                 const slotDraftState = getSlotDraftState(slot, slotGroups, savedSnapshotsBySlot[slot.key])
                 const isAssignmentLocked = slot.assignmentLocked
+                const hasServerLifecycleChange = Boolean(serverChangesBySlot[slot.key])
 
                 return (
                   <Card key={slot.key} className="overflow-hidden shadow-sm">
@@ -1043,7 +1157,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                             type="button"
                             size="sm"
                             onClick={() => saveSlot(slot)}
-                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved' || isAssignmentLocked}
+                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved' || isAssignmentLocked || hasServerLifecycleChange}
                             className="bg-[#2748bf] hover:bg-[#153c85]"
                           >
                             {savingKey === slot.key ? (
@@ -1064,6 +1178,16 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                       {isAssignmentLocked && (
                         <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                           {slot.assignmentLockReason || 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว จึงแสดงการมอบหมายแบบอ่านอย่างเดียว'}
+                        </div>
+                      )}
+
+                      {hasServerLifecycleChange && (
+                        <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+                          <span>รายชื่อรอบเรียนบน Server เปลี่ยนระหว่างที่กำลังแก้ฉบับร่าง ระบบเก็บฉบับร่างไว้ กรุณาตรวจและเลือกรายชื่อปัจจุบันก่อนบันทึก</span>
+                          <Button type="button" variant="outline" size="sm" onClick={() => acceptCurrentServerRoster(slot)}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            ใช้รายชื่อปัจจุบัน
+                          </Button>
                         </div>
                       )}
 

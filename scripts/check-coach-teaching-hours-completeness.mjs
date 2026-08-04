@@ -246,6 +246,18 @@ function createFixtureDatabase() {
   const noEligibleSlot = slot('no-eligible-slot', '2026-08-02')
   addExact({ id: 'no-eligible', coachId: 'coach-evidence', scheduleSlot: noEligibleSlot, sessionId: 'no-eligible-session', booking: { bookingStatus: 'pending_payment' } })
 
+  const emptyExactSlot = slot('empty-exact-slot', '2026-08-02', '13:00:00', '15:00:00')
+  tables.coach_assignment_groups.push(group('empty-exact-group', 'coach-empty', emptyExactSlot, []))
+  tables.coach_assignments.push(legacyAssignment('empty-exact-legacy', 'coach-empty', emptyExactSlot))
+
+  const allAbsentSlot = slot('all-absent-slot', '2026-08-02', '15:00:00', '17:00:00')
+  addExact({ id: 'all-absent-group', coachId: 'coach-absent', scheduleSlot: allAbsentSlot, sessionId: 'all-absent-session', booking: { status: 'absent' } })
+  tables.attendance.splice(
+    tables.attendance.findIndex((row) => row.booking_session_id === 'all-absent-session'),
+    1,
+    attendance('attendance-all-absent', 'all-absent-session', 'absent'),
+  )
+
   const legacySlot = slot('legacy-only-slot', '2026-07-26')
   tables.coach_assignments.push(legacyAssignment('legacy-only', 'coach-legacy', legacySlot))
   const legacySessions = [
@@ -323,6 +335,18 @@ await check('unverified booking produces an explicit excluded row with no eligib
   const row = sourceRead.rows.find((item) => item.assignment_id === 'no-eligible')
   assert.equal(row?.classification, 'excluded')
   assert.deepEqual(row?.evidence_reasons, ['no_eligible_learner'])
+})
+
+await check('truly empty exact group suppresses Legacy without creating a Payroll operational row', () => {
+  assert.equal(sourceRead.rows.some((row) => row.assignment_id === 'empty-exact-group'), false)
+  assert.equal(sourceRead.rows.some((row) => row.assignment_id === 'empty-exact-legacy'), false)
+})
+
+await check('all-absent exact membership remains legitimate assignment evidence', () => {
+  const row = sourceRead.rows.find((item) => item.assignment_id === 'all-absent-group')
+  assert.equal(row?.student_count, 1)
+  assert.equal(row?.absent_count, 1)
+  assert.equal(row?.classification, 'counted')
 })
 
 await check('missing evidence reasons remain deterministic and visible', () => {

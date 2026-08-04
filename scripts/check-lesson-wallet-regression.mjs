@@ -115,5 +115,17 @@ check('redeem path creates no payment, coupon, Ledger or Finance record', () => 
     assert.equal(redeemPath.includes(forbidden), false, forbidden)
   }
 })
+check('Wallet store retires only the source membership through the atomic lifecycle RPC', () => {
+  const storePath = route.slice(route.indexOf('async function storeInWallet'), route.indexOf('async function redeemWalletCredit'))
+  assert.equal(storePath.includes("rpc('retire_coach_assignment_membership_v1'"), true)
+  assert.equal(storePath.includes("p_reason: 'wallet_store'"), true)
+  assert.equal(storePath.includes("from('coach_assignment_groups').delete"), false)
+})
+check('Wallet redemption destination remains unassigned until Head Coach Save', () => {
+  const redeemPath = route.slice(route.indexOf('async function redeemWalletCredit'))
+  assert.equal(redeemPath.includes("from('coach_assignment_group_students').insert"), false)
+  assert.equal(redeemPath.includes("rpc('create_exact_coach_assignment_group_v1'"), false)
+  assert.match(redeemPath, /status: 'scheduled',[\s\S]*rescheduled_from_id: credit\.original_session_id/)
+})
 
 console.log(`\nLesson Wallet regression checks passed: ${passed}`)

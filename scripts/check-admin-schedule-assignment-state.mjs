@@ -187,7 +187,8 @@ check('Coach save success is immediate, duplicate-safe, and invalidated by draft
   assert.equal(assignmentClient.includes('savedSnapshot.draftSignature === draftSignature'), true)
   assert.equal(assignmentClient.includes('getGroupsSignature(prev[slot.key] || []) === requestDraftSignature'), true)
   assert.equal(assignmentClient.includes('if (json?.warnings) toast.warning(json.warnings)'), true)
-  assert.ok(assignmentClient.indexOf("toast.success('บันทึกการมอบหมายสำเร็จ')") < assignmentClient.indexOf('router.refresh()'))
+  assert.ok(assignmentClient.indexOf("toast.success('บันทึกการมอบหมายสำเร็จ')") < assignmentClient.lastIndexOf('router.refresh()'))
+  assert.ok(assignmentClient.indexOf("'COACH_ASSIGNMENT_ROSTER_CONFLICT'") < assignmentClient.indexOf('router.refresh()'))
   assert.equal(assignmentClient.includes('setTimeout('), false)
 })
 

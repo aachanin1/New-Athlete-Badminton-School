@@ -753,6 +753,7 @@ export async function getCoachTeachingHourSourceRead(
     const rawSessionIds = uniqueTruthyIds(orderedGroups.flatMap((group) => (
       group.coach_assignment_group_students || []
     ).map((student) => student.booking_session_id)))
+    if (rawSessionIds.length === 0) return
     const sessionIds = rawSessionIds.filter((sessionId) => payableGroupedSessionIds.has(sessionId))
     const duplicateAssignment = rawSessionIds.some((sessionId) => (
       (groupSessionMembershipCounts.get(`${first.schedule_slot_id}:${sessionId}`) || 0) > 1
