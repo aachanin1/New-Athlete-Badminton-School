@@ -28,9 +28,10 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
   today-forward `929/305`, full July 1-31 `1,415/437`, historical read-only lock,
   pending target-month message, `aria-busy`, both disabled month buttons,
   same-tick double-click guard, Back/Forward recovery, mobile `390×844`, desktop
-  `1440×900`, and zero console/hydration/error/fatal/5xx. Complete runtime path
-  grouping contained no API route; notification count remained `25,154`, delta
-  `0`. No protected write action ran.
+  `1440×900`, and zero console/hydration/error/fatal/5xx. Reported top runtime
+  path groups contained no API route; exact total/path inventory is Unknown
+  because raw enumeration hit `1,000`. Notification count remained `25,154`,
+  delta `0`. No protected write action ran.
 - Blocker: mandatory corrected-candidate Performance failed. Current 20-sample
   min/P50/P95/max was `5.875/6.379/7.683/10.636s`; July was
   `11.771/13.412/14.822/15.223s`. Both P95 values exceed `5s`, and current P95

@@ -12014,12 +12014,13 @@ alias, Promotion, or repair action was authorized or performed.
   and exceeded the absolute `5s` ceiling.
 - Corrected candidate July min/P50/P95/max was
   `11.771/13.412/14.822/15.223s`, also exceeding the absolute `5s` P95 ceiling.
-- Complete Vercel grouped runtime evidence for the bounded authenticated window
-  returned `1,211` records: visible status groups were `1,034` HTTP 200 and `177`
-  HTTP 304. Complete request-path groups included `136` Assignment routes and
-  only non-API Coach/sidebar-prefetch paths. Filtered HTTP 5xx, error, and fatal
-  counts were `0/0/0`. Raw log enumeration exceeded the `1,000` line cap, so it
-  was not misreported as complete; grouped server-side results were used instead.
+- Vercel server-side grouped visible buckets for the bounded authenticated window
+  returned at least `1,211` records: displayed status groups were `1,034` HTTP
+  200 and `177` HTTP 304. Reported top request-path groups included `136`
+  Assignment routes and only non-API Coach/sidebar-prefetch paths. Direct
+  filtered HTTP 5xx, error, and fatal counts were `0/0/0`. Raw log enumeration
+  exceeded the `1,000` line cap and grouped output is top-limited, so exact total
+  and complete path inventory are not reported.
 - Notifications remained `25,154 → 25,154`, delta `0`, during the bounded test
   window. Shared Coach layout sources
   `createCoachCheckinWindowNotifications` / `createCoachAttendanceGapNotifications`
@@ -12034,8 +12035,9 @@ alias, Promotion, or repair action was authorized or performed.
 - Authenticated RSC/document transferred bytes, exact wire bytes, and exact
   per-request Server metric are **Unknown**. No DOM-size proxy is labeled as wire
   bytes. Exact HTTP-method totals are also Unknown because the CLI query is
-  full-text only and raw enumeration hit `1,000`; complete path grouping showed
-  no API route, and the browser workflow invoked no write control.
+  full-text only and raw enumeration hit `1,000`; no API route appeared in the
+  reported top path groups, and the browser workflow invoked no write control.
+  Exact complete runtime total and path inventory are also **Unknown**.
 
 #### State Observed at This Safe Handoff
 

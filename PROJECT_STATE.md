@@ -76,9 +76,11 @@ all three visible assignment write actions and the active group-name input were
 disabled. Same-tick double-click moved July to August only once; loading status,
 target month, `aria-busy`, both disabled navigation buttons, recovery,
 Back/Forward, mobile `390×844`, desktop `1440×900`, console/hydration, and bounded
-error/fatal/5xx gates passed. Complete runtime path grouping returned `1,211`
-records, including `136` Assignment route records and no API route; filtered
-error/fatal/5xx counts were `0/0/0`.
+error/fatal/5xx gates passed. Server-side grouped visible buckets returned at
+least `1,211` runtime records, including `136` Assignment route records and no
+API route among the reported top path groups; direct filtered error/fatal/5xx
+counts were `0/0/0`. Exact complete runtime total/path inventory is Unknown
+because raw enumeration hit `1,000` and grouped output is top-limited.
 
 ## Historical / Superseded — Admin Payroll Accuracy + Performance
 
