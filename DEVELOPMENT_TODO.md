@@ -11825,3 +11825,137 @@ Active Task remains **ASSIGNMENT GROUP LIFECYCLE INTEGRITY**. Next Action:
 **Owner decides between accepting a documented current-month performance/volume
 exception for full-month behavior, or changing the current-month semantics/scope;
 do not deploy, Promote, alias, mutate data, or start another task automatically**.
+
+### 2026-08-04 — Assignment Lifecycle Today-Forward + Complete Pagination Safe Handoff
+
+This dated record supersedes the immediately preceding Assignment Group safe
+handoff. Owner approved Bangkok today-forward for the selected current month,
+full historical/future selected months, complete reads beyond 1,000 rows, and a
+navigation pending/double-click guard. Work remained Source-only/SELECT-only and
+never authorized Promotion before exact-artifact Owner PASS.
+
+#### Fact — Gate 0, Audit, and Root Cause
+
+- Fresh Gate 0 matched the expected branch and Source exactly: branch
+  `spike/next-major-security-upgrade`, starting HEAD/upstream
+  `bfe8abe82d5912124aef91053a58353a4a0c0d49`, ahead/behind `0/0`, and only the
+  protected pre-existing stat-dirty `src/lib/schedule-slot-utils.ts`. That file
+  remained SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`, index
+  blob `4521281d099efb189429a744909552d67871ff23`, and was never edited/staged.
+- Migration Source remained
+  `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`,
+  SHA-256
+  `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+  Existing B-tree `idx_booking_sessions_date` was confirmed. No migration/config/
+  schema/RLS/grant/function/trigger command ran.
+- Source Root Cause was three-part: the selected current month started at day 1;
+  the primary `booking_sessions` read had no range pagination despite Supabase
+  `max_rows = 1000`; and month buttons called `router.push()` without a pending
+  state or synchronous repeated-click lock. Current official Supabase select,
+  range, and order documentation confirmed a default 1,000-row cap, inclusive
+  zero-based range pagination, and order-dependent range semantics.
+- Complete SELECT-only audit returned July roster `1,415` learner-sessions /
+  `437` slots / `2` pages, August 4-forward `929/305/1`, and full August
+  `1,098/354/2`. July top-level Legacy/groups/embedded memberships/student levels
+  were `576/595/1,412/512`, below the cap. July coach history was a separate
+  request-size/completeness risk: `2,520` session rows / `806` slots, child/adult
+  pages `3+1`, Legacy `1,083` rows, and exact-boundary `1,107` rows.
+
+#### Fact — Regression-First Source and Bounded Correction
+
+- Regression-first source-only execution failed on the missing today-forward
+  assertion before Source correction. Source now computes Bangkok today/current
+  month once, uses today only when selected month equals the Bangkok current
+  month, otherwise month start, and always uses exclusive next-month start.
+  Invalid/missing month falls back to current today-forward.
+- Primary and coach-memory `booking_sessions` reads use exact counts, page size
+  `1,000`, bounded maximum pages, stable `date -> start_time -> id` ordering for
+  the roster and stable secondary `id` ordering for memory, and fail closed on
+  query error, missing/inconsistent count, early completion, duplicate session
+  ID, count drift, or exceeded bounds. A short first page creates no fixed second
+  roster request.
+- Client navigation uses React transition state plus a synchronous ref lock,
+  visible `กำลังโหลดข้อมูลเดือน...`, `aria-busy`, polite live status, and both
+  month buttons disabled during save/navigation. Existing dirty-draft and active-
+  Save guards, historical lock, lifecycle reconciliation, no Client fetch/
+  Supabase read, and protected Reschedule/Wallet/Attendance/Payroll semantics
+  remain unchanged.
+- First functional/test commit
+  `dd2595ebdb0eebc430f8ea4ac8e6eddac2ed35f9` staged artifact
+  `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`. Current month rendered correctly, but July
+  failed closed with an oversized coach-history Legacy `.in(schedule_slot_id)`
+  request. This artifact is rejected for UAT/Promotion.
+- Bounded correction 1 added non-overlapping, deduplicated 100-ID batches only
+  when a supporting `.in` collection exceeds 100; short supporting reads retain
+  one call. It bounds batch dimensions/count, requests exact counts, and fails
+  closed on any incomplete/error result. July SELECT-only proof returned Legacy
+  `1,083/9` batches, exact-boundary `1,107/9`, exact membership `2,508/26`, and
+  wallet provenance `30/3` from `296` candidates. This is bounded collection
+  batching, not a query per slot/student/group and not N+1.
+
+#### Fact — Verification, Git, and Artifacts
+
+- Final deterministic rerun passed lifecycle source-only `28/28`, Admin Schedule
+  assignment `38/38`, Admin Schedules performance `24/24`, Lesson Wallet `19/19`,
+  Coach Teaching Hours `20/20`, and Assignment Resolution `33/33`: `162` total.
+  TypeScript, zero-warning ESLint, mojibake over `253` files, Next.js 16.2.6
+  build/static generation `91/91`, post-build `.next` cleanup/dev restart,
+  root/health/CSS/auth smoke, and staged/unstaged diff checks passed.
+- Functional/Test scope is exactly `2/1` files, `405` insertions / `41` deletions
+  from starting Source. Package/API/config/migration delta, DB fixture/write,
+  Production write, feature/environment/allowlist change, Scope Expansion, and
+  Scope Breach are all `0` or No.
+- Functional/test commits
+  `dd2595ebdb0eebc430f8ea4ac8e6eddac2ed35f9` and
+  `b9b2bd7094080c3d1aa4710b1acd8922054421a1` were normally pushed; branch Source
+  was `0/0`. Corrected clean-worktree Production-target artifact
+  `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`, URL
+  `https://new-athlete-badminton-school-81fhn33yl-aachanin1s-projects.vercel.app`,
+  is `READY`, exact Source metadata, `icn1`, aliases `[]`, unpromoted. Root,
+  health, login, CSS, and unauthenticated Assignment protection passed; bounded
+  unauthenticated error/fatal/5xx logs were zero.
+- Older blocked/rejected artifacts
+  `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm` and
+  `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ`, plus runtime-failed
+  `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`, remain evidence only and must never be
+  Promoted. Current Production remains
+  `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+  `03d08a93e77189d56b733bda009d9526400fa9b3`.
+
+#### Fact / Unknown — Browser and Performance Hard Stop
+
+- Authenticated client-identical artifact evidence showed current 4-31 August
+  exactly `929` learner-sessions / `305` slots, one same-tick double-click moving
+  only to September, visible pending status, `aria-busy=true`, both buttons
+  disabled during navigation, clean recovery afterward, correct empty September
+  controls/state, desktop/mobile controls without horizontal overflow, and zero
+  warnings/errors in a clean client tab. No Save or protected-domain action ran.
+- The corrected candidate unique origin redirected to login and had no reusable
+  authenticated Head Coach session. Historical July UI/completeness/read-only,
+  browser Back/Forward, candidate console/hydration, desktop/mobile candidate,
+  and 20-sample candidate current/July metrics are therefore **Unknown / Need
+  verification**. Authenticated RSC/document wire bytes and exact Server metric
+  are Unknown; no DOM proxy is mislabeled as wire bytes.
+- A valid 20-sample warm current/today-forward comparison artifact with stable
+  `929/305` population measured min/P50/P95/max
+  `5.874/6.215/6.918/7.573s`. Its P95 exceeds the mandatory absolute `5s` ceiling.
+  Candidate comparison cannot be calculated without authenticated samples.
+
+#### State Observed at This Safe Handoff
+
+Source Complete **Yes for scoped Source**; Tests Passed **Yes**; Performance Gate
+**Not passed**; Committed/Pushed **Yes/Yes**; corrected staged artifact
+**READY/unaliased but not READY FOR OWNER UAT**; Owner/Production UAT **Not run**;
+Promoted/Production Active **No/No for this task**; Migration retained with no
+task change; Environment/Feature/Allowlist **unchanged**; Controlled Write UAT
+**Not run/prohibited**; DB fixture/write **0/0**; Production Data Changed/Data
+Repaired **No/No**; Customer/Financial Impact **None/None**; Scope Expansion/
+Breach **No/No**; Documentation Drift **No after publication**; Task Done **No**.
+
+Material Hard Stop: Owner must sign in on the corrected unique URL and ask
+Developer Codex to resume exact-artifact read-only verification, or explicitly
+change the performance contract. If the corrected artifact still exceeds the
+5-second P95 ceiling, stop for Owner decision. Never Promote or alias without
+Owner PASS on exact artifact `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM` / exact Source
+`b9b2bd7094080c3d1aa4710b1acd8922054421a1`.

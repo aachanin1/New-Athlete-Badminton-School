@@ -11,23 +11,32 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 **ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP.**
 
-- The historical-month Source correction is committed and pushed at
-  `4102cc51e1d95257a43b0c10abb54e5627890df9`. New staged Production artifact
-  `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm` is `READY`, exact-SHA, `icn1`, and unaliased,
-  but it is blocked from Owner UAT and Promotion.
-- Mandatory performance gate failed: the required full August range includes
-  real 1-3 August data, increasing learner-session rows `929 -> 1000`, slots
-  `305 -> 325`, rendered-document proxy `1,060,368 -> 1,150,070` chars, and
-  identical-sampler warm P50/P95 `3.107/3.593s -> 3.531/4.281s`.
-- July historical navigation itself is correct and read-only: `315` slots,
-  `1000` learner-sessions, warm P95 `4.551s`, past controls locked. Empty September
-  retained month controls and loaded at P95 `1.294s`.
-- Blocker: removing the additional current-month rows would violate the approved
-  first-day-to-next-month range. Owner must choose either a documented performance
-  exception for full-month behavior or changed current-month semantics/scope.
-- `PROJECT_STATE.md` is authoritative for exact Git, staged/Production identity,
-  tests, controls, data, and impact state. Do not Promote, alias, redeploy, alter
-  Source, or start another task automatically.
+- Owner amended current-month semantics to Bangkok today-forward and retained
+  full historical/future months. Scoped Source is committed/pushed through
+  `b9b2bd7094080c3d1aa4710b1acd8922054421a1`; deterministic checks pass `162`
+  assertions plus TypeScript, lint, mojibake, build, dev/static smoke, and diff.
+- Complete SELECT-only evidence is July `1,415` learner-sessions / `437` slots /
+  `2` pages, August today-forward `929/305/1`, and August full audit `1,098/354/2`.
+  The bounded correction chunks 806 July history slots into 100-ID supporting
+  batches and avoids the oversized request that failed the first new artifact.
+- Corrected exact-SHA candidate `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM` is
+  `production/READY`, `icn1`, aliases `[]`, and unpromoted. Root/health/login/CSS/
+  auth-redirect and bounded unauthenticated logs pass. Current Production is
+  unchanged. The prior runtime-failed candidate and both older blocked/rejected
+  artifacts must never be Promoted.
+- Client-identical authenticated evidence passed current 4-31 August population,
+  pending message, `aria-busy`, two disabled month buttons, same-tick double-click
+  guard, empty September, responsive desktop/mobile, and clean client console.
+  It does not substitute for corrected-candidate server UAT.
+- Blocker: the corrected unique origin requires fresh Head Coach login. Its
+  historical UI/completeness, Back/Forward, candidate performance, console/
+  hydration, and desktop/mobile candidate gates are not verified. The available
+  20-sample current/today-forward comparison already measured P50/P95/max
+  `6.215/6.918/7.573s`, above the absolute P95 `5s` ceiling.
+- Next action: Owner signs in at the corrected candidate URL and asks Developer
+  Codex to resume exact-artifact read-only verification, or explicitly changes
+  the performance contract. `PROJECT_STATE.md` is authoritative. Do not Promote,
+  alias, mutate data, alter Source, or start another task automatically.
 
 ## Recently Completed
 
