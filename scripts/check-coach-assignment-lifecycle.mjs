@@ -21,6 +21,7 @@ import {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
+const sourceOnly = process.argv.includes('--source-only')
 let passed = 0
 
 async function check(name, action) {
@@ -37,6 +38,74 @@ const walletRoute = read('src/app/api/lesson-wallet/route.ts')
 const teachingHours = read('src/lib/coach-teaching-hours.ts')
 const migration = read('supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql')
 const v1Migration = read('supabase/migrations/20260717070225_coach_assignment_conflict_guards.sql')
+
+await check('assignment page reads a canonical selected month from Promise searchParams', () => {
+  assert.match(assignmentPage, /searchParams\?: Promise<\{[\s\S]*month\?: string \| string\[\]/)
+  assert.match(assignmentPage, /const resolvedSearchParams = searchParams \? await searchParams : \{\}/)
+  assert.match(assignmentPage, /parseAssignmentMonth\(resolvedSearchParams\.month, now\)/)
+  assert.match(assignmentPage, /getBangkokDateString\(now\)\.slice\(0, 7\)/)
+})
+
+await check('selected month uses an exact half-open booking-session date range', () => {
+  assert.match(assignmentPage, /const \{ monthStart, nextMonthStart \} = getAssignmentMonthRange\(selectedMonth\)/)
+  assert.match(assignmentPage, /\.gte\('date', monthStart\)[\s\S]*\.lt\('date', nextMonthStart\)/)
+  assert.doesNotMatch(assignmentPage, /\.gte\('date', today\)/)
+})
+
+await check('month validation accepts YYYY-MM only with month 01 through 12', () => {
+  assert.equal(assignmentPage.includes("const ASSIGNMENT_MONTH_PATTERN = /^\\d{4}-(?:0[1-9]|1[0-2])$/"), true)
+  assert.match(assignmentPage, /typeof value === 'string'[\s\S]*ASSIGNMENT_MONTH_PATTERN\.test\(value\)/)
+})
+
+await check('client month navigation is canonical, URL-driven, and timezone-stable across years', () => {
+  assert.match(assignmentClient, /selectedMonth: string/)
+  assert.match(assignmentClient, /router\.push\(`\/coach\/assign-groups\?month=\$\{nextMonth\}`\)/)
+  assert.doesNotMatch(assignmentClient, /\[selectedMonth, setSelectedMonth\] = useState/)
+  assert.match(assignmentClient, /const absoluteMonth = year \* 12 \+ \(month - 1\) \+ direction/)
+  assert.match(assignmentClient, /const nextYear = Math\.floor\(absoluteMonth \/ 12\)/)
+
+  const shift = (monthKey, direction) => {
+    const [year, month] = monthKey.split('-').map(Number)
+    const absoluteMonth = year * 12 + (month - 1) + direction
+    const nextYear = Math.floor(absoluteMonth / 12)
+    const nextMonth = absoluteMonth - nextYear * 12 + 1
+    return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
+  }
+  assert.equal(shift('2026-12', 1), '2027-01')
+  assert.equal(shift('2026-01', -1), '2025-12')
+})
+
+await check('month controls and selected-month empty state render even with zero rows', () => {
+  assert.match(assignmentClient, /data-assignment-month-controls/)
+  assert.doesNotMatch(assignmentClient, /groupedByDateAll\.length > 0 &&/)
+  assert.match(assignmentClient, /ยังไม่มีรอบเรียนสำหรับ \{formatMonth\(selectedMonth\)\}/)
+})
+
+await check('month navigation fails closed for edited drafts and active Save without calling a write endpoint', () => {
+  const navigationStart = assignmentClient.indexOf('const navigateMonth')
+  const navigationEnd = assignmentClient.indexOf('const updateSlotGroups')
+  assert.ok(navigationStart >= 0 && navigationEnd > navigationStart)
+  const navigationSource = assignmentClient.slice(navigationStart, navigationEnd)
+  assert.match(navigationSource, /if \(savingKey\)/)
+  assert.match(navigationSource, /if \(hasEditedDraft\)/)
+  assert.match(navigationSource, /toast\.warning/)
+  assert.doesNotMatch(navigationSource, /fetch\(|method: 'POST'/)
+})
+
+await check('month selection adds no client Supabase read or prefetch', () => {
+  assert.doesNotMatch(assignmentClient, /createClient\(|\.from\('booking_sessions'\)|prefetch\(/)
+})
+
+await check('historical assignment slots retain the existing read-only lock', () => {
+  assert.match(assignmentPage, /assignmentLocked: Boolean\(getAssignmentLockReason\(session\.date, session\.start_time, now\)\)/)
+  assert.match(assignmentClient, /const isAssignmentLocked = slot\.assignmentLocked/)
+  assert.match(assignmentClient, /disabled=\{isAssignmentLocked\}/)
+})
+
+await check('Reschedule and Wallet notifications keep canonical assignment-month links', () => {
+  assert.match(rescheduleRoute, /\/coach\/assign-groups\?month=\$\{targetDate\.slice\(0, 7\)\}/)
+  assert.match(walletRoute, /\/coach\/assign-groups\?month=\$\{monthKey\((?:session\.date|targetDate)\)\}/)
+})
 
 await check('assignment roster retains absent learners', () => {
   assert.match(
@@ -186,6 +255,12 @@ await check('canonical database snapshot parser keeps IDs needed for audit recon
   }])
 })
 
+if (sourceOnly) {
+  await check('source-only mode stops before Local Supabase identity and fixture setup', () => {
+    assert.equal(sourceOnly, true)
+  })
+  console.log(`\nCoach assignment lifecycle source-only checks passed: ${passed}`)
+} else {
 function localEnvironment() {
   const output = execSync('npx.cmd --yes supabase@2.111.0 status -o env', {
     cwd: root,
@@ -524,3 +599,4 @@ await check('fixture cleanup leaves no lifecycle residue', async () => {
 })
 
 console.log(`\nCoach assignment lifecycle checks passed: ${passed}`)
+}

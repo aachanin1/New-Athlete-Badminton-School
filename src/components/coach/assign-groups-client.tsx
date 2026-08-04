@@ -129,6 +129,7 @@ interface AssignGroupsClientProps {
   coaches: CoachOption[]
   slots: AssignmentSlot[]
   currentUserId?: string
+  selectedMonth: string
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -443,15 +444,17 @@ function getMonthKey(date: string) {
 
 function shiftMonth(monthKey: string, direction: -1 | 1) {
   const [year, month] = monthKey.split('-').map(Number)
-  const value = new Date(year, month - 1 + direction, 1)
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`
+  const absoluteMonth = year * 12 + (month - 1) + direction
+  const nextYear = Math.floor(absoluteMonth / 12)
+  const nextMonth = absoluteMonth - nextYear * 12 + 1
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`
 }
 
 function formatMonth(monthKey: string) {
   return formatThaiMonthYear(`${monthKey}-01`)
 }
 
-export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGroupsClientProps) {
+export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMonth }: AssignGroupsClientProps) {
   const router = useRouter()
   const [draftsBySlot, setDraftsBySlot] = useState<Record<string, GroupDraft[]>>(() => createInitialDraftMap(slots))
   const [initialPersistedGroups] = useState(() => createPersistedGroupMap(slots))
@@ -461,7 +464,6 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
   const [errorsBySlot, setErrorsBySlot] = useState<Record<string, string>>({})
   const [selectedDate, setSelectedDate] = useState(() => slots[0]?.date || '')
   const [selectedSlotKey, setSelectedSlotKey] = useState('')
-  const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(slots[0]?.date || new Date().toISOString().slice(0, 10)))
   const [statusFilter, setStatusFilter] = useState<AssignmentStatusFilter>('all')
   const draftsBySlotRef = useRef(draftsBySlot)
   const draftBaselinesBySlotRef = useRef(draftsBySlot)
@@ -588,6 +590,26 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
 
   const activeSlot = activeDateSlots.find((slot) => slot.key === selectedSlotKey) || activeDateSlots[0] || null
   const activeDateSummary = dateSummaries.find((date) => date.date === activeDate)
+
+  const navigateMonth = (direction: -1 | 1) => {
+    if (savingKey) {
+      toast.warning('กำลังบันทึกการมอบหมาย กรุณารอให้บันทึกเสร็จก่อนเปลี่ยนเดือน')
+      return
+    }
+    const hasEditedDraft = slots.some((slot) => (
+      getGroupsSignature(draftsBySlot[slot.key] || [])
+      !== getGroupsSignature(draftBaselinesBySlotRef.current[slot.key] || [])
+    )) || Object.values(serverChangesBySlot).some(Boolean)
+    if (hasEditedDraft) {
+      toast.warning('มีการแบ่งกลุ่มที่ยังไม่ได้บันทึก กรุณาบันทึกหรือคืนค่าฉบับร่างก่อนเปลี่ยนเดือน')
+      return
+    }
+
+    const nextMonth = shiftMonth(selectedMonth, direction)
+    setSelectedDate('')
+    setSelectedSlotKey('')
+    router.push(`/coach/assign-groups?month=${nextMonth}`)
+  }
 
   const updateSlotGroups = (slotKey: string, updater: (groups: GroupDraft[]) => GroupDraft[]) => {
     setDraftsBySlot((prev) => ({
@@ -883,8 +905,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
         </div>
       )}
 
-      {groupedByDateAll.length > 0 && (
-        <Card className="shadow-sm">
+      <Card className="shadow-sm" data-assignment-month-controls>
           <CardContent className="space-y-4 p-4">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -900,11 +921,9 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
-                    onClick={() => {
-                      setSelectedMonth((current) => shiftMonth(current, -1))
-                      setSelectedDate('')
-                      setSelectedSlotKey('')
-                    }}
+                    aria-label={`เดือนก่อนหน้า ${formatMonth(shiftMonth(selectedMonth, -1))}`}
+                    disabled={Boolean(savingKey)}
+                    onClick={() => navigateMonth(-1)}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -914,11 +933,9 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
-                    onClick={() => {
-                      setSelectedMonth((current) => shiftMonth(current, 1))
-                      setSelectedDate('')
-                      setSelectedSlotKey('')
-                    }}
+                    aria-label={`เดือนถัดไป ${formatMonth(shiftMonth(selectedMonth, 1))}`}
+                    disabled={Boolean(savingKey)}
+                    onClick={() => navigateMonth(1)}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -1020,14 +1037,14 @@ export function AssignGroupsClient({ coaches, slots, currentUserId }: AssignGrou
               })}
             </div>
           </CardContent>
-        </Card>
-      )}
+      </Card>
 
       {groupedByDateAll.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-gray-400">
             <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
-            <p className="font-medium">ยังไม่มีรอบเรียนให้มอบหมายกลุ่ม</p>
+            <p className="font-medium">ยังไม่มีรอบเรียนสำหรับ {formatMonth(selectedMonth)}</p>
+            <p className="mt-1 text-sm">ใช้ปุ่มเดือนก่อนหน้าหรือเดือนถัดไปเพื่อดูรอบเรียนเดือนอื่น</p>
           </CardContent>
         </Card>
       ) : dateSummaries.length === 0 ? (

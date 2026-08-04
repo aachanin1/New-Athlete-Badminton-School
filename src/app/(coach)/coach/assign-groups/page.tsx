@@ -128,6 +128,32 @@ interface AssignmentSlotForClient {
   assignmentGroups: ExistingAssignmentGroupForClient[]
 }
 
+interface AssignGroupsPageProps {
+  searchParams?: Promise<{
+    month?: string | string[]
+  }>
+}
+
+const ASSIGNMENT_MONTH_PATTERN = /^\d{4}-(?:0[1-9]|1[0-2])$/
+
+function parseAssignmentMonth(value: string | string[] | undefined, now: Date) {
+  const currentBangkokMonth = getBangkokDateString(now).slice(0, 7)
+  return typeof value === 'string' && ASSIGNMENT_MONTH_PATTERN.test(value)
+    ? value
+    : currentBangkokMonth
+}
+
+function getAssignmentMonthRange(monthKey: string) {
+  const [year, month] = monthKey.split('-').map(Number)
+  const nextYear = month === 12 ? year + 1 : year
+  const nextMonth = month === 12 ? 1 : month + 1
+
+  return {
+    monthStart: `${monthKey}-01`,
+    nextMonthStart: `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`,
+  }
+}
+
 function getStudentRef(session: SessionRow) {
   const id = session.child_id || session.bookings?.user_id
   if (!id) return null
@@ -183,7 +209,11 @@ function getAssignmentLockReason(date: string, startTime: string, now = new Date
   return 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว การมอบหมายย้อนหลังต้องเข้าทาง flow ตรวจสอบ attendance gap'
 }
 
-export default async function AssignGroupsPage() {
+export default async function AssignGroupsPage({ searchParams }: AssignGroupsPageProps) {
+  const now = new Date()
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const selectedMonth = parseAssignmentMonth(resolvedSearchParams.month, now)
+  const { monthStart, nextMonthStart } = getAssignmentMonthRange(selectedMonth)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -253,8 +283,6 @@ export default async function AssignGroupsPage() {
     coaches = Array.from(coachMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'th'))
   }
 
-  const now = new Date()
-  const today = getBangkokDateString(now)
   let sessionRows: SessionRow[] = []
 
   if (branchIds.length > 0) {
@@ -268,7 +296,8 @@ export default async function AssignGroupsPage() {
           course_types(name)
         )
       `)
-      .gte('date', today)
+      .gte('date', monthStart)
+      .lt('date', nextMonthStart)
       .in('branch_id', branchIds)
       .in('status', ['scheduled', 'completed', 'absent'])
       .eq('bookings.status', 'verified')
@@ -476,5 +505,12 @@ export default async function AssignGroupsPage() {
       : null
   })
 
-  return <AssignGroupsClient coaches={coaches} slots={slots} currentUserId={user.id} />
+  return (
+    <AssignGroupsClient
+      coaches={coaches}
+      slots={slots}
+      currentUserId={user.id}
+      selectedMonth={selectedMonth}
+    />
+  )
 }
