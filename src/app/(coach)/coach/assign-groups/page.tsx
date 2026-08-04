@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation'
 
 import { AssignGroupsClient } from '@/components/coach/assign-groups-client'
-import { requireCoachAssignmentQueryData } from '@/lib/coach-assignment-resolution'
+import {
+  CoachAssignmentDataUnavailableError,
+  requireCoachAssignmentQueryData,
+} from '@/lib/coach-assignment-resolution'
 import { getCoachMemoryKey, getCoachStudentMemoryMap, type CoachMemoryEntry } from '@/lib/coach-student-memory'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
@@ -135,9 +138,219 @@ interface AssignGroupsPageProps {
 }
 
 const ASSIGNMENT_MONTH_PATTERN = /^\d{4}-(?:0[1-9]|1[0-2])$/
+const ASSIGNMENT_SESSION_PAGE_SIZE = 1000
+const ASSIGNMENT_SESSION_MAX_PAGES = 100
 
-function parseAssignmentMonth(value: string | string[] | undefined, now: Date) {
-  const currentBangkokMonth = getBangkokDateString(now).slice(0, 7)
+interface BookingSessionPageResult<T> {
+  data: T[] | null
+  error: { message: string } | null
+  count: number | null
+}
+
+type DynamicQueryMethod = 'eq' | 'in' | 'is' | 'lte' | 'neq' | 'order'
+
+interface DynamicQueryResult {
+  data: Array<{ id?: string } & Record<string, unknown>> | null
+  error: { message: string } | null
+  count: number | null
+}
+
+interface DynamicQuery extends PromiseLike<DynamicQueryResult> {
+  eq: (...args: unknown[]) => DynamicQuery
+  in: (...args: unknown[]) => DynamicQuery
+  is: (...args: unknown[]) => DynamicQuery
+  lte: (...args: unknown[]) => DynamicQuery
+  neq: (...args: unknown[]) => DynamicQuery
+  order: (...args: unknown[]) => DynamicQuery
+  range: (from: number, to: number) => DynamicQuery
+}
+
+interface DynamicSupabaseClient {
+  from: (table: string) => {
+    select: (columns: string, options?: { count: 'exact' }) => DynamicQuery
+  }
+}
+
+async function collectCompleteBookingSessionPages<T extends { id: string }>(options: {
+  context: string
+  loadPage: (pageStart: number, pageEnd: number) => Promise<BookingSessionPageResult<T>>
+}) {
+  const rows: T[] = []
+  const seenSessionIds = new Set<string>()
+  let expectedTotal: number | null = null
+
+  for (let pageIndex = 0; pageIndex < ASSIGNMENT_SESSION_MAX_PAGES; pageIndex += 1) {
+    const pageStart = pageIndex * ASSIGNMENT_SESSION_PAGE_SIZE
+    const pageEnd = pageStart + ASSIGNMENT_SESSION_PAGE_SIZE - 1
+    const result = await options.loadPage(pageStart, pageEnd)
+
+    if (result.error) {
+      throw new CoachAssignmentDataUnavailableError(options.context, result.error.message)
+    }
+    if (!Array.isArray(result.data)) {
+      throw new CoachAssignmentDataUnavailableError(options.context, 'query returned no row payload')
+    }
+    if (!Number.isInteger(result.count) || Number(result.count) < 0) {
+      throw new CoachAssignmentDataUnavailableError(options.context, 'exact row count was unavailable')
+    }
+    if (expectedTotal === null) {
+      expectedTotal = result.count
+    } else if (expectedTotal !== result.count) {
+      throw new CoachAssignmentDataUnavailableError(options.context, 'row count changed during pagination')
+    }
+
+    const pageRows = result.data
+    for (const row of pageRows) {
+      if (seenSessionIds.has(row.id)) {
+        throw new CoachAssignmentDataUnavailableError(options.context, 'duplicate booking_session id during pagination')
+      }
+      seenSessionIds.add(row.id)
+      rows.push(row)
+    }
+
+    if (pageRows.length < ASSIGNMENT_SESSION_PAGE_SIZE) {
+      if (rows.length !== expectedTotal) {
+        throw new CoachAssignmentDataUnavailableError(options.context, 'pagination ended before the exact row count')
+      }
+      return rows
+    }
+  }
+
+  throw new CoachAssignmentDataUnavailableError(options.context, 'exceeded bounded pagination')
+}
+
+async function loadAssignmentSessionRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  branchIds: string[],
+  queryStart: string,
+  queryEnd: string,
+) {
+  return collectCompleteBookingSessionPages<SessionRow>({
+    context: 'Head Coach assignment learner roster query failed',
+    loadPage: async (pageStart, pageEnd) => supabase
+      .from('booking_sessions')
+      .select(`
+        id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status,
+        children(full_name, nickname),
+        bookings!inner(user_id, course_type_id, status,
+          profiles!bookings_user_id_fkey(full_name),
+          course_types(name)
+        )
+      `, { count: 'exact' })
+      .gte('date', queryStart)
+      .lt('date', queryEnd)
+      .in('branch_id', branchIds)
+      .in('status', ['scheduled', 'completed', 'absent'])
+      .eq('bookings.status', 'verified')
+      .neq('status', 'rescheduled')
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true })
+      .order('id', { ascending: true })
+      .range(pageStart, pageEnd) as unknown as Promise<BookingSessionPageResult<SessionRow>>,
+  })
+}
+
+function applyDynamicQueryOperation(
+  query: DynamicQuery,
+  operation: { method: DynamicQueryMethod; args: unknown[] },
+) {
+  if (operation.method === 'eq') return query.eq(...operation.args)
+  if (operation.method === 'in') return query.in(...operation.args)
+  if (operation.method === 'is') return query.is(...operation.args)
+  if (operation.method === 'lte') return query.lte(...operation.args)
+  if (operation.method === 'neq') return query.neq(...operation.args)
+  return query.order(...operation.args)
+}
+
+function createCompleteBookingSessionQuery(
+  supabase: DynamicSupabaseClient,
+  columns: string,
+) {
+  const operations: Array<{ method: DynamicQueryMethod; args: unknown[] }> = []
+
+  const load = async () => collectCompleteBookingSessionPages({
+    context: 'Coach memory booking-session query failed',
+    loadPage: async (pageStart, pageEnd) => {
+      let query = supabase
+        .from('booking_sessions')
+        .select(columns, { count: 'exact' })
+      for (const operation of operations) {
+        query = applyDynamicQueryOperation(query, operation)
+      }
+      return query
+        .order('id', { ascending: true })
+        .range(pageStart, pageEnd) as unknown as Promise<BookingSessionPageResult<{ id: string } & Record<string, unknown>>>
+    },
+  })
+
+  const queryProxy = new Proxy({} as DynamicQuery, {
+    get(_target, property) {
+      if (property === 'then') {
+        return (onFulfilled: ((value: DynamicQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
+          load()
+            .then((data) => ({ data, error: null, count: data.length }))
+            .then(onFulfilled, onRejected)
+        )
+      }
+      if (typeof property === 'string' && ['eq', 'in', 'is', 'lte', 'neq', 'order'].includes(property)) {
+        return (...args: unknown[]) => {
+          operations.push({ method: property as DynamicQueryMethod, args })
+          return queryProxy
+        }
+      }
+      return undefined
+    },
+  })
+
+  return queryProxy
+}
+
+function createCompletenessCheckedQuery(query: DynamicQuery, context: string): DynamicQuery {
+  return new Proxy(query, {
+    get(target, property) {
+      if (property === 'then') {
+        return (onFulfilled: ((value: DynamicQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
+          Promise.resolve(query)
+            .then((result) => {
+              if (!result.error && (!Array.isArray(result.data) || result.count !== result.data.length)) {
+                throw new CoachAssignmentDataUnavailableError(context, 'supporting query was incomplete')
+              }
+              return result
+            })
+            .then(onFulfilled, onRejected)
+        )
+      }
+
+      const value = Reflect.get(target, property, target)
+      if (typeof value !== 'function') return value
+      return (...args: unknown[]) => createCompletenessCheckedQuery(
+        Reflect.apply(value, target, args) as DynamicQuery,
+        context,
+      )
+    },
+  })
+}
+
+function createCompleteCoachMemoryReadClient(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const dynamicSupabase = supabase as unknown as DynamicSupabaseClient
+  return {
+    from(table: string) {
+      return {
+        select(columns: string) {
+          if (table === 'booking_sessions') {
+            return createCompleteBookingSessionQuery(dynamicSupabase, columns)
+          }
+          const query = dynamicSupabase.from(table).select(columns, { count: 'exact' })
+          return createCompletenessCheckedQuery(query, `Coach memory ${table} query failed`)
+        },
+      }
+    },
+  }
+}
+
+function parseAssignmentMonth(value: string | string[] | undefined, currentBangkokMonth: string) {
   return typeof value === 'string' && ASSIGNMENT_MONTH_PATTERN.test(value)
     ? value
     : currentBangkokMonth
@@ -211,9 +424,14 @@ function getAssignmentLockReason(date: string, startTime: string, now = new Date
 
 export default async function AssignGroupsPage({ searchParams }: AssignGroupsPageProps) {
   const now = new Date()
+  const bangkokToday = getBangkokDateString(now)
+  const currentBangkokMonth = bangkokToday.slice(0, 7)
   const resolvedSearchParams = searchParams ? await searchParams : {}
-  const selectedMonth = parseAssignmentMonth(resolvedSearchParams.month, now)
+  const selectedMonth = parseAssignmentMonth(resolvedSearchParams.month, currentBangkokMonth)
   const { monthStart, nextMonthStart } = getAssignmentMonthRange(selectedMonth)
+  const queryStart = selectedMonth === currentBangkokMonth
+    ? bangkokToday
+    : monthStart
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -286,32 +504,12 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
   let sessionRows: SessionRow[] = []
 
   if (branchIds.length > 0) {
-    const result = await supabase
-      .from('booking_sessions')
-      .select(`
-        id, date, start_time, end_time, branch_id, child_id, schedule_slot_id, status,
-        children(full_name, nickname),
-        bookings!inner(user_id, course_type_id, status,
-          profiles!bookings_user_id_fkey(full_name),
-          course_types(name)
-        )
-      `)
-      .gte('date', monthStart)
-      .lt('date', nextMonthStart)
-      .in('branch_id', branchIds)
-      .in('status', ['scheduled', 'completed', 'absent'])
-      .eq('bookings.status', 'verified')
-      .neq('status', 'rescheduled')
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true }) as unknown as {
-        data: SessionRow[] | null
-        error: { message: string } | null
-      }
-
-    sessionRows = requireCoachAssignmentQueryData(
-      result,
-      'Head Coach assignment learner roster query failed',
-    ) || []
+    sessionRows = await loadAssignmentSessionRows(
+      supabase,
+      branchIds,
+      queryStart,
+      nextMonthStart,
+    )
   }
 
   const slotIds = Array.from(new Set(sessionRows.map((row) => row.schedule_slot_id).filter(Boolean))) as string[]
@@ -424,7 +622,10 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
 
   const latestLevelMap = buildLevelMap(levelRows || [])
   const levelDefinitionMap = new Map((levelDefinitions || []).map((level) => [level.id, level]))
-  const memoryMap = await getCoachStudentMemoryMap(supabase, studentRefs)
+  const memoryMap = await getCoachStudentMemoryMap(
+    createCompleteCoachMemoryReadClient(supabase),
+    studentRefs,
+  )
 
   const slots = Object.values(sessionRows.reduce((map, session) => {
     const key = session.schedule_slot_id || `${session.date}-${session.branch_id}-${session.start_time}-${session.end_time}-${session.bookings?.course_type_id}`

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -456,6 +456,7 @@ function formatMonth(monthKey: string) {
 
 export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMonth }: AssignGroupsClientProps) {
   const router = useRouter()
+  const [isMonthNavigationPending, startMonthNavigation] = useTransition()
   const [draftsBySlot, setDraftsBySlot] = useState<Record<string, GroupDraft[]>>(() => createInitialDraftMap(slots))
   const [initialPersistedGroups] = useState(() => createPersistedGroupMap(slots))
   const [savedSnapshotsBySlot, setSavedSnapshotsBySlot] = useState<Record<string, SavedSlotSnapshot>>({})
@@ -465,10 +466,14 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
   const [selectedDate, setSelectedDate] = useState(() => slots[0]?.date || '')
   const [selectedSlotKey, setSelectedSlotKey] = useState('')
   const [statusFilter, setStatusFilter] = useState<AssignmentStatusFilter>('all')
+  const [pendingTargetMonth, setPendingTargetMonth] = useState<string | null>(null)
   const draftsBySlotRef = useRef(draftsBySlot)
   const draftBaselinesBySlotRef = useRef(draftsBySlot)
   const persistedGroupsBySlotRef = useRef(initialPersistedGroups)
   const savedSnapshotsBySlotRef = useRef(savedSnapshotsBySlot)
+  const monthNavigationLockRef = useRef(false)
+  const monthNavigationSourceMonthRef = useRef<string | null>(null)
+  const isMonthNavigationActive = Boolean(pendingTargetMonth) || isMonthNavigationPending
 
   useEffect(() => {
     draftsBySlotRef.current = draftsBySlot
@@ -477,6 +482,15 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
   useEffect(() => {
     savedSnapshotsBySlotRef.current = savedSnapshotsBySlot
   }, [savedSnapshotsBySlot])
+
+  useEffect(() => {
+    if (!pendingTargetMonth) return
+    if (selectedMonth !== monthNavigationSourceMonthRef.current || !isMonthNavigationPending) {
+      monthNavigationLockRef.current = false
+      monthNavigationSourceMonthRef.current = null
+      setPendingTargetMonth(null)
+    }
+  }, [isMonthNavigationPending, pendingTargetMonth, selectedMonth])
 
   useEffect(() => {
     const currentDrafts = draftsBySlotRef.current
@@ -592,6 +606,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
   const activeDateSummary = dateSummaries.find((date) => date.date === activeDate)
 
   const navigateMonth = (direction: -1 | 1) => {
+    if (monthNavigationLockRef.current || isMonthNavigationPending) return
     if (savingKey) {
       toast.warning('กำลังบันทึกการมอบหมาย กรุณารอให้บันทึกเสร็จก่อนเปลี่ยนเดือน')
       return
@@ -606,9 +621,14 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
     }
 
     const nextMonth = shiftMonth(selectedMonth, direction)
+    monthNavigationLockRef.current = true
+    monthNavigationSourceMonthRef.current = selectedMonth
+    setPendingTargetMonth(nextMonth)
     setSelectedDate('')
     setSelectedSlotKey('')
-    router.push(`/coach/assign-groups?month=${nextMonth}`)
+    startMonthNavigation(() => {
+      router.push(`/coach/assign-groups?month=${nextMonth}`)
+    })
   }
 
   const updateSlotGroups = (slotKey: string, updater: (groups: GroupDraft[]) => GroupDraft[]) => {
@@ -905,7 +925,11 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
         </div>
       )}
 
-      <Card className="shadow-sm" data-assignment-month-controls>
+      <Card
+        className="shadow-sm"
+        data-assignment-month-controls
+        aria-busy={isMonthNavigationActive}
+      >
           <CardContent className="space-y-4 p-4">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -922,7 +946,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                     size="sm"
                     className="h-8 w-8 p-0"
                     aria-label={`เดือนก่อนหน้า ${formatMonth(shiftMonth(selectedMonth, -1))}`}
-                    disabled={Boolean(savingKey)}
+                    disabled={Boolean(savingKey) || isMonthNavigationActive}
                     onClick={() => navigateMonth(-1)}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -934,7 +958,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                     size="sm"
                     className="h-8 w-8 p-0"
                     aria-label={`เดือนถัดไป ${formatMonth(shiftMonth(selectedMonth, 1))}`}
-                    disabled={Boolean(savingKey)}
+                    disabled={Boolean(savingKey) || isMonthNavigationActive}
                     onClick={() => navigateMonth(1)}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -983,6 +1007,21 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                 </div>
               )}
             </div>
+
+            {isMonthNavigationActive && (
+              <div
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-[#2748bf]"
+              >
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                <span>
+                  กำลังโหลดข้อมูลเดือน...
+                  {pendingTargetMonth ? ` ${formatMonth(pendingTargetMonth)}` : ''}
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
               {dateSummaries.map((summary) => {

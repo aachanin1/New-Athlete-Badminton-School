@@ -42,19 +42,53 @@ const v1Migration = read('supabase/migrations/20260717070225_coach_assignment_co
 await check('assignment page reads a canonical selected month from Promise searchParams', () => {
   assert.match(assignmentPage, /searchParams\?: Promise<\{[\s\S]*month\?: string \| string\[\]/)
   assert.match(assignmentPage, /const resolvedSearchParams = searchParams \? await searchParams : \{\}/)
-  assert.match(assignmentPage, /parseAssignmentMonth\(resolvedSearchParams\.month, now\)/)
-  assert.match(assignmentPage, /getBangkokDateString\(now\)\.slice\(0, 7\)/)
+  assert.match(assignmentPage, /const bangkokToday = getBangkokDateString\(now\)/)
+  assert.match(assignmentPage, /const currentBangkokMonth = bangkokToday\.slice\(0, 7\)/)
+  assert.match(assignmentPage, /parseAssignmentMonth\(resolvedSearchParams\.month, currentBangkokMonth\)/)
+  assert.equal(assignmentPage.match(/getBangkokDateString\(now\)/g)?.length, 1)
 })
 
-await check('selected month uses an exact half-open booking-session date range', () => {
+await check('current Bangkok month is today-forward while historical and future months start on day one', () => {
   assert.match(assignmentPage, /const \{ monthStart, nextMonthStart \} = getAssignmentMonthRange\(selectedMonth\)/)
-  assert.match(assignmentPage, /\.gte\('date', monthStart\)[\s\S]*\.lt\('date', nextMonthStart\)/)
-  assert.doesNotMatch(assignmentPage, /\.gte\('date', today\)/)
+  assert.match(
+    assignmentPage,
+    /const queryStart = selectedMonth === currentBangkokMonth[\s\S]*\? bangkokToday[\s\S]*: monthStart/,
+  )
+  assert.match(assignmentPage, /\.gte\('date', queryStart\)[\s\S]*\.lt\('date', queryEnd\)/)
+  assert.match(assignmentPage, /loadAssignmentSessionRows\([\s\S]*queryStart,[\s\S]*nextMonthStart/)
+  assert.doesNotMatch(assignmentPage, /\.gte\('date', monthStart\)/)
 })
 
 await check('month validation accepts YYYY-MM only with month 01 through 12', () => {
   assert.equal(assignmentPage.includes("const ASSIGNMENT_MONTH_PATTERN = /^\\d{4}-(?:0[1-9]|1[0-2])$/"), true)
   assert.match(assignmentPage, /typeof value === 'string'[\s\S]*ASSIGNMENT_MONTH_PATTERN\.test\(value\)/)
+  assert.match(assignmentPage, /: currentBangkokMonth/)
+})
+
+await check('booking-session reads page beyond 1,000 with a stable total order and no fixed short-page follow-up', () => {
+  assert.match(assignmentPage, /const ASSIGNMENT_SESSION_PAGE_SIZE = 1000/)
+  assert.match(assignmentPage, /const ASSIGNMENT_SESSION_MAX_PAGES = \d+/)
+  assert.match(assignmentPage, /pageIndex < ASSIGNMENT_SESSION_MAX_PAGES/)
+  assert.match(assignmentPage, /\.select\([\s\S]*\{ count: 'exact' \}/)
+  assert.match(
+    assignmentPage,
+    /\.order\('date',[\s\S]*\.order\('start_time',[\s\S]*\.order\('id',[\s\S]*\.range\(pageStart, pageEnd\)/,
+  )
+  assert.match(assignmentPage, /if \(pageRows\.length < ASSIGNMENT_SESSION_PAGE_SIZE\)/)
+})
+
+await check('booking-session pagination fails closed on duplicate, changing-count, missing, or unbounded results', () => {
+  assert.match(assignmentPage, /seenSessionIds\.has\(row\.id\)/)
+  assert.match(assignmentPage, /duplicate booking_session id/)
+  assert.match(assignmentPage, /expectedTotal !== result\.count/)
+  assert.match(assignmentPage, /rows\.length !== expectedTotal/)
+  assert.match(assignmentPage, /exceeded bounded pagination/)
+})
+
+await check('Coach-memory booking-session reads share completeness pagination while other supporting reads fail closed', () => {
+  assert.match(assignmentPage, /createCompleteCoachMemoryReadClient\(supabase\)/)
+  assert.match(assignmentPage, /table === 'booking_sessions'/)
+  assert.match(assignmentPage, /result\.count !== result\.data\.length/)
 })
 
 await check('client month navigation is canonical, URL-driven, and timezone-stable across years', () => {
@@ -90,6 +124,23 @@ await check('month navigation fails closed for edited drafts and active Save wit
   assert.match(navigationSource, /if \(hasEditedDraft\)/)
   assert.match(navigationSource, /toast\.warning/)
   assert.doesNotMatch(navigationSource, /fetch\(|method: 'POST'/)
+})
+
+await check('month navigation exposes an accessible pending status and disables both controls', () => {
+  assert.match(assignmentClient, /useTransition\(\)/)
+  assert.match(assignmentClient, /กำลังโหลดข้อมูลเดือน\.\.\./)
+  assert.match(assignmentClient, /role="status"/)
+  assert.match(assignmentClient, /aria-live="polite"/)
+  assert.match(assignmentClient, /aria-busy=\{isMonthNavigationActive\}/)
+  assert.ok((assignmentClient.match(/disabled=\{Boolean\(savingKey\) \|\| isMonthNavigationActive\}/g) || []).length >= 2)
+})
+
+await check('month navigation uses a synchronous re-entry guard and resets after route commit or interruption', () => {
+  assert.match(assignmentClient, /const monthNavigationLockRef = useRef\(false\)/)
+  assert.match(assignmentClient, /if \(monthNavigationLockRef\.current \|\| isMonthNavigationPending\) return/)
+  assert.match(assignmentClient, /monthNavigationLockRef\.current = true[\s\S]*startMonthNavigation\(\(\) =>/)
+  assert.match(assignmentClient, /selectedMonth !== monthNavigationSourceMonthRef\.current \|\| !isMonthNavigationPending/)
+  assert.match(assignmentClient, /monthNavigationLockRef\.current = false/)
 })
 
 await check('month selection adds no client Supabase read or prefetch', () => {
