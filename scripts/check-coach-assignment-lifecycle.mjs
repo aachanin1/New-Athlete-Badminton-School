@@ -91,6 +91,15 @@ await check('Coach-memory booking-session reads share completeness pagination wh
   assert.match(assignmentPage, /result\.count !== result\.data\.length/)
 })
 
+await check('Coach-memory supporting IN reads use bounded non-overlapping batches before request limits', () => {
+  assert.match(assignmentPage, /const ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE = 100/)
+  assert.match(assignmentPage, /const ASSIGNMENT_SUPPORTING_MAX_BATCHES = \d+/)
+  assert.match(assignmentPage, /createCompleteSupportingQuery/)
+  assert.match(assignmentPage, /new Set\(inValues\)/)
+  assert.match(assignmentPage, /Math\.ceil\(uniqueInValues\.length \/ ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE\)/)
+  assert.match(assignmentPage, /supporting query exceeded bounded IN batches/)
+})
+
 await check('client month navigation is canonical, URL-driven, and timezone-stable across years', () => {
   assert.match(assignmentClient, /selectedMonth: string/)
   assert.match(assignmentClient, /router\.push\(`\/coach\/assign-groups\?month=\$\{nextMonth\}`\)/)

@@ -140,6 +140,8 @@ interface AssignGroupsPageProps {
 const ASSIGNMENT_MONTH_PATTERN = /^\d{4}-(?:0[1-9]|1[0-2])$/
 const ASSIGNMENT_SESSION_PAGE_SIZE = 1000
 const ASSIGNMENT_SESSION_MAX_PAGES = 100
+const ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE = 100
+const ASSIGNMENT_SUPPORTING_MAX_BATCHES = 100
 
 interface BookingSessionPageResult<T> {
   data: T[] | null
@@ -305,30 +307,88 @@ function createCompleteBookingSessionQuery(
   return queryProxy
 }
 
-function createCompletenessCheckedQuery(query: DynamicQuery, context: string): DynamicQuery {
-  return new Proxy(query, {
-    get(target, property) {
+function createCompleteSupportingQuery(
+  supabase: DynamicSupabaseClient,
+  table: string,
+  columns: string,
+  context: string,
+) {
+  const operations: Array<{ method: DynamicQueryMethod; args: unknown[] }> = []
+
+  const load = async (): Promise<DynamicQueryResult> => {
+    const oversizedInOperations = operations
+      .map((operation, index) => ({ operation, index }))
+      .filter(({ operation }) => (
+        operation.method === 'in'
+        && Array.isArray(operation.args[1])
+        && operation.args[1].length > ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE
+      ))
+
+    if (oversizedInOperations.length > 1) {
+      throw new CoachAssignmentDataUnavailableError(context, 'supporting query exceeded bounded IN dimensions')
+    }
+
+    const oversizedInOperation = oversizedInOperations[0]
+    const inValues = oversizedInOperation
+      ? oversizedInOperation.operation.args[1] as unknown[]
+      : null
+    const uniqueInValues = inValues ? Array.from(new Set(inValues)) : null
+    const batchCount = uniqueInValues
+      ? Math.ceil(uniqueInValues.length / ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE)
+      : 1
+
+    if (batchCount > ASSIGNMENT_SUPPORTING_MAX_BATCHES) {
+      throw new CoachAssignmentDataUnavailableError(context, 'supporting query exceeded bounded IN batches')
+    }
+
+    const batches = uniqueInValues
+      ? Array.from({ length: batchCount }, (_, index) => uniqueInValues.slice(
+          index * ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE,
+          (index + 1) * ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE,
+        ))
+      : [null]
+
+    const pages = await Promise.all(batches.map(async (batchValues) => {
+      let query = supabase.from(table).select(columns, { count: 'exact' })
+      operations.forEach((operation, index) => {
+        const appliedOperation = batchValues && index === oversizedInOperation?.index
+          ? { ...operation, args: [operation.args[0], batchValues] }
+          : operation
+        query = applyDynamicQueryOperation(query, appliedOperation)
+      })
+
+      const result = await query
+      if (result.error) {
+        throw new CoachAssignmentDataUnavailableError(context, result.error.message)
+      }
+      if (!Array.isArray(result.data) || result.count !== result.data.length) {
+        throw new CoachAssignmentDataUnavailableError(context, 'supporting query was incomplete')
+      }
+      return result.data
+    }))
+
+    const data = pages.flat()
+    return { data, error: null, count: data.length }
+  }
+
+  const queryProxy = new Proxy({} as DynamicQuery, {
+    get(_target, property) {
       if (property === 'then') {
         return (onFulfilled: ((value: DynamicQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
-          Promise.resolve(query)
-            .then((result) => {
-              if (!result.error && (!Array.isArray(result.data) || result.count !== result.data.length)) {
-                throw new CoachAssignmentDataUnavailableError(context, 'supporting query was incomplete')
-              }
-              return result
-            })
-            .then(onFulfilled, onRejected)
+          load().then(onFulfilled, onRejected)
         )
       }
-
-      const value = Reflect.get(target, property, target)
-      if (typeof value !== 'function') return value
-      return (...args: unknown[]) => createCompletenessCheckedQuery(
-        Reflect.apply(value, target, args) as DynamicQuery,
-        context,
-      )
+      if (typeof property === 'string' && ['eq', 'in', 'is', 'lte', 'neq', 'order'].includes(property)) {
+        return (...args: unknown[]) => {
+          operations.push({ method: property as DynamicQueryMethod, args })
+          return queryProxy
+        }
+      }
+      return undefined
     },
   })
+
+  return queryProxy
 }
 
 function createCompleteCoachMemoryReadClient(
@@ -342,8 +402,12 @@ function createCompleteCoachMemoryReadClient(
           if (table === 'booking_sessions') {
             return createCompleteBookingSessionQuery(dynamicSupabase, columns)
           }
-          const query = dynamicSupabase.from(table).select(columns, { count: 'exact' })
-          return createCompletenessCheckedQuery(query, `Coach memory ${table} query failed`)
+          return createCompleteSupportingQuery(
+            dynamicSupabase,
+            table,
+            columns,
+            `Coach memory ${table} query failed`,
+          )
         },
       }
     },
