@@ -12058,3 +12058,132 @@ authorized bounded correction sequence, and this verification round prohibited
 Source changes. Owner must decide whether to amend the Performance contract or
 authorize a separate bounded performance-correction scope. Do not start Owner
 UAT, Promote, alias, mutate data, alter Source, or begin another task.
+
+### 2026-08-05 — Assignment Coach-Memory On-Demand Performance Correction Safe Handoff
+
+This dated record supersedes the preceding Material Hard Stop as the current task
+history. Owner retained the 5-second P95 contract and authorized a Source-only,
+SELECT-only correction: authoritative roster/saved groups/assigned coaches/exact
+memberships render first; historical pages never load Coach Memory; current
+editable unassigned slots load it on demand with localized loading, single-flight,
+and edited-draft protection. Promotion remains prohibited before exact-artifact
+Owner PASS.
+
+#### Fact — Gate 0, Audit, and Root Cause
+
+- Fresh Gate 0 matched branch `spike/next-major-security-upgrade`, starting HEAD
+  and upstream `10db4ea5670d76eb4d4648f5efacff9560dc423c`, ahead/behind `0/0`,
+  and only protected stat-dirty `src/lib/schedule-slot-utils.ts`. Its SHA-256,
+  worktree blob, and index blob remain
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` /
+  `4521281d099efb189429a744909552d67871ff23` /
+  `4521281d099efb189429a744909552d67871ff23`; it was never edited, staged,
+  reset, checked out, stashed, or normalized.
+- Lifecycle migration Source remains
+  `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`,
+  SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+  Migration/config/package/environment/feature/allowlist changes and DB writes
+  were zero. Official current Supabase documentation confirmed authenticated RLS
+  context and that `.range(from,to)` is zero-based, inclusive, and depends on a
+  deterministic order.
+- Old-source non-PII phase sampling proved Coach Memory was initial critical-path
+  fan-out. Current `[2026-08-05,2026-09-01)` had `905` roster rows / `295` slots /
+  `1` page: auth/profile/branch `0.373s`, roster `0.663s`, groups/Legacy/levels
+  `1.872s`, Coach Memory `1.825s`, assembly `0.003s`; memory alone made `35`
+  outbound calls and returned `1,390,545` response-entity bytes. July
+  `[2026-07-01,2026-08-01)` had `1,415/437/2`: phases
+  `0.552/1.019/0.426/2.419/0.003s`; memory made `51` calls / `7,302` rows /
+  `2,030,461` response-entity bytes. A direct July 437-ID supporting `.in(...)`
+  request also failed locally with `TypeError: fetch failed`, proving a bounded
+  request-size correction was required in primary supporting reads.
+
+#### Fact — Regression-First Implementation and Verification
+
+- Regression-first lifecycle source-only execution failed on the old initial
+  `getCoachStudentMemoryMap` call. Final suite passes `33/33`, including zero
+  historical/initial memory requests, SELECT-only typed endpoint guards,
+  single-flight/deduplication, localized `กำลังโหลดประวัติโค้ช...`, `aria-busy`,
+  edited-draft preservation, untouched-draft recommendation adoption, and all
+  protected lifecycle assertions.
+- Exact functional paths are
+  `src/app/(coach)/coach/assign-groups/page.tsx`,
+  `src/components/coach/assign-groups-client.tsx`,
+  `src/lib/coach-student-memory.ts`, and new GET-only
+  `src/app/api/coach/assignment-memory/route.ts`; exact test path is
+  `scripts/check-coach-assignment-lifecycle.mjs`. The endpoint authenticates the
+  server session, mirrors `head_coach/super_admin`, enforces exact Head Coach
+  branch access, derives slot/roster scope server-side, rejects invalid,
+  out-of-branch, historical/future/started/already-assigned/empty requests, uses
+  no service role or mutation/RPC/logActivity/notification path, and returns only
+  bounded non-PII aggregate metrics.
+- Final deterministic gates passed lifecycle `33`, Admin Schedule assignment
+  `38`, Admin Schedules performance `24`, Lesson Wallet `19`, Coach Teaching Hours
+  `20`, and Assignment Resolution `33`: `167` assertions total. TypeScript,
+  zero-warning ESLint, mojibake over `254` files, Next.js 16.2.6 production build
+  and static generation `92/92`, and `git diff --check` passed. Functional/test
+  commit `5d7c5c675f2dd5818e5b7116848385624cd8969a` (`842` insertions / `344`
+  deletions) was normally pushed; branch was then `0/0`.
+- Fresh corrected SELECT-only initial-read evidence retained complete populations:
+  current `905/295/1`, `13` calls / `2,113` rows, phase durations auth
+  `1.115s`, parallel coach+roster `1.052s`, groups/Legacy/levels `1.584s`,
+  assembly `0.002s`; July `1,415/437/2`, `19` calls / `3,273` rows, phases
+  `0.279/1.022/0.484/0.004s`. Supporting batches were current Legacy/groups/
+  levels `3/3/2`, July `5/5/3`; no duplicate roster IDs, initial Coach Memory
+  calls, Client Data API call, or N+1 existed. DB response entity bytes were
+  `903,108` current / `1,435,742` July. Assembled JSON sizes `878,009` /
+  `1,398,605` are explicitly not wire-byte evidence.
+- Representative current unassigned-slot memory core had `11` learners and used
+  `7` memory reads / `493` rows (`2` booking pages, `5` supporting batches).
+  After one uncounted warm-up, 20 warm samples measured min/P50/P95/max
+  `0.688/0.706/0.752/0.754s`. This passes the core 5-second bound but does not
+  substitute for the required authenticated staged endpoint/browser gate.
+
+#### Fact — Git, Staged Artifact, and Current Blocker
+
+- Staged Production-target artifact
+  `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL
+  `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`,
+  is `production/READY`, runtime region `icn1`, aliases `[]`, source `cli`, and
+  exact metadata `githubCommitSha=5d7c5c675f2dd5818e5b7116848385624cd8969a`.
+  Metadata `gitDirty=1` reflects the protected stat-dirty helper whose worktree
+  content equals its index; no task or unrelated content delta entered the
+  functional/test commit. Current Production remains unchanged at
+  `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+  `03d08a93e77189d56b733bda009d9526400fa9b3`.
+- The new hostname is Vercel-SSO protected. In-app browser SSO succeeded and the
+  application reached `/auth/login?redirect=%2Fcoach%2Fassign-groups`; prior
+  artifact application auth did not transfer. No credential was read or supplied.
+  Before authenticated sampling, bounded runtime logs contained `7` HTTP 200 and
+  `1` HTTP 307, with error/fatal/5xx counts `0/0/0`.
+- Performance-failed `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`, runtime-failed
+  `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`, blocked
+  `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`, and rejected
+  `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ` remain evidence only and must never be
+  Promoted.
+
+#### Inference / Unknown and State Observed at This Safe Handoff
+
+- Proven initial fan-out removal and sub-second on-demand core evidence support
+  the selected correction, but staged initial/endpoint P95 remains Unknown until
+  authenticated browser sampling. Required current and July 20-sample
+  min/P50/P95/max, exact navigation/RSC transferred bytes, current initial and
+  historical memory request counts, on-demand endpoint request count/timing,
+  desktop/mobile, repeated-click, Back/Forward, console/hydration, authenticated
+  method inventory, notification delta/source, and protected-set pre/post evidence
+  are Unknown / pending. No DOM proxy is reported as wire bytes.
+- Source Complete **Yes for scoped Source**; Tests Passed **Yes**; Performance Gate
+  **Pending authenticated staged proof**; Committed/Pushed **Yes/Yes**; staged
+  artifact **READY/unaliased, not READY FOR OWNER UAT**; Owner/Production UAT
+  **Not run**; Promoted/Production Active **No/No for this task**; Migration
+  Source/Applied **unchanged/retained**; Environment/Feature/Allowlist
+  **unchanged**; Controlled Write UAT **Not run/prohibited**; DB fixture/write
+  **0/0**; Production Data Changed/Data Repaired **No/No**; Customer/Financial
+  Impact **None/None**; Scope Expansion/Breach **No/No**; Documentation Drift
+  **No after publication**; Task Done **No**.
+
+Current blocker is external authentication, not a measured Performance failure.
+Owner signs in as Head Coach on exact artifact
+`dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV` / exact Source
+`5d7c5c675f2dd5818e5b7116848385624cd8969a`; Developer then resumes only the
+approved read-only staged gates. Do not Promote, alias, mutate data, alter Source,
+or start another task.

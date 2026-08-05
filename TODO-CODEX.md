@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-04
+Last updated: 2026-08-05
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,38 +9,37 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP.**
+**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / AUTHENTICATED STAGED
+BROWSER GATE PENDING.**
 
-- Owner amended current-month semantics to Bangkok today-forward and retained
-  full historical/future months. Scoped Source is committed/pushed through
-  `b9b2bd7094080c3d1aa4710b1acd8922054421a1`; deterministic checks pass `162`
-  assertions plus TypeScript, lint, mojibake, build, dev/static smoke, and diff.
-- Complete SELECT-only evidence is July `1,415` learner-sessions / `437` slots /
-  `2` pages, August today-forward `929/305/1`, and August full audit `1,098/354/2`.
-  The bounded correction chunks 806 July history slots into 100-ID supporting
-  batches and avoids the oversized request that failed the first new artifact.
-- Corrected exact-SHA candidate `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM` is
-  `production/READY`, `icn1`, aliases `[]`, and unpromoted. Root/health/login/CSS/
-  auth-redirect and bounded unauthenticated logs pass. Current Production is
-  unchanged. The prior runtime-failed candidate and both older blocked/rejected
-  artifacts must never be Promoted.
-- Authenticated corrected-candidate evidence passed current 4-31 August
-  today-forward `929/305`, full July 1-31 `1,415/437`, historical read-only lock,
-  pending target-month message, `aria-busy`, both disabled month buttons,
-  same-tick double-click guard, Back/Forward recovery, mobile `390×844`, desktop
-  `1440×900`, and zero console/hydration/error/fatal/5xx. Reported top runtime
-  path groups contained no API route; exact total/path inventory is Unknown
-  because raw enumeration hit `1,000`. Notification count remained `25,154`,
-  delta `0`. No protected write action ran.
-- Blocker: mandatory corrected-candidate Performance failed. Current 20-sample
-  min/P50/P95/max was `5.875/6.379/7.683/10.636s`; July was
-  `11.771/13.412/14.822/15.223s`. Both P95 values exceed `5s`, and current P95
-  regressed `0.765s` against the allowed `0.346s` tolerance. The task is not
-  READY FOR OWNER UAT and must not be Promoted.
-- Next action: Owner decides whether to amend the Performance contract or
-  authorize a separate bounded performance-correction scope. `PROJECT_STATE.md`
-  is authoritative. Do not start Owner UAT, Promote, alias, mutate data, alter
-  Source, or start another task automatically.
+- Owner authorized a Source-only/SELECT-only performance correction without
+  relaxing the 5-second P95 contract. Initial current/historical rendering no
+  longer waits for Coach Memory; historical pages do not request or render it;
+  current editable unassigned slots load it on demand with per-slot single-flight
+  and edited-draft protection.
+- Functional/test Source `5d7c5c675f2dd5818e5b7116848385624cd8969a`
+  is committed and normally pushed. Deterministic checks pass `167` assertions
+  plus TypeScript, zero-warning lint, mojibake, production build `92/92`, and
+  diff checks. Exact scope is functional/test/docs `4/1/3`, migration/config `0/0`.
+- Fresh 5-August SELECT-only evidence is current today-forward `905` learner-
+  sessions / `295` slots / `1` page and July `1,415/437/2`; initial reads use
+  `13` current / `19` July calls with bounded supporting batches and zero initial
+  Coach Memory calls. Representative on-demand memory core P95 is `0.752s` over
+  20 warm samples; this does not replace the staged authenticated browser gate.
+- New exact-SHA candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL
+  `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`,
+  is `production/READY`, runtime region `icn1`, aliases `[]`, and unpromoted.
+  Current Production is unchanged. All four older artifacts listed in the Owner
+  contract remain blocked/rejected and must never be Promoted.
+- Blocker: Vercel SSO passed, but the new artifact is at application
+  `/auth/login?redirect=%2Fcoach%2Fassign-groups`; prior Head Coach sessions do
+  not transfer across artifact hostnames. Required current/July 20+20 browser
+  samples, on-demand endpoint timing, wire bytes, responsive/navigation/console,
+  notification delta, and request-method/protected-set evidence remain pending.
+- Next action: Owner signs in as Head Coach on the exact new artifact, then
+  Developer resumes the approved read-only technical gates. The task is not
+  READY FOR OWNER UAT; do not Promote, alias, mutate data, alter Source, or start
+  another task. `PROJECT_STATE.md` is authoritative.
 
 ## Recently Completed
 
