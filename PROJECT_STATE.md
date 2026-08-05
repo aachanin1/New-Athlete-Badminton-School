@@ -9,37 +9,41 @@ Memory; historical pages do not request or render memory/recommendations; curren
 editable unassigned slots load memory on demand with a per-slot single-flight
 guard and edited-draft protection. Source, deterministic tests, build, commit,
 push, and a new exact-SHA unaliased staged Production-target artifact are complete.
-Authenticated staged browser/performance verification is pending because the new
-artifact is at the application Head Coach login page. The task is not READY FOR
-OWNER UAT and must not be Promoted. The first matrix is authoritative; later task
-snapshots are Historical / Superseded.
+Authenticated staged verification reached the current Assignment page, but the
+mandatory Performance Gate failed when three consecutive full-document current-
+month loads remained in route-level loading beyond 30 seconds, including one
+attempt after a 30-second drain interval. The blocking condition occurs with zero
+initial Coach Memory requests, so Root Cause materially changed and another Source
+correction would be speculative. The task is a Material Hard Stop, is not READY
+FOR OWNER UAT, and must not be Promoted. The first matrix is authoritative; later
+task snapshots are Historical / Superseded.
 
 ## Current Safe Handoff — Assignment Group Lifecycle Integrity
 
-Status: **DEVELOPING — AUTHENTICATED STAGED BROWSER GATE PENDING**.
+Status: **DEVELOPING — MATERIAL HARD STOP; PERFORMANCE GATE FAILED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
-| Task Status | **DEVELOPING — authenticated staged browser/performance gate pending** |
+| Task Status | **DEVELOPING — Material Hard Stop** |
 | Branch | `spike/next-major-security-upgrade` |
 | Local HEAD | Containing safe-handoff documentation commit; Application Source parent `5d7c5c675f2dd5818e5b7116848385624cd8969a` |
 | Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
 | Ahead/Behind | `0/0` in the published safe-handoff state |
-| Source Complete | **Yes for the newly approved scoped Source behavior; release incomplete pending authenticated browser/performance gates** |
+| Source Complete | **Yes for the approved scoped Source behavior; release incomplete because the mandatory staged Performance Gate failed** |
 | Tests Passed | **Yes — source-only lifecycle `33/33`, Admin Schedule assignment `38/38`, Admin Schedules performance `24/24`, Lesson Wallet `19/19`, Coach Teaching Hours `20/20`, Assignment Resolution `33/33` (`167` total), TypeScript, zero-warning ESLint, mojibake over `254` files, production build/static generation `92/92`, and diff checks** |
-| Performance Gate | **Pending staged browser proof. Fresh SELECT-only initial-read phase evidence removed Coach Memory from the initial critical path. Current core phase durations were auth/profile/branch `1.115s`, parallel coach+roster `1.052s`, groups/Legacy/levels `1.584s`, assembly `0.002s`; July was `0.279/1.022/0.484/0.004s`. Representative current on-demand Coach Memory core, one warm-up plus 20 warm samples, was min/P50/P95/max `0.688/0.706/0.752/0.754s`, below `5s`. These are server read-core metrics, not substitutes for required authenticated browser initial-load and endpoint gates; exact browser transferred bytes remain Unknown pending login** |
-| Completeness / Calls | Fresh 2026-08-05 SELECT-only reconciliation: current `[2026-08-05, 2026-09-01)` roster `905` learner-sessions / `295` slots / `1` page; July `[2026-07-01, 2026-08-01)` `1,415/437/2`. Current initial read was `13` outbound calls / `2,113` rows with supporting batches Legacy `3`, exact groups `3`, levels `2`; July was `19` calls / `3,273` rows with supporting batches `5/5/3`. No initial Coach Memory call, no duplicate roster IDs, no N+1. Representative on-demand memory used `7` memory reads / `493` rows (`2` booking pages + `5` supporting batches) after authorization. Assembled JSON byte counts `878,009` current / `1,398,605` July are not labeled wire bytes |
+| Performance Gate | **Failed. Authenticated current warm-up was `2.718s`; the first 15 measured current full-document loads were stable at `908/295` with provisional min/P50/P95/max `1.995/2.367/2.748/2.748s`. The next three consecutive current loads never reached authoritative roster/month readiness within 30 seconds; the third followed a 30-second background-drain interval and still exceeded the total 60-second harness bound. Required 20 successful current samples were not obtained, so no compliant current P95 exists; July 20-sample and staged on-demand gates were stopped and remain Unknown. Browser asset evidence showed initial Coach Memory requests `0`, Client task Data API calls `0`, console errors `0`; bounded Vercel logs showed no error/fatal/5xx. Exact browser transferred bytes are Unknown because the available capability exposed asset identity but not transfer sizes, and no DOM proxy is used** |
+| Completeness / Calls | Fresh 2026-08-05 SELECT-only reconciliation remains current `[2026-08-05, 2026-09-01)` `905` learner-sessions / `295` slots / `1` page and July `[2026-07-01, 2026-08-01)` `1,415/437/2`; authenticated browser current population later became `908/295`, reflecting live concurrent data. Current initial reads were `13` calls / `2,113` rows and July `19` / `3,273`, with bounded supporting batches and no duplicates/N+1. Local on-demand core proof remains `7` reads / `493` rows and P95 `0.752s`, but staged endpoint proof was not run after the initial-load Hard Stop. Browser/runtime evidence found `0` initial memory endpoint calls, `0` assignment mutation API calls, and only GET Assignment route records |
 | Committed | **Yes — functional/test commit `5d7c5c675f2dd5818e5b7116848385624cd8969a`; containing documentation safe-handoff commit published separately** |
 | Pushed | **Yes — functional/test commit and containing documentation safe handoff** |
 | Current Source | `5d7c5c675f2dd5818e5b7116848385624cd8969a` on the branch; Production remains on Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Pushed Source | `5d7c5c675f2dd5818e5b7116848385624cd8969a` |
-| Deployed | **New staged Production-target artifact only; authenticated browser gates pending. No task Source is Production-active** |
+| Deployed | **Staged Production-target artifact only; Performance-failed and blocked from Owner UAT/Promotion. No task Source is Production-active** |
 | Deployed Source | Candidate staged-only `5d7c5c675f2dd5818e5b7116848385624cd8969a`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Deployment ID | Candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`, `production/READY`, runtime region `icn1`, aliases `[]`, exact `githubCommitSha=5d7c5c675f2dd5818e5b7116848385624cd8969a`. `gitDirty=1` reflects the protected stat-dirty helper; its worktree/index blobs are identical. **Not READY; do not Promote** |
-| Rejected / Blocked Artifacts | Performance-failed `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`; runtime-failed `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`; blocked `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`; historically rejected `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ`. Retain only as evidence; never Promote |
+| Deployment ID | Performance-failed candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`, `production/READY`, runtime region `icn1`, aliases `[]`, exact `githubCommitSha=5d7c5c675f2dd5818e5b7116848385624cd8969a`. `gitDirty=1` reflects the protected stat-dirty helper; its worktree/index blobs are identical. **Blocked; do not Promote** |
+| Rejected / Blocked Artifacts | Performance-failed `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV` and `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`; runtime-failed `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`; blocked `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`; historically rejected `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ`. Retain only as evidence; never Promote |
 | Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
 | Migration Applied | Retained from the prior approved gate; no migration creation, edit, reapply, or DB mutation ran |
@@ -47,22 +51,22 @@ Status: **DEVELOPING — AUTHENTICATED STAGED BROWSER GATE PENDING**.
 | Feature Enabled | No feature-control change |
 | Allowlisted | Unchanged; no allowlist action |
 | Production Active | **No for this task; current Production artifact/source unchanged** |
-| Owner UAT | **Not started. New exact artifact is waiting at the application Head Coach login page for Developer technical verification; prior artifact sessions do not transfer across hostnames** |
+| Owner UAT | **Not started. Owner supplied the authenticated Head Coach session for Developer technical verification; the technical Performance Gate failed before Owner UAT handoff** |
 | Production UAT | Not run; task is not Production-active |
 | Controlled Write UAT | Not run / prohibited |
 | DB Fixture / DB Write | `0 / 0` |
 | Data Repaired | No |
-| Production Data Changed | No |
+| Production Data Changed | **Task-attributable No. Unrelated concurrent Production activity during the read-only window changed booking sessions `+5`, activity logs `+3` (`2` booking / `1` program), and `system` notifications `+7`; protected assignment groups/memberships/Legacy counts remained exact** |
 | Customer Impact | None direct; task Source is not Production-active |
 | Financial Impact | None |
 | Functional / Test / Documentation / Migration / Configuration Changes | `4 / 1 / 3 / 0 / 0`; functional/test commit is `842` insertions / `344` deletions |
 | Scope Expansion | No |
 | Scope Breach | No |
 | Documentation Drift | **No after this performance-correction safe-handoff commit is published** |
-| Blocker | Authenticated Head Coach session is absent on the new unique artifact hostname. Vercel SSO passed, but the application redirected to `/auth/login?redirect=%2Fcoach%2Fassign-groups`; therefore required 20+20 browser samples, current on-demand endpoint evidence, responsive/navigation/console gates, exact transferred bytes, and post-session notification/write reconciliation are not yet run |
-| Remaining Work | Owner signs in as Head Coach on the exact new artifact; Developer resumes only the approved authenticated read-only staged gates. If any P95 exceeds `5s` after at most two bounded Source corrections total, record Material Hard Stop. Never Promote before exact artifact/SHA Owner PASS |
+| Blocker | **Material Root Cause change. Three consecutive current full-document loads remained at route-level loading beyond 30 seconds with zero initial Coach Memory request, including a post-soak attempt. The approved correction removed memory fan-out but did not make the mandatory current initial-load gate reliably complete. Further Source work without new phase evidence or a broader authorized scope would be speculative** |
+| Remaining Work | Owner decides whether to authorize a new bounded investigation/correction scope for the non-memory route hang. Do not resume July/on-demand/Owner UAT, Promote, alias, mutate data, or make another Source change automatically |
 | Task Done | **No** |
-| Next Gate / Next Action | **Owner signs in on `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`; Developer resumes authenticated current/July/on-demand performance and technical read-only verification** |
+| Next Gate / Next Action | **Owner decision on the materially changed non-memory route-hang Root Cause; exact candidate remains staged-only and blocked** |
 | Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
 
 `src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
@@ -72,15 +76,21 @@ blob `4521281d099efb189429a744909552d67871ff23`; it was not edited, staged, rese
 checked out, stashed, or normalized. Owner policy changed only the approved task
 semantics. No Production write, DB fixture, repair, migration command, environment
 change, feature-control change, allowlist action, Production alias change, or
-Promotion occurred. Unauthenticated shell smoke was intentionally stopped by
-Vercel SSO with `302` for root, health, and Assignment. The authorized in-app
-browser passed Vercel SSO and reached the new artifact's application login route,
-but no application credential was supplied or inspected. Bounded artifact runtime
-logs before authenticated sampling contained `7` HTTP 200 and `1` HTTP 307 record,
-with direct error/fatal/5xx counts `0/0/0`. Head Coach layout notification delta,
-authenticated request-method inventory, exact browser wire bytes, current/July
-20-sample metrics, on-demand endpoint timing, responsive/navigation/console gates,
-and read-only protected-set pre/post evidence remain Unknown pending login.
+Promotion occurred. Owner authenticated Head Coach on the exact artifact without
+exposing credentials. Current warm-up and the first 15 measured samples rendered
+the exact live `908/295` population with no initial memory endpoint, Client task
+Data API request, or console error. Three later current loads failed route
+readiness consecutively. Vercel's bounded 20-minute view reported Assignment
+route count `27`, only GET records, HTTP groups at least `200=105`, `307=12`,
+`304=7`, and direct error/fatal/5xx `0/0/0`; no assignment-memory or assignment-
+mutation API log was found. Exact wire bytes, compliant 20-sample current/July
+results, staged on-demand behavior, repeated-click/Back/Forward, and mobile gates
+remain Unknown because verification stopped at the mandatory initial-load failure.
+Read-only protected-set counts stayed groups `1,532`, memberships `3,504`, Legacy
+assignments `1,504`. Shared layout notification creators emit `reminder`; reminder
+delta was `0`, so their observed creation count was `0`. Seven concurrent `system`
+notifications and the unrelated booking/program activity above were retained and
+not repaired.
 
 ## Historical / Superseded — Admin Payroll Accuracy + Performance
 

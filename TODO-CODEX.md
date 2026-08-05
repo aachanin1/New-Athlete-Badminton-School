@@ -9,8 +9,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / AUTHENTICATED STAGED
-BROWSER GATE PENDING.**
+**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP;
+PERFORMANCE GATE FAILED.**
 
 - Owner authorized a Source-only/SELECT-only performance correction without
   relaxing the 5-second P95 contract. Initial current/historical rendering no
@@ -26,20 +26,27 @@ BROWSER GATE PENDING.**
   `13` current / `19` July calls with bounded supporting batches and zero initial
   Coach Memory calls. Representative on-demand memory core P95 is `0.752s` over
   20 warm samples; this does not replace the staged authenticated browser gate.
-- New exact-SHA candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL
+- Exact-SHA candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL
   `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`,
-  is `production/READY`, runtime region `icn1`, aliases `[]`, and unpromoted.
-  Current Production is unchanged. All four older artifacts listed in the Owner
-  contract remain blocked/rejected and must never be Promoted.
-- Blocker: Vercel SSO passed, but the new artifact is at application
-  `/auth/login?redirect=%2Fcoach%2Fassign-groups`; prior Head Coach sessions do
-  not transfer across artifact hostnames. Required current/July 20+20 browser
-  samples, on-demand endpoint timing, wire bytes, responsive/navigation/console,
-  notification delta, and request-method/protected-set evidence remain pending.
-- Next action: Owner signs in as Head Coach on the exact new artifact, then
-  Developer resumes the approved read-only technical gates. The task is not
-  READY FOR OWNER UAT; do not Promote, alias, mutate data, alter Source, or start
-  another task. `PROJECT_STATE.md` is authoritative.
+  is `production/READY`, runtime region `icn1`, aliases `[]`, unpromoted, and now
+  Performance-failed/blocked. Current Production is unchanged. All five staged
+  artifacts in the current/historical blocklist must never be Promoted.
+- Authenticated warm-up was `2.718s`. The first 15 measured current loads were
+  stable at live `908/295`, provisional min/P50/P95/max
+  `1.995/2.367/2.748/2.748s`, with initial Coach Memory `0`, Client task Data API
+  `0`, and console errors `0`. Three following full-document loads stayed in
+  route-level loading beyond 30 seconds, including one after a 30-second drain;
+  the required 20 successful samples therefore do not exist and the Performance
+  Gate failed. July/staged on-demand/mobile/navigation gates were stopped.
+- Protected groups/memberships/Legacy counts stayed `1,532/3,504/1,504`; shared
+  Coach layout reminder creation was `0`. Unrelated concurrent activity added
+  booking sessions `5`, activity logs `3` (`2` booking / `1` program), and seven
+  `system` notifications. No task write, fixture, repair, assignment-memory API,
+  assignment mutation API, error/fatal/5xx, Promotion, or alias action occurred.
+- Next action: Owner decides whether to authorize a new bounded investigation/
+  correction scope for the materially changed non-memory route hang. The task is
+  not READY FOR OWNER UAT; do not resume testing, Promote, alias, mutate data,
+  alter Source, or start another task. `PROJECT_STATE.md` is authoritative.
 
 ## Recently Completed
 

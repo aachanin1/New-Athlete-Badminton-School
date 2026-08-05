@@ -12187,3 +12187,102 @@ Owner signs in as Head Coach on exact artifact
 `5d7c5c675f2dd5818e5b7116848385624cd8969a`; Developer then resumes only the
 approved read-only staged gates. Do not Promote, alias, mutate data, alter Source,
 or start another task.
+
+### 2026-08-05 — Authenticated On-Demand Candidate Performance Material Hard Stop
+
+Owner authenticated Head Coach on exact staged Production-target artifact
+`dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, exact functional Source
+`5d7c5c675f2dd5818e5b7116848385624cd8969a`, and authorized the remaining
+read-only technical gates. No credential was inspected. No Save, Reschedule,
+Wallet, Attendance, Check-in, Close Week, mutation API, Source, DB, data repair,
+Migration, config, Environment, feature, allowlist, alias, or Promotion action
+was authorized or performed.
+
+#### Fact — Authenticated Current Gate
+
+- Current Bangkok month rendered 5–31 August with live population `908` learner-
+  sessions / `295` slots. The authenticated warm-up reached authoritative roster,
+  groups, month controls, and month-level `aria-busy=false` in `2.718s`. Browser
+  asset inventory contained zero `/api/coach/assignment-memory` request and zero
+  task Supabase Data API request; browser console was empty.
+- The first 15 measured full-document current loads were stable at `908/295` and
+  completed with provisional nearest-rank min/P50/P95/max
+  `1.995/2.367/2.748/2.748s`. They are diagnostic evidence only, not a compliant
+  20-sample result.
+- Sample 16 remained at the route-level `กำลังเปิดเมนู...` loading UI beyond the
+  30-second readiness bound. It did not recover after an additional five seconds.
+  A fresh recovery navigation repeated the same timeout. After allowing 30
+  seconds for background prefetch/shared-route work to drain, a third navigation
+  still failed inside the total 60-second harness bound. All three failures had
+  zero observed initial Coach Memory asset, zero Client task Data API asset, and
+  zero browser console error.
+- Required 20 successful current samples were therefore not obtained. A valid
+  current P95 cannot be reported. Under the Scope Contract the mandatory initial-
+  load Performance Gate failed, so July 20-sample, staged on-demand memory,
+  historical UI/read-only, repeated-click, Back/Forward, desktop/mobile, and
+  interaction gates were stopped rather than used to mask the failure.
+- Exact authenticated document/RSC transferred bytes are **Unknown**. The
+  available browser capability exposed asset identities and kinds but no transfer
+  sizes; DOM length was not used or relabeled as wire bytes.
+
+#### Fact — Runtime, Method, and Data-Safety Evidence
+
+- Bounded Vercel runtime evidence for the exact deployment reported Assignment
+  path count `27`; raw Assignment entries were GET only. Top status groups were
+  HTTP `200=105`, `307=12`, and `304=7`; direct error/fatal/5xx queries returned
+  `0/0/0`. No `/api/coach/assignment-memory` or
+  `/api/coach/assignment-groups` record was found in the bounded window. Route
+  middleware records appeared for the late hangs without corresponding completed
+  application readiness; no fatal/logged 5xx explained them.
+- SELECT-only pre/post counts were groups `1,532 → 1,532`, exact memberships
+  `3,504 → 3,504`, and Legacy assignments `1,504 → 1,504`. Task-attributable
+  assignment/data writes were zero. `activity_logs` changed `11,088 → 11,091`,
+  with aggregate actions `create_progressive_booking|booking=2` and
+  `create_teaching_program|program=1`; booking sessions changed
+  `4,365 → 4,370`. These are unrelated concurrent Production activity.
+- Notifications changed `25,177 → 25,184`, all seven new rows typed `system`.
+  Shared Coach layout functions create `reminder` notifications; observed
+  `reminder` delta was zero, so their measured creation count was `0`. The seven
+  concurrent system rows were retained and not deleted or repaired.
+- Branch remained `spike/next-major-security-upgrade`; containing documentation
+  HEAD/upstream before this closeout was
+  `89379286064df7e406131db4c9a844e2d4981c7a`, `0/0`, with only protected stat-
+  dirty `src/lib/schedule-slot-utils.ts`. Its SHA-256/index/worktree identity and
+  lifecycle migration SHA-256 remained exact. Current Production was reverified
+  unchanged at `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+  `03d08a93e77189d56b733bda009d9526400fa9b3`.
+
+#### Inference / Unknown — Root Cause and Stop Decision
+
+- Old-source phase metrics proved initial Coach Memory was a major critical-path
+  fan-out, and the first 15 authenticated candidate loads show that removing it
+  materially improved normal-case latency. The three later hangs occur with zero
+  initial memory request, however, so initial Coach Memory cannot explain the
+  blocking condition by itself.
+- Exact phase and outbound Supabase timing for the hung requests are **Unknown**.
+  Potential shared-route/prefetch saturation or another Server read dependency is
+  only a hypothesis. Selecting a second Source correction without new phase
+  evidence would be speculative and would violate the approved Root Cause/scope
+  discipline. This is a **Material Root Cause change / Material Hard Stop**, not
+  a request to relax the `P95 <= 5.000s` contract.
+
+#### State Observed at This Safe Handoff
+
+Source Complete **Yes for scoped Source**; Tests Passed **Yes — `167` assertions
+plus TypeScript/lint/mojibake/build/diff**; Performance Gate **Failed**;
+Committed/Pushed **Yes for functional Source and prior safe handoff; containing
+Material Hard Stop documentation commit follows**; staged artifact
+**production/READY, aliases `[]`, Performance-failed and blocked**; READY FOR
+OWNER UAT **No**; Owner/Production UAT **Not run**; Promoted/Production Active
+**No/No for this task**; Migration Source/Applied **unchanged/retained**;
+Environment/Feature/Allowlist **unchanged**; Controlled Write UAT **Not run /
+prohibited**; DB fixture/task write **0/0**; Production Data Changed
+**Task-attributable No; unrelated concurrent activity Yes as disclosed**; Data
+Repaired **No**; Customer/Financial Impact **None/None**; Scope Expansion/Breach
+**No/No**; Documentation Drift **No after publication**; Task Done **No**.
+
+Next Action: Owner decides whether to authorize a new bounded investigation and
+correction scope for the materially changed non-memory route hang. Do not resume
+July/on-demand/Owner UAT, change Source, Promote, alias, mutate or repair data, or
+start another task automatically. All five blocked/rejected artifacts remain
+ineligible for Promotion.
