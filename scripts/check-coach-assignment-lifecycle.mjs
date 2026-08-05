@@ -32,6 +32,11 @@ async function check(name, action) {
 
 const assignmentPage = read('src/app/(coach)/coach/assign-groups/page.tsx')
 const assignmentClient = read('src/components/coach/assign-groups-client.tsx')
+const assignmentMemoryLib = read('src/lib/coach-student-memory.ts')
+const assignmentMemoryRoutePath = 'src/app/api/coach/assignment-memory/route.ts'
+const assignmentMemoryRoute = fs.existsSync(path.join(root, assignmentMemoryRoutePath))
+  ? read(assignmentMemoryRoutePath)
+  : ''
 const assignmentRoute = read('src/app/api/coach/assignment-groups/route.ts')
 const rescheduleRoute = read('src/app/api/reschedule/route.ts')
 const walletRoute = read('src/app/api/lesson-wallet/route.ts')
@@ -85,19 +90,70 @@ await check('booking-session pagination fails closed on duplicate, changing-coun
   assert.match(assignmentPage, /exceeded bounded pagination/)
 })
 
-await check('Coach-memory booking-session reads share completeness pagination while other supporting reads fail closed', () => {
-  assert.match(assignmentPage, /createCompleteCoachMemoryReadClient\(supabase\)/)
-  assert.match(assignmentPage, /table === 'booking_sessions'/)
+await check('authoritative groups, Legacy assignments, and learner levels use bounded complete IN batches', () => {
+  assert.match(assignmentPage, /function loadCompleteSupportingBatches/)
+  assert.match(assignmentPage, /const ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE = 100/)
+  assert.match(assignmentPage, /new Set\(options\.values\.filter\(Boolean\)\)/)
   assert.match(assignmentPage, /result\.count !== result\.data\.length/)
+  assert.match(assignmentPage, /loadCompleteSupportingBatches<LegacyAssignmentRow>/)
+  assert.match(assignmentPage, /loadCompleteSupportingBatches<ExistingGroupRow>/)
+  assert.match(assignmentPage, /loadCompleteSupportingBatches<StudentLevelRow>/)
 })
 
-await check('Coach-memory supporting IN reads use bounded non-overlapping batches before request limits', () => {
-  assert.match(assignmentPage, /const ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE = 100/)
-  assert.match(assignmentPage, /const ASSIGNMENT_SUPPORTING_MAX_BATCHES = \d+/)
-  assert.match(assignmentPage, /createCompleteSupportingQuery/)
-  assert.match(assignmentPage, /new Set\(inValues\)/)
-  assert.match(assignmentPage, /Math\.ceil\(uniqueInValues\.length \/ ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE\)/)
-  assert.match(assignmentPage, /supporting query exceeded bounded IN batches/)
+await check('initial current and historical month renders never wait for Coach Memory', () => {
+  assert.doesNotMatch(assignmentPage, /getCoachStudentMemoryMap\(/)
+  assert.doesNotMatch(assignmentPage, /createCompleteCoachMemoryReadClient\(supabase\)/)
+  assert.match(assignmentPage, /coachMemory: \[\]/)
+  assert.match(assignmentPage, /coachMemoryEnabled=\{selectedMonth === currentBangkokMonth\}/)
+})
+
+await check('on-demand Coach Memory keeps complete booking-session pagination and bounded supporting batches', () => {
+  assert.match(assignmentMemoryLib, /export function createCompleteCoachMemoryReadClient/)
+  assert.match(assignmentMemoryLib, /const COACH_MEMORY_SESSION_PAGE_SIZE = 1000/)
+  assert.match(assignmentMemoryLib, /table === 'booking_sessions'/)
+  assert.match(assignmentMemoryLib, /duplicate booking_session id/)
+  assert.match(assignmentMemoryLib, /row count changed during pagination/)
+  assert.match(assignmentMemoryLib, /supporting query exceeded bounded IN batches/)
+  assert.match(assignmentMemoryRoute, /createCompleteCoachMemoryReadClient\(supabase, metrics\)/)
+})
+
+await check('Coach Memory GET is authenticated, role- and branch-scoped, roster-derived, current, and SELECT-only', () => {
+  assert.match(assignmentMemoryRoute, /export async function GET\(/)
+  assert.match(assignmentMemoryRoute, /supabase\.auth\.getUser\(\)/)
+  assert.match(assignmentMemoryRoute, /\['head_coach', 'super_admin'\]/)
+  assert.match(assignmentMemoryRoute, /\.from\('schedule_slots'\)/)
+  assert.match(assignmentMemoryRoute, /\.from\('coach_branches'\)/)
+  assert.match(assignmentMemoryRoute, /\.from\('booking_sessions'\)/)
+  assert.match(assignmentMemoryRoute, /getCoachStudentMemoryMap\(/)
+  assert.match(assignmentMemoryRoute, /MEMORY_SLOT_HISTORICAL_OR_STARTED/)
+  assert.doesNotMatch(assignmentMemoryRoute, /studentIds|branchId\s*=\s*searchParams/)
+  assert.doesNotMatch(assignmentMemoryRoute, /getServiceRoleClient|\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(|logActivity|notif/i)
+})
+
+await check('current on-demand memory is single-flight with localized accessible loading and a synchronous guard', () => {
+  assert.match(assignmentClient, /coachMemoryEnabled: boolean/)
+  assert.match(assignmentClient, /const coachMemoryRequestsRef = useRef\(new Map/)
+  assert.match(assignmentClient, /if \(!coachMemoryEnabled \|\| slot\.assignmentLocked/)
+  assert.match(assignmentClient, /coachMemoryRequestsRef\.current\.get\(slot\.key\)/)
+  assert.match(assignmentClient, /coachMemoryRequestsRef\.current\.set\(slot\.key, request\)/)
+  assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-memory\?scheduleSlotId=/)
+  assert.match(assignmentClient, /method: 'GET'/)
+  assert.match(assignmentClient, /กำลังโหลดประวัติโค้ช\.\.\./)
+  assert.match(assignmentClient, /aria-busy=\{isCoachMemoryLoading\}/)
+})
+
+await check('lazy memory updates untouched drafts but never overwrites an edited draft', () => {
+  assert.match(assignmentClient, /const draftWasUntouched = getGroupsSignature\(currentDraft\)[\s\S]*getGroupsSignature\(currentBaseline\)/)
+  assert.match(assignmentClient, /if \(!draftWasUntouched\) return prev/)
+  assert.match(assignmentClient, /const recommendedDraft = createAutoGroups\(slotWithMemory\)/)
+  assert.match(assignmentClient, /draftBaselinesBySlotRef\.current[\s\S]*recommendedDraft/)
+})
+
+await check('historical slots never request or render Coach Memory recommendations', () => {
+  assert.match(assignmentClient, /const shouldExposeCoachMemory = coachMemoryEnabled && !slot\.assignmentLocked/)
+  assert.match(assignmentClient, /shouldExposeCoachMemory && slot\.suggestedCoachName/)
+  assert.match(assignmentClient, /showCoachMemory=\{shouldExposeCoachMemory\}/)
+  assert.match(assignmentClient, /if \(!coachMemoryEnabled \|\| slot\.assignmentLocked/)
 })
 
 await check('client month navigation is canonical, URL-driven, and timezone-stable across years', () => {
@@ -152,8 +208,10 @@ await check('month navigation uses a synchronous re-entry guard and resets after
   assert.match(assignmentClient, /monthNavigationLockRef\.current = false/)
 })
 
-await check('month selection adds no client Supabase read or prefetch', () => {
+await check('client adds no Supabase read or prefetch and only the scoped memory GET', () => {
   assert.doesNotMatch(assignmentClient, /createClient\(|\.from\('booking_sessions'\)|prefetch\(/)
+  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 2)
+  assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-memory\?scheduleSlotId=/)
 })
 
 await check('historical assignment slots retain the existing read-only lock', () => {

@@ -1,5 +1,6 @@
 import type { StudentType, UserRole } from '@/types/database'
 import {
+  CoachAssignmentDataUnavailableError,
   classifyCoachAssignmentSessionProvenance,
   getExactModelSlotIds,
   loadWalletRedeemedSessionIds,
@@ -43,6 +44,265 @@ export interface StudentCoachMemory {
   studentType: StudentType
   coaches: CoachMemoryEntry[]
   suggestedCoach: CoachMemoryEntry | null
+}
+
+export interface CoachMemoryReadMetrics {
+  callsByTable: Record<string, number>
+  rowsByTable: Record<string, number>
+  requestDurationMsByTable: Record<string, number>
+  bookingSessionPages: number
+  supportingBatches: number
+}
+
+type CompleteQueryMethod = 'eq' | 'in' | 'is' | 'lte' | 'neq' | 'order'
+
+interface CompleteQueryResult {
+  data: Array<{ id?: string } & Record<string, unknown>> | null
+  error: { message: string } | null
+  count: number | null
+}
+
+interface CompleteQuery extends PromiseLike<CompleteQueryResult> {
+  eq: (...args: unknown[]) => CompleteQuery
+  in: (...args: unknown[]) => CompleteQuery
+  is: (...args: unknown[]) => CompleteQuery
+  lte: (...args: unknown[]) => CompleteQuery
+  neq: (...args: unknown[]) => CompleteQuery
+  order: (...args: unknown[]) => CompleteQuery
+  range: (from: number, to: number) => CompleteQuery
+}
+
+interface CompleteSupabaseClient {
+  from: (table: string) => {
+    select: (columns: string, options?: { count: 'exact' }) => CompleteQuery
+  }
+}
+
+const COACH_MEMORY_SESSION_PAGE_SIZE = 1000
+const COACH_MEMORY_SESSION_MAX_PAGES = 100
+const COACH_MEMORY_SUPPORTING_IN_BATCH_SIZE = 100
+const COACH_MEMORY_SUPPORTING_MAX_BATCHES = 100
+
+export function createCoachMemoryReadMetrics(): CoachMemoryReadMetrics {
+  return {
+    callsByTable: {},
+    rowsByTable: {},
+    requestDurationMsByTable: {},
+    bookingSessionPages: 0,
+    supportingBatches: 0,
+  }
+}
+
+function recordCoachMemoryRead(
+  metrics: CoachMemoryReadMetrics,
+  table: string,
+  rowCount: number,
+  startedAt: number,
+) {
+  metrics.callsByTable[table] = (metrics.callsByTable[table] || 0) + 1
+  metrics.rowsByTable[table] = (metrics.rowsByTable[table] || 0) + rowCount
+  metrics.requestDurationMsByTable[table] = Number((
+    (metrics.requestDurationMsByTable[table] || 0) + (performance.now() - startedAt)
+  ).toFixed(1))
+}
+
+function applyCompleteQueryOperation(
+  query: CompleteQuery,
+  operation: { method: CompleteQueryMethod; args: unknown[] },
+) {
+  if (operation.method === 'eq') return query.eq(...operation.args)
+  if (operation.method === 'in') return query.in(...operation.args)
+  if (operation.method === 'is') return query.is(...operation.args)
+  if (operation.method === 'lte') return query.lte(...operation.args)
+  if (operation.method === 'neq') return query.neq(...operation.args)
+  return query.order(...operation.args)
+}
+
+function createCompleteBookingSessionQuery(
+  supabase: CompleteSupabaseClient,
+  columns: string,
+  metrics: CoachMemoryReadMetrics,
+) {
+  const operations: Array<{ method: CompleteQueryMethod; args: unknown[] }> = []
+
+  const load = async () => {
+    const rows: Array<{ id?: string } & Record<string, unknown>> = []
+    const seenSessionIds = new Set<string>()
+    let expectedTotal: number | null = null
+
+    for (let pageIndex = 0; pageIndex < COACH_MEMORY_SESSION_MAX_PAGES; pageIndex += 1) {
+      const pageStart = pageIndex * COACH_MEMORY_SESSION_PAGE_SIZE
+      const pageEnd = pageStart + COACH_MEMORY_SESSION_PAGE_SIZE - 1
+      let query = supabase.from('booking_sessions').select(columns, { count: 'exact' })
+      for (const operation of operations) {
+        query = applyCompleteQueryOperation(query, operation)
+      }
+
+      const startedAt = performance.now()
+      const result = await query
+        .order('id', { ascending: true })
+        .range(pageStart, pageEnd)
+      metrics.bookingSessionPages += 1
+      recordCoachMemoryRead(metrics, 'booking_sessions', result.data?.length || 0, startedAt)
+
+      if (result.error) {
+        throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', result.error.message)
+      }
+      if (!Array.isArray(result.data)) {
+        throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'query returned no row payload')
+      }
+      if (!Number.isInteger(result.count) || Number(result.count) < 0) {
+        throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'exact row count was unavailable')
+      }
+      if (expectedTotal === null) {
+        expectedTotal = result.count
+      } else if (expectedTotal !== result.count) {
+        throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'row count changed during pagination')
+      }
+
+      for (const row of result.data) {
+        if (!row.id) {
+          throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'booking_session id was unavailable')
+        }
+        if (seenSessionIds.has(row.id)) {
+          throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'duplicate booking_session id during pagination')
+        }
+        seenSessionIds.add(row.id)
+        rows.push(row)
+      }
+
+      if (result.data.length < COACH_MEMORY_SESSION_PAGE_SIZE) {
+        if (rows.length !== expectedTotal) {
+          throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'pagination ended before the exact row count')
+        }
+        return rows
+      }
+    }
+
+    throw new CoachAssignmentDataUnavailableError('Coach memory booking-session query failed', 'exceeded bounded pagination')
+  }
+
+  const queryProxy = new Proxy({} as CompleteQuery, {
+    get(_target, property) {
+      if (property === 'then') {
+        return (onFulfilled: ((value: CompleteQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
+          load()
+            .then((data) => ({ data, error: null, count: data.length }))
+            .then(onFulfilled, onRejected)
+        )
+      }
+      if (typeof property === 'string' && ['eq', 'in', 'is', 'lte', 'neq', 'order'].includes(property)) {
+        return (...args: unknown[]) => {
+          operations.push({ method: property as CompleteQueryMethod, args })
+          return queryProxy
+        }
+      }
+      return undefined
+    },
+  })
+
+  return queryProxy
+}
+
+function createCompleteSupportingQuery(
+  supabase: CompleteSupabaseClient,
+  table: string,
+  columns: string,
+  metrics: CoachMemoryReadMetrics,
+) {
+  const operations: Array<{ method: CompleteQueryMethod; args: unknown[] }> = []
+
+  const load = async (): Promise<CompleteQueryResult> => {
+    const oversizedInOperations = operations
+      .map((operation, index) => ({ operation, index }))
+      .filter(({ operation }) => (
+        operation.method === 'in'
+        && Array.isArray(operation.args[1])
+        && operation.args[1].length > COACH_MEMORY_SUPPORTING_IN_BATCH_SIZE
+      ))
+    if (oversizedInOperations.length > 1) {
+      throw new CoachAssignmentDataUnavailableError(`Coach memory ${table} query failed`, 'supporting query exceeded bounded IN dimensions')
+    }
+
+    const oversizedInOperation = oversizedInOperations[0]
+    const inValues = oversizedInOperation
+      ? Array.from(new Set(oversizedInOperation.operation.args[1] as unknown[]))
+      : null
+    const batchCount = inValues
+      ? Math.ceil(inValues.length / COACH_MEMORY_SUPPORTING_IN_BATCH_SIZE)
+      : 1
+    if (batchCount > COACH_MEMORY_SUPPORTING_MAX_BATCHES) {
+      throw new CoachAssignmentDataUnavailableError(`Coach memory ${table} query failed`, 'supporting query exceeded bounded IN batches')
+    }
+
+    const batches = inValues
+      ? Array.from({ length: batchCount }, (_, index) => inValues.slice(
+          index * COACH_MEMORY_SUPPORTING_IN_BATCH_SIZE,
+          (index + 1) * COACH_MEMORY_SUPPORTING_IN_BATCH_SIZE,
+        ))
+      : [null]
+    metrics.supportingBatches += batches.length
+
+    const pages = await Promise.all(batches.map(async (batchValues) => {
+      let query = supabase.from(table).select(columns, { count: 'exact' })
+      operations.forEach((operation, index) => {
+        query = applyCompleteQueryOperation(query, batchValues && index === oversizedInOperation?.index
+          ? { ...operation, args: [operation.args[0], batchValues] }
+          : operation)
+      })
+
+      const startedAt = performance.now()
+      const result = await query
+      recordCoachMemoryRead(metrics, table, result.data?.length || 0, startedAt)
+      if (result.error) {
+        throw new CoachAssignmentDataUnavailableError(`Coach memory ${table} query failed`, result.error.message)
+      }
+      if (!Array.isArray(result.data) || result.count !== result.data.length) {
+        throw new CoachAssignmentDataUnavailableError(`Coach memory ${table} query failed`, 'supporting query was incomplete')
+      }
+      return result.data
+    }))
+
+    const data = pages.flat()
+    return { data, error: null, count: data.length }
+  }
+
+  const queryProxy = new Proxy({} as CompleteQuery, {
+    get(_target, property) {
+      if (property === 'then') {
+        return (onFulfilled: ((value: CompleteQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
+          load().then(onFulfilled, onRejected)
+        )
+      }
+      if (typeof property === 'string' && ['eq', 'in', 'is', 'lte', 'neq', 'order'].includes(property)) {
+        return (...args: unknown[]) => {
+          operations.push({ method: property as CompleteQueryMethod, args })
+          return queryProxy
+        }
+      }
+      return undefined
+    },
+  })
+
+  return queryProxy
+}
+
+export function createCompleteCoachMemoryReadClient(
+  supabaseClient: unknown,
+  metrics = createCoachMemoryReadMetrics(),
+) {
+  const supabase = supabaseClient as CompleteSupabaseClient
+  return {
+    from(table: string) {
+      return {
+        select(columns: string) {
+          return table === 'booking_sessions'
+            ? createCompleteBookingSessionQuery(supabase, columns, metrics)
+            : createCompleteSupportingQuery(supabase, table, columns, metrics)
+        },
+      }
+    },
+  }
 }
 
 interface BookingSessionMemoryRow {

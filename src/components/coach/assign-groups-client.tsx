@@ -130,6 +130,21 @@ interface AssignGroupsClientProps {
   slots: AssignmentSlot[]
   currentUserId?: string
   selectedMonth: string
+  coachMemoryEnabled: boolean
+}
+
+interface AssignmentMemoryResponse {
+  students?: Array<{
+    bookingSessionId: string
+    coachMemory: CoachMemoryEntry[]
+    suggestedCoachId: string | null
+    suggestedCoachName: string | null
+  }>
+  suggestedCoachId?: string | null
+  suggestedCoachName?: string | null
+  suggestedCoachReason?: string | null
+  code?: string
+  error?: string
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -332,6 +347,27 @@ function createPersistedGroupMap(slots: AssignmentSlot[]) {
   }, {} as Record<string, ExistingAssignmentGroup[]>)
 }
 
+function applyCoachMemoryToSlot(slot: AssignmentSlot, response: AssignmentMemoryResponse) {
+  const studentMemory = new Map((response.students || []).map((student) => [student.bookingSessionId, student]))
+  return {
+    ...slot,
+    suggestedCoachId: response.suggestedCoachId || null,
+    suggestedCoachName: response.suggestedCoachName || null,
+    suggestedCoachReason: response.suggestedCoachReason || null,
+    students: slot.students.map((student) => {
+      const memory = studentMemory.get(student.bookingSessionId)
+      return memory
+        ? {
+            ...student,
+            coachMemory: memory.coachMemory,
+            suggestedCoachId: memory.suggestedCoachId,
+            suggestedCoachName: memory.suggestedCoachName,
+          }
+        : student
+    }),
+  }
+}
+
 function getGroupStudents(slot: AssignmentSlot, group: GroupDraft) {
   const ids = new Set(group.studentSessionIds)
   return slot.students.filter((student) => ids.has(student.bookingSessionId))
@@ -454,7 +490,13 @@ function formatMonth(monthKey: string) {
   return formatThaiMonthYear(`${monthKey}-01`)
 }
 
-export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMonth }: AssignGroupsClientProps) {
+export function AssignGroupsClient({
+  coaches,
+  slots,
+  currentUserId,
+  selectedMonth,
+  coachMemoryEnabled,
+}: AssignGroupsClientProps) {
   const router = useRouter()
   const [isMonthNavigationPending, startMonthNavigation] = useTransition()
   const [draftsBySlot, setDraftsBySlot] = useState<Record<string, GroupDraft[]>>(() => createInitialDraftMap(slots))
@@ -467,13 +509,23 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
   const [selectedSlotKey, setSelectedSlotKey] = useState('')
   const [statusFilter, setStatusFilter] = useState<AssignmentStatusFilter>('all')
   const [pendingTargetMonth, setPendingTargetMonth] = useState<string | null>(null)
+  const [coachMemoryBySlot, setCoachMemoryBySlot] = useState<Record<string, AssignmentMemoryResponse>>({})
+  const [coachMemoryLoadingBySlot, setCoachMemoryLoadingBySlot] = useState<Record<string, boolean>>({})
+  const [coachMemoryErrorsBySlot, setCoachMemoryErrorsBySlot] = useState<Record<string, string>>({})
   const draftsBySlotRef = useRef(draftsBySlot)
   const draftBaselinesBySlotRef = useRef(draftsBySlot)
   const persistedGroupsBySlotRef = useRef(initialPersistedGroups)
   const savedSnapshotsBySlotRef = useRef(savedSnapshotsBySlot)
   const monthNavigationLockRef = useRef(false)
   const monthNavigationSourceMonthRef = useRef<string | null>(null)
+  const coachMemoryRequestsRef = useRef(new Map<string, Promise<AssignmentSlot | null>>())
+  const coachMemoryCacheRef = useRef(new Map<string, AssignmentMemoryResponse>())
   const isMonthNavigationActive = Boolean(pendingTargetMonth) || isMonthNavigationPending
+
+  const slotsWithCoachMemory = useMemo(() => slots.map((slot) => {
+    const memory = coachMemoryBySlot[slot.key]
+    return memory ? applyCoachMemoryToSlot(slot, memory) : slot
+  }), [coachMemoryBySlot, slots])
 
   useEffect(() => {
     draftsBySlotRef.current = draftsBySlot
@@ -543,20 +595,20 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
   }, [slots])
 
   const stats = useMemo(() => {
-    const totalStudents = slots.reduce((sum, slot) => sum + slot.students.length, 0)
-    const needsReview = slots.filter((slot) => hasWideLevelGap(slot.students)).length
-    const stateCounts = countSlotStates(slots, draftsBySlot, savedSnapshotsBySlot)
+    const totalStudents = slotsWithCoachMemory.reduce((sum, slot) => sum + slot.students.length, 0)
+    const needsReview = slotsWithCoachMemory.filter((slot) => hasWideLevelGap(slot.students)).length
+    const stateCounts = countSlotStates(slotsWithCoachMemory, draftsBySlot, savedSnapshotsBySlot)
 
     return { totalStudents, needsReview, ...stateCounts }
-  }, [draftsBySlot, savedSnapshotsBySlot, slots])
+  }, [draftsBySlot, savedSnapshotsBySlot, slotsWithCoachMemory])
 
   const groupedByDateAll = useMemo(() => {
-    return Object.entries(slots.reduce((map, slot) => {
+    return Object.entries(slotsWithCoachMemory.reduce((map, slot) => {
       if (!map[slot.date]) map[slot.date] = []
       map[slot.date].push(slot)
       return map
     }, {} as Record<string, AssignmentSlot[]>)).sort(([a], [b]) => a.localeCompare(b))
-  }, [slots])
+  }, [slotsWithCoachMemory])
 
   const dateSummaries = useMemo(() => {
     return groupedByDateAll
@@ -639,6 +691,67 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
     setErrorsBySlot((prev) => ({ ...prev, [slotKey]: '' }))
   }
 
+  const ensureCoachMemory = (slot: AssignmentSlot): Promise<AssignmentSlot | null> => {
+    if (!coachMemoryEnabled || slot.assignmentLocked || !slot.scheduleSlotId || slot.assignmentGroups.length > 0) {
+      return Promise.resolve(slot)
+    }
+
+    const cached = coachMemoryCacheRef.current.get(slot.key)
+    if (cached) return Promise.resolve(applyCoachMemoryToSlot(slot, cached))
+
+    const inFlight = coachMemoryRequestsRef.current.get(slot.key)
+    if (inFlight) return inFlight
+
+    const request = (async () => {
+      setCoachMemoryLoadingBySlot((prev) => ({ ...prev, [slot.key]: true }))
+      setCoachMemoryErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
+
+      try {
+        const response = await fetch(`/api/coach/assignment-memory?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId || '')}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
+        const json = await response.json().catch(() => ({})) as AssignmentMemoryResponse
+        if (!response.ok || !Array.isArray(json.students)) {
+          throw new Error(json.error || 'โหลดประวัติโค้ชไม่สำเร็จ')
+        }
+
+        coachMemoryCacheRef.current.set(slot.key, json)
+        setCoachMemoryBySlot((prev) => ({ ...prev, [slot.key]: json }))
+        const slotWithMemory = applyCoachMemoryToSlot(slot, json)
+
+        setDraftsBySlot((prev) => {
+          const currentDraft = prev[slot.key] || createInitialDrafts(slot)
+          const currentBaseline = draftBaselinesBySlotRef.current[slot.key] || currentDraft
+          const draftWasUntouched = getGroupsSignature(currentDraft)
+            === getGroupsSignature(currentBaseline)
+          if (!draftWasUntouched) return prev
+
+          const recommendedDraft = createAutoGroups(slotWithMemory)
+          draftBaselinesBySlotRef.current = {
+            ...draftBaselinesBySlotRef.current,
+            [slot.key]: recommendedDraft,
+          }
+          draftsBySlotRef.current = { ...prev, [slot.key]: recommendedDraft }
+          return { ...prev, [slot.key]: recommendedDraft }
+        })
+
+        return slotWithMemory
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'โหลดประวัติโค้ชไม่สำเร็จ'
+        setCoachMemoryErrorsBySlot((prev) => ({ ...prev, [slot.key]: message }))
+        return null
+      } finally {
+        coachMemoryRequestsRef.current.delete(slot.key)
+        setCoachMemoryLoadingBySlot((prev) => ({ ...prev, [slot.key]: false }))
+      }
+    })()
+
+    coachMemoryRequestsRef.current.set(slot.key, request)
+    return request
+  }
+
   const addGroup = (slot: AssignmentSlot) => {
     updateSlotGroups(slot.key, (groups) => [
       ...groups,
@@ -688,10 +801,12 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
     )))
   }
 
-  const resetAutoGroups = (slot: AssignmentSlot) => {
+  const resetAutoGroups = async (slot: AssignmentSlot) => {
+    const slotWithMemory = await ensureCoachMemory(slot)
+    if (!slotWithMemory) return
     setDraftsBySlot((prev) => ({
       ...prev,
-      [slot.key]: createAutoGroups(slot),
+      [slot.key]: createAutoGroups(slotWithMemory),
     }))
     setErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
   }
@@ -1124,7 +1239,10 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                           <button
                             key={slot.key}
                             type="button"
-                            onClick={() => setSelectedSlotKey(slot.key)}
+                            onClick={() => {
+                              setSelectedSlotKey(slot.key)
+                              if (isUnassigned && !slot.assignmentLocked) void ensureCoachMemory(slot)
+                            }}
                             className={cn(
                               'rounded-lg border bg-white p-3 text-left transition hover:border-[#2748bf]/50 hover:bg-blue-50',
                               isActiveSlot && 'border-[#2748bf] bg-blue-50 ring-2 ring-[#2748bf]/15',
@@ -1171,9 +1289,17 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                 const slotDraftState = getSlotDraftState(slot, slotGroups, savedSnapshotsBySlot[slot.key])
                 const isAssignmentLocked = slot.assignmentLocked
                 const hasServerLifecycleChange = Boolean(serverChangesBySlot[slot.key])
+                const isCoachMemoryLoading = Boolean(coachMemoryLoadingBySlot[slot.key])
+                const coachMemoryError = coachMemoryErrorsBySlot[slot.key]
+                const shouldExposeCoachMemory = coachMemoryEnabled && !slot.assignmentLocked
+                  && Boolean(coachMemoryBySlot[slot.key])
 
                 return (
-                  <Card key={slot.key} className="overflow-hidden shadow-sm">
+                  <Card
+                    key={slot.key}
+                    className="overflow-hidden shadow-sm"
+                    aria-busy={isCoachMemoryLoading}
+                  >
                     <CardContent className="space-y-4 p-4">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
@@ -1193,16 +1319,37 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                             <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{slot.branchName}</span>
                             <span className="flex items-center gap-1"><UserCog className="h-3 w-3" />ข้อมูลโค้ชเดิมของรอบ — ยังไม่ใช่ผู้รับผิดชอบกลุ่ม: {slot.legacyAssignedCoachName || 'ยังไม่พบข้อมูล'}</span>
                           </div>
-                          {slot.suggestedCoachName && (
+                          {shouldExposeCoachMemory && slot.suggestedCoachName && (
                             <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
                               <Sparkles className="h-3 w-3" />
                               แนะนำภาพรวม: {slot.suggestedCoachName} ({slot.suggestedCoachReason})
                             </p>
                           )}
+                          {isCoachMemoryLoading && (
+                            <p
+                              role="status"
+                              aria-live="polite"
+                              className="mt-2 inline-flex items-center gap-2 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-[#2748bf]"
+                            >
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                              กำลังโหลดประวัติโค้ช...
+                            </p>
+                          )}
+                          {coachMemoryError && !isCoachMemoryLoading && (
+                            <p className="mt-2 text-xs text-red-600">{coachMemoryError}</p>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Button type="button" variant="outline" size="sm" onClick={() => resetAutoGroups(slot)} disabled={isAssignmentLocked}>
-                            <RefreshCw className="mr-2 h-4 w-4" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void resetAutoGroups(slot)}
+                            disabled={isAssignmentLocked || isCoachMemoryLoading}
+                          >
+                            {isCoachMemoryLoading
+                              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              : <RefreshCw className="mr-2 h-4 w-4" />}
                             จัดตาม Level (ยังไม่บันทึก)
                           </Button>
                           <Button type="button" variant="outline" size="sm" onClick={() => addGroup(slot)} disabled={isAssignmentLocked}>
@@ -1389,6 +1536,7 @@ export function AssignGroupsClient({ coaches, slots, currentUserId, selectedMont
                                       selectedGroupId={group.localId}
                                       onMove={(nextGroupId) => moveStudent(slot.key, student.bookingSessionId, nextGroupId)}
                                       disabled={isAssignmentLocked}
+                                      showCoachMemory={shouldExposeCoachMemory}
                                     />
                                   ))
                                 )}
@@ -1426,12 +1574,14 @@ function StudentRow({
   selectedGroupId,
   onMove,
   disabled = false,
+  showCoachMemory = false,
 }: {
   student: AssignmentStudent
   groups: GroupDraft[]
   selectedGroupId: string
   onMove: (groupId: string) => void
   disabled?: boolean
+  showCoachMemory?: boolean
 }) {
   return (
     <div className="rounded-md border bg-gray-50 p-2">
@@ -1450,17 +1600,19 @@ function StudentRow({
               </Badge>
             )}
           </div>
-          {student.coachMemory.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <History className="h-3 w-3 text-gray-400" />
-              {student.coachMemory.slice(0, 3).map((memory) => (
-                <Badge key={`${student.bookingSessionId}-${memory.coachId}`} variant="outline" className="bg-white text-[10px] text-gray-600">
-                  {getMemoryText(memory)}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[11px] text-gray-400">ยังไม่มีประวัติโค้ชจากรอบเรียนที่ผ่านมา</p>
+          {showCoachMemory && (
+            student.coachMemory.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <History className="h-3 w-3 text-gray-400" />
+                {student.coachMemory.slice(0, 3).map((memory) => (
+                  <Badge key={`${student.bookingSessionId}-${memory.coachId}`} variant="outline" className="bg-white text-[10px] text-gray-600">
+                    {getMemoryText(memory)}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-gray-400">ยังไม่มีประวัติโค้ชจากรอบเรียนที่ผ่านมา</p>
+            )
           )}
         </div>
 

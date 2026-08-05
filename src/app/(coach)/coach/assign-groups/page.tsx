@@ -5,7 +5,7 @@ import {
   CoachAssignmentDataUnavailableError,
   requireCoachAssignmentQueryData,
 } from '@/lib/coach-assignment-resolution'
-import { getCoachMemoryKey, getCoachStudentMemoryMap, type CoachMemoryEntry } from '@/lib/coach-student-memory'
+import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 import type { LevelCategory, StudentType } from '@/types/database'
@@ -149,28 +149,10 @@ interface BookingSessionPageResult<T> {
   count: number | null
 }
 
-type DynamicQueryMethod = 'eq' | 'in' | 'is' | 'lte' | 'neq' | 'order'
-
-interface DynamicQueryResult {
-  data: Array<{ id?: string } & Record<string, unknown>> | null
+interface SupportingBatchResult<T> {
+  data: T[] | null
   error: { message: string } | null
   count: number | null
-}
-
-interface DynamicQuery extends PromiseLike<DynamicQueryResult> {
-  eq: (...args: unknown[]) => DynamicQuery
-  in: (...args: unknown[]) => DynamicQuery
-  is: (...args: unknown[]) => DynamicQuery
-  lte: (...args: unknown[]) => DynamicQuery
-  neq: (...args: unknown[]) => DynamicQuery
-  order: (...args: unknown[]) => DynamicQuery
-  range: (from: number, to: number) => DynamicQuery
-}
-
-interface DynamicSupabaseClient {
-  from: (table: string) => {
-    select: (columns: string, options?: { count: 'exact' }) => DynamicQuery
-  }
 }
 
 async function collectCompleteBookingSessionPages<T extends { id: string }>(options: {
@@ -252,166 +234,34 @@ async function loadAssignmentSessionRows(
   })
 }
 
-function applyDynamicQueryOperation(
-  query: DynamicQuery,
-  operation: { method: DynamicQueryMethod; args: unknown[] },
-) {
-  if (operation.method === 'eq') return query.eq(...operation.args)
-  if (operation.method === 'in') return query.in(...operation.args)
-  if (operation.method === 'is') return query.is(...operation.args)
-  if (operation.method === 'lte') return query.lte(...operation.args)
-  if (operation.method === 'neq') return query.neq(...operation.args)
-  return query.order(...operation.args)
-}
+async function loadCompleteSupportingBatches<T>(options: {
+  values: readonly string[]
+  context: string
+  loadBatch: (values: string[]) => PromiseLike<SupportingBatchResult<T>>
+}) {
+  const uniqueValues = Array.from(new Set(options.values.filter(Boolean)))
+  if (uniqueValues.length === 0) return [] as T[]
 
-function createCompleteBookingSessionQuery(
-  supabase: DynamicSupabaseClient,
-  columns: string,
-) {
-  const operations: Array<{ method: DynamicQueryMethod; args: unknown[] }> = []
-
-  const load = async () => collectCompleteBookingSessionPages({
-    context: 'Coach memory booking-session query failed',
-    loadPage: async (pageStart, pageEnd) => {
-      let query = supabase
-        .from('booking_sessions')
-        .select(columns, { count: 'exact' })
-      for (const operation of operations) {
-        query = applyDynamicQueryOperation(query, operation)
-      }
-      return query
-        .order('id', { ascending: true })
-        .range(pageStart, pageEnd) as unknown as Promise<BookingSessionPageResult<{ id: string } & Record<string, unknown>>>
-    },
-  })
-
-  const queryProxy = new Proxy({} as DynamicQuery, {
-    get(_target, property) {
-      if (property === 'then') {
-        return (onFulfilled: ((value: DynamicQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
-          load()
-            .then((data) => ({ data, error: null, count: data.length }))
-            .then(onFulfilled, onRejected)
-        )
-      }
-      if (typeof property === 'string' && ['eq', 'in', 'is', 'lte', 'neq', 'order'].includes(property)) {
-        return (...args: unknown[]) => {
-          operations.push({ method: property as DynamicQueryMethod, args })
-          return queryProxy
-        }
-      }
-      return undefined
-    },
-  })
-
-  return queryProxy
-}
-
-function createCompleteSupportingQuery(
-  supabase: DynamicSupabaseClient,
-  table: string,
-  columns: string,
-  context: string,
-) {
-  const operations: Array<{ method: DynamicQueryMethod; args: unknown[] }> = []
-
-  const load = async (): Promise<DynamicQueryResult> => {
-    const oversizedInOperations = operations
-      .map((operation, index) => ({ operation, index }))
-      .filter(({ operation }) => (
-        operation.method === 'in'
-        && Array.isArray(operation.args[1])
-        && operation.args[1].length > ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE
-      ))
-
-    if (oversizedInOperations.length > 1) {
-      throw new CoachAssignmentDataUnavailableError(context, 'supporting query exceeded bounded IN dimensions')
-    }
-
-    const oversizedInOperation = oversizedInOperations[0]
-    const inValues = oversizedInOperation
-      ? oversizedInOperation.operation.args[1] as unknown[]
-      : null
-    const uniqueInValues = inValues ? Array.from(new Set(inValues)) : null
-    const batchCount = uniqueInValues
-      ? Math.ceil(uniqueInValues.length / ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE)
-      : 1
-
-    if (batchCount > ASSIGNMENT_SUPPORTING_MAX_BATCHES) {
-      throw new CoachAssignmentDataUnavailableError(context, 'supporting query exceeded bounded IN batches')
-    }
-
-    const batches = uniqueInValues
-      ? Array.from({ length: batchCount }, (_, index) => uniqueInValues.slice(
-          index * ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE,
-          (index + 1) * ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE,
-        ))
-      : [null]
-
-    const pages = await Promise.all(batches.map(async (batchValues) => {
-      let query = supabase.from(table).select(columns, { count: 'exact' })
-      operations.forEach((operation, index) => {
-        const appliedOperation = batchValues && index === oversizedInOperation?.index
-          ? { ...operation, args: [operation.args[0], batchValues] }
-          : operation
-        query = applyDynamicQueryOperation(query, appliedOperation)
-      })
-
-      const result = await query
-      if (result.error) {
-        throw new CoachAssignmentDataUnavailableError(context, result.error.message)
-      }
-      if (!Array.isArray(result.data) || result.count !== result.data.length) {
-        throw new CoachAssignmentDataUnavailableError(context, 'supporting query was incomplete')
-      }
-      return result.data
-    }))
-
-    const data = pages.flat()
-    return { data, error: null, count: data.length }
+  const batchCount = Math.ceil(uniqueValues.length / ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE)
+  if (batchCount > ASSIGNMENT_SUPPORTING_MAX_BATCHES) {
+    throw new CoachAssignmentDataUnavailableError(options.context, 'supporting query exceeded bounded IN batches')
   }
 
-  const queryProxy = new Proxy({} as DynamicQuery, {
-    get(_target, property) {
-      if (property === 'then') {
-        return (onFulfilled: ((value: DynamicQueryResult) => unknown) | undefined, onRejected: ((reason: unknown) => unknown) | undefined) => (
-          load().then(onFulfilled, onRejected)
-        )
-      }
-      if (typeof property === 'string' && ['eq', 'in', 'is', 'lte', 'neq', 'order'].includes(property)) {
-        return (...args: unknown[]) => {
-          operations.push({ method: property as DynamicQueryMethod, args })
-          return queryProxy
-        }
-      }
-      return undefined
-    },
+  const batches = Array.from({ length: batchCount }, (_, index) => uniqueValues.slice(
+    index * ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE,
+    (index + 1) * ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE,
+  ))
+  const results = await Promise.all(batches.map((batch) => options.loadBatch(batch)))
+
+  return results.flatMap((result) => {
+    if (result.error) {
+      throw new CoachAssignmentDataUnavailableError(options.context, result.error.message)
+    }
+    if (!Array.isArray(result.data) || result.count !== result.data.length) {
+      throw new CoachAssignmentDataUnavailableError(options.context, 'supporting query was incomplete')
+    }
+    return result.data
   })
-
-  return queryProxy
-}
-
-function createCompleteCoachMemoryReadClient(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-) {
-  const dynamicSupabase = supabase as unknown as DynamicSupabaseClient
-  return {
-    from(table: string) {
-      return {
-        select(columns: string) {
-          if (table === 'booking_sessions') {
-            return createCompleteBookingSessionQuery(dynamicSupabase, columns)
-          }
-          return createCompleteSupportingQuery(
-            dynamicSupabase,
-            table,
-            columns,
-            `Coach memory ${table} query failed`,
-          )
-        },
-      }
-    },
-  }
 }
 
 function parseAssignmentMonth(value: string | string[] | undefined, currentBangkokMonth: string) {
@@ -460,20 +310,6 @@ function buildLevelMap(levelRows: StudentLevelRow[]) {
     if (!map.has(key)) map.set(key, row)
   })
   return map
-}
-
-function rankCoachSuggestion(a: {
-  studentCount: number
-  totalSessions: number
-  lastTaughtDate: string
-}, b: {
-  studentCount: number
-  totalSessions: number
-  lastTaughtDate: string
-}) {
-  if (b.studentCount !== a.studentCount) return b.studentCount - a.studentCount
-  if (b.totalSessions !== a.totalSessions) return b.totalSessions - a.totalSessions
-  return b.lastTaughtDate.localeCompare(a.lastTaughtDate)
 }
 
 function getBangkokSlotStart(date: string, startTime: string) {
@@ -537,44 +373,35 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     }, {} as Record<string, string>)
   }
 
-  let coaches: {
-    id: string
-    name: string
-    role: string
-    branches: string[]
-  }[] = []
-
-  if (branchIds.length > 0) {
-    const { data: allCoachBranches } = await supabase
-      .from('coach_branches')
-      .select('coach_id, branch_id, profiles!coach_branches_coach_id_fkey(full_name, role)')
-      .in('branch_id', branchIds) as unknown as { data: CoachOptionRow[] | null }
-
-    const coachMap = new Map<string, { id: string; name: string; role: string; branches: string[] }>()
-    ;(allCoachBranches || []).forEach((branch) => {
-      if (!coachMap.has(branch.coach_id)) {
-        coachMap.set(branch.coach_id, {
-          id: branch.coach_id,
-          name: branch.profiles?.full_name || 'Coach',
-          role: branch.profiles?.role || 'coach',
-          branches: [],
-        })
-      }
-      coachMap.get(branch.coach_id)?.branches.push(branchMap[branch.branch_id] || '')
-    })
-    coaches = Array.from(coachMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'th'))
-  }
-
-  let sessionRows: SessionRow[] = []
-
-  if (branchIds.length > 0) {
-    sessionRows = await loadAssignmentSessionRows(
-      supabase,
-      branchIds,
-      queryStart,
-      nextMonthStart,
-    )
-  }
+  const [coachBranchResult, sessionRows] = branchIds.length > 0
+    ? await Promise.all([
+        supabase
+          .from('coach_branches')
+          .select('coach_id, branch_id, profiles!coach_branches_coach_id_fkey(full_name, role)')
+          .in('branch_id', branchIds) as unknown as PromiseLike<{
+            data: CoachOptionRow[] | null
+            error: { message: string } | null
+          }>,
+        loadAssignmentSessionRows(supabase, branchIds, queryStart, nextMonthStart),
+      ])
+    : [{ data: [] as CoachOptionRow[], error: null }, [] as SessionRow[]]
+  const allCoachBranches = requireCoachAssignmentQueryData(
+    coachBranchResult,
+    'Head Coach assignment coach option query failed',
+  ) || []
+  const coachMap = new Map<string, { id: string; name: string; role: string; branches: string[] }>()
+  allCoachBranches.forEach((branch) => {
+    if (!coachMap.has(branch.coach_id)) {
+      coachMap.set(branch.coach_id, {
+        id: branch.coach_id,
+        name: branch.profiles?.full_name || 'Coach',
+        role: branch.profiles?.role || 'coach',
+        branches: [],
+      })
+    }
+    coachMap.get(branch.coach_id)?.branches.push(branchMap[branch.branch_id] || '')
+  })
+  const coaches = Array.from(coachMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'th'))
 
   const slotIds = Array.from(new Set(sessionRows.map((row) => row.schedule_slot_id).filter(Boolean))) as string[]
   const studentRefs = sessionRows
@@ -582,45 +409,37 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     .filter((student): student is { id: string; type: StudentType } => Boolean(student))
   const studentIds = Array.from(new Set(studentRefs.map((student) => student.id)))
 
-  const [
-    legacyAssignmentResult,
-    assignmentGroupResult,
-    levelResult,
-    levelDefinitionResult,
-  ] = await Promise.all([
-    slotIds.length > 0
-      ? supabase
+  const [legacyAssignments, assignmentGroups, levelRows, levelDefinitionResult] = await Promise.all([
+    loadCompleteSupportingBatches<LegacyAssignmentRow>({
+      values: slotIds,
+      context: 'Head Coach assignment Legacy suggestion query failed',
+      loadBatch: (batchSlotIds) => supabase
         .from('coach_assignments')
-        .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name)')
-        .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{
-          data: LegacyAssignmentRow[] | null
-          error: { message: string } | null
-        }>
-      : Promise.resolve({ data: [] as LegacyAssignmentRow[], error: null }),
-    slotIds.length > 0
-      ? supabase
+        .select('schedule_slot_id, coach_id, profiles!coach_assignments_coach_id_fkey(full_name)', { count: 'exact' })
+        .in('schedule_slot_id', batchSlotIds) as unknown as PromiseLike<SupportingBatchResult<LegacyAssignmentRow>>,
+    }),
+    loadCompleteSupportingBatches<ExistingGroupRow>({
+      values: slotIds,
+      context: 'Head Coach assignment exact membership query failed',
+      loadBatch: (batchSlotIds) => supabase
         .from('coach_assignment_groups')
         .select(`
           id, schedule_slot_id, coach_id, name, level_min, level_max, sort_order,
           profiles!coach_assignment_groups_coach_id_fkey(full_name),
           coach_assignment_group_students(booking_session_id)
-        `)
-        .in('schedule_slot_id', slotIds)
-        .order('sort_order') as unknown as PromiseLike<{
-          data: ExistingGroupRow[] | null
-          error: { message: string } | null
-        }>
-      : Promise.resolve({ data: [] as ExistingGroupRow[], error: null }),
-    studentIds.length > 0
-      ? supabase
+        `, { count: 'exact' })
+        .in('schedule_slot_id', batchSlotIds)
+        .order('sort_order') as unknown as PromiseLike<SupportingBatchResult<ExistingGroupRow>>,
+    }),
+    loadCompleteSupportingBatches<StudentLevelRow>({
+      values: studentIds,
+      context: 'Head Coach assignment learner level query failed',
+      loadBatch: (batchStudentIds) => supabase
         .from('student_levels')
-        .select('student_id, student_type, level, created_at')
-        .in('student_id', studentIds)
-        .order('created_at', { ascending: false }) as unknown as PromiseLike<{
-          data: StudentLevelRow[] | null
-          error: { message: string } | null
-        }>
-      : Promise.resolve({ data: [] as StudentLevelRow[], error: null }),
+        .select('student_id, student_type, level, created_at', { count: 'exact' })
+        .in('student_id', batchStudentIds)
+        .order('created_at', { ascending: false }) as unknown as PromiseLike<SupportingBatchResult<StudentLevelRow>>,
+    }),
     supabase
       .from('levels')
       .select('id, name, category, program_name')
@@ -629,18 +448,6 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         error: { message: string } | null
       }>,
   ])
-  const legacyAssignments = requireCoachAssignmentQueryData(
-    legacyAssignmentResult,
-    'Head Coach assignment Legacy suggestion query failed',
-  ) || []
-  const assignmentGroups = requireCoachAssignmentQueryData(
-    assignmentGroupResult,
-    'Head Coach assignment exact membership query failed',
-  ) || []
-  const levelRows = requireCoachAssignmentQueryData(
-    levelResult,
-    'Head Coach assignment learner level query failed',
-  ) || []
   const levelDefinitions = requireCoachAssignmentQueryData(
     levelDefinitionResult,
     'Head Coach assignment level definition query failed',
@@ -686,10 +493,6 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
 
   const latestLevelMap = buildLevelMap(levelRows || [])
   const levelDefinitionMap = new Map((levelDefinitions || []).map((level) => [level.id, level]))
-  const memoryMap = await getCoachStudentMemoryMap(
-    createCompleteCoachMemoryReadClient(supabase),
-    studentRefs,
-  )
 
   const slots = Object.values(sessionRows.reduce((map, session) => {
     const key = session.schedule_slot_id || `${session.date}-${session.branch_id}-${session.start_time}-${session.end_time}-${session.bookings?.course_type_id}`
@@ -718,7 +521,6 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     }
 
     const studentRef = getStudentRef(session)
-    const memory = studentRef ? memoryMap[getCoachMemoryKey(studentRef)] : null
     const latestLevel = studentRef ? latestLevelMap.get(getStudentKey(studentRef)) : null
     const levelDefinition = latestLevel ? levelDefinitionMap.get(latestLevel.level) : null
 
@@ -733,42 +535,13 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
       levelName: levelDefinition?.name || 'Level 0',
       levelCategory: levelDefinition?.category || null,
       levelProgramName: levelDefinition?.program_name || null,
-      coachMemory: memory?.coaches || [],
-      suggestedCoachId: memory?.suggestedCoach?.coachId || null,
-      suggestedCoachName: memory?.suggestedCoach?.coachName || null,
+      coachMemory: [],
+      suggestedCoachId: null,
+      suggestedCoachName: null,
     })
 
     return map
   }, {} as Record<string, AssignmentSlotForClient>)).sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
-
-  slots.forEach((slot) => {
-    const score = new Map<string, { coachId: string; coachName: string; totalSessions: number; studentCount: number; lastTaughtDate: string }>()
-
-    slot.students.forEach((student) => {
-      const suggested = student.coachMemory?.[0]
-      if (!suggested) return
-
-      const current = score.get(suggested.coachId) || {
-        coachId: suggested.coachId,
-        coachName: suggested.coachName,
-        totalSessions: 0,
-        studentCount: 0,
-        lastTaughtDate: '',
-      }
-      current.totalSessions += Number(suggested.totalSessions || 0)
-      current.studentCount += 1
-      if (suggested.lastTaughtDate > current.lastTaughtDate) current.lastTaughtDate = suggested.lastTaughtDate
-      score.set(suggested.coachId, current)
-    })
-
-    const suggested = Array.from(score.values()).sort(rankCoachSuggestion)[0]
-
-    slot.suggestedCoachId = suggested?.coachId || null
-    slot.suggestedCoachName = suggested?.coachName || null
-    slot.suggestedCoachReason = suggested
-      ? `เคยสอนผู้เรียนในรอบนี้ ${suggested.studentCount} คน รวม ${suggested.totalSessions} ครั้ง`
-      : null
-  })
 
   return (
     <AssignGroupsClient
@@ -776,6 +549,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
       slots={slots}
       currentUserId={user.id}
       selectedMonth={selectedMonth}
+      coachMemoryEnabled={selectedMonth === currentBangkokMonth}
     />
   )
 }
