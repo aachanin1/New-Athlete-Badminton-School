@@ -19,17 +19,17 @@ export interface CoachAssignmentHistoryEvent {
   label: string
   actorName: string | null
   learnerNames: string[]
-  reason: string
-  before: string | null
-  after: string | null
+  reason: string | null
 }
 
 interface HistorySessionRow {
   id: string
+  booking_id: string
   status: string
   child_id: string | null
   rescheduled_from_id: string | null
-  is_makeup: boolean
+  date: string
+  start_time: string | null
   created_at: string
   updated_at: string
   children?: {
@@ -54,12 +54,6 @@ interface HistoryActivityRow {
   profiles?: { full_name: string | null } | null
 }
 
-interface HistoryGroupEvidenceRow {
-  id: string
-  created_at: string
-  updated_at: string
-}
-
 interface HistoryWalletRow {
   id: string
   redeemed_session_id: string | null
@@ -79,9 +73,11 @@ interface LimitedQueryResult<T> {
 
 interface InternalHistoryEvent extends CoachAssignmentHistoryEvent {
   sortId: string
+  businessKey: string
 }
 
-export const ASSIGNMENT_HISTORY_LIMIT = 10
+export const ASSIGNMENT_HISTORY_LIMIT = 5
+const HISTORY_ACTIVITY_SCAN_LIMIT = 50
 const HISTORY_SESSION_PAGE_SIZE = 1000
 const HISTORY_SESSION_MAX_PAGES = 10
 const HISTORY_SUPPORTING_BATCH_SIZE = 100
@@ -97,15 +93,10 @@ const HISTORY_ACTIVITY_ACTIONS = [
   'attendance_gap_replace_coach_round',
   'attendance_gap_assign_coach_round',
   'attendance_gap_resolve_unassigned_round',
-  'attendance_gap_request_coach_evidence',
-  'attendance_gap_request_coach_review',
-  'attendance_gap_closed_no_action',
   'attendance_gap_return_entitlement',
-  'attendance_gap_confirm_absent',
-  'attendance_gap_mark_retrospective',
 ] as const
 
-const LEGACY_EVIDENCE_GAP = 'ไม่พบสาเหตุในบันทึกเดิม'
+const LEGACY_EVIDENCE_GAP = 'ไม่พบสาเหตุที่ยืนยันได้'
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -127,14 +118,48 @@ function getSnapshotSessionIds(value: unknown) {
   return getStringArray(asRecord(value).membership_session_ids)
 }
 
-function getSnapshotGroupCount(value: unknown) {
-  return getStringArray(asRecord(value).group_ids).length
+export function getSnapshotBusinessSignature(value: unknown) {
+  const snapshot = asRecord(value)
+  const groups = Array.isArray(snapshot.groups) ? snapshot.groups : []
+  const normalizedGroups = groups.map((group) => {
+    const row = asRecord(group)
+    return {
+      name: getString(row.name) || '',
+      coachId: getString(row.coach_id),
+      levelMin: typeof row.level_min === 'number' ? row.level_min : null,
+      levelMax: typeof row.level_max === 'number' ? row.level_max : null,
+      sortOrder: typeof row.sort_order === 'number' ? row.sort_order : 0,
+      studentSessionIds: getStringArray(row.student_session_ids).sort(),
+    }
+  }).sort((a, b) => (
+    a.sortOrder - b.sortOrder
+    || a.name.localeCompare(b.name)
+    || (a.coachId || '').localeCompare(b.coachId || '')
+    || a.studentSessionIds.join(',').localeCompare(b.studentSessionIds.join(','))
+  ))
+
+  return JSON.stringify({
+    groups: normalizedGroups,
+    coachIds: getStringArray(snapshot.coach_ids).sort(),
+    membershipSessionIds: getSnapshotSessionIds(snapshot).sort(),
+  })
 }
 
-function getSnapshotSummary(value: unknown) {
-  const snapshot = asRecord(value)
-  if (Object.keys(snapshot).length === 0) return null
-  return `${getSnapshotGroupCount(snapshot)} กลุ่ม · ผู้เรียน ${getSnapshotSessionIds(snapshot).length} คน`
+export function isMeaningfulHistoryReason(value: unknown) {
+  const reason = getString(value)
+  if (!reason || /^[-–—\s]+$/.test(reason)) return false
+  return !new Set(['n/a', 'na', 'none', 'null', 'ไม่มี', 'ไม่ระบุ']).has(reason.toLowerCase())
+}
+
+function getMeaningfulHistoryReason(value: unknown) {
+  return isMeaningfulHistoryReason(value) ? getString(value)?.slice(0, 240) || null : null
+}
+
+function formatEvidenceSchedule(dateValue: unknown, timeValue: unknown) {
+  const date = getString(dateValue)
+  const time = getString(timeValue)?.slice(0, 5)
+  if (!date && !time) return ''
+  return ` ${date ? `วันที่ ${date}` : ''}${date && time ? ' ' : ''}${time ? `เวลา ${time} น.` : ''}`
 }
 
 function getLearnerName(session: HistorySessionRow) {
@@ -164,6 +189,7 @@ function getActivitySessionIds(row: HistoryActivityRow) {
   } else if (row.action === 'retire_coach_assignment_membership') {
     add(details.bookingSessionId)
   } else if (row.action === 'reschedule_booking_session') {
+    add(row.entity_id)
     add(details.newSessionId)
   } else if (row.action === 'store_lesson_wallet_credit') {
     add(details.sessionId)
@@ -180,15 +206,16 @@ function getActivitySessionIds(row: HistoryActivityRow) {
   return Array.from(ids)
 }
 
-function getActivityPresentation(row: HistoryActivityRow) {
+export function getActivityPresentation(row: HistoryActivityRow) {
   const details = asRecord(row.details)
   if (row.action === 'save_coach_assignment_groups_v2') {
+    if (getSnapshotBusinessSignature(details.before) === getSnapshotBusinessSignature(details.after)) {
+      return null
+    }
     return {
       type: 'assignment_saved' as const,
       label: 'บันทึกการแบ่งกลุ่ม',
-      reason: 'บันทึกหรือยืนยันการแบ่งกลุ่ม',
-      before: getSnapshotSummary(details.before),
-      after: getSnapshotSummary(details.after),
+      reason: null,
     }
   }
   if (row.action === 'retire_coach_assignment_membership') {
@@ -196,65 +223,115 @@ function getActivityPresentation(row: HistoryActivityRow) {
     if (reason === 'reschedule_out') {
       return {
         type: 'reschedule_out' as const,
-        label: 'Reschedule-out',
-        reason: 'ย้ายผู้เรียนออกจากรอบเดิม',
-        before: getSnapshotSummary(details.before),
-        after: getSnapshotSummary(details.after),
+        label: 'ย้ายผู้เรียนออกจากรอบนี้',
+        reason: null,
       }
     }
     if (reason === 'wallet_store') {
       return {
         type: 'wallet_store' as const,
-        label: 'Wallet Store',
-        reason: 'เก็บรอบเรียนเข้ากระเป๋าวันเรียน',
-        before: getSnapshotSummary(details.before),
-        after: getSnapshotSummary(details.after),
+        label: 'เก็บรอบเรียนเข้ากระเป๋าวันเรียน',
+        reason: null,
       }
     }
+    return null
   }
   if (row.action === 'reschedule_booking_session') {
     return {
       type: 'reschedule_in' as const,
-      label: 'Reschedule-in',
-      reason: 'ย้ายผู้เรียนเข้ารอบนี้',
-      before: null,
-      after: null,
+      label: `ย้ายผู้เรียนเข้ารอบ${formatEvidenceSchedule(details.newDate, details.newStartTime)}`,
+      reason: null,
     }
   }
   if (row.action === 'store_lesson_wallet_credit') {
     return {
       type: 'wallet_store' as const,
-      label: 'Wallet Store',
-      reason: 'เก็บรอบเรียนเข้ากระเป๋าวันเรียน',
-      before: null,
-      after: null,
+      label: `เก็บรอบเรียนเข้ากระเป๋าวันเรียน${formatEvidenceSchedule(details.date, details.startTime)}`,
+      reason: null,
     }
   }
   if (row.action === 'redeem_lesson_wallet_credit') {
     return {
       type: 'wallet_redeem' as const,
-      label: 'Wallet Redeem',
-      reason: 'ใช้สิทธิ์จากกระเป๋าวันเรียนในรอบนี้',
-      before: null,
-      after: null,
+      label: `ใช้สิทธิ์จากกระเป๋าวันเรียน${formatEvidenceSchedule(details.targetDate, details.startTime)}`,
+      reason: null,
     }
   }
-  if (row.action.startsWith('attendance_gap_')) {
+  if (row.action === 'attendance_gap_move_learner_to_existing_group') {
     return {
       type: 'admin_adjustment' as const,
-      label: 'Admin adjustment',
-      reason: getString(details.reason)?.slice(0, 240) || LEGACY_EVIDENCE_GAP,
-      before: null,
-      after: null,
+      label: 'Admin ย้ายผู้เรียนระหว่างกลุ่ม',
+      reason: getMeaningfulHistoryReason(details.reason),
     }
   }
-  return {
-    type: 'unknown' as const,
-    label: 'ประวัติเดิม',
-    reason: LEGACY_EVIDENCE_GAP,
-    before: null,
-    after: null,
+  if (row.action === 'attendance_gap_replace_coach_round') {
+    return {
+      type: 'admin_adjustment' as const,
+      label: 'Admin เปลี่ยนโค้ชประจำรอบ',
+      reason: getMeaningfulHistoryReason(details.reason),
+    }
   }
+  if (row.action === 'attendance_gap_assign_coach_round') {
+    return {
+      type: 'admin_adjustment' as const,
+      label: 'Admin มอบหมายโค้ชประจำรอบ',
+      reason: getMeaningfulHistoryReason(details.reason),
+    }
+  }
+  if (row.action === 'attendance_gap_resolve_unassigned_round') {
+    return {
+      type: 'admin_adjustment' as const,
+      label: 'Admin มอบหมายโค้ชและกลุ่มให้รอบที่ยังไม่มีผู้รับผิดชอบ',
+      reason: getMeaningfulHistoryReason(details.reason),
+    }
+  }
+  if (row.action === 'attendance_gap_return_entitlement') {
+    return {
+      type: 'wallet_store' as const,
+      label: 'Admin คืนสิทธิ์รอบเรียนเข้ากระเป๋าวันเรียน',
+      reason: getMeaningfulHistoryReason(details.reason),
+    }
+  }
+  return null
+}
+
+export function getHistoryBusinessKey(row: HistoryActivityRow, sessionIds: string[]) {
+  const details = asRecord(row.details)
+  const sortedSessionIds = [...sessionIds].sort().join(',')
+  if (row.action === 'retire_coach_assignment_membership') {
+    const reason = getString(details.reason)
+    return `${reason || 'retire'}:${getString(details.bookingSessionId) || row.id}`
+  }
+  if (row.action === 'reschedule_booking_session') {
+    return `reschedule_out:${row.entity_id || getString(details.newSessionId) || row.id}`
+  }
+  if (row.action === 'store_lesson_wallet_credit') {
+    return `wallet_store:${getString(details.sessionId) || row.id}`
+  }
+  if (row.action === 'redeem_lesson_wallet_credit') {
+    return `wallet_redeem:${getString(details.newSessionId) || row.id}`
+  }
+  if (row.action.startsWith('attendance_gap_')) {
+    return `${row.action}:${sortedSessionIds}`
+  }
+  return `${row.action}:${row.id}`
+}
+
+export function deduplicateMeaningfulHistoryEvents(events: InternalHistoryEvent[]) {
+  const seenBusinessKeys = new Set<string>()
+  return [...events]
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.sortId.localeCompare(a.sortId))
+    .filter((event) => {
+      if (seenBusinessKeys.has(event.businessKey)) return false
+      seenBusinessKeys.add(event.businessKey)
+      return true
+    })
+}
+
+export function finalizeMeaningfulHistoryEvents(events: InternalHistoryEvent[]) {
+  return deduplicateMeaningfulHistoryEvents(events)
+    .slice(0, ASSIGNMENT_HISTORY_LIMIT)
+    .map(({ sortId: _sortId, businessKey: _businessKey, ...event }) => event)
 }
 
 async function loadCompleteHistorySessions(
@@ -272,7 +349,7 @@ async function loadCompleteHistorySessions(
     const result = await client
       .from('booking_sessions')
       .select(`
-        id, status, child_id, rescheduled_from_id, is_makeup, created_at, updated_at,
+        id, booking_id, status, child_id, rescheduled_from_id, date, start_time, created_at, updated_at,
         children(full_name, nickname),
         bookings!inner(user_id, status, profiles!bookings_user_id_fkey(full_name))
       `, { count: 'exact' })
@@ -349,7 +426,7 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
   branchId: string
 }) {
   const { scheduleSlotId, branchId } = input
-  const [sessions, activityResult, groupResult] = await Promise.all([
+  const [sessions, activityResult] = await Promise.all([
     loadCompleteHistorySessions(client, scheduleSlotId, branchId),
     client
       .from('activity_logs')
@@ -358,14 +435,7 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       .contains('details', { scheduleSlotId })
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
-      .limit(ASSIGNMENT_HISTORY_LIMIT) as unknown as PromiseLike<LimitedQueryResult<HistoryActivityRow>>,
-    client
-      .from('coach_assignment_groups')
-      .select('id, created_at, updated_at')
-      .eq('schedule_slot_id', scheduleSlotId)
-      .order('updated_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(1) as unknown as PromiseLike<LimitedQueryResult<HistoryGroupEvidenceRow>>,
+      .limit(HISTORY_ACTIVITY_SCAN_LIMIT) as unknown as PromiseLike<LimitedQueryResult<HistoryActivityRow>>,
   ])
 
   if (activityResult.error || !Array.isArray(activityResult.data)) {
@@ -374,13 +444,6 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       activityResult.error?.message || 'query returned no row payload',
     )
   }
-  if (groupResult.error || !Array.isArray(groupResult.data)) {
-    throw new CoachAssignmentDataUnavailableError(
-      'Coach assignment history group evidence query failed',
-      groupResult.error?.message || 'query returned no row payload',
-    )
-  }
-
   const walletEvidence = await loadWalletEvidence(
     client,
     sessions.filter((session) => Boolean(session.rescheduled_from_id)).map((session) => session.id),
@@ -390,27 +453,27 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
     .map((credit) => [credit.redeemed_session_id as string, credit]))
   const sessionById = new Map(sessions.map((session) => [session.id, session]))
   const explicitSessionIds = new Set<string>()
-  const events: InternalHistoryEvent[] = activityResult.data.map((row) => {
+  const events: InternalHistoryEvent[] = activityResult.data.flatMap((row) => {
     const activitySessionIds = getActivitySessionIds(row)
-    activitySessionIds.forEach((sessionId) => explicitSessionIds.add(sessionId))
     const presentation = getActivityPresentation(row)
+    if (!presentation) return []
+    activitySessionIds.forEach((sessionId) => explicitSessionIds.add(sessionId))
     const learnerNames = Array.from(new Set(activitySessionIds
       .map((sessionId) => sessionById.get(sessionId))
       .filter((session): session is HistorySessionRow => Boolean(session))
       .map(getLearnerName)
       .filter((name): name is string => Boolean(name))))
 
-    return {
+    return [{
       occurredAt: row.created_at,
       type: presentation.type,
       label: presentation.label,
       actorName: row.profiles?.full_name || null,
       learnerNames,
       reason: presentation.reason,
-      before: presentation.before,
-      after: presentation.after,
       sortId: row.id,
-    }
+      businessKey: getHistoryBusinessKey(row, activitySessionIds),
+    }]
   })
 
   sessions.forEach((session) => {
@@ -423,13 +486,12 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       events.push({
         occurredAt: walletEvidenceForSession.redeemed_at || session.created_at,
         type: 'wallet_redeem',
-        label: 'Wallet Redeem',
+        label: `ใช้สิทธิ์จากกระเป๋าวันเรียน${formatEvidenceSchedule(session.date, session.start_time)}`,
         actorName: null,
         learnerNames,
-        reason: 'ใช้สิทธิ์จากกระเป๋าวันเรียนในรอบนี้',
-        before: null,
-        after: null,
+        reason: null,
         sortId: session.id,
+        businessKey: `wallet_redeem:${session.id}`,
       })
       return
     }
@@ -437,27 +499,12 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       events.push({
         occurredAt: session.created_at,
         type: 'reschedule_in',
-        label: 'Reschedule-in',
+        label: `ย้ายผู้เรียนเข้ารอบ${formatEvidenceSchedule(session.date, session.start_time)}`,
         actorName: null,
         learnerNames,
-        reason: 'ย้ายผู้เรียนเข้ารอบนี้',
-        before: null,
-        after: null,
+        reason: null,
         sortId: session.id,
-      })
-      return
-    }
-    if (session.is_makeup) {
-      events.push({
-        occurredAt: session.created_at,
-        type: 'admin_adjustment',
-        label: 'Admin adjustment',
-        actorName: null,
-        learnerNames,
-        reason: LEGACY_EVIDENCE_GAP,
-        before: null,
-        after: null,
-        sortId: session.id,
+        businessKey: `reschedule_out:${session.rescheduled_from_id}`,
       })
       return
     }
@@ -465,13 +512,12 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       events.push({
         occurredAt: session.updated_at,
         type: 'unknown',
-        label: 'ประวัติเดิม',
+        label: 'การเปลี่ยนแปลงของรายชื่อที่ไม่มีหลักฐานยืนยัน',
         actorName: null,
         learnerNames,
         reason: LEGACY_EVIDENCE_GAP,
-        before: null,
-        after: null,
         sortId: session.id,
+        businessKey: `unknown:${session.id}`,
       })
       return
     }
@@ -480,49 +526,15 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       events.push({
         occurredAt: session.created_at,
         type: 'booking_added',
-        label: 'ผู้เรียนเพิ่มจากการจอง',
+        label: 'เพิ่มผู้เรียนจากการจอง',
         actorName: null,
         learnerNames,
-        reason: 'สร้างรอบเรียนจากการจองที่ยืนยันแล้ว',
-        before: null,
-        after: null,
+        reason: null,
         sortId: session.id,
-      })
-    } else {
-      events.push({
-        occurredAt: session.updated_at,
-        type: 'unknown',
-        label: 'ประวัติเดิม',
-        actorName: null,
-        learnerNames,
-        reason: LEGACY_EVIDENCE_GAP,
-        before: null,
-        after: null,
-        sortId: session.id,
+        businessKey: `booking:${session.booking_id}`,
       })
     }
   })
 
-  const hasAssignmentSaveEvidence = activityResult.data.some(
-    (row) => row.action === 'save_coach_assignment_groups_v2',
-  )
-  const latestGroupEvidence = groupResult.data[0]
-  if (latestGroupEvidence && !hasAssignmentSaveEvidence) {
-    events.push({
-      occurredAt: latestGroupEvidence.updated_at || latestGroupEvidence.created_at,
-      type: 'unknown',
-      label: 'ประวัติการแบ่งกลุ่มเดิม',
-      actorName: null,
-      learnerNames: [],
-      reason: LEGACY_EVIDENCE_GAP,
-      before: null,
-      after: null,
-      sortId: latestGroupEvidence.id,
-    })
-  }
-
-  return events
-    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.sortId.localeCompare(a.sortId))
-    .slice(0, ASSIGNMENT_HISTORY_LIMIT)
-    .map(({ sortId: _sortId, ...event }) => event)
+  return finalizeMeaningfulHistoryEvents(events)
 }

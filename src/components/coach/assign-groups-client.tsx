@@ -1521,11 +1521,11 @@ export function AssignGroupsClient({
                           {slot.rosterDelta.removedCount > 0 && (
                             slot.rosterDelta.removedStudentNames.length > 0 ? (
                               <p>
-                                มีผู้เรียนถูกถอดออก {slot.rosterDelta.removedCount} คนหลังบันทึกล่าสุด:
+                                มีผู้เรียน {slot.rosterDelta.removedCount} คนไม่อยู่ในรายชื่อรอบนี้แล้วหลังบันทึกล่าสุด:
                                 {' '}{slot.rosterDelta.removedStudentNames.join(', ')}
                               </p>
                             ) : (
-                              <p>มีผู้เรียนถูกถอดออก {slot.rosterDelta.removedCount} คน — ดูประวัติการเปลี่ยนแปลง</p>
+                              <p>มีผู้เรียน {slot.rosterDelta.removedCount} คนไม่อยู่ในรายชื่อรอบนี้แล้ว — ดูประวัติการเปลี่ยนแปลง</p>
                             )
                           )}
                         </div>
@@ -1576,21 +1576,18 @@ export function AssignGroupsClient({
                           {!isAssignmentHistoryLoading && !assignmentHistoryError && assignmentHistory && assignmentHistory.length > 0 && (
                             <ol className="space-y-2">
                               {assignmentHistory.map((event, index) => (
-                                <li key={`${event.occurredAt}-${index}`} className="rounded-md border bg-white p-3 text-sm">
-                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                    <p className="font-semibold text-[#153c85]">{event.label}</p>
-                                    <time className="text-xs text-gray-500" dateTime={event.occurredAt}>
+                                <li key={`${event.occurredAt}-${index}`} className="min-w-0 rounded-md border bg-white px-3 py-2 text-sm">
+                                  <p className="break-words font-semibold text-[#153c85]">{event.label}</p>
+                                  <p className="mt-1 break-words text-xs text-gray-600">
+                                    <time dateTime={event.occurredAt}>
                                       {formatHistoryDateTime(event.occurredAt)}
                                     </time>
-                                  </div>
-                                  <div className="mt-2 space-y-1 text-xs text-gray-600">
-                                    <p>ผู้ดำเนินการ: {event.actorName || 'ไม่ทราบผู้ดำเนินการจากหลักฐานเดิม'}</p>
-                                    <p>ผู้เรียน: {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบผู้เรียนจากหลักฐานเดิม'}</p>
-                                    <p>สาเหตุ: {event.reason}</p>
-                                    {(event.before || event.after) && (
-                                      <p>ก่อน: {event.before || 'ไม่พบข้อมูล'} · หลัง: {event.after || 'ไม่พบข้อมูล'}</p>
-                                    )}
-                                  </div>
+                                    {' '}· โดย {event.actorName || 'ไม่ทราบผู้ดำเนินการ'}
+                                    {' '}· ผู้เรียน {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบจากหลักฐานเดิม'}
+                                  </p>
+                                  {event.reason && (
+                                    <p className="mt-1 break-words text-xs text-gray-500">{event.reason}</p>
+                                  )}
                                 </li>
                               ))}
                             </ol>

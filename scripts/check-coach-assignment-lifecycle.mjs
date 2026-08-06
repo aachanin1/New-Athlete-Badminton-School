@@ -19,6 +19,14 @@ import {
   resolveCoachSlotAccess,
 } from '../src/lib/coach-assignment-resolution.ts'
 
+const {
+  finalizeMeaningfulHistoryEvents,
+  getActivityPresentation,
+  getHistoryBusinessKey,
+  getSnapshotBusinessSignature,
+  isMeaningfulHistoryReason,
+} = await import('../src/lib/coach-assignment-history.ts')
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 const sourceOnly = process.argv.includes('--source-only')
@@ -96,7 +104,8 @@ await check('initial roster delta explains evidence-backed additions and unresol
   assert.match(assignmentPage, /rosterDelta:/)
   assert.match(assignmentClient, /มีผู้เรียนเพิ่ม/)
   assert.match(assignmentClient, /หลังบันทึกล่าสุด กรุณาตรวจกลุ่มและบันทึกใหม่/)
-  assert.match(assignmentClient, /มีผู้เรียนถูกถอดออก/)
+  assert.match(assignmentClient, /ไม่อยู่ในรายชื่อรอบนี้แล้ว/)
+  assert.doesNotMatch(assignmentClient, /ผู้เรียนถูกถอดออก/)
   assert.match(assignmentClient, /ดูประวัติการเปลี่ยนแปลง/)
   assert.doesNotMatch(assignmentPage, /assignment-history/)
 })
@@ -122,21 +131,111 @@ await check('assignment history GET is authenticated, role- and branch-scoped be
 })
 
 await check('history reconstruction is bounded, stable, batched, evidence-only, and sanitizes raw audit details', () => {
-  assert.match(assignmentHistoryLib, /const ASSIGNMENT_HISTORY_LIMIT = 10/)
+  assert.match(assignmentHistoryLib, /const ASSIGNMENT_HISTORY_LIMIT = 5/)
+  assert.match(assignmentHistoryLib, /const HISTORY_ACTIVITY_SCAN_LIMIT = 50/)
   assert.match(assignmentHistoryLib, /\.contains\('details', \{ scheduleSlotId \}\)/)
   assert.match(assignmentHistoryLib, /\.order\('created_at', \{ ascending: false \}\)[\s\S]*\.order\('id', \{ ascending: false \}\)/)
-  assert.match(assignmentHistoryLib, /\.limit\(ASSIGNMENT_HISTORY_LIMIT\)/)
+  assert.match(assignmentHistoryLib, /\.limit\(HISTORY_ACTIVITY_SCAN_LIMIT\)/)
   assert.match(assignmentHistoryLib, /HISTORY_SUPPORTING_BATCH_SIZE/)
-  assert.match(assignmentHistoryLib, /ไม่พบสาเหตุในบันทึกเดิม/)
+  assert.match(assignmentHistoryLib, /ไม่พบสาเหตุที่ยืนยันได้/)
   assert.match(assignmentHistoryLib, /save_coach_assignment_groups_v2/)
   assert.match(assignmentHistoryLib, /retire_coach_assignment_membership/)
   assert.match(assignmentHistoryLib, /reschedule_booking_session/)
   assert.match(assignmentHistoryLib, /store_lesson_wallet_credit/)
   assert.match(assignmentHistoryLib, /redeem_lesson_wallet_credit/)
-  assert.match(assignmentHistoryLib, /attendance_gap_/)
+  assert.match(assignmentHistoryLib, /attendance_gap_move_learner_to_existing_group/)
+  assert.match(assignmentHistoryLib, /attendance_gap_replace_coach_round/)
+  assert.match(assignmentHistoryLib, /attendance_gap_return_entitlement/)
+  assert.doesNotMatch(assignmentHistoryLib, /attendance_gap_request_coach_evidence/)
+  assert.doesNotMatch(assignmentHistoryLib, /attendance_gap_request_coach_review/)
+  assert.doesNotMatch(assignmentHistoryLib, /attendance_gap_closed_no_action/)
+  assert.doesNotMatch(assignmentHistoryLib, /attendance_gap_confirm_absent/)
+  assert.doesNotMatch(assignmentHistoryLib, /attendance_gap_mark_retrospective/)
+  assert.match(assignmentHistoryLib, /เพิ่มผู้เรียนจากการจอง/)
+  assert.match(assignmentHistoryLib, /ย้ายผู้เรียนเข้ารอบ/)
+  assert.match(assignmentHistoryLib, /ย้ายผู้เรียนออกจากรอบนี้/)
+  assert.match(assignmentHistoryLib, /เก็บรอบเรียนเข้ากระเป๋าวันเรียน/)
+  assert.match(assignmentHistoryLib, /ใช้สิทธิ์จากกระเป๋าวันเรียน/)
+  assert.match(assignmentHistoryLib, /Admin ย้ายผู้เรียนระหว่างกลุ่ม/)
+  assert.match(assignmentHistoryLib, /Admin เปลี่ยนโค้ชประจำรอบ/)
+  assert.match(assignmentHistoryLib, /Admin คืนสิทธิ์รอบเรียนเข้ากระเป๋าวันเรียน/)
+  assert.match(assignmentHistoryLib, /getSnapshotBusinessSignature/)
+  assert.match(assignmentHistoryLib, /deduplicateMeaningfulHistoryEvents/)
+  assert.match(assignmentHistoryLib, /getHistoryBusinessKey/)
+  assert.match(assignmentHistoryLib, /isMeaningfulHistoryReason/)
   assert.doesNotMatch(assignmentHistoryLib, /const actorName = session\.bookings/)
   assert.doesNotMatch(assignmentHistoryLib, /\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(|logActivity|notify/i)
   assert.doesNotMatch(assignmentHistoryRoute, /details|entity_id|bookingSessionId|scheduleSlotId\s*[:,]\s*event/)
+})
+
+await check('history semantics ignore recreated group IDs, remove meaningless reasons, deduplicate business evidence, and cap five events', () => {
+  const snapshot = (id, coachId = 'coach-1') => ({
+    group_ids: [id],
+    coach_ids: [coachId],
+    membership_session_ids: ['session-1'],
+    groups: [{
+      id,
+      name: 'กลุ่ม 1',
+      coach_id: coachId,
+      level_min: 1,
+      level_max: 5,
+      sort_order: 0,
+      student_session_ids: ['session-1'],
+    }],
+  })
+  assert.equal(getSnapshotBusinessSignature(snapshot('old-row')), getSnapshotBusinessSignature(snapshot('new-row')))
+  assert.notEqual(getSnapshotBusinessSignature(snapshot('old-row')), getSnapshotBusinessSignature(snapshot('new-row', 'coach-2')))
+  assert.equal(isMeaningfulHistoryReason('----'), false)
+  assert.equal(isMeaningfulHistoryReason('  '), false)
+  assert.equal(isMeaningfulHistoryReason('ย้ายตามคำขอที่ยืนยันแล้ว'), true)
+
+  const activity = (action, details = {}, entityId = 'session-1') => ({
+    id: `${action}-audit`,
+    user_id: 'actor-1',
+    action,
+    entity_type: 'booking_sessions',
+    entity_id: entityId,
+    details,
+    created_at: '2026-08-06T10:00:00.000Z',
+  })
+  assert.equal(getActivityPresentation(activity('attendance_gap_request_coach_review')), null)
+  assert.equal(getActivityPresentation(activity('attendance_gap_move_learner_to_existing_group', { reason: 'ย้ายกลุ่ม' })).label, 'Admin ย้ายผู้เรียนระหว่างกลุ่ม')
+  assert.equal(getActivityPresentation(activity('attendance_gap_replace_coach_round')).label, 'Admin เปลี่ยนโค้ชประจำรอบ')
+  assert.equal(getActivityPresentation(activity('attendance_gap_return_entitlement')).label, 'Admin คืนสิทธิ์รอบเรียนเข้ากระเป๋าวันเรียน')
+  assert.match(getActivityPresentation(activity('reschedule_booking_session', { newDate: '2026-08-12', newStartTime: '10:00:00' })).label, /ย้ายผู้เรียนเข้ารอบ วันที่ 2026-08-12 เวลา 10:00 น\./)
+  assert.match(getActivityPresentation(activity('store_lesson_wallet_credit')).label, /เก็บรอบเรียนเข้ากระเป๋าวันเรียน/)
+  assert.match(getActivityPresentation(activity('redeem_lesson_wallet_credit')).label, /ใช้สิทธิ์จากกระเป๋าวันเรียน/)
+  assert.equal(
+    getHistoryBusinessKey(activity('retire_coach_assignment_membership', { reason: 'wallet_store', bookingSessionId: 'session-1' }), ['session-1']),
+    getHistoryBusinessKey(activity('store_lesson_wallet_credit', { sessionId: 'session-1' }), ['session-1']),
+  )
+  assert.equal(
+    getHistoryBusinessKey(activity('attendance_gap_replace_coach_round', { replacedSessionIds: ['session-1', 'session-2'] }, 'session-1'), ['session-1', 'session-2']),
+    getHistoryBusinessKey(activity('attendance_gap_replace_coach_round', { replacedSessionIds: ['session-1', 'session-2'] }, 'session-2'), ['session-1', 'session-2']),
+  )
+
+  const event = (sortId, businessKey, occurredAt) => ({
+    sortId,
+    businessKey,
+    occurredAt,
+    type: 'admin_adjustment',
+    label: sortId,
+    actorName: null,
+    learnerNames: [],
+    reason: null,
+  })
+  const normalized = finalizeMeaningfulHistoryEvents([
+    event('duplicate-old', 'same-admin-action', '2026-08-06T09:00:00.000Z'),
+    event('duplicate-new', 'same-admin-action', '2026-08-06T10:00:00.000Z'),
+    event('event-2', 'event-2', '2026-08-06T08:00:00.000Z'),
+    event('event-3', 'event-3', '2026-08-06T07:00:00.000Z'),
+    event('event-4', 'event-4', '2026-08-06T06:00:00.000Z'),
+    event('event-5', 'event-5', '2026-08-06T05:00:00.000Z'),
+    event('event-6', 'event-6', '2026-08-06T04:00:00.000Z'),
+  ])
+  assert.equal(normalized.length, 5)
+  assert.equal(normalized[0].label, 'duplicate-new')
+  assert.equal(normalized.some((item) => item.label === 'duplicate-old'), false)
 })
 
 await check('history is loaded only after click with per-slot single-flight, cache, accessible localized states, and retry', () => {
@@ -149,6 +248,11 @@ await check('history is loaded only after click with per-slot single-flight, cac
   assert.match(assignmentClient, /aria-busy=\{isAssignmentHistoryLoading\}/)
   assert.match(assignmentClient, /ลองอีกครั้ง/)
   assert.match(assignmentClient, /ยังไม่มีประวัติการเปลี่ยนแปลงที่ตรวจสอบได้/)
+  assert.match(assignmentClient, /event\.reason &&/)
+  assert.match(assignmentClient, /โดย \{event\.actorName \|\| 'ไม่ทราบผู้ดำเนินการ'\}/)
+  assert.doesNotMatch(assignmentClient, /ผู้ดำเนินการ:/)
+  assert.doesNotMatch(assignmentClient, /ก่อน:/)
+  assert.doesNotMatch(assignmentClient, /หลัง:/)
   assert.doesNotMatch(assignmentClient, /useEffect\([\s\S]{0,600}assignment-history/)
 })
 
