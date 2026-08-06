@@ -26,8 +26,33 @@ const ROLE_HOME: Record<string, string> = {
 }
 
 export async function proxy(request: NextRequest) {
+  const assignmentDiagnosticSample = request.nextUrl.pathname === '/coach/assign-groups'
+    ? request.nextUrl.searchParams.get('assignmentDiag')
+    : null
+  const safeAssignmentDiagnosticSample = assignmentDiagnosticSample
+    && /^[a-z0-9-]{1,64}$/i.test(assignmentDiagnosticSample)
+    ? assignmentDiagnosticSample
+    : null
+  if (safeAssignmentDiagnosticSample) {
+    request.headers.set('x-assignment-diagnostic-sample', safeAssignmentDiagnosticSample)
+  }
+  const proxyStartedAt = new Date().toISOString()
+  const proxyStartedMs = performance.now()
   const { user, supabaseResponse, supabase } = await updateSession(request)
   const { pathname } = request.nextUrl
+
+  if (safeAssignmentDiagnosticSample) {
+    console.info('[assignment-diagnostic]', {
+      sampleId: safeAssignmentDiagnosticSample,
+      phase: 'proxy_authentication',
+      startedAt: proxyStartedAt,
+      endedAt: new Date().toISOString(),
+      durationMs: Number((performance.now() - proxyStartedMs).toFixed(1)),
+      success: Boolean(user),
+      callCount: 1,
+    })
+    supabaseResponse.headers.set('x-assignment-diagnostic-sample', safeAssignmentDiagnosticSample)
+  }
 
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
@@ -54,11 +79,26 @@ export async function proxy(request: NextRequest) {
   }
 
   // Get user role
+  const roleStartedAt = new Date().toISOString()
+  const roleStartedMs = performance.now()
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  if (safeAssignmentDiagnosticSample) {
+    console.info('[assignment-diagnostic]', {
+      sampleId: safeAssignmentDiagnosticSample,
+      phase: 'proxy_role',
+      startedAt: roleStartedAt,
+      endedAt: new Date().toISOString(),
+      durationMs: Number((performance.now() - roleStartedMs).toFixed(1)),
+      success: Boolean(profile),
+      callCount: 1,
+      rowCount: profile ? 1 : 0,
+    })
+  }
 
   const role = profile?.role || 'user'
   const allowedPrefixes = ROLE_ROUTES[role] || ['/dashboard']

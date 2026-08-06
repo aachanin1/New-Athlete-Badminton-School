@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
 import { AssignGroupsClient } from '@/components/coach/assign-groups-client'
 import {
@@ -134,6 +135,7 @@ interface AssignmentSlotForClient {
 interface AssignGroupsPageProps {
   searchParams?: Promise<{
     month?: string | string[]
+    assignmentDiag?: string | string[]
   }>
 }
 
@@ -323,6 +325,28 @@ function getAssignmentLockReason(date: string, startTime: string, now = new Date
 }
 
 export default async function AssignGroupsPage({ searchParams }: AssignGroupsPageProps) {
+  const requestHeaders = await headers()
+  const assignmentDiagnosticSample = requestHeaders.get('x-assignment-diagnostic-sample')
+  const pageStartedAt = new Date().toISOString()
+  const pageStartedMs = performance.now()
+  const logDiagnosticPhase = (
+    phase: string,
+    startedAt: string,
+    startedMs: number,
+    success: boolean,
+    metrics: Record<string, number> = {},
+  ) => {
+    if (!assignmentDiagnosticSample) return
+    console.info('[assignment-diagnostic]', {
+      sampleId: assignmentDiagnosticSample,
+      phase,
+      startedAt,
+      endedAt: new Date().toISOString(),
+      durationMs: Number((performance.now() - startedMs).toFixed(1)),
+      success,
+      ...metrics,
+    })
+  }
   const now = new Date()
   const bangkokToday = getBangkokDateString(now)
   const currentBangkokMonth = bangkokToday.slice(0, 7)
@@ -333,14 +357,23 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     ? bangkokToday
     : monthStart
   const supabase = await createClient()
+  const authStartedAt = new Date().toISOString()
+  const authStartedMs = performance.now()
   const { data: { user } } = await supabase.auth.getUser()
+  logDiagnosticPhase('assignment_authentication', authStartedAt, authStartedMs, Boolean(user), { callCount: 1 })
   if (!user) return null
 
+  const profileStartedAt = new Date().toISOString()
+  const profileStartedMs = performance.now()
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single() as unknown as { data: { role: string } | null }
+  logDiagnosticPhase('assignment_profile', profileStartedAt, profileStartedMs, Boolean(profile), {
+    callCount: 1,
+    rowCount: profile ? 1 : 0,
+  })
 
   if (!profile || !['head_coach', 'super_admin'].includes(profile.role)) {
     redirect('/coach')
@@ -348,6 +381,8 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
 
   let branchIds: string[] = []
   let branchMap: Record<string, string> = {}
+  const branchStartedAt = new Date().toISOString()
+  const branchStartedMs = performance.now()
 
   if (profile.role === 'super_admin') {
     const { data: branches } = await supabase
@@ -372,7 +407,13 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
       return map
     }, {} as Record<string, string>)
   }
+  logDiagnosticPhase('assignment_branch_access', branchStartedAt, branchStartedMs, true, {
+    callCount: 1,
+    rowCount: branchIds.length,
+  })
 
+  const rosterStartedAt = new Date().toISOString()
+  const rosterStartedMs = performance.now()
   const [coachBranchResult, sessionRows] = branchIds.length > 0
     ? await Promise.all([
         supabase
@@ -385,6 +426,12 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         loadAssignmentSessionRows(supabase, branchIds, queryStart, nextMonthStart),
       ])
     : [{ data: [] as CoachOptionRow[], error: null }, [] as SessionRow[]]
+  logDiagnosticPhase('assignment_primary_roster_and_coaches', rosterStartedAt, rosterStartedMs, true, {
+    callCount: branchIds.length > 0 ? 2 : 0,
+    rosterRows: sessionRows.length,
+    coachBranchRows: coachBranchResult.data?.length || 0,
+    rosterPages: sessionRows.length === 0 ? 0 : Math.ceil(sessionRows.length / ASSIGNMENT_SESSION_PAGE_SIZE),
+  })
   const allCoachBranches = requireCoachAssignmentQueryData(
     coachBranchResult,
     'Head Coach assignment coach option query failed',
@@ -409,6 +456,8 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     .filter((student): student is { id: string; type: StudentType } => Boolean(student))
   const studentIds = Array.from(new Set(studentRefs.map((student) => student.id)))
 
+  const supportingStartedAt = new Date().toISOString()
+  const supportingStartedMs = performance.now()
   const [legacyAssignments, assignmentGroups, levelRows, levelDefinitionResult] = await Promise.all([
     loadCompleteSupportingBatches<LegacyAssignmentRow>({
       values: slotIds,
@@ -448,6 +497,17 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         error: { message: string } | null
       }>,
   ])
+  const supportingBatchCount = Math.ceil(slotIds.length / ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE)
+    + Math.ceil(slotIds.length / ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE)
+    + Math.ceil(studentIds.length / ASSIGNMENT_SUPPORTING_IN_BATCH_SIZE)
+  logDiagnosticPhase('assignment_supporting_reads', supportingStartedAt, supportingStartedMs, true, {
+    callCount: supportingBatchCount + 1,
+    supportingBatches: supportingBatchCount,
+    legacyRows: legacyAssignments.length,
+    groupRows: assignmentGroups.length,
+    levelRows: levelRows.length,
+    levelDefinitionRows: levelDefinitionResult.data?.length || 0,
+  })
   const levelDefinitions = requireCoachAssignmentQueryData(
     levelDefinitionResult,
     'Head Coach assignment level definition query failed',
@@ -542,6 +602,15 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
 
     return map
   }, {} as Record<string, AssignmentSlotForClient>)).sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
+
+  logDiagnosticPhase('assignment_response_assembly', supportingStartedAt, supportingStartedMs, true, {
+    slotCount: slots.length,
+    rosterRows: sessionRows.length,
+  })
+  logDiagnosticPhase('assignment_server_render_complete', pageStartedAt, pageStartedMs, true, {
+    slotCount: slots.length,
+    rosterRows: sessionRows.length,
+  })
 
   return (
     <AssignGroupsClient
