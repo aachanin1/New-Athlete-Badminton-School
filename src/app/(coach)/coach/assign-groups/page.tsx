@@ -80,7 +80,11 @@ interface ExistingGroupRow {
   level_max: number | null
   sort_order: number
   profiles?: { full_name: string | null } | null
-  coach_assignment_group_students?: { booking_session_id: string }[] | null
+  coach_assignment_group_students?: {
+    booking_session_id: string
+    student_id: string
+    student_type: StudentType
+  }[] | null
 }
 
 interface AssignmentStudentForClient {
@@ -110,6 +114,13 @@ interface ExistingAssignmentGroupForClient {
   studentSessionIds: string[]
 }
 
+interface AssignmentRosterDeltaForClient {
+  hasPersistedAssignment: boolean
+  addedStudents: { name: string }[]
+  removedCount: number
+  removedStudentNames: string[]
+}
+
 interface AssignmentSlotForClient {
   key: string
   scheduleSlotId: string | null
@@ -129,6 +140,7 @@ interface AssignmentSlotForClient {
   assignmentLockReason: string | null
   students: AssignmentStudentForClient[]
   assignmentGroups: ExistingAssignmentGroupForClient[]
+  rosterDelta: AssignmentRosterDeltaForClient
 }
 
 interface AssignGroupsPageProps {
@@ -328,6 +340,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
   const currentBangkokMonth = bangkokToday.slice(0, 7)
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const selectedMonth = parseAssignmentMonth(resolvedSearchParams.month, currentBangkokMonth)
+  if (selectedMonth < currentBangkokMonth) redirect('/coach/assign-groups')
   const { monthStart, nextMonthStart } = getAssignmentMonthRange(selectedMonth)
   const queryStart = selectedMonth === currentBangkokMonth
     ? bangkokToday
@@ -426,7 +439,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         .select(`
           id, schedule_slot_id, coach_id, name, level_min, level_max, sort_order,
           profiles!coach_assignment_groups_coach_id_fkey(full_name),
-          coach_assignment_group_students(booking_session_id)
+          coach_assignment_group_students(booking_session_id, student_id, student_type)
         `, { count: 'exact' })
         .in('schedule_slot_id', batchSlotIds)
         .order('sort_order') as unknown as PromiseLike<SupportingBatchResult<ExistingGroupRow>>,
@@ -491,6 +504,38 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     return map
   }, {} as Record<string, ExistingAssignmentGroupForClient[]>)
 
+  const assignmentRosterDeltaBySlot = slotIds.reduce((map, slotId) => {
+    const persistedGroups = (assignmentGroups || []).filter((group) => group.schedule_slot_id === slotId)
+    const persistedSessionIds = new Set(persistedGroups.flatMap((group) => (
+      group.coach_assignment_group_students || []
+    ).map((student) => student.booking_session_id)))
+    const currentSessions = sessionRows.filter((session) => session.schedule_slot_id === slotId)
+    const currentSessionIds = new Set(currentSessions.map((session) => session.id))
+    const removedSessionIds = Array.from(persistedSessionIds).filter((sessionId) => !currentSessionIds.has(sessionId))
+    const currentStudentNameByKey = new Map(currentSessions.flatMap((session) => {
+      const studentRef = getStudentRef(session)
+      return studentRef ? [[getStudentKey(studentRef), getStudentName(session)] as const] : []
+    }))
+    const removedStudentNames = Array.from(new Set(persistedGroups.flatMap((group) => (
+      group.coach_assignment_group_students || []
+    )).filter((student) => removedSessionIds.includes(student.booking_session_id))
+      .map((student) => currentStudentNameByKey.get(getStudentKey({
+        id: student.student_id,
+        type: student.student_type,
+      })))
+      .filter((name): name is string => Boolean(name))))
+
+    map[slotId] = {
+      hasPersistedAssignment: persistedGroups.length > 0,
+      addedStudents: currentSessions
+        .filter((session) => !persistedSessionIds.has(session.id))
+        .map((session) => ({ name: getStudentName(session) })),
+      removedCount: removedSessionIds.length,
+      removedStudentNames,
+    }
+    return map
+  }, {} as Record<string, AssignmentRosterDeltaForClient>)
+
   const latestLevelMap = buildLevelMap(levelRows || [])
   const levelDefinitionMap = new Map((levelDefinitions || []).map((level) => [level.id, level]))
 
@@ -517,6 +562,14 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         assignmentLockReason: getAssignmentLockReason(session.date, session.start_time, now),
         students: [],
         assignmentGroups: session.schedule_slot_id ? assignmentGroupsBySlot[session.schedule_slot_id] || [] : [],
+        rosterDelta: session.schedule_slot_id
+          ? assignmentRosterDeltaBySlot[session.schedule_slot_id]
+          : {
+              hasPersistedAssignment: false,
+              addedStudents: [],
+              removedCount: 0,
+              removedStudentNames: [],
+            },
       }
     }
 
@@ -549,6 +602,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
       slots={slots}
       currentUserId={user.id}
       selectedMonth={selectedMonth}
+      currentBangkokMonth={currentBangkokMonth}
       coachMemoryEnabled={selectedMonth === currentBangkokMonth}
     />
   )

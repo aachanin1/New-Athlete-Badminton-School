@@ -37,6 +37,14 @@ const assignmentMemoryRoutePath = 'src/app/api/coach/assignment-memory/route.ts'
 const assignmentMemoryRoute = fs.existsSync(path.join(root, assignmentMemoryRoutePath))
   ? read(assignmentMemoryRoutePath)
   : ''
+const assignmentHistoryLibPath = 'src/lib/coach-assignment-history.ts'
+const assignmentHistoryLib = fs.existsSync(path.join(root, assignmentHistoryLibPath))
+  ? read(assignmentHistoryLibPath)
+  : ''
+const assignmentHistoryRoutePath = 'src/app/api/coach/assignment-history/route.ts'
+const assignmentHistoryRoute = fs.existsSync(path.join(root, assignmentHistoryRoutePath))
+  ? read(assignmentHistoryRoutePath)
+  : ''
 const assignmentRoute = read('src/app/api/coach/assignment-groups/route.ts')
 const rescheduleRoute = read('src/app/api/reschedule/route.ts')
 const walletRoute = read('src/app/api/lesson-wallet/route.ts')
@@ -53,8 +61,13 @@ await check('assignment page reads a canonical selected month from Promise searc
   assert.equal(assignmentPage.match(/getBangkokDateString\(now\)/g)?.length, 1)
 })
 
-await check('current Bangkok month is today-forward while historical and future months start on day one', () => {
+await check('historical month is redirected before data access while current is today-forward and future starts on day one', () => {
   assert.match(assignmentPage, /const \{ monthStart, nextMonthStart \} = getAssignmentMonthRange\(selectedMonth\)/)
+  assert.match(assignmentPage, /if \(selectedMonth < currentBangkokMonth\) redirect\('\/coach\/assign-groups'\)/)
+  assert.ok(
+    assignmentPage.indexOf("if (selectedMonth < currentBangkokMonth) redirect('/coach/assign-groups')")
+      < assignmentPage.indexOf('const supabase = await createClient()'),
+  )
   assert.match(
     assignmentPage,
     /const queryStart = selectedMonth === currentBangkokMonth[\s\S]*\? bangkokToday[\s\S]*: monthStart/,
@@ -62,6 +75,81 @@ await check('current Bangkok month is today-forward while historical and future 
   assert.match(assignmentPage, /\.gte\('date', queryStart\)[\s\S]*\.lt\('date', queryEnd\)/)
   assert.match(assignmentPage, /loadAssignmentSessionRows\([\s\S]*queryStart,[\s\S]*nextMonthStart/)
   assert.doesNotMatch(assignmentPage, /\.gte\('date', monthStart\)/)
+})
+
+await check('current-month navigation cannot move backward while future navigation keeps the guarded route transition', () => {
+  assert.match(assignmentClient, /currentBangkokMonth: string/)
+  assert.match(assignmentClient, /const isCurrentMonth = selectedMonth === currentBangkokMonth/)
+  assert.match(assignmentClient, /if \(direction === -1 && isCurrentMonth\) return/)
+  assert.match(assignmentClient, /disabled=\{Boolean\(savingKey\) \|\| isMonthNavigationActive \|\| isCurrentMonth\}/)
+  assert.match(assignmentClient, /router\.push\(`\/coach\/assign-groups\?month=\$\{nextMonth\}`\)/)
+})
+
+await check('initial roster delta explains evidence-backed additions and unresolved removals without a history read', () => {
+  assert.match(assignmentPage, /interface AssignmentRosterDeltaForClient/)
+  assert.match(assignmentPage, /addedStudents:/)
+  assert.match(assignmentPage, /removedCount:/)
+  assert.match(assignmentPage, /hasPersistedAssignment:/)
+  assert.match(assignmentPage, /coach_assignment_group_students\(booking_session_id, student_id, student_type\)/)
+  assert.match(assignmentPage, /currentStudentNameByKey/)
+  assert.match(assignmentPage, /removedStudentNames/)
+  assert.match(assignmentPage, /rosterDelta:/)
+  assert.match(assignmentClient, /มีผู้เรียนเพิ่ม/)
+  assert.match(assignmentClient, /หลังบันทึกล่าสุด กรุณาตรวจกลุ่มและบันทึกใหม่/)
+  assert.match(assignmentClient, /มีผู้เรียนถูกถอดออก/)
+  assert.match(assignmentClient, /ดูประวัติการเปลี่ยนแปลง/)
+  assert.doesNotMatch(assignmentPage, /assignment-history/)
+})
+
+await check('assignment history GET is authenticated, role- and branch-scoped before service-role SELECT, and typed fail closed', () => {
+  assert.match(assignmentHistoryRoute, /export async function GET\(/)
+  assert.match(assignmentHistoryRoute, /supabase\.auth\.getUser\(\)/)
+  assert.match(assignmentHistoryRoute, /\['head_coach', 'super_admin'\]/)
+  assert.match(assignmentHistoryRoute, /HISTORY_UNAUTHORIZED/)
+  assert.match(assignmentHistoryRoute, /HISTORY_FORBIDDEN/)
+  assert.match(assignmentHistoryRoute, /HISTORY_BRANCH_FORBIDDEN/)
+  assert.match(assignmentHistoryRoute, /HISTORY_INVALID_SLOT/)
+  assert.match(assignmentHistoryRoute, /HISTORY_SLOT_HISTORICAL/)
+  assert.match(assignmentHistoryRoute, /\.from\('schedule_slots'\)/)
+  assert.match(assignmentHistoryRoute, /\.from\('coach_branches'\)/)
+  assert.ok(
+    assignmentHistoryRoute.indexOf(".from('coach_branches')")
+      < assignmentHistoryRoute.indexOf('const serviceRoleClient = getServiceRoleClient()'),
+  )
+  assert.match(assignmentHistoryRoute, /getCoachAssignmentHistory\(serviceRoleClient,/)
+  assert.match(assignmentHistoryRoute, /'Cache-Control': 'private, no-store'/)
+  assert.doesNotMatch(assignmentHistoryRoute, /\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(|logActivity|notify/i)
+})
+
+await check('history reconstruction is bounded, stable, batched, evidence-only, and sanitizes raw audit details', () => {
+  assert.match(assignmentHistoryLib, /const ASSIGNMENT_HISTORY_LIMIT = 10/)
+  assert.match(assignmentHistoryLib, /\.contains\('details', \{ scheduleSlotId \}\)/)
+  assert.match(assignmentHistoryLib, /\.order\('created_at', \{ ascending: false \}\)[\s\S]*\.order\('id', \{ ascending: false \}\)/)
+  assert.match(assignmentHistoryLib, /\.limit\(ASSIGNMENT_HISTORY_LIMIT\)/)
+  assert.match(assignmentHistoryLib, /HISTORY_SUPPORTING_BATCH_SIZE/)
+  assert.match(assignmentHistoryLib, /ไม่พบสาเหตุในบันทึกเดิม/)
+  assert.match(assignmentHistoryLib, /save_coach_assignment_groups_v2/)
+  assert.match(assignmentHistoryLib, /retire_coach_assignment_membership/)
+  assert.match(assignmentHistoryLib, /reschedule_booking_session/)
+  assert.match(assignmentHistoryLib, /store_lesson_wallet_credit/)
+  assert.match(assignmentHistoryLib, /redeem_lesson_wallet_credit/)
+  assert.match(assignmentHistoryLib, /attendance_gap_/)
+  assert.doesNotMatch(assignmentHistoryLib, /const actorName = session\.bookings/)
+  assert.doesNotMatch(assignmentHistoryLib, /\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(|logActivity|notify/i)
+  assert.doesNotMatch(assignmentHistoryRoute, /details|entity_id|bookingSessionId|scheduleSlotId\s*[:,]\s*event/)
+})
+
+await check('history is loaded only after click with per-slot single-flight, cache, accessible localized states, and retry', () => {
+  assert.match(assignmentClient, /const assignmentHistoryRequestsRef = useRef\(new Map/)
+  assert.match(assignmentClient, /const assignmentHistoryCacheRef = useRef\(new Map/)
+  assert.match(assignmentClient, /assignmentHistoryRequestsRef\.current\.get\(slot\.key\)/)
+  assert.match(assignmentClient, /assignmentHistoryCacheRef\.current\.get\(slot\.key\)/)
+  assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-history\?scheduleSlotId=/)
+  assert.match(assignmentClient, /กำลังโหลดประวัติการเปลี่ยนแปลง\.\.\./)
+  assert.match(assignmentClient, /aria-busy=\{isAssignmentHistoryLoading\}/)
+  assert.match(assignmentClient, /ลองอีกครั้ง/)
+  assert.match(assignmentClient, /ยังไม่มีประวัติการเปลี่ยนแปลงที่ตรวจสอบได้/)
+  assert.doesNotMatch(assignmentClient, /useEffect\([\s\S]{0,600}assignment-history/)
 })
 
 await check('month validation accepts YYYY-MM only with month 01 through 12', () => {
@@ -100,7 +188,7 @@ await check('authoritative groups, Legacy assignments, and learner levels use bo
   assert.match(assignmentPage, /loadCompleteSupportingBatches<StudentLevelRow>/)
 })
 
-await check('initial current and historical month renders never wait for Coach Memory', () => {
+await check('initial current and future month renders never wait for Coach Memory', () => {
   assert.doesNotMatch(assignmentPage, /getCoachStudentMemoryMap\(/)
   assert.doesNotMatch(assignmentPage, /createCompleteCoachMemoryReadClient\(supabase\)/)
   assert.match(assignmentPage, /coachMemory: \[\]/)
@@ -149,7 +237,7 @@ await check('lazy memory updates untouched drafts but never overwrites an edited
   assert.match(assignmentClient, /draftBaselinesBySlotRef\.current[\s\S]*recommendedDraft/)
 })
 
-await check('historical slots never request or render Coach Memory recommendations', () => {
+await check('non-current and locked slots never request or render Coach Memory recommendations', () => {
   assert.match(assignmentClient, /const shouldExposeCoachMemory = coachMemoryEnabled && !slot\.assignmentLocked/)
   assert.match(assignmentClient, /shouldExposeCoachMemory && slot\.suggestedCoachName/)
   assert.match(assignmentClient, /showCoachMemory=\{shouldExposeCoachMemory\}/)
@@ -197,7 +285,8 @@ await check('month navigation exposes an accessible pending status and disables 
   assert.match(assignmentClient, /role="status"/)
   assert.match(assignmentClient, /aria-live="polite"/)
   assert.match(assignmentClient, /aria-busy=\{isMonthNavigationActive\}/)
-  assert.ok((assignmentClient.match(/disabled=\{Boolean\(savingKey\) \|\| isMonthNavigationActive\}/g) || []).length >= 2)
+  assert.match(assignmentClient, /disabled=\{Boolean\(savingKey\) \|\| isMonthNavigationActive \|\| isCurrentMonth\}/)
+  assert.match(assignmentClient, /disabled=\{Boolean\(savingKey\) \|\| isMonthNavigationActive\}/)
 })
 
 await check('month navigation uses a synchronous re-entry guard and resets after route commit or interruption', () => {
@@ -208,13 +297,14 @@ await check('month navigation uses a synchronous re-entry guard and resets after
   assert.match(assignmentClient, /monthNavigationLockRef\.current = false/)
 })
 
-await check('client adds no Supabase read or prefetch and only the scoped memory GET', () => {
+await check('client adds no Supabase read or prefetch and only the scoped memory/history GETs plus Save', () => {
   assert.doesNotMatch(assignmentClient, /createClient\(|\.from\('booking_sessions'\)|prefetch\(/)
-  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 2)
+  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 3)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-memory\?scheduleSlotId=/)
+  assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-history\?scheduleSlotId=/)
 })
 
-await check('historical assignment slots retain the existing read-only lock', () => {
+await check('started assignment slots retain the existing read-only lock and Admin attendance-gap wording', () => {
   assert.match(assignmentPage, /assignmentLocked: Boolean\(getAssignmentLockReason\(session\.date, session\.start_time, now\)\)/)
   assert.match(assignmentClient, /const isAssignmentLocked = slot\.assignmentLocked/)
   assert.match(assignmentClient, /disabled=\{isAssignmentLocked\}/)

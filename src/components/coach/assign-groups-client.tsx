@@ -49,6 +49,7 @@ import {
 } from '@/lib/coach-assignment-lifecycle'
 import { cn, fmtTime } from '@/lib/utils'
 import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
+import type { CoachAssignmentHistoryEvent } from '@/lib/coach-assignment-history'
 import type { LevelCategory, StudentType } from '@/types/database'
 
 interface CoachOption {
@@ -85,6 +86,13 @@ interface ExistingAssignmentGroup {
   studentSessionIds: string[]
 }
 
+interface AssignmentRosterDelta {
+  hasPersistedAssignment: boolean
+  addedStudents: { name: string }[]
+  removedCount: number
+  removedStudentNames: string[]
+}
+
 interface AssignmentSlot {
   key: string
   scheduleSlotId: string | null
@@ -104,6 +112,7 @@ interface AssignmentSlot {
   assignmentLockReason: string | null
   students: AssignmentStudent[]
   assignmentGroups: ExistingAssignmentGroup[]
+  rosterDelta: AssignmentRosterDelta
 }
 
 interface GroupDraft {
@@ -130,6 +139,7 @@ interface AssignGroupsClientProps {
   slots: AssignmentSlot[]
   currentUserId?: string
   selectedMonth: string
+  currentBangkokMonth: string
   coachMemoryEnabled: boolean
 }
 
@@ -143,6 +153,12 @@ interface AssignmentMemoryResponse {
   suggestedCoachId?: string | null
   suggestedCoachName?: string | null
   suggestedCoachReason?: string | null
+  code?: string
+  error?: string
+}
+
+interface AssignmentHistoryResponse {
+  events?: CoachAssignmentHistoryEvent[]
   code?: string
   error?: string
 }
@@ -439,6 +455,7 @@ function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[], savedSnap
     if (savedSnapshot.draftSignature === draftSignature) return 'saved'
     return 'changed'
   }
+  if (hasRosterDelta(slot)) return 'changed'
   return slot.assignmentGroups.length > 0 ? 'changed' : 'unassigned'
 }
 
@@ -490,11 +507,27 @@ function formatMonth(monthKey: string) {
   return formatThaiMonthYear(`${monthKey}-01`)
 }
 
+function formatHistoryDateTime(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'ไม่ทราบเวลา'
+  return new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Bangkok',
+  }).format(date)
+}
+
+function hasRosterDelta(slot: AssignmentSlot) {
+  return slot.rosterDelta.hasPersistedAssignment
+    && (slot.rosterDelta.addedStudents.length > 0 || slot.rosterDelta.removedCount > 0)
+}
+
 export function AssignGroupsClient({
   coaches,
   slots,
   currentUserId,
   selectedMonth,
+  currentBangkokMonth,
   coachMemoryEnabled,
 }: AssignGroupsClientProps) {
   const router = useRouter()
@@ -512,6 +545,10 @@ export function AssignGroupsClient({
   const [coachMemoryBySlot, setCoachMemoryBySlot] = useState<Record<string, AssignmentMemoryResponse>>({})
   const [coachMemoryLoadingBySlot, setCoachMemoryLoadingBySlot] = useState<Record<string, boolean>>({})
   const [coachMemoryErrorsBySlot, setCoachMemoryErrorsBySlot] = useState<Record<string, string>>({})
+  const [assignmentHistoryBySlot, setAssignmentHistoryBySlot] = useState<Record<string, CoachAssignmentHistoryEvent[]>>({})
+  const [assignmentHistoryLoadingBySlot, setAssignmentHistoryLoadingBySlot] = useState<Record<string, boolean>>({})
+  const [assignmentHistoryErrorsBySlot, setAssignmentHistoryErrorsBySlot] = useState<Record<string, string>>({})
+  const [expandedAssignmentHistoryBySlot, setExpandedAssignmentHistoryBySlot] = useState<Record<string, boolean>>({})
   const draftsBySlotRef = useRef(draftsBySlot)
   const draftBaselinesBySlotRef = useRef(draftsBySlot)
   const persistedGroupsBySlotRef = useRef(initialPersistedGroups)
@@ -520,7 +557,10 @@ export function AssignGroupsClient({
   const monthNavigationSourceMonthRef = useRef<string | null>(null)
   const coachMemoryRequestsRef = useRef(new Map<string, Promise<AssignmentSlot | null>>())
   const coachMemoryCacheRef = useRef(new Map<string, AssignmentMemoryResponse>())
+  const assignmentHistoryRequestsRef = useRef(new Map<string, Promise<CoachAssignmentHistoryEvent[] | null>>())
+  const assignmentHistoryCacheRef = useRef(new Map<string, CoachAssignmentHistoryEvent[]>())
   const isMonthNavigationActive = Boolean(pendingTargetMonth) || isMonthNavigationPending
+  const isCurrentMonth = selectedMonth === currentBangkokMonth
 
   const slotsWithCoachMemory = useMemo(() => slots.map((slot) => {
     const memory = coachMemoryBySlot[slot.key]
@@ -659,6 +699,7 @@ export function AssignGroupsClient({
 
   const navigateMonth = (direction: -1 | 1) => {
     if (monthNavigationLockRef.current || isMonthNavigationPending) return
+    if (direction === -1 && isCurrentMonth) return
     if (savingKey) {
       toast.warning('กำลังบันทึกการมอบหมาย กรุณารอให้บันทึกเสร็จก่อนเปลี่ยนเดือน')
       return
@@ -750,6 +791,56 @@ export function AssignGroupsClient({
 
     coachMemoryRequestsRef.current.set(slot.key, request)
     return request
+  }
+
+  const ensureAssignmentHistory = (slot: AssignmentSlot): Promise<CoachAssignmentHistoryEvent[] | null> => {
+    if (!slot.scheduleSlotId) return Promise.resolve(null)
+
+    const cached = assignmentHistoryCacheRef.current.get(slot.key)
+    if (cached) {
+      setAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: cached }))
+      return Promise.resolve(cached)
+    }
+
+    const inFlight = assignmentHistoryRequestsRef.current.get(slot.key)
+    if (inFlight) return inFlight
+
+    const request = (async () => {
+      setAssignmentHistoryLoadingBySlot((prev) => ({ ...prev, [slot.key]: true }))
+      setAssignmentHistoryErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
+
+      try {
+        const response = await fetch(`/api/coach/assignment-history?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId || '')}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
+        const json = await response.json().catch(() => ({})) as AssignmentHistoryResponse
+        if (!response.ok || !Array.isArray(json.events)) {
+          throw new Error(json.error || 'โหลดประวัติการเปลี่ยนแปลงไม่สำเร็จ')
+        }
+
+        assignmentHistoryCacheRef.current.set(slot.key, json.events)
+        setAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: json.events || [] }))
+        return json.events
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'โหลดประวัติการเปลี่ยนแปลงไม่สำเร็จ'
+        setAssignmentHistoryErrorsBySlot((prev) => ({ ...prev, [slot.key]: message }))
+        return null
+      } finally {
+        assignmentHistoryRequestsRef.current.delete(slot.key)
+        setAssignmentHistoryLoadingBySlot((prev) => ({ ...prev, [slot.key]: false }))
+      }
+    })()
+
+    assignmentHistoryRequestsRef.current.set(slot.key, request)
+    return request
+  }
+
+  const toggleAssignmentHistory = (slot: AssignmentSlot) => {
+    const willOpen = !expandedAssignmentHistoryBySlot[slot.key]
+    setExpandedAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: willOpen }))
+    if (willOpen) void ensureAssignmentHistory(slot)
   }
 
   const addGroup = (slot: AssignmentSlot) => {
@@ -975,6 +1066,13 @@ export function AssignGroupsClient({
           : (prev[slot.key] || []),
       }))
       setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: false }))
+      assignmentHistoryCacheRef.current.delete(slot.key)
+      setAssignmentHistoryBySlot((prev) => {
+        const next = { ...prev }
+        delete next[slot.key]
+        return next
+      })
+      setExpandedAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: false }))
       if (json?.warnings) toast.warning(json.warnings)
       toast.success('บันทึกการมอบหมายสำเร็จ')
       router.refresh()
@@ -1061,7 +1159,7 @@ export function AssignGroupsClient({
                     size="sm"
                     className="h-8 w-8 p-0"
                     aria-label={`เดือนก่อนหน้า ${formatMonth(shiftMonth(selectedMonth, -1))}`}
-                    disabled={Boolean(savingKey) || isMonthNavigationActive}
+                    disabled={Boolean(savingKey) || isMonthNavigationActive || isCurrentMonth}
                     onClick={() => navigateMonth(-1)}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -1198,7 +1296,7 @@ export function AssignGroupsClient({
           <CardContent className="py-12 text-center text-gray-400">
             <Users className="mx-auto mb-3 h-12 w-12 opacity-40" />
             <p className="font-medium">ยังไม่มีรอบเรียนสำหรับ {formatMonth(selectedMonth)}</p>
-            <p className="mt-1 text-sm">ใช้ปุ่มเดือนก่อนหน้าหรือเดือนถัดไปเพื่อดูรอบเรียนเดือนอื่น</p>
+            <p className="mt-1 text-sm">ใช้ปุ่มเดือนถัดไปเพื่อดูรอบเรียนในอนาคต</p>
           </CardContent>
         </Card>
       ) : dateSummaries.length === 0 ? (
@@ -1293,6 +1391,10 @@ export function AssignGroupsClient({
                 const coachMemoryError = coachMemoryErrorsBySlot[slot.key]
                 const shouldExposeCoachMemory = coachMemoryEnabled && !slot.assignmentLocked
                   && Boolean(coachMemoryBySlot[slot.key])
+                const assignmentHistory = assignmentHistoryBySlot[slot.key]
+                const assignmentHistoryError = assignmentHistoryErrorsBySlot[slot.key]
+                const isAssignmentHistoryLoading = Boolean(assignmentHistoryLoadingBySlot[slot.key])
+                const isAssignmentHistoryExpanded = Boolean(expandedAssignmentHistoryBySlot[slot.key])
 
                 return (
                   <Card
@@ -1340,6 +1442,20 @@ export function AssignGroupsClient({
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-expanded={isAssignmentHistoryExpanded}
+                            aria-controls={`assignment-history-${slot.key}`}
+                            onClick={() => toggleAssignmentHistory(slot)}
+                            disabled={!slot.scheduleSlotId || isAssignmentHistoryLoading}
+                          >
+                            {isAssignmentHistoryLoading
+                              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              : <History className="mr-2 h-4 w-4" />}
+                            ดูประวัติการเปลี่ยนแปลง
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
@@ -1394,6 +1510,27 @@ export function AssignGroupsClient({
                         </div>
                       )}
 
+                      {hasRosterDelta(slot) && (
+                        <div className="space-y-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                          {slot.rosterDelta.addedStudents.length > 0 && (
+                            <p>
+                              มีผู้เรียนเพิ่ม {slot.rosterDelta.addedStudents.length} คนหลังบันทึกล่าสุด กรุณาตรวจกลุ่มและบันทึกใหม่:
+                              {' '}{slot.rosterDelta.addedStudents.map((student) => student.name).join(', ')}
+                            </p>
+                          )}
+                          {slot.rosterDelta.removedCount > 0 && (
+                            slot.rosterDelta.removedStudentNames.length > 0 ? (
+                              <p>
+                                มีผู้เรียนถูกถอดออก {slot.rosterDelta.removedCount} คนหลังบันทึกล่าสุด:
+                                {' '}{slot.rosterDelta.removedStudentNames.join(', ')}
+                              </p>
+                            ) : (
+                              <p>มีผู้เรียนถูกถอดออก {slot.rosterDelta.removedCount} คน — ดูประวัติการเปลี่ยนแปลง</p>
+                            )
+                          )}
+                        </div>
+                      )}
+
                       <div className={cn(
                         'rounded-lg border px-3 py-2 text-sm',
                         slotDraftState === 'saved'
@@ -1408,6 +1545,58 @@ export function AssignGroupsClient({
                             ? 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การมอบหมายที่บันทึกไว้เดิมยังมีผล และการเปลี่ยนแปลงนี้จะยังไม่ส่งให้โค้ชจนกว่าจะกดบันทึกอีกครั้ง'
                             : 'รอบนี้ยังไม่ได้มอบหมายให้โค้ชผู้สอน ระบบแนะนำกลุ่มไว้เบื้องต้นเท่านั้น ต้องกดบันทึก/ยืนยันการมอบหมายก่อนโค้ชจึงจะเห็นงานนี้'}
                       </div>
+
+                      {isAssignmentHistoryExpanded && (
+                        <div
+                          id={`assignment-history-${slot.key}`}
+                          className="space-y-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3"
+                          aria-busy={isAssignmentHistoryLoading}
+                        >
+                          <div className="flex items-center gap-2 text-sm font-semibold text-[#153c85]">
+                            <History className="h-4 w-4" />
+                            ประวัติการเปลี่ยนแปลงล่าสุด
+                          </div>
+                          {isAssignmentHistoryLoading && (
+                            <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-[#2748bf]">
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                              กำลังโหลดประวัติการเปลี่ยนแปลง...
+                            </p>
+                          )}
+                          {assignmentHistoryError && !isAssignmentHistoryLoading && (
+                            <div className="flex flex-col gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+                              <span>{assignmentHistoryError}</span>
+                              <Button type="button" variant="outline" size="sm" onClick={() => void ensureAssignmentHistory(slot)}>
+                                ลองอีกครั้ง
+                              </Button>
+                            </div>
+                          )}
+                          {!isAssignmentHistoryLoading && !assignmentHistoryError && assignmentHistory?.length === 0 && (
+                            <p className="text-sm text-gray-500">ยังไม่มีประวัติการเปลี่ยนแปลงที่ตรวจสอบได้</p>
+                          )}
+                          {!isAssignmentHistoryLoading && !assignmentHistoryError && assignmentHistory && assignmentHistory.length > 0 && (
+                            <ol className="space-y-2">
+                              {assignmentHistory.map((event, index) => (
+                                <li key={`${event.occurredAt}-${index}`} className="rounded-md border bg-white p-3 text-sm">
+                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                    <p className="font-semibold text-[#153c85]">{event.label}</p>
+                                    <time className="text-xs text-gray-500" dateTime={event.occurredAt}>
+                                      {formatHistoryDateTime(event.occurredAt)}
+                                    </time>
+                                  </div>
+                                  <div className="mt-2 space-y-1 text-xs text-gray-600">
+                                    <p>ผู้ดำเนินการ: {event.actorName || 'ไม่ทราบผู้ดำเนินการจากหลักฐานเดิม'}</p>
+                                    <p>ผู้เรียน: {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบผู้เรียนจากหลักฐานเดิม'}</p>
+                                    <p>สาเหตุ: {event.reason}</p>
+                                    {(event.before || event.after) && (
+                                      <p>ก่อน: {event.before || 'ไม่พบข้อมูล'} · หลัง: {event.after || 'ไม่พบข้อมูล'}</p>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ol>
+                          )}
+                        </div>
+                      )}
 
                       <div className="grid gap-3 xl:grid-cols-2">
                         {slotGroups.map((group) => {
