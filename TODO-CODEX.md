@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -10,43 +10,33 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 ## Current Active Work
 
 **ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP;
-PERFORMANCE GATE FAILED.**
+TIMEOUT ROOT CAUSE UNKNOWN.**
 
-- Owner authorized a Source-only/SELECT-only performance correction without
-  relaxing the 5-second P95 contract. Initial current/historical rendering no
-  longer waits for Coach Memory; historical pages do not request or render it;
-  current editable unassigned slots load it on demand with per-slot single-flight
-  and edited-draft protection.
-- Functional/test Source `5d7c5c675f2dd5818e5b7116848385624cd8969a`
-  is committed and normally pushed. Deterministic checks pass `167` assertions
-  plus TypeScript, zero-warning lint, mojibake, production build `92/92`, and
-  diff checks. Exact scope is functional/test/docs `4/1/3`, migration/config `0/0`.
-- Fresh 5-August SELECT-only evidence is current today-forward `905` learner-
-  sessions / `295` slots / `1` page and July `1,415/437/2`; initial reads use
-  `13` current / `19` July calls with bounded supporting batches and zero initial
-  Coach Memory calls. Representative on-demand memory core P95 is `0.752s` over
-  20 warm samples; this does not replace the staged authenticated browser gate.
-- Exact-SHA candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL
-  `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`,
-  is `production/READY`, runtime region `icn1`, aliases `[]`, unpromoted, and now
-  Performance-failed/blocked. Current Production is unchanged. All five staged
-  artifacts in the current/historical blocklist must never be Promoted.
-- Authenticated warm-up was `2.718s`. The first 15 measured current loads were
-  stable at live `908/295`, provisional min/P50/P95/max
-  `1.995/2.367/2.748/2.748s`, with initial Coach Memory `0`, Client task Data API
-  `0`, and console errors `0`. Three following full-document loads stayed in
-  route-level loading beyond 30 seconds, including one after a 30-second drain;
-  the required 20 successful samples therefore do not exist and the Performance
-  Gate failed. July/staged on-demand/mobile/navigation gates were stopped.
-- Protected groups/memberships/Legacy counts stayed `1,532/3,504/1,504`; shared
-  Coach layout reminder creation was `0`. Unrelated concurrent activity added
-  booking sessions `5`, activity logs `3` (`2` booking / `1` program), and seven
-  `system` notifications. No task write, fixture, repair, assignment-memory API,
-  assignment mutation API, error/fatal/5xx, Promotion, or alias action occurred.
-- Next action: Owner decides whether to authorize a new bounded investigation/
-  correction scope for the materially changed non-memory route hang. The task is
-  not READY FOR OWNER UAT; do not resume testing, Promote, alias, mutate data,
-  alter Source, or start another task. `PROJECT_STATE.md` is authoritative.
+- Owner superseded historical-month access: Head Coach/Super Admin should be
+  limited to Bangkok current/future months and receive immediate roster-change
+  summaries plus per-slot on-demand history. This new behavior is not implemented.
+- The three prior route-readiness timeouts had no recoverable correlated phase
+  trace. A temporary allowlisted diagnostic artifact completed warm-up plus `20/20`
+  current samples without timeout; browser wall min/P50/P95/max was
+  `2.064/2.398/2.767/3.500s`, stable at `957` learner-sessions / `310` slots.
+  Therefore Browser/sampler versus Assignment-specific causation is not proven.
+- Diagnostic runtime inventory was exactly `21` GET Assignment requests, all HTTP
+  200; initial memory/history requests, console warning/error, runtime error/fatal/
+  5xx, and task-attributable DB writes were all `0`. Exact wire bytes and the old
+  timeout request/phase correlations remain Unknown.
+- Temporary instrumentation commit
+  `4779675e071d9c474f0cf9d1584f87685ac215bb` was removed normally by
+  `5993d9d58b60493c9b8064602009b57548ed3898`; final Application content equals
+  functional Source `5d7c5c675f2dd5818e5b7116848385624cd8969a`.
+  Diagnostic artifact `dpl_CPniCRugkTZimT9xGVRJrGgGFcj2` is unaliased,
+  blocked, and ineligible for Owner UAT/Promotion. Current Production is unchanged.
+- Scope requires Material Hard Stop for Unknown/shared attribution. No new history
+  Source/test, final release suite, final artifact, Owner UAT, Promotion, DB write,
+  Migration, Environment, Feature, or Allowlist action occurred.
+- Next action: Owner decides whether to authorize a separate instrumentation/
+  controlled-reproduction scope or amend the attribution gate. Do not implement,
+  deploy a final candidate, Promote, alias, mutate data, or start another task.
+  `PROJECT_STATE.md` is authoritative.
 
 ## Recently Completed
 

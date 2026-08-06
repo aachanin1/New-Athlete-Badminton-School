@@ -1,26 +1,25 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 Current source: safe-handoff state for the single Active Task **ASSIGNMENT GROUP
-LIFECYCLE INTEGRITY** after the Owner authorized a Source-only/SELECT-only
-performance correction. Initial Assignment rendering no longer waits for Coach
-Memory; historical pages do not request or render memory/recommendations; current
-editable unassigned slots load memory on demand with a per-slot single-flight
-guard and edited-draft protection. Source, deterministic tests, build, commit,
-push, and a new exact-SHA unaliased staged Production-target artifact are complete.
-Authenticated staged verification reached the current Assignment page, but the
-mandatory Performance Gate failed when three consecutive full-document current-
-month loads remained in route-level loading beyond 30 seconds, including one
-attempt after a 30-second drain interval. The blocking condition occurs with zero
-initial Coach Memory requests, so Root Cause materially changed and another Source
-correction would be speculative. The task is a Material Hard Stop, is not READY
-FOR OWNER UAT, and must not be Promoted. The first matrix is authoritative; later
-task snapshots are Historical / Superseded.
+LIFECYCLE INTEGRITY** after the Owner superseded historical-month access and
+authorized a bounded diagnostic-first correction. Owner policy now disallows
+months before the Bangkok current month and requests immediate roster-change
+summaries plus per-slot on-demand history for Head Coach and Super Admin. That
+behavior is not implemented: the required timeout-attribution gate ended as
+**Unknown** because the three prior timeouts have no recoverable per-request phase
+correlation, while a new instrumented artifact completed warm-up plus 20/20
+current samples without timeout. The Scope Contract requires a Material Hard Stop
+for Unknown/shared attribution. Temporary instrumentation was removed by normal
+commit, no final release artifact was created, and no Source implementation may
+continue without a new Owner decision. The task is not READY FOR OWNER UAT and
+must not be Promoted. The first matrix is authoritative; later task snapshots are
+Historical / Superseded.
 
 ## Current Safe Handoff — Assignment Group Lifecycle Integrity
 
-Status: **DEVELOPING — MATERIAL HARD STOP; PERFORMANCE GATE FAILED**.
+Status: **DEVELOPING — MATERIAL HARD STOP; TIMEOUT ROOT CAUSE UNKNOWN**.
 
 ### Current Project Matrix
 
@@ -29,21 +28,21 @@ Status: **DEVELOPING — MATERIAL HARD STOP; PERFORMANCE GATE FAILED**.
 | Active Task | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
 | Task Status | **DEVELOPING — Material Hard Stop** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Containing safe-handoff documentation commit; Application Source parent `5d7c5c675f2dd5818e5b7116848385624cd8969a` |
+| Local HEAD | Containing 2026-08-06 safe-handoff documentation commit; final Application Source content remains functional parent `5d7c5c675f2dd5818e5b7116848385624cd8969a` after diagnostic-removal commit `5993d9d58b60493c9b8064602009b57548ed3898` |
 | Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
 | Ahead/Behind | `0/0` in the published safe-handoff state |
-| Source Complete | **Yes for the approved scoped Source behavior; release incomplete because the mandatory staged Performance Gate failed** |
-| Tests Passed | **Yes — source-only lifecycle `33/33`, Admin Schedule assignment `38/38`, Admin Schedules performance `24/24`, Lesson Wallet `19/19`, Coach Teaching Hours `20/20`, Assignment Resolution `33/33` (`167` total), TypeScript, zero-warning ESLint, mojibake over `254` files, production build/static generation `92/92`, and diff checks** |
-| Performance Gate | **Failed. Authenticated current warm-up was `2.718s`; the first 15 measured current full-document loads were stable at `908/295` with provisional min/P50/P95/max `1.995/2.367/2.748/2.748s`. The next three consecutive current loads never reached authoritative roster/month readiness within 30 seconds; the third followed a 30-second background-drain interval and still exceeded the total 60-second harness bound. Required 20 successful current samples were not obtained, so no compliant current P95 exists; July 20-sample and staged on-demand gates were stopped and remain Unknown. Browser asset evidence showed initial Coach Memory requests `0`, Client task Data API calls `0`, console errors `0`; bounded Vercel logs showed no error/fatal/5xx. Exact browser transferred bytes are Unknown because the available capability exposed asset identity but not transfer sizes, and no DOM proxy is used** |
-| Completeness / Calls | Fresh 2026-08-05 SELECT-only reconciliation remains current `[2026-08-05, 2026-09-01)` `905` learner-sessions / `295` slots / `1` page and July `[2026-07-01, 2026-08-01)` `1,415/437/2`; authenticated browser current population later became `908/295`, reflecting live concurrent data. Current initial reads were `13` calls / `2,113` rows and July `19` / `3,273`, with bounded supporting batches and no duplicates/N+1. Local on-demand core proof remains `7` reads / `493` rows and P95 `0.752s`, but staged endpoint proof was not run after the initial-load Hard Stop. Browser/runtime evidence found `0` initial memory endpoint calls, `0` assignment mutation API calls, and only GET Assignment route records |
-| Committed | **Yes — functional/test commit `5d7c5c675f2dd5818e5b7116848385624cd8969a`; containing documentation safe-handoff commit published separately** |
-| Pushed | **Yes — functional/test commit and containing documentation safe handoff** |
-| Current Source | `5d7c5c675f2dd5818e5b7116848385624cd8969a` on the branch; Production remains on Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Pushed Source | `5d7c5c675f2dd5818e5b7116848385624cd8969a` |
-| Deployed | **Staged Production-target artifact only; Performance-failed and blocked from Owner UAT/Promotion. No task Source is Production-active** |
-| Deployed Source | Candidate staged-only `5d7c5c675f2dd5818e5b7116848385624cd8969a`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Deployment ID | Performance-failed candidate `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV`, URL `https://new-athlete-badminton-school-6h76r0e9q-aachanin1s-projects.vercel.app`, `production/READY`, runtime region `icn1`, aliases `[]`, exact `githubCommitSha=5d7c5c675f2dd5818e5b7116848385624cd8969a`. `gitDirty=1` reflects the protected stat-dirty helper; its worktree/index blobs are identical. **Blocked; do not Promote** |
-| Rejected / Blocked Artifacts | Performance-failed `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV` and `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`; runtime-failed `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`; blocked `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`; historically rejected `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ`. Retain only as evidence; never Promote |
+| Source Complete | **No for the newly approved behavior. Historical-month blocking and on-demand assignment history were not implemented because timeout attribution ended Unknown** |
+| Tests Passed | **No for the new behavior; no new regression or final release suite ran after the mandatory diagnostic Hard Stop. Diagnostic-removal verification passed focused zero-warning ESLint, TypeScript, and `git diff --check`. Prior functional Source `5d7c5c...` retains its earlier `167` deterministic assertions/build evidence only** |
+| Performance Gate | **Not run for a final uninstrumented correction. Diagnostic artifact warm-up plus `20/20` current samples all reached authoritative readiness; browser wall min/P50/P95/max was `2.064/2.398/2.767/3.500s`, population stable at `957` learner-sessions / `310` slots / `1` roster page. This is attribution evidence, not Performance PASS. The old three timeouts remain uncorrelated; July/history/mobile/navigation gates did not run** |
+| Completeness / Calls | Diagnostic current samples were stable at roster `957`, slots `310`, coaches `55`, roster pages `1`; supporting reads were `12` calls / `11` batches with Legacy `355`, groups `358`, levels `347`, definitions `70`. Initial assignment-memory/history requests were `0`; Vercel inventory was exactly `21` GET Assignment route requests (`1` warm-up + `20` samples), all HTTP 200, no N+1 was introduced by diagnostic logging |
+| Committed | **Yes — diagnostic commit `4779675e071d9c474f0cf9d1584f87685ac215bb`, diagnostic-removal commit `5993d9d58b60493c9b8064602009b57548ed3898`, prior functional/test commit `5d7c5c675f2dd5818e5b7116848385624cd8969a`, and containing documentation safe-handoff commit** |
+| Pushed | **Yes — authorized diagnostic/removal and containing safe handoff after normal push** |
+| Current Source | Final Application file content restored exactly to functional Source `5d7c5c675f2dd5818e5b7116848385624cd8969a`; Production remains Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Pushed Source | Diagnostic/removal history pushed; final Application content equals `5d7c5c675f2dd5818e5b7116848385624cd8969a` |
+| Deployed | **Diagnostic/prior staged Production-target artifacts only; all blocked from Owner UAT/Promotion. No newly approved task behavior is deployed or Production-active** |
+| Deployed Source | Temporary diagnostic staged-only `4779675e071d9c474f0cf9d1584f87685ac215bb`; prior candidate staged-only `5d7c5c675f2dd5818e5b7116848385624cd8969a`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Deployment ID | Diagnostic-only `dpl_CPniCRugkTZimT9xGVRJrGgGFcj2`, URL `https://new-athlete-badminton-school-3hsp8748m-aachanin1s-projects.vercel.app`, `production/READY`, region `icn1`, aliases `[]`, exact Source `4779675e071d9c474f0cf9d1584f87685ac215bb`; temporary instrumentation is removed from branch Source and this artifact is **blocked/ineligible for Owner UAT or Promotion** |
+| Rejected / Blocked Artifacts | Diagnostic-only `dpl_CPniCRugkTZimT9xGVRJrGgGFcj2`; performance-failed `dpl_9MhH8A612dc3nXZBZBAeTPcsz7mV` and `dpl_EY91eHqAk58Dqc7akvsUNLztsNjM`; runtime-failed `dpl_DBnGPPV6ioBt4jpkonC4TMXqL173`; blocked `dpl_9RE8BF4LL1awvGfWH5V2nTsCzFDm`; historically rejected `dpl_8sYvgzXSEZfUKgfi6fd2ViQrxinJ`. Evidence only; never Promote |
 | Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
 | Migration Applied | Retained from the prior approved gate; no migration creation, edit, reapply, or DB mutation ran |
@@ -51,46 +50,44 @@ Status: **DEVELOPING — MATERIAL HARD STOP; PERFORMANCE GATE FAILED**.
 | Feature Enabled | No feature-control change |
 | Allowlisted | Unchanged; no allowlist action |
 | Production Active | **No for this task; current Production artifact/source unchanged** |
-| Owner UAT | **Not started. Owner supplied the authenticated Head Coach session for Developer technical verification; the technical Performance Gate failed before Owner UAT handoff** |
+| Owner UAT | **Not started. Owner supplied an authenticated Head Coach session for diagnostic verification only; no Owner UAT handoff is permitted after the Unknown-attribution Hard Stop** |
 | Production UAT | Not run; task is not Production-active |
 | Controlled Write UAT | Not run / prohibited |
 | DB Fixture / DB Write | `0 / 0` |
 | Data Repaired | No |
-| Production Data Changed | **Task-attributable No. Unrelated concurrent Production activity during the read-only window changed booking sessions `+5`, activity logs `+3` (`2` booking / `1` program), and `system` notifications `+7`; protected assignment groups/memberships/Legacy counts remained exact** |
+| Production Data Changed | **Task-attributable No. Diagnostic-window totals were unchanged: notifications `25,490`, activity logs `11,256`, assignment groups `1,552`, memberships `3,554`; exact-window deltas were all `0`** |
 | Customer Impact | None direct; task Source is not Production-active |
 | Financial Impact | None |
-| Functional / Test / Documentation / Migration / Configuration Changes | `4 / 1 / 3 / 0 / 0`; functional/test commit is `842` insertions / `344` deletions |
+| Functional / Test / Documentation / Migration / Configuration Changes | Final content delta this round `0 / 0 / 3 / 0 / 0`; temporary diagnostic touched `3` allowlisted functional paths and was fully removed in commit `5993d9d...` |
 | Scope Expansion | No |
 | Scope Breach | No |
-| Documentation Drift | **No after this performance-correction safe-handoff commit is published** |
-| Blocker | **Material Root Cause change. Three consecutive current full-document loads remained at route-level loading beyond 30 seconds with zero initial Coach Memory request, including a post-soak attempt. The approved correction removed memory fan-out but did not make the mandatory current initial-load gate reliably complete. Further Source work without new phase evidence or a broader authorized scope would be speculative** |
-| Remaining Work | Owner decides whether to authorize a new bounded investigation/correction scope for the non-memory route hang. Do not resume July/on-demand/Owner UAT, Promote, alias, mutate data, or make another Source change automatically |
+| Documentation Drift | **No after this diagnostic Material Hard Stop safe-handoff commit is published** |
+| Blocker | **Timeout attribution is Unknown. The prior three failures have no recoverable correlated phase trace; new instrumentation completed 20/20 samples and therefore cannot prove Browser/sampler or Assignment-specific causation. Scope requires a Hard Stop for Unknown/shared attribution** |
+| Remaining Work | Owner decides whether to authorize a separate instrumentation/reproduction scope or accept the Unknown and amend the gate. Do not implement the new month/history behavior, run Owner UAT, create a final artifact, Promote, alias, or mutate data automatically |
 | Task Done | **No** |
-| Next Gate / Next Action | **Owner decision on the materially changed non-memory route-hang Root Cause; exact candidate remains staged-only and blocked** |
+| Next Gate / Next Action | **Owner decision after Unknown timeout attribution; all staged artifacts remain blocked and unpromoted** |
 | Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
 
 `src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
 identical to its index at SHA-256
 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` and Git
 blob `4521281d099efb189429a744909552d67871ff23`; it was not edited, staged, reset,
-checked out, stashed, or normalized. Owner policy changed only the approved task
-semantics. No Production write, DB fixture, repair, migration command, environment
-change, feature-control change, allowlist action, Production alias change, or
-Promotion occurred. Owner authenticated Head Coach on the exact artifact without
-exposing credentials. Current warm-up and the first 15 measured samples rendered
-the exact live `908/295` population with no initial memory endpoint, Client task
-Data API request, or console error. Three later current loads failed route
-readiness consecutively. Vercel's bounded 20-minute view reported Assignment
-route count `27`, only GET records, HTTP groups at least `200=105`, `307=12`,
-`304=7`, and direct error/fatal/5xx `0/0/0`; no assignment-memory or assignment-
-mutation API log was found. Exact wire bytes, compliant 20-sample current/July
-results, staged on-demand behavior, repeated-click/Back/Forward, and mobile gates
-remain Unknown because verification stopped at the mandatory initial-load failure.
-Read-only protected-set counts stayed groups `1,532`, memberships `3,504`, Legacy
-assignments `1,504`. Shared layout notification creators emit `reminder`; reminder
-delta was `0`, so their observed creation count was `0`. Seven concurrent `system`
-notifications and the unrelated booking/program activity above were retained and
-not repaired.
+checked out, stashed, or normalized. Lifecycle migration SHA-256 remains
+`47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+Diagnostic phase nearest-rank min/P50/P95/max in milliseconds was: proxy auth
+`121.2/140.1/363.5/392.5`, proxy role `120.8/132.9/356.7/371.3`, shared layout
+complete `131.4/173.3/378.6/1008.6`, primary roster/coaches
+`888.4/952.6/1037.5/1872.9`, supporting reads
+`218.6/253.1/300.2/471.4`, and Assignment Server render
+`1248.6/1313.9/1525.2/2228.4`. All 20 traces completed successfully; one shared
+attendance-notification phase reached `891.9ms` but no timeout occurred, so it is
+not causal proof. Browser console warning/error was `0/0`; Vercel runtime error,
+fatal, and 5xx were `0/0/0`. Supabase Auth/API records in the sampled interval
+were successful reads; Postgres logs contained no correlated error. Exact browser
+transferred bytes and the old timeout request/phase correlation remain Unknown;
+no DOM proxy is reported as wire bytes. No Production write, DB fixture, repair,
+migration command, environment, feature-control, allowlist, alias, or Promotion
+action occurred.
 
 ## Historical / Superseded — Admin Payroll Accuracy + Performance
 

@@ -12286,3 +12286,131 @@ correction scope for the materially changed non-memory route hang. Do not resume
 July/on-demand/Owner UAT, change Source, Promote, alias, mutate or repair data, or
 start another task automatically. All five blocked/rejected artifacts remain
 ineligible for Promotion.
+
+### 2026-08-06 — Assignment Timeout Attribution Diagnostic Material Hard Stop
+
+Owner superseded the historical-month requirement and authorized a diagnostic-
+first continuous-delivery scope for current/future-only Assignment access,
+immediate roster-change summaries, and per-slot on-demand change history. The
+Scope Contract permitted implementation only if the prior three route-readiness
+timeouts were proven Browser/sampler or Assignment-specific. Shared or Unknown
+attribution required a Material Hard Stop.
+
+#### Fact — Gate 0 and Diagnostic Artifact
+
+- Gate 0 matched branch `spike/next-major-security-upgrade`, starting HEAD/upstream
+  `50b0277b7317058f38ce83f1c3777115fd8e212d`, ahead/behind `0/0`, and only
+  protected stat-dirty `src/lib/schedule-slot-utils.ts`. Its worktree/index blob
+  remained `4521281d099efb189429a744909552d67871ff23`; lifecycle migration SHA-256
+  remained `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+- Temporary structured, bounded, non-PII diagnostics touched only `src/proxy.ts`,
+  `src/app/(coach)/layout.tsx`, and
+  `src/app/(coach)/coach/assign-groups/page.tsx`. Commit
+  `4779675e071d9c474f0cf9d1584f87685ac215bb` was normally pushed and deployed as
+  unaliased Production-target diagnostic artifact
+  `dpl_CPniCRugkTZimT9xGVRJrGgGFcj2`, URL
+  `https://new-athlete-badminton-school-3hsp8748m-aachanin1s-projects.vercel.app`,
+  exact Source `4779675e071d9c474f0cf9d1584f87685ac215bb`, region `icn1`, state READY,
+  aliases `[]`. It is diagnostic-only, blocked, unpromoted, and ineligible for
+  Owner UAT/Promotion.
+- Owner authenticated Head Coach without sharing credentials. One uncounted
+  warm-up and all `20/20` bounded current samples reached the authoritative page
+  predicate: Assignment heading visible and month controls visible with
+  `aria-busy=false`. No new timeout was intentionally created.
+
+#### Fact — Browser, Phase, and Runtime Evidence
+
+Nearest-rank diagnostic measurements were:
+
+| Evidence | min | P50 | P95 | max |
+| --- | ---: | ---: | ---: | ---: |
+| Browser readiness wall | 2.064s | 2.398s | 2.767s | 3.500s |
+| Proxy auth | 121.2ms | 140.1ms | 363.5ms | 392.5ms |
+| Proxy role | 120.8ms | 132.9ms | 356.7ms | 371.3ms |
+| Shared Coach layout complete | 131.4ms | 173.3ms | 378.6ms | 1008.6ms |
+| Assignment primary roster/coaches | 888.4ms | 952.6ms | 1037.5ms | 1872.9ms |
+| Assignment supporting reads | 218.6ms | 253.1ms | 300.2ms | 471.4ms |
+| Assignment Server render complete | 1248.6ms | 1313.9ms | 1525.2ms | 2228.4ms |
+
+- Every sample returned stable population `957` learner-session rows / `310`
+  slots / `1` roster page and `55` coach-branch rows. Supporting reads were `12`
+  calls / `11` batches: Legacy `355`, exact groups `358`, student-level rows
+  `347`, active level definitions `70`. No per-slot/student/group N+1 was added.
+- The largest shared-layout phase was attendance-notification generation at
+  `891.9ms` in one successful sample. Because the complete request still reached
+  readiness in `3.500s`, this is latency evidence, not proof that the shared
+  notification path caused any prior timeout.
+- Vercel request inventory for the exact diagnostic window was `21` GET
+  `/coach/assign-groups` requests (`1` warm-up + `20` measured), all HTTP 200.
+  Initial assignment-memory/history endpoint count was `0`; runtime error/fatal/
+  5xx and browser console warning/error were `0/0/0` and `0/0`.
+- Supabase Auth/API records in the sample interval were successful read requests;
+  Postgres logs showed no correlated query error. Exact browser document/RSC
+  transferred bytes were unavailable; no DOM-length proxy was used or described
+  as wire bytes.
+- Read-only pre/post safety totals remained notifications `25,490`, activity logs
+  `11,256`, assignment groups `1,552`, memberships `3,554`. Exact sample-window
+  row creation deltas for all four sets were `0`. DB fixture/write, Controlled
+  Write UAT, repair, Migration, Environment, Feature, Allowlist, alias, and
+  Promotion actions were all zero.
+
+#### Fact — Existing History Evidence Coverage
+
+| Event/evidence | Actor | Time | Slot/session | Reason/cause | Limitation |
+| --- | --- | --- | --- | --- | --- |
+| `save_coach_assignment_groups_v2` activity | Yes | Yes | Slot + before/after eligible sessions | `assignment_save` | Production aggregate currently has `0` such audit rows; group row IDs are recreated and cannot represent business change |
+| `retire_coach_assignment_membership` activity | Yes | Yes | Slot + before/after membership | `reschedule_out` / `wallet_store` | Production aggregate currently has `0` such audit rows; retirement deletes exact membership |
+| Create/update booking activity | Actor/time only | Yes | Booking-level only | Booking action | Existing log does not contain exact session/slot IDs; cause cannot be joined exactly from that log alone |
+| Reschedule activity + `rescheduled_from_id` | Yes | Yes | Old/new session and target slot | Reschedule in/out | Strong for post-log events; legacy gaps remain Unknown |
+| Wallet redeem/store activity + wallet provenance | Yes | Yes | Original/new session and slot | Redemption/store | Strong for post-log events; legacy gaps remain Unknown |
+| Admin Attendance Gap activity | Yes | Yes | Exact slot/session where recorded | Admin action | Exact reason only when the recorded action/details contain it |
+| `booking_sessions.rescheduled_from_id` alone | No | Row timestamp only | Old/new session relation | Reschedule relation | Does not independently prove actor or full reason |
+| `lesson_wallet_credits.redeemed_session_id` alone | No | Row timestamp only | Credit/session relation | Wallet relation | Does not independently prove actor |
+
+Immediate added learners can be derived from the current roster versus exact saved
+memberships without another initial history query. Removed learners are provable
+from current state only while a stale membership still exists. Once the retirement
+RPC deletes that membership, the removed identity/cause exists only in audit and
+related session evidence. Therefore the requested general immediate removed-name
+summary conflicts with the simultaneous prohibition on an initial history query
+unless the Owner accepts an Unknown summary for those cases or authorizes a
+different evidence-loading contract. No reason or actor was inferred to fill a
+legacy gap.
+
+#### Inference / Unknown — Classification and Stop
+
+- The prior three timeouts lack recoverable correlated diagnostic timestamps,
+  invocation IDs, and per-phase completion records. The new instrumented run had
+  no timeout. It therefore cannot prove classification A (Browser/sampler), B
+  (Assignment-specific), or C (shared/pre-existing) for the old failures.
+- Final classification is **D — Unknown**. Healthy 20/20 diagnostic samples show
+  the route can complete normally and bound successful-path phases, but they do
+  not identify the missing historical timeout phase.
+- Under the exact Owner Scope Contract, Unknown attribution is a **Material Hard
+  Stop**. Month-boundary/history Source, new tests, final 20-sample performance,
+  history endpoint performance, July/history UI, mobile, navigation, Owner UAT,
+  and final release artifact were not started.
+
+#### Fact — Instrumentation Removal and State Observed
+
+- Temporary instrumentation was removed by normal edit in commit
+  `5993d9d58b60493c9b8064602009b57548ed3898`; no reset, checkout, stash, or
+  overwrite was used. The three Application files are content-identical to
+  functional Source parent `5d7c5c675f2dd5818e5b7116848385624cd8969a`.
+  Focused zero-warning ESLint, TypeScript, and `git diff --check` passed after
+  removal.
+- Source Complete **No for the newly approved behavior**; Tests Passed **No for
+  the new behavior**; final Performance Gate **Not run**; diagnostic evidence is
+  not Performance PASS; Committed/Pushed **Yes for diagnostic/removal and this
+  containing safe handoff**; final staged artifact **None**; READY FOR OWNER UAT
+  **No**; Owner/Production UAT **Not run**; Promoted/Production Active **No/No for
+  this task**; Migration Source/Applied **unchanged/retained**; Environment/
+  Feature/Allowlist **unchanged**; Controlled Write UAT **Not run/prohibited**;
+  DB fixture/task write **0/0**; Production Data Changed/Data Repaired **No/No**;
+  Customer/Financial Impact **None/None**; Scope Expansion/Breach **No/No**;
+  Documentation Drift **No after publication**; Task Done **No**.
+
+Next Action: Owner decides whether to authorize a separate instrumentation-only
+controlled-reproduction scope, amend the attribution gate, and resolve the
+removed-name/no-initial-history evidence conflict. Do not implement, create a final
+artifact, run Owner UAT, Promote, alias, mutate data, or start another task.
