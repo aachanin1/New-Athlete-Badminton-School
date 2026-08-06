@@ -2,26 +2,105 @@
 
 Last updated: 2026-08-06
 
-Current source: safe-handoff state for the single Active Task **ASSIGNMENT GROUP
-LIFECYCLE INTEGRITY** after the Owner superseded historical-month access and
-authorized a bounded diagnostic-first correction. Owner policy now disallows
-months before the Bangkok current month and requests immediate roster-change
-summaries plus per-slot on-demand history for Head Coach and Super Admin. That
-behavior is not implemented: the required timeout-attribution gate ended as
-**Unknown** because the three prior timeouts have no recoverable per-request phase
-correlation, while a new instrumented artifact completed warm-up plus 20/20
-current samples without timeout. The Scope Contract requires a Material Hard Stop
-for Unknown/shared attribution. Temporary instrumentation was removed by normal
-commit, no final release artifact was created, and no Source implementation may
-continue without a new Owner decision. The task is not READY FOR OWNER UAT and
-must not be Promoted. The first matrix is authoritative; later task snapshots are
-Historical / Superseded.
+Current source: Material Hard Stop safe handoff for the single Active Task
+**ASSIGNMENT GROUP LIFECYCLE INTEGRITY**. The Owner accepted the old timeout root
+cause as an Unknown limitation, superseded historical-month access, and approved
+current/future-only Assignment plus immediate roster delta and SELECT-only
+on-demand change history. That scoped behavior and the later Owner-requested
+clarity correction are Source-complete, tested, committed, pushed, and staged.
+The final uninstrumented clarity artifact then produced a new authenticated
+current-route readiness timeout during its counted performance gate. The timeout
+phase remains Unknown and cannot be corrected safely inside the approved two-file
+clarity allowlist. The artifact is blocked, not READY FOR OWNER UAT, and must not
+be Promoted. Current Production is unchanged. The first matrix is authoritative;
+later task snapshots are Historical / Superseded.
 
-## Current Safe Handoff — Assignment Group Lifecycle Integrity
+## Current Safe Handoff — Assignment History Clarity Correction
 
-Status: **DEVELOPING — MATERIAL HARD STOP; TIMEOUT ROOT CAUSE UNKNOWN**.
+Status: **DEVELOPING — MATERIAL HARD STOP; FINAL ARTIFACT PERFORMANCE GATE
+FAILED; NEW TIMEOUT PHASE UNKNOWN**.
 
 ### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
+| Task Status | **DEVELOPING — Material Hard Stop** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | Containing 2026-08-06 safe-handoff documentation commit; exact Application Source remains `d08418df99ba88ab7ba7be8e748209e74542552b` |
+| Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
+| Ahead/Behind | `0/0` in the published safe-handoff state |
+| Source Complete | **Yes for the scoped clarity correction** — neutral roster-delta wording, meaningful lifecycle-only history, causal-evidence guard, deduplication/grouping, compact presentation, and maximum five events are implemented |
+| Tests Passed | **Yes** — six deterministic suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake, Next.js production build/static generation `93/93`, staged diff review, and `git diff --check` passed |
+| Performance Gate | **Failed** — the authenticated final artifact reached authoritative current readiness once in `3.196s` during a discarded tooling-capability warm-up, but the next valid warm-up remained without the Assignment heading and at the route-level `กำลังเปิดเมนู...` state for more than `30s`. The contract says any 30-second timeout fails the gate; measured current `20` and History `10` samples were therefore not run, so compliant min/P50/P95/max and History P95 are unavailable** |
+| Completeness / Calls | Before the failed sampler, the authenticated page showed current Bangkok today-forward population `975` learner-sessions / `315` slots and saved `268/315`; previous month was disabled. The opened history showed exactly `5` compact meaningful events. This is one visible technical observation, not a stable 20-sample completeness result. Initial request counts and transferred bytes are Unknown because the browser capability did not expose network timing; no DOM proxy was used |
+| Committed | **Yes** — functional/test clarity commit `d08418df99ba88ab7ba7be8e748209e74542552b` plus the containing documentation safe-handoff commit |
+| Pushed | **Yes** — Application Source and containing safe handoff normally pushed on the current branch |
+| Current Source | Exact Application Source `d08418df99ba88ab7ba7be8e748209e74542552b`; Production remains Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Pushed Source | `d08418df99ba88ab7ba7be8e748209e74542552b` |
+| Deployed | **Yes, staged Production-target only; Performance-failed and blocked** |
+| Deployed Source | Staged-only `d08418df99ba88ab7ba7be8e748209e74542552b`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Deployment ID | `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`, URL `https://new-athlete-badminton-school-ro6ifitqk-aachanin1s-projects.vercel.app`, target `production`, state `READY`, runtime region `icn1`, aliases `[]`, exact Source `d08418df99ba88ab7ba7be8e748209e74542552b`; **blocked/ineligible for Owner UAT or Promotion** |
+| Rejected / Blocked Artifacts | Owner-clarity-rejected `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` / `31bceb1ee7c5b27dcd4d6ccb1e2bd886dbf2633c`; Performance-failed `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`; all earlier blocked/rejected Assignment artifacts remain evidence only and must never be Promoted |
+| Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
+| Migration Applied | Retained from the prior approved gate; no migration creation, edit, apply, or reapply ran |
+| Environment Changed | No |
+| Feature Enabled | No feature-control change |
+| Allowlisted | Unchanged; no allowlist action |
+| Production Active | **No for this task; current Production artifact/source unchanged** |
+| Owner UAT | Prior artifact `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` failed Owner UAT for clarity. Owner UAT was not started on the new blocked artifact |
+| Production UAT | Not run; task is not Production-active |
+| Controlled Write UAT | Not run / prohibited |
+| DB Fixture / DB Write | `0 / 0` task-attributable. SELECT-only audit found zero notifications, activity logs, Assignment groups, or memberships created in the exact `22:21–22:24` ICT sampler window; shared Coach layout notification creation was `0` in the wider `22:17–22:24` window |
+| Data Repaired | No |
+| Production Data Changed | No task-attributable change found |
+| Customer Impact | None direct; corrected Source is staged only |
+| Financial Impact | None |
+| Functional / Test / Documentation / Migration / Configuration Changes | `2 / 1 / 3 / 0 / 0` for this bounded clarity correction and safe handoff |
+| Scope Expansion | No |
+| Scope Breach | No |
+| Documentation Drift | **No after this Material Hard Stop safe-handoff commit is published** |
+| Blocker | **A new final-artifact current-route readiness timeout occurred. Vercel recorded middleware GET `/coach/assign-groups` HTTP 200 at `2026-08-06T22:21:52.088+07:00`, but the Assignment heading never arrived inside 30 seconds; bounded runtime error/fatal/5xx and browser console warning/error were all zero. Browser/sampler, Assignment Server, shared layout, and backend dependency cannot be distinguished without additional evidence. Root cause is Unknown and no safe correction exists in the approved history-library/client-only allowlist** |
+| Remaining Work | Owner decides whether to authorize a separate bounded timeout-attribution/correction scope or amend the final Performance Gate. Do not run more samples, issue Owner UAT, Promote, alias, mutate data, or start another task automatically |
+| Task Done | **No** |
+| Next Gate / Next Action | **Owner decision on the new exact-artifact timeout. Both the clarity-rejected artifact and the new Performance-failed artifact remain blocked and unpromoted** |
+| Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
+
+The clarity correction keeps booking, Reschedule-in/out, Wallet Store/Redeem,
+Admin learner move, coach assignment/change, Assignment save, and return-
+entitlement events only. It removes attendance/review/evidence-request/
+closed-no-action/retrospective workflow noise, ignores meaningless reasons,
+deduplicates activity plus retirement/session evidence, groups one Admin business
+action across session rows, and displays at most five one-line summaries with
+short metadata. The visible current delta copy uses “ไม่อยู่ในรายชื่อรอบนี้แล้ว”.
+The observed history contained no request-review/evidence/closed-no-action item
+and no repeated business event.
+
+The failed valid warm-up began at approximately `2026-08-06T22:21:52+07:00`.
+The browser remained on `/coach/assign-groups`; the Assignment heading was absent
+and the only route content exposed by the readiness snapshot was
+`กำลังเปิดเมนู...` after the 30-second bound. The preceding discarded warm-up
+reached authoritative readiness in `3.196s`, but its optional network-metric read
+failed because `PerformanceResourceTiming` was unavailable to this Browser API;
+it is not reported as a compliant sample. Exact document/RSC transferred bytes
+remain Unknown and no DOM proxy is reported as wire bytes. Bounded Vercel scans
+returned runtime error/fatal/5xx `0/0/0`; browser console warning/error was `0/0`.
+No History or current 20-sample continuation was attempted after the mandatory
+failure.
+
+`src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
+identical to index blob `4521281d099efb189429a744909552d67871ff23`; it was not
+edited, staged, reset, checked out, stashed, or normalized. Lifecycle migration
+SHA-256 remains
+`47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+
+## Historical / Superseded — Assignment Timeout Attribution Diagnostic Safe Handoff
+
+Status observed at that safe handoff: **DEVELOPING — MATERIAL HARD STOP; TIMEOUT
+ROOT CAUSE UNKNOWN**.
+
+### State Observed at That Safe Handoff
 
 | Field | Current value |
 | --- | --- |

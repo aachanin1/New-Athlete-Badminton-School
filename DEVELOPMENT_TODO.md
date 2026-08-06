@@ -12414,3 +12414,124 @@ Next Action: Owner decides whether to authorize a separate instrumentation-only
 controlled-reproduction scope, amend the attribution gate, and resolve the
 removed-name/no-initial-history evidence conflict. Do not implement, create a final
 artifact, run Owner UAT, Promote, alias, mutate data, or start another task.
+
+### 2026-08-06 — Assignment History Clarity Correction — Final Artifact Performance Hard Stop
+
+The Owner accepted the old three timeouts as an Unknown limitation, authorized
+the current/future-only Assignment and SELECT-only on-demand history
+implementation through READY FOR OWNER UAT, rejected
+`dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` / Source
+`31bceb1ee7c5b27dcd4d6ccb1e2bd886dbf2633c` for clarity, and approved one bounded
+history-library/client correction. Promotion remained prohibited before Owner
+PASS of a new exact artifact/SHA.
+
+#### Fact — Clarity Root Cause and Correction
+
+- The rejected history mapper treated every `attendance_gap_*` activity as a
+  generic Admin adjustment and the Client rendered actor, learner, reason, before,
+  and after blocks. Review/evidence-request/closed-no-action/attendance-only and
+  retrospective workflow could therefore appear beside a roster delta without
+  causal proof, and duplicate activity plus retirement/session evidence made the
+  list dense.
+- Commit `d08418df99ba88ab7ba7be8e748209e74542552b` changed only
+  `src/lib/coach-assignment-history.ts`,
+  `src/components/coach/assign-groups-client.tsx`, and
+  `scripts/check-coach-assignment-lifecycle.mjs`. The functional/test counts were
+  `2/1`; `277` insertions and `164` deletions. It was normally pushed on
+  `spike/next-major-security-upgrade`.
+- Immediate removed-delta text now says `ไม่อยู่ในรายชื่อรอบนี้แล้ว`. History
+  retains only booking-add, Reschedule-in/out, Wallet Store/Redeem, Admin learner
+  move, coach assignment/change, Assignment save, return entitlement, and a
+  delta-relevant evidence gap. It removes review/evidence request,
+  closed-no-action, attendance-only, and retrospective workflow noise.
+- Empty/dash/non-meaningful reasons are omitted. Unknown uses
+  `ไม่พบสาเหตุที่ยืนยันได้`. Semantic snapshot comparison ignores recreated group
+  row IDs. Business keys deduplicate activity plus retirement/session evidence and
+  group one Admin action across its session rows. Output is stably sorted and
+  capped at five compact one-line summaries with short metadata; before/after
+  aggregate blocks are not rendered.
+- Regression-first failed on the old neutral-copy assertion. Final source-only
+  suites passed Coach Assignment Lifecycle `39/39`, Assignment Resolution
+  `33/33`, Admin Schedule Assignment `38/38`, Admin Schedules Performance
+  `24/24`, Lesson Wallet `19/19`, and Coach Teaching Hours `20/20`: `173/173`
+  total. TypeScript, zero-warning ESLint, mojibake over `256` files, Next.js 16.2.6
+  production build/static generation `93/93`, staged diff review, and
+  `git diff --check` passed. No fixture/live-write mode ran.
+
+#### Fact — Staged Artifact and Visible Clarity Evidence
+
+- `vercel --prod --skip-domain` created exact unaliased Production-target artifact
+  `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`, URL
+  `https://new-athlete-badminton-school-ro6ifitqk-aachanin1s-projects.vercel.app`,
+  exact Application Source `d08418df99ba88ab7ba7be8e748209e74542552b`, target
+  `production`, state READY, runtime region `icn1`, aliases `[]`. It is staged-only
+  and never Promoted.
+- Authenticated Head Coach initial inspection reached Assignment Groups and showed
+  current Bangkok today-forward population `975` learner-sessions / `315` slots,
+  saved `268/315`, previous-month control disabled, and one selected historical-
+  time slot locked under the existing Admin Attendance Gap wording.
+- The immediate delta said one learner `ไม่อยู่ในรายชื่อรอบนี้แล้ว`. The opened
+  history showed exactly five compact meaningful events: one evidenced Admin
+  learner move, one explicitly Unknown evidence gap, and three booking-add events.
+  No review/evidence-request/closed-no-action item, repeated business event,
+  before/after block, or meaningless reason appeared in the visible list. This is
+  technical browser evidence, not Owner UAT PASS.
+
+#### Fact — Final Performance Gate Failure
+
+- A first discarded warm-up reached authoritative current readiness in `3.196s`,
+  but the optional network metric read failed because this Browser API did not
+  expose `PerformanceResourceTiming`. That attempt is not counted as the required
+  warm-up or as a compliant performance sample; no DOM proxy was used as wire
+  bytes.
+- The next valid warm-up began at approximately
+  `2026-08-06T22:21:52+07:00`. The browser remained on
+  `/coach/assign-groups`, the Assignment heading never appeared, and the route
+  remained at `กำลังเปิดเมนู...` after the 30-second readiness bound. The Scope
+  Contract says any 30-second timeout fails the gate. Current measured `20` and
+  History measured `10` samples, navigation, Back/Forward, and mobile continuation
+  were stopped immediately rather than masking the failure.
+- Vercel recorded middleware GET `/coach/assign-groups` HTTP 200 at
+  `2026-08-06T22:21:52.088+07:00`; no corresponding completed Assignment
+  readiness/serverless route entry was found in the bounded evidence window.
+  Browser console warning/error was `0/0`; bounded runtime error/fatal/5xx was
+  `0/0/0`. The tab screenshot command also failed after the route was already
+  unready, which does not distinguish sampler from application/runtime failure.
+- Exact document/RSC transferred bytes, request duration, and the stalled phase
+  are Unknown. Browser/sampler, Assignment Server, shared Coach layout, and
+  backend dependency cannot be classified from the available correlation. The
+  history library is not invoked by initial render and the correction's Client
+  on-demand fetch was not triggered by the failed reload, but this only rules out
+  a proven direct correction path; it does not prove another Root Cause.
+
+#### Fact — Safety and State Observed at This Hard Stop
+
+- Browser/runtime method evidence for the sampler was GET/read-only. A SELECT-only
+  aggregate audit for `2026-08-06T22:21–22:24+07:00` found zero created
+  notifications, activity logs, Assignment groups, or exact memberships. The
+  wider `22:17–22:24` notification window also had zero rows, so shared Coach
+  layout notification creation was `0`. No row was deleted, repaired, or exposed.
+- Migration/config/package/shared layout/proxy changes were `0`; migration
+  SHA-256 remained
+  `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`.
+  Protected stat-dirty `src/lib/schedule-slot-utils.ts` remained worktree/index
+  blob `4521281d099efb189429a744909552d67871ff23` and was never staged or modified.
+- Source Complete **Yes for the scoped clarity correction**; Tests Passed **Yes —
+  `173/173` plus TypeScript/lint/mojibake/build/diff**; Performance Gate
+  **Failed**; Application Committed/Pushed **Yes/Yes**; staged artifact
+  **READY but Performance-failed/blocked**; READY FOR OWNER UAT **No**; Owner UAT
+  on the new artifact **Not run**; prior artifact Owner UAT **Rejected for
+  clarity**; Promoted/Production Active **No/No for this task**; Current Production
+  remained `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+  `03d08a93e77189d56b733bda009d9526400fa9b3`; Migration Source/Applied
+  **unchanged/retained**; Environment/Feature/Allowlist **unchanged**; Controlled
+  Write UAT **Not run/prohibited**; DB fixture/task-attributable write **0/0**;
+  Production Data Changed/Data Repaired **No/No**; Customer/Financial Impact
+  **None/None**; Scope Expansion/Breach **No/No**; Task Done **No**.
+
+Final classification is **Material Hard Stop — new final-artifact timeout phase
+Unknown**. It cannot be corrected safely inside the approved two-file history-
+clarity allowlist without guessing or touching the page/shared layout/backend.
+Next Action: Owner decides whether to authorize a separate bounded timeout-
+attribution/correction scope or amend the final Performance Gate. Do not run more
+samples, issue Owner UAT, Promote, alias, mutate data, or start another task.

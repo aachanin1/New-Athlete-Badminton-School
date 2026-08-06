@@ -10,33 +10,36 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 ## Current Active Work
 
 **ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP;
-TIMEOUT ROOT CAUSE UNKNOWN.**
+FINAL CLARITY ARTIFACT PERFORMANCE GATE FAILED.**
 
-- Owner superseded historical-month access: Head Coach/Super Admin should be
-  limited to Bangkok current/future months and receive immediate roster-change
-  summaries plus per-slot on-demand history. This new behavior is not implemented.
-- The three prior route-readiness timeouts had no recoverable correlated phase
-  trace. A temporary allowlisted diagnostic artifact completed warm-up plus `20/20`
-  current samples without timeout; browser wall min/P50/P95/max was
-  `2.064/2.398/2.767/3.500s`, stable at `957` learner-sessions / `310` slots.
-  Therefore Browser/sampler versus Assignment-specific causation is not proven.
-- Diagnostic runtime inventory was exactly `21` GET Assignment requests, all HTTP
-  200; initial memory/history requests, console warning/error, runtime error/fatal/
-  5xx, and task-attributable DB writes were all `0`. Exact wire bytes and the old
-  timeout request/phase correlations remain Unknown.
-- Temporary instrumentation commit
-  `4779675e071d9c474f0cf9d1584f87685ac215bb` was removed normally by
-  `5993d9d58b60493c9b8064602009b57548ed3898`; final Application content equals
-  functional Source `5d7c5c675f2dd5818e5b7116848385624cd8969a`.
-  Diagnostic artifact `dpl_CPniCRugkTZimT9xGVRJrGgGFcj2` is unaliased,
-  blocked, and ineligible for Owner UAT/Promotion. Current Production is unchanged.
-- Scope requires Material Hard Stop for Unknown/shared attribution. No new history
-  Source/test, final release suite, final artifact, Owner UAT, Promotion, DB write,
-  Migration, Environment, Feature, or Allowlist action occurred.
-- Next action: Owner decides whether to authorize a separate instrumentation/
-  controlled-reproduction scope or amend the attribution gate. Do not implement,
-  deploy a final candidate, Promote, alias, mutate data, or start another task.
-  `PROJECT_STATE.md` is authoritative.
+- Owner-clarity-rejected artifact `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` remains
+  blocked. The bounded correction is Source-complete at
+  `d08418df99ba88ab7ba7be8e748209e74542552b`: neutral roster-delta wording,
+  meaningful lifecycle-only history, causal-evidence guard, deduplication/
+  grouping, compact metadata, and maximum five events.
+- Six suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake,
+  production build/static generation `93/93`, staged review, and diff check passed.
+  Functional/test changes were `2/1`; migration/config changes were `0/0`.
+- New staged Production-target artifact
+  `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`, exact Source `d08418df...`, region `icn1`,
+  state READY, aliases `[]`, is Performance-failed and blocked. After one discarded
+  tooling-capability warm-up reached readiness in `3.196s`, the next valid warm-up
+  remained at `กำลังเปิดเมนู...` without the Assignment heading for more than
+  `30s`. The contract fails on any timeout, so current `20` and History `10`
+  measured samples were not run.
+- Bounded evidence found middleware GET `/coach/assign-groups` HTTP 200 at
+  `2026-08-06T22:21:52.088+07:00`, no completed Assignment readiness, browser
+  console warning/error `0/0`, and runtime error/fatal/5xx `0/0/0`. Exact phase
+  and transferred bytes remain Unknown; no causal classification is asserted.
+- Browser methods were GET/read-only. SELECT-only audit found zero relevant
+  notifications/activity logs/Assignment group or membership creations in the
+  exact sampler window; shared Coach layout notification creation was `0` in the
+  wider inspected window. DB fixture/write, repair, Migration, Environment,
+  Feature, Allowlist, alias, and Promotion actions were `0`.
+- Next action: Owner decides whether to authorize a separate bounded timeout-
+  attribution/correction scope or amend the final Performance Gate. Do not run
+  more samples, issue Owner UAT, Promote, alias, mutate data, or start another
+  task. `PROJECT_STATE.md` is authoritative.
 
 ## Recently Completed
 
