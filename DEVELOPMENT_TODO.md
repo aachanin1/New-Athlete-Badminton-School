@@ -12535,3 +12535,109 @@ clarity allowlist without guessing or touching the page/shared layout/backend.
 Next Action: Owner decides whether to authorize a separate bounded timeout-
 attribution/correction scope or amend the final Performance Gate. Do not run more
 samples, issue Owner UAT, Promote, alias, mutate data, or start another task.
+
+### 2026-08-07 — Assignment History Evidence Clarity — READY FOR OWNER UAT
+
+The Owner approved a bounded clarity correction after the prior compact History
+artifact still presented two unsupported implications: booking-derived events
+showed an actor placeholder even though their evidence has no causal actor, and a
+lifecycle evidence gap looked like a confirmed historical action. The Owner kept
+the old timeout Root Cause as an accepted Unknown limitation, retained every
+performance ceiling, and prohibited Promotion before exact artifact/SHA PASS.
+
+#### Fact — Audit and Correction
+
+- `booking_added` is reconstructed from booking/session rows and deliberately has
+  `actorName: null`; no causal actor evidence exists. Admin booking remains
+  disabled. The correction therefore omits the actor segment rather than naming a
+  parent, adult learner, or Unknown actor.
+- The Unknown event is derived when current lifecycle state lacks an explicit
+  causal audit. Its row timestamp does not prove when the roster change occurred.
+  The Client therefore renders no confirmed action time and no actor for this
+  warning.
+- Commit `19471d9a3a728e42def5500a86cc91ce1da4a1e8` changed only
+  `src/lib/coach-assignment-history.ts`,
+  `src/components/coach/assign-groups-client.tsx`, and
+  `scripts/check-coach-assignment-lifecycle.mjs`: functional/test counts `2/1`,
+  `53` insertions and `20` deletions. It was normally pushed on
+  `spike/next-major-security-upgrade`.
+- Confirmed History event types, SELECT queries, route authorization, stable
+  ordering, semantic deduplication, maximum five events, on-demand single-flight,
+  and per-slot cache are unchanged. No initial query or Client Supabase access was
+  added.
+- A normal booking item shows date/time and learner without an actor placeholder.
+  An event with real actor evidence still shows `โดย [ชื่อ]`. The evidence-gap
+  card shows `ต้องให้ Admin ตรวจสอบ`,
+  `ผู้เรียน [ชื่อ] ไม่อยู่ในรายชื่อรอบนี้แล้ว`, and
+  `ระบบไม่พบหลักฐานเดิมที่ระบุว่าเกิดจากการย้ายวันหรือเก็บเข้ากระเป๋า`.
+  Authenticated inspection found existing examples for all three presentations;
+  no PII or UUID is recorded in this closeout.
+
+#### Fact — Deterministic and Staged Verification
+
+- Regression-first failed on the new warning assertion before Source correction.
+  Final source-only suites passed Coach Assignment Lifecycle `39/39`, Assignment
+  Resolution `33/33`, Admin Schedule Assignment `38/38`, Admin Schedules
+  Performance `24/24`, Lesson Wallet `19/19`, and Coach Teaching Hours `20/20`:
+  `173/173` total. Fixture/live-write modes did not run.
+- TypeScript, zero-warning ESLint, mojibake over `256` files, Next.js 16.2.6
+  Production build/static generation `93/93`, complete diff/staged-diff review,
+  and `git diff --check` passed. Migration/package/config/shared layout/proxy and
+  protected-flow diffs were zero.
+- `vercel --prod --skip-domain` created exact unaliased Production-target artifact
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`, URL
+  `https://new-athlete-badminton-school-1xg6xtdgi-aachanin1s-projects.vercel.app`,
+  Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`, target `production`, state
+  READY, runtime region `icn1`, aliases `[]`. Root, health, real CSS, and
+  unauthenticated route-protection smoke checks passed. It is staged only and was
+  not Promoted.
+- Authenticated current warm-up was `3.368s`; measured `20/20` samples passed with
+  nearest-rank min/P50/P95/max `2.077/2.417/2.519/2.689s`. Population remained
+  `941` learner-sessions / `303` slots with saved/assigned aggregate `262/303`.
+  Authoritative readiness, completeness/pagination/duplicate guards, and the
+  `5.000s` P95 ceiling passed with no timeout.
+- Authenticated History warm-up was `0.640s`; measured `10/10` samples passed with
+  min/P50/P95/max `0.524/0.619/0.643/0.643s`, below the `2.000s` ceiling. Rapid
+  double-click produced one GET, localized loading and `aria-busy` were visible,
+  and cached reopen produced no request. Initial assignment-history,
+  assignment-memory, and Client Supabase requests were `0/0/0`.
+- Historical URL normalization, current/future rapid navigation, Back/Forward,
+  desktop `1440×900`, and mobile `390×844` passed without stuck loading or
+  horizontal overflow. Console warning/error/hydration was `0/0/0`; bounded
+  runtime error/fatal/5xx was `0/0/0`; task-route methods were GET/read-only.
+
+#### Fact / Inference / Unknown — Safety and State at This Handoff
+
+- SELECT-only exact-window audit found activity logs, Assignment groups,
+  Assignment memberships, and notifications created `0/0/0/0`. DB fixture/write
+  was `0/0`; no Save, Reschedule, Wallet, Attendance, Check-in, Close Week, data
+  repair, Migration, Environment, Feature, Allowlist, alias, or Promotion action
+  ran.
+- Lifecycle migration Source SHA-256 remains
+  `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`, and
+  Supabase migration inventory contains applied version `20260804000000`.
+  Protected stat-dirty `src/lib/schedule-slot-utils.ts` remains worktree/index blob
+  `4521281d099efb189429a744909552d67871ff23` and was not edited, staged, reset,
+  checked out, stashed, or normalized.
+- Exact browser transferred bytes are Unknown because this Browser API does not
+  expose `PerformanceResourceTiming`; no DOM-length proxy is reported. Newly
+  instrumented internal query-call/page/batch timing is also Unknown because the
+  approved correction added no instrumentation. The old three timeout phase
+  remains Unknown as an Owner-accepted historical limitation; no new causal
+  inference is asserted.
+- Source Complete **Yes**; Tests Passed **Yes**; Performance Gate **Passed**;
+  Application committed/pushed **Yes/Yes**; staged artifact **READY**; READY FOR
+  OWNER UAT **Yes**; Owner/Production UAT **Pending/Not run**; Promoted/Production
+  Active **No/No for this task**. Current Production remains
+  `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / Source
+  `03d08a93e77189d56b733bda009d9526400fa9b3`. Migration Source/Applied is
+  **unchanged/Yes**; Environment/Feature/Allowlist is **unchanged**; Controlled
+  Write UAT **Not run/prohibited**; Production Data Changed/Data Repaired
+  **No/No**; Customer/Financial Impact **None/None**; Scope Expansion/Breach
+  **No/No**; Task Done **No**.
+
+Next Action: Owner performs read-only UAT on exact artifact
+`dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source
+`19471d9a3a728e42def5500a86cc91ce1da4a1e8` and replies with that exact PASS
+identity. Do not Promote, alias, rebuild, change Source/config, mutate data, or
+start another task before Owner PASS.

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,37 +9,31 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — DEVELOPING / MATERIAL HARD STOP;
-FINAL CLARITY ARTIFACT PERFORMANCE GATE FAILED.**
+**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — READY FOR OWNER UAT; EXACT ARTIFACT
+STAGED AND UNPROMOTED.**
 
-- Owner-clarity-rejected artifact `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` remains
-  blocked. The bounded correction is Source-complete at
-  `d08418df99ba88ab7ba7be8e748209e74542552b`: neutral roster-delta wording,
-  meaningful lifecycle-only history, causal-evidence guard, deduplication/
-  grouping, compact metadata, and maximum five events.
+- Bounded evidence-clarity correction is Source-complete at
+  `19471d9a3a728e42def5500a86cc91ce1da4a1e8`: booking events omit unsupported
+  actors, evidenced actors remain visible, and legacy evidence gaps render the
+  Owner-approved Admin-review warning without a confirmed time or inferred cause.
 - Six suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake,
-  production build/static generation `93/93`, staged review, and diff check passed.
-  Functional/test changes were `2/1`; migration/config changes were `0/0`.
-- New staged Production-target artifact
-  `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`, exact Source `d08418df...`, region `icn1`,
-  state READY, aliases `[]`, is Performance-failed and blocked. After one discarded
-  tooling-capability warm-up reached readiness in `3.196s`, the next valid warm-up
-  remained at `กำลังเปิดเมนู...` without the Assignment heading for more than
-  `30s`. The contract fails on any timeout, so current `20` and History `10`
-  measured samples were not run.
-- Bounded evidence found middleware GET `/coach/assign-groups` HTTP 200 at
-  `2026-08-06T22:21:52.088+07:00`, no completed Assignment readiness, browser
-  console warning/error `0/0`, and runtime error/fatal/5xx `0/0/0`. Exact phase
-  and transferred bytes remain Unknown; no causal classification is asserted.
-- Browser methods were GET/read-only. SELECT-only audit found zero relevant
-  notifications/activity logs/Assignment group or membership creations in the
-  exact sampler window; shared Coach layout notification creation was `0` in the
-  wider inspected window. DB fixture/write, repair, Migration, Environment,
-  Feature, Allowlist, alias, and Promotion actions were `0`.
-- Next action: Owner decides whether to authorize a separate bounded timeout-
-  attribution/correction scope or amend the final Performance Gate. Do not run
-  more samples, issue Owner UAT, Promote, alias, mutate data, or start another
-  task. `PROJECT_STATE.md` is authoritative.
+  production build/static generation `93/93`, complete staged review, and diff
+  check passed. Functional/test changes were `2/1`; migration/config changes were
+  `0/0`.
+- Exact unaliased staged Production-target artifact
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`, Source `19471d9...`, region `icn1`, state
+  READY, aliases `[]`, passed current `20/20` at P95 `2.519s` and History `10/10`
+  at P95 `0.643s`; no timeout occurred. Console/hydration/runtime error/fatal/5xx
+  were zero, and desktop/mobile/navigation/read-only gates passed.
+- Initial History/Memory/Client Supabase requests were `0/0/0`; rapid History
+  double-click produced one GET and cached reopen produced none. SELECT-only audit
+  found task-attributable activity/Assignment/notification creates `0`; DB
+  fixture/write, repair, Migration, Environment, Feature, Allowlist, alias,
+  Promotion, and Production changes were `0`.
+- Next action: Owner performs read-only UAT on the exact artifact/SHA and replies
+  `PASS dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP / 19471d9a3a728e42def5500a86cc91ce1da4a1e8`.
+  Do not Promote, alias, rebuild, mutate data, or start another task before that
+  exact PASS. `PROJECT_STATE.md` is authoritative.
 
 ## Recently Completed
 

@@ -1,93 +1,90 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
-Current source: Material Hard Stop safe handoff for the single Active Task
+Current source: READY FOR OWNER UAT handoff for the single Active Task
 **ASSIGNMENT GROUP LIFECYCLE INTEGRITY**. The Owner accepted the old timeout root
-cause as an Unknown limitation, superseded historical-month access, and approved
-current/future-only Assignment plus immediate roster delta and SELECT-only
-on-demand change history. That scoped behavior and the later Owner-requested
-clarity correction are Source-complete, tested, committed, pushed, and staged.
-The final uninstrumented clarity artifact then produced a new authenticated
-current-route readiness timeout during its counted performance gate. The timeout
-phase remains Unknown and cannot be corrected safely inside the approved two-file
-clarity allowlist. The artifact is blocked, not READY FOR OWNER UAT, and must not
-be Promoted. Current Production is unchanged. The first matrix is authoritative;
+cause as an Unknown limitation and approved the bounded Assignment History clarity
+correction. Booking-derived events now omit an unsupported actor, evidenced actors
+remain visible, and lifecycle evidence gaps render as an explicit Admin-review
+warning without an asserted action time or inferred cause. Source/tests are
+committed and pushed, the final uninstrumented exact-SHA staged Production-target
+artifact passed deterministic, performance, browser, runtime, and read-only data-
+safety gates, and Current Production is unchanged. Promotion remains prohibited
+until the Owner passes this exact artifact/SHA. The first matrix is authoritative;
 later task snapshots are Historical / Superseded.
 
-## Current Safe Handoff — Assignment History Clarity Correction
+## Current Handoff — Assignment History Evidence Clarity
 
-Status: **DEVELOPING — MATERIAL HARD STOP; FINAL ARTIFACT PERFORMANCE GATE
-FAILED; NEW TIMEOUT PHASE UNKNOWN**.
+Status: **READY FOR OWNER UAT — TECHNICAL GATES PASSED; PROMOTION PENDING EXACT
+OWNER PASS**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
-| Task Status | **DEVELOPING — Material Hard Stop** |
+| Task Status | **READY FOR OWNER UAT** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Containing 2026-08-06 safe-handoff documentation commit; exact Application Source remains `d08418df99ba88ab7ba7be8e748209e74542552b` |
+| Local HEAD | Containing 2026-08-07 READY handoff documentation commit; exact Application Source is `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
 | Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
-| Ahead/Behind | `0/0` in the published safe-handoff state |
-| Source Complete | **Yes for the scoped clarity correction** — neutral roster-delta wording, meaningful lifecycle-only history, causal-evidence guard, deduplication/grouping, compact presentation, and maximum five events are implemented |
-| Tests Passed | **Yes** — six deterministic suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake, Next.js production build/static generation `93/93`, staged diff review, and `git diff --check` passed |
-| Performance Gate | **Failed** — the authenticated final artifact reached authoritative current readiness once in `3.196s` during a discarded tooling-capability warm-up, but the next valid warm-up remained without the Assignment heading and at the route-level `กำลังเปิดเมนู...` state for more than `30s`. The contract says any 30-second timeout fails the gate; measured current `20` and History `10` samples were therefore not run, so compliant min/P50/P95/max and History P95 are unavailable** |
-| Completeness / Calls | Before the failed sampler, the authenticated page showed current Bangkok today-forward population `975` learner-sessions / `315` slots and saved `268/315`; previous month was disabled. The opened history showed exactly `5` compact meaningful events. This is one visible technical observation, not a stable 20-sample completeness result. Initial request counts and transferred bytes are Unknown because the browser capability did not expose network timing; no DOM proxy was used |
-| Committed | **Yes** — functional/test clarity commit `d08418df99ba88ab7ba7be8e748209e74542552b` plus the containing documentation safe-handoff commit |
-| Pushed | **Yes** — Application Source and containing safe handoff normally pushed on the current branch |
-| Current Source | Exact Application Source `d08418df99ba88ab7ba7be8e748209e74542552b`; Production remains Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Pushed Source | `d08418df99ba88ab7ba7be8e748209e74542552b` |
-| Deployed | **Yes, staged Production-target only; Performance-failed and blocked** |
-| Deployed Source | Staged-only `d08418df99ba88ab7ba7be8e748209e74542552b`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Deployment ID | `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`, URL `https://new-athlete-badminton-school-ro6ifitqk-aachanin1s-projects.vercel.app`, target `production`, state `READY`, runtime region `icn1`, aliases `[]`, exact Source `d08418df99ba88ab7ba7be8e748209e74542552b`; **blocked/ineligible for Owner UAT or Promotion** |
+| Ahead/Behind | `0/0` in the published READY handoff state |
+| Source Complete | **Yes** — booking events omit unsupported actors, evidenced actors remain visible, and Unknown lifecycle gaps render the Owner-approved Admin-review warning without confirmed time/cause semantics |
+| Tests Passed | **Yes** — six deterministic suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake over `256` files, Next.js 16.2.6 production build/static generation `93/93`, complete staged review, and `git diff --check` passed |
+| Performance Gate | **Passed** — authenticated current warm-up `3.368s` plus measured `20/20`; nearest-rank min/P50/P95/max `2.077/2.417/2.519/2.689s`, below the `5.000s` P95 ceiling. History warm-up `0.640s` plus measured `10/10`; min/P50/P95/max `0.524/0.619/0.643/0.643s`, below the `2.000s` ceiling. No timeout occurred |
+| Completeness / Calls | Current Bangkok today-forward population was stable across all 20 samples at `941` learner-sessions / `303` slots, saved/assigned aggregate `262/303`; roster completeness/pagination/duplicate checks passed. Initial assignment-history, assignment-memory, and Client Supabase Data API requests were `0/0/0`. Rapid History double-click produced one GET; warm-up plus 10 History samples produced `11` authenticated GET log records, all HTTP 200. Exact browser transferred bytes and newly instrumented internal query-call/page/batch timing are Unknown; no DOM proxy is used as wire bytes |
+| Committed | **Yes** — functional/test commit `19471d9a3a728e42def5500a86cc91ce1da4a1e8` plus the containing documentation READY handoff commit |
+| Pushed | **Yes** — Application Source and containing READY handoff normally pushed on the current branch |
+| Current Source | Exact Application Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Production remains Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Pushed Source | `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Deployed | **Yes, staged Production-target only; READY for exact-artifact Owner UAT** |
+| Deployed Source | Staged-only `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Deployment ID | `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`, URL `https://new-athlete-badminton-school-1xg6xtdgi-aachanin1s-projects.vercel.app`, target `production`, state `READY`, runtime region `icn1`, aliases `[]`, exact Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; staged/unpromoted pending exact Owner PASS |
 | Rejected / Blocked Artifacts | Owner-clarity-rejected `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` / `31bceb1ee7c5b27dcd4d6ccb1e2bd886dbf2633c`; Performance-failed `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`; all earlier blocked/rejected Assignment artifacts remain evidence only and must never be Promoted |
 | Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
 | Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
-| Migration Applied | Retained from the prior approved gate; no migration creation, edit, apply, or reapply ran |
+| Migration Applied | **Yes** — Supabase migration inventory still contains version `20260804000000`; no migration creation, edit, apply, or reapply ran this round |
 | Environment Changed | No |
 | Feature Enabled | No feature-control change |
 | Allowlisted | Unchanged; no allowlist action |
 | Production Active | **No for this task; current Production artifact/source unchanged** |
-| Owner UAT | Prior artifact `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` failed Owner UAT for clarity. Owner UAT was not started on the new blocked artifact |
+| Owner UAT | **Pending** on exact staged artifact `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; prior artifact `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` remains rejected |
 | Production UAT | Not run; task is not Production-active |
 | Controlled Write UAT | Not run / prohibited |
-| DB Fixture / DB Write | `0 / 0` task-attributable. SELECT-only audit found zero notifications, activity logs, Assignment groups, or memberships created in the exact `22:21–22:24` ICT sampler window; shared Coach layout notification creation was `0` in the wider `22:17–22:24` window |
+| DB Fixture / DB Write | `0 / 0` task-attributable. SELECT-only exact test-window audit found activity logs, Assignment groups, memberships, and notifications created `0/0/0/0` |
 | Data Repaired | No |
 | Production Data Changed | No task-attributable change found |
 | Customer Impact | None direct; corrected Source is staged only |
 | Financial Impact | None |
-| Functional / Test / Documentation / Migration / Configuration Changes | `2 / 1 / 3 / 0 / 0` for this bounded clarity correction and safe handoff |
+| Functional / Test / Documentation / Migration / Configuration Changes | `2 / 1 / 3 / 0 / 0` for this bounded evidence-clarity correction and READY handoff |
 | Scope Expansion | No |
 | Scope Breach | No |
-| Documentation Drift | **No after this Material Hard Stop safe-handoff commit is published** |
-| Blocker | **A new final-artifact current-route readiness timeout occurred. Vercel recorded middleware GET `/coach/assign-groups` HTTP 200 at `2026-08-06T22:21:52.088+07:00`, but the Assignment heading never arrived inside 30 seconds; bounded runtime error/fatal/5xx and browser console warning/error were all zero. Browser/sampler, Assignment Server, shared layout, and backend dependency cannot be distinguished without additional evidence. Root cause is Unknown and no safe correction exists in the approved history-library/client-only allowlist** |
-| Remaining Work | Owner decides whether to authorize a separate bounded timeout-attribution/correction scope or amend the final Performance Gate. Do not run more samples, issue Owner UAT, Promote, alias, mutate data, or start another task automatically |
+| Documentation Drift | **No after this READY handoff commit is published** |
+| Blocker | **Owner UAT pending only.** The old three timeout root cause remains Unknown as an Owner-accepted known limitation; the final exact artifact had no timeout and passed both performance ceilings |
+| Remaining Work | Owner performs read-only UAT on the exact staged artifact/SHA and replies with exact PASS identity. Do not Promote, alias, rebuild, or mutate data before that PASS |
 | Task Done | **No** |
-| Next Gate / Next Action | **Owner decision on the new exact-artifact timeout. Both the clarity-rejected artifact and the new Performance-failed artifact remain blocked and unpromoted** |
+| Next Gate / Next Action | **Owner UAT on `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Promotion remains prohibited before exact PASS** |
 | Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
 
-The clarity correction keeps booking, Reschedule-in/out, Wallet Store/Redeem,
-Admin learner move, coach assignment/change, Assignment save, and return-
-entitlement events only. It removes attendance/review/evidence-request/
-closed-no-action/retrospective workflow noise, ignores meaningless reasons,
-deduplicates activity plus retirement/session evidence, groups one Admin business
-action across session rows, and displays at most five one-line summaries with
-short metadata. The visible current delta copy uses “ไม่อยู่ในรายชื่อรอบนี้แล้ว”.
-The observed history contained no request-review/evidence/closed-no-action item
-and no repeated business event.
+The bounded correction does not change History queries, authorization, event
+types, deduplication, ordering, or maximum-five semantics. A normal booking event
+renders learner/date metadata without an actor placeholder. A verified Admin or
+Head Coach actor remains visible as `โดย [ชื่อ]`. An evidence gap instead renders
+`ต้องให้ Admin ตรวจสอบ`, `ผู้เรียน [ชื่อ] ไม่อยู่ในรายชื่อรอบนี้แล้ว`, and
+`ระบบไม่พบหลักฐานเดิมที่ระบุว่าเกิดจากการย้ายวันหรือเก็บเข้ากระเป๋า`, without a
+confirmed action time or inferred cause. Authenticated technical inspection found
+real existing booking, evidenced-actor, and evidence-gap cases; no UUID or PII is
+recorded here.
 
-The failed valid warm-up began at approximately `2026-08-06T22:21:52+07:00`.
-The browser remained on `/coach/assign-groups`; the Assignment heading was absent
-and the only route content exposed by the readiness snapshot was
-`กำลังเปิดเมนู...` after the 30-second bound. The preceding discarded warm-up
-reached authoritative readiness in `3.196s`, but its optional network-metric read
-failed because `PerformanceResourceTiming` was unavailable to this Browser API;
-it is not reported as a compliant sample. Exact document/RSC transferred bytes
-remain Unknown and no DOM proxy is reported as wire bytes. Bounded Vercel scans
-returned runtime error/fatal/5xx `0/0/0`; browser console warning/error was `0/0`.
-No History or current 20-sample continuation was attempted after the mandatory
-failure.
+Browser gates passed current/future navigation, historical URL normalization,
+rapid double-click guard, Back/Forward, localized History loading/single-flight/
+cache, desktop `1440×900`, and mobile `390×844` without horizontal overflow.
+Console warning/error/hydration and bounded runtime error/fatal/5xx were all
+`0/0/0`; task-route methods were GET/read-only. Exact transferred bytes remain
+Unknown because the Browser API does not expose `PerformanceResourceTiming`; no
+DOM-length proxy is reported as wire bytes. The old three timeout phase remains
+Unknown but is an Owner-accepted historical limitation, not a new attribution
+claim or a failure of the final exact artifact.
 
 `src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
 identical to index blob `4521281d099efb189429a744909552d67871ff23`; it was not
