@@ -235,6 +235,34 @@ export interface Database {
         Update: Partial<Omit<Notification, 'id' | 'created_at'>>
         Relationships: []
       }
+      admin_notification_follow_up_campaigns: {
+        Row: AdminNotificationFollowUpCampaign
+        Insert: Omit<AdminNotificationFollowUpCampaign, 'id' | 'status' | 'started_at' | 'completed_at'>
+          & Partial<Pick<AdminNotificationFollowUpCampaign, 'status' | 'completed_at'>>
+        Update: Partial<Pick<AdminNotificationFollowUpCampaign, 'status' | 'completed_at'>>
+        Relationships: []
+      }
+      admin_notification_follow_up_batches: {
+        Row: AdminNotificationFollowUpBatch
+        Insert: Omit<AdminNotificationFollowUpBatch, 'id' | 'status' | 'created_at' | 'completed_at'>
+          & Partial<Pick<AdminNotificationFollowUpBatch, 'status' | 'completed_at'>>
+        Update: Partial<Pick<AdminNotificationFollowUpBatch, 'status' | 'completed_at'>>
+        Relationships: []
+      }
+      admin_notification_follow_up_items: {
+        Row: AdminNotificationFollowUpItem
+        Insert: Omit<AdminNotificationFollowUpItem, 'id' | 'status' | 'notification_id' | 'sent_by' | 'sent_at' | 'created_at'>
+          & Partial<Pick<AdminNotificationFollowUpItem, 'status' | 'notification_id' | 'sent_by' | 'sent_at'>>
+        Update: Partial<Pick<AdminNotificationFollowUpItem, 'status' | 'notification_id' | 'sent_by' | 'sent_at'>>
+        Relationships: []
+      }
+      admin_notification_follow_up_requests: {
+        Row: AdminNotificationFollowUpRequest
+        Insert: Omit<AdminNotificationFollowUpRequest, 'status' | 'result' | 'created_at' | 'completed_at'>
+          & Partial<Pick<AdminNotificationFollowUpRequest, 'status' | 'result' | 'completed_at'>>
+        Update: Partial<Pick<AdminNotificationFollowUpRequest, 'status' | 'result' | 'completed_at'>>
+        Relationships: []
+      }
       complaints: {
         Row: Complaint
         Insert: Omit<Complaint, 'id' | 'status' | 'resolved_by' | 'resolved_at' | 'admin_note' | 'last_updated_by' | 'updated_at' | 'created_at'> & Partial<Pick<Complaint, 'status' | 'resolved_by' | 'resolved_at' | 'admin_note' | 'last_updated_by' | 'updated_at'>>
@@ -271,6 +299,34 @@ export interface Database {
       }
     }
     Functions: {
+      admin_notification_follow_up_is_eligible_v1: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      admin_notification_follow_up_candidates_v1: {
+        Args: { p_campaign_id?: string | null }
+        Returns: Array<{
+          user_id: string
+          latest_lesson_key: number
+          latest_booking_at: string
+        }>
+      }
+      admin_notification_follow_up_start_batch_v1: {
+        Args: { p_actor_id: string }
+        Returns: Json
+      }
+      admin_notification_follow_up_workspace_v1: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      admin_notification_follow_up_send_v1: {
+        Args: {
+          p_actor_id: string
+          p_request_key: string
+          p_user_ids: string[]
+        }
+        Returns: Json
+      }
       coach_assignment_slot_snapshot_v2: {
         Args: {
           p_schedule_slot_id: string
@@ -1018,6 +1074,47 @@ export interface Complaint {
   last_updated_by: string | null
   updated_at: string
   created_at: string
+}
+
+export interface AdminNotificationFollowUpCampaign {
+  id: string
+  status: 'active' | 'completed'
+  started_by: string
+  started_at: string
+  completed_at: string | null
+}
+
+export interface AdminNotificationFollowUpBatch {
+  id: string
+  campaign_id: string
+  sequence_number: number
+  status: 'active' | 'completed'
+  created_by: string
+  created_at: string
+  completed_at: string | null
+}
+
+export interface AdminNotificationFollowUpItem {
+  id: string
+  batch_id: string
+  user_id: string
+  position: number
+  status: 'pending' | 'sent' | 'excluded'
+  notification_id: string | null
+  sent_by: string | null
+  sent_at: string | null
+  created_at: string
+}
+
+export interface AdminNotificationFollowUpRequest {
+  request_key: string
+  batch_id: string
+  actor_id: string
+  recipient_ids: string[]
+  status: 'processing' | 'completed'
+  result: Json | null
+  created_at: string
+  completed_at: string | null
 }
 
 export interface ActivityLog {

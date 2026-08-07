@@ -5,7 +5,6 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
-  AlertTriangle,
   Bell,
   BellRing,
   CheckCheck,
@@ -18,7 +17,6 @@ import {
   Send,
   Sparkles,
   User,
-  Users,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,7 +28,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { NotificationRecommendationsWorkspace } from '@/components/admin/notification-recommendations-workspace'
 import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
+import type { NearCourseRecommendation, RecommendationWorkspaceData } from '@/lib/admin-notification-recommendations'
 import type { NotificationType, UserRole } from '@/types/database'
 
 interface NotificationData {
@@ -55,18 +55,6 @@ interface UserOption {
   role: UserRole
 }
 
-interface AlertInsight {
-  id: string
-  title: string
-  description: string
-  level: 'red' | 'yellow' | 'green'
-  userId?: string
-  notificationTitle?: string
-  notificationMessage?: string
-  notificationType?: string
-  linkUrl?: string
-}
-
 interface AdminActionAlert {
   id: string
   title: string
@@ -82,9 +70,7 @@ interface NotificationsAdminClientProps {
   notifications: NotificationData[]
   users: UserOption[]
   actionAlerts: AdminActionAlert[]
-  nonRenewalAlerts: AlertInsight[]
-  lowEnrollmentAlerts: AlertInsight[]
-  customerFollowUpAlerts: AlertInsight[]
+  recommendationWorkspace: RecommendationWorkspaceData
 }
 
 const TYPE_CONFIG: Record<string, { label: string; className: string; icon: LucideIcon }> = {
@@ -101,12 +87,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
   head_coach: 'หัวหน้าโค้ช',
   admin: 'Admin',
   super_admin: 'Super Admin',
-}
-
-const ALERT_LEVEL_CONFIG: Record<AlertInsight['level'], string> = {
-  red: 'border-rose-200 bg-rose-50 text-rose-800',
-  yellow: 'border-amber-200 bg-amber-50 text-amber-800',
-  green: 'border-emerald-200 bg-emerald-50 text-emerald-800',
 }
 
 const ACTION_TONE_CONFIG: Record<AdminActionAlert['tone'], string> = {
@@ -149,9 +129,7 @@ export function NotificationsAdminClient({
   notifications,
   users,
   actionAlerts,
-  nonRenewalAlerts,
-  lowEnrollmentAlerts,
-  customerFollowUpAlerts,
+  recommendationWorkspace,
 }: NotificationsAdminClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
@@ -217,14 +195,14 @@ export function NotificationsAdminClient({
     setDialogOpen(true)
   }
 
-  const openSuggestedNotification = (alert: AlertInsight) => {
+  const openNearCourseNotification = (recommendation: NearCourseRecommendation) => {
     setError(null)
-    setTargetMode(alert.userId ? 'specific' : 'students')
-    setFormUserId(alert.userId || '')
-    setFormTitle(alert.notificationTitle || alert.title)
-    setFormMessage(alert.notificationMessage || alert.description)
-    setFormType((alert.notificationType || 'reminder') as NotificationType)
-    setFormLinkUrl(alert.linkUrl || '')
+    setTargetMode('specific')
+    setFormUserId(recommendation.recipientUserId)
+    setFormTitle(recommendation.notificationTitle)
+    setFormMessage(recommendation.notificationMessage)
+    setFormType('reminder')
+    setFormLinkUrl(recommendation.linkUrl)
     setDialogOpen(true)
   }
 
@@ -483,28 +461,10 @@ export function NotificationsAdminClient({
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <InsightPanel
-              title="ผู้เรียนใกล้หมดคอร์ส"
-              description="ใช้คอร์สไปมากแล้ว แต่ยังไม่จองเดือนถัดไป"
-              emptyText="ยังไม่มีรายการที่ต้องติดตาม"
-              alerts={nonRenewalAlerts}
-              onSend={openSuggestedNotification}
-            />
-            <InsightPanel
-              title="รอบเรียนคนน้อย"
-              description="รอบที่มีผู้เรียน 1-2 คน ควรพิจารณาจัดกลุ่ม"
-              emptyText="ยังไม่มีรอบเรียนที่ต้องจับตา"
-              alerts={lowEnrollmentAlerts}
-            />
-            <InsightPanel
-              title="ติดตามลูกค้าเก่า"
-              description="ผู้เรียนที่เคยเรียน แต่ยังไม่กลับมาจองรอบล่าสุด"
-              emptyText="ยังไม่มีลูกค้าที่ต้องติดตามเพิ่ม"
-              alerts={customerFollowUpAlerts}
-              onSend={openSuggestedNotification}
-            />
-          </div>
+          <NotificationRecommendationsWorkspace
+            initialData={recommendationWorkspace}
+            onNearCourseSend={openNearCourseNotification}
+          />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-3">
@@ -671,60 +631,5 @@ export function NotificationsAdminClient({
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-function InsightPanel({
-  title,
-  description,
-  emptyText,
-  alerts,
-  onSend,
-}: {
-  title: string
-  description: string
-  emptyText: string
-  alerts: AlertInsight[]
-  onSend?: (alert: AlertInsight) => void
-}) {
-  return (
-    <Card>
-      <CardContent className="space-y-3 p-4">
-        <div>
-          <p className="font-semibold text-[#153c85]">{title}</p>
-          <p className="text-xs text-slate-500">{description}</p>
-        </div>
-        {alerts.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
-            {emptyText}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {alerts.map((alert) => (
-              <div key={alert.id} className={`rounded-lg border px-3 py-2 text-sm ${ALERT_LEVEL_CONFIG[alert.level]}`}>
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{alert.title}</p>
-                    <p className="mt-0.5 text-xs opacity-85">{alert.description}</p>
-                    {onSend && alert.userId && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-2 h-8 gap-1 text-xs"
-                        onClick={() => onSend(alert)}
-                      >
-                        <Users className="h-3.5 w-3.5" />
-                        ส่งแจ้งเตือน
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
   )
 }

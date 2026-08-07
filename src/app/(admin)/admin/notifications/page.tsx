@@ -2,9 +2,18 @@ import { NotificationsAdminClient } from '@/components/admin/notifications-admin
 import { requireAdminPageAccess } from '@/lib/auth/admin'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
+import {
+  buildLowEnrollmentRecommendations,
+  buildNearCourseRecommendations,
+  createEmptyFollowUpWorkspace,
+  normalizeFollowUpWorkspaceSnapshot,
+  type RecommendationAttendanceInput,
+  type RecommendationBookingInput,
+  type RecommendationCourseName,
+  type RecommendationSessionInput,
+  type RecommendationWorkspaceData,
+} from '@/lib/admin-notification-recommendations'
 import type { UserRole } from '@/types/database'
-
-type AlertLevel = 'red' | 'yellow' | 'green'
 
 interface NotificationRow {
   id: string
@@ -25,36 +34,52 @@ interface UserRow {
   role: UserRole
 }
 
-interface BookingRow {
+interface RecommendationBookingRow {
   id: string
   user_id: string
+  learner_type: 'self' | 'child'
+  child_id: string | null
+  branch_id: string
+  course_type_id: string
   total_sessions: number
+  entitlement_sessions: number | null
   month: number
   year: number
   status: string
+  expires_at: string | null
+  expired_at: string | null
+  created_at: string
   profiles?: { full_name: string | null } | null
   course_types?: { name: string | null } | null
   branches?: { name: string | null } | null
 }
 
-interface SessionRow {
+interface RecommendationSessionRow {
   id: string
   booking_id: string
+  schedule_slot_id: string | null
   date: string
   start_time: string
   end_time: string
-  status: string
   branch_id: string
-  schedule_slot_id: string | null
+  child_id: string | null
+  status: string
+  rescheduled_from_id: string | null
+  is_makeup: boolean
+  cancelled_at: string | null
   branches?: { name: string | null } | null
-  bookings?: {
-    id: string
-    status: string
-    course_type_id: string | null
-    course_types?: { name: string | null } | null
-    month: number
-    year: number
-  } | null
+}
+
+interface RecommendationAttendanceRow {
+  id: string
+  booking_session_id: string
+  student_id: string
+  status: string
+}
+
+interface RecommendationChildRow {
+  id: string
+  full_name: string | null
 }
 
 interface PaymentRow {
@@ -98,18 +123,6 @@ interface CheckinRow {
   schedule_slot_id: string
 }
 
-interface AlertInsight {
-  id: string
-  title: string
-  description: string
-  level: AlertLevel
-  userId?: string
-  notificationTitle?: string
-  notificationMessage?: string
-  notificationType?: string
-  linkUrl?: string
-}
-
 interface AdminActionAlert {
   id: string
   title: string
@@ -119,10 +132,9 @@ interface AdminActionAlert {
   actionLabel: string
 }
 
-const NOTIFICATION_SESSION_PAGE_SIZE = 1000
-const LOW_ENROLLMENT_REAL_STATUSES = new Set(['scheduled', 'completed', 'absent'])
+const RECOMMENDATION_PAGE_SIZE = 500
 
-type AdminPageSupabase = Awaited<ReturnType<typeof requireAdminPageAccess>>['supabase']
+type AdminServiceClient = ReturnType<typeof getServiceRoleClient>
 
 function getBangkokDateString(value: Date) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -155,57 +167,202 @@ function getMonthOffsetParts(year: number, month: number, offset: number) {
   }
 }
 
-function getCourseLabel(courseName: string | null | undefined) {
-  const labels: Record<string, string> = {
-    kids_group: 'เด็กกลุ่ม',
-    adult_group: 'ผู้ใหญ่กลุ่ม',
-    private: 'ส่วนตัว',
+async function fetchRecommendationBookings(service: AdminServiceClient) {
+  const rows: RecommendationBookingRow[] = []
+  let cursor: string | null = null
+
+  for (;;) {
+    let query = service
+      .from('bookings')
+      .select(`
+        id, user_id, learner_type, child_id, branch_id, course_type_id,
+        total_sessions, entitlement_sessions, month, year, status,
+        expires_at, expired_at, created_at,
+        profiles!bookings_user_id_fkey(full_name), course_types(name), branches(name)
+      `)
+      .order('id', { ascending: true })
+      .limit(RECOMMENDATION_PAGE_SIZE)
+    if (cursor) query = query.gt('id', cursor)
+    const { data, error } = await query as unknown as {
+      data: RecommendationBookingRow[] | null
+      error: { message: string } | null
+    }
+    if (error) throw new Error(`Admin recommendation bookings query failed: ${error.message}`)
+    const page = data || []
+    rows.push(...page)
+    if (page.length < RECOMMENDATION_PAGE_SIZE) break
+    cursor = page.at(-1)?.id || null
   }
-  return courseName ? labels[courseName] || courseName : '-'
+
+  return rows
 }
 
-function getLowEnrollmentGroupKey(session: SessionRow) {
-  if (session.schedule_slot_id) return `slot:${session.schedule_slot_id}`
+async function fetchRecommendationSessions(service: AdminServiceClient) {
+  const rows: RecommendationSessionRow[] = []
+  let cursor: string | null = null
 
-  return [
-    'fallback',
-    session.date,
-    session.start_time,
-    session.end_time,
-    session.branch_id,
-    session.bookings?.course_type_id || session.bookings?.course_types?.name || 'unknown-course',
-  ].join(':')
-}
-
-async function fetchNotificationSessions(supabase: AdminPageSupabase, today: string) {
-  const sessions: SessionRow[] = []
-
-  for (let start = 0; ; start += NOTIFICATION_SESSION_PAGE_SIZE) {
-    const end = start + NOTIFICATION_SESSION_PAGE_SIZE - 1
-    const { data, error } = await (supabase
+  for (;;) {
+    let query = service
       .from('booking_sessions')
       .select(`
-        id, booking_id, date, start_time, end_time, status, branch_id, schedule_slot_id,
-        branches(name),
-        bookings!inner(id, status, course_type_id, course_types(name), month, year)
+        id, booking_id, schedule_slot_id, date, start_time, end_time,
+        branch_id, child_id, status, rescheduled_from_id, is_makeup, cancelled_at,
+        branches(name)
       `)
-      .gte('date', today)
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true })
       .order('id', { ascending: true })
-      .range(start, end) as unknown as Promise<{ data: SessionRow[] | null; error: { message: string } | null }>)
-
-    if (error) {
-      throw new Error(`Admin notifications sessions query failed: ${error.message}`)
+      .limit(RECOMMENDATION_PAGE_SIZE)
+    if (cursor) query = query.gt('id', cursor)
+    const { data, error } = await query as unknown as {
+      data: RecommendationSessionRow[] | null
+      error: { message: string } | null
     }
-
-    const rows = data || []
-    sessions.push(...rows)
-
-    if (rows.length < NOTIFICATION_SESSION_PAGE_SIZE) break
+    if (error) throw new Error(`Admin recommendation sessions query failed: ${error.message}`)
+    const page = data || []
+    rows.push(...page)
+    if (page.length < RECOMMENDATION_PAGE_SIZE) break
+    cursor = page.at(-1)?.id || null
   }
 
-  return sessions
+  return rows
+}
+
+async function fetchRecommendationAttendance(service: AdminServiceClient) {
+  const rows: RecommendationAttendanceRow[] = []
+  let cursor: string | null = null
+
+  for (;;) {
+    let query = service
+      .from('attendance')
+      .select('id, booking_session_id, student_id, status')
+      .order('id', { ascending: true })
+      .limit(RECOMMENDATION_PAGE_SIZE)
+    if (cursor) query = query.gt('id', cursor)
+    const { data, error } = await query as unknown as {
+      data: RecommendationAttendanceRow[] | null
+      error: { message: string } | null
+    }
+    if (error) throw new Error(`Admin recommendation attendance query failed: ${error.message}`)
+    const page = data || []
+    rows.push(...page)
+    if (page.length < RECOMMENDATION_PAGE_SIZE) break
+    cursor = page.at(-1)?.id || null
+  }
+
+  return rows
+}
+
+async function fetchRecommendationChildren(service: AdminServiceClient) {
+  const rows: RecommendationChildRow[] = []
+  let cursor: string | null = null
+
+  for (;;) {
+    let query = service
+      .from('children')
+      .select('id, full_name')
+      .order('id', { ascending: true })
+      .limit(RECOMMENDATION_PAGE_SIZE)
+    if (cursor) query = query.gt('id', cursor)
+    const { data, error } = await query as unknown as {
+      data: RecommendationChildRow[] | null
+      error: { message: string } | null
+    }
+    if (error) throw new Error(`Admin recommendation children query failed: ${error.message}`)
+    const page = data || []
+    rows.push(...page)
+    if (page.length < RECOMMENDATION_PAGE_SIZE) break
+    cursor = page.at(-1)?.id || null
+  }
+
+  return rows
+}
+
+async function fetchRecommendationWorkspace({
+  service,
+  today,
+  currentYear,
+  currentMonth,
+  nextYear,
+  nextMonth,
+  nowIso,
+}: {
+  service: AdminServiceClient
+  today: string
+  currentYear: number
+  currentMonth: number
+  nextYear: number
+  nextMonth: number
+  nowIso: string
+}): Promise<RecommendationWorkspaceData> {
+  const [bookingRows, sessionRows, attendanceRows, children, followUpResult] = await Promise.all([
+    fetchRecommendationBookings(service),
+    fetchRecommendationSessions(service),
+    fetchRecommendationAttendance(service),
+    fetchRecommendationChildren(service),
+    service.rpc('admin_notification_follow_up_workspace_v1'),
+  ])
+  const childNameById = new Map(children.map((child) => [child.id, child.full_name || 'ผู้เรียน']))
+  const bookings = bookingRows.flatMap((row): RecommendationBookingInput[] => {
+    if (!['kids_group', 'adult_group', 'private'].includes(row.course_types?.name || '')) return []
+    const courseName = row.course_types?.name as RecommendationCourseName
+    const ownerName = row.profiles?.full_name || 'ไม่ทราบชื่อ'
+    return [{
+      id: row.id,
+      userId: row.user_id,
+      ownerName,
+      learnerType: row.learner_type,
+      childId: row.child_id,
+      learnerName: row.child_id ? childNameById.get(row.child_id) || 'ผู้เรียน' : ownerName,
+      branchId: row.branch_id,
+      branchName: row.branches?.name || '-',
+      courseTypeId: row.course_type_id,
+      courseName,
+      month: row.month,
+      year: row.year,
+      totalSessions: row.total_sessions,
+      entitlementSessions: row.entitlement_sessions,
+      status: row.status,
+      expiresAt: row.expires_at,
+      expiredAt: row.expired_at,
+      createdAt: row.created_at,
+    }]
+  })
+  const sessions: RecommendationSessionInput[] = sessionRows.map((row) => ({
+    id: row.id,
+    bookingId: row.booking_id,
+    scheduleSlotId: row.schedule_slot_id,
+    date: row.date,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    branchId: row.branch_id,
+    branchName: row.branches?.name || '-',
+    childId: row.child_id,
+    status: row.status,
+    rescheduledFromId: row.rescheduled_from_id,
+    isMakeup: row.is_makeup,
+    cancelledAt: row.cancelled_at,
+  }))
+  const attendance: RecommendationAttendanceInput[] = attendanceRows.map((row) => ({
+    bookingSessionId: row.booking_session_id,
+    studentId: row.student_id,
+    status: row.status,
+  }))
+
+  return {
+    lowEnrollment: buildLowEnrollmentRecommendations({ bookings, sessions, today }),
+    nearCourse: buildNearCourseRecommendations({
+      bookings,
+      sessions,
+      attendance,
+      currentYear,
+      currentMonth,
+      nextYear,
+      nextMonth,
+      nowIso,
+    }),
+    followUp: followUpResult.error
+      ? createEmptyFollowUpWorkspace({ state: 'unavailable', error: followUpResult.error.message })
+      : normalizeFollowUpWorkspaceSnapshot(followUpResult.data),
+  }
 }
 
 export default async function AdminNotificationsPage() {
@@ -213,18 +370,25 @@ export default async function AdminNotificationsPage() {
   const canViewFinancialAmounts = role === 'super_admin'
   const service = getServiceRoleClient()
   const now = new Date()
+  const nowIso = now.toISOString()
   const today = getBangkokDateString(now)
   const tomorrow = addDaysToDateString(today, 1)
   const { month: currentMonth, year: currentYear } = getMonthPartsFromDateString(today)
   const { month: nextMonth, year: nextYear } = getMonthOffsetParts(currentYear, currentMonth, 1)
-  const { month: prevMonth, year: prevYear } = getMonthOffsetParts(currentYear, currentMonth, -1)
-  const sessionsPromise = fetchNotificationSessions(supabase, today)
+  const recommendationWorkspacePromise = fetchRecommendationWorkspace({
+    service,
+    today,
+    currentYear,
+    currentMonth,
+    nextYear,
+    nextMonth,
+    nowIso,
+  })
 
   const [
     { data: notifications },
     { data: users },
-    { data: bookings },
-    sessions,
+    recommendationWorkspace,
     { data: pendingPayments },
     { data: complaints },
     { data: todayAssignments },
@@ -239,11 +403,7 @@ export default async function AdminNotificationsPage() {
       .from('profiles')
       .select('id, full_name, email, role')
       .order('full_name') as unknown as Promise<{ data: UserRow[] | null }>,
-    supabase
-      .from('bookings')
-      .select('id, user_id, total_sessions, month, year, status, profiles!bookings_user_id_fkey(full_name), course_types(name), branches(name)')
-      .limit(1200) as unknown as Promise<{ data: BookingRow[] | null }>,
-    sessionsPromise,
+    recommendationWorkspacePromise,
     supabase
       .from('payments')
       .select(`id, ${canViewFinancialAmounts ? 'amount,' : ''} status, created_at, profiles!payments_user_id_fkey(full_name)`)
@@ -308,140 +468,6 @@ export default async function AdminNotificationsPage() {
   const adminInbox = notificationList.filter((notification) => notification.is_admin_inbox)
   const unreadAdminInbox = adminInbox.filter((notification) => !notification.is_read)
 
-  const currentMonthBookings = (bookings || []).filter((booking) => (
-    booking.month === currentMonth
-    && booking.year === currentYear
-    && ['paid', 'verified'].includes(booking.status)
-  ))
-  const nextMonthUserIds = new Set(
-    (bookings || [])
-      .filter((booking) => (
-        booking.month === nextMonth
-        && booking.year === nextYear
-        && ['pending_payment', 'paid', 'verified'].includes(booking.status)
-      ))
-      .map((booking) => booking.user_id)
-  )
-
-  const currentBookingIds = new Set(currentMonthBookings.map((booking) => booking.id))
-  const usedSessionCountByBookingId: Record<string, number> = {}
-  ;(sessions || []).forEach((session) => {
-    if (!currentBookingIds.has(session.booking_id)) return
-    const isUsed = session.date <= today || ['completed', 'rescheduled', 'absent'].includes(session.status)
-    if (isUsed) {
-      usedSessionCountByBookingId[session.booking_id] = (usedSessionCountByBookingId[session.booking_id] || 0) + 1
-    }
-  })
-
-  const nonRenewalAlerts = currentMonthBookings
-    .filter((booking) => !nextMonthUserIds.has(booking.user_id))
-    .map((booking): AlertInsight | null => {
-      const progress = booking.total_sessions > 0
-        ? Math.min(100, Math.round(((usedSessionCountByBookingId[booking.id] || 0) / booking.total_sessions) * 100))
-        : 0
-
-      if (progress < 70) return null
-
-      const level = progress >= 85 ? 'red' : progress >= 80 ? 'yellow' : 'green'
-      return {
-        id: booking.id,
-        title: `${booking.profiles?.full_name || 'ผู้เรียน'} ใช้คอร์สไป ${progress}%`,
-        description: `ยังไม่พบการจองเดือนถัดไป · ${getCourseLabel(booking.course_types?.name)} · ${booking.branches?.name || '-'}`,
-        level,
-        userId: booking.user_id,
-        notificationTitle: 'ถึงเวลาวางแผนคอร์สเดือนถัดไปแล้ว',
-        notificationMessage: `คุณใช้คอร์สเดือนนี้ไปแล้ว ${progress}% หากต้องการเรียนต่อสามารถเข้ามาจองเดือนถัดไปได้เลย`,
-        notificationType: 'reminder',
-        linkUrl: '/dashboard/booking',
-      }
-    })
-    .filter((alert): alert is AlertInsight => Boolean(alert))
-    .sort((a, b) => a.title.localeCompare(b.title, 'th-TH') || a.id.localeCompare(b.id))
-
-  const groupedSessionMap = new Map<string, { count: number; branchName: string; courseName: string; date: string; startTime: string }>()
-  ;sessions
-    .filter((session) => (
-      session.bookings?.status === 'verified'
-      && LOW_ENROLLMENT_REAL_STATUSES.has(session.status)
-    ))
-    .forEach((session) => {
-      const key = getLowEnrollmentGroupKey(session)
-      const existing = groupedSessionMap.get(key)
-      if (existing) {
-        existing.count += 1
-      } else {
-        groupedSessionMap.set(key, {
-          count: 1,
-          branchName: session.branches?.name || '-',
-          courseName: getCourseLabel(session.bookings?.course_types?.name),
-          date: session.date,
-          startTime: session.start_time,
-        })
-      }
-    })
-
-  const lowEnrollmentAlerts: AlertInsight[] = Array.from(groupedSessionMap.entries())
-    .filter(([, item]) => item.count <= 2)
-    .map(([key, item]) => ({
-      id: key,
-      title: `${item.branchName} · ${item.courseName}`,
-      description: `${item.date} ${item.startTime.slice(0, 5)} · มีผู้เรียน ${item.count} คน`,
-      level: item.count === 1 ? 'red' as const : 'yellow' as const,
-    }))
-    .slice(0, 20)
-
-  const prevMonthUserMap = new Map<string, string>()
-  ;(bookings || [])
-    .filter((booking) => booking.month === prevMonth && booking.year === prevYear && ['paid', 'verified'].includes(booking.status))
-    .forEach((booking) => {
-      if (!prevMonthUserMap.has(booking.user_id)) {
-        prevMonthUserMap.set(booking.user_id, booking.profiles?.full_name || 'ผู้เรียน')
-      }
-    })
-
-  const currentUserIds = new Set(currentMonthBookings.map((booking) => booking.user_id))
-  const oldBookingUserIds = new Set(
-    (bookings || [])
-      .filter((booking) => {
-        const monthKey = booking.year * 12 + booking.month
-        const currentKey = currentYear * 12 + currentMonth
-        return monthKey <= currentKey - 2 && ['paid', 'verified'].includes(booking.status)
-      })
-      .map((booking) => booking.user_id)
-  )
-
-  const customerFollowUpAlerts = [
-    ...Array.from(prevMonthUserMap.entries())
-      .filter(([userId]) => !currentUserIds.has(userId))
-      .map(([userId, fullName]) => ({
-        id: `prev-${userId}`,
-        title: `${fullName} ยังไม่ได้ลงเรียนเดือนนี้`,
-        description: 'ลูกค้าเดือนก่อนยังไม่กลับมาจอง ควรติดตามก่อนหลุดยาว',
-        level: 'yellow' as const,
-        userId,
-        notificationTitle: 'คิดถึงนะ กลับมาลงเรียนกันต่อได้เลย',
-        notificationMessage: 'เดือนนี้ยังไม่พบการจองของคุณ หากต้องการกลับมาเรียนสามารถเข้าแอปเพื่อเลือกวันเรียนได้ทันที',
-        notificationType: 'reminder',
-        linkUrl: '/dashboard/booking',
-      })),
-    ...Array.from(oldBookingUserIds)
-      .filter((oldUserId) => !currentUserIds.has(oldUserId) && !prevMonthUserMap.has(oldUserId))
-      .map((oldUserId) => {
-        const oldUser = (users || []).find((item) => item.id === oldUserId)
-        return {
-          id: `old-${oldUserId}`,
-          title: `${oldUser?.full_name || 'ลูกค้าเก่า'} หายไปเกิน 1 เดือน`,
-          description: 'เหมาะสำหรับส่งแจ้งเตือนชวนกลับมาเรียนอีกครั้ง',
-          level: 'green' as const,
-          userId: oldUserId,
-          notificationTitle: 'กลับมาฝึกแบดด้วยกันอีกครั้งไหม',
-          notificationMessage: 'เรามีรอบเรียนพร้อมให้คุณกลับมาฝึกต่อแล้ว สามารถเข้าไปดูตารางและจองได้ทันที',
-          notificationType: 'reminder',
-          linkUrl: '/dashboard/booking',
-        }
-      }),
-  ].slice(0, 30)
-
   const checkinKeys = new Set((todayCheckins || []).map((checkin) => `${checkin.coach_id}:${checkin.schedule_slot_id}`))
   const missingCheckins = (todayAssignments || []).filter((assignment) => !checkinKeys.has(`${assignment.coach_id}:${assignment.schedule_slot_id}`))
 
@@ -480,9 +506,9 @@ export default async function AdminNotificationsPage() {
       href: '/admin/coach-checkins',
       actionLabel: 'ไปหน้าเช็คอินโค้ช',
     }] : []),
-    ...(lowEnrollmentAlerts.filter((alert) => alert.level === 'red').length > 0 ? [{
+    ...(recommendationWorkspace.lowEnrollment.filter((alert) => alert.level === 'red').length > 0 ? [{
       id: 'low-enrollment',
-      title: `มีคลาสคนน้อย ${lowEnrollmentAlerts.filter((alert) => alert.level === 'red').length} รอบ`,
+      title: `มีคลาสคนน้อย ${recommendationWorkspace.lowEnrollment.filter((alert) => alert.level === 'red').length} รอบ`,
       description: 'รอบที่มีผู้เรียน 1 คนอาจต้องติดตามหรือปรับกลุ่ม',
       tone: 'green' as const,
       href: '/admin/schedules',
@@ -502,9 +528,7 @@ export default async function AdminNotificationsPage() {
         role: profile.role,
       }))}
       actionAlerts={actionAlerts}
-      nonRenewalAlerts={nonRenewalAlerts}
-      lowEnrollmentAlerts={lowEnrollmentAlerts}
-      customerFollowUpAlerts={customerFollowUpAlerts}
+      recommendationWorkspace={recommendationWorkspace}
     />
   )
 }
