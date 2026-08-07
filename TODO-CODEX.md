@@ -9,14 +9,25 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**None — Awaiting Owner Selection.**
+**ADMIN NOTIFICATIONS RECOMMENDATIONS — ACTIONABILITY, BRANCH GROUPING & RENEWAL
+ACCURACY — READY FOR OWNER UAT.**
 
-- `ASSIGNMENT GROUP LIFECYCLE INTEGRITY` is TASK DONE. Current mutable Source,
-  Production, UAT, Migration, data-safety, and closeout state is authoritative in
-  `PROJECT_STATE.md`.
-- Do not start Thai UI Terminology & Shared Helper, Admin Notifications
-  Recommendations, LINE External-Browser Handoff Audit, or any other Parking Lot
-  item without a new Owner-selected Scope Contract.
+- Owner-approved revised Private booking/package semantics passed exact Gate 0.
+  Application Source `d0560c36e60394d4fc094fb945b43b4894e1d186` is committed,
+  pushed, and staged as Production-target artifact
+  `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3`; it has no assigned alias and has not been
+  Promoted. Existing Production remains unchanged.
+- The additive Migration `20260807155346` is applied. Production tracking rows
+  remain campaigns/batches/items/requests `0/0/0/0`; notifications remain
+  `26,266`. No notification was created or sent, no controlled write UAT ran,
+  and no business data was repaired or changed.
+- Next action: Owner performs read-only UAT on the exact staged artifact. Do not
+  click Start Batch, Load Next Batch, individual Send, or Confirm Bulk Send.
+  Promote only after explicit Owner PASS for this exact artifact/SHA.
+  `PROJECT_STATE.md` is authoritative for the full matrix and UAT steps; the
+  dated implementation/verification record is in `DEVELOPMENT_TODO.md`.
+- Do not start Thai UI Terminology & Shared Helper, LINE External-Browser Handoff
+  Audit, or any other Parking Lot item automatically.
 
 ## Recently Completed
 
@@ -906,11 +917,10 @@ Status: **DONE**.
 ## Parking Lot
 
 Latest remaining Owner selection queue; this ordering is not authorization to
-start:
+start. Admin Notifications is the selected Active Task at READY FOR OWNER UAT,
+so it is not an unselected queue item:
 
 1. Thai UI Terminology & Shared Helper
-2. Admin Notifications Recommendations — Actionability, Branch Grouping &
-   Renewal Accuracy
 
 ### Adult Group + Family Private — 10-Month Entitlement / Cross-Month Booking
 
@@ -918,9 +928,9 @@ Canonical name: **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONT
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- This is an unranked Parking Lot candidate. It does not change the order of the
-  two-item Owner selection queue above and has not been selected as the Active
-  Task. Active Task remains **None — Awaiting Owner Selection**.
+- This is an unranked Parking Lot candidate. Admin Notifications is the selected
+  Active Task at READY FOR OWNER UAT; this Adult/Family candidate remains
+  unselected and unauthorized.
 - This decision is durably registered/published. Product audit and implementation
   remain unauthorized until the Owner selects it under a new Scope Contract.
 - Adult Group must continue to use the package/session rates in authoritative
@@ -966,10 +976,10 @@ Canonical name: **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATIO
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- This is a separate, unranked Parking Lot candidate. It does not change the
-  two-item Owner selection queue, is not part of the Adult/Family 10-month
-  entitlement candidate, and has not been selected as the Active Task. Active
-  Task remains **None — Awaiting Owner Selection**.
+- This is a separate, unranked Parking Lot candidate. It is not part of the
+  Adult/Family 10-month entitlement candidate. Admin Notifications is the
+  selected Active Task at READY FOR OWNER UAT; this Private Identity candidate
+  remains unselected and unauthorized.
 - This decision is durably registered/published. Product audit, implementation,
   regression work, Production audit, and data repair remain unauthorized.
 - Visible symptom: self plus one child across two time slots produced the expected
@@ -1031,22 +1041,21 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - No audit, implementation, deploy, migration, Production change, or data action
   is authorized by the current Payroll task.
 
-### Admin Notifications Recommendations — Actionability, Branch Grouping & Renewal Accuracy
+### Historical Registration — Admin Notifications Recommendations
 
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; ANALYZED; NOT AUTHORIZED TO
-START**.
+Status: **HISTORICAL / SUPERSEDED — CURRENT TASK IS READY FOR OWNER UAT**.
 
-- “ติดตามลูกค้าเก่า” แสดงได้สูงสุด `30` ราย แต่หลังส่งหนึ่งราย หน้า refresh แล้ว
-  คำนวณ eligibility ใหม่โดยไม่มี completion state, exclusion หรือ cooldown จึง
-  เติมรายถัดไปกลับมาเป็น `30`; Owner intended behavior สำหรับคิวชุดที่กำลังดูคือ
-  ลด `30 → 29` โดยไม่เติมรายถัดไปทันที.
-- “รอบเรียนคนน้อย” รวมรายการทุกสาขาเป็น flat list แล้วตัดสูงสุด `20` รายการ ทำให้
-  อ่านยากและไม่เห็นจำนวนจริง; งานอนาคตควรแยกหรือจัดกลุ่มตามสาขา.
-- ความหมาย “ผู้เรียนใกล้หมดคอร์ส” ยังกำกวม และสูตรปัจจุบันเสี่ยงจาก session input
-  ที่ไม่ครบ. Owner ต้องตัดสิน semantics ของ entitlement, progress และ remaining
-  sessions ก่อน implementation; ห้ามยกสูตร diagnostic ใหม่เป็น business truth.
-- ไม่มี Source, Migration, Production หรือ data action ใดได้รับอนุญาต. ต้องมี
-  Owner selection และ Scope Contract แยกก่อนเริ่มงานนี้.
+- This paragraph preserves the pre-selection registration only. The Owner later
+  selected the task and supplied the exact actionability, branch-grouping, and
+  renewal rules.
+- The first mandatory Gate 0 used a per-learner interpretation and stopped before
+  implementation when Private attendee rows could not reconcile to a shared
+  booking-level entitlement denominator. That stopped state remains dated history.
+- The Owner then approved booking/package semantics for Private. Revised Gate 0
+  reconciled `71/71` canonical purchased units, implementation completed, and the
+  exact staged artifact is now READY FOR OWNER UAT without any notification send.
+- Current artifact, data-safety state, and next Owner UAT gate are authoritative
+  in `PROJECT_STATE.md`; detailed dated evidence is in `DEVELOPMENT_TODO.md`.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
 

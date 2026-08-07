@@ -12889,3 +12889,237 @@ Production data, deployment, Promotion, alias, rollback, customer, or financial
 action was authorized or performed. Pricing, entitlement, Payment, Attendance,
 assignment policy, Reschedule, Lesson Wallet, Makeup, Payroll, and Teaching Hours
 remain protected and unchanged.
+
+### 2026-08-07 — Admin Notifications Recommendations Gate 0 Material Hard Stop
+
+State observed at this safe handoff: the Owner selected **ADMIN NOTIFICATIONS
+RECOMMENDATIONS — ACTIONABILITY, BRANCH GROUPING & RENEWAL ACCURACY** and
+approved continuous delivery only if the mandatory exact-learner/progress gate
+could be proven inside the stated allowlist. That gate failed before
+implementation. Status is **DEVELOPING — MATERIAL HARD STOP AT GATE 0**; this is
+not READY FOR OWNER UAT and not TASK DONE.
+
+#### Fact — Git, Source, and Existing Behavior
+
+- Gate 0 ran at branch `spike/next-major-security-upgrade`, Local/Remote HEAD
+  `d93aab21d8399ece9e99aa869c0927e9a15be30f`, ahead/behind `0/0`.
+- The only pre-existing worktree status was stat-dirty
+  `src/lib/schedule-slot-utils.ts`. Its content and index blob were both
+  `4521281d099efb189429a744909552d67871ff23`; it was not edited, normalized,
+  staged, reset, checked out, or stashed.
+- Current Notifications Source limits Customer Follow-up with `.slice(0, 30)`,
+  limits Low-enrollment with `.slice(0, 20)`, includes Private in
+  Low-enrollment, and derives Near-course progress from physical today-forward
+  session rows rather than the approved booking entitlement.
+- The generic notification API is unchanged. No functional, test, Migration, or
+  configuration file was created or edited.
+
+#### Fact — SELECT-Only Reconciliation
+
+- Current settled Kids Group reconciled exact non-makeup root learner-session
+  rows to booking entitlement at `1145/1145`. Adult Group reconciled at `35/35`.
+- Private totalled `82` exact root learner-session rows against `35` booking-level
+  entitlement sessions. Six current settled Private bookings had multiple exact
+  learner identities; that subset totalled `71` root learner-session rows against
+  `24` booking-level entitlement sessions, and all six failed reconciliation.
+- Those six rows had no makeup or reschedule descendants that could explain the
+  difference. The observed Private root-minus-entitlement differences were
+  positive rather than a missing-session undercount.
+- The audit used aggregate SELECT-only evidence and recorded no customer,
+  learner, booking, session, or child identifier. It performed `0` writes, sent
+  `0` notifications, and created `0` recommendation/batch rows.
+- Supabase CLI `2.112.0` and the linked migration inventory were inspected read
+  only. The latest remote migration remained
+  `20260804000000_assignment_group_lifecycle_integrity`; no Migration was
+  generated, validated, applied, or repaired.
+- Production browser baseline could not be measured as Admin: the isolated
+  browser redirected to Login, while the existing Chrome session resolved as
+  Head Coach and redirected to `/coach`. No credentials were requested or used.
+
+#### Root Cause Classification
+
+- **Fact:** exact learner identity is available on the relevant session rows, but
+  the approved entitlement denominator exists at booking level.
+- **Inference:** allocating a single Private booking entitlement across multiple
+  learner identities would introduce a new business formula or require the
+  separate Private Identity Integrity domain. Neither is authorized by this
+  Scope Contract.
+- **Unknown / Need Owner Decision:** the authoritative per-learner Private
+  entitlement allocation formula; whether Near-course must exclude Private until
+  identity/entitlement integrity is resolved; and an authenticated Admin
+  performance baseline.
+
+#### Scope and Safety Result
+
+Gate 0 required a Material Hard Stop when exact Private learner/progress could not
+be proven without Private Identity Integrity work. The task stopped exactly at
+that gate. Functional/test/documentation/Migration/configuration changes are
+`0/0/3 local safe-handoff files/0/0`. There was no Scope breach, Production data
+change, customer impact, financial impact, Environment or feature-control change,
+commit, push, staged artifact, deploy, Promotion, alias action, UAT, or data
+repair.
+
+Next action requires Owner direction: either approve an expanded Private
+entitlement/identity Scope Contract with an exact per-learner allocation formula,
+or revise the Near-course Private inclusion/semantics. Do not infer a formula,
+silently exclude Private, resume implementation, create/apply a Migration,
+commit, push, or deploy under the blocked contract.
+
+### 2026-08-07 — Admin Notifications Recommendations READY for Owner UAT
+
+State observed at this closeout: after the preceding Gate 0 stop, the Owner
+explicitly approved revised Private booking/package semantics and continuous
+delivery through a staged Production-target artifact. The exact Application
+Source is `d0560c36e60394d4fc094fb945b43b4894e1d186`; status is **READY FOR OWNER
+UAT**, not Production-active and not TASK DONE.
+
+#### Revised Gate 0 and Intended Behavior
+
+- Private renewal progress is one booking/package calculation, not a
+  per-learner entitlement allocation. Canonical purchased units collapse
+  descendants to `booking_id + root schedule_slot_id`; attendee rows retain exact
+  learner identity only for evidence and are not multiplied into entitlement.
+- Current settled Private data reconciled `34` bookings, `71` booking
+  entitlements, and `71` canonical purchased units with per-booking mismatch `0`.
+  The `13` multi-learner subset reconciled entitlement/canonical units `40/40`
+  while retaining `108` exact attendee rows. Root rows totalled `143`; null root,
+  unstable key, unreachable descendant, and makeup counts were all `0`.
+- Latest Attendance reconciled `62` rows: `60` exact and `2` mismatched. Across
+  `71` canonical units, exact terminal Attendance yields `37` used and `34`
+  unused. The two pre-existing mismatches are excluded from progress and were not
+  repaired; they do not authorize Private Identity Integrity work.
+- Low-enrollment now covers all Kids/Adult rounds without a result cap, groups by
+  the actual session branch, and excludes Private. Near-course uses exact
+  Attendance and root lineage; Kids/Adult retain exact learner/course scopes,
+  while Private is one booking/package recommendation with no learner-name
+  assertion. Next-month active coverage suppresses renewal in the matching exact
+  scope. Customer Follow-up uses all course history, suppresses any current-month
+  active course, keeps durable cycles/batches, and presents at most `30` current
+  candidates with explicit individual or bulk-at-most-`10` confirmation.
+
+#### Exact Change Set and Security Model
+
+- Functional files are exactly six:
+  `src/app/(admin)/admin/notifications/page.tsx`,
+  `src/components/admin/notifications-admin-client.tsx`, new
+  `src/components/admin/notification-recommendations-workspace.tsx`, new
+  `src/lib/admin-notification-recommendations.ts`, new
+  `src/app/api/admin/notifications/customer-follow-up/route.ts`, and
+  `src/types/database.ts`.
+- Test files are new
+  `scripts/check-admin-notification-recommendations.mjs` plus `package.json`.
+  The additive Migration is
+  `supabase/migrations/20260807155346_admin_notification_recommendation_tracking.sql`.
+  Documentation files are `PROJECT_STATE.md`, `TODO-CODEX.md`, and this record.
+  Functional/test/documentation/Migration/configuration/dependency counts are
+  `6/2/3/1/0/0`.
+- The server page uses bounded `500`-row keyset reads and passes recommendation
+  projections rather than raw tables to the Client. Current Production inventory
+  required bookings/sessions/Attendance/children pages `2/9/6/1`; no N+1 query or
+  mutation occurs during render.
+- Four service-only tracking tables hold campaigns, batches, items, and request
+  idempotency. RLS is enabled with intentionally no policies, and service role has
+  only `SELECT/INSERT/UPDATE`. Five security-invoker RPCs revoke execution from
+  public/anon/authenticated and grant service role only. Advisory transaction
+  locking, active uniqueness, server-derived actor/source/notification identity,
+  fixed server notification content, UUID request idempotency, eligibility
+  revalidation, and all-or-nothing bulk behavior protect concurrent sends.
+- The new route requires `requireAdminMenuAccess('notifications')`, rejects
+  client-forged batch/source/notification/verification fields, exposes GET as
+  read-only, and sends only through the service-only RPC. The existing generic
+  notification API is unchanged.
+- Migration SHA-256 is
+  `59782052CB276EC551FF41A18FE05F3DA3134A4AC5ED1F1BE470F9D15BB2455F`. It adds
+  schema/index/function/grant objects only; there is no insert, backfill, repair,
+  or business-row mutation.
+
+#### Verification and Performance Evidence
+
+- Deterministic focused checks passed `11/11`; protected notification-date,
+  Lesson Wallet, Admin schedule/performance/Attendance, coach assignment,
+  Reschedule, Wallet, and Makeup checks passed `102/102`, total `113/113`.
+- `npx tsc --noEmit`, zero-warning `npm run lint`, mojibake guard over `259`
+  files, `git diff --check`, and Next.js `16.2.6` Production build/static
+  generation `94/94` passed. After the build, only the exact generated `.next`
+  directory was removed, dev restarted at `127.0.0.1:3000`, and root/health/real
+  CSS plus Admin/API auth protection passed.
+- Local Supabase reset applied the full chain and lint found no public-schema
+  errors. The disposable RPC fixture proved start idempotency, a fixed `30`-item
+  batch, single-send request idempotency, bulk `10` all-or-nothing, ambiguous
+  legacy bulk rejection, allowed individual override, batch completion, and next
+  `30` loading over `140` users. A final reset removed all fixture rows.
+- Linked Production received exactly Migration version `20260807155346`; local
+  and remote inventories contain the same `25` versions. RLS is true `4/4`, only
+  service role has table `INSERT/SELECT/UPDATE`, all five functions are
+  security-invoker and service-only executable, and the task created `22` indexes.
+  Production read-only workspace state is `not_started`, `can_start=true`, with
+  `131` candidates and no current items.
+- Ten Production workspace query plans measured min/P50/P95/max
+  `23.260/23.896/25.741/25.741 ms`; connector end-to-end latency measured
+  `1.549/1.756/2.142/2.142 s`. The indexed canonical Private query improved from
+  `148.959 ms` before the Migration to `119.062 ms` after it.
+- Task advisories contain only expected INFO for the four intentionally
+  policy-less service-only RLS tables and unused new indexes before queue use; no
+  task-attributable security/performance WARN or ERROR exists.
+- Anonymous browser verification reached the normal Login redirect with no
+  runtime error; console contained only the existing React DevTools and public
+  logo LCP notices. Automated accessibility found `0` violations and one manual
+  bypass-review incomplete. Authenticated Admin visual/business behavior remains
+  Owner UAT.
+
+#### Git, Artifact, and Production Safety
+
+- Functional/test/Migration commit
+  `d0560c36e60394d4fc094fb945b43b4894e1d186` was pushed normally on
+  `spike/next-major-security-upgrade`; local/upstream were exact `0/0` before the
+  documentation-only closeout commit.
+- `vercel deploy --prod --skip-domain` created exact Production-target artifact
+  `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` at
+  `https://new-athlete-badminton-school-85en79znu-aachanin1s-projects.vercel.app`.
+  Vercel API reports target `production`, state `READY`, region `icn1`, and both
+  custom/Git Source metadata equal to `d0560c36e60394d4fc094fb945b43b4894e1d186`.
+  Created/building/ready timestamps are `2026-08-07T16:37:04.988Z`,
+  `16:37:06.119Z`, and `16:38:22.262Z`.
+- Staged root, health, and real CSS returned `200`; Admin notifications redirected
+  anonymous access to Login with `307`; the new API returned `401`. Ten bounded
+  runtime log rows contained `200×6`, `307×2`, and `401×2`, with no warning,
+  error, fatal, or `5xx`.
+- `--skip-domain` assigned no alias. Alias inventory remains eight; all four
+  established Production aliases still point to prior artifact
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source
+  `19471d9a3a728e42def5500a86cc91ce1da4a1e8`. No Promotion, retry, redeploy,
+  alias mutation, rollback, Environment, feature, or allowlist action occurred.
+- Production tracking rows after staged smoke are campaigns/batches/items/
+  requests `0/0/0/0`. Notifications remain exactly `26,266`, including `21`
+  legacy reminder rows linked to `/dashboard/booking`. No batch was started or
+  loaded, no individual/bulk send was requested, no notification was created,
+  and no business/customer/financial data changed.
+- The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remains
+  byte-identical to index blob `4521281d099efb189429a744909552d67871ff23`
+  with SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  It was never edited, normalized, staged, reset, checked out, stashed, or
+  committed.
+
+#### Owner UAT Gate
+
+Use exact artifact `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` as an authenticated
+Admin with Notifications menu access:
+
+1. Open `/admin/notifications` and confirm one workspace with three tabs and
+   visible counts: Low-enrollment, Near-course, and Customer Follow-up.
+2. Confirm Low-enrollment shows all applicable Kids/Adult rounds grouped under
+   the actual branch, excludes Private, paginates `10` per page, and links to
+   Admin Schedules.
+3. Confirm Near-course shows exact learner/course progress for Kids/Adult and one
+   package-level Private recommendation without claiming a learner name; open and
+   cancel the normal notification dialog without sending.
+4. Confirm Customer Follow-up initially shows a read-only not-started state and
+   explicit controls with a maximum bulk selection of `10`.
+5. Do **not** click Start Batch, Load Next Batch, individual Send, or Confirm Bulk
+   Send. Those are controlled writes and are outside this UAT authorization.
+
+Expected visible result: the workspace is responsive and mobile-safe, counts and
+pagination are clear, exact branch/package semantics are visible, and no write
+occurs merely by opening or navigating the page. Owner PASS authorizes Promotion
+only of this exact artifact/SHA; until PASS, Task Done remains **No**.

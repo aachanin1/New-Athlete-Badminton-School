@@ -2,7 +2,117 @@
 
 Last updated: 2026-08-07
 
-Current source: Production closeout for completed task **ASSIGNMENT GROUP
+Current source: **READY FOR OWNER UAT** for **ADMIN NOTIFICATIONS
+RECOMMENDATIONS — ACTIONABILITY, BRANCH GROUPING & RENEWAL ACCURACY**. After the
+Owner revised Private progress to booking/package semantics, the exact Gate 0
+reconciliation passed. Application Source `d0560c36e60394d4fc094fb945b43b4894e1d186`
+is committed, pushed, and built as a staged Production-target artifact with no
+Production alias or Promotion. The additive Supabase Migration is applied, but
+all four new tracking tables remain empty and notifications remain unchanged.
+This first matrix is the only authority for current mutable state; later records
+are Historical / Superseded.
+
+## Current Handoff — Admin Notifications Recommendations
+
+Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; NOT
+PROMOTED; NO NOTIFICATION WRITE OR SEND**.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ADMIN NOTIFICATIONS RECOMMENDATIONS — ACTIONABILITY, BRANCH GROUPING & RENEWAL ACCURACY** |
+| Task Status | **READY FOR OWNER UAT** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | READY-handoff documentation publication commit containing this matrix; exact commit SHA is reported in the final handoff. Application Source is `d0560c36e60394d4fc094fb945b43b4894e1d186` |
+| Remote HEAD | Equal to Local HEAD after the authorized documentation push |
+| Ahead/Behind | `0/0` in the published READY-handoff state |
+| Source Complete | **Yes** — the approved recommendations workspace, exact renewal model, service-only durable follow-up queue, API, types, tests, and additive Migration are complete |
+| Tests Passed | **Yes** — deterministic focused and protected-flow suites passed `113/113`; TypeScript, zero-warning ESLint, mojibake over `259` files, `git diff --check`, local Migration reset/lint/RPC transaction verification, Next.js 16.2.6 Production build/static generation `94/94`, local restart smoke, anonymous browser/auth/accessibility check, staged artifact smoke, and bounded runtime-log check passed |
+| Committed | **Yes** — Application Source commit `d0560c36e60394d4fc094fb945b43b4894e1d186` plus the containing READY-handoff documentation commit |
+| Pushed | **Yes** — Application Source and READY-handoff documentation are normally pushed on the current branch |
+| Current Source | Exact Application Source `d0560c36e60394d4fc094fb945b43b4894e1d186`; the later documentation-only commit does not change artifact Source |
+| Pushed Source | `d0560c36e60394d4fc094fb945b43b4894e1d186` |
+| Deployed | **Yes — staged Production-target artifact only; not Production-active** |
+| Deployed Source | Staged artifact Source `d0560c36e60394d4fc094fb945b43b4894e1d186`; current active Production Source remains `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Deployment ID | Staged `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3`, URL `https://new-athlete-badminton-school-85en79znu-aachanin1s-projects.vercel.app`, target `production`, state `READY`, runtime region `icn1`, exact Source metadata `d0560c36e60394d4fc094fb945b43b4894e1d186`; created/building/ready `2026-08-07T16:37:04.988Z` / `16:37:06.119Z` / `16:38:22.262Z` |
+| Current Production | Existing `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; all four established Production aliases still point there |
+| Migration Source | `supabase/migrations/20260807155346_admin_notification_recommendation_tracking.sql`, SHA-256 `59782052CB276EC551FF41A18FE05F3DA3134A4AC5ED1F1BE470F9D15BB2455F` |
+| Migration Applied | **Yes** — linked Production Supabase contains version `20260807155346`; local and remote inventories contain the same `25` migrations |
+| Environment Changed | No |
+| Feature Enabled | No feature-control change |
+| Allowlisted | No allowlist change |
+| Production Active | **No for this task** — the new Vercel artifact has no assigned alias and was not Promoted |
+| Owner UAT | **Pending** on the exact staged artifact |
+| Production UAT | Not run; the task is not Production-active |
+| Controlled Write UAT | Not run / prohibited for this handoff |
+| DB Fixture / DB Write | Local disposable RPC fixtures were verified and removed by a final local reset. Production received schema DDL only; campaigns/batches/items/requests remain `0/0/0/0`, notifications remain `26,266`, and booking-linked legacy reminders remain `21` |
+| Data Repaired | No |
+| Production Data Changed | **No business-row or customer-data change**; the approved additive schema Migration was applied |
+| Customer Impact | None before Promotion; no notification was created or sent |
+| Financial Impact | None |
+| Functional / Test / Documentation / Migration / Configuration Changes | `6 / 2 / 3 / 1 / 0`; dependency changes `0` |
+| Scope Expansion | No — the Owner-approved revised Private booking/package semantics resolved the earlier Gate 0 blocker without entering Private Identity Integrity |
+| Scope Breach | No |
+| Documentation Drift | **No after this READY handoff is committed and pushed** |
+| Blocker | No technical blocker; authenticated Admin visual/business review is pending Owner UAT |
+| Remaining Work | Owner read-only UAT of the exact staged artifact. Do not start a follow-up batch, load a next batch, send an individual recommendation, or confirm bulk send during this UAT |
+| Task Done | **No** |
+| Next Gate / Next Action | **OWNER UAT on exact artifact `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3`; Promote only after explicit Owner PASS for this exact artifact/SHA** |
+| Parking Lot authorization state | Thai UI Terminology & Shared Helper remains the ordered unselected item. Adult/Family entitlement, Private Identity Integrity, LINE handoff, and all other candidates remain Owner-selection-only; do not start them automatically |
+
+### Exact Gate 0, Implementation, and Safety Evidence
+
+- Under the revised Private booking/package rule, `34` settled Private bookings
+  reconcile `71` entitlement sessions to `71` canonical purchased units keyed by
+  `booking_id + root schedule_slot_id`; the `13` multi-learner bookings reconcile
+  `40/40`. Their `143` and `108` attendee rows remain learner evidence, not a
+  multiplied entitlement denominator. Per-booking mismatch, unstable root key,
+  unreachable descendant, and makeup counts are all `0`.
+- Exact Attendance joins found `60` exact terminal rows across `71` canonical
+  Private units: `37` used and `34` unused. Two mismatched Attendance rows exist
+  as a pre-existing data anomaly but do not become package evidence and do not
+  require or authorize identity repair in this task.
+- Low-enrollment covers all Kids/Adult rounds without a result cap and groups by
+  the real session branch. Near-course uses exact Attendance, root lineage, and
+  booking entitlement; Private produces one package recommendation without a
+  learner-name claim. Customer Follow-up includes complete course history,
+  suppresses any current-month active course, and exposes fixed batches of at
+  most `30` with explicit preview/send controls and bulk send capped at `10`.
+- The new four tracking tables use RLS with intentional deny-by-default policy
+  absence, exact service-role `SELECT/INSERT/UPDATE` grants, and five
+  security-invoker RPCs executable only by service role. Advisory locks,
+  idempotency keys, active-row uniqueness, server-derived actor/source markers,
+  server-fixed notification content, and transactional bulk all-or-nothing
+  behavior were verified locally. No insert/backfill/data repair exists in the
+  Migration.
+- Linked Production read-only verification found workspace state `not_started`,
+  `can_start=true`, `131` candidates, and no tracking rows. Ten direct workspace
+  query samples measured min/P50/P95/max `23.260/23.896/25.741/25.741 ms`;
+  end-to-end connector latency was `1.549/1.756/2.142/2.142 s`. The indexed
+  canonical Private plan improved from `148.959 ms` to `119.062 ms`.
+- Supabase task advisories contain only expected INFO: RLS enabled without
+  policies for the four service-only tables, plus unused new indexes before
+  queue use. There is no task-attributable security or performance WARN/ERROR.
+- Staged smoke returned root/health/static CSS `200/200/200`, Admin notifications
+  `307` to Login, and the new anonymous API `401`. Ten bounded runtime requests
+  produced statuses `200×6`, `307×2`, and `401×2`, with `0` warning/error/fatal/
+  `5xx`. The staged deployment has no assigned alias; all four established
+  Production aliases still point to the prior Production artifact.
+- The generic notification API remains unchanged. No Payment, pricing, coupon,
+  entitlement, booking create/edit, Attendance write, Lesson Wallet, Makeup,
+  assignment, payroll, permission, Environment, feature-control, allowlist,
+  Production alias, Promotion, notification-send, or Production business-data
+  action occurred.
+
+The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remains byte-identical
+to index blob `4521281d099efb189429a744909552d67871ff23` with SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`. It was
+not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+## Historical / Superseded — Assignment Group Lifecycle Integrity Production Closeout
+
+Historical source: Production closeout for completed task **ASSIGNMENT GROUP
 LIFECYCLE INTEGRITY**. The Owner passed exact artifact
 `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Application Source
 `19471d9a3a728e42def5500a86cc91ce1da4a1e8`. One exact `vercel promote`
@@ -12,15 +122,15 @@ and post-Promotion health, static, auth-protection, runtime-log, Source-drift, a
 SELECT-only data-safety gates passed. No business-data, Migration, Environment,
 Feature, Allowlist, Source, test, configuration, or separate alias action changed.
 The old timeout Root Cause remains an Owner-accepted Unknown historical
-limitation. The first matrix is authoritative; later task snapshots are Historical
-/ Superseded.
+limitation. This record is historical; the Admin Notifications matrix above is
+authoritative for current mutable state.
 
-## Current Closeout — Assignment Group Lifecycle Integrity
+### Historical Closeout — Assignment Group Lifecycle Integrity
 
 Status: **TASK DONE — OWNER UAT PASSED; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
 PRODUCTION VERIFICATION PASSED**.
 
-### Current Project Matrix
+#### Historical Project Matrix at That Closeout
 
 | Field | Current value |
 | --- | --- |
