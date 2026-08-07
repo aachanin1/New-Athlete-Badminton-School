@@ -96,7 +96,8 @@ const HISTORY_ACTIVITY_ACTIONS = [
   'attendance_gap_return_entitlement',
 ] as const
 
-const LEGACY_EVIDENCE_GAP = 'ไม่พบสาเหตุที่ยืนยันได้'
+const LEGACY_EVIDENCE_WARNING = 'ต้องให้ Admin ตรวจสอบ'
+const LEGACY_EVIDENCE_GAP = 'ระบบไม่พบหลักฐานเดิมที่ระบุว่าเกิดจากการย้ายวันหรือเก็บเข้ากระเป๋า'
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -512,7 +513,7 @@ export async function getCoachAssignmentHistory(client: HistoryReadClient, input
       events.push({
         occurredAt: session.updated_at,
         type: 'unknown',
-        label: 'การเปลี่ยนแปลงของรายชื่อที่ไม่มีหลักฐานยืนยัน',
+        label: LEGACY_EVIDENCE_WARNING,
         actorName: null,
         learnerNames,
         reason: LEGACY_EVIDENCE_GAP,

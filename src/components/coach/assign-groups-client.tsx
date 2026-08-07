@@ -1575,21 +1575,45 @@ export function AssignGroupsClient({
                           )}
                           {!isAssignmentHistoryLoading && !assignmentHistoryError && assignmentHistory && assignmentHistory.length > 0 && (
                             <ol className="space-y-2">
-                              {assignmentHistory.map((event, index) => (
-                                <li key={`${event.occurredAt}-${index}`} className="min-w-0 rounded-md border bg-white px-3 py-2 text-sm">
-                                  <p className="break-words font-semibold text-[#153c85]">{event.label}</p>
-                                  <p className="mt-1 break-words text-xs text-gray-600">
-                                    <time dateTime={event.occurredAt}>
-                                      {formatHistoryDateTime(event.occurredAt)}
-                                    </time>
-                                    {' '}· โดย {event.actorName || 'ไม่ทราบผู้ดำเนินการ'}
-                                    {' '}· ผู้เรียน {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบจากหลักฐานเดิม'}
-                                  </p>
-                                  {event.reason && (
-                                    <p className="mt-1 break-words text-xs text-gray-500">{event.reason}</p>
-                                  )}
-                                </li>
-                              ))}
+                              {assignmentHistory.map((event, index) => {
+                                const eventKey = `${event.occurredAt}-${index}`
+                                if (event.type === 'unknown') {
+                                  return (
+                                    <li key={eventKey} className="min-w-0 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
+                                      <div className="flex min-w-0 items-start gap-2">
+                                        <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                                        <div className="min-w-0">
+                                          <p className="break-words font-semibold text-amber-900">{event.label}</p>
+                                          <p className="mt-1 break-words text-xs text-amber-900">
+                                            ผู้เรียน {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบชื่อจากหลักฐานเดิม'} ไม่อยู่ในรายชื่อรอบนี้แล้ว
+                                          </p>
+                                          {event.reason && (
+                                            <p className="mt-1 break-words text-xs text-amber-800">{event.reason}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </li>
+                                  )
+                                }
+
+                                return (
+                                  <li key={eventKey} className="min-w-0 rounded-md border bg-white px-3 py-2 text-sm">
+                                    <p className="break-words font-semibold text-[#153c85]">{event.label}</p>
+                                    <p className="mt-1 break-words text-xs text-gray-600">
+                                      <time dateTime={event.occurredAt}>
+                                        {formatHistoryDateTime(event.occurredAt)}
+                                      </time>
+                                      {event.actorName && (
+                                        <>{' '}· โดย {event.actorName}</>
+                                      )}
+                                      {' '}· ผู้เรียน {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบจากหลักฐานเดิม'}
+                                    </p>
+                                    {event.reason && (
+                                      <p className="mt-1 break-words text-xs text-gray-500">{event.reason}</p>
+                                    )}
+                                  </li>
+                                )
+                              })}
                             </ol>
                           )}
                         </div>
