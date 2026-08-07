@@ -912,6 +912,84 @@ start:
 2. Admin Notifications Recommendations — Actionability, Branch Grouping &
    Renewal Accuracy
 
+### Adult Group + Family Private — 10-Month Entitlement / Cross-Month Booking
+
+Canonical name: **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONTH BOOKING**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- This is an unranked Parking Lot candidate. It does not change the order of the
+  two-item Owner selection queue above and has not been selected as the Active
+  Task. Active Task remains **None — Awaiting Owner Selection**.
+- This decision is durably registered/published. Product audit and implementation
+  remain unauthorized until the Owner selects it under a new Scope Contract.
+- Adult Group must continue to use the package/session rates in authoritative
+  `pricing_tiers`. A purchased Adult Group package creates a remaining-session
+  entitlement that the user can schedule across months within `10 เดือน`.
+- Owner example: an Adult Group 16-session package paid on 1 January 2026
+  (`1 ม.ค. 2569`) is usable through 31 October 2026 (`31 ต.ค. 2569`). This
+  example does not resolve the mid-month expiry formula below.
+- Private is intended to be Family Private for children and adults. It must
+  continue to use the package/hour rates in authoritative `pricing_tiers`, with
+  the Family Private entitlement usable within `10 เดือน`.
+- Cross-month future implementation must separate package purchase and
+  entitlement creation from selecting all teaching dates immediately. Users must
+  be able to spend the remaining entitlement on cross-month schedule selections
+  without creating a new payment for each use.
+- Current Booking UI/API still binds each booking request to one `month`/`year`.
+  Adult Group and Private remain in the Legacy booking/payment flow; “Legacy”
+  does not authorize a pricing-tier or formula change.
+- This future entitlement/cross-month work is not automatically a tier change,
+  reprice, migration, backfill, or Product implementation. No `pricing_tiers`
+  value or fallback is changed by this documentation publication.
+
+#### Unknown / Need Owner Decision
+
+- Expiry-date formula when payment occurs mid-month.
+- Entitlement start date: payment date, approval date, or first lesson date.
+- Family Private membership boundary and entitlement-sharing rules.
+- Whether the entitlement may be used across branches.
+- Number of learners allowed per Private session.
+- Interaction with Reschedule and Lesson Wallet.
+- Cancellation, refund, coupon, and expiry semantics.
+- Treatment of remaining entitlement when the 10-month period ends.
+- Treatment of existing Adult/Private bookings and whether migration/backfill is
+  required.
+- Attendance, Coach, Payroll, Finance, and Accounting effects.
+
+Detailed Owner decision, Source evidence, and Unknowns: see the dated 2026-08-07
+Adult Group + Family Private record in `DEVELOPMENT_TODO.md`.
+
+### Private Self + Child Identity Integrity / Name-Level Separation
+
+Canonical name: **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATION**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- This is a separate, unranked Parking Lot candidate. It does not change the
+  two-item Owner selection queue, is not part of the Adult/Family 10-month
+  entitlement candidate, and has not been selected as the Active Task. Active
+  Task remains **None — Awaiting Owner Selection**.
+- This decision is durably registered/published. Product audit, implementation,
+  regression work, Production audit, and data repair remain unauthorized.
+- Visible symptom: self plus one child across two time slots produced the expected
+  four attendee/session rows, but every visible row and the Head Coach view used
+  the booking owner's name/Level. This is an identity/name/Level separation
+  symptom, not evidence of duplicate attendee rows.
+- Intended behavior: self uses the user/profile identity, name, and Level; each
+  child uses `booking_sessions.child_id`, the child's name, and the child's Level.
+  Attendance uses `bookings.user_id` for self and `child_id` for the child.
+- Root Cause is **Unknown / Need Verification**. Any Owner-authorized future task
+  must start with a bounded audit of exact Source/deployment provenance and the
+  affected identity path; no Production SELECT is authorized by this record.
+- Protected flows remain unchanged: time-slot count, hours, `total_sessions`,
+  pricing, Payment, Attendance policy, Coach grouping/assignment, Reschedule,
+  Lesson Wallet, Makeup, Payroll, Finance, and the separate Adult/Family
+  entitlement candidate.
+
+Detailed Fact, Source evidence, Inference, Unknowns, and audit requirements: see
+the dated 2026-08-07 Private Self + Child record in `DEVELOPMENT_TODO.md`.
+
 ### LINE External-Browser Handoff Audit
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.

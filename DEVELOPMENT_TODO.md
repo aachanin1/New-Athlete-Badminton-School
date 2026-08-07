@@ -12719,3 +12719,173 @@ new task was authorized.
 
 Next Action: Active Task is **None — Awaiting Owner Selection**. All Parking Lot
 items remain unauthorized until the Owner supplies a new Scope Contract.
+
+### 2026-08-07 — Adult Group + Family Private 10-Month Entitlement / Cross-Month Booking Parking Lot Registration
+
+This dated decision record registers the Owner decision from 2026-07-31. It is a
+Parking Lot record, not Product implementation and not a new Active Task.
+
+Canonical name: **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONTH BOOKING**.
+
+#### Owner-Confirmed Behavior
+
+- Adult Group continues to use the package/session rates defined by authoritative
+  `pricing_tiers`. Its purchased package creates remaining-session entitlement
+  usable for schedule selection across months within `10 เดือน`.
+- Owner example: an Adult Group 16-session package paid on 1 January 2026
+  (`1 ม.ค. 2569`) is usable through 31 October 2026 (`31 ต.ค. 2569`). No
+  additional expiry formula is inferred from this example.
+- Private is Family Private and supports children and adults. It continues to use
+  the package/hour rates defined by authoritative `pricing_tiers`; its entitlement
+  is also usable within `10 เดือน`.
+- Cross-month future behavior separates package purchase and entitlement
+  creation from the immediate selection of every teaching date. The entitlement
+  can be spent on cross-month schedule selections without a new payment for each
+  use.
+- This decision does not change a pricing tier or authorize a new pricing formula.
+
+#### Source Facts
+
+- `src/lib/pricing.ts` and `src/lib/booking-pricing.ts` keep `pricing_tiers` as the
+  rate source, use package/session rules for Adult Group, and package/hour rules
+  for Private. Source constants remain fallback only.
+- `src/components/dashboard/booking-client.tsx` shows partial Adult package
+  expiry copy (`หมดอายุ 10 เดือน`) but still builds one booking payload with one
+  `month` and `year`; changing the displayed calendar month clears selected
+  sessions.
+- `src/app/api/bookings/route.ts` requires and persists one `month`/`year` for the
+  current booking request. The current flow does not implement the complete
+  entitlement lifecycle or cross-month selection behavior.
+- `tests/booking-regression/booking.spec.ts` confirms Adult Group and Private use
+  Legacy preview mode. It contains no 10-month entitlement or cross-month
+  regression. “Legacy” does not authorize repricing.
+
+#### Unknown / Need Owner Decision
+
+- Expiry-date formula when payment occurs mid-month.
+- Entitlement start date: payment date, approval date, or first lesson date.
+- Family Private membership boundary and entitlement-sharing rules.
+- Whether the entitlement may be used across branches.
+- Number of learners allowed per Private session.
+- Interaction with Reschedule and Lesson Wallet.
+- Cancellation, refund, coupon, and expiry semantics.
+- Treatment of remaining entitlement when the 10-month period ends.
+- Treatment of existing Adult/Private bookings and whether migration/backfill is
+  required.
+- Attendance, Coach, Payroll, Finance, and Accounting effects.
+
+#### Authorization State
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+The ordered Owner selection queue remains `1.` Thai UI Terminology & Shared
+Helper and `2.` Admin Notifications Recommendations. This candidate is unranked,
+has not been selected as the Active Task, and Active Task remains **None —
+Awaiting Owner Selection**. This record was initially registered locally and left
+unstaged/uncommitted. On 2026-08-07 the Owner authorized one combined publication
+of the three allowlisted documentation files; the record is now durably published.
+
+No Application Source, test, Migration, schema/RPC/RLS/trigger, configuration,
+Environment, feature control, allowlist, permission, database, Supabase,
+Production data, deployment, Promotion, alias, rollback, customer, or financial
+action was authorized or performed. Product implementation has not started.
+
+### 2026-08-07 — Private Self + Child Identity Integrity / Name-Level Separation Parking Lot Registration
+
+This dated decision record registers the Owner-linked task
+`codex://threads/019fad1d-8bd6-7822-ae0a-72b33378a467`. It records no customer
+name, child name, or customer/booking/session/child identifier. It is a Parking
+Lot registration, not a Production audit, Product implementation, or data repair.
+
+Canonical name: **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATION**.
+
+#### Fact — Screenshot-Observed Behavior
+
+- The Owner-provided task report/screenshots show a Private booking with self and
+  one child. Two attendees across two selected time slots produced four
+  booking-session rows, which is the expected count for one row per attendee per
+  time slot.
+- Every visible row used the booking owner's name. The Head Coach view also
+  displayed both attendees with the owner's name and Level, while the child
+  remained present in the account.
+- The observed count is consistent with the intended attendee expansion. The
+  visible defect is learner identity/name/Level separation, not duplicate row
+  creation. Screenshot evidence does not establish stored Production ids or the
+  Root Cause.
+
+#### Fact — Current Source Evidence
+
+- `src/components/dashboard/booking-client.tsx` expands each selected Private
+  time slot into one self row with `childId=null` when self attends and one row
+  with the selected child's id for each child. Private `total_sessions` is the
+  number of unique time slots, not the expanded attendee-row count.
+- `src/app/api/bookings/route.ts` gathers every supplied child id, requires every
+  child to belong to the authenticated parent, and persists each
+  `session.childId` as `booking_sessions.child_id`.
+- `src/app/(dashboard)/dashboard/schedule/page.tsx` matches Attendance to
+  `booking_sessions.child_id` when present and otherwise to `bookings.user_id`.
+- `src/app/(coach)/coach/assign-groups/page.tsx` resolves a child from `child_id`
+  and self/adult from `bookings.user_id`; name and latest Level use the same
+  separated learner id/type.
+- `src/lib/admin-schedules-model.ts` uses `child_id` for child identity/name/Level
+  and otherwise falls back to the booking owner. The missing-child guard is
+  currently `learner_type === 'child' && !child_id`.
+- `tests/booking-regression/booking.spec.ts` contains Private and child fixtures
+  but no direct self + child identity/name/Level regression.
+
+#### Owner-Confirmed Intended Behavior
+
+- Each attendee in one Private lesson must keep a separate learner identity.
+- Self uses the user/profile identity, name, and Level. A child uses
+  `booking_sessions.child_id`, the child's name, and the child's Level.
+- Attendance expected `student_id` uses `bookings.user_id` for self and
+  `booking_sessions.child_id` for the child.
+- A shared time slot does not authorize identity merging or shared Level
+  attribution. A future identity correction must not change the number of time
+  slots, total hours, `total_sessions`, price, or Payment.
+
+#### Inference — Root Cause Not Established
+
+- Source currently expresses the intended create and read paths, but it does not
+  prove which path or historical state caused the Production symptom. Do not
+  state that any affected `booking_sessions.child_id` is null without an
+  authorized exact-row Production SELECT.
+- The Admin guard condition is a bounded Source risk for mixed-attendee Private
+  rows, not proof that Admin display is the originating Root Cause.
+
+#### Unknown / Need Verification
+
+- Exact affected booking and booking-session ids.
+- Actual `booking_sessions.child_id` value for each affected row.
+- Source and deployment version at Create or last edit.
+- Whether Root Cause is Create, Pending Edit, Reschedule, historical data, or a
+  current read model.
+- Total affected booking and booking-session scope.
+- Attendance, assignment, Lesson Wallet, and Reschedule dependencies.
+- Whether resolution requires a Source fix, regression-only coverage, or a
+  Production data repair.
+- Exact repair rows and rollback values if a Production repair is later
+  authorized.
+
+#### Authorization State
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+The ordered Owner selection queue remains `1.` Thai UI Terminology & Shared
+Helper and `2.` Admin Notifications Recommendations. This is an unranked
+candidate, separate from **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT /
+CROSS-MONTH BOOKING**, and Active Task remains **None — Awaiting Owner
+Selection**. A future Owner-selected Scope Contract must begin with bounded
+audit-first verification; no Production SELECT is authorized now.
+
+This record was initially registered locally and left unstaged/uncommitted. On
+2026-08-07 the Owner authorized one combined publication of the three allowlisted
+documentation files; the record is now durably published. Product implementation
+has not started and remains unauthorized.
+
+No Application Source, test, Migration, schema/RPC/RLS/trigger, configuration,
+Environment, feature control, allowlist, permission, database, Supabase,
+Production data, deployment, Promotion, alias, rollback, customer, or financial
+action was authorized or performed. Pricing, entitlement, Payment, Attendance,
+assignment policy, Reschedule, Lesson Wallet, Makeup, Payroll, and Teaching Hours
+remain protected and unchanged.

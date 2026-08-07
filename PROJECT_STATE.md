@@ -27,15 +27,15 @@ PRODUCTION VERIFICATION PASSED**.
 | Active Task | **None — Awaiting Owner Selection** |
 | Task Status | **TASK DONE — ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Containing 2026-08-07 Production-closeout documentation commit; exact Application Source is `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
-| Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
-| Ahead/Behind | `0/0` in the published Production-closeout state |
+| Local HEAD | Combined documentation publication commit containing the two 2026-08-07 Parking Lot registrations; exact commit SHA is reported in the final handoff. Application Source remains `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Remote HEAD | Equal to Local HEAD after the authorized combined documentation push |
+| Ahead/Behind | `0/0` in the published combined-documentation state |
 | Source Complete | **Yes** — booking events omit unsupported actors, evidenced actors remain visible, and Unknown lifecycle gaps render the Owner-approved Admin-review warning without confirmed time/cause semantics |
 | Tests Passed | **Yes** — six deterministic suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake over `256` files, Next.js 16.2.6 production build/static generation `93/93`, complete staged review, and `git diff --check` passed. Full suites were not rerun at Promotion because Source/config bytes were unchanged |
 | Performance Gate | **Passed** — authenticated current warm-up `3.368s` plus measured `20/20`; nearest-rank min/P50/P95/max `2.077/2.417/2.519/2.689s`, below the `5.000s` P95 ceiling. History warm-up `0.640s` plus measured `10/10`; min/P50/P95/max `0.524/0.619/0.643/0.643s`, below the `2.000s` ceiling. No timeout occurred |
 | Completeness / Calls | Current Bangkok today-forward population was stable across all 20 samples at `941` learner-sessions / `303` slots, saved/assigned aggregate `262/303`; roster completeness/pagination/duplicate checks passed. Initial assignment-history, assignment-memory, and Client Supabase Data API requests were `0/0/0`. Rapid History double-click produced one GET; warm-up plus 10 History samples produced `11` authenticated GET log records, all HTTP 200. Exact browser transferred bytes and newly instrumented internal query-call/page/batch timing are Unknown; no DOM proxy is used as wire bytes |
-| Committed | **Yes** — functional/test commit `19471d9a3a728e42def5500a86cc91ce1da4a1e8`, READY handoff commit `d12f5c3ff183bd5afa316f0830c274d076854ce6`, plus the containing documentation Production-closeout commit |
-| Pushed | **Yes** — Application Source and containing Production closeout normally pushed on the current branch |
+| Committed | **Yes** — functional/test commit `19471d9a3a728e42def5500a86cc91ce1da4a1e8`, READY handoff commit `d12f5c3ff183bd5afa316f0830c274d076854ce6`, the Production-closeout documentation commit, and the containing combined Parking Lot documentation publication commit |
+| Pushed | **Yes** — Application Source, Production closeout, and the combined Parking Lot documentation publication are normally pushed on the current branch |
 | Current Source | Exact Application Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Production serves the same Source |
 | Pushed Source | `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
 | Deployed | **Yes — exact Owner-tested artifact is Production-active** |
@@ -57,15 +57,15 @@ PRODUCTION VERIFICATION PASSED**.
 | Production Data Changed | No task-attributable change found |
 | Customer Impact | Corrected Assignment current/future and evidence-clarity behavior is now Production-active for authorized users; no customer data changed |
 | Financial Impact | None |
-| Functional / Test / Documentation / Migration / Configuration Changes | Promotion closeout `0 / 0 / 3 / 0 / 0`; cumulative bounded correction functional/test `2 / 1` |
+| Functional / Test / Documentation / Migration / Configuration Changes | Combined Parking Lot documentation publication `0 / 0 / 3 / 0 / 0`; cumulative completed Assignment correction functional/test `2 / 1` |
 | Scope Expansion | No |
 | Scope Breach | No |
-| Documentation Drift | **No after this Production-closeout commit is published** |
+| Documentation Drift | **No after the combined Parking Lot documentation publication is committed and pushed** |
 | Blocker | None for the completed task; the old three timeout Root Cause remains an Owner-accepted Unknown limitation |
 | Remaining Work | None for this task; await Owner selection of a new Scope Contract |
 | Task Done | **Yes** |
 | Next Gate / Next Action | **Await Owner selection; do not start any Parking Lot item automatically** |
-| Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
+| Parking Lot authorization state | The ordered Owner selection queue remains unchanged: `1.` Thai UI Terminology & Shared Helper; `2.` Admin Notifications Recommendations. LINE External-Browser Handoff Audit, **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONTH BOOKING**, **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATION**, and all other candidates remain Owner-selection-only and unauthorized. The Adult/Family entitlement candidate and the separate Private identity candidate are durably registered/published as unranked candidates; neither is the Active Task and neither may start without a new Owner-approved Scope Contract |
 
 The bounded correction does not change History queries, authorization, event
 types, deduplication, ordering, or maximum-five semantics. A normal booking event
