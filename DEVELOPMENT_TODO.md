@@ -12641,3 +12641,81 @@ Next Action: Owner performs read-only UAT on exact artifact
 `19471d9a3a728e42def5500a86cc91ce1da4a1e8` and replies with that exact PASS
 identity. Do not Promote, alias, rebuild, change Source/config, mutate data, or
 start another task before Owner PASS.
+
+### 2026-08-07 — Assignment Group Lifecycle Integrity — Production Closeout
+
+The Owner returned exact PASS
+`dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` /
+`19471d9a3a728e42def5500a86cc91ce1da4a1e8` and authorized one no-rebuild
+Promotion, read-only Production verification, and documentation closeout. No
+other artifact, retry, redeploy, alias command, rollback, business-data action, or
+new task was authorized.
+
+#### Fact — Promotion Identity and Continuity
+
+- Fresh Gate 0 found branch `spike/next-major-security-upgrade`, local/remote HEAD
+  `d12f5c3ff183bd5afa316f0830c274d076854ce6`, ahead/behind `0/0`, and Application
+  Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8` as an ancestor. The only
+  Source-to-HEAD changes were the three READY-handoff documents; functional/test/
+  Migration/config drift was `0/0/0/0`.
+- Before Promotion, exact candidate identity was `production/READY/icn1`, aliases
+  `[]`, Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`, created/building/ready
+  `2026-08-07T02:11:16.922Z` / `02:11:18.695Z` / `02:12:26.651Z`. Rollback
+  candidate `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` remained READY, and all four
+  established Production aliases pointed to it.
+- Vercel CLI 58.7.1 syntax inspection confirmed
+  `vercel promote url|deploymentId`. One exact invocation began at
+  `2026-08-07T03:37:20.776Z`, ended at `03:37:27.621Z`, exited `0`, and reported
+  the same deployment ID/URL as promoted.
+- Post-Promotion identity retained the same deployment ID, Source SHA, target,
+  region, state, and all three creation/build timestamps. Deployment inventory
+  contained zero new deployment after Promotion start. Promotion invocation/
+  retry/rebuild/redeploy/separate-alias-mutation/rollback counts were
+  `1/0/0/0/0/0`.
+- Alias inventory remained exactly eight rows. The four established Production
+  aliases — `www.newathleteschool.com`,
+  `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` — all
+  map to exact deployment `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`. No separate alias
+  command ran.
+
+#### Fact — Production Verification and Safety
+
+- `www.newathleteschool.com` and the canonical Vercel Production alias returned
+  root HTTP 200. The two team project aliases were identity-confirmed in alias
+  inventory and retained their existing Vercel Authentication redirect behavior.
+  `/api/health` returned HTTP 200 `application/json`; real CSS
+  `/_next/static/css/30ade39c108116be.css` returned HTTP 200; unauthenticated
+  `/coach/assign-groups` returned expected 307 to `/auth/login`.
+- Bounded exact-deployment runtime records showed HTTP 200 requests and the
+  expected Assignment 307. Error/fatal/5xx and POST request records were
+  `0/0/0/0`; verification methods were GET/read-only. No accessible authenticated
+  Browser tab remained for the optional post-Promotion Head Coach visual check,
+  so no new login was requested.
+- Promotion-window SELECT-only reconciliation returned activity logs,
+  Assignment groups created, Assignment groups updated, memberships created, and
+  notifications created `0/0/0/0/0`. DB fixture/write was `0/0`; no Save,
+  Reschedule, Wallet, Attendance, Check-in, Close Week, repair, or backfill ran.
+- Protected stat-dirty `src/lib/schedule-slot-utils.ts` remained worktree/index
+  blob `4521281d099efb189429a744909552d67871ff23`. Lifecycle migration SHA-256
+  remained `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8`;
+  Migration/Environment/Feature/Allowlist changed `0/0/0/0`.
+
+#### Fact / Unknown — Final State Observed at This Closeout
+
+- Source Complete **Yes**; Tests Passed **Yes — prior exact-Source `173/173` plus
+  TypeScript/lint/mojibake/build/diff gates retained because Source/config bytes
+  did not change**; committed/pushed **Yes/Yes**; Owner UAT **Passed**; exact
+  artifact Promoted/Production Active **Yes/Yes**; automated Production checks
+  **Passed**; manual authenticated Owner Production UAT **Not run/not required**;
+  Controlled Write UAT **Not run**; DB fixture/write **0/0**; Production Data
+  Changed/Data Repaired **No/No**; Customer Impact **corrected Assignment behavior
+  is active, no customer-data change**; Financial Impact **None**; Scope
+  Expansion/Breach **No/No**; rollback used **No**; Task Done **Yes**.
+- The old three timeout phase remains Unknown as an Owner-accepted historical
+  limitation. This closeout makes no causal inference about it. No other current
+  blocker remains.
+
+Next Action: Active Task is **None — Awaiting Owner Selection**. All Parking Lot
+items remain unauthorized until the Owner supplies a new Scope Contract.

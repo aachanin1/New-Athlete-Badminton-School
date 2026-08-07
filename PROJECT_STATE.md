@@ -2,68 +2,69 @@
 
 Last updated: 2026-08-07
 
-Current source: READY FOR OWNER UAT handoff for the single Active Task
-**ASSIGNMENT GROUP LIFECYCLE INTEGRITY**. The Owner accepted the old timeout root
-cause as an Unknown limitation and approved the bounded Assignment History clarity
-correction. Booking-derived events now omit an unsupported actor, evidenced actors
-remain visible, and lifecycle evidence gaps render as an explicit Admin-review
-warning without an asserted action time or inferred cause. Source/tests are
-committed and pushed, the final uninstrumented exact-SHA staged Production-target
-artifact passed deterministic, performance, browser, runtime, and read-only data-
-safety gates, and Current Production is unchanged. Promotion remains prohibited
-until the Owner passes this exact artifact/SHA. The first matrix is authoritative;
-later task snapshots are Historical / Superseded.
+Current source: Production closeout for completed task **ASSIGNMENT GROUP
+LIFECYCLE INTEGRITY**. The Owner passed exact artifact
+`dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Application Source
+`19471d9a3a728e42def5500a86cc91ce1da4a1e8`. One exact `vercel promote`
+invocation made that same no-rebuild artifact Production-active; all four
+established Production aliases converged, identity/timestamps remained unchanged,
+and post-Promotion health, static, auth-protection, runtime-log, Source-drift, and
+SELECT-only data-safety gates passed. No business-data, Migration, Environment,
+Feature, Allowlist, Source, test, configuration, or separate alias action changed.
+The old timeout Root Cause remains an Owner-accepted Unknown historical
+limitation. The first matrix is authoritative; later task snapshots are Historical
+/ Superseded.
 
-## Current Handoff — Assignment History Evidence Clarity
+## Current Closeout — Assignment Group Lifecycle Integrity
 
-Status: **READY FOR OWNER UAT — TECHNICAL GATES PASSED; PROMOTION PENDING EXACT
-OWNER PASS**.
+Status: **TASK DONE — OWNER UAT PASSED; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
-| Task Status | **READY FOR OWNER UAT** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — ASSIGNMENT GROUP LIFECYCLE INTEGRITY** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Containing 2026-08-07 READY handoff documentation commit; exact Application Source is `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Local HEAD | Containing 2026-08-07 Production-closeout documentation commit; exact Application Source is `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
 | Remote HEAD | Equal to Local HEAD after the authorized normal documentation push |
-| Ahead/Behind | `0/0` in the published READY handoff state |
+| Ahead/Behind | `0/0` in the published Production-closeout state |
 | Source Complete | **Yes** — booking events omit unsupported actors, evidenced actors remain visible, and Unknown lifecycle gaps render the Owner-approved Admin-review warning without confirmed time/cause semantics |
-| Tests Passed | **Yes** — six deterministic suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake over `256` files, Next.js 16.2.6 production build/static generation `93/93`, complete staged review, and `git diff --check` passed |
+| Tests Passed | **Yes** — six deterministic suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake over `256` files, Next.js 16.2.6 production build/static generation `93/93`, complete staged review, and `git diff --check` passed. Full suites were not rerun at Promotion because Source/config bytes were unchanged |
 | Performance Gate | **Passed** — authenticated current warm-up `3.368s` plus measured `20/20`; nearest-rank min/P50/P95/max `2.077/2.417/2.519/2.689s`, below the `5.000s` P95 ceiling. History warm-up `0.640s` plus measured `10/10`; min/P50/P95/max `0.524/0.619/0.643/0.643s`, below the `2.000s` ceiling. No timeout occurred |
 | Completeness / Calls | Current Bangkok today-forward population was stable across all 20 samples at `941` learner-sessions / `303` slots, saved/assigned aggregate `262/303`; roster completeness/pagination/duplicate checks passed. Initial assignment-history, assignment-memory, and Client Supabase Data API requests were `0/0/0`. Rapid History double-click produced one GET; warm-up plus 10 History samples produced `11` authenticated GET log records, all HTTP 200. Exact browser transferred bytes and newly instrumented internal query-call/page/batch timing are Unknown; no DOM proxy is used as wire bytes |
-| Committed | **Yes** — functional/test commit `19471d9a3a728e42def5500a86cc91ce1da4a1e8` plus the containing documentation READY handoff commit |
-| Pushed | **Yes** — Application Source and containing READY handoff normally pushed on the current branch |
-| Current Source | Exact Application Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Production remains Source `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Committed | **Yes** — functional/test commit `19471d9a3a728e42def5500a86cc91ce1da4a1e8`, READY handoff commit `d12f5c3ff183bd5afa316f0830c274d076854ce6`, plus the containing documentation Production-closeout commit |
+| Pushed | **Yes** — Application Source and containing Production closeout normally pushed on the current branch |
+| Current Source | Exact Application Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Production serves the same Source |
 | Pushed Source | `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
-| Deployed | **Yes, staged Production-target only; READY for exact-artifact Owner UAT** |
-| Deployed Source | Staged-only `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Production `03d08a93e77189d56b733bda009d9526400fa9b3` |
-| Deployment ID | `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`, URL `https://new-athlete-badminton-school-1xg6xtdgi-aachanin1s-projects.vercel.app`, target `production`, state `READY`, runtime region `icn1`, aliases `[]`, exact Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; staged/unpromoted pending exact Owner PASS |
+| Deployed | **Yes — exact Owner-tested artifact is Production-active** |
+| Deployed Source | Production `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Deployment ID | `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`, URL `https://new-athlete-badminton-school-1xg6xtdgi-aachanin1s-projects.vercel.app`, target `production`, state `READY`, runtime region `icn1`, exact Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; created/building/ready `2026-08-07T02:11:16.922Z` / `02:11:18.695Z` / `02:12:26.651Z`, unchanged across Promotion; established Production aliases `4/4` |
 | Rejected / Blocked Artifacts | Owner-clarity-rejected `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` / `31bceb1ee7c5b27dcd4d6ccb1e2bd886dbf2633c`; Performance-failed `dpl_BsHsXTpPyLG7btkm3crvZfnX7L3A`; all earlier blocked/rejected Assignment artifacts remain evidence only and must never be Promoted |
-| Current Production | Unchanged `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` / `03d08a93e77189d56b733bda009d9526400fa9b3` |
+| Current Production | `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; prior `dpl_5KVSd4jqNB3tqYA1t9qHjb4VBHZC` remains READY as rollback candidate, but rollback was not used |
 | Migration Source | Unchanged `supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql`, SHA-256 `47D1B3FD43F8E9F115AD72917C87BDD2DFE3D83FECB0FCE4419DF3593CC4ECC8` |
 | Migration Applied | **Yes** — Supabase migration inventory still contains version `20260804000000`; no migration creation, edit, apply, or reapply ran this round |
 | Environment Changed | No |
 | Feature Enabled | No feature-control change |
 | Allowlisted | Unchanged; no allowlist action |
-| Production Active | **No for this task; current Production artifact/source unchanged** |
-| Owner UAT | **Pending** on exact staged artifact `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; prior artifact `dpl_G3jEfGLUXp383V6jJMBCzKv8DVrS` remains rejected |
-| Production UAT | Not run; task is not Production-active |
+| Production Active | **Yes — exact Owner-tested artifact/SHA** |
+| Owner UAT | **Passed** — exact Owner PASS `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Production UAT | Automated read-only Production verification passed; manual authenticated Owner Production UAT was not run and was not required by this closeout |
 | Controlled Write UAT | Not run / prohibited |
-| DB Fixture / DB Write | `0 / 0` task-attributable. SELECT-only exact test-window audit found activity logs, Assignment groups, memberships, and notifications created `0/0/0/0` |
+| DB Fixture / DB Write | `0 / 0`. Promotion-window SELECT-only audit found activity logs, Assignment groups created/updated, memberships, and notifications `0/0/0/0/0` |
 | Data Repaired | No |
 | Production Data Changed | No task-attributable change found |
-| Customer Impact | None direct; corrected Source is staged only |
+| Customer Impact | Corrected Assignment current/future and evidence-clarity behavior is now Production-active for authorized users; no customer data changed |
 | Financial Impact | None |
-| Functional / Test / Documentation / Migration / Configuration Changes | `2 / 1 / 3 / 0 / 0` for this bounded evidence-clarity correction and READY handoff |
+| Functional / Test / Documentation / Migration / Configuration Changes | Promotion closeout `0 / 0 / 3 / 0 / 0`; cumulative bounded correction functional/test `2 / 1` |
 | Scope Expansion | No |
 | Scope Breach | No |
-| Documentation Drift | **No after this READY handoff commit is published** |
-| Blocker | **Owner UAT pending only.** The old three timeout root cause remains Unknown as an Owner-accepted known limitation; the final exact artifact had no timeout and passed both performance ceilings |
-| Remaining Work | Owner performs read-only UAT on the exact staged artifact/SHA and replies with exact PASS identity. Do not Promote, alias, rebuild, or mutate data before that PASS |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner UAT on `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; Promotion remains prohibited before exact PASS** |
+| Documentation Drift | **No after this Production-closeout commit is published** |
+| Blocker | None for the completed task; the old three timeout Root Cause remains an Owner-accepted Unknown limitation |
+| Remaining Work | None for this task; await Owner selection of a new Scope Contract |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Await Owner selection; do not start any Parking Lot item automatically** |
 | Parking Lot authorization state | Thai UI Terminology & Shared Helper, Admin Notifications Recommendations, LINE External-Browser Handoff Audit, and all other candidates remain Owner-selection-only and unauthorized |
 
 The bounded correction does not change History queries, authorization, event
@@ -76,7 +77,7 @@ confirmed action time or inferred cause. Authenticated technical inspection foun
 real existing booking, evidenced-actor, and evidence-gap cases; no UUID or PII is
 recorded here.
 
-Browser gates passed current/future navigation, historical URL normalization,
+Pre-Promotion technical Browser gates passed current/future navigation, historical URL normalization,
 rapid double-click guard, Back/Forward, localized History loading/single-flight/
 cache, desktop `1440×900`, and mobile `390×844` without horizontal overflow.
 Console warning/error/hydration and bounded runtime error/fatal/5xx were all
@@ -84,7 +85,22 @@ Console warning/error/hydration and bounded runtime error/fatal/5xx were all
 Unknown because the Browser API does not expose `PerformanceResourceTiming`; no
 DOM-length proxy is reported as wire bytes. The old three timeout phase remains
 Unknown but is an Owner-accepted historical limitation, not a new attribution
-claim or a failure of the final exact artifact.
+claim or a failure of the final exact artifact. Owner subsequently passed the
+exact staged identity.
+
+One CLI 58.7.1 `vercel promote` invocation ran from
+`2026-08-07T03:37:20.776Z` to `03:37:27.621Z` and exited `0`; invocation/retry/
+rebuild/redeploy/separate-alias-mutation/rollback counts were `1/0/0/0/0/0`.
+No deployment was created after Promotion start. Alias inventory remained eight
+rows, and `www.newathleteschool.com`,
+`new-athlete-badminton-school.vercel.app`,
+`new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+`new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` all map to
+the exact deployment. Canonical/custom Production root, health JSON, real CSS,
+and unauthenticated Assignment protection returned `200/200/200/307`; bounded
+runtime error/fatal/5xx and POST request counts were `0/0/0/0`. No accessible
+authenticated browser tab remained for optional post-Promotion Head Coach visual
+inspection, so no new login was requested.
 
 `src/lib/schedule-slot-utils.ts` remains pre-existing stat-dirty but content-
 identical to index blob `4521281d099efb189429a744909552d67871ff23`; it was not

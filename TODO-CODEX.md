@@ -9,33 +9,35 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**ASSIGNMENT GROUP LIFECYCLE INTEGRITY — READY FOR OWNER UAT; EXACT ARTIFACT
-STAGED AND UNPROMOTED.**
+**None — Awaiting Owner Selection.**
 
-- Bounded evidence-clarity correction is Source-complete at
-  `19471d9a3a728e42def5500a86cc91ce1da4a1e8`: booking events omit unsupported
-  actors, evidenced actors remain visible, and legacy evidence gaps render the
-  Owner-approved Admin-review warning without a confirmed time or inferred cause.
-- Six suites passed `173/173`; TypeScript, zero-warning ESLint, mojibake,
-  production build/static generation `93/93`, complete staged review, and diff
-  check passed. Functional/test changes were `2/1`; migration/config changes were
-  `0/0`.
-- Exact unaliased staged Production-target artifact
-  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP`, Source `19471d9...`, region `icn1`, state
-  READY, aliases `[]`, passed current `20/20` at P95 `2.519s` and History `10/10`
-  at P95 `0.643s`; no timeout occurred. Console/hydration/runtime error/fatal/5xx
-  were zero, and desktop/mobile/navigation/read-only gates passed.
-- Initial History/Memory/Client Supabase requests were `0/0/0`; rapid History
-  double-click produced one GET and cached reopen produced none. SELECT-only audit
-  found task-attributable activity/Assignment/notification creates `0`; DB
-  fixture/write, repair, Migration, Environment, Feature, Allowlist, alias,
-  Promotion, and Production changes were `0`.
-- Next action: Owner performs read-only UAT on the exact artifact/SHA and replies
-  `PASS dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP / 19471d9a3a728e42def5500a86cc91ce1da4a1e8`.
-  Do not Promote, alias, rebuild, mutate data, or start another task before that
-  exact PASS. `PROJECT_STATE.md` is authoritative.
+- `ASSIGNMENT GROUP LIFECYCLE INTEGRITY` is TASK DONE. Current mutable Source,
+  Production, UAT, Migration, data-safety, and closeout state is authoritative in
+  `PROJECT_STATE.md`.
+- Do not start Thai UI Terminology & Shared Helper, Admin Notifications
+  Recommendations, LINE External-Browser Handoff Audit, or any other Parking Lot
+  item without a new Owner-selected Scope Contract.
 
 ## Recently Completed
+
+### ASSIGNMENT GROUP LIFECYCLE INTEGRITY
+
+Status: **TASK DONE — OWNER UAT PASSED; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Owner passed exact artifact `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Application
+  Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`. One Promote invocation moved
+  the same deployment to Production; retry/rebuild/redeploy/separate alias/
+  rollback counts were `0/0/0/0/0`.
+- All four established Production aliases point to that exact artifact. Identity
+  and creation/build/ready timestamps were unchanged; no deployment was created
+  by Promotion. Production root/health/real CSS/auth protection and bounded
+  runtime log gates passed.
+- Promotion-closeout functional/test/migration/config changes were `0/0/0/0`.
+  DB fixture/write was `0/0`; Production data, Environment, Feature, Allowlist,
+  customer data, and financial state were unchanged. The old timeout Root Cause
+  remains an Owner-accepted Unknown historical limitation.
+- Next action: await a new Owner-selected task. `PROJECT_STATE.md` is authoritative.
 
 ### ADMIN PAYROLL ACCURACY + PERFORMANCE
 
