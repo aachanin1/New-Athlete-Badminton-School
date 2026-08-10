@@ -4,19 +4,17 @@ Last updated: 2026-08-10
 
 Current source: **READY FOR OWNER UAT** for **ADMIN NOTIFICATIONS RECOMMENDATIONS
 — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC**. Functional Source
-`e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` is committed, pushed, applied to the
-linked Supabase project through the one corrective Migration, and built as staged
-Production-target artifact `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` with no alias.
-The single Owner-authorized Production reconciliation preserved the original 30
-items and appended 95 eligible accounts at positions `31–125`; it created zero
-requests and zero notifications. Promotion remains prohibited until Owner PASS.
-This first matrix is the only authority for current mutable state; later records
-are Historical / Superseded.
+`a23915959e393b760bb6b0f1c8f57a0054a839de` is committed, pushed, and built as
+staged Production-target artifact `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` with zero
+aliases. Corrective Migration `20260810064847` is applied. This round changed no
+tracking row and sent no Notification. Promotion remains prohibited until Owner
+PASS. This first matrix is the only authority for current mutable state; later
+records are Historical / Superseded.
 
-## Current Handoff — Notification Full Roster Ready for Owner UAT
+## Current Handoff — Notification Roster Readability Ready for Owner UAT
 
 Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; DATABASE
-RECONCILED; NOT PROMOTED; NOTIFICATION SENDS `0`**.
+READ CONTRACT UPDATED; NOT PROMOTED; TASK NOTIFICATIONS SENT `0`**.
 
 ### Current Project Matrix
 
@@ -25,98 +23,98 @@ RECONCILED; NOT PROMOTED; NOTIFICATION SENDS `0`**.
 | Active Task | **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC** |
 | Task Status | **READY FOR OWNER UAT** |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | The documentation-only closeout commit containing this matrix; Functional Source remains `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` |
+| Local HEAD | The documentation-only closeout commit containing this matrix; Functional Source remains `a23915959e393b760bb6b0f1c8f57a0054a839de` |
 | Remote HEAD | The same documentation-only closeout commit after normal push |
 | Ahead/Behind | `0/0` after the documentation closeout push |
 | Source Complete | **Yes** |
-| Tests Passed | **Yes** — focused/protected checks, TypeScript, zero-warning lint, mojibake, Production build, local Supabase reset/lint/fixture/final reset, RLS/GRANT, advisors, performance, diff compliance, staged smoke, and runtime-log scan passed |
-| Committed | **Yes** — Functional/Test/Migration Source commit `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; this matrix is published by the containing documentation-only closeout commit |
+| Tests Passed | **Yes** — focused/protected checks, TypeScript, zero-warning lint, mojibake, Production build, local Supabase reset/lint/fixture/final reset, RLS/GRANT, advisors, query plan/P95, diff compliance, staged smoke, and runtime-log scan passed |
+| Committed | **Yes** — Functional/Test/Migration Source commit `a23915959e393b760bb6b0f1c8f57a0054a839de`; this matrix is published by the containing documentation-only closeout commit |
 | Pushed | **Yes** — current branch is published normally |
-| Current Source | `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` |
-| Pushed Source | `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` |
-| Deployed | **Yes, staged only** — Production-target artifact `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` is READY and has alias count `0` |
-| Deployed Source | Staged-only Source `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; Production-active Source remains `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
-| Deployment ID | Staged `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX`; Production-active `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` |
-| Staged Artifact / SHA | `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` / `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; `https://new-athlete-badminton-school-92j56wffp-aachanin1s-projects.vercel.app` |
-| Current Production | Existing `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; the new artifact was not promoted and received no alias |
-| Migration Source | `20260810034515_admin_notification_follow_up_full_roster_search.sql`; SHA-256 `2360ee1859254e9bd6f377a9152aef017f99665158be4f801eecf15533a0e106`; prior Migration was not edited |
-| Migration Applied | **Yes** — exactly one corrective version `20260810034515`; local/linked inventories now contain `26` versions |
+| Current Source | `a23915959e393b760bb6b0f1c8f57a0054a839de` |
+| Pushed Source | `a23915959e393b760bb6b0f1c8f57a0054a839de` |
+| Deployed | **Yes, staged only** — Production-target artifact `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` is READY and has alias count `0` |
+| Deployed Source | Staged-only Source `a23915959e393b760bb6b0f1c8f57a0054a839de`; Production-active Source remains `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Deployment ID | Staged `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED`; Production-active `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` |
+| Staged Artifact / SHA | `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / `a23915959e393b760bb6b0f1c8f57a0054a839de`; `https://new-athlete-badminton-school-8twv66w4k-aachanin1s-projects.vercel.app` |
+| Current Production | Existing `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; all four established aliases remain there |
+| Migration Source | `20260810064847_admin_notification_follow_up_course_history_attendance.sql`; SHA-256 `f4239ad4b268406689eeac8ce79b4cf29d1e5c69f5894b53f9ce7c20eeddd893`; all prior Migrations remained byte-unchanged |
+| Migration Applied | **Yes** — exactly one corrective version `20260810064847`; local/linked inventories now contain `27` versions |
 | Environment Changed | No |
 | Feature Enabled | No feature-control change |
 | Allowlisted | No allowlist change |
-| Production Active | **No for the new Admin UI Source** because it is not promoted; **Yes for the applied v2 database contract and reconciled tracking roster** |
+| Production Active | **No for the new Admin UI Source** because it is not promoted; **Yes for the updated service-only workspace database read contract** |
 | Owner UAT | **Pending** for the exact staged artifact/SHA |
 | Production UAT | **Not passed**; Promotion is prohibited before Owner PASS |
-| Controlled Write UAT | **Passed for the one authorized atomic reconciliation only**; Controlled Send UAT was not run and remains prohibited |
-| Reconciliation Invocations | `1` |
-| Notifications Sent | `0`; request rows `0`; linked Follow-up notifications `0` |
-| DB Fixture / DB Write | Local disposable fixture passed and was removed by final reset. Production tracking write changed only the active roster: original `30` preserved, `95` inserted, `0` excluded |
-| Data Repaired | **Yes — active tracking roster reconciled to current eligibility under Preserve & Extend policy** |
-| Production Data Changed | **Yes — tracking rows only.** One active campaign and batch remain; items changed from `30` to `125`; no customer notification, booking, attendance, wallet, payment, finance, or payroll row changed |
-| Customer Impact | No notification was created or sent. The change is internal Admin tracking data and a staged, non-active Admin UI |
+| Controlled Write UAT | **Not run / prohibited in this round**; no Start, Sync, Reconcile, Send, status update, or tracking write was invoked |
+| Reconciliation Invocations | `0` in this round |
+| Original Rows Preserved / Rows Inserted / Rows Excluded | `125 / 0 / 0` in this round |
+| Requests Created / Notifications Sent | `0 / 0` in this round. Current retained totals observed at Gate 0 are `3` completed requests, `4` recipients, and `4` linked sent Notifications |
+| Rollback Used | No |
+| DB Fixture / DB Write | Disposable local fixture passed and final reset removed it. Production DDL replaced one read-only workspace function; tracking/business row writes were `0` |
+| Data Repaired | No business-data repair; the service-only database read contract was corrected |
+| Production Data Changed | **No tracking or business row changed in this round.** Migration metadata/function definition changed; campaign/batch/items/requests remain `1/1/125/3` |
+| Customer Impact | None from this round: no Notification was created/sent and the new Admin UI is staged, not active. Four linked sent rows were pre-existing at Gate 0 |
 | Financial Impact | None |
-| Functional / Test / Documentation / Migration / Configuration Changes | `5 / 1 / 3 / 1 / 0`; dependency changes `0` |
-| Scope Expansion | None — all work stayed inside the Owner-approved Preserve & Extend corrective contract |
+| Functional / Test / Documentation / Migration / Configuration / Dependency Changes | `3 / 1 / 3 / 1 / 0 / 0` |
+| Scope Expansion | None |
 | Scope Breach | No |
-| Documentation Drift | **No after the containing closeout commit is published**; the earlier Hard Stop remains below as Historical / Superseded |
+| Documentation Drift | **No after the containing closeout commit is published**; the earlier `125 pending / 0 requests` snapshot remains dated history only |
 | Blocker | None |
 | Remaining Work | Owner performs read-only UAT on the exact staged artifact/SHA and returns PASS or FAIL. Only PASS authorizes exact-artifact Promotion |
 | Task Done | **No — waiting for Owner UAT PASS and Promotion** |
 | Next Gate / Next Action | **OWNER UAT. Do not start/sync a cycle, update item status, send individually, confirm Bulk Send, Promote, or mutate aliases before Owner PASS** |
 | Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
 
-### Reconciliation and Release Evidence
+### Corrective Read Contract and Release Evidence
 
-- Owner approval superseded the local Hard Stop and authorized Preserve & Extend
-  of the same active campaign, batch, and original 30 items. Campaign/batch
-  identity, actors, timestamps, sequence, original item IDs, user IDs, positions
-  `1–30`, timestamps, and null notification/sent fields were preserved exactly.
-- Both mandatory precondition gates passed with campaign/batch/items/requests
-  `1/1/30/0`, active campaign/batch, 30 pending positions `1–30`, sent/excluded/
-  linked notifications `0/0/0`, no duplicate user/position, and signed preflight
-  manifest SHA-256
-  `ffa731d4d25b7a1c7e47468686910c29a7e8aacf64752295d08bee4f839de149`.
-  The secure DPAPI preimage outside the repository contains the exact original
-  rows; its ciphertext SHA-256 is
-  `2195e4c6fe73f79e0dbd1cba97d9fd6060c44707ea1084200eea0f8bfb63a5ce`.
-- Exactly one reconciliation invocation ran under the database transaction and
-  advisory-lock contract. Its non-PII plan SHA-256 is
-  `1b88461dc41edf28a9914ae5b46a37fa7a41dcc56812414706638e29d70593a9`;
-  the after-manifest SHA-256 is
-  `a4ff19397d5317320e597d176aae94116e25752a1c2e35427781f157f47aa65d`.
-  Before/after items were `30/125`; original/new/excluded were `30/95/0`.
-  Rollback was not used.
-- Final SELECT-only verification found one active campaign, one active batch,
-  125 pending items, continuous positions `1–125`, eligible roster `125`, and
-  missing eligible, unexpected noneligible pending, duplicate users, duplicate
-  positions, sent, excluded, requests, and linked notifications all `0`.
-- The v2 manifest/start/sync/workspace/send/reconcile functions are
-  `SECURITY INVOKER` with explicit empty `search_path`, no PUBLIC/anon/
-  authenticated execute, and service-role-only grants. Mutating v1 start/send
-  service-role execution is revoked; RLS remains enabled on all four tracking
-  tables. Advisors found only expected INFO for policy-less service-only tables
-  and unused legacy send indexes; no new extension or index was added.
-- Focused checks passed `14/14`; protected notification-date `26/26`, Wallet
-  `19/19`, slot availability `8/8`, payroll `14/14`, and booking-entry runtime
-  passed. The disposable fixture covered 30/125/140 users, 140 users across 14
-  pages, Thai/Latin search, parent/child/adult/private display, max-10 bulk,
-  reset-on-page/search/filter, explicit Sync, sent preservation, idempotency,
-  concurrency, and all-or-none behavior.
-- Production roster/search P95 measured `88.224/96.556 ms`; the search plan used
-  shared buffers only and executed in `48.705 ms`, so no new index was justified.
-  TypeScript, lint, mojibake, Production build `94/94`, Production readiness,
-  migration reset/list/lint, `git diff --check`, staged smoke, and bounded runtime
-  logs passed.
-- Vercel reports the staged artifact target `production`, state `READY`, no alias,
-  and both Git/custom Source metadata equal to the exact Functional Source SHA.
-  The staged root rendered successfully, Admin Notifications enforced the normal
-  Login redirect for anonymous access, and no staged warning/error/fatal runtime
-  log was found. The artifact records `gitDirty=1` only because the three
-  documentation closeout files and protected stat-dirty file were excluded from
-  executable Source; the protected file content is identical to HEAD.
-- Superseded artifact `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` has no Production alias
-  and remains **MUST NOT PROMOTE**. No Environment, secret, flag, allowlist,
-  dependency, Promote, or alias action occurred.
+- Both SELECT-only repeatable-read Production gates were exact: campaign/batch/
+  items/requests `1/1/125/3`, active campaign/batch `1/1`, pending/sent/excluded
+  `121/4/0`, completed/processing requests `3/0`, request recipients `4`, linked
+  Notifications `4`, and positions `1–125` continuous. Duplicate users,
+  positions, Notification IDs, orphans, shape mismatches, and invalid sent/pending
+  fields were all `0`. Item/request manifest SHA-256 values remained
+  `d6eb3d1697a45780e74aa9ad1c7898246042257beaa54f6f2f5db1da9594bf97` and
+  `af5ea39ec9def9d9ed661cc4bf882ba4fc34c8b353c2c3269def9e8b8484c1f6`.
+- Eligibility remained `125`, missing eligible and unexpected noneligible pending
+  were `0/0`. Applying the Migration did not change either manifest, any count,
+  any row, or any Notification/Request relationship.
+- Customer Follow-up now starts a server GET automatically after a 300 ms typing
+  pause, aborts stale GETs, and retains immediate button/Enter/filter/page actions.
+  Course History is account-level, paid/verified-only, canonical and ordered
+  Kids Group, Adult Group, Private. Latest attendance is the maximum non-future
+  session date backed by exact learner `present/late` Attendance; absent, wrong
+  learner, walleted, rescheduled, cancelled, and future rows do not qualify.
+  Course/attendance are display-only and are not search or Notification copy.
+- Missing child identity in both booking/session mappings now reads
+  `ต้องตรวจสอบรายชื่อผู้เรียน`. Thai UI shows canonical course badges, Buddhist
+  date-only attendance, and explicit no-history fallbacks. Private progress and
+  all Start/Sync/Send/Bulk behavior remain unchanged.
+- The replacement workspace function is Stable, `SECURITY INVOKER`, has explicit
+  empty `search_path`, and is executable by the database owner and `service_role`
+  only; PUBLIC/anon/authenticated remain revoked. Mutating v1 Start/Send remain
+  revoked from service role, and RLS remains enabled `4/4`. Task-specific advisor
+  findings were only expected INFO for service-only RLS/no-policy tables and
+  pre-existing unused indexes; advisor ERROR and task-specific WARN were `0`.
+- Focused checks passed `17/17`; protected notification-date `26/26`, Wallet
+  `19/19`, slot availability `8/8`, booking-entry runtime, Coach Teaching Hours
+  `20/20`, and Payroll `14/14` passed. TypeScript, zero-warning lint, mojibake over
+  259 files, Production build `94/94`, local migration reset/list/lint, disposable
+  fixture, final reset, `git diff --check`, and complete staged diff passed.
+- The disposable fixture proved canonical course ordering plus child/adult exact
+  attendance and rejected absent, wrong learner, walleted, rescheduled, and future
+  evidence. Production Postgres `EXPLAIN ANALYZE` ran in `56.764 ms` with shared
+  hits and physical reads `0`; 20 direct database samples had median/P95/max
+  `53.413/60.858/61.264 ms` and failures `0`, so no index was justified.
+- Vercel reports artifact `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` as target
+  `production`, `READY`, Git SHA exact, and aliases `[]`. Root/health/static were
+  `200`, anonymous Admin Notifications redirected `307` to normal Login, protected
+  Follow-up GET returned `401`, and bounded artifact logs contained six GET/info
+  requests with mutation/error/fatal/5xx counts `0/0/0/0`.
+- Artifact metadata `gitDirty=1` is solely the protected stat-dirty file, whose
+  content equals HEAD. Superseded staged artifacts
+  `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` and
+  `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` must not be promoted. No Environment,
+  secret, flag, allowlist, dependency, Promote, rollback, or alias action occurred.
 
 The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remains byte-identical
 to index blob `4521281d099efb189429a744909552d67871ff23` with SHA-256

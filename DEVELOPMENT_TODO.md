@@ -13369,3 +13369,146 @@ Customer Impact **No notification and no Production UI activation**; Financial
 Impact **None**; Documentation Drift **No after the containing closeout commit is
 published**; Blocker **None**; Task Done **No**; Next Action **read-only Owner UAT,
 then exact-artifact Promotion only after PASS**.
+
+### 2026-08-10 — Follow-up Auto Search, Course History, and Attendance UAT Handoff
+
+State observed at this closeout: the Owner authorized a bounded corrective round
+on the existing Full Roster workspace without Start, Sync, Reconcile, Send, item
+status mutation, or tracking-data reconciliation. The task remains **READY FOR
+OWNER UAT**, was not Promoted, and is not TASK DONE.
+
+#### Fresh Gate and Production Containment
+
+- Fresh Git audit began from exact branch/upstream Source
+  `17fe669bcb819a6e55c8292329464983c07746c8`, ahead/behind `0/0`, with only the
+  protected stat-dirty file. Source Root Cause was the button/Enter-only search,
+  generic unresolved-child fallback, and missing account-level course/attendance
+  read fields.
+- Gate 0 and the immediate pre-Migration gate used repeatable-read SELECT-only
+  transactions. Both returned campaigns/batches/items/requests `1/1/125/3`,
+  active campaign/batch `1/1`, pending/sent/excluded `121/4/0`, completed/
+  processing requests `3/0`, request recipients `4`, linked Notifications `4`,
+  continuous positions `1–125`, and zero duplicate users/positions/Notification
+  IDs, orphans, shape mismatches, or invalid sent/pending fields.
+- The item and request manifest SHA-256 values remained
+  `d6eb3d1697a45780e74aa9ad1c7898246042257beaa54f6f2f5db1da9594bf97` and
+  `af5ea39ec9def9d9ed661cc4bf882ba4fc34c8b353c2c3269def9e8b8484c1f6`
+  before and after Migration apply. Current eligibility/roster was `125/125`;
+  missing eligible and unexpected noneligible pending were `0/0`.
+- This round invoked Start/Sync/Reconcile/Send/status update `0/0/0/0/0` times.
+  Tracking row writes, new requests, new Notifications, rows inserted, and rows
+  excluded were all `0`; all existing `125` items were preserved. Rollback was
+  not used. The retained `3` completed requests and `4` linked sent Notifications
+  predated this round's Gate 0.
+
+#### Source and Database Contract
+
+- Three functional files implement the approved behavior. Search now performs a
+  GET after 300 ms without typing, while button/Enter remain immediate; request
+  sequencing plus `AbortController` prevents stale GET results. Search, filter,
+  and page changes clear selection. No POST is scheduled by the debounce.
+- Both booking and session input mappings use
+  `ต้องตรวจสอบรายชื่อผู้เรียน` when a non-null child identity cannot resolve.
+- Customer Follow-up rows show distinct account-level paid/verified Course
+  History in canonical Kids Group, Adult Group, Private order and account-level
+  latest real Attendance date. Attendance requires the exact
+  booking-session/learner match and status present or late, excludes future,
+  cancelled, walleted, and rescheduled rows, and does not infer from session
+  status or booking month/year. Course/attendance do not enter search or
+  Notification title/message/link. Private progress remains Package-level.
+- CLI generated exactly one new Migration,
+  `20260810064847_admin_notification_follow_up_course_history_attendance.sql`,
+  SHA-256 `f4239ad4b268406689eeac8ce79b4cf29d1e5c69f5894b53f9ce7c20eeddd893`.
+  Dry-run named only that file; linked apply succeeded once and the local/remote
+  ledger became 27 matching versions. Applied Migrations were not edited.
+- The replaced workspace function is Stable, `SECURITY INVOKER`, and uses an
+  explicit empty `search_path`. PUBLIC/anon/authenticated cannot execute it;
+  only the database owner and `service_role` retain execution. Mutating v1
+  Start/Send remain revoked from service role and tracking RLS remains `4/4`.
+  The Migration adds no table, column, index, extension, policy, trigger, DML,
+  automatic reconciliation, or Notification insert.
+
+#### Verification and Release Evidence
+
+- Focused checks passed `17/17`; notification date `26/26`, Lesson Wallet
+  `19/19`, booking slot `8/8`, booking-entry runtime, Coach Teaching Hours
+  `20/20`, and Payroll `14/14` passed. These protect notification, booking,
+  attendance, wallet, reschedule, makeup, coach, and payroll behavior.
+- TypeScript, zero-warning ESLint, mojibake over 259 files, Next Production build
+  `94/94`, local Supabase reset/list/lint, disposable fixture, final reset, full
+  staged diff, and `git diff --check` passed. Local authenticated Admin rendering
+  was not forced because the unchanged app environment does not point to local
+  Supabase; anonymous login protection and root/static runtime passed without a
+  task error. One unrelated pre-existing Login-logo LCP warning was observed.
+- The fixture proved canonical three-course ordering plus exact child/adult
+  present/late attendance and rejection of absent, wrong learner, walleted,
+  rescheduled, and future evidence. Production `EXPLAIN ANALYZE` was `56.764 ms`,
+  shared hits only and physical reads `0`; 20 direct database samples measured
+  median/P95/max `53.413/60.858/61.264 ms`, failures `0`.
+- Security/performance advisors returned task-specific ERROR/WARN `0/0`. Expected
+  INFO remained for service-only RLS/no-policy tables and pre-existing unused
+  indexes; no new index was justified. Existing project-wide advisor findings
+  remain outside this bounded task.
+- Functional/Test/Migration Source commit
+  `a23915959e393b760bb6b0f1c8f57a0054a839de` was pushed normally. Functional/
+  test/documentation/Migration/configuration/dependency counts are
+  `3/1/3/1/0/0`; Scope Expansion and Scope Breach are none.
+- `vercel --prod --skip-domain` created staged Production-target artifact
+  `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` at
+  `https://new-athlete-badminton-school-8twv66w4k-aachanin1s-projects.vercel.app`.
+  It is `READY`, exact-SHA, and has aliases `[]`. Root, health, and a real static
+  asset returned `200`; anonymous Admin Notifications returned `307` to normal
+  Login and unauthenticated Follow-up GET returned `401`. The bounded log window
+  contained six GET/info requests and no mutation, error, fatal, or 5xx.
+- The four established Production aliases remain on existing deployment
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source
+  `19471d9a3a728e42def5500a86cc91ce1da4a1e8`. The new artifact was not Promoted.
+  Prior staged artifacts `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` and
+  `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` are superseded and must not be promoted.
+- Protected `src/lib/schedule-slot-utils.ts` remained content-identical to index
+  blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  It was not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+#### Read-only Owner UAT
+
+Use an authenticated Admin/Super Admin with Notifications menu access on the
+exact staged URL/SHA:
+
+1. Open `/admin/notifications` and confirm Customer Follow-up shows total `125`,
+   pending/sent/excluded `121/4/0`, and 13 server pages at up to 10 rows each.
+2. Type a partial child nickname/name and then a parent/adult name; wait without
+   clicking Search and confirm results refresh after the 300 ms pause. Confirm
+   Enter/Search remains immediate.
+3. Clear/change search, status, and page; confirm each returns server results and
+   clears current-page selection.
+4. Inspect account Course History badges in Kids Group, Adult Group, Private
+   order and latest Thai attendance date or the explicit no-history fallback.
+5. Confirm child/adult/parent labels, explicit unresolved-child review text when
+   naturally present, and unchanged Private Package-level progress.
+6. Optionally select current-page rows only and confirm the UI cap is 10; do not
+   open or confirm a Send action.
+
+Do **not** click Start, Sync, update an item status, Send individually, Confirm
+Bulk Send, Promote, or mutate aliases. Known limitations: authenticated business
+rendering awaits Owner UAT; course/attendance are deliberately account-level and
+not searchable; the staged UI is not Production-active; retained request/sent
+history can change only through separately authorized real operations.
+
+Mandatory classification at this closeout: Active Task **ADMIN NOTIFICATIONS
+RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC**; Task
+Status **READY FOR OWNER UAT**; Source Complete **Yes**; Tests Passed **Yes**;
+Functional/Test/Docs/Migration counts **3/1/3/1**; Scope Expansion **None**;
+Scope Breach **No**; Committed/Pushed **Yes/Yes**; staged artifact/SHA
+`dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` /
+`a23915959e393b760bb6b0f1c8f57a0054a839de`; Deployed **staged only**;
+Production Active **No for new UI / Yes for corrected DB read contract**; Owner
+UAT **Pending**; Migration Applied **Yes**; Reconciliation Invocations **0**;
+Original Rows Preserved **125**; Rows Inserted/Excluded **0/0**; Requests Created
+**0**; Notifications Sent **0**; Rollback Used **No**; Environment Changed **No**;
+Feature Enabled/Allowlisted **No change/No change**; Production Data Changed **No
+tracking/business rows; function and migration ledger only**; Data Repaired **No
+business data**; Customer Impact **None from this staged round**; Financial Impact
+**None**; Documentation Drift **No after the containing closeout commit is
+published**; Blocker **None**; Task Done **No**; Next Action **read-only Owner UAT,
+then exact-artifact Promotion only after PASS**.

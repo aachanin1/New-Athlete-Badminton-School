@@ -12,24 +12,28 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES +
 INELIGIBLE SYNC — READY FOR OWNER UAT.**
 
-- Functional Source `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` is committed,
+- Functional Source `a23915959e393b760bb6b0f1c8f57a0054a839de` is committed,
   pushed, and built as exact staged Production-target artifact
-  `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` with no alias. Corrective Migration
-  `20260810034515` is applied; prior Migration was not edited.
-- The one Owner-authorized atomic Production reconciliation preserved all 30
-  original rows and appended 95 eligible accounts at positions `31–125`.
-  Final tracking is campaign/batch/items/requests `1/1/125/0`, all 125 items are
-  pending, eligibility is 125, and missing/noneligible/duplicate/sent/excluded/
-  linked-notification counts are all `0`. Rollback was not used; notifications
-  created or sent are `0`.
-- Tests, TypeScript, zero-warning lint, mojibake, Production build, local Supabase
-  reset/lint/fixture/final reset, RLS/GRANT/advisors/performance, diff compliance,
-  staged smoke, and runtime-log gates passed. No Environment, feature, allowlist,
-  dependency, Promote, or alias action occurred.
+  `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` with no alias. Corrective Migration
+  `20260810064847` is applied; prior Migrations were not edited.
+- Customer Follow-up now debounces automatic server GET search at 300 ms, shows
+  explicit unresolved-child review text, canonical account Course History badges,
+  and latest exact-learner present/late Attendance date. Course/attendance remain
+  display-only and do not alter search or Notification copy.
+- Production tracking was preserved byte-for-byte at campaigns/batches/items/
+  requests `1/1/125/3`, pending/sent/excluded `121/4/0`, completed requests/
+  recipients/linked Notifications `3/4/4`, positions `1–125`, eligible `125`, and
+  missing/noneligible/duplicates/orphans `0`. This round invoked no Start, Sync,
+  Reconcile, Send, status update, tracking write, request, or Notification.
+- Focused/protected tests, TypeScript, zero-warning lint, mojibake, Production
+  build, local Supabase reset/lint/fixture/final reset, RLS/GRANT/advisors,
+  Postgres P95, diff compliance, staged smoke, and runtime logs passed. No
+  Environment, feature, allowlist, dependency, Promote, or alias action occurred.
 - Next action: Owner performs read-only UAT on the exact staged artifact/SHA and
   returns PASS or FAIL. Do not start/sync a cycle, update item status, send
-  individually, confirm Bulk Send, Promote, mutate aliases, or start another
-  task. `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
+  individually, confirm Bulk Send, Promote, mutate aliases, or start another task.
+  The prior staged artifacts are superseded and must not be promoted.
+  `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
 
