@@ -402,21 +402,35 @@ await check('explicit Sync excludes only stale pending, appends missing eligible
   ])
 })
 
-await check('workspace uses server search/filter/page, current-page bulk max 10, and no automatic mutation', () => {
+await check('workspace debounces server GET search for 300ms, ignores stale responses, and keeps immediate submit/filter/page controls', () => {
   const component = read('src/components/admin/notification-recommendations-workspace.tsx')
   const page = read('src/app/(admin)/admin/notifications/page.tsx')
+  const debounceEffect = component.slice(component.indexOf('useEffect(() => {'), component.indexOf('useEffect(() => () =>'))
   assert.match(component, /const PAGE_SIZE = 10/)
   assert.match(component, /URLSearchParams/)
   assert.match(component, /searchDraft/)
   assert.match(component, /statusFilter/)
+  assert.match(component, /new AbortController\(\)/)
+  assert.match(component, /requestSequenceRef/)
+  assert.match(component, /clearSearchDebounce/)
+  assert.match(debounceEffect, /setTimeout\([\s\S]*requestWorkspace\('GET', undefined, 'search', 1,[\s\S]*300\)/)
+  assert.doesNotMatch(debounceEffect, /requestWorkspace\('POST'/)
+  assert.match(component, /onSubmit=\{submitSearch\}/)
+  assert.match(component, /requestWorkspace\('GET', undefined, 'filter', 1, nextStatus, searchDraft\)/)
+  assert.match(component, /requestWorkspace\('GET', undefined, 'page', page, statusFilter, searchDraft\)/)
   assert.match(component, /followUp\.items\.filter/)
   assert.match(component, /setSelectedUserIds\(new Set\(\)\)/)
   assert.match(component, /Preview การส่งพร้อมกัน/)
   assert.match(component, /selectedUserIds\.size >= 10/)
   assert.match(component, /Bulk เป็น all-or-nothing/)
-  assert.doesNotMatch(component, /useEffect\s*\(/)
   assert.match(page, /admin_notification_follow_up_workspace_v2/)
   assert.doesNotMatch(page, /admin_notification_follow_up_(start|sync|send)_v2/)
+})
+
+await check('unresolved child identities use the explicit review fallback in booking and session mappings', () => {
+  const page = read('src/app/(admin)/admin/notifications/page.tsx')
+  assert.equal((page.match(/ต้องตรวจสอบรายชื่อผู้เรียน/g) || []).length, 2)
+  assert.doesNotMatch(page, /childNameById\.get\(row\.child_id\) \|\| 'ผู้เรียน'/)
 })
 
 await check('v2 migration provides positive positions, full roster, atomic Sync/Reconcile, v1 revocation, and least privilege', () => {
@@ -446,6 +460,35 @@ await check('v2 migration provides positive positions, full roster, atomic Sync/
   assert.doesNotMatch(migration, /create (extension|index)/i)
 })
 
+await check('corrective workspace migration adds canonical course history and exact real attendance evidence without search or data mutation', () => {
+  const migrationPath = 'supabase/migrations/20260810064847_admin_notification_follow_up_course_history_attendance.sql'
+  const migration = read(migrationPath)
+  const migrationFiles = fs.readdirSync(path.join(root, 'supabase/migrations'))
+    .filter((name) => name.endsWith('_admin_notification_follow_up_course_history_attendance.sql'))
+  const searchSections = migration.slice(migration.indexOf('with filtered as ('), migration.indexOf("'course_names'"))
+  assert.deepEqual(migrationFiles, [path.basename(migrationPath)])
+  assert.match(migration, /create or replace function public\.admin_notification_follow_up_workspace_v2/)
+  assert.match(migration, /stable[\s\S]*security invoker[\s\S]*set search_path = ''/)
+  assert.match(migration, /history_booking\.status in \('paid', 'verified'\)/)
+  assert.match(migration, /history_course\.name in \('kids_group', 'adult_group', 'private'\)/)
+  assert.match(migration, /when 'kids_group' then 1[\s\S]*when 'adult_group' then 2[\s\S]*when 'private' then 3/)
+  assert.match(migration, /history_attendance\.booking_session_id = history_session\.id/)
+  assert.match(migration, /history_attendance\.student_id = coalesce\(history_session\.child_id, history_booking\.user_id\)/)
+  assert.match(migration, /history_attendance\.status in \('present', 'late'\)/)
+  assert.match(migration, /history_session\.date <= pg_catalog\.timezone\('Asia\/Bangkok', pg_catalog\.now\(\)\)::date/)
+  assert.match(migration, /history_session\.status not in \('walleted', 'rescheduled'\)/)
+  assert.match(migration, /history_session\.cancelled_at is null/)
+  assert.doesNotMatch(searchSections, /history_course|course_names|latest_attendance|last_attended_date/)
+  assert.doesNotMatch(migration, /\b(insert|update|delete|merge|truncate)\b/i)
+  assert.doesNotMatch(migration, /create\s+(table|index|policy|trigger|extension)|alter\s+table/i)
+  assert.match(migration, /revoke all on function[\s\S]*from public, anon, authenticated, service_role/)
+  assert.match(migration, /grant execute on function[\s\S]*to service_role/)
+  execFileSync('git', ['diff', '--exit-code', '--', 'supabase/migrations/20260810034515_admin_notification_follow_up_full_roster_search.sql'], {
+    cwd: root,
+    stdio: 'pipe',
+  })
+})
+
 await check('API rejects forged source markers, authenticates Admin, and GET remains read-only', () => {
   const route = read('src/app/api/admin/notifications/customer-follow-up/route.ts')
   const getSection = route.slice(route.indexOf('export async function GET'), route.indexOf('export async function POST'))
@@ -456,7 +499,7 @@ await check('API rejects forged source markers, authenticates Admin, and GET rem
   assert.doesNotMatch(getSection, /start_v2|sync_v2|send_v2|\.insert\(|\.update\(|\.delete\(/)
 })
 
-await check('learner roster dedupes child/adult labels and keeps parent as secondary identity', () => {
+await check('learner roster and account history normalize canonical course order and strict date-only evidence', () => {
   const snapshot = normalizeFollowUpWorkspaceSnapshot({
     state: 'active',
     total_count: 1,
@@ -473,6 +516,8 @@ await check('learner roster dedupes child/adult labels and keeps parent as secon
       recipient_name: 'Parent Latin',
       position: 1,
       status: 'pending',
+      course_names: ['private', 'kids_group', 'adult_group', 'private', 'unsupported'],
+      last_attended_date: '2026-08-10',
       learners: [
         { learner_type: 'child', full_name: 'เด็กหญิงทดสอบ', nickname: 'น้องเอ' },
         { learner_type: 'child', full_name: 'เด็กชายทดสอบ', nickname: 'Beam' },
@@ -485,6 +530,32 @@ await check('learner roster dedupes child/adult labels and keeps parent as secon
     { name: 'Beam - เด็กชายทดสอบ', isSelf: false },
     { name: 'Parent Latin', isSelf: true },
   ])
+  assert.deepEqual(snapshot.items[0].courseNames, ['kids_group', 'adult_group', 'private'])
+  assert.equal(snapshot.items[0].lastAttendedDate, '2026-08-10')
+
+  const invalidSnapshot = normalizeFollowUpWorkspaceSnapshot({
+    ...snapshot,
+    state: 'active',
+    items: [{ id: 'item-2', user_id: 'user-2', course_names: ['legacy'], last_attended_date: '2026-02-31' }],
+  })
+  assert.deepEqual(invalidSnapshot.items[0].courseNames, [])
+  assert.equal(invalidSnapshot.items[0].lastAttendedDate, null)
+})
+
+await check('follow-up UI shows account-level course badges and Thai date fallbacks without changing notification copy', () => {
+  const component = read('src/components/admin/notification-recommendations-workspace.tsx')
+  assert.match(component, /FOLLOW_UP_COURSE_LABELS/)
+  assert.match(component, /kids_group: 'กลุ่มเด็ก'/)
+  assert.match(component, /adult_group: 'กลุ่มผู้ใหญ่'/)
+  assert.match(component, /private: 'ส่วนตัว'/)
+  assert.match(component, /item\.courseNames\.map/)
+  assert.match(component, /ไม่พบประวัติคอร์สที่ยืนยันแล้ว/)
+  assert.match(component, /เข้าเรียนล่าสุด: \{formatThaiDateOnly\(item\.lastAttendedDate\)\}/)
+  assert.match(component, /ไม่พบประวัติเข้าเรียนที่ยืนยันแล้ว/)
+  execFileSync('git', ['diff', '--exit-code', '--', 'src/app/api/admin/notifications/route.ts'], {
+    cwd: root,
+    stdio: 'pipe',
+  })
 })
 
 await check('server search covers Thai/Latin learner nickname, learner full name, and parent name only', () => {

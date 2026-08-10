@@ -85,6 +85,8 @@ export interface FollowUpRecommendationItem {
   userId: string
   recipientName: string
   learners: FollowUpLearnerDisplay[]
+  courseNames: RecommendationCourseName[]
+  lastAttendedDate: string | null
   position: number
   status: 'pending' | 'sent' | 'excluded'
   isCurrentlyEligible: boolean
@@ -131,6 +133,7 @@ const SETTLED_BOOKING_STATUSES = new Set(['paid', 'verified'])
 const ACTIVE_BOOKING_STATUSES = new Set(['pending_payment', 'paid', 'verified'])
 const TERMINAL_ATTENDANCE_STATUSES = new Set(['present', 'late', 'absent'])
 const LOW_ENROLLMENT_SESSION_STATUSES = new Set(['scheduled', 'completed', 'absent'])
+const RECOMMENDATION_COURSE_ORDER: RecommendationCourseName[] = ['kids_group', 'adult_group', 'private']
 
 function lessonKey(year: number, month: number) {
   return year * 12 + month
@@ -537,6 +540,22 @@ function formatRosterLearnerName(fullName: string | null, nickname: string | nul
   return `${cleanNickname} - ${cleanFullName}`
 }
 
+function normalizeRecommendationCourseNames(value: unknown): RecommendationCourseName[] {
+  const names = new Set(Array.isArray(value) ? value : [])
+  return RECOMMENDATION_COURSE_ORDER.filter((courseName) => names.has(courseName))
+}
+
+function normalizeDateOnly(value: unknown) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day
+    ? value
+    : null
+}
+
 export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWorkspaceSnapshot {
   if (!isRecord(value)) {
     return createEmptyFollowUpWorkspace({ state: 'unavailable', error: 'โหลดคิวติดตามลูกค้าไม่สำเร็จ' })
@@ -570,6 +589,8 @@ export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWork
         ? raw.recipient_name
         : 'ไม่ทราบชื่อ',
       learners,
+      courseNames: normalizeRecommendationCourseNames(raw.course_names),
+      lastAttendedDate: normalizeDateOnly(raw.last_attended_date),
       position: finiteCount(raw.position),
       status,
       isCurrentlyEligible: raw.is_currently_eligible !== false,

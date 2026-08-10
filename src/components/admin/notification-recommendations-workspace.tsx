@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   BellRing,
@@ -47,6 +47,11 @@ const COURSE_LABELS = {
   adult_group: 'ผู้ใหญ่กลุ่ม',
   private: 'ส่วนตัว',
 } as const
+const FOLLOW_UP_COURSE_LABELS = {
+  kids_group: 'กลุ่มเด็ก',
+  adult_group: 'กลุ่มผู้ใหญ่',
+  private: 'ส่วนตัว',
+} as const
 
 interface NotificationRecommendationsWorkspaceProps {
   initialData: RecommendationWorkspaceData
@@ -66,6 +71,26 @@ function formatDateTime(value: string | null) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value))
+}
+
+function formatThaiDateOnly(value: string | null) {
+  if (!value) return 'ไม่พบประวัติเข้าเรียนที่ยืนยันแล้ว'
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return 'ไม่พบประวัติเข้าเรียนที่ยืนยันแล้ว'
+  const [, yearText, monthText, dayText] = match
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const day = Number(dayText)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return 'ไม่พบประวัติเข้าเรียนที่ยืนยันแล้ว'
+  }
+  return new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
 }
 
 function paginate<T>(items: T[], page: number) {
@@ -128,6 +153,9 @@ export function NotificationRecommendationsWorkspace({
   const [preview, setPreview] = useState<FollowUpPreview | null>(null)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(initialData.followUp.error)
+  const requestSequenceRef = useRef(0)
+  const activeGetControllerRef = useRef<AbortController | null>(null)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const resolvedLowPage = safePage(lowPage, initialData.lowEnrollment.length)
   const resolvedNearPage = safePage(nearPage, initialData.nearCourse.length)
@@ -138,20 +166,25 @@ export function NotificationRecommendationsWorkspace({
     [followUp.items]
   )
 
-  function replaceFollowUp(next: FollowUpWorkspaceSnapshot) {
-    setFollowUp(next)
-    setSelectedUserIds(new Set())
-    setError(next.error)
-  }
+  const clearSearchDebounce = useCallback(() => {
+    if (searchDebounceRef.current !== null) {
+      clearTimeout(searchDebounceRef.current)
+      searchDebounceRef.current = null
+    }
+  }, [])
 
-  async function requestWorkspace(
+  const requestWorkspace = useCallback(async function requestWorkspace(
     method: 'GET' | 'POST',
-    body?: Record<string, unknown>,
-    actionName = 'refresh',
-    page = followUp.page,
-    nextStatus = statusFilter,
-    search = searchDraft
+    body: Record<string, unknown> | undefined,
+    actionName: string,
+    page: number,
+    nextStatus: 'all' | 'pending' | 'sent' | 'excluded',
+    search: string
   ) {
+    const requestSequence = ++requestSequenceRef.current
+    activeGetControllerRef.current?.abort()
+    const controller = method === 'GET' ? new AbortController() : null
+    activeGetControllerRef.current = controller
     setLoadingAction(actionName)
     setError(null)
     try {
@@ -163,6 +196,7 @@ export function NotificationRecommendationsWorkspace({
       const response = await fetch(`/api/admin/notifications/customer-follow-up?${query}`, {
         method,
         headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+        signal: controller?.signal,
         body: method === 'POST' ? JSON.stringify({
           ...body,
           page,
@@ -171,27 +205,54 @@ export function NotificationRecommendationsWorkspace({
         }) : undefined,
       })
       const result = await response.json().catch(() => null)
+      if (requestSequence !== requestSequenceRef.current) return false
       if (!response.ok || !result?.workspace) {
         setError(result?.error || 'ดำเนินการคิวติดตามลูกค้าไม่สำเร็จ')
         return false
       }
-      replaceFollowUp(result.workspace as FollowUpWorkspaceSnapshot)
+      const next = result.workspace as FollowUpWorkspaceSnapshot
+      setFollowUp(next)
+      setSelectedUserIds(new Set())
+      setError(next.error)
       return true
-    } catch {
+    } catch (requestError) {
+      if ((requestError as { name?: string })?.name === 'AbortError') return false
+      if (requestSequence !== requestSequenceRef.current) return false
       setError('เชื่อมต่อระบบติดตามลูกค้าไม่สำเร็จ กรุณาลองใหม่')
       return false
     } finally {
-      setLoadingAction(null)
+      if (requestSequence === requestSequenceRef.current) {
+        if (activeGetControllerRef.current === controller) activeGetControllerRef.current = null
+        setLoadingAction(null)
+      }
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (loadingAction !== null || searchDraft.trim() === followUp.search) return
+    clearSearchDebounce()
+    searchDebounceRef.current = setTimeout(() => {
+      searchDebounceRef.current = null
+      void requestWorkspace('GET', undefined, 'search', 1, statusFilter, searchDraft)
+    }, 300)
+    return clearSearchDebounce
+  }, [clearSearchDebounce, followUp.search, loadingAction, requestWorkspace, searchDraft, statusFilter])
+
+  useEffect(() => () => {
+    clearSearchDebounce()
+    requestSequenceRef.current += 1
+    activeGetControllerRef.current?.abort()
+  }, [clearSearchDebounce])
 
   function submitSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    clearSearchDebounce()
     setSelectedUserIds(new Set())
     void requestWorkspace('GET', undefined, 'search', 1, statusFilter, searchDraft)
   }
 
   function changeStatus(nextStatus: 'all' | 'pending' | 'sent' | 'excluded') {
+    clearSearchDebounce()
     setStatusFilter(nextStatus)
     setSelectedUserIds(new Set())
     void requestWorkspace('GET', undefined, 'filter', 1, nextStatus, searchDraft)
@@ -370,7 +431,7 @@ export function NotificationRecommendationsWorkspace({
                     size="sm"
                     className="gap-1"
                     disabled={loadingAction !== null}
-                    onClick={() => requestWorkspace('GET', undefined, 'refresh')}
+                    onClick={() => requestWorkspace('GET', undefined, 'refresh', followUp.page, statusFilter, searchDraft)}
                   >
                     {loadingAction === 'refresh' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                     รีเฟรช
@@ -379,7 +440,7 @@ export function NotificationRecommendationsWorkspace({
                     <Button
                       size="sm"
                       disabled={loadingAction !== null}
-                      onClick={() => requestWorkspace('POST', { action: 'start' }, 'start', 1)}
+                      onClick={() => requestWorkspace('POST', { action: 'start' }, 'start', 1, statusFilter, searchDraft)}
                     >
                       {loadingAction === 'start' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
                       เริ่มรอบ Full Roster ({followUp.eligibleTotal})
@@ -389,7 +450,7 @@ export function NotificationRecommendationsWorkspace({
                     <Button
                       size="sm"
                       disabled={loadingAction !== null}
-                      onClick={() => requestWorkspace('POST', { action: 'sync' }, 'sync', 1)}
+                      onClick={() => requestWorkspace('POST', { action: 'sync' }, 'sync', 1, statusFilter, searchDraft)}
                     >
                       {loadingAction === 'sync' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
                       Sync รายชื่อเข้าเกณฑ์
@@ -408,6 +469,12 @@ export function NotificationRecommendationsWorkspace({
                       placeholder="ค้นหาชื่อเล่น ชื่อผู้เรียน หรือผู้ปกครอง"
                       className="pl-9"
                       onChange={(event) => {
+                        if (activeGetControllerRef.current) {
+                          requestSequenceRef.current += 1
+                          activeGetControllerRef.current.abort()
+                          activeGetControllerRef.current = null
+                          setLoadingAction(null)
+                        }
                         setSearchDraft(event.target.value)
                         setSelectedUserIds(new Set())
                       }}
@@ -487,6 +554,19 @@ export function NotificationRecommendationsWorkspace({
                               {!item.isCurrentlyEligible && <Badge variant="destructive">ไม่เข้าเกณฑ์แล้ว</Badge>}
                             </div>
                             <p className="text-sm text-slate-600">ผู้ปกครอง/ผู้รับ: {item.recipientName}</p>
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                              <span>ประวัติคอร์ส:</span>
+                              {item.courseNames.length > 0
+                                ? item.courseNames.map((courseName) => (
+                                  <Badge key={courseName} variant="outline">
+                                    {FOLLOW_UP_COURSE_LABELS[courseName]}
+                                  </Badge>
+                                ))
+                                : <span>ไม่พบประวัติคอร์สที่ยืนยันแล้ว</span>}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              เข้าเรียนล่าสุด: {formatThaiDateOnly(item.lastAttendedDate)}
+                            </p>
                             <p className="text-xs text-slate-500">
                               ติดตามที่ยืนยันแล้ว {item.verifiedAttemptCount} ครั้ง
                               {item.latestVerifiedAt ? ` · ล่าสุด ${formatDateTime(item.latestVerifiedAt)}` : ''}
