@@ -13123,3 +13123,249 @@ Expected visible result: the workspace is responsive and mobile-safe, counts and
 pagination are clear, exact branch/package semantics are visible, and no write
 occurs merely by opening or navigating the page. Owner PASS authorizes Promotion
 only of this exact artifact/SHA; until PASS, Task Done remains **No**.
+
+### 2026-08-10 — Full Roster Corrective Scope Material Hard Stop
+
+State observed at this safe handoff: the Owner superseded artifact
+`dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` / Application Source
+`d0560c36e60394d4fc094fb945b43b4894e1d186` and approved **ADMIN NOTIFICATIONS
+RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC** only
+if all four Production tracking tables were empty. Fresh SELECT-only audit found
+campaigns/batches/items/requests `1/1/30/0`, so the exact Owner-mandated result is
+**DEVELOPING — MATERIAL HARD STOP**. This is not READY FOR OWNER UAT and not TASK
+DONE.
+
+#### Fact — Git, Artifact, and Existing Source
+
+- Audit ran from repository root on branch
+  `spike/next-major-security-upgrade`, Local/Upstream HEAD
+  `fbcc99b0134e145889ee2fc0b5304eef806fa3ba`, ahead/behind `0/0`, with no staged
+  or content-diff files. The only status entry remains the protected stat-dirty
+  `src/lib/schedule-slot-utils.ts`.
+- The superseded artifact remains Vercel target `production`, state `READY`,
+  exact Source `d0560c36e60394d4fc094fb945b43b4894e1d186`, with assigned alias count `0`.
+  All four established Production aliases still point to prior Production
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source
+  `19471d9a3a728e42def5500a86cc91ce1da4a1e8`. No Promotion or alias mutation ran.
+- Existing Migration
+  `20260807155346_admin_notification_recommendation_tracking.sql` remains
+  unchanged and contains the proven root causes: item `position between 1 and
+  30`, `limit 30`, sequential batch loading, service-only v1 workspace/send RPCs,
+  and no explicit atomic ineligible Sync contract.
+- Existing Source performs client-side pagination over the returned 30 items,
+  has no server search or learner-name roster contract, uses recipient name as
+  the Follow-up row heading, and sets Private Near-course `learnerName: null`.
+  The reusable `formatLearnerDisplayName` and `joinLearnerDisplayNames` helpers
+  exist and were inspected but not edited.
+
+#### Fact — Production Tracking Gate
+
+- One campaign and one batch are active. Both were created at
+  `2026-08-09T15:28:17.797222Z` and reference one stored actor; no actor id or PII
+  is recorded here.
+- Items are exactly 30 pending rows at positions `1–30`; all 30 were currently
+  eligible when audited. Linked notification ids, sent items, excluded items,
+  and request rows are all `0`.
+- Verified Follow-up notifications joined through tracking items are `0`; legacy
+  booking-linked reminders remain `21`. Total notifications moved from `27,475`
+  at initial audit to `27,479` at the closing
+  `2026-08-10T03:27:22.453766Z` snapshot, compared with the prior documented
+  `26,266`. Available aggregate evidence cannot attribute that general traffic
+  increase to this task, and this session made no write.
+- A bounded old-artifact log window contained two GET requests and no attributable
+  POST. This does not prove the tracking write source. Initiating actor identity,
+  UI/direct-RPC path, and business intent remain Unknown / Need verification.
+- Local and linked migration inventories both remain `25` versions ending at
+  `20260807155346`; no corrective Migration file was created and no schema/data
+  write ran this round.
+
+#### Root Cause and Scope Result
+
+- **Fact:** the Owner's pre-implementation gate explicitly requires a Material
+  Hard Stop when any tracking table has data. Production fails that gate at
+  `1/1/30/0`.
+- **Inference:** a full-roster v2 model cannot safely decide whether the existing
+  active 30-row cycle must be preserved, extended, superseded, or completed
+  without a new explicit existing-row policy. Any choice would be a data/business
+  transition beyond the authorized schema-only/no-backfill contract.
+- **Unknown / Need Owner Decision:** exact origin of the active cycle; whether it
+  is accepted Owner test state; whether those 30 pending items remain in the same
+  cycle; exact preservation, transition, rollback, and controlled migration
+  requirements.
+
+Execution stopped before implementation. Functional/test/documentation/
+corrective-Migration/configuration/dependency changes are
+`0/0/3 local safe-handoff files/0/0/0`. No test, TypeScript, lint, build, local DB
+reset, migration generation/apply, Source commit, push, staged artifact, Promote,
+alias, Environment, feature, allowlist, Controlled Write UAT, send, data repair,
+or financial action ran. This audit itself performed SELECT-only reads and zero
+writes.
+
+The pre-existing `src/lib/schedule-slot-utils.ts` remains content-identical to
+index blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`. It was
+not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+Next action requires Owner approval of the exact existing-row policy and any
+controlled data migration authority. Until then, do not implement, create/apply
+the corrective Migration, commit, push, deploy, Promote, mutate aliases, run
+Controlled Write UAT, send notifications, or start another task. This safe
+handoff is intentionally local/uncommitted/unpushed because the mandatory gate
+failed.
+
+### 2026-08-10 — Full Roster Preserve & Extend Reconciliation and UAT Handoff
+
+State observed at this closeout: the Owner explicitly superseded the earlier
+empty-table gate and authorized Preserve & Extend of the existing active cycle,
+including one controlled atomic Production reconciliation and no Notification
+send. **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER
+NAMES + INELIGIBLE SYNC** reached **READY FOR OWNER UAT**. It was not Promoted
+and is not TASK DONE.
+
+#### Owner Decision and Production Safety
+
+- The same one campaign, one batch, and original 30 pending items had to remain.
+  Existing identity, actor, timestamps, sequence, original item IDs/user IDs,
+  positions `1–30`, created timestamps, and null notification/sent fields were
+  immutable except an eligible `pending → excluded` transition if required at
+  transaction time. No existing item required exclusion.
+- Mandatory preflight immediately before Migration apply and again before the
+  write found campaigns/batches/items/requests `1/1/30/0`, exactly one active
+  campaign and batch, all 30 items pending at continuous positions `1–30`, sent/
+  excluded/linked Follow-up notifications `0/0/0`, no duplicate user/position,
+  and exact signed manifest match. Preflight manifest SHA-256 was
+  `ffa731d4d25b7a1c7e47468686910c29a7e8aacf64752295d08bee4f839de149`.
+- A Windows DPAPI CurrentUser-encrypted preimage outside the repository contains
+  the exact campaign, batch, 30 item rows, counts, statuses, and manifest. Its
+  ciphertext SHA-256 is
+  `2195e4c6fe73f79e0dbd1cba97d9fd6060c44707ea1084200eea0f8bfb63a5ce`;
+  decryptability and exact preimage comparison were verified without recording
+  UUID or PII in Git.
+- Exactly one `admin_notification_follow_up_reconcile_v2` invocation ran. It used
+  the campaign advisory lock, locked the exact preserved rows, revalidated the
+  signed manifest, materialized a deterministic transition plan, checked all
+  invariants inside the transaction, and committed once. The non-PII plan
+  SHA-256 was
+  `1b88461dc41edf28a9914ae5b46a37fa7a41dcc56812414706638e29d70593a9`;
+  after-manifest SHA-256 was
+  `a4ff19397d5317320e597d176aae94116e25752a1c2e35427781f157f47aa65d`.
+- Exact transition was original/new/excluded `30/95/0`. The original 30 rows and
+  positions remained exact; new positions started at `31` and ended at `125`.
+  Rollback was not used. Send RPC invocation, request creation, linked Follow-up
+  notification creation, and notifications sent were all `0`.
+- Final and closing SELECT-only checks found one campaign, one batch, 125 items,
+  all 125 pending, continuous positions `1–125`, current eligible roster `125`,
+  and missing eligible, unexpected noneligible pending, duplicate users,
+  duplicate positions, sent, excluded, requests, and linked notifications all
+  `0`.
+
+#### Source, Migration, and Database Contract
+
+- Functional Source changed five allowlisted files: the Admin Notifications page,
+  recommendations workspace, recommendations library, Follow-up API route, and
+  database types. `notifications-admin-client.tsx` and the reused
+  `learner-display-name.ts` helper required no change. One focused test and one
+  generated corrective Migration were the only additional Source files.
+- Full roster now uses server-side status/search/pagination at 10 rows per page,
+  shows child nickname/full name plus parent context and adult-self names, keeps
+  Private progress at Package level with participants supplementary, limits Bulk
+  selection to the current page and 10 accounts, clears selection on search/
+  filter/page change, and exposes explicit atomic Sync. GET/render/search/page
+  navigation performs no mutation.
+- Corrective Migration
+  `20260810034515_admin_notification_follow_up_full_roster_search.sql`, SHA-256
+  `2360ee1859254e9bd6f377a9152aef017f99665158be4f801eecf15533a0e106`,
+  was the only new Migration and was applied once to linked project
+  `tvnhholicwjtxdhlxfqs`. Local/remote inventory became 26 matching versions.
+  The old Migration remained byte-unchanged.
+- Position is now a positive integer without a ceiling. All six v2 functions are
+  `SECURITY INVOKER`, use an explicit empty `search_path`, revoke PUBLIC/anon/
+  authenticated execute, and grant only service role. Mutating v1 start/send
+  service-role execution is revoked; RLS remains enabled on all four tracking
+  tables. The Migration contains no automatic reconciliation, Notification
+  insert, extension, or new index.
+- Security advisors reported only four expected INFO entries for policy-less
+  service-only RLS tracking tables. Performance advisors reported only three
+  expected unused legacy send/request indexes. Production roster/search P95 over
+  100 samples measured `88.224/96.556 ms`; search `EXPLAIN ANALYZE` executed in
+  `48.705 ms` with shared-buffer hits and zero physical/temp reads or writes, so
+  no index was justified.
+
+#### Verification and Protected Flows
+
+- Focused recommendations checks passed `14/14`. Notification-date `26/26`,
+  Lesson Wallet `19/19`, slot availability `8/8`, payroll `14/14`, and booking
+  entry runtime passed. These checks protected notification, booking,
+  attendance, wallet, reschedule, makeup, and payroll behavior.
+- The disposable local Supabase fixture proved 30/125/140-account rosters,
+  140 accounts over 14 pages, Thai partial and Latin case-insensitive search,
+  child nickname/full name/parent, multiple children, adult self, Private package
+  progress, current-page Bulk max 10, selection clearing, explicit stale-pending
+  exclusion/new-eligible append, sent preservation, read-only GET/search/page,
+  idempotency, concurrency, and all-or-none rollback. Final reset removed fixture
+  data.
+- `npx tsc --noEmit`, zero-warning lint, mojibake over 259 files, Production build
+  `94/94`, Production readiness, Supabase reset/list/lint, RLS/GRANT/function
+  checks, `git diff --check`, staged smoke, and bounded runtime-log scan passed.
+  After the build, only the repository `.next` output was moved outside the repo;
+  dev restarted on `127.0.0.1:3000`, and root/static assets plus browser smoke
+  passed without console error.
+- Functional/Test/Migration Source commit
+  `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` was pushed normally on
+  `spike/next-major-security-upgrade`. Functional/test/documentation/Migration/
+  configuration/dependency counts were `5/1/3/1/0/0`; Scope Expansion and Scope
+  Breach were both none. The complete change set stayed inside the exact
+  allowlist.
+- Protected stat-dirty `src/lib/schedule-slot-utils.ts` remained content-identical
+  to index blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  It was never edited, normalized, staged, reset, checked out, stashed, or
+  committed.
+
+#### Staged Production-target Artifact and Owner UAT
+
+- `vercel deploy --prod --skip-domain` created exact artifact
+  `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` at
+  `https://new-athlete-badminton-school-92j56wffp-aachanin1s-projects.vercel.app`.
+  Vercel reports target `production`, state `READY`, alias count `0`, and Git plus
+  custom Source metadata equal to the exact Functional Source SHA. The staged
+  root rendered, anonymous Admin Notifications redirected to normal Login, and
+  no staged warning/error/fatal runtime log was found.
+- Vercel metadata records `gitDirty=1` because the three local documentation
+  closeout files and the protected stat-dirty file were intentionally excluded
+  from executable Source. The protected file content equals HEAD and the docs are
+  non-runtime; executable Source identity is exact.
+- Old artifact `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` remains **SUPERSEDED — MUST
+  NOT PROMOTE** with no Production alias. Existing Production remains
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source
+  `19471d9a3a728e42def5500a86cc91ce1da4a1e8`. No Promote, alias, Environment,
+  secret, feature, allowlist, or dependency action occurred.
+- Owner UAT requires an authenticated Admin/Super Admin with Notifications menu
+  access. Use the exact new artifact/SHA: open `/admin/notifications`; inspect the
+  Customer Follow-up count and first page; search a child nickname/name and a
+  parent/adult name; change status/page and confirm 10-row server pagination;
+  inspect learner labels and Private package-level display. Do **not** click Start
+  or Sync, update item status, Send individually, or Confirm Bulk Send.
+- Expected visible result at this closeout is active roster total/pending
+  `125/125`, 13 pages at 10 rows per page, search/filter/page results from the
+  server, learner/parent context, and current-page Bulk selection capped at 10.
+  Eligibility can naturally change after this snapshot; Owner must not Sync
+  during read-only UAT.
+
+Mandatory classification at this closeout: Active Task **ADMIN NOTIFICATIONS
+RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC**; Task
+Status **READY FOR OWNER UAT**; Source Complete **Yes**; Tests Passed **Yes**;
+Committed **Yes**; Pushed **Yes**; staged artifact/SHA
+`dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` /
+`e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; Deployed **staged only**;
+Production Active **No for new UI Source / Yes for v2 database contract and
+reconciled tracking roster**; Owner/Production UAT **Pending/Not passed**;
+Migration Applied **Yes**; Reconciliation Invocations **1**; Original Rows
+Preserved **30**; Rows Inserted/Excluded **95/0**; Requests Created **0**;
+Notifications Sent **0**; Rollback Used **No**; Environment Changed **No**;
+Feature Enabled/Allowlisted **No change/No change**; Production Data Changed
+**Yes, tracking rows only**; Data Repaired **Yes, tracking roster reconciled**;
+Customer Impact **No notification and no Production UI activation**; Financial
+Impact **None**; Documentation Drift **No after the containing closeout commit is
+published**; Blocker **None**; Task Done **No**; Next Action **read-only Owner UAT,
+then exact-artifact Promotion only after PASS**.

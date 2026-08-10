@@ -1,23 +1,231 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-07
+Last updated: 2026-08-10
 
-Current source: **READY FOR OWNER UAT** for **ADMIN NOTIFICATIONS
+Current source: **READY FOR OWNER UAT** for **ADMIN NOTIFICATIONS RECOMMENDATIONS
+— FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC**. Functional Source
+`e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` is committed, pushed, applied to the
+linked Supabase project through the one corrective Migration, and built as staged
+Production-target artifact `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` with no alias.
+The single Owner-authorized Production reconciliation preserved the original 30
+items and appended 95 eligible accounts at positions `31–125`; it created zero
+requests and zero notifications. Promotion remains prohibited until Owner PASS.
+This first matrix is the only authority for current mutable state; later records
+are Historical / Superseded.
+
+## Current Handoff — Notification Full Roster Ready for Owner UAT
+
+Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; DATABASE
+RECONCILED; NOT PROMOTED; NOTIFICATION SENDS `0`**.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC** |
+| Task Status | **READY FOR OWNER UAT** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | The documentation-only closeout commit containing this matrix; Functional Source remains `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` |
+| Remote HEAD | The same documentation-only closeout commit after normal push |
+| Ahead/Behind | `0/0` after the documentation closeout push |
+| Source Complete | **Yes** |
+| Tests Passed | **Yes** — focused/protected checks, TypeScript, zero-warning lint, mojibake, Production build, local Supabase reset/lint/fixture/final reset, RLS/GRANT, advisors, performance, diff compliance, staged smoke, and runtime-log scan passed |
+| Committed | **Yes** — Functional/Test/Migration Source commit `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; this matrix is published by the containing documentation-only closeout commit |
+| Pushed | **Yes** — current branch is published normally |
+| Current Source | `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` |
+| Pushed Source | `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` |
+| Deployed | **Yes, staged only** — Production-target artifact `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` is READY and has alias count `0` |
+| Deployed Source | Staged-only Source `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; Production-active Source remains `19471d9a3a728e42def5500a86cc91ce1da4a1e8` |
+| Deployment ID | Staged `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX`; Production-active `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` |
+| Staged Artifact / SHA | `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` / `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b`; `https://new-athlete-badminton-school-92j56wffp-aachanin1s-projects.vercel.app` |
+| Current Production | Existing `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; the new artifact was not promoted and received no alias |
+| Migration Source | `20260810034515_admin_notification_follow_up_full_roster_search.sql`; SHA-256 `2360ee1859254e9bd6f377a9152aef017f99665158be4f801eecf15533a0e106`; prior Migration was not edited |
+| Migration Applied | **Yes** — exactly one corrective version `20260810034515`; local/linked inventories now contain `26` versions |
+| Environment Changed | No |
+| Feature Enabled | No feature-control change |
+| Allowlisted | No allowlist change |
+| Production Active | **No for the new Admin UI Source** because it is not promoted; **Yes for the applied v2 database contract and reconciled tracking roster** |
+| Owner UAT | **Pending** for the exact staged artifact/SHA |
+| Production UAT | **Not passed**; Promotion is prohibited before Owner PASS |
+| Controlled Write UAT | **Passed for the one authorized atomic reconciliation only**; Controlled Send UAT was not run and remains prohibited |
+| Reconciliation Invocations | `1` |
+| Notifications Sent | `0`; request rows `0`; linked Follow-up notifications `0` |
+| DB Fixture / DB Write | Local disposable fixture passed and was removed by final reset. Production tracking write changed only the active roster: original `30` preserved, `95` inserted, `0` excluded |
+| Data Repaired | **Yes — active tracking roster reconciled to current eligibility under Preserve & Extend policy** |
+| Production Data Changed | **Yes — tracking rows only.** One active campaign and batch remain; items changed from `30` to `125`; no customer notification, booking, attendance, wallet, payment, finance, or payroll row changed |
+| Customer Impact | No notification was created or sent. The change is internal Admin tracking data and a staged, non-active Admin UI |
+| Financial Impact | None |
+| Functional / Test / Documentation / Migration / Configuration Changes | `5 / 1 / 3 / 1 / 0`; dependency changes `0` |
+| Scope Expansion | None — all work stayed inside the Owner-approved Preserve & Extend corrective contract |
+| Scope Breach | No |
+| Documentation Drift | **No after the containing closeout commit is published**; the earlier Hard Stop remains below as Historical / Superseded |
+| Blocker | None |
+| Remaining Work | Owner performs read-only UAT on the exact staged artifact/SHA and returns PASS or FAIL. Only PASS authorizes exact-artifact Promotion |
+| Task Done | **No — waiting for Owner UAT PASS and Promotion** |
+| Next Gate / Next Action | **OWNER UAT. Do not start/sync a cycle, update item status, send individually, confirm Bulk Send, Promote, or mutate aliases before Owner PASS** |
+| Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
+
+### Reconciliation and Release Evidence
+
+- Owner approval superseded the local Hard Stop and authorized Preserve & Extend
+  of the same active campaign, batch, and original 30 items. Campaign/batch
+  identity, actors, timestamps, sequence, original item IDs, user IDs, positions
+  `1–30`, timestamps, and null notification/sent fields were preserved exactly.
+- Both mandatory precondition gates passed with campaign/batch/items/requests
+  `1/1/30/0`, active campaign/batch, 30 pending positions `1–30`, sent/excluded/
+  linked notifications `0/0/0`, no duplicate user/position, and signed preflight
+  manifest SHA-256
+  `ffa731d4d25b7a1c7e47468686910c29a7e8aacf64752295d08bee4f839de149`.
+  The secure DPAPI preimage outside the repository contains the exact original
+  rows; its ciphertext SHA-256 is
+  `2195e4c6fe73f79e0dbd1cba97d9fd6060c44707ea1084200eea0f8bfb63a5ce`.
+- Exactly one reconciliation invocation ran under the database transaction and
+  advisory-lock contract. Its non-PII plan SHA-256 is
+  `1b88461dc41edf28a9914ae5b46a37fa7a41dcc56812414706638e29d70593a9`;
+  the after-manifest SHA-256 is
+  `a4ff19397d5317320e597d176aae94116e25752a1c2e35427781f157f47aa65d`.
+  Before/after items were `30/125`; original/new/excluded were `30/95/0`.
+  Rollback was not used.
+- Final SELECT-only verification found one active campaign, one active batch,
+  125 pending items, continuous positions `1–125`, eligible roster `125`, and
+  missing eligible, unexpected noneligible pending, duplicate users, duplicate
+  positions, sent, excluded, requests, and linked notifications all `0`.
+- The v2 manifest/start/sync/workspace/send/reconcile functions are
+  `SECURITY INVOKER` with explicit empty `search_path`, no PUBLIC/anon/
+  authenticated execute, and service-role-only grants. Mutating v1 start/send
+  service-role execution is revoked; RLS remains enabled on all four tracking
+  tables. Advisors found only expected INFO for policy-less service-only tables
+  and unused legacy send indexes; no new extension or index was added.
+- Focused checks passed `14/14`; protected notification-date `26/26`, Wallet
+  `19/19`, slot availability `8/8`, payroll `14/14`, and booking-entry runtime
+  passed. The disposable fixture covered 30/125/140 users, 140 users across 14
+  pages, Thai/Latin search, parent/child/adult/private display, max-10 bulk,
+  reset-on-page/search/filter, explicit Sync, sent preservation, idempotency,
+  concurrency, and all-or-none behavior.
+- Production roster/search P95 measured `88.224/96.556 ms`; the search plan used
+  shared buffers only and executed in `48.705 ms`, so no new index was justified.
+  TypeScript, lint, mojibake, Production build `94/94`, Production readiness,
+  migration reset/list/lint, `git diff --check`, staged smoke, and bounded runtime
+  logs passed.
+- Vercel reports the staged artifact target `production`, state `READY`, no alias,
+  and both Git/custom Source metadata equal to the exact Functional Source SHA.
+  The staged root rendered successfully, Admin Notifications enforced the normal
+  Login redirect for anonymous access, and no staged warning/error/fatal runtime
+  log was found. The artifact records `gitDirty=1` only because the three
+  documentation closeout files and protected stat-dirty file were excluded from
+  executable Source; the protected file content is identical to HEAD.
+- Superseded artifact `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` has no Production alias
+  and remains **MUST NOT PROMOTE**. No Environment, secret, flag, allowlist,
+  dependency, Promote, or alias action occurred.
+
+The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remains byte-identical
+to index blob `4521281d099efb189429a744909552d67871ff23` with SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`. It was
+not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+## Historical / Superseded — 2026-08-10 Pre-authorization Material Hard Stop
+
+State observed at that safe handoff only: the existing active 30-row cycle
+triggered the earlier Owner gate before the Owner subsequently authorized the
+exact Preserve & Extend Production transition recorded above. Every `Current`
+label in the historical block below is scoped to that earlier handoff and is not
+present mutable state.
+
+### Historical Project Matrix at That Handoff
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC** |
+| Task Status | **DEVELOPING — MATERIAL HARD STOP AT FRESH PRODUCTION TRACKING GATE** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | `fbcc99b0134e145889ee2fc0b5304eef806fa3ba`; this safe-handoff documentation is locally modified only after the Hard Stop |
+| Remote HEAD | `fbcc99b0134e145889ee2fc0b5304eef806fa3ba` |
+| Ahead/Behind | `0/0` before this uncommitted local documentation handoff |
+| Source Complete | **No — revised-scope implementation did not start** |
+| Tests Passed | **No release claim.** Fresh Git/Source/Deployment/Supabase SELECT-only audit completed; no functional verification is applicable because the mandatory pre-implementation gate stopped execution |
+| Committed | **No for the revised scope** |
+| Pushed | **No for the revised scope** |
+| Current Source | Application Source remains `d0560c36e60394d4fc094fb945b43b4894e1d186`; revised scope changed no Source |
+| Pushed Source | `d0560c36e60394d4fc094fb945b43b4894e1d186` |
+| Deployed | **No new artifact for the revised scope** |
+| Staged Artifact / SHA | Prior `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3` / `d0560c36e60394d4fc094fb945b43b4894e1d186` is **SUPERSEDED — MUST NOT PROMOTE**; it remains READY with assigned alias count `0` |
+| Current Production | Existing `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` / Source `19471d9a3a728e42def5500a86cc91ce1da4a1e8`; all four established Production aliases still point there |
+| Migration Source | No corrective Migration was created. Existing `20260807155346_admin_notification_recommendation_tracking.sql` remains byte-unchanged |
+| Migration Applied | **No corrective Migration**; local/remote inventory remains `25` versions ending at `20260807155346` |
+| Environment Changed | No |
+| Feature Enabled | No feature-control change |
+| Allowlisted | No allowlist change |
+| Production Active | **No for the superseded/new Notifications artifact**; existing Production remains unchanged |
+| Owner UAT | Not run; no eligible new artifact exists |
+| Production UAT | Not run for the revised scope |
+| Controlled Write UAT | Not run / prohibited |
+| Notifications Sent | `0` verified Follow-up notifications; request rows `0` |
+| DB Fixture / DB Write | This audit performed `0/0`. Existing Production state is one active campaign, one active batch, 30 pending items at positions `1–30`, and zero requests; all 30 were currently eligible at audit time |
+| Data Repaired | No |
+| Production Data Changed | **Yes relative to the prior documentation snapshot:** tracking rows now exist. They were created at `2026-08-09T15:28:17.797222Z` by one stored actor, but actor identity and invocation source are intentionally not recorded here and remain Unknown. This audit made no write |
+| Customer Impact | No notification was sent by the tracking write or this audit. Thirty accounts are represented in an active tracking snapshot; no PII is recorded in documentation |
+| Financial Impact | None |
+| Functional / Test / Documentation / Migration / Configuration Changes | `0 / 0 / 3 local safe-handoff files / 0 / 0`; dependency changes `0` |
+| Scope Expansion | **Required for safe continuation but not authorized** — exact preservation, reconciliation, migration, or retirement policy for the existing active campaign/batch/items is needed |
+| Scope Breach | No — execution stopped at the mandatory gate |
+| Documentation Drift | **Yes identified.** Prior documents said tracking `0/0/0/0` and artifact READY; this local safe handoff corrects current values but remains uncommitted/unpushed because the gate failed |
+| Blocker | Owner instruction required a Material Hard Stop if any tracking table contained data. Actual Production is `1/1/30/0`, so the approved schema-only/no-backfill corrective contract cannot safely determine how the existing active cycle participates in a full-roster campaign |
+| Remaining Work | Owner must approve an exact existing-row policy covering the active campaign, batch, and 30 pending items, including preservation/transition expectations and whether any controlled data migration is authorized. Do not infer, clear, complete, exclude, append, or backfill rows |
+| Task Done | **No** |
+| Next Gate / Next Action | **OWNER DIRECTION REQUIRED. Do not implement, create/apply a corrective Migration, commit, push, deploy, Promote, mutate aliases, run Controlled Write UAT, or send notifications** |
+| Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
+
+### Fresh Audit Facts, Inferences, and Unknowns
+
+- **Fact:** Git root/branch/HEAD/upstream are exact; ahead/behind is `0/0` and
+  the only status entry remains the protected stat-dirty
+  `src/lib/schedule-slot-utils.ts` with no content diff.
+- **Fact:** existing Source and Migration contain the `position between 1 and
+  30` constraint, `limit 30`, batch-next workflow, client-side queue pagination,
+  no Follow-up learner-name/search contract, Private `learnerName: null`, and no
+  explicit atomic pending-to-excluded Sync action.
+- **Fact:** Production tracking is campaigns/batches/items/requests `1/1/30/0`.
+  Campaign and batch are active; all items are pending, positions are `1–30`, all
+  were currently eligible, and linked notifications are `0`.
+- **Fact:** total notifications were `27,475` at the initial audit and `27,479`
+  at the closing `2026-08-10T03:27:22.453766Z` snapshot, compared with the prior
+  documented `26,266`; verified Follow-up notifications remain `0` and legacy
+  booking-linked reminders remain `21`. The general traffic increase is not
+  attributable to this task from available evidence; this session made no write.
+- **Inference:** safely moving the active 30-row cycle to the revised full-roster
+  model requires an explicit existing-row business/data policy. A schema-only
+  corrective Migration cannot infer whether to preserve, extend, supersede, or
+  complete that cycle.
+- **Unknown / Need Owner Decision:** who initiated the existing cycle, which UI or
+  direct path invoked it, whether the 30 pending rows must remain in the same
+  cycle, and the exact authorized transition/rollback policy. Bounded Vercel logs
+  showed two GETs and no attributable POST in the matching window, which does not
+  prove the write source.
+
+The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remains byte-identical
+to index blob `4521281d099efb189429a744909552d67871ff23` with SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`. It was
+not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+## Historical / Superseded — 2026-08-07 Notification Recommendations Artifact
+
+Historical source: **READY FOR OWNER UAT** for **ADMIN NOTIFICATIONS
 RECOMMENDATIONS — ACTIONABILITY, BRANCH GROUPING & RENEWAL ACCURACY**. After the
 Owner revised Private progress to booking/package semantics, the exact Gate 0
 reconciliation passed. Application Source `d0560c36e60394d4fc094fb945b43b4894e1d186`
 is committed, pushed, and built as a staged Production-target artifact with no
 Production alias or Promotion. The additive Supabase Migration is applied, but
 all four new tracking tables remain empty and notifications remain unchanged.
-This first matrix is the only authority for current mutable state; later records
-are Historical / Superseded.
+This record was superseded first by the 2026-08-10 pre-authorization Hard Stop
+and then by the current Preserve & Extend matrix above. It must not be treated
+as current mutable state or Promotion authorization.
 
-## Current Handoff — Admin Notifications Recommendations
+### Historical Handoff — Admin Notifications Recommendations
 
 Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; NOT
 PROMOTED; NO NOTIFICATION WRITE OR SEND**.
 
-### Current Project Matrix
+#### Historical Project Matrix at That Handoff
 
 | Field | Current value |
 | --- | --- |

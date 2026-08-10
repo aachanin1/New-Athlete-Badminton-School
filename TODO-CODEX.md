@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-07
+Last updated: 2026-08-10
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,25 +9,27 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**ADMIN NOTIFICATIONS RECOMMENDATIONS — ACTIONABILITY, BRANCH GROUPING & RENEWAL
-ACCURACY — READY FOR OWNER UAT.**
+**ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES +
+INELIGIBLE SYNC — READY FOR OWNER UAT.**
 
-- Owner-approved revised Private booking/package semantics passed exact Gate 0.
-  Application Source `d0560c36e60394d4fc094fb945b43b4894e1d186` is committed,
-  pushed, and staged as Production-target artifact
-  `dpl_fMb6o4fwS5PAnkpRnFQC3fJ7X7E3`; it has no assigned alias and has not been
-  Promoted. Existing Production remains unchanged.
-- The additive Migration `20260807155346` is applied. Production tracking rows
-  remain campaigns/batches/items/requests `0/0/0/0`; notifications remain
-  `26,266`. No notification was created or sent, no controlled write UAT ran,
-  and no business data was repaired or changed.
-- Next action: Owner performs read-only UAT on the exact staged artifact. Do not
-  click Start Batch, Load Next Batch, individual Send, or Confirm Bulk Send.
-  Promote only after explicit Owner PASS for this exact artifact/SHA.
-  `PROJECT_STATE.md` is authoritative for the full matrix and UAT steps; the
-  dated implementation/verification record is in `DEVELOPMENT_TODO.md`.
-- Do not start Thai UI Terminology & Shared Helper, LINE External-Browser Handoff
-  Audit, or any other Parking Lot item automatically.
+- Functional Source `e2fe2c1cf3e73f3b5b5c40b02d4fe9a84754fb5b` is committed,
+  pushed, and built as exact staged Production-target artifact
+  `dpl_FQ9Qy2AebuFdsCWCWCnRecB8AwXX` with no alias. Corrective Migration
+  `20260810034515` is applied; prior Migration was not edited.
+- The one Owner-authorized atomic Production reconciliation preserved all 30
+  original rows and appended 95 eligible accounts at positions `31–125`.
+  Final tracking is campaign/batch/items/requests `1/1/125/0`, all 125 items are
+  pending, eligibility is 125, and missing/noneligible/duplicate/sent/excluded/
+  linked-notification counts are all `0`. Rollback was not used; notifications
+  created or sent are `0`.
+- Tests, TypeScript, zero-warning lint, mojibake, Production build, local Supabase
+  reset/lint/fixture/final reset, RLS/GRANT/advisors/performance, diff compliance,
+  staged smoke, and runtime-log gates passed. No Environment, feature, allowlist,
+  dependency, Promote, or alias action occurred.
+- Next action: Owner performs read-only UAT on the exact staged artifact/SHA and
+  returns PASS or FAIL. Do not start/sync a cycle, update item status, send
+  individually, confirm Bulk Send, Promote, mutate aliases, or start another
+  task. `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
 
@@ -1043,7 +1045,8 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
 ### Historical Registration — Admin Notifications Recommendations
 
-Status: **HISTORICAL / SUPERSEDED — CURRENT TASK IS READY FOR OWNER UAT**.
+Status: **HISTORICAL / SUPERSEDED — CURRENT REVISED TASK IS READY FOR OWNER
+UAT**.
 
 - This paragraph preserves the pre-selection registration only. The Owner later
   selected the task and supplied the exact actionability, branch-grouping, and
@@ -1052,9 +1055,13 @@ Status: **HISTORICAL / SUPERSEDED — CURRENT TASK IS READY FOR OWNER UAT**.
   implementation when Private attendee rows could not reconcile to a shared
   booking-level entitlement denominator. That stopped state remains dated history.
 - The Owner then approved booking/package semantics for Private. Revised Gate 0
-  reconciled `71/71` canonical purchased units, implementation completed, and the
-  exact staged artifact is now READY FOR OWNER UAT without any notification send.
-- Current artifact, data-safety state, and next Owner UAT gate are authoritative
+  reconciled `71/71` canonical purchased units and produced a staged artifact,
+  but that artifact was later superseded by the full-roster corrective scope.
+- Fresh Production audit for that corrective scope found an active `1/1/30/0`
+  tracking cycle and triggered the earlier Owner-mandated Material Hard Stop.
+  The Owner then authorized Preserve & Extend; Source, Migration, one atomic
+  reconciliation, and a new staged artifact completed without a notification
+  send. Current artifact, data-safety state, and Owner UAT gate are authoritative
   in `PROJECT_STATE.md`; detailed dated evidence is in `DEVELOPMENT_TODO.md`.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
