@@ -13512,3 +13512,190 @@ business data**; Customer Impact **None from this staged round**; Financial Impa
 **None**; Documentation Drift **No after the containing closeout commit is
 published**; Blocker **None**; Task Done **No**; Next Action **read-only Owner UAT,
 then exact-artifact Promotion only after PASS**.
+
+### 2026-08-10 — Owner UAT PASS / Pre-Promotion Baseline Material Hard Stop
+
+State observed at this safe handoff: the Owner reported **PASS** only for staged
+Production-target artifact `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Functional
+Source `a23915959e393b760bb6b0f1c8f57a0054a839de` and accepted the visible UI
+label `ประวัติคอร์ส:`. The Owner authorized exact-artifact Promotion with no
+rebuild, new artifact, functional change, or new Notification. Mandatory fresh
+preflight found that the signed Production tracking baseline had materially
+changed, so execution ended **DEVELOPING — MATERIAL HARD STOP BEFORE PROMOTION**.
+The artifact was not Promoted and the task is not done.
+
+#### Fresh Git and Vercel Gates
+
+- Repository root and branch were exact. Local/Upstream HEAD were
+  `fbc2ee2aa0efe52db9866455ced78d3f460bebab`, ahead/behind `0/0`; Functional
+  Source `a23915959e393b760bb6b0f1c8f57a0054a839de` exists in both histories and
+  no executable or staged diff was present.
+- Vercel independently reported artifact
+  `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` as target `production`, state `READY`, exact
+  Git SHA, and aliases `[]`. The prior Production and rollback candidate
+  `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` remained READY. All four established
+  Production aliases still pointed to that prior deployment.
+- Current Vercel documentation and CLI `58.9.0` confirmed that `vercel promote`
+  would point Production traffic to the existing deployment without rebuild.
+  The command was not invoked because the data Gate failed first. No rebuild,
+  deployment, alias, Environment, feature, allowlist, permission, dependency, or
+  configuration action occurred.
+- Corrective Migration
+  `20260810064847_admin_notification_follow_up_course_history_attendance.sql`
+  remained byte-unchanged at SHA-256
+  `f4239ad4b268406689eeac8ce79b4cf29d1e5c69f5894b53f9ce7c20eeddd893`.
+  Supabase CLI was `2.113.0`; linked migration inventory remained 27 matching
+  versions through `20260810064847`.
+
+#### Material Baseline Difference and Attribution Evidence
+
+- The Owner-approved Promotion command required campaigns/batches/items/requests
+  `1/1/125/3`, pending/sent/excluded `121/4/0`, and linked Follow-up Notifications
+  `4`. Two fresh SELECT-only reads instead returned `1/1/125/4`, `119/6/0`, and
+  linked `6`; completed requests/recipients were `4/6`.
+- Current eligible roster was `121`, missing eligible accounts `0`, and
+  unexpected noneligible pending `4`. Positions remained continuous `1–125`;
+  duplicate users, positions, Notification links, orphans, position gaps, and
+  linked Notification shape mismatches were all `0`.
+- Active-item manifest was
+  `bc21b8f57c6dbb1b2d9a11100ec45efa23b629e11cec6749b5f9cc8c5fd8db74`, which
+  no longer matched the signed pre-UAT manifest. No UUID or PII was recorded.
+- Aggregate database evidence shows the fourth request completed for two
+  recipients at `2026-08-10T08:10:41Z`. Vercel logs show a successful POST to
+  `/api/admin/notifications/customer-follow-up` on the exact staged UAT artifact
+  at `2026-08-10T08:10:40Z`, followed by GET reads. This strongly attributes the
+  delta to the staged-artifact UAT window, but the authenticated human actor
+  remains Unknown / Need verification.
+- Developer Codex invoked no Start, Sync, Reconcile, Send, status update, DDL,
+  DML, tracking write, Notification insert, Promotion, rollback, or alias command.
+  Requests/Notifications created or sent by Developer Codex were `0/0`. Compared
+  with the last signed snapshot, one request and two linked sent Notifications
+  already existed before this round could Promote. Sent history was not changed
+  or reversed.
+
+The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remained
+content-identical to index blob `4521281d099efb189429a744909552d67871ff23`,
+SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+It was not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+Mandatory classification at this safe handoff: Active Task **ADMIN NOTIFICATIONS
+RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC**; Task
+Status **DEVELOPING — MATERIAL HARD STOP BEFORE PROMOTION**; Source Complete
+**Yes**; Tests Passed **Yes for unchanged published Source**; Functional/Test/
+Docs/Migration/Config/Dependency changes **0/0/3 local safe-handoff files/0/0/0**;
+Scope Expansion **None**; Scope Breach **No by Developer Codex**; Committed/Pushed
+**Yes for Source / No for this safe handoff**; staged artifact/SHA
+`dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` /
+`a23915959e393b760bb6b0f1c8f57a0054a839de`; Deployed **staged only**;
+Production Active **No for the new UI / Yes for the existing database read
+contract**; Owner UAT **PASS for exact artifact/SHA**; Production UAT **Not run**;
+Migration Applied **Yes, previously**; Reconciliation Invocations **0**; Original
+Rows Preserved/Inserted/Excluded by this round **125/0/0**; Requests Created/
+Notifications Sent by Developer Codex **0/0**; Rollback Used **No**; Environment
+Changed **No**; Feature Enabled/Allowlisted **No change/No change**; Production
+Data Changed **Yes before preflight, not by Developer Codex: +1 completed request,
++2 linked sent rows**; Data Repaired **No**; Customer Impact **two additional
+Follow-up Notifications existed before promotion preflight**; Financial Impact
+**None**; Documentation Drift **corrected locally only; remote snapshot remains
+stale**; Blocker **mandatory Production baseline mismatch**; Task Done **No**;
+Next Action **Owner accepts the changed request/sent state and supplies a revised
+exact Promotion baseline, or authorizes another explicit safe action. Until then,
+do not Promote, rebuild, deploy, mutate aliases, Start/Sync/Reconcile, send,
+change item status, roll back data, commit/push this safe handoff, or start another
+task**.
+
+### 2026-08-10 — Admin Notification Recommendations Exact-Artifact Production Closeout
+
+State observed at this closeout: the Owner confirmed that the successful
+two-recipient Bulk Send on the staged UAT artifact was the Owner's manual action,
+not an automatic send or Developer write. The Owner accepted revised baseline
+campaigns/batches/items/requests `1/1/125/4`, pending/sent/excluded `119/6/0`,
+linked Notifications `6`, and eligible/missing/noneligible-pending `121/0/4`;
+required preserving all six Sent rows; prohibited Sync and additional send; and
+authorized exact-artifact Promotion. **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL
+ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC** is **TASK DONE**.
+
+#### Owner Decision and Fresh Gates
+
+- Owner UAT was **PASS** only for artifact
+  `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Functional Source
+  `a23915959e393b760bb6b0f1c8f57a0054a839de`, including accepted UI label
+  `ประวัติคอร์ส:`. Sent/Request/Notification history was not reversed or deleted.
+- Fresh Git audit ran from branch `spike/next-major-security-upgrade`, Local/
+  Upstream HEAD `fbc2ee2aa0efe52db9866455ced78d3f460bebab`, ahead/behind `0/0`. Exact
+  Functional Source was in both histories, executable and staged diffs were empty,
+  and the three existing local safe-handoff documentation files were preserved.
+- Artifact preflight twice confirmed exact deployment ID, target `production`,
+  state/readyState `READY`, Git SHA, URL, and alias count `0`. Prior Production and
+  rollback candidate `dpl_76Bc1Qi8F6au7zEYiwCpCztu1JRP` was READY and all four
+  established aliases still pointed there before Promotion.
+- Two fresh SELECT-only database gates returned the exact Owner-approved baseline,
+  completed requests/recipients `4/6`, continuous positions `1–125`, active-item
+  manifest `bc21b8f57c6dbb1b2d9a11100ec45efa23b629e11cec6749b5f9cc8c5fd8db74`,
+  and duplicate users/positions/Notification links, orphans, gaps, invalid linked
+  shape, and processing requests all `0`.
+
+#### Exact Promotion and Production Verification
+
+- Exactly one `vercel promote` invocation ran from
+  `2026-08-10T15:10:46Z` through `2026-08-10T15:10:53Z`. It promoted existing
+  deployment `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` directly. Deployment ID,
+  creation/build/ready timestamps, Git SHA, and URL remained unchanged; rebuild,
+  redeploy, new deployment, retry, and separate alias mutation counts were all
+  `0`.
+- Production aliases `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`,
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`, and
+  `www.newathleteschool.com` all point to the exact promoted artifact. The prior
+  Production deployment remains the rollback candidate with alias count `0`.
+- Production root, `/api/health`, and a real promoted CSS asset returned `200`.
+  Anonymous `/admin/notifications` returned `307` to the normal Login route;
+  anonymous Follow-up GET returned `401`.
+- Bounded runtime logs from Promotion start showed GET requests only. POST,
+  mutation attributable to verification, error, fatal, and 5xx counts were all
+  `0`. No task-attributable regression occurred and rollback was not used.
+- The post-Promotion SELECT-only database gate remained byte-for-byte equivalent
+  at the approved aggregate/manifest level: `1/1/125/4`, `119/6/0`, linked `6`,
+  eligible/missing/noneligible-pending `121/0/4`, completed requests/recipients
+  `4/6`, continuous positions `1–125`, and all duplicate/orphan/gap/shape counters
+  `0`. Promotion-round Requests Created, Notifications Sent, Start, Sync,
+  Reconcile, item status updates, tracking writes, DDL, and DML were all `0`.
+
+#### Source, Documentation, and Protected State
+
+- Functional/Test/Migration/Configuration/Dependency files changed `0/0/0/0/0`.
+  Only `PROJECT_STATE.md`, `TODO-CODEX.md`, and `DEVELOPMENT_TODO.md` changed for
+  the documentation closeout. Published functional/security/performance evidence
+  remains valid because executable Source did not change.
+- Corrective Migration
+  `20260810064847_admin_notification_follow_up_course_history_attendance.sql`
+  remained byte-unchanged at SHA-256
+  `f4239ad4b268406689eeac8ce79b4cf29d1e5c69f5894b53f9ce7c20eeddd893` and linked
+  migration inventory remained 27 versions. Environment, feature, allowlist,
+  permission, secret, configuration, and dependency state did not change.
+- The pre-existing stat-dirty `src/lib/schedule-slot-utils.ts` remained
+  content-identical to index blob `4521281d099efb189429a744909552d67871ff23`,
+  SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  It was not edited, normalized, staged, reset, checked out, stashed, or committed.
+- Mojibake and `git diff --check` passed. Complete worktree/staged diff compliance
+  found only the three authorized documentation files; the documentation-only
+  closeout was committed and pushed normally without force.
+
+Mandatory classification at this closeout: Active Task **None**; Task Status
+**TASK DONE**; Source Complete **Yes**; Tests Passed **Yes**; Functional/Test/
+Documentation/Migration/Configuration/Dependency changes **0/0/3/0/0/0**; Scope
+Expansion **None**; Scope Breach **No**; Committed/Pushed **Yes/Yes**; promoted
+artifact/SHA `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` /
+`a23915959e393b760bb6b0f1c8f57a0054a839de`; Deployed **Yes, exact Production
+active**; Owner UAT **PASS**; second manual Production UAT **Not required**;
+Migration Applied **Yes, previously**; Promotion Invocations **1**; Reconciliation
+Invocations **0**; Original Rows Preserved/Inserted/Excluded by Promotion
+**125/0/0**; Requests Created/Notifications Sent by Promotion **0/0**; retained
+Owner-approved request/recipient/linked Notification totals **4/6/6**; Rollback
+Used **No**; Environment Changed **No**; Feature Enabled/Allowlisted **No change/
+No change**; Production Data Changed **No by Promotion**; Data Repaired **No**;
+Customer Impact **approved Admin UI is active, Owner-attributed two-recipient UAT
+send preserved, no Promotion Notification**; Financial Impact **None**;
+Documentation Drift **No after the containing closeout commit is pushed**;
+Blocker **None**; Task Done **Yes**; Next Action **Await Owner selection; do not
+start any Parking Lot task automatically**.

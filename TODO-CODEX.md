@@ -9,33 +9,34 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-**ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES +
-INELIGIBLE SYNC — READY FOR OWNER UAT.**
+**None. Await Owner selection; do not start any Parking Lot task automatically.**
 
-- Functional Source `a23915959e393b760bb6b0f1c8f57a0054a839de` is committed,
-  pushed, and built as exact staged Production-target artifact
-  `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` with no alias. Corrective Migration
-  `20260810064847` is applied; prior Migrations were not edited.
-- Customer Follow-up now debounces automatic server GET search at 300 ms, shows
-  explicit unresolved-child review text, canonical account Course History badges,
-  and latest exact-learner present/late Attendance date. Course/attendance remain
-  display-only and do not alter search or Notification copy.
-- Production tracking was preserved byte-for-byte at campaigns/batches/items/
-  requests `1/1/125/3`, pending/sent/excluded `121/4/0`, completed requests/
-  recipients/linked Notifications `3/4/4`, positions `1–125`, eligible `125`, and
-  missing/noneligible/duplicates/orphans `0`. This round invoked no Start, Sync,
-  Reconcile, Send, status update, tracking write, request, or Notification.
-- Focused/protected tests, TypeScript, zero-warning lint, mojibake, Production
-  build, local Supabase reset/lint/fixture/final reset, RLS/GRANT/advisors,
-  Postgres P95, diff compliance, staged smoke, and runtime logs passed. No
-  Environment, feature, allowlist, dependency, Promote, or alias action occurred.
-- Next action: Owner performs read-only UAT on the exact staged artifact/SHA and
-  returns PASS or FAIL. Do not start/sync a cycle, update item status, send
-  individually, confirm Bulk Send, Promote, mutate aliases, or start another task.
-  The prior staged artifacts are superseded and must not be promoted.
-  `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
+`PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
+
+### ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Owner passed exact artifact `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Source
+  `a23915959e393b760bb6b0f1c8f57a0054a839de`, accepted `ประวัติคอร์ส:`, and
+  confirmed the two-recipient Bulk Send as the Owner's UAT action. Owner accepted
+  baseline `1/1/125/4`, status `119/6/0`, linked Notifications `6`, and preserved
+  all six Sent rows without Sync or rollback.
+- One exact `vercel promote` invocation moved the same deployment to Production.
+  All four established aliases point to it; deployment ID, build identity,
+  timestamps, Git SHA, and URL remained unchanged, so rebuild/new deployment was
+  `0/0`.
+- Root, health, promoted static asset, normal Admin auth redirect, protected API,
+  post-Promotion logs, and Supabase before/after invariants passed. Promotion
+  Requests/Notifications, Sync/Reconcile, tracking writes, errors/fatal/5xx/POST,
+  and rollback were all `0`.
+- Promotion-closeout Functional/Test/Documentation/Migration/Config/Dependency
+  changes were `0/0/3/0/0/0`; Environment, feature, allowlist, permission, and
+  secret state did not change. See `PROJECT_STATE.md` and the dated
+  `DEVELOPMENT_TODO.md` closeout for exact evidence.
 
 ### ASSIGNMENT GROUP LIFECYCLE INTEGRITY
 
