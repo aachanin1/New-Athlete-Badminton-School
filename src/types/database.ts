@@ -327,6 +327,45 @@ export interface Database {
         }
         Returns: Json
       }
+      admin_notification_follow_up_manifest_sha256_v2: {
+        Args: { p_batch_id: string }
+        Returns: string
+      }
+      admin_notification_follow_up_start_v2: {
+        Args: { p_actor_id: string }
+        Returns: Json
+      }
+      admin_notification_follow_up_sync_v2: {
+        Args: { p_actor_id: string }
+        Returns: Json
+      }
+      admin_notification_follow_up_workspace_v2: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_status?: string
+          p_search?: string | null
+        }
+        Returns: Json
+      }
+      admin_notification_follow_up_send_v2: {
+        Args: {
+          p_actor_id: string
+          p_request_key: string
+          p_user_ids: string[]
+          p_page?: number
+          p_status?: string
+          p_search?: string | null
+        }
+        Returns: Json
+      }
+      admin_notification_follow_up_reconcile_v2: {
+        Args: {
+          p_actor_id: string
+          p_expected_manifest_sha256: string
+        }
+        Returns: Json
+      }
       coach_assignment_slot_snapshot_v2: {
         Args: {
           p_schedule_slot_id: string

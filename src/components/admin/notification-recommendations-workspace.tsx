@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Loader2,
   RefreshCw,
+  Search,
   Send,
   Users,
 } from 'lucide-react'
@@ -17,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +28,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type {
   FollowUpWorkspaceSnapshot,
   NearCourseRecommendation,
@@ -112,8 +121,9 @@ export function NotificationRecommendationsWorkspace({
 }: NotificationRecommendationsWorkspaceProps) {
   const [lowPage, setLowPage] = useState(1)
   const [nearPage, setNearPage] = useState(1)
-  const [followUpPage, setFollowUpPage] = useState(1)
   const [followUp, setFollowUp] = useState(initialData.followUp)
+  const [searchDraft, setSearchDraft] = useState(initialData.followUp.search)
+  const [statusFilter, setStatusFilter] = useState(initialData.followUp.statusFilter)
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<FollowUpPreview | null>(null)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
@@ -121,10 +131,8 @@ export function NotificationRecommendationsWorkspace({
 
   const resolvedLowPage = safePage(lowPage, initialData.lowEnrollment.length)
   const resolvedNearPage = safePage(nearPage, initialData.nearCourse.length)
-  const resolvedFollowUpPage = safePage(followUpPage, followUp.items.length)
   const pagedLow = paginate(initialData.lowEnrollment, resolvedLowPage)
   const pagedNear = paginate(initialData.nearCourse, resolvedNearPage)
-  const pagedFollowUp = paginate(followUp.items, resolvedFollowUpPage)
   const bulkEligibleItems = useMemo(
     () => followUp.items.filter((item) => item.canBulk && item.status === 'pending'),
     [followUp.items]
@@ -133,22 +141,34 @@ export function NotificationRecommendationsWorkspace({
   function replaceFollowUp(next: FollowUpWorkspaceSnapshot) {
     setFollowUp(next)
     setSelectedUserIds(new Set())
-    setFollowUpPage(1)
     setError(next.error)
   }
 
   async function requestWorkspace(
     method: 'GET' | 'POST',
     body?: Record<string, unknown>,
-    actionName = 'refresh'
+    actionName = 'refresh',
+    page = followUp.page,
+    nextStatus = statusFilter,
+    search = searchDraft
   ) {
     setLoadingAction(actionName)
     setError(null)
     try {
-      const response = await fetch('/api/admin/notifications/customer-follow-up', {
+      const query = new URLSearchParams({
+        page: String(page),
+        status: nextStatus,
+        search: search.trim(),
+      })
+      const response = await fetch(`/api/admin/notifications/customer-follow-up?${query}`, {
         method,
         headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
-        body: method === 'POST' ? JSON.stringify(body) : undefined,
+        body: method === 'POST' ? JSON.stringify({
+          ...body,
+          page,
+          status: nextStatus,
+          search: search.trim(),
+        }) : undefined,
       })
       const result = await response.json().catch(() => null)
       if (!response.ok || !result?.workspace) {
@@ -163,6 +183,18 @@ export function NotificationRecommendationsWorkspace({
     } finally {
       setLoadingAction(null)
     }
+  }
+
+  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSelectedUserIds(new Set())
+    void requestWorkspace('GET', undefined, 'search', 1, statusFilter, searchDraft)
+  }
+
+  function changeStatus(nextStatus: 'all' | 'pending' | 'sent' | 'excluded') {
+    setStatusFilter(nextStatus)
+    setSelectedUserIds(new Set())
+    void requestWorkspace('GET', undefined, 'filter', 1, nextStatus, searchDraft)
   }
 
   function toggleBulkUser(userId: string, checked: boolean) {
@@ -197,7 +229,7 @@ export function NotificationRecommendationsWorkspace({
       action: 'send',
       requestKey: preview.requestKey,
       userIds: preview.userIds,
-    }, 'send')
+    }, 'send', followUp.page, statusFilter, searchDraft)
     if (success) setPreview(null)
   }
 
@@ -223,7 +255,7 @@ export function NotificationRecommendationsWorkspace({
               ผู้เรียนใกล้หมดคอร์ส ({initialData.nearCourse.length})
             </TabsTrigger>
             <TabsTrigger value="follow-up" className="min-h-10 whitespace-normal">
-              ติดตามลูกค้าเก่า ({followUp.totalRemaining})
+              ติดตามลูกค้าเก่า ({followUp.totalCount})
             </TabsTrigger>
           </TabsList>
 
@@ -286,14 +318,19 @@ export function NotificationRecommendationsWorkspace({
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-slate-800">{item.recipientName}</p>
+                          <p className="font-semibold text-slate-800">
+                            {item.courseName === 'private'
+                              ? 'แพ็กเกจส่วนตัว'
+                              : item.learnerNames.join(', ')}
+                          </p>
                           <Badge variant="outline">{COURSE_LABELS[item.courseName]}</Badge>
                           <Badge className={item.level === 'red' ? 'bg-rose-600' : item.level === 'yellow' ? 'bg-amber-500' : 'bg-emerald-600'}>
                             {item.progressPercent}%
                           </Badge>
                         </div>
-                        {item.courseName !== 'private' && item.learnerName && (
-                          <p className="text-sm text-slate-600">ผู้เรียน: {item.learnerName}</p>
+                        <p className="text-sm text-slate-600">ผู้ปกครอง/ผู้รับ: {item.recipientName}</p>
+                        {item.courseName === 'private' && item.learnerNames.length > 0 && (
+                          <p className="text-sm text-slate-600">ผู้เรียนในแพ็กเกจ: {item.learnerNames.join(', ')}</p>
                         )}
                         <p className="text-sm text-slate-600">ใช้แล้ว {item.usedSessions}/{item.totalSessions} รอบ</p>
                         <p className="text-xs text-slate-500">สาขา: {item.branchNames.join(', ')}</p>
@@ -316,48 +353,85 @@ export function NotificationRecommendationsWorkspace({
 
           <TabsContent value="follow-up" className="space-y-3">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <SummaryCard label="ทั้งหมด" value={followUp.totalRemaining} tone="text-[#153c85]" />
-              <SummaryCard label="คิวปัจจุบัน" value={followUp.currentCount} tone="text-amber-600" />
-              <SummaryCard label="รอ" value={followUp.waitingCount} tone="text-slate-600" />
-              <SummaryCard label="ดำเนินการแล้ว" value={followUp.processedCount} tone="text-emerald-600" />
+              <SummaryCard label="ทั้งหมด" value={followUp.totalCount} tone="text-[#153c85]" />
+              <SummaryCard label="รอดำเนินการ" value={followUp.pendingCount} tone="text-amber-600" />
+              <SummaryCard label="ส่งแล้ว" value={followUp.sentCount} tone="text-emerald-600" />
+              <SummaryCard label="ไม่เข้าเกณฑ์" value={followUp.excludedCount} tone="text-slate-600" />
             </div>
 
-            <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-xs text-slate-600">
-                คิวร่วมของ Admin สูงสุด 30 ราย · แสดง 10 รายต่อหน้า · ไม่มีการสร้างคิวหรือส่งอัตโนมัติ
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  disabled={loadingAction !== null}
-                  onClick={() => requestWorkspace('GET', undefined, 'refresh')}
-                >
-                  {loadingAction === 'refresh' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                  รีเฟรช
-                </Button>
-                {followUp.canStart && (
+            <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-600">
+                  Full Roster ร่วมของ Admin · Server แสดง 10 รายต่อหน้า · ไม่มีการ Sync หรือส่งอัตโนมัติ
+                </div>
+                <div className="flex flex-wrap gap-2">
                   <Button
+                    variant="outline"
                     size="sm"
+                    className="gap-1"
                     disabled={loadingAction !== null}
-                    onClick={() => requestWorkspace('POST', { action: 'start_batch' }, 'start')}
+                    onClick={() => requestWorkspace('GET', undefined, 'refresh')}
                   >
-                    {loadingAction === 'start' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-                    เริ่ม Batch 30 ราย
+                    {loadingAction === 'refresh' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                    รีเฟรช
                   </Button>
-                )}
-                {followUp.canLoadNext && (
-                  <Button
-                    size="sm"
-                    disabled={loadingAction !== null}
-                    onClick={() => requestWorkspace('POST', { action: 'load_next' }, 'next')}
-                  >
-                    {loadingAction === 'next' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-                    โหลด Batch ถัดไป
-                  </Button>
-                )}
+                  {followUp.canStart && (
+                    <Button
+                      size="sm"
+                      disabled={loadingAction !== null}
+                      onClick={() => requestWorkspace('POST', { action: 'start' }, 'start', 1)}
+                    >
+                      {loadingAction === 'start' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                      เริ่มรอบ Full Roster ({followUp.eligibleTotal})
+                    </Button>
+                  )}
+                  {followUp.canSync && (
+                    <Button
+                      size="sm"
+                      disabled={loadingAction !== null}
+                      onClick={() => requestWorkspace('POST', { action: 'sync' }, 'sync', 1)}
+                    >
+                      {loadingAction === 'sync' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                      Sync รายชื่อเข้าเกณฑ์
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              <div className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_190px]">
+                <form className="flex gap-2" onSubmit={submitSearch}>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      value={searchDraft}
+                      maxLength={100}
+                      placeholder="ค้นหาชื่อเล่น ชื่อผู้เรียน หรือผู้ปกครอง"
+                      className="pl-9"
+                      onChange={(event) => {
+                        setSearchDraft(event.target.value)
+                        setSelectedUserIds(new Set())
+                      }}
+                    />
+                  </div>
+                  <Button type="submit" variant="outline" disabled={loadingAction !== null}>
+                    ค้นหา
+                  </Button>
+                </form>
+                <Select value={statusFilter} onValueChange={(value) => changeStatus(value as typeof statusFilter)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกสถานะ</SelectItem>
+                    <SelectItem value="pending">รอดำเนินการ</SelectItem>
+                    <SelectItem value="sent">ส่งแล้ว</SelectItem>
+                    <SelectItem value="excluded">ไม่เข้าเกณฑ์</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                พบ {followUp.filteredCount.toLocaleString('th-TH')} รายการ · เข้าเกณฑ์ปัจจุบัน {followUp.eligibleTotal.toLocaleString('th-TH')} ราย
+                {followUp.missingEligibleCount > 0 ? ` · รอ Sync ${followUp.missingEligibleCount.toLocaleString('th-TH')} ราย` : ''}
+              </p>
             </div>
 
             {error && (
@@ -368,7 +442,7 @@ export function NotificationRecommendationsWorkspace({
 
             {selectedUserIds.size > 0 && (
               <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-blue-800">เลือกสำหรับ Bulk {selectedUserIds.size}/10 ราย</p>
+                <p className="text-sm text-blue-800">เลือกจากหน้าปัจจุบันสำหรับ Bulk {selectedUserIds.size}/10 ราย</p>
                 <Button
                   size="sm"
                   className="gap-1"
@@ -379,24 +453,27 @@ export function NotificationRecommendationsWorkspace({
               </div>
             )}
 
-            {pagedFollowUp.length === 0 ? (
+            {followUp.items.length === 0 ? (
               <EmptyState>
                 {followUp.state === 'unavailable'
                   ? 'คิวติดตามลูกค้ายังไม่พร้อมใช้งาน'
                   : followUp.canStart
-                    ? `มีลูกค้าที่เข้าเกณฑ์ ${followUp.availableTotal} ราย กดเริ่ม Batch เมื่อต้องการดำเนินการ`
-                    : 'ยังไม่มีรายการในคิวปัจจุบัน'}
+                    ? `มีลูกค้าที่เข้าเกณฑ์ ${followUp.eligibleTotal} ราย กดเริ่มรอบ Full Roster เมื่อต้องการดำเนินการ`
+                    : 'ไม่พบรายการตามคำค้นหาหรือตัวกรอง'}
               </EmptyState>
             ) : (
               <div className="space-y-2">
-                {pagedFollowUp.map((item) => {
+                {followUp.items.map((item) => {
                   const isSelected = selectedUserIds.has(item.userId)
+                  const learnerLabel = item.learners.length > 0
+                    ? item.learners.map((learner) => `${learner.name}${learner.isSelf ? ' (ตัวเอง)' : ''}`).join(', ')
+                    : 'ไม่พบชื่อผู้เรียนที่ยืนยันแล้ว'
                   return (
                     <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex min-w-0 gap-3">
                           <Checkbox
-                            aria-label={`เลือก ${item.recipientName} สำหรับ Bulk`}
+                            aria-label={`เลือก ${learnerLabel} สำหรับ Bulk`}
                             className="mt-1"
                             checked={isSelected}
                             disabled={!item.canBulk || (!isSelected && selectedUserIds.size >= 10)}
@@ -404,10 +481,12 @@ export function NotificationRecommendationsWorkspace({
                           />
                           <div className="min-w-0 space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold text-slate-800">{item.position}. {item.recipientName}</p>
+                              <p className="font-semibold text-slate-800">{item.position}. {learnerLabel}</p>
                               {item.status === 'sent' && <Badge className="bg-emerald-600">ส่งแล้ว</Badge>}
+                              {item.status === 'excluded' && <Badge variant="secondary">ไม่เข้าเกณฑ์</Badge>}
                               {!item.isCurrentlyEligible && <Badge variant="destructive">ไม่เข้าเกณฑ์แล้ว</Badge>}
                             </div>
+                            <p className="text-sm text-slate-600">ผู้ปกครอง/ผู้รับ: {item.recipientName}</p>
                             <p className="text-xs text-slate-500">
                               ติดตามที่ยืนยันแล้ว {item.verifiedAttemptCount} ครั้ง
                               {item.latestVerifiedAt ? ` · ล่าสุด ${formatDateTime(item.latestVerifiedAt)}` : ''}
@@ -438,7 +517,14 @@ export function NotificationRecommendationsWorkspace({
                 })}
               </div>
             )}
-            <FixedPagination page={resolvedFollowUpPage} total={followUp.items.length} onPageChange={setFollowUpPage} />
+            <FixedPagination
+              page={followUp.page}
+              total={followUp.filteredCount}
+              onPageChange={(page) => {
+                setSelectedUserIds(new Set())
+                void requestWorkspace('GET', undefined, 'page', page, statusFilter, searchDraft)
+              }}
+            />
 
             {bulkEligibleItems.length === 0 && followUp.items.some((item) => item.status === 'pending') && (
               <p className="text-xs text-slate-500">คิวนี้ไม่มีรายการที่ส่งแบบ Bulk ได้ กรุณาดำเนินการรายบุคคล</p>

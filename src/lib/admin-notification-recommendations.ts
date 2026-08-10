@@ -32,6 +32,7 @@ export interface RecommendationSessionInput {
   branchId: string
   branchName: string
   childId: string | null
+  learnerName: string | null
   status: string
   rescheduledFromId: string | null
   isMakeup: boolean
@@ -62,7 +63,7 @@ export interface NearCourseRecommendation {
   bookingIds: string[]
   recipientUserId: string
   recipientName: string
-  learnerName: string | null
+  learnerNames: string[]
   courseName: RecommendationCourseName
   branchNames: string[]
   usedSessions: number
@@ -74,10 +75,16 @@ export interface NearCourseRecommendation {
   linkUrl: string
 }
 
+export interface FollowUpLearnerDisplay {
+  name: string
+  isSelf: boolean
+}
+
 export interface FollowUpRecommendationItem {
   id: string
   userId: string
   recipientName: string
+  learners: FollowUpLearnerDisplay[]
   position: number
   status: 'pending' | 'sent' | 'excluded'
   isCurrentlyEligible: boolean
@@ -90,13 +97,20 @@ export interface FollowUpRecommendationItem {
 
 export interface FollowUpWorkspaceSnapshot {
   state: 'not_started' | 'active' | 'batch_complete' | 'campaign_complete' | 'unavailable'
-  totalRemaining: number
-  currentCount: number
-  waitingCount: number
-  processedCount: number
-  availableTotal: number
+  totalCount: number
+  pendingCount: number
+  sentCount: number
+  excludedCount: number
+  filteredCount: number
+  eligibleTotal: number
+  missingEligibleCount: number
+  page: number
+  pageSize: number
+  totalPages: number
+  statusFilter: 'all' | 'pending' | 'sent' | 'excluded'
+  search: string
   canStart: boolean
-  canLoadNext: boolean
+  canSync: boolean
   items: FollowUpRecommendationItem[]
   error: string | null
 }
@@ -378,7 +392,7 @@ export function buildNearCourseRecommendations({
       bookingIds: scopeBookings.map((booking) => booking.id).sort(),
       recipientUserId: first.userId,
       recipientName: first.ownerName,
-      learnerName: first.learnerName,
+      learnerNames: [first.learnerName],
       courseName: first.courseName,
       branchNames: uniqueSorted(scopeBookings.map((booking) => booking.branchName)),
       usedSessions: used,
@@ -400,12 +414,18 @@ export function buildNearCourseRecommendations({
     const ratio = used / denominator
     if (ratio < 0.7) continue
     const progressPercent = Math.min(100, Math.round(ratio * 100))
+    const participantNames = uniqueSorted(
+      sessions
+        .filter((session) => session.bookingId === booking.id && !session.isMakeup)
+        .map((session) => session.learnerName || booking.ownerName)
+        .filter(Boolean)
+    )
     recommendations.push({
       id: `private:${booking.id}`,
       bookingIds: [booking.id],
       recipientUserId: booking.userId,
       recipientName: booking.ownerName,
-      learnerName: null,
+      learnerNames: participantNames,
       courseName: 'private',
       branchNames: [booking.branchName],
       usedSessions: used,
@@ -478,13 +498,20 @@ export function createEmptyFollowUpWorkspace(
 ): FollowUpWorkspaceSnapshot {
   return {
     state: 'not_started',
-    totalRemaining: 0,
-    currentCount: 0,
-    waitingCount: 0,
-    processedCount: 0,
-    availableTotal: 0,
+    totalCount: 0,
+    pendingCount: 0,
+    sentCount: 0,
+    excludedCount: 0,
+    filteredCount: 0,
+    eligibleTotal: 0,
+    missingEligibleCount: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 0,
+    statusFilter: 'all',
+    search: '',
     canStart: false,
-    canLoadNext: false,
+    canSync: false,
     items: [],
     error: null,
     ...overrides,
@@ -498,6 +525,16 @@ function finiteCount(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function formatRosterLearnerName(fullName: string | null, nickname: string | null) {
+  const cleanFullName = fullName?.trim() || ''
+  const cleanNickname = nickname?.trim() || ''
+  if (!cleanFullName) return cleanNickname || 'ไม่ระบุชื่อผู้เรียน'
+  if (!cleanNickname || cleanNickname.localeCompare(cleanFullName, undefined, { sensitivity: 'base' }) === 0) {
+    return cleanFullName
+  }
+  return `${cleanNickname} - ${cleanFullName}`
 }
 
 export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWorkspaceSnapshot {
@@ -517,12 +554,22 @@ export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWork
     if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.user_id !== 'string') return []
     const status = raw.status === 'sent' || raw.status === 'excluded' ? raw.status : 'pending'
     const latestRead = typeof raw.latest_verified_read === 'boolean' ? raw.latest_verified_read : null
+    const learners = (Array.isArray(raw.learners) ? raw.learners : []).flatMap((learner): FollowUpLearnerDisplay[] => {
+      if (!isRecord(learner)) return []
+      const learnerType = learner.learner_type === 'self' ? 'self' : 'child'
+      const name = formatRosterLearnerName(
+        typeof learner.full_name === 'string' ? learner.full_name : null,
+        typeof learner.nickname === 'string' ? learner.nickname : null
+      )
+      return [{ name, isSelf: learnerType === 'self' }]
+    })
     return [{
       id: raw.id,
       userId: raw.user_id,
       recipientName: typeof raw.recipient_name === 'string' && raw.recipient_name.trim()
         ? raw.recipient_name
         : 'ไม่ทราบชื่อ',
+      learners,
       position: finiteCount(raw.position),
       status,
       isCurrentlyEligible: raw.is_currently_eligible !== false,
@@ -538,15 +585,28 @@ export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWork
     ? value.state as FollowUpWorkspaceSnapshot['state']
     : 'unavailable'
 
+  const statusFilter = value.status_filter === 'pending'
+    || value.status_filter === 'sent'
+    || value.status_filter === 'excluded'
+    ? value.status_filter
+    : 'all'
+
   return createEmptyFollowUpWorkspace({
     state,
-    totalRemaining: finiteCount(value.total_remaining),
-    currentCount: finiteCount(value.current_count),
-    waitingCount: finiteCount(value.waiting_count),
-    processedCount: finiteCount(value.processed_count),
-    availableTotal: finiteCount(value.available_total),
+    totalCount: finiteCount(value.total_count),
+    pendingCount: finiteCount(value.pending_count),
+    sentCount: finiteCount(value.sent_count),
+    excludedCount: finiteCount(value.excluded_count),
+    filteredCount: finiteCount(value.filtered_count),
+    eligibleTotal: finiteCount(value.eligible_total),
+    missingEligibleCount: finiteCount(value.missing_eligible_count),
+    page: Math.max(1, finiteCount(value.page)),
+    pageSize: Math.max(1, finiteCount(value.page_size)),
+    totalPages: finiteCount(value.total_pages),
+    statusFilter,
+    search: typeof value.search === 'string' ? value.search : '',
     canStart: value.can_start === true,
-    canLoadNext: value.can_load_next === true,
+    canSync: value.can_sync === true,
     items: items.sort((left, right) => left.position - right.position || left.id.localeCompare(right.id)),
     error: typeof value.error === 'string' ? value.error : null,
   })

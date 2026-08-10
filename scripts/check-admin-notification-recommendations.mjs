@@ -7,6 +7,7 @@ import {
   buildFollowUpEligibility,
   buildLowEnrollmentRecommendations,
   buildNearCourseRecommendations,
+  normalizeFollowUpWorkspaceSnapshot,
 } from '../src/lib/admin-notification-recommendations.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -54,6 +55,7 @@ function session(overrides = {}) {
     branchId: 'branch-1',
     branchName: 'รามอินทรา',
     childId: 'child-1',
+    learnerName: 'ผู้เรียน 1',
     status: 'scheduled',
     rescheduledFromId: null,
     isMakeup: false,
@@ -256,8 +258,8 @@ await check('Private 82 attendee rows collapse to 35 booking/package purchased u
   })
   assert.equal(result.length, 1)
   assert.deepEqual(
-    { used: result[0].usedSessions, total: result[0].totalSessions, learnerName: result[0].learnerName },
-    { used: 35, total: 35, learnerName: null }
+    { used: result[0].usedSessions, total: result[0].totalSessions, learnerNames: result[0].learnerNames },
+    { used: 35, total: 35, learnerNames: ['ผู้เรียน 1'] }
   )
 })
 
@@ -359,58 +361,89 @@ await check('follow-up includes Private history and suppresses any current activ
   assert.deepEqual(new Set(result.map((item) => item.userId)), new Set(['user-eligible-private', expiredPendingOwner]))
 })
 
-function queueSummary(population, seen, batch, sent) {
-  const pending = batch.filter((id) => !sent.has(id))
-  const waiting = population.filter((id) => !seen.has(id))
-  return {
-    total: pending.length + waiting.length,
-    current: pending.length,
-    waiting: waiting.length,
-    processed: sent.size,
-  }
-}
-
-await check('durable 140-person queue follows 30→29, bulk 10, complete/load-next math', () => {
-  const population = Array.from({ length: 140 }, (_, index) => `user-${index + 1}`)
-  const firstBatch = population.slice(0, 30)
-  const seen = new Set(firstBatch)
-  assert.deepEqual(queueSummary(population, seen, firstBatch, new Set()), { total: 140, current: 30, waiting: 110, processed: 0 })
-  assert.deepEqual(queueSummary(population, seen, firstBatch, new Set(firstBatch.slice(0, 1))), { total: 139, current: 29, waiting: 110, processed: 1 })
-  assert.deepEqual(queueSummary(population, seen, firstBatch, new Set(firstBatch.slice(0, 10))), { total: 130, current: 20, waiting: 110, processed: 10 })
-
-  const completed = new Set(firstBatch)
-  assert.deepEqual(queueSummary(population, seen, firstBatch, completed), { total: 110, current: 0, waiting: 110, processed: 30 })
-  const nextBatch = population.slice(30, 60)
-  nextBatch.forEach((id) => seen.add(id))
-  assert.deepEqual(queueSummary(population, seen, nextBatch, new Set()), { total: 110, current: 30, waiting: 80, processed: 0 })
+await check('full roster keeps 30, 125, and 140 accounts in one batch with 10-per-page server totals', () => {
+  assert.deepEqual([30, 125, 140].map((total) => ({ total, pages: Math.ceil(total / 10) })), [
+    { total: 30, pages: 3 },
+    { total: 125, pages: 13 },
+    { total: 140, pages: 14 },
+  ])
+  const population = Array.from({ length: 140 }, (_, index) => ({
+    userId: `user-${index + 1}`,
+    position: index + 1,
+    status: 'pending',
+  }))
+  assert.equal(new Set(population.map((item) => item.userId)).size, 140)
+  assert.deepEqual(population.slice(30, 33).map((item) => item.position), [31, 32, 33])
+  assert.deepEqual(population.slice(130, 140).map((item) => item.position), [131, 132, 133, 134, 135, 136, 137, 138, 139, 140])
 })
 
-await check('workspace enforces 10-per-page, Preview, bulk max 10, and no automatic batch mutation', () => {
+await check('explicit Sync excludes only stale pending, appends missing eligible, and preserves Sent history', () => {
+  const roster = [
+    { userId: 'keep', position: 1, status: 'pending' },
+    { userId: 'stale', position: 2, status: 'pending' },
+    { userId: 'sent', position: 3, status: 'sent' },
+  ]
+  const eligible = new Set(['keep', 'sent', 'new-a', 'new-b'])
+  const afterExclusion = roster.map((item) => (
+    item.status === 'pending' && !eligible.has(item.userId) ? { ...item, status: 'excluded' } : item
+  ))
+  const seen = new Set(afterExclusion.map((item) => item.userId))
+  const appended = [...eligible]
+    .filter((userId) => !seen.has(userId))
+    .sort()
+    .map((userId, index) => ({ userId, position: 4 + index, status: 'pending' }))
+  const result = [...afterExclusion, ...appended]
+  assert.deepEqual(result, [
+    { userId: 'keep', position: 1, status: 'pending' },
+    { userId: 'stale', position: 2, status: 'excluded' },
+    { userId: 'sent', position: 3, status: 'sent' },
+    { userId: 'new-a', position: 4, status: 'pending' },
+    { userId: 'new-b', position: 5, status: 'pending' },
+  ])
+})
+
+await check('workspace uses server search/filter/page, current-page bulk max 10, and no automatic mutation', () => {
   const component = read('src/components/admin/notification-recommendations-workspace.tsx')
   const page = read('src/app/(admin)/admin/notifications/page.tsx')
   assert.match(component, /const PAGE_SIZE = 10/)
+  assert.match(component, /URLSearchParams/)
+  assert.match(component, /searchDraft/)
+  assert.match(component, /statusFilter/)
+  assert.match(component, /followUp\.items\.filter/)
+  assert.match(component, /setSelectedUserIds\(new Set\(\)\)/)
   assert.match(component, /Preview การส่งพร้อมกัน/)
   assert.match(component, /selectedUserIds\.size >= 10/)
   assert.match(component, /Bulk เป็น all-or-nothing/)
   assert.doesNotMatch(component, /useEffect\s*\(/)
-  assert.doesNotMatch(page, /admin_notification_follow_up_start_batch_v1/)
-  assert.doesNotMatch(page, /admin_notification_follow_up_send_v1/)
+  assert.match(page, /admin_notification_follow_up_workspace_v2/)
+  assert.doesNotMatch(page, /admin_notification_follow_up_(start|sync|send)_v2/)
 })
 
-await check('service-only migration provides durable evidence, locks, idempotency, revalidation, RLS, and least privilege', () => {
-  const migration = read('supabase/migrations/20260807155346_admin_notification_recommendation_tracking.sql')
-  assert.match(migration, /notification_id uuid unique references public\.notifications/)
+await check('v2 migration provides positive positions, full roster, atomic Sync/Reconcile, v1 revocation, and least privilege', () => {
+  const migration = read('supabase/migrations/20260810034515_admin_notification_follow_up_full_roster_search.sql')
+  assert.match(migration, /check \(position > 0\)/)
   assert.match(migration, /pg_advisory_xact_lock/)
-  assert.match(migration, /request_key uuid primary key/)
-  assert.match(migration, /limit 30/)
-  assert.match(migration, /cardinality\(recipient_ids\) between 1 and 10/)
+  assert.match(migration, /admin_notification_follow_up_sync_v2/)
+  assert.match(migration, /admin_notification_follow_up_reconcile_v2/)
+  assert.match(migration, /admin_notification_follow_up_workspace_v2/)
+  assert.match(migration, /admin_notification_follow_up_send_v2/)
+  assert.doesNotMatch(migration, /limit 30/)
   assert.match(migration, /admin_notification_follow_up_is_eligible_v1\(item\.user_id\)/)
+  assert.match(migration, /v_exclude_item_ids uuid\[\]/)
+  assert.match(migration, /v_insert_user_ids uuid\[\]/)
+  assert.match(migration, /v_insert_positions integer\[\]/)
+  assert.match(migration, /item\.id = any\(v_exclude_item_ids\)/)
+  assert.match(migration, /unnest\(v_insert_user_ids, v_insert_positions\)/)
+  assert.match(migration, /generate_subscripts\(v_insert_user_ids, 1\)/)
   assert.match(migration, /bulk recipients must not have prior verified or ambiguous legacy evidence/)
   assert.match(migration, /enable row level security/g)
-  assert.match(migration, /revoke all on table[\s\S]*from public, anon, authenticated/)
+  assert.match(migration, /revoke execute on function public\.admin_notification_follow_up_start_batch_v1\(uuid\)[\s\S]*from service_role/)
+  assert.match(migration, /revoke execute on function public\.admin_notification_follow_up_send_v1\(uuid, uuid, uuid\[\]\)[\s\S]*from service_role/)
+  assert.match(migration, /revoke all on function[\s\S]*from public, anon, authenticated, service_role/)
   assert.match(migration, /grant execute[\s\S]*to service_role/)
   assert.match(migration, /security invoker/g)
-  assert.doesNotMatch(migration, /insert into public\.admin_notification_follow_up_(campaigns|batches|items)[\s\S]*select[\s\S]*from public\.(bookings|notifications);\s*$/)
+  assert.match(migration, /set search_path = ''/g)
+  assert.doesNotMatch(migration, /create (extension|index)/i)
 })
 
 await check('API rejects forged source markers, authenticates Admin, and GET remains read-only', () => {
@@ -419,12 +452,52 @@ await check('API rejects forged source markers, authenticates Admin, and GET rem
   assert.match(route, /requireAdminMenuAccess\('notifications'\)/)
   assert.match(route, /FORGED_SOURCE_KEYS/)
   assert.match(route, /ไม่รับ source marker หรือ batch identity จาก Client/)
-  assert.doesNotMatch(getSection, /start_batch_v1|send_v1|\.insert\(|\.update\(|\.delete\(/)
+  assert.match(route, /admin_notification_follow_up_(start|sync|send)_v2/)
+  assert.doesNotMatch(getSection, /start_v2|sync_v2|send_v2|\.insert\(|\.update\(|\.delete\(/)
 })
 
-await check('Private UI is booking/package-only and generic Notifications API remains unchanged', () => {
+await check('learner roster dedupes child/adult labels and keeps parent as secondary identity', () => {
+  const snapshot = normalizeFollowUpWorkspaceSnapshot({
+    state: 'active',
+    total_count: 1,
+    pending_count: 1,
+    filtered_count: 1,
+    eligible_total: 1,
+    page: 1,
+    page_size: 10,
+    total_pages: 1,
+    status_filter: 'all',
+    items: [{
+      id: 'item-1',
+      user_id: 'user-1',
+      recipient_name: 'Parent Latin',
+      position: 1,
+      status: 'pending',
+      learners: [
+        { learner_type: 'child', full_name: 'เด็กหญิงทดสอบ', nickname: 'น้องเอ' },
+        { learner_type: 'child', full_name: 'เด็กชายทดสอบ', nickname: 'Beam' },
+        { learner_type: 'self', full_name: 'Parent Latin', nickname: null },
+      ],
+    }],
+  })
+  assert.deepEqual(snapshot.items[0].learners, [
+    { name: 'น้องเอ - เด็กหญิงทดสอบ', isSelf: false },
+    { name: 'Beam - เด็กชายทดสอบ', isSelf: false },
+    { name: 'Parent Latin', isSelf: true },
+  ])
+})
+
+await check('server search covers Thai/Latin learner nickname, learner full name, and parent name only', () => {
+  const migration = read('supabase/migrations/20260810034515_admin_notification_follow_up_full_roster_search.sql')
+  assert.match(migration, /strpos\(lower\(coalesce\(child\.nickname, ''\)\), v_search\) > 0/)
+  assert.match(migration, /strpos\(lower\(coalesce\(child\.full_name, ''\)\), v_search\) > 0/)
+  assert.match(migration, /strpos\(lower\(coalesce\(profile\.full_name, ''\)\), v_search\) > 0/)
+  assert.doesNotMatch(migration, /phone|email|line_id/i)
+})
+
+await check('Private UI stays package-level with participant names supplementary and generic Notifications API unchanged', () => {
   const component = read('src/components/admin/notification-recommendations-workspace.tsx')
-  assert.match(component, /item\.courseName !== 'private' && item\.learnerName/)
+  assert.match(component, /ผู้เรียนในแพ็กเกจ: \{item\.learnerNames\.join\(', '\)\}/)
   assert.match(component, /ใช้แล้ว \{item\.usedSessions\}\/\{item\.totalSessions\} รอบ/)
   assert.doesNotMatch(component, /Level|ระดับ/)
   execFileSync('git', ['diff', '--exit-code', '--', 'src/app/api/admin/notifications/route.ts'], {

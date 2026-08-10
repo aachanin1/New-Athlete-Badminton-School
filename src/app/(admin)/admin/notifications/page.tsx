@@ -2,6 +2,7 @@ import { NotificationsAdminClient } from '@/components/admin/notifications-admin
 import { requireAdminPageAccess } from '@/lib/auth/admin'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
+import { formatLearnerDisplayName } from '@/lib/learner-display-name'
 import {
   buildLowEnrollmentRecommendations,
   buildNearCourseRecommendations,
@@ -80,6 +81,7 @@ interface RecommendationAttendanceRow {
 interface RecommendationChildRow {
   id: string
   full_name: string | null
+  nickname: string | null
 }
 
 interface PaymentRow {
@@ -258,7 +260,7 @@ async function fetchRecommendationChildren(service: AdminServiceClient) {
   for (;;) {
     let query = service
       .from('children')
-      .select('id, full_name')
+      .select('id, full_name, nickname')
       .order('id', { ascending: true })
       .limit(RECOMMENDATION_PAGE_SIZE)
     if (cursor) query = query.gt('id', cursor)
@@ -298,9 +300,17 @@ async function fetchRecommendationWorkspace({
     fetchRecommendationSessions(service),
     fetchRecommendationAttendance(service),
     fetchRecommendationChildren(service),
-    service.rpc('admin_notification_follow_up_workspace_v1'),
+    service.rpc('admin_notification_follow_up_workspace_v2', {
+      p_page: 1,
+      p_page_size: 10,
+      p_status: 'all',
+      p_search: '',
+    }),
   ])
-  const childNameById = new Map(children.map((child) => [child.id, child.full_name || 'ผู้เรียน']))
+  const childNameById = new Map(children.map((child) => [child.id, formatLearnerDisplayName({
+    fullName: child.full_name,
+    nickname: child.nickname,
+  })]))
   const bookings = bookingRows.flatMap((row): RecommendationBookingInput[] => {
     if (!['kids_group', 'adult_group', 'private'].includes(row.course_types?.name || '')) return []
     const courseName = row.course_types?.name as RecommendationCourseName
@@ -336,6 +346,7 @@ async function fetchRecommendationWorkspace({
     branchId: row.branch_id,
     branchName: row.branches?.name || '-',
     childId: row.child_id,
+    learnerName: row.child_id ? childNameById.get(row.child_id) || 'ผู้เรียน' : null,
     status: row.status,
     rescheduledFromId: row.rescheduled_from_id,
     isMakeup: row.is_makeup,

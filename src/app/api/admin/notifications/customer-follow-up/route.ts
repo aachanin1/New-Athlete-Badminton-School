@@ -20,6 +20,14 @@ interface RpcError {
   message: string
 }
 
+type FollowUpStatusFilter = 'all' | 'pending' | 'sent' | 'excluded'
+
+interface WorkspaceContext {
+  page: number
+  status: FollowUpStatusFilter
+  search: string
+}
+
 function errorStatus(error: RpcError) {
   if (error.code === '42501') return 403
   if (error.code === '23505') return 409
@@ -28,19 +36,42 @@ function errorStatus(error: RpcError) {
   return 500
 }
 
-async function readWorkspace() {
+function parseWorkspaceContext(value: URLSearchParams | Record<string, unknown>): WorkspaceContext {
+  const read = (key: string) => value instanceof URLSearchParams ? value.get(key) : value[key]
+  const rawPage = Number(read('page') || 1)
+  const rawStatus = read('status')
+  const search = typeof read('search') === 'string' ? String(read('search')).trim() : ''
+  const status: FollowUpStatusFilter = rawStatus === 'pending'
+    || rawStatus === 'sent'
+    || rawStatus === 'excluded'
+    ? rawStatus
+    : 'all'
+
+  if (!Number.isInteger(rawPage) || rawPage < 1 || search.length > 100) {
+    throw Object.assign(new Error('page หรือคำค้นหาไม่ถูกต้อง'), { code: '22023' })
+  }
+  return { page: rawPage, status, search }
+}
+
+async function readWorkspace(context: WorkspaceContext) {
   const service = getServiceRoleClient()
-  const { data, error } = await service.rpc('admin_notification_follow_up_workspace_v1')
+  const { data, error } = await service.rpc('admin_notification_follow_up_workspace_v2', {
+    p_page: context.page,
+    p_page_size: 10,
+    p_status: context.status,
+    p_search: context.search,
+  })
   if (error) throw error
   return normalizeFollowUpWorkspaceSnapshot(data)
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const access = await requireAdminMenuAccess('notifications')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
   try {
-    return NextResponse.json({ workspace: await readWorkspace() })
+    const context = parseWorkspaceContext(request.nextUrl.searchParams)
+    return NextResponse.json({ workspace: await readWorkspace(context) })
   } catch (error) {
     const rpcError = error as RpcError
     return NextResponse.json(
@@ -61,22 +92,39 @@ export async function POST(request: NextRequest) {
     }
 
     const action = typeof body.action === 'string' ? body.action : ''
+    const context = parseWorkspaceContext(body)
     const service = getServiceRoleClient()
 
-    if (action === 'start_batch' || action === 'load_next') {
-      const { error } = await service.rpc('admin_notification_follow_up_start_batch_v1', {
+    if (action === 'start') {
+      const { data, error } = await service.rpc('admin_notification_follow_up_start_v2', {
         p_actor_id: access.ctx.user.id,
       })
       if (error) return NextResponse.json({ error: error.message }, { status: errorStatus(error) })
 
       await logActivity({
         userId: access.ctx.user.id,
-        action: action === 'start_batch' ? 'start_customer_follow_up_batch' : 'load_next_customer_follow_up_batch',
+        action: 'start_customer_follow_up_full_roster',
         entityType: 'admin_notification_follow_up_batch',
-        details: { source: 'admin_notification_recommendations' },
+        details: { source: 'admin_notification_recommendations', result: data },
         ipAddress: request.headers.get('x-forwarded-for'),
       })
-      return NextResponse.json({ workspace: await readWorkspace() })
+      return NextResponse.json({ workspace: await readWorkspace({ ...context, page: 1 }) })
+    }
+
+    if (action === 'sync') {
+      const { data, error } = await service.rpc('admin_notification_follow_up_sync_v2', {
+        p_actor_id: access.ctx.user.id,
+      })
+      if (error) return NextResponse.json({ error: error.message }, { status: errorStatus(error) })
+
+      await logActivity({
+        userId: access.ctx.user.id,
+        action: 'sync_customer_follow_up_full_roster',
+        entityType: 'admin_notification_follow_up_batch',
+        details: { source: 'admin_notification_recommendations', result: data },
+        ipAddress: request.headers.get('x-forwarded-for'),
+      })
+      return NextResponse.json({ workspace: await readWorkspace({ ...context, page: 1 }) })
     }
 
     if (action !== 'send') {
@@ -99,10 +147,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'เลือกผู้รับได้ 1–10 รายและห้ามซ้ำ' }, { status: 400 })
     }
 
-    const { data, error } = await service.rpc('admin_notification_follow_up_send_v1', {
+    const { data, error } = await service.rpc('admin_notification_follow_up_send_v2', {
       p_actor_id: access.ctx.user.id,
       p_request_key: requestKey,
       p_user_ids: userIds,
+      p_page: context.page,
+      p_status: context.status,
+      p_search: context.search,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: errorStatus(error) })
 
@@ -118,7 +169,7 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get('x-forwarded-for'),
     })
 
-    return NextResponse.json({ result: data, workspace: await readWorkspace() })
+    return NextResponse.json({ result: data, workspace: await readWorkspace(context) })
   } catch (error) {
     const rpcError = error as RpcError
     return NextResponse.json(
