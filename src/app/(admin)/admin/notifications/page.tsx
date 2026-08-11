@@ -300,10 +300,10 @@ async function fetchRecommendationWorkspace({
     fetchRecommendationSessions(service),
     fetchRecommendationAttendance(service),
     fetchRecommendationChildren(service),
-    service.rpc('admin_notification_follow_up_workspace_v2', {
+    service.rpc('admin_notification_follow_up_workspace_v3', {
       p_page: 1,
       p_page_size: 10,
-      p_status: 'all',
+      p_mode: 'actionable',
       p_search: '',
     }),
   ])
@@ -371,7 +371,7 @@ async function fetchRecommendationWorkspace({
       nowIso,
     }),
     followUp: followUpResult.error
-      ? createEmptyFollowUpWorkspace({ state: 'unavailable', error: followUpResult.error.message })
+      ? createEmptyFollowUpWorkspace({ error: followUpResult.error.message })
       : normalizeFollowUpWorkspaceSnapshot(followUpResult.data),
   }
 }

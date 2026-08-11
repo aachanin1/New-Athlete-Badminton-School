@@ -88,8 +88,7 @@ export interface FollowUpRecommendationItem {
   courseNames: RecommendationCourseName[]
   lastAttendedDate: string | null
   position: number
-  status: 'pending' | 'sent' | 'excluded'
-  isCurrentlyEligible: boolean
+  status: 'actionable' | 'sent'
   verifiedAttemptCount: number
   latestVerifiedAt: string | null
   latestVerifiedRead: boolean | null
@@ -98,21 +97,14 @@ export interface FollowUpRecommendationItem {
 }
 
 export interface FollowUpWorkspaceSnapshot {
-  state: 'not_started' | 'active' | 'batch_complete' | 'campaign_complete' | 'unavailable'
-  totalCount: number
-  pendingCount: number
-  sentCount: number
-  excludedCount: number
+  mode: 'actionable' | 'sent'
+  actionableCount: number
+  sentCurrentMonthCount: number
   filteredCount: number
-  eligibleTotal: number
-  missingEligibleCount: number
   page: number
   pageSize: number
   totalPages: number
-  statusFilter: 'all' | 'pending' | 'sent' | 'excluded'
   search: string
-  canStart: boolean
-  canSync: boolean
   items: FollowUpRecommendationItem[]
   error: string | null
 }
@@ -453,13 +445,18 @@ export function buildFollowUpEligibility({
   currentYear,
   currentMonth,
   nowIso,
+  sentCurrentMonthUserIds = [],
+  userRoles = {},
 }: {
   bookings: RecommendationBookingInput[]
   currentYear: number
   currentMonth: number
   nowIso: string
+  sentCurrentMonthUserIds?: string[]
+  userRoles?: Record<string, string>
 }): FollowUpEligibilityResult[] {
   const currentKey = lessonKey(currentYear, currentMonth)
+  const sentUserIds = new Set(sentCurrentMonthUserIds)
   const activeUserIds = new Set(
     bookings
       .filter((booking) => (
@@ -472,7 +469,7 @@ export function buildFollowUpEligibility({
 
   for (const booking of bookings) {
     const bookingLessonKey = lessonKey(booking.year, booking.month)
-    if (bookingLessonKey >= currentKey || !SETTLED_BOOKING_STATUSES.has(booking.status)) continue
+    if (bookingLessonKey !== currentKey - 1 || !SETTLED_BOOKING_STATUSES.has(booking.status)) continue
     const existing = historyByUserId.get(booking.userId)
     if (
       !existing
@@ -488,7 +485,11 @@ export function buildFollowUpEligibility({
   }
 
   return Array.from(historyByUserId.values())
-    .filter((candidate) => !activeUserIds.has(candidate.userId))
+    .filter((candidate) => (
+      !activeUserIds.has(candidate.userId)
+      && !sentUserIds.has(candidate.userId)
+      && (userRoles[candidate.userId] || 'user') === 'user'
+    ))
     .sort((left, right) => (
       right.latestLessonKey - left.latestLessonKey
       || right.latestBookingAt.localeCompare(left.latestBookingAt)
@@ -500,21 +501,14 @@ export function createEmptyFollowUpWorkspace(
   overrides: Partial<FollowUpWorkspaceSnapshot> = {}
 ): FollowUpWorkspaceSnapshot {
   return {
-    state: 'not_started',
-    totalCount: 0,
-    pendingCount: 0,
-    sentCount: 0,
-    excludedCount: 0,
+    mode: 'actionable',
+    actionableCount: 0,
+    sentCurrentMonthCount: 0,
     filteredCount: 0,
-    eligibleTotal: 0,
-    missingEligibleCount: 0,
     page: 1,
     pageSize: 10,
     totalPages: 0,
-    statusFilter: 'all',
     search: '',
-    canStart: false,
-    canSync: false,
     items: [],
     error: null,
     ...overrides,
@@ -558,20 +552,13 @@ function normalizeDateOnly(value: unknown) {
 
 export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWorkspaceSnapshot {
   if (!isRecord(value)) {
-    return createEmptyFollowUpWorkspace({ state: 'unavailable', error: 'โหลดคิวติดตามลูกค้าไม่สำเร็จ' })
+    return createEmptyFollowUpWorkspace({ error: 'โหลดคิวติดตามลูกค้าไม่สำเร็จ' })
   }
-
-  const validStates = new Set<FollowUpWorkspaceSnapshot['state']>([
-    'not_started',
-    'active',
-    'batch_complete',
-    'campaign_complete',
-    'unavailable',
-  ])
+  const mode: FollowUpWorkspaceSnapshot['mode'] = value.mode === 'sent' ? 'sent' : 'actionable'
   const rawItems = Array.isArray(value.items) ? value.items : []
   const items = rawItems.flatMap((raw): FollowUpRecommendationItem[] => {
     if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.user_id !== 'string') return []
-    const status = raw.status === 'sent' || raw.status === 'excluded' ? raw.status : 'pending'
+    const status: FollowUpRecommendationItem['status'] = raw.status === 'sent' ? 'sent' : 'actionable'
     const latestRead = typeof raw.latest_verified_read === 'boolean' ? raw.latest_verified_read : null
     const learners = (Array.isArray(raw.learners) ? raw.learners : []).flatMap((learner): FollowUpLearnerDisplay[] => {
       if (!isRecord(learner)) return []
@@ -593,7 +580,6 @@ export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWork
       lastAttendedDate: normalizeDateOnly(raw.last_attended_date),
       position: finiteCount(raw.position),
       status,
-      isCurrentlyEligible: raw.is_currently_eligible !== false,
       verifiedAttemptCount: finiteCount(raw.verified_attempt_count),
       latestVerifiedAt: typeof raw.latest_verified_at === 'string' ? raw.latest_verified_at : null,
       latestVerifiedRead: latestRead,
@@ -602,32 +588,15 @@ export function normalizeFollowUpWorkspaceSnapshot(value: unknown): FollowUpWork
     }]
   })
 
-  const state = validStates.has(value.state as FollowUpWorkspaceSnapshot['state'])
-    ? value.state as FollowUpWorkspaceSnapshot['state']
-    : 'unavailable'
-
-  const statusFilter = value.status_filter === 'pending'
-    || value.status_filter === 'sent'
-    || value.status_filter === 'excluded'
-    ? value.status_filter
-    : 'all'
-
   return createEmptyFollowUpWorkspace({
-    state,
-    totalCount: finiteCount(value.total_count),
-    pendingCount: finiteCount(value.pending_count),
-    sentCount: finiteCount(value.sent_count),
-    excludedCount: finiteCount(value.excluded_count),
+    mode,
+    actionableCount: finiteCount(value.actionable_count),
+    sentCurrentMonthCount: finiteCount(value.sent_current_month_count),
     filteredCount: finiteCount(value.filtered_count),
-    eligibleTotal: finiteCount(value.eligible_total),
-    missingEligibleCount: finiteCount(value.missing_eligible_count),
     page: Math.max(1, finiteCount(value.page)),
     pageSize: Math.max(1, finiteCount(value.page_size)),
     totalPages: finiteCount(value.total_pages),
-    statusFilter,
     search: typeof value.search === 'string' ? value.search : '',
-    canStart: value.can_start === true,
-    canSync: value.can_sync === true,
     items: items.sort((left, right) => left.position - right.position || left.id.localeCompare(right.id)),
     error: typeof value.error === 'string' ? value.error : null,
   })

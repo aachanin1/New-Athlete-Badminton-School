@@ -7,6 +7,8 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const FORGED_SOURCE_KEYS = [
   'batch_id',
   'batchId',
+  'campaign_id',
+  'campaignId',
   'notification_id',
   'notificationId',
   'source',
@@ -14,17 +16,18 @@ const FORGED_SOURCE_KEYS = [
   'sourceMarker',
   'verified',
 ]
+const ALLOWED_SEND_KEYS = new Set(['action', 'requestKey', 'userIds', 'page', 'mode', 'search'])
 
 interface RpcError {
   code?: string
   message: string
 }
 
-type FollowUpStatusFilter = 'all' | 'pending' | 'sent' | 'excluded'
+type FollowUpMode = 'actionable' | 'sent'
 
 interface WorkspaceContext {
   page: number
-  status: FollowUpStatusFilter
+  mode: FollowUpMode
   search: string
 }
 
@@ -39,26 +42,27 @@ function errorStatus(error: RpcError) {
 function parseWorkspaceContext(value: URLSearchParams | Record<string, unknown>): WorkspaceContext {
   const read = (key: string) => value instanceof URLSearchParams ? value.get(key) : value[key]
   const rawPage = Number(read('page') || 1)
-  const rawStatus = read('status')
+  const rawMode = read('mode')
   const search = typeof read('search') === 'string' ? String(read('search')).trim() : ''
-  const status: FollowUpStatusFilter = rawStatus === 'pending'
-    || rawStatus === 'sent'
-    || rawStatus === 'excluded'
-    ? rawStatus
-    : 'all'
+  const mode: FollowUpMode = rawMode === 'sent' ? 'sent' : 'actionable'
 
-  if (!Number.isInteger(rawPage) || rawPage < 1 || search.length > 100) {
+  if (
+    !Number.isInteger(rawPage)
+    || rawPage < 1
+    || search.length > 100
+    || (rawMode !== null && rawMode !== undefined && rawMode !== 'actionable' && rawMode !== 'sent')
+  ) {
     throw Object.assign(new Error('page หรือคำค้นหาไม่ถูกต้อง'), { code: '22023' })
   }
-  return { page: rawPage, status, search }
+  return { page: rawPage, mode, search }
 }
 
 async function readWorkspace(context: WorkspaceContext) {
   const service = getServiceRoleClient()
-  const { data, error } = await service.rpc('admin_notification_follow_up_workspace_v2', {
+  const { data, error } = await service.rpc('admin_notification_follow_up_workspace_v3', {
     p_page: context.page,
     p_page_size: 10,
-    p_status: context.status,
+    p_mode: context.mode,
     p_search: context.search,
   })
   if (error) throw error
@@ -71,7 +75,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const context = parseWorkspaceContext(request.nextUrl.searchParams)
-    return NextResponse.json({ workspace: await readWorkspace(context) })
+    return NextResponse.json(
+      { workspace: await readWorkspace(context) },
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } }
+    )
   } catch (error) {
     const rpcError = error as RpcError
     return NextResponse.json(
@@ -87,48 +94,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json() as Record<string, unknown>
-    if (FORGED_SOURCE_KEYS.some((key) => Object.prototype.hasOwnProperty.call(body, key))) {
+    if (
+      FORGED_SOURCE_KEYS.some((key) => Object.prototype.hasOwnProperty.call(body, key))
+      || Object.keys(body).some((key) => !ALLOWED_SEND_KEYS.has(key))
+    ) {
       return NextResponse.json({ error: 'ไม่รับ source marker หรือ batch identity จาก Client' }, { status: 400 })
     }
 
     const action = typeof body.action === 'string' ? body.action : ''
     const context = parseWorkspaceContext(body)
-    const service = getServiceRoleClient()
-
-    if (action === 'start') {
-      const { data, error } = await service.rpc('admin_notification_follow_up_start_v2', {
-        p_actor_id: access.ctx.user.id,
-      })
-      if (error) return NextResponse.json({ error: error.message }, { status: errorStatus(error) })
-
-      await logActivity({
-        userId: access.ctx.user.id,
-        action: 'start_customer_follow_up_full_roster',
-        entityType: 'admin_notification_follow_up_batch',
-        details: { source: 'admin_notification_recommendations', result: data },
-        ipAddress: request.headers.get('x-forwarded-for'),
-      })
-      return NextResponse.json({ workspace: await readWorkspace({ ...context, page: 1 }) })
-    }
-
-    if (action === 'sync') {
-      const { data, error } = await service.rpc('admin_notification_follow_up_sync_v2', {
-        p_actor_id: access.ctx.user.id,
-      })
-      if (error) return NextResponse.json({ error: error.message }, { status: errorStatus(error) })
-
-      await logActivity({
-        userId: access.ctx.user.id,
-        action: 'sync_customer_follow_up_full_roster',
-        entityType: 'admin_notification_follow_up_batch',
-        details: { source: 'admin_notification_recommendations', result: data },
-        ipAddress: request.headers.get('x-forwarded-for'),
-      })
-      return NextResponse.json({ workspace: await readWorkspace({ ...context, page: 1 }) })
-    }
-
     if (action !== 'send') {
       return NextResponse.json({ error: 'action ไม่ถูกต้อง' }, { status: 400 })
+    }
+    if (context.mode !== 'actionable') {
+      return NextResponse.json({ error: 'ส่งได้เฉพาะรายการที่ต้องติดตามตอนนี้' }, { status: 400 })
     }
 
     const requestKey = typeof body.requestKey === 'string' ? body.requestKey : ''
@@ -147,12 +126,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'เลือกผู้รับได้ 1–10 รายและห้ามซ้ำ' }, { status: 400 })
     }
 
-    const { data, error } = await service.rpc('admin_notification_follow_up_send_v2', {
+    const service = getServiceRoleClient()
+    const { data, error } = await service.rpc('admin_notification_follow_up_send_v3', {
       p_actor_id: access.ctx.user.id,
       p_request_key: requestKey,
       p_user_ids: userIds,
       p_page: context.page,
-      p_status: context.status,
+      p_mode: context.mode,
       p_search: context.search,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: errorStatus(error) })
@@ -169,7 +149,7 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get('x-forwarded-for'),
     })
 
-    return NextResponse.json({ result: data, workspace: await readWorkspace(context) })
+    return NextResponse.json({ result: data })
   } catch (error) {
     const rpcError = error as RpcError
     return NextResponse.json(

@@ -8,11 +8,11 @@ import {
   CheckCircle2,
   ExternalLink,
   Loader2,
-  RefreshCw,
   Search,
   Send,
   Users,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,6 +42,7 @@ import type {
 } from '@/lib/admin-notification-recommendations'
 
 const PAGE_SIZE = 10
+const SAFETY_REFRESH_MS = 5 * 60 * 1000
 const COURSE_LABELS = {
   kids_group: 'เด็กกลุ่ม',
   adult_group: 'ผู้ใหญ่กลุ่ม',
@@ -62,6 +63,15 @@ interface FollowUpPreview {
   userIds: string[]
   recipientNames: string[]
   requestKey: string
+}
+
+type FollowUpMode = FollowUpWorkspaceSnapshot['mode']
+type RefreshReason = 'initial' | 'focus' | 'visible' | 'search' | 'filter' | 'page' | 'preview' | 'after-send' | 'safety'
+
+interface WorkspaceQuery {
+  page: number
+  mode: FollowUpMode
+  search: string
 }
 
 function formatDateTime(value: string | null) {
@@ -148,21 +158,28 @@ export function NotificationRecommendationsWorkspace({
   const [nearPage, setNearPage] = useState(1)
   const [followUp, setFollowUp] = useState(initialData.followUp)
   const [searchDraft, setSearchDraft] = useState(initialData.followUp.search)
-  const [statusFilter, setStatusFilter] = useState(initialData.followUp.statusFilter)
+  const [mode, setMode] = useState<FollowUpMode>(initialData.followUp.mode)
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<FollowUpPreview | null>(null)
-  const [loadingAction, setLoadingAction] = useState<string | null>(null)
+  const [loadingGet, setLoadingGet] = useState(false)
+  const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(initialData.followUp.error)
   const requestSequenceRef = useRef(0)
   const activeGetControllerRef = useRef<AbortController | null>(null)
+  const activeGetPromiseRef = useRef<Promise<FollowUpWorkspaceSnapshot | null> | null>(null)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentQueryRef = useRef<WorkspaceQuery>({
+    page: initialData.followUp.page,
+    mode: initialData.followUp.mode,
+    search: initialData.followUp.search,
+  })
 
   const resolvedLowPage = safePage(lowPage, initialData.lowEnrollment.length)
   const resolvedNearPage = safePage(nearPage, initialData.nearCourse.length)
   const pagedLow = paginate(initialData.lowEnrollment, resolvedLowPage)
   const pagedNear = paginate(initialData.nearCourse, resolvedNearPage)
   const bulkEligibleItems = useMemo(
-    () => followUp.items.filter((item) => item.canBulk && item.status === 'pending'),
+    () => followUp.items.filter((item) => item.canBulk && item.status === 'actionable'),
     [followUp.items]
   )
 
@@ -174,69 +191,123 @@ export function NotificationRecommendationsWorkspace({
   }, [])
 
   const requestWorkspace = useCallback(async function requestWorkspace(
-    method: 'GET' | 'POST',
-    body: Record<string, unknown> | undefined,
-    actionName: string,
-    page: number,
-    nextStatus: 'all' | 'pending' | 'sent' | 'excluded',
-    search: string
-  ) {
-    const requestSequence = ++requestSequenceRef.current
-    activeGetControllerRef.current?.abort()
-    const controller = method === 'GET' ? new AbortController() : null
+    query: WorkspaceQuery,
+    reason: RefreshReason,
+    replaceInFlight = true
+  ): Promise<FollowUpWorkspaceSnapshot | null> {
+    const previousRequest = activeGetPromiseRef.current
+    let requestSequence: number
+    if (previousRequest) {
+      if (!replaceInFlight) return null
+      requestSequence = ++requestSequenceRef.current
+      activeGetControllerRef.current?.abort()
+      await previousRequest.catch(() => null)
+      if (requestSequence !== requestSequenceRef.current) return null
+    } else {
+      requestSequence = ++requestSequenceRef.current
+    }
+
+    const controller = new AbortController()
     activeGetControllerRef.current = controller
-    setLoadingAction(actionName)
+    setLoadingGet(true)
     setError(null)
-    try {
-      const query = new URLSearchParams({
-        page: String(page),
-        status: nextStatus,
-        search: search.trim(),
+
+    const requestPromise = (async () => {
+      const searchParams = new URLSearchParams({
+        page: String(query.page),
+        mode: query.mode,
+        search: query.search.trim(),
       })
-      const response = await fetch(`/api/admin/notifications/customer-follow-up?${query}`, {
-        method,
-        headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
-        signal: controller?.signal,
-        body: method === 'POST' ? JSON.stringify({
-          ...body,
-          page,
-          status: nextStatus,
-          search: search.trim(),
-        }) : undefined,
+      const response = await fetch(`/api/admin/notifications/customer-follow-up?${searchParams}`, {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
       })
       const result = await response.json().catch(() => null)
-      if (requestSequence !== requestSequenceRef.current) return false
       if (!response.ok || !result?.workspace) {
-        setError(result?.error || 'ดำเนินการคิวติดตามลูกค้าไม่สำเร็จ')
-        return false
+        throw new Error(result?.error || 'โหลดคิวติดตามลูกค้าไม่สำเร็จ')
       }
-      const next = result.workspace as FollowUpWorkspaceSnapshot
+      return result.workspace as FollowUpWorkspaceSnapshot
+    })()
+    activeGetPromiseRef.current = requestPromise
+
+    try {
+      const next = await requestPromise
+      if (requestSequence !== requestSequenceRef.current) return null
       setFollowUp(next)
-      setSelectedUserIds(new Set())
+      setMode(next.mode)
+      currentQueryRef.current = { page: next.page, mode: next.mode, search: next.search }
+      setSelectedUserIds((current) => {
+        const visibleEligible = new Set(
+          next.items
+            .filter((item) => item.status === 'actionable' && item.canBulk)
+            .map((item) => item.userId)
+        )
+        const retained = new Set(Array.from(current).filter((userId) => visibleEligible.has(userId)))
+        const removedCount = current.size - retained.size
+        if (removedCount > 0) {
+          toast.warning(`นำ ${removedCount} รายการที่จองแล้ว ส่งแล้ว หรือไม่อยู่ในหน้าปัจจุบันออกจากรายการเลือก`)
+        }
+        return retained
+      })
       setError(next.error)
-      return true
+      return next
     } catch (requestError) {
-      if ((requestError as { name?: string })?.name === 'AbortError') return false
-      if (requestSequence !== requestSequenceRef.current) return false
-      setError('เชื่อมต่อระบบติดตามลูกค้าไม่สำเร็จ กรุณาลองใหม่')
-      return false
+      if ((requestError as { name?: string })?.name === 'AbortError') return null
+      if (requestSequence !== requestSequenceRef.current) return null
+      const message = requestError instanceof Error && requestError.message
+        ? requestError.message
+        : 'เชื่อมต่อระบบติดตามลูกค้าไม่สำเร็จ กรุณาลองใหม่'
+      setError(message)
+      if (reason === 'preview') toast.error('รีเฟรชข้อมูลล่าสุดไม่สำเร็จ จึงยังเปิด Preview ไม่ได้')
+      return null
     } finally {
       if (requestSequence === requestSequenceRef.current) {
-        if (activeGetControllerRef.current === controller) activeGetControllerRef.current = null
-        setLoadingAction(null)
+        if (activeGetControllerRef.current === controller) {
+          activeGetControllerRef.current = null
+          activeGetPromiseRef.current = null
+        }
+        setLoadingGet(false)
       }
     }
   }, [])
 
   useEffect(() => {
-    if (loadingAction !== null || searchDraft.trim() === followUp.search) return
+    if (searchDraft.trim() === followUp.search) return
     clearSearchDebounce()
     searchDebounceRef.current = setTimeout(() => {
       searchDebounceRef.current = null
-      void requestWorkspace('GET', undefined, 'search', 1, statusFilter, searchDraft)
+      void requestWorkspace({ page: 1, mode, search: searchDraft }, 'search')
     }, 300)
     return clearSearchDebounce
-  }, [clearSearchDebounce, followUp.search, loadingAction, requestWorkspace, searchDraft, statusFilter])
+  }, [clearSearchDebounce, followUp.search, mode, requestWorkspace, searchDraft])
+
+  useEffect(() => {
+    void requestWorkspace(currentQueryRef.current, 'initial', false)
+  }, [requestWorkspace])
+
+  useEffect(() => {
+    const refreshIfVisible = (reason: 'focus' | 'visible') => {
+      if (document.visibilityState !== 'visible') return
+      void requestWorkspace(currentQueryRef.current, reason, false)
+    }
+    const handleFocus = () => refreshIfVisible('focus')
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshIfVisible('visible')
+    }
+    const safetyTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void requestWorkspace(currentQueryRef.current, 'safety', false)
+    }, SAFETY_REFRESH_MS)
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.clearInterval(safetyTimer)
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [requestWorkspace])
 
   useEffect(() => () => {
     clearSearchDebounce()
@@ -247,15 +318,12 @@ export function NotificationRecommendationsWorkspace({
   function submitSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     clearSearchDebounce()
-    setSelectedUserIds(new Set())
-    void requestWorkspace('GET', undefined, 'search', 1, statusFilter, searchDraft)
+    void requestWorkspace({ page: 1, mode, search: searchDraft }, 'search')
   }
 
-  function changeStatus(nextStatus: 'all' | 'pending' | 'sent' | 'excluded') {
+  function changeMode(nextMode: FollowUpMode) {
     clearSearchDebounce()
-    setStatusFilter(nextStatus)
-    setSelectedUserIds(new Set())
-    void requestWorkspace('GET', undefined, 'filter', 1, nextStatus, searchDraft)
+    void requestWorkspace({ page: 1, mode: nextMode, search: searchDraft }, 'filter')
   }
 
   function toggleBulkUser(userId: string, checked: boolean) {
@@ -271,10 +339,18 @@ export function NotificationRecommendationsWorkspace({
     })
   }
 
-  function openFollowUpPreview(userIds: string[]) {
-    const selected = followUp.items.filter((item) => userIds.includes(item.userId))
-    if (selected.length !== userIds.length) {
-      setError('ไม่พบผู้รับในคิวปัจจุบัน กรุณารีเฟรชข้อมูล')
+  async function openFollowUpPreview(userIds: string[]) {
+    const fresh = await requestWorkspace({
+      page: followUp.page,
+      mode: 'actionable',
+      search: followUp.search,
+    }, 'preview')
+    if (!fresh) return
+    const selected = fresh.items.filter((item) => userIds.includes(item.userId) && item.status === 'actionable')
+    const bulkInvalid = userIds.length > 1 && selected.some((item) => !item.canBulk)
+    if (selected.length !== userIds.length || bulkInvalid) {
+      setError('รายการเลือกมีบัญชีที่จองแล้ว ส่งแล้ว หรือส่งแบบ Bulk ไม่ได้ กรุณาตรวจรายการล่าสุด')
+      toast.warning('รายการเลือกเปลี่ยนแปลงหลังตรวจข้อมูลล่าสุด จึงยังเปิด Preview ไม่ได้')
       return
     }
     setPreview({
@@ -286,12 +362,42 @@ export function NotificationRecommendationsWorkspace({
 
   async function confirmFollowUpSend() {
     if (!preview) return
-    const success = await requestWorkspace('POST', {
-      action: 'send',
-      requestKey: preview.requestKey,
-      userIds: preview.userIds,
-    }, 'send', followUp.page, statusFilter, searchDraft)
-    if (success) setPreview(null)
+    const requestSequence = ++requestSequenceRef.current
+    activeGetControllerRef.current?.abort()
+    if (activeGetPromiseRef.current) await activeGetPromiseRef.current.catch(() => null)
+    if (requestSequence !== requestSequenceRef.current) return
+
+    setSending(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/admin/notifications/customer-follow-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send',
+          requestKey: preview.requestKey,
+          userIds: preview.userIds,
+          page: followUp.page,
+          mode: 'actionable',
+          search: followUp.search,
+        }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result?.result) {
+        throw new Error(result?.error || 'ส่งแจ้งเตือนไม่สำเร็จ')
+      }
+      toast.success(`ส่งแจ้งเตือนสำเร็จ ${preview.userIds.length} บัญชี`)
+      setPreview(null)
+      await requestWorkspace({
+        page: followUp.page,
+        mode: 'actionable',
+        search: followUp.search,
+      }, 'after-send')
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'ส่งแจ้งเตือนไม่สำเร็จ')
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -316,7 +422,7 @@ export function NotificationRecommendationsWorkspace({
               ผู้เรียนใกล้หมดคอร์ส ({initialData.nearCourse.length})
             </TabsTrigger>
             <TabsTrigger value="follow-up" className="min-h-10 whitespace-normal">
-              ติดตามลูกค้าเก่า ({followUp.totalCount})
+              ติดตามลูกค้าเก่า ({followUp.actionableCount})
             </TabsTrigger>
           </TabsList>
 
@@ -413,50 +519,21 @@ export function NotificationRecommendationsWorkspace({
           </TabsContent>
 
           <TabsContent value="follow-up" className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <SummaryCard label="ทั้งหมด" value={followUp.totalCount} tone="text-[#153c85]" />
-              <SummaryCard label="รอดำเนินการ" value={followUp.pendingCount} tone="text-amber-600" />
-              <SummaryCard label="ส่งแล้ว" value={followUp.sentCount} tone="text-emerald-600" />
-              <SummaryCard label="ไม่เข้าเกณฑ์" value={followUp.excludedCount} tone="text-slate-600" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SummaryCard label="ต้องติดตามตอนนี้" value={followUp.actionableCount} tone="text-amber-600" />
+              <SummaryCard label="ส่งแล้วเดือนนี้" value={followUp.sentCurrentMonthCount} tone="text-emerald-600" />
             </div>
 
             <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-slate-600">
-                  Full Roster ร่วมของ Admin · Server แสดง 10 รายต่อหน้า · ไม่มีการ Sync หรือส่งอัตโนมัติ
+                  คิวคำนวณใหม่จากข้อมูลจริงตามเดือน Asia/Bangkok · Server แสดง 10 รายต่อหน้า · ไม่มีการส่งอัตโนมัติ
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1"
-                    disabled={loadingAction !== null}
-                    onClick={() => requestWorkspace('GET', undefined, 'refresh', followUp.page, statusFilter, searchDraft)}
-                  >
-                    {loadingAction === 'refresh' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                    รีเฟรช
-                  </Button>
-                  {followUp.canStart && (
-                    <Button
-                      size="sm"
-                      disabled={loadingAction !== null}
-                      onClick={() => requestWorkspace('POST', { action: 'start' }, 'start', 1, statusFilter, searchDraft)}
-                    >
-                      {loadingAction === 'start' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-                      เริ่มรอบ Full Roster ({followUp.eligibleTotal})
-                    </Button>
-                  )}
-                  {followUp.canSync && (
-                    <Button
-                      size="sm"
-                      disabled={loadingAction !== null}
-                      onClick={() => requestWorkspace('POST', { action: 'sync' }, 'sync', 1, statusFilter, searchDraft)}
-                    >
-                      {loadingAction === 'sync' && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-                      Sync รายชื่อเข้าเกณฑ์
-                    </Button>
-                  )}
-                </div>
+                {loadingGet && (
+                  <div className="flex items-center gap-1 text-xs text-slate-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> กำลังอัปเดตข้อมูล
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_190px]">
@@ -468,36 +545,24 @@ export function NotificationRecommendationsWorkspace({
                       maxLength={100}
                       placeholder="ค้นหาชื่อเล่น ชื่อผู้เรียน หรือผู้ปกครอง"
                       className="pl-9"
-                      onChange={(event) => {
-                        if (activeGetControllerRef.current) {
-                          requestSequenceRef.current += 1
-                          activeGetControllerRef.current.abort()
-                          activeGetControllerRef.current = null
-                          setLoadingAction(null)
-                        }
-                        setSearchDraft(event.target.value)
-                        setSelectedUserIds(new Set())
-                      }}
+                      onChange={(event) => setSearchDraft(event.target.value)}
                     />
                   </div>
-                  <Button type="submit" variant="outline" disabled={loadingAction !== null}>
+                  <Button type="submit" variant="outline" disabled={loadingGet || sending}>
                     ค้นหา
                   </Button>
                 </form>
-                <Select value={statusFilter} onValueChange={(value) => changeStatus(value as typeof statusFilter)}>
+                <Select value={mode} onValueChange={(value) => changeMode(value as FollowUpMode)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">ทุกสถานะ</SelectItem>
-                    <SelectItem value="pending">รอดำเนินการ</SelectItem>
-                    <SelectItem value="sent">ส่งแล้ว</SelectItem>
-                    <SelectItem value="excluded">ไม่เข้าเกณฑ์</SelectItem>
+                    <SelectItem value="actionable">ต้องติดตามตอนนี้</SelectItem>
+                    <SelectItem value="sent">ส่งแล้วเดือนนี้</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <p className="text-xs text-slate-500">
-                พบ {followUp.filteredCount.toLocaleString('th-TH')} รายการ · เข้าเกณฑ์ปัจจุบัน {followUp.eligibleTotal.toLocaleString('th-TH')} ราย
-                {followUp.missingEligibleCount > 0 ? ` · รอ Sync ${followUp.missingEligibleCount.toLocaleString('th-TH')} ราย` : ''}
+                พบจริง {followUp.filteredCount.toLocaleString('th-TH')} รายการในมุมมองนี้
               </p>
             </div>
 
@@ -507,12 +572,13 @@ export function NotificationRecommendationsWorkspace({
               </div>
             )}
 
-            {selectedUserIds.size > 0 && (
+            {mode === 'actionable' && selectedUserIds.size > 0 && (
               <div className="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-blue-800">เลือกจากหน้าปัจจุบันสำหรับ Bulk {selectedUserIds.size}/10 ราย</p>
                 <Button
                   size="sm"
                   className="gap-1"
+                  disabled={loadingGet || sending}
                   onClick={() => openFollowUpPreview(Array.from(selectedUserIds))}
                 >
                   <Send className="h-3.5 w-3.5" /> Preview การส่งพร้อมกัน
@@ -521,13 +587,7 @@ export function NotificationRecommendationsWorkspace({
             )}
 
             {followUp.items.length === 0 ? (
-              <EmptyState>
-                {followUp.state === 'unavailable'
-                  ? 'คิวติดตามลูกค้ายังไม่พร้อมใช้งาน'
-                  : followUp.canStart
-                    ? `มีลูกค้าที่เข้าเกณฑ์ ${followUp.eligibleTotal} ราย กดเริ่มรอบ Full Roster เมื่อต้องการดำเนินการ`
-                    : 'ไม่พบรายการตามคำค้นหาหรือตัวกรอง'}
-              </EmptyState>
+              <EmptyState>ไม่พบรายการตามคำค้นหาหรือมุมมองปัจจุบัน</EmptyState>
             ) : (
               <div className="space-y-2">
                 {followUp.items.map((item) => {
@@ -539,19 +599,19 @@ export function NotificationRecommendationsWorkspace({
                     <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex min-w-0 gap-3">
-                          <Checkbox
-                            aria-label={`เลือก ${learnerLabel} สำหรับ Bulk`}
-                            className="mt-1"
-                            checked={isSelected}
-                            disabled={!item.canBulk || (!isSelected && selectedUserIds.size >= 10)}
-                            onCheckedChange={(checked) => toggleBulkUser(item.userId, checked === true)}
-                          />
+                          {item.status === 'actionable' && (
+                            <Checkbox
+                              aria-label={`เลือก ${learnerLabel} สำหรับ Bulk`}
+                              className="mt-1"
+                              checked={isSelected}
+                              disabled={!item.canBulk || (!isSelected && selectedUserIds.size >= 10)}
+                              onCheckedChange={(checked) => toggleBulkUser(item.userId, checked === true)}
+                            />
+                          )}
                           <div className="min-w-0 space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="font-semibold text-slate-800">{item.position}. {learnerLabel}</p>
-                              {item.status === 'sent' && <Badge className="bg-emerald-600">ส่งแล้ว</Badge>}
-                              {item.status === 'excluded' && <Badge variant="secondary">ไม่เข้าเกณฑ์</Badge>}
-                              {!item.isCurrentlyEligible && <Badge variant="destructive">ไม่เข้าเกณฑ์แล้ว</Badge>}
+                              {item.status === 'sent' && <Badge className="bg-emerald-600">ส่งแล้วเดือนนี้</Badge>}
                             </div>
                             <p className="text-sm text-slate-600">ผู้ปกครอง/ผู้รับ: {item.recipientName}</p>
                             <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
@@ -577,20 +637,22 @@ export function NotificationRecommendationsWorkspace({
                                 ประวัติเดิม—ยืนยันที่มาไม่ได้ {item.ambiguousLegacyCount} รายการ
                               </p>
                             )}
-                            {item.status === 'pending' && !item.canBulk && item.isCurrentlyEligible && (
+                            {item.status === 'actionable' && !item.canBulk && (
                               <p className="text-xs text-slate-500">รายการนี้ต้องดำเนินการรายบุคคล</p>
                             )}
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-1 sm:w-auto"
-                          disabled={item.status !== 'pending' || !item.isCurrentlyEligible || loadingAction !== null}
-                          onClick={() => openFollowUpPreview([item.userId])}
-                        >
-                          <BellRing className="h-3.5 w-3.5" /> Preview รายบุคคล
-                        </Button>
+                        {item.status === 'actionable' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-1 sm:w-auto"
+                            disabled={loadingGet || sending}
+                            onClick={() => openFollowUpPreview([item.userId])}
+                          >
+                            <BellRing className="h-3.5 w-3.5" /> Preview รายบุคคล
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
@@ -601,19 +663,18 @@ export function NotificationRecommendationsWorkspace({
               page={followUp.page}
               total={followUp.filteredCount}
               onPageChange={(page) => {
-                setSelectedUserIds(new Set())
-                void requestWorkspace('GET', undefined, 'page', page, statusFilter, searchDraft)
+                void requestWorkspace({ page, mode, search: followUp.search }, 'page')
               }}
             />
 
-            {bulkEligibleItems.length === 0 && followUp.items.some((item) => item.status === 'pending') && (
+            {mode === 'actionable' && bulkEligibleItems.length === 0 && followUp.items.some((item) => item.status === 'actionable') && (
               <p className="text-xs text-slate-500">คิวนี้ไม่มีรายการที่ส่งแบบ Bulk ได้ กรุณาดำเนินการรายบุคคล</p>
             )}
           </TabsContent>
         </Tabs>
       </CardContent>
 
-      <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && !loadingAction && setPreview(null)}>
+      <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && !sending && setPreview(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Preview แจ้งเตือนติดตามลูกค้า</DialogTitle>
@@ -645,11 +706,11 @@ export function NotificationRecommendationsWorkspace({
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" disabled={loadingAction === 'send'} onClick={() => setPreview(null)}>
+            <Button variant="outline" disabled={sending} onClick={() => setPreview(null)}>
               ยกเลิก
             </Button>
-            <Button disabled={loadingAction === 'send'} onClick={confirmFollowUpSend}>
-              {loadingAction === 'send' ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
+            <Button disabled={sending} onClick={confirmFollowUpSend}>
+              {sending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               ยืนยันส่ง {preview?.userIds.length || 0} ราย
             </Button>
           </DialogFooter>

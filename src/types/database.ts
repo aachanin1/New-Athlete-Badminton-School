@@ -366,6 +366,26 @@ export interface Database {
         }
         Returns: Json
       }
+      admin_notification_follow_up_workspace_v3: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_mode?: string
+          p_search?: string | null
+        }
+        Returns: Json
+      }
+      admin_notification_follow_up_send_v3: {
+        Args: {
+          p_actor_id: string
+          p_request_key: string
+          p_user_ids: string[]
+          p_page?: number
+          p_mode?: string
+          p_search?: string | null
+        }
+        Returns: Json
+      }
       coach_assignment_slot_snapshot_v2: {
         Args: {
           p_schedule_slot_id: string
