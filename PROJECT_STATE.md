@@ -1,20 +1,145 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
-Current source: **TASK DONE** for **ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL
-ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC**. Owner UAT is **PASS** for
-exact artifact `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Functional Source
-`a23915959e393b760bb6b0f1c8f57a0054a839de`, including the accepted UI label
-`ประวัติคอร์ส:`. Owner confirmed the two-recipient Bulk Send as the Owner's UAT
-action, accepted revised baseline `1/1/125/4`, `119/6/0`, linked Notifications
-`6`, and required preserving all six Sent rows. One exact-artifact Promotion ran
-without rebuild or new deployment; automated Production verification passed and
-the Promotion round created/sent `0/0` Requests/Notifications. This first matrix
-is the only authority for current mutable state; later records are Historical /
-Superseded.
+Current source: **READY FOR OWNER UAT** for **ADMIN NOTIFICATIONS — AUTOMATIC
+DYNAMIC CUSTOMER FOLLOW-UP QUEUE**. Functional Source
+`04282c945243759a2acb6ef835dd9e43d6568ba5` is committed, pushed, and deployed
+as staged Production-target artifact `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` with
+zero aliases. The exact function-only Migration is applied; Production tracking
+and business rows are unchanged. The new application Source is not Production-
+active and must not be Promoted until Owner read-only UAT passes this exact
+artifact/SHA. This first matrix is the only authority for current mutable state;
+later records are Historical / Superseded.
 
-## Current Closeout — Admin Notification Recommendations Production Active
+## Current Closeout — Dynamic Customer Follow-up Queue Ready for Owner UAT
+
+Status: **READY FOR OWNER UAT — SOURCE/TESTS/PUSH/MIGRATION/STAGED ARTIFACT
+COMPLETE; PROMOTION PROHIBITED PENDING OWNER PASS**.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE** |
+| Task Status | **READY FOR OWNER UAT** |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD | The documentation-only closeout commit containing this matrix; Functional Source remains `04282c945243759a2acb6ef835dd9e43d6568ba5` |
+| Remote HEAD | The same documentation-only closeout commit after normal non-force push |
+| Ahead/Behind | `0/0` after the documentation closeout push |
+| Source Complete | **Yes** — dynamic Bangkok-month actionable/sent workspace, atomic Send contract, route, UI refresh policy, types, and deterministic coverage are complete |
+| Tests Passed | **Yes** — focused/existing regressions, protected booking E2E, TypeScript, lint, mojibake, two Production builds, Production readiness, local Supabase fixtures/concurrency, DB lint, performance, diff compliance, staged smoke, and runtime-log gates passed |
+| Committed | **Yes** — Functional Source `04282c945243759a2acb6ef835dd9e43d6568ba5` plus the containing documentation-only closeout commit |
+| Pushed | **Yes** — current branch published normally without force |
+| Current Source | `04282c945243759a2acb6ef835dd9e43d6568ba5` |
+| Pushed Source | `04282c945243759a2acb6ef835dd9e43d6568ba5` |
+| Deployed | **Yes, staged Production-target only** — artifact is READY with zero aliases; no Promotion occurred |
+| Deployed Source | Staged Source `04282c945243759a2acb6ef835dd9e43d6568ba5`; Production-active application Source remains `a23915959e393b760bb6b0f1c8f57a0054a839de` |
+| Deployment ID | Staged `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4`; current Production/rollback candidate `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` |
+| Staged Artifact / SHA / URL | `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` / `04282c945243759a2acb6ef835dd9e43d6568ba5` / `https://new-athlete-badminton-school-8ewzyf7ge-aachanin1s-projects.vercel.app` |
+| Current Production | All four established Production aliases still point to `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Source `a23915959e393b760bb6b0f1c8f57a0054a839de`; staged alias count is `0` |
+| Migration Source | `supabase/migrations/20260811125610_admin_notification_follow_up_dynamic_monthly_queue.sql`; SHA-256 `3652A66B85B152E60A9BD071E9673D1C7EEB091F38390A2CCCC5A8BD654F11DF` |
+| Migration Applied | **Yes, function-only** — linked inventory is `28` versions through `20260811125610`; existing applied migrations remain byte-unchanged |
+| Environment Changed | No |
+| Feature Enabled | No feature-control change |
+| Allowlisted | No allowlist change |
+| Production Active | **No for the new application Source.** The v3 database contract is installed service-only; current Production application remains on v2-compatible Source |
+| Owner UAT | **Pending** — exact staged artifact/SHA only; read-only UAT required |
+| Production UAT | **Not passed / not run for the new Source** |
+| Controlled Write UAT | **Not run / prohibited before this handoff** |
+| Reconciliation Invocations | `0` — Start/Sync/Reconcile were not invoked |
+| Tracking Baseline | Before and after Migration: campaigns/batches/items/requests `1/1/125/4`; pending/sent/excluded `115/6/4`; completed/processing/request recipients `4/0/6`; linked/current-month Sent `6/6`; dynamic actionable `77` |
+| Rows Inserted / Updated / Excluded / Deleted | `0 / 0 / 0 / 0` tracking or business rows by this task |
+| Requests Created / Notifications Sent | `0 / 0` by Developer; retained valid totals remain `4` completed requests, `6` recipients, and `6` linked Notifications |
+| Existing Sent Preserved | **Yes** — all six accepted Sent rows plus all valid pre-gate history remain preserved |
+| Rollback Candidate / Used | Current Production `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` plus retained v2 objects / **Not used** |
+| Data Repaired | No |
+| Production Data Changed | **No tracking or business row data changed.** Production schema changed only by the authorized two v3 function definitions/grants |
+| Customer Impact | None from the new Source because it is not Production-active; Developer sent `0` Notifications |
+| Financial Impact | None |
+| Functional / Test / Documentation / Migration / Configuration / Dependency Changes | `5 / 1 / 3 / 1 / 0 / 0` |
+| Scope Expansion | None |
+| Scope Breach | No |
+| Documentation Drift | **No after the containing documentation-only closeout commit is pushed** |
+| Blocker | None; Owner PASS is the required release gate, not a technical blocker |
+| Remaining Work | Owner read-only UAT on the exact staged artifact/SHA, then PASS or FAIL |
+| Task Done | **No** |
+| Next Gate / Next Action | **Owner read-only UAT; do not Send/Confirm. Promote only after Owner PASS and do not rebuild** |
+| Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
+
+### Implementation, Verification, and Safety Evidence
+
+- Fresh audit confirmed the approved Root Cause: `workspace_v2` derived its roster
+  from tracking items; Sync changed pending items to excluded and appended missing
+  candidates; `candidates_v1` excluded users already in the campaign; and the
+  campaign/batch model had no complete Bangkok-month dynamic lifecycle.
+- Dynamic eligibility is now read-only and computed from real booking/history data
+  for Asia/Bangkok. Tracking Campaign/Batch/Item/Request rows are ledger/history
+  only. The UI/API contain no Start, Sync, or Reconcile path and do not call the
+  corresponding v2 RPCs.
+- `workspace_v3` is `STABLE`, `SECURITY INVOKER`, has an empty explicit
+  `search_path`, server search/pagination of 10, actionable/sent modes, learner/
+  parent/course/attendance/history evidence, and zero DML. `send_v3` repeats Admin,
+  page, membership, eligibility, monthly-dedupe, prior-history Bulk, advisory-lock,
+  idempotency, and all-or-none checks inside the transaction.
+- Both v3 functions revoke execute from PUBLIC/anon/authenticated and grant only
+  `service_role`; all four ledger tables retain RLS. Production inventory is six
+  retained v2 functions and two v3 functions. Relevant advisors reported no task
+  warning; four expected informational RLS-with-no-policy findings reflect the
+  service-only ledger, and two informational unused-index findings are legacy
+  indexes retained for compatibility.
+- Focused coverage passed `18/18`; notification-date `26/26`; lesson-wallet
+  `19/19`; coach-hours `20/20`; payroll `14/14`; booking slot/runtime/progressive
+  checks passed; protected booking E2E passed `11/11` with residue `0`.
+  TypeScript, lint, mojibake across 259 files, two 94-route Production builds,
+  Production readiness, and `git diff --check` passed.
+- Disposable Local Supabase reset/list/lint/apply/reset passed. Fixtures covered
+  30/125/140 pagination, Bangkok rollover, suppress/return behavior, monthly
+  dedupe, prior-history Bulk restriction, all-or-none race rollback, idempotent
+  replay, and true two-session concurrency; one concurrent call succeeded and one
+  was rejected, with one Notification/item/request. Final residue was `0`.
+- Direct local DB performance across 50 warm samples each: roster median/P95/max
+  `1.097/1.292/1.540 ms`; search `2.039/2.368/2.527 ms`; failures `0`.
+  `EXPLAIN ANALYZE` showed no temp or physical reads. The UI safety timer is one
+  visible-only five-minute interval (maximum 12 GET/hour/tab), with serialized
+  refresh, AbortController, and request sequencing.
+- The authorized Production Migration apply changed no ledger/business row.
+  Immediate before/after manifests were identical; closing SELECT-only invariants
+  remain `1/1/125/4`, `115/6/4`, linked/current-month Sent `6/6`, dynamic
+  actionable `77`, and duplicate/gap/orphan/invalid/linkage findings all `0`.
+- Staged artifact metadata reports `READY`, target `production`, aliases `[]`, and
+  Git/functional/tested SHA all exactly `04282c945243759a2acb6ef835dd9e43d6568ba5`.
+  Staged root/static/health returned `200`; anonymous Admin redirected to Login,
+  anonymous Follow-up GET returned `401`; bounded runtime logs were `200 × 3`,
+  `307 × 1`, `401 × 1`, with error/fatal `0`.
+- Protected `src/lib/schedule-slot-utils.ts` remains byte-identical to index blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`, and was
+  not edited, normalized, staged, reset, checked out, stashed, or committed.
+
+### Owner Read-only UAT — Exact Artifact Only
+
+Role: Admin/Super Admin with Notifications menu permission. Use staged artifact
+`dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4`; do not Send or Confirm.
+
+1. Confirm Customer Follow-up has no Start, Sync, manual Follow-up Refresh, or
+   ineligible card/filter/badge/message.
+2. Check the actual “ต้องติดตามตอนนี้” count and server pagination.
+3. Search by child name, nickname, parent name, and adult learner name.
+4. Inspect Course History, latest attendance, and attempt/latest/read evidence.
+5. Confirm accounts with an active current-month booking are absent from the
+   actionable queue.
+6. Open “ส่งแล้วเดือนนี้” and confirm the six retained Sent histories remain.
+7. Switch away from the tab and back; confirm the event refresh without using a
+   manual Follow-up Refresh button.
+8. Return PASS or FAIL with screenshot/evidence. **Do not Send/Confirm.**
+
+## Historical / Superseded — 2026-08-10 Admin Notification Recommendations Production Closeout
+
+State observed at that closeout only: the full-roster application Source was
+Production-active and TASK DONE before the Owner selected the corrective dynamic
+queue. Every `Current` label in the historical block below is scoped to that
+2026-08-10 closeout and is not present mutable state.
 
 Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
 PRODUCTION VERIFICATION PASSED; SENT HISTORY PRESERVED**.
@@ -1184,7 +1309,11 @@ remain session-specific.
 | Documentation Drift | **No after this closeout is committed and pushed.** Production/Git/UAT/data state has one authoritative current value here; dated earlier staged/unpromoted claims remain historical evidence only |
 | Parking Lot authorization state | Unchanged; no Parking Lot item is authorized to start |
 
-## Current Source of Truth
+## Historical / Superseded Source-of-Truth Snapshot — State Observed 2026-07-29
+
+This retained snapshot is historical context only. Its present-tense wording is
+scoped to the state observed on 2026-07-29 and does not override the first current
+matrix in this file.
 
 New Athlete Badminton School is a multi-portal badminton school management app.
 The repo currently uses Next.js 16.2.6 App Router, React 18, TypeScript 5,

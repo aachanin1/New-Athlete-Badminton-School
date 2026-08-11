@@ -2,6 +2,135 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-08-11 — Admin Notifications Automatic Dynamic Customer Follow-up Queue — Ready for Owner UAT
+
+Status at this closeout: **READY FOR OWNER UAT — SOURCE COMPLETE; ALL REQUIRED
+CHECKS PASS; FUNCTIONAL SOURCE COMMITTED/PUSHED; FUNCTION-ONLY MIGRATION APPLIED;
+EXACT STAGED PRODUCTION-TARGET ARTIFACT READY WITH ZERO ALIASES; NOT PROMOTED**.
+
+Owner decision and scope:
+
+- Owner selected this corrective follow-up as the only Active Task and authorized
+  continuous Fresh Audit through staged artifact. Promotion remains prohibited
+  until Owner read-only UAT passes the exact artifact/SHA. Developer Send,
+  Production tracking/business DML, repair/backfill, Start/Sync/Reconcile,
+  Environment/feature/allowlist change, and automatic notification sending remain
+  prohibited.
+- Intended behavior is an Asia/Bangkok dynamic monthly queue: previous-month
+  paid/verified history, no active current-month booking, no verified current-
+  month Follow-up Send, and current `user` role. One account can be sent once per
+  Bangkok month; prior/ambiguous history is individual-only; clean-history Bulk is
+  unique 1–10 and all-or-none.
+- Exact change counts are Functional/Test/Documentation/Migration/Configuration/
+  Dependency `5/1/3/1/0/0`. Scope Expansion is none and Scope Breach is no.
+
+Fresh audit facts:
+
+- Repository root and branch matched the Owner baseline. Original Local/Upstream
+  HEAD was `4c3505748cb8fbe1b9b688b3bde1edd6d8066b74`, ahead/behind `0/0`, and the
+  only pre-existing status entry was protected
+  `src/lib/schedule-slot-utils.ts`. Its index blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` remained
+  unchanged and excluded.
+- Root Cause matched the contract: `workspace_v2` read tracking items as the
+  roster; Sync excluded pending rows and appended missing candidates;
+  `candidates_v1` refused candidates already present in the campaign; campaign/
+  batch state did not provide a complete monthly dynamic lifecycle. No materially
+  different Root Cause or direct dependency appeared.
+- Fresh Production SELECT-only gate used the valid latest Owner activity as the
+  baseline: campaigns/batches/items/requests `1/1/125/4`, active `1/1`, pending/
+  sent/excluded `115/6/4`, completed/processing/request recipients `4/0/6`, linked
+  Follow-up Notifications `6`, current-month Sent recipients `6`, strict dynamic
+  actionable count `77`. Duplicate user/position/Notification links, gaps,
+  orphans, invalid shapes, processing gaps, and linkage findings were all `0`.
+- The six accepted Sent rows and all valid history were preserved. The audit,
+  Migration apply, staged smoke, and closeout SELECT gates invoked no Send and
+  changed no tracking/business row.
+
+Implementation facts:
+
+- Functional Source commit `04282c945243759a2acb6ef835dd9e43d6568ba5`
+  changes exactly the approved five functional files, one deterministic script,
+  and CLI-generated Migration
+  `supabase/migrations/20260811125610_admin_notification_follow_up_dynamic_monthly_queue.sql`.
+  Migration SHA-256 is
+  `3652A66B85B152E60A9BD071E9673D1C7EEB091F38390A2CCCC5A8BD654F11DF`.
+- `workspace_v3` computes actionable/sent-current-month modes from real data with
+  server search/pagination 10, child/adult/parent/course history, exact present/
+  late latest-attendance semantics, and verified attempt/latest/read evidence.
+  It is read-only, `STABLE`, `SECURITY INVOKER`, and independent of roster
+  membership.
+- `send_v3` revalidates Admin, page/search/mode, visible membership, eligibility,
+  monthly dedupe, and prior-history Bulk restrictions under an advisory
+  transaction lock and idempotency key. Notification creation and monthly ledger
+  rotation are atomic/all-or-none; existing Sent history is not rewritten.
+- The Route Handler uses only v3 workspace/send, preserves the existing menu
+  permission guard, accepts POST Send only, rejects legacy actions/forged markers,
+  and keeps the service-role key server-only. The UI removes Start/Sync/manual
+  Follow-up Refresh/ineligible states and implements serialized/cancellable
+  initial, search/filter/page, focus, visibility, pre-preview, after-send, and
+  visible-only five-minute refresh.
+- Two bounded corrections stayed inside the same Root Cause and behavior: a lint-
+  unsafe render-time ref assignment was removed, and refresh sequencing was fixed
+  so ignored non-replacing events cannot invalidate an active response. No other
+  architecture or business flow changed.
+
+Verification facts:
+
+- Deterministic results: Admin Recommendations `18/18`; notification date `26/26`;
+  Lesson Wallet `19/19`; Coach Hours `20/20`; Admin Payroll `14/14`; booking-slot
+  availability `8/8`; booking runtime and both progressive scripts passed; full
+  protected booking E2E `11/11` with teardown residue `0`.
+- `npx tsc --noEmit`, lint with zero findings, mojibake over 259 files, two
+  Production builds with 94 routes, Production readiness, and `git diff --check`
+  passed. Low-enrollment/Near-course/Private output source remained byte-identical
+  to baseline.
+- Disposable Local Supabase reset/list/lint/apply/reset passed. Real fixtures
+  covered 30/125/140 pagination, Bangkok rollover, current-booking suppress and
+  cancelled/expired return, current/prior-month Sent behavior, one-send/month,
+  prior-history individual-only, Bulk all-or-none, selection/confirm booking race,
+  idempotent replay, and true two-session concurrency. Concurrency produced one
+  success and one rejected attempt with one Notification/item/request; final
+  residue across profiles/ledger/Notifications was `0`.
+- Direct DB performance over 50 warm samples each: roster median/P95/max
+  `1.097/1.292/1.540 ms`; search `2.039/2.368/2.527 ms`; failures `0`.
+  `EXPLAIN ANALYZE` had no temp or physical reads. The visible-only timer is one
+  five-minute interval, bounded to 12 GET/hour/tab.
+
+Migration, deployment, and closeout facts:
+
+- Linked Production Migration inventory advanced from `27` to `28`, ending at
+  `20260811125610`. The Migration is function/grant-only: no top-level DML, table,
+  index, policy, trigger, or extension. Existing applied migrations stayed byte-
+  unchanged and all six v2 functions remain for rollback compatibility.
+- Both v3 functions are `SECURITY INVOKER`, use explicit empty `search_path`, deny
+  execute to PUBLIC/anon/authenticated, and grant only `service_role`; all four
+  ledger tables retain RLS. Relevant advisors had no task warning. Four INFO
+  RLS-with-no-policy findings match the service-only design; two INFO unused-index
+  findings are retained legacy compatibility indexes.
+- Exact before/after Migration tracking values remained `1/1/125/4`, `115/6/4`,
+  requests `4/0/6`, linked/current Sent `6/6`, dynamic actionable `77`, with all
+  anomalies `0`. Rows inserted/updated/excluded/deleted, Requests created, and
+  Notifications sent by Developer were `0/0/0/0`, `0`, and `0`.
+- Staged Production-target artifact `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` is
+  `READY`, alias count `0`, and reports Git/functional/tested SHA exactly
+  `04282c945243759a2acb6ef835dd9e43d6568ba5`. URL:
+  `https://new-athlete-badminton-school-8ewzyf7ge-aachanin1s-projects.vercel.app`.
+  All four established Production aliases remain on prior artifact
+  `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Source
+  `a23915959e393b760bb6b0f1c8f57a0054a839de`.
+- Read-only staged smoke passed root, health, real static asset, Login redirect,
+  and anonymous API `401`. Bounded artifact logs contained `200 × 3`, `307 × 1`,
+  `401 × 1`, and error/fatal `0`. Production Active for the new application
+  Source is no; Controlled Write UAT is not run/prohibited; Data Repaired is no;
+  Production business/tracking data changed is no; Customer and Financial Impact
+  are none.
+- Active Task remains this task. Task Done is no. Next action is Owner read-only
+  UAT on this exact staged artifact/SHA, without Send/Confirm, followed by PASS or
+  FAIL. Promotion is allowed only after PASS and must not rebuild. Parking Lot
+  remains unauthorized.
+
 ### 2026-07-31 — Policy Reset — Owner UAT + Continuous Delivery Decision and Closeout
 
 Status at this closeout: **TASK DONE IN THE PUBLISHED STATE — PM-NA INITIAL POLICY
