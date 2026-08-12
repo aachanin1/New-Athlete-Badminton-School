@@ -2,6 +2,143 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-08-12 — Admin Notifications Corrective UAT — Ready for Owner UAT
+
+Status at this closeout: **READY FOR OWNER UAT — CORRECTIVE SOURCE COMPLETE,
+COMMITTED/PUSHED, AND STAGED AS AN EXACT READY PRODUCTION-TARGET ARTIFACT WITH
+ZERO ALIASES; ALL REQUIRED DETERMINISTIC, AUTHENTICATED DESKTOP/MOBILE,
+PERFORMANCE, RUNTIME, AND READ-ONLY DATA GATES PASS; NOT PROMOTED**.
+
+#### Owner Decision, Scope, and Fresh Audit
+
+- Owner returned **FAIL — CORRECTIONS REQUESTED** for artifact
+  `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` / Source
+  `04282c945243759a2acb6ef835dd9e43d6568ba5`. It is **SUPERSEDED — MUST NOT
+  PROMOTE**. Owner authorized this continuation for only duplicate hydration GET
+  suppression, first/last Recommendation pagination, and scoped course badge
+  colors through a new unaliased staged Production-target artifact.
+- Fresh Git baseline matched: branch `spike/next-major-security-upgrade`, original
+  Local/Upstream HEAD `a27825d4d3ee9f129d23ba8649816919e8429d32`, ahead/
+  behind `0/0`, and only the protected stat-dirty
+  `src/lib/schedule-slot-utils.ts`. It remained index blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  it was not edited, normalized, staged, reset, checked out, stashed, or committed.
+- Root Cause matched Owner evidence and was not materially different: the Server
+  passed successful Follow-up workspace data to the Client, while the Client
+  unconditionally called the Follow-up GET after mount; local `FixedPagination`
+  wrapped a previous/next-only shared component; Near-course and Follow-up course
+  badges used the same outline style. No allowlist expansion was required.
+- Fresh Production SELECT-only baseline was campaigns/batches/items/requests
+  `1/1/125/4`, active `1/1`, pending/sent/excluded `115/6/4`, completed/
+  processing/recipients `4/0/6`, linked/current-month Sent `6/6`, dynamic
+  actionable `77`; duplicate/orphan/invalid/linkage findings were `0`. Migration
+  inventory remained 28 versions through `20260811125610`.
+
+#### Implementation and Deterministic Verification
+
+- Functional/Test commit `21e45eed576014b8989ecc697c624ff2efc9122a` changed
+  exactly `src/components/admin/notification-recommendations-workspace.tsx` and
+  `scripts/check-admin-notification-recommendations.mjs`. It was pushed normally;
+  Functional/Test/Documentation/Migration/Configuration/Dependency counts are
+  `1/1/3/0/0/0`, Scope Expansion is none, and Scope Breach is no.
+- Successful SSR data now causes zero mount/hydration Follow-up GET by control
+  flow. Only an SSR Follow-up error can enter one ref-guarded retry. Focus/
+  visibility refresh requires a preceding blur/hidden transition, while search,
+  filter, page, pre-Preview, after-Send, visible-only five-minute safety refresh,
+  AbortController, sequencing, serialization, stale protection, and selection
+  reconciliation remain intact.
+- Local pagination now renders first/previous/current/next/last with correct end
+  disables and a two-column mobile layout for all three Recommendation tabs.
+  Follow-up last page derives from filtered total and preserves current mode/
+  search. Shared `list-pagination.tsx` remains unchanged.
+- Only Near-course and Follow-up course badges map Kids Group blue, Adult Group
+  emerald, and Private rose. Low-enrollment course/count badges and Near-course
+  solid progress/urgency colors remain unchanged. Notification copy/link,
+  business formulas, route, types, Migration, functions, grants, RLS, Environment,
+  feature controls, allowlist, configuration, and dependencies remain unchanged.
+- Passed checks: Admin Recommendations `21/21`; notification-date `26/26`;
+  Lesson Wallet `19/19`; Coach Hours `20/20`; Payroll `14/14`; booking-slot
+  `8/8`; booking-entry runtime; Progressive entry `31/31`; TypeScript;
+  ESLint zero-warning; mojibake across 259 files; Production readiness; 94-route
+  Production build; post-build dev root/static `200/200`; complete/staged diff,
+  exact allowlist, and `git diff --check`. Docker/local Supabase was unavailable,
+  so protected booking E2E was not started and no Production write fallback ran.
+
+#### Performance, Artifact, Runtime, and Data Evidence
+
+- Before evidence on the rejected artifact, using authenticated Chrome browser
+  wall clock: cold navigation `3,396 ms`; warm navigation `n=8` median/P95/max
+  `1,557/2,882/2,882 ms`; exact initial Follow-up API duplicate `5/5` mounts
+  (`1` each); warm page transitions `n=12` median/P95/max `635/973/973 ms`,
+  failures `0`. Console warning/error and horizontal overflow findings were `0`;
+  artifact logs had 5xx `0`.
+- Corrective source and controlled logs reduced successful SSR hydration GET from
+  `5/5` old mounts to `0/8` new mounts. Same browser wall-clock after evidence:
+  cold navigation `3,406 ms`; warm navigation `n=8` median/P95/max
+  `1,694/2,241/2,241 ms`; warmed page transitions `n=12` median/P95/max
+  `623/1,277/1,277 ms`, failures `0`. No claim is made that Vercel cold start or
+  whole-page latency was removed; the proved correction is the redundant GET.
+- One authorized `vercel@58.9.5 deploy --prod --skip-domain` invocation created
+  `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` at
+  `https://new-athlete-badminton-school-p5xn0jjnc-aachanin1s-projects.vercel.app`.
+  It is `READY`, target `production`, aliases `[]`, region `icn1`, and reports
+  Git/functional/tested SHA exactly
+  `21e45eed576014b8989ecc697c624ff2efc9122a`. Retry, force, rebuild after
+  creation, Promotion, alias mutation, rollback, and Environment changes were
+  `0`.
+- Root and real static asset returned `200/200`. Unauthenticated protected paths
+  redirected to Login as designed. Bounded artifact logs observed `200 × 7`,
+  `307 × 1`, runtime error clusters `0`, and 5xx `0`. All four established
+  Production aliases remained on `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Source
+  `a23915959e393b760bb6b0f1c8f57a0054a839de`; corrective Source is not
+  Production-active.
+- Closing Production SELECT-only tracking values were byte-for-byte equivalent
+  in aggregate to the Fresh Gate: `1/1/125/4`, `115/6/4`, `4/0/6`, linked/
+  current Sent `6/6`, dynamic actionable `77`, anomalies `0`. Rows inserted/
+  updated/excluded/deleted, Requests created, and Notifications sent by Developer
+  were `0/0/0/0`, `0`, and `0`. Existing six Sent rows remain preserved.
+
+#### Authenticated Browser, Runtime, and Owner UAT Gate
+
+- The new origin initially had no Admin session, so session/credential safety was
+  preserved: no cookie/local-storage/password read or copy, credential guessing,
+  auth-link generation, or Production test-user creation occurred. Owner/Admin
+  signed in directly, after which Developer continued read-only QA.
+- Authenticated desktop and mobile `390 × 844` checks passed. All three tabs had
+  first/last navigation and correct endpoint disables at `13/5/8` pages. Search
+  `ก` returned 32 actionable rows/4 pages, persisted through the Sent filter with
+  4 matching rows, and retained filtered last-page behavior. Pagination buttons
+  were 151 px wide; document/body scroll width was 375 px within a 390 px viewport.
+- Follow-up rendered blue/emerald/rose computed course colors; Near-course
+  rendered blue/rose in the naturally available data and kept solid urgency
+  badges unchanged. The Adult Near-course row was not naturally present on the
+  sampled pages; the shared mapping is covered by the rendered Follow-up evidence
+  and focused Source regression. Console warning/error/hydration findings were 0.
+- Browser-control reports the staged document as `visible` even while the actual
+  Chrome UI selects another tab. Therefore hidden→visible refresh is not claimed
+  as direct automation evidence; the installed visibility/focus listener and
+  safety timer are covered deterministically, and genuine tab return remains an
+  explicit read-only Owner UAT step. Two visible-only safety GETs occurred exactly
+  at five-minute boundaries. All 42 staged Follow-up calls were GET/200; POST,
+  Preview, Confirm, and Send were 0.
+- Final artifact logs observed `200 × 338`, `304 × 8`, `307 × 1`, with runtime
+  error clusters/error/fatal/5xx 0. Closing tracking values remained exactly
+  `1/1/125/4`, `115/6/4`, `4/0/6`, linked/current Sent `6/6`, dynamic actionable
+  `77`, anomalies 0. Production aliases, business data, and existing Sent history
+  remained unchanged.
+
+Mandatory classification at this closeout: Active Task **ADMIN NOTIFICATIONS —
+AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE**; Task Status **READY FOR OWNER UAT**;
+Source Complete **Yes**; Tests Passed **Yes**; Committed/Pushed **Yes/Yes**; Deployed
+**staged only**; Feature Enabled/Allowlisted **unchanged/unchanged**; Production
+Active **No for corrective Source**; Owner UAT **old artifact FAIL, new artifact
+pending**; Production UAT **not run**; Controlled Write UAT **not run /
+prohibited**; Data Repaired **No**; Production Data Changed **No**; Customer/
+Financial Impact **None/None**; Task Done **No**; Blocker **None; Owner PASS is
+the release gate, not a technical blocker**; Next Action **Owner read-only
+UAT on exact staged artifact/SHA; no Preview/Confirm/Send**.
+
 ### 2026-08-11 — Admin Notifications Automatic Dynamic Customer Follow-up Queue — Ready for Owner UAT
 
 Status at this closeout: **READY FOR OWNER UAT — SOURCE COMPLETE; ALL REQUIRED

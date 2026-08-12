@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-11
+Last updated: 2026-08-12
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -11,22 +11,24 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE
 
-Status: **READY FOR OWNER UAT — SOURCE/TESTS/PUSH/MIGRATION/STAGED ARTIFACT
+Status: **READY FOR OWNER UAT — CORRECTIVE SOURCE/TESTS/PUSH/STAGED ARTIFACT
 COMPLETE; PROMOTION PROHIBITED PENDING OWNER PASS**.
 
-- Exact staged artifact/SHA:
-  `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` /
-  `04282c945243759a2acb6ef835dd9e43d6568ba5`; target `production`, state
-  `READY`, alias count `0`.
-- Function-only Migration `20260811125610` is applied. Production tracking remains
-  `1/1/125/4`, status `115/6/4`, linked/current-month Sent `6/6`, dynamic
-  actionable `77`; this task changed tracking/business rows and sent Notifications
-  `0/0`.
-- New application Source is not Production-active. Owner UAT must be read-only on
-  the exact staged artifact: inspect revised queue/search/history/event refresh
-  and do not Send/Confirm.
-- Next action: Owner returns PASS or FAIL for this exact artifact/SHA. Promote only
-  after PASS and do not rebuild. Do not start any Parking Lot task automatically.
+- Corrective artifact/SHA is `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` /
+  `21e45eed576014b8989ecc697c624ff2efc9122a`; target `production`, state
+  `READY`, aliases `[]`. Old Owner-failed artifact
+  `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` is **SUPERSEDED — MUST NOT PROMOTE**.
+- Source implements SSR duplicate-refresh suppression, bounded SSR-error retry,
+  first/last pagination on all three Recommendation tabs, and scoped course badge
+  colors. Focused `21/21`, protected adjacent deterministic checks, TypeScript,
+  zero-warning lint, mojibake, build, authenticated desktop/mobile, performance,
+  smoke, logs, diff, and read-only data gates pass. Initial duplicate Follow-up
+  GET is `0/8` mounts versus `5/5` before. Tracking remains `1/1/125/4`, status
+  `115/6/4`, linked/current Sent `6/6`, dynamic actionable `77`; Developer
+  writes/Requests/Notifications are `0/0/0`.
+- Next action: Owner performs read-only UAT on the exact new artifact/SHA and
+  returns PASS or FAIL. Do not Preview/Confirm/Send, Promote before PASS, rebuild,
+  mutate aliases, or start Parking Lot.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
