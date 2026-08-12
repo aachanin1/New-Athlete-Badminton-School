@@ -13,7 +13,6 @@ import {
   Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { ListPagination } from '@/components/admin/list-pagination'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -52,6 +51,11 @@ const FOLLOW_UP_COURSE_LABELS = {
   kids_group: 'กลุ่มเด็ก',
   adult_group: 'กลุ่มผู้ใหญ่',
   private: 'ส่วนตัว',
+} as const
+const COURSE_BADGE_CLASSES = {
+  kids_group: 'border-blue-200 bg-blue-50 text-blue-800',
+  adult_group: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  private: 'border-rose-200 bg-rose-50 text-rose-800',
 } as const
 
 interface NotificationRecommendationsWorkspaceProps {
@@ -121,15 +125,60 @@ function FixedPagination({
   onPageChange: (page: number) => void
 }) {
   if (total <= PAGE_SIZE) return null
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const currentPage = Math.min(Math.max(1, page), totalPages)
+  const isFirstPage = currentPage === 1
+  const isLastPage = currentPage === totalPages
+
   return (
-    <ListPagination
-      page={page}
-      pageSize={PAGE_SIZE}
-      total={total}
-      onPageChange={onPageChange}
-      onPageSizeChange={() => undefined}
-      pageSizeOptions={[PAGE_SIZE]}
-    />
+    <nav
+      aria-label="Recommendation pagination"
+      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center"
+    >
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={isFirstPage}
+        onClick={() => onPageChange(1)}
+      >
+        หน้าแรก
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={isFirstPage}
+        onClick={() => onPageChange(currentPage - 1)}
+      >
+        ก่อนหน้า
+      </Button>
+      <span className="col-span-2 px-2 text-center text-sm text-slate-600 sm:col-auto">
+        {currentPage} / {totalPages}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={isLastPage}
+        onClick={() => onPageChange(currentPage + 1)}
+      >
+        ถัดไป
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full sm:w-auto"
+        disabled={isLastPage}
+        onClick={() => onPageChange(totalPages)}
+      >
+        หน้าสุดท้าย
+      </Button>
+    </nav>
   )
 }
 
@@ -168,6 +217,8 @@ export function NotificationRecommendationsWorkspace({
   const activeGetControllerRef = useRef<AbortController | null>(null)
   const activeGetPromiseRef = useRef<Promise<FollowUpWorkspaceSnapshot | null> | null>(null)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialRetryAttemptedRef = useRef(false)
+  const backgroundedRef = useRef(false)
   const currentQueryRef = useRef<WorkspaceQuery>({
     page: initialData.followUp.page,
     mode: initialData.followUp.mode,
@@ -283,27 +334,39 @@ export function NotificationRecommendationsWorkspace({
   }, [clearSearchDebounce, followUp.search, mode, requestWorkspace, searchDraft])
 
   useEffect(() => {
+    if (!initialData.followUp.error || initialRetryAttemptedRef.current) return
+    initialRetryAttemptedRef.current = true
     void requestWorkspace(currentQueryRef.current, 'initial', false)
-  }, [requestWorkspace])
+  }, [initialData.followUp.error, requestWorkspace])
 
   useEffect(() => {
-    const refreshIfVisible = (reason: 'focus' | 'visible') => {
-      if (document.visibilityState !== 'visible') return
+    const refreshAfterReturn = (reason: 'focus' | 'visible') => {
+      if (document.visibilityState !== 'visible' || !backgroundedRef.current) return
+      backgroundedRef.current = false
       void requestWorkspace(currentQueryRef.current, reason, false)
     }
-    const handleFocus = () => refreshIfVisible('focus')
+    const handleBlur = () => {
+      backgroundedRef.current = true
+    }
+    const handleFocus = () => refreshAfterReturn('focus')
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') refreshIfVisible('visible')
+      if (document.visibilityState === 'hidden') {
+        backgroundedRef.current = true
+        return
+      }
+      refreshAfterReturn('visible')
     }
     const safetyTimer = window.setInterval(() => {
       if (document.visibilityState !== 'visible') return
       void requestWorkspace(currentQueryRef.current, 'safety', false)
     }, SAFETY_REFRESH_MS)
 
+    window.addEventListener('blur', handleBlur)
     window.addEventListener('focus', handleFocus)
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
       window.clearInterval(safetyTimer)
+      window.removeEventListener('blur', handleBlur)
       window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
@@ -490,7 +553,9 @@ export function NotificationRecommendationsWorkspace({
                               ? 'แพ็กเกจส่วนตัว'
                               : item.learnerNames.join(', ')}
                           </p>
-                          <Badge variant="outline">{COURSE_LABELS[item.courseName]}</Badge>
+                          <Badge variant="outline" className={COURSE_BADGE_CLASSES[item.courseName]}>
+                            {COURSE_LABELS[item.courseName]}
+                          </Badge>
                           <Badge className={item.level === 'red' ? 'bg-rose-600' : item.level === 'yellow' ? 'bg-amber-500' : 'bg-emerald-600'}>
                             {item.progressPercent}%
                           </Badge>
@@ -618,7 +683,11 @@ export function NotificationRecommendationsWorkspace({
                               <span>ประวัติคอร์ส:</span>
                               {item.courseNames.length > 0
                                 ? item.courseNames.map((courseName) => (
-                                  <Badge key={courseName} variant="outline">
+                                  <Badge
+                                    key={courseName}
+                                    variant="outline"
+                                    className={COURSE_BADGE_CLASSES[courseName]}
+                                  >
                                     {FOLLOW_UP_COURSE_LABELS[courseName]}
                                   </Badge>
                                 ))

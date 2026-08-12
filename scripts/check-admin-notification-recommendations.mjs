@@ -393,23 +393,81 @@ await check('GET and read refresh events write zero rows; API exposes only v3 wo
   execFileSync('git', ['diff', '--exit-code', '--', 'src/app/api/admin/notifications/route.ts'], { cwd: root, stdio: 'pipe' })
 })
 
-await check('UI refresh is initial/event-driven, five-minute visible-only, serialized, and stale-safe', () => {
+await check('valid SSR workspace skips hydration GET; SSR error retries once without a loop', () => {
+  const component = read('src/components/admin/notification-recommendations-workspace.tsx')
+  const initialEffect = component.match(/useEffect\(\(\) => \{\s*if \(!initialData\.followUp\.error \|\| initialRetryAttemptedRef\.current\) return[\s\S]*?\}, \[initialData\.followUp\.error, requestWorkspace\]\)/)?.[0]
+  assert.ok(initialEffect)
+  assert.match(initialEffect, /initialRetryAttemptedRef\.current = true/)
+  assert.match(initialEffect, /requestWorkspace\(currentQueryRef\.current, 'initial', false\)/)
+  assert.equal((initialEffect.match(/void requestWorkspace/g) || []).length, 1)
+  assert.doesNotMatch(component, /useEffect\(\(\) => \{\s*void requestWorkspace\(currentQueryRef\.current, 'initial'/)
+
+  const initialRequests = (hasServerError, effectRuns) => {
+    let attempted = false
+    let requests = 0
+    for (let run = 0; run < effectRuns; run += 1) {
+      if (!hasServerError || attempted) continue
+      attempted = true
+      requests += 1
+    }
+    return requests
+  }
+  assert.equal(initialRequests(false, 2), 0)
+  assert.equal(initialRequests(true, 2), 1)
+})
+
+await check('refresh remains event-driven after a real background transition, five-minute visible-only, serialized, and stale-safe', () => {
   const component = read('src/components/admin/notification-recommendations-workspace.tsx')
   assert.match(component, /const SAFETY_REFRESH_MS = 5 \* 60 \* 1000/)
   assert.equal((60 * 60 * 1000) / (5 * 60 * 1000), 12)
-  assert.match(component, /requestWorkspace\(currentQueryRef\.current, 'initial'/)
+  assert.match(component, /const backgroundedRef = useRef\(false\)/)
+  assert.match(component, /window\.addEventListener\('blur', handleBlur\)/)
   assert.match(component, /window\.addEventListener\('focus'/)
   assert.match(component, /document\.addEventListener\('visibilitychange'/)
-  assert.match(component, /document\.visibilityState !== 'visible'/)
+  assert.match(component, /document\.visibilityState !== 'visible' \|\| !backgroundedRef\.current/)
+  assert.match(component, /document\.visibilityState === 'hidden'[\s\S]*backgroundedRef\.current = true/)
+  assert.match(component, /backgroundedRef\.current = false[\s\S]*requestWorkspace\(currentQueryRef\.current, reason, false\)/)
   assert.match(component, /window\.setInterval[\s\S]*'safety'/)
   assert.match(component, /new AbortController\(\)/)
   assert.match(component, /activeGetControllerRef\.current\?\.abort\(\)/)
   assert.match(component, /requestSequenceRef/)
   assert.match(component, /if \(previousRequest\) \{\s*if \(!replaceInFlight\) return null\s*requestSequence = \+\+requestSequenceRef\.current/)
   assert.match(component, /setTimeout\([\s\S]*300/)
+  for (const reason of ['search', 'filter', 'page', 'preview', 'after-send']) {
+    assert.match(component, new RegExp(`requestWorkspace\\([\\s\\S]*?'${reason}'`))
+  }
   assert.match(component, /reason === 'preview'/)
   assert.match(component, /if \(!fresh\) return/)
   assert.doesNotMatch(component, /RefreshCw|loadingAction|statusFilter/)
+})
+
+await check('all three recommendation tabs use local first/last pagination with filtered Follow-up state', () => {
+  const component = read('src/components/admin/notification-recommendations-workspace.tsx')
+  const pagination = component.slice(component.indexOf('function FixedPagination'), component.indexOf('function SummaryCard'))
+  assert.doesNotMatch(component, /ListPagination/)
+  assert.match(pagination, /const totalPages = Math\.max\(1, Math\.ceil\(total \/ PAGE_SIZE\)\)/)
+  assert.match(pagination, /disabled=\{isFirstPage\}[\s\S]*onClick=\{\(\) => onPageChange\(1\)\}[\s\S]*หน้าแรก/)
+  assert.match(pagination, /disabled=\{isFirstPage\}[\s\S]*onClick=\{\(\) => onPageChange\(currentPage - 1\)\}[\s\S]*ก่อนหน้า/)
+  assert.match(pagination, /\{currentPage\} \/ \{totalPages\}/)
+  assert.match(pagination, /disabled=\{isLastPage\}[\s\S]*onClick=\{\(\) => onPageChange\(currentPage \+ 1\)\}[\s\S]*ถัดไป/)
+  assert.match(pagination, /disabled=\{isLastPage\}[\s\S]*onClick=\{\(\) => onPageChange\(totalPages\)\}[\s\S]*หน้าสุดท้าย/)
+  assert.match(pagination, /grid grid-cols-2[\s\S]*sm:flex/)
+  assert.equal((component.match(/<FixedPagination/g) || []).length, 3)
+  assert.match(component, /page=\{followUp\.page\}[\s\S]*total=\{followUp\.filteredCount\}[\s\S]*requestWorkspace\(\{ page, mode, search: followUp\.search \}, 'page'\)/)
+  execFileSync('git', ['diff', '--exit-code', '--', 'src/components/admin/list-pagination.tsx'], { cwd: root, stdio: 'pipe' })
+})
+
+await check('course badges are blue/green/red only in Near-course and Follow-up; urgency and Low-enrollment stay unchanged', () => {
+  const component = read('src/components/admin/notification-recommendations-workspace.tsx')
+  const baseline = showHead('src/components/admin/notification-recommendations-workspace.tsx')
+  assert.match(component, /kids_group: 'border-blue-200 bg-blue-50 text-blue-800'/)
+  assert.match(component, /adult_group: 'border-emerald-200 bg-emerald-50 text-emerald-800'/)
+  assert.match(component, /private: 'border-rose-200 bg-rose-50 text-rose-800'/)
+  assert.equal((component.match(/className=\{COURSE_BADGE_CLASSES\[/g) || []).length, 2)
+  assert.match(component, /<Badge variant="outline">\{item\.learnerCount\} คน<\/Badge>/)
+  const urgencyBadge = /<Badge className=\{item\.level === 'red' \? 'bg-rose-600' : item\.level === 'yellow' \? 'bg-amber-500' : 'bg-emerald-600'\}>/
+  assert.match(component, urgencyBadge)
+  assert.match(baseline, urgencyBadge)
 })
 
 await check('selection is reconciled to visible actionable bulk candidates before Preview', () => {
