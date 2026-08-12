@@ -2,29 +2,28 @@
 
 Last updated: 2026-08-12
 
-Current source: **READY FOR OWNER UAT** for **ADMIN
-NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE**. The corrective
-Functional Source `21e45eed576014b8989ecc697c624ff2efc9122a` is committed,
-pushed, and staged as Production-target artifact
-`dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` with aliases `[]`. Deterministic checks,
-TypeScript, zero-warning lint, build, authenticated desktop/mobile, performance,
-smoke, logs, and read-only Production data gates pass. The corrective Source is
-not Production-active and must not be Promoted until Owner read-only UAT passes
-this exact artifact/SHA.
+Current source: **TASK DONE** for **ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC
+CUSTOMER FOLLOW-UP QUEUE**. Owner passed exact artifact
+`dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Functional Source
+`21e45eed576014b8989ecc697c624ff2efc9122a`; one `vercel promote` invocation
+made that same no-rebuild artifact Production-active. Automated Production
+health, routing, static, auth/API, runtime-log, deployment-identity, alias, and
+read-only tracking gates pass. No Notification, Request, reconciliation,
+Migration, Environment, control, or business-data write occurred.
 This first matrix is the only authority for current mutable state; later records
 are Historical / Superseded.
 
-## Current Closeout — Owner UAT Corrections Ready for Owner UAT
+## Current Closeout — Admin Notifications Corrective Production Closeout
 
-Status: **READY FOR OWNER UAT — SOURCE/TESTS/PUSH/STAGED ARTIFACT COMPLETE;
-PROMOTION PROHIBITED PENDING OWNER PASS**.
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE** (corrective continuation) |
-| Task Status | **READY FOR OWNER UAT** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE** |
 | Intended Behavior | Use successful SSR Follow-up data without a hydration GET; retry one bounded time only when SSR Follow-up data has an error; preserve genuine event/search/filter/page/preview/after-send/safety refresh; add first/previous/current/next/last pagination to the three Recommendation tabs; color only Near-course/Follow-up course badges blue/emerald/rose |
 | Root Cause | **Matched Owner audit; not materially different.** Client performed an unconditional Follow-up GET after mount despite SSR data; local `FixedPagination` delegated to previous/next-only shared UI; Near-course/Follow-up course badges used the same outline styling |
 | Branch | `spike/next-major-security-upgrade` |
@@ -32,38 +31,39 @@ PROMOTION PROHIBITED PENDING OWNER PASS**.
 | Remote HEAD | The same documentation-only closeout commit after normal non-force push |
 | Ahead/Behind | `0/0` after the documentation closeout push |
 | Source Complete | **Yes** — approved correction is implemented within the exact functional allowlist |
-| Tests Passed | **Yes** — focused `21/21`, protected adjacent deterministic suites, TypeScript, zero-warning ESLint, mojibake, Production build, readiness, diff checks, authenticated staged desktop/mobile, performance, smoke, and runtime/data gates pass |
-| Committed / Pushed | **Yes / Yes** — corrective Functional/Test commit `21e45eed576014b8989ecc697c624ff2efc9122a`; containing docs closeout published normally without force |
+| Tests Passed | **Yes** — focused `21/21`, protected adjacent deterministic suites, TypeScript, zero-warning ESLint, mojibake, Production build, readiness, diff checks, authenticated staged desktop/mobile, performance, and post-Promotion Production identity/health/static/auth/API/log/data gates pass |
+| Committed / Pushed | **Yes / Yes** — corrective Functional/Test commit `21e45eed576014b8989ecc697c624ff2efc9122a`; containing Production-closeout documentation commit published normally without force |
 | Current / Pushed Source | `21e45eed576014b8989ecc697c624ff2efc9122a` |
-| Deployed | **Yes, staged Production-target only** — no Promotion or alias mutation |
-| Deployment ID | New staged `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq`; rejected old `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4`; Production-active `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` |
-| Staged Artifact / SHA / URL | `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / `21e45eed576014b8989ecc697c624ff2efc9122a` / `https://new-athlete-badminton-school-p5xn0jjnc-aachanin1s-projects.vercel.app` — `READY`, target `production`, aliases `[]`, exact Git/functional/tested SHA |
+| Deployed | **Yes — exact Owner-passed artifact Promoted without rebuild** |
+| Deployment ID | Production-active `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq`; rollback candidate `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED`; rejected old `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` |
+| Promoted Artifact / SHA / URL | `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / `21e45eed576014b8989ecc697c624ff2efc9122a` / `https://new-athlete-badminton-school-p5xn0jjnc-aachanin1s-projects.vercel.app` — `READY`, target `production`, exact Git/functional/tested SHA; creation/build/ready timestamps unchanged |
 | Old Artifact | `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` / `04282c945243759a2acb6ef835dd9e43d6568ba5` — **OWNER UAT FAIL; SUPERSEDED — MUST NOT PROMOTE** |
-| Current Production | Unchanged: all four established Production aliases point to `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / Source `a23915959e393b760bb6b0f1c8f57a0054a839de` |
+| Current Production | All four established Production aliases point to `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Source `21e45eed576014b8989ecc697c624ff2efc9122a` |
 | Migration Source / Applied | Existing `20260811125610_admin_notification_follow_up_dynamic_monthly_queue.sql`, SHA-256 `3652A66B85B152E60A9BD071E9673D1C7EEB091F38390A2CCCC5A8BD654F11DF` / **Yes from prior task; no migration in this correction**; inventory remains 28 versions |
 | Environment / Feature / Allowlist | **Unchanged / unchanged / unchanged** |
-| Production Active | **No for corrective Source.** Current Production application remains on `a23915959e393b760bb6b0f1c8f57a0054a839de` |
-| Owner UAT | Old artifact **FAIL — corrections requested**; new exact artifact **Pending — read-only only** |
-| Production UAT | **Not run for corrective Source** |
-| Controlled Write UAT | **Not run / prohibited** |
+| Production Active | **Yes — corrective Source is current through the exact Owner-passed artifact** |
+| Owner UAT | **PASS** for exact `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / `21e45eed576014b8989ecc697c624ff2efc9122a` |
+| Production UAT | **Automated Production verification passed; second manual UAT not run/not required because the exact no-rebuild artifact is active** |
+| Controlled Write UAT | **Not run / not required** |
 | Tracking Baseline Before / After | Both reads: campaigns/batches/items/requests `1/1/125/4`; active `1/1`; pending/sent/excluded `115/6/4`; completed/processing/recipient count `4/0/6`; linked/current-month Sent `6/6`; dynamic actionable `77`; anomalies `0` |
 | Rows Inserted / Updated / Excluded / Deleted | `0 / 0 / 0 / 0` tracking or business rows |
 | Requests Created / Notifications Sent | `0 / 0` by Developer; no Preview/Confirm/Send invoked |
 | Existing Sent Preserved | **Yes** — all six accepted Sent rows and valid later history remain unchanged |
 | Performance Before | Old artifact browser wall-clock evidence: cold navigation `3,396 ms`; warm navigation `n=8` median/P95/max `1,557/2,882/2,882 ms`; initial Follow-up API duplicate `5/5` mounts (`1` each); warm page change `n=12` median/P95/max `635/973/973 ms`, failures `0` |
 | Performance After | Same browser wall-clock method: cold navigation `3,406 ms`; warm navigation `n=8` median/P95/max `1,694/2,241/2,241 ms`; successful SSR initial Follow-up API GET `0/8` mounts; warmed page change `n=12` median/P95/max `623/1,277/1,277 ms`, failures `0`. No claim is made about removing Vercel cold start or whole-page latency |
-| Staged Smoke / Logs | Root and real static asset `200/200`; authenticated read-only Admin checks passed; bounded artifact logs had `200 × 338`, `304 × 8`, `307 × 1`, runtime error clusters/error/fatal/5xx `0`; Follow-up activity was GET-only and Developer POST/Send `0` |
-| Functional / Test / Documentation / Migration / Configuration / Dependency Changes | `1 / 1 / 3 / 0 / 0 / 0` |
+| Production Verification | Canonical/custom roots `200`; protected Vercel team aliases retained expected SSO `302`; `/api/health` and real static asset `200`; anonymous Admin Notifications `307` to Login; anonymous Follow-up API `401`; bounded post-Promotion logs GET-only with error/fatal/5xx/mutation `0` |
+| Promotion Invocation / Retry / Rebuild / Redeploy / New Deployment | `1 / 0 / 0 / 0 / 0` |
+| Functional / Test / Documentation / Migration / Configuration / Dependency Changes | `0 / 0 / 3 / 0 / 0 / 0` in this Promotion closeout |
 | Scope Expansion / Scope Breach | **None / No** |
 | Protected Dirty File | `src/lib/schedule-slot-utils.ts` was never edited/staged/reset/normalized; Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
 | Data Repaired / Production Data Changed | **No / No** tracking or business-row change |
-| Customer Impact / Financial Impact | **None / None**; corrective Source is staged and Developer sent 0 Notifications |
-| Rollback Candidate / Used | Current Production artifact plus retained v2 objects / **Not used** |
+| Customer Impact / Financial Impact | **Approved corrective Admin UI is Production-active; no customer-data or financial impact / None** |
+| Rollback Candidate / Used | `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` / **Not used** |
 | Documentation Drift | **No after the containing closeout documentation commit is pushed** |
-| Blocker | None; Owner PASS remains the release gate, not a technical blocker |
-| Remaining Work | Owner performs the exact read-only UAT below and returns PASS or FAIL |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner read-only UAT on exact staged artifact/SHA; do not Preview/Confirm/Send. Promote only after PASS and do not rebuild** |
+| Blocker | **None** |
+| Remaining Work | **None for this task** |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Await Owner selection; do not start Parking Lot automatically** |
 | Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
 
 ### Implemented Correction and Verified Evidence
@@ -109,28 +109,24 @@ PROMOTION PROHIBITED PENDING OWNER PASS**.
   is made that this removes cold starts. Supabase guidance was rechecked; this
   correction changes no functions, grants, RLS, Migration, or API security.
 
-### Owner Read-only UAT — Exact Artifact Only
+### Owner UAT PASS and Exact Promotion Evidence
 
-Role: Admin/Super Admin with Notifications permission. Use artifact
-`dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Source
-`21e45eed576014b8989ecc697c624ff2efc9122a` at
-`https://new-athlete-badminton-school-p5xn0jjnc-aachanin1s-projects.vercel.app`.
-
-1. Open Admin Notifications → คำแนะนำ and confirm no immediate Follow-up spinner
-   or visible hydration refetch after the Server-rendered data appears.
-2. Test หน้าแรก/ก่อนหน้า/ถัดไป/หน้าสุดท้าย in all three Recommendation tabs;
-   verify disabled states on the first and last pages.
-3. Search and change the Follow-up filter, then go to the filtered last page and
-   confirm the search/filter state remains intact.
-4. Confirm Kids Group is blue, Adult Group emerald/green, and Private rose/red in
-   Near-course and Follow-up; confirm the solid Near-course progress badge is
-   unchanged.
-5. Check the mobile layout has readable two-column controls and no horizontal
-   overflow.
-6. Switch to another real browser tab and back; confirm automatic refresh occurs.
-
-Return PASS or FAIL for this exact artifact/SHA. **Do not open Preview, Confirm,
-or Send.** Promotion remains prohibited until Owner PASS and must not rebuild.
+- Owner passed only `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Source
+  `21e45eed576014b8989ecc697c624ff2efc9122a`. The rejected artifact
+  `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` was not Promoted.
+- One `vercel@58.9.5 promote dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` invocation ran
+  from `2026-08-12T14:49:10.8255723Z` to `14:49:17.6565074Z` and returned exit
+  `0`. Retry, build, rebuild, redeploy, new deployment, separate alias mutation,
+  and rollback counts were `0`.
+- Deployment identity remained `createdAt 1786543374622`, `buildingAt
+  1786543375512`, `readyAt 1786543463764`, with Git/functional/tested SHA all
+  `21e45eed576014b8989ecc697c624ff2efc9122a`. All four established Production
+  aliases now resolve to this exact deployment.
+- Pre/post SELECT-only tracking manifests were identical: campaigns/batches/items/
+  requests `1/1/125/4`, active `1/1`, pending/sent/excluded `115/6/4`, completed/
+  processing/request recipients `4/0/6`, linked/current Sent `6/6`, dynamic
+  actionable `77`, and anomalies `0`. Developer-created Requests, Notifications,
+  and tracking/business rows changed were all `0`.
 
 ## Historical / Superseded — 2026-08-11 Dynamic Customer Follow-up Queue Handoff
 

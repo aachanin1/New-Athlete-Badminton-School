@@ -2,6 +2,95 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-08-12 — Admin Notifications Corrective Exact-Artifact Production Closeout
+
+Status observed at this closeout: **TASK DONE — OWNER UAT PASS; EXACT PASSED
+PRODUCTION-TARGET ARTIFACT PROMOTED WITHOUT REBUILD; AUTOMATED PRODUCTION
+VERIFICATION PASSED; NO TRACKING/BUSINESS-DATA WRITE**.
+
+#### Owner PASS and Fresh Promotion Gate
+
+- Owner passed only artifact `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / URL
+  `https://new-athlete-badminton-school-p5xn0jjnc-aachanin1s-projects.vercel.app`
+  / Functional and tested Source
+  `21e45eed576014b8989ecc697c624ff2efc9122a`. Rejected artifact
+  `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` remained superseded and was not Promoted.
+- Fresh Git Gate ran on branch `spike/next-major-security-upgrade` at Local/
+  Upstream HEAD `cedadc1cad14d5b2b45e4d520a3edc6fb683fa6b`, ahead/behind
+  `0/0`. Functional commit `21e45eed576014b8989ecc697c624ff2efc9122a`
+  was an ancestor of both. Post-PASS executable/config/Migration diff was `0`.
+- Only the known stat-dirty `src/lib/schedule-slot-utils.ts` remained. Its index
+  blob `4521281d099efb189429a744909552d67871ff23`, worktree SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`,
+  and content diff `0` matched the prior gate; it was not touched or staged.
+- Vercel API/CLI verified the passed artifact `READY`, target `production`,
+  aliases `[]` before Promotion, Git/functional/tested SHA all exactly
+  `21e45eed576014b8989ecc697c624ff2efc9122a`, with `createdAt
+  1786543374622`, `buildingAt 1786543375512`, and `readyAt 1786543463764`.
+  Existing Production `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED` was still `READY`
+  and retained as the exact rollback candidate.
+- Pre-Promotion aliases `www.newathleteschool.com`,
+  `new-athlete-badminton-school.vercel.app`, and both established Vercel team
+  aliases all pointed to rollback candidate `dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED`.
+  The 30-minute runtime baseline contained four GETs (`200 × 3`, `307 × 1`),
+  with mutations/error/fatal/5xx `0`.
+
+#### Exact Promotion and Production Identity
+
+- One `vercel@58.9.5 promote dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq --yes`
+  invocation ran from `2026-08-12T14:49:10.8255723Z` through
+  `14:49:17.6565074Z` and returned exit `0` with explicit Vercel success.
+  Promotion retry, build, rebuild, deploy, redeploy, new deployment, separate
+  alias mutation, and rollback counts were `0`.
+- After Promotion, all four established Production aliases resolved directly to
+  `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq`. Its deployment ID, URL, target, READY
+  state, creation/build/ready timestamps, and Git/functional/tested SHA remained
+  byte-for-byte identical. No deployment was created after Promotion began.
+- Canonical `new-athlete-badminton-school.vercel.app` and custom
+  `www.newathleteschool.com` roots returned `200`. The two protected team aliases
+  retained the expected Vercel SSO `302`. `/api/health` and the real built asset
+  `/_next/static/css/33bfd6a3371c8e78.css` returned `200`; anonymous
+  `/admin/notifications` returned `307` to Login and anonymous protected
+  `/api/admin/notifications/customer-follow-up` returned `401`.
+- The bounded post-Promotion artifact log window contained nine GET-only events:
+  `200 × 7`, `307 × 1`, `401 × 1`; mutation/error/fatal/5xx counts were `0`.
+  Two authenticated Follow-up GET `200` events on the staged origin were
+  attributable to the already-open Owner/Admin read-only tab, while Developer's
+  Production-domain guard check was GET `401`. No POST, Preview, Confirm, Send,
+  Start, Sync, Reconcile, Notification, or Request action was invoked.
+
+#### Production Data and Final Classification
+
+- Pre/post SELECT-only manifests were identical: campaigns/batches/items/requests
+  `1/1/125/4`, active campaigns/batches `1/1`, pending/sent/excluded `115/6/4`,
+  completed/processing/request recipients `4/0/6`, linked/current-month Sent
+  `6/6`, dynamic actionable `77`, and every duplicate/orphan/invalid-shape/link
+  anomaly `0`. Existing six Sent rows remained preserved.
+- Rows inserted/updated/excluded/deleted, Requests created, Notifications sent,
+  and tracking/business rows changed by Developer or Promotion were all `0`.
+  Migration inventory remained 28 versions through `20260811125610`; Migration,
+  functions, grants, RLS, Environment, feature control, allowlist, permission,
+  secret, configuration, dependency, and business Source changes were `0`.
+- Promotion-round Functional/Test/Documentation/Migration/Configuration/
+  Dependency file counts are `0/0/3/0/0/0`; Scope Expansion is none and Scope
+  Breach is no. The Vercel/Supabase skills reinforced use of `promote` for the
+  staged Production artifact and SELECT-only verification; no deploy/redeploy or
+  database mutation path was used.
+
+Mandatory classification at this closeout: Active Task **None — Awaiting Owner
+Selection**; Task Status **TASK DONE**; Source Complete **Yes**; Tests Passed
+**Yes**; Owner UAT **PASS for exact artifact/SHA**; Deployed/Production Active
+**Yes/Yes**; automated Production verification **Passed**; second manual
+Production UAT **not run/not required**; Controlled Write UAT **not run/not
+required**; Committed/Pushed **Yes/Yes after the containing documentation
+closeout commit**; Migration Applied **unchanged from the prior task**;
+Environment/Feature/Allowlist **unchanged/unchanged/unchanged**; Production Data
+Changed/Data Repaired **No/No**; Customer Impact **approved corrective Admin UI
+is active with no customer-data mutation**; Financial Impact **None**; Rollback
+Candidate/Used **`dpl_9V1fwFzFFgcuKUXHueFGFrDa4gED`/No**; Documentation Drift
+**No**; Blocker **None**; Task Done **Yes**; Next Action **Await Owner selection;
+do not start Parking Lot automatically**.
+
 ### 2026-08-12 — Admin Notifications Corrective UAT — Ready for Owner UAT
 
 Status at this closeout: **READY FOR OWNER UAT — CORRECTIVE SOURCE COMPLETE,

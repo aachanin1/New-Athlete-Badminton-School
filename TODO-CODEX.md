@@ -9,30 +9,29 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE
+### None — Awaiting Owner Selection
 
-Status: **READY FOR OWNER UAT — CORRECTIVE SOURCE/TESTS/PUSH/STAGED ARTIFACT
-COMPLETE; PROMOTION PROHIBITED PENDING OWNER PASS**.
-
-- Corrective artifact/SHA is `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` /
-  `21e45eed576014b8989ecc697c624ff2efc9122a`; target `production`, state
-  `READY`, aliases `[]`. Old Owner-failed artifact
-  `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` is **SUPERSEDED — MUST NOT PROMOTE**.
-- Source implements SSR duplicate-refresh suppression, bounded SSR-error retry,
-  first/last pagination on all three Recommendation tabs, and scoped course badge
-  colors. Focused `21/21`, protected adjacent deterministic checks, TypeScript,
-  zero-warning lint, mojibake, build, authenticated desktop/mobile, performance,
-  smoke, logs, diff, and read-only data gates pass. Initial duplicate Follow-up
-  GET is `0/8` mounts versus `5/5` before. Tracking remains `1/1/125/4`, status
-  `115/6/4`, linked/current Sent `6/6`, dynamic actionable `77`; Developer
-  writes/Requests/Notifications are `0/0/0`.
-- Next action: Owner performs read-only UAT on the exact new artifact/SHA and
-  returns PASS or FAIL. Do not Preview/Confirm/Send, Promote before PASS, rebuild,
-  mutate aliases, or start Parking Lot.
+The Admin Notifications corrective task is complete. Do not start Parking Lot or
+another task automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
+
+### ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Exact Production artifact/SHA is `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` /
+  `21e45eed576014b8989ecc697c624ff2efc9122a`. Promotion/retry/rebuild/redeploy/
+  new-deployment counts are `1/0/0/0/0`; all four Production aliases resolve to
+  it. Rejected artifact `dpl_8jqKAnStXm1CxNXNu4x1kCuCHpx4` was not Promoted.
+- Production root/health/static/auth/API/log and read-only data gates passed.
+  Tracking remained `1/1/125/4`, status `115/6/4`, linked/current Sent `6/6`,
+  actionable `77`, anomalies `0`; Developer Requests/Notifications/data writes
+  were `0/0/0`. See `PROJECT_STATE.md` and the 2026-08-12 closeout in
+  `DEVELOPMENT_TODO.md`.
 
 ### ADMIN NOTIFICATIONS RECOMMENDATIONS — FULL ROSTER + SEARCH + LEARNER NAMES + INELIGIBLE SYNC
 
