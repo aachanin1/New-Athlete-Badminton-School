@@ -190,7 +190,7 @@ interface PendingProgressiveRefresh {
 
 const PROGRESSIVE_PAYMENT_ERROR_COPY: Record<string, string> = {
   PROGRESSIVE_SCOPE_REVISION_CONFLICT: 'ข้อมูลรายการชำระมีการเปลี่ยนแปลง ระบบกำลังอัปเดตรายการ กรุณาลองใหม่อีกครั้ง',
-  PROGRESSIVE_PAYMENT_PREFIX_REQUIRED: 'กรุณาเลือกรายการชำระตามลำดับจากรายการเก่าที่สุด ระบบกำลังอัปเดตรายการล่าสุด',
+  PROGRESSIVE_PAYMENT_PREFIX_REQUIRED: 'ต้องรวมรายการรอชำระทั้งหมดในคอร์สและรอบราคาเดียวกัน ระบบกำลังอัปเดตรายการล่าสุด กรุณาลองใหม่อีกครั้ง',
   PROGRESSIVE_BOOKING_EXPIRED: 'มีรายการจองหมดอายุ ระบบกำลังอัปเดตรายการ กรุณาตรวจสอบอีกครั้ง',
   PROGRESSIVE_SCOPE_LOCKED: 'มีรายการชำระเงินของคอร์สนี้กำลังดำเนินการ กรุณาดำเนินการรายการเดิมให้เสร็จก่อน',
   PROGRESSIVE_PAYMENT_EXISTS: 'รายการบางรายการมีการชำระเงินแล้ว ระบบกำลังอัปเดตรายการล่าสุด',
@@ -397,7 +397,6 @@ export function HistoryClient({
   const [expandedMonthKeys, setExpandedMonthKeys] = useState<Set<string>>(new Set())
   const [paymentMode, setPaymentMode] = useState<'legacy' | 'progressive'>('legacy')
   const [progressiveBatch, setProgressiveBatch] = useState<ProgressiveBatchSummary | null>(null)
-  const [progressiveSelectedCounts, setProgressiveSelectedCounts] = useState<Record<string, number>>({})
   const cancelRequestIds = useRef(new Map<string, string>())
   const [authoritativeBatchTotal, setAuthoritativeBatchTotal] = useState<number | null>(null)
   const [progressiveLifecycle, setProgressiveLifecycle] = useState<ProgressivePaymentLifecycle>('idle')
@@ -590,15 +589,13 @@ export function HistoryClient({
   }
 
   const openProgressivePayDialog = async (scopeId: string, scopeBookings: BookingWithRelations[]) => {
-    const selectedCount = progressiveSelectedCounts[scopeId] ?? 1
-    const selected = scopeBookings.slice(0, selectedCount)
     const scope = progressiveScopeRevisionMap[scopeId]
-    if (!scope || selected.length === 0 || progressiveOperationRef.current || loading) return
+    if (!scope || scopeBookings.length === 0 || progressiveOperationRef.current || loading) return
 
     progressiveOperationRef.current = true
     setProgressiveReconciliationBlocked(false)
     const generation = ++progressiveGenerationRef.current
-    const selectedIds = selected.map((booking) => booking.id)
+    const selectedIds = scopeBookings.map((booking) => booking.id)
     transitionProgressiveLifecycle('preparing')
     setLoading(true)
     setError(null)
@@ -659,7 +656,7 @@ export function HistoryClient({
       setPaymentMode('progressive')
       setProgressiveBatch(batch)
       setAuthoritativeBatchTotal(batchTotal!)
-      setSelectedBooking(selected[0])
+      setSelectedBooking(scopeBookings[0])
       setPayBookingIds(selectedIds)
       setSlipFile(null)
       setSlipPreview(null)
@@ -1125,8 +1122,7 @@ export function HistoryClient({
 
       {!isAdmin && progressivePendingGroups.map((group) => {
         if (activeProgressiveBatches.some((batch) => batch.pricing_scope_id === group.scopeId)) return null
-        const selectedCount = progressiveSelectedCounts[group.scopeId] ?? 1
-        const selectedTotal = group.bookings.slice(0, selectedCount).reduce((sum, booking) => sum + booking.total_price, 0)
+        const batchTotal = group.bookings.reduce((sum, booking) => sum + booking.total_price, 0)
         const first = group.bookings[0]
         return (
           <Card key={group.scopeId} className="mb-4 border-blue-200 bg-blue-50/60">
@@ -1136,44 +1132,37 @@ export function HistoryClient({
                   <p className="font-medium text-[#153c85]">
                     {first.course_types ? COURSE_LABELS[first.course_types.name] || first.course_types.name : 'คอร์ส'} · {MONTH_NAMES[first.month]} {first.year}
                   </p>
-                  <p className="mt-1 text-xs text-blue-700">เลือกชำระตามลำดับเก่าสุด รายการก่อนหน้าจะถูกเลือกให้อัตโนมัติ</p>
+                  <p className="mt-1 text-xs text-blue-700">
+                    รายการรอชำระทั้งหมดในคอร์สและรอบราคาเดียวกันจะถูกรวมชำระครั้งเดียว
+                  </p>
                 </div>
-                <p className="font-bold text-[#2748bf]">ยอดที่เลือก ฿{selectedTotal.toLocaleString()}</p>
+                <p className="font-bold text-[#2748bf]" data-testid={`progressive-payment-required-total-${group.scopeId}`}>
+                  {group.bookings.length} รายการ · {batchTotal.toLocaleString()} บาท
+                </p>
               </div>
               <div className="space-y-2">
                 {group.bookings.map((booking, index) => (
-                  <label key={booking.id} className={`flex items-center justify-between rounded-md border bg-white px-3 py-2 text-sm ${progressiveControlsBlocked ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
-                    <span className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        data-testid={`progressive-payment-select-${booking.id}`}
-                        checked={index < selectedCount}
-                        disabled={progressiveControlsBlocked}
-                        onChange={(event) => {
-                          if (progressiveControlsBlocked) return
-                          setProgressivePaymentError(null)
-                          if (progressiveLifecycleRef.current === 'failed') transitionProgressiveLifecycle('idle')
-                          setProgressiveSelectedCounts((current) => ({
-                            ...current,
-                            [group.scopeId]: event.target.checked ? index + 1 : index,
-                          }))
-                        }}
-                      />
+                  <div
+                    key={booking.id}
+                    className="flex items-center justify-between gap-3 rounded-md border bg-white px-3 py-2 text-sm"
+                    data-testid={`progressive-payment-required-${booking.id}`}
+                  >
+                    <span>
                       รายการ {index + 1} · {booking.branches?.name || '-'}
                     </span>
                     <span className="font-medium">฿{booking.total_price.toLocaleString()}</span>
-                  </label>
+                  </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-blue-700">ยอดชำระได้รับการตรวจสอบจากระบบล่าสุดแล้วก่อนอัปโหลด</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-blue-700">ไม่สามารถนำรายการออกหรือชำระเพียงบางรายการได้</p>
                 <Button
-                  className="shrink-0 bg-[#f57e3b] hover:bg-[#e06a2a]"
+                  className="w-full bg-[#f57e3b] hover:bg-[#e06a2a] sm:w-auto sm:shrink-0"
                   data-testid={`progressive-payment-prepare-${group.scopeId}`}
-                  disabled={selectedCount < 1 || loading || progressiveControlsBlocked}
+                  disabled={loading || progressiveControlsBlocked}
                   onClick={() => void openProgressivePayDialog(group.scopeId, group.bookings)}
                 >
-                  <Upload className="mr-1 h-4 w-4" />ชำระรายการที่เลือก
+                  <Upload className="mr-1 h-4 w-4" />ชำระทั้งหมด {group.bookings.length} รายการ
                 </Button>
               </div>
             </CardContent>

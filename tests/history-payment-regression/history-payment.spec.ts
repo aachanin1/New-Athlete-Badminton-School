@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test'
-import { randomUUID } from 'node:crypto'
 import {
   HISTORY_ACCOUNT,
   createLocalAdmin,
@@ -10,15 +9,36 @@ import {
 test.describe.configure({ mode: 'serial' })
 
 let fixture: HistoryPaymentFixture
+let localAdmin: ReturnType<typeof createLocalAdmin>
 
 const JPEG_BYTES = [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]
 const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]
 const WEBP_BYTES = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]
 const GIF_BYTES = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0, 0, 0, 0, 0, 0]
 const HEIC_BYTES = [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63]
+const READ_OPERATION_TIMEOUT_MS = 10_000
 
-test.beforeAll(() => {
+test.beforeAll(async () => {
   fixture = readHistoryPaymentFixture()
+  localAdmin = createLocalAdmin()
+  const { data: sessions, error: sessionError } = await localAdmin.from('booking_sessions')
+    .select('id,schedule_slot_id')
+    .in('booking_id', fixture.bookingIds)
+    .order('date', { ascending: true })
+  if (sessionError) throw new Error(`read disposable History sessions: ${sessionError.message}`)
+  for (const [index, session] of sessions.entries()) {
+    const date = `2026-08-${String(22 + index).padStart(2, '0')}`
+    const { error: bookingSessionError } = await localAdmin.from('booking_sessions')
+      .update({ date })
+      .eq('id', session.id)
+    if (bookingSessionError) throw new Error(`move disposable History session: ${bookingSessionError.message}`)
+    if (session.schedule_slot_id) {
+      const { error: slotError } = await localAdmin.from('schedule_slots')
+        .update({ date })
+        .eq('id', session.schedule_slot_id)
+      if (slotError) throw new Error(`move disposable History slot: ${slotError.message}`)
+    }
+  }
 })
 
 function observeBrowserErrors(page: Page, allowExpectedPrepare409 = false) {
@@ -42,52 +62,116 @@ async function loginAndOpenHistory(page: Page) {
   await expect(page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`)).toBeVisible()
 }
 
-async function selectTwo(page: Page) {
-  const second = page.getByTestId(`progressive-payment-select-${fixture.bookingIds[1]}`)
-  if (!await second.isChecked()) await second.check()
-  await expect(second).toBeChecked()
-  await expect(page.getByText('ยอดที่เลือก ฿4,330', { exact: true })).toBeVisible()
+async function expectMandatoryProgressiveBatch(page: Page) {
+  await expect(page.getByTestId(`progressive-payment-required-${fixture.bookingIds[0]}`)).toBeVisible()
+  await expect(page.getByTestId(`progressive-payment-required-${fixture.bookingIds[1]}`)).toBeVisible()
+  await expect(page.getByTestId(`progressive-payment-required-total-${fixture.scopeId}`))
+    .toHaveText('2 รายการ · 4,330 บาท')
+  await expect(page.getByText(
+    'รายการรอชำระทั้งหมดในคอร์สและรอบราคาเดียวกันจะถูกรวมชำระครั้งเดียว',
+    { exact: true },
+  )).toBeVisible()
+  await expect(page.locator('[data-testid^="progressive-payment-select-"]')).toHaveCount(0)
+  await expect(page.locator('input[type="checkbox"]')).toHaveCount(0)
 }
 
 async function waitForLifecycle(page: Page, state: string) {
   await expect(page.getByTestId('progressive-payment-lifecycle')).toHaveText(state)
 }
 
+async function timedRead<T>(label: string, operation: (signal: AbortSignal) => PromiseLike<T>) {
+  const controller = new AbortController()
+  const startedAt = Date.now()
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, READ_OPERATION_TIMEOUT_MS)
+  try {
+    const result = await operation(controller.signal)
+    if (timedOut) throw new Error(`${label} timed out after ${READ_OPERATION_TIMEOUT_MS}ms`)
+    console.info(`[history-payment-e2e] ${label}: ${Date.now() - startedAt}ms`)
+    return result
+  } catch (error) {
+    if (timedOut) throw new Error(`${label} timed out after ${READ_OPERATION_TIMEOUT_MS}ms`)
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 async function countRows(table: string, filters: Record<string, string> = {}) {
-  const admin = createLocalAdmin()
-  let query = admin.from(table).select('*', { count: 'exact', head: true })
+  let query = localAdmin.from(table).select('*', { count: 'exact', head: true })
   for (const [column, value] of Object.entries(filters)) query = query.eq(column, value)
-  const { count, error } = await query
+  const { count, error } = await timedRead(`DB count ${table}`, (signal) => query.abortSignal(signal))
   if (error) throw new Error(`count ${table}: ${error.message}`)
   return count || 0
 }
 
 async function readScope() {
-  const admin = createLocalAdmin()
-  const { data, error } = await admin.from('booking_pricing_scopes')
-    .select('revision,locked_by_payment_batch_id,locked_at')
-    .eq('id', fixture.scopeId)
-    .single()
+  const { data, error } = await timedRead('DB read pricing scope', (signal) => (
+    localAdmin.from('booking_pricing_scopes')
+      .select('revision,locked_by_payment_batch_id,locked_at')
+      .eq('id', fixture.scopeId)
+      .abortSignal(signal)
+      .single()
+  ))
   if (error) throw new Error(`read scope: ${error.message}`)
   return data
 }
 
 async function readBatches() {
-  const admin = createLocalAdmin()
-  const { data, error } = await admin.from('progressive_payment_batches')
-    .select('id,status,total_amount,member_count,slip_storage_path,slip_mime_type,slip_size_bytes,slip_sha256')
-    .eq('user_id', fixture.userId)
-    .order('created_at', { ascending: true })
+  const { data, error } = await timedRead('DB read progressive batches', (signal) => (
+    localAdmin.from('progressive_payment_batches')
+      .select('id,status,total_amount,member_count,slip_storage_path,slip_mime_type,slip_size_bytes,slip_sha256')
+      .eq('user_id', fixture.userId)
+      .order('created_at', { ascending: true })
+      .abortSignal(signal)
+  ))
   if (error) throw new Error(`read batches: ${error.message}`)
   return data
 }
 
 async function listBatchStorage(batchId: string) {
-  const admin = createLocalAdmin()
-  const { data, error } = await admin.storage.from('progressive-payment-slips')
-    .list(`${fixture.userId}/batches/${batchId}`, { limit: 100, offset: 0 })
+  const { data, error } = await timedRead('Storage list progressive batch', (signal) => (
+    localAdmin.storage.from('progressive-payment-slips')
+      .list(`${fixture.userId}/batches/${batchId}`, { limit: 100, offset: 0 }, { signal })
+  ))
   if (error) throw new Error(`list batch storage: ${error.message}`)
   return data
+}
+
+async function countProgressiveStorageObjects() {
+  const bucket = localAdmin.storage.from('progressive-payment-slips')
+  const { data: batchFolders, error: folderError } = await timedRead(
+    'Storage list progressive batch folders',
+    (signal) => bucket.list(`${fixture.userId}/batches`, { limit: 1000, offset: 0 }, { signal }),
+  )
+  if (folderError) throw new Error(`list progressive batch folders: ${folderError.message}`)
+  const fileLists = await Promise.all(batchFolders.map(async (folder) => {
+    const { data: files, error: fileError } = await timedRead(
+      'Storage list progressive batch files',
+      (signal) => bucket.list(
+        `${fixture.userId}/batches/${folder.name}`,
+        { limit: 1000, offset: 0 },
+        { signal },
+      ),
+    )
+    if (fileError) throw new Error(`list progressive batch files: ${fileError.message}`)
+    return files
+  }))
+  return fileLists.reduce((count, files) => count + files.length, 0)
+}
+
+async function allocationTotal(batchId: string) {
+  const { data, error } = await timedRead('DB read progressive allocations', (signal) => (
+    localAdmin.from('progressive_payment_allocations')
+      .select('amount')
+      .eq('payment_batch_id', batchId)
+      .abortSignal(signal)
+  ))
+  if (error) throw new Error(`read progressive allocations: ${error.message}`)
+  return data.reduce((sum, allocation) => sum + Number(allocation.amount), 0)
 }
 
 async function prepareCurrentBatch(page: Page) {
@@ -155,66 +239,128 @@ async function uploadLegacyFile(page: Page, input: {
 }
 
 async function readLegacyBooking(bookingId: string) {
-  const admin = createLocalAdmin()
-  const { data, error } = await admin.from('bookings')
-    .select('id,status,total_price,pricing_scope_id')
-    .eq('id', bookingId)
-    .single()
+  const { data, error } = await timedRead('DB read Legacy booking', (signal) => (
+    localAdmin.from('bookings')
+      .select('id,status,total_price,pricing_scope_id')
+      .eq('id', bookingId)
+      .abortSignal(signal)
+      .single()
+  ))
   if (error) throw new Error(`read Legacy booking: ${error.message}`)
   return data
 }
 
 async function readLegacyPayment(bookingId: string) {
-  const admin = createLocalAdmin()
-  const { data, error } = await admin.from('payments')
-    .select('id,booking_id,status,amount,slip_image_url,notes')
-    .eq('booking_id', bookingId)
-    .maybeSingle()
+  const { data, error } = await timedRead('DB read Legacy payment', (signal) => (
+    localAdmin.from('payments')
+      .select('id,booking_id,status,amount,slip_image_url,notes')
+      .eq('booking_id', bookingId)
+      .abortSignal(signal)
+      .maybeSingle()
+  ))
   if (error) throw new Error(`read Legacy payment: ${error.message}`)
   return data
 }
 
 async function listLegacyStorage() {
-  const admin = createLocalAdmin()
-  const { data, error } = await admin.storage.from('payment-slips')
-    .list(fixture.userId, { limit: 100, offset: 0 })
+  const { data, error } = await timedRead('Storage list Legacy payment slips', (signal) => (
+    localAdmin.storage.from('payment-slips')
+      .list(fixture.userId, { limit: 100, offset: 0 }, { signal })
+  ))
   if (error) throw new Error(`list Legacy storage: ${error.message}`)
   return data
 }
 
 async function financialSnapshot() {
+  const [
+    payments,
+    attempts,
+    allocations,
+    ledger,
+    ledgerAllocations,
+    finance,
+    couponReservations,
+    couponUsages,
+    wallet,
+  ] = await Promise.all([
+    countRows('payments'),
+    countRows('progressive_payment_verification_attempts'),
+    countRows('progressive_payment_allocations'),
+    countRows('Ledger'),
+    countRows('payment_ledger_allocations_v1'),
+    countRows('finance_expenses'),
+    countRows('progressive_coupon_reservations'),
+    countRows('coupon_usages'),
+    countRows('lesson_wallet_credits'),
+  ])
   return {
-    payments: await countRows('payments'),
-    attempts: await countRows('progressive_payment_verification_attempts'),
-    allocations: await countRows('progressive_payment_allocations'),
-    ledger: await countRows('Ledger'),
-    ledgerAllocations: await countRows('payment_ledger_allocations_v1'),
-    finance: await countRows('finance_expenses'),
-    couponReservations: await countRows('progressive_coupon_reservations'),
-    couponUsages: await countRows('coupon_usages'),
-    wallet: await countRows('lesson_wallet_credits'),
+    payments,
+    attempts,
+    allocations,
+    ledger,
+    ledgerAllocations,
+    finance,
+    couponReservations,
+    couponUsages,
+    wallet,
   }
 }
 
 async function protectedBookingSnapshot() {
-  const admin = createLocalAdmin()
-  const { data: bookings, error: bookingError } = await admin.from('bookings')
-    .select('id,status,total_price,total_sessions,pricing_scope_id,pricing_revision')
-    .in('id', fixture.bookingIds)
-    .order('created_at', { ascending: true })
+  const [bookingResult, sessionResult] = await Promise.all([
+    timedRead('DB read protected bookings', (signal) => (
+      localAdmin.from('bookings')
+        .select('id,status,total_price,total_sessions,pricing_scope_id,pricing_revision')
+        .in('id', fixture.bookingIds)
+        .order('created_at', { ascending: true })
+        .abortSignal(signal)
+    )),
+    timedRead('DB read protected booking sessions', (signal) => (
+      localAdmin.from('booking_sessions')
+        .select('id,booking_id,status,date,start_time,end_time')
+        .in('booking_id', fixture.bookingIds)
+        .order('date', { ascending: true })
+        .abortSignal(signal)
+    )),
+  ])
+  const { data: bookings, error: bookingError } = bookingResult
   if (bookingError) throw new Error(`read protected bookings: ${bookingError.message}`)
-  const { data: sessions, error: sessionError } = await admin.from('booking_sessions')
-    .select('id,booking_id,status,date,start_time,end_time')
-    .in('booking_id', fixture.bookingIds)
-    .order('date', { ascending: true })
+  const { data: sessions, error: sessionError } = sessionResult
   if (sessionError) throw new Error(`read protected sessions: ${sessionError.message}`)
   return { bookings, sessions }
 }
 
+async function zeroWriteDatabaseSnapshot() {
+  const [scope, batchCount, memberCount, activeMemberCount, activity, financial, protectedState] = await Promise.all([
+    readScope(),
+    countRows('progressive_payment_batches'),
+    countRows('progressive_payment_batch_bookings'),
+    countRows('progressive_payment_batch_bookings', { active: 'true' }),
+    countRows('activity_logs', { user_id: fixture.userId }),
+    financialSnapshot(),
+    protectedBookingSnapshot(),
+  ])
+  return { scope, batchCount, memberCount, activeMemberCount, activity, financial, protectedState }
+}
+
+async function timedTestStep<T>(label: string, operation: () => Promise<T>) {
+  return test.step(label, async () => {
+    const startedAt = Date.now()
+    try {
+      return await operation()
+    } finally {
+      console.info(`[history-payment-e2e] ${label}: ${Date.now() - startedAt}ms`)
+    }
+  })
+}
+
 async function verifyPaymentDialogLayout(page: Page) {
-  await page.setViewportSize({ width: 360, height: 640 })
+  await page.setViewportSize({ width: 390, height: 640 })
   await loginAndOpenHistory(page)
-  await selectTwo(page)
+  await expectMandatoryProgressiveBatch(page)
+  await expect.poll(async () => page.evaluate(() => (
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth
+  ))).toBe(true)
   await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
 
   const modal = page.getByTestId('payment-slip-modal')
@@ -265,6 +411,9 @@ async function verifyPaymentDialogLayout(page: Page) {
   expect(Math.abs(actionTopAfterScroll - actionTopBeforeScroll)).toBeLessThan(1)
   const submitBottomAfterScroll = await submit.evaluate((element) => element.getBoundingClientRect().bottom)
   expect(submitBottomAfterScroll).toBeLessThanOrEqual(640)
+  await expect.poll(async () => page.evaluate(() => (
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth
+  ))).toBe(true)
   await page.getByTestId('payment-modal-cancel').click()
   await waitForLifecycle(page, 'idle')
 
@@ -310,7 +459,7 @@ test('rapid prepare is single-flight; cancel waits for refresh; reprepare uses t
   const protectedBefore = await protectedBookingSnapshot()
   const activityBefore = await countRows('activity_logs', { user_id: fixture.userId })
   await loginAndOpenHistory(page)
-  await selectTwo(page)
+  await expectMandatoryProgressiveBatch(page)
 
   let prepareRequests = 0
   let cancelRequests = 0
@@ -374,19 +523,20 @@ test('rapid prepare is single-flight; cancel waits for refresh; reprepare uses t
   expect(browserErrors).toEqual([])
 })
 
-test('Payment Dialog keeps one CTA visible above scrollable mobile content for Progressive and Legacy', async ({ page }) => {
+test('Payment Dialog keeps one CTA visible without mobile overflow, hydration, or console errors', async ({ page }) => {
+  const browserErrors = observeBrowserErrors(page)
   await verifyPaymentDialogLayout(page)
+  expect(browserErrors).toEqual([])
 })
 
 test('stale revision returns typed 409, shows Thai error outside the modal, refreshes once, then retries safely', async ({ page }, testInfo) => {
   const browserErrors = observeBrowserErrors(page, true)
   await loginAndOpenHistory(page)
-  await selectTwo(page)
+  await expectMandatoryProgressiveBatch(page)
   const scopeBefore = await readScope()
   const batchesBefore = await countRows('progressive_payment_batches')
   const membersBefore = await countRows('progressive_payment_batch_bookings')
-  const admin = createLocalAdmin()
-  const { error: revisionError } = await admin.from('booking_pricing_scopes')
+  const { error: revisionError } = await localAdmin.from('booking_pricing_scopes')
     .update({ revision: scopeBefore.revision + 1 })
     .eq('id', fixture.scopeId)
   if (revisionError) throw new Error(`advance disposable scope revision: ${revisionError.message}`)
@@ -414,7 +564,7 @@ test('stale revision returns typed 409, shows Thai error outside the modal, refr
   await expect(page.getByTestId('progressive-payment-error')).not.toContainText('PROGRESSIVE_SCOPE_REVISION_CONFLICT')
   await page.screenshot({ path: testInfo.outputPath('history-stale-revision-thai-error.png'), fullPage: true })
   await waitForLifecycle(page, 'idle')
-  await expect(page.getByTestId(`progressive-payment-select-${fixture.bookingIds[1]}`)).toBeChecked()
+  await expectMandatoryProgressiveBatch(page)
   await page.waitForTimeout(500)
   expect(prepareRequests).toBe(1)
   expect(await countRows('progressive_payment_batches')).toBe(batchesBefore)
@@ -432,7 +582,7 @@ test('stale revision returns typed 409, shows Thai error outside the modal, refr
 test('cancel failure keeps the prepared batch safe until refreshed server state is reconciled', async ({ page }) => {
   const browserErrors = observeBrowserErrors(page)
   await loginAndOpenHistory(page)
-  await selectTwo(page)
+  await expectMandatoryProgressiveBatch(page)
   await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
   await expect(page.getByTestId('payment-slip-modal')).toBeVisible()
 
@@ -467,55 +617,73 @@ test('cancel failure keeps the prepared batch safe until refreshed server state 
   expect(browserErrors).toEqual([])
 })
 
-test('real payment guards preserve one-item prefix and reject a skipped prefix with typed zero-write 409', async ({ page }) => {
+test('direct partial prepare returns typed zero-write 409 and stale UI refreshes without hidden retry', async ({ page }) => {
   const browserErrors = observeBrowserErrors(page, true)
   await loginAndOpenHistory(page)
-  const scope = await readScope()
-  const first = await page.evaluate(async ({ scopeId, bookingId, revision }) => {
-    const response = await fetch('/api/progressive-payments/prepare', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pricingScopeId: scopeId,
-        bookingIds: [bookingId],
-        expectedScopeRevision: revision,
-        idempotencyKey: crypto.randomUUID(),
-      }),
-    })
-    return { status: response.status, body: await response.json() }
-  }, { scopeId: fixture.scopeId, bookingId: fixture.bookingIds[0], revision: scope.revision })
-  expect(first.status).toBe(200)
-  expect(first.body.batch).toMatchObject({ status: 'prepared', bookingIds: [fixture.bookingIds[0]], totalAmount: 3464 })
-  const cancelled = await page.evaluate(async (batchId) => {
-    const response = await fetch(`/api/progressive-payments/${batchId}/cancel`, { method: 'POST' })
-    return { status: response.status, body: await response.json() }
-  }, first.body.batch.batchId as string)
-  expect(cancelled.status).toBe(200)
-  expect(cancelled.body.batch.status).toBe('cancelled')
+  await expectMandatoryProgressiveBatch(page)
+  const databaseBefore = await timedTestStep('zero-write DB snapshot before partial prepare', zeroWriteDatabaseSnapshot)
+  const storageBefore = await timedTestStep(
+    'zero-write Storage snapshot before partial prepare',
+    countProgressiveStorageObjects,
+  )
 
-  const current = await readScope()
-  const batchCountBefore = await countRows('progressive_payment_batches')
-  const memberCountBefore = await countRows('progressive_payment_batch_bookings')
-  const skipped = await page.evaluate(async ({ scopeId, bookingId, revision }) => {
-    const response = await fetch('/api/progressive-payments/prepare', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+  const partial = await timedTestStep('direct partial prepare API request', () => page.evaluate(
+    async ({ scopeId, bookingId, revision }) => {
+      const response = await fetch('/api/progressive-payments/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pricingScopeId: scopeId,
+          bookingIds: [bookingId],
+          expectedScopeRevision: revision,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      return { status: response.status, body: await response.json() }
+    },
+    {
+      scopeId: fixture.scopeId,
+      bookingId: fixture.bookingIds[0],
+      revision: databaseBefore.scope.revision,
+    },
+  ))
+  expect(partial).toMatchObject({
+    status: 409,
+    body: {
+      code: 'PROGRESSIVE_PAYMENT_PREFIX_REQUIRED',
+      error: 'Progressive payment prefix is required',
+      refreshRequired: true,
+    },
+  })
+  const databaseAfter = await timedTestStep('zero-write DB snapshot after partial prepare', zeroWriteDatabaseSnapshot)
+  expect(databaseAfter).toEqual(databaseBefore)
+  const storageAfter = await timedTestStep(
+    'zero-write Storage snapshot after partial prepare',
+    countProgressiveStorageObjects,
+  )
+  expect(storageAfter).toBe(storageBefore)
+
+  let uiPrepareRequests = 0
+  await page.route('**/api/progressive-payments/prepare', async (route) => {
+    uiPrepareRequests += 1
+    await route.fulfill({
+      status: 409,
+      contentType: 'application/json',
       body: JSON.stringify({
-        pricingScopeId: scopeId,
-        bookingIds: [bookingId],
-        expectedScopeRevision: revision,
-        idempotencyKey: crypto.randomUUID(),
+        code: 'PROGRESSIVE_PAYMENT_PREFIX_REQUIRED',
+        error: 'Progressive payment prefix is required',
+        refreshRequired: true,
       }),
     })
-    return { status: response.status, body: await response.json() }
-  }, { scopeId: fixture.scopeId, bookingId: fixture.bookingIds[1], revision: current.revision })
-  expect(skipped).toMatchObject({
-    status: 409,
-    body: { code: 'PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', refreshRequired: true },
   })
-  expect(await countRows('progressive_payment_batches')).toBe(batchCountBefore)
-  expect(await countRows('progressive_payment_batch_bookings')).toBe(memberCountBefore)
-  expect((await readScope()).locked_by_payment_batch_id).toBeNull()
+  await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
+  await expect(page.getByTestId('progressive-payment-error')).toHaveText(
+    'ต้องรวมรายการรอชำระทั้งหมดในคอร์สและรอบราคาเดียวกัน ระบบกำลังอัปเดตรายการล่าสุด กรุณาลองใหม่อีกครั้ง',
+  )
+  await expect(page.getByTestId('payment-slip-modal')).toHaveCount(0)
+  await page.waitForTimeout(500)
+  expect(uiPrepareRequests).toBe(1)
+  await page.unroute('**/api/progressive-payments/prepare')
   expect(browserErrors).toEqual([])
 })
 
@@ -543,7 +711,7 @@ test('Progressive upload client preserves Thai server errors and reserves the ne
   const financialBefore = await financialSnapshot()
   const protectedBefore = await protectedBookingSnapshot()
   await loginAndOpenHistory(page)
-  await selectTwo(page)
+  await expectMandatoryProgressiveBatch(page)
   await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
   await expect(page.getByTestId('payment-slip-modal')).toBeVisible()
 
@@ -858,7 +1026,7 @@ test('Legacy upload shares the four MiB magic-byte contract and keeps invalid re
 test('valid image/jpg completes the existing shared Test Mode approval transition', async ({ page }) => {
   const financialBefore = await financialSnapshot()
   await loginAndOpenHistory(page)
-  await selectTwo(page)
+  await expectMandatoryProgressiveBatch(page)
   await page.getByTestId(`progressive-payment-prepare-${fixture.scopeId}`).click()
   await expect(page.getByTestId('payment-slip-modal')).toBeVisible()
   await page.locator('#slip-upload').setInputFiles({
@@ -881,7 +1049,14 @@ test('valid image/jpg completes the existing shared Test Mode approval transitio
   await expect(page.getByTestId('payment-slip-modal')).toHaveCount(0)
 
   const batches = await readBatches()
-  expect(batches.at(-1)).toMatchObject({ status: 'approved', slip_mime_type: 'image/jpeg' })
+  const approvedBatch = batches.at(-1)!
+  expect(approvedBatch).toMatchObject({
+    status: 'approved',
+    total_amount: fixture.total,
+    member_count: fixture.bookingIds.length,
+    slip_mime_type: 'image/jpeg',
+  })
+  expect(await allocationTotal(approvedBatch.id)).toBe(fixture.total)
   const protectedAfter = await protectedBookingSnapshot()
   expect(protectedAfter.bookings.map((booking) => booking.status)).toEqual(['verified', 'verified'])
   expect(await readScope()).toMatchObject({ locked_by_payment_batch_id: null, locked_at: null })

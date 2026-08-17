@@ -14054,3 +14054,154 @@ send preserved, no Promotion Notification**; Financial Impact **None**;
 Documentation Drift **No after the containing closeout commit is pushed**;
 Blocker **None**; Task Done **Yes**; Next Action **Await Owner selection; do not
 start any Parking Lot task automatically**.
+
+## 2026-08-17 — Progressive Mandatory Full Pending-Scope Batch Safe Handoff
+
+State observed at this safe handoff: the Owner permanently required all current
+`pending_payment` bookings in one `pricing_scope_id` to form one mandatory
+Payment Batch. Fresh audit confirmed the reported dual Root Cause without
+material change: History stored a selected count initialized to one and sent a
+slice, while RPC v1 accepted the oldest contiguous pending prefix. The local
+allowlisted implementation exists, but the task is **DEVELOPING — MATERIAL HARD
+STOP** because the required History E2E suite still failed after both authorized
+bounded corrections.
+
+### Local Implementation and Verification Evidence
+
+- History locally renders all pending members as non-editable rows, derives the
+  count and total for the complete scope, sends all ordered IDs, and maps the
+  existing typed `PROGRESSIVE_PAYMENT_PREFIX_REQUIRED` `409` to clear Thai copy
+  plus an explicit refresh without hidden mutation retry.
+- The additive migration creates complete-scope validator/prepare/capability v2
+  only. It locks the scope and pending rows, compares the exact ordered set, and
+  delegates unchanged v1 price, snapshot, coupon, fingerprint, idempotency,
+  batch/member/activity, approval, and allocation semantics. v1 remains intact.
+  The file contains no backfill or business-row DML. Local version is
+  `20260817042635`, SHA-256
+  `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`.
+- Deterministic Progressive checks passed `44/44`, including `625 + 625 = 1,250`,
+  one pending booking, subset/prefix/missing/extra/duplicate/cross-scope failure,
+  independent scopes, stale revision, idempotency, atomic approval/rejection,
+  allocation total, and a later booking creating a new batch. TypeScript passed.
+- Disposable local Supabase reset applied the full migration chain through v2;
+  local migration inventory matched and DB lint with error failure level reported
+  no schema errors. No linked schema apply occurred; linked inventory stayed at
+  28 versions through `20260811125610` with v2 unapplied.
+- First History E2E run failed because the existing disposable sessions dated
+  3–12 August were already started on 17 August. Bounded correction 1 moved only
+  local fixture session/slot dates to 22–31 August inside the authorized test
+  file. Second run passed flow 1 but used 390×844, so the established scroll
+  assertion correctly found no overflow; bounded correction 2 retained 390 px
+  width and restored 640 px height.
+- Final History run passed flows 1–4: prepare/cancel/refresh/reprepare,
+  mobile-dialog layout with no overflow/hydration/console errors, stale revision,
+  and cancel-failure reconciliation. Flow 5, direct partial prepare plus zero-
+  write/UI-refresh evidence, timed out at 120 seconds; Playwright context teardown
+  also timed out and its trace was truncated. Flows 6–10, including remaining
+  upload preservation, Legacy adjacency, and final shared Test Mode approval,
+  did not run in that final suite. Global teardown reset the disposable database
+  and reported residue `0` on every run.
+
+### Safety, Production, and Required Next Gate
+
+- Branch/local/upstream remained `spike/next-major-security-upgrade` /
+  `cba1588eb0f2e3ed4c92680e32fe913702cfa257`, ahead/behind `0/0`, with no staged
+  file. Task Source/tests/migration are uncommitted local work.
+- Before migration work, a SELECT-only Production baseline recorded batches/
+  scopes/locks/members/attempts/payments/allocations/activity
+  `525/252/2/537/289/545/299/13917`, pending scopes/bookings `11/11`, allocations
+  `720954`, coupon usage `0`, Finance expense `1`, and storage objects `292`.
+  Production business data was not mutated and no repair/backfill/test booking
+  was created.
+- No task commit, push, linked migration, Environment, feature, allowlist,
+  permission, secret, SlipOK mode/credential, duplicate-slip policy, staged
+  artifact, Owner UAT, deployment, Promotion, alias, or Production data action
+  occurred. Customer and financial impact are none.
+- Existing deployment `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Functional Source
+  `21e45eed576014b8989ecc697c624ff2efc9122a` was re-read as `READY`, target
+  `production`; current alias identity remains Unknown / Need verification in
+  this stopped round. New mandatory-batch Source is not Production-active.
+- Protected `src/lib/schedule-slot-utils.ts` remained content-identical and was
+  never edited/staged/reset/normalized/stashed: Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+Mandatory classification at this safe handoff: Active Task **PROGRESSIVE PAYMENT
+— MANDATORY FULL PENDING-SCOPE BATCH**; Task Status **DEVELOPING — MATERIAL HARD
+STOP**; Source Complete **No**; Tests Passed **No**; planned Functional/Test/
+Documentation/Migration file counts **4/2/3/1** with the migration included in
+the functional allowlist and no dependency file; Scope Expansion **None**; Scope
+Breach **No**; Committed/Pushed **No/No**; Migration Source **local v2**;
+Migration Applied **local disposable only / linked No**; Environment/Feature/
+Allowlist/SlipOK **unchanged**; staged artifact **None**; Owner UAT **Not run**;
+Production Active **No for new Source**; Production Data Changed/Data Repaired
+**No/No**; Customer/Financial Impact **None/None**; bounded corrections **2/2**;
+published Documentation Drift **Yes, local safe handoff corrected but
+uncommitted**; Blocker **required E2E timeout, exact wait point Unknown / Need
+verification**; Task Done **No**; Next Action **Owner must explicitly authorize a
+renewed bounded correction attempt before any further edit or rerun; do not
+commit, push, apply linked migration, deploy, Promote, or start another task**.
+
+### 2026-08-17 — Owner-Renewed Bounded Correction 1/1 Verification Continuation
+
+State observed at this continuation gate: the Owner explicitly released the
+Material Hard Stop for exactly one renewed correction while retaining the same
+Root Cause, Intended Behavior, allowlists, protected domains, and no-Production-
+write contract. The correction is used `1/1`; no second renewed correction is
+available.
+
+- The failed full report proved the partial request itself returned typed `409`
+  in `113 ms`. Pre-request zero-write reads took about `42 s`; initial post-
+  request reads appeared after about `77 s` and later reads after about `71 s`.
+  An unedited isolated rerun passed but took `88.5 s`: pre-read `~40.6 s`, API
+  `575 ms`, post-read `~41.2 s`, teardown `59 ms`.
+- PostgreSQL sampling found no waiting/ungranted lock and no retained RPC
+  transaction. Direct PostgreSQL reads were about `102 ms` median, while each
+  local `supabase status -o env` call was about `2.48 s` median. The History test
+  created a fresh admin client before every DB/Storage assertion, and that helper
+  synchronously ran `supabase status`; repeated Docker CLI discovery therefore
+  explained the test latency. RPC/Product Source was not changed in the renewed
+  correction.
+- Only `tests/history-payment-regression/history-payment.spec.ts` changed in the
+  renewed correction. It now creates one local admin client in `beforeAll`, adds
+  abortable `10 s` bounds and timing for every DB/Storage read, parallelizes only
+  independent snapshot reads, separates DB/Storage/API `test.step` evidence, and
+  compares the same complete before/after scope, batch, active/inactive member,
+  activity, payment, attempt, allocation, Ledger, Finance, coupon, wallet,
+  protected booking/session, and Storage state. No assertion was removed,
+  skipped, retried, or weakened.
+- After correction, the isolated test passed `2/2`: DB `13–98 ms`, Storage
+  `6–10 ms`, API `95–490 ms`. Full History Payment passed `10/10`; its target
+  flow measured DB before/after `16/12 ms`, Storage `11/6 ms`, API `100 ms`.
+  skipped/unexpected/flaky/retry and fixture residue were all `0`.
+- Protected adjacent evidence passed: Booking regression `11/11` with residue
+  `0`; Payment Batch `44/44`; Payment Integration `29/29`; Notifications `16/16`;
+  shared SlipOK Test Mode `6/6`; Progressive entry, pricing, transactions,
+  coupon, Legacy baseline, and concurrency checks all passed. TypeScript,
+  zero-warning ESLint, mojibake `259`, Production build/readiness, local migration
+  reset/inventory/DB lint/lock checks, and `git diff --check` passed.
+- Migration `20260817042635`, SHA-256
+  `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`, remains
+  function/grant-only and locally applied; linked inventory still has 28 applied
+  versions with v2 unapplied. Advisor baseline is Security `29` / Performance
+  `327`, with no task-v2 notice. No business row, Environment, feature,
+  allowlist, permission, secret, SlipOK mode/credential, or duplicate-slip rule
+  changed.
+- Existing Production deployment `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Source
+  `21e45eed576014b8989ecc697c624ff2efc9122a` re-read `READY`, target
+  `production`, `alias: []`. New Source is not committed, pushed, staged,
+  Promoted, or Production-active yet. Protected `src/lib/schedule-slot-utils.ts`
+  remains excluded with Git blob `4521281d099efb189429a744909552d67871ff23`
+  and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+Current classification at this continuation gate: Active Task **PROGRESSIVE
+PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH**; Status **DEVELOPING — SOURCE
+COMPLETE; TESTS PASSED; RELEASE GATE IN PROGRESS**; Source Complete/Tests Passed
+**Yes locally/Yes**; Scope Expansion/Breach **None/No**; Committed/Pushed
+**No/No**; linked Migration Applied **No**; staged artifact/Owner UAT/Promotion
+**None/Not run/No**; Production Data Changed/Repaired **No/No**; Customer/
+Financial Impact **None/None**; renewed correction **1/1 used**; Blocker **None**;
+Task Done **No**; Next Action **complete exact staged diff, commit/push, apply only
+additive v2, create the exact-SHA Production-target zero-alias artifact, run
+no-write smoke, and stop at READY FOR OWNER UAT**.

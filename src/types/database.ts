@@ -464,6 +464,10 @@ export interface Database {
         Args: Record<string, never>
         Returns: Json
       }
+      progressive_payment_batch_capability_v2: {
+        Args: Record<string, never>
+        Returns: Json
+      }
       progressive_payment_integration_capability_v1: {
         Args: Record<string, never>
         Returns: Json
@@ -511,6 +515,17 @@ export interface Database {
         Returns: Json
       }
       prepare_progressive_payment_batch_v1: {
+        Args: {
+          p_user_id: string
+          p_pricing_scope_id: string
+          p_booking_ids: string[]
+          p_expected_scope_revision: number
+          p_expected_total: number | null
+          p_idempotency_key: string
+        }
+        Returns: Json
+      }
+      prepare_progressive_payment_batch_v2: {
         Args: {
           p_user_id: string
           p_pricing_scope_id: string

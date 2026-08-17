@@ -1,24 +1,101 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-12
+Last updated: 2026-08-17
 
-Current source: **TASK DONE** for **ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC
-CUSTOMER FOLLOW-UP QUEUE**. Owner passed exact artifact
-`dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Functional Source
-`21e45eed576014b8989ecc697c624ff2efc9122a`; one `vercel promote` invocation
-made that same no-rebuild artifact Production-active. Automated Production
-health, routing, static, auth/API, runtime-log, deployment-identity, alias, and
-read-only tracking gates pass. No Notification, Request, reconciliation,
-Migration, Environment, control, or business-data write occurred.
-This first matrix is the only authority for current mutable state; later records
-are Historical / Superseded.
+Current source: **DEVELOPING — SOURCE COMPLETE AND VERIFICATION PASSED; RELEASE
+GATE IN PROGRESS** for **PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE
+BATCH**. The Owner-authorized renewed correction `1/1` proved the previous
+timeout was repeated local `supabase status`/Docker CLI overhead in the E2E read
+harness, not RPC v2 or a retained database lock. The allowlisted Source and tests
+now pass the complete local gate. Nothing from this task is committed, pushed,
+applied to the linked database, staged for UAT, Promoted, or Production-active
+yet. This first matrix is the only authority for current mutable state; all later
+records are Historical / Superseded.
 
-## Current Closeout — Admin Notifications Corrective Production Closeout
+## Current Verification Gate — Progressive Mandatory Full Pending-Scope Batch
 
-Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
-PRODUCTION VERIFICATION PASSED**.
+Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; COMMIT GATE NEXT**.
 
 ### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH** |
+| Task Status | **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; RELEASE GATE IN PROGRESS** |
+| Owner Policy | **Changed/confirmed 2026-08-17:** every current `pending_payment` booking in one `pricing_scope_id` must be one mandatory batch; no subset; different scopes remain separate; later bookings form a later batch; Test Mode and SlipOK share the same batch membership rule |
+| Intended Behavior | History shows the complete read-only scope membership and automatic count/total; prepare v2 rejects any missing, extra, duplicate, out-of-order, or cross-scope ID with typed `409` and zero mutation while retaining v1 for rollout/rollback |
+| Root Cause | **Matched Owner/PM evidence; no material change.** History initialized one selected booking and sliced a user-editable contiguous prefix; `validate_progressive_payment_prefix_v1` accepted `v_pending_ids[1:v_selected_count]` |
+| Branch | `spike/next-major-security-upgrade` |
+| Local / Remote HEAD | `cba1588eb0f2e3ed4c92680e32fe913702cfa257` / same upstream before the authorized task commit |
+| Ahead / Behind | `0/0` |
+| Source Complete | **Yes locally** — complete-scope UI, additive prepare/capability v2, types, migration, deterministic tests, and History regression are implemented within the exact allowlist |
+| Tests Passed | **Yes.** Renewed isolated direct-partial run `2/2`; History Payment `10/10`; Booking regression `11/11`; skipped/unexpected/flaky/retry `0`; fixture residue `0`; Payment Batch `44/44`, Payment Integration `29/29`, Notifications `16/16`, shared Test Mode `6/6`, Progressive entry/pricing/transaction/coupon/Legacy baseline/concurrency all pass; TypeScript, zero-warning ESLint, mojibake `259`, Production build/readiness, local reset/inventory/DB lint/lock checks, advisors baseline, and `git diff --check` pass |
+| Committed / Pushed | **No / No** for this task |
+| Current / Pushed Source | Local worktree changes only / upstream remains `cba1588eb0f2e3ed4c92680e32fe913702cfa257` |
+| Functional / Test / Documentation / Migration Files | Exact allowlist `4` including the one migration / `2` / `3` / one additive v2 migration; no dependency file added |
+| Scope Expansion / Scope Breach | **None / No** |
+| Migration Source | Local untracked `20260817042635_enforce_complete_progressive_payment_scope_v2.sql`; SHA-256 `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`; function/grant-only, no backfill or business-row DML |
+| Migration Applied | **Disposable local only. Linked remote not applied** — linked inventory remains 28 applied versions through `20260811125610`; v2 is local-only |
+| Environment Changed | **No** |
+| Feature Enabled | **No change** |
+| Allowlisted | **No change** |
+| SlipOK Mode / Credentials / Duplicate Slip | **Unchanged / unchanged / unchanged**; no live SlipOK request or new duplicate-slip behavior |
+| Staged Artifact / Exact SHA | **None / None — commit/push and linked migration precede artifact creation** |
+| Deployed | **No for this task** |
+| Existing Production | Existing deployment `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Functional Source `21e45eed576014b8989ecc697c624ff2efc9122a` re-read `READY`, target `production`, and currently reports `alias: []`; new mandatory-batch Source is not active |
+| Production Active | **No for the new mandatory-batch Source** |
+| Owner UAT / Production UAT | **Not run / Not run** |
+| Controlled Write UAT | **Not run; Production writes prohibited** |
+| Data Repaired / Production Data Changed | **No / No task-attributable business-row change**; remote work was SELECT-only |
+| Customer Impact / Financial Impact | **None from this local-only work / None** |
+| Protected Dirty File | `src/lib/schedule-slot-utils.ts` remained content-identical and was never edited/staged/reset/normalized/stashed: Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
+| Bounded Correction Attempts | Prior budget `2/2` plus Owner-renewed correction `1/1`; renewed correction reused one local admin client, added 10-second aborts per read, parallelized independent snapshots, and retained every zero-write assertion |
+| Documentation Drift | **No in the current worktree snapshot; containing closeout publication remains pending** |
+| Blocker | **None at this gate** |
+| Remaining Work | Complete staged-diff allowlist gate, normal commit/push, before/after linked additive migration and advisors, exact-SHA Production-target zero-alias staged artifact, no-write smoke, then Owner UAT |
+| Task Done | **No** |
+| Next Gate / Next Action | **Commit/push the exact tested allowlist; then apply only v2 and create the exact Production-target staged artifact. Never Promote before Owner PASS** |
+| Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
+
+### Verification Evidence
+
+- Fresh Gate 0 confirmed branch/upstream equality, no staged files, the one
+  protected dirty file, the complete History → prepare route → helper → RPC
+  chain, v1 prefix acceptance, shared Test Mode approval/allocation, and no
+  material Root Cause change.
+- The additive v2 validator locks the scope and all current pending rows, compares
+  the exact ordered set, and delegates existing price/snapshot/coupon/member/
+  idempotency/mutation behavior to v1. Source prepare calls v2; v1 remains intact.
+- The read-only Production baseline before local migration work recorded batches/
+  scopes/locks/members/attempts/payments/allocations/activity logs
+  `525/252/2/537/289/545/299/13917`, pending scopes/bookings `11/11`, and
+  allocation amount `720954`. No Production mutation followed.
+- The failed full-run report showed typed `409` completed in `113 ms`; pre-request
+  reads consumed about `42 s` and post-request reads stalled around `70–77 s`.
+  An unedited isolated reproduction passed in `88.5 s`: pre-read `~40.6 s`, API
+  `575 ms`, post-read `~41.2 s`, teardown `59 ms`. Database lock sampling found no
+  waiter, ungranted lock, or retained transaction after v2.
+- Root cause was the harness creating a Supabase admin client for every assertion;
+  each creation synchronously invoked `supabase status -o env` through Docker at
+  about `2.5 s` baseline. Renewed correction caches one client, adds an abortable
+  10-second operation limit, splits DB/Storage `test.step` evidence, and runs
+  independent zero-write reads in parallel without removing any assertion.
+- After correction, isolated runs passed `2/2` with DB snapshots `13–98 ms`,
+  Storage `6–10 ms`, and API `95–490 ms`. The full History run passed `10/10`;
+  its formerly failing flow measured DB `16/12 ms`, Storage `11/6 ms`, API
+  `100 ms`. Teardown residue was `0`; mobile `390×640`, upload preservation,
+  shared Test Mode atomic approval, and allocation-total evidence all passed.
+- Local reset applied every migration through v2; DB lint found no schema error,
+  no blocking query existed, and linked inventory still showed v2 unapplied.
+  Linked advisor baseline was Security `29` and Performance `327`, with no notice
+  referring to the new v2 functions. Existing advisor debt is outside scope.
+
+## Historical / Superseded — Admin Notifications Corrective Production Closeout
+
+State observed at the 2026-08-12 closeout only. The matrix below is historical
+and does not describe the current active task.
+
+### Historical Project Matrix
 
 | Field | Current value |
 | --- | --- |

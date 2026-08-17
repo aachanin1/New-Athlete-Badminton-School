@@ -34,7 +34,7 @@ function booking(id, created, amount, overrides = {}) {
 }
 
 function orderedPending(s) {
-  return s.bookings.filter((item) => item.status === 'pending_payment')
+  return s.bookings.filter((item) => item.scope === s.id && item.status === 'pending_payment')
     .sort((a, b) => a.created.localeCompare(b.created) || a.id.localeCompare(b.id))
 }
 
@@ -42,11 +42,11 @@ function fingerprint(s, ids, expectedTotal) {
   return JSON.stringify({ scope: s.id, user: s.user, ids, revision: s.revision, expectedTotal })
 }
 
-function validatePrefix(s, ids, currentBatch = null) {
+function validateCompleteScope(s, ids, currentBatch = null) {
   if (!Array.isArray(ids) || ids.length === 0 || new Set(ids).size !== ids.length) fail('PROGRESSIVE_INVALID_REQUEST')
   const chain = orderedPending(s)
   if (chain.some((item) => item.expired)) fail('PROGRESSIVE_BOOKING_EXPIRED')
-  if (ids.some((id, index) => chain[index]?.id !== id)) fail('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED')
+  if (ids.length !== chain.length || ids.some((id, index) => chain[index]?.id !== id)) fail('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED')
   const selected = ids.map((id) => s.bookings.find((item) => item.id === id))
   if (selected.some((item) => !item || item.scope !== s.id)) fail('PROGRESSIVE_UNAUTHORIZED')
   if (selected.some((item) => item.user !== s.user)) fail('PROGRESSIVE_USER_MISMATCH')
@@ -67,7 +67,7 @@ function prepare(s, ids, key, expectedRevision = s.revision, expectedTotal = nul
   }
   if (s.lockedBy) fail('PROGRESSIVE_SCOPE_LOCKED')
   if (expectedRevision !== s.revision) fail('PROGRESSIVE_SCOPE_REVISION_CONFLICT')
-  const selected = validatePrefix(s, ids)
+  const selected = validateCompleteScope(s, ids)
   if (selected.some((item) => item.currency && item.currency !== s.currency)) fail('PROGRESSIVE_CURRENCY_MISMATCH')
   const total = selected.reduce((sum, item) => sum + item.amount, 0)
   if (expectedTotal !== null && expectedTotal !== total) fail('PROGRESSIVE_BATCH_AMOUNT_MISMATCH')
@@ -99,7 +99,7 @@ function approve(s, batch, key, failAfter = null) {
   if (!['submitted', 'under_review'].includes(batch.status)) fail('PROGRESSIVE_BATCH_NOT_REVIEWABLE')
   const before = JSON.stringify({ s, receipts: undefined })
   try {
-    validatePrefix(s, batch.ids, batch.id)
+    validateCompleteScope(s, batch.ids, batch.id)
     batch.ids.forEach((id, index) => {
       const item = s.bookings.find((candidate) => candidate.id === id)
       if (item.amount !== batch.memberAmounts[index]) fail('PROGRESSIVE_BATCH_FINGERPRINT_CONFLICT')
@@ -149,42 +149,61 @@ function withChain(overrides = {}) {
   return s
 }
 
-check('1 oldest A may be prepared', () => assert.deepStrictEqual(prepare(withChain(), ['a'], 'k').ids, ['a']))
-check('2 oldest A+B may be prepared', () => assert.deepStrictEqual(prepare(withChain(), ['a', 'b'], 'k').ids, ['a', 'b']))
-check('3 B alone fails', () => expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(withChain(), ['b'], 'k')))
-check('4 A+C fails', () => expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(withChain(), ['a', 'c'], 'k')))
-check('5 different scope fails', () => { const s = withChain(); s.bookings[0].scope = 'other'; expect('PROGRESSIVE_UNAUTHORIZED', () => prepare(s, ['a'], 'k')) })
-check('6 non-pending member fails', () => { const s = withChain(); s.bookings[0].status = 'paid'; expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(s, ['a'], 'k')) })
-check('7 expired oldest fails', () => { const s = withChain(); s.bookings[0].expired = true; expect('PROGRESSIVE_BOOKING_EXPIRED', () => prepare(s, ['a'], 'k')) })
-check('8 wrong revision fails', () => expect('PROGRESSIVE_SCOPE_REVISION_CONFLICT', () => prepare(withChain(), ['a'], 'k', 99)))
-check('9 wrong expected total fails', () => expect('PROGRESSIVE_BATCH_AMOUNT_MISMATCH', () => prepare(withChain(), ['a'], 'k', 1, 1)))
-check('10 existing active batch fails', () => { const s = withChain(); prepare(s, ['a'], 'k1'); expect('PROGRESSIVE_SCOPE_LOCKED', () => prepare(s, ['a'], 'k2')) })
-check('11 same prepare key replays same batch', () => { const s = withChain(); const a = prepare(s, ['a'], 'k'); const b = prepare(s, ['a'], 'k'); assert.strictEqual(a.id, b.id); assert.strictEqual(b.replay, true) })
-check('12 same key different fingerprint fails', () => { const s = withChain(); prepare(s, ['a'], 'k'); expect('PROGRESSIVE_IDEMPOTENCY_CONFLICT', () => prepare(s, ['a', 'b'], 'k')) })
-check('13 prepare locks scope', () => { const s = withChain(); const b = prepare(s, ['a'], 'k'); assert.strictEqual(s.lockedBy, b.id) })
-check('14 create edit cancel are blocked while scope locked', () => { const s = withChain(); prepare(s, ['a'], 'k'); assert.ok(s.lockedBy) })
-check('15 submit is idempotent', () => { const b = prepare(withChain(), ['a'], 'k'); submit(b, 's'); assert.strictEqual(submit(b, 's').replay, true) })
-check('16 approve verifies all members atomically', () => { const s = withChain(); const b = prepare(s, ['a', 'b'], 'k'); submit(b, 's'); approve(s, b, 'd'); assert.deepStrictEqual(s.bookings.slice(0, 2).map((x) => x.status), ['verified', 'verified']) })
-check('17 reject keeps all members pending', () => { const s = withChain(); const b = prepare(s, ['a', 'b'], 'k'); submit(b, 's'); reject(s, b, 'd'); assert.deepStrictEqual(s.bookings.slice(0, 2).map((x) => x.status), ['pending_payment', 'pending_payment']) })
-check('18 partial approve cannot be represented', () => assert.ok(true))
-check('19 partial reject cannot be represented', () => assert.ok(true))
-check('20 coupon is consumed on approve', () => { const s = withChain(); s.bookings[0].coupon = { status: 'reserved' }; const b = prepare(s, ['a'], 'k'); submit(b, 's'); approve(s, b, 'd'); assert.strictEqual(s.bookings[0].coupon.status, 'consumed') })
-check('21 coupon is released on reject', () => { const s = withChain(); s.bookings[0].coupon = { status: 'reserved' }; const b = prepare(s, ['a'], 'k'); submit(b, 's'); reject(s, b, 'd'); assert.strictEqual(s.bookings[0].coupon.status, 'released') })
-check('22 approval failure rolls back every booking', () => { const s = withChain(); const b = prepare(s, ['a', 'b'], 'k'); submit(b, 's'); expect('TEST_APPROVAL_FAILURE', () => approve(s, b, 'd', 0)); assert.ok(s.bookings.slice(0, 2).every((x) => x.status === 'pending_payment')) })
-check('23 rejection failure rolls back coupons', () => { const s = withChain(); s.bookings[0].coupon = { status: 'reserved' }; const b = prepare(s, ['a'], 'k'); submit(b, 's'); expect('TEST_REJECTION_FAILURE', () => reject(s, b, 'd', 0)); assert.strictEqual(s.bookings[0].coupon.status, 'reserved') })
-check('24 batch total equals member snapshots', () => { const b = prepare(withChain(), ['a', 'b'], 'k'); assert.strictEqual(b.total, b.memberAmounts.reduce((a, x) => a + x, 0)) })
-check('25 allocation sum equals batch total', () => { const s = withChain(); const b = prepare(s, ['a', 'b'], 'k'); submit(b, 's'); approve(s, b, 'd'); assert.strictEqual(b.allocations.reduce((a, x) => a + x, 0), b.total) })
-check('26 currency mismatch fails', () => { const s = withChain(); s.bookings[0].currency = 'USD'; expect('PROGRESSIVE_CURRENCY_MISMATCH', () => prepare(s, ['a'], 'k')) })
-check('27 user mismatch fails', () => { const s = withChain(); s.bookings[0].user = 'other'; expect('PROGRESSIVE_USER_MISMATCH', () => prepare(s, ['a'], 'k')) })
-check('28 active double membership fails', () => { const s = withChain(); s.batches.push({ id: 'existing', status: 'submitted', ids: ['a'] }); expect('PROGRESSIVE_SCOPE_LOCKED', () => prepare(s, ['a'], 'k')) })
-check('29 concurrent same-prefix model has one active winner', () => { const s = withChain(); prepare(s, ['a'], 'k1'); expect('PROGRESSIVE_SCOPE_LOCKED', () => prepare(s, ['a'], 'k2')); assert.strictEqual(s.batches.length, 1) })
-check('30 different scopes do not share locks', () => { const a = withChain(); const b = withChain({ id: 'scope-b', user: 'user-b' }); b.bookings.forEach((x) => { x.scope = 'scope-b'; x.user = 'user-b' }); prepare(a, ['a'], 'a'); prepare(b, ['a'], 'b'); assert.ok(a.lockedBy && b.lockedBy) })
-check('31 approve retry is idempotent', () => { const s = withChain(); const b = prepare(s, ['a'], 'k'); submit(b, 's'); approve(s, b, 'd'); assert.strictEqual(approve(s, b, 'd').replay, true) })
-check('32 reject retry is idempotent', () => { const s = withChain(); const b = prepare(s, ['a'], 'k'); submit(b, 's'); reject(s, b, 'd'); assert.strictEqual(reject(s, b, 'd').replay, true) })
-check('33 approved batch cannot reject', () => { const s = withChain(); const b = prepare(s, ['a'], 'k'); submit(b, 's'); approve(s, b, 'd'); expect('PROGRESSIVE_BATCH_ALREADY_TERMINAL', () => reject(s, b, 'r')) })
-check('34 rejected batch cannot approve', () => { const s = withChain(); const b = prepare(s, ['a'], 'k'); submit(b, 's'); reject(s, b, 'd'); expect('PROGRESSIVE_BATCH_ALREADY_TERMINAL', () => approve(s, b, 'a')) })
-check('35 no booking is verified before approval', () => { const s = withChain(); const b = prepare(s, ['a'], 'k'); submit(b, 's'); assert.strictEqual(s.bookings[0].status, 'pending_payment') })
-check('36 no legacy payment partial state is modeled', () => { const b = prepare(withChain(), ['a'], 'k'); assert.strictEqual(Object.hasOwn(b, 'payments'), false) })
+function withTwo(overrides = {}) {
+  const s = scope(overrides)
+  s.bookings.push(booking('a', '2026-07-01T00:00:00Z', 625), booking('b', '2026-07-02T00:00:00Z', 625))
+  return s
+}
+
+const pendingIds = (s) => orderedPending(s).map((item) => item.id)
+
+check('1 two pending 625 + 625 become one required 1,250 batch', () => {
+  const s = withTwo()
+  const batch = prepare(s, pendingIds(s), 'k')
+  assert.deepStrictEqual(batch.ids, ['a', 'b'])
+  assert.deepStrictEqual(batch.memberAmounts, [625, 625])
+  assert.strictEqual(batch.total, 1250)
+  assert.strictEqual(s.batches.length, 1)
+})
+check('2 one pending booking can prepare normally', () => { const s = withTwo(); s.bookings.pop(); assert.deepStrictEqual(prepare(s, ['a'], 'k').ids, ['a']) })
+check('3 one-item subset of two fails', () => expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(withTwo(), ['a'], 'k')))
+check('4 oldest prefix of three fails', () => expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(withChain(), ['a', 'b'], 'k')))
+check('5 later member alone fails', () => expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(withTwo(), ['b'], 'k')))
+check('6 missing middle member fails', () => expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(withChain(), ['a', 'c'], 'k')))
+check('7 cross-scope extra member fails', () => { const s = withChain(); s.bookings[2].scope = 'scope-b'; expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(s, ['a', 'b', 'c'], 'k')) })
+check('8 duplicate member fails', () => expect('PROGRESSIVE_INVALID_REQUEST', () => prepare(withTwo(), ['a', 'a'], 'k')))
+check('9 non-pending requested member fails', () => { const s = withTwo(); s.bookings[0].status = 'paid'; expect('PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', () => prepare(s, ['a', 'b'], 'k')) })
+check('10 expired pending member fails', () => { const s = withTwo(); s.bookings[0].expired = true; expect('PROGRESSIVE_BOOKING_EXPIRED', () => prepare(s, pendingIds(s), 'k')) })
+check('11 wrong revision fails', () => { const s = withTwo(); expect('PROGRESSIVE_SCOPE_REVISION_CONFLICT', () => prepare(s, pendingIds(s), 'k', 99)) })
+check('12 wrong expected total fails', () => { const s = withTwo(); expect('PROGRESSIVE_BATCH_AMOUNT_MISMATCH', () => prepare(s, pendingIds(s), 'k', 1, 1)) })
+check('13 existing active batch fails', () => { const s = withTwo(); const ids = pendingIds(s); prepare(s, ids, 'k1'); expect('PROGRESSIVE_SCOPE_LOCKED', () => prepare(s, ids, 'k2')) })
+check('14 same prepare key replays same batch', () => { const s = withTwo(); const ids = pendingIds(s); const a = prepare(s, ids, 'k'); const b = prepare(s, ids, 'k'); assert.strictEqual(a.id, b.id); assert.strictEqual(b.replay, true) })
+check('15 same key different fingerprint fails', () => { const s = withTwo(); prepare(s, pendingIds(s), 'k'); expect('PROGRESSIVE_IDEMPOTENCY_CONFLICT', () => prepare(s, ['a'], 'k')) })
+check('16 prepare locks scope', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); assert.strictEqual(s.lockedBy, b.id) })
+check('17 create edit cancel are blocked while scope locked', () => { const s = withTwo(); prepare(s, pendingIds(s), 'k'); assert.ok(s.lockedBy) })
+check('18 submit is idempotent', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); assert.strictEqual(submit(b, 's').replay, true) })
+check('19 approve verifies every required member atomically', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); approve(s, b, 'd'); assert.deepStrictEqual(s.bookings.map((x) => x.status), ['verified', 'verified']) })
+check('20 reject keeps every required member pending', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); reject(s, b, 'd'); assert.deepStrictEqual(s.bookings.map((x) => x.status), ['pending_payment', 'pending_payment']) })
+check('21 partial approve cannot be represented', () => assert.ok(true))
+check('22 partial reject cannot be represented', () => assert.ok(true))
+check('23 coupon is consumed on approve', () => { const s = withTwo(); s.bookings[0].coupon = { status: 'reserved' }; const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); approve(s, b, 'd'); assert.strictEqual(s.bookings[0].coupon.status, 'consumed') })
+check('24 coupon is released on reject', () => { const s = withTwo(); s.bookings[0].coupon = { status: 'reserved' }; const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); reject(s, b, 'd'); assert.strictEqual(s.bookings[0].coupon.status, 'released') })
+check('25 approval failure rolls back every booking', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); expect('TEST_APPROVAL_FAILURE', () => approve(s, b, 'd', 0)); assert.ok(s.bookings.every((x) => x.status === 'pending_payment')) })
+check('26 rejection failure rolls back coupons', () => { const s = withTwo(); s.bookings[0].coupon = { status: 'reserved' }; const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); expect('TEST_REJECTION_FAILURE', () => reject(s, b, 'd', 0)); assert.strictEqual(s.bookings[0].coupon.status, 'reserved') })
+check('27 batch total equals member snapshots', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); assert.strictEqual(b.total, b.memberAmounts.reduce((a, x) => a + x, 0)) })
+check('28 allocation sum equals batch total', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); approve(s, b, 'd'); assert.strictEqual(b.allocations.reduce((a, x) => a + x, 0), b.total) })
+check('29 currency mismatch fails', () => { const s = withTwo(); s.bookings[0].currency = 'USD'; expect('PROGRESSIVE_CURRENCY_MISMATCH', () => prepare(s, pendingIds(s), 'k')) })
+check('30 user mismatch fails', () => { const s = withTwo(); s.bookings[0].user = 'other'; expect('PROGRESSIVE_USER_MISMATCH', () => prepare(s, pendingIds(s), 'k')) })
+check('31 active double membership fails', () => { const s = withTwo(); const ids = pendingIds(s); s.batches.push({ id: 'existing', status: 'submitted', ids }); expect('PROGRESSIVE_SCOPE_LOCKED', () => prepare(s, ids, 'k')) })
+check('32 concurrent complete-set model has one active winner', () => { const s = withTwo(); const ids = pendingIds(s); prepare(s, ids, 'k1'); expect('PROGRESSIVE_SCOPE_LOCKED', () => prepare(s, ids, 'k2')); assert.strictEqual(s.batches.length, 1) })
+check('33 different scopes do not share locks or batches', () => { const a = withTwo(); const b = withTwo({ id: 'scope-b', user: 'user-b' }); b.bookings.forEach((x) => { x.scope = 'scope-b'; x.user = 'user-b' }); prepare(a, pendingIds(a), 'a'); prepare(b, pendingIds(b), 'b'); assert.ok(a.lockedBy && b.lockedBy); assert.strictEqual(a.batches.length + b.batches.length, 2) })
+check('34 approve retry is idempotent', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); approve(s, b, 'd'); assert.strictEqual(approve(s, b, 'd').replay, true) })
+check('35 reject retry is idempotent', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); reject(s, b, 'd'); assert.strictEqual(reject(s, b, 'd').replay, true) })
+check('36 approved batch cannot reject', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); approve(s, b, 'd'); expect('PROGRESSIVE_BATCH_ALREADY_TERMINAL', () => reject(s, b, 'r')) })
+check('37 rejected batch cannot approve', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); reject(s, b, 'd'); expect('PROGRESSIVE_BATCH_ALREADY_TERMINAL', () => approve(s, b, 'a')) })
+check('38 no booking is verified before approval', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); submit(b, 's'); assert.ok(s.bookings.every((item) => item.status === 'pending_payment')) })
+check('39 no legacy payment partial state is modeled', () => { const s = withTwo(); const b = prepare(s, pendingIds(s), 'k'); assert.strictEqual(Object.hasOwn(b, 'payments'), false) })
+check('40 booking created after an approved batch starts a new batch', () => { const s = scope(); s.bookings.push(booking('a', '2026-07-01T00:00:00Z', 625)); const first = prepare(s, ['a'], 'k1'); submit(first, 's1'); approve(s, first, 'd1'); s.bookings.push(booking('b', '2026-07-02T00:00:00Z', 625)); const second = prepare(s, ['b'], 'k2'); assert.notStrictEqual(second.id, first.id); assert.deepStrictEqual(second.ids, ['b']); assert.strictEqual(second.total, 625) })
 
 check('server flag is false unless normalized true', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src/lib/progressive-pricing-feature.ts'), 'utf8')
@@ -210,13 +229,45 @@ check('server flag is false unless normalized true', () => {
   else process.env.PROGRESSIVE_PAYMENT_BATCH_ENABLED = original
 })
 
-check('migration has server-only RPC and RLS controls', () => {
-  const migration = fs.readFileSync(path.join(__dirname, '..', 'supabase/migrations/20260711120000_add_progressive_payment_batches.sql'), 'utf8')
-  for (const token of ['progressive_payment_batches', 'progressive_payment_batch_bookings', 'progressive_payment_allocations', 'PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', 'pg_advisory_xact_lock', 'FOR UPDATE', 'SECURITY DEFINER']) assert.match(migration, new RegExp(token))
-  assert.match(migration, /REVOKE ALL ON FUNCTION public\.prepare_progressive_payment_batch_v1[\s\S]+FROM PUBLIC, anon, authenticated/)
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.prepare_progressive_payment_batch_v1[\s\S]+TO service_role/)
-  assert.doesNotMatch(migration, /(?:INSERT INTO|UPDATE|DELETE FROM) public\.payments/i)
-  assert.strictEqual((migration.match(/\$\$/g) || []).length % 2, 0)
+check('v1 and additive v2 migrations keep server-only RPC controls without row mutation', () => {
+  const v1Migration = fs.readFileSync(path.join(__dirname, '..', 'supabase/migrations/20260711120000_add_progressive_payment_batches.sql'), 'utf8')
+  for (const token of ['progressive_payment_batches', 'progressive_payment_batch_bookings', 'progressive_payment_allocations', 'PROGRESSIVE_PAYMENT_PREFIX_REQUIRED', 'pg_advisory_xact_lock', 'FOR UPDATE', 'SECURITY DEFINER']) assert.match(v1Migration, new RegExp(token))
+  assert.match(v1Migration, /REVOKE ALL ON FUNCTION public\.prepare_progressive_payment_batch_v1[\s\S]+FROM PUBLIC, anon, authenticated/)
+  assert.match(v1Migration, /GRANT EXECUTE ON FUNCTION public\.prepare_progressive_payment_batch_v1[\s\S]+TO service_role/)
+  assert.doesNotMatch(v1Migration, /(?:INSERT INTO|UPDATE|DELETE FROM) public\.payments/i)
+  assert.strictEqual((v1Migration.match(/\$\$/g) || []).length % 2, 0)
+
+  const v2Migration = fs.readFileSync(path.join(__dirname, '..', 'supabase/migrations/20260817042635_enforce_complete_progressive_payment_scope_v2.sql'), 'utf8')
+  for (const token of [
+    'validate_progressive_payment_complete_scope_v2',
+    'prepare_progressive_payment_batch_v2',
+    'progressive_payment_batch_capability_v2',
+    'PROGRESSIVE_PAYMENT_PREFIX_REQUIRED',
+    'pg_advisory_xact_lock',
+    'FOR UPDATE',
+    'SECURITY DEFINER',
+    "SET search_path = ''",
+  ]) assert.match(v2Migration, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  assert.match(v2Migration, /v_pending_ids IS DISTINCT FROM p_booking_ids/)
+  assert.match(v2Migration, /RETURN public\.validate_progressive_payment_prefix_v1/)
+  assert.match(v2Migration, /RETURN public\.prepare_progressive_payment_batch_v1/)
+  assert.match(v2Migration, /REVOKE ALL ON FUNCTION public\.prepare_progressive_payment_batch_v2[\s\S]+FROM PUBLIC, anon, authenticated/)
+  assert.match(v2Migration, /GRANT EXECUTE ON FUNCTION public\.prepare_progressive_payment_batch_v2[\s\S]+TO service_role/)
+  assert.doesNotMatch(v2Migration, /(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO|TRUNCATE)\s+public\./i)
+  assert.strictEqual((v2Migration.match(/\$\$/g) || []).length % 2, 0)
+})
+
+check('source calls v2 prepare and History renders a required complete scope', () => {
+  const helper = fs.readFileSync(path.join(__dirname, '..', 'src/lib/progressive-payment-batch.ts'), 'utf8')
+  assert.match(helper, /execute\('prepare_progressive_payment_batch_v2'/)
+  assert.match(helper, /Boolean\(input\.hasCouponReservation\), 2\)/)
+
+  const history = fs.readFileSync(path.join(__dirname, '..', 'src/components/dashboard/history-client.tsx'), 'utf8')
+  assert.match(history, /scopeBookings\.map\(\(booking\) => booking\.id\)/)
+  assert.match(history, /progressive-payment-required-total-/)
+  assert.match(history, /progressive-payment-required-/)
+  assert.match(history, /รายการรอชำระทั้งหมดในคอร์สและรอบราคาเดียวกันจะถูกรวมชำระครั้งเดียว/)
+  assert.doesNotMatch(history, /progressiveSelectedCounts|progressive-payment-select-|slice\(0, selectedCount\)|type="checkbox"/)
 })
 
 check('legacy verify-slip behavior remains unchanged with the shared SlipOK mode', () => {

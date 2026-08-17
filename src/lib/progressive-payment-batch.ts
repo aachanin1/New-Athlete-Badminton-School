@@ -125,7 +125,12 @@ function getRpcClient() {
   return getServiceRoleClient() as unknown as ProgressiveRpcClient
 }
 
-async function execute(functionName: string, args: Record<string, unknown>, requireCouponLifecycle = false) {
+async function execute(
+  functionName: string,
+  args: Record<string, unknown>,
+  requireCouponLifecycle = false,
+  capabilityVersion: 1 | 2 = 1,
+) {
   if (!isProgressivePricingWritesEnabled()) {
     throw new ProgressivePaymentBatchError('PROGRESSIVE_WRITES_DISABLED', 'Progressive pricing writes are disabled.')
   }
@@ -137,10 +142,12 @@ async function execute(functionName: string, args: Record<string, unknown>, requ
   }
 
   const client = getRpcClient()
-  const { data: capabilityData, error: capabilityError } = await client.rpc('progressive_payment_batch_capability_v1')
+  const { data: capabilityData, error: capabilityError } = await client.rpc(
+    `progressive_payment_batch_capability_v${capabilityVersion}`,
+  )
   if (capabilityError) throw mapRpcError(capabilityError)
   const capability = capabilityData as { ready?: unknown; version?: unknown } | null
-  if (capability?.ready !== true || capability.version !== 1) {
+  if (capability?.ready !== true || capability.version !== capabilityVersion) {
     throw new ProgressivePaymentBatchError('PROGRESSIVE_RPC_UNAVAILABLE', 'Progressive payment batch database capability is not ready.')
   }
 
@@ -158,14 +165,14 @@ export function prepareProgressivePaymentBatch(input: {
   idempotencyKey: string
   hasCouponReservation?: boolean
 }) {
-  return execute('prepare_progressive_payment_batch_v1', {
+  return execute('prepare_progressive_payment_batch_v2', {
     p_user_id: input.userId,
     p_pricing_scope_id: input.pricingScopeId,
     p_booking_ids: input.bookingIds,
     p_expected_scope_revision: input.expectedScopeRevision,
     p_expected_total: input.expectedTotal ?? null,
     p_idempotency_key: input.idempotencyKey,
-  }, Boolean(input.hasCouponReservation))
+  }, Boolean(input.hasCouponReservation), 2)
 }
 
 export function submitProgressivePaymentBatch(input: {

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-12
+Last updated: 2026-08-17
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,10 +9,27 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### None — Awaiting Owner Selection
+### PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH
 
-The Admin Notifications corrective task is complete. Do not start Parking Lot or
-another task automatically.
+Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; RELEASE GATE IN PROGRESS**.
+
+- Owner-authorized renewed correction `1/1` proved the timeout came from repeated
+  synchronous local `supabase status` calls in the test harness, not RPC v2 or a
+  retained lock. The correction caches one admin client, uses abortable read
+  timeouts, parallel snapshots, and preserves every zero-write assertion.
+- Passed: isolated direct partial `2/2`, History Payment `10/10`, Booking E2E
+  `11/11`, residue/skipped/unexpected/flaky/retry `0`, Payment Batch `44/44`, all
+  protected adjacent Progressive/Payment checks, TypeScript, zero-warning
+  ESLint, mojibake, build, readiness, local migration reset/inventory/lint/locks,
+  advisor baseline, and diff checks.
+- No task commit/push, linked migration apply, staged artifact, Owner UAT,
+  Promotion, Production write, Environment/feature/allowlist/SlipOK change,
+  customer impact, or financial impact has occurred yet.
+- Next action: complete the exact allowlist staged-diff gate, commit/push, apply
+  only additive v2, create the exact-SHA Production-target zero-alias artifact,
+  run no-write smoke, and stop at READY FOR OWNER UAT.
+- Protected `src/lib/schedule-slot-utils.ts` remains content-identical and
+  excluded.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
