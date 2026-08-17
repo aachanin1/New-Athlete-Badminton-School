@@ -9,39 +9,39 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-### PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH
+Status: **NONE — AWAITING OWNER SELECTION**.
 
-Status: **READY FOR OWNER UAT — EXACT PRODUCTION-TARGET ARTIFACT READY,
-UNALIASED, AND NOT PROMOTED**.
-
-- Owner-authorized renewed correction `1/1` proved the timeout came from repeated
-  synchronous local `supabase status` calls in the test harness, not RPC v2 or a
-  retained lock. The correction caches one admin client, uses abortable read
-  timeouts, parallel snapshots, and preserves every zero-write assertion.
-- Passed: isolated direct partial `2/2`, History Payment `10/10`, Booking E2E
-  `11/11`, residue/skipped/unexpected/flaky/retry `0`, Payment Batch `44/44`, all
-  protected adjacent Progressive/Payment checks, TypeScript, zero-warning
-  ESLint, mojibake, build, readiness, local migration reset/inventory/lint/locks,
-  advisor baseline, and diff checks.
-- Functional Source `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` is
-  committed/pushed. Additive migration `20260817042635` is applied locally and
-  linked with identical business-data/Storage baselines before and after; no
-  backfill or DML occurred.
-- Exact artifact `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` is `READY`, target
-  `production`, `alias: []`, and tied to the tested/pushed SHA. Root, health,
-  static asset, auth redirect, method protection, build errors, and scoped
-  runtime logs passed no-write smoke.
-- No Owner UAT, Promotion, Production-active Source change, Production business
-  write, Environment/feature/allowlist/SlipOK change, customer impact, or
-  financial impact has occurred.
-- Next action: Owner performs no-write UAT on the exact artifact/SHA. Promote
-  that same artifact without rebuild only after explicit Owner PASS.
-- Protected `src/lib/schedule-slot-utils.ts` remains content-identical and
-  excluded.
+- Progressive Mandatory Full Pending-Scope Batch is TASK DONE. Do not start a
+  Parking Lot item or another task automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
+
+Each entry below is a historical summary of state observed at that task's
+closeout; artifact and alias wording does not override the current mutable state
+in `PROJECT_STATE.md`.
+
+### PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Owner passed `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / Source
+  `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`: two August Progressive members,
+  `625 + 2,500 = 3,125` baht, no partial selection, mandatory-payment copy/button,
+  and mobile layout passed.
+- Promotion/retry/rebuild/redeploy/new-deployment counts are `1/0/0/0/0`; all
+  four established aliases resolve to the exact artifact. Root/health/static/
+  auth/API/log checks passed.
+- Linked migration inventory remains `29`, v2 is present once, capability is
+  ready, and all task payment/Storage fingerprints were unchanged. Four
+  concurrent external Attendance writes were conclusively attributed and were
+  not task-related. Production Data Changed/Repaired by this task is `No/No`.
+- Environment, feature, allowlist, SlipOK, Source, tests, migration, and config
+  were unchanged during closeout. Protected `src/lib/schedule-slot-utils.ts`
+  remained excluded. See `PROJECT_STATE.md` and the dated closeout in
+  `DEVELOPMENT_TODO.md`.
 
 ### ADMIN NOTIFICATIONS — AUTOMATIC DYNAMIC CUSTOMER FOLLOW-UP QUEUE
 

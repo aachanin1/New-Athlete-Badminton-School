@@ -14288,3 +14288,92 @@ Blocker **Owner UAT pending as the release gate; no technical blocker**; Task Do
 **No**; Next Action **Owner performs no-write UAT on the exact artifact/SHA and
 returns PASS/FAIL with screenshots; Promote the same artifact without rebuild
 only after explicit PASS**.
+
+### 2026-08-17 — Mandatory Full Pending-Scope Batch — Production Closeout
+
+State observed at this closeout: Owner explicitly passed exact artifact
+`dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / functional-tested Source
+`83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`, then authorized one no-rebuild
+Promotion and automated read-only Production verification. Every required gate
+passed and the task is **TASK DONE**.
+
+- Owner-visible staged UAT confirmed Progressive Kids Group for August 2026
+  contained two mandatory pending members priced `625 + 2,500 = 3,125` baht,
+  showed no checkbox or partial-payment path, explained that members cannot be
+  removed or paid separately, displayed `ชำระทั้งหมด 2 รายการ`, and did not
+  overflow on mobile.
+- Fresh Promotion Gate 0 found branch `spike/next-major-security-upgrade`, local/
+  upstream HEAD `0f8584374067d459356447bbdfa87445cc820c2a`, ahead/behind
+  `0/0`, no staged file, and only protected dirty
+  `src/lib/schedule-slot-utils.ts`. Diff from functional Source to HEAD contained
+  only the three READY documentation files; Functional/Test/Migration/Config
+  changed after Owner PASS was `0/0/0/0`.
+- Staged artifact remained `READY`, target `production`, with created/building/
+  ready timestamps `1786946308113/1786946308978/1786946390528` and exact
+  git/functional/tested metadata SHA `83c51d15...`. The documentation auto-preview
+  `dpl_Hh7xnghGh2opWr4fPqjH2TBfFrUx` existed before Owner PASS and did not alter
+  the passed Production-target artifact. Verified rollback candidate
+  `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Source `21e45eed...` remained `READY`.
+- Pre-Promotion linked database gate showed migration inventory `29`, version
+  `20260817042635` exactly once, capability `{ready:true,version:2}`, prepare v2
+  and validator v2 present, and definition hashes
+  `c05b0dd1434b17dae92fc6047c504dbc` /
+  `06778873035ecfb887fb6b37fccdeb08`.
+- Exactly one CLI `vercel promote dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`
+  invocation succeeded in `982 ms`. Invocation/retry/rebuild/redeploy/new-
+  deployment counts were `1/0/0/0/0`; no alias-set, deploy, force, or rollback
+  command ran. Deployment listing stayed unchanged across Promotion.
+- All established Production aliases moved from the rollback deployment to the
+  exact Owner-passed artifact:
+  `www.newathleteschool.com`,
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school.vercel.app`. Vercel resolved each alias back to
+  deployment `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` with unchanged identity and
+  timestamps.
+- Canonical Production root/health/static returned `200/200/200`; root HTML
+  carried exact `data-dpl-id`; anonymous History returned `307` to Login and GET
+  prepare returned `405`. Bounded deployment-scoped runtime error/fatal and
+  `5xx` queries returned zero.
+- Immediate read-only before/after task data remained exact: pricing scopes/
+  batches/members/attempts/allocations/payments/Ledger allocations/coupon
+  reservations/coupon usages/Finance/wallet/bookings/payment Storage objects
+  `253/532/549/291/301/546/847/8/0/1/149/942/819`; allocation total `722279`;
+  locked scopes/active members/pending bookings `2/2/24`. Every listed fingerprint
+  and v2 function hash was identical; migration inventory remained `29`, v2 once,
+  and capability stayed ready.
+- Global `activity_logs` moved `13980→13983` during the comparison and one more
+  row arrived immediately afterward. Read-only attribution showed all four rows
+  were `mark_attendance` in the protected Attendance domain, by two external
+  actor/IP hashes, and matched four independent `POST /api/coach/attendance 200`
+  runtime requests at `07:03:37`, `07:04:23`, `07:04:25`, and `07:04:45` UTC.
+  They were concurrent real-user traffic, not a Promotion/payment request; the
+  task did not write, repair, or alter those rows.
+- Environment, feature controls, allowlists, permissions, secrets,
+  `SLIPOK_TEST_MODE`, SlipOK credentials/network behavior, duplicate-slip policy,
+  Source, tests, migration, and configuration remained unchanged. No manual
+  Production payment/write UAT was run. Customer impact is that mandatory full
+  pending-scope batching is now Production-active; financial impact from the
+  release is none.
+- Protected `src/lib/schedule-slot-utils.ts` was never edited, staged, reset,
+  normalized, stashed, or included. It retained Git blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+Mandatory classification at this closeout: completed task **PROGRESSIVE PAYMENT
+— MANDATORY FULL PENDING-SCOPE BATCH**; Active Task **None — Awaiting Owner
+Selection**; Task Status **TASK DONE**; Source Complete/Tests Passed **Yes/Yes**;
+Owner UAT **PASS**; Functional/Test/Migration/Config changes during closeout
+**0/0/0/0**; Documentation files **3**; Promoted Production artifact/exact SHA
+**`dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`/
+`83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`**; Promotion/retry/rebuild/redeploy/
+new deployment **1/0/0/0/0**; Production Active **Yes**; Production manual UAT
+**Not run/not required**; Controlled Write UAT **Not run**; Migration Source/
+Applied **v2/Yes**; Environment/Feature/Allowlist/SlipOK **unchanged**;
+Production Data Changed/Data Repaired **No task-attributable change/No**;
+Customer Impact **mandatory batching active**; Financial Impact **None**;
+Scope Expansion/Breach **None/No**; Rollback Candidate/Used
+**`dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq`/No**; Documentation Drift **No after the
+containing closeout commit is pushed**; Blocker/Remaining Work **None/None**;
+Next Action **Await Owner selection; do not start another task or Parking Lot item
+automatically**.

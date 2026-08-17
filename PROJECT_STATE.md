@@ -2,38 +2,38 @@
 
 Last updated: 2026-08-17
 
-Current source: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED;
-ADDITIVE V2 APPLIED; EXACT PRODUCTION-TARGET ARTIFACT READY AND UNALIASED** for
-**PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH**. The
-Owner-authorized renewed correction `1/1` proved the previous timeout was
-repeated local `supabase status`/Docker CLI overhead in the E2E read harness,
-not RPC v2 or a retained database lock. The complete allowlisted verification,
-safe linked migration, and no-write staged smoke passed. The new artifact has
-zero aliases and has not been Promoted, so the mandatory-batch Source is not
-Production-active. This first matrix is the only authority for current mutable
-state; all later records are Historical / Superseded.
+Current source: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT
+REBUILD; PRODUCTION VERIFICATION PASSED** for **PROGRESSIVE PAYMENT — MANDATORY
+FULL PENDING-SCOPE BATCH**. Owner passed exact artifact
+`dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / Source
+`83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`. One `vercel promote` invocation
+moved that unchanged artifact to all four established Production aliases; no
+deploy, rebuild, redeploy, retry, or new deployment occurred. Automated
+Production and read-only Supabase gates passed with no task-attributable data
+mutation. This first matrix is the only authority for current mutable state; all
+later records are Historical / Superseded.
 
-## Current Release Gate — Progressive Mandatory Full Pending-Scope Batch
+## Current Closeout — Progressive Mandatory Full Pending-Scope Batch
 
-Status: **READY FOR OWNER UAT — DO NOT PROMOTE BEFORE OWNER PASS**.
+Status: **TASK DONE — PRODUCTION ACTIVE; AWAITING OWNER SELECTION**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH** |
-| Task Status | **READY FOR OWNER UAT — exact staged Production-target artifact; not Promoted** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — exact Owner-passed artifact Promoted and Production-active; automated Production verification passed** |
 | Owner Policy | **Changed/confirmed 2026-08-17:** every current `pending_payment` booking in one `pricing_scope_id` must be one mandatory batch; no subset; different scopes remain separate; later bookings form a later batch; Test Mode and SlipOK share the same batch membership rule |
 | Intended Behavior | History shows the complete read-only scope membership and automatic count/total; prepare v2 rejects any missing, extra, duplicate, out-of-order, or cross-scope ID with typed `409` and zero mutation while retaining v1 for rollout/rollback |
 | Root Cause | **Matched Owner/PM evidence; no material change.** History initialized one selected booking and sliced a user-editable contiguous prefix; `validate_progressive_payment_prefix_v1` accepted `v_pending_ids[1:v_selected_count]` |
 | Branch | `spike/next-major-security-upgrade` |
-| Local / Remote HEAD | Functional/tested/pushed Source `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` / same upstream; the containing documentation-only READY handoff commit becomes current local/upstream HEAD after publication without changing functional Source |
+| Local / Remote HEAD | Functional/tested/Production Source remains `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; pre-closeout documentation HEAD was `0f8584374067d459356447bbdfa87445cc820c2a`, and the containing documentation-only closeout commit becomes current local/upstream HEAD after publication |
 | Ahead / Behind | `0/0` |
 | Source Complete | **Yes** — complete-scope UI, additive prepare/capability v2, types, migration, deterministic tests, and History regression are published within the exact allowlist |
 | Tests Passed | **Yes.** Renewed isolated direct-partial run `2/2`; History Payment `10/10`; Booking regression `11/11`; skipped/unexpected/flaky/retry `0`; fixture residue `0`; Payment Batch `44/44`, Payment Integration `29/29`, Notifications `16/16`, shared Test Mode `6/6`, Progressive entry/pricing/transaction/coupon/Legacy baseline/concurrency all pass; TypeScript, zero-warning ESLint, mojibake `259`, Production build/readiness, local reset/inventory/DB lint/lock checks, advisors baseline, and `git diff --check` pass |
-| Committed / Pushed | **Yes / Yes** — functional commit `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; containing documentation-only READY handoff commit is published separately |
+| Committed / Pushed | **Yes / Yes** — functional commit `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; READY handoff `0f8584374067d459356447bbdfa87445cc820c2a`; containing documentation-only Production closeout is published separately |
 | Current / Pushed Source | `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` / same upstream functional Source |
-| Functional / Test / Documentation / Migration Files | Exact allowlist `4` including the one migration / `2` / `3` / one additive v2 migration; no dependency file added |
+| Functional / Test / Documentation / Migration / Config Files | Original task `4` including migration / `2` / `3` / `1` / `0`; Promotion closeout changes `0/0/3/0/0`; no dependency file added |
 | Scope Expansion / Scope Breach | **None / No** |
 | Migration Source | Published `20260817042635_enforce_complete_progressive_payment_scope_v2.sql`; SHA-256 `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`; additive function/grant-only, no backfill or business-row DML |
 | Migration Applied | **Yes — disposable local and linked remote.** Linked inventory is 29 versions through `20260817042635`; post-apply dry-run is empty and v1 definition/ACL hashes are unchanged |
@@ -41,24 +41,32 @@ Status: **READY FOR OWNER UAT — DO NOT PROMOTE BEFORE OWNER PASS**.
 | Feature Enabled | **No change** |
 | Allowlisted | **No change** |
 | SlipOK Mode / Credentials / Duplicate Slip | **Unchanged / unchanged / unchanged**; no live SlipOK request or new duplicate-slip behavior |
-| Staged Artifact / Exact SHA | `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; `READY`, target `production`, `alias: []`, metadata functional/tested/git SHA all exact |
-| Deployed | **Yes — staged Production-target artifact only; zero aliases and not Promoted** |
-| Existing Production | Existing deployment `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Functional Source `21e45eed576014b8989ecc697c624ff2efc9122a` re-read `READY`, target `production`, and currently reports `alias: []`; new mandatory-batch Source is not active |
-| Production Active | **No for the new mandatory-batch Source** |
-| Owner UAT / Production UAT | **Not run / Not run** |
+| Production Artifact / Exact SHA | `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; `READY`, target `production`; created/building/ready timestamps stayed `1786946308113/1786946308978/1786946390528`; metadata functional/tested/git SHA all exact |
+| Deployed / Promoted | **Yes / Yes — exact staged artifact, without rebuild** |
+| Production Aliases | `www.newathleteschool.com`, `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`, `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and `new-athlete-badminton-school.vercel.app` all resolve to `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` |
+| Production Active | **Yes — mandatory full pending-scope batch Source is active** |
+| Owner UAT / Production UAT | **PASS on exact staged artifact / second manual Production UAT not run and not required; automated Production gate passed** |
 | Controlled Write UAT | **Not run; Production writes prohibited** |
-| Data Repaired / Production Data Changed | **No / No task-attributable business-row or Storage change.** Linked before/after aggregate baseline was identical; migration contained no DML |
-| Customer Impact / Financial Impact | **None while unpromoted / None** |
+| Promotion Invocations / Retry / Rebuild / Redeploy / New Deployment | `1/0/0/0/0` |
+| Rollback Candidate / Used | `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / **No** |
+| Data Repaired / Production Data Changed | **No / No task-attributable change.** All payment, Progressive, scope, Storage, Ledger, coupon, Finance, wallet, booking, and function fingerprints were identical. Global `activity_logs` changed only from four independently correlated external `POST /api/coach/attendance 200` requests in the protected Attendance domain; no payment/release write occurred |
+| Customer Impact / Financial Impact | **Mandatory full pending-scope batching is Production-active / No financial movement from release** |
 | Protected Dirty File | `src/lib/schedule-slot-utils.ts` remained content-identical and was never edited/staged/reset/normalized/stashed: Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
 | Bounded Correction Attempts | Prior budget `2/2` plus Owner-renewed correction `1/1`; renewed correction reused one local admin client, added 10-second aborts per read, parallelized independent snapshots, and retained every zero-write assertion |
-| Documentation Drift | **No after the containing READY handoff commit is pushed** |
-| Blocker | **Owner UAT is pending as the release gate; no technical blocker** |
-| Remaining Work | Owner no-write UAT on the exact artifact/SHA; after explicit PASS only, Promote that same artifact without rebuild and run Production verification |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner no-write UAT on `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; never Promote before exact-artifact Owner PASS** |
+| Documentation Drift | **No after the containing Production closeout commit is pushed** |
+| Blocker | **None** |
+| Remaining Work | **None for this task** |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Await Owner selection; do not start another task or Parking Lot item automatically** |
 | Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
 
 ### Verification Evidence
+
+- Owner explicitly passed exact artifact `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` /
+  `83c51d15...`. Visible staged UAT confirmed August 2026 Progressive Kids Group
+  showed two mandatory members priced `625 + 2,500 = 3,125` baht, no checkbox or
+  partial-payment path, clear cannot-remove/cannot-partially-pay copy, button
+  `ชำระทั้งหมด 2 รายการ`, and no mobile overflow.
 
 - Fresh Gate 0 confirmed branch/upstream equality, no staged files, the one
   protected dirty file, the complete History → prepare route → helper → RPC
@@ -67,13 +75,10 @@ Status: **READY FOR OWNER UAT — DO NOT PROMOTE BEFORE OWNER PASS**.
 - The additive v2 validator locks the scope and all current pending rows, compares
   the exact ordered set, and delegates existing price/snapshot/coupon/member/
   idempotency/mutation behavior to v1. Source prepare calls v2; v1 remains intact.
-- The safe linked apply dry-run named only v2. Its immediate read-only before/
-  after aggregate baseline was identical: scopes/batches/members/attempts/
-  payments/allocations/activity `252/526/538/290/545/300/13926`, locked scopes/
-  active members/pending scopes/pending bookings `2/2/11/11`, allocation amount
-  `721579`, wallet `149`, Ledger allocations `845`, coupon reservations `8`,
-  Finance expenses `1`, and Progressive Storage objects `293`. No Production
-  business row or Storage object changed attributable to this task.
+- Pre-Promotion linked gate confirmed migration inventory `29`, v2 exactly once,
+  capability `{ready:true,version:2}`, prepare/validator presence and definition
+  hashes `c05b0dd1434b17dae92fc6047c504dbc` /
+  `06778873035ecfb887fb6b37fccdeb08`. Post-Promotion values remained exact.
 - The failed full-run report showed typed `409` completed in `113 ms`; pre-request
   reads consumed about `42 s` and post-request reads stalled around `70–77 s`.
   An unedited isolated reproduction passed in `88.5 s`: pre-read `~40.6 s`, API
@@ -100,13 +105,27 @@ Status: **READY FOR OWNER UAT — DO NOT PROMOTE BEFORE OWNER PASS**.
   `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` was pushed normally with upstream
   `0/0`; the protected dirty file was excluded and retained both invariant
   hashes.
-- `vercel --prod --skip-domain` built exact Source `83c51d15...` as
-  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. Deployment state is `READY`, target
-  `production`, `alias: []`; metadata functional/tested/git SHA all match.
-  No-write smoke passed root `200`, health `200`, History anonymous redirect
-  `307`, prepare GET `405`, and a static CSS asset `200`. Build error filtering
-  found no error and scoped runtime `error`/`fatal` logs were empty. No mutation,
-  alias change, or Promotion was invoked.
+- Fresh Promotion Gate 0 proved the only Git change after functional Source was
+  the three-file READY documentation commit; staged identity/timestamps matched
+  Owner PASS; rollback candidate was READY; and all four established aliases
+  still pointed to the prior Production deployment.
+- One `vercel promote dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` invocation succeeded
+  in `982 ms`. The same four aliases then resolved through Vercel to that exact
+  deployment. Deployment listing stayed at the same two post-stage artifacts, so
+  Promotion created no deployment and did not rebuild/redeploy.
+- Canonical Production root/health/static returned `200/200/200`; root HTML
+  carried `data-dpl-id=dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; anonymous History
+  returned `307` to Login and prepare GET returned `405`. Deployment-scoped
+  runtime error/fatal and `5xx` queries returned zero.
+- Immediate payment/business/Storage before/after counts and fingerprints stayed
+  exact: scopes/batches/members/attempts/allocations/payments/Ledger allocations/
+  coupon reservations/usages/Finance/wallet/bookings/Storage
+  `253/532/549/291/301/546/847/8/0/1/149/942/819`, allocation total `722279`,
+  locked scopes/active members/pending bookings `2/2/24`. `activity_logs` alone
+  advanced `13980→13983` during the comparison and one further row immediately
+  after. Read-only attribution showed all four were `mark_attendance` by two
+  external actor/IP hashes and matched four `POST /api/coach/attendance 200`
+  runtime requests; this protected-domain traffic was unrelated and untouched.
 
 ## Historical / Superseded — Admin Notifications Corrective Production Closeout
 
