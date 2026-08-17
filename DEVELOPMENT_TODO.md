@@ -14205,3 +14205,86 @@ Financial Impact **None/None**; renewed correction **1/1 used**; Blocker **None*
 Task Done **No**; Next Action **complete exact staged diff, commit/push, apply only
 additive v2, create the exact-SHA Production-target zero-alias artifact, run
 no-write smoke, and stop at READY FOR OWNER UAT**.
+
+### 2026-08-17 — Mandatory Full Pending-Scope Batch — READY FOR OWNER UAT
+
+State observed at this handoff: the Owner-renewed bounded correction `1/1`, full
+verification, exact allowlist diff gate, normal commit/push, additive linked
+migration, and exact staged artifact gate all passed. The task is **READY FOR
+OWNER UAT** and remains unpromoted.
+
+- Original Product Root Cause did not change: History initialized one selected
+  booking and sent a sliced contiguous prefix, while RPC v1 accepted the oldest
+  contiguous pending prefix. UI now presents the complete current scope as
+  mandatory read-only membership and prepare Source calls additive v2; v1 is
+  retained for rollout/rollback.
+- Timeout Root Cause was test-harness overhead, not Product/RPC: every zero-write
+  read recreated a local admin client and synchronously ran `supabase status -o
+  env` through Docker at about `2.48 s`. The failed request itself returned typed
+  `409` in `113 ms`, and lock sampling found no waiter or retained transaction.
+  The sole renewed correction reused one admin client, added abortable per-read
+  `10 s` bounds/timing, separated DB/Storage/API steps, and parallelized only
+  independent reads. Every before/after mutation assertion remained intact.
+- Before correction, the isolated flow took `88.5 s`: DB pre/post about
+  `40.6/41.2 s`, API `575 ms`, teardown `59 ms`. After correction it passed
+  `2/2`: DB `13–98 ms`, Storage `6–10 ms`, API `95–490 ms`; the complete History
+  run passed `10/10` and measured DB `16/12 ms`, Storage `11/6 ms`, API `100 ms`
+  for the target flow. skipped/unexpected/flaky/retry and residue were `0`.
+- Protected adjacent evidence passed: Booking regression `11/11`; Payment Batch
+  `44/44`; Payment Integration `29/29`; Notifications `16/16`; shared SlipOK Test
+  Mode `6/6`; Progressive entry, pricing, transactions, coupon, Legacy baseline,
+  and concurrency checks. TypeScript, zero-warning ESLint, mojibake `259`,
+  Production build/readiness, local reset/inventory/DB lint/locks, and
+  `git diff --check` passed.
+- Complete staged diff contained exactly the approved Functional `4`, Test `2`,
+  Documentation `3` paths and no dependency file. Functional commit
+  `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` was pushed normally; upstream was
+  `0/0`. Scope Expansion/Breach is **None/No**.
+- Migration `20260817042635_enforce_complete_progressive_payment_scope_v2.sql`,
+  SHA-256 `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`,
+  was applied to disposable local and linked remote only after a dry-run named
+  exactly v2. It is additive function/grant-only with no backfill or business-row
+  DML. Linked inventory/compile/lint passed; post-apply dry-run was empty; all v1
+  definition and ACL hashes remained unchanged.
+- Immediate read-only linked before/after aggregates were identical: scopes/
+  batches/members/attempts/payments/allocations/activity
+  `252/526/538/290/545/300/13926`, locked scopes/active members/pending scopes/
+  pending bookings `2/2/11/11`, allocation amount `721579`, wallet `149`, Ledger
+  allocations `845`, coupon reservations `8`, Finance expenses `1`, and
+  Progressive Storage objects `293`. Security `29` and Performance `327` advisor
+  findings were also identical with no v2-specific item. Production Data Changed
+  and Data Repaired are **No/No**.
+- Exact Source was built from a detached clean worktree with Vercel CLI `59.1.3`
+  using `--prod --skip-domain`. Artifact
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` at
+  `https://new-athlete-badminton-school-c2khxn6vu-aachanin1s-projects.vercel.app`
+  is `READY`, target `production`, `alias: []`; functional/tested/git SHA metadata
+  all equal `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`.
+- No-write staged smoke passed root `200`, health `200`, anonymous History redirect
+  `307`, prepare GET `405`, and static asset `200`. Build error filtering found no
+  error and deployment-scoped runtime `error`/`fatal` logs were empty. No prepare,
+  upload, submit, cancel, approval, alias mutation, Promotion, or rebuild occurred.
+- Environment, feature, allowlist, permissions, secrets, shared
+  `SLIPOK_TEST_MODE`, SlipOK credentials/network behavior, duplicate-slip policy,
+  pricing, coupon, Ledger, Finance, and allocation semantics were unchanged.
+  Customer/Financial impact is **None/None** while unpromoted.
+- Protected `src/lib/schedule-slot-utils.ts` was never edited, staged, reset,
+  normalized, stashed, or included. It remains Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+Mandatory classification at this handoff: Active Task **PROGRESSIVE PAYMENT —
+MANDATORY FULL PENDING-SCOPE BATCH**; Task Status **READY FOR OWNER UAT**; Source
+Complete/Tests Passed **Yes/Yes**; Functional/Test/Documentation/Migration files
+**4/2/3/1** with the migration included in Functional; Committed/Pushed
+**Yes/Yes**; Migration Source/Local/Linked **published/Yes/Yes**; staged artifact/
+exact SHA **`dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`/
+`83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`**; Owner UAT **Not run**;
+Promotion/Production Active **No/No for the new Source**; Environment/Feature/
+Allowlist/SlipOK **unchanged**; Production Data Changed/Repaired **No/No**;
+Customer/Financial Impact **None/None**; renewed correction **1/1 used**;
+Documentation Drift **No after the containing handoff commit is pushed**;
+Blocker **Owner UAT pending as the release gate; no technical blocker**; Task Done
+**No**; Next Action **Owner performs no-write UAT on the exact artifact/SHA and
+returns PASS/FAIL with screenshots; Promote the same artifact without rebuild
+only after explicit PASS**.

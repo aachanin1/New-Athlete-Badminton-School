@@ -2,59 +2,60 @@
 
 Last updated: 2026-08-17
 
-Current source: **DEVELOPING — SOURCE COMPLETE AND VERIFICATION PASSED; RELEASE
-GATE IN PROGRESS** for **PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE
-BATCH**. The Owner-authorized renewed correction `1/1` proved the previous
-timeout was repeated local `supabase status`/Docker CLI overhead in the E2E read
-harness, not RPC v2 or a retained database lock. The allowlisted Source and tests
-now pass the complete local gate. Nothing from this task is committed, pushed,
-applied to the linked database, staged for UAT, Promoted, or Production-active
-yet. This first matrix is the only authority for current mutable state; all later
-records are Historical / Superseded.
+Current source: **READY FOR OWNER UAT — SOURCE/TEST COMMITTED AND PUSHED;
+ADDITIVE V2 APPLIED; EXACT PRODUCTION-TARGET ARTIFACT READY AND UNALIASED** for
+**PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH**. The
+Owner-authorized renewed correction `1/1` proved the previous timeout was
+repeated local `supabase status`/Docker CLI overhead in the E2E read harness,
+not RPC v2 or a retained database lock. The complete allowlisted verification,
+safe linked migration, and no-write staged smoke passed. The new artifact has
+zero aliases and has not been Promoted, so the mandatory-batch Source is not
+Production-active. This first matrix is the only authority for current mutable
+state; all later records are Historical / Superseded.
 
-## Current Verification Gate — Progressive Mandatory Full Pending-Scope Batch
+## Current Release Gate — Progressive Mandatory Full Pending-Scope Batch
 
-Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; COMMIT GATE NEXT**.
+Status: **READY FOR OWNER UAT — DO NOT PROMOTE BEFORE OWNER PASS**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | **PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH** |
-| Task Status | **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; RELEASE GATE IN PROGRESS** |
+| Task Status | **READY FOR OWNER UAT — exact staged Production-target artifact; not Promoted** |
 | Owner Policy | **Changed/confirmed 2026-08-17:** every current `pending_payment` booking in one `pricing_scope_id` must be one mandatory batch; no subset; different scopes remain separate; later bookings form a later batch; Test Mode and SlipOK share the same batch membership rule |
 | Intended Behavior | History shows the complete read-only scope membership and automatic count/total; prepare v2 rejects any missing, extra, duplicate, out-of-order, or cross-scope ID with typed `409` and zero mutation while retaining v1 for rollout/rollback |
 | Root Cause | **Matched Owner/PM evidence; no material change.** History initialized one selected booking and sliced a user-editable contiguous prefix; `validate_progressive_payment_prefix_v1` accepted `v_pending_ids[1:v_selected_count]` |
 | Branch | `spike/next-major-security-upgrade` |
-| Local / Remote HEAD | `cba1588eb0f2e3ed4c92680e32fe913702cfa257` / same upstream before the authorized task commit |
+| Local / Remote HEAD | Functional/tested/pushed Source `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` / same upstream; the containing documentation-only READY handoff commit becomes current local/upstream HEAD after publication without changing functional Source |
 | Ahead / Behind | `0/0` |
-| Source Complete | **Yes locally** — complete-scope UI, additive prepare/capability v2, types, migration, deterministic tests, and History regression are implemented within the exact allowlist |
+| Source Complete | **Yes** — complete-scope UI, additive prepare/capability v2, types, migration, deterministic tests, and History regression are published within the exact allowlist |
 | Tests Passed | **Yes.** Renewed isolated direct-partial run `2/2`; History Payment `10/10`; Booking regression `11/11`; skipped/unexpected/flaky/retry `0`; fixture residue `0`; Payment Batch `44/44`, Payment Integration `29/29`, Notifications `16/16`, shared Test Mode `6/6`, Progressive entry/pricing/transaction/coupon/Legacy baseline/concurrency all pass; TypeScript, zero-warning ESLint, mojibake `259`, Production build/readiness, local reset/inventory/DB lint/lock checks, advisors baseline, and `git diff --check` pass |
-| Committed / Pushed | **No / No** for this task |
-| Current / Pushed Source | Local worktree changes only / upstream remains `cba1588eb0f2e3ed4c92680e32fe913702cfa257` |
+| Committed / Pushed | **Yes / Yes** — functional commit `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; containing documentation-only READY handoff commit is published separately |
+| Current / Pushed Source | `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` / same upstream functional Source |
 | Functional / Test / Documentation / Migration Files | Exact allowlist `4` including the one migration / `2` / `3` / one additive v2 migration; no dependency file added |
 | Scope Expansion / Scope Breach | **None / No** |
-| Migration Source | Local untracked `20260817042635_enforce_complete_progressive_payment_scope_v2.sql`; SHA-256 `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`; function/grant-only, no backfill or business-row DML |
-| Migration Applied | **Disposable local only. Linked remote not applied** — linked inventory remains 28 applied versions through `20260811125610`; v2 is local-only |
+| Migration Source | Published `20260817042635_enforce_complete_progressive_payment_scope_v2.sql`; SHA-256 `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`; additive function/grant-only, no backfill or business-row DML |
+| Migration Applied | **Yes — disposable local and linked remote.** Linked inventory is 29 versions through `20260817042635`; post-apply dry-run is empty and v1 definition/ACL hashes are unchanged |
 | Environment Changed | **No** |
 | Feature Enabled | **No change** |
 | Allowlisted | **No change** |
 | SlipOK Mode / Credentials / Duplicate Slip | **Unchanged / unchanged / unchanged**; no live SlipOK request or new duplicate-slip behavior |
-| Staged Artifact / Exact SHA | **None / None — commit/push and linked migration precede artifact creation** |
-| Deployed | **No for this task** |
+| Staged Artifact / Exact SHA | `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; `READY`, target `production`, `alias: []`, metadata functional/tested/git SHA all exact |
+| Deployed | **Yes — staged Production-target artifact only; zero aliases and not Promoted** |
 | Existing Production | Existing deployment `dpl_FG52gCxZhcfKsUdHuxSQ1eBwsGqq` / Functional Source `21e45eed576014b8989ecc697c624ff2efc9122a` re-read `READY`, target `production`, and currently reports `alias: []`; new mandatory-batch Source is not active |
 | Production Active | **No for the new mandatory-batch Source** |
 | Owner UAT / Production UAT | **Not run / Not run** |
 | Controlled Write UAT | **Not run; Production writes prohibited** |
-| Data Repaired / Production Data Changed | **No / No task-attributable business-row change**; remote work was SELECT-only |
-| Customer Impact / Financial Impact | **None from this local-only work / None** |
+| Data Repaired / Production Data Changed | **No / No task-attributable business-row or Storage change.** Linked before/after aggregate baseline was identical; migration contained no DML |
+| Customer Impact / Financial Impact | **None while unpromoted / None** |
 | Protected Dirty File | `src/lib/schedule-slot-utils.ts` remained content-identical and was never edited/staged/reset/normalized/stashed: Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
 | Bounded Correction Attempts | Prior budget `2/2` plus Owner-renewed correction `1/1`; renewed correction reused one local admin client, added 10-second aborts per read, parallelized independent snapshots, and retained every zero-write assertion |
-| Documentation Drift | **No in the current worktree snapshot; containing closeout publication remains pending** |
-| Blocker | **None at this gate** |
-| Remaining Work | Complete staged-diff allowlist gate, normal commit/push, before/after linked additive migration and advisors, exact-SHA Production-target zero-alias staged artifact, no-write smoke, then Owner UAT |
+| Documentation Drift | **No after the containing READY handoff commit is pushed** |
+| Blocker | **Owner UAT is pending as the release gate; no technical blocker** |
+| Remaining Work | Owner no-write UAT on the exact artifact/SHA; after explicit PASS only, Promote that same artifact without rebuild and run Production verification |
 | Task Done | **No** |
-| Next Gate / Next Action | **Commit/push the exact tested allowlist; then apply only v2 and create the exact Production-target staged artifact. Never Promote before Owner PASS** |
+| Next Gate / Next Action | **Owner no-write UAT on `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; never Promote before exact-artifact Owner PASS** |
 | Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
 
 ### Verification Evidence
@@ -66,10 +67,13 @@ Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; COMMIT GATE NEXT**.
 - The additive v2 validator locks the scope and all current pending rows, compares
   the exact ordered set, and delegates existing price/snapshot/coupon/member/
   idempotency/mutation behavior to v1. Source prepare calls v2; v1 remains intact.
-- The read-only Production baseline before local migration work recorded batches/
-  scopes/locks/members/attempts/payments/allocations/activity logs
-  `525/252/2/537/289/545/299/13917`, pending scopes/bookings `11/11`, and
-  allocation amount `720954`. No Production mutation followed.
+- The safe linked apply dry-run named only v2. Its immediate read-only before/
+  after aggregate baseline was identical: scopes/batches/members/attempts/
+  payments/allocations/activity `252/526/538/290/545/300/13926`, locked scopes/
+  active members/pending scopes/pending bookings `2/2/11/11`, allocation amount
+  `721579`, wallet `149`, Ledger allocations `845`, coupon reservations `8`,
+  Finance expenses `1`, and Progressive Storage objects `293`. No Production
+  business row or Storage object changed attributable to this task.
 - The failed full-run report showed typed `409` completed in `113 ms`; pre-request
   reads consumed about `42 s` and post-request reads stalled around `70–77 s`.
   An unedited isolated reproduction passed in `88.5 s`: pre-read `~40.6 s`, API
@@ -85,10 +89,24 @@ Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; COMMIT GATE NEXT**.
   its formerly failing flow measured DB `16/12 ms`, Storage `11/6 ms`, API
   `100 ms`. Teardown residue was `0`; mobile `390×640`, upload preservation,
   shared Test Mode atomic approval, and allocation-total evidence all passed.
-- Local reset applied every migration through v2; DB lint found no schema error,
-  no blocking query existed, and linked inventory still showed v2 unapplied.
-  Linked advisor baseline was Security `29` and Performance `327`, with no notice
-  referring to the new v2 functions. Existing advisor debt is outside scope.
+- Local reset applied every migration through v2; DB lint found no schema error
+  and no blocking query existed. Linked apply added only version `20260817042635`;
+  inventory, compile/lint, and empty post-apply dry-run passed. v1 definitions and
+  ACLs remained exact. Security `29` / Performance `327` advisor findings were
+  unchanged before/after, with no v2-specific finding; existing debt is outside
+  scope.
+- The complete staged diff contained exactly Functional `4`, Test `2`, and
+  Documentation `3` allowlisted paths. Commit
+  `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` was pushed normally with upstream
+  `0/0`; the protected dirty file was excluded and retained both invariant
+  hashes.
+- `vercel --prod --skip-domain` built exact Source `83c51d15...` as
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. Deployment state is `READY`, target
+  `production`, `alias: []`; metadata functional/tested/git SHA all match.
+  No-write smoke passed root `200`, health `200`, History anonymous redirect
+  `307`, prepare GET `405`, and a static CSS asset `200`. Build error filtering
+  found no error and scoped runtime `error`/`fatal` logs were empty. No mutation,
+  alias change, or Promotion was invoked.
 
 ## Historical / Superseded — Admin Notifications Corrective Production Closeout
 

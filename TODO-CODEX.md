@@ -11,7 +11,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ### PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH
 
-Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; RELEASE GATE IN PROGRESS**.
+Status: **READY FOR OWNER UAT — EXACT PRODUCTION-TARGET ARTIFACT READY,
+UNALIASED, AND NOT PROMOTED**.
 
 - Owner-authorized renewed correction `1/1` proved the timeout came from repeated
   synchronous local `supabase status` calls in the test harness, not RPC v2 or a
@@ -22,12 +23,19 @@ Status: **DEVELOPING — SOURCE COMPLETE; TESTS PASSED; RELEASE GATE IN PROGRESS
   protected adjacent Progressive/Payment checks, TypeScript, zero-warning
   ESLint, mojibake, build, readiness, local migration reset/inventory/lint/locks,
   advisor baseline, and diff checks.
-- No task commit/push, linked migration apply, staged artifact, Owner UAT,
-  Promotion, Production write, Environment/feature/allowlist/SlipOK change,
-  customer impact, or financial impact has occurred yet.
-- Next action: complete the exact allowlist staged-diff gate, commit/push, apply
-  only additive v2, create the exact-SHA Production-target zero-alias artifact,
-  run no-write smoke, and stop at READY FOR OWNER UAT.
+- Functional Source `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` is
+  committed/pushed. Additive migration `20260817042635` is applied locally and
+  linked with identical business-data/Storage baselines before and after; no
+  backfill or DML occurred.
+- Exact artifact `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` is `READY`, target
+  `production`, `alias: []`, and tied to the tested/pushed SHA. Root, health,
+  static asset, auth redirect, method protection, build errors, and scoped
+  runtime logs passed no-write smoke.
+- No Owner UAT, Promotion, Production-active Source change, Production business
+  write, Environment/feature/allowlist/SlipOK change, customer impact, or
+  financial impact has occurred.
+- Next action: Owner performs no-write UAT on the exact artifact/SHA. Promote
+  that same artifact without rebuild only after explicit Owner PASS.
 - Protected `src/lib/schedule-slot-utils.ts` remains content-identical and
   excluded.
 
