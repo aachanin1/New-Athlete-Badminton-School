@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-17
+Last updated: 2026-08-18
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -13,6 +13,10 @@ Status: **NONE — AWAITING OWNER SELECTION**.
 
 - Progressive Mandatory Full Pending-Scope Batch is TASK DONE. Do not start a
   Parking Lot item or another task automatically.
+- **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM
+  MODAL + USER/COACH LEVEL PARITY** is registered as Parking Lot Priority `1` but
+  is **OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**. Product audit and
+  implementation require a separate Owner selection and new Scope Contract.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -966,11 +970,44 @@ Status: **DONE**.
 
 ## Parking Lot
 
-Latest remaining Owner selection queue; this ordering is not authorization to
-start. Admin Notifications is the selected Active Task at READY FOR OWNER UAT,
-so it is not an unselected queue item:
+Latest Owner selection queue; this ordering is not authorization to start. Active
+Task remains **None — Awaiting Owner Selection**. The new canonical group is
+Priority `1`; all existing six candidates are retained with their prior status and
+without a new relative order among those six.
 
-1. Thai UI Terminology & Shared Helper
+### Priority 1 — Schedule Learning Details
+
+Canonical name: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
+FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- User/parent: future behavior shows only `approved` teaching programs resolved
+  from the learner's exact assignment group and that real group's
+  `coach_id + schedule_slot_id`; never show `draft`, `submitted`, `rejected`, or
+  Admin review notes.
+- Admin Schedules: future completeness correction adds a Modal/Dialog to read the
+  full program content currently truncated by the line clamp; the data already
+  exists and this is not a separately priced new task.
+- User Schedule and Coach Schedule: future completeness correction adds Level and
+  Level name in the same format as Admin Schedule.
+- Protected rule: one coach may own only one group in the same teaching time and
+  cannot teach two overlapping groups. Current Client/API/DB guards must not be
+  weakened or changed without a new Owner Decision.
+- Commercial note: **12,000 บาท applies only to the User/parent program-visibility
+  item**. The Admin modal and User/Coach Level parity are completeness
+  corrections. This is a project/commercial record, not application pricing, and
+  does not authorize Payment or `pricing_tiers` changes.
+- The Owner cancelled and superseded the prior implementation command. No Product
+  audit, Source/test change, implementation, migration, Production action, or
+  Product-task start is authorized by this registration. Await separate Owner
+  selection and a new execution Scope Contract.
+
+Existing six candidates retained below without a new relative order: Adult Group
++ Family Private 10-Month Entitlement / Cross-Month Booking; Private Self + Child
+Identity Integrity / Name-Level Separation; LINE External-Browser Handoff Audit;
+Thai UI Terminology & Shared Helper; External Head Coach Assignment Save HTTP 500
+Attempts; and Homepage LV Copy Audit/Fix.
 
 ### Adult Group + Family Private — 10-Month Entitlement / Cross-Month Booking
 
@@ -978,9 +1015,8 @@ Canonical name: **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONT
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- This is an unranked Parking Lot candidate. Admin Notifications is the selected
-  Active Task at READY FOR OWNER UAT; this Adult/Family candidate remains
-  unselected and unauthorized.
+- This existing Parking Lot candidate remains unselected and unauthorized. Active
+  Task is **None — Awaiting Owner Selection**.
 - This decision is durably registered/published. Product audit and implementation
   remain unauthorized until the Owner selects it under a new Scope Contract.
 - Adult Group must continue to use the package/session rates in authoritative
@@ -1026,10 +1062,9 @@ Canonical name: **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATIO
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- This is a separate, unranked Parking Lot candidate. It is not part of the
-  Adult/Family 10-month entitlement candidate. Admin Notifications is the
-  selected Active Task at READY FOR OWNER UAT; this Private Identity candidate
-  remains unselected and unauthorized.
+- This existing Parking Lot candidate is separate from the Adult/Family 10-month
+  entitlement candidate and remains unselected and unauthorized. Active Task is
+  **None — Awaiting Owner Selection**.
 - This decision is durably registered/published. Product audit, implementation,
   regression work, Production audit, and data repair remain unauthorized.
 - Visible symptom: self plus one child across two time slots produced the expected
@@ -1062,8 +1097,7 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
 ### Historical Assignment Group Lifecycle Integrity Registration — Superseded
 
-Status: **SUPERSEDED BY THE CURRENT OWNER-SELECTED ACTIVE TASK AND MATERIAL HARD
-STOP ABOVE**.
+Status: **HISTORICAL / SUPERSEDED — TASK LATER SELECTED AND COMPLETED**.
 
 - Preserve `absent` learners in assignment groups and prevent false changed/
   unsaved state.
@@ -1071,9 +1105,9 @@ STOP ABOVE**.
   last learner reschedules or stores a session in Wallet.
 - A future Scope Contract must cover assignment save, Reschedule, Wallet,
   Attendance, Exact/Legacy resolution, Payroll, and audit-history preservation.
-- This was the pre-selection registration only. Current authorization and the
-  exact safe-handoff state are in `PROJECT_STATE.md`; do not use this historical
-  paragraph to revoke or expand the active Scope Contract.
+- This was the pre-selection registration only. Current mutable state is in
+  `PROJECT_STATE.md`; do not use this historical paragraph to imply a current
+  Active Task or expand any future Scope Contract.
 
 ### Thai UI Terminology & Shared Helper
 
@@ -1089,12 +1123,11 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   Coach, and User portals, including Admin Payroll.
 - Do not add a Payroll-local mapping first and refactor it later.
 - No audit, implementation, deploy, migration, Production change, or data action
-  is authorized by the current Payroll task.
+  is authorized by this Parking Lot registration.
 
 ### Historical Registration — Admin Notifications Recommendations
 
-Status: **HISTORICAL / SUPERSEDED — CURRENT REVISED TASK IS READY FOR OWNER
-UAT**.
+Status: **HISTORICAL / SUPERSEDED — TASK LATER COMPLETED**.
 
 - This paragraph preserves the pre-selection registration only. The Owner later
   selected the task and supplied the exact actionability, branch-grouping, and
@@ -1109,8 +1142,8 @@ UAT**.
   tracking cycle and triggered the earlier Owner-mandated Material Hard Stop.
   The Owner then authorized Preserve & Extend; Source, Migration, one atomic
   reconciliation, and a new staged artifact completed without a notification
-  send. Current artifact, data-safety state, and Owner UAT gate are authoritative
-  in `PROJECT_STATE.md`; detailed dated evidence is in `DEVELOPMENT_TODO.md`.
+  send. This is historical evidence only; current mutable state is authoritative
+  in `PROJECT_STATE.md`, and detailed dated evidence is in `DEVELOPMENT_TODO.md`.
 
 ### External Head Coach Assignment Save HTTP 500 Attempts
 

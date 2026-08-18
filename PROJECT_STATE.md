@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-17
+Last updated: 2026-08-18
 
 Current source: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT
 REBUILD; PRODUCTION VERIFICATION PASSED** for **PROGRESSIVE PAYMENT — MANDATORY
@@ -27,13 +27,14 @@ Status: **TASK DONE — PRODUCTION ACTIVE; AWAITING OWNER SELECTION**.
 | Intended Behavior | History shows the complete read-only scope membership and automatic count/total; prepare v2 rejects any missing, extra, duplicate, out-of-order, or cross-scope ID with typed `409` and zero mutation while retaining v1 for rollout/rollback |
 | Root Cause | **Matched Owner/PM evidence; no material change.** History initialized one selected booking and sliced a user-editable contiguous prefix; `validate_progressive_payment_prefix_v1` accepted `v_pending_ids[1:v_selected_count]` |
 | Branch | `spike/next-major-security-upgrade` |
-| Local / Remote HEAD | Functional/tested/Production Source remains `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; pre-closeout documentation HEAD was `0f8584374067d459356447bbdfa87445cc820c2a`, and the containing documentation-only closeout commit becomes current local/upstream HEAD after publication |
+| Local / Remote HEAD | Functional/tested/Production Source remains `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; pre-registration local/upstream HEAD is `8948a5424dc64070e649bd11f7ed5c87f59bfe14`, and the containing documentation-only Parking Lot publication becomes current local/upstream HEAD after publication |
 | Ahead / Behind | `0/0` |
 | Source Complete | **Yes** — complete-scope UI, additive prepare/capability v2, types, migration, deterministic tests, and History regression are published within the exact allowlist |
 | Tests Passed | **Yes.** Renewed isolated direct-partial run `2/2`; History Payment `10/10`; Booking regression `11/11`; skipped/unexpected/flaky/retry `0`; fixture residue `0`; Payment Batch `44/44`, Payment Integration `29/29`, Notifications `16/16`, shared Test Mode `6/6`, Progressive entry/pricing/transaction/coupon/Legacy baseline/concurrency all pass; TypeScript, zero-warning ESLint, mojibake `259`, Production build/readiness, local reset/inventory/DB lint/lock checks, advisors baseline, and `git diff --check` pass |
 | Committed / Pushed | **Yes / Yes** — functional commit `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`; READY handoff `0f8584374067d459356447bbdfa87445cc820c2a`; containing documentation-only Production closeout is published separately |
 | Current / Pushed Source | `83c51d15b8bbde63ba4a22dcb409b1dfd3a17005` / same upstream functional Source |
 | Functional / Test / Documentation / Migration / Config Files | Original task `4` including migration / `2` / `3` / `1` / `0`; Promotion closeout changes `0/0/3/0/0`; no dependency file added |
+| This Documentation Registration | Functional `0`; Test `0`; Documentation `3`; Migration `0`; Config `0`; Dependency `0`; no Application Source change and no application test/build required |
 | Scope Expansion / Scope Breach | **None / No** |
 | Migration Source | Published `20260817042635_enforce_complete_progressive_payment_scope_v2.sql`; SHA-256 `35E02E66720CF6A6E3568CFF0C8C3F1945F5B42449F704CA42577DF91869B4BE`; additive function/grant-only, no backfill or business-row DML |
 | Migration Applied | **Yes — disposable local and linked remote.** Linked inventory is 29 versions through `20260817042635`; post-apply dry-run is empty and v1 definition/ACL hashes are unchanged |
@@ -53,12 +54,71 @@ Status: **TASK DONE — PRODUCTION ACTIVE; AWAITING OWNER SELECTION**.
 | Customer Impact / Financial Impact | **Mandatory full pending-scope batching is Production-active / No financial movement from release** |
 | Protected Dirty File | `src/lib/schedule-slot-utils.ts` remained content-identical and was never edited/staged/reset/normalized/stashed: Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
 | Bounded Correction Attempts | Prior budget `2/2` plus Owner-renewed correction `1/1`; renewed correction reused one local admin client, added 10-second aborts per read, parallelized independent snapshots, and retained every zero-write assertion |
-| Documentation Drift | **No after the containing Production closeout commit is pushed** |
+| Documentation Drift | **Resolved by the containing documentation-only Parking Lot publication:** `TODO-CODEX.md` no longer presents completed Admin Notifications as the current Active Task / READY FOR OWNER UAT |
 | Blocker | **None** |
 | Remaining Work | **None for this task** |
 | Task Done | **Yes** |
 | Next Gate / Next Action | **Await Owner selection; do not start another task or Parking Lot item automatically** |
-| Parking Lot authorization state | All other tasks remain Owner-selection-only and must not start automatically |
+| Parking Lot authorization state | **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY** is Priority `1`, status **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**. The existing six candidates are retained without a new relative order. No Parking Lot item may start automatically |
+
+### Current Parking Lot Priority 1 — Schedule Learning Details
+
+Canonical task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY +
+ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
+
+Status: **PARKING LOT — PRIORITY 1 — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO
+START**.
+
+- **Intended Behavior 1 — User/Parent program visibility:** show only an
+  `approved` teaching program resolved from the learner's exact assignment-group
+  membership and that real group's `coach_id + schedule_slot_id`. Never expose
+  `draft`, `submitted`, `rejected`, or Admin review notes. This item alone is
+  outside the monthly scope and carries the project/commercial record of
+  **12,000 บาท**.
+- **Intended Behavior 2 — Admin full program modal:** preserve the existing Admin
+  Schedule program data and add a future Modal/Dialog for the full content that
+  is currently truncated by the preview line clamp. This is a completeness
+  correction within this group, not a separately priced new task.
+- **Intended Behavior 3 — User/Coach Level parity:** a future selected scope must
+  add Level and Level name to User Schedule and Coach Schedule in the same format
+  as Admin Schedule. This is a completeness correction within this group.
+- **Read-only Source facts:** Admin Schedule currently keys teaching programs by
+  `schedule_slot_id + coach_id`, renders all program statuses, and truncates the
+  content with `line-clamp-2`; User Schedule maps a learner to an exact assignment
+  group through `coach_assignment_group_students.booking_session_id`; the
+  `teaching_programs` record carries `coach_id`, `schedule_slot_id`, `status`,
+  content, and Admin review fields. Admin Schedule already resolves and renders
+  learner Level plus Level name, while current User/Coach Schedule payloads do not
+  provide that same display parity.
+- **Protected Owner rule:** one coach may own only one group in the same teaching
+  time and cannot teach two overlapping groups. Current Source has Client, API,
+  conflict-check, and database exclusion guards. Future work must not weaken or
+  change this rule without a new Owner Decision.
+- **Commercial boundary:** the `12,000 บาท` amount applies only to Intended
+  Behavior 1. It is a project/commercial record, not application pricing, and
+  does not authorize any Payment or `pricing_tiers` change.
+- **Authorization:** the Owner cancelled and superseded the prior implementation
+  command. Fresh Gate 0 found no matching Product work started: current HEAD is
+  the completed Progressive documentation closeout and the only pre-existing
+  dirty path is protected `src/lib/schedule-slot-utils.ts`. Product audit,
+  implementation, Source/test changes, migration, environment/configuration,
+  feature/allowlist/permission change, Production read/write, artifact, build,
+  deploy, or Promotion remains unauthorized. Starting this task requires a
+  separate Owner selection and a new execution Scope Contract.
+- **Existing six candidates retained:** Adult Group + Family Private 10-Month
+  Entitlement / Cross-Month Booking; Private Self + Child Identity Integrity /
+  Name-Level Separation; LINE External-Browser Handoff Audit; Thai UI Terminology
+  & Shared Helper; External Head Coach Assignment Save HTTP 500 Attempts; and
+  Homepage LV Copy Audit/Fix. Their existing authorization states are unchanged,
+  and no new relative ordering among those six is established.
+- **Registration result only:** Source changed **No**; application tests
+  changed/run **No / No application tests required**; committed/pushed **Yes/Yes
+  after the containing documentation publication**; deployed **No**; feature or
+  allowlist changed **No/No**; Production active for this Product task **No**;
+  Production UAT/Controlled Write UAT **Not run/Not run**; data repaired **No**;
+  Production data changed **No**; customer impact **None**; application financial
+  impact **None**; Product Task Done **No**. Only the Parking Lot documentation
+  registration is complete.
 
 ### Verification Evidence
 

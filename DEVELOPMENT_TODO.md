@@ -14377,3 +14377,116 @@ Scope Expansion/Breach **None/No**; Rollback Candidate/Used
 containing closeout commit is pushed**; Blocker/Remaining Work **None/None**;
 Next Action **Await Owner selection; do not start another task or Parking Lot item
 automatically**.
+
+### 2026-08-18 — Schedule Learning Details Parking Lot Priority 1 Registration
+
+State observed at this documentation-only publication: Active Task remains
+**None — Awaiting Owner Selection**. This record registers a new Priority `1`
+Parking Lot group and does not authorize Product audit or implementation.
+
+Canonical task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
+FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
+
+#### Fact — Fresh Gate 0 and Read-only Source Evidence
+
+- Repository root is
+  `C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School`; branch
+  `spike/next-major-security-upgrade`; pre-registration local/upstream HEAD
+  `8948a5424dc64070e649bd11f7ed5c87f59bfe14`; ahead/behind `0/0`; staged files
+  `0`. The complete pre-registration dirty inventory contained only protected
+  `src/lib/schedule-slot-utils.ts`.
+- Protected `src/lib/schedule-slot-utils.ts` was not edited, staged, reset,
+  checked out, stashed, or normalized. Its pre-registration Git blob is
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256 is
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- `PROJECT_STATE.md` already had Active Task **None — Awaiting Owner Selection**
+  and Next Action **Await Owner selection**. `TODO-CODEX.md` agreed at the top but
+  its Parking Lot intro and candidate descriptions still presented completed
+  Admin Notifications as the current Active Task / READY FOR OWNER UAT. This was
+  **DOCUMENTATION DRIFT** and is corrected by this publication.
+- Current Admin Schedule Source loads `teaching_programs`, keys the latest program
+  by `schedule_slot_id + coach_id`, exposes program status, and renders its content
+  in a `line-clamp-2` preview. Admin Schedule already resolves learner Level from
+  `student_levels` plus active `levels` and renders Level with Level name.
+- Current User Schedule Source maps exact assignment-group membership through
+  `coach_assignment_group_students.booking_session_id` and receives the group's
+  `coach_id` plus real `schedule_slot_id`; its Schedule payload/UI does not yet
+  include Level/Level-name parity or learner-visible teaching-program content.
+- Current Coach assigned-schedule Source resolves exact group membership and real
+  slots but its schedule student payload does not include the Admin-style Level
+  plus Level-name display parity.
+- `teaching_programs` stores `coach_id`, `schedule_slot_id`, `program_content`,
+  `status`, and Admin review fields. Coach write Source restricts normal draft/
+  submission mutations and resolves ownership by coach plus slot; Admin review
+  Source transitions submitted programs to `approved` or `rejected`.
+- Current duplicate-coach protection exists at all three confirmed layers: Client
+  blocks duplicate coach ids within a slot, API repeats that guard and performs
+  cross-slot exact conflict checks, and the database exclusion constraint rejects
+  overlapping exact reservations for the same coach and teaching date.
+- The prior implementation command is superseded and cancelled by this Owner
+  Decision. No matching Product implementation was started: current HEAD remains
+  the completed Progressive documentation closeout and the only dirty Source path
+  is the protected pre-existing file above.
+
+#### Owner Decision and Intended Behavior
+
+1. **User/parent program visibility:** show only a teaching program with
+   `status=approved`, resolved from the learner's exact assignment group using the
+   real group's `coach_id + schedule_slot_id`. Do not expose `draft`, `submitted`,
+   `rejected`, or Admin review notes.
+2. **Admin Schedules full program modal:** retain the existing data and add a
+   future Modal/Dialog to read the complete program content now truncated by the
+   line clamp. This is a completeness correction within this group.
+3. **User/Coach Level parity:** add Level plus Level name to User Schedule and
+   Coach Schedule in the same format as Admin Schedule. This is a completeness
+   correction within this group.
+
+Protected Owner rule: one coach may be responsible for only one group in the same
+teaching time and cannot teach two overlapping groups. The existing Client/API/DB
+guards must not be weakened or changed without a new Owner Decision.
+
+#### Protected Flows and Commercial Note
+
+- Payment, `pricing_tiers`, entitlement, coupon, booking, Attendance, assignment
+  policy, Reschedule, Lesson Wallet, Makeup, Coach Check-in, Teaching Hours,
+  Payroll, Finance, Accounting, permissions, and Production data remain protected
+  and unchanged.
+- **12,000 บาท applies only to item 1, User/parent program visibility.** Items 2
+  and 3 are completeness corrections and are not separately priced new tasks.
+  The amount is a project/commercial record, not application pricing, and does
+  not authorize any Payment or `pricing_tiers` change.
+- The existing six Parking Lot candidates are retained without a new relative
+  order: Adult Group + Family Private 10-Month Entitlement / Cross-Month Booking;
+  Private Self + Child Identity Integrity / Name-Level Separation; LINE
+  External-Browser Handoff Audit; Thai UI Terminology & Shared Helper; External
+  Head Coach Assignment Save HTTP 500 Attempts; and Homepage LV Copy Audit/Fix.
+  None becomes Active.
+
+#### Authorization State and Registration Closeout
+
+Status: **PARKING LOT — PRIORITY 1 — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO
+START**.
+
+- Product audit, implementation, Application Source/test changes, new tests,
+  schema/Migration/RPC/RLS/trigger, config/dependency/Environment, feature
+  control/allowlist/permission/secret, Production read/write, build, artifact,
+  deploy, Promotion, alias, rollback, Payment/pricing/entitlement, and starting
+  any Parking Lot item are not authorized and were not performed.
+- Starting this Product task requires a separate Owner selection and a new
+  execution Scope Contract. The cancelled prior implementation command must not
+  be used.
+- Documentation registration changed exactly `PROJECT_STATE.md`, `TODO-CODEX.md`,
+  and `DEVELOPMENT_TODO.md`: Functional `0`; Test `0`; Documentation `3`;
+  Migration `0`; Config `0`; Dependency `0`. No application tests or build were
+  required; documentation verification used the mojibake guard and Git diff
+  gates.
+- Source Complete for Product work **No / not started**; Tests Passed **No
+  application tests required**; documentation committed/pushed **Yes/Yes after
+  the containing publication**; deployed/feature enabled/allowlisted/Production
+  active for this Product task **No/No/No/No**; Production UAT/Controlled Write
+  UAT **Not run/Not run**; data repaired/Production data changed **No/No**;
+  customer impact **None**; application financial impact **None**; commercial
+  note **item 1 = 12,000 บาท**; Product Task Done **No**; Parking Lot
+  registration **complete**.
+- Next Action: **Await separate Owner selection and a new execution Scope
+  Contract. Do not start Product work automatically.**
