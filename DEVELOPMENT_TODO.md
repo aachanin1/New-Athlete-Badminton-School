@@ -14490,3 +14490,678 @@ START**.
   registration **complete**.
 - Next Action: **Await separate Owner selection and a new execution Scope
   Contract. Do not start Product work automatically.**
+
+### 2026-08-19 — Schedule Learning Details — Required Protected-Test Material Hard Stop
+
+State observed at this safe handoff: the Owner selected Priority `1` and approved
+continuous delivery through staged Production-target artifact, but Source remains
+local/uncommitted and no artifact or Production action is permitted because one
+required protected-flow regression is date-stale.
+
+#### Fresh Gate, Baseline, and Scoped Implementation
+
+- Gate 0 matched branch/upstream `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b`,
+  ahead/behind `0/0`, staged paths `0`, and only protected dirty
+  `src/lib/schedule-slot-utils.ts`. Its Git blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`
+  remained exact.
+- Official Supabase guidance was checked before implementation: server
+  `auth.getUser()` performs authenticating network verification; elevated
+  service-role/secret keys are backend-only and bypass RLS, so ownership is
+  verified first and every privileged read remains explicitly bounded.
+- Warm-up `1` plus `5` localhost measurements produced medians: User `648.7 ms`
+  with 18 requests, 0 API and `60,233` initial bytes; Coach `707.9 ms` with 18
+  requests, 0 API and `113,065` bytes; Admin summary plus existing day-detail API
+  `895.9 ms` with 19 requests, 1 API and `92,787` bytes. User initial program
+  calls/content were `0/0`; Admin content came from the existing day payload.
+- Local changes stay inside the authorized 12 paths: Functional `6`, Test `2`,
+  test registration `1`, Documentation `3`; Migration/dependency/lockfile `0`.
+  Parent route authenticates, proves verified ownership, resolves exact membership,
+  enforces matching real coach/slot and approved-only status, and returns only
+  `id/programContent/updatedAt` with private no-store. User content is on demand
+  with memory cache and abort generation; User/Coach Level reads are fixed batch
+  calls; Admin modal reads only existing client payload.
+- Bounded correction `1/2` preserved the same Intended Behavior. The 213-slot E2E
+  fixture proved the older slot-id `.in(...)` read failed with `URI too long` and
+  hid an otherwise valid exact assignment. High-cardinality User Schedule now
+  uses one ownership-scoped exact-membership read and no per-session query.
+
+#### Verification and Material Hard Stop
+
+- Passed: learning-details `13/13`; Admin assignment `38/38`; Admin schedules
+  performance `24/24`; Lesson Wallet `19/19`; focused Parent API ownership/safe
+  projection; focused User approved/empty/on-demand/cache/mobile; focused Coach
+  Level desktop/mobile; focused Admin existing-payload modal/no-extra-API;
+  TypeScript and zero-warning lint. Disposable fixture cleanup residue was `0`.
+- Required `npm.cmd run test:coach-assignment-conflicts` failed twice isolated at
+  `different branches at the same time are rejected`. Source inspection proved
+  the fixture dates are fixed at `2026-08-01..13`; on `2026-08-19` they are
+  historical. The unchanged migration intentionally activates exact reservations
+  only for `date >= (now() at time zone 'Asia/Bangkok')::date`, so the old fixture
+  no longer exercises the current/future guard.
+- This is a separate verification-harness Root Cause in the protected
+  Coach-assignment domain, not a task-attributable Product regression. The exact
+  allowlist does not include `scripts/check-coach-assignment-conflicts.mjs`, and
+  the agent did not edit, weaken, bypass, or replace its assertion. Per Scope and
+  Hard Stop rules, no Commit, Push, build publication, staged artifact, alias,
+  Deploy, Promotion, remote Supabase write, or Production data action occurred.
+- Owner decision required: authorize the conflict regression script as a 13th
+  changed path solely to move fixed fixture dates to stable future/dynamic dates
+  without changing conflict semantics, or provide another explicit gate decision.
+  After authorization, resume all required regression/performance/build/diff gates
+  before any publication.
+
+### 2026-08-19 — Schedule Learning Details Continuation — Required Full-E2E Material Hard Stop
+
+State observed at this continuation safe handoff: Owner authorized the conflict
+script as path `13` plus the high-cardinality Legacy-coach parity correction. Both
+corrections are local and verified, but required full E2E exposed a second stale
+protected test fixture, so no Commit, Push, build publication, staged artifact,
+alias, Promotion, remote Supabase write, or Production data action occurred.
+
+#### Authorized Corrections and Passed Evidence
+
+- `scripts/check-coach-assignment-conflicts.mjs` computes Bangkok today exactly
+  once, derives a base at `today + 30` calendar days, and creates the former full
+  `2026-08-01..13` relationships through deterministic offsets `0..12`. Booking
+  month/year follows the base date and a pre-write assertion proves every fixture
+  date is Bangkok current/future.
+- Two consecutive conflict runs each passed `22/22`, used
+  `2026-09-18..2026-09-30` in this session, and reported cleanup residue `0`.
+  Cross-branch, same-branch/partial overlap, adjacency, different-day, concurrent
+  write, invalid-name, and lifecycle assertions were not weakened or changed.
+- High-cardinality User Schedule now uses two constant ownership-scoped assignment
+  reads when slot count exceeds `100`: exact membership, plus owned-session slot
+  group/Legacy metadata. It does not send a large assignment `.in(slotIds)`, does
+  not query per learner/session, retains group-existence suppression of Legacy,
+  and keeps program access dependent only on exact membership plus the real exact
+  coach/slot.
+- Focused E2E passed exact-over-Legacy priority, high-card exact membership,
+  Legacy-only coach display, no Legacy program button, initial program requests
+  `0`, and residue `0`. Full E2E also passed its first eight tests: anonymous/auth
+  boundaries, Admin instrumentation, Parent safe approved-only API, User on-demand
+  program and neutral state, high-card Legacy parity, Coach Level, and Admin modal
+  without an additional API call.
+- Fresh deterministic gates passed: learning-details `13/13`, Admin assignment
+  `38/38`, Admin performance `24/24`, Coach resolution `33/33`, Coach lifecycle
+  `52/52`, Lesson Wallet `19/19`, and TypeScript. Migration/dependency/lockfile
+  diffs remain `0`.
+
+#### New Required-E2E Blocker
+
+- Required full E2E failed twice at the same existing mixed-Level assertion:
+  expected duplicate-coach validation `400`, received started-slot `409`.
+- Read-only Source/fixture audit proved `IDS.forwardSlot` and `IDS.overlapSlot`
+  remain fixed at `2026-07-30`. On Bangkok `2026-08-19`, the unchanged
+  `/api/coach/assignment-groups` guard rejects the historical started slot before
+  reaching duplicate-coach validation. This is separate test-date drift, not a
+  task-attributable Product or conflict-rule regression.
+- One bounded fixture-isolation correction removed a temporary wrong-Legacy row
+  immediately after the exact-priority assertion. The same failure remained,
+  disproving that first attribution and exposing the historical-slot cause.
+- Safe correction requires a separate isolated current/future mixed-Level
+  assignment fixture inside the already allowlisted E2E file while retaining the
+  July Admin-performance fixture and every conflict/duplicate assertion. The
+  continuation authorized dynamic dates specifically for the conflict script,
+  not this second protected Head Coach fixture, so the agent did not expand scope.
+
+Current classification: Active Task **SCHEDULE LEARNING DETAILS — PARENT PROGRAM
+VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**; Task Status
+**DEVELOPING — MATERIAL HARD STOP AT REQUIRED FULL E2E**; Source Complete **No**;
+Tests Passed **No**; local authorized files Functional/Test/Config/Documentation
+`6/3/1/3`, total task paths `13`; Scope Expansion **Owner-authorized test-only
+path 13**; Scope Breach **No**; Committed/Pushed **No/No**; staged artifact
+**None**; Owner UAT **Not run**; Promoted/Production Active **No/No for this
+task**; Migration/Environment/Feature/Allowlist **unchanged**; Production Data
+Changed/Data Repaired **No/No**; Customer/Application Financial Impact
+**None/None**; commercial note **item 1 only = 12,000 บาท**; protected dirty
+`src/lib/schedule-slot-utils.ts` remains blob
+`4521281d099efb189429a744909552d67871ff23`, SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+Task Done **No**.
+
+Next Action: Owner decides whether to authorize the isolated current/future
+mixed-Level E2E fixture correction. Do not continue performance/build/publication,
+Commit, Push, create a staged artifact, change aliases, or Promote beforehand.
+
+### 2026-08-20 — Schedule Learning Details — Performance Gate Material Hard Stop
+
+State observed at this continuation safe handoff: the Owner authorized one
+isolated mixed-Level fixture correction in the existing E2E path only. That
+correction and every required functional/regression gate through TypeScript pass,
+but the mandatory Coach initial-navigation Performance Gate fails reproducibly.
+The continuation explicitly prohibits Product Source/API/Migration changes for
+this correction, so execution stopped before lint, Production build, Commit,
+Push, staged artifact, alias, Promotion, or Production action. The required
+documentation-only mojibake guard subsequently passed `261` files.
+
+#### Owner-Authorized Fixture Correction
+
+- Correction path was exactly
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`; no Product
+  Source/API/Migration file was changed during this continuation and path `14` is
+  none.
+- Bangkok today was evaluated once per test process and calendar-day arithmetic
+  derived `today + 30`. The fixture used `2026-09-19`; booking month/year was
+  `9/2026`; slot, booking session, UI month key, date label, and reload navigation
+  all derived from that one fixture date.
+- Mixed-Level forward/overlap slots and sessions use a separate booking and retain
+  `17:00–19:00` / `18:30–20:30`. The July Admin-performance/Parent fixtures remain
+  fixed and separate. Duplicate coach `400`, exact overlap `409`, started-slot,
+  empty-name zero-write, reservation/Legacy, atomicity, desktop/mobile, cleanup,
+  and all other assertions were retained without skip or weakening.
+
+#### Verification Evidence Before Performance Stop
+
+- Focused mixed-Level E2E passed twice consecutively: `1/1` in `2.5m` and `1/1`
+  in `2.2m`; each started clean and ended with residue `0`.
+- Required full E2E passed all `11/11` serial tests in `3.8m`, including Parent
+  approved exact-group program, User on-demand/cache/neutral state, high-cardinality
+  exact/Legacy parity, Coach Level, Admin modal/no-extra-API, duplicate coach `400`,
+  exact overlap `409`, remaining Admin state coverage, and residue `0`.
+- Deterministic gates passed: learning-details `13/13`; Admin assignment `38/38`;
+  Admin schedules performance `24/24`; Coach conflict `22/22` using dynamic
+  `2026-09-19..2026-10-01`; Coach resolution `33/33`; Coach lifecycle `52/52`;
+  Lesson Wallet `19/19`; TypeScript. Skipped/unexpected/flaky/retry were `0`.
+- Lint, Production build, and prod:check were not run because the mandatory
+  Performance Gate failed first, as required by the command order. The
+  documentation safe-handoff mojibake guard passed `261` files.
+
+#### Performance Evidence and Hard Stop
+
+- Original baseline methodology was warm-up `1`, measured `5`: User `648.7 ms`,
+  18 requests, 0 API, `60,233` bytes; Coach `707.9 ms`, 18 requests, 0 API,
+  `113,065` bytes; Admin summary+day `895.9 ms`, 19 requests, 1 existing API,
+  `92,787` bytes.
+- Original post-change medians in the same harness were User `1,969.8 ms`, Coach
+  `2,039.5 ms`, and Admin `2,189.3 ms`. A clean exact-HEAD control at `5e99ab9`
+  was also slow, proving substantial environment-wide drift rather than treating
+  the absolute baseline difference alone as Product attribution.
+- Controlled trial A relative to HEAD was User `+94.9 ms (+5.06%)`, Coach
+  `+65.3 ms (+3.31%)`, and Admin `-113.6 ms (-4.93%)`.
+- Controlled trial B reproduced a Coach failure: current `2,248.3 ms` vs HEAD
+  bracket `1,946.7 ms`, or `+301.6 ms (+15.49%)`. A targeted deciding Coach run,
+  again warm-up `1` plus measured `5`, was `2,179.6 ms` vs the immediately prior
+  HEAD bracket `1,946.7 ms`, or `+232.9 ms (+11.96%)`. This exceeds both contract
+  thresholds (`>10%` and at least `100 ms`) and is therefore Performance FAIL.
+- Controlled User/Admin remained below the failure threshold. Request budgets
+  stayed exact: User/Coach `18` and `0` initial API; Admin `19` and `1` existing
+  API; initial program calls `0`; no request storm or N+1 was observed.
+- Initial payload before/after was User `60,233→63,561` bytes (`+5.53%`), Coach
+  `113,065→114,075` (`+0.89%`), and Admin `92,787→92,785` (effectively unchanged).
+  User initial approved-program content remained `0` bytes.
+- Deterministic call budget remained User Level `2` fixed reads, Coach Level `2`
+  fixed reads, high-cardinality assignment ownership `2` fixed reads, Admin modal
+  additional API/DB `0/0`, and Parent program click auth plus `3` bounded reads.
+
+Current classification: Active Task **SCHEDULE LEARNING DETAILS — PARENT PROGRAM
+VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**; Task Status
+**DEVELOPING — MATERIAL HARD STOP AT COACH PERFORMANCE GATE**; Source Complete
+**No**; complete required gate Tests Passed **No because Performance failed**;
+functional/regression tests through TypeScript **passed**; local authorized files
+Functional/Test/Config/Documentation `6/3/1/3`, total unique task paths `13`, path
+`14` **none**; Scope Expansion **Owner-authorized test-only fixture correction**;
+Scope Breach **No**; Committed/Pushed **No/No**; staged artifact **None**; Owner
+UAT **Not run**; Promoted/Production Active **No/No for this task**; Migration/
+Environment/Feature/Allowlist **unchanged**; Production Data Changed/Data Repaired
+**No/No**; Customer/Application Financial Impact **None/None**; commercial note
+**item 1 only = 12,000 บาท**; protected dirty
+`src/lib/schedule-slot-utils.ts` remains blob
+`4521281d099efb189429a744909552d67871ff23`, SHA-256
+`A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+Task Done **No**. Local disposable Supabase was reset after measurement and fixture
+residue is `0`.
+
+Next Action: Owner decides whether to authorize bounded Coach performance
+diagnosis/correction in Product Source within the same Intended Behavior, or gives
+another explicit gate decision. Do not modify Product Source, Commit, Push, build,
+Deploy, create a staged artifact, change aliases, or Promote under the current
+test-only authorization.
+
+### 2026-08-20 — Schedule Learning Details — Bounded Coach Diagnosis Material Hard Stop
+
+State observed at this safe handoff: Owner authorized a local/read-only controlled
+current-vs-exact-HEAD diagnosis, temporary sanitized timing only in the existing
+Coach page, and at most one conditional path-`14` correction if the evidence proved
+the post-`teachingDay` `student_levels` read was the causal bottleneck. The evidence
+did not satisfy that decision gate. No performance correction was attempted, path
+`14` and path `15` remain unused, temporary timing was removed, and execution
+stopped before final regressions, lint/build, Commit, Push, artifact, alias, or
+Promotion.
+
+#### Authorization, environment, and Source ordering
+
+- Fresh Gate matched repository root, branch
+  `spike/next-major-security-upgrade`, local/upstream HEAD
+  `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b`, ahead/behind `0/0`, staged paths
+  `0`, and the existing authorized 13 task paths. Migration, dependency,
+  lockfile, and Coach assignment API diffs were `0`.
+- Protected `src/lib/schedule-slot-utils.ts` remained excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- The test environment was disposable localhost Supabase only. Current and HEAD
+  used the same database fixture, runtime, browser, timezone, navigation, server
+  restart, warm-up `1`, and measured `5` methodology. The exact-HEAD control was
+  an isolated detached worktree and was removed from Git worktree registration
+  after measurement. The local database was reset clean afterward.
+- Source ordering fact: `teachingDay`, `monthRows`, and active `levels` begin
+  together; exact learner identities are available only after `teachingDay`, so
+  the fixed batch `student_levels` read currently starts afterward. This proves a
+  partial-dependency waterfall exists, but not that it caused the historical
+  threshold failure.
+- Official current Supabase JavaScript filter/modifier documentation was checked:
+  `.select()` supports chained filters, `.in(column, values)` accepts a value
+  array, and `.order()` supports the deterministic ordering used here. Current
+  breaking-change notes did not identify a relevant select/filter change. No
+  dependency, schema, RLS, permission, or query semantics were changed.
+
+#### Sanitized raw timing — trial 1, Coach-only navigation
+
+All values below exclude the warm-up. Timing output contained only trial label,
+phase, duration, bounded row count, and total duration; it contained no UUID,
+session identifier, name, program content, or query value.
+
+- Browser current raw duration ms: `[1976.7, 2663.4, 2482.9, 2421.1, 2387.6]`;
+  median `2421.1`. Navigation raw: `[1854.1, 2501.3, 2302.4, 2310.1, 2273.2]`;
+  median `2302.4`.
+- Browser HEAD raw duration ms: `[2666.8, 2203.1, 2212.1, 2342.2, 2710.9]`;
+  median `2342.2`. Navigation raw: `[2508.1, 2098.4, 2101.5, 2238.8, 2595.7]`;
+  median `2238.8`.
+- Coach current-vs-HEAD delta: `+78.9 ms (+3.37%)`, below the contract's combined
+  `>10%` and `>=100 ms` failure threshold. Both sides used `18` browser requests,
+  `0` API requests. Initial payload was current `113,895` vs HEAD `113,676` bytes.
+- Current `teachingDay` raw ms: `[289.7, 266.7, 317.4, 326.4, 283.8]`, median
+  `289.7`; `monthRows`: `[275.5, 236.2, 235.3, 300.5, 272.8]`, median `272.8`;
+  `levels`: `[77.0, 104.3, 98.4, 72.3, 123.2]`, median `98.4`;
+  post-`teachingDay` `student_levels`: `[90.7, 64.8, 60.5, 59.5, 20.6]`, median
+  `60.5`; total: `[387.1, 335.7, 380.7, 388.6, 309.4]`, median `380.7`.
+- HEAD `teachingDay` raw ms: `[323.1, 290.2, 286.7, 230.0, 299.1]`, median
+  `290.2`; `monthRows`: `[310.0, 261.8, 278.2, 185.0, 272.5]`, median `272.5`;
+  absent `levels/student_levels`: `0/0`; total:
+  `[328.2, 297.6, 289.1, 232.4, 303.8]`, median `297.6`. Current internal-total
+  delta was `+83.1 ms`.
+
+#### Sanitized raw timing — trial 2, original User → Coach → Admin order
+
+- Coach current raw duration ms:
+  `[1729.5, 1761.7, 1768.4, 1669.5, 1976.9]`, median `1761.7`; navigation raw
+  `[1624.7, 1657.9, 1657.9, 1562.5, 1846.1]`, median `1657.9`.
+- Coach HEAD raw duration ms:
+  `[2728.6, 1823.5, 1854.0, 1985.9, 2193.4]`, median `1985.9`; navigation raw
+  `[2565.9, 1733.4, 1746.2, 1875.7, 2070.7]`, median `1875.7`.
+- Coach current-vs-HEAD delta was `-224.2 ms (-11.29%)`; current was faster.
+  Both sides used `18` browser requests, `0` API requests. Initial payload was
+  current `113,866` vs HEAD `113,676` bytes.
+- Current `teachingDay` raw ms: `[269.9, 218.8, 262.7, 275.3, 270.4]`, median
+  `269.9`; `monthRows`: `[260.5, 155.9, 252.3, 236.4, 262.2]`, median `252.3`;
+  `levels`: `[71.1, 68.1, 77.1, 99.9, 74.7]`, median `74.7`;
+  post-`teachingDay` `student_levels`: `[56.5, 36.1, 37.0, 35.8, 39.1]`, median
+  `37.0`; total: `[331.4, 258.9, 303.5, 314.0, 312.8]`, median `312.8`.
+- HEAD `teachingDay` raw ms: `[277.1, 302.9, 237.9, 309.0, 244.7]`, median
+  `277.1`; `monthRows`: `[266.5, 282.4, 229.6, 237.6, 234.7]`, median `237.6`;
+  absent `levels/student_levels`: `0/0`; total:
+  `[281.5, 304.6, 241.4, 312.4, 248.2]`, median `281.5`. Current internal-total
+  delta was `+31.3 ms`.
+- User current raw duration ms:
+  `[1441.6, 2064.8, 2311.1, 2458.3, 2094.7]`, median `2094.7`; HEAD
+  `[2094.2, 2458.2, 2383.3, 2411.2, 1877.1]`, median `2383.3`; delta `-288.6 ms`.
+  Both used `18` requests, `0` API, `0` program calls; payload current/HEAD was
+  `63,561/60,809` bytes and no program sentinel was present initially.
+- Admin current raw duration ms:
+  `[2455.4, 2088.8, 1974.1, 2024.9, 2004.7]`, median `2024.9`; HEAD
+  `[2956.4, 1903.1, 2714.2, 2653.8, 2247.3]`, median `2653.8`; delta `-628.9 ms`.
+  Both used `19` requests and `1` existing API; payload current/HEAD was
+  `92,828/93,363` bytes.
+
+#### Causal conclusion and stop state
+
+- **Fact:** the new Level work remains fixed/bounded: one active-level reference
+  read and one exact-learner batch read; no per-student/session loop, N+1, new API,
+  or program preload was observed. User initial program calls/content remained
+  `0/0`; Admin modal additional API/DB remained `0/0`.
+- **Fact:** neither new controlled comparison reproduced the historical Coach
+  fail threshold. The serial Level phase was `60.5` and `37.0 ms`, while Coach
+  browser deltas were `+78.9` and `-224.2 ms`.
+- **Inference:** the serial read contributes bounded critical-path time, but the
+  evidence does not prove it is the causal bottleneck behind the prior
+  `+232.9 ms (+11.96%)` failure.
+- **Unknown:** the cause of the historical reproducible Coach variance remains
+  unconfirmed. Environment/browser/server variance is possible but was not
+  promoted to fact.
+- Decision gate result: **MATERIAL HARD STOP — Root Cause not confirmed**. Path
+  `14` was not used because its evidence condition failed. Performance correction
+  attempts were `0/1`; no alternate diagnosis or correction approach is allowed
+  under the current command.
+- Temporary instrumentation was fully removed from Product Source. A post-removal
+  `npx.cmd tsc --noEmit` and page-scoped `git diff --check` passed. Later final
+  regressions, final two-set Performance Gate, lint, mojibake, build, prod:check,
+  full diff publication, Commit, Push, staged artifact, smoke/log, alias, and
+  Promotion were not run because execution stopped at the required decision gate.
+
+Current classification: Active Task **SCHEDULE LEARNING DETAILS — PARENT PROGRAM
+VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**; Task Status
+**DEVELOPING — MATERIAL HARD STOP: ROOT CAUSE NOT CONFIRMED**; Source Complete
+**No**; complete required Tests Passed **No**; Committed/Pushed **No/No**; staged
+artifact **None**; Owner UAT **Not run**; Promoted/Production Active **No/No for
+this task**; Functional/Test/Config/Documentation `6/3/1/3`, total unique task
+paths `13`; additional path **none**; Scope Breach **No**; Migration/Environment/
+Feature/Allowlist **unchanged**; Controlled Write UAT **not run**; Production Data
+Changed/Data Repaired **No/No**; Customer/Application Financial Impact
+**None/None**; commercial note **item 1 only = 12,000 บาท**; Parking Lot other six
+items remain unauthorized; Task Done **No**.
+
+Next Action: **Owner direction is required after the inconclusive diagnosis. Do
+not use path `14`, attempt another correction or diagnosis approach, run later
+gates, Commit, Push, build, Deploy, create an artifact, change aliases, or Promote
+under the current authorization.**
+
+### 2026-08-20 — Schedule Learning Details — No-Correction Resume Final Performance Hard Stop
+
+State observed at this safe handoff: Owner superseded the causal-confirmation gate,
+accepted the historical Coach performance variance Root Cause as **Unknown**, and
+authorized a no-correction resume requiring two consecutive complete final
+uninstrumented current-vs-exact-HEAD sets. Product correction, further diagnosis,
+instrumentation, path `14`, path `15`, assertion/methodology changes, and retries
+after failure were explicitly prohibited. Final Performance Set 1 did not complete,
+so execution stopped before Set 1 HEAD, Set 2, regressions, lint/build, Commit,
+Push, artifact, aliases, or Promotion.
+
+#### Fresh Gate 0 and frozen Source identity
+
+- Repository root, branch `spike/next-major-security-upgrade`, local/upstream HEAD
+  `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b`, ahead/behind `0/0`, staged paths
+  `0`, and the 13 authorized task paths matched the recorded state.
+- Path `14`, path `15`, timing markers, Coach assignment API diff, Migration diff,
+  dependency diff, and lockfile diff were absent.
+- Protected `src/lib/schedule-slot-utils.ts` stayed excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Gate-0 SHA-256 identities frozen for the ten Functional/Test/Config paths:
+  - `ADB26F132BC178BB6FDD3BF2941C8FE9F80C6C9F0428690ED98BD7437F98BE31`
+    — `src/app/(dashboard)/dashboard/schedule/page.tsx`
+  - `91BC81EACAA703E1B2B4DDAE0D6E6504E8B134BE2716FAFA98DD80FFF29CC990`
+    — `src/components/dashboard/schedule-calendar-client.tsx`
+  - `A1B2DE5DCBBE9E9AE32E58AF45123927FD250E49C86C7DD47D49DC19BC5DE43D`
+    — `src/app/api/schedule/program/route.ts`
+  - `04F2D0AD4C84F4CC0246DC705C8DDD6F7142B9199227233CF41F43D89E5AA35E`
+    — `src/lib/schedule-learning-details.ts`
+  - `3FE1C15117825AF97573E7626FD3B478D686D4E4FED1E177B94A3B16B6F85931`
+    — `src/components/admin/schedules-client.tsx`
+  - `7F9EC3332195144BBDBEC23DDA4EAA6B85B7DB062F6A5D90D20C5BF46D68DB55`
+    — `src/app/(coach)/coach/today/page.tsx`
+  - `AB6E98F5C020D532203CCED75687815A0B29AE93C37B7F07EF279386ED136A4F`
+    — `scripts/check-schedule-learning-details.mjs`
+  - `CBAD4EFF49F1DDD27C87855242ACB3C638BFD71ACD3ABBD84876BC1F6266AD4F`
+    — `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`
+  - `AD50585CC89912D85819299AFBB4A5C7639CB926211A5047D1EDE1849F417AEF`
+    — `scripts/check-coach-assignment-conflicts.mjs`
+  - `ED33D97A6E0466C11878A6F9DB57777A0C33F9FE793BB4B76ABA0D5CF80E9047`
+    — `package.json`.
+
+#### Exact failed-gate evidence
+
+- Disposable localhost Supabase was reset and seeded with the established
+  schedule-learning performance fixture. An isolated detached exact-HEAD control
+  worktree was prepared, but it was not executed because the current half failed
+  first.
+- Final Set 1 current used uninstrumented Product Source and began the established
+  User → Coach → Admin actor order with warm-up `1` and intended measured `5`.
+- The run timed out after `30,000 ms` waiting for
+  `admin-schedule-day-detail` during the Admin warm-up. Server evidence showed the
+  existing `/api/admin/schedules/day` request returned `200`, but the browser
+  harness did not observe the required visible detail before timeout.
+- The ephemeral invocation used an explicit locator visibility `.waitFor()` at
+  this point, whereas the historically recorded harness only created the locator.
+  This is a methodology deviation. Therefore this invocation is not a valid
+  complete established-methodology Performance Set and cannot be reported as a
+  Product performance threshold result.
+- The harness exited before printing its assembled result object. No complete
+  raw five samples, medians, request/API counts, payload comparison, or initial
+  program content summary are available for Set 1. Values were not guessed or
+  reconstructed from partial server logs.
+- Set 1 HEAD and all of Set 2 were not run. No threshold calculation or final
+  Performance PASS exists.
+- Per Owner's explicit rule, no rerun, alternative methodology, diagnosis,
+  correction, Product/Test/Config edit, or later gate was attempted.
+
+#### Cleanup and publication state
+
+- Current dev server was stopped. The unused detached HEAD worktree, junction,
+  and disposable fixture were removed/reset clean.
+- Functional/Test/Config paths remained content-identical to Gate 0. Only the
+  three authorized documentation paths were updated for this safe handoff.
+- Source Complete **No**; complete Tests Passed **No**; Committed/Pushed **No/No**;
+  Application/Documentation Commit **None/None**; ahead/behind `0/0`; staged
+  artifact **None**; staged smoke/log **not run**; Owner UAT **not run**; Promoted
+  **No**; Production Active for this task **No**.
+- Migration/Environment/Feature/Allowlist **unchanged**; Controlled Write UAT
+  **not run**; Production Data Changed/Data Repaired **No/No**; Customer/
+  Application Financial Impact **None/None**; commercial note **item 1 only =
+  12,000 บาท**; other six Parking Lot tasks remain unauthorized; Task Done **No**.
+
+Current result: **MATERIAL HARD STOP — FINAL PERFORMANCE SET 1 INCOMPLETE AND
+METHODOLOGY NONCOMPLIANT**. Historical Coach variance Root Cause remains
+**Unknown** and was not relabeled.
+
+Next Action: **Await Owner direction. Do not retry Performance through any
+methodology, diagnose, correct, edit Product/Test/Config, run later gates, Commit,
+Push, build, Deploy, create an artifact, change aliases, or Promote under the
+current authorization.**
+
+### 2026-08-20 — Schedule Learning Details — Established-Harness Resume Browser-Launch Hard Stop
+
+State observed at this safe handoff: Owner classified the preceding invocation
+that added `.waitFor()` to `admin-schedule-day-detail` as **INVALID /
+NON-COUNTING**, required that historical evidence be retained, and authorized a
+single established-harness resume with no action or assertion on that locator.
+The resumed Final Performance Set 1 crashed at browser launch before actor 1.
+The command explicitly treats any valid-set harness crash or incompletion as a
+Material Hard Stop with no retry, diagnosis, correction, or later gate, so
+execution stopped at that point.
+
+#### Fresh Gate 0 and frozen identity
+
+- Repository root, branch `spike/next-major-security-upgrade`, local/upstream HEAD
+  `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b`, ahead/behind `0/0`, and staged paths
+  `0` matched the Owner-recorded baseline.
+- All ten Functional/Test/Config SHA-256 values matched the frozen Gate-0 values.
+  No Functional, Test, Config, API, or helper content was edited in this
+  continuation.
+- Path `14` was HEAD-identical at Git blob
+  `305e9df13fe6079de27cadb45c9f588de0dc97d4`; path `15`, timing markers,
+  Migration diff, dependency diff, and lockfile diff were absent.
+- Protected `src/lib/schedule-slot-utils.ts` remained excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+#### Owner-authorized invocation and exact failure evidence
+
+- Disposable localhost Supabase was reset and seeded with the established
+  schedule-learning fixture. A clean detached exact-HEAD control was created at
+  `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b`; current and control Source identity
+  were not changed.
+- The ephemeral harness preserved actor order User → Coach → Admin, intended
+  warm-up `1` plus measured `5`, and contained only locator creation for
+  `admin-schedule-day-detail`; it did not call `.waitFor()`, click, count,
+  visibility/text assertion, or any other action on that locator. No readiness
+  selector, instrumentation, threshold, or Product/Test/Config change was added.
+- Playwright failed at `chromium.launch()` before User warm-up. Its configured
+  `chromium_headless_shell-1228` executable was absent from the local Playwright
+  browser installation. The harness exited nonzero before any actor navigation
+  and before emitting `PERF_RESULT`.
+- Therefore Set 1 has no warm-up result, no raw five samples, no current or HEAD
+  median, no delta, no request/API/query/payload observation, and no Product
+  threshold PASS/FAIL. Set 1 HEAD and all of Set 2 were not run. Values were not
+  inferred from earlier trials. This is **MATERIAL HARD STOP — VALID FINAL
+  PERFORMANCE SET 1 INCOMPLETE AT BROWSER LAUNCH**.
+- Per the explicit Owner rule, browser installation/invocation was not changed,
+  the harness was not retried, no diagnosis or correction was attempted, and no
+  regression, E2E, TypeScript, lint, mojibake, build, prod:check, Commit, Push,
+  artifact, smoke/log, alias, or Promotion gate followed.
+
+#### Cleanup and publication state
+
+- The current dev server was stopped and port `3000` had zero listeners. The
+  detached control junction/symlink and worktree were removed from disk and Git
+  worktree registration.
+- A full disposable local database reset command completed successfully after the
+  failed invocation. A later independent row-count attempt could not connect
+  because the local Supabase database container was no longer present; therefore
+  no row residue count is guessed. No linked/remote/Production database was read
+  or written.
+- Functional/Test/Config hashes remained frozen. Only the three authorized
+  documentation paths changed in this continuation.
+- Source Complete **No**; complete Tests Passed **No**; Committed/Pushed **No/No**;
+  ahead/behind `0/0`; Application/Documentation Commit **None/None**; staged
+  artifact **None**; Owner UAT **not run**; Promoted/Production Active **No/No for
+  this task**; Migration/Environment/Feature/Allowlist **unchanged**; Controlled
+  Write UAT **not run**; Production Data Changed/Data Repaired **No/No**;
+  Customer/Application Financial Impact **None/None**; commercial note **item 1
+  only = 12,000 บาท**; the other six Parking Lot tasks remain unauthorized; Task
+  Done **No**.
+
+Current result: **MATERIAL HARD STOP — VALID FINAL PERFORMANCE SET 1 INCOMPLETE AT
+BROWSER LAUNCH**. The preceding day-detail `.waitFor()` invocation remains
+historical invalid/non-counting evidence. Historical Coach performance variance
+Root Cause remains **Unknown** and was not relabeled.
+
+Next Action: **Await Owner direction. Do not install or change browser tooling,
+retry Performance, diagnose, correct, edit Product/Test/Config, run later gates,
+Commit, Push, build, Deploy, create an artifact, change aliases, or Promote under
+the current authorization.**
+
+### 2026-08-20 — Schedule Learning Details — Local Browser Restore and Final Release Gates Passed
+
+State observed before Application publication: Owner superseded only the local
+browser-tooling blocker and authorized the repository-pinned Playwright `1.61.1`
+CLI to restore Chromium Headless Shell `1228`, FFmpeg `1011`, and Winldd `1007`,
+then one non-sample launch/close preflight and the existing two-set Performance
+resume. No Product/Test/Config correction, diagnosis, path `14/15`, methodology,
+threshold, Migration, dependency, lockfile, application/remote Environment,
+feature/allowlist, or Production-data change was authorized or performed.
+
+#### Gate 0, cache restoration, and preflight
+
+- Branch/local/upstream remained `spike/next-major-security-upgrade` /
+  `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b` / same, ahead/behind `0/0`, staged
+  paths `0`. All ten frozen Functional/Test/Config hashes matched.
+- Package/tooling pre-install SHA-256 matched: `package-lock.json`
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`;
+  `@playwright/test/package.json`
+  `9D8556509E073169EFEC663B7F71C13F17D7002B307D00D48BF88EE91C387F3E`;
+  `playwright-core/package.json`
+  `759E376F995BF39EDD4810D699B99469BAB1D7428B6FBC78D41912F367DF7BA9`;
+  `.bin/playwright.cmd`
+  `AA2B5D40122CD9EA4686DACB5C24C42FD86BF1EE7971D58793BAEC624796981B`;
+  and `browsers.json`
+  `EE39BC924BC3D1BD895626C2910F1292D109BBFEEB5ABD113ACB45E1951CC942`.
+- `@playwright/test` and `playwright-core` were both `1.61.1`; `browsers.json`
+  selected Chrome Headless Shell `149.0.7827.55`, revision `1228`. Cache root was
+  absent before installation.
+- Local CLI dry-run listed only Headless Shell `1228`, FFmpeg `1011`, and Winldd
+  `1007`, all under `%LOCALAPPDATA%\ms-playwright`. One exact invocation
+  `.\node_modules\.bin\playwright.cmd install chromium-headless-shell` exited
+  `0`; no `npx`, package install, `--force`, `--with-deps`, or browser-path/env
+  override was used.
+- Installed payload directories are `chromium_headless_shell-1228`,
+  `ffmpeg-1011`, and `winldd-1007`. Playwright Core also created its internal
+  `.links` package registry; read-only Source inspection confirmed this is the
+  mandatory installation-cache registry written by `Registry.install`, not an
+  additional browser or support payload.
+- All ten frozen hashes and the five package/tooling fingerprints remained exact
+  after installation and after final gates. Package/lockfile/node_modules Source
+  changed **No**. Local Tooling Cache Changed **Yes**; Application/Remote
+  Environment Changed **No**.
+- One and only one preflight invoked `chromium.launch({ headless: true })` then
+  `browser.close()`. It exited `0`, opened no URL/context/page, authenticated no
+  actor, contained no PII, and was not a warm-up or measured Performance sample.
+
+#### Valid Final Performance Set 1 — warm-up 1, measured 5
+
+Current and detached exact HEAD used the same Set-1 disposable fixture, runtime,
+Playwright browser, Asia/Bangkok context, server lifecycle, User → Coach → Admin
+order, and historical readiness. `admin-schedule-day-detail` was only constructed
+as a locator; no action or assertion was called on it.
+
+- User current raw duration ms `[652.2, 654.7, 653.1, 657.7, 644.6]`, median
+  `653.1`; HEAD `[667.4, 681.4, 633.2, 655.0, 643.7]`, median `655.0`; delta
+  `-1.9 ms (-0.29%)`. Navigation medians `617.6/621.2 ms`.
+- Coach current `[706.6, 720.6, 714.6, 720.4, 727.6]`, median `720.4`; HEAD
+  `[701.9, 750.6, 700.6, 697.9, 720.7]`, median `701.9`; delta
+  `+18.5 ms (+2.64%)`. Navigation medians `674.7/664.0 ms`.
+- Admin current `[989.0, 863.6, 884.8, 869.5, 879.0]`, median `879.0`; HEAD
+  `[1100.9, 887.5, 875.9, 925.8, 848.5]`, median `887.5`; delta
+  `-8.5 ms (-0.96%)`. Navigation medians `603.4/631.7 ms`.
+- Browser/API requests were User `18/0`, Coach `18/0`, Admin `19/1` in every
+  measured sample. Median payload bytes current/HEAD were User `63,589/60,809`,
+  Coach `114,075/113,705`, Admin `92,785/93,359`. User program calls/content were
+  `0/0` and the initial HTML contained no approved-program sentinel.
+
+#### Valid Final Performance Set 2 — independent warm-up 1, measured 5
+
+Set 2 used a fresh reset/seed and a fresh detached exact-HEAD control. No Set-1
+sample was reused.
+
+- User current raw duration ms `[659.3, 649.6, 681.9, 651.6, 687.2]`, median
+  `659.3`; HEAD `[714.6, 652.1, 626.8, 643.9, 636.1]`, median `643.9`; delta
+  `+15.4 ms (+2.39%)`. Navigation medians `624.0/610.0 ms`.
+- Coach current `[706.7, 744.9, 738.7, 716.3, 715.1]`, median `716.3`; HEAD
+  `[708.2, 690.8, 687.1, 700.5, 689.1]`, median `690.8`; delta
+  `+25.5 ms (+3.69%)`. Navigation medians `671.7/645.2 ms`.
+- Admin current `[1059.5, 902.1, 835.7, 858.0, 874.4]`, median `874.4`; HEAD
+  `[1257.4, 836.3, 838.9, 847.1, 837.4]`, median `838.9`; delta
+  `+35.5 ms (+4.23%)`. Navigation medians `600.0/587.3 ms`.
+- Browser/API requests again remained User `18/0`, Coach `18/0`, Admin `19/1` in
+  every sample. Median payload bytes current/HEAD were User `63,589/60,809`, Coach
+  `114,075/113,705`, Admin `92,876/93,360`; User program calls/content were `0/0`.
+- Both complete sets passed because no actor was both more than `10%` and at least
+  `100 ms` slower than contemporary HEAD. Deterministic query budgets remained
+  User Level `2`, Coach Level `2`, high-cardinality assignment `2`, Admin modal
+  additional API/DB `0/0`, and Parent click auth plus `3` bounded reads; no N+1
+  or request storm was observed.
+
+#### Required regression and release gates
+
+- `test:schedule-learning-details` `13/13`; `test:admin-schedule-assignment`
+  `38/38`; `test:admin-schedules-performance` `24/24`;
+  `test:coach-assignment-conflicts` `22/22` with dynamic Bangkok fixture
+  `2026-09-19..2026-10-01` and residue `0`; assignment resolution `33/33`;
+  lifecycle `52/52` with residue `0`; Lesson Wallet `19/19`.
+- Focused mixed-Level Playwright test passed twice consecutively, `1/1` each,
+  then full serial E2E passed `11/11`; skipped/unexpected/flaky/retry `0`; final
+  fixture residue `0`. Duplicate coach `400`, exact overlap `409`, started-slot,
+  atomicity, cleanup, July fixtures, exact ownership/group, approved-only Parent
+  content, User on-demand/cache/neutral, Coach Level, and Admin existing-payload
+  modal assertions remained intact.
+- Full E2E development output emitted hydration-mismatch warnings on two User
+  Schedule navigations while all 11 assertions passed. No Product correction or
+  diagnostic change was made under this no-correction continuation; the output is
+  retained as a non-failing local observation for staged/browser smoke review.
+- TypeScript passed; ESLint passed with zero warnings; mojibake passed `261`
+  files; Next `16.2.6` Production build passed all `94` static pages;
+  `prod:check` returned `READY WITH WARNINGS/PASSES`; `git diff --check` passed.
+- AGENTS post-build cleanup stopped port `3000`, deleted only the verified repo
+  `.next`, restarted dev, and confirmed root `200`, generated static CSS `200`
+  (`112,024` bytes), and `/dashboard/schedule` `307` to `/auth/login`; the server
+  was then stopped.
+
+#### Pre-publication state
+
+- Functional/Test/Config/Documentation counts are `6/3/1/3`, total unique task
+  paths `13`; Migration and dependency/lockfile paths `0`; path `14` remains HEAD
+  blob `305e9df13fe6079de27cadb45c9f588de0dc97d4`; path `15` is absent.
+- Protected `src/lib/schedule-slot-utils.ts` remains excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source Complete **Yes locally**; Tests Passed **Yes locally**; Committed/Pushed
+  **No/No at this observation**; staged artifact **None**; Owner UAT **not run**;
+  Promoted/Production Active **No/No for this task**; Feature/Allowlist/Migration
+  **unchanged**; Controlled Write UAT **not run**; Production Data Changed/Data
+  Repaired **No/No**; Customer/Application Financial Impact **None/None**;
+  commercial note **item 1 only = 12,000 บาท**; Task Done **No**.
+
+Next Action at this observation: explicitly stage the exact 13 task paths while
+excluding the protected dirty file, inspect the complete staged diff, Commit and
+Push, then create and verify the clean exact-SHA no-alias staged Production-target
+artifact. Do not Promote before Owner UAT PASS.

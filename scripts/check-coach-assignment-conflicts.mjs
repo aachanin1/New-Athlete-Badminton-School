@@ -9,6 +9,42 @@ import { createClient } from '@supabase/supabase-js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 
+function getBangkokCalendarDate(now) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+function addCalendarDays(date, days) {
+  const value = new Date(`${date}T00:00:00Z`)
+  value.setUTCDate(value.getUTCDate() + days)
+  return value.toISOString().slice(0, 10)
+}
+
+const bangkokToday = getBangkokCalendarDate(new Date())
+const fixtureBaseDate = addCalendarDays(bangkokToday, 30)
+const fixtureDates = {
+  crossBranch: addCalendarDays(fixtureBaseDate, 0),
+  sameBranchOverlap: addCalendarDays(fixtureBaseDate, 1),
+  duplicateGroup: addCalendarDays(fixtureBaseDate, 2),
+  partialOverlap: addCalendarDays(fixtureBaseDate, 3),
+  adjacent: addCalendarDays(fixtureBaseDate, 4),
+  differentDayA: addCalendarDays(fixtureBaseDate, 5),
+  differentDayB: addCalendarDays(fixtureBaseDate, 6),
+  edit: addCalendarDays(fixtureBaseDate, 7),
+  legacyOverlap: addCalendarDays(fixtureBaseDate, 8),
+  race: addCalendarDays(fixtureBaseDate, 9),
+  adminRace: addCalendarDays(fixtureBaseDate, 10),
+  invalidName: addCalendarDays(fixtureBaseDate, 11),
+  lifecycle: addCalendarDays(fixtureBaseDate, 12),
+}
+const [fixtureYear, fixtureMonth] = fixtureBaseDate.split('-').map(Number)
+
 function localEnvironment() {
   const output = execSync('npx.cmd supabase status -o env', { encoding: 'utf8' })
   const values = new Map()
@@ -65,6 +101,13 @@ for (const required of [
   "first_slot.date >= (now() at time zone 'Asia/Bangkok')::date",
 ]) assert.equal(migrationSql.includes(required), true, `migration missing ${required}`)
 check('migration contains existing-group backfill, lifecycle sync and current/future safety gate')
+
+assert.ok(
+  Object.values(fixtureDates).every((date) => date >= bangkokToday),
+  `all conflict fixture dates must be Bangkok current/future (today ${bangkokToday})`,
+)
+console.log(`Bangkok conflict fixture window: ${fixtureDates.crossBranch}..${fixtureDates.lifecycle}`)
+check('dynamic conflict fixture dates are Bangkok current/future before writes')
 
 function noError(result, label) {
   if (result.error) throw new Error(`${label}: ${result.error.message}`)
@@ -178,15 +221,15 @@ try {
     child_id: null,
     branch_id: ids.branchA,
     course_type_id: ids.course,
-    month: 7,
-    year: 2026,
+    month: fixtureMonth,
+    year: fixtureYear,
     total_sessions: 20,
     total_price: 0,
     status: 'verified',
   }), 'insert booking')
 
-  const crossA = await addSlot('2026-08-01', '17:00', '19:00', ids.branchA)
-  const crossB = await addSlot('2026-08-01', '17:00', '19:00', ids.branchB)
+  const crossA = await addSlot(fixtureDates.crossBranch, '17:00', '19:00', ids.branchA)
+  const crossB = await addSlot(fixtureDates.crossBranch, '17:00', '19:00', ids.branchB)
   noError(await save(crossA.slotId, crossA.sessions), 'seed cross-branch exact')
   await expectConflict(save(crossB.slotId, crossB.sessions), 'different branches at the same time are rejected')
 
@@ -204,12 +247,12 @@ try {
   assert.equal(backfilledReservation?.group_id, crossGroup.id)
   check('existing exact groups are inserted into reservation protection')
 
-  const sameA = await addSlot('2026-08-02', '17:00', '19:00')
-  const sameB = await addSlot('2026-08-02', '18:00', '20:00')
+  const sameA = await addSlot(fixtureDates.sameBranchOverlap, '17:00', '19:00')
+  const sameB = await addSlot(fixtureDates.sameBranchOverlap, '18:00', '20:00')
   noError(await save(sameA.slotId, sameA.sessions), 'seed same-branch exact')
   await expectConflict(save(sameB.slotId, sameB.sessions), 'same branch overlap is rejected')
 
-  const duplicate = await addSlot('2026-08-03', '17:00', '19:00', ids.branchA, 2)
+  const duplicate = await addSlot(fixtureDates.duplicateGroup, '17:00', '19:00', ids.branchA, 2)
   await expectConflict(admin.rpc('save_coach_assignment_groups_v1', {
     p_schedule_slot_id: duplicate.slotId,
     p_actor_id: coachId,
@@ -221,24 +264,24 @@ try {
     })),
   }), 'one coach owning multiple groups in one slot is rejected')
 
-  const partialA = await addSlot('2026-08-04', '17:00', '19:00')
-  const partialB = await addSlot('2026-08-04', '18:30', '20:00')
+  const partialA = await addSlot(fixtureDates.partialOverlap, '17:00', '19:00')
+  const partialB = await addSlot(fixtureDates.partialOverlap, '18:30', '20:00')
   noError(await save(partialA.slotId, partialA.sessions), 'seed partial overlap')
   await expectConflict(save(partialB.slotId, partialB.sessions), 'partial interval overlap is rejected')
 
-  const adjacentA = await addSlot('2026-08-05', '17:00', '19:00')
-  const adjacentB = await addSlot('2026-08-05', '19:00', '21:00')
+  const adjacentA = await addSlot(fixtureDates.adjacent, '17:00', '19:00')
+  const adjacentB = await addSlot(fixtureDates.adjacent, '19:00', '21:00')
   noError(await save(adjacentA.slotId, adjacentA.sessions), 'seed adjacent')
   noError(await save(adjacentB.slotId, adjacentB.sessions), 'adjacent write')
   check('an end time equal to the next start time is allowed')
 
-  const dayA = await addSlot('2026-08-06', '17:00', '19:00')
-  const dayB = await addSlot('2026-08-07', '17:00', '19:00')
+  const dayA = await addSlot(fixtureDates.differentDayA, '17:00', '19:00')
+  const dayB = await addSlot(fixtureDates.differentDayB, '17:00', '19:00')
   noError(await save(dayA.slotId, dayA.sessions), 'seed different day')
   noError(await save(dayB.slotId, dayB.sessions), 'different day write')
   check('same time on different dates is allowed')
 
-  const edit = await addSlot('2026-08-08', '17:00', '19:00')
+  const edit = await addSlot(fixtureDates.edit, '17:00', '19:00')
   noError(await save(edit.slotId, edit.sessions), 'seed edit')
   const editGroup = noError(await admin.from('coach_assignment_groups').select('id').eq('schedule_slot_id', edit.slotId).single(), 'read edit group')
   noError(await admin.from('coach_assignment_groups').update({ name: 'Exact renamed group' }).eq('id', editGroup.id), 'edit same record')
@@ -260,8 +303,8 @@ try {
   assert.equal(reassignedReservation?.group_id, editGroup.id)
   check('changing the exact group coach resynchronizes its reservation')
 
-  const legacySource = await addSlot('2026-08-09', '17:00', '19:00')
-  const legacyTarget = await addSlot('2026-08-09', '17:30', '18:30', ids.branchB)
+  const legacySource = await addSlot(fixtureDates.legacyOverlap, '17:00', '19:00')
+  const legacyTarget = await addSlot(fixtureDates.legacyOverlap, '17:30', '18:30', ids.branchB)
   noError(await admin.from('coach_assignments').insert({ coach_id: coachId, schedule_slot_id: legacySource.slotId, assigned_by: coachId }), 'insert legacy-only row')
   const warningResult = noError(await admin.rpc('get_coach_assignment_conflicts_v1', {
     p_coach_id: coachId,
@@ -274,15 +317,15 @@ try {
   noError(await save(legacyTarget.slotId, legacyTarget.sessions), 'legacy-only write')
   check('legacy-only overlap warns but does not block')
 
-  const raceA = await addSlot('2026-08-10', '17:00', '19:00')
-  const raceB = await addSlot('2026-08-10', '17:00', '19:00', ids.branchB)
+  const raceA = await addSlot(fixtureDates.race, '17:00', '19:00')
+  const raceB = await addSlot(fixtureDates.race, '17:00', '19:00', ids.branchB)
   const race = await Promise.all([save(raceA.slotId, raceA.sessions), save(raceB.slotId, raceB.sessions)])
   assert.equal(race.filter((result) => !result.error).length, 1)
   assert.equal(race.filter((result) => result.error).length, 1)
   check('concurrent exact writes allow exactly one winner')
 
-  const adminRaceA = await addSlot('2026-08-11', '17:00', '19:00')
-  const adminRaceB = await addSlot('2026-08-11', '17:00', '19:00', ids.branchB)
+  const adminRaceA = await addSlot(fixtureDates.adminRace, '17:00', '19:00')
+  const adminRaceB = await addSlot(fixtureDates.adminRace, '17:00', '19:00', ids.branchB)
   const createArgs = (slot) => ({
     p_schedule_slot_id: slot.slotId,
     p_coach_id: coachId,
@@ -305,13 +348,13 @@ try {
   assert.equal(adminRaceGroups.data.length, 1)
   check('concurrent Admin-style group creation rolls back the losing command without an empty group')
 
-  const invalidNameSlot = await addSlot('2026-08-12', '17:00', '19:00')
+  const invalidNameSlot = await addSlot(fixtureDates.invalidName, '17:00', '19:00')
   const invalidNameResult = await save(invalidNameSlot.slotId, invalidNameSlot.sessions, 'ยังไม่จัดกลุ่ม')
   assert.ok(invalidNameResult.error)
   assert.match(invalidNameResult.error.message, /coach_assignment_exact_group_name_check/)
   check('database rejects an exact coach group that keeps the placeholder name')
 
-  const lifecycle = await addSlot('2026-08-13', '17:00', '19:00')
+  const lifecycle = await addSlot(fixtureDates.lifecycle, '17:00', '19:00')
   noError(await save(lifecycle.slotId, lifecycle.sessions, 'Lifecycle exact group'), 'seed lifecycle group')
   const lifecycleGroup = noError(
     await admin.from('coach_assignment_groups').select('id').eq('schedule_slot_id', lifecycle.slotId).single(),

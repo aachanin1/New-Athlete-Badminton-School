@@ -11,6 +11,14 @@ import {
   buildLatestAttendanceRowBySessionId,
   type AttendanceSessionRow,
 } from '@/lib/session-attendance-status'
+import {
+  buildActiveScheduleLevelNameMap,
+  buildLatestScheduleStudentLevelMap,
+  getScheduleLevelDetails,
+  type ScheduleLevelDefinition,
+  type ScheduleStudentLevelRow,
+  type ScheduleStudentType,
+} from '@/lib/schedule-learning-details'
 
 interface ScheduleSessionRow {
   id: string
@@ -73,6 +81,11 @@ interface AssignmentGroupRow {
   coach_assignment_group_students: { booking_session_id: string }[] | null
 }
 
+interface ExactAssignmentMembershipRow {
+  booking_session_id: string
+  coach_assignment_groups: AssignmentGroupRow | AssignmentGroupRow[] | null
+}
+
 interface LegacyAssignmentRow {
   schedule_slot_id: string
   coach_id: string
@@ -81,6 +94,17 @@ interface LegacyAssignmentRow {
     role: string | null
     avatar_url: string | null
   } | null
+}
+
+interface OwnershipScopedSlotAssignmentRow {
+  schedule_slot_id: string | null
+  schedule_slots: {
+    coach_assignment_groups: { id: string }[] | null
+    coach_assignments: LegacyAssignmentRow[] | null
+  } | {
+    coach_assignment_groups: { id: string }[] | null
+    coach_assignments: LegacyAssignmentRow[] | null
+  }[] | null
 }
 
 interface AttendanceRow extends AttendanceSessionRow {
@@ -103,6 +127,10 @@ interface IncompleteBookingRow {
   created_at: string
 }
 
+interface ActiveLevelRow extends ScheduleLevelDefinition {
+  is_active: boolean
+}
+
 function formatMoney(amount: number) {
   return `฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`
 }
@@ -116,12 +144,30 @@ export default async function SchedulePage() {
 
   if (!user) redirect('/auth/login')
 
-  const { data: incompleteBookingsData } = await supabase
-    .from('bookings')
-    .select('id, status, total_price, total_sessions, created_at')
-    .eq('user_id', user.id)
-    .in('status', ['pending_payment', 'paid'])
-    .order('created_at', { ascending: false }) as unknown as { data: IncompleteBookingRow[] | null }
+  const [
+    { data: incompleteBookingsData },
+    { data: allSessions },
+    { data: activeLevelsData },
+  ] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select('id, status, total_price, total_sessions, created_at')
+      .eq('user_id', user.id)
+      .in('status', ['pending_payment', 'paid'])
+      .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: IncompleteBookingRow[] | null }>,
+    supabase
+      .from('booking_sessions')
+      .select('id, booking_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, rescheduled_from_id, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name, nickname)')
+      .eq('bookings.user_id', user.id)
+      .eq('bookings.status', 'verified')
+      .neq('status', 'rescheduled')
+      .order('date', { ascending: true }) as unknown as PromiseLike<{ data: ScheduleSessionRow[] | null }>,
+    supabase
+      .from('levels')
+      .select('id, name, is_active')
+      .eq('is_active', true)
+      .order('id') as unknown as PromiseLike<{ data: ActiveLevelRow[] | null }>,
+  ])
 
   const incompleteBookings = incompleteBookingsData || []
   const waitingSlipCount = incompleteBookings.filter((booking) => booking.status === 'pending_payment').length
@@ -129,16 +175,25 @@ export default async function SchedulePage() {
   const incompleteSessions = incompleteBookings.reduce((sum, booking) => sum + Number(booking.total_sessions || 0), 0)
   const incompleteAmount = incompleteBookings.reduce((sum, booking) => sum + Number(booking.total_price || 0), 0)
 
-  const { data: allSessions } = await supabase
-    .from('booking_sessions')
-    .select('id, booking_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, rescheduled_from_id, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name, nickname)')
-    .eq('bookings.user_id', user.id)
-    .eq('bookings.status', 'verified')
-    .neq('status', 'rescheduled')
-    .order('date', { ascending: true }) as unknown as { data: ScheduleSessionRow[] | null }
-
   const sessionsArr = allSessions || []
   const sessionIds = sessionsArr.map((session) => session.id)
+  const studentRefs = Array.from(new Map(sessionsArr.flatMap((session) => {
+    const studentId = session.child_id || session.bookings?.user_id
+    if (!studentId) return []
+    const studentType: ScheduleStudentType = session.child_id ? 'child' : 'adult'
+    return [[`${studentType}:${studentId}`, { studentId, studentType }] as const]
+  })).values())
+  const studentIds = studentRefs.map((student) => student.studentId)
+  const studentTypes = Array.from(new Set(studentRefs.map((student) => student.studentType)))
+  const studentLevelsPromise: Promise<{ data: ScheduleStudentLevelRow[] | null }> = studentIds.length > 0
+    ? Promise.resolve(supabase
+        .from('student_levels')
+        .select('id, student_id, student_type, level, created_at')
+        .in('student_id', studentIds)
+        .in('student_type', studentTypes)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }) as unknown as PromiseLike<{ data: ScheduleStudentLevelRow[] | null }>)
+    : Promise.resolve({ data: [] })
   const slotIds = Array.from(new Set(sessionsArr.map((session) => session.schedule_slot_id).filter(Boolean))) as string[]
   const fromIds = Array.from(new Set(sessionsArr.map((session) => session.rescheduled_from_id).filter(Boolean))) as string[]
   const fromMap: Record<string, OriginalSessionRow> = {}
@@ -191,26 +246,73 @@ export default async function SchedulePage() {
   }
 
   if (slotIds.length > 0) {
-    const [{ data: groupRows }, { data: legacyAssignments }] = await Promise.all([
-      adminSupabase
-      .from('coach_assignment_groups')
-      .select(`
-        id,
-        name,
-        schedule_slot_id,
-        coach_id,
-        profiles!coach_assignment_groups_coach_id_fkey(full_name, role, avatar_url),
-        coach_assignment_group_students(booking_session_id)
-      `)
-      .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: AssignmentGroupRow[] | null }>,
-      adminSupabase
-        .from('coach_assignments')
-        .select(`
-          schedule_slot_id,
-          coach_id,
-          profiles!coach_assignments_coach_id_fkey(full_name, role, avatar_url)
-        `)
-        .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: LegacyAssignmentRow[] | null }>,
+    const useOwnershipScopedMembershipRead = slotIds.length > 100
+    const [
+      { data: groupRows },
+      { data: legacyAssignments },
+      { data: exactMembershipRows },
+      { data: ownershipScopedSlotAssignments },
+    ] = await Promise.all([
+      useOwnershipScopedMembershipRead
+        ? Promise.resolve({ data: [] as AssignmentGroupRow[] })
+        : adminSupabase
+            .from('coach_assignment_groups')
+            .select(`
+              id,
+              name,
+              schedule_slot_id,
+              coach_id,
+              profiles!coach_assignment_groups_coach_id_fkey(full_name, role, avatar_url),
+              coach_assignment_group_students(booking_session_id)
+            `)
+            .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: AssignmentGroupRow[] | null }>,
+      useOwnershipScopedMembershipRead
+        ? Promise.resolve({ data: [] as LegacyAssignmentRow[] })
+        : adminSupabase
+            .from('coach_assignments')
+            .select(`
+              schedule_slot_id,
+              coach_id,
+              profiles!coach_assignments_coach_id_fkey(full_name, role, avatar_url)
+            `)
+            .in('schedule_slot_id', slotIds) as unknown as PromiseLike<{ data: LegacyAssignmentRow[] | null }>,
+      useOwnershipScopedMembershipRead
+        ? adminSupabase
+            .from('coach_assignment_group_students')
+            .select(`
+              booking_session_id,
+              coach_assignment_groups!inner(
+                id,
+                name,
+                schedule_slot_id,
+                coach_id,
+                profiles!coach_assignment_groups_coach_id_fkey(full_name, role, avatar_url),
+                coach_assignment_group_students(booking_session_id)
+              ),
+              booking_sessions!inner(bookings!inner(user_id, status))
+            `)
+            .eq('booking_sessions.bookings.user_id', user.id)
+            .eq('booking_sessions.bookings.status', 'verified') as unknown as PromiseLike<{ data: ExactAssignmentMembershipRow[] | null }>
+        : Promise.resolve({ data: [] as ExactAssignmentMembershipRow[] }),
+      useOwnershipScopedMembershipRead
+        ? adminSupabase
+            .from('booking_sessions')
+            .select(`
+              schedule_slot_id,
+              bookings!inner(user_id, status),
+              schedule_slots!inner(
+                coach_assignment_groups(id),
+                coach_assignments(
+                  schedule_slot_id,
+                  coach_id,
+                  profiles!coach_assignments_coach_id_fkey(full_name, role, avatar_url)
+                )
+              )
+            `)
+            .eq('bookings.user_id', user.id)
+            .eq('bookings.status', 'verified')
+            .neq('status', 'rescheduled') as unknown as PromiseLike<{ data: OwnershipScopedSlotAssignmentRow[] | null }>
+        : Promise.resolve({ data: [] as OwnershipScopedSlotAssignmentRow[] }),
     ])
 
     ;(groupRows || []).forEach((group) => {
@@ -220,6 +322,34 @@ export default async function SchedulePage() {
         if (sessionIds.includes(student.booking_session_id)) {
           assignmentBySessionId[student.booking_session_id] = group
           groupSessionIdsBySessionId[student.booking_session_id] = groupSessionIds
+        }
+      })
+    })
+
+    const countedMembershipGroupIds = new Set<string>()
+    ;(exactMembershipRows || []).forEach((membership) => {
+      const relation = membership.coach_assignment_groups
+      const group = Array.isArray(relation) ? relation[0] || null : relation
+      if (!group || !sessionIds.includes(membership.booking_session_id)) return
+      assignmentBySessionId[membership.booking_session_id] = group
+      groupSessionIdsBySessionId[membership.booking_session_id] = (group.coach_assignment_group_students || [])
+        .map((student) => student.booking_session_id)
+      if (!countedMembershipGroupIds.has(group.id)) {
+        countedMembershipGroupIds.add(group.id)
+        groupCountBySlotId[group.schedule_slot_id] = (groupCountBySlotId[group.schedule_slot_id] || 0) + 1
+      }
+    })
+
+    ;(ownershipScopedSlotAssignments || []).forEach((row) => {
+      if (!row.schedule_slot_id) return
+      const relation = row.schedule_slots
+      const slot = Array.isArray(relation) ? relation[0] || null : relation
+      if (!slot) return
+
+      groupCountBySlotId[row.schedule_slot_id] = (slot.coach_assignment_groups || []).length
+      ;(slot.coach_assignments || []).forEach((assignment) => {
+        if (!legacyAssignmentBySlotId[assignment.schedule_slot_id]) {
+          legacyAssignmentBySlotId[assignment.schedule_slot_id] = assignment
         }
       })
     })
@@ -272,6 +402,10 @@ export default async function SchedulePage() {
     attendanceCountBySessionId = buildAttendanceCountBySessionId(attendanceRows || [])
   }
 
+  const { data: studentLevelsData } = await studentLevelsPromise
+  const latestStudentLevels = buildLatestScheduleStudentLevelMap(studentLevelsData || [])
+  const activeLevelNames = buildActiveScheduleLevelNameMap(activeLevelsData || [])
+
   const sessions = sessionsArr.map((session) => {
     const assignment = assignmentBySessionId[session.id]
     const legacyAssignment = !assignment && session.schedule_slot_id && !groupCountBySlotId[session.schedule_slot_id]
@@ -280,6 +414,11 @@ export default async function SchedulePage() {
     const attendance = attendanceBySessionId.get(session.id)
     const walletCredit = walletCreditByOriginalSessionId[session.id]
     const sourceWalletCredit = session.rescheduled_from_id ? walletCreditByOriginalSessionId[session.rescheduled_from_id] : null
+    const studentId = session.child_id || session.bookings?.user_id || ''
+    const studentType: ScheduleStudentType = session.child_id ? 'child' : 'adult'
+    const levelDetails = studentId
+      ? getScheduleLevelDetails(studentType, studentId, latestStudentLevels, activeLevelNames)
+      : { level: 0, levelName: null, label: 'LV 0 / ยังไม่ประเมิน' }
 
     return {
       ...session,
@@ -291,6 +430,11 @@ export default async function SchedulePage() {
       wallet_source_status: sourceWalletCredit?.status || null,
       assignment_group_id: assignment?.id || null,
       assignment_group_name: assignment?.name || null,
+      can_view_program: Boolean(
+        assignment?.id
+        && assignment.coach_id
+        && assignment.schedule_slot_id === session.schedule_slot_id
+      ),
       coach_id: assignment?.coach_id || legacyAssignment?.coach_id || null,
       coach_name: assignment?.profiles?.full_name || legacyAssignment?.profiles?.full_name || null,
       coach_role: assignment?.profiles?.role || legacyAssignment?.profiles?.role || null,
@@ -298,6 +442,9 @@ export default async function SchedulePage() {
       assignment_status: assignment?.coach_id || legacyAssignment?.coach_id ? 'assigned' as const : 'pending_assignment' as const,
       attendance_status: attendance?.status || null,
       attendance_checked_at: attendance?.checked_at || null,
+      level: levelDetails.level,
+      level_name: levelDetails.levelName,
+      level_label: levelDetails.label,
       attendance_scope_count: (groupSessionIdsBySessionId[session.id] || slotSessionIdsBySlotId[session.schedule_slot_id || ''] || [session.id])
         .reduce((sum, sessionId) => sum + (attendanceCountBySessionId.get(sessionId) || 0), 0),
     }

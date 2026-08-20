@@ -21,6 +21,14 @@ import { getCoachSlotCheckedCount, getCoachSlotDisplaySummary } from '@/lib/coac
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
 import { formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { deriveSessionAttendanceStatus, isInProgressSession } from '@/lib/session-attendance-status'
+import {
+  buildActiveScheduleLevelNameMap,
+  buildLatestScheduleStudentLevelMap,
+  getScheduleLevelDetails,
+  getScheduleStudentKey,
+  type ScheduleLevelDefinition,
+  type ScheduleStudentLevelRow,
+} from '@/lib/schedule-learning-details'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime, getBangkokDateString } from '@/lib/utils'
 
@@ -143,14 +151,43 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
   const monthStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), 1)
   const nextMonthStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth() + 1, 1)
 
-  const [teachingDay, monthRows] = await Promise.all([
-    getCoachAssignedTeachingDay(supabase, user.id, selectedDate),
-    getCoachTeachingHourSourceRows(supabase, {
+  const teachingDayPromise = getCoachAssignedTeachingDay(supabase, user.id, selectedDate)
+  const monthRowsPromise = getCoachTeachingHourSourceRows(supabase, {
       coachId: user.id,
       startDate: toInputDate(monthStart),
       endDateExclusive: toInputDate(nextMonthStart),
-    }),
+    })
+  const activeLevelsPromise = supabase
+      .from('levels')
+      .select('id, name, is_active')
+      .eq('is_active', true)
+      .order('id') as unknown as PromiseLike<{ data: ScheduleLevelDefinition[] | null }>
+
+  const teachingDay = await teachingDayPromise
+  const studentRefs = Array.from(new Map(teachingDay.slots.flatMap((slot) => (
+    slot.students.map((student) => [
+      getScheduleStudentKey(student.studentType, student.studentId),
+      { studentId: student.studentId, studentType: student.studentType },
+    ] as const)
+  ))).values())
+  const studentIds = studentRefs.map((student) => student.studentId)
+  const studentTypes = Array.from(new Set(studentRefs.map((student) => student.studentType)))
+  const studentLevelsPromise: PromiseLike<{ data: ScheduleStudentLevelRow[] | null }> = studentIds.length > 0
+    ? supabase
+        .from('student_levels')
+        .select('id, student_id, student_type, level, created_at')
+        .in('student_id', studentIds)
+        .in('student_type', studentTypes)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }) as unknown as PromiseLike<{ data: ScheduleStudentLevelRow[] | null }>
+    : Promise.resolve({ data: [] })
+  const [monthRows, { data: activeLevelsData }, { data: studentLevelsData }] = await Promise.all([
+    monthRowsPromise,
+    activeLevelsPromise,
+    studentLevelsPromise,
   ])
+  const latestStudentLevels = buildLatestScheduleStudentLevelMap(studentLevelsData || [])
+  const activeLevelNames = buildActiveScheduleLevelNameMap(activeLevelsData || [])
 
   const monthRowsByDate = monthRows.reduce((map, row) => {
     if (!map[row.date]) map[row.date] = []
@@ -400,6 +437,12 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                     <div className="space-y-2 border-t pt-3">
                       {slot.students.map((student) => {
                         const studentStatus = getStudentScheduleStatus(slot, student)
+                        const levelDetails = getScheduleLevelDetails(
+                          student.studentType,
+                          student.studentId,
+                          latestStudentLevels,
+                          activeLevelNames,
+                        )
 
                         return (
                           <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
@@ -413,6 +456,9 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                                     {student.assignmentGroupName}
                                   </Badge>
                                 )}
+                                <Badge variant="outline" className="bg-white text-[10px] text-indigo-700">
+                                  {levelDetails.label}
+                                </Badge>
                               </div>
                               {student.parentName && <p className="truncate text-xs text-gray-400">ผู้ปกครอง: {student.parentName}</p>}
                             </div>

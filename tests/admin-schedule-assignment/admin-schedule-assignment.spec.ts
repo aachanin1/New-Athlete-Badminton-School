@@ -10,7 +10,10 @@ const IDS = {
   slot: 'a1000000-0000-4000-8000-000000000001',
   forwardSlot: 'a1000000-0000-4000-8000-000000000002',
   overlapSlot: 'a1000000-0000-4000-8000-000000000003',
+  mixedForwardSlot: 'c1000000-0000-4000-8000-000000000001',
+  mixedOverlapSlot: 'c1000000-0000-4000-8000-000000000002',
   booking: 'a2000000-0000-4000-8000-000000000001',
+  mixedBooking: 'c2000000-0000-4000-8000-000000000001',
   children: [
     'a3000000-0000-4000-8000-000000000001',
     'a3000000-0000-4000-8000-000000000002',
@@ -34,13 +37,64 @@ const IDS = {
     'a4000000-0000-4000-8000-000000000013',
   ],
   overlapSession: 'a4000000-0000-4000-8000-000000000014',
+  mixedForwardSessions: [
+    'c4000000-0000-4000-8000-000000000001',
+    'c4000000-0000-4000-8000-000000000002',
+    'c4000000-0000-4000-8000-000000000003',
+  ],
+  mixedOverlapSession: 'c4000000-0000-4000-8000-000000000004',
   validGroup: 'a5000000-0000-4000-8000-000000000001',
   unassignedGroup: 'a5000000-0000-4000-8000-000000000002',
+  approvedProgram: 'a6000000-0000-4000-8000-000000000001',
+  draftProgram: 'a6000000-0000-4000-8000-000000000002',
+  submittedProgram: 'a6000000-0000-4000-8000-000000000003',
+  rejectedProgram: 'a6000000-0000-4000-8000-000000000004',
   bulkBooking: 'b2000000-0000-4000-8000-000000000001',
   augustBooking: 'b2000000-0000-4000-8000-999999999999',
   augustChild: 'b3000000-0000-4000-8000-999999999999',
   augustSlot: 'b1000000-0000-4000-8000-999999999999',
   augustSession: 'b4000000-0000-4000-8000-999999999999',
+} as const
+
+const APPROVED_PROGRAM_CONTENT = 'PROGRAM_APPROVED_VISIBLE_SENTINEL\nบรรทัดสองสำหรับตรวจการขึ้นบรรทัด\nบรรทัดสามสำหรับเนื้อหาฉบับเต็ม'
+const FORBIDDEN_PROGRAM_CONTENT = {
+  draft: 'PROGRAM_DRAFT_FORBIDDEN_SENTINEL',
+  submitted: 'PROGRAM_SUBMITTED_FORBIDDEN_SENTINEL',
+  rejected: 'PROGRAM_REJECTED_FORBIDDEN_SENTINEL',
+  notes: 'PROGRAM_ADMIN_NOTES_FORBIDDEN_SENTINEL',
+}
+
+function getBangkokCalendarDate(now: Date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+function addCalendarDays(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00Z`)
+  value.setUTCDate(value.getUTCDate() + days)
+  return value.toISOString().slice(0, 10)
+}
+
+const bangkokToday = getBangkokCalendarDate(new Date())
+const mixedLevelFixtureDate = addCalendarDays(bangkokToday, 30)
+const [mixedLevelFixtureYear, mixedLevelFixtureMonth] = mixedLevelFixtureDate.split('-').map(Number)
+const MIXED_LEVEL_FIXTURE = {
+  date: mixedLevelFixtureDate,
+  year: mixedLevelFixtureYear,
+  month: mixedLevelFixtureMonth,
+  monthKey: mixedLevelFixtureDate.slice(0, 7),
+  dateLabel: new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'Asia/Bangkok',
+    day: 'numeric',
+    month: 'short',
+    year: '2-digit',
+  }).format(new Date(`${mixedLevelFixtureDate}T12:00:00+07:00`)),
 } as const
 
 test.describe.configure({ mode: 'serial' })
@@ -69,6 +123,22 @@ async function loginAsHeadCoach(page: Page) {
   await page.waitForURL(/\/coach(?:\/|$)/)
 }
 
+async function loginAsUser(page: Page, email = TEST_ACCOUNT.email) {
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(email)
+  await page.locator('#password').fill(TEST_ADMIN_ACCOUNT.password)
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+  await page.waitForURL(/\/dashboard(?:\/|$)/)
+}
+
+async function openUserScheduleDate(page: Page) {
+  await page.goto('/dashboard/schedule')
+  await expect(page.getByRole('heading', { name: 'ตารางเรียน', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'เดือนก่อนหน้า', exact: true }).click()
+  await expect(page.getByText('กรกฎาคม 2569', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-07-17', exact: true }).click()
+}
+
 async function login(page: Page, email: string) {
   await page.goto('/auth/login')
   await page.locator('#email').fill(email)
@@ -78,6 +148,11 @@ async function login(page: Page, email: string) {
 }
 
 test.beforeAll(async () => {
+  expect(
+    MIXED_LEVEL_FIXTURE.date > bangkokToday,
+    `mixed-Level fixture must be after Bangkok today ${bangkokToday}`,
+  ).toBe(true)
+
   const admin = createLocalAdmin()
   const fixture = readBookingFixture()
   const { data: coachUser, error: coachUserError } = await admin.auth.admin.createUser({
@@ -153,6 +228,33 @@ test.beforeAll(async () => {
     },
   ])).error, 'insert mixed-Level and overlap fixture slots')
 
+  assertNoError((await admin.from('schedule_slots').insert([
+    {
+      id: IDS.mixedForwardSlot,
+      template_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: MIXED_LEVEL_FIXTURE.date,
+      start_time: '17:00',
+      end_time: '19:00',
+      max_students: 6,
+      current_students: 3,
+      status: 'open',
+    },
+    {
+      id: IDS.mixedOverlapSlot,
+      template_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: MIXED_LEVEL_FIXTURE.date,
+      start_time: '18:30',
+      end_time: '20:30',
+      max_students: 6,
+      current_students: 1,
+      status: 'open',
+    },
+  ])).error, 'insert isolated future mixed-Level fixture slots')
+
   const learnerNames = [
     { fullName: 'Schedule Fixture Learner 1', nickname: 'SF1' },
     { fullName: 'Café Fixture Learner', nickname: 'ก' },
@@ -195,6 +297,20 @@ test.beforeAll(async () => {
     status: 'verified',
   })).error, 'insert fixture booking')
 
+  assertNoError((await admin.from('bookings').insert({
+    id: IDS.mixedBooking,
+    user_id: fixture.userId,
+    learner_type: 'child',
+    child_id: null,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.kidsCourseId,
+    month: MIXED_LEVEL_FIXTURE.month,
+    year: MIXED_LEVEL_FIXTURE.year,
+    total_sessions: 4,
+    total_price: 0,
+    status: 'verified',
+  })).error, 'insert isolated future mixed-Level booking')
+
   assertNoError((await admin.from('booking_sessions').insert(IDS.sessions.map((id, index) => ({
     id,
     booking_id: IDS.booking,
@@ -232,7 +348,33 @@ test.beforeAll(async () => {
     },
   ])).error, 'insert mixed-Level and overlap fixture sessions')
 
+  assertNoError((await admin.from('booking_sessions').insert([
+    ...IDS.mixedForwardSessions.map((id, index) => ({
+      id,
+      booking_id: IDS.mixedBooking,
+      schedule_slot_id: IDS.mixedForwardSlot,
+      date: MIXED_LEVEL_FIXTURE.date,
+      start_time: '17:00',
+      end_time: '19:00',
+      branch_id: fixture.branchId,
+      child_id: IDS.forwardChildren[index],
+      status: 'scheduled' as const,
+    })),
+    {
+      id: IDS.mixedOverlapSession,
+      booking_id: IDS.mixedBooking,
+      schedule_slot_id: IDS.mixedOverlapSlot,
+      date: MIXED_LEVEL_FIXTURE.date,
+      start_time: '18:30',
+      end_time: '20:30',
+      branch_id: fixture.branchId,
+      child_id: IDS.children[3],
+      status: 'scheduled' as const,
+    },
+  ])).error, 'insert isolated future mixed-Level fixture sessions')
+
   assertNoError((await admin.from('student_levels').insert([
+    { student_id: IDS.children[0], student_type: 'child', level: 53, updated_by: fixture.adminUserId },
     { student_id: IDS.forwardChildren[0], student_type: 'child', level: 8, updated_by: fixture.adminUserId },
     { student_id: IDS.forwardChildren[1], student_type: 'child', level: 29, updated_by: fixture.adminUserId },
     { student_id: IDS.forwardChildren[2], student_type: 'child', level: 35, updated_by: fixture.adminUserId },
@@ -271,6 +413,45 @@ test.beforeAll(async () => {
       student_type: 'child',
     },
   ])).error, 'insert fixture group memberships')
+
+  assertNoError((await admin.from('teaching_programs').insert([
+    {
+      id: IDS.draftProgram,
+      coach_id: coachUserId,
+      schedule_slot_id: IDS.slot,
+      program_content: FORBIDDEN_PROGRAM_CONTENT.draft,
+      status: 'draft',
+      updated_at: '2026-08-01T00:00:00Z',
+    },
+    {
+      id: IDS.submittedProgram,
+      coach_id: coachUserId,
+      schedule_slot_id: IDS.slot,
+      program_content: FORBIDDEN_PROGRAM_CONTENT.submitted,
+      status: 'submitted',
+      updated_at: '2026-08-02T00:00:00Z',
+    },
+    {
+      id: IDS.rejectedProgram,
+      coach_id: coachUserId,
+      schedule_slot_id: IDS.slot,
+      program_content: FORBIDDEN_PROGRAM_CONTENT.rejected,
+      status: 'rejected',
+      reviewed_by: fixture.adminUserId,
+      notes: FORBIDDEN_PROGRAM_CONTENT.notes,
+      updated_at: '2026-08-03T00:00:00Z',
+    },
+    {
+      id: IDS.approvedProgram,
+      coach_id: coachUserId,
+      schedule_slot_id: IDS.slot,
+      program_content: APPROVED_PROGRAM_CONTENT,
+      status: 'approved',
+      reviewed_by: fixture.adminUserId,
+      notes: FORBIDDEN_PROGRAM_CONTENT.notes,
+      updated_at: '2026-08-04T00:00:00Z',
+    },
+  ])).error, 'insert approved and non-public teaching program fixtures')
 
   const bulkDates = Array.from({ length: 31 }, (_, index) => index + 1).filter((day) => day !== 17)
   const bulkSlots = Array.from({ length: 205 }, (_, index) => {
@@ -364,6 +545,13 @@ test.beforeAll(async () => {
     sort_order: 0,
     created_by: fixture.adminUserId,
   })))).error, 'insert high-cardinality fixture groups')
+  assertNoError((await admin.from('coach_assignments').insert([
+    {
+      coach_id: coachUserId,
+      schedule_slot_id: IDS.augustSlot,
+      assigned_by: fixture.adminUserId,
+    },
+  ])).error, 'insert high-cardinality legacy parity fixtures')
 })
 
 test('production-active assignment write routes reject anonymous callers', async ({ request }) => {
@@ -381,6 +569,10 @@ test('production-active assignment write routes reject anonymous callers', async
   expect(dayRead.status()).toBe(401)
   const searchRead = await request.get('/api/admin/schedules/search?q=SF1&year=2026&month=7')
   expect(searchRead.status()).toBe(401)
+  const programRead = await request.get(`/api/schedule/program?sessionId=${IDS.sessions[0]}`)
+  expect(programRead.status()).toBe(401)
+  const invalidProgramRead = await request.get('/api/schedule/program?sessionId=not-a-uuid')
+  expect(invalidProgramRead.status()).toBe(400)
 })
 
 test('local performance instrumentation measures summary, month, day, search, calls, and transfer', async ({ page }) => {
@@ -572,6 +764,165 @@ test('authenticated Super Admin and standard Admin can use bounded day/search re
   await adminContext.close()
 })
 
+test('Parent program API is ownership-safe, exact-group-only, approved-only, and safely projected', async ({ browser }) => {
+  const parentContext = await browser.newContext()
+  const parentPage = await parentContext.newPage()
+  await loginAsUser(parentPage)
+  const approvedResponse = await parentPage.request.get(`/api/schedule/program?sessionId=${IDS.sessions[0]}`)
+  expect(approvedResponse.status()).toBe(200)
+  expect(approvedResponse.headers()['cache-control']).toBe('private, no-store')
+  const approvedPayload = await approvedResponse.json()
+  expect(approvedPayload).toEqual({
+    program: {
+      id: IDS.approvedProgram,
+      programContent: APPROVED_PROGRAM_CONTENT,
+      updatedAt: '2026-08-04T00:00:00+00:00',
+    },
+  })
+  expect(Object.keys(approvedPayload.program).sort()).toEqual(['id', 'programContent', 'updatedAt'])
+  const serializedApproved = JSON.stringify(approvedPayload)
+  for (const forbidden of Object.values(FORBIDDEN_PROGRAM_CONTENT)) {
+    expect(serializedApproved).not.toContain(forbidden)
+  }
+  await parentContext.close()
+
+  const otherContext = await browser.newContext()
+  const otherPage = await otherContext.newPage()
+  await loginAsUser(otherPage, 'booking-regression-occupancy@example.com')
+  const nonOwnedResponse = await otherPage.request.get(`/api/schedule/program?sessionId=${IDS.sessions[0]}`)
+  expect(nonOwnedResponse.status()).toBe(404)
+  await otherContext.close()
+})
+
+test('User Schedule loads approved program on demand, caches by session, and shows neutral empty state on desktop/mobile', async ({ page }) => {
+  const admin = createLocalAdmin()
+  const programRequests: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/schedule/program')) programRequests.push(request.url())
+  })
+
+  assertNoError((await admin.from('coach_assignments').insert({
+    coach_id: standardAdminUserId,
+    schedule_slot_id: IDS.slot,
+    assigned_by: standardAdminUserId,
+  })).error, 'insert exact-priority legacy fixture')
+
+  await loginAsUser(page)
+  await openUserScheduleDate(page)
+  expect(programRequests).toHaveLength(0)
+  const initialHtml = await page.content()
+  for (const forbidden of [APPROVED_PROGRAM_CONTENT, ...Object.values(FORBIDDEN_PROGRAM_CONTENT)]) {
+    expect(initialHtml).not.toContain(forbidden)
+  }
+  await expect(page.getByText('LV 53 · สอนกระโดดตบสลับขา', { exact: true })).toBeVisible()
+
+  const programButton = page.getByRole('button', { name: 'ดูโปรแกรมสอนรอบนี้', exact: true })
+  await expect(programButton).toHaveCount(1)
+  const exactSessionCard = programButton.locator('xpath=ancestor::div[contains(@class,"rounded-xl border")][1]')
+  await expect(exactSessionCard.getByText('Fixture Coach', { exact: true })).toBeVisible()
+  await expect(exactSessionCard.getByText('Fixture Standard Admin', { exact: true })).toHaveCount(0)
+  assertNoError((await admin.from('coach_assignments')
+    .delete()
+    .eq('schedule_slot_id', IDS.slot)
+    .eq('coach_id', standardAdminUserId)).error, 'remove exact-priority legacy fixture')
+  const approvedResponse = page.waitForResponse((response) => response.url().includes('/api/schedule/program'))
+  await programButton.click()
+  expect((await approvedResponse).status()).toBe(200)
+  const userDialog = page.getByRole('dialog')
+  await expect(userDialog).toBeVisible()
+  await expect(userDialog.getByText('PROGRAM_APPROVED_VISIBLE_SENTINEL', { exact: false })).toBeVisible()
+  expect(await userDialog.locator('p.whitespace-pre-wrap').textContent()).toBe(APPROVED_PROGRAM_CONTENT)
+  expect(programRequests).toHaveLength(1)
+  await userDialog.getByRole('button', { name: 'Close' }).click()
+  await programButton.click()
+  await expect(userDialog).toBeVisible()
+  expect(programRequests).toHaveLength(1)
+  await userDialog.getByRole('button', { name: 'Close' }).click()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await programButton.click()
+  const dialogBox = await userDialog.boundingBox()
+  expect(dialogBox).not.toBeNull()
+  expect(dialogBox?.x || 0).toBeGreaterThanOrEqual(0)
+  expect((dialogBox?.x || 0) + (dialogBox?.width || 0)).toBeLessThanOrEqual(390)
+  await userDialog.getByRole('button', { name: 'Close' }).click()
+
+  assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.approvedProgram)).error, 'hide approved program for neutral state')
+  try {
+    await openUserScheduleDate(page)
+    await page.getByRole('button', { name: 'ดูโปรแกรมสอนรอบนี้', exact: true }).click()
+    await expect(page.getByText('ยังไม่มีโปรแกรมสอนที่อนุมัติสำหรับรอบนี้', { exact: true })).toBeVisible()
+    for (const forbidden of Object.values(FORBIDDEN_PROGRAM_CONTENT)) {
+      await expect(page.getByText(forbidden, { exact: false })).toHaveCount(0)
+    }
+  } finally {
+    assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore approved program fixture')
+  }
+})
+
+test('high-cardinality User Schedule preserves legacy coach display without legacy program access', async ({ page }) => {
+  const programRequests: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/schedule/program')) programRequests.push(request.url())
+  })
+
+  await loginAsUser(page)
+  await page.goto('/dashboard/schedule')
+  await expect(page.getByText('สิงหาคม 2569', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-08-01', exact: true }).click()
+
+  const legacySessionCard = page.getByText('AUGONLY', { exact: true })
+    .locator('xpath=ancestor::div[contains(@class,"rounded-xl border")][1]')
+  await expect(legacySessionCard).toBeVisible()
+  await expect(legacySessionCard.getByText('Fixture Coach', { exact: true })).toBeVisible()
+  await expect(legacySessionCard.getByRole('button', { name: 'ดูโปรแกรมสอนรอบนี้', exact: true })).toHaveCount(0)
+  expect(programRequests).toHaveLength(0)
+})
+
+test('Coach Schedule shows exact learner Level and active Level name on desktop/mobile', async ({ page }) => {
+  await loginAsHeadCoach(page)
+  await page.goto('/coach/today?date=2026-07-17')
+  const levelBadge = page.getByText('LV 53 · สอนกระโดดตบสลับขา', { exact: true })
+  await expect(levelBadge).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(levelBadge).toBeVisible()
+  const levelBox = await levelBadge.boundingBox()
+  expect(levelBox).not.toBeNull()
+  expect(levelBox?.x || 0).toBeGreaterThanOrEqual(0)
+  expect((levelBox?.x || 0) + (levelBox?.width || 0)).toBeLessThanOrEqual(390)
+})
+
+test('Admin Schedule opens full program modal from existing day payload with no extra API call', async ({ page }) => {
+  await loginAsAdmin(page)
+  const apiReads: string[] = []
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname
+    if (pathname.startsWith('/api/')) apiReads.push(pathname)
+  })
+  await page.goto('/admin/schedules?year=2026&month=7')
+  await page.getByTestId('admin-schedule-calendar-day-2026-07-17').click()
+  await expect(page.getByText('Fixture Assigned Group', { exact: true })).toBeVisible()
+  expect(apiReads).toEqual(['/api/admin/schedules/day'])
+
+  const previewButton = page.getByRole('button', { name: 'อ่านโปรแกรมสอนฉบับเต็มของ Fixture Coach', exact: true })
+  await expect(previewButton.locator('.line-clamp-2')).toBeVisible()
+  await previewButton.click()
+  const adminDialog = page.getByRole('dialog')
+  await expect(adminDialog).toBeVisible()
+  expect(await adminDialog.locator('p.whitespace-pre-wrap').textContent()).toBe(APPROVED_PROGRAM_CONTENT)
+  expect(apiReads).toEqual(['/api/admin/schedules/day'])
+  await page.keyboard.press('Escape')
+  await expect(adminDialog).toBeHidden()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await previewButton.click()
+  const dialogBox = await adminDialog.boundingBox()
+  expect(dialogBox).not.toBeNull()
+  expect(dialogBox?.x || 0).toBeGreaterThanOrEqual(0)
+  expect((dialogBox?.x || 0) + (dialogBox?.width || 0)).toBeLessThanOrEqual(390)
+  expect(apiReads).toEqual(['/api/admin/schedules/day'])
+})
+
 test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop/mobile', async ({ page }) => {
   const browserErrors: string[] = []
   page.on('console', (message) => {
@@ -584,7 +935,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const branchId = readBookingFixture().branchId
 
   const saveGroups = async ({
-    slotId = IDS.forwardSlot,
+    slotId = IDS.mixedForwardSlot,
     groups,
   }: {
     slotId?: string
@@ -608,16 +959,16 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
 
   const duplicateCoach = await saveGroups({
     groups: [
-      { name: 'กลุ่ม 1', coachId: coachUserId, studentSessionIds: [IDS.forwardSessions[0]] },
-      { name: 'กลุ่ม 2', coachId: coachUserId, studentSessionIds: IDS.forwardSessions.slice(1) },
+      { name: 'กลุ่ม 1', coachId: coachUserId, studentSessionIds: [IDS.mixedForwardSessions[0]] },
+      { name: 'กลุ่ม 2', coachId: coachUserId, studentSessionIds: IDS.mixedForwardSessions.slice(1) },
     ],
   })
   expect(duplicateCoach.status).toBe(400)
 
   const sameCategoryGeneric = await saveGroups({
     groups: [
-      { name: 'กลุ่ม 1', coachId: null, studentSessionIds: IDS.forwardSessions.slice(0, 2) },
-      { name: 'กลุ่ม 2', coachId: null, studentSessionIds: [IDS.forwardSessions[2]] },
+      { name: 'กลุ่ม 1', coachId: null, studentSessionIds: IDS.mixedForwardSessions.slice(0, 2) },
+      { name: 'กลุ่ม 2', coachId: null, studentSessionIds: [IDS.mixedForwardSessions[2]] },
     ],
   })
   expect(sameCategoryGeneric.status, JSON.stringify(sameCategoryGeneric.body)).toBe(200)
@@ -625,7 +976,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const { data: sameCategoryGroups, error: sameCategoryGroupsError } = await admin
     .from('coach_assignment_groups')
     .select('name, coach_id, level_min, level_max, sort_order, coach_assignment_group_students(booking_session_id)')
-    .eq('schedule_slot_id', IDS.forwardSlot)
+    .eq('schedule_slot_id', IDS.mixedForwardSlot)
     .order('sort_order')
   assertNoError(sameCategoryGroupsError, 'read same-category generic Coach save')
   expect(sameCategoryGroups).toEqual([
@@ -636,8 +987,8 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
       level_max: 29,
       sort_order: 0,
       coach_assignment_group_students: expect.arrayContaining([
-        { booking_session_id: IDS.forwardSessions[0] },
-        { booking_session_id: IDS.forwardSessions[1] },
+        { booking_session_id: IDS.mixedForwardSessions[0] },
+        { booking_session_id: IDS.mixedForwardSessions[1] },
       ]),
     },
     {
@@ -646,7 +997,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
       level_min: 35,
       level_max: 35,
       sort_order: 1,
-      coach_assignment_group_students: [{ booking_session_id: IDS.forwardSessions[2] }],
+      coach_assignment_group_students: [{ booking_session_id: IDS.mixedForwardSessions[2] }],
     },
   ])
 
@@ -654,7 +1005,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
     groups: [{
       name: '   ',
       coachId: null,
-      studentSessionIds: [...IDS.forwardSessions],
+      studentSessionIds: [...IDS.mixedForwardSessions],
     }],
   })
   expect(emptyName.status).toBe(400)
@@ -663,7 +1014,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const { data: groupsAfterEmptyName, error: groupsAfterEmptyNameError } = await admin
     .from('coach_assignment_groups')
     .select('name, coach_id, level_min, level_max, sort_order, coach_assignment_group_students(booking_session_id)')
-    .eq('schedule_slot_id', IDS.forwardSlot)
+    .eq('schedule_slot_id', IDS.mixedForwardSlot)
     .order('sort_order')
   assertNoError(groupsAfterEmptyNameError, 'verify empty-name request did not write')
   expect(groupsAfterEmptyName).toEqual(sameCategoryGroups)
@@ -672,7 +1023,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
     groups: [{
       name: 'กลุ่ม 1',
       coachId: coachUserId,
-      studentSessionIds: [...IDS.forwardSessions],
+      studentSessionIds: [...IDS.mixedForwardSessions],
     }],
   })
   expect(genericMixed.status, JSON.stringify(genericMixed.body)).toBe(200)
@@ -680,20 +1031,20 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const { data: genericGroup, error: genericGroupError } = await admin
     .from('coach_assignment_groups')
     .select('id, name, coach_id, level_min, level_max, coach_assignment_group_students(booking_session_id)')
-    .eq('schedule_slot_id', IDS.forwardSlot)
+    .eq('schedule_slot_id', IDS.mixedForwardSlot)
     .single()
   assertNoError(genericGroupError, 'read generic mixed-Level Coach save')
   expect(genericGroup?.name).toBe('กลุ่ม 1')
   expect(genericGroup?.coach_id).toBe(coachUserId)
   expect([genericGroup?.level_min, genericGroup?.level_max]).toEqual([8, 35])
   expect((genericGroup?.coach_assignment_group_students || []).map((row) => row.booking_session_id).toSorted())
-    .toEqual([...IDS.forwardSessions].toSorted())
+    .toEqual([...IDS.mixedForwardSessions].toSorted())
 
   const manualWithCount = await saveGroups({
     groups: [{
       name: 'กลาง-สูง (3 คน)',
       coachId: coachUserId,
-      studentSessionIds: [...IDS.forwardSessions],
+      studentSessionIds: [...IDS.mixedForwardSessions],
     }],
   })
   expect(manualWithCount.status, JSON.stringify(manualWithCount.body)).toBe(200)
@@ -701,17 +1052,17 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const { data: manualGroup, error: manualGroupError } = await admin
     .from('coach_assignment_groups')
     .select('id, name, coach_id')
-    .eq('schedule_slot_id', IDS.forwardSlot)
+    .eq('schedule_slot_id', IDS.mixedForwardSlot)
     .single()
   assertNoError(manualGroupError, 'read manual mixed-Level Coach save')
   expect(manualGroup?.name).toBe('กลาง-สูง')
 
   const exactConflict = await saveGroups({
-    slotId: IDS.overlapSlot,
+    slotId: IDS.mixedOverlapSlot,
     groups: [{
       name: 'กลุ่มทับเวลา',
       coachId: coachUserId,
-      studentSessionIds: [IDS.overlapSession],
+      studentSessionIds: [IDS.mixedOverlapSession],
     }],
   })
   expect(exactConflict.status).toBe(409)
@@ -719,14 +1070,14 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const { count: overlapGroupCount, error: overlapGroupError } = await admin
     .from('coach_assignment_groups')
     .select('id', { count: 'exact', head: true })
-    .eq('schedule_slot_id', IDS.overlapSlot)
+    .eq('schedule_slot_id', IDS.mixedOverlapSlot)
   assertNoError(overlapGroupError, 'count exact-conflict partial groups')
   expect(overlapGroupCount).toBe(0)
 
   const { count: legacyCount, error: legacyError } = await admin
     .from('coach_assignments')
     .select('id', { count: 'exact', head: true })
-    .eq('schedule_slot_id', IDS.forwardSlot)
+    .eq('schedule_slot_id', IDS.mixedForwardSlot)
     .eq('coach_id', coachUserId)
   assertNoError(legacyError, 'count mixed-Level legacy rows')
   expect(legacyCount).toBe(1)
@@ -740,16 +1091,16 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   expect(reservation).toEqual({
     group_id: manualGroup?.id,
     coach_id: coachUserId,
-    schedule_slot_id: IDS.forwardSlot,
+    schedule_slot_id: IDS.mixedForwardSlot,
   })
 
-  assertNoError((await admin.from('coach_assignment_groups').delete().eq('schedule_slot_id', IDS.forwardSlot)).error, 'reset mixed-Level groups before UI flow')
-  assertNoError((await admin.from('coach_assignments').delete().eq('schedule_slot_id', IDS.forwardSlot)).error, 'reset mixed-Level legacy rows before UI flow')
+  assertNoError((await admin.from('coach_assignment_groups').delete().eq('schedule_slot_id', IDS.mixedForwardSlot)).error, 'reset mixed-Level groups before UI flow')
+  assertNoError((await admin.from('coach_assignments').delete().eq('schedule_slot_id', IDS.mixedForwardSlot)).error, 'reset mixed-Level legacy rows before UI flow')
   browserErrors.length = 0
 
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/coach/assign-groups')
-  const dateButton = page.getByRole('button').filter({ hasText: '30 ก.ค.' }).first()
+  await page.goto(`/coach/assign-groups?month=${MIXED_LEVEL_FIXTURE.monthKey}`)
+  const dateButton = page.getByRole('button').filter({ hasText: MIXED_LEVEL_FIXTURE.dateLabel }).first()
   await expect(dateButton).toBeVisible()
   await dateButton.click()
   await page.getByRole('button').filter({ hasText: '17:00 - 19:00' }).first().click()
@@ -848,7 +1199,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   await page.unroute(refreshRoutePattern)
 
   await page.reload()
-  const reloadedDateButton = page.getByRole('button').filter({ hasText: '30 ก.ค.' }).first()
+  const reloadedDateButton = page.getByRole('button').filter({ hasText: MIXED_LEVEL_FIXTURE.dateLabel }).first()
   await expect(reloadedDateButton).toBeVisible()
   await reloadedDateButton.click()
   await page.getByRole('button').filter({ hasText: '17:00 - 19:00' }).first().click()
@@ -866,7 +1217,7 @@ test('Head Coach mixed-Level save is warning-only, atomic, and stable on desktop
   const { data: refetchedManual, error: refetchedManualError } = await admin
     .from('coach_assignment_groups')
     .select('name, level_min, level_max, coach_assignment_group_students(booking_session_id)')
-    .eq('schedule_slot_id', IDS.forwardSlot)
+    .eq('schedule_slot_id', IDS.mixedForwardSlot)
     .single()
   assertNoError(refetchedManualError, 'refetch Head Coach manual mixed-Level name')
   expect(refetchedManual?.name).toBe('Mixed Squad')

@@ -1,13 +1,20 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, AlertTriangle, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, Loader2, MapPin, RotateCcw, ShieldCheck, UserRound, WalletCards } from 'lucide-react'
+import { ArrowLeft, ArrowRight, AlertTriangle, BookOpenCheck, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, Loader2, MapPin, RotateCcw, ShieldCheck, UserRound, WalletCards } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { deriveSessionAttendanceStatus, type DerivedSessionStatus } from '@/lib/session-attendance-status'
+import type { SafeScheduleProgram, SafeScheduleProgramResponse } from '@/lib/schedule-learning-details'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn, fmtTime } from '@/lib/utils'
 import { SELF_LEARNER_COLOR, buildLearnerColorMap, getLearnerColor } from './learner-colors'
@@ -34,6 +42,7 @@ interface SessionData {
   rescheduled_from_id: string | null
   assignment_group_id?: string | null
   assignment_group_name?: string | null
+  can_view_program?: boolean
   coach_id?: string | null
   coach_name?: string | null
   coach_role?: string | null
@@ -42,6 +51,9 @@ interface SessionData {
   attendance_status?: 'present' | 'absent' | 'late' | null
   attendance_checked_at?: string | null
   attendance_scope_count?: number
+  level?: number
+  level_name?: string | null
+  level_label?: string
   rescheduled_from?: { date: string; start_time: string; end_time: string } | null
   wallet_credit_status?: 'active' | 'redeemed' | 'expired' | null
   wallet_redeemed_at?: string | null
@@ -206,6 +218,15 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
   const [walletSession, setWalletSession] = useState<SessionData | null>(null)
   const [walletLoadingId, setWalletLoadingId] = useState<string | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
+  const [programSession, setProgramSession] = useState<SessionData | null>(null)
+  const [programState, setProgramState] = useState<
+    { status: 'idle' | 'loading' | 'ready' | 'error'; program: SafeScheduleProgram | null }
+  >({ status: 'idle', program: null })
+  const programCache = useRef(new Map<string, SafeScheduleProgram | null>())
+  const programRequestGeneration = useRef(0)
+  const programAbortController = useRef<AbortController | null>(null)
+
+  useEffect(() => () => programAbortController.current?.abort(), [])
 
   const childColorMap = useMemo(() => buildLearnerColorMap(learnerChildren), [learnerChildren])
 
@@ -235,6 +256,46 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
   const getLearnerName = (session: SessionData) => {
     if (session.children) return session.children.nickname || session.children.full_name
     return userName || 'ตัวเอง'
+  }
+
+  const loadProgram = async (session: SessionData, force = false) => {
+    setProgramSession(session)
+    if (!force && programCache.current.has(session.id)) {
+      setProgramState({ status: 'ready', program: programCache.current.get(session.id) || null })
+      return
+    }
+
+    programAbortController.current?.abort()
+    const controller = new AbortController()
+    programAbortController.current = controller
+    const generation = programRequestGeneration.current + 1
+    programRequestGeneration.current = generation
+    setProgramState({ status: 'loading', program: null })
+
+    try {
+      const response = await fetch(`/api/schedule/program?sessionId=${encodeURIComponent(session.id)}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      if (!response.ok) throw new Error('program request failed')
+      const payload = await response.json() as SafeScheduleProgramResponse
+      if (generation !== programRequestGeneration.current) return
+      const program = payload.program || null
+      programCache.current.set(session.id, program)
+      setProgramState({ status: 'ready', program })
+    } catch (error) {
+      if (controller.signal.aborted || generation !== programRequestGeneration.current) return
+      console.error('Schedule program load failed:', error)
+      setProgramState({ status: 'error', program: null })
+    }
+  }
+
+  const closeProgramDialog = () => {
+    programAbortController.current?.abort()
+    programAbortController.current = null
+    programRequestGeneration.current += 1
+    setProgramSession(null)
+    setProgramState({ status: 'idle', program: null })
   }
 
   const canStoreInWallet = (session: SessionData) => {
@@ -296,6 +357,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
           <Button
             variant="outline"
             size="sm"
+            aria-label="เดือนก่อนหน้า"
             onClick={() => {
               if (month === 0) {
                 setMonth(11)
@@ -312,6 +374,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
           <Button
             variant="outline"
             size="sm"
+            aria-label="เดือนถัดไป"
             onClick={() => {
               if (month === 11) {
                 setMonth(0)
@@ -372,6 +435,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                 <button
                   key={dateStr}
                   type="button"
+                  aria-label={`ดูตารางวันที่ ${dateStr}`}
                   onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                   className={cn(
                     'flex min-h-[4rem] flex-col items-center rounded-lg p-1 text-sm transition-all sm:min-h-[4.5rem]',
@@ -443,6 +507,9 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                             {displayStatus.label}
                           </Badge>
                           <Badge className={colorClass} variant="outline">{getLearnerName(session)}</Badge>
+                          <Badge variant="outline" className="border-indigo-100 bg-indigo-50 text-xs text-indigo-700">
+                            {session.level_label || 'LV 0 / ยังไม่ประเมิน'}
+                          </Badge>
                           <Badge className="border-blue-100 bg-blue-50 text-xs text-blue-700" variant="outline">
                             {session.bookings?.course_types?.name || 'คอร์สเรียน'}
                           </Badge>
@@ -468,21 +535,35 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
 
                       <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 lg:w-80">
                         {session.coach_id ? (
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 border border-white shadow-sm">
-                              <AvatarImage src={session.coach_avatar_url || undefined} alt={session.coach_name || 'Coach'} />
-                              <AvatarFallback className="bg-[#2748bf]/10 text-sm font-semibold text-[#153c85]">
-                                {getInitial(session.coach_name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-gray-900">{session.coach_name || 'โค้ชผู้สอน'}</p>
-                              <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
-                                {session.coach_role === 'head_coach' ? <ShieldCheck className="h-3 w-3 text-[#2748bf]" /> : <UserRound className="h-3 w-3" />}
-                                {coachRoleLabel}
-                                {session.assignment_group_name ? ` · ${session.assignment_group_name}` : ''}
-                              </p>
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-9 w-9 border border-white shadow-sm">
+                                <AvatarImage src={session.coach_avatar_url || undefined} alt={session.coach_name || 'Coach'} />
+                                <AvatarFallback className="bg-[#2748bf]/10 text-sm font-semibold text-[#153c85]">
+                                  {getInitial(session.coach_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-gray-900">{session.coach_name || 'โค้ชผู้สอน'}</p>
+                                <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                                  {session.coach_role === 'head_coach' ? <ShieldCheck className="h-3 w-3 text-[#2748bf]" /> : <UserRound className="h-3 w-3" />}
+                                  {coachRoleLabel}
+                                  {session.assignment_group_name ? ` · ${session.assignment_group_name}` : ''}
+                                </p>
+                              </div>
                             </div>
+                            {session.can_view_program && session.assignment_group_id && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="mt-3 w-full border-[#2748bf]/20 bg-white text-[#153c85] hover:bg-blue-50"
+                                onClick={() => void loadProgram(session)}
+                              >
+                                <BookOpenCheck className="mr-1.5 h-3.5 w-3.5" />
+                                ดูโปรแกรมสอนรอบนี้
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-start gap-2 text-sm text-amber-700">
@@ -596,6 +677,43 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={Boolean(programSession)} onOpenChange={(open) => !open && closeProgramDialog()}>
+        <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl overflow-hidden sm:w-full">
+          <DialogHeader>
+            <DialogTitle>โปรแกรมสอนรอบนี้</DialogTitle>
+            <DialogDescription>
+              {programSession
+                ? `${getLearnerName(programSession)} · ${formatThaiDateWithWeekday(programSession.date)} · ${fmtTime(programSession.start_time)}-${fmtTime(programSession.end_time)}`
+                : 'รายละเอียดโปรแกรมสอนที่ได้รับอนุมัติ'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-lg border bg-gray-50 p-4 text-sm text-gray-700">
+            {programState.status === 'loading' && (
+              <div className="flex items-center justify-center gap-2 py-8 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                กำลังโหลดโปรแกรมสอน...
+              </div>
+            )}
+            {programState.status === 'ready' && programState.program && (
+              <p className="whitespace-pre-wrap break-words leading-6">{programState.program.programContent}</p>
+            )}
+            {programState.status === 'ready' && !programState.program && (
+              <p className="py-8 text-center text-gray-500">ยังไม่มีโปรแกรมสอนที่อนุมัติสำหรับรอบนี้</p>
+            )}
+            {programState.status === 'error' && (
+              <div className="space-y-3 py-6 text-center">
+                <p className="text-red-600">ไม่สามารถโหลดโปรแกรมสอนรอบนี้ได้ กรุณาลองอีกครั้ง</p>
+                {programSession && (
+                  <Button type="button" size="sm" variant="outline" onClick={() => void loadProgram(programSession, true)}>
+                    ลองใหม่
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={Boolean(walletSession)} onOpenChange={(open) => !open && setWalletSession(null)}>
         <AlertDialogContent>

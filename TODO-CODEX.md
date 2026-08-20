@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-18
+Last updated: 2026-08-20
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,14 +9,31 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **NONE — AWAITING OWNER SELECTION**.
+Status: **DEVELOPING — LOCAL RELEASE GATES PASSED; PUBLICATION AND STAGED ARTIFACT
+PENDING**.
 
-- Progressive Mandatory Full Pending-Scope Batch is TASK DONE. Do not start a
-  Parking Lot item or another task automatically.
-- **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM
-  MODAL + USER/COACH LEVEL PARITY** is registered as Parking Lot Priority `1` but
-  is **OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**. Product audit and
-  implementation require a separate Owner selection and new Scope Contract.
+- Active Task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
+  FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner selected Priority `1`
+  and approved the 2026-08-19 continuous-delivery Scope Contract.
+- Latest Owner decision authorized only repository-pinned Playwright `1.61.1`
+  Headless Shell `1228` cache restoration, one non-sample launch/close preflight,
+  and the established two-set resume. Install `1/1` and preflight `1/1` passed;
+  package/lockfile/node_modules and frozen Functional/Test/Config hashes stayed
+  byte-identical. No Product correction or path `14/15` was used.
+- Both complete Performance sets passed. Set 1 User/Coach/Admin deltas were
+  `-0.29%/+2.64%/-0.96%`; Set 2 were `+2.39%/+3.69%/+4.23%`. Browser/API budgets
+  remained `18/0`, `18/0`, `19/1`, and User initial program calls/content `0/0`.
+- Deterministic suites passed; focused mixed-Level E2E passed twice; full E2E
+  passed `11/11`; skipped/unexpected/flaky/retry and residue are `0`. TypeScript,
+  zero-warning lint, mojibake, Production build/readiness, diff, and post-build
+  root/static/protected-route checks passed.
+- Historical Coach variance Root Cause remains Unknown. The prior day-detail
+  `.waitFor()` invocation remains invalid/non-counting, and the missing-browser
+  launch remains historical infrastructure evidence.
+- Next action: stage exact 13 task paths excluding protected
+  `src/lib/schedule-slot-utils.ts`, Commit/Push, create the clean exact-SHA
+  Production-target staged artifact without aliases, verify smoke/logs, then
+  publish READY FOR OWNER UAT. Do not Promote.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -970,17 +987,16 @@ Status: **DONE**.
 
 ## Parking Lot
 
-Latest Owner selection queue; this ordering is not authorization to start. Active
-Task remains **None — Awaiting Owner Selection**. The new canonical group is
-Priority `1`; all existing six candidates are retained with their prior status and
-without a new relative order among those six.
+Priority `1` below was selected on 2026-08-19 and is the current Active Task; the
+other six candidates remain unauthorized and retain their prior relative state.
 
 ### Priority 1 — Schedule Learning Details
 
 Canonical name: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
 FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
 
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+Status: **SELECTED / ACTIVE — DEVELOPING; LOCAL RELEASE GATES PASSED; PUBLICATION
+AND STAGED ARTIFACT PENDING**.
 
 - User/parent: future behavior shows only `approved` teaching programs resolved
   from the learner's exact assignment group and that real group's
@@ -998,10 +1014,9 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   item**. The Admin modal and User/Coach Level parity are completeness
   corrections. This is a project/commercial record, not application pricing, and
   does not authorize Payment or `pricing_tiers` changes.
-- The Owner cancelled and superseded the prior implementation command. No Product
-  audit, Source/test change, implementation, migration, Production action, or
-  Product-task start is authorized by this registration. Await separate Owner
-  selection and a new execution Scope Contract.
+- The 2026-08-19 Owner command superseded the earlier registration-only state and
+  authorized this Product task. Current mutable detail and the exact blocker are
+  authoritative in the first matrix of `PROJECT_STATE.md`.
 
 Existing six candidates retained below without a new relative order: Adult Group
 + Family Private 10-Month Entitlement / Cross-Month Booking; Private Self + Child
@@ -1266,8 +1281,11 @@ Confirmed final state:
 ## Worktree / Safety Notes
 
 - Branch: `spike/next-major-security-upgrade`.
-- The pre-existing unrelated unstaged `AGENTS.md` and
-  `src/lib/schedule-slot-utils.ts` changes remain excluded.
+- The only pre-existing unrelated dirty path is protected
+  `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
+- Current Schedule Learning Details Source/test/config/docs changes are local and
+  uncommitted after all required local release gates passed; exact state is
+  authoritative in the first `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

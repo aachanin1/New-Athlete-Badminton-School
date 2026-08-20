@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -25,6 +32,7 @@ import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
 import { getAdminScheduleRoundLearnerBuckets } from '@/lib/admin-schedule-assignment-state'
 import { stripDynamicMemberCount } from '@/lib/coach-assignment-group-naming'
+import { formatScheduleLevel } from '@/lib/schedule-learning-details'
 import {
   getAdminScheduleSummaryTotals,
   type AdminScheduleMonthSummary,
@@ -196,8 +204,7 @@ function formatShortDate(date: string) {
 }
 
 function formatLevel(session: ScheduleSession) {
-  if (session.level <= 0) return 'LV 0 / ยังไม่ประเมิน'
-  return `LV ${session.level}${session.level_name ? ` · ${session.level_name}` : ''}`
+  return formatScheduleLevel(session.level, session.level_name)
 }
 
 function formatActualGroupLevelRange(learners: ScheduleSession[]) {
@@ -315,6 +322,11 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
   const [dayDetailStatus, setDayDetailStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [searchResult, setSearchResult] = useState<ScheduleSearchResult | null>(null)
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [programDialog, setProgramDialog] = useState<{
+    program: TeachingProgramSummary
+    groupName: string
+    coachName: string
+  } | null>(null)
   const dayRequestGeneration = useRef(0)
   const searchRequestGeneration = useRef(0)
 
@@ -898,7 +910,18 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                                       {programStatus && <Badge className={`text-[10px] ${programStatus.badge}`}>{programStatus.label}</Badge>}
                                     </div>
                                     {program ? (
-                                      <p className="line-clamp-2 text-gray-700">โปรแกรมสอนรอบนี้: {getProgramPreview(program)}</p>
+                                      <button
+                                        type="button"
+                                        className="block w-full rounded text-left text-gray-700 outline-none transition hover:text-[#153c85] focus-visible:ring-2 focus-visible:ring-[#2748bf] focus-visible:ring-offset-2"
+                                        aria-label={`อ่านโปรแกรมสอนฉบับเต็มของ ${group.coach_name || 'โค้ชผู้สอน'}`}
+                                        onClick={() => setProgramDialog({
+                                          program,
+                                          groupName: stripDynamicMemberCount(group.name) || 'กลุ่มโค้ช',
+                                          coachName: group.coach_name || 'ยังไม่ระบุโค้ช',
+                                        })}
+                                      >
+                                        <span className="line-clamp-2">โปรแกรมสอนรอบนี้: {getProgramPreview(program)}</span>
+                                      </button>
                                     ) : (
                                       <p className="text-gray-400">ยังไม่พบโปรแกรมสอนของรอบนี้</p>
                                     )}
@@ -1055,6 +1078,22 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={Boolean(programDialog)} onOpenChange={(open) => !open && setProgramDialog(null)}>
+        <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl overflow-hidden sm:w-full">
+          <DialogHeader>
+            <DialogTitle>โปรแกรมสอนรอบนี้</DialogTitle>
+            <DialogDescription>
+              {programDialog ? `${programDialog.groupName} · โค้ช: ${programDialog.coachName}` : 'รายละเอียดโปรแกรมสอนฉบับเต็ม'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-lg border bg-gray-50 p-4">
+            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">
+              {programDialog?.program.program_content || ''}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

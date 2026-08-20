@@ -1,19 +1,70 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-18
+Last updated: 2026-08-20
 
-Current source: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT
-REBUILD; PRODUCTION VERIFICATION PASSED** for **PROGRESSIVE PAYMENT — MANDATORY
-FULL PENDING-SCOPE BATCH**. Owner passed exact artifact
-`dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` / Source
-`83c51d15b8bbde63ba4a22dcb409b1dfd3a17005`. One `vercel promote` invocation
-moved that unchanged artifact to all four established Production aliases; no
-deploy, rebuild, redeploy, retry, or new deployment occurred. Automated
-Production and read-only Supabase gates passed with no task-attributable data
-mutation. This first matrix is the only authority for current mutable state; all
-later records are Historical / Superseded.
+Current source: **DEVELOPING — LOCAL RELEASE GATES PASSED; PUBLICATION AND STAGED
+ARTIFACT PENDING** for **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY +
+ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner authorized restoration
+of the repository-pinned Playwright `1.61.1` Chromium Headless Shell cache only.
+One install invocation restored Headless Shell `1228`, FFmpeg `1011`, Winldd
+`1007`, plus Playwright's internal `.links` registry metadata; one launch/close
+preflight passed and was not a Performance sample. Two valid final uninstrumented
+current-vs-exact-HEAD sets then passed for User, Coach, and Admin. All deterministic
+tests, focused E2E twice, full E2E `11/11`, TypeScript, zero-warning lint,
+mojibake, Production build, readiness, diff, and post-build root/static/auth
+checks passed. Functional/Test/Config and package/node_modules fingerprints stayed
+frozen. Historical Coach variance Root Cause remains Unknown; the earlier
+day-detail `.waitFor()` invocation remains invalid/non-counting and the earlier
+missing-browser launch remains historical infrastructure evidence. Commit, Push,
+staged artifact, alias comparison, and staged smoke/log are the remaining gates.
+This first matrix is the only authority for current mutable state; all later
+records are Historical / Superseded.
 
-## Current Closeout — Progressive Mandatory Full Pending-Scope Batch
+## Current Execution — Schedule Learning Details Local Release Gates Passed
+
+Status: **DEVELOPING — LOCAL RELEASE GATES PASSED; PUBLICATION AND STAGED ARTIFACT PENDING**.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY** |
+| Task Status | **DEVELOPING — scoped local Source and every required local release gate passed; Commit/Push and exact-SHA staged Production-target artifact remain pending** |
+| Owner Policy | **Confirmed 2026-08-20, latest:** restore only repository-pinned Playwright Chromium Headless Shell `1228` plus dry-run-mandated FFmpeg `1011` and Winldd `1007`; perform one non-sample launch/close preflight; run two valid established-harness sets; no Product/Test/Config correction, path `14/15`, alias change, Production write, or Promotion before Owner UAT PASS |
+| Intended Behavior | User/Parent Level plus on-demand approved program; Admin full-content modal without a new read; Coach Level parity keyed by exact student type/id |
+| Root Cause | **Historical Coach performance variance remains Unknown and was not reproduced.** The prior day-detail `.waitFor()` timeout remains invalid/non-counting; the later missing-browser launch remains historical infrastructure evidence. Local browser-cache absence was resolved only by the Owner-authorized pinned CLI install and did not change Product Source |
+| Branch | `spike/next-major-security-upgrade` |
+| Local / Remote HEAD | `5e99ab9ad0213b28f2471c8fad552b6f3e42c97b` / same upstream; local task changes are uncommitted |
+| Ahead / Behind | `0/0` |
+| Source Complete | **Yes locally — all scoped Functional/Test/Config work is frozen and verified; publication/artifact remain pending** |
+| Tests Passed | **Yes locally.** Deterministic suites `13/38/24/22/33/52/19`; focused mixed-Level E2E `1/1` twice; full E2E `11/11`; skipped/unexpected/flaky/retry `0`; fixture residue `0`; TypeScript, zero-warning ESLint, mojibake `261`, Production build/readiness, diff check, and post-build root/static/protected-route checks pass. Full E2E emitted two non-failing development hydration warnings in User Schedule and retained all assertions |
+| Committed / Pushed | **No / No** |
+| Current / Pushed Source | Local uncommitted worktree based on `5e99ab9`; pushed Source remains `5e99ab9` |
+| Functional / Test / Documentation / Migration / Config Files | Local authorized set `6 / 3 / 3 / 0 / 1`; total unique task paths `13`; conditional path `14` was not used; no dependency or lockfile change |
+| Scope Expansion / Scope Breach | **Owner-authorized local Playwright cache restoration only / No repository or Product-path breach.** Functional/Test/Config stayed frozen; path `14/15`, instrumentation, Product diagnosis, and Product correction remain absent |
+| Migration Source / Applied | **None / No** |
+| Environment Changed | **Application/remote Environment: No. Local Tooling Cache: Yes** — `%LOCALAPPDATA%\ms-playwright` now contains the approved three payload revisions plus mandatory internal `.links` registry metadata; package, lockfile, and node_modules fingerprints are unchanged |
+| Feature Enabled / Allowlisted | **No / No** |
+| Performance Baseline | User `648.7 ms`, 18 requests, 0 API, `60,233` bytes; Coach `707.9 ms`, 18 requests, 0 API, `113,065` bytes; Admin summary+day `895.9 ms`, 19 requests, 1 existing API, `92,787` bytes; warm-up `1`, measured runs `5` |
+| Performance Result | **PASS — two independent complete sets.** Set 1 current/HEAD: User `653.1/655.0 ms` (`-1.9`, `-0.29%`), Coach `720.4/701.9` (`+18.5`, `+2.64%`), Admin `879.0/887.5` (`-8.5`, `-0.96%`). Set 2: User `659.3/643.9` (`+15.4`, `+2.39%`), Coach `716.3/690.8` (`+25.5`, `+3.69%`), Admin `874.4/838.9` (`+35.5`, `+4.23%`). No actor met both `>10%` and `>=100 ms` failure conditions |
+| Query-call Budget | Initial program `0→0`; Admin modal `0→0`; User/Coach Level each `0→2` fixed batch/reference calls; Parent click `1` auth plus `3` bounded reads; high-cardinality User assignment uses `2` constant ownership-scoped reads (exact membership plus slot group/Legacy metadata), no per-session assignment query |
+| Initial Payload Before / After | Set 1 current/HEAD median bytes: User `63,589/60,809`, Coach `114,075/113,705`, Admin `92,785/93,359`. Set 2: User `63,589/60,809`, Coach `114,075/113,705`, Admin `92,876/93,360`. User initial program calls/content remained `0/0` |
+| Deployed / Promoted | **No / No** |
+| Staged Artifact / Exact SHA | **None / None** |
+| Production Active / Owner UAT | **No / Not run** |
+| Controlled Write UAT | **Not run** |
+| Data Repaired / Production Data Changed | **No / No**; focused and full E2E cleanup each reported fixture residue `0` |
+| Customer Impact / Financial Impact | **None / None**; commercial project note remains item 1 only = `12,000 บาท` and does not change application pricing |
+| Protected Dirty File | `src/lib/schedule-slot-utils.ts` remains excluded and invariant at Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
+| Bounded Correction Attempts | **Product corrections `0`.** Local browser cache install `1/1`; launch/close preflight `1/1`; valid Performance sets `2/2` |
+| Documentation Drift | **No after this local pre-publication update; Application/artifact SHA fields remain pending until their gates occur** |
+| Blocker | **None for publication.** Owner UAT remains a later release gate and does not authorize Promotion yet |
+| Remaining Work | Stage exact 13 task paths excluding the protected dirty file; Commit/Push; create clean exact-SHA staged Production-target artifact without aliases; run staged smoke/log; publish READY documentation handoff |
+| Task Done | **No** |
+| Next Gate / Next Action | **Commit and Push the exact verified 13-path task diff, then create and verify a no-alias exact-SHA staged Production-target artifact. Do not Promote before Owner UAT PASS** |
+| Parking Lot authorization state | Priority `1` was selected and is the current Active Task. The other six Parking Lot items remain unauthorized |
+
+## Historical / Superseded — Progressive Mandatory Full Pending-Scope Batch
 
 Status: **TASK DONE — PRODUCTION ACTIVE; AWAITING OWNER SELECTION**.
 
