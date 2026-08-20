@@ -15165,3 +15165,110 @@ Next Action at this observation: explicitly stage the exact 13 task paths while
 excluding the protected dirty file, inspect the complete staged diff, Commit and
 Push, then create and verify the clean exact-SHA no-alias staged Production-target
 artifact. Do not Promote before Owner UAT PASS.
+
+### 2026-08-20 — Schedule Learning Details — READY FOR OWNER UAT
+
+State observed at this READY handoff: every approved local release gate passed,
+the exact 13-path task diff was committed and pushed, one clean exact-SHA
+Production-target artifact was created with `--skip-domain`, and staged identity,
+alias, route/static/auth, and bounded runtime-log checks passed. The artifact is
+not Promoted and no Production alias or Production data was changed.
+
+#### Application publication and clean deployment source
+
+- Complete unstaged/staged review found exactly Functional/Test/Config/
+  Documentation `6/3/1/3`, total task paths `13`; path `14`, path `15`, Migration,
+  dependency, lockfile, instrumentation, and additional paths were absent.
+  Protected `src/lib/schedule-slot-utils.ts` remained unstaged at Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Application commit `7c32e924fdd76d88ce853dfde531f84a2123bc22`, tree
+  `410b4c213a03aebdc984f963b2d81a800c4a8563`, was pushed normally to
+  `origin/spike/next-major-security-upgrade`; local/upstream were `0/0` before
+  the documentation-only READY handoff.
+- The detached deployment source was exact Application SHA/tree, status count
+  `0`, path `14` blob `305e9df13fe6079de27cadb45c9f588de0dc97d4`, protected clean HEAD blob
+  `4521281d099efb189429a744909552d67871ff23`, and contained only the established
+  ignored project/org/name linkage. It was removed safely after verification.
+
+#### Exact staged Production-target artifact
+
+- One cached local Vercel CLI `59.1.3` invocation ran from
+  `2026-08-20T04:32:24.0188730Z` through `04:34:19.7777676Z` with
+  `deploy --prod --skip-domain`; exit `0`. No redeploy, Promotion, alias command,
+  rollback, force, Environment mutation, or Production-data access/write ran.
+- Artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` at
+  `https://new-athlete-badminton-school-6y58u47sn-aachanin1s-projects.vercel.app`
+  is target/state `production/READY`, region `icn1`, aliases `0`,
+  `autoAssignCustomDomains=false`. CLI metadata records exact Git SHA
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`, ref `HEAD`, and the exact
+  Application commit message.
+- Remote build used builder CLI `59.1.4`, Next `16.2.6`, `npm ci`, optimized
+  compile, TypeScript, traces, outputs, and static generation `94/94`; it finished
+  successfully. Existing install audit output was `8` vulnerabilities (`1 low`,
+  `7 high`) and the existing broad Node engine warning; no dependency changed.
+
+#### Alias, staged smoke, and logs
+
+- Before and after the staged command, the four Production aliases
+  `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`
+  remained on `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` /
+  `new-athlete-badminton-school-c2khxn6vu-aachanin1s-projects.vercel.app`.
+  Production traffic moved **No**.
+- Normal Git integration from the authorized Push independently moved only the
+  branch Preview alias from old HEAD `5e99ab9` Preview
+  `dpl_9hFjzUcZsuhynNTLyCijjwbC483s` to exact Application commit Preview
+  `dpl_4vjUo1ZVgHe4hnkN9opTTeopG1cC`. This automatic Preview is reported as a
+  side effect, was not used as the staged artifact, and involved no manual alias
+  operation.
+- Direct unauthenticated access first confirmed Vercel Deployment Protection
+  `302`. Two local beta `vercel curl` command-shape probes forwarded the global
+  `--no-color` flag to native curl and exited `2` before HTTP; they are not staged
+  smoke samples and caused no remote mutation. The linked-project protection-
+  bypass invocation then returned root `200` and discovered `21` generated static
+  assets.
+- Read-only staged checks returned `/api/health` `200`, `/auth/login` `200`, real
+  generated CSS `200` (`5,550` bytes), `/dashboard/schedule` `307` to Login, and
+  anonymous `/api/schedule/program` with a valid-shaped non-owned UUID `401`,
+  `Cache-Control: private, no-store`, and `X-Vercel-Cache: MISS`.
+- Six bounded exact-artifact runtime rows covered root, health, Login, protected
+  dashboard, and the anonymous program route. Warning/error/fatal/5xx counts were
+  `0/0/0/0`. No staged write or Controlled Write UAT occurred.
+
+#### READY state and Owner UAT
+
+- Source Complete **Yes**; Tests Passed **Yes**; Application Committed/Pushed
+  **Yes/Yes**; Application SHA
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`; documentation is published in a
+  separate documentation-only descendant and its exact SHA is reported in the
+  final handoff; staged artifact **READY**; Owner UAT **not run**; Promoted/
+  Production Active **No/No for this task**.
+- Local Tooling Cache Changed **Yes**; Application/Remote Environment Changed
+  **No**; Migration/Dependency/Feature/Allowlist **unchanged**; Controlled Write
+  UAT **not run**; Production Data Changed/Data Repaired **No/No**; Customer/
+  Application Financial Impact **None/None**; commercial note **item 1 only =
+  12,000 บาท**; other six Parking Lot tasks remain unauthorized; Task Done **No**.
+- Known limitation remains: historical Coach performance variance Root Cause is
+  **Unknown** and was not reproduced. Full local E2E also retained two non-failing
+  development hydration warnings while every assertion and staged read-only
+  smoke/log gate passed.
+
+Owner UAT on exact artifact/SHA:
+
+1. Parent/User opens an exact-assigned learner schedule and confirms Level plus
+   Level name.
+2. Parent clicks `ดูโปรแกรมสอนรอบนี้` and sees only the approved full content for
+   the real exact assignment group.
+3. Parent verifies Legacy-only, no-exact-group, and unapproved cases grant no
+   program access or show the neutral approved-program-empty state as applicable.
+4. Admin opens the existing truncated program preview into the full-content modal
+   and confirms no extra loading/read action is visible.
+5. Coach checks desktop and mobile Today Schedule and confirms Level plus Level
+   name belongs to the exact learner.
+6. All three roles confirm no visible error or abnormal navigation delay.
+
+Next Action: **Await Owner UAT PASS/FAIL for exact artifact
+`dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` / Application SHA
+`7c32e924fdd76d88ce853dfde531f84a2123bc22`. Do not Promote or rebuild yet.**

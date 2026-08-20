@@ -9,8 +9,8 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **DEVELOPING — LOCAL RELEASE GATES PASSED; PUBLICATION AND STAGED ARTIFACT
-PENDING**.
+Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; NOT
+PROMOTED**.
 
 - Active Task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
   FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner selected Priority `1`
@@ -30,10 +30,15 @@ PENDING**.
 - Historical Coach variance Root Cause remains Unknown. The prior day-detail
   `.waitFor()` invocation remains invalid/non-counting, and the missing-browser
   launch remains historical infrastructure evidence.
-- Next action: stage exact 13 task paths excluding protected
-  `src/lib/schedule-slot-utils.ts`, Commit/Push, create the clean exact-SHA
-  Production-target staged artifact without aliases, verify smoke/logs, then
-  publish READY FOR OWNER UAT. Do not Promote.
+- Application Source `7c32e924fdd76d88ce853dfde531f84a2123bc22` is committed
+  and pushed. Exact staged artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` at
+  `https://new-athlete-badminton-school-6y58u47sn-aachanin1s-projects.vercel.app`
+  is `production/READY`, exact-SHA, aliases `0`; staged smoke/log checks passed.
+  All four Production aliases remain on prior artifact `dpl_9bJyCe...`; the only
+  alias inventory change was the normal Git integration branch Preview moving to
+  an exact-commit Preview, which is not the staged artifact.
+- Next action: Owner performs UAT on exact staged artifact/SHA and returns PASS or
+  FAIL. Do not Promote before explicit PASS and do not rebuild the artifact.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -995,8 +1000,8 @@ other six candidates remain unauthorized and retain their prior relative state.
 Canonical name: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
 FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
 
-Status: **SELECTED / ACTIVE — DEVELOPING; LOCAL RELEASE GATES PASSED; PUBLICATION
-AND STAGED ARTIFACT PENDING**.
+Status: **SELECTED / ACTIVE — READY FOR OWNER UAT; EXACT STAGED ARTIFACT; NOT
+PROMOTED**.
 
 - User/parent: future behavior shows only `approved` teaching programs resolved
   from the learner's exact assignment group and that real group's
@@ -1283,9 +1288,10 @@ Confirmed final state:
 - Branch: `spike/next-major-security-upgrade`.
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- Current Schedule Learning Details Source/test/config/docs changes are local and
-  uncommitted after all required local release gates passed; exact state is
-  authoritative in the first `PROJECT_STATE.md` matrix.
+- Schedule Learning Details Application Source is committed/pushed and its exact
+  staged artifact is READY without aliases; only the protected unrelated dirty
+  file remains local. Exact state is authoritative in the first
+  `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.
