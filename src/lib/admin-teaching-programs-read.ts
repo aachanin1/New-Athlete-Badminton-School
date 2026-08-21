@@ -108,10 +108,9 @@ export function getAdminTeachingProgramMonthRange(bangkokDate: string): AdminTea
     throw new Error('Invalid Bangkok date for teaching-program month range')
   }
   const [year, month] = bangkokDate.split('-').map(Number)
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
   return {
     from: `${year}-${String(month).padStart(2, '0')}-01`,
-    to: `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+    to: bangkokDate,
   }
 }
 
@@ -135,6 +134,9 @@ export function resolveAdminTeachingProgramDateRange({
   }
   if (normalizedFrom > normalizedTo) {
     return { ok: false, error: 'วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด' }
+  }
+  if (normalizedFrom > bangkokToday || normalizedTo > bangkokToday) {
+    return { ok: false, error: 'ไม่สามารถค้นหาวันหลังวันปัจจุบันได้' }
   }
 
   return { ok: true, range: { from: normalizedFrom, to: normalizedTo } }

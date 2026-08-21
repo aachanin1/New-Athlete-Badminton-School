@@ -89,10 +89,9 @@ function addCalendarDays(date: string, days: number) {
 }
 
 const bangkokToday = getBangkokCalendarDate(new Date())
-const [currentFixtureYear, currentFixtureMonth] = bangkokToday.split('-').map(Number)
 const CURRENT_MONTH_RANGE = {
   from: `${bangkokToday.slice(0, 7)}-01`,
-  to: `${bangkokToday.slice(0, 7)}-${String(new Date(Date.UTC(currentFixtureYear, currentFixtureMonth, 0)).getUTCDate()).padStart(2, '0')}`,
+  to: bangkokToday,
 } as const
 const mixedLevelFixtureDate = addCalendarDays(bangkokToday, 30)
 const [mixedLevelFixtureYear, mixedLevelFixtureMonth] = mixedLevelFixtureDate.split('-').map(Number)
@@ -1095,6 +1094,8 @@ test('Admin Teaching Program Review loads current month and historical ranges fr
   await expect(page.getByRole('heading', { name: 'ตรวจโปรแกรมสอน', exact: true })).toBeVisible()
   await expect(page.getByLabel('วันที่เริ่ม')).toHaveValue(CURRENT_MONTH_RANGE.from)
   await expect(page.getByLabel('วันที่สิ้นสุด')).toHaveValue(CURRENT_MONTH_RANGE.to)
+  await expect(page.getByLabel('วันที่เริ่ม')).toHaveAttribute('max', bangkokToday)
+  await expect(page.getByLabel('วันที่สิ้นสุด')).toHaveAttribute('max', bangkokToday)
   await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false }).first()).toBeVisible()
   const initialHtml = await page.content()
   expect(initialHtml).not.toContain(APPROVED_PROGRAM_CONTENT)
@@ -1116,13 +1117,21 @@ test('Admin Teaching Program Review loads current month and historical ranges fr
   await page.waitForURL(new RegExp(`from=${CURRENT_MONTH_RANGE.from}.*to=${CURRENT_MONTH_RANGE.to}`))
   await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false }).first()).toBeVisible()
 
-  const stableUrl = page.url()
-  await page.getByLabel('วันที่เริ่ม').fill(CURRENT_MONTH_RANGE.to)
-  await page.getByLabel('วันที่สิ้นสุด').fill(CURRENT_MONTH_RANGE.from)
+  await page.getByLabel('วันที่เริ่ม').fill('2026-07-21')
+  await page.getByLabel('วันที่สิ้นสุด').fill('2026-07-01')
   await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
-  await expect(page.getByText('วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด', { exact: true })).toBeVisible()
-  expect(page.url()).toBe(stableUrl)
+  await page.waitForURL(/from=2026-07-01.*to=2026-07-21/)
+  await expect(page.getByLabel('วันที่เริ่ม')).toHaveValue('2026-07-01')
+  await expect(page.getByLabel('วันที่สิ้นสุด')).toHaveValue('2026-07-21')
+  await expect(page.getByText(FORBIDDEN_PROGRAM_CONTENT.submitted, { exact: false }).first()).toBeVisible()
+  await expect(page.getByText('ทั้งหมด', { exact: true }).locator('..').getByText('4', { exact: true })).toBeVisible()
 
+  const futureDate = addCalendarDays(bangkokToday, 1)
+  await page.goto(`/admin/teaching-programs?from=${CURRENT_MONTH_RANGE.from}&to=${futureDate}&status=submitted`)
+  await expect(page.getByText('ไม่สามารถค้นหาวันหลังวันปัจจุบันได้', { exact: true })).toBeVisible()
+  await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false })).toHaveCount(0)
+
+  await page.goto(`/admin/teaching-programs?from=${CURRENT_MONTH_RANGE.from}&to=${CURRENT_MONTH_RANGE.to}&status=submitted`)
   await page.getByLabel('วันที่เริ่ม').fill(CURRENT_MONTH_RANGE.from)
   await page.getByLabel('วันที่สิ้นสุด').fill(CURRENT_MONTH_RANGE.to)
   await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
@@ -1146,8 +1155,41 @@ test('Admin Teaching Program Review preserves immediate historical date input th
   await expect(toInput).toHaveValue('2026-07-31')
   await expect(page.getByText('วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด', { exact: true })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
+  let releaseNavigation = () => {}
+  const navigationGate = new Promise<void>((resolve) => {
+    releaseNavigation = resolve
+  })
+  let historicalNavigationReads = 0
+  await page.route('**/admin/teaching-programs?*', async (route) => {
+    const requestUrl = new URL(route.request().url())
+    const isHistoricalNavigation = requestUrl.searchParams.get('from') === '2026-07-01'
+      && requestUrl.searchParams.get('to') === '2026-07-31'
+      && route.request().method() === 'GET'
+    if (!isHistoricalNavigation) {
+      await route.continue()
+      return
+    }
+    historicalNavigationReads += 1
+    await navigationGate
+    await route.continue()
+  })
+
+  const currentMonthButton = page.getByRole('button', { name: 'เดือนนี้', exact: true })
+  const searchRangeButton = page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true })
+  await searchRangeButton.evaluate((button: HTMLButtonElement) => {
+    button.click()
+    button.click()
+  })
+  await expect(page.getByText('กำลังโหลด...', { exact: true })).toBeVisible()
+  await expect(currentMonthButton).toBeDisabled()
+  await expect(searchRangeButton).toBeDisabled()
+  await expect.poll(() => historicalNavigationReads).toBe(1)
+  releaseNavigation()
   await page.waitForURL(/from=2026-07-01.*to=2026-07-31/)
+  await page.unroute('**/admin/teaching-programs?*')
+  await expect(page.getByText('กำลังโหลด...', { exact: true })).toHaveCount(0)
+  await expect(currentMonthButton).toBeEnabled()
+  await expect(searchRangeButton).toBeEnabled()
   await expect(page.getByText(FORBIDDEN_PROGRAM_CONTENT.submitted, { exact: false }).first()).toBeVisible()
   await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false })).toHaveCount(0)
   await expect(page.getByText('วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด', { exact: true })).toHaveCount(0)

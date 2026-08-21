@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
@@ -138,6 +138,8 @@ export function TeachingProgramsClient({
   readError,
 }: TeachingProgramsClientProps) {
   const router = useRouter()
+  const [isNavigationPending, startNavigationTransition] = useTransition()
+  const bangkokToday = currentMonthRange.to
   const [items, setItems] = useState(programs)
   const [search, setSearch] = useState(initialFilters.search)
   const [status, setStatus] = useState<string>(initialFilters.status)
@@ -163,6 +165,7 @@ export function TeachingProgramsClient({
     initialFilters.toDate,
   ])
   const syncedResolvedFilterKey = useRef(resolvedFilterKey)
+  const navigationInFlightRef = useRef(false)
 
   useEffect(() => {
     setItems(programs)
@@ -179,6 +182,7 @@ export function TeachingProgramsClient({
     setFromDate(initialFilters.fromDate)
     setToDate(initialFilters.toDate)
     setSelectedId(null)
+    navigationInFlightRef.current = false
   }, [
     initialFilters.branch,
     initialFilters.coachId,
@@ -189,6 +193,10 @@ export function TeachingProgramsClient({
     initialFilters.toDate,
     resolvedFilterKey,
   ])
+
+  useEffect(() => {
+    if (!isNavigationPending) navigationInFlightRef.current = false
+  }, [isNavigationPending])
 
   const branchOptions = useMemo(() => Array.from(new Set(items.map((item) => item.branch_name).filter(Boolean))).sort(), [items])
   const courseOptions = useMemo(() => Array.from(new Set(items.map((item) => item.course_type).filter(Boolean))).sort(), [items])
@@ -251,6 +259,7 @@ export function TeachingProgramsClient({
   }, [filtered, selectedItem])
 
   const navigateToRange = (nextFrom: string, nextTo: string) => {
+    if (navigationInFlightRef.current) return
     const params = new URLSearchParams({
       from: nextFrom,
       to: nextTo,
@@ -259,28 +268,51 @@ export function TeachingProgramsClient({
       branch,
       course,
     })
-    if (search.trim()) params.set('q', search.trim())
-    router.push(`/admin/teaching-programs?${params.toString()}`)
+    const normalizedSearch = search.trim()
+    if (normalizedSearch) params.set('q', normalizedSearch)
+    const targetFilterKey = JSON.stringify([
+      normalizedSearch,
+      status,
+      coachId,
+      branch,
+      course,
+      nextFrom,
+      nextTo,
+    ])
+    if (targetFilterKey === resolvedFilterKey) return
+
+    navigationInFlightRef.current = true
+    startNavigationTransition(() => {
+      router.push(`/admin/teaching-programs?${params.toString()}`)
+    })
   }
 
   const applyDateRange = () => {
+    if (navigationInFlightRef.current) return
     if (!isValidCalendarDate(fromDate) || !isValidCalendarDate(toDate)) {
       setMessage({ type: 'error', text: 'กรุณาระบุวันที่เริ่มและวันที่สิ้นสุดให้ถูกต้อง' })
       return
     }
-    if (fromDate > toDate) {
-      setMessage({ type: 'error', text: 'วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด' })
+    if (fromDate > bangkokToday || toDate > bangkokToday) {
+      setMessage({ type: 'error', text: 'ไม่สามารถค้นหาวันหลังวันปัจจุบันได้' })
       return
     }
+    const [normalizedFrom, normalizedTo] = fromDate <= toDate
+      ? [fromDate, toDate]
+      : [toDate, fromDate]
+    setFromDate(normalizedFrom)
+    setToDate(normalizedTo)
     setMessage(null)
-    navigateToRange(fromDate, toDate)
+    navigateToRange(normalizedFrom, normalizedTo)
   }
 
   const resetToCurrentMonth = () => {
-    setFromDate(currentMonthRange.from)
-    setToDate(currentMonthRange.to)
+    if (navigationInFlightRef.current) return
+    const currentMonthFrom = currentMonthRange.from
+    setFromDate(currentMonthFrom)
+    setToDate(bangkokToday)
     setMessage(null)
-    navigateToRange(currentMonthRange.from, currentMonthRange.to)
+    navigateToRange(currentMonthFrom, bangkokToday)
   }
 
   const openReview = (item: TeachingProgramReviewItem, action: ReviewAction) => {
@@ -397,7 +429,7 @@ export function TeachingProgramsClient({
         </div>
       )}
 
-      <div className="rounded-xl border bg-white p-3 shadow-sm">
+      <div className="rounded-xl border bg-white p-3 shadow-sm" aria-busy={isNavigationPending}>
         <div className="grid gap-2 xl:grid-cols-[minmax(260px,1fr)_170px_180px_180px_150px_150px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -432,8 +464,8 @@ export function TeachingProgramsClient({
               {branchOptions.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="วันที่เริ่ม" />
-          <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="วันที่สิ้นสุด" />
+          <Input type="date" max={bangkokToday} value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="วันที่เริ่ม" />
+          <Input type="date" max={bangkokToday} value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="วันที่สิ้นสุด" />
         </div>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Select value={course} onValueChange={setCourse}>
@@ -444,11 +476,17 @@ export function TeachingProgramsClient({
             </SelectContent>
           </Select>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={resetToCurrentMonth}>เดือนนี้</Button>
-            <Button type="button" onClick={applyDateRange} className="gap-2">
+            <Button type="button" variant="outline" onClick={resetToCurrentMonth} disabled={isNavigationPending}>เดือนนี้</Button>
+            <Button type="button" onClick={applyDateRange} className="gap-2" disabled={isNavigationPending}>
               <Search className="h-4 w-4" />
               ค้นหาช่วงวันที่
             </Button>
+            {isNavigationPending && (
+              <span className="inline-flex items-center gap-2 text-sm font-medium text-[#2748bf]" role="status" aria-live="polite">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                กำลังโหลด...
+              </span>
+            )}
           </div>
           <p className="text-xs text-gray-500">
             แสดง {filtered.length} จาก {items.length} รายการในช่วงที่โหลด · หน้า {page}/{totalPages}

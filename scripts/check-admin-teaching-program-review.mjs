@@ -25,25 +25,29 @@ async function checkAsync(name, action) {
   console.log(`PASS ${passed}: ${name}`)
 }
 
-check('Bangkok current-month range covers the entire calendar month', () => {
+check('Bangkok current-month range covers the first day through Bangkok today', () => {
   assert.deepEqual(getAdminTeachingProgramMonthRange('2026-08-20'), {
     from: '2026-08-01',
-    to: '2026-08-31',
+    to: '2026-08-20',
   })
   assert.deepEqual(getAdminTeachingProgramMonthRange('2028-02-10'), {
     from: '2028-02-01',
-    to: '2028-02-29',
+    to: '2028-02-10',
   })
 })
 
 check('server date validation rejects missing, invalid, and reversed bounds without fallback', () => {
   assert.deepEqual(resolveAdminTeachingProgramDateRange({ bangkokToday: '2026-08-20' }), {
     ok: true,
-    range: { from: '2026-08-01', to: '2026-08-31' },
+    range: { from: '2026-08-01', to: '2026-08-20' },
   })
   assert.equal(resolveAdminTeachingProgramDateRange({ from: '2026-08-01', bangkokToday: '2026-08-20' }).ok, false)
   assert.equal(resolveAdminTeachingProgramDateRange({ from: '2026-02-30', to: '2026-03-01', bangkokToday: '2026-08-20' }).ok, false)
   assert.equal(resolveAdminTeachingProgramDateRange({ from: '2026-08-31', to: '2026-08-01', bangkokToday: '2026-08-20' }).ok, false)
+  assert.deepEqual(resolveAdminTeachingProgramDateRange({ from: '2026-08-20', to: '2026-08-21', bangkokToday: '2026-08-20' }), {
+    ok: false,
+    error: 'ไม่สามารถค้นหาวันหลังวันปัจจุบันได้',
+  })
 })
 
 function createReadFixture({ count = 1, error = null } = {}) {
@@ -94,6 +98,7 @@ await checkAsync('read filters the slot relation on the server before bounded pr
   assert.deepEqual(fixture.operations.find(([operation]) => operation === 'range'), [
     'range', 0, ADMIN_TEACHING_PROGRAM_RESULT_CAP,
   ])
+  assert.equal(fixture.operations.filter(([operation]) => operation === 'from').length, 1)
 })
 
 await checkAsync('query failure is explicit and does not masquerade as an empty success', async () => {
@@ -141,6 +146,21 @@ check('client exposes Apply, current-month reset, safe read retry, and 18-row pa
   assert.equal(client.includes('router.push(`/admin/teaching-programs?'), true)
   assert.equal(client.includes('router.refresh()'), true)
   assert.equal(client.includes('สถิติและรายการด้านล่างจึงยังไม่ครบทั้งหมด'), true)
+})
+
+check('client navigation is transition-backed, deduplicated, and bounded by Bangkok today', () => {
+  assert.equal(client.includes('const [isNavigationPending, startNavigationTransition] = useTransition()'), true)
+  assert.equal(client.includes('const navigationInFlightRef = useRef(false)'), true)
+  assert.equal(client.includes('if (navigationInFlightRef.current) return'), true)
+  assert.equal(client.includes('startNavigationTransition(() =>'), true)
+  assert.equal(client.includes('disabled={isNavigationPending}'), true)
+  assert.equal(client.includes('กำลังโหลด...'), true)
+  assert.equal(client.includes('aria-busy={isNavigationPending}'), true)
+  assert.equal(client.includes('max={bangkokToday}'), true)
+  assert.equal(client.includes('fromDate <= toDate'), true)
+  assert.equal(client.includes("text: 'ไม่สามารถค้นหาวันหลังวันปัจจุบันได้'"), true)
+  assert.equal(client.includes('const bangkokToday = currentMonthRange.to'), true)
+  assert.equal(client.includes('currentMonthRange.from'), true)
 })
 
 check('program refresh is isolated from draft filters and resolved primitive filters skip the initial mount', () => {
