@@ -15272,3 +15272,811 @@ Owner UAT on exact artifact/SHA:
 Next Action: **Await Owner UAT PASS/FAIL for exact artifact
 `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` / Application SHA
 `7c32e924fdd76d88ce853dfde531f84a2123bc22`. Do not Promote or rebuild yet.**
+
+### 2026-08-20 — Schedule Learning Details — UAT Correction Final Performance Material Hard Stop
+
+State observed at this safe handoff: Owner UAT rejected staged artifact
+`dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` / Application Source
+`7c32e924fdd76d88ce853dfde531f84a2123bc22` and authorized a fixed 14-path
+correction for Parent program visibility, Coach exact-group learning details, and
+Admin Teaching Program Review. The previous artifact remains retained and was not
+Promoted. Production aliases remained on `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`.
+
+#### Fresh state and proven Admin Runtime Root Cause
+
+- Repository/branch were exact. Local/upstream HEAD stayed
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged paths
+  `0`. The only non-task dirty path was protected
+  `src/lib/schedule-slot-utils.ts`; it remained excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Read-only deployment checks retained the rejected artifact and confirmed no
+  Production alias mutation before implementation.
+- Old Admin Review Source loaded up to 800 all-history teaching programs, then
+  resolved all schedule slots through one large `.in('id', slotIds)` query while
+  ignoring query errors. A disposable localhost fixture reproduced 800 programs
+  and an approximately `29,600`-character slot request that returned `URI too
+  long`; because the error was ignored, the slot map was empty and browser date
+  filtering hid the rows while all-history program counts remained visible.
+  Fixture cleanup returned program/slot/user residue `0`. Fact: oversized ignored
+  read error is the Runtime Root Cause. Database/RLS/Schema/data integrity was not
+  implicated. No PII was logged or recorded.
+
+#### One bounded implementation approach
+
+- Functional/Test/Config/Documentation allowlist is `7/3/1/3`, total `14`; three
+  authorized new paths are the Coach program dialog, Admin Review server reader,
+  and Admin Review deterministic check. Path `15`, Migration, Schema, Index, RPC,
+  RLS, dependency, lockfile, and application/remote Environment changes are
+  absent. Admin Schedule full-program Source was not changed.
+- Parent API selects the latest deterministic program from
+  `submitted/approved/rejected`, keeps `draft` hidden, and preserves exact
+  authentication, ownership, verified booking, group, assigned coach/slot,
+  no-Legacy-fallback and safe-field boundaries. Initial loading remains on-demand.
+- Coach Today keeps individual Level/name behavior and adds the exact assigned
+  group's assessed Level range with unassessed count, child nickname with full-name
+  fallback, and latest exact coach/slot program for every status with badge,
+  preview and mobile full-content dialog. It uses one fixed bounded program read,
+  not per-group or per-student queries; legacy-only records gain no program access.
+- Admin Review defaults to `submitted` and the complete current Bangkok calendar
+  month, validates the range on client and server, filters through the
+  `schedule_slots` relation before loading program bodies, checks every read error,
+  shows safe error/retry and truncation warning, scopes stats to the selected
+  range, retains 18-row pagination, and performs historical search through
+  deterministic URL parameters.
+
+#### Verification completed before final certification
+
+- TypeScript passed. `test:schedule-learning-details` passed `17/17` and
+  `test:admin-teaching-program-review` passed `9/9`.
+- Relevant Parent/User/Coach/Admin focused E2E passed `4/4` twice consecutively;
+  retries were disabled and disposable fixture residue was `0` each time. Two
+  focused selector corrections were completed before final certification without
+  weakening business assertions. Known non-failing development hydration and
+  image-LCP warnings were retained as observations.
+- Complete deterministic suites, full E2E, final lint/mojibake/build/prod check,
+  and release verification were not run after the mandatory Performance Hard
+  Stop. Overall Tests Passed is therefore **No**.
+
+#### Valid Final Performance Set 1 — incomplete
+
+- Final certification used final uninstrumented Source, comparison base
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`, repository Playwright, isolated
+  current/base workspaces, same disposable localhost fixture/runtime/timezone,
+  established User → Coach → Admin Schedule ordering, and the newly required
+  bounded Admin Review current-month plus historical-range scenario. The
+  day-detail locator had no action or readiness wait.
+- Set 1 Current ran for `300000 ms` then failed with `Test timeout of 300000ms
+  exceeded` at ephemeral `performance.spec.ts:259`, waiting for URL parameters
+  `from=2026-07-01` and `to=2026-07-31` after the bounded Admin Review historical
+  Apply action. The harness printed no complete aggregate result. No raw sample,
+  median, request/API/query count, row count, or payload result is reconstructed or
+  claimed. Set 1 Base and Set 2 were not run. Global fixture cleanup completed
+  with residue `0`.
+- Classification: **MATERIAL HARD STOP — VALID FINAL PERFORMANCE SET 1
+  INCOMPLETE**. This is not a threshold PASS/FAIL and no Product Runtime Root
+  Cause is inferred. Historical Coach variance Root Cause remains **Unknown**.
+  After certification began, retry, alternate methodology, diagnosis, correction,
+  later gate, Commit, Push, new artifact, alias operation, and Promotion counts are
+  all `0`.
+
+#### Safe handoff matrix
+
+- Active Task **Schedule Learning Details**; Status **DEVELOPING — MATERIAL HARD
+  STOP**; Source Complete **No**; complete Tests Passed **No**; Committed/Pushed
+  **No/No for this correction**; Application/Documentation Commit **None/None**;
+  local/upstream `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, `0/0`; staged paths
+  `0`; replacement artifact **None**; Owner UAT **FAIL on the retained previous
+  artifact / not available for a replacement**; Promoted/Production Active
+  **No/No for this correction**.
+- Migration/Dependency/Environment/Feature/Allowlist **unchanged**; Controlled
+  Write UAT **not run**; Production Data Changed/Data Repaired **No/No**; Customer
+  Impact **none in Production**; Application Financial Impact **none**; commercial
+  note **item 1 only = 12,000 บาท** and does not modify application pricing,
+  wallet, or finance. The other six Parking Lot tasks remain unauthorized.
+- Previous rejected artifact is retained; no deletion, redeploy, alias change, or
+  Production traffic movement occurred. Task Done **No**. Documentation Drift is
+  resolved by `PROJECT_STATE.md` as the current mutable authority; earlier READY
+  records remain Historical evidence only.
+
+Next Action: **Await Owner authorization. Do not retry Performance, diagnose,
+correct, run later gates, Commit, Push, Deploy, create a replacement artifact,
+change aliases, or Promote under the current Scope Contract.**
+
+### 2026-08-20 — Schedule Learning Details — Date-State Correction Certification Precondition Hard Stop
+
+State observed at this safe handoff: Owner classified the preceding `300000 ms`
+wait-for-navigation invocation as **INVALID / NON-COUNTING**, confirmed its page
+snapshot had `from=2026-08-01`, `to=2026-07-31`, and reversed-date validation
+before `router.push`, and authorized one Admin Review date-state synchronization
+correction plus one new certification sequence. No historical navigation or
+Supabase historical query occurred in that superseded invocation.
+
+#### One authorized correction and focused verification
+
+- Correction path was only
+  `src/components/admin/teaching-programs-client.tsx` plus the existing authorized
+  Admin Review deterministic/E2E test paths. `programs` now synchronizes `items`
+  independently; draft filters synchronize only when the resolved primitive
+  Server-filter key changes, and the initial mount is skipped through a ref seeded
+  from the initial key. No timer, delay, debounce, query/API semantics,
+  Supabase/schema/RLS, dependency, lockfile, Environment, or additional path was
+  changed.
+- `test:admin-teaching-program-review` passed `10/10`. TypeScript passed.
+  Focused Admin Review E2E passed `2/2` twice consecutively: immediate input,
+  exact historical URL/server result, no reversed error, current-month reset,
+  historical/current isolation, existing invalid/reversed validation and review
+  behavior. Playwright retries were `0`; selected skips/unexpected/flaky were `0`;
+  disposable fixture residue was `0` in both runs.
+- One repository Playwright/system-Chrome launch/close preflight passed and was
+  not a Performance sample. The ephemeral harness added only exact start/end
+  input-value assertions before the historical-Apply timer; it remains outside
+  the repository.
+
+#### Renewed certification — Material Hard Stop before timing
+
+- Only Set 1 Current was invoked. User, Coach, Admin Schedule, and current-month
+  Admin Review navigation measurements ran internally, but the harness prints one
+  aggregate only after historical Apply. No aggregate or raw samples were emitted,
+  so no partial values are reconstructed or certified.
+- After the harness filled start/end `2026-07-01` / `2026-07-31`, the first exact
+  precondition failed before the timer. Playwright expected start date
+  `2026-07-01` but received `2026-08-01`; the locator resolved to that unexpected
+  value 14 times during the `5000 ms` assertion. Historical Apply was not clicked,
+  navigation/query timing did not start, and there is no Performance threshold
+  PASS/FAIL. Set 1 Base and Set 2 Current/Base were not run.
+- Global teardown completed and reported disposable fixture residue `0`.
+  Classification: **MATERIAL HARD STOP — FINAL PERFORMANCE SET 1 CURRENT INPUT
+  PRECONDITION FAILED**. The exact cause of the remaining full-sequence reset is
+  **Unknown / diagnosis prohibited by the current Owner decision**. Historical
+  Coach variance also remains **Unknown**. Retry, alternate methodology, diagnosis,
+  second correction, later gate, Commit, Push, new artifact, alias operation, and
+  Promotion counts after this failure are all `0`.
+
+#### Safe handoff state
+
+- Functional/Test/Config/Documentation task paths remain `7/3/1/3`, total `14`;
+  path `15` is absent; Admin Schedule modal Source is untouched. Local/upstream
+  HEAD is `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged
+  paths `0`. Correction Application/Documentation commits are **None/None** and
+  no correction Source was pushed.
+- Protected `src/lib/schedule-slot-utils.ts` remains excluded and content-identical
+  at Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  `package-lock.json` remains SHA-256
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+- Previous rejected artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` /
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22` is retained and unpromoted.
+  Production aliases remain on `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; no traffic
+  moved. Replacement artifact **None**; staged smoke/log **not run**.
+- Source Complete **No**; complete Tests Passed **No**; Committed/Pushed
+  **No/No**; Owner UAT **previous artifact FAIL / replacement unavailable**;
+  Promoted/Production Active **No/No for this correction**; Migration/Dependency/
+  Environment/Feature/Allowlist **unchanged**; Controlled Write UAT **not run**;
+  Production Data Changed/Data Repaired **No/No**; Customer Impact **none in
+  Production**; Application Financial Impact **none**; commercial note **Parent
+  program visibility only = 12,000 บาท**; Documentation Drift **No after this
+  safe handoff**; Task Done **No**. The other six Parking Lot tasks remain
+  unauthorized.
+
+Next Action: **Await Owner authorization. Do not retry Performance, diagnose the
+remaining reset, apply a second correction, run later gates, Commit, Push, Deploy,
+create a replacement artifact, change aliases, or Promote.**
+
+### 2026-08-20 — Schedule Learning Details — Direct-URL Certification Base Fixture Hard Stop
+
+State observed at this safe handoff: Owner classified both prior interactive
+Admin Review invocations as **INVALID / NON-COUNTING**, prohibited a second
+Product/Test/Config correction, and authorized exactly one direct-URL Performance
+certification sequence. The current-month and bounded historical scenarios were
+measured by direct URL with `load` plus the existing `ตรวจโปรแกรมสอน` heading as
+the identical current/base readiness boundary. No Admin date-input fill, input
+precondition, Apply click, post-Apply URL wait, arbitrary sleep, network-idle wait,
+Product instrumentation, or repository harness file was used.
+
+#### Gate 0 and frozen Source identity
+
+- Repository/branch/HEAD/upstream were exact:
+  `spike/next-major-security-upgrade` at
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged paths
+  `0`. The task diff remained the fixed `7/3/1/3` Functional/Test/Config/
+  Documentation set, total `14`; path `15`, Migration, dependency, and lockfile
+  diffs were absent.
+- Frozen SHA-256 inventory for the eleven Functional/Test/Config paths was:
+  - `75D9E58CCC2FBCFF54EBFAEFD7CCB56269255D98A8B87391BA52375551DDD628`
+    — `src/app/(coach)/coach/today/page.tsx`
+  - `CD51E000FA8E2EF19E5F5B36B9F6F9825A7BAA70EFA09E5DDA2E3F9755BEC6E6`
+    — `src/lib/coach-assigned-schedule.ts`
+  - `C3A6EB24BE23FCFE557C21FBD284A68C66FF804A7EB9DA2AB6179979660177BC`
+    — `src/components/coach/coach-today-program-dialog.tsx`
+  - `5ACE0974667BB07D7DC707D51DA86CC72B15A41B0039CC10E4AC5FCDB66FA574`
+    — `src/app/api/schedule/program/route.ts`
+  - `EEBE2D841771DA012F840198A0BCD3D7F353DD56172316B81696072E1BF6F210`
+    — `src/app/(admin)/admin/teaching-programs/page.tsx`
+  - `2A801AB184303DD167D9494BDBAA926CFAD7A09815B92E76F2FB0B31408DBA82`
+    — `src/components/admin/teaching-programs-client.tsx`
+  - `CF1C0D230BCFFF73FE2C81BE4D556EF82858D4DE9EE768A467C38A6E619BD07B`
+    — `src/lib/admin-teaching-programs-read.ts`
+  - `C767ACA0640CE76AEC2E8BBD508116D1B916778003B0552EE6EEF052D0460FF1`
+    — `scripts/check-schedule-learning-details.mjs`
+  - `72BCEE23096998779168991F17EDE984F520A3113C69CCD9D1A485BBA36D189B`
+    — `scripts/check-admin-teaching-program-review.mjs`
+  - `4C5EDD68A2AEF507480933117FB62299CADECAA372EF3EB490C5DA569D7159E1`
+    — `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`
+  - `A1B157BF7E1488FD47D8AE2DE69ABBBB0311522E82D47F42E6B7E32E6ECECA0B`
+    — `package.json`
+  Recheck immediately before certification reported mismatches `0`.
+- `package-lock.json` remained SHA-256
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- One repository Playwright browser launch/close preflight passed and was not a
+  Performance sample. The repository browser revision remained `1228`; no browser,
+  package, dependency, or node_modules installation occurred in this continuation.
+- The previous rejected artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remained
+  Ready, target Production, retained, unpromoted, and unaliased. All four
+  Production aliases remained on `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` before
+  certification. No deployment or alias mutation followed.
+
+#### Direct-URL Final Performance Set 1 Current — complete
+
+The exact current-month URL was
+`/admin/teaching-programs?from=2026-08-01&to=2026-08-31&status=submitted`; the
+bounded historical URL was
+`/admin/teaching-programs?from=2026-07-01&to=2026-07-31&status=submitted`.
+Actor/scenario order was User → Coach → Admin Schedule → Admin Review current
+month → Admin Review historical. Each used warm-up `1`, measured runs `5`, the
+same persistent warm context methodology, and browser `transferSize` payload.
+
+| Scenario | Raw five samples (ms) | Median | Browser/API | Median payload bytes | Current-side correctness |
+| --- | --- | ---: | ---: | ---: | --- |
+| User Schedule | `1509.3, 731.7, 726.8, 718.4, 729.6` | `729.6 ms` | `18/0` | `2,788,940` | initial program requests/content `0/0` |
+| Coach Today | `1252.2, 807.7, 828.8, 826.2, 847.8` | `828.8 ms` | `18/0` | `2,800,257` | exact-slot program content present; no initial API |
+| Admin Schedule | `1222.6, 937.2, 944.8, 915.1, 958.8` | `944.8 ms` | `19/1` | `2,793,229` | one existing day API; modal adds no measured request |
+| Admin Review current | `727.8, 695.9, 665.2, 662.5, 666.5` | `666.5 ms` | `18/0` | `2,791,238` | exact URL; `1` visible row; current sentinel present; historical sentinel/read error `0/0` |
+| Admin Review historical | `746.0, 778.9, 729.1, 737.8, 799.7` | `746.0 ms` | `18/0` | `2,793,857` | exact URL; `18` visible rows; historical sentinel present; current sentinel/read error `0/0` |
+
+Current-side disposable fixture teardown reported residue `0`. Request counts
+showed no browser request storm. The frozen deterministic Source architecture
+remained Parent initial program `0`, Parent click auth plus three bounded reads,
+fixed User/Coach Level reads, at most one bounded Coach program read, Admin
+Schedule modal additional API/DB `0/0`, and bounded server-filtered Admin Review;
+the incomplete comparison does not upgrade those architectural facts into an
+overall Performance PASS. The complete sanitized aggregate remains in the
+external, untracked log
+`C:/Users/aacha/AppData/Local/Temp/sld-uat-perf-20260820/cert-direct-set1-current.log`.
+
+#### Exact-base side — incomplete before actor measurement
+
+- Exact Base worktree identity was
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`, clean with zero status paths.
+  Only one Set 1 Base invocation was made.
+- Base global setup completed its local `supabase db reset`, then the existing
+  helper failed at `docker restart supabase_kong_base-worktree` in
+  `tests/booking-regression/local-supabase.ts:154`. Playwright emitted no actor
+  sample and no `SCHEDULE_LEARNING_DETAILS_PERFORMANCE` aggregate. Global teardown
+  repeated the same helper failure. Command exit was `1`.
+- Fact: Set 1 Base fixture setup did not complete. The reason that exact Docker
+  restart command failed is **Unknown / diagnosis prohibited**. No Base median,
+  requests, API count, payload, visible/error observation, current/base delta, or
+  threshold result is reconstructed. Base fixture residue is **Unknown / not
+  certifiable**. Set 2 Current/Base and all later required gates were not run.
+- The isolated Base setup pulled local disposable Supabase Docker images. This is
+  a local tooling/container-cache side effect, not an application/remote
+  Environment, linked Supabase, or Production change.
+
+Classification: **MATERIAL HARD STOP — FINAL PERFORMANCE SET 1 BASE FIXTURE SETUP
+INCOMPLETE**. Per the latest Owner policy, Performance retry, diagnosis,
+Product/Test/Config correction, Set 2, deterministic/full E2E, lint, mojibake,
+build, prod check, Commit, Push, replacement artifact, alias action, and Promotion
+counts after the failure are all `0`.
+
+#### Safe handoff matrix
+
+- Active Task **Schedule Learning Details**; Status **DEVELOPING — MATERIAL HARD
+  STOP**; Source Complete **No**; complete Tests Passed **No**; Application/
+  Documentation Committed **No/No**; Pushed **No**; local/upstream
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`; correction
+  replacement artifact **None**; Owner UAT **previous artifact FAIL / replacement
+  unavailable**; Promoted/Production Active **No/No for this correction**.
+- Migration/Dependency/Application-or-remote-Environment/Feature/Allowlist are
+  **unchanged**; Controlled Write UAT **not run**; Production Data Changed/Data
+  Repaired **No/No**; Customer Impact **none in Production**; Application
+  Financial Impact **none**; commercial note **Parent program visibility only =
+  12,000 บาท** and does not change application pricing, wallet, or finance. The
+  other six Parking Lot tasks remain unauthorized.
+- Documentation Drift **No after this safe handoff**; Task Done **No**. The
+  rejected artifact is retained; no Production traffic moved.
+
+Next Action: **Await Owner authorization. Do not retry or diagnose the Base fixture
+failure, modify Product/Test/Config, run Set 2 or later gates, Commit, Push,
+Deploy, create a replacement artifact, change aliases, or Promote.**
+
+### 2026-08-21 — Schedule Learning Details — Exact-Base Local Preflight REST Readiness Hard Stop
+
+State observed at this safe handoff: Owner confirmed that the preceding Base
+failure was caused by a local worktree/container identity mismatch: the old leaf
+was `base-worktree`, config project id was `New-Athlete-Badminton-School`, and the
+unchanged helper derives the Kong container from `basename(ROOT)`. Owner therefore
+classified the preceding Direct-URL Set 1, including all Current samples, as
+**INCOMPLETE / NON-COUNTING LOCAL FIXTURE INFRASTRUCTURE INVOCATION** and
+authorized one fresh exact-Base worktree plus one local preflight before a wholly
+new certification sequence. No prior sample was reused.
+
+#### Fresh Gate 0
+
+- Repository/branch/HEAD/upstream were exact:
+  `spike/next-major-security-upgrade` at
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged paths
+  `0`. Task paths remained `7/3/1/3`, total `14`; path `15`, Migration, dependency,
+  and lockfile diffs were absent.
+- Functional/Test/Config frozen SHA-256 mismatches were `0/11` against the Owner
+  inventory. `package-lock.json` remained
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained excluded at Git blob
+  `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Source inspection confirmed `resetLocalDatabase()` still invokes local
+  `supabase db reset` followed by `docker restart supabase_kong_${basename(ROOT)}`;
+  `supabase/config.toml` still has
+  `project_id = "New-Athlete-Badminton-School"`. Neither file was edited.
+- External direct-URL harness remained outside the repository and contained no
+  interactive Admin Review date fill/Apply, Product-specific readiness wait,
+  network-idle wait, or Product instrumentation. Repository Playwright/Test/Core
+  remained `1.61.1/1.61.1`, browser revision `1228`; no browser, dependency,
+  node_modules, or CLI install/upgrade occurred.
+- Read-only Vercel evidence retained rejected artifact
+  `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` as Ready, target Production, unpromoted and
+  unused. All four Production aliases remained sourced from
+  `new-athlete-badminton-school-c2khxn6vu-aachanin1s-projects.vercel.app` /
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; no alias mutation followed.
+
+#### Exact Base identity
+
+- Unique disposable parent:
+  `C:/Users/aacha/AppData/Local/Temp/sld-exact-base-4174941b2c33472187c7f00048e838cb`.
+- Exact Base path:
+  `C:/Users/aacha/AppData/Local/Temp/sld-exact-base-4174941b2c33472187c7f00048e838cb/New-Athlete-Badminton-School`.
+- Leaf was exactly `New-Athlete-Badminton-School`; config project id was exactly
+  the same; expected helper target was exactly
+  `supabase_kong_New-Athlete-Badminton-School`.
+- Detached HEAD was exact Application base
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`; status paths were `0`. Existing
+  main-worktree `node_modules` was reused through a disposable ignored junction;
+  no package or installed file changed.
+
+#### One local preflight and exact sanitized evidence
+
+- Initial read-only `docker version` found Docker Desktop not running. Per the
+  explicit Owner authorization, existing
+  `C:/Program Files/Docker/Docker/Docker Desktop.exe` was started once, hidden;
+  engine became ready on readiness attempt `2`. Start invocation count was `1`.
+- Docker client/server were `29.6.1/29.6.1`, OS `Docker Desktop`, type `linux`.
+  Supabase CLI resolved from the existing cache at `2.115.0`; `db reset --help`
+  was read before the command. No CLI install or upgrade occurred.
+- Exact local command scope was `npx.cmd --no-install supabase db reset` from the
+  fresh Base path. It exited `0`, applied only repository migrations to the
+  disposable local stack, and reported `Finished supabase db reset`. No
+  `--linked`, database URL, remote repair, push, pull, or Production operation was
+  used.
+- After reset, the expected exact Kong identity existed as
+  `supabase_kong_New-Athlete-Badminton-School`, image
+  `public.ecr.aws/supabase/kong:2.8.1`. A PowerShell collection predicate initially
+  treated nonmatching sibling rows as a false negative before any restart; only
+  that read-only predicate was corrected, with no second reset and no container
+  action yet.
+- Exact restart command was
+  `docker restart supabase_kong_New-Athlete-Badminton-School`. Invocation count was
+  `1`, exit `0`, stdout was the exact container name, stderr was empty. Immediate
+  inspect showed running with `health=starting`; an early Auth probe during that
+  starting state returned an empty reply and was not a healthy-state verdict.
+  No reset or restart was repeated. Read-only health polling then observed Kong
+  `running=true`, `status=running`, `health=healthy`.
+- At the healthy-state readiness gate, Auth health returned HTTP `200`, curl exit
+  `0`. REST root command was bounded to
+  `http://127.0.0.1:54321/rest/v1/` and returned HTTP `503`, curl exit `0`.
+  Container identity at that point showed:
+  - Postgres `17.6.1.159`: running/healthy.
+  - Auth `v2.189.0`: running/healthy.
+  - Storage `v1.58.1` and Realtime `v2.120.3`: running/healthy.
+  - Kong `2.8.1`: running/healthy.
+  - PostgREST `v14.1`: `Exited (255)`.
+- Fact: exact leaf/config/Kong identity correction worked, local reset worked,
+  exact Kong restart worked, and Auth was ready; required REST/API readiness did
+  not pass. The reason PostgREST was exited is **Unknown / diagnosis prohibited**.
+  No container logs, alternative name, additional container start/restart, config
+  edit, helper edit, reset retry, or remote Supabase call followed.
+
+Classification: **MATERIAL HARD STOP — EXACT-BASE LOCAL PREFLIGHT REST READINESS
+FAILED**. This is not a Product, Database-schema/RLS/data-integrity, or Performance
+threshold result. The newly authorized Performance Set 1 Current/Base and Set 2
+Current/Base were not invoked, and no Performance sample, aggregate, payload, row,
+delta, or PASS/FAIL was produced.
+
+#### Safe handoff matrix
+
+- Active Task **Schedule Learning Details**; Status **DEVELOPING — MATERIAL HARD
+  STOP**; Source Complete **No**; complete Tests Passed **No**; Application/
+  Documentation Committed **No/No**; Pushed **No**; local/upstream
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`; staged paths
+  `0`; replacement artifact **None**; Owner UAT **previous artifact FAIL /
+  replacement unavailable**; Promoted/Production Active **No/No for this
+  correction**.
+- No Product/Test/Config source changed in this continuation. Performance, later
+  deterministic/full E2E, TypeScript, lint, mojibake, build, prod check, Commit,
+  Push, artifact, smoke, log, alias, and Promotion actions after the failed
+  readiness gate were all `0`.
+- Migration/Dependency/Application-or-remote-Environment/Feature/Allowlist are
+  **unchanged**. Local tooling effects were one Docker Desktop start and one
+  disposable local reset. Controlled Write UAT **not run**; Production Data
+  Changed/Data Repaired **No/No**; Customer Impact **none in Production**;
+  Application Financial Impact **none**; commercial note **Parent program
+  visibility only = 12,000 บาท** and does not alter application pricing, wallet,
+  or finance. The other six Parking Lot tasks remain unauthorized.
+- Previous rejected artifact remains retained. No Production traffic moved.
+  Documentation Drift **No after this safe handoff**; Task Done **No**.
+
+Next Action: **Await Owner authorization. Do not retry or diagnose REST readiness,
+start/restart another container, modify Product/Test/Config, run Performance or
+later gates, Commit, Push, Deploy, create a replacement artifact, change aliases,
+or Promote.**
+
+### 2026-08-21 — Schedule Learning Details — Valid Set 1 Performance Hard Stop
+
+State observed at this safe handoff: Owner authorized bounded sanitized diagnosis
+of the exact local Supabase project, at most two conditional recovery approaches,
+and a fresh certification only after Auth/REST readiness and residue `0`. No
+Product/Test/Config edit, remote Supabase operation, Production data operation,
+or alias action was authorized or performed in this continuation.
+
+#### Fresh Gate 0 and exact-project diagnosis
+
+- Repository/branch/HEAD/upstream remained
+  `spike/next-major-security-upgrade` at
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged `0`.
+  Task paths remained `7/3/1/3`, total `14`; path `15`, Migration, dependency,
+  and lockfile diffs were absent. Functional/Test/Config frozen-hash mismatches
+  were `0/11`.
+- Protected `src/lib/schedule-slot-utils.ts` remained unstaged and exact at Git
+  blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  `package-lock.json` remained
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+- Exact Base remained clean at
+  `C:/Users/aacha/AppData/Local/Temp/sld-exact-base-4174941b2c33472187c7f00048e838cb/New-Athlete-Badminton-School`, leaf/config
+  project id `New-Athlete-Badminton-School`, exact SHA
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`.
+- Sanitized inspect/log/status evidence classified the blocker as **B — confirmed
+  stale/incomplete exact-project local stack**. The old PostgREST `v14.1`
+  container was `exited/255`, but its bounded historical logs showed successful
+  PostgreSQL 17.6 connection and successful schema-cache loads rather than a
+  schema/RLS/data-integrity error. The exact database was running/healthy, while
+  CLI status reported PostgREST plus multiple exact-project support services
+  stopped. No secret, token, credential, cookie, authorization header, PII, or
+  database row content was retained.
+- Classification A was not supported, so Recovery Approach 1 was skipped (`0`).
+  Classifications C/D/E were not supported. Installed Supabase CLI `2.115.0`
+  help confirmed `stop --project-id`, project-scoped `start`, and `db reset
+  --local`; `--all`, `--linked`, `--db-url`, remote ref, and CLI upgrade were
+  absent.
+
+#### Recovery and readiness
+
+- Recovery Approach 2 ran once (`1/1`) against only the exact local project:
+  `stop --project-id New-Athlete-Badminton-School` exit `0` (`13.7 s`), `start`
+  from the exact Base workdir exit `0` (`118.6 s`), and `db reset --local` from
+  that workdir exit `0` (`33.2 s`). The reset replayed the established 29 local
+  migrations through `20260817042635`; no remote/linked operation ran.
+- After recovery: DB `17.6.1.159` running/healthy, Kong `2.8.1`
+  running/healthy, PostgREST running, Auth HTTP `200`, authenticated bounded REST
+  HTTP `200`, exact Performance fixture residue `0`, Base clean. Existing CLI
+  recreated PostgREST using its pinned `v16.1` image instead of the stale `v14.1`
+  container; this was a local-only recovery side effect, not a CLI upgrade,
+  Product/remote Environment change, or manually selected image/version.
+- Functional/Test/Config mismatches after recovery remained `0/11`; protected and
+  lock hashes remained exact. No repository file changed from the recovery.
+
+#### Valid Final Performance Set 1
+
+Established external direct-URL harness ran once per side with no retry: Current
+then exact Base, warm-up `1`, measured `5`, persistent warm contexts, scenario
+order User → Coach → Admin Schedule → Admin Review current month → Admin Review
+July 2026. Both sides exited `0`, printed complete aggregates, passed their single
+Playwright test, and reported fixture residue `0`.
+
+| Scenario | Current raw ms | Base raw ms | Current/Base median | Delta | Result |
+| --- | --- | --- | --- | --- | --- |
+| User Schedule | `3202.6, 1695.2, 1576.3, 1791.9, 1555.0` | `2846.6, 1180.7, 1250.5, 1217.4, 1686.5` | `1695.2 / 1250.5 ms` | `+444.7 ms` / `+35.56%` | **FAIL** |
+| Coach Today | `2698.7, 2078.9, 1823.5, 1709.8, 2169.5` | `2708.6, 1817.3, 1629.1, 1813.5, 1952.8` | `2078.9 / 1817.3 ms` | `+261.6 ms` / `+14.39%` | **FAIL** |
+| Admin Schedule | `2468.8, 2180.1, 2173.5, 2152.1, 1958.6` | `2267.2, 1895.0, 2190.0, 2237.3, 1935.4` | `2173.5 / 2190.0 ms` | `-16.5 ms` / `-0.75%` | PASS |
+| Admin Review current | `1600.3, 1740.0, 1584.6, 1412.2, 1443.8` | `1618.4, 1563.2, 1261.9, 1036.9, 1015.1` | `1584.6 / 1261.9 ms` | `+322.7 ms` / `+25.57%` | **FAIL** |
+| Admin Review historical | `1188.4, 1721.3, 1541.5, 1560.4, 795.2` | `1249.0, 1522.1, 1650.0, 1648.3, 1283.2` | `1541.5 / 1522.1 ms` | `+19.4 ms` / `+1.27%` | PASS |
+
+- Failure threshold was unchanged: both `>10%` and `>=100 ms`. User, Coach, and
+  Admin Review current-month each crossed both conditions; therefore valid Set 1
+  **FAILED**. Set 2 was not run.
+- Current/Base request/API medians remained User `18/0` vs `18/0`, Coach `18/0`
+  vs `18/0`, Admin Schedule `19/1` vs `19/1`, both Review scenarios `18/0` vs
+  `18/0`. Parent initial program request/content remained `0/0` on all measured
+  samples. Admin Review current/historical Current visible rows were `1/18`, read
+  errors `0/0`; Base visible rows were `1/1`, read errors `0/0`.
+- Current/Base median payload bytes were User `2,788,937/2,797,506`, Coach
+  `2,800,251/2,807,891`, Admin Schedule `2,793,289/2,801,853`, Review current
+  `2,790,382/2,801,210`, and Review historical `2,793,068/2,801,214`.
+- Architecture evidence remained fixed/bounded: User/Coach Level reads fixed;
+  Coach has at most one bounded exact-slot program read; Admin Schedule modal
+  additional API/DB `0/0`; Admin Review uses bounded server-side range reads; no
+  per-learner/per-group query loop or request storm was observed.
+
+Classification: **MATERIAL HARD STOP — VALID FINAL PERFORMANCE SET 1 FAILED**.
+Per Owner policy, Performance retry, Set 2, further diagnosis/correction, later
+deterministic/full E2E/TypeScript/lint/mojibake/build/prod-check gates, Application
+Commit, Push, replacement artifact, alias operation, and Promotion counts after
+the valid failure are all `0`.
+
+#### Safe handoff matrix
+
+- Active Task **Schedule Learning Details**; Status **DEVELOPING — MATERIAL HARD
+  STOP**; Source Complete **No**; complete Tests Passed **No**; Application/
+  Documentation Committed **No/No**; Pushed **No**; local/upstream
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`; staged `0`;
+  replacement artifact **None**.
+- Previous rejected artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remains retained
+  and unpromoted. Production aliases remained on
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; Production Active **No for this correction**,
+  Owner UAT **previous artifact FAIL / replacement unavailable**.
+- Migration/Dependency/Application-or-remote Environment/Feature/Allowlist are
+  unchanged; remote Supabase accessed **No**; Controlled Write UAT **not run**;
+  Production Data Changed/Data Repaired **No/No**; Customer Impact **none in
+  Production**; Application Financial Impact **none**; commercial note **Parent
+  program visibility only = 12,000 บาท** and does not alter application pricing,
+  wallet, or finance. Documentation Drift **No after this safe handoff**; Task Done
+  **No**.
+
+Next Action: **Await Owner authorization. Do not retry or diagnose Performance,
+modify Product/Test/Config, run Set 2 or later gates, Commit, Push, Deploy, create
+a replacement artifact, change aliases, or Promote.**
+
+### 2026-08-21 — Schedule Learning Details — Production-Mode Certification Passed; Remote `prod:check` Scope Hard Stop
+
+State observed at this safe handoff: Owner superseded the high-variance
+development-server Performance result with an isolated Production-mode,
+reverse-order Current/Base release certification. Product/Test/Config Source was
+not edited during this continuation. Both Production-mode sets passed with no
+causal regression, and all deterministic/E2E/static gates reached before
+`prod:check` passed technically. Publication nevertheless stopped because
+`prod:check` loaded hosted Supabase credentials from `.env.local` and performed
+read-only remote queries, while the current Scope Contract explicitly prohibited
+all remote Supabase access.
+
+#### Gate 0, Source, and infrastructure
+
+- Repository/branch/HEAD/upstream were exact:
+  `spike/next-major-security-upgrade` at
+  `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged paths
+  `0`. Task counts remained Functional/Test/Config/Documentation `7/3/1/3`, total
+  `14`; path `15`, Migration, dependency, and lockfile diffs were absent.
+- Functional/Test/Config frozen SHA-256 mismatches were `0/11` before
+  certification. `package-lock.json` remained
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained unstaged and content-exact at
+  Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  its Git diff was empty.
+- Product/query audit reconfirmed exact Parent ownership/group/status policy,
+  on-demand initial program request/content `0/0`, exact Coach group/range/
+  nickname/program behavior, Admin Schedule modal extra API/DB `0/0`, and bounded
+  Admin Review relation date/status/cap reads. No N+1, per-group, or per-learner
+  query loop was found.
+- Existing Docker/Supabase CLI `2.115.0`, repository Playwright `1.61.1`, and
+  browser revision `1228` were reused. Browser launch/close passed `1/1`.
+  Exact-project local Auth/REST readiness passed `200/200`; Performance fixture
+  residue was `0`. No package/browser/CLI install or upgrade occurred.
+- Disposable Production snapshots were created below
+  `C:/Users/aacha/AppData/Local/Temp/sld-prod-cert-e30c06c6d113434eb908f896f5ddadaf`.
+  Base was clean detached SHA
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22`. Current was detached documentation
+  HEAD plus byte-exact copies of only the frozen 11 Functional/Test/Config paths.
+  Both used leaf `New-Athlete-Badminton-School`, identical dependencies, local
+  Supabase environment, Asia/Bangkok, and independent ports. Both `npm run build`
+  invocations passed `94/94`; both ran `NODE_ENV=production node server.js`.
+
+#### Final Production-mode Performance certification
+
+Method: direct URL only; actor order User → Coach → Admin Schedule → Admin Review
+current Bangkok month → Admin Review July 2026; warm-up `1`, measured `5`; Set 1
+Current→Base and Set 2 Base→Current. Failure required Current to be both `>10%`
+and `>=100 ms` slower in the same direction in both reverse-order sets. No sample
+was retried, substituted, or reconstructed.
+
+| Set | Scenario | Current raw ms | Base raw ms | Current/Base median | Delta | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | User | `443.4, 416.6, 432.7, 431.5, 419.7` | `438.6, 431.1, 443.0, 428.8, 430.8` | `431.5 / 431.1` | `+0.4 ms / +0.09%` | PASS |
+| 1 | Coach | `449.9, 436.2, 436.0, 446.1, 440.5` | `437.8, 441.5, 441.6, 439.6, 431.0` | `440.5 / 439.6` | `+0.9 / +0.20%` | PASS |
+| 1 | Admin Schedule | `269.1, 260.6, 268.2, 254.9, 252.5` | `247.3, 247.6, 257.2, 270.2, 253.9` | `260.6 / 253.9` | `+6.7 / +2.64%` | PASS |
+| 1 | Review current | `432.0, 425.4, 416.0, 426.8, 421.9` | `438.0, 421.4, 421.3, 425.1, 422.9` | `425.4 / 422.9` | `+2.5 / +0.59%` | PASS |
+| 1 | Review historical | `447.6, 430.8, 459.8, 429.2, 456.2` | `446.1, 431.2, 449.2, 430.1, 448.8` | `447.6 / 446.1` | `+1.5 / +0.34%` | PASS |
+| 2 | User | `439.8, 432.0, 427.1, 417.5, 429.4` | `439.5, 426.5, 439.1, 431.7, 428.9` | `429.4 / 431.7` | `-2.3 / -0.53%` | PASS |
+| 2 | Coach | `446.2, 436.5, 438.6, 443.0, 442.0` | `435.7, 434.6, 438.6, 431.8, 423.8` | `442.0 / 434.6` | `+7.4 / +1.70%` | PASS |
+| 2 | Admin Schedule | `258.4, 269.3, 529.9, 245.4, 259.9` | `262.6, 266.9, 249.4, 242.8, 242.9` | `259.9 / 249.4` | `+10.5 / +4.21%` | PASS |
+| 2 | Review current | `428.8, 422.6, 430.2, 434.7, 423.7` | `432.3, 423.5, 428.1, 427.5, 425.5` | `428.8 / 427.5` | `+1.3 / +0.30%` | PASS |
+| 2 | Review historical | `464.6, 430.8, 450.3, 429.3, 466.6` | `449.7, 427.1, 468.0, 441.0, 454.4` | `450.3 / 449.7` | `+0.6 / +0.13%` | PASS |
+
+- All scenarios passed both sets; Product Performance correction attempts were
+  `0`. User and Admin Schedule negative controls passed. Historical dev-server
+  regressions remain preserved as superseded historical evidence, not erased.
+- Production-mode median request/API counts were comparable: User `59/0`, Coach
+  Current `63/0` with Base `63/0` in Set 1 and `57/0` in Set 2, Admin Schedule
+  `44-or-47/1`, both Admin Review scenarios `61/0`. Parent initial program
+  request/content remained `0/0`.
+- Set 1 Current/Base median payload bytes: User `39,152/39,174`, Coach
+  `48,673/47,393`, Admin `21,596/21,610`, Review current `33,682/35,114`, Review
+  historical `42,285/39,827`. Set 2: User `39,148/39,173`, Coach
+  `42,951/41,677`, Admin `21,600/21,612`, Review current `33,681/35,125`, Review
+  historical `42,289/36,344`.
+- Current Review current/historical visible rows were `1/18`, expected current/
+  historical bodies were `3/119`, opposite-range bodies `0/0`, read errors `0/0`.
+  Base honestly showed old behavior with one visible row in both ranges; no Base
+  Source or sentinel requirement was changed.
+
+#### Required verification reached
+
+- Deterministic suites: Schedule Learning `17`, Admin Review `10`, Admin Schedule
+  Assignment `38`, Admin Schedule Performance `24`, Coach conflicts `22`, Coach
+  resolution `33`, Coach lifecycle `52`, Lesson Wallet `19`; total `215/215`.
+- Focused E2E passed `8/8`; full Admin Schedule Assignment E2E passed `13/13`.
+  Skipped/unexpected/retry/flaky were `0/0/0/0`; disposable fixture residue was
+  `0` after each run. Mixed-Level, duplicate Coach `400`, exact overlap `409`,
+  started-slot, atomicity, cleanup, Parent exact ownership/status/cache, Coach
+  parity, Admin modal, and Admin Review range behavior all passed.
+- TypeScript passed; ESLint passed with warnings `0`; mojibake passed (`263`
+  files); Production build compiled, TypeScript-checked, and generated `94/94`.
+  User Schedule emitted a hydration-mismatch console observation in dev E2E while
+  visible assertions passed; it was not corrected outside scope.
+- After build, port `3000` had no listener; only the verified repository `.next`
+  was removed. Dev restarted at `127.0.0.1:3000`; root and generated static CSS
+  returned `200/200`.
+- The external Performance harness and both disposable Production snapshots were
+  removed after evidence was transcribed; their Git worktree registrations were
+  removed and the exact verified Temp parent was deleted. No repository path was
+  added by the harness.
+
+#### Material scope breach and safe handoff
+
+- `npm.cmd run prod:check` exited `0` and printed the expected readiness result,
+  but Source inspection and a sanitized environment classification proved it
+  loads `.env.local`, where `NEXT_PUBLIC_SUPABASE_URL` is a hosted `https`
+  Supabase endpoint. Consequently, read-only remote Supabase queries occurred.
+  No URL, key, JWT, authorization header, credential, PII, or row content is
+  retained here.
+- This conflicts with the current explicit prohibition on remote Supabase access.
+  The query path was read-only; no write, repair, linked operation, Environment
+  change, feature/allowlist action, Production data change, customer impact, or
+  financial movement occurred. Nevertheless, access itself is a scope breach.
+- Classification: **MATERIAL HARD STOP — RELEASE `prod:check` REMOTE SUPABASE
+  SCOPE BREACH**. Application/Documentation Commit `0/0`, Push `0`, replacement
+  artifact `0`, staged smoke/log `0`, alias action `0`, Promotion `0`. Local and
+  upstream remain `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind
+  `0/0`, staged `0`.
+- Previous rejected artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remains retained
+  and unpromoted. Production aliases remain on
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. Production Active **No for this
+  correction**; Owner UAT replacement **not available**; Controlled Write UAT
+  **not run**; Production Data Changed/Data Repaired **No/No**; Customer Impact
+  **none**; Application Financial Impact **none**; commercial note **Parent
+  program visibility only = 12,000 บาท**, not application pricing.
+- Source Complete **No**; complete authorized Tests Passed **No** because scope
+  compliance failed; Task Done **No**; Documentation Drift **No after this local
+  safe handoff**. Documentation remains uncommitted and unpushed.
+
+Next Action: **Owner must reconcile the mandatory `prod:check` gate with the
+no-remote-Supabase prohibition. Authorize either one fresh local-only invocation
+with exact local environment or explicitly accept the already completed read-only
+remote check. Until then, do not stage, Commit, Push, Deploy, create an artifact,
+change aliases, or Promote.**
+
+### 2026-08-21 — Schedule Learning Details — Owner-Accepted Read-Only Gate and Replacement UAT Artifact
+
+State observed at this closeout: Owner explicitly accepted the already-completed
+read-only hosted-Supabase `prod:check` as a valid Release Gate and authorized
+publication without rerunning Performance, tests, build, or `prod:check`. The
+historical no-remote scope breach above remains part of the record. This decision
+did not authorize general remote Supabase access, any remote write, Controlled
+Write UAT, Environment change, or Production data repair.
+
+#### Gate 0 and accepted technical evidence
+
+- Fresh Gate 0 confirmed branch `spike/next-major-security-upgrade` at local and
+  upstream `cbb9203fb5bf2581bcca419e2c4c46f6c772dbf1`, ahead/behind `0/0`, staged
+  paths `0`, exact task allowlist `14`, path `15` absent, and `git diff --check`
+  passed. Functional/Test/Config frozen SHA-256 mismatches were `0/11`.
+- `package-lock.json` remained exact at SHA-256
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained excluded, unstaged, and
+  content-identical at Git blob `4521281d099efb189429a744909552d67871ff23`
+  and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  its Git diff was empty.
+- Owner accepted the Production-mode raw evidence and medians in the immediately
+  preceding dated record without rerun. Both reverse-order sets passed all five
+  scenarios; Product Performance correction count was `0`. Request/API/payload/
+  row budgets, Parent initial program request/content `0/0`, Admin Schedule modal
+  extra API/DB `0/0`, fixed/bounded queries, and no N+1/request storm remained as
+  recorded in that table.
+- Accepted verification remained deterministic `215/215`, focused E2E `8/8`,
+  full E2E `13/13`, skipped/unexpected/retry/flaky `0/0/0/0`, fixture residue
+  `0`, TypeScript PASS, ESLint PASS with warnings `0`, mojibake PASS (`263`
+  files), Production build PASS (`94/94`), and `prod:check` PASS as an
+  Owner-accepted read-only gate. `prod:check` was not rerun.
+
+#### Application publication and exact-SHA artifact
+
+- Complete staged review passed for exactly Functional/Test/Config `7/3/1`
+  (`11` paths): outside-allowlist `0`, documentation staged `0`, protected path
+  staged `0`, secret-pattern hits `0`, and cached diff check PASS.
+- Application commit
+  `a63f4f5ab2ba89c8f54014b69c9eb9eeee594222`
+  (`feat: complete schedule learning details UAT corrections`) was pushed to
+  `origin/spike/next-major-security-upgrade`; local/upstream became exact with
+  ahead/behind `0/0`.
+- A clean detached worktree under
+  `C:/Users/aacha/AppData/Local/Temp/sld-staged-a63f4f5-20260821-1/New-Athlete-Badminton-School`
+  used exact Application SHA `a63f4f5...`, status clean, no documentation commit,
+  no protected dirty content, and only the established Vercel project identity.
+- One `vercel deploy --prod --skip-domain` invocation created staged artifact
+  `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` at
+  `https://new-athlete-badminton-school-h3mjmme04-aachanin1s-projects.vercel.app`.
+  Deployment API evidence reported target `production`, state `READY`, aliases
+  `0`, and `meta.gitCommitSha` exactly
+  `a63f4f5ab2ba89c8f54014b69c9eb9eeee594222`.
+- Staged read-only smoke passed: root `200`, health `200`, login `200`, favicon
+  `200`, protected `/dashboard/schedule` `307` to login, and anonymous
+  `/api/schedule/program` `401` with `Cache-Control: private, no-store`. No form
+  submit, POST, Controlled Write UAT, or Production data write occurred.
+- Bounded staged runtime-log queries after smoke returned warning/error/fatal/5xx
+  `0/0/0/0`. No message bodies, secrets, headers, authorization, JWTs, PII, or row
+  content were retained.
+- Production aliases before and after remained on source deployment URL
+  `new-athlete-badminton-school-c2khxn6vu-aachanin1s-projects.vercel.app`, the
+  established alias state for `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. No alias was
+  assigned to the replacement artifact and no Production traffic moved.
+  Previous rejected artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` / Base SHA
+  `7c32e924fdd76d88ce853dfde531f84a2123bc22` remains retained and unpromoted.
+
+#### Current handoff state
+
+- Functional/Test/Config/Documentation counts are `7/3/1/3`; total task paths
+  `14`; path `15`, Migration, dependency, lockfile, application/remote
+  Environment, feature, allowlist, and permission changes are absent.
+- Remote Supabase activity in this continuation was `0`; the one historical
+  `prod:check` read is Owner-accepted and transparently retained. Remote writes,
+  Production Data Changed/Repaired, and Controlled Write UAT are `0`, `No/No`,
+  and `Not run`.
+- Source Complete **Yes**; Tests Passed **Yes**; Pushed **Yes**; replacement
+  artifact **READY**; Owner UAT **Not run**; Promoted **No**; Production Active
+  **No for this correction**; Customer Impact **None before Promotion**;
+  Application Financial Impact **None**; commercial note **Parent program
+  visibility only = 12,000 บาท**, not application pricing; Task Done **No**.
+- Documentation is published as a separate documentation-only commit after this
+  content; its exact immutable SHA is reported in the final handoff because a
+  commit cannot embed its own SHA. Documentation Drift is **No** after the
+  consistency matrix and publication.
+
+Owner UAT checklist for exact artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg`:
+
+1. Parent verifies Level and Level name, then opens exact-owned
+   submitted/approved/rejected programs and confirms draft/Legacy/no-ownership
+   cases remain hidden.
+2. Coach verifies desktop/mobile exact-group Level range, nickname-only child
+   list, individual Level/name, program status, and full-content modal.
+3. Admin Schedule opens the full program modal from the existing payload without
+   another load/read.
+4. Admin Teaching Program Review opens the current Bangkok month, searches a
+   historical Server range, shows range-scoped statistics, and shows no read
+   error.
+5. All roles confirm no visible error or abnormal navigation delay.
+
+Next Action: **Owner runs UAT at the exact staged URL and returns PASS or FAIL for
+artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` / Application SHA
+`a63f4f5ab2ba89c8f54014b69c9eb9eeee594222`. Do not Promote automatically.**

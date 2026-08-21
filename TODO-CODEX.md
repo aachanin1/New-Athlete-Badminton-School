@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,36 +9,50 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; NOT
-PROMOTED**.
+Status: **READY FOR OWNER UAT — NOT PROMOTED**.
 
 - Active Task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
   FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner selected Priority `1`
-  and approved the 2026-08-19 continuous-delivery Scope Contract.
-- Latest Owner decision authorized only repository-pinned Playwright `1.61.1`
-  Headless Shell `1228` cache restoration, one non-sample launch/close preflight,
-  and the established two-set resume. Install `1/1` and preflight `1/1` passed;
-  package/lockfile/node_modules and frozen Functional/Test/Config hashes stayed
-  byte-identical. No Product correction or path `14/15` was used.
-- Both complete Performance sets passed. Set 1 User/Coach/Admin deltas were
-  `-0.29%/+2.64%/-0.96%`; Set 2 were `+2.39%/+3.69%/+4.23%`. Browser/API budgets
-  remained `18/0`, `18/0`, `19/1`, and User initial program calls/content `0/0`.
-- Deterministic suites passed; focused mixed-Level E2E passed twice; full E2E
-  passed `11/11`; skipped/unexpected/flaky/retry and residue are `0`. TypeScript,
-  zero-warning lint, mojibake, Production build/readiness, diff, and post-build
-  root/static/protected-route checks passed.
-- Historical Coach variance Root Cause remains Unknown. The prior day-detail
-  `.waitFor()` invocation remains invalid/non-counting, and the missing-browser
-  launch remains historical infrastructure evidence.
-- Application Source `7c32e924fdd76d88ce853dfde531f84a2123bc22` is committed
-  and pushed. Exact staged artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` at
-  `https://new-athlete-badminton-school-6y58u47sn-aachanin1s-projects.vercel.app`
-  is `production/READY`, exact-SHA, aliases `0`; staged smoke/log checks passed.
-  All four Production aliases remain on prior artifact `dpl_9bJyCe...`; the only
-  alias inventory change was the normal Git integration branch Preview moving to
-  an exact-commit Preview, which is not the staged artifact.
-- Next action: Owner performs UAT on exact staged artifact/SHA and returns PASS or
-  FAIL. Do not Promote before explicit PASS and do not rebuild the artifact.
+  and now approved the fixed 14-path UAT correction Scope Contract.
+- Owner UAT rejected previous artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` /
+  Application Source `7c32e924fdd76d88ce853dfde531f84a2123bc22`.
+  It remains retained and unpromoted; Production aliases remain on
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`.
+- The three corrections are committed and pushed: Parent visibility permits
+  `submitted/approved/rejected` but hides `draft`; Coach Today shows exact-group
+  Level range, nickname and exact-slot program/status/modal; Admin Review uses a
+  validated Bangkok month/range server query with range-scoped stats and explicit
+  errors. Proven Admin Runtime Root Cause was an ignored oversized schedule-slot
+  `.in()` URI error after an all-history 800-row read, not Database/RLS/Schema.
+- Owner superseded the high-variance dev-server certification with isolated
+  Production builds and reverse order. Both complete sets passed: no User, Coach,
+  Admin Schedule, Admin Review current-month, or historical scenario met both
+  `>10%` and `>=100 ms` in the same direction. Product performance correction
+  count remained `0`.
+- Deterministic suites passed `215/215`; focused E2E `8/8`; full E2E `13/13`;
+  skip/unexpected/retry/flaky `0`; fixture residue `0`; TypeScript, zero-warning
+  lint, mojibake, and Production build passed. A non-visible User Schedule
+  hydration-mismatch console observation is retained as a known limitation.
+- Owner accepted the already-completed read-only hosted-Supabase `prod:check` as
+  a valid Release Gate. The historical no-remote scope breach remains recorded;
+  `prod:check` was not rerun and no additional Supabase read, remote write,
+  repair, Environment change, customer impact, or financial impact occurred.
+- Application commit `a63f4f5ab2ba89c8f54014b69c9eb9eeee594222`
+  contains exactly the authorized Functional/Test/Config `7/3/1` paths and is
+  pushed. The protected unrelated dirty file remains excluded and content-exact.
+- Replacement staged Production-target artifact
+  `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` is `READY` at
+  `https://new-athlete-badminton-school-h3mjmme04-aachanin1s-projects.vercel.app`,
+  has aliases `0`, and carries exact Application SHA `a63f4f5...`.
+- Staged read-only smoke passed root/health/login/static `200`, protected schedule
+  `307`, and anonymous program API `401` with `private, no-store`. Bounded
+  warning/error/fatal/5xx counts were `0/0/0/0`; no Controlled Write UAT or
+  Production data write occurred.
+- Production aliases are unchanged on
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; previous rejected artifact
+  `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remains retained and unpromoted.
+- Next action: Owner runs UAT against the exact replacement artifact/SHA and
+  returns PASS or FAIL. Do not Promote automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -1000,18 +1014,19 @@ other six candidates remain unauthorized and retain their prior relative state.
 Canonical name: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
 FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
 
-Status: **SELECTED / ACTIVE — READY FOR OWNER UAT; EXACT STAGED ARTIFACT; NOT
-PROMOTED**.
+Status: **SELECTED / ACTIVE — READY FOR OWNER UAT; NOT PROMOTED**.
 
-- User/parent: future behavior shows only `approved` teaching programs resolved
-  from the learner's exact assignment group and that real group's
-  `coach_id + schedule_slot_id`; never show `draft`, `submitted`, `rejected`, or
-  Admin review notes.
-- Admin Schedules: future completeness correction adds a Modal/Dialog to read the
-  full program content currently truncated by the line clamp; the data already
-  exists and this is not a separately priced new task.
-- User Schedule and Coach Schedule: future completeness correction adds Level and
-  Level name in the same format as Admin Schedule.
+- User/parent correction: pushed Source permits only on-demand `submitted`,
+  `approved`, and `rejected` teaching programs resolved from the learner's exact
+  assignment group and that real group's `coach_id + schedule_slot_id`; `draft`,
+  review metadata, Legacy-only, and non-owned programs remain hidden.
+- Admin corrections: the previously published Admin Schedule full-content modal
+  remains unchanged; pushed Admin Teaching Program Review now uses validated
+  server-side Bangkok date-range filtering, selected-range stats, bounded results,
+  and explicit read-error handling.
+- Coach correction: pushed Today Schedule preserves individual Level and adds the
+  exact group's Level range, child nickname, and exact coach/slot program status,
+  preview, and full-content modal without per-group or per-student queries.
 - Protected rule: one coach may own only one group in the same teaching time and
   cannot teach two overlapping groups. Current Client/API/DB guards must not be
   weakened or changed without a new Owner Decision.
@@ -1019,8 +1034,12 @@ PROMOTED**.
   item**. The Admin modal and User/Coach Level parity are completeness
   corrections. This is a project/commercial record, not application pricing, and
   does not authorize Payment or `pricing_tiers` changes.
-- The 2026-08-19 Owner command superseded the earlier registration-only state and
-  authorized this Product task. Current mutable detail and the exact blocker are
+- The latest 2026-08-21 Owner command accepted the completed read-only hosted
+  Supabase `prod:check` as a valid Release Gate. Application Source `a63f4f5...`
+  is committed/pushed; replacement staged artifact
+  `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` is exact-SHA, unaliased, and `READY` with
+  smoke/log checks passed. The previous Owner-rejected artifact remains retained
+  and unpromoted. Current mutable detail and the exact Owner UAT next gate are
   authoritative in the first matrix of `PROJECT_STATE.md`.
 
 Existing six candidates retained below without a new relative order: Adult Group
