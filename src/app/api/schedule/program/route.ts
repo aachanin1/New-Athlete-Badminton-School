@@ -27,7 +27,7 @@ interface ExactMembershipRow {
   }[] | null
 }
 
-interface ApprovedProgramRow {
+interface VisibleProgramRow {
   id: string
   program_content: string
   updated_at: string
@@ -91,14 +91,14 @@ export async function GET(request: NextRequest) {
     .select('id, program_content, updated_at')
     .eq('coach_id', group.coach_id)
     .eq('schedule_slot_id', group.schedule_slot_id)
-    .eq('status', 'approved')
+    .in('status', ['submitted', 'approved', 'rejected'])
     .order('updated_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(1)
-    .maybeSingle() as unknown as { data: ApprovedProgramRow | null; error: { message: string } | null }
+    .maybeSingle() as unknown as { data: VisibleProgramRow | null; error: { message: string } | null }
 
   if (programError) {
-    console.error('Schedule program approved-program lookup failed:', programError.message)
+    console.error('Schedule program visible-program lookup failed:', programError.message)
     return json({ error: 'Unable to load program' }, 500)
   }
 

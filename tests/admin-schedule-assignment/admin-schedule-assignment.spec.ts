@@ -54,6 +54,11 @@ const IDS = {
   augustChild: 'b3000000-0000-4000-8000-999999999999',
   augustSlot: 'b1000000-0000-4000-8000-999999999999',
   augustSession: 'b4000000-0000-4000-8000-999999999999',
+  reviewSlot: 'd1000000-0000-4000-8000-000000000001',
+  currentMonthProgram: 'd6000000-0000-4000-8000-000000000001',
+  adultBooking: 'd2000000-0000-4000-8000-000000000001',
+  adultSession: 'd4000000-0000-4000-8000-000000000001',
+  otherCoachProgram: 'd6000000-0000-4000-8000-000000000002',
 } as const
 
 const APPROVED_PROGRAM_CONTENT = 'PROGRAM_APPROVED_VISIBLE_SENTINEL\nบรรทัดสองสำหรับตรวจการขึ้นบรรทัด\nบรรทัดสามสำหรับเนื้อหาฉบับเต็ม'
@@ -63,6 +68,8 @@ const FORBIDDEN_PROGRAM_CONTENT = {
   rejected: 'PROGRAM_REJECTED_FORBIDDEN_SENTINEL',
   notes: 'PROGRAM_ADMIN_NOTES_FORBIDDEN_SENTINEL',
 }
+const CURRENT_MONTH_PROGRAM_CONTENT = 'PROGRAM_CURRENT_MONTH_SUBMITTED_SENTINEL\nรายการรอตรวจของเดือนปัจจุบัน'
+const OTHER_COACH_PROGRAM_CONTENT = 'PROGRAM_OTHER_COACH_FORBIDDEN_SENTINEL'
 
 function getBangkokCalendarDate(now: Date) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -82,6 +89,11 @@ function addCalendarDays(date: string, days: number) {
 }
 
 const bangkokToday = getBangkokCalendarDate(new Date())
+const [currentFixtureYear, currentFixtureMonth] = bangkokToday.split('-').map(Number)
+const CURRENT_MONTH_RANGE = {
+  from: `${bangkokToday.slice(0, 7)}-01`,
+  to: `${bangkokToday.slice(0, 7)}-${String(new Date(Date.UTC(currentFixtureYear, currentFixtureMonth, 0)).getUTCDate()).padStart(2, '0')}`,
+} as const
 const mixedLevelFixtureDate = addCalendarDays(bangkokToday, 30)
 const [mixedLevelFixtureYear, mixedLevelFixtureMonth] = mixedLevelFixtureDate.split('-').map(Number)
 const MIXED_LEVEL_FIXTURE = {
@@ -188,18 +200,32 @@ test.beforeAll(async () => {
     branch_id: fixture.branchId,
   })).error, 'insert fixture coach branch')
 
-  assertNoError((await admin.from('schedule_slots').insert({
-    id: IDS.slot,
-    template_id: null,
-    branch_id: fixture.branchId,
-    course_type_id: fixture.kidsCourseId,
-    date: '2026-07-17',
-    start_time: '20:00',
-    end_time: '22:00',
-    max_students: 6,
-    current_students: 4,
-    status: 'open',
-  })).error, 'insert fixture slot')
+  assertNoError((await admin.from('schedule_slots').insert([
+    {
+      id: IDS.slot,
+      template_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: '2026-07-17',
+      start_time: '20:00',
+      end_time: '22:00',
+      max_students: 6,
+      current_students: 4,
+      status: 'open',
+    },
+    {
+      id: IDS.reviewSlot,
+      template_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: bangkokToday,
+      start_time: '05:00',
+      end_time: '06:00',
+      max_students: 6,
+      current_students: 0,
+      status: 'open',
+    },
+  ])).error, 'insert fixture and current-month review slots')
 
   assertNoError((await admin.from('schedule_slots').insert([
     {
@@ -450,6 +476,14 @@ test.beforeAll(async () => {
       reviewed_by: fixture.adminUserId,
       notes: FORBIDDEN_PROGRAM_CONTENT.notes,
       updated_at: '2026-08-04T00:00:00Z',
+    },
+    {
+      id: IDS.currentMonthProgram,
+      coach_id: coachUserId,
+      schedule_slot_id: IDS.reviewSlot,
+      program_content: CURRENT_MONTH_PROGRAM_CONTENT,
+      status: 'submitted',
+      updated_at: `${bangkokToday}T00:00:00Z`,
     },
   ])).error, 'insert approved and non-public teaching program fixtures')
 
@@ -764,27 +798,52 @@ test('authenticated Super Admin and standard Admin can use bounded day/search re
   await adminContext.close()
 })
 
-test('Parent program API is ownership-safe, exact-group-only, approved-only, and safely projected', async ({ browser }) => {
+test('Parent program API is ownership-safe, exact-group-only, allowed-status-only, and safely projected', async ({ browser }) => {
+  const admin = createLocalAdmin()
   const parentContext = await browser.newContext()
   const parentPage = await parentContext.newPage()
   await loginAsUser(parentPage)
-  const approvedResponse = await parentPage.request.get(`/api/schedule/program?sessionId=${IDS.sessions[0]}`)
-  expect(approvedResponse.status()).toBe(200)
-  expect(approvedResponse.headers()['cache-control']).toBe('private, no-store')
-  const approvedPayload = await approvedResponse.json()
-  expect(approvedPayload).toEqual({
-    program: {
-      id: IDS.approvedProgram,
-      programContent: APPROVED_PROGRAM_CONTENT,
-      updatedAt: '2026-08-04T00:00:00+00:00',
-    },
-  })
-  expect(Object.keys(approvedPayload.program).sort()).toEqual(['id', 'programContent', 'updatedAt'])
-  const serializedApproved = JSON.stringify(approvedPayload)
-  for (const forbidden of Object.values(FORBIDDEN_PROGRAM_CONTENT)) {
-    expect(serializedApproved).not.toContain(forbidden)
+  const readExactProgram = async () => {
+    const response = await parentPage.request.get(`/api/schedule/program?sessionId=${IDS.sessions[0]}`)
+    expect(response.status()).toBe(200)
+    expect(response.headers()['cache-control']).toBe('private, no-store')
+    return response.json()
   }
-  await parentContext.close()
+
+  try {
+    const approvedPayload = await readExactProgram()
+    expect(approvedPayload.program.id).toBe(IDS.approvedProgram)
+    expect(approvedPayload.program.programContent).toBe(APPROVED_PROGRAM_CONTENT)
+    expect(Object.keys(approvedPayload.program).sort()).toEqual(['id', 'programContent', 'updatedAt'])
+    expect(JSON.stringify(approvedPayload)).not.toContain(FORBIDDEN_PROGRAM_CONTENT.notes)
+
+    assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.submittedProgram)).error, 'promote submitted Parent-visible fixture to latest')
+    const submittedPayload = await readExactProgram()
+    expect(submittedPayload.program.id).toBe(IDS.submittedProgram)
+    expect(submittedPayload.program.programContent).toBe(FORBIDDEN_PROGRAM_CONTENT.submitted)
+
+    assertNoError((await admin.from('teaching_programs').update({ status: 'rejected' }).eq('id', IDS.rejectedProgram)).error, 'promote rejected Parent-visible fixture to latest')
+    const rejectedPayload = await readExactProgram()
+    expect(rejectedPayload.program.id).toBe(IDS.rejectedProgram)
+    expect(rejectedPayload.program.programContent).toBe(FORBIDDEN_PROGRAM_CONTENT.rejected)
+    expect(JSON.stringify(rejectedPayload)).not.toContain(FORBIDDEN_PROGRAM_CONTENT.notes)
+
+    assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore approved fixture as latest allowed program')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'draft' }).eq('id', IDS.draftProgram)).error, 'make draft fixture newer than allowed programs')
+    const draftHiddenPayload = await readExactProgram()
+    expect(draftHiddenPayload.program.id).toBe(IDS.approvedProgram)
+    expect(JSON.stringify(draftHiddenPayload)).not.toContain(FORBIDDEN_PROGRAM_CONTENT.draft)
+
+    expect(await (await parentPage.request.get(`/api/schedule/program?sessionId=${IDS.sessions[1]}`)).json()).toEqual({ program: null })
+    expect(await (await parentPage.request.get(`/api/schedule/program?sessionId=${IDS.sessions[2]}`)).json()).toEqual({ program: null })
+    expect(await (await parentPage.request.get(`/api/schedule/program?sessionId=${IDS.augustSession}`)).json()).toEqual({ program: null })
+  } finally {
+    assertNoError((await admin.from('teaching_programs').update({ status: 'draft' }).eq('id', IDS.draftProgram)).error, 'restore draft fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.submittedProgram)).error, 'restore submitted fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'rejected' }).eq('id', IDS.rejectedProgram)).error, 'restore rejected fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore approved fixture as latest')
+    await parentContext.close()
+  }
 
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()
@@ -794,7 +853,7 @@ test('Parent program API is ownership-safe, exact-group-only, approved-only, and
   await otherContext.close()
 })
 
-test('User Schedule loads approved program on demand, caches by session, and shows neutral empty state on desktop/mobile', async ({ page }) => {
+test('User Schedule loads visible program on demand, caches by session, and shows neutral empty state on desktop/mobile', async ({ page }) => {
   const admin = createLocalAdmin()
   const programRequests: string[] = []
   page.on('request', (request) => {
@@ -847,7 +906,7 @@ test('User Schedule loads approved program on demand, caches by session, and sho
   expect((dialogBox?.x || 0) + (dialogBox?.width || 0)).toBeLessThanOrEqual(390)
   await userDialog.getByRole('button', { name: 'Close' }).click()
 
-  assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.approvedProgram)).error, 'hide approved program for neutral state')
+  assertNoError((await admin.from('teaching_programs').update({ status: 'draft' }).eq('schedule_slot_id', IDS.slot).eq('coach_id', coachUserId)).error, 'hide all Parent-visible programs for neutral state')
   try {
     await openUserScheduleDate(page)
     await page.getByRole('button', { name: 'ดูโปรแกรมสอนรอบนี้', exact: true }).click()
@@ -856,7 +915,10 @@ test('User Schedule loads approved program on demand, caches by session, and sho
       await expect(page.getByText(forbidden, { exact: false })).toHaveCount(0)
     }
   } finally {
-    assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore approved program fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'draft' }).eq('id', IDS.draftProgram)).error, 'restore draft program fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.submittedProgram)).error, 'restore submitted program fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'rejected' }).eq('id', IDS.rejectedProgram)).error, 'restore rejected program fixture')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore approved program fixture as latest')
   }
 })
 
@@ -879,17 +941,223 @@ test('high-cardinality User Schedule preserves legacy coach display without lega
   expect(programRequests).toHaveLength(0)
 })
 
-test('Coach Schedule shows exact learner Level and active Level name on desktop/mobile', async ({ page }) => {
+test('Coach Schedule shows exact group Level range, nickname, and latest exact program on desktop/mobile', async ({ page }) => {
+  const admin = createLocalAdmin()
+  const fixture = readBookingFixture()
   await loginAsHeadCoach(page)
   await page.goto('/coach/today?date=2026-07-17')
   const levelBadge = page.getByText('LV 53 · สอนกระโดดตบสลับขา', { exact: true })
   await expect(levelBadge).toBeVisible()
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expect(levelBadge).toBeVisible()
-  const levelBox = await levelBadge.boundingBox()
-  expect(levelBox).not.toBeNull()
-  expect(levelBox?.x || 0).toBeGreaterThanOrEqual(0)
-  expect((levelBox?.x || 0) + (levelBox?.width || 0)).toBeLessThanOrEqual(390)
+  await expect(page.getByText('เด็กในกลุ่ม LV 53', { exact: true })).toBeVisible()
+  await expect(page.getByText('SF1', { exact: true })).toBeVisible()
+  await expect(page.getByText('Schedule Fixture Learner 1', { exact: true })).toHaveCount(0)
+
+  const programCard = page.getByTestId('coach-today-program')
+  await expect(programCard.getByText('อนุมัติแล้ว', { exact: true })).toBeVisible()
+  await expect(programCard.getByText('PROGRAM_APPROVED_VISIBLE_SENTINEL', { exact: false })).toBeVisible()
+  await programCard.getByRole('button', { name: 'อ่านโปรแกรมสอนฉบับเต็มของ Fixture Assigned Group', exact: true }).click()
+  const coachProgramDialog = page.getByRole('dialog')
+  await expect(coachProgramDialog).toBeVisible()
+  expect(await coachProgramDialog.locator('p.whitespace-pre-wrap').textContent()).toBe(APPROVED_PROGRAM_CONTENT)
+  await coachProgramDialog.getByRole('button', { name: 'Close' }).click()
+
+  try {
+    assertNoError((await admin.from('teaching_programs').insert({
+      id: IDS.otherCoachProgram,
+      coach_id: standardAdminUserId,
+      schedule_slot_id: IDS.slot,
+      program_content: OTHER_COACH_PROGRAM_CONTENT,
+      status: 'approved',
+    })).error, 'insert other-coach isolation program')
+    await page.goto('/coach/today?date=2026-07-17')
+    expect(await page.content()).not.toContain(OTHER_COACH_PROGRAM_CONTENT)
+
+    assertNoError((await admin.from('coach_assignment_group_students').insert({
+      group_id: IDS.validGroup,
+      booking_session_id: IDS.sessions[2],
+      student_id: IDS.children[2],
+      student_type: 'child',
+    })).error, 'add unassessed learner to exact Coach group')
+    await page.goto('/coach/today?date=2026-07-17')
+    await expect(page.getByText('เด็กในกลุ่ม LV 53 + ยังไม่ประเมิน 1 คน', { exact: true })).toBeVisible()
+
+    assertNoError((await admin.from('student_levels').insert({
+      student_id: IDS.children[2],
+      student_type: 'child',
+      level: 35,
+      updated_by: fixture.adminUserId,
+    })).error, 'assess second exact-group learner')
+    await page.goto('/coach/today?date=2026-07-17')
+    await expect(page.getByText('เด็กในกลุ่ม LV 35-53', { exact: true })).toBeVisible()
+
+    assertNoError((await admin.from('student_levels').delete().in('student_id', [IDS.children[0], IDS.children[2]]).eq('student_type', 'child')).error, 'temporarily clear exact-group assessments')
+    await page.goto('/coach/today?date=2026-07-17')
+    await expect(page.getByText('เด็กในกลุ่ม: ยังไม่ประเมิน', { exact: true })).toBeVisible()
+
+    assertNoError((await admin.from('student_levels').insert({
+      student_id: IDS.children[0],
+      student_type: 'child',
+      level: 53,
+      updated_by: fixture.adminUserId,
+    })).error, 'restore primary exact-group assessment')
+    assertNoError((await admin.from('coach_assignment_group_students').delete().eq('booking_session_id', IDS.sessions[2])).error, 'remove temporary exact-group learner')
+
+    assertNoError((await admin.from('children').update({ nickname: null }).eq('id', IDS.children[0])).error, 'remove nickname for fallback check')
+    await page.goto('/coach/today?date=2026-07-17')
+    await expect(page.getByText('Schedule Fixture Learner 1', { exact: true })).toBeVisible()
+    assertNoError((await admin.from('children').update({ nickname: 'SF1' }).eq('id', IDS.children[0])).error, 'restore nickname fixture')
+
+    assertNoError((await admin.from('bookings').insert({
+      id: IDS.adultBooking,
+      user_id: fixture.userId,
+      learner_type: 'self',
+      child_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      month: 7,
+      year: 2026,
+      total_sessions: 1,
+      total_price: 0,
+      status: 'verified',
+    })).error, 'insert adult Coach display booking')
+    assertNoError((await admin.from('booking_sessions').insert({
+      id: IDS.adultSession,
+      booking_id: IDS.adultBooking,
+      schedule_slot_id: IDS.slot,
+      date: '2026-07-17',
+      start_time: '20:00',
+      end_time: '22:00',
+      branch_id: fixture.branchId,
+      child_id: null,
+      status: 'scheduled',
+    })).error, 'insert adult Coach display session')
+    assertNoError((await admin.from('coach_assignment_group_students').insert({
+      group_id: IDS.validGroup,
+      booking_session_id: IDS.adultSession,
+      student_id: fixture.userId,
+      student_type: 'adult',
+    })).error, 'assign adult learner to exact Coach group')
+    await page.goto('/coach/today?date=2026-07-17')
+    await expect(page.getByText(TEST_ACCOUNT.fullName, { exact: true })).toBeVisible()
+    assertNoError((await admin.from('coach_assignment_group_students').delete().eq('booking_session_id', IDS.adultSession)).error, 'remove adult exact-group membership')
+    assertNoError((await admin.from('booking_sessions').delete().eq('id', IDS.adultSession)).error, 'remove adult Coach display session')
+    assertNoError((await admin.from('bookings').delete().eq('id', IDS.adultBooking)).error, 'remove adult Coach display booking')
+
+    const statusCases = [
+      { id: IDS.draftProgram, status: 'draft', label: 'ฉบับร่าง', content: FORBIDDEN_PROGRAM_CONTENT.draft },
+      { id: IDS.submittedProgram, status: 'submitted', label: 'รอตรวจ', content: FORBIDDEN_PROGRAM_CONTENT.submitted },
+      { id: IDS.rejectedProgram, status: 'rejected', label: 'ส่งกลับแก้', content: FORBIDDEN_PROGRAM_CONTENT.rejected },
+      { id: IDS.approvedProgram, status: 'approved', label: 'อนุมัติแล้ว', content: APPROVED_PROGRAM_CONTENT },
+    ] as const
+    for (const statusCase of statusCases) {
+      assertNoError((await admin.from('teaching_programs').update({ status: statusCase.status }).eq('id', statusCase.id)).error, `promote Coach ${statusCase.status} program`)
+      await page.goto('/coach/today?date=2026-07-17')
+      const currentProgramCard = page.getByTestId('coach-today-program')
+      await expect(currentProgramCard.getByText(statusCase.label, { exact: true })).toBeVisible()
+      await expect(currentProgramCard.getByText(statusCase.content.split('\n')[0], { exact: false })).toBeVisible()
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(levelBadge).toBeVisible()
+    const levelBox = await levelBadge.boundingBox()
+    expect(levelBox).not.toBeNull()
+    expect(levelBox?.x || 0).toBeGreaterThanOrEqual(0)
+    expect((levelBox?.x || 0) + (levelBox?.width || 0)).toBeLessThanOrEqual(390)
+    await page.getByTestId('coach-today-program').getByRole('button', { name: 'อ่านโปรแกรมสอนฉบับเต็มของ Fixture Assigned Group', exact: true }).click()
+    const dialogBox = await page.getByRole('dialog').boundingBox()
+    expect(dialogBox).not.toBeNull()
+    expect(dialogBox?.x || 0).toBeGreaterThanOrEqual(0)
+    expect((dialogBox?.x || 0) + (dialogBox?.width || 0)).toBeLessThanOrEqual(390)
+  } finally {
+    assertNoError((await admin.from('teaching_programs').delete().eq('id', IDS.otherCoachProgram)).error, 'cleanup other-coach program')
+    assertNoError((await admin.from('coach_assignment_group_students').delete().in('booking_session_id', [IDS.sessions[2], IDS.adultSession])).error, 'cleanup temporary Coach memberships')
+    assertNoError((await admin.from('booking_sessions').delete().eq('id', IDS.adultSession)).error, 'cleanup adult Coach session')
+    assertNoError((await admin.from('bookings').delete().eq('id', IDS.adultBooking)).error, 'cleanup adult Coach booking')
+    assertNoError((await admin.from('student_levels').delete().in('student_id', [IDS.children[0], IDS.children[2]]).eq('student_type', 'child')).error, 'cleanup temporary Coach levels')
+    assertNoError((await admin.from('student_levels').insert({
+      student_id: IDS.children[0],
+      student_type: 'child',
+      level: 53,
+      updated_by: fixture.adminUserId,
+    })).error, 'restore exact Coach learner Level')
+    assertNoError((await admin.from('children').update({ nickname: 'SF1' }).eq('id', IDS.children[0])).error, 'restore exact Coach learner nickname')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'draft' }).eq('id', IDS.draftProgram)).error, 'restore Coach draft program')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.submittedProgram)).error, 'restore Coach submitted program')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'rejected' }).eq('id', IDS.rejectedProgram)).error, 'restore Coach rejected program')
+    assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore Coach approved program as latest')
+  }
+})
+
+test('Admin Teaching Program Review loads current month and historical ranges from the server with valid stats', async ({ page }) => {
+  const admin = createLocalAdmin()
+  await loginAsAdmin(page)
+  await page.goto('/admin/teaching-programs')
+  await expect(page.getByRole('heading', { name: 'ตรวจโปรแกรมสอน', exact: true })).toBeVisible()
+  await expect(page.getByLabel('วันที่เริ่ม')).toHaveValue(CURRENT_MONTH_RANGE.from)
+  await expect(page.getByLabel('วันที่สิ้นสุด')).toHaveValue(CURRENT_MONTH_RANGE.to)
+  await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false }).first()).toBeVisible()
+  const initialHtml = await page.content()
+  expect(initialHtml).not.toContain(APPROVED_PROGRAM_CONTENT)
+
+  const totalStat = page.getByText('ทั้งหมด', { exact: true }).locator('..')
+  const submittedStat = page.getByText('รอตรวจ', { exact: true }).first().locator('..')
+  await expect(totalStat.getByText('1', { exact: true })).toBeVisible()
+  await expect(submittedStat.getByText('1', { exact: true })).toBeVisible()
+
+  await page.getByLabel('วันที่เริ่ม').fill('2026-07-01')
+  await page.getByLabel('วันที่สิ้นสุด').fill('2026-07-31')
+  await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
+  await page.waitForURL(/from=2026-07-01.*to=2026-07-31/)
+  await expect(page.getByText(FORBIDDEN_PROGRAM_CONTENT.submitted, { exact: false }).first()).toBeVisible()
+  await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false })).toHaveCount(0)
+  await expect(page.getByText('ทั้งหมด', { exact: true }).locator('..').getByText('4', { exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'เดือนนี้', exact: true }).click()
+  await page.waitForURL(new RegExp(`from=${CURRENT_MONTH_RANGE.from}.*to=${CURRENT_MONTH_RANGE.to}`))
+  await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false }).first()).toBeVisible()
+
+  const stableUrl = page.url()
+  await page.getByLabel('วันที่เริ่ม').fill(CURRENT_MONTH_RANGE.to)
+  await page.getByLabel('วันที่สิ้นสุด').fill(CURRENT_MONTH_RANGE.from)
+  await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
+  await expect(page.getByText('วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด', { exact: true })).toBeVisible()
+  expect(page.url()).toBe(stableUrl)
+
+  await page.getByLabel('วันที่เริ่ม').fill(CURRENT_MONTH_RANGE.from)
+  await page.getByLabel('วันที่สิ้นสุด').fill(CURRENT_MONTH_RANGE.to)
+  await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
+  await page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false }).first().click()
+  await page.getByRole('button', { name: 'อนุมัติ', exact: true }).click()
+  await page.getByRole('button', { name: 'ยืนยันอนุมัติ', exact: true }).click()
+  await expect(page.getByText('อนุมัติโปรแกรมสอนแล้ว', { exact: true })).toBeVisible()
+  assertNoError((await admin.from('teaching_programs').update({ status: 'submitted' }).eq('id', IDS.currentMonthProgram)).error, 'restore current-month submitted review fixture')
+})
+
+test('Admin Teaching Program Review preserves immediate historical date input through navigation', async ({ page }) => {
+  await loginAsAdmin(page)
+  await page.goto('/admin/teaching-programs')
+  await expect(page.getByRole('heading', { name: 'ตรวจโปรแกรมสอน', exact: true })).toBeVisible()
+
+  const fromInput = page.getByLabel('วันที่เริ่ม')
+  const toInput = page.getByLabel('วันที่สิ้นสุด')
+  await fromInput.fill('2026-07-01')
+  await toInput.fill('2026-07-31')
+  await expect(fromInput).toHaveValue('2026-07-01')
+  await expect(toInput).toHaveValue('2026-07-31')
+  await expect(page.getByText('วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด', { exact: true })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'ค้นหาช่วงวันที่', exact: true }).click()
+  await page.waitForURL(/from=2026-07-01.*to=2026-07-31/)
+  await expect(page.getByText(FORBIDDEN_PROGRAM_CONTENT.submitted, { exact: false }).first()).toBeVisible()
+  await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false })).toHaveCount(0)
+  await expect(page.getByText('วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด', { exact: true })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'เดือนนี้', exact: true }).click()
+  await page.waitForURL(new RegExp(`from=${CURRENT_MONTH_RANGE.from}.*to=${CURRENT_MONTH_RANGE.to}`))
+  await expect(fromInput).toHaveValue(CURRENT_MONTH_RANGE.from)
+  await expect(toInput).toHaveValue(CURRENT_MONTH_RANGE.to)
+  await expect(page.getByText(CURRENT_MONTH_PROGRAM_CONTENT.split('\n')[0], { exact: false }).first()).toBeVisible()
+  await expect(page.getByText(FORBIDDEN_PROGRAM_CONTENT.submitted, { exact: false })).toHaveCount(0)
 })
 
 test('Admin Schedule opens full program modal from existing day payload with no extra API call', async ({ page }) => {

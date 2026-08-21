@@ -56,7 +56,7 @@ check('active Level name is used without inventing a name', () => {
   assert.equal(getScheduleLevelDetails('child', 'tie-id', latestLevels, activeLevelNames).label, 'LV 11')
 })
 
-check('safe program response projects only approved-display fields', () => {
+check('safe program response projects only Parent-visible fields', () => {
   assert.deepEqual(toSafeScheduleProgramResponse({
     id: 'program-id',
     program_content: 'Full content',
@@ -78,12 +78,13 @@ check('parent route authenticates before an explicit verified ownership lookup',
   assert.equal(route.includes("return json({ error: 'Not found' }, 404)"), true)
 })
 
-check('parent route resolves exact group and approved coach+slot without Legacy fallback', () => {
+check('parent route resolves exact group and allowed-status coach+slot without Legacy fallback', () => {
   assert.equal(route.includes(".from('coach_assignment_group_students')"), true)
   assert.equal(route.includes('group.schedule_slot_id !== ownedSession.schedule_slot_id'), true)
   assert.equal(route.includes(".eq('coach_id', group.coach_id)"), true)
   assert.equal(route.includes(".eq('schedule_slot_id', group.schedule_slot_id)"), true)
-  assert.equal(route.includes(".eq('status', 'approved')"), true)
+  assert.equal(route.includes(".in('status', ['submitted', 'approved', 'rejected'])"), true)
+  assert.equal(route.includes("'draft'"), false)
   assert.equal(route.includes(".order('updated_at', { ascending: false })"), true)
   assert.equal(route.includes(".order('id', { ascending: false })"), true)
   assert.equal(route.includes('coach_assignments'), false)
@@ -121,6 +122,46 @@ check('User and Coach Level reads are fixed batch/reference calls, not render-lo
   assert.equal((coachPage.match(/\.from\('levels'\)/g) || []).length, 1)
   assert.equal(userPage.includes('.map(async'), false)
   assert.equal(coachPage.includes('.map(async'), false)
+})
+
+const coachScheduleHelper = read('src/lib/coach-assigned-schedule.ts')
+const coachProgramDialog = read('src/components/coach/coach-today-program-dialog.tsx')
+
+check('Coach group summary uses exact assessed min-max and explicit unassessed counts', () => {
+  assert.equal(coachScheduleHelper.includes("return 'เด็กในกลุ่ม: ยังไม่ประเมิน'"), true)
+  assert.equal(coachScheduleHelper.includes('`เด็กในกลุ่ม LV ${minimum}`'), true)
+  assert.equal(coachScheduleHelper.includes('`เด็กในกลุ่ม LV ${minimum}-${maximum}`'), true)
+  assert.equal(coachScheduleHelper.includes('`+ ยังไม่ประเมิน ${unassessedCount} คน`'), false)
+  assert.equal(coachScheduleHelper.includes('`${rangeLabel} + ยังไม่ประเมิน ${unassessedCount} คน`'), true)
+  assert.equal(coachPage.includes('exactGroupStudents = slot.students.filter'), true)
+  assert.equal(coachPage.includes('formatCoachAssignedGroupLevelRange(exactGroupStudents.map'), true)
+})
+
+check('Coach child nickname is additive and existing learner identity remains intact', () => {
+  assert.equal(coachScheduleHelper.includes('studentName: string'), true)
+  assert.equal(coachScheduleHelper.includes('studentNickname: string | null'), true)
+  assert.equal(coachScheduleHelper.includes("session.children?.nickname?.trim() || null"), true)
+  assert.equal(coachPage.includes('student.studentNickname || student.studentName'), true)
+})
+
+check('Coach program read is one fixed exact-coach slot batch with deterministic latest selection', () => {
+  assert.equal((coachPage.match(/\.from\('teaching_programs'\)/g) || []).length, 1)
+  assert.equal(coachPage.includes(".eq('coach_id', user.id)"), true)
+  assert.equal(coachPage.includes(".in('schedule_slot_id', exactAssignedSlotIds)"), true)
+  assert.equal(coachPage.includes(".order('updated_at', { ascending: false })"), true)
+  assert.equal(coachPage.includes(".order('id', { ascending: false })"), true)
+  assert.equal(coachPage.includes('.map(async'), false)
+  assert.equal(coachPage.includes('assignmentGroupId'), true)
+})
+
+check('Coach program preview supports every status and opens a scrollable full modal', () => {
+  for (const status of ['draft', 'submitted', 'approved', 'rejected']) {
+    assert.equal(coachProgramDialog.includes(`${status}:`), true)
+  }
+  assert.equal(coachProgramDialog.includes('line-clamp-2'), true)
+  assert.equal(coachProgramDialog.includes('whitespace-pre-wrap'), true)
+  assert.equal(coachProgramDialog.includes('overflow-y-auto'), true)
+  assert.equal(coachProgramDialog.includes('อ่านโปรแกรมฉบับเต็ม'), true)
 })
 
 check('high-cardinality User assignment uses ownership-scoped exact and legacy reads without URI fan-out', () => {

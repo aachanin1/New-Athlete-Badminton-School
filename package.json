@@ -15,6 +15,7 @@
     "test:admin-schedule-assignment": "node scripts/check-admin-schedule-assignment-state.mjs",
     "test:admin-schedules-performance": "node scripts/check-admin-schedules-performance.mjs",
     "test:schedule-learning-details": "node --no-warnings --experimental-strip-types scripts/check-schedule-learning-details.mjs",
+    "test:admin-teaching-program-review": "node --no-warnings --experimental-strip-types scripts/check-admin-teaching-program-review.mjs",
     "test:coach-teaching-hours-completeness": "node --no-warnings scripts/check-coach-teaching-hours-completeness.mjs",
     "test:admin-payroll-performance": "node --no-warnings scripts/check-admin-payroll-performance.mjs",
     "test:coach-assignment-conflicts": "node scripts/check-coach-assignment-conflicts.mjs",

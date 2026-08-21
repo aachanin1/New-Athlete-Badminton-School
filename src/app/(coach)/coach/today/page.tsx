@@ -16,7 +16,8 @@ import {
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
+import { CoachTodayProgramDialog, type CoachTodayProgram } from '@/components/coach/coach-today-program-dialog'
+import { formatCoachAssignedGroupLevelRange, getCoachAssignedTeachingDay } from '@/lib/coach-assigned-schedule'
 import { getCoachSlotCheckedCount, getCoachSlotDisplaySummary } from '@/lib/coach-slot-display-status'
 import { getCoachTeachingHourSourceRows } from '@/lib/coach-teaching-hours'
 import { formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
@@ -31,11 +32,20 @@ import {
 } from '@/lib/schedule-learning-details'
 import { createClient } from '@/lib/supabase/server'
 import { fmtTime, getBangkokDateString } from '@/lib/utils'
+import type { ProgramStatus } from '@/types/database'
 
 interface CoachSchedulePageProps {
   searchParams?: Promise<{
     date?: string
   }>
+}
+
+interface CoachProgramRow {
+  id: string
+  schedule_slot_id: string
+  program_content: string
+  status: ProgramStatus
+  updated_at: string
 }
 
 function isValidDateString(value?: string) {
@@ -172,6 +182,9 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
   ))).values())
   const studentIds = studentRefs.map((student) => student.studentId)
   const studentTypes = Array.from(new Set(studentRefs.map((student) => student.studentType)))
+  const exactAssignedSlotIds = Array.from(new Set(teachingDay.slots
+    .filter((slot) => slot.students.some((student) => Boolean(student.assignmentGroupId)))
+    .map((slot) => slot.id)))
   const studentLevelsPromise: PromiseLike<{ data: ScheduleStudentLevelRow[] | null }> = studentIds.length > 0
     ? supabase
         .from('student_levels')
@@ -181,13 +194,37 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
         .order('created_at', { ascending: false })
         .order('id', { ascending: false }) as unknown as PromiseLike<{ data: ScheduleStudentLevelRow[] | null }>
     : Promise.resolve({ data: [] })
-  const [monthRows, { data: activeLevelsData }, { data: studentLevelsData }] = await Promise.all([
+  const programsPromise: PromiseLike<{ data: CoachProgramRow[] | null; error: { message: string } | null }> = exactAssignedSlotIds.length > 0
+    ? supabase
+        .from('teaching_programs')
+        .select('id, schedule_slot_id, program_content, status, updated_at')
+        .eq('coach_id', user.id)
+        .in('schedule_slot_id', exactAssignedSlotIds)
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: false }) as unknown as PromiseLike<{
+          data: CoachProgramRow[] | null
+          error: { message: string } | null
+        }>
+    : Promise.resolve({ data: [], error: null })
+  const [monthRows, { data: activeLevelsData }, { data: studentLevelsData }, programResult] = await Promise.all([
     monthRowsPromise,
     activeLevelsPromise,
     studentLevelsPromise,
+    programsPromise,
   ])
+  if (programResult.error) throw new Error('Coach schedule program read failed')
   const latestStudentLevels = buildLatestScheduleStudentLevelMap(studentLevelsData || [])
   const activeLevelNames = buildActiveScheduleLevelNameMap(activeLevelsData || [])
+  const programBySlotId = new Map<string, CoachTodayProgram>()
+  ;(programResult.data || []).forEach((program) => {
+    if (programBySlotId.has(program.schedule_slot_id)) return
+    programBySlotId.set(program.schedule_slot_id, {
+      id: program.id,
+      programContent: program.program_content,
+      status: program.status,
+      updatedAt: program.updated_at,
+    })
+  })
 
   const monthRowsByDate = monthRows.reduce((map, row) => {
     if (!map[row.date]) map[row.date] = []
@@ -354,6 +391,23 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
       ) : (
         <div className="space-y-4">
           {teachingDay.slots.map((slot) => {
+            const levelDetailsBySessionId = new Map(slot.students.map((student) => [
+              student.bookingSessionId,
+              getScheduleLevelDetails(
+                student.studentType,
+                student.studentId,
+                latestStudentLevels,
+                activeLevelNames,
+              ),
+            ] as const))
+            const exactGroupStudents = slot.students.filter((student) => Boolean(student.assignmentGroupId))
+            const exactGroupName = exactGroupStudents[0]?.assignmentGroupName || null
+            const exactGroupLevelSummary = exactGroupStudents.length > 0
+              ? formatCoachAssignedGroupLevelRange(exactGroupStudents.map((student) => (
+                  levelDetailsBySessionId.get(student.bookingSessionId)?.level || 0
+                )))
+              : null
+            const teachingProgram = exactGroupName ? programBySlotId.get(slot.id) || null : null
             const slotAttendance = getCoachSlotDisplaySummary({
               hasCheckin: Boolean(slot.checkin),
               studentCount: slot.students.length,
@@ -429,6 +483,22 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                     </div>
                   </div>
 
+                  {exactGroupLevelSummary && (
+                    <div className="flex flex-col gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm font-semibold text-indigo-800">{exactGroupLevelSummary}</p>
+                      {exactGroupName && (
+                        <Badge variant="outline" className="w-fit bg-white text-[10px] text-indigo-700">
+                          <Layers3 className="mr-1 h-3 w-3" />
+                          {exactGroupName}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {teachingProgram && exactGroupName && (
+                    <CoachTodayProgramDialog program={teachingProgram} groupName={exactGroupName} />
+                  )}
+
                   {slot.students.length === 0 ? (
                     <div className="rounded-lg border border-dashed p-4 text-center text-sm text-gray-400">
                       รอบนี้ยังไม่มีผู้เรียนที่อยู่ในกลุ่มของคุณ
@@ -437,19 +507,17 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                     <div className="space-y-2 border-t pt-3">
                       {slot.students.map((student) => {
                         const studentStatus = getStudentScheduleStatus(slot, student)
-                        const levelDetails = getScheduleLevelDetails(
-                          student.studentType,
-                          student.studentId,
-                          latestStudentLevels,
-                          activeLevelNames,
-                        )
+                        const levelDetails = levelDetailsBySessionId.get(student.bookingSessionId)
+                          || { level: 0, levelName: null, label: 'LV 0 / ยังไม่ประเมิน' }
 
                         return (
                           <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
                             {student.isChild ? <Baby className="h-4 w-4 shrink-0 text-pink-500" /> : <User className="h-4 w-4 shrink-0 text-blue-500" />}
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="truncate font-medium text-gray-900">{student.studentName}</p>
+                                <p className="truncate font-medium text-gray-900">
+                                  {student.isChild ? student.studentNickname || student.studentName : student.studentName}
+                                </p>
                                 {student.assignmentGroupName && (
                                   <Badge variant="outline" className="bg-white text-[10px] text-gray-600">
                                     <Layers3 className="mr-1 h-3 w-3" />

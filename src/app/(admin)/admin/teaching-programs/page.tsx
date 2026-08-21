@@ -1,52 +1,35 @@
 import { redirect } from 'next/navigation'
 
-import { TeachingProgramsClient, type TeachingProgramReviewItem } from '@/components/admin/teaching-programs-client'
+import { TeachingProgramsClient } from '@/components/admin/teaching-programs-client'
+import {
+  getAdminTeachingProgramMonthRange,
+  readAdminTeachingProgramsForRange,
+  resolveAdminTeachingProgramDateRange,
+} from '@/lib/admin-teaching-programs-read'
 import { requireAdminMenuAccess } from '@/lib/auth/admin'
 import { getBangkokDateString } from '@/lib/utils'
 import type { ProgramStatus } from '@/types/database'
 
-interface ProgramRow {
-  id: string
-  coach_id: string
-  schedule_slot_id: string
-  program_content: string
-  status: ProgramStatus
-  reviewed_by: string | null
-  reviewed_at: string | null
-  notes: string | null
-  created_at: string
-  updated_at: string
+interface AdminTeachingProgramsPageProps {
+  searchParams?: Promise<{
+    from?: string
+    to?: string
+    status?: string
+    coach?: string
+    branch?: string
+    course?: string
+    q?: string
+  }>
 }
 
-interface ProfileRow {
-  id: string
-  full_name: string | null
-  email: string | null
-  avatar_url: string | null
+const PROGRAM_STATUSES = new Set<ProgramStatus | 'all'>(['all', 'draft', 'submitted', 'approved', 'rejected'])
+
+function normalizedFilter(value: string | undefined, fallback: string) {
+  const normalized = value?.trim() || ''
+  return normalized.slice(0, 200) || fallback
 }
 
-interface SlotRow {
-  id: string
-  date: string
-  start_time: string
-  end_time: string
-  branches?: { id: string; name: string | null; slug: string | null } | { id: string; name: string | null; slug: string | null }[] | null
-  course_types?: { name: string | null } | { name: string | null }[] | null
-}
-
-function firstBranch(value: SlotRow['branches']) {
-  if (!value) return null
-  if (Array.isArray(value)) return value[0] || null
-  return value
-}
-
-function firstCourseTypeName(value: SlotRow['course_types']) {
-  if (!value) return null
-  if (Array.isArray(value)) return value[0]?.name || null
-  return value.name || null
-}
-
-export default async function AdminTeachingProgramsPage() {
+export default async function AdminTeachingProgramsPage({ searchParams }: AdminTeachingProgramsPageProps) {
   const access = await requireAdminMenuAccess('teaching_programs')
 
   if (!access.ok) {
@@ -54,65 +37,43 @@ export default async function AdminTeachingProgramsPage() {
   }
 
   const { supabase } = access.ctx
-
-  const { data: programs } = await supabase
-    .from('teaching_programs')
-    .select('id, coach_id, schedule_slot_id, program_content, status, reviewed_by, reviewed_at, notes, created_at, updated_at')
-    .order('created_at', { ascending: false })
-    .limit(800) as unknown as { data: ProgramRow[] | null }
-
-  const programRows = programs || []
-  const coachIds = Array.from(new Set(programRows.map((program) => program.coach_id).filter(Boolean)))
-  const reviewerIds = Array.from(new Set(programRows.map((program) => program.reviewed_by).filter(Boolean) as string[]))
-  const profileIds = Array.from(new Set([...coachIds, ...reviewerIds]))
-  const slotIds = Array.from(new Set(programRows.map((program) => program.schedule_slot_id).filter(Boolean)))
-
-  const [{ data: profiles }, { data: slots }] = await Promise.all([
-    profileIds.length > 0
-      ? supabase
-          .from('profiles')
-          .select('id, full_name, email, avatar_url')
-          .in('id', profileIds) as unknown as PromiseLike<{ data: ProfileRow[] | null }>
-      : Promise.resolve({ data: [] as ProfileRow[] }),
-    slotIds.length > 0
-      ? supabase
-          .from('schedule_slots')
-          .select('id, date, start_time, end_time, branches(id, name, slug), course_types(name)')
-          .in('id', slotIds) as unknown as PromiseLike<{ data: SlotRow[] | null }>
-      : Promise.resolve({ data: [] as SlotRow[] }),
-  ])
-
-  const profileMap = new Map((profiles || []).map((profile) => [profile.id, profile]))
-  const slotMap = new Map((slots || []).map((slot) => [slot.id, slot]))
-
-  const reviewItems: TeachingProgramReviewItem[] = programRows.map((program) => {
-    const coach = profileMap.get(program.coach_id)
-    const reviewer = program.reviewed_by ? profileMap.get(program.reviewed_by) : null
-    const slot = slotMap.get(program.schedule_slot_id)
-    const branch = firstBranch(slot?.branches)
-
-    return {
-      id: program.id,
-      coach_id: program.coach_id,
-      coach_name: coach?.full_name || coach?.email || 'ไม่ทราบชื่อโค้ช',
-      coach_email: coach?.email || '-',
-      coach_avatar_url: coach?.avatar_url || null,
-      schedule_slot_id: program.schedule_slot_id,
-      branch_name: branch?.name || 'ไม่ทราบสาขา',
-      branch_slug: branch?.slug || null,
-      course_type: firstCourseTypeName(slot?.course_types) || '-',
-      date: slot?.date || '',
-      start_time: slot?.start_time || '',
-      end_time: slot?.end_time || '',
-      program_content: program.program_content,
-      status: program.status,
-      reviewed_by_name: reviewer?.full_name || reviewer?.email || null,
-      reviewed_at: program.reviewed_at,
-      notes: program.notes,
-      created_at: program.created_at,
-      updated_at: program.updated_at,
-    }
+  const params = await searchParams
+  const bangkokToday = getBangkokDateString()
+  const currentMonthRange = getAdminTeachingProgramMonthRange(bangkokToday)
+  const dateRangeResult = resolveAdminTeachingProgramDateRange({
+    from: params?.from,
+    to: params?.to,
+    bangkokToday,
   })
+  const selectedRange = dateRangeResult.ok ? dateRangeResult.range : currentMonthRange
+  const readResult = dateRangeResult.ok
+    ? await readAdminTeachingProgramsForRange(supabase, selectedRange)
+    : {
+        ok: false,
+        programs: [],
+        totalCount: 0,
+        isTruncated: false,
+        error: dateRangeResult.error,
+      }
+  const requestedStatus = normalizedFilter(params?.status, 'submitted')
+  const initialStatus = PROGRAM_STATUSES.has(requestedStatus as ProgramStatus | 'all') ? requestedStatus : 'submitted'
 
-  return <TeachingProgramsClient programs={reviewItems} initialDate={getBangkokDateString()} />
+  return (
+    <TeachingProgramsClient
+      programs={readResult.programs}
+      initialFilters={{
+        status: initialStatus,
+        coachId: normalizedFilter(params?.coach, 'all'),
+        branch: normalizedFilter(params?.branch, 'all'),
+        course: normalizedFilter(params?.course, 'all'),
+        search: normalizedFilter(params?.q, ''),
+        fromDate: selectedRange.from,
+        toDate: selectedRange.to,
+      }}
+      currentMonthRange={currentMonthRange}
+      totalCount={readResult.totalCount}
+      isTruncated={readResult.isTruncated}
+      readError={readResult.error}
+    />
+  )
 }

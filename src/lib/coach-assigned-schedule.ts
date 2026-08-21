@@ -117,11 +117,29 @@ export interface CoachAssignedStudentSession {
   studentId: string
   studentType: StudentType
   studentName: string
+  studentNickname: string | null
   parentName: string | null
   parentPhone: string | null
   isChild: boolean
   status: SessionStatus
   attendanceStatus: AttendanceStatus | null
+}
+
+export function formatCoachAssignedGroupLevelRange(levels: readonly number[]) {
+  const assessedLevels = levels.filter((level) => Number.isInteger(level) && level > 0)
+  const unassessedCount = levels.length - assessedLevels.length
+
+  if (assessedLevels.length === 0) return 'เด็กในกลุ่ม: ยังไม่ประเมิน'
+
+  const minimum = Math.min(...assessedLevels)
+  const maximum = Math.max(...assessedLevels)
+  const rangeLabel = minimum === maximum
+    ? `เด็กในกลุ่ม LV ${minimum}`
+    : `เด็กในกลุ่ม LV ${minimum}-${maximum}`
+
+  return unassessedCount > 0
+    ? `${rangeLabel} + ยังไม่ประเมิน ${unassessedCount} คน`
+    : rangeLabel
 }
 
 export interface CoachAssignedSlot {
@@ -380,6 +398,7 @@ export async function getCoachAssignedTeachingDay(
             studentId,
             studentType: isChild ? 'child' : 'adult',
             studentName: isChild ? getDisplayChildName(session.children) : getAdultName(session),
+            studentNickname: isChild ? session.children?.nickname?.trim() || null : null,
             parentName: isChild ? session.bookings?.profiles?.full_name || null : null,
             parentPhone: session.bookings?.profiles?.phone || null,
             isChild,

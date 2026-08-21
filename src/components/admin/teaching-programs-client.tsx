@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
   BookOpenCheck,
@@ -11,6 +12,7 @@ import {
   FileText,
   Loader2,
   MapPin,
+  RefreshCw,
   RotateCcw,
   Search,
   UserRound,
@@ -27,35 +29,28 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { sortAdminTeachingPrograms } from '@/lib/admin-teaching-program-order'
+import type { AdminTeachingProgramReviewItem } from '@/lib/admin-teaching-programs-read'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 import type { ProgramStatus } from '@/types/database'
 
-export interface TeachingProgramReviewItem {
-  id: string
-  coach_id: string
-  coach_name: string
-  coach_email: string
-  coach_avatar_url: string | null
-  schedule_slot_id: string
-  branch_name: string
-  branch_slug: string | null
-  course_type: string
-  date: string
-  start_time: string
-  end_time: string
-  program_content: string
-  status: ProgramStatus
-  reviewed_by_name: string | null
-  reviewed_at: string | null
-  notes: string | null
-  created_at: string
-  updated_at: string
-}
+export type TeachingProgramReviewItem = AdminTeachingProgramReviewItem
 
 interface TeachingProgramsClientProps {
   programs: TeachingProgramReviewItem[]
-  initialDate: string
+  initialFilters: {
+    status: string
+    coachId: string
+    branch: string
+    course: string
+    search: string
+    fromDate: string
+    toDate: string
+  }
+  currentMonthRange: { from: string; to: string }
+  totalCount: number
+  isTruncated: boolean
+  readError: string | null
 }
 
 type ReviewAction = 'approved' | 'rejected'
@@ -127,15 +122,30 @@ function StatusBadge({ status }: { status: ProgramStatus }) {
   )
 }
 
-export function TeachingProgramsClient({ programs, initialDate }: TeachingProgramsClientProps) {
+function isValidCalendarDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+}
+
+export function TeachingProgramsClient({
+  programs,
+  initialFilters,
+  currentMonthRange,
+  totalCount,
+  isTruncated,
+  readError,
+}: TeachingProgramsClientProps) {
+  const router = useRouter()
   const [items, setItems] = useState(programs)
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<string>(() => programs.some((item) => item.status === 'submitted') ? 'submitted' : 'all')
-  const [coachId, setCoachId] = useState<string>('all')
-  const [branch, setBranch] = useState<string>('all')
-  const [course, setCourse] = useState<string>('all')
-  const [fromDate, setFromDate] = useState(initialDate)
-  const [toDate, setToDate] = useState(initialDate)
+  const [search, setSearch] = useState(initialFilters.search)
+  const [status, setStatus] = useState<string>(initialFilters.status)
+  const [coachId, setCoachId] = useState<string>(initialFilters.coachId)
+  const [branch, setBranch] = useState<string>(initialFilters.branch)
+  const [course, setCourse] = useState<string>(initialFilters.course)
+  const [fromDate, setFromDate] = useState(initialFilters.fromDate)
+  const [toDate, setToDate] = useState(initialFilters.toDate)
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reviewItem, setReviewItem] = useState<TeachingProgramReviewItem | null>(null)
@@ -143,6 +153,42 @@ export function TeachingProgramsClient({ programs, initialDate }: TeachingProgra
   const [reviewNotes, setReviewNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const resolvedFilterKey = JSON.stringify([
+    initialFilters.search,
+    initialFilters.status,
+    initialFilters.coachId,
+    initialFilters.branch,
+    initialFilters.course,
+    initialFilters.fromDate,
+    initialFilters.toDate,
+  ])
+  const syncedResolvedFilterKey = useRef(resolvedFilterKey)
+
+  useEffect(() => {
+    setItems(programs)
+  }, [programs])
+
+  useEffect(() => {
+    if (syncedResolvedFilterKey.current === resolvedFilterKey) return
+    syncedResolvedFilterKey.current = resolvedFilterKey
+    setSearch(initialFilters.search)
+    setStatus(initialFilters.status)
+    setCoachId(initialFilters.coachId)
+    setBranch(initialFilters.branch)
+    setCourse(initialFilters.course)
+    setFromDate(initialFilters.fromDate)
+    setToDate(initialFilters.toDate)
+    setSelectedId(null)
+  }, [
+    initialFilters.branch,
+    initialFilters.coachId,
+    initialFilters.course,
+    initialFilters.fromDate,
+    initialFilters.search,
+    initialFilters.status,
+    initialFilters.toDate,
+    resolvedFilterKey,
+  ])
 
   const branchOptions = useMemo(() => Array.from(new Set(items.map((item) => item.branch_name).filter(Boolean))).sort(), [items])
   const courseOptions = useMemo(() => Array.from(new Set(items.map((item) => item.course_type).filter(Boolean))).sort(), [items])
@@ -168,8 +214,6 @@ export function TeachingProgramsClient({ programs, initialDate }: TeachingProgra
       if (coachId !== 'all' && item.coach_id !== coachId) return false
       if (branch !== 'all' && item.branch_name !== branch) return false
       if (course !== 'all' && item.course_type !== course) return false
-      if (fromDate && item.date < fromDate) return false
-      if (toDate && item.date > toDate) return false
       if (!q) return true
 
       return [
@@ -186,7 +230,7 @@ export function TeachingProgramsClient({ programs, initialDate }: TeachingProgra
     })
 
     return sortAdminTeachingPrograms(matches)
-  }, [branch, coachId, course, fromDate, items, search, status, toDate])
+  }, [branch, coachId, course, items, search, status])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const pagedItems = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page])
@@ -205,6 +249,39 @@ export function TeachingProgramsClient({ programs, initialDate }: TeachingProgra
   useEffect(() => {
     if (!selectedItem && filtered[0]) setSelectedId(filtered[0].id)
   }, [filtered, selectedItem])
+
+  const navigateToRange = (nextFrom: string, nextTo: string) => {
+    const params = new URLSearchParams({
+      from: nextFrom,
+      to: nextTo,
+      status,
+      coach: coachId,
+      branch,
+      course,
+    })
+    if (search.trim()) params.set('q', search.trim())
+    router.push(`/admin/teaching-programs?${params.toString()}`)
+  }
+
+  const applyDateRange = () => {
+    if (!isValidCalendarDate(fromDate) || !isValidCalendarDate(toDate)) {
+      setMessage({ type: 'error', text: 'กรุณาระบุวันที่เริ่มและวันที่สิ้นสุดให้ถูกต้อง' })
+      return
+    }
+    if (fromDate > toDate) {
+      setMessage({ type: 'error', text: 'วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด' })
+      return
+    }
+    setMessage(null)
+    navigateToRange(fromDate, toDate)
+  }
+
+  const resetToCurrentMonth = () => {
+    setFromDate(currentMonthRange.from)
+    setToDate(currentMonthRange.to)
+    setMessage(null)
+    navigateToRange(currentMonthRange.from, currentMonthRange.to)
+  }
 
   const openReview = (item: TeachingProgramReviewItem, action: ReviewAction) => {
     setReviewItem(item)
@@ -286,12 +363,28 @@ export function TeachingProgramsClient({ programs, initialDate }: TeachingProgra
       </div>
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-        <StatCard label="ทั้งหมด" value={stats.total} icon={FileText} />
-        <StatCard label="รอตรวจ" value={stats.submitted} icon={Clock} tone={stats.submitted > 0 ? 'amber' : 'default'} />
-        <StatCard label="อนุมัติแล้ว" value={stats.approved} icon={CheckCircle2} tone="green" />
-        <StatCard label="ส่งกลับแก้" value={stats.rejected} icon={RotateCcw} tone="red" />
-        <StatCard label="ฉบับร่าง" value={stats.draft} icon={FileText} />
+        <StatCard label="ทั้งหมด" value={stats.total} icon={FileText} incomplete={isTruncated} />
+        <StatCard label="รอตรวจ" value={stats.submitted} icon={Clock} tone={stats.submitted > 0 ? 'amber' : 'default'} incomplete={isTruncated} />
+        <StatCard label="อนุมัติแล้ว" value={stats.approved} icon={CheckCircle2} tone="green" incomplete={isTruncated} />
+        <StatCard label="ส่งกลับแก้" value={stats.rejected} icon={RotateCcw} tone="red" incomplete={isTruncated} />
+        <StatCard label="ฉบับร่าง" value={stats.draft} icon={FileText} incomplete={isTruncated} />
       </div>
+
+      {isTruncated && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+          ช่วงวันที่นี้มี {totalCount.toLocaleString('th-TH')} รายการ ระบบแสดงเพียง {items.length.toLocaleString('th-TH')} รายการแรก สถิติและรายการด้านล่างจึงยังไม่ครบทั้งหมด
+        </div>
+      )}
+
+      {readError && (
+        <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between" role="alert">
+          <span>{readError}</span>
+          <Button type="button" variant="outline" size="sm" className="gap-2 bg-white" onClick={() => router.refresh()}>
+            <RefreshCw className="h-4 w-4" />
+            ลองใหม่
+          </Button>
+        </div>
+      )}
 
       {message && (
         <div className={cn(
@@ -350,11 +443,20 @@ export function TeachingProgramsClient({ programs, initialDate }: TeachingProgra
               {courseOptions.map((name) => <SelectItem key={name} value={name}>{getCourseLabel(name)}</SelectItem>)}
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-500">แสดง {filtered.length} จาก {items.length} รายการ · หน้า {page}/{totalPages}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={resetToCurrentMonth}>เดือนนี้</Button>
+            <Button type="button" onClick={applyDateRange} className="gap-2">
+              <Search className="h-4 w-4" />
+              ค้นหาช่วงวันที่
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500">
+            แสดง {filtered.length} จาก {items.length} รายการในช่วงที่โหลด · หน้า {page}/{totalPages}
+          </p>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {readError ? null : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-white p-10 text-center text-sm text-gray-500">
           <BookOpenCheck className="mx-auto mb-3 h-10 w-10 text-gray-300" />
           ไม่พบโปรแกรมสอนตามเงื่อนไขที่เลือก
@@ -591,11 +693,13 @@ function StatCard({
   value,
   icon: Icon,
   tone = 'default',
+  incomplete = false,
 }: {
   label: string
   value: number
   icon: LucideIcon
   tone?: 'default' | 'amber' | 'green' | 'red'
+  incomplete?: boolean
 }) {
   const styles = {
     default: 'border-gray-200 text-[#2748bf]',
@@ -609,7 +713,7 @@ function StatCard({
       <CardContent className="flex items-center justify-between p-3 sm:p-4">
         <div>
           <p className="text-xs text-gray-500">{label}</p>
-          <p className="mt-1 text-xl font-bold sm:text-2xl">{value}</p>
+          <p className="mt-1 text-xl font-bold sm:text-2xl">{incomplete ? '≥' : ''}{value}</p>
         </div>
         <Icon className="h-5 w-5" />
       </CardContent>
