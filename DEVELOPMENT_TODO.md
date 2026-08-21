@@ -16080,3 +16080,152 @@ Owner UAT checklist for exact artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg`:
 Next Action: **Owner runs UAT at the exact staged URL and returns PASS or FAIL for
 artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` / Application SHA
 `a63f4f5ab2ba89c8f54014b69c9eb9eeee594222`. Do not Promote automatically.**
+
+### 2026-08-21 — Admin Review UAT correction Gate 0 (pre-edit evidence)
+
+- Owner UAT for staged artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` / Application
+  SHA `a63f4f5ab2ba89c8f54014b69c9eb9eeee594222` passed Coach, User, and Admin
+  Schedule, but failed Admin Teaching Program Review. The artifact remains
+  retained and unpromoted. This record starts the authorized Admin Review-only
+  correction; it does not claim completion or Owner UAT PASS.
+- Fresh Git identity before correction: branch
+  `spike/next-major-security-upgrade`, local/upstream
+  `ba154120d92347d34508c2f83272813852ef6515`, ahead/behind `0/0`, staged paths
+  `0`, and `git diff --check` PASS. Production aliases remained on
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; both rejected artifacts remained retained.
+- Confirmed Root Cause evidence: the Admin Review client had no navigation
+  transition/pending guard, its two navigation buttons remained enabled, and it
+  rejected rather than normalized a reversed draft range. Both date inputs lacked
+  a complete Bangkok-today maximum. The Server month helper ended at calendar
+  month-end and the Server range resolver did not reject future dates. The existing
+  Admin Review read remained one bounded relational Supabase query; no query/API
+  expansion was required or authorized.
+- Pre-edit frozen SHA-256 inventory (`11/11` matched):
+  - `A1B157BF7E1488FD47D8AE2DE69ABBBB0311522E82D47F42E6B7E32E6ECECA0B` — `package.json`
+  - `72BCEE23096998779168991F17EDE984F520A3113C69CCD9D1A485BBA36D189B` — `scripts/check-admin-teaching-program-review.mjs`
+  - `C767ACA0640CE76AEC2E8BBD508116D1B916778003B0552EE6EEF052D0460FF1` — `scripts/check-schedule-learning-details.mjs`
+  - `EEBE2D841771DA012F840198A0BCD3D7F353DD56172316B81696072E1BF6F210` — `src/app/(admin)/admin/teaching-programs/page.tsx`
+  - `75D9E58CCC2FBCFF54EBFAEFD7CCB56269255D98A8B87391BA52375551DDD628` — `src/app/(coach)/coach/today/page.tsx`
+  - `5ACE0974667BB07D7DC707D51DA86CC72B15A41B0039CC10E4AC5FCDB66FA574` — `src/app/api/schedule/program/route.ts`
+  - `2A801AB184303DD167D9494BDBAA926CFAD7A09815B92E76F2FB0B31408DBA82` — `src/components/admin/teaching-programs-client.tsx`
+  - `C3A6EB24BE23FCFE557C21FBD284A68C66FF804A7EB9DA2AB6179979660177BC` — `src/components/coach/coach-today-program-dialog.tsx`
+  - `CF1C0D230BCFFF73FE2C81BE4D556EF82858D4DE9EE768A467C38A6E619BD07B` — `src/lib/admin-teaching-programs-read.ts`
+  - `CD51E000FA8E2EF19E5F5B36B9F6F9825A7BAA70EFA09E5DDA2E3F9755BEC6E6` — `src/lib/coach-assigned-schedule.ts`
+  - `4C5EDD68A2AEF507480933117FB62299CADECAA372EF3EB490C5DA569D7159E1` — `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`
+- `package-lock.json` matched
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained content-identical and
+  unstaged: blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`,
+  file diff empty.
+
+### 2026-08-22 — Admin Review navigation/date UAT correction closeout
+
+State observed at this closeout: **READY FOR OWNER UAT — NOT PROMOTED** for the
+exact Admin Review correction artifact below. Previous Owner UAT on
+`dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` / Application SHA `a63f4f5...` passed Coach,
+User, and Admin Schedule but failed Admin Teaching Program Review. Both that
+artifact and older rejected `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remain retained
+and unpromoted.
+
+#### Root Cause and correction
+
+- Confirmed latest UAT Root Cause: Admin Review navigation had no pending/dedup
+  state; both navigation buttons remained enabled; reversed draft dates were
+  rejected instead of normalized; the inputs lacked a complete Bangkok-today
+  maximum; current-month ended at calendar month-end; and Server URL validation
+  allowed future dates. The query remained one bounded relational Supabase read,
+  so no Database, Schema, Migration, RPC, RLS, Index, or query-count expansion was
+  required.
+- One correction approach was used within exact Functional/Test paths `2/2`:
+  React `useTransition` plus a synchronous in-flight ref show `กำลังโหลด...`, set
+  `aria-busy`, disable both buttons, and prevent repeat navigation before render;
+  same-target navigation does not enter a stuck pending state. Client Apply sorts
+  valid endpoints before one push, both date inputs use the Server-resolved
+  Bangkok-today maximum, and future values stop before navigation. Server default
+  range is day `1` through Bangkok today; direct reversed and future URLs return
+  explicit errors before the existing read.
+- Final SHA-256 for the four Application/Test correction paths:
+  - `B3CD5847B1041437D196CD03BE14D4B1FE2D5CF2DE6BB015B62F85A43BD545C9` — `src/components/admin/teaching-programs-client.tsx`
+  - `A2A41DBFB0B97055C68E347B263A0227A61C280D3F38034C4050507863E5919A` — `src/lib/admin-teaching-programs-read.ts`
+  - `60D2DCF88D9F3462A314F044971AF9914653F9521DDE167CB7E42550A5CFE021` — `scripts/check-admin-teaching-program-review.mjs`
+  - `27289EFB5D30E6B5EC2F1EF7E07380982E6483C6BE596A232E0CD3B9F53D16C2` — `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`
+- All other frozen Functional/Test/Config paths matched Gate 0 (`7/7`),
+  `package.json` remained
+  `A1B157BF7E1488FD47D8AE2DE69ABBBB0311522E82D47F42E6B7E32E6ECECA0B`,
+  and `package-lock.json` remained
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained excluded, unstaged, and
+  diff-empty at blob `4521281d099efb189429a744909552d67871ff23` / SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+
+#### Verification and query budget
+
+- Final Admin Review deterministic suite passed `11/11`; focused Admin Review
+  E2E passed `2/2`; full Admin Schedule assignment E2E passed `13/13`.
+  skipped/unexpected/retry/flaky were `0/0/0/0`, and disposable fixture residue
+  was `0` after every accepted final E2E run.
+- TypeScript PASS; ESLint PASS with warnings `0`; mojibake PASS (`263` files);
+  Production build PASS with static generation `94/94`; post-build clean dev
+  restart root/static passed `200/200`; `git diff --check` and staged diff checks
+  PASS. `prod:check` was not rerun by explicit Owner
+  instruction. Full all-actor Performance was not recertified in this correction.
+- Delayed-navigation E2E held one Server navigation request while issuing two
+  synchronous button clicks: accepted navigation/RSC read `1`, duplicate-added
+  navigation/read `0`. The Admin Review Server read stayed one bounded relational
+  query with date/status/cap, added API routes `0`, and no N+1/request storm.
+  Parent initial Program request/content and Admin Schedule modal additional
+  API/DB remain `0/0` from the preserved task contract.
+
+#### Commit, artifact, smoke, and current state
+
+- Application commit `a370673d06e61e409ec9b1de648ae4fbb1070c2d`
+  (`fix: harden admin review date navigation`) contains exactly Functional `2` +
+  Test `2`, excludes all documentation and the protected file, and was pushed to
+  `origin/spike/next-major-security-upgrade`; local/upstream were exact `0/0`.
+- A clean detached worktree at exact Application SHA created one unaliased staged
+  Production-target artifact with `vercel deploy --prod --skip-domain`:
+  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`, URL
+  `https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`.
+  Deployment API evidence: target `production`, state `READY`, aliases `0`, and
+  `meta.gitCommitSha` exactly `a370673d06e61e409ec9b1de648ae4fbb1070c2d`.
+- Protection-aware read-only smoke passed root/health/login/favicon `200`,
+  protected `/dashboard/schedule` `307` to login, and anonymous
+  `/api/schedule/program?sessionId=...` `401` with `Cache-Control: private,
+  no-store`. One earlier safe smoke used the wrong query key and returned `400`;
+  it performed no write and was not used as the auth-boundary result. Bounded
+  runtime warning/error/fatal/5xx counts were `0/0/0/0`.
+- Production aliases before/after remained on source deployment
+  `new-athlete-badminton-school-c2khxn6vu-aachanin1s-projects.vercel.app` for
+  Production artifact `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. The new artifact has
+  aliases `0`; no Promotion or traffic move occurred. Git integration updated its
+  branch Preview source automatically after push; this was recorded separately
+  and is not a Production alias mutation.
+- No remote Supabase read was added in this correction; no remote write, form
+  submit, Controlled Write UAT, Production data change/repair, Migration,
+  dependency, application/remote Environment, feature, allowlist, or permission
+  change occurred. Customer impact is **None before Promotion**; Application
+  financial impact **None**; commercial note remains **Parent program visibility
+  only = 12,000 บาท**, not application pricing.
+- Documentation is committed separately after this record; its immutable SHA is
+  reported in the final handoff because a commit cannot embed itself.
+  Documentation Drift **No** after the consistency matrix. Source Complete **Yes**;
+  Tests Passed **Yes**; Pushed **Yes**; Deployed **staged only**; Owner UAT
+  **awaiting Admin Review retest**; Promoted **No**; Production Active **No for
+  this correction**; Task Done **No**.
+
+Owner Admin Review retest for exact artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`:
+
+1. From a historical range, click `เดือนนี้`; verify immediate loading, both
+   buttons disabled, and range day `1` through today.
+2. Click Search rapidly twice; verify no duplicate row/navigation/read.
+3. Enter `21/08/2026` to `01/08/2026`; verify automatic normalization to
+   `01/08/2026` through `21/08/2026` in inputs and URL.
+4. Verify date pickers cannot choose a future day and a future direct URL shows
+   an explicit error without loading result data.
+5. Verify current/historical rows and statistics follow the selected range, with
+   no visible error or abnormal delay.
+
+Next Action: **Owner returns PASS or FAIL for exact artifact
+`dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application SHA `a370673...`. Do not
+Promote automatically.**

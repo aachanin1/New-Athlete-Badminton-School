@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -12,47 +12,39 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 Status: **READY FOR OWNER UAT — NOT PROMOTED**.
 
 - Active Task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
-  FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner selected Priority `1`
-  and now approved the fixed 14-path UAT correction Scope Contract.
-- Owner UAT rejected previous artifact `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` /
-  Application Source `7c32e924fdd76d88ce853dfde531f84a2123bc22`.
-  It remains retained and unpromoted; Production aliases remain on
-  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`.
-- The three corrections are committed and pushed: Parent visibility permits
-  `submitted/approved/rejected` but hides `draft`; Coach Today shows exact-group
-  Level range, nickname and exact-slot program/status/modal; Admin Review uses a
-  validated Bangkok month/range server query with range-scoped stats and explicit
-  errors. Proven Admin Runtime Root Cause was an ignored oversized schedule-slot
-  `.in()` URI error after an all-history 800-row read, not Database/RLS/Schema.
-- Owner superseded the high-variance dev-server certification with isolated
-  Production builds and reverse order. Both complete sets passed: no User, Coach,
-  Admin Schedule, Admin Review current-month, or historical scenario met both
-  `>10%` and `>=100 ms` in the same direction. Product performance correction
-  count remained `0`.
-- Deterministic suites passed `215/215`; focused E2E `8/8`; full E2E `13/13`;
-  skip/unexpected/retry/flaky `0`; fixture residue `0`; TypeScript, zero-warning
-  lint, mojibake, and Production build passed. A non-visible User Schedule
-  hydration-mismatch console observation is retained as a known limitation.
-- Owner accepted the already-completed read-only hosted-Supabase `prod:check` as
-  a valid Release Gate. The historical no-remote scope breach remains recorded;
-  `prod:check` was not rerun and no additional Supabase read, remote write,
-  repair, Environment change, customer impact, or financial impact occurred.
-- Application commit `a63f4f5ab2ba89c8f54014b69c9eb9eeee594222`
-  contains exactly the authorized Functional/Test/Config `7/3/1` paths and is
-  pushed. The protected unrelated dirty file remains excluded and content-exact.
-- Replacement staged Production-target artifact
-  `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` is `READY` at
-  `https://new-athlete-badminton-school-h3mjmme04-aachanin1s-projects.vercel.app`,
-  has aliases `0`, and carries exact Application SHA `a63f4f5...`.
-- Staged read-only smoke passed root/health/login/static `200`, protected schedule
-  `307`, and anonymous program API `401` with `private, no-store`. Bounded
-  warning/error/fatal/5xx counts were `0/0/0/0`; no Controlled Write UAT or
-  Production data write occurred.
-- Production aliases are unchanged on
-  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; previous rejected artifact
-  `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remains retained and unpromoted.
-- Next action: Owner runs UAT against the exact replacement artifact/SHA and
-  returns PASS or FAIL. Do not Promote automatically.
+  FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner UAT passed Coach, User,
+  and Admin Schedule on artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg`, but failed
+  Admin Teaching Program Review. That artifact and older `dpl_52g...` remain
+  rejected, retained, and unpromoted.
+- The Admin Review-only correction is committed and pushed as Application SHA
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`: immediate transition loading,
+  disabled/deduplicated navigation, Client reversed-range normalization,
+  Bangkok-today Client/Server future-date enforcement, and current-month day `1`
+  through today. The existing one bounded relational read and draft-filter sync
+  are unchanged.
+- Final correction evidence passed: deterministic `11/11`, focused E2E `2/2`,
+  full E2E `13/13`, skip/unexpected/retry/flaky `0/0/0/0`, fixture residue `0`,
+  TypeScript, zero-warning lint, mojibake `263`, Production build `94/94`, and diff
+  checks. `prod:check` and full all-actor Performance were not rerun by Owner
+  instruction.
+- Query budget remains one accepted navigation/RSC read and zero additional read
+  from the synchronous duplicate click; Admin Review remains one bounded
+  Supabase relational query, added API routes `0`, and N+1/request storm absent.
+- New exact-SHA staged Production-target artifact
+  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` is `READY` at
+  `https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`,
+  has aliases `0`, and API metadata matches exact Application SHA `a370673...`.
+- Protection-aware staged smoke passed root/health/login/static `200`, protected
+  schedule `307`, anonymous Program API `401` with `private, no-store`, and
+  warning/error/fatal/5xx `0/0/0/0`. No Controlled Write UAT, remote write,
+  Production data change, Environment, dependency, feature, or allowlist change
+  occurred.
+- Production aliases remain unchanged on
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; the protected unrelated dirty file remains
+  excluded, unstaged, diff-empty, and content-identical.
+- Next action: Owner performs the five-step Admin Review retest against exact
+  artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / SHA `a370673...` and returns
+  PASS or FAIL. Do not Promote automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
