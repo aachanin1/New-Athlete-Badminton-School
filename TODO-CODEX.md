@@ -9,42 +9,13 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — NOT PROMOTED**.
+Status: **None — Awaiting Owner Selection**.
 
-- Active Task: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
-  FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner UAT passed Coach, User,
-  and Admin Schedule on artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg`, but failed
-  Admin Teaching Program Review. That artifact and older `dpl_52g...` remain
-  rejected, retained, and unpromoted.
-- The Admin Review-only correction is committed and pushed as Application SHA
-  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`: immediate transition loading,
-  disabled/deduplicated navigation, Client reversed-range normalization,
-  Bangkok-today Client/Server future-date enforcement, and current-month day `1`
-  through today. The existing one bounded relational read and draft-filter sync
-  are unchanged.
-- Final correction evidence passed: deterministic `11/11`, focused E2E `2/2`,
-  full E2E `13/13`, skip/unexpected/retry/flaky `0/0/0/0`, fixture residue `0`,
-  TypeScript, zero-warning lint, mojibake `263`, Production build `94/94`, and diff
-  checks. `prod:check` and full all-actor Performance were not rerun by Owner
-  instruction.
-- Query budget remains one accepted navigation/RSC read and zero additional read
-  from the synchronous duplicate click; Admin Review remains one bounded
-  Supabase relational query, added API routes `0`, and N+1/request storm absent.
-- New exact-SHA staged Production-target artifact
-  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` is `READY` at
-  `https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`,
-  has aliases `0`, and API metadata matches exact Application SHA `a370673...`.
-- Protection-aware staged smoke passed root/health/login/static `200`, protected
-  schedule `307`, anonymous Program API `401` with `private, no-store`, and
-  warning/error/fatal/5xx `0/0/0/0`. No Controlled Write UAT, remote write,
-  Production data change, Environment, dependency, feature, or allowlist change
-  occurred.
-- Production aliases remain unchanged on
-  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; the protected unrelated dirty file remains
-  excluded, unstaged, diff-empty, and content-identical.
-- Next action: Owner performs the five-step Admin Review retest against exact
-  artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / SHA `a370673...` and returns
-  PASS or FAIL. Do not Promote automatically.
+- No Active Task is authorized. Schedule Learning Details is **TASK DONE** after
+  exact Owner UAT PASS, immutable-artifact Promotion, automated Production
+  verification, and documentation publication.
+- Next action: await explicit Owner selection. Do not begin any Parking Lot item
+  automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -53,6 +24,28 @@ Status: **READY FOR OWNER UAT — NOT PROMOTED**.
 Each entry below is a historical summary of state observed at that task's
 closeout; artifact and alias wording does not override the current mutable state
 in `PROJECT_STATE.md`.
+
+### SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Owner passed exact artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application
+  SHA `a370673d06e61e409ec9b1de648ae4fbb1070c2d`, including Coach, User/Parent,
+  Admin Schedule modal, and corrected Admin Teaching Program Review.
+- Exactly one Promote invocation exited `0`. The deployment ID, Application SHA,
+  immutable URL, and created/building/ready timestamps remained unchanged;
+  retry/rebuild/redeploy/new-deployment/separate-alias counts were all `0`.
+- All four Production aliases point to the exact promoted artifact. Prior
+  Production `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` remains `READY` as rollback
+  candidate; rejected `dpl_rRAc...` and `dpl_52g...` remain retained/unpromoted.
+- Production root, health, login, promoted static asset, auth redirect, anonymous
+  Program API/cache policy, and bounded logs passed. No Controlled Write UAT,
+  remote write, data change/repair, Migration, Environment, dependency, feature,
+  or allowlist change occurred during closeout.
+- Commercial note: Parent program visibility only = `12,000 บาท`; this is not an
+  application pricing change. See `PROJECT_STATE.md` and the dated closeout in
+  `DEVELOPMENT_TODO.md` for exact evidence.
 
 ### PROGRESSIVE PAYMENT — MANDATORY FULL PENDING-SCOPE BATCH
 

@@ -16229,3 +16229,99 @@ Owner Admin Review retest for exact artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`:
 Next Action: **Owner returns PASS or FAIL for exact artifact
 `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application SHA `a370673...`. Do not
 Promote automatically.**
+
+### 2026-08-22 — Schedule Learning Details exact-artifact Production closeout
+
+State observed at this closeout: **TASK DONE — EXACT OWNER-PASSED ARTIFACT
+PROMOTED AND PRODUCTION ACTIVE**. Owner UAT passed Coach, User/Parent, Admin
+Schedule modal, and corrected Admin Teaching Program Review on exact artifact
+`dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application SHA
+`a370673d06e61e409ec9b1de648ae4fbb1070c2d`.
+
+#### Gate 0 and immutable identity
+
+- Fresh Git Gate 0 ran only in the Target repository on branch
+  `spike/next-major-security-upgrade`. Local/upstream HEAD were
+  `eab9aa89672806e705a165ac7a7ca65e3569c540`, ahead/behind `0/0`, staged paths
+  `0`, executable diff empty, and Application SHA was an ancestor of the
+  documentation HEAD.
+- `package.json` and `package-lock.json` remained byte-exact at SHA-256
+  `A1B157BF7E1488FD47D8AE2DE69ABBBB0311522E82D47F42E6B7E32E6ECECA0B` and
+  `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+  Protected `src/lib/schedule-slot-utils.ts` remained unstaged, diff-empty, and
+  content-identical at blob `4521281d099efb189429a744909552d67871ff23` / SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Pinned existing Node/Vercel CLI were `24.16.0` / `56.5.0`; project/team linkage
+  remained `prj_v034HOI6AjaMpBezWvuvT0W24pTp` /
+  `team_gw8Y6CPd602WAKRsVFobPGCL`. `promote --help` confirmed immutable ID/URL
+  syntax. No CLI install, upgrade, Environment pull, or project relink occurred.
+- Pre-Promotion API evidence reported candidate ID
+  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`, immutable URL
+  `new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`, target
+  `production`, status/readyState `READY`, aliases `0`, and exact Git SHA
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`. Its created/building/ready times
+  were `2026-08-21T16:51:15.603Z`, `2026-08-21T16:51:16.533Z`, and
+  `2026-08-21T16:52:38.205Z`.
+- Before Promotion, all four established Production aliases pointed to
+  `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`, which was `READY` and remained the rollback
+  candidate. Four branch Preview mappings were recorded separately. Rejected
+  `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` and
+  `dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remained `READY`, alias-free, retained, and
+  unpromoted.
+
+#### One exact Promotion and continuity
+
+- Exactly one command invoked `vercel promote
+  dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6 --yes` with the established team scope. It ran
+  from `2026-08-22T02:20:37.5690134Z` through
+  `2026-08-22T02:20:43.0195367Z`, exited `0`, and reported success for the exact
+  deployment ID. Retry, deploy, rebuild, redeploy, force, rollback, separate alias
+  command, and new-deployment counts were all `0`.
+- Post-Promotion identity remained exact: deployment ID, URL, target, READY state,
+  Application SHA, and created/building/ready timestamps were unchanged.
+  Promotion alias assignment was recorded at `2026-08-22T02:20:41.352Z`.
+  The bounded latest-100 deployment URL-set hash remained
+  `B7DA8CC18E64EF119B0F678B188F78520EC9328D432102B5A76D42EF9D8DDF0C`;
+  inventory added/removed was `0/0`.
+- After Promotion, `www.newathleteschool.com`,
+  `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` all
+  pointed to exact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`; missing/extra/wrong
+  Production aliases were `0/0/0`. All four branch Preview mappings were
+  unchanged. Prior Production `dpl_9bJy...` remained `READY` as rollback candidate
+  and was not automatically rolled back or deleted.
+
+#### Production verification and safety
+
+- Public Production roots on `www.newathleteschool.com` and
+  `new-athlete-badminton-school.vercel.app` returned `200`. The two protected team
+  aliases returned the application root `200` through protection-aware read-only
+  `vercel curl`; direct unauthenticated requests correctly reached Vercel SSO.
+- Canonical Production `/api/health`, `/auth/login`, and promoted CSS asset
+  `/_next/static/css/7192b614cd367853.css` returned `200`. Anonymous
+  `/dashboard/schedule` returned `307` to the normal Login route. Anonymous Program
+  API with a format-valid UUID returned `401` with `Cache-Control: no-store,
+  private`. One preceding probe used a nil UUID, correctly stopped at route input
+  validation with `400`, performed no write, and was not used as the auth-boundary
+  result.
+- Bounded exact-deployment logs since Promotion start returned task-attributable
+  warning/error/fatal/5xx `0/0/0/0`. A bounded 200-event sample contained write
+  HTTP methods `0`; all Developer verification requests were GET. Unrelated real
+  traffic was not classified as a task failure without attribution.
+- Functional/Test/Config/Migration changes during this closeout were `0/0/0/0`;
+  documentation paths were exactly `3`. No Build, deterministic/E2E/Performance,
+  or `prod:check` rerun occurred. Controlled Write UAT was Not run; remote writes,
+  Production data changes/repairs, Migration, Schema, RPC, RLS, Environment,
+  secret, feature, and allowlist changes were all `0`/None.
+- Source Complete **Yes**; Tests Passed **Yes** from the accepted release gates;
+  Owner UAT **PASS**; Deployed **Yes**; Promoted **Yes**; Production Active
+  **Yes**; second manual Production UAT **Not required** because the exact
+  Owner-passed artifact was promoted without rebuild. Customer impact:
+  **Schedule Learning Details is available in Production**. Financial impact:
+  **None**. Commercial note: **Parent program visibility only = 12,000 บาท**;
+  this is not an application pricing change.
+- Documentation Drift **No** after the closeout consistency matrix. Blocker
+  **None**; Remaining Work **None for this task**; Task Done **Yes**. The other six
+  Parking Lot items remain preserved, unselected, and unauthorized. Next Action:
+  **Await Owner Selection — do not start another task automatically**.

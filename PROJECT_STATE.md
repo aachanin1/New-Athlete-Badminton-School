@@ -2,47 +2,42 @@
 
 Last updated: 2026-08-22
 
-Current source: **READY FOR OWNER UAT — NOT PROMOTED** for **SCHEDULE LEARNING
-DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH
-LEVEL PARITY**. The prior replacement artifact passed Coach, User, and Admin
-Schedule Owner UAT but failed Admin Teaching Program Review and remains rejected.
-Admin Review correction Application Source
-`a370673d06e61e409ec9b1de648ae4fbb1070c2d` is committed and pushed. Exact-SHA
-Production-target staged artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` is `READY`
-at
-`https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`
-with aliases `0`; protection-aware staged HTTP smoke and bounded runtime-log
-checks passed. The
-Owner accepted the already-completed read-only hosted-Supabase `prod:check` as a
-valid Release Gate without authorizing any further remote Supabase access or any
-write. The historical no-remote scope breach remains recorded below. Previous
-rejected artifacts `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` and
-`dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remain retained and unpromoted; Production
-aliases remain on
-`dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. This first matrix is the only authority for
-current mutable state; all later records are Historical / Superseded.
+Current source: **TASK DONE — EXACT OWNER-PASSED ARTIFACT PROMOTED AND
+PRODUCTION ACTIVE** for **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY +
+ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner UAT passed exact
+artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application SHA
+`a370673d06e61e409ec9b1de648ae4fbb1070c2d`. One `vercel promote` invocation
+moved that same immutable Production-target artifact to Production without a
+rebuild, redeploy, new deployment, or separate alias command. All four established
+Production aliases now point to it; automated Production HTTP and bounded runtime
+log checks passed. Prior Production `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` remains
+`READY` as the rollback candidate. Rejected artifacts
+`dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` and
+`dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remain retained and unpromoted. This first
+matrix is the only authority for current mutable state; all later records are
+Historical / Superseded.
 
-## Current Execution — Schedule Learning Details Owner UAT Handoff
+## Current Execution — Schedule Learning Details Production Closeout
 
-Status: **READY FOR OWNER UAT — NOT PROMOTED**.
+Status: **TASK DONE — EXACT OWNER-PASSED ARTIFACT PROMOTED AND PRODUCTION ACTIVE**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY** |
-| Task Status | **READY FOR OWNER UAT — NOT PROMOTED** |
-| Owner Policy | **Confirmed 2026-08-21, latest:** correct only Admin Teaching Program Review navigation/date UX; show immediate pending feedback, disable/deduplicate both navigation actions, normalize reversed draft endpoints, prohibit future Bangkok dates on Client and Server, and define current month as day `1` through Bangkok today. Do not rerun `prod:check` or full all-actor Performance; publish an exact-SHA unaliased Production-target staged artifact and stop before Promotion pending Owner PASS |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — exact Owner-passed artifact Promoted without rebuild; Production verification passed** |
+| Owner Policy | **Confirmed 2026-08-22, latest:** Owner UAT PASS applies only to `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; Promote that immutable artifact once without rebuild, run read-only Production checks, close documentation, and do not begin another Parking Lot item automatically |
 | Intended Behavior | Parent sees Level/name and on-demand exact-owned `submitted/approved/rejected` programs while `draft`/Legacy/non-owned stay hidden; Coach sees exact-group Level range, nickname-only child list, individual Level/name, and exact-slot program/status/modal on desktop/mobile; Admin Schedule opens the full program from existing payload with `0/0` extra read; Admin Review shows immediate `กำลังโหลด...`, disables and deduplicates navigation, sorts reversed Client draft dates, rejects future Bangkok dates on Client/Server, resets to day `1` through Bangkok today, and preserves one bounded server-side range read, scoped stats, historical URL search, and explicit errors |
 | Root Cause | **Latest UAT Root Cause:** Admin Review navigation had no pending/dedup state; both buttons stayed enabled; reversed dates were rejected rather than normalized; inputs had no complete Bangkok-today maximum; the month helper ended at month-end; and Server URL validation allowed future dates. **Original Admin Review Product Root Cause:** old all-history load up to 800 rows built an oversized slot `.in()` URI and silently treated its error as no rows. **Historical release interruption:** `prod:check` performed Owner-accepted read-only hosted-Supabase checks contrary to the then-current no-remote rule; it was not rerun |
 | Branch | `spike/next-major-security-upgrade` |
-| Local / Remote HEAD | Admin Review correction Application commit `a370673d06e61e409ec9b1de648ae4fbb1070c2d` was pushed; this current-state update is published as a separate documentation-only descendant whose exact SHA is reported in the final handoff because a commit cannot embed its own SHA |
-| Ahead / Behind | `0/0` after Application push and required again after documentation publication; staged paths `0` at handoff |
+| Local / Remote HEAD | Documentation-only closeout descendant of `eab9aa89672806e705a165ac7a7ca65e3569c540`; exact closeout SHA is reported in the final handoff because a commit cannot embed its own SHA |
+| Ahead / Behind | `0/0` after documentation closeout push; staged paths `0` |
 | Source Complete | **Yes** — intended Parent, Coach, Admin Schedule, and Admin Review Source is committed and pushed within the exact allowlist |
 | Tests Passed | **Yes.** Admin Review deterministic `11/11`, final focused E2E `2/2`, final full E2E `13/13`, skipped/unexpected/retry/flaky `0/0/0/0`, fixture residue `0`, TypeScript PASS, ESLint PASS with warnings `0`, mojibake PASS (`263` files), Production build PASS (`94/94`), and diff checks PASS. `prod:check` was not rerun by Owner instruction. Existing User Schedule hydration console evidence remains historical/out of this correction; all full E2E assertions passed |
-| Committed / Pushed | **Application: Yes / Yes. Documentation: separate documentation-only commit / pushed at closeout** |
+| Committed / Pushed | **Application: Yes / Yes. Documentation closeout: Yes / Yes** |
 | Current / Pushed Source | Exact Admin Review correction Application Source `a370673d06e61e409ec9b1de648ae4fbb1070c2d` / same pushed Application SHA |
-| Functional / Test / Documentation / Migration / Config Files | Correction `2 / 2 / 3 / 0 / 0`; overall active task `7 / 3 / 3 / 0 / 1`; total task paths `14`; correction paths `7`; path `15` absent; dependency and lockfile diffs absent |
+| Functional / Test / Documentation / Migration / Config Files | Promotion closeout `0 / 0 / 3 / 0 / 0`; completed task `7 / 3 / 3 / 0 / 1`; total task paths `14`; path `15` absent; dependency and lockfile diffs absent |
 | Scope Expansion / Scope Breach | No correction scope expansion / **Historical breach retained:** read-only hosted Supabase access by `prod:check`; Owner accepted that evidence as valid. Remote writes, repairs, Environment mutation, and additional Supabase reads during this correction were `0` |
 | Migration Source / Applied | **None / No** |
 | Environment Changed | **Application/remote Environment: No.** Local effects: Docker/exact-project Supabase, two disposable production snapshots (removed after use), fixed local ports, existing Playwright/browser, and post-build dev restart only |
@@ -52,24 +47,24 @@ Status: **READY FOR OWNER UAT — NOT PROMOTED**.
 | Query / Request Budget | No N+1 or request storm; Parent initial program request/content `0/0`; User/Coach Level reads fixed; Coach program read at most one bounded exact-slot read; Admin Schedule modal extra API/DB `0/0`; Admin Review remains one bounded relational Supabase read filtered by date/status/cap. Accepted click produced one navigation/RSC read; synchronous duplicate click added `0` navigation/read; added API routes `0` |
 | Payload / Rows | Set 1 Current/Base median bytes: User `39,152/39,174`, Coach `48,673/47,393`, Admin `21,596/21,610`, Review current `33,682/35,114`, Review historical `42,285/39,827`. Set 2: User `39,148/39,173`, Coach `42,951/41,677`, Admin `21,600/21,612`, Review current `33,681/35,125`, Review historical `42,289/36,344`. Current Review visible rows current/historical `1/18`, read errors `0/0` |
 | Release Gates | Admin Review deterministic `11/11`; focused E2E `2/2`; full E2E `13/13`; TypeScript PASS; ESLint PASS with warnings `0`; mojibake PASS (`263` files); build PASS (`94/94` static generation); post-build clean dev restart root/static `200/200`; `git diff --check` PASS. `prod:check` was **not rerun** by Owner instruction |
-| Deployed / Promoted | **Yes — staged Production-target artifact only / No** |
-| Staged Artifact / Exact SHA | `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; URL `https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`; target `production`; state `READY`; aliases `0` |
-| Staged Smoke / Logs | PASS — protection-aware root/health/login/static `200`; protected schedule `307` to login; anonymous program API `401` with `private, no-store`; bounded warning/error/fatal/5xx `0/0/0/0`; one initial safe API smoke used the wrong query key and returned `400`, then the correct `sessionId` boundary returned `401`; no form submit, controlled write, or data mutation |
-| Alias Before / After | All four Production aliases remained on the prior source deployment for `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`; source URL before/after remained `new-athlete-badminton-school-c2khxn6vu-aachanin1s-projects.vercel.app`; new artifact aliases `0`. Git integration changed only its branch Preview source automatically after push; this was not a Production alias mutation |
-| Previous Owner UAT | Artifact `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg`: Coach PASS, User PASS, Admin Schedule PASS, Admin Review FAIL. Artifacts `dpl_rRAc...` and `dpl_52g...` remain retained and unpromoted |
-| Production Active / Owner UAT | **No for this correction / awaiting Admin Review retest on the new exact artifact** |
+| Deployed / Promoted | **Yes / Yes** — exactly one Promote invocation, exit `0`, retry/rebuild/redeploy/new-deployment/separate-alias counts `0/0/0/0/0` |
+| Production Artifact / Exact SHA | `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; immutable URL `https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`; target `production`; state `READY`; promoted |
+| Production Smoke / Logs | PASS — public root/health/login/promoted static `200`; protected schedule `307` to Login; anonymous Program API with a format-valid UUID `401` and `private, no-store`; Vercel-protected team aliases returned application root `200` through protection-aware reads; bounded warning/error/fatal/5xx `0/0/0/0`; no form submit, controlled write, or data mutation |
+| Alias Before / After | Before: all four Production aliases pointed to `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. After: `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`, `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` all point to exact promoted `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`; missing/extra/wrong `0/0/0`. Four branch Preview mappings were unchanged. Prior Production remains `READY` as rollback candidate |
+| Owner UAT | **PASS** — Coach, User/Parent, Admin Schedule modal, and corrected Admin Teaching Program Review passed the exact promoted artifact/SHA. Earlier rejected artifacts remain retained and unpromoted |
+| Production Active / Production UAT | **Yes / Passed through exact staged Owner UAT plus immutable Promotion and automated Production verification.** Second manual Production UAT was not required |
 | Controlled Write UAT | **Not run** |
 | Remote Supabase Access | **Historical accepted read-only access:** one completed `prod:check`; no rerun and no additional Supabase operation during publication. Remote writes `0`; no secret/URL/row content retained in documentation |
 | Data Repaired / Production Data Changed | **No / No**; `prod:check` uses reads and no write/repair was run |
-| Customer Impact / Financial Impact | **None before Promotion / None**; commercial note remains Parent program visibility only = `12,000 บาท`, not application pricing |
+| Customer Impact / Financial Impact | **Schedule Learning Details is now available in Production / None**; commercial note remains Parent program visibility only = `12,000 บาท`, not application pricing |
 | Protected Dirty File | Excluded, unstaged, diff empty, and content-identical at Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`; package-lock SHA-256 remained `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8` |
 | Correction Attempts | One Owner-authorized Admin Review correction approach; no full all-actor Performance recertification and no Product performance correction |
 | Documentation Drift | **No after this closeout and Documentation Consistency Matrix** |
-| Blocker | **Owner Admin Review UAT retest pending** for exact staged artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / exact Application SHA `a370673d06e61e409ec9b1de648ae4fbb1070c2d` |
-| Remaining Work | Owner performs the five-step Admin Review staged retest and returns PASS or FAIL. Do not Promote unless Owner explicitly passes this exact artifact/SHA |
-| Task Done | **No** |
-| Next Gate / Next Action | **Await Owner Admin Review UAT PASS/FAIL for exact artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / SHA `a370673...`; do not Promote automatically** |
-| Parking Lot authorization state | Priority `1` remains the only active task; the other six Parking Lot items remain unauthorized |
+| Blocker | **None** |
+| Remaining Work | **None for this task** |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Await Owner Selection — do not begin another Parking Lot item automatically** |
+| Parking Lot authorization state | The other six preserved Parking Lot items remain unselected and unauthorized |
 
 ## Historical / Superseded — Valid Set 1 Dev-Server Performance Hard Stop
 
