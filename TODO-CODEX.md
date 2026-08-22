@@ -991,47 +991,16 @@ Status: **DONE**.
 
 ## Parking Lot
 
-Priority `1` below was selected on 2026-08-19 and is the current Active Task; the
-other six candidates remain unauthorized and retain their prior relative state.
+Schedule Learning Details is completed and is not an Active/Parking Lot item. Its
+short closeout is in **Recently Completed** above; detailed historical evidence is
+in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
+authoritative only in `PROJECT_STATE.md`.
 
-### Priority 1 — Schedule Learning Details
-
-Canonical name: **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN
-FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**.
-
-Status: **SELECTED / ACTIVE — READY FOR OWNER UAT; NOT PROMOTED**.
-
-- User/parent correction: pushed Source permits only on-demand `submitted`,
-  `approved`, and `rejected` teaching programs resolved from the learner's exact
-  assignment group and that real group's `coach_id + schedule_slot_id`; `draft`,
-  review metadata, Legacy-only, and non-owned programs remain hidden.
-- Admin corrections: the previously published Admin Schedule full-content modal
-  remains unchanged; pushed Admin Teaching Program Review now uses validated
-  server-side Bangkok date-range filtering, selected-range stats, bounded results,
-  and explicit read-error handling.
-- Coach correction: pushed Today Schedule preserves individual Level and adds the
-  exact group's Level range, child nickname, and exact coach/slot program status,
-  preview, and full-content modal without per-group or per-student queries.
-- Protected rule: one coach may own only one group in the same teaching time and
-  cannot teach two overlapping groups. Current Client/API/DB guards must not be
-  weakened or changed without a new Owner Decision.
-- Commercial note: **12,000 บาท applies only to the User/parent program-visibility
-  item**. The Admin modal and User/Coach Level parity are completeness
-  corrections. This is a project/commercial record, not application pricing, and
-  does not authorize Payment or `pricing_tiers` changes.
-- The latest 2026-08-21 Owner command accepted the completed read-only hosted
-  Supabase `prod:check` as a valid Release Gate. Application Source `a63f4f5...`
-  is committed/pushed; replacement staged artifact
-  `dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` is exact-SHA, unaliased, and `READY` with
-  smoke/log checks passed. The previous Owner-rejected artifact remains retained
-  and unpromoted. Current mutable detail and the exact Owner UAT next gate are
-  authoritative in the first matrix of `PROJECT_STATE.md`.
-
-Existing six candidates retained below without a new relative order: Adult Group
-+ Family Private 10-Month Entitlement / Cross-Month Booking; Private Self + Child
-Identity Integrity / Name-Level Separation; LINE External-Browser Handoff Audit;
-Thai UI Terminology & Shared Helper; External Head Coach Assignment Save HTTP 500
-Attempts; and Homepage LV Copy Audit/Fix.
+The six candidates below remain unselected, unauthorized, and retain their prior
+relative state: Adult Group + Family Private 10-Month Entitlement / Cross-Month
+Booking; Private Self + Child Identity Integrity / Name-Level Separation; LINE
+External-Browser Handoff Audit; Thai UI Terminology & Shared Helper; External Head
+Coach Assignment Save HTTP 500 Attempts; and Homepage LV Copy Audit/Fix.
 
 ### Adult Group + Family Private — 10-Month Entitlement / Cross-Month Booking
 
@@ -1292,10 +1261,10 @@ Confirmed final state:
 - Branch: `spike/next-major-security-upgrade`.
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- Schedule Learning Details Application Source is committed/pushed and its exact
-  staged artifact is READY without aliases; only the protected unrelated dirty
-  file remains local. Exact state is authoritative in the first
-  `PROJECT_STATE.md` matrix.
+- Schedule Learning Details is completed: its exact Owner-passed artifact is
+  Promoted and Production-active. Only the protected unrelated dirty file remains
+  local. Exact mutable state is authoritative in the first `PROJECT_STATE.md`
+  matrix; completed details are referenced above rather than duplicated here.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.
