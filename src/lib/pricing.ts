@@ -212,6 +212,7 @@ export function calculatePrivatePrice(hours: number, pricing?: PricingTierInput[
     hours,
     package_price: tier.package_price,
     per_hour: tier.price_per_session,
+    expiry_months: tier.min_sessions > 1 ? 10 : null,
     tier_label: tier.min_sessions === 1 ? 'รายชั่วโมง' : formatTierLabel(tier, 'ชั่วโมง'),
   }
 }
@@ -352,6 +353,7 @@ export function getPrivateTiers(pricing?: PricingTierInput[] | PricingCatalog | 
     min: tier.min_sessions,
     max: tier.max_sessions,
     per_hour: tier.price_per_session,
+    expiry_months: tier.min_sessions > 1 ? 10 : null,
     label: tier.min_sessions === 1 ? 'รายชั่วโมง' : formatTierLabel(tier, 'ชั่วโมง'),
   }))
 }

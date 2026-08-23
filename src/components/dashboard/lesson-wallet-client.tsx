@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, CalendarDays, CheckCircle2, Clock, Loader2, MapPin, ShieldAlert, WalletCards, XCircle } from 'lucide-react'
+import { ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, MapPin, ShieldAlert, WalletCards, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,14 @@ interface WalletCredit {
   expired_at: string | null
   child_id: string | null
   course_type_id: string
+  entitlement_unit_type: 'single' | 'family_private' | null
+  entitlement_policy: 'same_month' | 'ten_month_package' | null
+  entitlement_started_at: string | null
+  participant_count: number | null
+  lesson_wallet_credit_members?: {
+    child_id: string | null
+    children?: { full_name: string; nickname: string | null } | null
+  }[] | null
   children?: { full_name: string; nickname: string | null } | null
   branches?: { name: string; slug: string | null } | null
   course_types?: { name: CourseTypeName | null } | null
@@ -84,7 +92,16 @@ function formatDateThai(date: string) {
 }
 
 function getLearnerName(credit: WalletCredit) {
+  const memberNames = (credit.lesson_wallet_credit_members || []).map((member) => (
+    member.children?.nickname || member.children?.full_name || 'ตัวเอง'
+  ))
+  if (memberNames.length > 0) return memberNames.join(', ')
   return credit.children?.nickname || credit.children?.full_name || 'ตัวเอง'
+}
+
+function getCreditLearnerIds(credit: WalletCredit) {
+  const members = credit.lesson_wallet_credit_members || []
+  return members.length > 0 ? members.map((member) => member.child_id) : [credit.child_id]
 }
 
 function getCourseType(credit: WalletCredit | null): CourseTypeName | null {
@@ -109,6 +126,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
   const [selectedCredit, setSelectedCredit] = useState<WalletCredit | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -121,7 +139,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
     expired: credits.filter((credit) => credit.status === 'expired').length,
   }), [activeCredits.length, credits])
 
-  const selectedMonthParts = selectedCredit ? getMonthParts(selectedCredit.original_date) : getMonthParts(new Date().toISOString().slice(0, 10))
+  const selectedMonthParts = getMonthParts(selectedMonthKey || selectedCredit?.original_date || new Date().toISOString().slice(0, 10))
   const calendarDays = useMemo(() => {
     const firstDay = new Date(selectedMonthParts.year, selectedMonthParts.month, 1)
     const lastDay = new Date(selectedMonthParts.year, selectedMonthParts.month + 1, 0)
@@ -145,7 +163,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
     normalizeTime(session.end_time) === normalizeTime(end) &&
     session.branch_id === branchId &&
     session.course_type_id === credit.course_type_id &&
-    session.child_id === credit.child_id &&
+    getCreditLearnerIds(credit).includes(session.child_id) &&
     !['rescheduled', 'walleted'].includes(session.status)
   ))
 
@@ -155,10 +173,12 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
     if (!courseType) return false
     const date = new Date(selectedMonthParts.year, selectedMonthParts.month, day)
     const dateStr = getDateStr(day)
+    const expiresAt = new Date(selectedCredit.expires_at).getTime()
     return branches.some((branch) => {
       if (!hasTemplateSlots(scheduleTemplates, branch.slug, courseType, date)) return false
       return getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay()).some((slot) => (
         isFutureSlot(dateStr, slot.start) &&
+        new Date(`${dateStr}T${slot.start.slice(0, 5)}:00+07:00`).getTime() <= expiresAt &&
         !isSlotAlreadyBooked(selectedCredit, dateStr, slot.start, slot.end, branch.id)
       ))
     })
@@ -166,6 +186,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
 
   const openRedeemDialog = (credit: WalletCredit) => {
     setSelectedCredit(credit)
+    setSelectedMonthKey(credit.original_date.slice(0, 7))
     setExpandedDate(null)
     setPickedSlot(null)
     setError(null)
@@ -173,6 +194,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
 
   const closeDialog = () => {
     setSelectedCredit(null)
+    setSelectedMonthKey(null)
     setExpandedDate(null)
     setPickedSlot(null)
     setError(null)
@@ -198,6 +220,18 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
       branchName: branch.name,
       templateId,
     })
+  }
+
+  const changeMonth = (delta: number) => {
+    if (!selectedCredit) return
+    const next = new Date(Date.UTC(selectedMonthParts.year, selectedMonthParts.month + delta, 1))
+    const nextKey = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`
+    const originalKey = selectedCredit.original_date.slice(0, 7)
+    const expiryKey = selectedCredit.expires_at.slice(0, 7)
+    if (nextKey < originalKey || nextKey > expiryKey) return
+    setSelectedMonthKey(nextKey)
+    setExpandedDate(null)
+    setPickedSlot(null)
   }
 
   const redeem = async () => {
@@ -265,7 +299,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-semibold">กฎกระเป๋าวันเรียน</p>
-            <p>เก็บได้เฉพาะรอบที่ชำระเงินแล้วและต้องเก็บก่อนเวลาเรียนอย่างน้อย 48 ชั่วโมง ใช้ได้เฉพาะเดือนเดิมเท่านั้น</p>
+            <p>เก็บได้เฉพาะรอบที่ชำระเงินแล้วและก่อนเวลาเรียนอย่างน้อย 48 ชั่วโมง แพ็กเกจ Adult Group/Family Private มากกว่า 1 ครั้งหรือชั่วโมงใช้ได้ถึงวันหมดอายุ ส่วน Kids และแบบรายครั้ง/รายชั่วโมงใช้ได้เฉพาะเดือนเดิม</p>
           </div>
         </div>
       </div>
@@ -275,7 +309,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
           <CardContent className="py-14 text-center text-gray-400">
             <WalletCards className="mx-auto mb-4 h-14 w-14 opacity-50" />
             <p className="text-lg font-medium">ยังไม่มีวันเรียนในกระเป๋า</p>
-            <p className="mt-1 text-sm">กดเก็บจากหน้าตารางเรียนเมื่อจำเป็นต้องพักสิทธิ์ไว้ใช้ในเดือนเดียวกัน</p>
+            <p className="mt-1 text-sm">กดเก็บจากหน้าตารางเรียนเพื่อพักสิทธิ์ตามอายุแพ็กเกจของคุณ</p>
           </CardContent>
         </Card>
       ) : (
@@ -291,6 +325,9 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">พร้อมใช้</Badge>
                       <Badge variant="outline">{getLearnerName(credit)}</Badge>
+                      {credit.entitlement_unit_type === 'family_private' && (
+                        <Badge variant="outline">Family Private · 1 ชั่วโมง · {credit.participant_count || getCreditLearnerIds(credit).length} คน</Badge>
+                      )}
                       {courseType ? (
                         <Badge variant="outline">{COURSE_LABELS[courseType]}</Badge>
                       ) : (
@@ -347,7 +384,9 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">ใช้วันเรียนจากกระเป๋า</DialogTitle>
             <DialogDescription>
-              เลือกรอบเรียนในเดือนเดียวกับสิทธิ์เดิม ระบบจะไม่คิดเงินซ้ำ และรอบใหม่จะรอ Head Coach จัดกลุ่ม/มอบหมายโค้ช
+              {selectedCredit?.entitlement_policy === 'ten_month_package'
+                ? 'เลือกได้จนถึงวันหมดอายุ ระบบจะไม่คิดเงินซ้ำ และรอบใหม่จะรอ Head Coach จัดกลุ่ม/มอบหมายโค้ช'
+                : 'เลือกได้เฉพาะเดือนเดียวกับสิทธิ์เดิม ระบบจะไม่คิดเงินซ้ำ และรอบใหม่จะรอ Head Coach จัดกลุ่ม/มอบหมายโค้ช'}
             </DialogDescription>
           </DialogHeader>
 
@@ -362,14 +401,25 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
               <div className="rounded-lg border bg-gray-50 p-3 text-sm">
                 <p className="font-semibold text-[#153c85]">{getLearnerName(selectedCredit)}</p>
                 <p>สิทธิ์จาก {formatDateThai(selectedCredit.original_date)} · {fmtTime(selectedCredit.original_start_time)}-{fmtTime(selectedCredit.original_end_time)}</p>
+                {selectedCredit.entitlement_unit_type === 'family_private' && (
+                  <p className="mt-1 text-xs font-medium text-violet-700">สิทธิ์ Family Private หนึ่งชั่วโมงนี้จะย้ายผู้เรียนทุกคนไปพร้อมกันและไม่สามารถแบ่งใช้คนละรอบได้</p>
+                )}
               </div>
 
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-700">เลือกวันในเดือนเดิม</p>
-                  <span className="text-xs font-medium text-gray-500">
-                    {MONTH_NAMES_TH[selectedMonthParts.month]} {selectedMonthParts.year + 543}
-                  </span>
+                  <p className="text-sm font-medium text-gray-700">{selectedCredit.entitlement_policy === 'ten_month_package' ? 'เลือกวันได้ถึงวันหมดอายุ' : 'เลือกวันในเดือนเดิม'}</p>
+                  <div className="flex items-center gap-1">
+                    <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={selectedMonthKey === selectedCredit.original_date.slice(0, 7)} onClick={() => changeMonth(-1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="min-w-28 text-center text-xs font-medium text-gray-500">
+                      {MONTH_NAMES_TH[selectedMonthParts.month]} {selectedMonthParts.year + 543}
+                    </span>
+                    <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={selectedMonthKey === selectedCredit.expires_at.slice(0, 7)} onClick={() => changeMonth(1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-400">
                   {DAY_LABELS.map((day, index) => (

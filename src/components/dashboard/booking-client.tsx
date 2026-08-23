@@ -1587,7 +1587,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       <tbody>
                         {getPrivateTiers(pricingTiers as PricingTierInput[]).map((t) => (
                           <tr key={t.min} className="border-b last:border-0">
-                            <td className="py-2 pr-4 font-medium">{t.label}</td>
+                            <td className="py-2 pr-4 font-medium">{t.label}{t.expiry_months ? ` (หมดอายุ ${t.expiry_months} เดือน)` : ''}</td>
                             <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.package_price.toLocaleString()} บาท</td>
                             <td className="py-2 text-right text-gray-500">{t.per_hour} บาท</td>
                           </tr>
@@ -1998,6 +1998,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       <p className="text-sm text-gray-600">
                         ช่วงราคา {formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}
                       </p>
+                      {(courseType === 'adult_group' || courseType === 'private') && selectedTier.minSessions > 1 && (
+                        <p className="text-xs font-medium text-violet-700">แพ็กเกจนี้ใช้สิทธิ์ Lesson Wallet ได้ 10 เดือนนับจากวันที่อนุมัติการชำระเงิน</p>
+                      )}
                       {authoritativePreview?.mode === 'legacy' && courseType === 'kids_group' && authoritativePreview.existingSessions > 0 && (
                         <p className="text-xs text-green-600 font-medium">รวมทั้งเดือน {authoritativePreview.totalSessionsAfter} ครั้ง → {selectedTier.pricePerSession.toLocaleString()} บาท/ครั้ง</p>
                       )}
@@ -2049,7 +2052,12 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                     {pricingPreviewPending ? (
                       <p className="font-medium text-blue-700">กำลังคำนวณราคา...</p>
                     ) : selectedTier && (
-                      <p className="font-medium">{formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
+                      <div>
+                        <p className="font-medium">{formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
+                        {(courseType === 'adult_group' || courseType === 'private') && selectedTier.minSessions > 1 && (
+                          <p className="text-xs font-medium text-violet-700">ใช้สิทธิ์ Lesson Wallet ได้ 10 เดือนนับจากวันที่อนุมัติการชำระเงิน</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

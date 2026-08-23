@@ -454,6 +454,33 @@ test('self adult learner heading uses profile full name once', async ({ page }) 
   await expectNoBrowserErrors(browserErrors)
 })
 
+test('Adult and Private package copy shows 10 months only above one unit', async ({ page }) => {
+  const browserErrors = observeBrowserErrors(page)
+  const admin = createLocalAdmin()
+  const packageTierIds = [randomUUID(), randomUUID()]
+  const { error: tierError } = await admin.from('pricing_tiers').insert([
+    { id: packageTierIds[0], course_type_id: fixture.adultCourseId, min_sessions: 10, max_sessions: 10, price_per_session: 500, package_price: 5000, valid_from: '2026-01-01' },
+    { id: packageTierIds[1], course_type_id: fixture.privateCourseId, min_sessions: 10, max_sessions: 10, price_per_session: 1000, package_price: 10000, valid_from: '2026-01-01' },
+  ])
+  if (tierError) throw new Error(tierError.message)
+
+  try {
+    await openBooking(page)
+
+    await page.getByText('ผู้ใหญ่ (กลุ่ม)', { exact: true }).click()
+    await expect(page.getByRole('row').filter({ hasText: '10 ครั้ง' })).toContainText('หมดอายุ 10 เดือน')
+    await expect(page.getByRole('row').filter({ hasText: 'รายครั้ง' })).not.toContainText('หมดอายุ 10 เดือน')
+
+    await page.getByText('Private', { exact: true }).click()
+    await expect(page.getByRole('row').filter({ hasText: '10 ชั่วโมง' })).toContainText('หมดอายุ 10 เดือน')
+    await expect(page.getByRole('row').filter({ hasText: 'รายชั่วโมง' })).not.toContainText('หมดอายุ 10 เดือน')
+    await expectNoBrowserErrors(browserErrors)
+  } finally {
+    const { error: cleanupError } = await admin.from('pricing_tiers').delete().in('id', packageTierIds)
+    if (cleanupError) throw new Error(cleanupError.message)
+  }
+})
+
 test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page }) => {
   const browserErrors = observeBrowserErrors(page)
   await openBooking(page)

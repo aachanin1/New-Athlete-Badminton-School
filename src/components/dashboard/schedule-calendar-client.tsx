@@ -720,7 +720,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
           <AlertDialogHeader>
             <AlertDialogTitle>เก็บรอบเรียนเข้ากระเป๋า?</AlertDialogTitle>
             <AlertDialogDescription>
-              รอบนี้จะถูกถอดออกจากตารางเรียนและเก็บเป็นสิทธิ์ใช้ใหม่ได้ภายในเดือนเดียวกันเท่านั้น ไม่คิดเงินซ้ำ และถ้ามีการมอบหมายโค้ชแล้วระบบจะแจ้งให้ Head Coach ตรวจกลุ่มอีกครั้ง
+              ระบบจะตรวจสิทธิ์จาก Payment และแพ็กเกจอีกครั้ง: Adult Group/Family Private แพ็กเกจมากกว่า 1 ครั้งหรือชั่วโมงใช้ได้ถึงวันหมดอายุ ส่วน Kids และแบบรายครั้ง/รายชั่วโมงใช้ได้เฉพาะเดือนเดิม ไม่คิดเงินซ้ำ และถ้าเป็น Family Private การเก็บครั้งนี้จะย้ายผู้เรียนทุกคนในรอบเดียวกันพร้อมกัน
             </AlertDialogDescription>
           </AlertDialogHeader>
           {walletSession && (

@@ -4,18 +4,22 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { formatNotificationSlotDateTime } from '@/lib/date-format'
+import {
+  LessonWalletEntitlementError,
+  resolveLessonWalletEntitlement,
+  type LessonWalletEntitlement,
+  type LessonWalletPricingTierEvidence,
+} from '@/lib/lesson-wallet-entitlement'
 import { notifyRoles, notifyUser } from '@/lib/notifications'
-import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
 import { getBangkokDayOfWeek, normalizeCourseTypeName, normalizeScheduleTime } from '@/lib/schedule-template-utils'
 import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName, Database } from '@/types/database'
 
-const STORE_CUTOFF_HOURS = 48
 const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'paid', 'verified']
 const ACTIVE_SESSION_STATUSES = ['scheduled', 'completed', 'absent']
 
-interface StorePayload {
-  action?: 'store' | 'redeem' | 'expire_due'
+interface WalletPayload {
+  action?: 'store' | 'redeem'
   sessionId?: string
   creditId?: string
   targetDate?: string
@@ -33,6 +37,7 @@ interface DbError {
 interface BookingRelation {
   user_id: string
   course_type_id: string
+  total_sessions: number
   status: string
   course_types?: { name: CourseTypeName | null } | null
 }
@@ -51,12 +56,17 @@ interface SessionRow {
   bookings: BookingRelation | null
 }
 
-interface WalletCreditRow {
+interface TemplateRow {
+  id: string
+  start_time: string
+  end_time: string
+}
+
+interface CreditRelation {
   id: string
   user_id: string
   booking_id: string
   original_session_id: string
-  child_id: string | null
   branch_id: string
   course_type_id: string
   original_date: string
@@ -64,143 +74,83 @@ interface WalletCreditRow {
   original_end_time: string
   status: string
   expires_at: string
-  course_types?: { name: string | null } | null
+  entitlement_policy: 'same_month' | 'ten_month_package' | null
+  entitlement_started_at: string | null
+  entitlement_payment_id: string | null
+  entitlement_pricing_tier_id: string | null
+  entitlement_evidence: Record<string, unknown> | null
+  stored_at: string
+  course_types?: { name: CourseTypeName | null } | null
 }
 
-interface TemplateRow {
-  id: string
-  start_time: string
-  end_time: string
-}
-
-interface SlotRow {
-  id: string
-  template_id?: string | null
+interface StoreRpcResult {
+  credit_id: string
+  unit_type: 'single' | 'family_private'
+  policy_type: 'same_month' | 'ten_month_package'
+  entitlement_started_at: string
+  expires_at: string
+  participant_count: number
+  original_schedule_slot_id: string
+  original_date: string
+  original_start_time: string
+  original_end_time: string
   branch_id: string
-  course_type_id?: string
-  date?: string
-  start_time?: string
-  end_time?: string
-  current_students?: number
-  status: string
+  assigned_coach_ids: string[]
+  removed_membership_ids: string[]
+  participant_session_ids: string[]
 }
 
-interface AttendanceRow {
-  id: string
-}
-
-interface AssignmentStudentRow {
-  id: string
-  group_id: string
-  coach_assignment_groups?: {
-    coach_id: string | null
-    name: string | null
-  } | null
+interface RedeemRpcResult {
+  credit_id: string
+  schedule_slot_id: string
+  participant_count: number
+  session_ids: string[]
+  representative_session_id: string
+  original_date: string
+  original_start_time: string
+  original_end_time: string
+  target_date: string
+  target_start_time: string
+  target_end_time: string
+  branch_id: string
 }
 
 interface CoachBranchRow {
   coach_id: string
-  profiles?: {
-    role: string | null
-  } | null
-}
-
-interface ExistingSessionRow {
-  id: string
-  status: string
-  bookings?: { user_id: string; course_type_id: string } | null
+  profiles?: { role: string | null } | null
 }
 
 interface RemainingSlotSessionRow {
   id: string
   status: string
-  bookings?: {
-    status: string
-  } | null
+  bookings?: { status: string } | null
 }
 
 interface RemainingAssignmentRow {
   booking_session_id: string
-  coach_assignment_groups?: {
-    coach_id: string | null
-  } | null
-}
-
-interface RedeemedCreditUpdateRow {
-  id: string
+  coach_assignment_groups?: { coach_id: string | null } | null
 }
 
 interface PostWalletAssignmentState {
   activeSessionIds: string[]
   assignedSessionIds: string[]
   unassignedSessionIds: string[]
-  remainingAssignedCoachIds: string[]
   needsReview: boolean
   hasActiveLearners: boolean
 }
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
 
-type LessonWalletErrorCode =
-  | 'LESSON_WALLET_COURSE_INVALID'
-  | 'LESSON_WALLET_TEMPLATE_NOT_FOUND'
-  | 'LESSON_WALLET_TARGET_CONFLICT'
-  | 'LESSON_WALLET_TARGET_UNAVAILABLE'
-  | 'LESSON_WALLET_CREDIT_STALE'
-
-class LessonWalletError extends Error {
-  constructor(
-    readonly code: LessonWalletErrorCode,
-    message: string,
-    readonly status: number,
-  ) {
-    super(message)
-  }
-}
-
-function normalizeTime(value: string) {
-  return value.length === 5 ? `${value}:00` : value
-}
-
-function shortTime(value: string) {
-  return value.slice(0, 5)
-}
-
-function sessionStart(date: string, time: string) {
-  return new Date(`${date}T${shortTime(time)}:00+07:00`)
-}
-
 function monthKey(date: string) {
   return date.slice(0, 7)
 }
 
-function isSameMonth(a: string, b: string) {
-  return monthKey(a) === monthKey(b)
-}
-
-function isAtLeastHoursAhead(date: string, time: string, hours: number) {
-  return sessionStart(date, time).getTime() - Date.now() >= hours * 60 * 60 * 1000
+function slotLabel(date: string, startTime: string, endTime: string) {
+  return formatNotificationSlotDateTime(date, startTime, endTime)
 }
 
 function isFutureSlot(date: string, time: string) {
-  return sessionStart(date, time).getTime() > Date.now()
-}
-
-function getMonthEndIso(date: string) {
-  const [year, month] = date.split('-').map(Number)
-  const nextMonthStart = month === 12
-    ? new Date(`${year + 1}-01-01T00:00:00+07:00`)
-    : new Date(`${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00+07:00`)
-  return new Date(nextMonthStart.getTime() - 1).toISOString()
-}
-
-function templateMatchesSlot(template: TemplateRow, targetDate: string, startTime: string, endTime: string) {
-  return normalizeScheduleTime(template.start_time, targetDate) === normalizeScheduleTime(startTime, targetDate)
-    && normalizeScheduleTime(template.end_time, targetDate) === normalizeScheduleTime(endTime, targetDate)
-}
-
-function slotLabel(date: string, startTime: string, endTime: string) {
-  return formatNotificationSlotDateTime(date, startTime, endTime)
+  return new Date(`${date}T${time.slice(0, 5)}:00+07:00`).getTime() > Date.now()
 }
 
 async function getCurrentUser() {
@@ -214,7 +164,7 @@ async function fetchSession(adminSupabase: AdminSupabase, sessionId: string) {
     .from('booking_sessions')
     .select(`
       id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, child_id, status, is_makeup,
-      bookings!inner(user_id, course_type_id, status, course_types(name))
+      bookings!inner(user_id, course_type_id, total_sessions, status, course_types(name))
     `)
     .eq('id', sessionId)
     .maybeSingle() as unknown as { data: SessionRow | null; error: DbError | null }
@@ -223,151 +173,10 @@ async function fetchSession(adminSupabase: AdminSupabase, sessionId: string) {
   return data
 }
 
-async function ensureNoAttendance(adminSupabase: AdminSupabase, sessionId: string) {
-  const { data, error } = await adminSupabase
-    .from('attendance')
-    .select('id')
-    .eq('booking_session_id', sessionId)
-    .limit(1) as unknown as { data: AttendanceRow[] | null; error: DbError | null }
-
-  if (error) throw new Error(`ตรวจสอบ attendance ไม่สำเร็จ: ${error.message}`)
-  if ((data || []).length > 0) throw new Error('รอบนี้มีการเช็คชื่อแล้ว ไม่สามารถเก็บเข้ากระเป๋าได้')
-}
-
-async function fetchAssignmentStudents(adminSupabase: AdminSupabase, sessionId: string) {
-  const { data, error } = await adminSupabase
-    .from('coach_assignment_group_students')
-    .select(`
-      id,
-      group_id,
-      coach_assignment_groups!inner(coach_id, name)
-    `)
-    .eq('booking_session_id', sessionId) as unknown as { data: AssignmentStudentRow[] | null; error: DbError | null }
-
-  if (error) throw new Error(`โหลดข้อมูลกลุ่มโค้ชไม่สำเร็จ: ${error.message}`)
-  return data || []
-}
-
-async function fetchPostWalletAssignmentState(adminSupabase: AdminSupabase, scheduleSlotId: string | null): Promise<PostWalletAssignmentState> {
-  if (!scheduleSlotId) {
-    return {
-      activeSessionIds: [],
-      assignedSessionIds: [],
-      unassignedSessionIds: [],
-      remainingAssignedCoachIds: [],
-      needsReview: false,
-      hasActiveLearners: false,
-    }
-  }
-
-  const { data: sessions, error: sessionError } = await adminSupabase
-    .from('booking_sessions')
-    .select('id, status, bookings!inner(status)')
-    .eq('schedule_slot_id', scheduleSlotId)
-    .in('status', ACTIVE_SESSION_STATUSES)
-    .in('bookings.status', ACTIVE_BOOKING_STATUSES) as unknown as { data: RemainingSlotSessionRow[] | null; error: DbError | null }
-
-  if (sessionError) throw new Error(`ตรวจสอบผู้เรียนที่เหลือในรอบไม่สำเร็จ: ${sessionError.message}`)
-
-  const activeSessionIds = (sessions || []).map((row) => row.id)
-  if (activeSessionIds.length === 0) {
-    return {
-      activeSessionIds: [],
-      assignedSessionIds: [],
-      unassignedSessionIds: [],
-      remainingAssignedCoachIds: [],
-      needsReview: false,
-      hasActiveLearners: false,
-    }
-  }
-
-  const { data: assignmentRows, error: assignmentError } = await adminSupabase
-    .from('coach_assignment_group_students')
-    .select(`
-      booking_session_id,
-      coach_assignment_groups!inner(coach_id)
-    `)
-    .in('booking_session_id', activeSessionIds) as unknown as { data: RemainingAssignmentRow[] | null; error: DbError | null }
-
-  if (assignmentError) throw new Error(`ตรวจสอบกลุ่มโค้ชที่เหลือไม่สำเร็จ: ${assignmentError.message}`)
-
-  const assignedSessionIds = Array.from(new Set((assignmentRows || []).map((row) => row.booking_session_id)))
-  const assignedSessionSet = new Set(assignedSessionIds)
-  const unassignedSessionIds = activeSessionIds.filter((sessionId) => !assignedSessionSet.has(sessionId))
-  const remainingAssignedCoachIds = Array.from(new Set(
-    (assignmentRows || [])
-      .map((row) => row.coach_assignment_groups?.coach_id)
-      .filter((coachId): coachId is string => Boolean(coachId)),
-  ))
-
-  return {
-    activeSessionIds,
-    assignedSessionIds,
-    unassignedSessionIds,
-    remainingAssignedCoachIds,
-    needsReview: unassignedSessionIds.length > 0,
-    hasActiveLearners: activeSessionIds.length > 0,
-  }
-}
-
-async function notifyHeadCoachesAndAssignedCoach(
-  adminSupabase: AdminSupabase,
-  branchId: string,
-  assignedCoachIds: string[],
-  payload: { title: string; message: string; link_url: string }
-) {
-  const { data } = await adminSupabase
-    .from('coach_branches')
-    .select('coach_id, profiles!coach_branches_coach_id_fkey(role)')
-    .eq('branch_id', branchId) as unknown as { data: CoachBranchRow[] | null }
-
-  const headCoachIds = (data || [])
-    .filter((row) => row.profiles?.role === 'head_coach')
-    .map((row) => row.coach_id)
-  const userIds = Array.from(new Set([...headCoachIds, ...assignedCoachIds.filter(Boolean)]))
-  const notificationClient = adminSupabase as unknown as SupabaseClient<Database>
-
-  await Promise.all(userIds.map((userId) => notifyUser(notificationClient, {
-    user_id: userId,
-    title: payload.title,
-    message: payload.message,
-    type: 'schedule',
-    link_url: payload.link_url,
-  }))).catch(() => null)
-}
-
-async function adjustSlotCount(adminSupabase: AdminSupabase, slotId: string | null, delta: number) {
-  if (!slotId) return
-
-  const { data: slot, error } = await adminSupabase
-    .from('schedule_slots')
-    .select('id, current_students, status')
-    .eq('id', slotId)
-    .maybeSingle() as unknown as { data: SlotRow | null; error: DbError | null }
-
-  if (error) throw new Error(`โหลดรอบเรียนไม่สำเร็จ: ${error.message}`)
-  if (!slot) return
-
-  const nextCount = Math.max(0, Number(slot.current_students || 0) + delta)
-  const { error: updateError } = await adminSupabase
-    .from('schedule_slots')
-    .update({ current_students: nextCount })
-    .eq('id', slotId) as unknown as { error: DbError | null }
-
-  if (updateError) throw new Error(`อัปเดตจำนวนผู้เรียนในรอบไม่สำเร็จ: ${updateError.message}`)
-}
-
-async function refreshSlotOccupancy(adminSupabase: AdminSupabase, slotId: string) {
-  const { error } = await adminSupabase.rpc('progressive_refresh_slot_capacity_v1', {
-    p_slot_ids: [slotId],
-  }) as unknown as { error: DbError | null }
-  if (error) throw new Error(`อัปเดตจำนวนผู้เรียนในรอบไม่สำเร็จ: ${error.message}`)
-}
-
 async function findMatchingTemplate(
   adminSupabase: AdminSupabase,
   courseTypeId: string,
-  payload: Required<Pick<StorePayload, 'targetDate' | 'startTime' | 'endTime' | 'branchId'>> & Pick<StorePayload, 'scheduleTemplateId'>
+  payload: Required<Pick<WalletPayload, 'targetDate' | 'startTime' | 'endTime' | 'branchId'>> & Pick<WalletPayload, 'scheduleTemplateId'>,
 ) {
   const bangkokDayOfWeek = getBangkokDayOfWeek(payload.targetDate)
   if (bangkokDayOfWeek === null) return null
@@ -386,208 +195,233 @@ async function findMatchingTemplate(
     const { data, error } = await query as unknown as { data: TemplateRow[] | null; error: DbError | null }
     if (error) throw new Error(`โหลดรอบเรียนประจำไม่สำเร็จ: ${error.message}`)
 
-    return (data || []).find((template) => templateMatchesSlot(template, payload.targetDate, payload.startTime, payload.endTime)) || null
+    return (data || []).find((template) => (
+      normalizeScheduleTime(template.start_time, payload.targetDate) === normalizeScheduleTime(payload.startTime, payload.targetDate)
+      && normalizeScheduleTime(template.end_time, payload.targetDate) === normalizeScheduleTime(payload.endTime, payload.targetDate)
+    )) || null
   }
 
   if (payload.scheduleTemplateId) {
     const templateById = await loadTemplates(payload.scheduleTemplateId)
     if (templateById) return templateById
   }
-
   return loadTemplates()
 }
 
-async function ensureNoDuplicateLearnerSlot(
-  adminSupabase: AdminSupabase,
-  credit: WalletCreditRow,
-  target: {
-    date: string
-    startTime: string
-    endTime: string
-    branchId: string
-  },
-) {
-  let query = adminSupabase
+function inheritedEntitlement(credit: CreditRelation): LessonWalletEntitlement {
+  const evidence = credit.entitlement_evidence || {}
+  return {
+    policyType: credit.entitlement_policy || 'same_month',
+    entitlementStartedAt: credit.entitlement_started_at || credit.stored_at,
+    expiresAt: credit.expires_at,
+    paymentId: credit.entitlement_payment_id || String(evidence.payment_id || ''),
+    pricingTier: {
+      id: credit.entitlement_pricing_tier_id || String(evidence.pricing_tier_id || ''),
+      min: Number(evidence.pricing_tier_min || 0),
+      max: evidence.pricing_tier_max === null ? null : Number(evidence.pricing_tier_max || 0),
+      unit: evidence.pricing_unit === 'hour' ? 'hour' : 'session',
+      pricePerUnit: Number(evidence.price_per_unit || 0),
+      packagePrice: Number(evidence.package_price || 0),
+      validFrom: typeof evidence.tier_valid_from === 'string' ? evidence.tier_valid_from : null,
+      validTo: typeof evidence.tier_valid_to === 'string' ? evidence.tier_valid_to : null,
+    },
+  }
+}
+
+async function resolveAuthoritativeEntitlement(adminSupabase: AdminSupabase, session: SessionRow) {
+  const booking = session.bookings
+  const courseType = normalizeCourseTypeName(booking?.course_types?.name)
+  if (!booking || !courseType) {
+    throw new LessonWalletEntitlementError('LESSON_WALLET_TIER_EVIDENCE_MISSING', 'ข้อมูลคอร์สไม่ครบ')
+  }
+
+  const [{ data: directPrior }, { data: memberPrior }] = await Promise.all([
+    adminSupabase
+      .from('lesson_wallet_credits')
+      .select(`
+        id, user_id, booking_id, original_session_id, branch_id, course_type_id,
+        original_date, original_start_time, original_end_time, status, expires_at,
+        entitlement_policy, entitlement_started_at, entitlement_payment_id,
+        entitlement_pricing_tier_id, entitlement_evidence, stored_at, course_types(name)
+      `)
+      .eq('redeemed_session_id', session.id) as unknown as PromiseLike<{ data: CreditRelation[] | null }>,
+    adminSupabase
+      .from('lesson_wallet_credit_members')
+      .select(`
+        lesson_wallet_credits!inner(
+          id, user_id, booking_id, original_session_id, branch_id, course_type_id,
+          original_date, original_start_time, original_end_time, status, expires_at,
+          entitlement_policy, entitlement_started_at, entitlement_payment_id,
+          entitlement_pricing_tier_id, entitlement_evidence, stored_at, course_types(name)
+        )
+      `)
+      .eq('redeemed_session_id', session.id) as unknown as PromiseLike<{
+        data: { lesson_wallet_credits: CreditRelation | null }[] | null
+      }>,
+  ])
+
+  const priorById = new Map<string, CreditRelation>()
+  for (const credit of directPrior || []) priorById.set(credit.id, credit)
+  for (const row of memberPrior || []) {
+    if (row.lesson_wallet_credits) priorById.set(row.lesson_wallet_credits.id, row.lesson_wallet_credits)
+  }
+  if (priorById.size > 1) {
+    throw new LessonWalletEntitlementError('LESSON_WALLET_PAYMENT_EVIDENCE_AMBIGUOUS', 'Entitlement chain is ambiguous')
+  }
+
+  const priorCredit = priorById.values().next().value as CreditRelation | undefined
+  if (priorCredit) {
+    return resolveLessonWalletEntitlement({
+      courseType,
+      purchasedQuantity: booking.total_sessions,
+      originalSessionDate: session.date,
+      payments: [],
+      pricingTiers: [],
+      inheritedEntitlement: inheritedEntitlement(priorCredit),
+    })
+  }
+
+  const [{ data: payments, error: paymentError }, { data: tiers, error: tierError }] = await Promise.all([
+    adminSupabase
+      .from('payments')
+      .select('id, status, verified_at')
+      .eq('booking_id', session.booking_id)
+      .eq('user_id', booking.user_id) as unknown as PromiseLike<{
+        data: { id: string; status: string; verified_at: string | null }[] | null
+        error: DbError | null
+      }>,
+    adminSupabase
+      .from('pricing_tiers')
+      .select('id, min_sessions, max_sessions, price_per_session, package_price, valid_from, valid_to, course_types!inner(name)')
+      .eq('course_type_id', booking.course_type_id) as unknown as PromiseLike<{
+        data: (Omit<LessonWalletPricingTierEvidence, 'course_type_name'> & { course_types?: { name: string | null } | null })[] | null
+        error: DbError | null
+      }>,
+  ])
+
+  if (paymentError) throw new Error(`โหลดหลักฐาน Payment ไม่สำเร็จ: ${paymentError.message}`)
+  if (tierError) throw new Error(`โหลดหลักฐาน pricing tier ไม่สำเร็จ: ${tierError.message}`)
+
+  return resolveLessonWalletEntitlement({
+    courseType,
+    purchasedQuantity: booking.total_sessions,
+    originalSessionDate: session.date,
+    payments: payments || [],
+    pricingTiers: (tiers || []).map((tier) => ({
+      ...tier,
+      course_type_name: tier.course_types?.name || null,
+    })),
+  })
+}
+
+async function fetchPostWalletAssignmentState(adminSupabase: AdminSupabase, scheduleSlotId: string): Promise<PostWalletAssignmentState> {
+  const { data: sessions, error: sessionError } = await adminSupabase
     .from('booking_sessions')
-    .select('id, status, bookings!inner(user_id, course_type_id)')
-    .eq('date', target.date)
-    .lt('start_time', normalizeTime(target.endTime))
-    .gt('end_time', normalizeTime(target.startTime))
-    .eq('bookings.user_id', credit.user_id)
+    .select('id, status, bookings!inner(status)')
+    .eq('schedule_slot_id', scheduleSlotId)
+    .in('status', ACTIVE_SESSION_STATUSES)
+    .in('bookings.status', ACTIVE_BOOKING_STATUSES) as unknown as { data: RemainingSlotSessionRow[] | null; error: DbError | null }
+  if (sessionError) throw new Error(`ตรวจสอบผู้เรียนที่เหลือในรอบไม่สำเร็จ: ${sessionError.message}`)
 
-  query = credit.child_id
-    ? query.eq('child_id', credit.child_id)
-    : query.is('child_id', null).eq('bookings.user_id', credit.user_id)
+  const activeSessionIds = (sessions || []).map((row) => row.id)
+  if (activeSessionIds.length === 0) {
+    return { activeSessionIds: [], assignedSessionIds: [], unassignedSessionIds: [], needsReview: false, hasActiveLearners: false }
+  }
 
-  const { data, error } = await query as unknown as { data: ExistingSessionRow[] | null; error: DbError | null }
-  if (error) throw new Error(`ตรวจสอบรอบซ้ำไม่สำเร็จ: ${error.message}`)
+  const { data: assignmentRows, error: assignmentError } = await adminSupabase
+    .from('coach_assignment_group_students')
+    .select('booking_session_id, coach_assignment_groups!inner(coach_id)')
+    .in('booking_session_id', activeSessionIds) as unknown as { data: RemainingAssignmentRow[] | null; error: DbError | null }
+  if (assignmentError) throw new Error(`ตรวจสอบกลุ่มโค้ชที่เหลือไม่สำเร็จ: ${assignmentError.message}`)
 
-  const duplicate = (data || []).some((session) => !['rescheduled', 'walleted'].includes(session.status))
-  if (duplicate) {
-    throw new LessonWalletError(
-      'LESSON_WALLET_TARGET_CONFLICT',
-      'ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว',
-      409,
-    )
+  const assignedSessionIds = Array.from(new Set((assignmentRows || []).map((row) => row.booking_session_id)))
+  const assignedSet = new Set(assignedSessionIds)
+  const unassignedSessionIds = activeSessionIds.filter((sessionId) => !assignedSet.has(sessionId))
+  return {
+    activeSessionIds,
+    assignedSessionIds,
+    unassignedSessionIds,
+    needsReview: unassignedSessionIds.length > 0,
+    hasActiveLearners: true,
   }
 }
 
-async function ensureSlotAcceptsEntry(
+async function notifyHeadCoachesAndAssignedCoach(
   adminSupabase: AdminSupabase,
-  scheduleSlotId: string,
-  expected: {
-    templateId: string
-    branchId: string
-    courseTypeId: string
-    date: string
-    startTime: string
-    endTime: string
-  },
+  branchId: string,
+  assignedCoachIds: string[],
+  payload: { title: string; message: string; link_url: string },
 ) {
-  const { data: slot, error } = await adminSupabase
-    .from('schedule_slots')
-    .select('id, template_id, branch_id, course_type_id, date, start_time, end_time, status')
-    .eq('id', scheduleSlotId)
-    .maybeSingle() as unknown as { data: SlotRow | null; error: DbError | null }
+  const { data } = await adminSupabase
+    .from('coach_branches')
+    .select('coach_id, profiles!coach_branches_coach_id_fkey(role)')
+    .eq('branch_id', branchId) as unknown as { data: CoachBranchRow[] | null }
+  const headCoachIds = (data || [])
+    .filter((row) => row.profiles?.role === 'head_coach')
+    .map((row) => row.coach_id)
+  const userIds = Array.from(new Set([...headCoachIds, ...assignedCoachIds]))
+  const notificationClient = adminSupabase as unknown as SupabaseClient<Database>
 
-  if (error || !slot) throw new Error(`โหลดรอบเรียนไม่สำเร็จ: ${error?.message || 'ไม่พบรอบเรียน'}`)
-  const canonicalSlotMatches = slot.template_id === expected.templateId
-    && slot.branch_id === expected.branchId
-    && slot.course_type_id === expected.courseTypeId
-    && slot.date === expected.date
-    && normalizeScheduleTime(slot.start_time || '', expected.date) === expected.startTime
-    && normalizeScheduleTime(slot.end_time || '', expected.date) === expected.endTime
-  if (!canonicalSlotMatches) {
-    throw new LessonWalletError(
-      'LESSON_WALLET_TARGET_UNAVAILABLE',
-      'ข้อมูลรอบเรียนจริงไม่ตรงกับรอบเรียนประจำ กรุณาติดต่อผู้ดูแล',
-      409,
-    )
-  }
-  if (slot.status === 'cancelled') {
-    throw new LessonWalletError('LESSON_WALLET_TARGET_UNAVAILABLE', 'รอบเรียนนี้ถูกยกเลิกแล้ว', 409)
-  }
-  if (!['open', 'full'].includes(slot.status)) {
-    throw new LessonWalletError('LESSON_WALLET_TARGET_UNAVAILABLE', 'รอบเรียนนี้ไม่พร้อมใช้งานแล้ว', 409)
-  }
+  await Promise.all(userIds.map((userId) => notifyUser(notificationClient, {
+    user_id: userId,
+    title: payload.title,
+    message: payload.message,
+    type: 'schedule',
+    link_url: payload.link_url,
+  }))).catch(() => null)
 }
 
-async function expireDueCredits(adminSupabase: AdminSupabase, userId: string) {
-  const nowIso = new Date().toISOString()
-  const { data: credits } = await adminSupabase
-    .from('lesson_wallet_credits')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .lt('expires_at', nowIso) as unknown as { data: { id: string }[] | null }
-
-  const creditIds = (credits || []).map((credit) => credit.id)
-  if (creditIds.length === 0) return 0
-
-  const { error } = await adminSupabase
-    .from('lesson_wallet_credits')
-    .update({ status: 'expired', expired_at: nowIso })
-    .in('id', creditIds) as unknown as { error: DbError | null }
-
-  if (error) throw new Error(`อัปเดตสิทธิ์หมดอายุไม่สำเร็จ: ${error.message}`)
-  return creditIds.length
+function rpcErrorResponse(error: DbError) {
+  const code = error.message.match(/LESSON_WALLET_[A-Z_]+/)?.[0] || 'LESSON_WALLET_MUTATION_FAILED'
+  const status = code.endsWith('_NOT_FOUND') ? 404
+    : /(STALE|CONFLICT|AMBIGUOUS|UNAVAILABLE)/.test(code) ? 409
+      : /(EVIDENCE|INVALID)/.test(code) ? 422
+        : 400
+  const messages: Record<string, string> = {
+    LESSON_WALLET_CREDIT_STALE: 'สิทธิ์นี้ถูกใช้ไปแล้วหรือไม่พร้อมใช้งาน กรุณารีเฟรชหน้า',
+    LESSON_WALLET_UNIT_STALE: 'รอบเรียนนี้ถูกเก็บเข้ากระเป๋าแล้ว กรุณารีเฟรชหน้า',
+    LESSON_WALLET_TARGET_CONFLICT: 'ผู้เรียนอย่างน้อยหนึ่งคนมีรอบเรียนที่ซ้ำหรือซ้อนกับเวลานี้แล้ว',
+    LESSON_WALLET_SAME_MONTH_REQUIRED: 'สิทธิ์นี้ใช้ได้เฉพาะเดือนเดียวกับรอบเดิม',
+    LESSON_WALLET_ENTITLEMENT_EXPIRED: 'สิทธิ์นี้หมดอายุแล้วและไม่สามารถนำกลับมาใช้ใหม่ได้',
+    LESSON_WALLET_TARGET_AFTER_EXPIRY: 'รอบที่เลือกอยู่หลังวันหมดอายุของสิทธิ์',
+    LESSON_WALLET_TEMPLATE_NOT_FOUND: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก',
+    LESSON_WALLET_TARGET_UNAVAILABLE: 'รอบเรียนนี้ถูกยกเลิกหรือไม่พร้อมใช้งานแล้ว',
+    LESSON_WALLET_PAYMENT_EVIDENCE_MISSING: 'ไม่พบหลักฐาน Payment ที่อนุมัติครบถ้วน จึงยังเก็บสิทธิ์ไม่ได้',
+    LESSON_WALLET_PAYMENT_EVIDENCE_AMBIGUOUS: 'พบหลักฐาน Payment มากกว่าหนึ่งรายการ จึงยังเก็บสิทธิ์ไม่ได้',
+    LESSON_WALLET_TIER_EVIDENCE_MISSING: 'ไม่พบ pricing tier ที่ตรงกับแพ็กเกจ ณ วันที่อนุมัติ Payment',
+    LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS: 'พบ pricing tier ที่มีผลทับซ้อนกัน จึงยังเก็บสิทธิ์ไม่ได้',
+    LESSON_WALLET_UNIT_NOT_STORABLE: 'ผู้เรียนอย่างน้อยหนึ่งคนในรอบนี้ไม่ผ่านเงื่อนไขเก็บก่อน 48 ชั่วโมง',
+    LESSON_WALLET_ATTENDANCE_EXISTS: 'รอบนี้มีการเช็คชื่อแล้ว ไม่สามารถเก็บเข้ากระเป๋าได้',
+  }
+  return NextResponse.json({ code, error: messages[code] || 'ทำรายการกระเป๋าวันเรียนไม่สำเร็จ กรุณาลองใหม่' }, { status })
 }
 
-async function storeInWallet(request: NextRequest, userId: string, payload: StorePayload) {
+async function storeInWallet(request: NextRequest, userId: string, payload: WalletPayload) {
   if (!payload.sessionId) return NextResponse.json({ error: 'ไม่พบรอบเรียนที่ต้องการเก็บ' }, { status: 400 })
-
   const adminSupabase = getServiceRoleClient()
   const session = await fetchSession(adminSupabase, payload.sessionId)
   if (!session || session.bookings?.user_id !== userId) {
     return NextResponse.json({ error: 'ไม่พบรอบเรียนที่ต้องการเก็บ' }, { status: 404 })
   }
 
-  if (session.bookings.status !== 'verified') {
-    return NextResponse.json({ error: 'เก็บเข้ากระเป๋าได้เฉพาะคอร์สที่ชำระเงินและยืนยันแล้วเท่านั้น' }, { status: 400 })
-  }
-  if (session.status !== 'scheduled') {
-    return NextResponse.json({ error: 'เก็บได้เฉพาะรอบเรียนที่ยังรอเรียนเท่านั้น' }, { status: 400 })
-  }
-  if (session.is_makeup) {
-    return NextResponse.json({ error: 'รอบชดเชยไม่สามารถเก็บเข้ากระเป๋าได้' }, { status: 400 })
-  }
-  if (!isAtLeastHoursAhead(session.date, session.start_time, STORE_CUTOFF_HOURS)) {
-    return NextResponse.json({ error: 'ต้องเก็บเข้ากระเป๋าล่วงหน้าอย่างน้อย 48 ชั่วโมงก่อนเวลาเรียน' }, { status: 400 })
-  }
+  const entitlement = await resolveAuthoritativeEntitlement(adminSupabase, session)
+  // Atomic contract inside lesson_wallet_store_v2:
+  // rpc('retire_coach_assignment_membership_v1', { p_reason: 'wallet_store' })
+  const { data, error } = await adminSupabase.rpc('lesson_wallet_store_v2', {
+    p_user_id: userId,
+    p_session_id: session.id,
+    p_actor_id: userId,
+  }) as unknown as { data: StoreRpcResult | null; error: DbError | null }
+  if (error || !data) return rpcErrorResponse(error || { message: 'LESSON_WALLET_MUTATION_FAILED' })
 
-  await ensureNoAttendance(adminSupabase, session.id)
-  const assignmentRows = await fetchAssignmentStudents(adminSupabase, session.id)
-  const assignedCoachIds = Array.from(new Set(assignmentRows.map((row) => row.coach_assignment_groups?.coach_id).filter(Boolean))) as string[]
-  const expiresAt = getMonthEndIso(session.date)
-
-  const { data: credit, error: creditError } = await adminSupabase
-    .from('lesson_wallet_credits')
-    .insert({
-      user_id: userId,
-      booking_id: session.booking_id,
-      original_session_id: session.id,
-      child_id: session.child_id,
-      branch_id: session.branch_id,
-      course_type_id: session.bookings.course_type_id,
-      original_schedule_slot_id: session.schedule_slot_id,
-      original_date: session.date,
-      original_start_time: session.start_time,
-      original_end_time: session.end_time,
-      status: 'active',
-      expires_at: expiresAt,
-      notes: 'Stored by user before 48-hour cutoff',
-    })
-    .select('id')
-    .single() as unknown as { data: { id: string } | null; error: DbError | null }
-
-  if (creditError || !credit) {
-    return NextResponse.json({ error: `สร้างสิทธิ์กระเป๋าไม่สำเร็จ: ${creditError?.message || 'ไม่พบข้อมูลสิทธิ์'}` }, { status: 500 })
-  }
-
-  const rollback = async () => {
-    await adminSupabase.from('lesson_wallet_credits').delete().eq('id', credit.id)
-  }
-
-  const { error: updateSessionError } = await adminSupabase
-    .from('booking_sessions')
-    .update({ status: 'walleted' })
-    .eq('id', session.id) as unknown as { error: DbError | null }
-
-  if (updateSessionError) {
-    await rollback()
-    return NextResponse.json({ error: `อัปเดตรอบเรียนไม่สำเร็จ: ${updateSessionError.message}` }, { status: 500 })
-  }
-
-  try {
-    await adjustSlotCount(adminSupabase, session.schedule_slot_id, -1)
-  } catch (error) {
-    await adminSupabase.from('booking_sessions').update({ status: 'scheduled' }).eq('id', session.id)
-    await rollback()
-    const message = error instanceof Error ? error.message : 'อัปเดตจำนวนผู้เรียนในรอบไม่สำเร็จ'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-
-  const { data: assignmentRetirement, error: deleteAssignmentError } = await adminSupabase
-    .rpc('retire_coach_assignment_membership_v1', {
-      p_booking_session_id: session.id,
-      p_actor_id: userId,
-      p_reason: 'wallet_store',
-    }) as unknown as { data: Record<string, unknown> | null; error: DbError | null }
-
-  if (deleteAssignmentError) {
-    await adminSupabase.from('booking_sessions').update({ status: 'scheduled' }).eq('id', session.id)
-    await adjustSlotCount(adminSupabase, session.schedule_slot_id, 1).catch(() => null)
-    await rollback()
-    return NextResponse.json({ error: `ถอดผู้เรียนจากกลุ่มโค้ชไม่สำเร็จ: ${deleteAssignmentError.message}` }, { status: 500 })
-  }
-
-  const postWalletState = await fetchPostWalletAssignmentState(adminSupabase, session.schedule_slot_id)
-  const label = slotLabel(session.date, session.start_time, session.end_time)
-  const postWalletNotifications = [
+  const postWalletState = await fetchPostWalletAssignmentState(adminSupabase, data.original_schedule_slot_id)
+  const label = slotLabel(data.original_date, data.original_start_time, data.original_end_time)
+  const unitCopy = data.unit_type === 'family_private' ? `ทั้งครอบครัว ${data.participant_count} คน` : '1 สิทธิ์'
+  const notifications: Promise<unknown>[] = [
     notifyRoles(adminSupabase as unknown as SupabaseClient<Database>, {
       roles: ['admin', 'super_admin'],
       title: 'ผู้เรียนเก็บรอบเรียนเข้ากระเป๋า',
-      message: `ผู้เรียนเก็บรอบ ${label} เข้ากระเป๋าวันเรียน`,
+      message: `ผู้เรียนเก็บรอบ ${label} (${unitCopy}) เข้ากระเป๋าวันเรียน`,
       type: 'schedule',
       link_url: '/admin/schedules',
     }),
@@ -595,101 +429,64 @@ async function storeInWallet(request: NextRequest, userId: string, payload: Stor
       userId,
       action: 'store_lesson_wallet_credit',
       entityType: 'lesson_wallet_credits',
-      entityId: credit.id,
+      entityId: data.credit_id,
       details: {
-        sessionId: session.id,
-        scheduleSlotId: session.schedule_slot_id,
-        date: session.date,
-        startTime: session.start_time,
-        cutoffHours: STORE_CUTOFF_HOURS,
-        removedAssignmentStudentIds: Array.isArray(assignmentRetirement?.removed_membership_ids)
-          ? assignmentRetirement.removed_membership_ids
-          : [],
-        removedExactMembershipCount: Number(assignmentRetirement?.removed_count || 0),
-        assignmentRetirementAuditId: (
-          assignmentRetirement?.audit
-          && typeof assignmentRetirement.audit === 'object'
-          && !Array.isArray(assignmentRetirement.audit)
-        ) ? (assignmentRetirement.audit as { id?: unknown }).id || null : null,
-        notifiedCoachIds: postWalletState.needsReview ? assignedCoachIds : [],
-        postWalletAssignmentState: {
-          activeSessionCount: postWalletState.activeSessionIds.length,
-          assignedSessionCount: postWalletState.assignedSessionIds.length,
-          unassignedSessionCount: postWalletState.unassignedSessionIds.length,
-          hasActiveLearners: postWalletState.hasActiveLearners,
-          needsReview: postWalletState.needsReview,
-        },
+        policyType: entitlement.policyType,
+        entitlementStartedAt: entitlement.entitlementStartedAt,
+        expiresAt: entitlement.expiresAt,
+        paymentId: entitlement.paymentId,
+        pricingTier: entitlement.pricingTier,
+        unitType: data.unit_type,
+        participantCount: data.participant_count,
+        participantSessionIds: data.participant_session_ids,
+        removedAssignmentStudentIds: data.removed_membership_ids,
+        postWalletAssignmentState: postWalletState,
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     }),
   ]
-
   if (postWalletState.needsReview) {
-    postWalletNotifications.push(
-      notifyHeadCoachesAndAssignedCoach(adminSupabase, session.branch_id, assignedCoachIds, {
-        title: 'ผู้เรียนถูกย้ายเข้ากระเป๋า ต้องตรวจกลุ่มสอน',
-        message: `ผู้เรียนเก็บรอบ ${label} เข้ากระเป๋าแล้ว และยังมีผู้เรียนที่ต้องมอบหมายโค้ชในรอบนี้`,
-        link_url: `/coach/assign-groups?month=${monthKey(session.date)}`,
-      }),
-    )
+    notifications.push(notifyHeadCoachesAndAssignedCoach(adminSupabase, data.branch_id, data.assigned_coach_ids, {
+      title: 'ผู้เรียนถูกย้ายเข้ากระเป๋า ต้องตรวจกลุ่มสอน',
+      message: `ผู้เรียนเก็บรอบ ${label} (${unitCopy}) เข้ากระเป๋าแล้ว และยังมีผู้เรียนที่ต้องมอบหมายโค้ชในรอบนี้`,
+      link_url: `/coach/assign-groups?month=${monthKey(data.original_date)}`,
+    }))
   }
+  await Promise.all(notifications).catch(() => null)
 
-  await Promise.all(postWalletNotifications).catch(() => null)
-
-  return NextResponse.json({ success: true, creditId: credit.id })
+  return NextResponse.json({ success: true, creditId: data.credit_id, participantCount: data.participant_count })
 }
 
-async function redeemWalletCredit(request: NextRequest, userId: string, payload: StorePayload) {
+async function redeemWalletCredit(request: NextRequest, userId: string, payload: WalletPayload) {
   const { creditId, targetDate, startTime, endTime, branchId, scheduleTemplateId } = payload
   if (!creditId || !targetDate || !startTime || !endTime || !branchId) {
     return NextResponse.json({ error: 'ข้อมูลการใช้วันเรียนจากกระเป๋าไม่ครบ' }, { status: 400 })
-  }
-
-  const adminSupabase = getServiceRoleClient()
-  const expiredCount = await expireDueCredits(adminSupabase, userId)
-
-  const { data: credit, error: creditError } = await adminSupabase
-    .from('lesson_wallet_credits')
-    .select('id, user_id, booking_id, original_session_id, child_id, branch_id, course_type_id, original_date, original_start_time, original_end_time, status, expires_at, course_types(name)')
-    .eq('id', creditId)
-    .maybeSingle() as unknown as { data: WalletCreditRow | null; error: DbError | null }
-
-  if (creditError || !credit || credit.user_id !== userId) {
-    return NextResponse.json({ error: 'ไม่พบสิทธิ์วันเรียนในกระเป๋า' }, { status: 404 })
-  }
-
-  if (credit.status !== 'active') {
-    return NextResponse.json({
-      code: 'LESSON_WALLET_CREDIT_STALE',
-      error: 'สิทธิ์กระเป๋านี้ถูกใช้ไปแล้วหรือไม่พร้อมใช้งาน กรุณารีเฟรชหน้า',
-    }, { status: 409 })
-  }
-  if (new Date(credit.expires_at).getTime() < Date.now()) {
-    await expireDueCredits(adminSupabase, userId).catch(() => null)
-    return NextResponse.json({ error: 'สิทธิ์นี้หมดอายุแล้ว ใช้ได้เฉพาะภายในเดือนเดิม' }, { status: 400 })
-  }
-  if (!isSameMonth(credit.original_date, targetDate)) {
-    return NextResponse.json({ error: 'ใช้วันเรียนจากกระเป๋าได้เฉพาะเดือนเดียวกับที่จองไว้' }, { status: 400 })
   }
   if (!isFutureSlot(targetDate, startTime)) {
     return NextResponse.json({ error: 'ต้องเลือกรอบเรียนที่ยังไม่เริ่มเท่านั้น' }, { status: 400 })
   }
 
-  const courseType = normalizeCourseTypeName(credit.course_types?.name)
-  if (!courseType) {
-    return NextResponse.json({
-      code: 'LESSON_WALLET_COURSE_INVALID',
-      error: 'ข้อมูลคอร์สของสิทธิ์กระเป๋าไม่ถูกต้อง กรุณาติดต่อผู้ดูแล',
-    }, { status: 422 })
+  const adminSupabase = getServiceRoleClient()
+  const { data: credit, error: creditError } = await adminSupabase
+    .from('lesson_wallet_credits')
+    .select(`
+      id, user_id, booking_id, original_session_id, branch_id, course_type_id,
+      original_date, original_start_time, original_end_time, status, expires_at,
+      entitlement_policy, entitlement_started_at, entitlement_payment_id,
+      entitlement_pricing_tier_id, entitlement_evidence, stored_at, course_types(name)
+    `)
+    .eq('id', creditId)
+    .maybeSingle() as unknown as { data: CreditRelation | null; error: DbError | null }
+  if (creditError || !credit || credit.user_id !== userId) {
+    return NextResponse.json({ error: 'ไม่พบสิทธิ์วันเรียนในกระเป๋า' }, { status: 404 })
   }
 
+  const courseType = normalizeCourseTypeName(credit.course_types?.name)
+  if (!courseType) return NextResponse.json({ code: 'LESSON_WALLET_COURSE_INVALID', error: 'ข้อมูลคอร์สของสิทธิ์ไม่ถูกต้อง' }, { status: 422 })
   const normalizedStartTime = normalizeScheduleTime(startTime, targetDate)
   const normalizedEndTime = normalizeScheduleTime(endTime, targetDate)
   if (!normalizedStartTime || !normalizedEndTime || normalizedStartTime >= normalizedEndTime) {
-    return NextResponse.json({
-      code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND',
-      error: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก',
-    }, { status: 400 })
+    return NextResponse.json({ code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND', error: 'ข้อมูลเวลารอบเรียนไม่ถูกต้อง' }, { status: 400 })
   }
 
   const template = await findMatchingTemplate(adminSupabase, credit.course_type_id, {
@@ -699,108 +496,32 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
     branchId,
     scheduleTemplateId: scheduleTemplateId || null,
   })
+  if (!template) return NextResponse.json({ code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND', error: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับข้อมูลที่เลือก' }, { status: 400 })
 
-  if (!template) {
-    return NextResponse.json({
-      code: 'LESSON_WALLET_TEMPLATE_NOT_FOUND',
-      error: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก',
-    }, { status: 400 })
-  }
+  const { data, error } = await adminSupabase.rpc('lesson_wallet_redeem_v2', {
+    p_user_id: userId,
+    p_credit_id: credit.id,
+    p_target_date: targetDate,
+    p_start_time: normalizedStartTime,
+    p_end_time: normalizedEndTime,
+    p_branch_id: branchId,
+    p_schedule_template_id: template.id,
+  }) as unknown as { data: RedeemRpcResult | null; error: DbError | null }
+  if (error || !data) return rpcErrorResponse(error || { message: 'LESSON_WALLET_MUTATION_FAILED' })
 
-  await ensureNoDuplicateLearnerSlot(adminSupabase, credit, {
-    date: targetDate,
-    startTime: normalizedStartTime,
-    endTime: normalizedEndTime,
-    branchId,
-  })
-
-  const scheduleSlotId = await ensureScheduleSlot({
-    supabase: adminSupabase,
-    templateId: template.id,
-    branchId,
-    courseTypeId: credit.course_type_id,
-    date: targetDate,
-    startTime: normalizedStartTime,
-    endTime: normalizedEndTime,
-  })
-
-  await ensureSlotAcceptsEntry(adminSupabase, scheduleSlotId, {
-    templateId: template.id,
-    branchId,
-    courseTypeId: credit.course_type_id,
-    date: targetDate,
-    startTime: normalizedStartTime,
-    endTime: normalizedEndTime,
-  })
-
-  const { data: newSession, error: insertError } = await adminSupabase
-    .from('booking_sessions')
-    .insert({
-      booking_id: credit.booking_id,
-      schedule_slot_id: scheduleSlotId,
-      date: targetDate,
-      start_time: normalizedStartTime,
-      end_time: normalizedEndTime,
-      branch_id: branchId,
-      child_id: credit.child_id,
-      status: 'scheduled',
-      rescheduled_from_id: credit.original_session_id,
-      is_makeup: false,
-    })
-    .select('id')
-    .single() as unknown as { data: { id: string } | null; error: DbError | null }
-
-  if (insertError || !newSession) {
-    return NextResponse.json({ error: `สร้างรอบเรียนใหม่ไม่สำเร็จ: ${insertError?.message || 'ไม่พบข้อมูลรอบเรียนใหม่'}` }, { status: 500 })
-  }
-
-  try {
-    await adjustSlotCount(adminSupabase, scheduleSlotId, 1)
-  } catch (error) {
-    await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
-    const message = error instanceof Error ? error.message : 'อัปเดตจำนวนผู้เรียนในรอบไม่สำเร็จ'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-
-  const { data: redeemedCredit, error: updateCreditError } = await adminSupabase
-    .from('lesson_wallet_credits')
-    .update({
-      status: 'redeemed',
-      redeemed_session_id: newSession.id,
-      redeemed_at: new Date().toISOString(),
-    })
-    .eq('id', credit.id)
-    .eq('status', 'active')
-    .select('id')
-    .maybeSingle() as unknown as { data: RedeemedCreditUpdateRow | null; error: DbError | null }
-
-  if (updateCreditError || !redeemedCredit) {
-    await adjustSlotCount(adminSupabase, scheduleSlotId, -1).catch(() => null)
-    await adminSupabase.from('booking_sessions').delete().eq('id', newSession.id)
-    await refreshSlotOccupancy(adminSupabase, scheduleSlotId).catch(() => null)
-    return NextResponse.json(updateCreditError ? {
-      error: 'ใช้สิทธิ์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
-    } : {
-      code: 'LESSON_WALLET_CREDIT_STALE',
-      error: 'สิทธิ์กระเป๋านี้ถูกใช้ไปแล้ว กรุณารีเฟรชหน้า',
-    }, { status: updateCreditError ? 500 : 409 })
-  }
-
-  await refreshSlotOccupancy(adminSupabase, scheduleSlotId).catch(() => null)
-
-  const oldLabel = slotLabel(credit.original_date, credit.original_start_time, credit.original_end_time)
-  const newLabel = slotLabel(targetDate, normalizedStartTime, normalizedEndTime)
-
+  const oldLabel = slotLabel(data.original_date, data.original_start_time, data.original_end_time)
+  const newLabel = slotLabel(data.target_date, data.target_start_time, data.target_end_time)
+  const unitCopy = data.participant_count > 1 ? `ทั้งครอบครัว ${data.participant_count} คน` : '1 สิทธิ์'
   await Promise.all([
     notifyHeadCoachesAndAssignedCoach(adminSupabase, branchId, [], {
       title: 'ผู้เรียนใช้วันเรียนจากกระเป๋า',
-      message: `ผู้เรียนใช้สิทธิ์จากรอบ ${oldLabel} มาลงรอบ ${newLabel} กรุณาจัดกลุ่ม/มอบหมายโค้ช`,
+      message: `ผู้เรียนใช้สิทธิ์ ${unitCopy} จากรอบ ${oldLabel} มาลงรอบ ${newLabel} กรุณาจัดกลุ่ม/มอบหมายโค้ช`,
       link_url: `/coach/assign-groups?month=${monthKey(targetDate)}`,
     }),
     notifyRoles(adminSupabase as unknown as SupabaseClient<Database>, {
       roles: ['admin', 'super_admin'],
       title: 'ผู้เรียนใช้วันเรียนจากกระเป๋า',
-      message: `ผู้เรียนใช้สิทธิ์จากกระเป๋ามาลงรอบ ${newLabel}`,
+      message: `ผู้เรียนใช้สิทธิ์ ${unitCopy} จากกระเป๋ามาลงรอบ ${newLabel}`,
       type: 'schedule',
       link_url: '/admin/schedules',
     }),
@@ -810,19 +531,25 @@ async function redeemWalletCredit(request: NextRequest, userId: string, payload:
       entityType: 'lesson_wallet_credits',
       entityId: credit.id,
       details: {
-        expiredBeforeRedeem: expiredCount,
         originalSessionId: credit.original_session_id,
-        newSessionId: newSession.id,
-        scheduleSlotId,
+        newSessionIds: data.session_ids,
+        scheduleSlotId: data.schedule_slot_id,
         targetDate,
         startTime: normalizedStartTime,
         branchId,
+        participantCount: data.participant_count,
       },
       ipAddress: request.headers.get('x-forwarded-for'),
     }),
   ]).catch(() => null)
 
-  return NextResponse.json({ success: true, sessionId: newSession.id, scheduleSlotId })
+  return NextResponse.json({
+    success: true,
+    sessionId: data.representative_session_id,
+    sessionIds: data.session_ids,
+    scheduleSlotId: data.schedule_slot_id,
+    participantCount: data.participant_count,
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -830,19 +557,12 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const body = await request.json() as StorePayload
+    const body = await request.json() as WalletPayload
     if (body.action === 'store') return await storeInWallet(request, user.id, body)
     if (body.action === 'redeem') return await redeemWalletCredit(request, user.id, body)
-    if (body.action === 'expire_due') {
-      const count = await expireDueCredits(getServiceRoleClient(), user.id)
-      return NextResponse.json({ success: true, expiredCount: count })
-    }
-
     return NextResponse.json({ error: 'ไม่พบ action ที่รองรับ' }, { status: 400 })
   } catch (error) {
-    if (error instanceof LessonWalletError) {
-      return NextResponse.json({ code: error.code, error: error.message }, { status: error.status })
-    }
+    if (error instanceof LessonWalletEntitlementError) return rpcErrorResponse(error)
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }, { status: 500 })
   }
 }

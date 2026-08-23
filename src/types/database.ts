@@ -133,6 +133,12 @@ export interface Database {
         Update: Partial<Omit<LessonWalletCredit, 'id' | 'created_at'>>
         Relationships: []
       }
+      lesson_wallet_credit_members: {
+        Row: LessonWalletCreditMember
+        Insert: Omit<LessonWalletCreditMember, 'created_at'>
+        Update: Partial<Pick<LessonWalletCreditMember, 'redeemed_session_id' | 'redeemed_at'>>
+        Relationships: []
+      }
       payments: {
         Row: Payment
         Insert: Omit<Payment, 'id' | 'created_at'>
@@ -405,6 +411,26 @@ export interface Database {
           p_booking_session_id: string
           p_actor_id: string
           p_reason: 'reschedule_out' | 'wallet_store'
+        }
+        Returns: Json
+      }
+      lesson_wallet_store_v2: {
+        Args: {
+          p_user_id: string
+          p_session_id: string
+          p_actor_id: string
+        }
+        Returns: Json
+      }
+      lesson_wallet_redeem_v2: {
+        Args: {
+          p_user_id: string
+          p_credit_id: string
+          p_target_date: string
+          p_start_time: string
+          p_end_time: string
+          p_branch_id: string
+          p_schedule_template_id: string
         }
         Returns: Json
       }
@@ -978,8 +1004,30 @@ export interface LessonWalletCredit {
   redeemed_at: string | null
   expired_at: string | null
   notes: string | null
+  entitlement_unit_type: 'single' | 'family_private' | null
+  entitlement_policy: 'same_month' | 'ten_month_package' | null
+  entitlement_started_at: string | null
+  entitlement_payment_id: string | null
+  entitlement_pricing_tier_id: string | null
+  entitlement_evidence: Json | null
+  root_credit_id: string | null
+  participant_count: number | null
   created_at: string
   updated_at: string
+}
+
+export interface LessonWalletCreditMember {
+  credit_id: string
+  original_session_id: string
+  redeemed_session_id: string | null
+  child_id: string | null
+  original_schedule_slot_id: string
+  original_date: string
+  original_start_time: string
+  original_end_time: string
+  branch_id: string
+  created_at: string
+  redeemed_at: string | null
 }
 
 export interface CoachAssignmentGroupStudent {
