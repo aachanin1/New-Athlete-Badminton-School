@@ -319,12 +319,35 @@ Main portals:
 - Unlimited learner entry does not relax exact-learner duplicate/overlap prevention,
   ownership or role authorization, active schedule-template and real
   `schedule_slot_id` validation, future/not-started checks, booking/payment status,
-  same-month wallet/reschedule rules, idempotency, concurrency, atomicity, pricing,
+  applicable wallet entitlement-expiry and reschedule-month rules, idempotency,
+  concurrency, atomicity, pricing,
   coupon, Ledger, Finance, attendance, or coach-evidence safeguards.
 - Admin booking on behalf of users remains disabled; unlimited learner entry must not
   restore `/admin/booking` or `POST /api/admin/booking`.
-- Lesson wallet credits can store a verified scheduled session only before the 48-hour cutoff, with no attendance and no started session.
-- Wallet redemption must stay in the same month and must not create a new payment.
+- Lesson wallet credits can store a verified scheduled session only before the
+  48-hour cutoff, with no attendance, no started session, and no makeup session.
+- Same-month redemption is the default. Kids Group at every tier, Adult Group
+  single-session, and Private single-hour credits must remain in the original
+  month and must never create a new payment, coupon, Ledger, Finance, refund, or
+  financial-credit row.
+- Adult Group and Family Private packages above one purchased session/hour receive
+  a ten-month Lesson Wallet entitlement only when exactly one approved
+  `payments` row has a trustworthy `verified_at` and exactly one matching
+  historical `pricing_tiers` row was effective on that Bangkok approval date.
+  The approval month is month 1 and expiry is 23:59:59.999 Asia/Bangkok on the
+  final day of inclusive calendar month 10. Missing or ambiguous evidence must
+  fail closed; re-walleting must preserve the original entitlement start and
+  expiry.
+- One Family Private hour is one atomic entitlement unit identified by exact
+  `booking_id + original date + start time + end time + branch_id +
+  schedule_slot_id`. Storing or redeeming any participant must move every self/
+  child participant together to one target hour, preserve each `child_id`, and
+  never permit participant splitting. Concurrent use must yield one winner and a
+  typed conflict with no residue.
+- Existing wallet credits must not be bulk rewritten, backfilled, recalculated,
+  or automatically revived. Existing active credits retain their stored expiry;
+  expired credits remain expired. New policy evidence applies only when a new
+  eligible verified/not-yet-walleted session is stored after release.
 - Walleted sessions are not absent, not completed, not makeup-eligible, and not coach-payable.
 
 ### Coach Teaching Hours

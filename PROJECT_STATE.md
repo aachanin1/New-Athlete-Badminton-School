@@ -1,70 +1,67 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-22
+Last updated: 2026-08-23
 
-Current source: **TASK DONE — EXACT OWNER-PASSED ARTIFACT PROMOTED AND
-PRODUCTION ACTIVE** for **SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY +
-ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY**. Owner UAT passed exact
-artifact `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application SHA
-`a370673d06e61e409ec9b1de648ae4fbb1070c2d`. One `vercel promote` invocation
-moved that same immutable Production-target artifact to Production without a
-rebuild, redeploy, new deployment, or separate alias command. All four established
-Production aliases now point to it; automated Production HTTP and bounded runtime
-log checks passed. Prior Production `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV` remains
-`READY` as the rollback candidate. Rejected artifacts
-`dpl_rRAc546SKNMxSxFVAgkGYUofVkEg` and
-`dpl_52gKBAoDW42zRcbGfsiKv9RG2EWE` remain retained and unpromoted. This first
-matrix is the only authority for current mutable state; all later records are
-Historical / Superseded.
+Current source: **READY FOR OWNER UAT** for **ADULT GROUP + FAMILY PRIVATE
+10-MONTH ENTITLEMENT / CROSS-MONTH LESSON WALLET**. Application Source
+`ebf368dcfcaecd68e42dd61de45d35d743232b99` is committed and pushed; additive
+migration `20260823090000` is applied exactly once and verified; exact staged
+Production-target artifact `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` is `READY`,
+unaliased, and tied to that Application SHA. Owner UAT is awaiting; Promotion is
+prohibited until Owner PASS. The four Production aliases remain on the prior
+Production deployment `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Source
+`a370673d06e61e409ec9b1de648ae4fbb1070c2d`. This first matrix is the only
+authority for current mutable state; all later records are Historical /
+Superseded.
 
-## Current Execution — Schedule Learning Details Production Closeout
+## Current Execution — Adult/Family Ten-Month Lesson Wallet
 
-Status: **TASK DONE — EXACT OWNER-PASSED ARTIFACT PROMOTED AND PRODUCTION ACTIVE**.
+Status: **READY FOR OWNER UAT — SOURCE PUSHED, REMOTE ADDITIVE MIGRATION VERIFIED,
+EXACT STAGED ARTIFACT READY, NOT PROMOTED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **None — Awaiting Owner Selection** |
-| Task Status | **TASK DONE — exact Owner-passed artifact Promoted without rebuild; Production verification passed** |
-| Owner Policy | **Confirmed 2026-08-22, latest:** Owner UAT PASS applies only to `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; Promote that immutable artifact once without rebuild, run read-only Production checks, close documentation, and do not begin another Parking Lot item automatically |
-| Intended Behavior | Parent sees Level/name and on-demand exact-owned `submitted/approved/rejected` programs while `draft`/Legacy/non-owned stay hidden; Coach sees exact-group Level range, nickname-only child list, individual Level/name, and exact-slot program/status/modal on desktop/mobile; Admin Schedule opens the full program from existing payload with `0/0` extra read; Admin Review shows immediate `กำลังโหลด...`, disables and deduplicates navigation, sorts reversed Client draft dates, rejects future Bangkok dates on Client/Server, resets to day `1` through Bangkok today, and preserves one bounded server-side range read, scoped stats, historical URL search, and explicit errors |
-| Root Cause | **Latest UAT Root Cause:** Admin Review navigation had no pending/dedup state; both buttons stayed enabled; reversed dates were rejected rather than normalized; inputs had no complete Bangkok-today maximum; the month helper ended at month-end; and Server URL validation allowed future dates. **Original Admin Review Product Root Cause:** old all-history load up to 800 rows built an oversized slot `.in()` URI and silently treated its error as no rows. **Historical release interruption:** `prod:check` performed Owner-accepted read-only hosted-Supabase checks contrary to the then-current no-remote rule; it was not rerun |
+| Active Task | **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONTH LESSON WALLET** |
+| Task Status | **READY FOR OWNER UAT — exact staged artifact ready; Owner PASS/FAIL awaiting; not Promoted** |
+| Owner Policy | **Confirmed 2026-08-23:** ten months applies only to Adult Group and Family Private package tiers above one unit; entitlement starts at the one exact approved Payment `verified_at` and ends at the close of inclusive Bangkok calendar month 10; missing/ambiguous Payment or historical tier evidence fails closed; Family Private exact hour is one atomic all-participant unit; existing credits are not backfilled/recalculated/revived and re-wallet preserves original evidence/expiry |
+| Intended Behavior | Eligible Adult/Family package credits can be redeemed across months through the exact expiry without another payment; Adult single, Private single, and all Kids remain same-month. Family Private store/redeem moves all self/child participants atomically as one hour/card while preserving identity. Wallet page reads are side-effect-free; over-capacity remains non-blocking; destination assignment remains for Head Coach Save |
+| Root Cause | **Proven from Source/schema/local behavior; matched the approved hypothesis.** The former API derived expiry from the original session month, enforced same-month for every credit, created one credit per `booking_session`, and used multiple compensating statements. Private booking rows represent participants while `bookings.total_sessions` represents time units, so one Family hour could split into multiple credits. Payment rows are not uniquely constrained and historical tier validity must be resolved explicitly, requiring fail-closed evidence and atomic database RPCs |
 | Branch | `spike/next-major-security-upgrade` |
-| Local / Remote HEAD | Documentation-only closeout descendant of `eab9aa89672806e705a165ac7a7ca65e3569c540`; exact closeout SHA is reported in the final handoff because a commit cannot embed its own SHA |
+| Local / Remote HEAD | Documentation-only READY handoff descendant of Application SHA `ebf368dcfcaecd68e42dd61de45d35d743232b99`; exact documentation SHA is reported in the final handoff because a commit cannot embed itself |
 | Ahead / Behind | `0/0` after documentation closeout push; staged paths `0` |
-| Source Complete | **Yes** — intended Parent, Coach, Admin Schedule, and Admin Review Source is committed and pushed within the exact allowlist |
-| Tests Passed | **Yes.** Admin Review deterministic `11/11`, final focused E2E `2/2`, final full E2E `13/13`, skipped/unexpected/retry/flaky `0/0/0/0`, fixture residue `0`, TypeScript PASS, ESLint PASS with warnings `0`, mojibake PASS (`263` files), Production build PASS (`94/94`), and diff checks PASS. `prod:check` was not rerun by Owner instruction. Existing User Schedule hydration console evidence remains historical/out of this correction; all full E2E assertions passed |
-| Committed / Pushed | **Application: Yes / Yes. Documentation closeout: Yes / Yes** |
-| Current / Pushed Source | Exact Admin Review correction Application Source `a370673d06e61e409ec9b1de648ae4fbb1070c2d` / same pushed Application SHA |
-| Functional / Test / Documentation / Migration / Config Files | Promotion closeout `0 / 0 / 3 / 0 / 0`; completed task `7 / 3 / 3 / 0 / 1`; total task paths `14`; path `15` absent; dependency and lockfile diffs absent |
-| Scope Expansion / Scope Breach | No correction scope expansion / **Historical breach retained:** read-only hosted Supabase access by `prod:check`; Owner accepted that evidence as valid. Remote writes, repairs, Environment mutation, and additional Supabase reads during this correction were `0` |
-| Migration Source / Applied | **None / No** |
-| Environment Changed | **Application/remote Environment: No.** Local effects: Docker/exact-project Supabase, two disposable production snapshots (removed after use), fixed local ports, existing Playwright/browser, and post-build dev restart only |
-| Feature Enabled / Allowlisted | **No change / No change** |
-| Performance Method | Base `7c32e924fdd76d88ce853dfde531f84a2123bc22`; isolated `next build` + `NODE_ENV=production node server.js`; Set 1 Current→Base and Set 2 Base→Current; warm-up `1`, measured `5`; direct URLs; same local fixture/runtime/browser/timezone |
-| Performance Result | **PASS — no scenario met the fixed threshold in both reverse-order sets.** Set 1 deltas: User `+0.4 ms/+0.09%`, Coach `+0.9/+0.20%`, Admin Schedule `+6.7/+2.64%`, Review current `+2.5/+0.59%`, Review historical `+1.5/+0.34%`. Set 2: User `-2.3/-0.53%`, Coach `+7.4/+1.70%`, Admin `+10.5/+4.21%`, Review current `+1.3/+0.30%`, Review historical `+0.6/+0.13%` |
-| Query / Request Budget | No N+1 or request storm; Parent initial program request/content `0/0`; User/Coach Level reads fixed; Coach program read at most one bounded exact-slot read; Admin Schedule modal extra API/DB `0/0`; Admin Review remains one bounded relational Supabase read filtered by date/status/cap. Accepted click produced one navigation/RSC read; synchronous duplicate click added `0` navigation/read; added API routes `0` |
-| Payload / Rows | Set 1 Current/Base median bytes: User `39,152/39,174`, Coach `48,673/47,393`, Admin `21,596/21,610`, Review current `33,682/35,114`, Review historical `42,285/39,827`. Set 2: User `39,148/39,173`, Coach `42,951/41,677`, Admin `21,600/21,612`, Review current `33,681/35,125`, Review historical `42,289/36,344`. Current Review visible rows current/historical `1/18`, read errors `0/0` |
-| Release Gates | Admin Review deterministic `11/11`; focused E2E `2/2`; full E2E `13/13`; TypeScript PASS; ESLint PASS with warnings `0`; mojibake PASS (`263` files); build PASS (`94/94` static generation); post-build clean dev restart root/static `200/200`; `git diff --check` PASS. `prod:check` was **not rerun** by Owner instruction |
-| Deployed / Promoted | **Yes / Yes** — exactly one Promote invocation, exit `0`, retry/rebuild/redeploy/new-deployment/separate-alias counts `0/0/0/0/0` |
-| Production Artifact / Exact SHA | `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; immutable URL `https://new-athlete-badminton-school-dr6pjsdnx-aachanin1s-projects.vercel.app`; target `production`; state `READY`; promoted |
-| Production Smoke / Logs | PASS — public root/health/login/promoted static `200`; protected schedule `307` to Login; anonymous Program API with a format-valid UUID `401` and `private, no-store`; Vercel-protected team aliases returned application root `200` through protection-aware reads; bounded warning/error/fatal/5xx `0/0/0/0`; no form submit, controlled write, or data mutation |
-| Alias Before / After | Before: all four Production aliases pointed to `dpl_9bJyCeRVqy8wFz38zXqsjsCkB1JV`. After: `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`, `new-athlete-badminton-school-aachanin1s-projects.vercel.app`, and `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app` all point to exact promoted `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`; missing/extra/wrong `0/0/0`. Four branch Preview mappings were unchanged. Prior Production remains `READY` as rollback candidate |
-| Owner UAT | **PASS** — Coach, User/Parent, Admin Schedule modal, and corrected Admin Teaching Program Review passed the exact promoted artifact/SHA. Earlier rejected artifacts remain retained and unpromoted |
-| Production Active / Production UAT | **Yes / Passed through exact staged Owner UAT plus immutable Promotion and automated Production verification.** Second manual Production UAT was not required |
+| Source Complete | **Yes** — all intended behavior is committed and pushed within the exact allowlist |
+| Tests Passed | **Yes.** Lesson Wallet deterministic `29/29`; atomic local RPC UAT passed every approved scenario with residue `0`; Coach Assignment Lifecycle `52/52`; Coach Teaching Hours `20/20`; Booking Playwright `12/12` with residue `0`; TypeScript, ESLint with warnings `0`, mojibake (`264` files), Production build (`94/94`), and diff checks passed |
+| Committed / Pushed | **Application/Test/Migration: Yes / Yes. Documentation READY handoff: Yes / Yes after this publication** |
+| Current Source / Pushed Source | `ebf368dcfcaecd68e42dd61de45d35d743232b99` / same exact Application SHA |
+| Deployed Source | Staged Production-target Source `ebf368dcfcaecd68e42dd61de45d35d743232b99`; canonical Production Source remains `a370673d06e61e409ec9b1de648ae4fbb1070c2d` until Owner PASS and exact Promotion |
+| Functional / Test / Documentation / Migration Files | `8 / 3 / 4 / 1`; total authorized paths `16`; added helper and migration were exact planned paths; dependency/lockfile/config changes absent |
+| Scope Expansion / Scope Breach | **None / None.** Protected dirty file stayed excluded; no added path, pricing formula/tier change, customer write, or adjacent Private Identity work |
+| Migration Source / Applied | `supabase/migrations/20260823090000_adult_private_ten_month_lesson_wallet.sql` at Application SHA `ebf368d...` / **Yes — linked project `tvnhholicwjtxdhlxfqs`, exactly once** |
+| Migration Verification | History count `1`; new credit columns `8`; companion constraints `10`; Family unique index `1`; RLS enabled; RPC count/security-definer/pinned-search-path `2/2/2`; service-role execute grants `2`; anon/auth table or RPC grants `0`; companion rows `0`; existing credits populated with new evidence `0` |
+| Migration Metadata / Customer Rows | **Changed: one migration-history row plus additive schema/RPC metadata / Changed: 0**. Exact migration contains no apply-time business-row DML, seed, role, or vault update |
+| Environment Changed | **No application/remote Environment, secret, feature-control, dependency, or package change.** Local Docker Supabase reset/UAT and clean dev restart only; Vercel Production-target build used existing Production environment without changing it |
+| Feature Enabled / Allowlisted | **No feature-control change / No allowlist change** |
+| Release Gates | Clean local migration reset; schema/security evidence; UAT residue `0`; deterministic `29/29`, `52/52`, `20/20`; Playwright `12/12`; TypeScript, lint, mojibake, build `94/94`, post-build root plus 3 static assets `200`, and diff compliance all passed |
+| Deployed / Promoted | **Yes — staged Production-target artifact only / No**. Exactly one `deploy --prod --skip-domain` invocation; force/redeploy/Promotion/alias command counts `0/0/0/0` |
+| Deployment ID / Exact SHA | `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` / `ebf368dcfcaecd68e42dd61de45d35d743232b99`; immutable URL `https://new-athlete-badminton-school-lps2sz825-aachanin1s-projects.vercel.app`; target/state `production/READY`; aliases `0`; region `icn1` |
+| Staged Smoke / Logs | PASS — root `200`, health `200`, login `200`, protected Wallet page `307` to Login, anonymous Wallet API GET `405`; bounded exact-deployment runtime warning/error/fatal/5xx `0/0/0/0`; no POST, form submit, Controlled Write UAT, or customer-data write |
+| Alias Before / After | All four established Production aliases remained on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` before and after; staged artifact aliases `0`; Production traffic moved **No** |
+| Owner UAT | **Awaiting Owner** for exact staged artifact/SHA |
+| Production Active / Production UAT | **No for this Application Source / Not run**. Existing Production remains on the prior Source; post-Promotion Production checks are not run before Promotion |
 | Controlled Write UAT | **Not run** |
-| Remote Supabase Access | **Historical accepted read-only access:** one completed `prod:check`; no rerun and no additional Supabase operation during publication. Remote writes `0`; no secret/URL/row content retained in documentation |
-| Data Repaired / Production Data Changed | **No / No**; `prod:check` uses reads and no write/repair was run |
-| Customer Impact / Financial Impact | **Schedule Learning Details is now available in Production / None**; commercial note remains Parent program visibility only = `12,000 บาท`, not application pricing |
-| Protected Dirty File | Excluded, unstaged, diff empty, and content-identical at Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`; package-lock SHA-256 remained `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8` |
-| Correction Attempts | One Owner-authorized Admin Review correction approach; no full all-actor Performance recertification and no Product performance correction |
-| Documentation Drift | **No after this closeout and Documentation Consistency Matrix** |
-| Blocker | **None** |
-| Remaining Work | **None for this task** |
-| Task Done | **Yes** |
-| Next Gate / Next Action | **Await Owner Selection — do not begin another Parking Lot item automatically** |
-| Parking Lot authorization state | The other six preserved Parking Lot items remain unselected and unauthorized |
+| Data Repaired / Production Data Changed | **No / No customer/business-row change**; migration metadata/schema changed as separately recorded |
+| Customer Impact / Financial Impact | **None before Promotion / None**. Existing credits/payments/pricing/coupons/Ledger/Finance are unchanged |
+| Protected Dirty File | Excluded, unstaged, worktree diff empty, and invariant before/after at Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
+| Bounded Correction Attempts | **2/2 reasonable bounded correction rounds used; final gates all passed.** Product Root Cause and Intended Behavior never changed |
+| Known Limitations | Remote advisor reports intentional INFO `RLS enabled with no policy` for the service-role-only companion table; new RPCs have no anon/auth grant. Baseline security warnings and existing build audit `8` vulnerabilities (`1` low, `7` high) remain outside scope. No Production Controlled Write UAT is authorized |
+| Documentation Drift | **No after this READY handoff and Documentation Consistency Matrix** |
+| Blocker | **None technical; Owner PASS is the required release gate** |
+| Remaining Work | Owner performs 3–5 no-write UAT checks and returns PASS or FAIL. On PASS, Promote only this exact artifact/SHA without rebuild, then run automated Production health/log checks and final closeout |
+| Task Done | **No** |
+| Next Gate / Next Action | **Owner UAT on `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` / `ebf368d...`; do not Promote automatically** |
+| Parking Lot authorization state | This selected task is no longer in Parking Lot. Private Identity and the other five candidates remain unselected and unauthorized |
 
 ## Historical / Superseded — Valid Set 1 Dev-Server Performance Hard Stop
 

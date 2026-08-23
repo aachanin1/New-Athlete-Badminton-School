@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-22
+Last updated: 2026-08-23
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,13 +9,17 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **None — Awaiting Owner Selection**.
+Status: **READY FOR OWNER UAT — ADULT GROUP + FAMILY PRIVATE 10-MONTH
+ENTITLEMENT / CROSS-MONTH LESSON WALLET**.
 
-- No Active Task is authorized. Schedule Learning Details is **TASK DONE** after
-  exact Owner UAT PASS, immutable-artifact Promotion, automated Production
-  verification, and documentation publication.
-- Next action: await explicit Owner selection. Do not begin any Parking Lot item
-  automatically.
+- Application/Test/Migration Source is complete, committed, pushed, and staged
+  as an exact unaliased Production-target artifact. The authorized additive
+  migration is applied exactly once. `PROJECT_STATE.md` is authoritative for the
+  exact SHA, artifact, verification, and release-state matrix.
+- Next action: Owner runs the no-write UAT checklist on the exact staged
+  artifact/SHA and returns PASS or FAIL. Do not Promote automatically.
+- Private Self + Child Identity Integrity and every other Parking Lot candidate
+  remain unselected and unauthorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -996,58 +1000,12 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-The six candidates below remain unselected, unauthorized, and retain their prior
-relative state: Adult Group + Family Private 10-Month Entitlement / Cross-Month
-Booking; Private Self + Child Identity Integrity / Name-Level Separation; LINE
-External-Browser Handoff Audit; Thai UI Terminology & Shared Helper; External Head
-Coach Assignment Save HTTP 500 Attempts; and Homepage LV Copy Audit/Fix.
-
-### Adult Group + Family Private — 10-Month Entitlement / Cross-Month Booking
-
-Canonical name: **ADULT GROUP + FAMILY PRIVATE 10-MONTH ENTITLEMENT / CROSS-MONTH BOOKING**.
-
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
-
-- This existing Parking Lot candidate remains unselected and unauthorized. Active
-  Task is **None — Awaiting Owner Selection**.
-- This decision is durably registered/published. Product audit and implementation
-  remain unauthorized until the Owner selects it under a new Scope Contract.
-- Adult Group must continue to use the package/session rates in authoritative
-  `pricing_tiers`. A purchased Adult Group package creates a remaining-session
-  entitlement that the user can schedule across months within `10 เดือน`.
-- Owner example: an Adult Group 16-session package paid on 1 January 2026
-  (`1 ม.ค. 2569`) is usable through 31 October 2026 (`31 ต.ค. 2569`). This
-  example does not resolve the mid-month expiry formula below.
-- Private is intended to be Family Private for children and adults. It must
-  continue to use the package/hour rates in authoritative `pricing_tiers`, with
-  the Family Private entitlement usable within `10 เดือน`.
-- Cross-month future implementation must separate package purchase and
-  entitlement creation from selecting all teaching dates immediately. Users must
-  be able to spend the remaining entitlement on cross-month schedule selections
-  without creating a new payment for each use.
-- Current Booking UI/API still binds each booking request to one `month`/`year`.
-  Adult Group and Private remain in the Legacy booking/payment flow; “Legacy”
-  does not authorize a pricing-tier or formula change.
-- This future entitlement/cross-month work is not automatically a tier change,
-  reprice, migration, backfill, or Product implementation. No `pricing_tiers`
-  value or fallback is changed by this documentation publication.
-
-#### Unknown / Need Owner Decision
-
-- Expiry-date formula when payment occurs mid-month.
-- Entitlement start date: payment date, approval date, or first lesson date.
-- Family Private membership boundary and entitlement-sharing rules.
-- Whether the entitlement may be used across branches.
-- Number of learners allowed per Private session.
-- Interaction with Reschedule and Lesson Wallet.
-- Cancellation, refund, coupon, and expiry semantics.
-- Treatment of remaining entitlement when the 10-month period ends.
-- Treatment of existing Adult/Private bookings and whether migration/backfill is
-  required.
-- Attendance, Coach, Payroll, Finance, and Accounting effects.
-
-Detailed Owner decision, Source evidence, and Unknowns: see the dated 2026-08-07
-Adult Group + Family Private record in `DEVELOPMENT_TODO.md`.
+The five candidates below remain unselected, unauthorized, and retain their prior
+relative state: Private Self + Child Identity Integrity / Name-Level Separation;
+LINE External-Browser Handoff Audit; Thai UI Terminology & Shared Helper;
+External Head Coach Assignment Save HTTP 500 Attempts; and Homepage LV Copy
+Audit/Fix. Adult Group + Family Private 10-Month Entitlement moved out of Parking
+Lot into Current Active Work and is awaiting Owner UAT.
 
 ### Private Self + Child Identity Integrity / Name-Level Separation
 
@@ -1261,10 +1219,9 @@ Confirmed final state:
 - Branch: `spike/next-major-security-upgrade`.
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- Schedule Learning Details is completed: its exact Owner-passed artifact is
-  Promoted and Production-active. Only the protected unrelated dirty file remains
-  local. Exact mutable state is authoritative in the first `PROJECT_STATE.md`
-  matrix; completed details are referenced above rather than duplicated here.
+- Adult Group + Family Private 10-Month Entitlement is the current Active Task at
+  READY FOR OWNER UAT. Only the protected unrelated dirty file remains local.
+  Exact mutable state is authoritative in the first `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

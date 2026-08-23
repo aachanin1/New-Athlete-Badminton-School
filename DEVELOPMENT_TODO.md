@@ -16325,3 +16325,148 @@ Schedule modal, and corrected Admin Teaching Program Review on exact artifact
   **None**; Remaining Work **None for this task**; Task Done **Yes**. The other six
   Parking Lot items remain preserved, unselected, and unauthorized. Next Action:
   **Await Owner Selection — do not start another task automatically**.
+
+### 2026-08-23 — Adult Group + Family Private ten-month Lesson Wallet READY handoff
+
+State observed at this handoff: **READY FOR OWNER UAT — SOURCE PUSHED, LINKED
+ADDITIVE MIGRATION APPLIED EXACTLY ONCE, EXACT PRODUCTION-TARGET STAGED ARTIFACT
+READY, NOT PROMOTED**. Owner approved continuous delivery only through this gate;
+Promotion remains prohibited until Owner PASS for the exact artifact/SHA.
+
+#### Owner decision and proven audit
+
+- Permanent Owner rules are now: (1) ten months applies only to Adult Group and
+  Family Private package tiers above one purchased session/hour; Adult single,
+  Private single, and every Kids tier remain same-month; (2) entitlement starts
+  at exactly one approved Payment `verified_at` and expires at the end of the
+  tenth inclusive Asia/Bangkok calendar month, with missing/ambiguous Payment or
+  exact historical tier evidence failing closed and re-wallet preserving the
+  original evidence/expiry; (3) one exact Family Private hour is one atomic unit
+  for all self/child participants and cannot be split; (4) existing credits are
+  not backfilled, rewritten, recalculated, or revived, and this task performs no
+  Production customer-row repair.
+- Fact: the old route calculated expiry from the original session month, applied
+  same-month to every credit, created one credit per `booking_session`, and used
+  multi-statement compensating rollback. Private bookings may hold multiple
+  participant sessions for one purchased time unit, while Payment has no exact
+  uniqueness constraint and `pricing_tiers` is effective-dated.
+- Inference confirmed by local runtime: safely supporting the Owner rules
+  required one unit/member representation and transactional Store/Redeem RPCs;
+  route-only compensation could not guarantee Family atomicity or concurrency.
+- Unknown remaining for this task: none material. Private Identity/Name-Level
+  Separation remains a distinct unauthorized Parking Lot task and was not used
+  to expand this scope.
+
+#### Gate 0, Source, and scope compliance
+
+- Gate 0 branch was `spike/next-major-security-upgrade`; local/upstream base
+  `1de758537e151ee464a8d3cf79234c333a5c7d67`, ahead/behind `0/0`, staged paths
+  `0`. Protected `src/lib/schedule-slot-utils.ts` remained excluded and invariant
+  throughout at Git blob `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Exact task count is Functional/Test/Migration/Documentation `8/3/1/4`, total
+  `16`. Added technical paths are only the planned entitlement helper and exact
+  additive migration. Outside-allowlist, dependency, lockfile, config,
+  Environment, feature-control, allowlist, pricing-tier/formula, and secret
+  changes are `0`.
+- Source adds trustworthy Bangkok entitlement calculation, side-effect-free
+  Wallet reads, cross-month calendar bounded by stored expiry, unit-level UI and
+  copy, one nested member read, atomic Family Store/Redeem, exact learner overlap
+  checks, lifecycle retirement, destination-unassigned behavior, and unit-level
+  notification/activity evidence. Redeem creates no Payment, Coupon, Ledger,
+  Finance, refund, or financial-credit row.
+- Application/Test/Migration commit
+  `ebf368dcfcaecd68e42dd61de45d35d743232b99`, tree
+  `f8136ea0d98a851e4e9e02c34eaa58e528174693`, was pushed normally to
+  `origin/spike/next-major-security-upgrade`; local/upstream were then `0/0`.
+  Documentation is published in a separate descendant and its exact SHA is
+  reported in the final handoff because a commit cannot embed itself.
+
+#### Local verification and bounded corrections
+
+- Local project identity was exact loopback Supabase API/DB `54321/54322` and
+  container `supabase_db_New-Athlete-Badminton-School`. A clean full migration
+  reset applied the exact new migration. Schema evidence confirmed nullable
+  audit fields, PK/FK/check/unique/index coverage, RLS, service-role-only RPC
+  execution, `SECURITY DEFINER`, and pinned `search_path`.
+- Lesson Wallet deterministic regression passed `29/29`. Local atomic RPC UAT
+  passed Adult cross-month, Adult/Private single and Kids same-month, Family
+  self+child one-unit movement, participant-conflict rollback, one-winner/one-
+  stale concurrency, re-wallet preservation, exact assignment retirement,
+  destination unassigned, over-capacity allowed, no added financial rows, Store/
+  Redeem guards, fail-closed evidence, and unchanged existing active/expired
+  credits. Cleanup covered profiles/bookings/sessions/credits `3/17/27/12` and
+  final residue was `0`.
+- Other gates passed: Coach Assignment Lifecycle `52/52`, Coach Teaching Hours
+  `20/20`, Booking Playwright `12/12` with residue `0`, TypeScript, ESLint with
+  warnings `0`, mojibake (`264` files), Next.js 16.2.6 Production build with
+  static generation `94/94`, and `git diff --check`.
+- Post-build protocol removed only generated `.next`, restarted the repo dev
+  server, and returned root plus three real static assets `200/200`.
+- Bounded correction rounds were `2/2`: local UAT/test-fixture mechanics, then
+  legacy lifecycle assertion plus rendered package-tier fixture/API conflict
+  status compatibility. Root Cause, Intended Behavior, business flows, and
+  protected domains did not change; all final gates passed.
+
+#### Linked additive migration
+
+- Linked project ref was exactly `tvnhholicwjtxdhlxfqs`. Pre-apply history showed
+  only `20260823090000_adult_private_ten_month_lesson_wallet.sql` pending. Dry-run
+  listed exactly that migration and seeds/roles as `0/0`; `--skip-vault` prevented
+  any vault/environment update. One actual push applied the exact committed file.
+- Read-only postflight: history count `1`; new credit columns `8`; companion
+  constraints `10`; Family unique index `1`; RLS true; RPC/security-definer/
+  pinned-search-path `2/2/2`; service-role execute grants `2`; anon/auth grants
+  `0`; companion business rows `0`; existing credits with any new entitlement
+  evidence `0`. Migration metadata/schema changed; customer/business rows changed
+  `0` and Data Repaired is No.
+- Supabase advisor reported intentional INFO for an RLS-enabled companion table
+  with no policy; this table and both RPCs are explicitly denied to anon/auth and
+  available only to service role. Other warning items were existing baseline and
+  did not name the new RPCs.
+
+#### Exact staged Production-target artifact and safety
+
+- A clean detached worktree used exact Application SHA/tree, status `0`, and the
+  established project/team linkage. One pinned Vercel CLI `59.1.3` command ran
+  `deploy --prod --skip-domain`; retry, force, redeploy, Promotion, rollback, and
+  alias command counts were all `0`. The temporary deployment worktree was
+  removed after verification.
+- Artifact `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` at
+  `https://new-athlete-badminton-school-lps2sz825-aachanin1s-projects.vercel.app`
+  is target/state `production/READY`, aliases `0`, region `icn1`, and metadata
+  `gitCommitSha=ebf368dcfcaecd68e42dd61de45d35d743232b99`. Remote build compiled,
+  type-checked, and generated `94/94`; build errors were `0`. Existing install
+  audit output remained `8` vulnerabilities (`1` low, `7` high) without any
+  dependency change.
+- All four established Production aliases remained before/after on prior
+  Production `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673...`; Production
+  traffic moved No. Read-only staged smoke returned root/health/login
+  `200/200/200`, protected Wallet page `307` to Login, and anonymous Wallet API
+  GET `405`. Exact-deployment warning/error/fatal/5xx counts were `0/0/0/0`.
+  No POST, form submit, Controlled Write UAT, or Production customer-data write
+  occurred.
+
+#### READY state and Owner no-write UAT
+
+- Source Complete **Yes**; Tests Passed **Yes**; Committed/Pushed **Yes/Yes**;
+  migration Source/Applied **Yes/Yes exactly once**; staged artifact **READY**;
+  Owner UAT **Awaiting Owner**; Promoted **No**; Production Active for this Source
+  **No**; Production UAT **Not run**; Controlled Write UAT **Not run**; Data
+  Repaired **No**; Production Customer Data Changed **No**; Customer Impact
+  **None before Promotion**; Financial Impact **None**; Task Done **No**.
+- Owner UAT role: User/Parent. Expected no-write steps:
+  1. Open Booking and inspect Adult Group plus Private pricing tables without
+     confirming a booking; package tiers above one unit show `หมดอายุ 10 เดือน`
+     while single tiers do not.
+  2. Continue through learner/branch/month/date/time selection only far enough to
+     confirm the existing flow remains usable; leave without confirming.
+  3. From an existing eligible schedule row, open the Store dialog and verify the
+     Payment/package and Family-atomic copy; cancel without storing.
+  4. Open Lesson Wallet, inspect one card/count and expiry copy, navigate allowed
+     months/selectable dates if an eligible credit exists, then cancel without
+     redeeming.
+  5. Check the same copy/layout on mobile width; perform no confirm/send action.
+- Next Action: **Owner returns PASS or FAIL for exact artifact
+  `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` / Application SHA `ebf368d...`. Do not
+  Promote automatically.**
