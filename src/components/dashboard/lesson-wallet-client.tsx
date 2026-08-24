@@ -77,6 +77,7 @@ interface LessonWalletClientProps {
   branches: BranchOption[]
   existingSessions: ExistingSession[]
   scheduleTemplates: ScheduleTemplateOption[]
+  userName: string
 }
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
@@ -91,12 +92,27 @@ function formatDateThai(date: string) {
   return formatThaiDateWithWeekday(date)
 }
 
-function getLearnerName(credit: WalletCredit) {
-  const memberNames = (credit.lesson_wallet_credit_members || []).map((member) => (
-    member.children?.nickname || member.children?.full_name || 'ตัวเอง'
-  ))
-  if (memberNames.length > 0) return memberNames.join(', ')
-  return credit.children?.nickname || credit.children?.full_name || 'ตัวเอง'
+function getCreditParticipants(credit: WalletCredit, userName: string) {
+  const members = credit.lesson_wallet_credit_members || []
+  if (members.length > 0) {
+    return members.map((member) => ({
+      id: member.child_id || 'self',
+      name: member.child_id
+        ? member.children?.nickname || member.children?.full_name || 'ข้อมูลผู้เรียนเด็กไม่ครบ'
+        : userName || 'ข้อมูลผู้เรียนของบัญชีไม่ครบ',
+    }))
+  }
+
+  return [{
+    id: credit.child_id || 'self',
+    name: credit.child_id
+      ? credit.children?.nickname || credit.children?.full_name || 'ข้อมูลผู้เรียนเด็กไม่ครบ'
+      : userName || 'ข้อมูลผู้เรียนของบัญชีไม่ครบ',
+  }]
+}
+
+function getLearnerName(credit: WalletCredit, userName: string) {
+  return getCreditParticipants(credit, userName).map((participant) => participant.name).join(', ')
 }
 
 function getCreditLearnerIds(credit: WalletCredit) {
@@ -121,7 +137,7 @@ function normalizeTime(value: string) {
   return value.length === 5 ? `${value}:00` : value
 }
 
-export function LessonWalletClient({ credits, branches, existingSessions, scheduleTemplates }: LessonWalletClientProps) {
+export function LessonWalletClient({ credits, branches, existingSessions, scheduleTemplates, userName }: LessonWalletClientProps) {
   const router = useRouter()
   const [selectedCredit, setSelectedCredit] = useState<WalletCredit | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
@@ -324,7 +340,6 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">พร้อมใช้</Badge>
-                      <Badge variant="outline">{getLearnerName(credit)}</Badge>
                       {credit.entitlement_unit_type === 'family_private' && (
                         <Badge variant="outline">Family Private · 1 ชั่วโมง · {credit.participant_count || getCreditLearnerIds(credit).length} คน</Badge>
                       )}
@@ -334,6 +349,14 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                         <Badge variant="destructive">ข้อมูลคอร์สไม่ครบ</Badge>
                       )}
                     </div>
+                    <ul className="space-y-1 rounded-lg border border-violet-100 bg-white p-2 text-sm text-gray-700">
+                      {getCreditParticipants(credit, userName).map((participant) => (
+                        <li key={participant.id} className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                          {participant.name}
+                        </li>
+                      ))}
+                    </ul>
                     <p className="font-semibold text-[#153c85]">{formatDateThai(credit.original_date)}</p>
                     <p className="text-sm text-gray-600">
                       <Clock className="mr-1 inline h-3.5 w-3.5" />
@@ -363,7 +386,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
             {usedCredits.slice(0, 12).map((credit) => (
               <div key={credit.id} className="flex flex-col gap-2 rounded-lg border bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{getLearnerName(credit)} · {formatDateThai(credit.original_date)}</p>
+                  <p className="font-medium text-gray-900">{getLearnerName(credit, userName)} · {formatDateThai(credit.original_date)}</p>
                   <p className="text-gray-500">{fmtTime(credit.original_start_time)}-{fmtTime(credit.original_end_time)} · {credit.branches?.name || '-'}</p>
                 </div>
                 <Badge
@@ -399,7 +422,14 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
               )}
 
               <div className="rounded-lg border bg-gray-50 p-3 text-sm">
-                <p className="font-semibold text-[#153c85]">{getLearnerName(selectedCredit)}</p>
+                {selectedCredit.entitlement_unit_type === 'family_private' && (
+                  <p className="font-semibold text-violet-800">Family Private · 1 ชั่วโมง · {selectedCredit.participant_count || getCreditLearnerIds(selectedCredit).length} คน</p>
+                )}
+                <ul className="mt-2 space-y-1">
+                  {getCreditParticipants(selectedCredit, userName).map((participant) => (
+                    <li key={participant.id} className="rounded-md bg-white px-2 py-1 font-medium text-[#153c85]">{participant.name}</li>
+                  ))}
+                </ul>
                 <p>สิทธิ์จาก {formatDateThai(selectedCredit.original_date)} · {fmtTime(selectedCredit.original_start_time)}-{fmtTime(selectedCredit.original_end_time)}</p>
                 {selectedCredit.entitlement_unit_type === 'family_private' && (
                   <p className="mt-1 text-xs font-medium text-violet-700">สิทธิ์ Family Private หนึ่งชั่วโมงนี้จะย้ายผู้เรียนทุกคนไปพร้อมกันและไม่สามารถแบ่งใช้คนละรอบได้</p>

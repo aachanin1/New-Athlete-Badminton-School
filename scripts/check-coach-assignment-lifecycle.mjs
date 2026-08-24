@@ -69,6 +69,15 @@ await check('assignment page reads a canonical selected month from Promise searc
   assert.equal(assignmentPage.match(/getBangkokDateString\(now\)/g)?.length, 1)
 })
 
+await check('Private self and child roster identities use distinct names and level keys', () => {
+  assert.match(assignmentPage, /const id = session\.child_id \|\| session\.bookings\?\.user_id/)
+  assert.match(assignmentPage, /type: session\.child_id \? 'child' as const : 'adult' as const/)
+  assert.match(assignmentPage, /session\.children\?\.nickname \|\| session\.children\?\.full_name \|\| 'เด็ก'/)
+  assert.match(assignmentPage, /return session\.bookings\?\.profiles\?\.full_name \|\| 'ผู้เรียน'/)
+  assert.match(assignmentPage, /latestLevelMap\.get\(getStudentKey\(studentRef\)\)/)
+  assert.match(assignmentPage, /parentName: session\.child_id \? \(session\.bookings\?\.profiles\?\.full_name \|\| null\) : null/)
+})
+
 await check('historical month is redirected before data access while current is today-forward and future starts on day one', () => {
   assert.match(assignmentPage, /const \{ monthStart, nextMonthStart \} = getAssignmentMonthRange\(selectedMonth\)/)
   assert.match(assignmentPage, /if \(selectedMonth < currentBangkokMonth\) redirect\('\/coach\/assign-groups'\)/)

@@ -26,6 +26,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { deriveSessionAttendanceStatus, type DerivedSessionStatus } from '@/lib/session-attendance-status'
+import {
+  groupFamilyPrivateScheduleUnits,
+  type FamilyPrivateScheduleUnit,
+} from '@/lib/family-private-schedule-units'
 import type { SafeScheduleProgram, SafeScheduleProgramResponse } from '@/lib/schedule-learning-details'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn, fmtTime } from '@/lib/utils'
@@ -33,6 +37,9 @@ import { SELF_LEARNER_COLOR, buildLearnerColorMap, getLearnerColor } from './lea
 
 interface SessionData {
   id: string
+  booking_id: string
+  schedule_slot_id: string | null
+  branch_id: string
   date: string
   start_time: string
   end_time: string
@@ -77,6 +84,10 @@ interface ScheduleCalendarClientProps {
   sessions: SessionData[]
   learnerChildren: ChildData[]
   userName: string
+  initialMonth: number
+  initialYear: number
+  todayDate: string
+  renderedAt: string
 }
 
 const MONTH_NAMES_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
@@ -192,9 +203,9 @@ function formatSlotText(slot: { date: string; start_time: string; end_time: stri
   return `${formatThaiDateWithWeekday(slot.date)} ${fmtTime(slot.start_time)}-${fmtTime(slot.end_time)}`
 }
 
-function isAtLeast48HoursAhead(date: string, time: string) {
+function isAtLeast48HoursAhead(date: string, time: string, nowMs: number) {
   const start = new Date(`${date}T${time.slice(0, 5)}:00+07:00`)
-  return start.getTime() - Date.now() >= 48 * 60 * 60 * 1000
+  return start.getTime() - nowMs >= 48 * 60 * 60 * 1000
 }
 
 function getCalendarStatusMarkerClass(session: SessionData) {
@@ -209,13 +220,21 @@ function getCalendarStatusMarkerClass(session: SessionData) {
   return 'ring-1 ring-white'
 }
 
-export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: ScheduleCalendarClientProps) {
+export function ScheduleCalendarClient({
+  sessions,
+  learnerChildren,
+  userName,
+  initialMonth,
+  initialYear,
+  todayDate,
+  renderedAt,
+}: ScheduleCalendarClientProps) {
   const router = useRouter()
-  const now = new Date()
-  const [month, setMonth] = useState(now.getMonth())
-  const [year, setYear] = useState(now.getFullYear())
+  const now = useMemo(() => new Date(renderedAt), [renderedAt])
+  const [month, setMonth] = useState(initialMonth)
+  const [year, setYear] = useState(initialYear)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [walletSession, setWalletSession] = useState<SessionData | null>(null)
+  const [walletUnit, setWalletUnit] = useState<FamilyPrivateScheduleUnit<SessionData> | null>(null)
   const [walletLoadingId, setWalletLoadingId] = useState<string | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
   const [programSession, setProgramSession] = useState<SessionData | null>(null)
@@ -230,15 +249,17 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
 
   const childColorMap = useMemo(() => buildLearnerColorMap(learnerChildren), [learnerChildren])
 
-  const sessionsByDate = useMemo(() => {
-    const map: Record<string, SessionData[]> = {}
-    sessions.forEach((session) => {
-      if (!map[session.date]) map[session.date] = []
-      map[session.date].push(session)
+  const scheduleUnits = useMemo(() => groupFamilyPrivateScheduleUnits(sessions), [sessions])
+
+  const unitsByDate = useMemo(() => {
+    const map: Record<string, FamilyPrivateScheduleUnit<SessionData>[]> = {}
+    scheduleUnits.forEach((unit) => {
+      const date = unit.representative.date
+      if (!map[date]) map[date] = []
+      map[date].push(unit)
     })
-    Object.values(map).forEach((items) => items.sort((a, b) => a.start_time.localeCompare(b.start_time)))
     return map
-  }, [sessions])
+  }, [scheduleUnits])
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1)
@@ -250,13 +271,20 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
   }, [month, year])
 
   const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-  const getDateSessions = (day: number) => sessionsByDate[getDateStr(day)] || []
-  const selectedSessions = selectedDate ? sessionsByDate[selectedDate] || [] : []
+  const selectedMonthKey = `${year}-${String(month + 1).padStart(2, '0')}`
+  const getDateUnits = (day: number) => unitsByDate[getDateStr(day)] || []
+  const selectedUnits = selectedDate ? unitsByDate[selectedDate] || [] : []
 
   const getLearnerName = (session: SessionData) => {
-    if (session.children) return session.children.nickname || session.children.full_name
-    return userName || 'ตัวเอง'
+    if (session.child_id) {
+      return session.children?.nickname || session.children?.full_name || 'ข้อมูลผู้เรียนเด็กไม่ครบ'
+    }
+    return userName || 'ข้อมูลผู้เรียนของบัญชีไม่ครบ'
   }
+
+  const hasCompleteIdentity = (session: SessionData) => (
+    session.child_id ? Boolean(session.children) : Boolean(userName.trim())
+  )
 
   const loadProgram = async (session: SessionData, force = false) => {
     setProgramSession(session)
@@ -303,19 +331,24 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
       session.status === 'scheduled' &&
       !session.is_makeup &&
       !session.attendance_status &&
-      isAtLeast48HoursAhead(session.date, session.start_time)
+      isAtLeast48HoursAhead(session.date, session.start_time, now.getTime())
     )
   }
 
+  const canStoreUnitInWallet = (unit: FamilyPrivateScheduleUnit<SessionData>) => (
+    unit.isConsistent
+    && unit.sessions.every((session) => hasCompleteIdentity(session) && canStoreInWallet(session))
+  )
+
   const storeInWallet = async () => {
-    if (!walletSession) return
-    setWalletLoadingId(walletSession.id)
+    if (!walletUnit || !canStoreUnitInWallet(walletUnit)) return
+    setWalletLoadingId(walletUnit.representative.id)
     setWalletError(null)
 
     const response = await fetch('/api/lesson-wallet', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'store', sessionId: walletSession.id }),
+      body: JSON.stringify({ action: 'store', sessionId: walletUnit.representative.id }),
     })
     const result = await response.json() as { success?: boolean; error?: string }
 
@@ -326,29 +359,25 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
     }
 
     setWalletLoadingId(null)
-    setWalletSession(null)
+    setWalletUnit(null)
     router.refresh()
   }
 
   const totalThisMonth = useMemo(() => {
-    return sessions.filter((session) => {
-      const date = new Date(`${session.date}T00:00:00+07:00`)
-      return date.getMonth() === month && date.getFullYear() === year
-    }).length
-  }, [sessions, month, year])
+    return scheduleUnits.filter((unit) => unit.representative.date.slice(0, 7) === selectedMonthKey).length
+  }, [scheduleUnits, selectedMonthKey])
 
   const perLearnerCount = useMemo(() => {
     const map: Record<string, { name: string; count: number }> = {}
     sessions.forEach((session) => {
-      const date = new Date(`${session.date}T00:00:00+07:00`)
-      if (date.getMonth() !== month || date.getFullYear() !== year) return
+      if (session.date.slice(0, 7) !== selectedMonthKey) return
       const key = session.child_id || 'self'
       const name = session.children ? session.children.nickname || session.children.full_name : userName || 'ตัวเอง'
       if (!map[key]) map[key] = { name, count: 0 }
       map[key].count += 1
     })
     return Object.values(map)
-  }, [sessions, month, year, userName])
+  }, [sessions, selectedMonthKey, userName])
 
   return (
     <div className="space-y-4">
@@ -424,12 +453,12 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
               if (day === null) return <div key={`empty-${index}`} />
 
               const dateStr = getDateStr(day)
-              const daySessions = getDateSessions(day)
-              const isToday = day === now.getDate() && month === now.getMonth() && year === now.getFullYear()
+              const dayUnits = getDateUnits(day)
+              const isToday = dateStr === todayDate
               const isSelected = selectedDate === dateStr
-              const hasSessions = daySessions.length > 0
-              const visibleSessions = daySessions.slice(0, 4)
-              const extraCount = daySessions.length - visibleSessions.length
+              const hasSessions = dayUnits.length > 0
+              const visibleUnits = dayUnits.slice(0, 4)
+              const extraCount = dayUnits.length - visibleUnits.length
 
               return (
                 <button
@@ -449,21 +478,26 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                   </span>
                   {hasSessions && (
                     <div className="mt-1 flex w-full flex-wrap justify-center gap-0.5">
-                      {visibleSessions.map((session) => {
-                        const learnerDot = getLearnerColor(session.child_id, childColorMap).dot
+                      {visibleUnits.map((unit) => {
+                        const session = unit.representative
+                        const learnerDot = unit.isFamilyPrivate
+                          ? 'bg-violet-500'
+                          : getLearnerColor(session.child_id, childColorMap).dot
                         const status = getDisplayStatus(session, now)
                         return (
                           <span
-                            key={session.id}
+                            key={unit.key}
                             className={cn('h-2 w-2 rounded-full', learnerDot, getCalendarStatusMarkerClass(session))}
-                            title={`${getLearnerName(session)} ${fmtTime(session.start_time)} ${status.label}`}
+                            title={unit.isFamilyPrivate
+                              ? `Family Private · 1 ชั่วโมง · ${unit.participantCount} คน ${fmtTime(session.start_time)} ${status.label}`
+                              : `${getLearnerName(session)} ${fmtTime(session.start_time)} ${status.label}`}
                           />
                         )
                       })}
                       {extraCount > 0 && (
                         <span className="rounded-full bg-gray-100 px-1 text-[10px] font-medium text-gray-500">+{extraCount}</span>
                       )}
-                      <span className="mt-0.5 w-full truncate text-[10px] font-medium text-[#153c85]">{daySessions.length} รอบ</span>
+                      <span className="mt-0.5 w-full truncate text-[10px] font-medium text-[#153c85]">{dayUnits.length} รอบ</span>
                     </div>
                   )}
                 </button>
@@ -473,7 +507,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
         </CardContent>
       </Card>
 
-      {selectedDate && selectedSessions.length > 0 && (
+      {selectedDate && selectedUnits.length > 0 && (
         <Card>
           <CardContent className="space-y-3 p-4">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -481,185 +515,193 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
                 <CalendarDays className="mr-1 inline h-4 w-4" />
                 {formatThaiDateWithWeekday(selectedDate)}
               </p>
-              <span className="text-sm text-gray-500">{selectedSessions.length} รอบ</span>
+              <span className="text-sm text-gray-500">{selectedUnits.length} รอบ</span>
             </div>
 
             <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1">
-              {selectedSessions.map((session) => {
-                const colorClass = getLearnerColor(session.child_id, childColorMap).badge
-                const displayStatus = getDisplayStatus(session, now)
-                const derivedStatus = getDerivedStatus(session, now)
-                const coachRoleLabel = session.coach_role ? ROLE_LABELS[session.coach_role] || session.coach_role : 'โค้ช'
-                const needsAttendanceReview = derivedStatus === 'attendance_gap_review'
-                const derivedAbsentFromPartialAttendance = derivedStatus === 'absent' && !session.attendance_status && (session.attendance_scope_count || 0) > 0
-                const isWalletSession = session.status === 'walleted'
-                const isWalletRedeemed = isWalletSession && session.wallet_credit_status === 'redeemed'
-                const isWalletExpired = isWalletSession && session.wallet_credit_status === 'expired'
-                const isRedeemedFromWallet = session.wallet_source_status === 'redeemed'
+              {selectedUnits.map((unit) => {
+                const representative = unit.representative
+                const wholeUnitEligible = canStoreUnitInWallet(unit)
 
                 return (
-                  <div key={session.id} className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className={cn('border text-xs', displayStatus.className)} variant="outline">
-                            <CircleDot className="mr-1 h-3 w-3" />
-                            {displayStatus.label}
-                          </Badge>
-                          <Badge className={colorClass} variant="outline">{getLearnerName(session)}</Badge>
-                          <Badge variant="outline" className="border-indigo-100 bg-indigo-50 text-xs text-indigo-700">
-                            {session.level_label || 'LV 0 / ยังไม่ประเมิน'}
-                          </Badge>
-                          <Badge className="border-blue-100 bg-blue-50 text-xs text-blue-700" variant="outline">
-                            {session.bookings?.course_types?.name || 'คอร์สเรียน'}
-                          </Badge>
-                          {session.is_makeup && (
-                            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-xs text-orange-700">
-                              <RotateCcw className="mr-1 h-3 w-3" />
-                              รอบชดเชย
-                            </Badge>
-                          )}
+                  <div key={unit.key} className={cn(
+                    'rounded-xl border bg-white p-3 shadow-sm',
+                    unit.isFamilyPrivate ? 'border-violet-200' : 'border-gray-100',
+                  )}>
+                    {unit.isFamilyPrivate && (
+                      <div className="mb-3 rounded-lg border border-violet-100 bg-violet-50 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold text-violet-800">Family Private · 1 ชั่วโมง · {unit.participantCount} คน</p>
+                          <Badge variant="outline" className="border-violet-200 bg-white text-violet-700">หนึ่งหน่วย แบ่งไม่ได้</Badge>
                         </div>
-
-                        <div className="grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+                        <div className="mt-2 grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
                           <span className="inline-flex items-center gap-2 font-medium text-gray-900">
                             <Clock className="h-4 w-4 text-gray-400" />
-                            {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                            {fmtTime(representative.start_time)} - {fmtTime(representative.end_time)}
                           </span>
                           <span className="inline-flex min-w-0 items-center gap-2">
                             <MapPin className="h-4 w-4 shrink-0 text-gray-400" />
-                            <span className="truncate">{session.branches?.name || 'ไม่ระบุสาขา'}</span>
+                            <span className="truncate">{representative.branches?.name || 'ไม่ระบุสาขา'}</span>
                           </span>
                         </div>
                       </div>
+                    )}
 
-                      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 lg:w-80">
-                        {session.coach_id ? (
-                          <div>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-9 w-9 border border-white shadow-sm">
-                                <AvatarImage src={session.coach_avatar_url || undefined} alt={session.coach_name || 'Coach'} />
-                                <AvatarFallback className="bg-[#2748bf]/10 text-sm font-semibold text-[#153c85]">
-                                  {getInitial(session.coach_name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-gray-900">{session.coach_name || 'โค้ชผู้สอน'}</p>
-                                <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
-                                  {session.coach_role === 'head_coach' ? <ShieldCheck className="h-3 w-3 text-[#2748bf]" /> : <UserRound className="h-3 w-3" />}
-                                  {coachRoleLabel}
-                                  {session.assignment_group_name ? ` · ${session.assignment_group_name}` : ''}
-                                </p>
+                    <div className="space-y-3">
+                      {unit.sessions.map((session) => {
+                        const colorClass = getLearnerColor(session.child_id, childColorMap).badge
+                        const displayStatus = getDisplayStatus(session, now)
+                        const derivedStatus = getDerivedStatus(session, now)
+                        const coachRoleLabel = session.coach_role ? ROLE_LABELS[session.coach_role] || session.coach_role : 'โค้ช'
+                        const needsAttendanceReview = derivedStatus === 'attendance_gap_review'
+                        const derivedAbsentFromPartialAttendance = derivedStatus === 'absent' && !session.attendance_status && (session.attendance_scope_count || 0) > 0
+                        const isWalletSession = session.status === 'walleted'
+                        const isWalletRedeemed = isWalletSession && session.wallet_credit_status === 'redeemed'
+                        const isWalletExpired = isWalletSession && session.wallet_credit_status === 'expired'
+                        const isRedeemedFromWallet = session.wallet_source_status === 'redeemed'
+
+                        return (
+                          <div key={session.id} className={cn(unit.isFamilyPrivate && 'rounded-lg border border-gray-100 p-3')}>
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                              <div className="min-w-0 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge className={cn('border text-xs', displayStatus.className)} variant="outline">
+                                    <CircleDot className="mr-1 h-3 w-3" />
+                                    {displayStatus.label}
+                                  </Badge>
+                                  <Badge className={colorClass} variant="outline">{getLearnerName(session)}</Badge>
+                                  <Badge variant="outline" className="border-indigo-100 bg-indigo-50 text-xs text-indigo-700">
+                                    {session.level_label || 'LV 0 / ยังไม่ประเมิน'}
+                                  </Badge>
+                                  {!unit.isFamilyPrivate && (
+                                    <Badge className="border-blue-100 bg-blue-50 text-xs text-blue-700" variant="outline">
+                                      {session.bookings?.course_types?.name || 'คอร์สเรียน'}
+                                    </Badge>
+                                  )}
+                                  {session.is_makeup && (
+                                    <Badge variant="outline" className="border-orange-200 bg-orange-50 text-xs text-orange-700">
+                                      <RotateCcw className="mr-1 h-3 w-3" />
+                                      รอบชดเชย
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                {!unit.isFamilyPrivate && (
+                                  <div className="grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+                                    <span className="inline-flex items-center gap-2 font-medium text-gray-900">
+                                      <Clock className="h-4 w-4 text-gray-400" />
+                                      {fmtTime(session.start_time)} - {fmtTime(session.end_time)}
+                                    </span>
+                                    <span className="inline-flex min-w-0 items-center gap-2">
+                                      <MapPin className="h-4 w-4 shrink-0 text-gray-400" />
+                                      <span className="truncate">{session.branches?.name || 'ไม่ระบุสาขา'}</span>
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 lg:w-80">
+                                {session.coach_id ? (
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9 border border-white shadow-sm">
+                                      <AvatarImage src={session.coach_avatar_url || undefined} alt={session.coach_name || 'Coach'} />
+                                      <AvatarFallback className="bg-[#2748bf]/10 text-sm font-semibold text-[#153c85]">
+                                        {getInitial(session.coach_name)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-semibold text-gray-900">{session.coach_name || 'โค้ชผู้สอน'}</p>
+                                      <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                                        {session.coach_role === 'head_coach' ? <ShieldCheck className="h-3 w-3 text-[#2748bf]" /> : <UserRound className="h-3 w-3" />}
+                                        {coachRoleLabel}
+                                        {session.assignment_group_name ? ` · ${session.assignment_group_name}` : ''}
+                                      </p>
+                                    </div>
+                                    {session.can_view_program && session.assignment_group_id && (
+                                      <Button type="button" size="sm" variant="outline" onClick={() => void loadProgram(session)}>
+                                        <BookOpenCheck className="mr-1.5 h-3.5 w-3.5" />
+                                        ดูโปรแกรมสอนรอบนี้
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-start gap-2 text-sm text-amber-700">
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                    <div>
+                                      <p className="font-semibold">
+                                        {isWalletRedeemed ? 'ใช้สิทธิ์จากกระเป๋าแล้ว' : isWalletExpired ? 'สิทธิ์ในกระเป๋าหมดอายุแล้ว' : isWalletSession ? 'เก็บไว้ในกระเป๋าวันเรียน' : 'ยังไม่ได้มอบหมายโค้ช'}
+                                      </p>
+                                      <p className="text-xs text-amber-600">
+                                        {isWalletRedeemed && session.wallet_redeemed_to
+                                          ? `ถูกนำไปใช้กับรอบ ${formatSlotText(session.wallet_redeemed_to)} แล้ว`
+                                          : isWalletExpired
+                                            ? 'สิทธิ์นี้เลยกำหนดใช้แล้ว'
+                                            : isWalletSession
+                                              ? 'ใช้สิทธิ์นี้ได้จากเมนูกระเป๋าวันเรียน'
+                                              : 'จะแสดงชื่อโค้ชเมื่อหัวหน้าโค้ชจัดกลุ่มเรียบร้อย'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            {session.can_view_program && session.assignment_group_id && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="mt-3 w-full border-[#2748bf]/20 bg-white text-[#153c85] hover:bg-blue-50"
-                                onClick={() => void loadProgram(session)}
-                              >
-                                <BookOpenCheck className="mr-1.5 h-3.5 w-3.5" />
-                                ดูโปรแกรมสอนรอบนี้
-                              </Button>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                              <Badge variant="outline" className="bg-white text-xs">
+                                <ClipboardCheck className="mr-1 h-3 w-3" />
+                                {getSessionStatusLabel(session)}
+                              </Badge>
+                              {session.attendance_checked_at && (
+                                <span className="inline-flex items-center gap-1 text-green-700"><CheckCircle2 className="h-3 w-3" />เช็คชื่อ {formatThaiDateTimeWithWeekday(session.attendance_checked_at)}</span>
+                              )}
+                              {derivedAbsentFromPartialAttendance && (
+                                <span className="inline-flex items-center gap-1 text-red-700"><AlertTriangle className="h-3 w-3" />เลยเวลาเรียนแล้ว ระบบนับเป็นขาดเรียนเพื่อส่งต่อกฎวันชดเชย</span>
+                              )}
+                              {needsAttendanceReview && (
+                                <span className="inline-flex items-center gap-1 text-orange-700"><AlertTriangle className="h-3 w-3" />รอ Admin/Coach ตรวจสอบ attendance gap</span>
+                              )}
+                              {isWalletSession && !isWalletRedeemed && !isWalletExpired && (
+                                <span className="inline-flex items-center gap-1 text-violet-700"><WalletCards className="h-3 w-3" />เก็บเข้ากระเป๋าแล้ว</span>
+                              )}
+                              {isWalletExpired && (
+                                <span className="inline-flex items-center gap-1 text-gray-600"><WalletCards className="h-3 w-3" />สิทธิ์ในกระเป๋าหมดอายุแล้ว</span>
+                              )}
+                            </div>
+
+                            {session.rescheduled_from && (
+                              <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-700">
+                                <RotateCcw className="h-3 w-3" />
+                                <span>{isRedeemedFromWallet ? 'ใช้สิทธิ์จากกระเป๋าวันที่ ' : 'ย้ายมาจากวันที่ '}{formatSlotText(session.rescheduled_from)}</span>
+                              </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="flex items-start gap-2 text-sm text-amber-700">
-                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                            <div>
-                              <p className="font-semibold">
-                                {isWalletRedeemed
-                                  ? 'ใช้สิทธิ์จากกระเป๋าแล้ว'
-                                  : isWalletExpired
-                                    ? 'สิทธิ์ในกระเป๋าหมดอายุแล้ว'
-                                    : isWalletSession
-                                      ? 'เก็บไว้ในกระเป๋าวันเรียน'
-                                      : 'ยังไม่ได้มอบหมายโค้ช'}
-                              </p>
-                              <p className="text-xs text-amber-600">
-                                {isWalletRedeemed && session.wallet_redeemed_to
-                                  ? `ถูกนำไปใช้กับรอบ ${formatSlotText(session.wallet_redeemed_to)} แล้ว`
-                                  : isWalletExpired
-                                    ? 'สิทธิ์นี้เลยกำหนดใช้ภายในเดือนเดิมแล้ว'
-                                    : isWalletSession
-                                      ? 'ใช้สิทธิ์นี้ได้จากเมนูกระเป๋าวันเรียนภายในเดือนเดิม'
-                                  : 'จะแสดงชื่อโค้ชเมื่อหัวหน้าโค้ชจัดกลุ่มเรียบร้อย'}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        )
+                      })}
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                      <Badge variant="outline" className="bg-white text-xs">
-                        <ClipboardCheck className="mr-1 h-3 w-3" />
-                        {getSessionStatusLabel(session)}
-                      </Badge>
-                      {session.attendance_checked_at && (
-                        <span className="inline-flex items-center gap-1 text-green-700">
-                          <CheckCircle2 className="h-3 w-3" />
-                          เช็คชื่อ {formatThaiDateTimeWithWeekday(session.attendance_checked_at)}
+                    <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                      {unit.isFamilyPrivate && !wholeUnitEligible && (
+                        <span className="mr-auto inline-flex items-center gap-1 text-xs text-amber-700">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          รอบครอบครัวนี้ยังไม่พร้อมเก็บทั้งหน่วย โปรดตรวจสถานะผู้เรียนทุกคน
                         </span>
                       )}
-                      {derivedAbsentFromPartialAttendance && (
-                        <span className="inline-flex items-center gap-1 text-red-700">
-                          <AlertTriangle className="h-3 w-3" />
-                          เลยเวลาเรียนแล้ว ระบบนับเป็นขาดเรียนเพื่อส่งต่อกฎวันชดเชย
-                        </span>
-                      )}
-                      {needsAttendanceReview && (
-                        <span className="inline-flex items-center gap-1 text-orange-700">
-                          <AlertTriangle className="h-3 w-3" />
-                          เลยเวลาเรียนแล้ว แต่ยังไม่มีการเช็คชื่อทั้งรอบ ต้องรอ Admin/Coach ตรวจสอบก่อนสรุปสถานะ
-                        </span>
-                      )}
-                      {isWalletSession && isWalletRedeemed && (
-                        <span className="inline-flex items-center gap-1 text-blue-700">
-                          <WalletCards className="h-3 w-3" />
-                          ใช้สิทธิ์แล้ว{session.wallet_redeemed_to ? ` ไปวันที่ ${formatSlotText(session.wallet_redeemed_to)}` : ''}
-                        </span>
-                      )}
-                      {isWalletSession && !isWalletRedeemed && !isWalletExpired && (
-                        <span className="inline-flex items-center gap-1 text-violet-700">
-                          <WalletCards className="h-3 w-3" />
-                          รอบนี้ถูกเก็บเข้ากระเป๋าแล้ว ไม่ถูกนับเป็นขาดเรียนหรือรอบชดเชย
-                        </span>
-                      )}
-                      {isWalletExpired && (
-                        <span className="inline-flex items-center gap-1 text-gray-600">
-                          <WalletCards className="h-3 w-3" />
-                          สิทธิ์ในกระเป๋าหมดอายุแล้ว
-                        </span>
-                      )}
-                      {canStoreInWallet(session) && (
+                      {wholeUnitEligible && (
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="ml-auto border-violet-200 text-violet-700 hover:bg-violet-50"
+                          className="border-violet-200 text-violet-700 hover:bg-violet-50"
                           onClick={() => {
                             setWalletError(null)
-                            setWalletSession(session)
+                            setWalletUnit(unit)
                           }}
                         >
                           <WalletCards className="mr-1 h-3.5 w-3.5" />
-                          เก็บเข้ากระเป๋า
+                          {unit.isFamilyPrivate ? 'เก็บทั้งครอบครัวเข้ากระเป๋า' : 'เก็บเข้ากระเป๋า'}
                         </Button>
                       )}
                     </div>
-
-                    {session.rescheduled_from && (
-                      <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-700">
-                        <RotateCcw className="h-3 w-3" />
-                        <span>
-                          {isRedeemedFromWallet ? 'ใช้สิทธิ์จากกระเป๋าวันที่ ' : 'ย้ายมาจากวันที่ '}
-                          {formatSlotText(session.rescheduled_from)}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )
               })}
@@ -715,19 +757,31 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={Boolean(walletSession)} onOpenChange={(open) => !open && setWalletSession(null)}>
+      <AlertDialog open={Boolean(walletUnit)} onOpenChange={(open) => !open && setWalletUnit(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>เก็บรอบเรียนเข้ากระเป๋า?</AlertDialogTitle>
+            <AlertDialogTitle>{walletUnit?.isFamilyPrivate ? 'เก็บทั้งครอบครัวเข้ากระเป๋า?' : 'เก็บรอบเรียนเข้ากระเป๋า?'}</AlertDialogTitle>
             <AlertDialogDescription>
-              ระบบจะตรวจสิทธิ์จาก Payment และแพ็กเกจอีกครั้ง: Adult Group/Family Private แพ็กเกจมากกว่า 1 ครั้งหรือชั่วโมงใช้ได้ถึงวันหมดอายุ ส่วน Kids และแบบรายครั้ง/รายชั่วโมงใช้ได้เฉพาะเดือนเดิม ไม่คิดเงินซ้ำ และถ้าเป็น Family Private การเก็บครั้งนี้จะย้ายผู้เรียนทุกคนในรอบเดียวกันพร้อมกัน
+              {walletUnit?.isFamilyPrivate
+                ? 'Family Private หนึ่งชั่วโมงเป็นหนึ่งหน่วย ผู้เรียนทุกคนจะถูกเก็บพร้อมกันและไม่สามารถแบ่งคน แบ่งวัน หรือแบ่งเวลาได้'
+                : 'ระบบจะตรวจสิทธิ์จาก Payment และแพ็กเกจอีกครั้ง โดยไม่คิดเงินซ้ำ'}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {walletSession && (
+          {walletUnit && (
             <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-700">
-              <p className="font-semibold text-[#153c85]">{getLearnerName(walletSession)}</p>
-              <p>{formatThaiDateWithWeekday(walletSession.date)} · {fmtTime(walletSession.start_time)}-{fmtTime(walletSession.end_time)}</p>
-              <p className="text-xs text-gray-500">{walletSession.branches?.name || '-'}</p>
+              {walletUnit.isFamilyPrivate && (
+                <p className="font-semibold text-violet-800">Family Private · 1 ชั่วโมง · {walletUnit.participantCount} คน</p>
+              )}
+              <ul className="mt-2 space-y-1">
+                {walletUnit.sessions.map((session) => (
+                  <li key={session.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white px-2 py-1">
+                    <span className="font-medium text-[#153c85]">{getLearnerName(session)}</span>
+                    <span className="text-xs text-indigo-700">{session.level_label || 'LV 0 / ยังไม่ประเมิน'}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2">{formatThaiDateWithWeekday(walletUnit.representative.date)} · {fmtTime(walletUnit.representative.start_time)}-{fmtTime(walletUnit.representative.end_time)}</p>
+              <p className="text-xs text-gray-500">{walletUnit.representative.branches?.name || '-'}</p>
             </div>
           )}
           {walletError && (
@@ -753,7 +807,7 @@ export function ScheduleCalendarClient({ sessions, learnerChildren, userName }: 
               ) : (
                 <>
                   <WalletCards className="mr-2 h-4 w-4" />
-                  ยืนยันเก็บเข้ากระเป๋า
+                  {walletUnit?.isFamilyPrivate ? 'ยืนยันเก็บทั้งครอบครัว' : 'ยืนยันเก็บเข้ากระเป๋า'}
                 </>
               )}
             </AlertDialogAction>

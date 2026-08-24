@@ -137,7 +137,7 @@ async function fetchSessions(
   const selection = detailed
     ? `id, date, start_time, end_time, status, is_makeup, child_id, schedule_slot_id, branch_id,
        branches(name), children(full_name, nickname),
-       bookings!inner(id, user_id, learner_type, course_type_id, status,
+       bookings!inner(id, user_id, learner_type, child_id, course_type_id, status,
          profiles!bookings_user_id_fkey(full_name), course_types(name))`
     : `id, date, start_time, end_time, status, is_makeup, child_id, schedule_slot_id, branch_id,
        branches(name), bookings!inner(user_id, course_type_id, status, course_types(name))`

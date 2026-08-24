@@ -19,6 +19,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 const route = read('src/app/api/lesson-wallet/route.ts')
 const slotResolver = read('src/lib/schedule-slot-utils.ts')
 const migration = read('supabase/migrations/20260823090000_adult_private_ten_month_lesson_wallet.sql')
+const correctiveMigration = read('supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql')
 const walletPage = read('src/app/(dashboard)/dashboard/lesson-wallet/page.tsx')
 const walletClient = read('src/components/dashboard/lesson-wallet-client.tsx')
 
@@ -97,6 +98,34 @@ check('Adult and Private single-unit tiers and every Kids tier remain same-month
   assert.equal(entitlement({ quantity: 1, tiers: [tier('adult_group', 1)] }).policyType, 'same_month')
   assert.equal(entitlement({ courseType: 'private', quantity: 1, tiers: [tier('private', 1)] }).policyType, 'same_month')
   assert.equal(entitlement({ courseType: 'kids_group', quantity: 10, tiers: [tier('kids_group', 10)] }).policyType, 'same_month')
+})
+
+check('inclusive Adult range tiers resolve at lower, interior, and upper quantities', () => {
+  const adultTiers = [
+    tier('adult_group', 2, { id: 'adult-2-6', max_sessions: 6 }),
+    tier('adult_group', 7, { id: 'adult-7-12', max_sessions: 12 }),
+  ]
+
+  for (const quantity of [2, 4, 6]) {
+    assert.equal(entitlement({ quantity, tiers: adultTiers }).pricingTier.id, 'adult-2-6')
+  }
+  for (const quantity of [7, 9, 12]) {
+    assert.equal(entitlement({ quantity, tiers: adultTiers }).pricingTier.id, 'adult-7-12')
+  }
+})
+
+check('representative Kids range boundaries and interiors resolve but remain same-month', () => {
+  const kidsTiers = [
+    tier('kids_group', 2, { id: 'kids-2-6', max_sessions: 6 }),
+    tier('kids_group', 7, { id: 'kids-7-10', max_sessions: 10 }),
+    tier('kids_group', 11, { id: 'kids-11-14', max_sessions: 14 }),
+    tier('kids_group', 15, { id: 'kids-15-18', max_sessions: 18 }),
+    tier('kids_group', 19, { id: 'kids-19-plus', max_sessions: null }),
+  ]
+
+  for (const quantity of [2, 4, 6, 7, 8, 10, 11, 13, 14, 15, 16, 18, 19, 24]) {
+    assert.equal(entitlement({ courseType: 'kids_group', quantity, tiers: kidsTiers }).policyType, 'same_month')
+  }
 })
 
 check('missing or ambiguous approved Payment evidence fails closed', () => {
@@ -228,6 +257,17 @@ check('notifications and activity are emitted once per entitlement unit, not onc
   assert.equal(storePath.includes('entityId: data.credit_id'), true)
   assert.equal(storePath.includes('participantCount: data.participant_count'), true)
   assert.equal(storePath.includes('participantSessionIds: data.participant_session_ids'), true)
+})
+check('the corrective RPC uses inclusive tier containment without replacing Redeem', () => {
+  assert.equal((correctiveMigration.match(/tier\.min_sessions <= v_selected\.total_sessions/g) || []).length, 2)
+  assert.equal((correctiveMigration.match(/v_selected\.total_sessions <= tier\.max_sessions/g) || []).length, 2)
+  assert.doesNotMatch(correctiveMigration, /tier\.min_sessions = v_selected\.total_sessions/)
+  assert.doesNotMatch(correctiveMigration, /CREATE OR REPLACE FUNCTION public\.lesson_wallet_redeem_v2/)
+  assert.equal((correctiveMigration.match(/CREATE OR REPLACE FUNCTION/g) || []).length, 1)
+  assert.equal((correctiveMigration.match(/SECURITY DEFINER/g) || []).length, 1)
+  assert.equal((correctiveMigration.match(/SET search_path = public, pg_temp/g) || []).length, 1)
+  assert.match(correctiveMigration, /REVOKE ALL ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\)\s+FROM PUBLIC, anon, authenticated;/)
+  assert.match(correctiveMigration, /GRANT EXECUTE ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\) TO service_role;/)
 })
 check('the additive migration has no apply-time wallet-row backfill', () => {
   const beforeFunctions = migration.slice(0, migration.indexOf('CREATE OR REPLACE FUNCTION'))

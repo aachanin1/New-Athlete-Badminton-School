@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { register } from 'node:module'
+
+register(new URL('./ts-alias-loader.mjs', import.meta.url).href, import.meta.url)
 
 import {
   getAdminScheduleRoundLearnerBuckets,
@@ -15,6 +18,7 @@ import {
   resolveAssignmentGroupName,
   stripDynamicMemberCount,
 } from '../src/lib/coach-assignment-group-naming.ts'
+const { buildAdminScheduleDayDetail } = await import('../src/lib/admin-schedules-model.ts')
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
@@ -55,6 +59,63 @@ const group = ({
 check('no group keeps an active learner waiting', () => {
   const result = getAdminScheduleRoundLearnerBuckets({ groups: [], unassigned_learners: [learner('a')] })
   assert.deepEqual([result.coachedLearnerCount, result.waitingCoachCount], [0, 1])
+})
+
+check('Admin Private detail keeps parent and child names, ids, and Levels separate', () => {
+  const baseSession = {
+    booking_id: 'booking-family',
+    date: '2026-09-06',
+    start_time: '10:00:00',
+    end_time: '11:00:00',
+    status: 'scheduled',
+    is_makeup: false,
+    schedule_slot_id: 'slot-family',
+    branch_id: 'branch-1',
+    branches: { name: 'Branch' },
+    bookings: {
+      id: 'booking-family',
+      user_id: 'parent-1',
+      learner_type: 'child',
+      child_id: null,
+      course_type_id: 'private-1',
+      status: 'verified',
+      profiles: { full_name: 'Parent Distinct' },
+      course_types: { name: 'private' },
+    },
+  }
+  const result = buildAdminScheduleDayDetail({
+    sessions: [
+      { ...baseSession, id: 'session-self', child_id: null, children: null },
+      { ...baseSession, id: 'session-child', child_id: 'child-1', children: { full_name: 'Child Distinct', nickname: 'Kid' } },
+    ],
+    walletCredits: [],
+    groups: [],
+    slotSessions: [
+      { id: 'session-self', schedule_slot_id: 'slot-family' },
+      { id: 'session-child', schedule_slot_id: 'slot-family' },
+    ],
+    attendanceRows: [],
+    studentLevels: [
+      { student_id: 'parent-1', student_type: 'adult', level: 12, created_at: '2026-09-01T00:00:00Z' },
+      { student_id: 'child-1', student_type: 'child', level: 47, created_at: '2026-09-01T00:00:00Z' },
+    ],
+    levels: [
+      { id: 12, name: 'LV 12', category: 'basic' },
+      { id: 47, name: 'LV 47', category: 'athlete_c' },
+    ],
+    teachingPrograms: [],
+  })
+  const self = result.sessions.find((session) => session.id === 'session-self')
+  const child = result.sessions.find((session) => session.id === 'session-child')
+  assert.deepEqual(
+    [self?.student_id, self?.student_type, self?.learner_name, self?.level, self?.child_id],
+    ['parent-1', 'adult', 'Parent Distinct', 12, null],
+  )
+  assert.deepEqual(
+    [child?.student_id, child?.student_type, child?.learner_name, child?.parent_name, child?.level, child?.child_id],
+    ['child-1', 'child', 'Kid', 'Parent Distinct', 47, 'child-1'],
+  )
+  assert.equal(schedulesRead.includes('bookings!inner(id, user_id, learner_type, child_id, course_type_id, status'), true)
 })
 
 check('group with null coach remains grouped but waits for a coach', () => {

@@ -27,6 +27,7 @@ interface ScheduleSessionRow {
   date: string
   start_time: string
   end_time: string
+  branch_id: string
   status: string
   is_makeup: boolean
   child_id: string | null
@@ -136,6 +137,18 @@ function formatMoney(amount: number) {
 }
 
 export default async function SchedulePage() {
+  const renderedAt = new Date()
+  const bangkokDateParts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(renderedAt).map((part) => [part.type, part.value]),
+  )
+  const initialYear = Number(bangkokDateParts.year)
+  const initialMonth = Number(bangkokDateParts.month) - 1
+  const todayDate = `${bangkokDateParts.year}-${bangkokDateParts.month}-${bangkokDateParts.day}`
   const supabase = await createClient()
   const adminSupabase = getServiceRoleClient()
   const {
@@ -157,7 +170,7 @@ export default async function SchedulePage() {
       .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: IncompleteBookingRow[] | null }>,
     supabase
       .from('booking_sessions')
-      .select('id, booking_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, child_id, rescheduled_from_id, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name, nickname)')
+      .select('id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, status, is_makeup, child_id, rescheduled_from_id, bookings!inner(user_id, course_type_id, status, course_types(name)), branches(name), children(full_name, nickname)')
       .eq('bookings.user_id', user.id)
       .eq('bookings.status', 'verified')
       .neq('status', 'rescheduled')
@@ -520,6 +533,10 @@ export default async function SchedulePage() {
         sessions={sessions}
         learnerChildren={children || []}
         userName={profile?.full_name || ''}
+        initialMonth={initialMonth}
+        initialYear={initialYear}
+        todayDate={todayDate}
+        renderedAt={renderedAt.toISOString()}
       />
     </div>
   )

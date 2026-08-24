@@ -165,10 +165,16 @@ async function setupMasterData() {
   ]), 'course types')
   await ok(await supabase.from('pricing_tiers').insert([
     { course_type_id: IDS.adult, min_sessions: 1, max_sessions: 1, price_per_session: 600, package_price: 600, valid_from: '2020-01-01' },
-    { course_type_id: IDS.adult, min_sessions: 10, max_sessions: 10, price_per_session: 550, package_price: 5500, valid_from: '2020-01-01' },
+    { course_type_id: IDS.adult, min_sessions: 2, max_sessions: 6, price_per_session: 550, package_price: 1100, valid_from: '2020-01-01' },
+    { course_type_id: IDS.adult, min_sessions: 7, max_sessions: 12, price_per_session: 500, package_price: 3500, valid_from: '2020-01-01' },
     { course_type_id: IDS.private, min_sessions: 1, max_sessions: 1, price_per_session: 900, package_price: 900, valid_from: '2020-01-01' },
-    { course_type_id: IDS.private, min_sessions: 10, max_sessions: 10, price_per_session: 800, package_price: 8000, valid_from: '2020-01-01' },
+    { course_type_id: IDS.private, min_sessions: 2, max_sessions: 10, price_per_session: 800, package_price: 1600, valid_from: '2020-01-01' },
     { course_type_id: IDS.kids, min_sessions: 1, max_sessions: 1, price_per_session: 700, package_price: 700, valid_from: '2020-01-01' },
+    { course_type_id: IDS.kids, min_sessions: 2, max_sessions: 6, price_per_session: 625, package_price: 1250, valid_from: '2020-01-01' },
+    { course_type_id: IDS.kids, min_sessions: 7, max_sessions: 10, price_per_session: 500, package_price: 3500, valid_from: '2020-01-01' },
+    { course_type_id: IDS.kids, min_sessions: 11, max_sessions: 14, price_per_session: 433, package_price: 4763, valid_from: '2020-01-01' },
+    { course_type_id: IDS.kids, min_sessions: 15, max_sessions: 18, price_per_session: 406, package_price: 6090, valid_from: '2020-01-01' },
+    { course_type_id: IDS.kids, min_sessions: 19, max_sessions: null, price_per_session: 350, package_price: 6650, valid_from: '2020-01-01' },
   ]), 'pricing tiers')
 }
 
@@ -196,15 +202,17 @@ async function createTemplateSlot(courseTypeId, date, start, end, { status = 'op
   return slot
 }
 
-async function createBooking({ userId, courseTypeId, totalSessions, amount, slot, childIds = [null], label }) {
+async function createBooking({ userId, courseTypeId, totalSessions, amount, slot, slots, childIds = [null], label }) {
+  const bookingSlots = slots || [slot]
+  const firstSlot = bookingSlots[0]
   const booking = await ok(await supabase.from('bookings').insert({
     user_id: userId,
     learner_type: childIds.some(Boolean) ? 'child' : 'self',
     child_id: childIds.length === 1 ? childIds[0] : null,
     branch_id: IDS.branch,
     course_type_id: courseTypeId,
-    month: Number(slot.date.slice(5, 7)),
-    year: Number(slot.date.slice(0, 4)),
+    month: Number(firstSlot.date.slice(5, 7)),
+    year: Number(firstSlot.date.slice(0, 4)),
     total_sessions: totalSessions,
     total_price: amount,
     status: 'verified',
@@ -219,17 +227,17 @@ async function createBooking({ userId, courseTypeId, totalSessions, amount, slot
     verified_at: verifiedAt,
     notes: MARKER,
   }), `payment ${label}`)
-  const sessions = await ok(await supabase.from('booking_sessions').insert(childIds.map((childId) => ({
+  const sessions = await ok(await supabase.from('booking_sessions').insert(bookingSlots.flatMap((bookingSlot) => childIds.map((childId) => ({
     booking_id: booking.id,
-    schedule_slot_id: slot.id,
-    date: slot.date,
-    start_time: slot.start_time,
-    end_time: slot.end_time,
+    schedule_slot_id: bookingSlot.id,
+    date: bookingSlot.date,
+    start_time: bookingSlot.start_time,
+    end_time: bookingSlot.end_time,
     branch_id: IDS.branch,
     child_id: childId,
     status: 'scheduled',
     is_makeup: false,
-  }))).select('id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, child_id, status'), `sessions ${label}`)
+  })))).select('id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, child_id, status'), `sessions ${label}`)
   return { booking, sessions, verifiedAt }
 }
 
@@ -307,7 +315,7 @@ async function run() {
   const crossMonthDate = futureDate(3, 16)
   const adultSource = await createTemplateSlot(IDS.adult, sourceDate, '17:00', '19:00', { currentStudents: 1 })
   const adultCrossTarget = await createTemplateSlot(IDS.adult, crossMonthDate, '17:00', '19:00', { status: 'full', currentStudents: 99 })
-  const adultPackage = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 10, amount: 5500, slot: adultSource, label: 'adult-package' })
+  const adultPackage = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 10, amount: 5000, slot: adultSource, label: 'adult-package' })
   const adultStored = await ok(await store(parentId, adultPackage.sessions[0].id), 'store Adult package')
   assert(adultStored.policy_type === 'ten_month_package', 'Adult package policy must be ten_month_package')
   const adultRedeemed = await ok(await redeem(parentId, adultStored.credit_id, adultCrossTarget), 'redeem Adult cross-month')
@@ -321,19 +329,38 @@ async function run() {
   await expectRpcCode(redeem(parentId, adultSingleStored.credit_id, adultSingleTarget), 'LESSON_WALLET_SAME_MONTH_REQUIRED', 'Adult single cross-month')
 
   const familySource = await createTemplateSlot(IDS.private, sourceDate, '10:00', '11:00', { currentStudents: 2 })
+  const familyOtherSource = await createTemplateSlot(IDS.private, sourceDate, '11:00', '12:00', { currentStudents: 2 })
   const familyTarget = await createTemplateSlot(IDS.private, crossMonthDate, '10:00', '11:00')
-  const family = await createBooking({ userId: parentId, courseTypeId: IDS.private, totalSessions: 10, amount: 8000, slot: familySource, childIds: [null, children[0].id], label: 'family-package' })
-  await assignFamily(coachId, adminId, familySource.id, family.sessions, parentId)
-  const familyStored = await ok(await store(parentId, family.sessions[1].id), 'store Family Private')
+  const family = await createBooking({
+    userId: parentId,
+    courseTypeId: IDS.private,
+    totalSessions: 2,
+    amount: 1600,
+    slots: [familySource, familyOtherSource],
+    childIds: [null, children[0].id],
+    label: 'family-package',
+  })
+  const familySourceSessions = family.sessions.filter((session) => session.schedule_slot_id === familySource.id)
+  const familyOtherSessions = family.sessions.filter((session) => session.schedule_slot_id === familyOtherSource.id)
+  assert(family.sessions.length === 4 && familySourceSessions.length === 2 && familyOtherSessions.length === 2, 'two Family hours must serialize as four participant sessions')
+  await assignFamily(coachId, adminId, familySource.id, familySourceSessions, parentId)
+  await assignFamily(coachId, adminId, familyOtherSource.id, familyOtherSessions, parentId)
+  const familyStored = await ok(await store(parentId, familySourceSessions[1].id), 'store Family Private')
   assert(familyStored.unit_type === 'family_private' && familyStored.participant_count === 2, 'Family Private must be one two-person unit')
   const memberRows = await ok(await supabase.from('lesson_wallet_credit_members').select('original_session_id').eq('credit_id', familyStored.credit_id), 'family members')
   assert(memberRows.length === 2, 'Family unit must store both participant memberships')
-  const familyAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', family.sessions.map((row) => row.id)), 'retired family assignments')
+  const familyAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familySourceSessions.map((row) => row.id)), 'retired family assignments')
   assert(familyAssignments.length === 0, 'Family store must retire every exact assignment membership')
+  const otherHourAfterStore = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familyOtherSessions.map((row) => row.id)), 'unchanged other Family hour')
+  assert(otherHourAfterStore.length === 2 && otherHourAfterStore.every((row) => row.status === 'scheduled'), 'storing one Family hour must leave the other hour unchanged')
+  const otherHourAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familyOtherSessions.map((row) => row.id)), 'other Family assignments')
+  assert(otherHourAssignments.length === 2, 'storing one Family hour must preserve the other hour assignments')
   const familyRedeemed = await ok(await redeem(parentId, familyStored.credit_id, familyTarget), 'redeem Family cross-month')
   assert(familyRedeemed.participant_count === 2 && familyRedeemed.session_ids.length === 2, 'Family redeem must move both participants atomically')
   const movedFamily = await ok(await supabase.from('booking_sessions').select('child_id, rescheduled_from_id').in('id', familyRedeemed.session_ids), 'moved family identities')
   assert(movedFamily.some((row) => row.child_id === null) && movedFamily.some((row) => row.child_id === children[0].id), 'Family self/child identities must be preserved')
+  const otherHourAfterRedeem = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familyOtherSessions.map((row) => row.id)), 'other Family hour after redeem')
+  assert(otherHourAfterRedeem.length === 2 && otherHourAfterRedeem.every((row) => row.status === 'scheduled'), 'redeeming one Family hour must leave the other hour unchanged')
   const destinationAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familyRedeemed.session_ids), 'destination assignments')
   assert(destinationAssignments.length === 0, 'Redeemed destination must remain unassigned')
 
@@ -366,7 +393,7 @@ async function run() {
 
   const kidsSource = await createTemplateSlot(IDS.kids, sourceDate, '16:00', '18:00')
   const kidsTarget = await createTemplateSlot(IDS.kids, crossMonthDate, '16:00', '18:00')
-  const kids = await createBooking({ userId: parentId, courseTypeId: IDS.kids, totalSessions: 1, amount: 700, slot: kidsSource, childIds: [children[0].id], label: 'kids-single' })
+  const kids = await createBooking({ userId: parentId, courseTypeId: IDS.kids, totalSessions: 8, amount: 4000, slot: kidsSource, childIds: [children[0].id], label: 'kids-range' })
   const kidsStored = await ok(await store(parentId, kids.sessions[0].id), 'store Kids')
   await expectRpcCode(redeem(parentId, kidsStored.credit_id, kidsTarget), 'LESSON_WALLET_SAME_MONTH_REQUIRED', 'Kids cross-month')
 
@@ -425,6 +452,23 @@ async function run() {
   const missingPaymentBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: missingPaymentSlot, label: 'missing-payment' })
   await ok(await supabase.from('payments').delete().eq('booking_id', missingPaymentBooking.booking.id), 'remove Payment evidence')
   await expectRpcCode(store(parentId, missingPaymentBooking.sessions[0].id), 'LESSON_WALLET_PAYMENT_EVIDENCE_MISSING', 'missing Payment evidence')
+
+  const ambiguousPaymentSlot = await createTemplateSlot(IDS.adult, sourceDate, '11:30', '12:30')
+  const ambiguousPaymentBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: ambiguousPaymentSlot, label: 'ambiguous-payment' })
+  await ok(await supabase.from('payments').insert({
+    booking_id: ambiguousPaymentBooking.booking.id,
+    user_id: parentId,
+    amount: 600,
+    method: 'transfer',
+    status: 'approved',
+    verified_at: new Date().toISOString(),
+    notes: MARKER,
+  }), 'duplicate approved Payment evidence')
+  await expectRpcCode(store(parentId, ambiguousPaymentBooking.sessions[0].id), 'LESSON_WALLET_PAYMENT_EVIDENCE_AMBIGUOUS', 'ambiguous Payment evidence')
+
+  const missingTierSlot = await createTemplateSlot(IDS.adult, sourceDate, '12:30', '13:30')
+  const missingTierBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 13, amount: 6500, slot: missingTierSlot, label: 'missing-tier' })
+  await expectRpcCode(store(parentId, missingTierBooking.sessions[0].id), 'LESSON_WALLET_TIER_EVIDENCE_MISSING', 'missing tier evidence')
 
   const ambiguousTierSlot = await createTemplateSlot(IDS.adult, sourceDate, '15:00', '16:00')
   const ambiguousTierBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: ambiguousTierSlot, label: 'ambiguous-tier' })
@@ -492,7 +536,7 @@ async function run() {
   console.log('PASS Assignment retirement, destination unassigned, over-capacity allowed, and no new Payment/Coupon/Ledger')
   console.log('PASS Store guards: 48-hour cutoff, started, attendance, and makeup')
   console.log('PASS Redeem guards: inactive template, cancelled target, same-month, expiry, and participant overlap')
-  console.log('PASS Missing Payment and overlapping tier evidence fail closed; existing active/expired credits remain unchanged')
+  console.log('PASS Missing/ambiguous Payment and missing/overlapping tier evidence fail closed; existing active/expired credits remain unchanged')
 
   if (!keepData) {
     const residue = await cleanup()

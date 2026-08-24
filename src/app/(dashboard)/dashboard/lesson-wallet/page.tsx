@@ -72,6 +72,10 @@ interface ExistingSessionRow {
   } | null
 }
 
+interface ProfileRow {
+  full_name: string | null
+}
+
 export default async function LessonWalletPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -81,7 +85,7 @@ export default async function LessonWalletPage() {
   const adminSupabase = getServiceRoleClient()
   const nowIso = new Date().toISOString()
 
-  const [{ data: credits }, { data: branches }, { data: scheduleTemplates }, { data: existingSessions }] = await Promise.all([
+  const [{ data: credits }, { data: branches }, { data: scheduleTemplates }, { data: existingSessions }, { data: profile }] = await Promise.all([
     adminSupabase
       .from('lesson_wallet_credits')
       .select(`
@@ -119,6 +123,11 @@ export default async function LessonWalletPage() {
       .neq('bookings.status', 'cancelled')
       .neq('status', 'rescheduled')
       .neq('status', 'walleted') as unknown as PromiseLike<{ data: ExistingSessionRow[] | null }>,
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single() as unknown as PromiseLike<{ data: ProfileRow | null }>,
   ])
 
   const walletScheduleTemplates = (scheduleTemplates || []).flatMap((template) => {
@@ -167,6 +176,7 @@ export default async function LessonWalletPage() {
           course_type_id: session.bookings?.course_type_id || '',
         }))}
         scheduleTemplates={walletScheduleTemplates}
+        userName={profile?.full_name || ''}
       />
     </div>
   )

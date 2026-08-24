@@ -114,15 +114,15 @@ function bangkokMonthEndIso(year: number, month: number, additionalMonths: numbe
   return new Date(nextMonthStartUtc - 1).toISOString()
 }
 
-function exactTierMatches(
+function inclusiveTierMatches(
   tier: LessonWalletPricingTierEvidence,
   courseType: CourseCategory,
   purchasedQuantity: number,
   approvalDate: string,
 ) {
   if (tier.course_type_name !== courseType) return false
-  if (Number(tier.min_sessions) !== purchasedQuantity) return false
-  if (tier.max_sessions !== null && Number(tier.max_sessions) !== purchasedQuantity) return false
+  if (Number(tier.min_sessions) > purchasedQuantity) return false
+  if (tier.max_sessions !== null && purchasedQuantity > Number(tier.max_sessions)) return false
   if (tier.valid_from && tier.valid_from > approvalDate) return false
   if (tier.valid_to && tier.valid_to < approvalDate) return false
   return true
@@ -162,7 +162,7 @@ export function resolveLessonWalletEntitlement({
   const payment = approvedPayments[0]
   const approvalTimestamp = payment.verified_at as string
   const approvalDate = bangkokDateKey(approvalTimestamp)
-  const matchingTiers = pricingTiers.filter((tier) => exactTierMatches(
+  const matchingTiers = pricingTiers.filter((tier) => inclusiveTierMatches(
     tier,
     courseType,
     purchasedQuantity,

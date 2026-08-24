@@ -481,6 +481,141 @@ test('Adult and Private package copy shows 10 months only above one unit', async
   }
 })
 
+test('Family Private Schedule groups four self-child rows into two exact hour units', async ({ page }) => {
+  const browserErrors = observeBrowserErrors(page)
+  const admin = createLocalAdmin()
+  const bookingId = randomUUID()
+  const templateIds = [randomUUID(), randomUUID()]
+  const slotIds = [randomUUID(), randomUUID()]
+  const sessionIds = Array.from({ length: 4 }, () => randomUUID())
+  const levelIds = [randomUUID(), randomUUID()]
+  const creditId = randomUUID()
+  const nextMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 7))
+  const date = nextMonth.toISOString().slice(0, 10)
+  const dayOfWeek = nextMonth.getUTCDay()
+
+  const { error: templateError } = await admin.from('schedule_templates').insert([
+    { id: templateIds[0], branch_id: fixture.branchId, course_type_id: fixture.privateCourseId, day_of_week: dayOfWeek, start_time: '10:00:00', end_time: '11:00:00', is_active: true, notes: 'Family Schedule regression' },
+    { id: templateIds[1], branch_id: fixture.branchId, course_type_id: fixture.privateCourseId, day_of_week: dayOfWeek, start_time: '11:00:00', end_time: '12:00:00', is_active: true, notes: 'Family Schedule regression' },
+  ])
+  if (templateError) throw new Error(templateError.message)
+  const { error: slotError } = await admin.from('schedule_slots').insert([
+    { id: slotIds[0], template_id: templateIds[0], branch_id: fixture.branchId, course_type_id: fixture.privateCourseId, date, start_time: '10:00:00', end_time: '11:00:00', status: 'open', current_students: 2, max_students: 1 },
+    { id: slotIds[1], template_id: templateIds[1], branch_id: fixture.branchId, course_type_id: fixture.privateCourseId, date, start_time: '11:00:00', end_time: '12:00:00', status: 'open', current_students: 2, max_students: 1 },
+  ])
+  if (slotError) throw new Error(slotError.message)
+  const { error: bookingError } = await admin.from('bookings').insert({
+    id: bookingId,
+    user_id: fixture.userId,
+    learner_type: 'child',
+    child_id: null,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    month: nextMonth.getUTCMonth() + 1,
+    year: nextMonth.getUTCFullYear(),
+    total_sessions: 2,
+    total_price: 2000,
+    status: 'verified',
+  })
+  if (bookingError) throw new Error(bookingError.message)
+  const { error: sessionError } = await admin.from('booking_sessions').insert([
+    { id: sessionIds[0], booking_id: bookingId, schedule_slot_id: slotIds[0], date, start_time: '10:00:00', end_time: '11:00:00', branch_id: fixture.branchId, child_id: null, status: 'scheduled' },
+    { id: sessionIds[1], booking_id: bookingId, schedule_slot_id: slotIds[0], date, start_time: '10:00:00', end_time: '11:00:00', branch_id: fixture.branchId, child_id: fixture.mainChildId, status: 'scheduled' },
+    { id: sessionIds[2], booking_id: bookingId, schedule_slot_id: slotIds[1], date, start_time: '11:00:00', end_time: '12:00:00', branch_id: fixture.branchId, child_id: null, status: 'scheduled' },
+    { id: sessionIds[3], booking_id: bookingId, schedule_slot_id: slotIds[1], date, start_time: '11:00:00', end_time: '12:00:00', branch_id: fixture.branchId, child_id: fixture.mainChildId, status: 'scheduled' },
+  ])
+  if (sessionError) throw new Error(sessionError.message)
+  const { error: levelError } = await admin.from('student_levels').insert([
+    { id: levelIds[0], student_id: fixture.userId, student_type: 'adult', level: 12, updated_by: fixture.adminUserId, created_at: '2035-01-01T00:00:00Z' },
+    { id: levelIds[1], student_id: fixture.mainChildId, student_type: 'child', level: 47, updated_by: fixture.adminUserId, created_at: '2035-01-01T00:00:01Z' },
+  ])
+  if (levelError) throw new Error(levelError.message)
+
+  try {
+    await login(page)
+    await page.goto('/dashboard/schedule')
+    await page.getByRole('button', { name: 'เดือนถัดไป' }).click()
+    await page.getByRole('button', { name: `ดูตารางวันที่ ${date}` }).click()
+
+    const familyCards = page.locator('div.rounded-xl.shadow-sm').filter({ hasText: 'Family Private · 1 ชั่วโมง · 2 คน' })
+    await expect(familyCards).toHaveCount(2)
+    for (const card of await familyCards.all()) {
+      await expect(card.getByText(TEST_ACCOUNT.fullName, { exact: true })).toBeVisible()
+      await expect(card.getByText(TEST_ACCOUNT.childNickname, { exact: true })).toBeVisible()
+      await expect(card.getByText(/LV 12/)).toBeVisible()
+      await expect(card.getByText(/LV 47/)).toBeVisible()
+    }
+    await expect(page.getByRole('button', { name: 'เก็บทั้งครอบครัวเข้ากระเป๋า', exact: true })).toHaveCount(2)
+    await expect(page.getByText('2 รอบ', { exact: true })).toHaveCount(2)
+
+    await page.getByRole('button', { name: 'เก็บทั้งครอบครัวเข้ากระเป๋า', exact: true }).first().click()
+    const dialog = page.getByRole('alertdialog')
+    await expect(dialog.getByText('Family Private · 1 ชั่วโมง · 2 คน', { exact: true })).toBeVisible()
+    await expect(dialog.getByText(TEST_ACCOUNT.fullName, { exact: true })).toBeVisible()
+    await expect(dialog.getByText(TEST_ACCOUNT.childNickname, { exact: true })).toBeVisible()
+    await expect(dialog.getByText(/หนึ่งชั่วโมงเป็นหนึ่งหน่วย/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'ยกเลิก' }).click()
+
+    const { data: storedSessions, error: readError } = await admin.from('booking_sessions')
+      .select('id, child_id, status').eq('booking_id', bookingId).order('id')
+    if (readError) throw new Error(readError.message)
+    expect(storedSessions).toHaveLength(4)
+    expect(storedSessions?.filter((session) => session.child_id === null)).toHaveLength(2)
+    expect(storedSessions?.filter((session) => session.child_id === fixture.mainChildId)).toHaveLength(2)
+    expect(storedSessions?.every((session) => session.status === 'scheduled')).toBe(true)
+
+    const { error: walletStatusError } = await admin.from('booking_sessions')
+      .update({ status: 'walleted' }).in('id', sessionIds.slice(0, 2))
+    if (walletStatusError) throw new Error(walletStatusError.message)
+    const { error: creditError } = await admin.from('lesson_wallet_credits').insert({
+      id: creditId,
+      user_id: fixture.userId,
+      booking_id: bookingId,
+      original_session_id: sessionIds[0],
+      child_id: null,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.privateCourseId,
+      original_schedule_slot_id: slotIds[0],
+      original_date: date,
+      original_start_time: '10:00:00',
+      original_end_time: '11:00:00',
+      status: 'active',
+      expires_at: new Date(Date.UTC(nextMonth.getUTCFullYear(), nextMonth.getUTCMonth() + 1, 1) - 1).toISOString(),
+      entitlement_unit_type: 'family_private',
+      entitlement_policy: 'same_month',
+      entitlement_started_at: new Date().toISOString(),
+      participant_count: 2,
+    })
+    if (creditError) throw new Error(creditError.message)
+    const { error: memberError } = await admin.from('lesson_wallet_credit_members').insert([
+      { credit_id: creditId, original_session_id: sessionIds[0], child_id: null, original_schedule_slot_id: slotIds[0], original_date: date, original_start_time: '10:00:00', original_end_time: '11:00:00', branch_id: fixture.branchId },
+      { credit_id: creditId, original_session_id: sessionIds[1], child_id: fixture.mainChildId, original_schedule_slot_id: slotIds[0], original_date: date, original_start_time: '10:00:00', original_end_time: '11:00:00', branch_id: fixture.branchId },
+    ])
+    if (memberError) throw new Error(memberError.message)
+
+    await page.goto('/dashboard/lesson-wallet')
+    const walletCard = page.locator('div.border-violet-200').filter({ hasText: 'Family Private · 1 ชั่วโมง · 2 คน' }).first()
+    await expect(walletCard).toBeVisible()
+    await expect(walletCard.getByText(TEST_ACCOUNT.fullName, { exact: true })).toBeVisible()
+    await expect(walletCard.getByText(TEST_ACCOUNT.childNickname, { exact: true })).toBeVisible()
+    await expect(walletCard.getByRole('button', { name: 'ใช้วันเรียน', exact: true })).toHaveCount(1)
+    await walletCard.getByRole('button', { name: 'ใช้วันเรียน', exact: true }).click()
+    const redeemDialog = page.getByRole('dialog')
+    await expect(redeemDialog.getByText(TEST_ACCOUNT.fullName, { exact: true })).toBeVisible()
+    await expect(redeemDialog.getByText(TEST_ACCOUNT.childNickname, { exact: true })).toBeVisible()
+    await expect(redeemDialog.getByText(/ผู้เรียนทุกคนไปพร้อมกันและไม่สามารถแบ่งใช้คนละรอบได้/)).toBeVisible()
+    await redeemDialog.getByRole('button', { name: 'ยกเลิก' }).click()
+    await expectNoBrowserErrors(browserErrors)
+  } finally {
+    await admin.from('lesson_wallet_credits').delete().eq('id', creditId)
+    await admin.from('student_levels').delete().in('id', levelIds)
+    await admin.from('booking_sessions').delete().in('id', sessionIds)
+    await admin.from('bookings').delete().eq('id', bookingId)
+    await admin.from('schedule_slots').delete().in('id', slotIds)
+    await admin.from('schedule_templates').delete().in('id', templateIds)
+  }
+})
+
 test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page }) => {
   const browserErrors = observeBrowserErrors(page)
   await openBooking(page)

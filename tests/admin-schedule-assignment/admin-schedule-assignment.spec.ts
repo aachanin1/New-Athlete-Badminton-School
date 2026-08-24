@@ -855,8 +855,14 @@ test('Parent program API is ownership-safe, exact-group-only, allowed-status-onl
 test('User Schedule loads visible program on demand, caches by session, and shows neutral empty state on desktop/mobile', async ({ page }) => {
   const admin = createLocalAdmin()
   const programRequests: string[] = []
+  const pageErrors: string[] = []
+  const consoleErrors: string[] = []
   page.on('request', (request) => {
     if (request.url().includes('/api/schedule/program')) programRequests.push(request.url())
+  })
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
   })
 
   assertNoError((await admin.from('coach_assignments').insert({
@@ -866,7 +872,16 @@ test('User Schedule loads visible program on demand, caches by session, and show
   })).error, 'insert exact-priority legacy fixture')
 
   await loginAsUser(page)
-  await openUserScheduleDate(page)
+  await page.goto('/dashboard/schedule')
+  await expect(page.getByRole('heading', { name: 'ตารางเรียน', exact: true })).toBeVisible()
+  await expect(page.getByText('สิงหาคม 2569', { exact: true })).toBeVisible()
+  await expect(page.getByText('รวม 1 ครั้ง', { exact: true })).toBeVisible()
+  expect(pageErrors).toEqual([])
+  expect(consoleErrors).toEqual([])
+  await expect(page.getByRole('button', { name: 'Open issues overlay', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'เดือนก่อนหน้า', exact: true }).click()
+  await expect(page.getByText('กรกฎาคม 2569', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-07-17', exact: true }).click()
   expect(programRequests).toHaveLength(0)
   const initialHtml = await page.content()
   for (const forbidden of [APPROVED_PROGRAM_CONTENT, ...Object.values(FORBIDDEN_PROGRAM_CONTENT)]) {
@@ -919,6 +934,9 @@ test('User Schedule loads visible program on demand, caches by session, and show
     assertNoError((await admin.from('teaching_programs').update({ status: 'rejected' }).eq('id', IDS.rejectedProgram)).error, 'restore rejected program fixture')
     assertNoError((await admin.from('teaching_programs').update({ status: 'approved' }).eq('id', IDS.approvedProgram)).error, 'restore approved program fixture as latest')
   }
+  expect(pageErrors).toEqual([])
+  expect(consoleErrors).toEqual([])
+  await expect(page.getByRole('button', { name: 'Open issues overlay', exact: true })).toHaveCount(0)
 })
 
 test('high-cardinality User Schedule preserves legacy coach display without legacy program access', async ({ page }) => {

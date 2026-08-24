@@ -24,6 +24,7 @@ export interface AdminScheduleSessionRow {
     id?: string
     user_id: string
     learner_type?: string
+    child_id?: string | null
     course_type_id: string
     status: string
     profiles?: { full_name: string | null } | null
@@ -349,7 +350,12 @@ export function buildAdminScheduleDayDetail(input: {
   const sessions: AdminScheduleSession[] = visibleSessions.map((session) => {
     const student = getAdminScheduleStudentRef(session)
     const learnerType = session.bookings?.learner_type || ''
-    const missingChild = learnerType === 'child' && !session.child_id
+    const missingChild = learnerType === 'child'
+      && !session.child_id
+      && (
+        session.bookings?.course_types?.name !== 'private'
+        || Boolean(session.bookings?.child_id)
+      )
     const latestLevel = student ? latestLevelMap.get(`${student.type}:${student.id}`) : null
     const level = latestLevel ? levelMap.get(latestLevel.level) : null
     return {
