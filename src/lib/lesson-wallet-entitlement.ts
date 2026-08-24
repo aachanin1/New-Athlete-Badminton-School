@@ -120,12 +120,55 @@ function inclusiveTierMatches(
   purchasedQuantity: number,
   approvalDate: string,
 ) {
-  if (tier.course_type_name !== courseType) return false
+  if (!effectiveTierMatches(tier, courseType, approvalDate)) return false
   if (Number(tier.min_sessions) > purchasedQuantity) return false
   if (tier.max_sessions !== null && purchasedQuantity > Number(tier.max_sessions)) return false
+  return true
+}
+
+function effectiveTierMatches(
+  tier: LessonWalletPricingTierEvidence,
+  courseType: CourseCategory,
+  approvalDate: string,
+) {
+  if (tier.course_type_name !== courseType) return false
   if (tier.valid_from && tier.valid_from > approvalDate) return false
   if (tier.valid_to && tier.valid_to < approvalDate) return false
   return true
+}
+
+function matchingHistoricalTiers(
+  pricingTiers: LessonWalletPricingTierEvidence[],
+  courseType: CourseCategory,
+  purchasedQuantity: number,
+  approvalDate: string,
+) {
+  if (courseType !== 'private') {
+    return pricingTiers.filter((tier) => inclusiveTierMatches(
+      tier,
+      courseType,
+      purchasedQuantity,
+      approvalDate,
+    ))
+  }
+
+  const eligiblePrivateTiers = pricingTiers.filter((tier) => (
+    effectiveTierMatches(tier, courseType, approvalDate)
+    && Number(tier.min_sessions) <= purchasedQuantity
+  ))
+  if (eligiblePrivateTiers.length === 0) return []
+
+  const selectedThreshold = Math.max(...eligiblePrivateTiers.map((tier) => Number(tier.min_sessions)))
+  return eligiblePrivateTiers.filter((tier) => Number(tier.min_sessions) === selectedThreshold)
+}
+
+export function resolveLessonWalletErrorCode(error: { code?: unknown; message?: unknown }) {
+  if (typeof error.code === 'string' && error.code.startsWith('LESSON_WALLET_')) return error.code
+  if (typeof error.message === 'string') {
+    const messageCode = error.message.match(/LESSON_WALLET_[A-Z_]+/)?.[0]
+    if (messageCode) return messageCode
+  }
+  return 'LESSON_WALLET_MUTATION_FAILED'
 }
 
 export function resolveLessonWalletEntitlement({
@@ -162,12 +205,12 @@ export function resolveLessonWalletEntitlement({
   const payment = approvedPayments[0]
   const approvalTimestamp = payment.verified_at as string
   const approvalDate = bangkokDateKey(approvalTimestamp)
-  const matchingTiers = pricingTiers.filter((tier) => inclusiveTierMatches(
-    tier,
+  const matchingTiers = matchingHistoricalTiers(
+    pricingTiers,
     courseType,
     purchasedQuantity,
     approvalDate,
-  ))
+  )
 
   if (matchingTiers.length === 0) {
     throw new LessonWalletEntitlementError(

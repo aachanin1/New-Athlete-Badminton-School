@@ -6,6 +6,7 @@ import { getServiceRoleClient } from '@/lib/auth/admin'
 import { formatNotificationSlotDateTime } from '@/lib/date-format'
 import {
   LessonWalletEntitlementError,
+  resolveLessonWalletErrorCode,
   resolveLessonWalletEntitlement,
   type LessonWalletEntitlement,
   type LessonWalletPricingTierEvidence,
@@ -372,7 +373,7 @@ async function notifyHeadCoachesAndAssignedCoach(
 }
 
 function rpcErrorResponse(error: DbError) {
-  const code = error.message.match(/LESSON_WALLET_[A-Z_]+/)?.[0] || 'LESSON_WALLET_MUTATION_FAILED'
+  const code = resolveLessonWalletErrorCode(error)
   const status = code.endsWith('_NOT_FOUND') ? 404
     : /(STALE|CONFLICT|AMBIGUOUS|UNAVAILABLE)/.test(code) ? 409
       : /(EVIDENCE|INVALID)/.test(code) ? 422

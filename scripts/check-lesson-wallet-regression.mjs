@@ -11,6 +11,7 @@ import {
 } from '../src/lib/schedule-template-utils.ts'
 import {
   LessonWalletEntitlementError,
+  resolveLessonWalletErrorCode,
   resolveLessonWalletEntitlement,
 } from '../src/lib/lesson-wallet-entitlement.ts'
 
@@ -20,6 +21,7 @@ const route = read('src/app/api/lesson-wallet/route.ts')
 const slotResolver = read('src/lib/schedule-slot-utils.ts')
 const migration = read('supabase/migrations/20260823090000_adult_private_ten_month_lesson_wallet.sql')
 const correctiveMigration = read('supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql')
+const privateThresholdMigration = read('supabase/migrations/20260824154718_correct_private_wallet_package_tier_matching.sql')
 const walletPage = read('src/app/(dashboard)/dashboard/lesson-wallet/page.tsx')
 const walletClient = read('src/components/dashboard/lesson-wallet-client.tsx')
 
@@ -98,6 +100,44 @@ check('Adult and Private single-unit tiers and every Kids tier remain same-month
   assert.equal(entitlement({ quantity: 1, tiers: [tier('adult_group', 1)] }).policyType, 'same_month')
   assert.equal(entitlement({ courseType: 'private', quantity: 1, tiers: [tier('private', 1)] }).policyType, 'same_month')
   assert.equal(entitlement({ courseType: 'kids_group', quantity: 10, tiers: [tier('kids_group', 10)] }).policyType, 'same_month')
+})
+
+check('Private historical packages select the greatest effective threshold without using max as containment', () => {
+  const privateTiers = [
+    tier('private', 1, { id: 'private-1', max_sessions: 1, price_per_session: 900, package_price: 900 }),
+    tier('private', 10, { id: 'private-10', max_sessions: 10, price_per_session: 800, package_price: 8000 }),
+  ]
+
+  for (const quantity of [2, 4, 9]) {
+    const result = entitlement({ courseType: 'private', quantity, tiers: privateTiers })
+    assert.equal(result.pricingTier.id, 'private-1')
+    assert.equal(result.pricingTier.pricePerUnit, 900)
+    assert.equal(result.policyType, 'ten_month_package')
+  }
+  const tenHours = entitlement({ courseType: 'private', quantity: 10, tiers: privateTiers })
+  assert.equal(tenHours.pricingTier.id, 'private-10')
+  assert.equal(tenHours.pricingTier.pricePerUnit, 800)
+  assert.equal(tenHours.policyType, 'ten_month_package')
+})
+
+check('Private threshold evidence fails closed only at the selected greatest threshold', () => {
+  const lower = tier('private', 1, { id: 'private-1', max_sessions: 1 })
+  const selected = tier('private', 10, { id: 'private-10', max_sessions: 10 })
+  assert.equal(entitlement({ courseType: 'private', quantity: 10, tiers: [lower, selected] }).pricingTier.id, 'private-10')
+  assert.throws(
+    () => entitlement({ courseType: 'private', quantity: 10, tiers: [lower, selected, { ...selected, id: 'private-10-duplicate' }] }),
+    (error) => error instanceof LessonWalletEntitlementError && error.code === 'LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS',
+  )
+  assert.throws(
+    () => entitlement({ courseType: 'private', quantity: 4, tiers: [selected] }),
+    (error) => error instanceof LessonWalletEntitlementError && error.code === 'LESSON_WALLET_TIER_EVIDENCE_MISSING',
+  )
+})
+
+check('typed Lesson Wallet error codes prefer explicit application codes and never let P0001 mask message evidence', () => {
+  assert.equal(resolveLessonWalletErrorCode({ code: 'LESSON_WALLET_TIER_EVIDENCE_MISSING', message: 'untyped' }), 'LESSON_WALLET_TIER_EVIDENCE_MISSING')
+  assert.equal(resolveLessonWalletErrorCode({ code: 'P0001', message: 'LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS' }), 'LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS')
+  assert.equal(resolveLessonWalletErrorCode({ code: 'P0001', message: 'database failure' }), 'LESSON_WALLET_MUTATION_FAILED')
 })
 
 check('inclusive Adult range tiers resolve at lower, interior, and upper quantities', () => {
@@ -258,7 +298,7 @@ check('notifications and activity are emitted once per entitlement unit, not onc
   assert.equal(storePath.includes('participantCount: data.participant_count'), true)
   assert.equal(storePath.includes('participantSessionIds: data.participant_session_ids'), true)
 })
-check('the corrective RPC uses inclusive tier containment without replacing Redeem', () => {
+check('the prior corrective RPC remains the frozen inclusive-containment baseline', () => {
   assert.equal((correctiveMigration.match(/tier\.min_sessions <= v_selected\.total_sessions/g) || []).length, 2)
   assert.equal((correctiveMigration.match(/v_selected\.total_sessions <= tier\.max_sessions/g) || []).length, 2)
   assert.doesNotMatch(correctiveMigration, /tier\.min_sessions = v_selected\.total_sessions/)
@@ -268,6 +308,24 @@ check('the corrective RPC uses inclusive tier containment without replacing Rede
   assert.equal((correctiveMigration.match(/SET search_path = public, pg_temp/g) || []).length, 1)
   assert.match(correctiveMigration, /REVOKE ALL ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\)\s+FROM PUBLIC, anon, authenticated;/)
   assert.match(correctiveMigration, /GRANT EXECUTE ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\) TO service_role;/)
+})
+check('the new Store RPC selects a Private threshold while retaining Adult and Kids containment and security', () => {
+  assert.equal((privateThresholdMigration.match(/SELECT max\(tier\.min_sessions\) INTO v_private_tier_min/g) || []).length, 1)
+  assert.equal((privateThresholdMigration.match(/tier\.min_sessions = v_private_tier_min/g) || []).length, 2)
+  assert.equal((privateThresholdMigration.match(/tier\.min_sessions <= v_selected\.total_sessions/g) || []).length, 3)
+  assert.equal((privateThresholdMigration.match(/v_selected\.total_sessions <= tier\.max_sessions/g) || []).length, 2)
+  assert.match(privateThresholdMigration, /IF v_selected\.course_name = 'private' THEN[\s\S]*SELECT max\(tier\.min_sessions\)/)
+  assert.doesNotMatch(privateThresholdMigration, /CREATE OR REPLACE FUNCTION public\.lesson_wallet_redeem_v2/)
+  assert.equal((privateThresholdMigration.match(/CREATE OR REPLACE FUNCTION/g) || []).length, 1)
+  assert.equal((privateThresholdMigration.match(/SECURITY DEFINER/g) || []).length, 1)
+  assert.equal((privateThresholdMigration.match(/SET search_path = public, pg_temp/g) || []).length, 1)
+  assert.match(privateThresholdMigration, /REVOKE ALL ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\)\s+FROM PUBLIC, anon, authenticated;/)
+  assert.match(privateThresholdMigration, /GRANT EXECUTE ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\) TO service_role;/)
+})
+check('the API uses typed code forwarding and retains the exact Thai evidence messages', () => {
+  assert.equal(route.includes('resolveLessonWalletErrorCode(error)'), true)
+  assert.equal(route.includes("LESSON_WALLET_TIER_EVIDENCE_MISSING: 'ไม่พบ pricing tier ที่ตรงกับแพ็กเกจ ณ วันที่อนุมัติ Payment'"), true)
+  assert.equal(route.includes("LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS: 'พบ pricing tier ที่มีผลทับซ้อนกัน จึงยังเก็บสิทธิ์ไม่ได้'"), true)
 })
 check('the additive migration has no apply-time wallet-row backfill', () => {
   const beforeFunctions = migration.slice(0, migration.indexOf('CREATE OR REPLACE FUNCTION'))

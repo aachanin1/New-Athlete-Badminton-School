@@ -14,6 +14,7 @@ const IDS = {
 }
 const keepData = process.argv.includes('--keep')
 const cleanupOnly = process.argv.includes('--cleanup')
+let protectedFinancialRpcChecks = 0
 
 function loadEnv() {
   const envPath = path.join(process.cwd(), '.env.local')
@@ -59,6 +60,17 @@ function dateKey(date) {
 function futureDate(monthsAhead, day = 12) {
   const now = new Date()
   return dateKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + monthsAhead, day, 12)))
+}
+
+function tenInclusiveBangkokMonthsEnd(verifiedAt) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date(verifiedAt))
+  const year = Number(parts.find((part) => part.type === 'year')?.value)
+  const month = Number(parts.find((part) => part.type === 'month')?.value)
+  return new Date(Date.UTC(year, month - 1 + 10, 1) - (7 * 60 * 60 * 1000) - 1).toISOString()
 }
 
 function dayOfWeek(value) {
@@ -168,7 +180,7 @@ async function setupMasterData() {
     { course_type_id: IDS.adult, min_sessions: 2, max_sessions: 6, price_per_session: 550, package_price: 1100, valid_from: '2020-01-01' },
     { course_type_id: IDS.adult, min_sessions: 7, max_sessions: 12, price_per_session: 500, package_price: 3500, valid_from: '2020-01-01' },
     { course_type_id: IDS.private, min_sessions: 1, max_sessions: 1, price_per_session: 900, package_price: 900, valid_from: '2020-01-01' },
-    { course_type_id: IDS.private, min_sessions: 2, max_sessions: 10, price_per_session: 800, package_price: 1600, valid_from: '2020-01-01' },
+    { course_type_id: IDS.private, min_sessions: 10, max_sessions: 10, price_per_session: 800, package_price: 8000, valid_from: '2020-01-01' },
     { course_type_id: IDS.kids, min_sessions: 1, max_sessions: 1, price_per_session: 700, package_price: 700, valid_from: '2020-01-01' },
     { course_type_id: IDS.kids, min_sessions: 2, max_sessions: 6, price_per_session: 625, package_price: 1250, valid_from: '2020-01-01' },
     { course_type_id: IDS.kids, min_sessions: 7, max_sessions: 10, price_per_session: 500, package_price: 3500, valid_from: '2020-01-01' },
@@ -260,15 +272,15 @@ async function assignFamily(coachId, adminId, slotId, sessions, parentId) {
 }
 
 async function store(userId, sessionId) {
-  return supabase.rpc('lesson_wallet_store_v2', {
+  return withProtectedFinancialInvariant('lesson_wallet_store_v2', () => supabase.rpc('lesson_wallet_store_v2', {
     p_user_id: userId,
     p_session_id: sessionId,
     p_actor_id: userId,
-  })
+  }))
 }
 
 async function redeem(userId, creditId, slot) {
-  return supabase.rpc('lesson_wallet_redeem_v2', {
+  return withProtectedFinancialInvariant('lesson_wallet_redeem_v2', () => supabase.rpc('lesson_wallet_redeem_v2', {
     p_user_id: userId,
     p_credit_id: creditId,
     p_target_date: slot.date,
@@ -276,7 +288,7 @@ async function redeem(userId, creditId, slot) {
     p_end_time: slot.end_time,
     p_branch_id: slot.branch_id,
     p_schedule_template_id: slot.template_id,
-  })
+  }))
 }
 
 async function expectRpcCode(promise, code, label) {
@@ -294,6 +306,31 @@ async function counts(bookingIds) {
     payments: await tableCount('payments'),
     coupons: await tableCount('coupon_usages'),
   }
+}
+
+async function protectedFinancialCounts() {
+  const tableCount = async (table, countColumn = 'id') => {
+    const { count, error } = await supabase.from(table).select(countColumn, { count: 'exact', head: true })
+    if (error) throw error
+    return count || 0
+  }
+  return {
+    coupons: await tableCount('coupon_usages'),
+    ledger: await tableCount('payment_ledger_allocations_v1', 'source_id'),
+    finance: await tableCount('finance_expenses'),
+  }
+}
+
+async function withProtectedFinancialInvariant(label, invokeRpc) {
+  const before = await protectedFinancialCounts()
+  const result = await invokeRpc()
+  const after = await protectedFinancialCounts()
+  assert(
+    JSON.stringify(after) === JSON.stringify(before),
+    `${label} must not create Coupon, Ledger, or Finance rows: before=${JSON.stringify(before)} after=${JSON.stringify(after)}`,
+  )
+  protectedFinancialRpcChecks += 1
+  return result
 }
 
 async function run() {
@@ -328,54 +365,79 @@ async function run() {
   assert(adultSingleStored.policy_type === 'same_month', 'Adult single must remain same_month')
   await expectRpcCode(redeem(parentId, adultSingleStored.credit_id, adultSingleTarget), 'LESSON_WALLET_SAME_MONTH_REQUIRED', 'Adult single cross-month')
 
-  const familySource = await createTemplateSlot(IDS.private, sourceDate, '10:00', '11:00', { currentStudents: 2 })
-  const familyOtherSource = await createTemplateSlot(IDS.private, sourceDate, '11:00', '12:00', { currentStudents: 2 })
+  const familySources = [
+    await createTemplateSlot(IDS.private, sourceDate, '10:00', '11:00', { currentStudents: 2 }),
+    await createTemplateSlot(IDS.private, sourceDate, '11:00', '12:00', { currentStudents: 2 }),
+    await createTemplateSlot(IDS.private, sourceDate, '12:00', '13:00', { currentStudents: 2 }),
+    await createTemplateSlot(IDS.private, sourceDate, '13:00', '14:00', { currentStudents: 2 }),
+  ]
+  const familySource = familySources[0]
   const familyTarget = await createTemplateSlot(IDS.private, crossMonthDate, '10:00', '11:00')
   const family = await createBooking({
     userId: parentId,
     courseTypeId: IDS.private,
-    totalSessions: 2,
-    amount: 1600,
-    slots: [familySource, familyOtherSource],
+    totalSessions: 4,
+    amount: 3600,
+    slots: familySources,
     childIds: [null, children[0].id],
     label: 'family-package',
   })
   const familySourceSessions = family.sessions.filter((session) => session.schedule_slot_id === familySource.id)
-  const familyOtherSessions = family.sessions.filter((session) => session.schedule_slot_id === familyOtherSource.id)
-  assert(family.sessions.length === 4 && familySourceSessions.length === 2 && familyOtherSessions.length === 2, 'two Family hours must serialize as four participant sessions')
-  await assignFamily(coachId, adminId, familySource.id, familySourceSessions, parentId)
-  await assignFamily(coachId, adminId, familyOtherSource.id, familyOtherSessions, parentId)
+  const familyRemainingSessions = family.sessions.filter((session) => session.schedule_slot_id !== familySource.id)
+  assert(family.sessions.length === 8 && familySourceSessions.length === 2 && familyRemainingSessions.length === 6, 'four Family hours must serialize as eight participant sessions')
+  for (const familySlot of familySources) {
+    await assignFamily(
+      coachId,
+      adminId,
+      familySlot.id,
+      family.sessions.filter((session) => session.schedule_slot_id === familySlot.id),
+      parentId,
+    )
+  }
   const familyStored = await ok(await store(parentId, familySourceSessions[1].id), 'store Family Private')
   assert(familyStored.unit_type === 'family_private' && familyStored.participant_count === 2, 'Family Private must be one two-person unit')
-  const memberRows = await ok(await supabase.from('lesson_wallet_credit_members').select('original_session_id').eq('credit_id', familyStored.credit_id), 'family members')
-  assert(memberRows.length === 2, 'Family unit must store both participant memberships')
+  assert(familyStored.policy_type === 'ten_month_package', 'four-hour Private package policy must be ten_month_package')
+  assert(new Date(familyStored.expires_at).getTime() === new Date(tenInclusiveBangkokMonthsEnd(family.verifiedAt)).getTime(), 'four-hour Private expiry must be the tenth inclusive Bangkok month end')
+  const familyCredit = await ok(await supabase.from('lesson_wallet_credits').select('entitlement_unit_type, entitlement_policy, entitlement_started_at, entitlement_payment_id, entitlement_pricing_tier_id, entitlement_evidence, expires_at, participant_count').eq('id', familyStored.credit_id).single(), 'family credit evidence')
+  assert(familyCredit.entitlement_unit_type === 'family_private' && familyCredit.participant_count === 2, 'Family credit must preserve unit classification and participant count')
+  assert(familyCredit.entitlement_policy === 'ten_month_package' && familyCredit.expires_at === familyStored.expires_at, 'Family credit must persist policy and expiry')
+  assert(familyCredit.entitlement_evidence?.pricing_tier_min === 1 && familyCredit.entitlement_evidence?.pricing_tier_max === 1, 'four-hour Private package must preserve the one-hour threshold evidence')
+  assert(Number(familyCredit.entitlement_evidence?.price_per_unit) === 900 && Number(familyCredit.entitlement_evidence?.package_price) === 900, 'four-hour Private evidence must preserve the 900 baht threshold without repricing')
+  const memberRows = await ok(await supabase.from('lesson_wallet_credit_members').select('original_session_id, child_id').eq('credit_id', familyStored.credit_id), 'family members')
+  assert(memberRows.length === 2 && memberRows.some((row) => row.child_id === null) && memberRows.some((row) => row.child_id === children[0].id), 'Family unit must store both exact participant memberships')
+  const familySourceAfterStore = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familySourceSessions.map((row) => row.id)), 'stored Family hour')
+  assert(familySourceAfterStore.length === 2 && familySourceAfterStore.every((row) => row.status === 'walleted'), 'only the selected two source rows must become walleted')
   const familyAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familySourceSessions.map((row) => row.id)), 'retired family assignments')
   assert(familyAssignments.length === 0, 'Family store must retire every exact assignment membership')
-  const otherHourAfterStore = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familyOtherSessions.map((row) => row.id)), 'unchanged other Family hour')
-  assert(otherHourAfterStore.length === 2 && otherHourAfterStore.every((row) => row.status === 'scheduled'), 'storing one Family hour must leave the other hour unchanged')
-  const otherHourAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familyOtherSessions.map((row) => row.id)), 'other Family assignments')
-  assert(otherHourAssignments.length === 2, 'storing one Family hour must preserve the other hour assignments')
+  const remainingHoursAfterStore = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familyRemainingSessions.map((row) => row.id)), 'unchanged remaining Family hours')
+  assert(remainingHoursAfterStore.length === 6 && remainingHoursAfterStore.every((row) => row.status === 'scheduled'), 'storing one Family hour must leave the other three hours unchanged')
+  const remainingHourAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familyRemainingSessions.map((row) => row.id)), 'remaining Family assignments')
+  assert(remainingHourAssignments.length === 6, 'storing one Family hour must preserve all other hour assignments')
   const familyRedeemed = await ok(await redeem(parentId, familyStored.credit_id, familyTarget), 'redeem Family cross-month')
   assert(familyRedeemed.participant_count === 2 && familyRedeemed.session_ids.length === 2, 'Family redeem must move both participants atomically')
   const movedFamily = await ok(await supabase.from('booking_sessions').select('child_id, rescheduled_from_id').in('id', familyRedeemed.session_ids), 'moved family identities')
   assert(movedFamily.some((row) => row.child_id === null) && movedFamily.some((row) => row.child_id === children[0].id), 'Family self/child identities must be preserved')
-  const otherHourAfterRedeem = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familyOtherSessions.map((row) => row.id)), 'other Family hour after redeem')
-  assert(otherHourAfterRedeem.length === 2 && otherHourAfterRedeem.every((row) => row.status === 'scheduled'), 'redeeming one Family hour must leave the other hour unchanged')
+  const remainingHoursAfterRedeem = await ok(await supabase.from('booking_sessions').select('id, status, child_id').in('id', familyRemainingSessions.map((row) => row.id)), 'remaining Family hours after redeem')
+  assert(remainingHoursAfterRedeem.length === 6 && remainingHoursAfterRedeem.every((row) => row.status === 'scheduled'), 'redeeming one Family hour must leave the other three hours unchanged')
   const destinationAssignments = await ok(await supabase.from('coach_assignment_group_students').select('id').in('booking_session_id', familyRedeemed.session_ids), 'destination assignments')
   assert(destinationAssignments.length === 0, 'Redeemed destination must remain unassigned')
 
-  const familyConflictSource = await createTemplateSlot(IDS.private, sourceDate, '12:00', '13:00')
-  const familyConflictTarget = await createTemplateSlot(IDS.private, sameMonthDate, '12:00', '13:00')
+  const familyConflictSource = await createTemplateSlot(IDS.private, sourceDate, '14:00', '15:00')
+  const familyConflictTarget = await createTemplateSlot(IDS.private, sameMonthDate, '14:00', '15:00')
   const familyConflict = await createBooking({ userId: parentId, courseTypeId: IDS.private, totalSessions: 10, amount: 8000, slot: familyConflictSource, childIds: [null, children[1].id], label: 'family-conflict' })
   const conflictStored = await ok(await store(parentId, familyConflict.sessions[0].id), 'store conflict Family')
+  const tenHourCredit = await ok(await supabase.from('lesson_wallet_credits').select('entitlement_policy, entitlement_evidence').eq('id', conflictStored.credit_id).single(), 'ten-hour Private evidence')
+  assert(tenHourCredit.entitlement_policy === 'ten_month_package', 'ten-hour Private package must remain ten_month_package')
+  assert(tenHourCredit.entitlement_evidence?.pricing_tier_min === 10 && tenHourCredit.entitlement_evidence?.pricing_tier_max === 10, 'ten-hour Private package must select the ten-hour threshold')
+  assert(Number(tenHourCredit.entitlement_evidence?.price_per_unit) === 800 && Number(tenHourCredit.entitlement_evidence?.package_price) === 8000, 'ten-hour Private evidence must preserve 800 per hour and 8,000 package evidence')
   await createBooking({ userId: parentId, courseTypeId: IDS.private, totalSessions: 1, amount: 900, slot: familyConflictTarget, childIds: [children[1].id], label: 'participant-conflict' })
   const targetBefore = await ok(await supabase.from('booking_sessions').select('id').eq('schedule_slot_id', familyConflictTarget.id), 'target before conflict')
   await expectRpcCode(redeem(parentId, conflictStored.credit_id, familyConflictTarget), 'LESSON_WALLET_TARGET_CONFLICT', 'Family participant conflict')
   const targetAfter = await ok(await supabase.from('booking_sessions').select('id').eq('schedule_slot_id', familyConflictTarget.id), 'target after conflict')
   assert(targetAfter.length === targetBefore.length, 'Family conflict must leave zero partial-session residue')
 
-  const concurrencySource = await createTemplateSlot(IDS.private, sourceDate, '14:00', '15:00')
-  const concurrencyTarget = await createTemplateSlot(IDS.private, sameMonthDate, '14:00', '15:00')
+  const concurrencySource = await createTemplateSlot(IDS.private, sourceDate, '15:00', '16:00')
+  const concurrencyTarget = await createTemplateSlot(IDS.private, sameMonthDate, '15:00', '16:00')
   const concurrentFamily = await createBooking({ userId: parentId, courseTypeId: IDS.private, totalSessions: 10, amount: 8000, slot: concurrencySource, childIds: [null, children[0].id], label: 'family-concurrency' })
   const concurrentStored = await ok(await store(parentId, concurrentFamily.sessions[0].id), 'store concurrent Family')
   const race = await Promise.all([redeem(parentId, concurrentStored.credit_id, concurrencyTarget), redeem(parentId, concurrentStored.credit_id, concurrencyTarget)])
@@ -400,6 +462,10 @@ async function run() {
   const rewalletSlot = await createTemplateSlot(IDS.private, crossMonthDate, '20:00', '21:00')
   const rewalletResult = await ok(await store(parentId, familyRedeemed.session_ids[0]), 're-wallet Family')
   assert(rewalletResult.expires_at === familyStored.expires_at && rewalletResult.entitlement_started_at === familyStored.entitlement_started_at, 'Re-wallet must preserve original entitlement start and expiry')
+  const rewalletCredit = await ok(await supabase.from('lesson_wallet_credits').select('entitlement_payment_id, entitlement_pricing_tier_id, entitlement_evidence').eq('id', rewalletResult.credit_id).single(), 're-wallet evidence')
+  assert(rewalletCredit.entitlement_payment_id === familyCredit.entitlement_payment_id, 'Re-wallet must retain the original Payment evidence')
+  assert(rewalletCredit.entitlement_pricing_tier_id === familyCredit.entitlement_pricing_tier_id, 'Re-wallet must retain the selected pricing tier id')
+  assert(JSON.stringify(rewalletCredit.entitlement_evidence) === JSON.stringify(familyCredit.entitlement_evidence), 'Re-wallet must preserve the complete entitlement evidence')
   const rewalletRedeemed = await ok(await redeem(parentId, rewalletResult.credit_id, rewalletSlot), 'redeem re-walleted Family')
   assert(rewalletRedeemed.participant_count === 2, 'Re-wallet chain must remain one Family unit')
 
@@ -483,6 +549,25 @@ async function run() {
   await expectRpcCode(store(parentId, ambiguousTierBooking.sessions[0].id), 'LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS', 'overlapping tier evidence')
   await ok(await supabase.from('pricing_tiers').delete().eq('id', duplicateTier.id), 'remove duplicate tier')
 
+  const ambiguousPrivateTierSlot = await createTemplateSlot(IDS.private, sourceDate, '16:00', '17:00')
+  const ambiguousPrivateTierBooking = await createBooking({ userId: parentId, courseTypeId: IDS.private, totalSessions: 4, amount: 3600, slot: ambiguousPrivateTierSlot, label: 'ambiguous-private-tier' })
+  const duplicatePrivateThreshold = await ok(await supabase.from('pricing_tiers').insert({
+    course_type_id: IDS.private,
+    min_sessions: 1,
+    max_sessions: 1,
+    price_per_session: 900,
+    package_price: 900,
+    valid_from: '2020-01-01',
+  }).select('id').single(), 'duplicate selected Private threshold')
+  await expectRpcCode(store(parentId, ambiguousPrivateTierBooking.sessions[0].id), 'LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS', 'ambiguous selected Private threshold')
+  await ok(await supabase.from('pricing_tiers').delete().eq('id', duplicatePrivateThreshold.id), 'remove duplicate Private threshold')
+
+  const missingPrivateTierSlot = await createTemplateSlot(IDS.private, sourceDate, '17:00', '18:00')
+  const missingPrivateTierBooking = await createBooking({ userId: parentId, courseTypeId: IDS.private, totalSessions: 4, amount: 3600, slot: missingPrivateTierSlot, label: 'missing-private-tier' })
+  await ok(await supabase.from('pricing_tiers').update({ valid_from: '2099-01-01' }).eq('course_type_id', IDS.private), 'make Private thresholds ineffective')
+  await expectRpcCode(store(parentId, missingPrivateTierBooking.sessions[0].id), 'LESSON_WALLET_TIER_EVIDENCE_MISSING', 'missing effective Private threshold')
+  await ok(await supabase.from('pricing_tiers').update({ valid_from: '2020-01-01' }).eq('course_type_id', IDS.private), 'restore Private thresholds')
+
   const activeOldSlot = await createTemplateSlot(IDS.adult, sourceDate, '19:00', '20:00')
   const activeOldBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: activeOldSlot, label: 'old-active-credit' })
   const activeOldExpiry = `${sourceDate.slice(0, 7)}-28T16:59:59.999Z`
@@ -530,13 +615,15 @@ async function run() {
 
   console.log('PASS Local endpoint guard and clean migration schema')
   console.log('PASS Adult package cross-month; Adult/Private single and Kids same-month')
-  console.log('PASS Family Private self+child is one atomic hour unit with preserved identities')
+  console.log('PASS Four Family hours serialize as eight rows; one Store/Redeem unit moves two exact identities and leaves six rows scheduled')
+  console.log('PASS Private four-hour and ten-hour packages preserve 900/3,600 and 800/8,000 threshold evidence with ten-month expiry')
   console.log('PASS Participant conflict rollback and concurrent one-winner/one-stale behavior leave zero residue')
   console.log('PASS Re-wallet preserves original entitlement start/expiry and moves the whole Family unit')
   console.log('PASS Assignment retirement, destination unassigned, over-capacity allowed, and no new Payment/Coupon/Ledger')
   console.log('PASS Store guards: 48-hour cutoff, started, attendance, and makeup')
   console.log('PASS Redeem guards: inactive template, cancelled target, same-month, expiry, and participant overlap')
-  console.log('PASS Missing/ambiguous Payment and missing/overlapping tier evidence fail closed; existing active/expired credits remain unchanged')
+  console.log('PASS Missing/ambiguous Payment and Adult/Private tier evidence fail closed; existing active/expired credits remain unchanged')
+  console.log(`PASS Financial invariance around ${protectedFinancialRpcChecks} Store/Redeem RPC results: Coupon/Ledger/Finance deltas 0/0/0`)
 
   if (!keepData) {
     const residue = await cleanup()
