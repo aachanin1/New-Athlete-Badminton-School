@@ -334,6 +334,11 @@ Main portals:
   a ten-month Lesson Wallet entitlement only when exactly one approved
   `payments` row has a trustworthy `verified_at` and exactly one matching
   historical `pricing_tiers` row was effective on that Bangkok approval date.
+  Historical tier evidence matches the purchased quantity inclusively:
+  `min_sessions <= purchasedQuantity` and
+  `(max_sessions IS NULL OR purchasedQuantity <= max_sessions)`. Zero or multiple
+  effective matches fail closed. This evidence rule applies to every course and
+  must not change price calculation, package amounts, tier rows, or Kids pricing.
   The approval month is month 1 and expiry is 23:59:59.999 Asia/Bangkok on the
   final day of inclusive calendar month 10. Missing or ambiguous evidence must
   fail closed; re-walleting must preserve the original entitlement start and
@@ -344,6 +349,15 @@ Main portals:
   child participant together to one target hour, preserve each `child_id`, and
   never permit participant splitting. Concurrent use must yield one winner and a
   typed conflict with no residue.
+- Customer Schedule counts and renders that exact Family Private unit once, lists
+  every participant with the participant's own name and Level, and exposes one
+  all-family Store action. Wallet renders one credit and one Redeem target flow per
+  Family unit. Head Coach/Admin operational views remain participant rows.
+- Private identity never merges across a shared Family time. Self uses
+  `bookings.user_id`, the profile identity/Level, and `child_id = NULL`; each child
+  uses the exact `booking_sessions.child_id` and that child's identity/Level.
+  Missing child evidence must fail visibly rather than fall back to the booking
+  owner's name or Level.
 - Existing wallet credits must not be bulk rewritten, backfilled, recalculated,
   or automatically revived. Existing active credits retain their stored expiry;
   expired credits remain expired. New policy evidence applies only when a new

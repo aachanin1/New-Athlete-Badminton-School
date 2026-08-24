@@ -1,20 +1,70 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
-Current source: **READY FOR OWNER UAT** for **ADULT GROUP + FAMILY PRIVATE
-10-MONTH ENTITLEMENT / CROSS-MONTH LESSON WALLET**. Application Source
-`ebf368dcfcaecd68e42dd61de45d35d743232b99` is committed and pushed; additive
-migration `20260823090000` is applied exactly once and verified; exact staged
-Production-target artifact `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` is `READY`,
-unaliased, and tied to that Application SHA. Owner UAT is awaiting; Promotion is
-prohibited until Owner PASS. The four Production aliases remain on the prior
-Production deployment `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Source
-`a370673d06e61e409ec9b1de648ae4fbb1070c2d`. This first matrix is the only
-authority for current mutable state; all later records are Historical /
-Superseded.
+Current source: **READY FOR OWNER UAT** for the combined Adult/Family Wallet
+tier-range, Family-unit Schedule UI, and Private identity correction. Application
+SHA `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` is committed and pushed; corrective
+migration `20260824002134` is applied exactly once and verified; exact Preview
+artifact `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` is `READY`, unaliased, and tied to that
+Application SHA. Owner UAT is not run and Promotion is prohibited. Rejected
+artifact `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` remains unaliased and permanently
+ineligible. Production remains `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
+`a370673d06e61e409ec9b1de648ae4fbb1070c2d`. The following matrix is the only
+authority for current mutable state; all later records are Historical / Superseded.
 
-## Current Execution — Adult/Family Ten-Month Lesson Wallet
+## Current Execution — Wallet Range + Family Unit + Private Identity
+
+Status: **READY FOR OWNER UAT — APPLICATION PUSHED, CORRECTIVE MIGRATION VERIFIED,
+EXACT PREVIEW ARTIFACT READY AND UNALIASED, NOT PROMOTED**.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ADULT/FAMILY LESSON WALLET RANGE MATCHING + FAMILY PRIVATE UNIT UI + PRIVATE IDENTITY INTEGRITY** |
+| Task Status | **READY FOR OWNER UAT** |
+| Gate Classification Addendum | Owner accepted only the exact `check-pricing-true-up.js` shape mismatch as pre-existing stale baseline. This was not Round 4; Pricing Source/Test were not edited; substitute business assertions passed `15/15`; the original script is not PASS |
+| Owner Policy | Inclusive historical tier containment with exactly one effective match; Adult/Private multi-unit receives ten inclusive Bangkok months; Adult/Private single and all Kids remain same-month; one exact Family hour is one atomic customer UI/Store/Redeem unit; self/child identities and Levels stay separate |
+| Intended Behavior | Fix tier evidence without repricing; render/count two self+child Private times as four participant sessions but two Family cards; move all participants atomically; preserve exact identity in customer, Head Coach, Admin, and Attendance flows |
+| Root Cause — Tier | **Proven:** baseline TypeScript and the previously applied Store RPC required purchased quantity to equal both tier bounds. Current Source and remote replacement use inclusive containment and exactly-one effective match |
+| Root Cause — Identity/UI | **Proven separately:** customer Schedule used participant rows as cards/counts/actions; Admin Schedule lost a valid Family self identity when booking learner type was child and session `child_id` was null. Current customer/Head Coach mappings passed fixtures; historical repeated-owner child symptom was not reproduced |
+| Root Cause — Hydration | **Proven:** Schedule month totals parsed stored `YYYY-MM-DD` values as timezone-bearing `Date` objects, then used runtime-local `getMonth()` / `getFullYear()`. Node SSR and the browser classified the Bangkok boundary fixture into different months. Round 3 now compares deterministic `YYYY-MM` keys and restores the exact `ดูโปรแกรมสอนรอบนี้` CTA; focused `1/1` and full Admin Schedule E2E `13/13` passed with hydration/page/console/overlay errors `0` and residue `0` |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD / Remote HEAD | Documentation-only READY descendant at publication / same upstream HEAD; exact Documentation SHA is reported in the final handoff because a commit cannot contain its own SHA. Application SHA is `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91`, tree `3b721e5b8c9ac680bf9ae61c6a8e8c5b2e480e47` |
+| Ahead / Behind | `0/0` after documentation publication; staged paths `0` |
+| Source Complete | **Yes** — exact authorized Functional/Test/Migration Source is committed and pushed |
+| Tests Passed | **Yes for the task/release gates under the Owner Gate Classification Addendum.** Round 3: focused User Schedule `1/1`, full Admin Schedule `13/13`, exact CTA `1`, hydration/page/console/overlay/retry/flaky/skip/unexpected `0`, residue `0`. Deterministic: Wallet `32`, Family unit, Coach lifecycle `53`, Admin state `39`, Admin performance `24`, Coach Hours `20`, Schedule details `17`, Progressive pricing, Progressive transactions `33`, Progressive Legacy baseline `32`. Remaining gates: atomic Wallet UAT, Booking E2E `13/13`, TypeScript, lint with warnings `0`, mojibake (`265` files), build (`94/94`), diff checks, clean local reset/catalog/grants, and post-build static checks passed. Original `check-pricing-true-up.js` is **KNOWN OWNER-ACCEPTED STALE BASELINE — NOT COUNTED AS PASS**; in-memory substitute assertions passed `15/15` without a repository edit |
+| Committed | **Application/Test/Migration Yes** at `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91`; Documentation Yes with this separate publication |
+| Pushed | **Yes** for Application and this documentation closeout |
+| Current Source / Pushed Source | `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` Application Source / same exact Application SHA; documentation is a separate descendant |
+| Deployed Source / Deployment ID | Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` / Application `3d3f1bc...`, `READY`, aliases `0`. Rejected `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` / `ebf368d...` remains `READY`, aliases `0`, permanently ineligible. Production remains `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d...` |
+| Functional / Test / Documentation / Migration Files | Exact approved set `8 / 7 / 4 / 1`; config/dependency/lockfile changes `0 / 0 / 0` |
+| Scope Expansion | One proven direct technical dependency: `src/lib/admin-schedules-read.ts` supplies booking-level `child_id` required by the corrected Admin identity model; no new business flow |
+| Scope Breach | **No.** Round 3 restored the original CTA and deterministic month classification within the allowlist. `src/lib/pricing.ts` and `scripts/check-pricing-true-up.js` have task diff `0` and retained baseline blobs `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` / `2d4472ab76edb7b2b93f74b234dd086ad4a974dd` |
+| Migration Source / Applied | `supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql`, SHA-256 `5E9BF1D3E4B760EBF69F86AEE23F5BD3605FC71DA0C353C98B527D6AE9A45AEF` / **Remote Yes, exactly once** |
+| Migration Verification | Clean local reset/order and atomic UAT passed. Remote dry-run listed only the corrective file; one migration-file push applied it. Postflight: history count `1`, pending `0`, Store signature unchanged, SECURITY DEFINER true, `public, pg_temp` pinned search path, anon/auth/PUBLIC execute false, service-role execute true, inclusive predicates `2/2`, exact-min predicates `0`. Advisors reported no task-function security/performance finding; existing temp-table local-lint and unrelated advisor baseline remain disclosed |
+| Schema / Metadata Changed | **Yes:** one migration-history entry and replacement Store function definition. No table/column/policy/role/vault/environment change |
+| Environment Changed | **No** |
+| Feature Enabled | **No change** |
+| Allowlisted | **No change** |
+| Staged Artifact / Smoke | `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU`, immutable URL `https://new-athlete-badminton-school-lx4mufqha-aachanin1s-projects.vercel.app`, Preview/READY, Application SHA exact, aliases `0`. Root/health/login/static `200`; protected Schedule `307` to Login; exact-artifact warning/error/fatal/5xx logs `0`. First detached-HEAD attempt `dpl_JDrmgJoq6HQNaEfk1EjanWQuqbAA` exposed missing branch-scoped Preview variables and failed smoke; the one allowed clean infrastructure retry used an exact branch clone and passed without Source/Test/config/environment edit. Failed attempt aliases `0` and is not the UAT artifact |
+| Owner UAT / Production UAT | **Not run / Not run** for the corrective task |
+| Promoted / Production Active | **No / No** for the corrective task |
+| Controlled Write UAT | **Not run** |
+| Data Repaired / Production Data Changed | **No / No customer/business-row change**; twelve protected table counts/content digests were invariant before/after migration |
+| Customer Impact / Financial Impact | Customer UI Source is not Production-active; the corrected Store function metadata is remotely active for any authorized caller. Migration applied with customer rows changed `0`. Financial impact **None**; pricing/payment/coupon/Ledger/Finance rows changed `0` |
+| Protected Dirty File | Excluded and invariant at blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`; package and lockfile fingerprints also remain unchanged |
+| Bounded Correction Attempts | Original rounds `2/2` plus Owner-approved Addendum Round 3 `1/1`; Round 3 was used exactly once and passed its focused and full E2E gates. No Round 4 is authorized |
+| Known Limitations | Historical repeated-owner identity symptom was not reproduced. Bounded Production SELECT found two pre-existing Private self attendance rows whose `student_id` is neither owner nor child; no PII logged, no repair authorized/performed. They remain unrepaired and out of scope |
+| Documentation Drift | **No after this READY publication and consistency matrix** |
+| Blocker | **None technical for Owner UAT.** Promotion remains prohibited. The UAT artifact is Preview; Vercel Preview-to-Production creates a distinct Production deployment/build, so later release action requires explicit Owner direction and cannot be represented as no-rebuild Promotion of this Preview artifact |
+| Remaining Work | Owner performs the no-write UAT checklist on exact `dpl_8aKi...` / `3d3f1bc...` and returns PASS or FAIL. Do not Promote or move a Production alias under this command |
+| Task Done | **No** |
+| Next Gate / Next Action | **OWNER UAT on the exact immutable Preview URL; return PASS or FAIL for the exact deployment ID/Application SHA** |
+| Parking Lot authorization state | Combined task is selected and at Owner UAT; no other item is authorized |
+
+## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff
 
 Status: **READY FOR OWNER UAT — SOURCE PUSHED, REMOTE ADDITIVE MIGRATION VERIFIED,
 EXACT STAGED ARTIFACT READY, NOT PROMOTED**.

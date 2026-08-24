@@ -16470,3 +16470,224 @@ Promotion remains prohibited until Owner PASS for the exact artifact/SHA.
 - Next Action: **Owner returns PASS or FAIL for exact artifact
   `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` / Application SHA `ebf368d...`. Do not
   Promote automatically.**
+
+## 2026-08-24 — Adult/Family Wallet Range + Family Unit + Identity Material Hard Stop
+
+Historical scope note: state observed at this safe handoff. The Owner superseded
+the prior READY handoff, rejected `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` permanently,
+and selected one combined corrective task. Production remained throughout on
+`dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d...`.
+
+- Gate 0 proved exact-equality tier matching in both TypeScript and the remotely
+  applied Store RPC. Linked Adult pricing rows still matched the approved visible
+  table, and bounded business-table counts/fingerprints were captured without a
+  write. The CLI-generated local forward migration is
+  `20260824002134_correct_adult_private_wallet_tier_range.sql`; it was never
+  committed, pushed, or applied remotely.
+- The disposable self+child/two-slot fixture reconciled `bookings.total_sessions =
+  2`, participant sessions `4`, Family units `2`, correct customer/Head Coach
+  child mappings, exact Attendance identity expectations, atomic Store/Redeem,
+  preserved self `child_id = NULL` and child `child_id`, one-winner concurrency,
+  no financial rows, and cleanup residue `0`.
+- A separate Admin identity defect was proven: a valid Family self row inherited
+  booking `learner_type = child` and was treated as a missing child. The local
+  model/read correction uses booking-level `child_id` plus Private course context.
+  The historical repeated-owner child symptom did not reproduce. A bounded
+  Production SELECT found two pre-existing Private self attendance rows with a
+  non-owner/non-child `student_id`; no PII was logged, no repair was authorized,
+  and no data changed.
+- Passed local evidence before the stop: Wallet deterministic and pure Family-unit
+  checks; full atomic Wallet UAT with residue `0`; Booking E2E `13/13`; Coach
+  lifecycle `53`; Admin deterministic `39`; Admin performance `24`; Coach Hours
+  `20`; and an earlier TypeScript pass. Clean local reset applied all migrations
+  including the corrective file. Local catalog retained Store signature,
+  SECURITY DEFINER, pinned `public, pg_temp` search path, service-role-only execute,
+  and inclusive range predicates.
+- Required Admin Schedule E2E failed. Round 1 corrected test mechanics/selectors
+  and the proven Admin model. Round 2 attempted to make current date/time an exact
+  server snapshot, but the same run still reported hydration count mismatch
+  (`0/1`) and could not find the expected `ดูโปรแกรมสอนรอบนี้` button. Read-only
+  diff inspection then proved an unintended local copy regression to
+  `ดูโปรแกรม`. Because correction rounds reached `2/2`, no third edit was made.
+- Functional/test/documentation/migration local path counts at handoff are
+  `8/6/4/1`. `src/lib/admin-schedules-read.ts` is the one proven direct technical
+  dependency beyond the planned primary/conditional list. The unintended button
+  copy is a disclosed local Scope Breach. Protected
+  `src/lib/schedule-slot-utils.ts` stayed invariant at blob
+  `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- State at handoff: Source Complete **No**; Tests Passed **No overall**; Committed/
+  Pushed **No/No**; corrective Migration Applied **No**; new staged artifact
+  **None**; Owner UAT **Not run**; Promoted **No**; Production Active **No for the
+  correction**; Controlled Write UAT **Not run**; Data Repaired **No**; Production
+  Data Changed **No**; Customer/Financial Impact **None/None**; Task Done **No**.
+- Next action requires Owner direction. A new authorization must explicitly permit
+  another bounded correction round to restore the exact button contract and
+  diagnose the remaining hydration mismatch. Until then: no further Product/Test
+  correction, Commit, Push, remote migration, Deploy, alias, or Promotion.
+
+## 2026-08-24 — Correction Round 3 passed; later pricing guardrail Material Hard Stop
+
+Historical scope note: state observed at this local safe handoff. The Owner
+explicitly approved exactly one Addendum Correction Round 3 and authorized the
+existing continuous-delivery sequence only if every later required gate passed.
+No Round 4 was authorized.
+
+- Fresh Gate 0 reconfirmed branch `spike/next-major-security-upgrade`, local and
+  upstream HEAD `1bb1f4b3115f309f45c7633bc013bae8141c5ee2`, ahead/behind `0/0`,
+  staged paths `0`, the exact approved `8/6/4/1` pre-Round-3 path inventory, linked
+  Supabase project `tvnhholicwjtxdhlxfqs`, prior migration `20260823090000`
+  present once remotely, corrective migration `20260824002134` absent remotely,
+  and approved Adult values `600 / 1,100 / 3,500` unchanged.
+- Trace evidence independently proved the React hydration mismatch at the User
+  Schedule monthly-total Badge (`0/1`) and the unintended `ดูโปรแกรม` copy. The
+  technical Root Cause was timezone-dependent month classification: stored
+  `YYYY-MM-DD` was parsed into a timezone-bearing `Date`, then SSR and browser
+  used runtime-local `getMonth()` / `getFullYear()`.
+- Round 3 was used exactly once in two authorized paths. Product now compares the
+  stored date's deterministic two-digit `YYYY-MM` key against selected year/month
+  and restores exact `ดูโปรแกรมสอนรอบนี้`. The existing User Schedule E2E now
+  captures page/console errors, asserts stable boundary-month total, exact CTA
+  count, and absence of a Next issue overlay without weakening program-cache,
+  neutral-state, desktop, or mobile assertions.
+- Immediate Round 3 gates passed: focused User Schedule E2E `1/1`, then complete
+  Admin Schedule E2E `13/13`; failed/skipped/unexpected/retry/flaky were all `0`,
+  hydration/page/console/overlay errors were `0`, exact CTA count was `1`, and
+  fixture cleanup residue was `0`.
+- Subsequent deterministic passes were Wallet `32`, pure Family-unit grouping,
+  Coach lifecycle `53`, Admin state `39`, Admin performance `24`, Coach Hours
+  `20`, Schedule details `17`, Progressive booking pricing, Progressive pricing
+  transactions `33`, and Progressive Legacy baseline `32`.
+- The next mandatory protected gate, `node scripts/check-pricing-true-up.js`,
+  failed deterministically at its first assertion. Actual `getKidsGroupTotal(16)`
+  retained `total = 6496`, `perSession = 406`, and tier label `15–18`, but also
+  returned `selectedTier`; the expected object omitted that field. Read-only Git
+  inspection proved task diff/status for both `src/lib/pricing.ts` and
+  `scripts/check-pricing-true-up.js` was empty. This was not a startup or
+  infrastructure failure, and resolving the complete gate requires another
+  Functional/Test decision after Round 3 was consumed.
+- Execution therefore stopped immediately. Post-stop Functional/Test edits,
+  Commit, Push, remote migration apply, Vercel deploy, alias change, and Promotion
+  were all `0`. Remaining Wallet UAT/Booking E2E reruns and local DB/static/build
+  gates were not continued.
+- Final local path counts are Functional/Test/Documentation/Migration `8/7/4/1`;
+  config/dependency/lockfile `0/0/0`. Corrective migration SHA-256 stayed
+  `5E9BF1D3E4B760EBF69F86AEE23F5BD3605FC71DA0C353C98B527D6AE9A45AEF`.
+  Protected `src/lib/schedule-slot-utils.ts` remained unstaged and invariant at
+  Git blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  package/lock hashes also remained unchanged.
+- State at handoff: Source Complete **No**; Tests Passed **No overall**; Committed/
+  Pushed **No/No**; corrective Migration Applied **No**; staged artifact **None**;
+  Owner UAT **Not run**; Promoted **No**; corrected Source Production Active
+  **No**; Controlled Write UAT **Not run**; Data Repaired **No**; Production Data
+  Changed **No**; Customer/Financial Impact **None/None**; Documentation Drift
+  corrected locally but unpublished; Task Done **No**.
+- Next Action: Owner direction for a separately authorized pricing guardrail
+  resolution or disposal/replanning. Under this command, do not make another
+  Product/Test edit, Commit, Push, apply migration, Deploy, alias, or Promote.
+
+## 2026-08-24 — Gate Classification Addendum; corrective task READY FOR OWNER UAT
+
+State observed at this READY publication. The Owner classified only the exact
+`check-pricing-true-up.js` object-shape mismatch as **PRE-EXISTING STALE BASELINE —
+NON-TASK-ATTRIBUTABLE**, authorized read-only substitute assertions, and directed
+continuous delivery to READY. This did not authorize or use Round 4. The prior
+post-Round-3 Hard Stop remains valid historical evidence and was not erased.
+
+- Pricing provenance stayed exact: task diff for `src/lib/pricing.ts` and
+  `scripts/check-pricing-true-up.js` was empty; baseline blobs remained
+  `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` and
+  `2d4472ab76edb7b2b93f74b234dd086ad4a974dd`. The original script is **KNOWN
+  OWNER-ACCEPTED STALE BASELINE — NOT COUNTED AS PASS**. An in-memory/stdin
+  harness projected every legacy business field and separately asserted
+  `selectedTier`; `15/15` passed. It proved Kids 16 = `6,496`, per-session `406`,
+  label `15–18`, selected tier `15/18/406/6500/session`, first 8 = `4,000`, next
+  8 = `2,496`, cumulative = `6,496`, one after 8 = `500`, Adult 1 = `600`, and
+  Adult 10 = `5,500`. No repository file, price formula, or tier row changed.
+- Because all Functional/Test hashes were invariant, the approved retained
+  Round-3 evidence remained valid: focused User Schedule `1/1`; Admin Schedule
+  E2E `13/13`; exact CTA count `1`; hydration/page/console/overlay/retry/flaky/
+  skip/unexpected `0`; residue `0`; Wallet deterministic `32`; Family-unit pure
+  check; Coach lifecycle `53`; Admin state `39`; Admin performance `24`; Coach
+  Hours `20`; Schedule details `17`; Progressive pricing; Progressive
+  transactions `33`; Progressive Legacy baseline `32`.
+- Newly completed gates passed: atomic Wallet UAT with all-member Store/Redeem,
+  preserved self/child ids, one-winner concurrency, fail-closed evidence, no
+  financial rows, and residue `0`; Booking E2E `13/13` with residue `0`; TypeScript;
+  ESLint warnings `0`; mojibake `265`; Next.js Production build with static
+  generation `94/94`; `git diff --check`; clean local Supabase reset/order; local
+  function catalog/security/grants; and the repository post-build root/three real
+  static-asset checks. Local database lint retained only pre-existing temp-table
+  static-analysis findings while runtime atomic UAT passed.
+- Exact final path counts were Functional/Test/Documentation/Migration `8/7/4/1`;
+  config/dependency/lockfile `0/0/0`. Functional paths:
+  `src/app/(dashboard)/dashboard/lesson-wallet/page.tsx`,
+  `src/app/(dashboard)/dashboard/schedule/page.tsx`,
+  `src/components/dashboard/lesson-wallet-client.tsx`,
+  `src/components/dashboard/schedule-calendar-client.tsx`,
+  `src/lib/admin-schedules-model.ts`, `src/lib/admin-schedules-read.ts`,
+  `src/lib/lesson-wallet-entitlement.ts`, and
+  `src/lib/family-private-schedule-units.ts`. Test paths:
+  `scripts/check-admin-schedule-assignment-state.mjs`,
+  `scripts/check-coach-assignment-lifecycle.mjs`,
+  `scripts/check-lesson-wallet-regression.mjs`, `scripts/uat-lesson-wallet.js`,
+  `scripts/check-family-private-schedule-units.mjs`,
+  `tests/booking-regression/booking.spec.ts`, and
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`.
+  Documentation paths are `AGENTS.md`, `PROJECT_STATE.md`, `TODO-CODEX.md`, and
+  `DEVELOPMENT_TODO.md`. The sole migration path is
+  `supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql`,
+  SHA-256 `5E9BF1D3E4B760EBF69F86AEE23F5BD3605FC71DA0C353C98B527D6AE9A45AEF`.
+- Application/Test/Migration commit
+  `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91`, tree
+  `3b721e5b8c9ac680bf9ae61c6a8e8c5b2e480e47`, was pushed normally to
+  `origin/spike/next-major-security-upgrade`; local/upstream were `0/0` before
+  documentation closeout. Documentation is a separate pushed descendant whose
+  exact SHA is reported in the final handoff because a commit cannot embed itself.
+- Linked Supabase project was exactly `tvnhholicwjtxdhlxfqs`. A final dry-run
+  showed only `20260824002134` pending; one migration-file push applied it.
+  Postflight proved history count `1`, pending `0`, unchanged Store signature,
+  SECURITY DEFINER, pinned `public, pg_temp`, service-role-only execute,
+  inclusive predicate occurrences `2/2`, exact-min occurrences `0`, and Adult
+  values `600 / 1,100 / 3,500`. All twelve protected business-table counts and
+  content digests were identical before/after. Schema/function metadata changed;
+  customer/business/financial rows changed `0`; Data Repaired **No**. Supabase
+  advisors named no task function in any security/performance finding.
+- The first detached-`HEAD` Preview `dpl_JDrmgJoq6HQNaEfk1EjanWQuqbAA` was READY
+  but smoke returned `500` because Vercel did not attach branch-scoped Preview
+  Supabase variables to ref `HEAD`. It had aliases `0` and is not the UAT artifact.
+  Exact-SHA Git-branch evidence returned health/root/login `200`, proving a
+  deployment-context failure rather than Source. The one authorized clean
+  infrastructure retry cloned the exact pushed branch/SHA, changed no Source,
+  Test, config, or environment, and built Preview
+  `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` at immutable URL
+  `https://new-athlete-badminton-school-lx4mufqha-aachanin1s-projects.vercel.app`.
+  It is Preview/READY, aliases `0`, and metadata SHA is exact `3d3f1bc...`.
+  Root/health/login/static returned `200`; protected Schedule returned `307` to
+  Login; exact-deployment warning/error/fatal/5xx logs were `0`.
+- Fresh alias evidence retained all four established Production aliases on
+  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / Application
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`. Rejected
+  `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL`, failed infrastructure attempt `dpl_JDr...`,
+  and UAT artifact `dpl_8aKi...` each had aliases `0`. Promotion/Production alias
+  changes were `0`.
+- Protected `src/lib/schedule-slot-utils.ts` remained unstaged and invariant at
+  blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  The two sanitized historical Private attendance rows remain unrepaired and out
+  of scope. No environment, feature control, allowlist, package, lockfile,
+  Production business-row, Controlled Write UAT, or financial change occurred.
+- READY state: Source Complete **Yes**; Tests Passed **Yes under the exact Owner
+  exclusion, with the original stale script explicitly not PASS**; Committed/
+  Pushed **Yes/Yes**; Migration Applied **Yes exactly once**; Preview artifact
+  **READY**; Owner UAT **Not run**; Promoted **No**; corrected UI Source Production
+  Active **No**; Controlled Write UAT **Not run**; Data Repaired **No**; Production
+  Business Data Changed **No**; Task Done **No**.
+- Known release limitation: this UAT artifact is Preview. Vercel Preview-to-
+  Production creates a distinct Production deployment/build, so it cannot satisfy
+  a later no-rebuild exact-artifact Promotion contract. Promotion remains
+  prohibited; after UAT the Owner must explicitly direct the compatible release
+  step.
+- Next Action: Owner performs no-write UAT on exact `dpl_8aKi...` /
+  `3d3f1bc...` and returns PASS or FAIL. Do not Promote or move a Production alias.

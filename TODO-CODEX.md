@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-23
+Last updated: 2026-08-24
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,17 +9,28 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — ADULT GROUP + FAMILY PRIVATE 10-MONTH
-ENTITLEMENT / CROSS-MONTH LESSON WALLET**.
+Status: **READY FOR OWNER UAT — ADULT/FAMILY WALLET RANGE + FAMILY UNIT UI +
+PRIVATE IDENTITY INTEGRITY**.
 
-- Application/Test/Migration Source is complete, committed, pushed, and staged
-  as an exact unaliased Production-target artifact. The authorized additive
-  migration is applied exactly once. `PROJECT_STATE.md` is authoritative for the
-  exact SHA, artifact, verification, and release-state matrix.
-- Next action: Owner runs the no-write UAT checklist on the exact staged
-  artifact/SHA and returns PASS or FAIL. Do not Promote automatically.
-- Private Self + Child Identity Integrity and every other Parking Lot candidate
-  remain unselected and unauthorized.
+- Owner-approved Correction Round 3 was used exactly once. It restored the exact
+  User Schedule CTA and deterministic `YYYY-MM` month classification. Focused
+  User Schedule E2E passed `1/1`; the complete Admin Schedule E2E passed `13/13`
+  with hydration/page/console/overlay errors `0` and cleanup residue `0`.
+- Owner classified the exact `check-pricing-true-up.js` shape mismatch as a
+  pre-existing stale baseline, not a task regression and not Round 4. The original
+  script is not counted as PASS; read-only in-memory substitute assertions passed
+  `15/15`. Pricing Source/Test task diff stayed `0` and no formula/tier changed.
+- Application `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` is committed/pushed. The
+  exact corrective migration is applied once with customer/business-row change
+  `0`. Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` is `READY`, unaliased, tied to
+  the exact Application SHA, and passed no-write smoke/log checks.
+- Rejected artifact `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` remains unaliased and must
+  never be Promoted. Production remains on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`.
+- Next action: Owner runs the no-write UAT checklist on exact Preview
+  `https://new-athlete-badminton-school-lx4mufqha-aachanin1s-projects.vercel.app`
+  and returns PASS or FAIL for `dpl_8aKi...` / `3d3f1bc...`. Do not Promote or
+  move a Production alias.
+- No other Parking Lot candidate is authorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -1219,9 +1230,10 @@ Confirmed final state:
 - Branch: `spike/next-major-security-upgrade`.
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- Adult Group + Family Private 10-Month Entitlement is the current Active Task at
-  READY FOR OWNER UAT. Only the protected unrelated dirty file remains local.
-  Exact mutable state is authoritative in the first `PROJECT_STATE.md` matrix.
+- The combined Adult/Family Wallet range, Family-unit UI, and Private identity
+  correction is the current Active Task at READY FOR OWNER UAT. Only the protected
+  unrelated dirty file remains local after documentation publication. Exact
+  mutable state is authoritative in the first `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.
