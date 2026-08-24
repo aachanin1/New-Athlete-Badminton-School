@@ -9,27 +9,35 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — ADULT/FAMILY WALLET RANGE + FAMILY UNIT UI +
-PRIVATE IDENTITY INTEGRITY**.
+Status: **READY FOR OWNER UAT — EXACT PREVIEW SLIPOK TEST MODE VERIFIED**.
 
-- Owner-approved Correction Round 3 was used exactly once. It restored the exact
-  User Schedule CTA and deterministic `YYYY-MM` month classification. Focused
-  User Schedule E2E passed `1/1`; the complete Admin Schedule E2E passed `13/13`
-  with hydration/page/console/overlay errors `0` and cleanup residue `0`.
-- Owner classified the exact `check-pricing-true-up.js` shape mismatch as a
-  pre-existing stale baseline, not a task regression and not Round 4. The original
-  script is not counted as PASS; read-only in-memory substitute assertions passed
-  `15/15`. Pricing Source/Test task diff stayed `0` and no formula/tier changed.
-- Application `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` is committed/pushed. The
-  exact corrective migration is applied once with customer/business-row change
-  `0`. Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` is `READY`, unaliased, tied to
-  the exact Application SHA, and passed no-write smoke/log checks.
-- Rejected artifact `dpl_HzK2TM1j6pSd2VaUkMzCD9s8uPNL` remains unaliased and must
-  never be Promoted. Production remains on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`.
-- Next action: Owner runs the no-write UAT checklist on exact Preview
-  `https://new-athlete-badminton-school-lx4mufqha-aachanin1s-projects.vercel.app`
-  and returns PASS or FAIL for `dpl_8aKi...` / `3d3f1bc...`. Do not Promote or
-  move a Production alias.
+- Owner payment UAT on Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` failed because
+  the artifact ran Live SlipOK and returned error `1003`. It is permanently
+  ineligible. The failed payment/booking rows were not modified by Developer.
+- The Owner-approved Environment Addendum changed exactly one Vercel entry:
+  sensitive `SLIPOK_TEST_MODE` with requested value exact lowercase `true`, target
+  Preview, branch `spike/next-major-security-upgrade`. Production remained exact
+  `true`; Development remained absent; non-target environment metadata was
+  invariant. This was not Correction Round 4.
+- Application Source/Test/Pricing/Migration/config/dependency/lockfile changes are
+  all `0`. Replacement Preview `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U` is `READY`,
+  unaliased, and exact Application SHA/ref/tree. Build/TypeScript/static `94/94`,
+  root/health/login/static `200`, app Admin redirect `307`, and bounded warning/
+  error/fatal/5xx/SlipOK/1003 logs `0` all passed.
+- Owner established an authenticated Admin session on the exact replacement
+  artifact. Read-only verification found the exact amber Test Mode banner once
+  and visible, exact green Live banner count `0`, Next overlay `0`, browser
+  warning/error `0`, and final exact-deployment warning/error/fatal/5xx/SlipOK/
+  `1003` log matches `0`. No Payment action or upload occurred.
+- Production remains on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d` with four aliases unchanged.
+  Rejected/ineligible `dpl_HzK2...`, `dpl_JDr...`, and `dpl_8aKi...` remain
+  unaliased. No Promotion or Production write occurred.
+- Next action: Owner performs the controlled payment and Family Schedule/Lesson
+  Wallet UAT on exact Preview
+  `https://new-athlete-badminton-school-45gzjfa8g-aachanin1s-projects.vercel.app`
+  and returns PASS or FAIL for `dpl_CBw...` / `3d3f1bc...`. Do not Promote or move
+  a Production alias before exact-artifact Owner PASS.
 - No other Parking Lot candidate is authorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
@@ -1230,10 +1238,10 @@ Confirmed final state:
 - Branch: `spike/next-major-security-upgrade`.
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- The combined Adult/Family Wallet range, Family-unit UI, and Private identity
-  correction is the current Active Task at READY FOR OWNER UAT. Only the protected
-  unrelated dirty file remains local after documentation publication. Exact
-  mutable state is authoritative in the first `PROJECT_STATE.md` matrix.
+- The Preview SlipOK branch-environment correction is the current Active Task at
+  READY FOR OWNER UAT. After documentation publication, only the protected
+  unrelated dirty file remains local. Exact mutable state is authoritative in the
+  first `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

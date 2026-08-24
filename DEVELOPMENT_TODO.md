@@ -16691,3 +16691,123 @@ post-Round-3 Hard Stop remains valid historical evidence and was not erased.
   step.
 - Next Action: Owner performs no-write UAT on exact `dpl_8aKi...` /
   `3d3f1bc...` and returns PASS or FAIL. Do not Promote or move a Production alias.
+
+## 2026-08-24 — Preview SlipOK Environment Addendum; authenticated-banner Material Hard Stop
+
+State observed at this local safe handoff. Owner payment UAT superseded the prior
+READY record: exact Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` displayed the
+green Live SlipOK banner, attempted Live SlipOK, and returned error `1003`. Its
+payment rows remained pending and bookings remained paid/awaiting verification.
+Developer did not modify those rows. The artifact is Owner UAT FAIL and
+permanently ineligible together with `dpl_HzK2...` and `dpl_JDr...`.
+
+- The Owner authorized exactly one environment scope change and no Product/Test/
+  Migration/Pricing/config/dependency/lockfile change: sensitive
+  `SLIPOK_TEST_MODE`, requested value exact lowercase `true`, target Preview, Git
+  branch `spike/next-major-security-upgrade`. This Addendum did not use or
+  authorize Correction Round 4. Source still uses exact `=== 'true'` for Legacy,
+  Progressive, and the Admin display; shared deterministic checks passed `6/6`.
+- Gate 0 reconfirmed branch `spike/next-major-security-upgrade`, local/upstream
+  HEAD `bc75e17c53f53ba0e45f12843d950253b0231cc5`, ahead/behind `0/0`, staged paths
+  `0`, Application SHA/tree
+  `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` /
+  `3b721e5b8c9ac680bf9ae61c6a8e8c5b2e480e47`, and protected
+  `src/lib/schedule-slot-utils.ts` blob/SHA-256
+  `4521281d099efb189429a744909552d67871ff23` /
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  Non-documentation delta between Application SHA and current HEAD was `0`.
+- Read-only Vercel preflight proved exactly one branch-specific target entry,
+  Production effective value exact `true`, and Development absent. The non-target
+  16-entry metadata fingerprint stayed
+  `1F8AC594E39100FB04D83A5C19FF8E24793AE790C33B7942D2D9B5E9C6F26CF5`.
+  CLI `env update` reported success but its local `env run` representation for
+  the sensitive target stayed unreadable/empty. The official Vercel v10 project
+  environment upsert then accepted exactly one matching sensitive key/Preview/
+  branch update with failure count `0`. Sensitive target values remain
+  non-readable through that local probe, so the Owner-required deployed Admin
+  banner remains the authoritative effective-runtime gate.
+- A clean isolated remote clone placed the exact approved branch at the exact
+  Application SHA/tree and created one Preview deployment:
+  `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`, immutable URL
+  `https://new-athlete-badminton-school-45gzjfa8g-aachanin1s-projects.vercel.app`.
+  It is Preview/READY, metadata ref/SHA exact, region `icn1`, aliases `0`. Remote
+  build compilation and TypeScript passed; static generation completed `94/94`;
+  build-error-only logs contained no error.
+- Protection-bypassed no-write smoke returned root/health/login/one real static
+  asset `200/200/200/200`; unauthenticated application `/admin/payments` returned
+  `307` to `/auth/login`. Exact-deployment warning/error/fatal/5xx log matches were
+  `0`; `SlipOK` and `1003` matches were `0`. No slip upload, Payment action,
+  Store/Redeem, POST, database mutation, or Controlled Write UAT occurred.
+- Required authenticated verification could not complete. The in-app browser had
+  no Vercel session. Existing Chrome passed Vercel protection; the new hostname
+  first showed app Login with email/password autofill booleans both false, then
+  its existing application session restored as User/Parent. `/admin/payments`
+  authorization-redirected that session to `/dashboard`, proving no Admin session
+  was available. Developer did not extract/transfer the old artifact's session
+  token, inspect credential values, or enter Admin credentials. Therefore amber
+  `SlipOK TEST MODE` visibility and absence of the green Live banner remain
+  **Unknown / Need authenticated Admin verification**. This mandatory gate is not
+  waived.
+- Fresh postflight retained all four Production aliases on
+  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; replacement and all ineligible
+  artifacts had aliases `0`. Production Environment/deployment/traffic changed
+  No. Migration/schema/database/customer/business/financial rows changed No;
+  Data Repaired No; Promoted No.
+- State at handoff: Source Complete **Yes and unchanged**; required Tests/Gates
+  Passed **No overall because authenticated banner is unverified**; Application
+  Committed/Pushed **Yes/Yes**; current Documentation Committed/Pushed **No/No**;
+  replacement Preview **READY but not approved for Owner UAT**; Owner UAT on the
+  replacement **Not run**; Controlled Write UAT **Not run**; Production Active for
+  corrected Source **No**; Customer/Financial Impact **None/None**; Task Done
+  **No**.
+- Next Action: an authorized operator signs in as Admin on exact `dpl_CBw...`
+  without any payment action and asks Developer Codex to continue. Developer then
+  performs only the amber/green banner, browser-error, and final log checks. If
+  they pass, publish the three authorized documentation files and report READY
+  FOR OWNER UAT. Until then: no Commit, Push, payment write, alias, Promotion, or
+  Production change.
+
+## 2026-08-24 — Preview SlipOK Environment Addendum; READY continuation
+
+State observed at this READY publication. The Owner established an authenticated
+Admin/Super Admin session on exact replacement Preview
+`dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U` and opened `/admin/payments`; Developer resumed
+only the previously authorized read-only banner/browser/log gate.
+
+- Fresh continuity retained branch `spike/next-major-security-upgrade`, local and
+  upstream HEAD `bc75e17c53f53ba0e45f12843d950253b0231cc5`, ahead/behind `0/0`,
+  staged paths `0`, exact Application SHA/tree
+  `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` /
+  `3b721e5b8c9ac680bf9ae61c6a8e8c5b2e480e47`, and only the three authorized
+  documentation diffs plus the protected dirty-file status. Functional/Test/
+  Pricing/Migration/config/dependency/lockfile diffs remained `0`.
+- Exact deployment identity remained Preview/READY, ref
+  `spike/next-major-security-upgrade`, SHA exact, region `icn1`, aliases `0`.
+  Owner-UAT-failed `dpl_8aKi...` remained READY/unaliased/permanently ineligible.
+- On the already-open authenticated Admin page, exact amber
+  `SlipOK TEST MODE: ใช้ทดสอบเท่านั้น รายการจริงต้องตั้งค่า env แล้ว redeploy`
+  count/visibility was `1/true`; exact green Live banner count was `0`; Next issue
+  overlay count was `0`; browser warning/error count was `0`. No navigation,
+  reload, click, Payment action, slip upload, approval, rejection, cancellation,
+  or form submission occurred during this gate.
+- Final exact-deployment runtime scans returned warning/error/fatal `0`, 5xx `0`,
+  `SlipOK` matches `0`, and error `1003` matches `0`. No Live SlipOK request was
+  generated by Developer verification.
+- Fresh alias inventory kept all four Production aliases on
+  `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; replacement and failed Preview
+  alias counts were `0/0`. Production Environment/deployment/traffic changed No.
+- Protected `src/lib/schedule-slot-utils.ts` remained unstaged and invariant at
+  blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- READY state: Source Complete **Yes and unchanged**; Tests/Gates Passed **Yes**;
+  Application Committed/Pushed **Yes/Yes**; Documentation is a separate
+  publication whose exact SHA is reported in the final handoff; new Owner UAT
+  **Not run**; Promoted **No**; corrected Source Production Active **No**;
+  Controlled Write UAT **Not run**; Data Repaired **No**; Production Data Changed
+  **No**; Customer/Financial Impact **None/None**; Task Done **No**.
+- Next Action: Owner performs controlled payment UAT and continues the Family
+  Schedule/Lesson Wallet UAT on exact `dpl_CBw...` / `3d3f1bc...`, then returns
+  PASS or FAIL. Do not Promote or move a Production alias before exact-artifact
+  Owner PASS.
