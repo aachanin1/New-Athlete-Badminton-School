@@ -9,35 +9,37 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — EXACT PREVIEW SLIPOK TEST MODE VERIFIED**.
+Status: **READY FOR OWNER UAT — PRIVATE WALLET CORRECTION; NOT PROMOTED**.
 
-- Owner payment UAT on Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` failed because
-  the artifact ran Live SlipOK and returned error `1003`. It is permanently
-  ineligible. The failed payment/booking rows were not modified by Developer.
-- The Owner-approved Environment Addendum changed exactly one Vercel entry:
-  sensitive `SLIPOK_TEST_MODE` with requested value exact lowercase `true`, target
-  Preview, branch `spike/next-major-security-upgrade`. Production remained exact
-  `true`; Development remained absent; non-target environment metadata was
-  invariant. This was not Correction Round 4.
-- Application Source/Test/Pricing/Migration/config/dependency/lockfile changes are
-  all `0`. Replacement Preview `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U` is `READY`,
-  unaliased, and exact Application SHA/ref/tree. Build/TypeScript/static `94/94`,
-  root/health/login/static `200`, app Admin redirect `307`, and bounded warning/
-  error/fatal/5xx/SlipOK/1003 logs `0` all passed.
-- Owner established an authenticated Admin session on the exact replacement
-  artifact. Read-only verification found the exact amber Test Mode banner once
-  and visible, exact green Live banner count `0`, Next overlay `0`, browser
-  warning/error `0`, and final exact-deployment warning/error/fatal/5xx/SlipOK/
-  `1003` log matches `0`. No Payment action or upload occurred.
-- Production remains on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
-  `a370673d06e61e409ec9b1de648ae4fbb1070c2d` with four aliases unchanged.
-  Rejected/ineligible `dpl_HzK2...`, `dpl_JDr...`, and `dpl_8aKi...` remain
-  unaliased. No Promotion or Production write occurred.
-- Next action: Owner performs the controlled payment and Family Schedule/Lesson
-  Wallet UAT on exact Preview
-  `https://new-athlete-badminton-school-45gzjfa8g-aachanin1s-projects.vercel.app`
-  and returns PASS or FAIL for `dpl_CBw...` / `3d3f1bc...`. Do not Promote or move
-  a Production alias before exact-artifact Owner PASS.
+- Owner UAT failed exact Preview `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`: Family
+  Schedule UI and Adult Store passed, but Family Private Store returned generic
+  HTTP 400. The artifact remains READY/unaliased but is permanently ineligible.
+- Published correction: Private historical packages select the greatest
+  effective `min_sessions` threshold not exceeding purchased hours, while
+  Adult/Kids inclusive containment stays unchanged; API typed
+  `LESSON_WALLET_*` codes take precedence over Postgres `P0001`.
+- Final scope is Functional/Test/Documentation/Migration `2/2/4/1`; config, dependency,
+  lockfile, Environment, UI, Pricing, and Production-data changes are `0`.
+  Application/Test/Migration Source is pushed at `29ce2c25...`; corrective
+  migration `20260824154718` is applied exactly once with protected business-row
+  counts/digests invariant.
+- Owner-authorized Test-Harness Correction 3 was used exactly once (`3/3`; no
+  Correction 4): financial counts now wrap each Store/Redeem RPC after fixture
+  Payment setup. Atomic UAT exited `0`, guarded `31` successful/typed-failure RPC
+  results, proved coupon/ledger-view/finance deltas `0/0/0`, and cleanup residue `0`.
+- Deterministic Wallet `37/37`, Booking E2E `13/13`, Admin Schedule E2E `13/13`,
+  protected suites, TypeScript, zero-warning lint, mojibake, Production build,
+  local/static smoke, migration security, staged smoke, and bounded logs passed.
+  The original pricing script remains **KNOWN OWNER-ACCEPTED STALE BASELINE —
+  NOT COUNTED AS PASS**; the approved substitute pricing assertions passed.
+- Exact staged artifact: `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` /
+  `https://new-athlete-badminton-school-mn4msy29m-aachanin1s-projects.vercel.app`,
+  Production target, READY, aliases `0`, exact Application `29ce2c25...` and tree
+  `686e32e...`. Production remains `dpl_Gjmd...` / `a370673...` with all four
+  established aliases unchanged; Promoted **No**.
+- Next action: Owner runs UAT on the exact staged artifact and returns PASS or
+  FAIL for deployment `dpl_9Tc...` and Application SHA `29ce2c25...`. Do not
+  Promote or move aliases before exact-artifact PASS. See `PROJECT_STATE.md`.
 - No other Parking Lot candidate is authorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.

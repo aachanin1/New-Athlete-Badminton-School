@@ -16811,3 +16811,175 @@ only the previously authorized read-only banner/browser/log gate.
   Schedule/Lesson Wallet UAT on exact `dpl_CBw...` / `3d3f1bc...`, then returns
   PASS or FAIL. Do not Promote or move a Production alias before exact-artifact
   Owner PASS.
+
+## 2026-08-24 — Private Wallet threshold + typed error Addendum; Material Hard Stop
+
+State observed at this local safe handoff. Owner UAT superseded the prior READY
+record for `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`: Family Schedule unit/identity UI
+and Adult Store passed, but Family Private Store returned generic HTTP 400. The
+artifact remains Preview/READY with aliases `0`, is **OWNER UAT FAIL**, and is
+permanently ineligible for Promotion.
+
+- Gate 0 matched the expected repository baseline: branch
+  `spike/next-major-security-upgrade`, local/upstream
+  `50f81a8288c73e6517213d4cc9358ee5ddeaa7a7`, ahead/behind `0/0`, staged `0`,
+  and only pre-existing `src/lib/schedule-slot-utils.ts` dirty. Its blob/SHA-256
+  remained `4521281d099efb189429a744909552d67871ff23` /
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  Pricing Source/Test stayed at blobs `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` /
+  `2d4472ab76edb7b2b93f74b234dd086ad4a974dd` with task diff `0`.
+- Sanitized linked-project evidence on exact project `tvnhholicwjtxdhlxfqs`
+  proved one Private booking with `total_sessions=4`, four exact slots, eight
+  participant sessions (`4` self + `4` child), one approved Payment for `3,600`,
+  effective Private tiers `1/1 @ 900` and `10/10 @ 800`, and Wallet/member/
+  attendance/assignment residue `0/0/0/0`. The applied Store function had two
+  inclusive-max predicates, so quantity 4 matched neither Private row. The route
+  searched only `error.message`, proving the independent typed-code loss.
+- Local implementation stayed within the frozen paths. Functional:
+  `src/lib/lesson-wallet-entitlement.ts` and
+  `src/app/api/lesson-wallet/route.ts`. Tests:
+  `scripts/check-lesson-wallet-regression.mjs` and
+  `scripts/uat-lesson-wallet.js`. Supabase CLI `2.115.0` generated exactly
+  `supabase/migrations/20260824154718_correct_private_wallet_package_tier_matching.sql`,
+  SHA-256 `79937D559BBE7426BC11446F7CD7DD034650D00AA9304FD6C5951EE63D78762F`.
+  No UI, Pricing, SlipOK, config, dependency, lockfile, or Environment path changed.
+- TypeScript now filters effective Private rows, selects the greatest
+  `min_sessions <= purchasedHours`, and requires exactly one row only at that
+  threshold; Adult/Kids retain inclusive min/max containment. The route now
+  prefers an explicit `LESSON_WALLET_*` `error.code`, then a typed message code,
+  then the generic fallback, so Postgres `P0001` cannot mask a typed message.
+  The migration replaces Store only and mirrors the same split algorithm.
+- Focused deterministic Wallet regression passed `37/37`. Docker/local Supabase
+  had one infrastructure-only `starting` result; after container health became
+  `healthy`, the single clean startup retry passed. A clean `db reset --local
+  --no-seed` applied all migrations through the new file. Local catalog proved
+  signature `lesson_wallet_store_v2(uuid,uuid,uuid)`, SECURITY DEFINER, pinned
+  `public, pg_temp`, service-role execute true, PUBLIC/anon/authenticated false,
+  Private threshold predicates `2`, and inclusive min/max predicates `3/2`.
+  Local lint retained only the pre-existing temp-table static-analysis findings
+  for Store/Redeem.
+- Atomic UAT exercised the corrected four-hour shape through one-credit/two-member
+  Store, selected 1-hour threshold evidence at 900, ten-month policy/expiry, six
+  untouched participant rows, exact self/child ids, all-member Redeem, re-wallet
+  evidence, ten-hour threshold at 800, one-winner concurrency, and typed missing/
+  ambiguous failures. It did not complete as PASS because its final new financial
+  count assertion remained non-zero.
+- Both bounded corrections were used. Attempt 1 corrected the newly added
+  read-only counter from nonexistent view column `id` to `source_id`. Attempt 2
+  corrected timestamp representation comparison to epoch-millisecond equality.
+  The next failure is a distinct test-harness baseline-placement defect: the
+  baseline is captured before fixture bookings/payments, while
+  `payment_ledger_allocations_v1` is a view over legacy `payments` plus Progressive
+  allocations. Fixture Payment inserts therefore change the view even though the
+  Wallet operation creates no financial row. Moving the baseline after fixture
+  Payment setup would require Test correction 3, which is not authorized.
+- Cleanup after the failed run left local UAT profiles/bookings/payments/credits
+  `0/0/0/0` and coupon/ledger-view/finance totals `0/0/0`. No remote mutation,
+  customer/business-row write, data repair, Controlled Write UAT, remote migration,
+  Commit, Push, new artifact, alias, or Promotion occurred. Fresh Vercel evidence
+  retained all four Production aliases on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`. Final read-only linked migration
+  inventory showed exactly one pending file: `20260824154718`.
+- Hard Stop state: Source Complete **No**; Tests Passed **No overall**; Committed/
+  Pushed **No/No**; Migration Applied linked remote **No**; Deployed **No new
+  artifact**; Owner UAT for a corrected artifact **Not run**; Promoted **No**;
+  Production Active **No**; Data Repaired **No**; Production Data Changed **No**;
+  Customer/Financial Impact **None/None**; Task Done **No**.
+- Next Action: Owner decides whether to authorize exactly one additional
+  Test-only correction to move the financial baseline after fixture Payment
+  setup. Until then, no further edit, Commit, Push, migration apply, deploy, alias,
+  or Promotion.
+
+## 2026-08-24 — Test-Harness Correction 3; Private Wallet READY FOR OWNER UAT
+
+State observed at this READY handoff. The Owner authorized exactly one additional
+Test-Harness Correction 3 to the existing Private Wallet historical-threshold and
+typed-error task. This used the final correction allowance (`3/3`) and did not
+authorize or use Correction 4 or another Product/Functional correction.
+
+- Gate 0 matched branch `spike/next-major-security-upgrade`, local/upstream
+  `50f81a8288c73e6517213d4cc9358ee5ddeaa7a7`, ahead/behind `0/0`, staged `0`,
+  frozen Functional/Test/Migration/Documentation scope `2/2/1/4`, and linked
+  project `tvnhholicwjtxdhlxfqs` with exactly migration `20260824154718` pending.
+  Protected `src/lib/schedule-slot-utils.ts` remained unstaged at blob/SHA-256
+  `4521281d099efb189429a744909552d67871ff23` /
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  Pricing Source/Test remained byte-unchanged at blobs
+  `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` /
+  `2d4472ab76edb7b2b93f74b234dd086ad4a974dd`.
+- Fresh audit reconfirmed that `createBooking()` intentionally inserts one fixture
+  Payment per booking, `payment_ledger_allocations_v1` unions legacy `payments`
+  with Progressive allocations, and the failed run-wide baseline spanned those
+  fixture inserts. Correction 3 modified only `scripts/uat-lesson-wallet.js`:
+  existing Store/Redeem wrappers now capture coupon usage, payment-ledger-view,
+  and finance counts immediately before and after exactly one RPC, assert exact
+  equality for successful and typed-failure results, and return the RPC result
+  unchanged. No fixture values, ordering, Product Source, migration, Pricing, UI,
+  SlipOK, config, dependency, lockfile, Environment, or Production data changed.
+- Deterministic Lesson Wallet regression passed `37/37`. Clean local Supabase reset
+  applied the full chain through `20260824154718`. Atomic Wallet UAT exited `0` and
+  proved four Private hours/eight participant rows, one selected Family hour as one
+  credit/two members, six untouched scheduled rows, 1/1@900 evidence for 3,600,
+  10/10@800 evidence for 8,000, ten inclusive Bangkok months, exact self/child ids,
+  all-member Redeem/re-wallet, one-winner concurrency, typed missing/ambiguous
+  failures, and cleanup residue `0`. Financial invariance wrapped `31` Store/Redeem
+  RPC results and every coupon/ledger-view/finance delta was `0/0/0`.
+- Protected verification passed: Family unit grouping; Coach assignment lifecycle
+  `53/53`; Admin assignment state `39/39`; Coach hours `20/20`; Progressive booking
+  pricing; Progressive transactions `33`; Progressive pricing shadow read-only;
+  full Booking E2E `13/13`; full Admin Schedule E2E `13/13`; TypeScript; zero-warning
+  lint; mojibake over `265` files; Next.js `16.2.6` Production build/static generation
+  `94/94`; post-build root/health/real-static/browser-console checks; and
+  `git diff --check`. Previously passed Admin performance `24/24` and Schedule
+  details `17/17` evidence remained valid because their Source/Test hashes did not
+  change. Local database lint emitted only the pre-existing temp-table static
+  findings for Store/Redeem; runtime UAT and catalog checks passed.
+- The original `check-pricing-true-up.js` result remains **KNOWN OWNER-ACCEPTED
+  STALE BASELINE — NOT COUNTED AS PASS**. Read-only substitute assertions passed
+  every legacy business projection and separately checked `selectedTier`: Kids
+  16 = 6,496 at 406, first/next eight = 4,000/2,496; current Adult visible values
+  = 600/1,100/3,500; Private four/ten = 3,600@900 / 8,000@800. No pricing row or
+  Pricing Source/Test changed.
+- Explicit-path Application/Test/Migration commit
+  `29ce2c25cc33ce9b3727beb4670467554a983100`, tree
+  `686e32e1479375600f458573a00fbd652770976b`, contains only the authorized two
+  Functional, two Test, and one migration paths and was pushed normally. Local and
+  upstream matched at `0/0` before documentation publication.
+- Migration
+  `supabase/migrations/20260824154718_correct_private_wallet_package_tier_matching.sql`,
+  SHA-256 `79937D559BBE7426BC11446F7CD7DD034650D00AA9304FD6C5951EE63D78762F`,
+  was the only dry-run candidate and was applied once through `supabase db push
+  --linked --skip-vault`. Postflight pending count was `0`; history count was `1`;
+  signature, SECURITY DEFINER, pinned `public, pg_temp`, owner/service-role execute,
+  and PUBLIC/anon/authenticated denial were preserved. Protected before/after table
+  counts and row digests were identical. Production changes were one migration
+  history row and the Store function definition only; customer/business/financial
+  rows changed `0`; data repaired `0`.
+- One staged Production-target artifact was built from a clean branch checkout of
+  exact Application SHA/tree using `vercel --prod --skip-domain`:
+  `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn`, immutable URL
+  `https://new-athlete-badminton-school-mn4msy29m-aachanin1s-projects.vercel.app`,
+  branch `spike/next-major-security-upgrade`, region `icn1`, READY, aliases `0`.
+  Root, health, login, real static asset, and unauthenticated Admin redirect passed;
+  build errors and bounded runtime warning/error/fatal/5xx/lesson-wallet/SlipOK/1003
+  matches were `0`. Clean Production-environment evaluation proved exact lowercase
+  `SLIPOK_TEST_MODE=true`, and the shared no-network Test Mode check passed `6/6`;
+  the unchanged Admin render branch selects the amber Test Mode banner, which Owner
+  will visibly reconfirm during UAT.
+- Fresh before/after alias inventories retained all four established Production
+  aliases on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
+  `a370673d06e61e409ec9b1de648ae4fbb1070c2d`. No alias moved and no Promotion ran.
+  Failed artifacts `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`, `dpl_HzK2...`,
+  `dpl_JDr...`, and `dpl_8aKi...` remain unaliased/ineligible.
+- Final classification at this handoff: Active Task **PRIVATE WALLET HISTORICAL
+  PACKAGE-TIER MATCHING + TYPED ERROR FORWARDING**; Task Status **READY FOR OWNER
+  UAT**; Source Complete/Tests Passed **Yes/Yes with the disclosed stale-baseline
+  exclusion**; Functional/Test/Documentation/Migration `2/2/4/1`; Scope Expansion/
+  Breach **None/None**; Environment/Feature/Allowlist changes `0/0/0`; Owner UAT
+  **Not run**; Controlled Write UAT **Not run**; Promoted/Production Active for the
+  corrective Source **No/No**; Customer impact **staged only**; Financial impact
+  **None by Developer**; Blocker **None technical for Owner UAT**; Task Done **No**.
+- Next Action: Owner returns PASS or FAIL for exact deployment
+  `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` and exact Application SHA
+  `29ce2c25cc33ce9b3727beb4670467554a983100`. Do not Promote or move any alias
+  before exact-artifact PASS.

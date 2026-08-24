@@ -2,75 +2,65 @@
 
 Last updated: 2026-08-24
 
-Current source remains Application SHA
-`3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91`, tree
-`3b721e5b8c9ac680bf9ae61c6a8e8c5b2e480e47`, for the combined Adult/Family
-Wallet tier-range, Family-unit Schedule UI, and Private identity correction.
-Owner payment UAT failed Preview `dpl_8aKi9NA7JTRDSFKUJnNnnUjJXLrU` because its
-effective branch Preview `SLIPOK_TEST_MODE` was not exact lowercase `true`; that
-artifact is permanently ineligible. The approved branch-scoped Preview variable
-was updated and replacement `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U` is exact-SHA,
-Preview/READY, unaliased, and green on build/smoke/log gates. The Owner then
-established an authenticated Admin session on the exact artifact; read-only
-verification proved the exact amber Test Mode banner visible once, the green Live
-banner absent, Next overlay `0`, browser warning/error `0`, and final artifact logs
-clean. Production remains
-`dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` /
-`a370673d06e61e409ec9b1de648ae4fbb1070c2d` with all four aliases unchanged.
-The following matrix is the only authority for current mutable state; all later
-records are Historical / Superseded.
+Application/Test/Migration Source is committed and pushed at
+`29ce2c25cc33ce9b3727beb4670467554a983100`, tree
+`686e32e1479375600f458573a00fbd652770976b`. Corrective migration
+`20260824154718` is applied exactly once to linked project
+`tvnhholicwjtxdhlxfqs`, and staged Production-target deployment
+`dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` is READY, exact-SHA, and unaliased. Owner UAT
+has not run on this artifact and Promotion remains prohibited. Production traffic
+and all four established aliases remain on `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6`
+/ `a370673d06e61e409ec9b1de648ae4fbb1070c2d`.
 
-## Current Execution — Preview SlipOK Environment Correction
+## Current Execution — Private Wallet Historical Threshold + Typed Error Forwarding
 
-Status: **READY FOR OWNER UAT — EXACT PREVIEW ENVIRONMENT/BANNER VERIFIED,
-UNALIASED, NOT PROMOTED**.
+Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION ARTIFACT READY; NOT PROMOTED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **PREVIEW SLIPOK TEST MODE ENVIRONMENT CORRECTION FOR THE EXACT ADULT/FAMILY WALLET APPLICATION SHA** |
+| Active Task | **PRIVATE WALLET HISTORICAL PACKAGE-TIER MATCHING + TYPED ERROR FORWARDING** |
 | Task Status | **READY FOR OWNER UAT** |
-| Environment Addendum | Owner authorized exactly `SLIPOK_TEST_MODE=true` for Vercel Preview scoped to Git branch `spike/next-major-security-upgrade`; Production and Development values, Source, tests, pricing, migrations, config, dependencies, and lockfile are protected. This Addendum is not Correction Round 4 |
-| Gate Classification Addendum | The earlier Owner-accepted `check-pricing-true-up.js` stale baseline remains unchanged historical evidence and was not rerun or reinterpreted |
-| Owner Policy | Inclusive historical tier containment with exactly one effective match; Adult/Private multi-unit receives ten inclusive Bangkok months; Adult/Private single and all Kids remain same-month; one exact Family hour is one atomic customer UI/Store/Redeem unit; self/child identities and Levels stay separate |
-| Intended Behavior | Fix tier evidence without repricing; render/count two self+child Private times as four participant sessions but two Family cards; move all participants atomically; preserve exact identity in customer, Head Coach, Admin, and Attendance flows |
-| Root Cause — Tier | **Proven:** baseline TypeScript and the previously applied Store RPC required purchased quantity to equal both tier bounds. Current Source and remote replacement use inclusive containment and exactly-one effective match |
-| Root Cause — Identity/UI | **Proven separately:** customer Schedule used participant rows as cards/counts/actions; Admin Schedule lost a valid Family self identity when booking learner type was child and session `child_id` was null. Current customer/Head Coach mappings passed fixtures; historical repeated-owner child symptom was not reproduced |
-| Root Cause — Hydration | **Proven:** Schedule month totals parsed stored `YYYY-MM-DD` values as timezone-bearing `Date` objects, then used runtime-local `getMonth()` / `getFullYear()`. Node SSR and the browser classified the Bangkok boundary fixture into different months. Round 3 now compares deterministic `YYYY-MM` keys and restores the exact `ดูโปรแกรมสอนรอบนี้` CTA; focused `1/1` and full Admin Schedule E2E `13/13` passed with hydration/page/console/overlay errors `0` and residue `0` |
+| Owner Policy | Adult/Kids retain inclusive min/max containment. Private historical packages select the greatest effective `min_sessions` not exceeding purchased hours, require exactly one row at that selected threshold, and ignore `max_sessions` as a Private disqualifier. Private quantity 1 remains same-month; quantity >1 remains ten inclusive Bangkok months. Explicit `LESSON_WALLET_*` error codes take precedence; otherwise extract a typed code from the message before the generic fallback |
+| Intended Behavior | A verified four-hour Private purchase with effective thresholds 1/1@900 and 10/10@800 selects the 1-hour threshold, stores one exact Family hour atomically, preserves all identities/evidence, and returns typed Thai errors instead of a generic 400 |
+| Root Cause — Private Tier | **Proven:** TypeScript and the applied Store RPC used inclusive max containment for Private, so four hours matched neither 1/1 nor 10/10. Private pricing rows are historical package thresholds, not ranges |
+| Root Cause — API Error | **Proven:** the route searched only `error.message`; it did not prefer an explicit `LessonWalletEntitlementError.code`, allowing a typed failure to become the generic mutation response |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD / Remote HEAD | Same documentation-only READY descendant after publication; exact Documentation SHA is reported in the final handoff because a commit cannot contain its own SHA. Application SHA/tree remain exact `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` / `3b721e5b8c9ac680bf9ae61c6a8e8c5b2e480e47` |
-| Ahead / Behind | `0/0` after documentation publication; staged paths `0` |
-| Source Complete | **Yes** — exact authorized Functional/Test/Migration Source is committed and pushed |
-| Tests Passed | **Yes for the authorized continuation.** Prior exact-Application regression evidence is retained because Application Source/Test hashes are unchanged. The shared SlipOK Test Mode deterministic check passed `6/6`. Replacement remote build compiled, TypeScript passed, and static generation completed `94/94`. Root/health/login/one real static asset were `200`; unauthenticated Admin was `307` to Login. Authenticated Admin showed exact amber Test Mode banner count/visible `1/true`, exact green Live banner count `0`, Next overlay `0`, browser warning/error `0`; final exact-deployment warning/error/fatal/5xx, `SlipOK`, and `1003` log matches were `0` |
-| Committed | **Application/Test/Migration Yes** at `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91`; Documentation Yes with the containing publication |
-| Pushed | **Yes** for Application and the containing documentation publication |
-| Current Source / Pushed Source | `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` Application Source / same exact Application SHA; documentation is a separate descendant |
-| Deployed Source / Deployment ID | Replacement Preview `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U` / Application `3d3f1bc...`, `READY`, branch `spike/next-major-security-upgrade`, aliases `0`; immutable URL `https://new-athlete-badminton-school-45gzjfa8g-aachanin1s-projects.vercel.app`. Owner-UAT-failed `dpl_8aKi...`, rejected `dpl_HzK2...`, and infrastructure-failed `dpl_JDr...` remain ineligible and unaliased. Production remains `dpl_Gjmd...` / `a370673d...` |
-| Functional / Test / Documentation / Migration Files | This Environment Addendum: Functional/Test/Pricing/Migration/config/dependency/lockfile `0/0/0/0/0/0/0`; Documentation `3` (`PROJECT_STATE.md`, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md`) |
-| Scope Expansion | **None under this Environment Addendum.** The earlier application correction's proven direct dependency `src/lib/admin-schedules-read.ts` remains historical application scope only |
-| Scope Breach | **No.** This Addendum changed no Source/Test/Pricing/Migration/config/dependency/lockfile path. `src/lib/pricing.ts` and `scripts/check-pricing-true-up.js` retain task diff `0` and baseline blobs `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` / `2d4472ab76edb7b2b93f74b234dd086ad4a974dd` |
-| Migration Source / Applied | `supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql`, SHA-256 `5E9BF1D3E4B760EBF69F86AEE23F5BD3605FC71DA0C353C98B527D6AE9A45AEF` / **Remote Yes, exactly once** |
-| Migration Verification | Clean local reset/order and atomic UAT passed. Remote dry-run listed only the corrective file; one migration-file push applied it. Postflight: history count `1`, pending `0`, Store signature unchanged, SECURITY DEFINER true, `public, pg_temp` pinned search path, anon/auth/PUBLIC execute false, service-role execute true, inclusive predicates `2/2`, exact-min predicates `0`. Advisors reported no task-function security/performance finding; existing temp-table local-lint and unrelated advisor baseline remain disclosed |
-| Schema / Metadata Changed | **No new change under this Addendum.** The prior corrective migration/function metadata remains as already published |
-| Environment Changed | **Yes, exactly one Vercel entry:** sensitive `SLIPOK_TEST_MODE` targeted only to Preview + `spike/next-major-security-upgrade`, requested value exact lowercase `true`. Non-target environment metadata fingerprint stayed invariant; Production effective value remained exact `true`; Development remained absent. Vercel sensitive values are not readable through the local `env run` probe, so the deployment banner is the required runtime proof |
-| Feature Enabled | **No change** |
-| Allowlisted | **No change** |
-| Staged Artifact / Smoke | `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`, immutable URL `https://new-athlete-badminton-school-45gzjfa8g-aachanin1s-projects.vercel.app`, Preview/READY, exact SHA/ref/tree, aliases `0`, region `icn1`. Remote build/TypeScript/static `94/94` passed; protection-bypassed root/health/login/static were `200`; app Admin unauthenticated redirect was `307`; authenticated Admin showed exact amber Test Mode banner once and no green Live banner; Next overlay/browser warning-error were `0/0`; bounded warning/error/fatal/5xx/SlipOK/1003 logs were `0` |
-| Owner UAT / Production UAT | Prior Owner payment UAT on `dpl_8aKi...` **FAIL** because it ran Live SlipOK and returned `1003`; new-artifact Owner UAT **Not run** / Production UAT **Not run** |
-| Promoted / Production Active | **No / No** for the corrective task |
-| Controlled Write UAT | **Not run** |
-| Data Repaired / Production Data Changed | **No / No** under this Addendum. Developer performed no payment upload, approval, rejection, cancellation, Store/Redeem, RPC mutation, or Controlled Write UAT. The Owner-reported failed payment/booking rows remain untouched |
-| Customer Impact / Financial Impact | New Preview only; Production traffic and customer behavior unchanged. Existing Owner UAT rows were not modified. Financial impact **None** |
-| Protected Dirty File | Excluded and invariant at blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`; package and lockfile fingerprints also remain unchanged |
-| Bounded Correction Attempts | Original rounds `2/2` plus Owner-approved Addendum Round 3 `1/1`; Round 3 was used exactly once and passed its focused and full E2E gates. No Round 4 is authorized |
-| Known Limitations | Historical repeated-owner identity symptom was not reproduced. Bounded Production SELECT found two pre-existing Private self attendance rows whose `student_id` is neither owner nor child; no PII logged, no repair authorized/performed. They remain unrepaired and out of scope |
-| Documentation Drift | **No after the containing READY publication and consistency matrix.** The prior UAT-failed artifact and temporary authenticated-banner Hard Stop remain labeled historical evidence |
-| Blocker | **None technical for Owner UAT.** Promotion and Production alias movement remain prohibited until Owner PASS for exact `dpl_CBw...` / `3d3f1bc...` |
-| Remaining Work | Owner performs the controlled payment and Family Schedule/Lesson Wallet UAT on exact `dpl_CBw...` and returns PASS or FAIL. Do not Promote or move a Production alias under this command |
+| Local HEAD / Remote HEAD | Containing documentation-only closeout commit / same after publication; exact Application artifact Source remains `29ce2c25cc33ce9b3727beb4670467554a983100` |
+| Ahead / Behind | `0/0` after Application push; documentation publication must finish at `0/0` with staged paths `0` |
+| Source Complete | **Yes** — exact Application/Test/Migration Source is committed and pushed at `29ce2c25cc33ce9b3727beb4670467554a983100` |
+| Tests Passed | **Yes for the authorized task gates.** Deterministic Wallet `37/37`; atomic Wallet UAT exit `0`; Booking E2E `13/13`; Admin Schedule E2E `13/13`; Family unit, Coach lifecycle `53/53`, Admin state `39/39`, Coach hours `20/20`, Progressive pricing/transactions/shadow, TypeScript, zero-warning lint, mojibake, Production build, post-build root/health/static/browser-console checks, and diff checks passed. The original stale pricing script remains excluded and is not reported as PASS |
+| Bounded Correction Attempts | **3/3 used; no Correction 4.** Attempt 1 changed the new ledger-view counter to `source_id`; Attempt 2 compared expiry instants; Owner-authorized Test-Harness Correction 3 moved financial invariance measurement to immediately around each Store/Redeem RPC after fixture Payment creation |
+| Test-Harness Correction 3 | `scripts/uat-lesson-wallet.js` now snapshots coupon usage, `payment_ledger_allocations_v1`, and finance counts before and after each RPC, asserts exact equality for successful and typed-failure results, and returns the original RPC result. It changes no Product behavior or fixture business value. UAT proved `31` guarded RPC results with deltas `0/0/0` |
+| Functional / Test / Documentation / Migration Files | Functional `2`; Test `2`; Migration `1`; Documentation `4`; total authorized task paths `9` |
+| Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0` |
+| Scope Expansion / Scope Breach | **None / None.** No path outside the frozen allowlists changed; the protected dirty file remains excluded |
+| Committed / Pushed | **Application/Test/Migration: Yes / Yes. Documentation: containing closeout commit / pushed after publication** |
+| Current Source / Pushed Source | `29ce2c25cc33ce9b3727beb4670467554a983100` / same; tree `686e32e1479375600f458573a00fbd652770976b` |
+| Migration Source / Applied | `supabase/migrations/20260824154718_correct_private_wallet_package_tier_matching.sql`, SHA-256 `79937D559BBE7426BC11446F7CD7DD034650D00AA9304FD6C5951EE63D78762F` / **Local reset Yes; linked remote Yes exactly once; pending `0`** |
+| Migration Verification | Signature `lesson_wallet_store_v2(uuid,uuid,uuid)` unchanged; SECURITY DEFINER true; search path `public, pg_temp`; PUBLIC/anon/authenticated execute absent; owner/service_role execute retained; Private greatest-threshold and Adult/Kids inclusive predicates present. Static lint findings remain the pre-existing temp-table analyzer limitation |
+| Schema / Metadata Changed | **Yes:** one migration-history row and the Store function definition only |
+| Production Customer / Business Rows Changed | **No.** Before/after counts and row digests matched for pricing, bookings/sessions, payments, Wallet credits/members, attendance, assignments, coupons, finance, and the payment-ledger view |
+| Local Fixture Residue | Atomic UAT cleanup residue `0`; financial delta around every one of `31` Store/Redeem RPC results was coupon/ledger-view/finance `0/0/0` |
+| Data Repaired / Controlled Write UAT | **No / Not run** |
+| Environment Changed / Feature Enabled / Allowlisted | **No / No / No** |
+| Pricing Guardrail | `src/lib/pricing.ts` and `scripts/check-pricing-true-up.js` stayed unchanged at blobs `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` and `2d4472ab76edb7b2b93f74b234dd086ad4a974dd`. The original stale script remains **KNOWN OWNER-ACCEPTED STALE BASELINE — NOT COUNTED AS PASS** |
+| Failed / Ineligible Artifact | `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`, Preview/READY, aliases `0`, Application `3d3f1bc...`: **OWNER UAT FAIL**, permanently ineligible. `dpl_HzK2...`, `dpl_JDr...`, and `dpl_8aKi...` also remain ineligible |
+| Staged Artifact | `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn`; `https://new-athlete-badminton-school-mn4msy29m-aachanin1s-projects.vercel.app`; Production target; READY; branch `spike/next-major-security-upgrade`; Application `29ce2c25...`; tree `686e32e...`; region `icn1`; aliases `0` |
+| Staged Smoke / SlipOK | Root, health, login, real static asset, and unauthenticated Admin redirect passed. Build errors and bounded runtime warning/error/fatal/5xx/lesson-wallet/SlipOK/1003 matches were `0`. Clean Production-environment evaluation proved exact lowercase `SLIPOK_TEST_MODE=true`; shared deterministic check passed `6/6`; unchanged Admin render branch therefore selects the amber Test Mode banner and not the green Live banner. Owner will visibly reconfirm it during UAT |
+| Deployed / Promoted | **Yes — one staged Production-target artifact / No** |
+| Production Active | **No** for the corrective Source. Production remains `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` / `a370673d06e61e409ec9b1de648ae4fbb1070c2d`; all four established Production aliases remain there before/after staging |
+| Owner UAT / Production UAT | **Not run on `dpl_9Tc...` / Not run** |
+| Protected Dirty File | `src/lib/schedule-slot-utils.ts` remains unstaged and invariant at blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
+| Customer Impact / Financial Impact | New behavior is available only on the unaliased staged artifact pending Owner UAT; current Production traffic is unchanged / **None by Developer; financial rows changed `0`** |
+| Known Limitations | Two historical Private attendance rows remain unrepaired and out of scope. The original pricing assertion remains an Owner-accepted stale baseline and is not counted as PASS. Dependency audit reported the existing `8` package vulnerabilities during remote install; no dependency change is authorized. Authenticated amber-banner visibility is an explicit Owner UAT reconfirmation, backed technically by exact Production env and unchanged render-branch evidence |
+| Documentation Drift | **No after this closeout consistency matrix and publication** |
+| Blocker | **None technical for Owner UAT** |
+| Remaining Work | Owner performs controlled Family Store UAT on the exact staged artifact and returns PASS or FAIL for its exact deployment ID/Application SHA. Promotion is prohibited until PASS |
 | Task Done | **No** |
-| Next Gate / Next Action | **OWNER UAT on exact `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U` / `3d3f1bc...`; return PASS or FAIL. Do not Promote automatically** |
-| Parking Lot authorization state | Environment Addendum remains the Active Task; no other item is authorized |
+| Next Gate / Next Action | **Owner returns PASS or FAIL for `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; do not Promote or move aliases before exact-artifact PASS** |
+| Parking Lot authorization state | This corrective task remains the only Active Task; no adjacent work is authorized |
 
 ## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff
 

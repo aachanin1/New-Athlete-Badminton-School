@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-08-03
+Last updated: 2026-08-24
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -332,13 +332,17 @@ Main portals:
   financial-credit row.
 - Adult Group and Family Private packages above one purchased session/hour receive
   a ten-month Lesson Wallet entitlement only when exactly one approved
-  `payments` row has a trustworthy `verified_at` and exactly one matching
-  historical `pricing_tiers` row was effective on that Bangkok approval date.
-  Historical tier evidence matches the purchased quantity inclusively:
-  `min_sessions <= purchasedQuantity` and
-  `(max_sessions IS NULL OR purchasedQuantity <= max_sessions)`. Zero or multiple
-  effective matches fail closed. This evidence rule applies to every course and
-  must not change price calculation, package amounts, tier rows, or Kids pricing.
+  `payments` row has a trustworthy `verified_at` and unambiguous historical
+  `pricing_tiers` evidence was effective on that Bangkok approval date. Adult and
+  Kids tier evidence uses inclusive containment: `min_sessions <=
+  purchasedQuantity` and `(max_sessions IS NULL OR purchasedQuantity <=
+  max_sessions)`, with exactly one effective match. Private historical packages
+  instead select the greatest effective `min_sessions` threshold that does not
+  exceed purchased hours, then require exactly one effective row at that selected
+  threshold; lower eligible thresholds are normal and `max_sessions` does not
+  disqualify the selected Private threshold. Zero eligible evidence or duplicate
+  rows at the selected threshold fail closed. These evidence rules must not change
+  price calculation, package amounts, tier rows, or Kids pricing.
   The approval month is month 1 and expiry is 23:59:59.999 Asia/Bangkok on the
   final day of inclusive calendar month 10. Missing or ambiguous evidence must
   fail closed; re-walleting must preserve the original entitlement start and
