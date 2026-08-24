@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,38 +9,18 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — PRIVATE WALLET CORRECTION; NOT PROMOTED**.
+Status: **NONE — PRIVATE WALLET CORRECTION IS TASK DONE**.
 
-- Owner UAT failed exact Preview `dpl_CBwSBBobwQ9QK9PeibPzGJbfo13U`: Family
-  Schedule UI and Adult Store passed, but Family Private Store returned generic
-  HTTP 400. The artifact remains READY/unaliased but is permanently ineligible.
-- Published correction: Private historical packages select the greatest
-  effective `min_sessions` threshold not exceeding purchased hours, while
-  Adult/Kids inclusive containment stays unchanged; API typed
-  `LESSON_WALLET_*` codes take precedence over Postgres `P0001`.
-- Final scope is Functional/Test/Documentation/Migration `2/2/4/1`; config, dependency,
-  lockfile, Environment, UI, Pricing, and Production-data changes are `0`.
-  Application/Test/Migration Source is pushed at `29ce2c25...`; corrective
-  migration `20260824154718` is applied exactly once with protected business-row
-  counts/digests invariant.
-- Owner-authorized Test-Harness Correction 3 was used exactly once (`3/3`; no
-  Correction 4): financial counts now wrap each Store/Redeem RPC after fixture
-  Payment setup. Atomic UAT exited `0`, guarded `31` successful/typed-failure RPC
-  results, proved coupon/ledger-view/finance deltas `0/0/0`, and cleanup residue `0`.
-- Deterministic Wallet `37/37`, Booking E2E `13/13`, Admin Schedule E2E `13/13`,
-  protected suites, TypeScript, zero-warning lint, mojibake, Production build,
-  local/static smoke, migration security, staged smoke, and bounded logs passed.
-  The original pricing script remains **KNOWN OWNER-ACCEPTED STALE BASELINE —
-  NOT COUNTED AS PASS**; the approved substitute pricing assertions passed.
-- Exact staged artifact: `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` /
-  `https://new-athlete-badminton-school-mn4msy29m-aachanin1s-projects.vercel.app`,
-  Production target, READY, aliases `0`, exact Application `29ce2c25...` and tree
-  `686e32e...`. Production remains `dpl_Gjmd...` / `a370673...` with all four
-  established aliases unchanged; Promoted **No**.
-- Next action: Owner runs UAT on the exact staged artifact and returns PASS or
-  FAIL for deployment `dpl_9Tc...` and Application SHA `29ce2c25...`. Do not
-  Promote or move aliases before exact-artifact PASS. See `PROJECT_STATE.md`.
-- No other Parking Lot candidate is authorized.
+- Owner passed exact artifact `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / Application
+  `29ce2c25...`; it was Promoted once without rebuild and is now Production-active
+  on all four established aliases.
+- Post-Promotion smoke, clean-window runtime logs, and read-only Owner-UAT data
+  reconciliation passed. Owner Store created one Family credit/two members and
+  walleted one two-participant hour; no Payment/Ledger/Coupon/Finance/Attendance
+  mutation was added by Promotion. Redeem Controlled Write UAT was not run.
+- Next action: Owner selects and authorizes the next task. No Parking Lot candidate
+  is authorized by this closeout. See `PROJECT_STATE.md` for the authoritative
+  mutable-state matrix.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -49,6 +29,24 @@ Status: **READY FOR OWNER UAT — PRIVATE WALLET CORRECTION; NOT PROMOTED**.
 Each entry below is a historical summary of state observed at that task's
 closeout; artifact and alias wording does not override the current mutable state
 in `PROJECT_STATE.md`.
+
+### PRIVATE WALLET HISTORICAL PACKAGE-TIER MATCHING + TYPED ERROR FORWARDING
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Exact Production artifact/SHA/tree is `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` /
+  `29ce2c25cc33ce9b3727beb4670467554a983100` /
+  `686e32e1479375600f458573a00fbd652770976b`; all four established aliases point
+  to it. Rollback candidate `dpl_Gjmd...` / `a370673...` remains retained and was
+  not used.
+- Owner-controlled Store UAT created `+1` Family credit, `+2` members, and changed
+  only the 10:00–11:00 self/child pair to walleted. The other six participant rows
+  stayed scheduled; Wallet Store financial deltas were `0`; data repaired **No**.
+- Corrective migration `20260824154718` remains applied exactly once with pending
+  migrations `0`. Source/tests/Pricing/UI/SlipOK/environment/config/dependencies/
+  lockfile were unchanged during Promotion closeout. See `PROJECT_STATE.md` and
+  the 2026-08-25 record in `DEVELOPMENT_TODO.md` for exact evidence.
 
 ### SCHEDULE LEARNING DETAILS — PARENT PROGRAM VISIBILITY + ADMIN FULL PROGRAM MODAL + USER/COACH LEVEL PARITY
 
