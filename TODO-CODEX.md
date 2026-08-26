@@ -1032,12 +1032,38 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-The five candidates below remain unselected, unauthorized, and retain their prior
-relative state: Private Self + Child Identity Integrity / Name-Level Separation;
-LINE External-Browser Handoff Audit; Thai UI Terminology & Shared Helper;
-External Head Coach Assignment Save HTTP 500 Attempts; and Homepage LV Copy
-Audit/Fix. Adult Group + Family Private 10-Month Entitlement moved out of Parking
-Lot into Current Active Work and is awaiting Owner UAT.
+The six active candidates below remain unselected and unauthorized. **HEAD COACH
+VERIFIED-BOOKING ASSIGNMENT ALERT** is listed first by Owner priority; the five
+existing candidates retain their prior relative order: Private Self + Child
+Identity Integrity / Name-Level Separation; LINE External-Browser Handoff Audit;
+Thai UI Terminology & Shared Helper; External Head Coach Assignment Save HTTP 500
+Attempts; and Homepage LV Copy Audit/Fix. Adult Group + Family Private 10-Month
+Entitlement and Progressive Kids Lesson Wallet Compatibility are completed and
+are not Active/Parking Lot items.
+
+### Head Coach Verified-Booking Assignment Alert
+
+Canonical name: **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Owner places verified-booking assignment notification first in the Parking Lot,
+  but has not selected or authorized Product/Production audit or development.
+  Active Task remains **None — Awaiting Owner Selection**.
+- Future intended behavior: notify only Head Coaches attached to the relevant
+  branch when booking/session evidence is genuinely ready for the assignment
+  page; never notify while `pending_payment`; cover direct verified/zero-price,
+  Slip auto-verification, Admin approval, and Progressive approval; prevent
+  duplicate/replay and notification storms; and include branch, date/time or
+  review count, plus the relevant assignment-page link.
+- Pricing, Payment, entitlement, booking/session status semantics, Assignment
+  Save, Coupon, Wallet, Attendance, Payroll, and Finance must remain unchanged.
+- Current Next.js Prefetch remains unchanged. Page-view Audit, a pending-
+  assignment badge, external LINE/Email/Push, Source/tests, Migration, Deploy,
+  Environment, feature control, allowlist, Notification write, and Production-data
+  operation remain out of scope and unauthorized.
+- Owner must select this candidate and approve a separate Scope Contract before
+  any audit or implementation begins.
 
 ### Private Self + Child Identity Integrity / Name-Level Separation
 
@@ -1045,9 +1071,8 @@ Canonical name: **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATIO
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- This existing Parking Lot candidate is separate from the Adult/Family 10-month
-  entitlement candidate and remains unselected and unauthorized. Active Task is
-  **None — Awaiting Owner Selection**.
+- This existing Parking Lot candidate remains unselected and unauthorized. Active
+  Task is **None — Awaiting Owner Selection**.
 - This decision is durably registered/published. Product audit, implementation,
   regression work, Production audit, and data repair remain unauthorized.
 - Visible symptom: self plus one child across two time slots produced the expected
@@ -1251,10 +1276,11 @@ Confirmed final state:
 - Branch: `spike/next-major-security-upgrade`.
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- The Preview SlipOK branch-environment correction is the current Active Task at
-  READY FOR OWNER UAT. After documentation publication, only the protected
-  unrelated dirty file remains local. Exact mutable state is authoritative in the
-  first `PROJECT_STATE.md` matrix.
+- Active Task is **None — Awaiting Owner Selection**. This documentation-only
+  publication registers the Head Coach verified-booking assignment alert without
+  authorizing Product work. After publication, only the protected unrelated dirty
+  file remains local. Exact mutable state is authoritative in the first
+  `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

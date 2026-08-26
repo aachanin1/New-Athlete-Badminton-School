@@ -20,7 +20,7 @@ PRODUCTION VERIFICATION PASSED**.
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **None — PROGRESSIVE KIDS LESSON WALLET COMPATIBILITY completed** |
+| Active Task | **None — Awaiting Owner Selection** |
 | Task Status | **TASK DONE** |
 | Owner Policy | Verified Kids Group bookings use existing Wallet safety guards and same-month expiry without requiring Legacy `public.payments` or historical tier evidence. No Payment/tier evidence is fabricated and no Progressive price is reinterpreted. Adult inclusive containment and Private greatest-threshold behavior remain unchanged |
 | Intended Behavior | A verified Progressive Kids booking with approved Progressive batch/allocation evidence and no Legacy Payment can Store, Redeem only inside the original Bangkok month, preserve inherited entitlement on re-wallet, and create no financial or Attendance row |
@@ -56,12 +56,39 @@ PRODUCTION VERIFICATION PASSED**.
 | Customer Impact / Financial Impact | **Owner-controlled Kids Store only; corrected compatibility is now Production-active / None**. Linked Progressive evidence predates Store; Legacy Payment remains absent; Payment/Allocation/Coupon/Ledger/Finance/Attendance Store deltas were `0/0/0/0/0/0` |
 | Rollback Candidate | `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; retained READY and not used |
 | Known Limitations | Two historical Private attendance rows remain unrepaired and out of scope. The original pricing assertion remains an Owner-accepted stale baseline and is not counted as PASS. Dependency audit reported the existing `8` package vulnerabilities during remote install; no dependency change is authorized. Redeem Controlled Write UAT was not run |
-| Documentation Drift | **No after this closeout consistency matrix and publication** |
+| Documentation Drift | **Resolved by the containing documentation-only publication:** `TODO-CODEX.md` no longer presents Adult/Family Wallet as awaiting Owner UAT or Preview SlipOK as the current Active Task |
 | Blocker | **None** |
 | Remaining Work | **None for this task** |
 | Task Done | **Yes** |
 | Next Gate / Next Action | **Owner selects and authorizes the next task** |
-| Parking Lot authorization state | No Parking Lot candidate is authorized by this closeout |
+| Parking Lot authorization state | **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT** is listed first by Owner priority with status **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**. The other five active candidates remain unselected and unauthorized; no Parking Lot item may start automatically |
+
+## Current Parking Lot Priority — Head Coach Verified-Booking Assignment Alert
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Owner decision on 2026-08-26: list **HEAD COACH VERIFIED-BOOKING ASSIGNMENT
+  ALERT** first in the Parking Lot because verified-booking assignment readiness is
+  a high Owner priority. This registration does not select it as the Active Task;
+  Active Task remains **None — Awaiting Owner Selection**.
+- Future intended behavior, only after a separate Owner-approved Scope Contract:
+  notify only Head Coaches attached to the relevant branch when a booking/session
+  becomes genuinely ready for the assignment page; never notify while it remains
+  `pending_payment`; cover direct verified/zero-price booking, Slip auto-
+  verification, Admin approval, and Progressive approval; prevent duplicate/
+  replay and notification storms; and include branch, date/time or review count,
+  plus the relevant assignment-page link.
+- Protected behavior for any future task: Pricing, Payment, entitlement, booking/
+  session status semantics, Assignment Save, Coupon, Wallet, Attendance, Payroll,
+  and Finance remain unchanged.
+- Current Next.js Prefetch behavior remains unchanged. Page-view Audit, pending-
+  assignment badges, external LINE/Email/Push, Product/Production audit,
+  implementation, tests, Migration, Deploy, Environment, feature control,
+  allowlist, Notification write, and Production-data operation are not authorized
+  by this registration.
+- This documentation-only registration changes Product Source, tests, Migration,
+  configuration, dependency, deployment, feature/allowlist state, and Production
+  data by `0`; customer and financial impact are **None**.
 
 ## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff
 

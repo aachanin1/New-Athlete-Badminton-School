@@ -17220,3 +17220,59 @@ timestamps remained `1787713207385 / 1787713208437 / 1787713271290`.
   **None/None for this task**; Task Done **Yes**.
 - Next Action: Owner selects and authorizes the next task. Rollback candidate
   `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` remains READY and was not used.
+
+## 2026-08-26 — Head Coach Verified-Booking Assignment Alert Parking Lot Registration
+
+State observed at this documentation-only decision record: Active Task remains
+**None — Awaiting Owner Selection**. The Owner placed **HEAD COACH VERIFIED-BOOKING
+ASSIGNMENT ALERT** first in the Parking Lot with status **PARKING LOT — OWNER
+SELECTION REQUIRED; NOT AUTHORIZED TO START**. This is task registration only and
+does not authorize Product/Production audit or implementation.
+
+- The current source-of-truth closeouts confirm Adult Group + Family Private
+  ten-month Lesson Wallet and Progressive Kids Lesson Wallet Compatibility are
+  **TASK DONE**. The former Adult/Family awaiting-UAT sentence and the Preview
+  SlipOK Active Task sentence in `TODO-CODEX.md` were Documentation Drift and are
+  corrected by this publication.
+- Bounded local Source reading for registration found the relevant transition
+  surfaces at `src/app/api/bookings/route.ts`, `src/app/api/verify-slip/route.ts`,
+  `src/app/api/admin/payments/route.ts`, the Progressive Payment submit/approval
+  path, and `src/lib/coach-notifications.ts` plus
+  `src/lib/coach-notification-delivery.ts`. Direct Legacy zero-price verified
+  booking currently notifies Admin/Super Admin and the learner; Slip verification
+  does the same; Legacy Admin approval notifies the learner; Progressive approval
+  is completed through the approval RPC path. These observations do not establish
+  a final Root Cause or authorize deeper Product/Production audit.
+- Existing Coach notification Source already has branch-scoped Head Coach lookup,
+  existence-before-insert delivery, and assignment-review messages used by
+  Reschedule. Lesson Wallet history separately records notifications only when a
+  real assignment review remains. The future candidate must preserve those noise-
+  prevention and assignment semantics rather than infer page views from GET logs.
+- Future intended behavior, only under a separately approved Scope Contract:
+  notify only Head Coaches attached to the relevant branch when booking/session
+  evidence becomes genuinely ready for the assignment page; never notify while
+  `pending_payment`; cover direct verified/zero-price, Slip auto-verification,
+  Admin approval, and Progressive approval; prevent duplicate/replay and
+  notification storms; and include branch, date/time or review count, plus the
+  relevant assignment-page link.
+- Protected and out of scope: Pricing, Payment, entitlement, booking/session
+  status semantics, Assignment Save, Coupon, Lesson Wallet, Attendance, Payroll,
+  Finance, current Next.js Prefetch, Page-view Audit, pending-assignment badges,
+  external LINE/Email/Push, Migration, Deploy, Environment, feature control,
+  allowlist, Notification write, Supabase write, and Production-data operation.
+- Exact publication allowlist and counts: Functional `0`; Test `0`;
+  Documentation `3` (`PROJECT_STATE.md`, `TODO-CODEX.md`, and this record);
+  Migration `0`; Configuration `0`; Dependency `0`. No staged artifact is required
+  for this documentation-only registration.
+- Git pre-edit state was branch `spike/next-major-security-upgrade`, local/upstream
+  HEAD `ba985095e8b00cb9b6e4f69e14a211f6fe87c185`, ahead/behind `0/0`, staged paths
+  `0`. The only pre-existing unrelated dirty path was protected
+  `src/lib/schedule-slot-utils.ts`, retained unstaged and invariant at blob
+  `4521281d099efb189429a744909552d67871ff23`; it was not touched.
+- Classification for this registration: Documentation Drift **Resolved**; Source
+  Complete **Not started / unauthorized**; Tests **documentation checks only**;
+  Deployed/Migration/Environment/Feature/Allowlist changes **No/No/No/No/No**;
+  Production Data Changed/Data Repaired **No/No**; Customer/Financial Impact
+  **None/None**; Task Done **Yes for documentation registration only**.
+- Next Action: Owner selects the candidate and approves its Scope Contract before
+  any Product audit or development begins. Do not start it automatically.
