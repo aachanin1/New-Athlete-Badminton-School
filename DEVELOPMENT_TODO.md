@@ -2,6 +2,111 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-08-26 — Coach Teaching Program Built-in Presets safe handoff
+
+State observed at this handoff: **DEVELOPING — EXACT STAGED ARTIFACT READY;
+AUTHENTICATED COACH + HEAD COACH SMOKE INCOMPLETE; NOT READY FOR OWNER UAT; NOT
+PROMOTED**.
+
+#### Owner decision and scope
+
+- Owner selected Coach Teaching Program Built-in Presets as the Active Task and
+  approved continuous delivery through exact staged artifact, but required the
+  round to stop before Production Promotion until exact-artifact Owner UAT PASS.
+- Owner-authored `PROGRAM_PRESETS` copy is authoritative and was preserved without
+  spelling, wording, terminology, or curriculum edits. Template B may mention
+  LV 71–73. This does not create, activate, edit, or assume Level database rows.
+  The Owner's future Level update through the system is separate and was not run.
+- Functional/Test/Documentation/Migration allowlists were `1/0/3/0`. Protected
+  flows included API, Draft/Submit/Admin Review, role/RLS/permission, Assignment,
+  Attendance, Payroll, Pricing, Payment, Wallet, Finance, Environment, feature
+  control, allowlist, Migration, and Production data.
+
+#### Fresh Gate 0 and Source proof
+
+- After `git fetch --prune origin`, branch was
+  `spike/next-major-security-upgrade`; Local/upstream/remote HEAD matched
+  `5b97ce4d1a7884760e51472c88fd91af10d092a8`, ahead/behind `0/0`, and staged
+  paths were `0`. Dirty paths were the intended
+  `src/components/coach/programs-client.tsx` and protected
+  `src/lib/schedule-slot-utils.ts` only.
+- Protected `src/lib/schedule-slot-utils.ts` had content diff `0` and remained
+  blob `4521281d099efb189429a744909552d67871ff23`, SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+  It was never staged or committed.
+- Static extraction proved exactly four IDs in approved order, unique and without
+  `:`, with non-empty labels/content. Template B contained LV 71, LV 72, and
+  LV 73. Repository search found those IDs only in the intended component.
+- Render mapping remained `preset:${preset.id}`; selection split the value,
+  resolved `PROGRAM_PRESETS.find((item) => item.id === id)`, and only called
+  `setContent(preset.content)`. The existing submit request still sends
+  `programId`, `scheduleSlotId`, `programContent`, and `status`; preset ID is not
+  persisted or sent to an API.
+
+#### Verification and publication
+
+- Deterministic preset checks passed count, exact order, uniqueness, colon-free
+  IDs, non-empty label/content, LV 71–73, render mapping, find mapping, and
+  content-only selection. `npm.cmd run check:mojibake` passed `265` files;
+  `npx.cmd tsc --noEmit` passed; `npm.cmd run lint` passed with warnings `0`;
+  `npm.cmd run build` passed compile, TypeScript, and static generation `94/94`;
+  `git diff --check` passed.
+- Post-build protocol verified port 3000 free, removed only the resolved repo
+  `.next`, restarted dev at `127.0.0.1:3000`, and returned root/static `200/200`
+  plus `/coach/programs` `307` to Login. Browser body was non-empty with no Next
+  error overlay or console error. One unrelated dev-only logo LCP warning was
+  observed; lint and Production build were clean.
+- Application commit `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
+  `0abd9d833d29062bdf967c6ece23f622e88dd7fd`, contains exactly
+  `src/components/coach/programs-client.tsx` and was pushed normally to
+  `origin/spike/next-major-security-upgrade`; post-push ahead/behind was `0/0`.
+
+#### Exact staged artifact and no-write evidence
+
+- A clean detached worktree matched exact Application SHA/tree, status `0`, and
+  used only the established ignored Vercel project linkage. One pinned local
+  Vercel CLI `59.1.3` `deploy --prod --skip-domain` invocation exited `0`.
+  Retry, force, redeploy, Promotion, alias command, and rollback counts were all
+  `0`; the temporary worktree was removed after verification.
+- Artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` at
+  `https://new-athlete-badminton-school-f1mnq1rzr-aachanin1s-projects.vercel.app`
+  is target/state `production/READY`, aliases `0`,
+  `autoAssignCustomDomains=false`, region `icn1`, and metadata Git SHA exactly
+  `97b09c6697034fcdae4be147061b8214a73a5cdd`. Remote builder CLI `59.3.0`
+  completed `npm ci`, compile, TypeScript, and `94/94`. Existing install audit
+  remained `8` vulnerabilities (`1` low, `7` high); dependencies were unchanged.
+- Staged public smoke returned root/health/login/static `200/200/200/200`; an
+  anonymous `/coach/programs` request returned `307` to the exact staged Login.
+  Exact-deployment logs contained `13` GET only, `200 x11`, `307 x2`, mutation
+  methods `0`, and error/fatal/5xx `0`.
+- Before and after staging, all four established Production aliases remained on
+  `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`; the staged artifact received no alias and
+  Production traffic did not move. Migration, Environment, feature/allowlist,
+  Production data, customer data, and financial data changes were all `0`.
+
+#### Material Hard Stop and next gate
+
+- The in-app staging browser had no authenticated app session. Connected Chrome
+  had only the Owner's existing Super Admin session on the Production domain;
+  that cookie does not authenticate the staged Vercel domain and is not Coach or
+  Head Coach evidence. No role, account, cookie, password, permission, or
+  Production data was changed.
+- Required authenticated staged checks therefore remain **Not Run**: Coach and
+  Head Coach `/coach/programs`, visible four-item dropdown, selecting each item,
+  LV 71–73 in Template B, Draft/Submit controls, and no mutation request caused by
+  selection. Static/local evidence passed, but it is not substituted for the
+  explicitly required actor-authenticated staged smoke.
+- Source Complete **Yes**; Tests Passed **No for the complete required set**;
+  Committed/Pushed **Yes/Yes**; staged artifact **READY**; READY FOR OWNER UAT
+  **No**; Owner UAT **Not run**; Promoted **No**; Production Active for this
+  Source **No**; Controlled Write UAT **Not run**; Data Repaired **No**;
+  Production Data Changed **No**; Customer/Financial impact **None/None**; Task
+  Done **No**; Documentation Drift **No after this safe-handoff publication**.
+- Next action: Owner signs in to the exact staged artifact as Coach and Head
+  Coach, then Developer resumes the no-write authenticated smoke and log check.
+  If that passes, publish `READY FOR OWNER UAT`; Promotion remains prohibited
+  until explicit Owner PASS for this exact artifact/SHA.
+
 ### 2026-08-12 — Admin Notifications Corrective Exact-Artifact Production Closeout
 
 Status observed at this closeout: **TASK DONE — OWNER UAT PASS; EXACT PASSED

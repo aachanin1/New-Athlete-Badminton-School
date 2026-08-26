@@ -9,18 +9,25 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **None — awaiting Owner selection**.
+Status: **DEVELOPING — Coach Teaching Program Built-in Presets; authenticated
+actor smoke blocked; exact staged artifact ready; not Promoted**.
 
-- Progressive Kids Lesson Wallet Compatibility is **TASK DONE**. Owner UAT passed
-  exact artifact `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` / Application `c87a89d1...` /
-  tree `7528c4c5...`; it was promoted once without rebuild and now owns all four
-  established Production aliases.
-- Migration `20260826021944` remains applied exactly once with pending `0`.
-  Production smoke/log/browser/database postflight passed; the only customer
-  mutation was the intended Owner Store (`+1` Kids credit, `+1` member, exact
-  session walleted), with no financial impact and no Redeem.
-- Next action: Owner selects and authorizes the next task. See `PROJECT_STATE.md`
-  for the authoritative mutable-state matrix.
+- Application Source `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
+  `0abd9d833d29062bdf967c6ece23f622e88dd7fd`, is committed and pushed with
+  exactly one functional file. Deterministic checks, TypeScript, zero-warning
+  lint, mojibake `265`, build `94/94`, diff, post-build browser, staged public
+  smoke, exact identity, zero-alias, and runtime log gates passed.
+- Exact Production-target staged artifact
+  `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` is `READY` at
+  `https://new-athlete-badminton-school-f1mnq1rzr-aachanin1s-projects.vercel.app`.
+  It is not Promoted; all four Production aliases remain on `dpl_EhG2...`.
+- Required authenticated staging smoke for both Coach and Head Coach is not run:
+  the available staging browser has no actor session, and credential entry needs
+  Owner participation. This task is not `READY FOR OWNER UAT` and not done.
+- Next action: Owner signs in to the exact artifact as Coach and Head Coach;
+  Developer runs the four-preset no-write UI smoke and exact-deployment log check.
+  Do not Promote before that smoke passes and the Owner later returns explicit
+  UAT PASS for the exact artifact/SHA.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
