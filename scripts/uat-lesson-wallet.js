@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const { execFileSync } = require('child_process')
+const { createHash, randomUUID } = require('crypto')
 const { createClient } = require('@supabase/supabase-js')
 
 const MARKER = 'NASC_UAT_LESSON_WALLET_V2'
@@ -98,6 +99,14 @@ async function cleanup() {
     ? await ok(await supabase.from('bookings').select('id').in('user_id', profileIds), 'load UAT bookings')
     : []
   const bookingIds = bookings.map((row) => row.id)
+  const scopes = profileIds.length
+    ? await ok(await supabase.from('booking_pricing_scopes').select('id').in('user_id', profileIds), 'load UAT pricing scopes')
+    : []
+  const scopeIds = scopes.map((row) => row.id)
+  const batches = scopeIds.length
+    ? await ok(await supabase.from('progressive_payment_batches').select('id').in('pricing_scope_id', scopeIds), 'load UAT payment batches')
+    : []
+  const batchIds = batches.map((row) => row.id)
   const sessions = bookingIds.length
     ? await ok(await supabase.from('booking_sessions').select('id').in('booking_id', bookingIds), 'load UAT sessions')
     : []
@@ -124,9 +133,14 @@ async function cleanup() {
   await remove('coach_assignment_group_students', 'booking_session_id', sessionIds)
   await remove('coach_assignment_groups', 'schedule_slot_id', slotIds)
   await remove('coach_assignments', 'schedule_slot_id', slotIds)
+  await remove('progressive_payment_verification_attempts', 'payment_batch_id', batchIds)
+  await remove('progressive_payment_allocations', 'payment_batch_id', batchIds)
+  await remove('progressive_payment_batch_bookings', 'payment_batch_id', batchIds)
+  await remove('progressive_payment_batches', 'id', batchIds)
   await remove('payments', 'booking_id', bookingIds)
   await remove('booking_sessions', 'id', sessionIds)
   await remove('bookings', 'id', bookingIds)
+  await remove('booking_pricing_scopes', 'id', scopeIds)
   await remove('children', 'parent_id', profileIds)
   await remove('coach_branches', 'coach_id', profileIds)
   await remove('schedule_slots', 'id', slotIds)
@@ -214,7 +228,19 @@ async function createTemplateSlot(courseTypeId, date, start, end, { status = 'op
   return slot
 }
 
-async function createBooking({ userId, courseTypeId, totalSessions, amount, slot, slots, childIds = [null], label }) {
+async function createBooking({
+  userId,
+  courseTypeId,
+  totalSessions,
+  amount,
+  slot,
+  slots,
+  childIds = [null],
+  label,
+  bookingStatus = 'verified',
+  createLegacyPayment = true,
+  bookingFields = {},
+}) {
   const bookingSlots = slots || [slot]
   const firstSlot = bookingSlots[0]
   const booking = await ok(await supabase.from('bookings').insert({
@@ -227,18 +253,21 @@ async function createBooking({ userId, courseTypeId, totalSessions, amount, slot
     year: Number(firstSlot.date.slice(0, 4)),
     total_sessions: totalSessions,
     total_price: amount,
-    status: 'verified',
+    status: bookingStatus,
+    ...bookingFields,
   }).select('id').single(), `booking ${label}`)
-  const verifiedAt = new Date().toISOString()
-  await ok(await supabase.from('payments').insert({
-    booking_id: booking.id,
-    user_id: userId,
-    amount,
-    method: 'transfer',
-    status: 'approved',
-    verified_at: verifiedAt,
-    notes: MARKER,
-  }), `payment ${label}`)
+  const verifiedAt = createLegacyPayment ? new Date().toISOString() : null
+  if (createLegacyPayment) {
+    await ok(await supabase.from('payments').insert({
+      booking_id: booking.id,
+      user_id: userId,
+      amount,
+      method: 'transfer',
+      status: 'approved',
+      verified_at: verifiedAt,
+      notes: MARKER,
+    }), `payment ${label}`)
+  }
   const sessions = await ok(await supabase.from('booking_sessions').insert(bookingSlots.flatMap((bookingSlot) => childIds.map((childId) => ({
     booking_id: booking.id,
     schedule_slot_id: bookingSlot.id,
@@ -251,6 +280,92 @@ async function createBooking({ userId, courseTypeId, totalSessions, amount, slot
     is_makeup: false,
   })))).select('id, booking_id, schedule_slot_id, date, start_time, end_time, branch_id, child_id, status'), `sessions ${label}`)
   return { booking, sessions, verifiedAt }
+}
+
+async function createApprovedProgressiveKidsBooking({ userId, adminId, totalSessions, amount, slot, childId, label }) {
+  const tier = await ok(await supabase.from('pricing_tiers')
+    .select('id, price_per_session')
+    .eq('course_type_id', IDS.kids)
+    .lte('min_sessions', totalSessions)
+    .or(`max_sessions.is.null,max_sessions.gte.${totalSessions}`)
+    .single(), `Progressive Kids tier ${label}`)
+  const scope = await ok(await supabase.from('booking_pricing_scopes').insert({
+    user_id: userId,
+    course_type_id: IDS.kids,
+    lesson_year: Number(slot.date.slice(0, 4)),
+    lesson_month: Number(slot.date.slice(5, 7)),
+    currency: 'THB',
+    revision: 1,
+    pricing_tier_version: MARKER,
+  }).select('id, revision').single(), `Progressive pricing scope ${label}`)
+  const result = await createBooking({
+    userId,
+    courseTypeId: IDS.kids,
+    totalSessions,
+    amount,
+    slot,
+    childIds: [childId],
+    label,
+    bookingStatus: 'pending_payment',
+    createLegacyPayment: false,
+    bookingFields: {
+      pricing_scope_id: scope.id,
+      entitlement_sessions: totalSessions,
+      pricing_sequence: 1,
+      cumulative_sessions_before: 0,
+      cumulative_sessions_after: totalSessions,
+      pricing_tier_id_snapshot: tier.id,
+      pricing_rate_snapshot: Number(tier.price_per_session),
+      gross_price_snapshot: amount,
+      coupon_discount_snapshot: 0,
+      final_price_snapshot: amount,
+      pricing_revision: scope.revision,
+      pricing_calculated_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    },
+  })
+  const prepare = await ok(await supabase.rpc('prepare_progressive_payment_batch_v2', {
+    p_user_id: userId,
+    p_pricing_scope_id: scope.id,
+    p_booking_ids: [result.booking.id],
+    p_expected_scope_revision: scope.revision,
+    p_expected_total: amount,
+    p_idempotency_key: randomUUID(),
+  }), `prepare Progressive payment ${label}`)
+  const slipSha = createHash('sha256').update(`${MARKER}|${result.booking.id}`).digest('hex')
+  await ok(await supabase.rpc('submit_progressive_payment_batch_v1', {
+    p_batch_id: prepare.batchId,
+    p_user_id: userId,
+    p_slip_metadata: {
+      storageBucket: 'payment-slips',
+      storagePath: `${MARKER}/${result.booking.id}.jpg`,
+      mimeType: 'image/jpeg',
+      sizeBytes: 1,
+      sha256: slipSha,
+      slipokResponseCode: 'TEST_MODE',
+    },
+    p_idempotency_key: randomUUID(),
+  }), `submit Progressive payment ${label}`)
+  const approved = await ok(await supabase.rpc('approve_progressive_payment_batch_v1', {
+    p_batch_id: prepare.batchId,
+    p_actor_id: adminId,
+    p_idempotency_key: randomUUID(),
+  }), `approve Progressive payment ${label}`)
+  const batch = await ok(await supabase.from('progressive_payment_batches')
+    .select('id, status, approved_at')
+    .eq('id', prepare.batchId)
+    .single(), `approved Progressive batch ${label}`)
+  const allocation = await ok(await supabase.from('progressive_payment_allocations')
+    .select('id, booking_id, amount')
+    .eq('payment_batch_id', prepare.batchId)
+    .single(), `Progressive allocation ${label}`)
+  const verifiedBooking = await ok(await supabase.from('bookings')
+    .select('status')
+    .eq('id', result.booking.id)
+    .single(), `verified Progressive booking ${label}`)
+  assert(approved.status === 'approved' && batch.status === 'approved' && verifiedBooking.status === 'verified', 'normal Progressive approval must verify the Kids booking')
+  assert(allocation.booking_id === result.booking.id && Number(allocation.amount) === amount, 'Progressive allocation must preserve the exact fixture amount')
+  return { ...result, verifiedAt: batch.approved_at, scopeId: scope.id, batchId: batch.id, allocationId: allocation.id }
 }
 
 async function assignFamily(coachId, adminId, slotId, sessions, parentId) {
@@ -315,9 +430,12 @@ async function protectedFinancialCounts() {
     return count || 0
   }
   return {
+    payments: await tableCount('payments'),
+    allocations: await tableCount('progressive_payment_allocations'),
     coupons: await tableCount('coupon_usages'),
     ledger: await tableCount('payment_ledger_allocations_v1', 'source_id'),
     finance: await tableCount('finance_expenses'),
+    attendance: await tableCount('attendance'),
   }
 }
 
@@ -327,7 +445,7 @@ async function withProtectedFinancialInvariant(label, invokeRpc) {
   const after = await protectedFinancialCounts()
   assert(
     JSON.stringify(after) === JSON.stringify(before),
-    `${label} must not create Coupon, Ledger, or Finance rows: before=${JSON.stringify(before)} after=${JSON.stringify(after)}`,
+    `${label} must not create Payment, Progressive allocation, Coupon, Ledger, Finance, or Attendance rows: before=${JSON.stringify(before)} after=${JSON.stringify(after)}`,
   )
   protectedFinancialRpcChecks += 1
   return result
@@ -454,10 +572,50 @@ async function run() {
   await expectRpcCode(redeem(parentId, privateSingleStored.credit_id, privateSingleTarget), 'LESSON_WALLET_SAME_MONTH_REQUIRED', 'Private single cross-month')
 
   const kidsSource = await createTemplateSlot(IDS.kids, sourceDate, '16:00', '18:00')
-  const kidsTarget = await createTemplateSlot(IDS.kids, crossMonthDate, '16:00', '18:00')
-  const kids = await createBooking({ userId: parentId, courseTypeId: IDS.kids, totalSessions: 8, amount: 4000, slot: kidsSource, childIds: [children[0].id], label: 'kids-range' })
-  const kidsStored = await ok(await store(parentId, kids.sessions[0].id), 'store Kids')
-  await expectRpcCode(redeem(parentId, kidsStored.credit_id, kidsTarget), 'LESSON_WALLET_SAME_MONTH_REQUIRED', 'Kids cross-month')
+  const kidsSameMonthTarget = await createTemplateSlot(IDS.kids, sameMonthDate, '16:00', '18:00')
+  const kidsCrossMonthTarget = await createTemplateSlot(IDS.kids, crossMonthDate, '16:00', '18:00')
+  const kids = await createApprovedProgressiveKidsBooking({
+    userId: parentId,
+    adminId,
+    totalSessions: 8,
+    amount: 4000,
+    slot: kidsSource,
+    childId: children[0].id,
+    label: 'progressive-kids-no-legacy-payment',
+  })
+  const kidsLegacyPayments = await ok(await supabase.from('payments').select('id').eq('booking_id', kids.booking.id), 'Progressive Kids Legacy Payment absence')
+  assert(kidsLegacyPayments.length === 0, 'Progressive Kids fixture must not fabricate a Legacy Payment')
+  const kidsStored = await ok(await store(parentId, kids.sessions[0].id), 'store Progressive Kids without Legacy Payment')
+  assert(kidsStored.policy_type === 'same_month', 'Progressive Kids must remain same_month')
+  const kidsCredit = await ok(await supabase.from('lesson_wallet_credits')
+    .select('entitlement_policy, entitlement_started_at, entitlement_payment_id, entitlement_pricing_tier_id, entitlement_evidence, expires_at')
+    .eq('id', kidsStored.credit_id)
+    .single(), 'Progressive Kids Wallet evidence')
+  assert(kidsCredit.entitlement_policy === 'same_month', 'Progressive Kids credit must persist same_month policy')
+  assert(kidsCredit.entitlement_payment_id === null && kidsCredit.entitlement_pricing_tier_id === null, 'Progressive Kids credit must not fabricate Payment or tier ids')
+  assert(kidsCredit.entitlement_evidence?.evidence_source === 'verified_booking', 'Progressive Kids credit must record truthful verified-booking evidence')
+  const expectedKidsMonthEnd = new Date(
+    Date.UTC(Number(sourceDate.slice(0, 4)), Number(sourceDate.slice(5, 7)), 1) - (7 * 60 * 60 * 1000) - 1,
+  ).toISOString()
+  assert(new Date(kidsCredit.expires_at).getTime() === new Date(expectedKidsMonthEnd).getTime(), 'Progressive Kids expiry must be exact Bangkok month end')
+  const kidsRedeemed = await ok(await redeem(parentId, kidsStored.credit_id, kidsSameMonthTarget), 'redeem Progressive Kids in same month')
+  assert(kidsRedeemed.participant_count === 1 && kidsRedeemed.session_ids.length === 1, 'Progressive Kids same-month Redeem must move one exact learner')
+  const kidsMoved = await ok(await supabase.from('booking_sessions').select('child_id').eq('id', kidsRedeemed.session_ids[0]).single(), 'Progressive Kids redeemed identity')
+  assert(kidsMoved.child_id === children[0].id, 'Progressive Kids Redeem must preserve the exact child id')
+  const kidsRewallet = await ok(await store(parentId, kidsRedeemed.session_ids[0]), 're-wallet Progressive Kids')
+  const kidsRewalletCredit = await ok(await supabase.from('lesson_wallet_credits')
+    .select('entitlement_started_at, entitlement_payment_id, entitlement_pricing_tier_id, entitlement_evidence, expires_at')
+    .eq('id', kidsRewallet.credit_id)
+    .single(), 'Progressive Kids re-wallet evidence')
+  assert(kidsRewalletCredit.entitlement_started_at === kidsCredit.entitlement_started_at && kidsRewalletCredit.expires_at === kidsCredit.expires_at, 'Progressive Kids re-wallet must preserve original start and expiry')
+  assert(kidsRewalletCredit.entitlement_payment_id === null && kidsRewalletCredit.entitlement_pricing_tier_id === null, 'Progressive Kids re-wallet must preserve truthful null evidence ids')
+  assert(JSON.stringify(kidsRewalletCredit.entitlement_evidence) === JSON.stringify(kidsCredit.entitlement_evidence), 'Progressive Kids re-wallet must preserve complete evidence')
+  await expectRpcCode(redeem(parentId, kidsRewallet.credit_id, kidsCrossMonthTarget), 'LESSON_WALLET_SAME_MONTH_REQUIRED', 'Progressive Kids cross-month')
+
+  const legacyKidsSource = await createTemplateSlot(IDS.kids, sourceDate, '18:00', '20:00')
+  const legacyKids = await createBooking({ userId: parentId, courseTypeId: IDS.kids, totalSessions: 1, amount: 700, slot: legacyKidsSource, childIds: [children[1].id], label: 'legacy-kids-verified' })
+  const legacyKidsStored = await ok(await store(parentId, legacyKids.sessions[0].id), 'store Legacy Kids verified booking')
+  assert(legacyKidsStored.policy_type === 'same_month', 'Legacy Kids verified booking must remain Wallet-compatible and same_month')
 
   const rewalletSlot = await createTemplateSlot(IDS.private, crossMonthDate, '20:00', '21:00')
   const rewalletResult = await ok(await store(parentId, familyRedeemed.session_ids[0]), 're-wallet Family')
@@ -469,9 +627,9 @@ async function run() {
   const rewalletRedeemed = await ok(await redeem(parentId, rewalletResult.credit_id, rewalletSlot), 'redeem re-walleted Family')
   assert(rewalletRedeemed.participant_count === 2, 'Re-wallet chain must remain one Family unit')
 
-  const allBookingIds = [adultPackage, adultSingle, family, familyConflict, concurrentFamily, privateSingle, kids].map((item) => item.booking.id)
+  const allBookingIds = [adultPackage, adultSingle, family, familyConflict, concurrentFamily, privateSingle, kids, legacyKids].map((item) => item.booking.id)
   const financialCounts = await counts(allBookingIds)
-  assert(financialCounts.payments === allBookingIds.length, 'Wallet flow must not create additional Payment rows')
+  assert(financialCounts.payments === allBookingIds.length - 1, 'Progressive Kids must have no Legacy Payment and Wallet must not create additional Payment rows')
   assert(financialCounts.coupons === 0, 'Wallet flow must not create Coupon rows')
 
   const nearDate = dateKey(new Date(Date.now() + 24 * 60 * 60 * 1000))
@@ -614,7 +772,8 @@ async function run() {
   assert(expiredOldAfter.status === 'expired' && expiredOldAfter.expires_at === expiredOld.expires_at, 'Existing expired credit must remain expired and unchanged')
 
   console.log('PASS Local endpoint guard and clean migration schema')
-  console.log('PASS Adult package cross-month; Adult/Private single and Kids same-month')
+  console.log('PASS Adult package cross-month; Adult/Private single and Legacy/Progressive Kids same-month')
+  console.log('PASS Progressive Kids approved allocation without Legacy Payment stores, redeems in-month, rejects cross-month, and preserves truthful null Payment/tier evidence')
   console.log('PASS Four Family hours serialize as eight rows; one Store/Redeem unit moves two exact identities and leaves six rows scheduled')
   console.log('PASS Private four-hour and ten-hour packages preserve 900/3,600 and 800/8,000 threshold evidence with ten-month expiry')
   console.log('PASS Participant conflict rollback and concurrent one-winner/one-stale behavior leave zero residue')
@@ -623,7 +782,7 @@ async function run() {
   console.log('PASS Store guards: 48-hour cutoff, started, attendance, and makeup')
   console.log('PASS Redeem guards: inactive template, cancelled target, same-month, expiry, and participant overlap')
   console.log('PASS Missing/ambiguous Payment and Adult/Private tier evidence fail closed; existing active/expired credits remain unchanged')
-  console.log(`PASS Financial invariance around ${protectedFinancialRpcChecks} Store/Redeem RPC results: Coupon/Ledger/Finance deltas 0/0/0`)
+  console.log(`PASS Financial invariance around ${protectedFinancialRpcChecks} Store/Redeem RPC results: Payment/Allocation/Coupon/Ledger/Finance/Attendance deltas 0/0/0/0/0/0`)
 
   if (!keepData) {
     const residue = await cleanup()

@@ -211,13 +211,16 @@ async function findMatchingTemplate(
 
 function inheritedEntitlement(credit: CreditRelation): LessonWalletEntitlement {
   const evidence = credit.entitlement_evidence || {}
+  const pricingTierId = credit.entitlement_pricing_tier_id
+    || (typeof evidence.pricing_tier_id === 'string' ? evidence.pricing_tier_id : null)
   return {
     policyType: credit.entitlement_policy || 'same_month',
     entitlementStartedAt: credit.entitlement_started_at || credit.stored_at,
     expiresAt: credit.expires_at,
-    paymentId: credit.entitlement_payment_id || String(evidence.payment_id || ''),
-    pricingTier: {
-      id: credit.entitlement_pricing_tier_id || String(evidence.pricing_tier_id || ''),
+    paymentId: credit.entitlement_payment_id
+      || (typeof evidence.payment_id === 'string' ? evidence.payment_id : null),
+    pricingTier: pricingTierId ? {
+      id: pricingTierId,
       min: Number(evidence.pricing_tier_min || 0),
       max: evidence.pricing_tier_max === null ? null : Number(evidence.pricing_tier_max || 0),
       unit: evidence.pricing_unit === 'hour' ? 'hour' : 'session',
@@ -225,7 +228,7 @@ function inheritedEntitlement(credit: CreditRelation): LessonWalletEntitlement {
       packagePrice: Number(evidence.package_price || 0),
       validFrom: typeof evidence.tier_valid_from === 'string' ? evidence.tier_valid_from : null,
       validTo: typeof evidence.tier_valid_to === 'string' ? evidence.tier_valid_to : null,
-    },
+    } : null,
   }
 }
 
@@ -279,6 +282,16 @@ async function resolveAuthoritativeEntitlement(adminSupabase: AdminSupabase, ses
       payments: [],
       pricingTiers: [],
       inheritedEntitlement: inheritedEntitlement(priorCredit),
+    })
+  }
+
+  if (courseType === 'kids_group') {
+    return resolveLessonWalletEntitlement({
+      courseType,
+      purchasedQuantity: booking.total_sessions,
+      originalSessionDate: session.date,
+      payments: [],
+      pricingTiers: [],
     })
   }
 

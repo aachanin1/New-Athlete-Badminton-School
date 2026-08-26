@@ -22,6 +22,7 @@ const slotResolver = read('src/lib/schedule-slot-utils.ts')
 const migration = read('supabase/migrations/20260823090000_adult_private_ten_month_lesson_wallet.sql')
 const correctiveMigration = read('supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql')
 const privateThresholdMigration = read('supabase/migrations/20260824154718_correct_private_wallet_package_tier_matching.sql')
+const progressiveKidsMigration = read('supabase/migrations/20260826021944_separate_progressive_kids_wallet_entitlement.sql')
 const walletPage = read('src/app/(dashboard)/dashboard/lesson-wallet/page.tsx')
 const walletClient = read('src/components/dashboard/lesson-wallet-client.tsx')
 
@@ -99,7 +100,22 @@ check('ten-month expiry crosses year boundaries and handles leap-year February',
 check('Adult and Private single-unit tiers and every Kids tier remain same-month', () => {
   assert.equal(entitlement({ quantity: 1, tiers: [tier('adult_group', 1)] }).policyType, 'same_month')
   assert.equal(entitlement({ courseType: 'private', quantity: 1, tiers: [tier('private', 1)] }).policyType, 'same_month')
-  assert.equal(entitlement({ courseType: 'kids_group', quantity: 10, tiers: [tier('kids_group', 10)] }).policyType, 'same_month')
+  assert.equal(entitlement({ courseType: 'kids_group', quantity: 10, payments: [], tiers: [] }).policyType, 'same_month')
+})
+
+check('Progressive Kids uses verified-booking same-month evidence without Legacy Payment or tier evidence', () => {
+  const result = entitlement({
+    courseType: 'kids_group',
+    quantity: 8,
+    originalSessionDate: '2026-02-12',
+    payments: [],
+    tiers: [],
+  })
+  assert.equal(result.policyType, 'same_month')
+  assert.equal(result.entitlementStartedAt, '2026-02-11T17:00:00.000Z')
+  assert.equal(result.expiresAt, '2026-02-28T16:59:59.999Z')
+  assert.equal(result.paymentId, null)
+  assert.equal(result.pricingTier, null)
 })
 
 check('Private historical packages select the greatest effective threshold without using max as containment', () => {
@@ -155,16 +171,11 @@ check('inclusive Adult range tiers resolve at lower, interior, and upper quantit
 })
 
 check('representative Kids range boundaries and interiors resolve but remain same-month', () => {
-  const kidsTiers = [
-    tier('kids_group', 2, { id: 'kids-2-6', max_sessions: 6 }),
-    tier('kids_group', 7, { id: 'kids-7-10', max_sessions: 10 }),
-    tier('kids_group', 11, { id: 'kids-11-14', max_sessions: 14 }),
-    tier('kids_group', 15, { id: 'kids-15-18', max_sessions: 18 }),
-    tier('kids_group', 19, { id: 'kids-19-plus', max_sessions: null }),
-  ]
-
   for (const quantity of [2, 4, 6, 7, 8, 10, 11, 13, 14, 15, 16, 18, 19, 24]) {
-    assert.equal(entitlement({ courseType: 'kids_group', quantity, tiers: kidsTiers }).policyType, 'same_month')
+    const result = entitlement({ courseType: 'kids_group', quantity, payments: [], tiers: [] })
+    assert.equal(result.policyType, 'same_month')
+    assert.equal(result.paymentId, null)
+    assert.equal(result.pricingTier, null)
   }
 })
 
@@ -186,6 +197,19 @@ check('re-wallet preserves the original policy start, expiry and evidence', () =
   const result = entitlement({
     verifiedAt: '2026-04-15T05:00:00.000Z',
     originalSessionDate: '2026-04-20',
+    inheritedEntitlement: inherited,
+  })
+  assert.deepEqual(result, inherited)
+})
+
+check('Kids re-wallet preserves truthful null Payment and tier evidence', () => {
+  const inherited = entitlement({ courseType: 'kids_group', quantity: 8, payments: [], tiers: [] })
+  const result = entitlement({
+    courseType: 'kids_group',
+    quantity: 8,
+    originalSessionDate: '2026-04-20',
+    payments: [],
+    tiers: [],
     inheritedEntitlement: inherited,
   })
   assert.deepEqual(result, inherited)
@@ -321,6 +345,30 @@ check('the new Store RPC selects a Private threshold while retaining Adult and K
   assert.equal((privateThresholdMigration.match(/SET search_path = public, pg_temp/g) || []).length, 1)
   assert.match(privateThresholdMigration, /REVOKE ALL ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\)\s+FROM PUBLIC, anon, authenticated;/)
   assert.match(privateThresholdMigration, /GRANT EXECUTE ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\) TO service_role;/)
+})
+check('Progressive Kids branches before Legacy Payment evidence while preserving the Adult/Private Store contract', () => {
+  const kidsBranch = progressiveKidsMigration.indexOf("IF v_selected.course_name = 'kids_group' THEN")
+  const paymentLookup = progressiveKidsMigration.indexOf('FROM public.payments payment')
+  assert.ok(kidsBranch > 0 && paymentLookup > kidsBranch)
+  assert.match(progressiveKidsMigration, /v_payment_id := NULL;[\s\S]*v_tier_id := NULL;[\s\S]*v_policy := 'same_month'/)
+  assert.match(progressiveKidsMigration, /'evidence_source', 'verified_booking'/)
+  assert.match(progressiveKidsMigration, /v_started_at := v_selected\.date::timestamp AT TIME ZONE 'Asia\/Bangkok'/)
+  assert.match(progressiveKidsMigration, /date_trunc\('month', v_selected\.date::timestamp\) \+ interval '1 month'/)
+  assert.equal((progressiveKidsMigration.match(/SELECT max\(tier\.min_sessions\) INTO v_private_tier_min/g) || []).length, 1)
+  assert.equal((progressiveKidsMigration.match(/v_selected\.total_sessions <= tier\.max_sessions/g) || []).length, 2)
+  assert.equal((progressiveKidsMigration.match(/CREATE OR REPLACE FUNCTION/g) || []).length, 1)
+  assert.equal((progressiveKidsMigration.match(/SECURITY DEFINER/g) || []).length, 1)
+  assert.equal((progressiveKidsMigration.match(/SET search_path = public, pg_temp/g) || []).length, 1)
+  assert.match(progressiveKidsMigration, /REVOKE ALL ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\)\s+FROM PUBLIC, anon, authenticated;/)
+  assert.match(progressiveKidsMigration, /GRANT EXECUTE ON FUNCTION public\.lesson_wallet_store_v2\(uuid, uuid, uuid\) TO service_role;/)
+  assert.doesNotMatch(progressiveKidsMigration, /CREATE OR REPLACE FUNCTION public\.lesson_wallet_redeem_v2/)
+  const beforeStoreFunction = progressiveKidsMigration.slice(0, progressiveKidsMigration.indexOf('CREATE OR REPLACE FUNCTION'))
+  assert.doesNotMatch(beforeStoreFunction, /(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+public\./i)
+
+  const inheritedLookup = route.indexOf('const priorCredit = priorById.values().next().value')
+  const routeKidsBranch = route.indexOf("if (courseType === 'kids_group')")
+  const routePaymentLookup = route.indexOf(".from('payments')", routeKidsBranch)
+  assert.ok(inheritedLookup > 0 && routeKidsBranch > inheritedLookup && routePaymentLookup > routeKidsBranch)
 })
 check('the API uses typed code forwarding and retains the exact Thai evidence messages', () => {
   assert.equal(route.includes('resolveLessonWalletErrorCode(error)'), true)

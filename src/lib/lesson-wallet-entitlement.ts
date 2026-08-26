@@ -23,7 +23,7 @@ export interface LessonWalletEntitlement {
   policyType: LessonWalletPolicyType
   entitlementStartedAt: string
   expiresAt: string
-  paymentId: string
+  paymentId: string | null
   pricingTier: {
     id: string
     min: number
@@ -33,7 +33,7 @@ export interface LessonWalletEntitlement {
     packagePrice: number
     validFrom: string | null
     validTo: string | null
-  }
+  } | null
 }
 
 export interface ResolveLessonWalletEntitlementInput {
@@ -188,6 +188,17 @@ export function resolveLessonWalletEntitlement({
     )
   }
 
+  const originalMonth = assertDateKey(originalSessionDate)
+  if (courseType === 'kids_group') {
+    return {
+      policyType: 'same_month',
+      entitlementStartedAt: new Date(`${originalSessionDate}T00:00:00+07:00`).toISOString(),
+      expiresAt: bangkokMonthEndIso(originalMonth.year, originalMonth.month, 0),
+      paymentId: null,
+      pricingTier: null,
+    }
+  }
+
   const approvedPayments = payments.filter((payment) => payment.status === 'approved' && payment.verified_at)
   if (approvedPayments.length === 0) {
     throw new LessonWalletEntitlementError(
@@ -229,7 +240,6 @@ export function resolveLessonWalletEntitlement({
   const isTenMonthPackage = (courseType === 'adult_group' || courseType === 'private')
     && purchasedQuantity > 1
   const policyType: LessonWalletPolicyType = isTenMonthPackage ? 'ten_month_package' : 'same_month'
-  const originalMonth = assertDateKey(originalSessionDate)
   const approvedMonth = bangkokDateParts(approvalTimestamp)
   const expiryMonth = isTenMonthPackage ? approvedMonth : originalMonth
 
