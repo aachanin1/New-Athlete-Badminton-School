@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-25
+Last updated: 2026-08-26
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,18 +9,19 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **NONE — PRIVATE WALLET CORRECTION IS TASK DONE**.
+Status: **PROGRESSIVE KIDS LESSON WALLET COMPATIBILITY — READY FOR OWNER UAT**.
 
-- Owner passed exact artifact `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / Application
-  `29ce2c25...`; it was Promoted once without rebuild and is now Production-active
-  on all four established aliases.
-- Post-Promotion smoke, clean-window runtime logs, and read-only Owner-UAT data
-  reconciliation passed. Owner Store created one Family credit/two members and
-  walleted one two-participant hour; no Payment/Ledger/Coupon/Finance/Attendance
-  mutation was added by Promotion. Redeem Controlled Write UAT was not run.
-- Next action: Owner selects and authorizes the next task. No Parking Lot candidate
-  is authorized by this closeout. See `PROJECT_STATE.md` for the authoritative
-  mutable-state matrix.
+- Exact staged Production-target artifact
+  `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` at
+  `https://new-athlete-badminton-school-4lo2safe9-aachanin1s-projects.vercel.app`
+  is READY, aliases `0`, Application `c87a89d1...`, tree `7528c4c5...`.
+- Source/tests are pushed; migration `20260826021944` is applied exactly once with
+  pending `0`; local and remote gates passed. Current Production and all aliases
+  remain on `dpl_9Tc...` / `29ce2c25...`.
+- Next action: Owner tests one verified Progressive Kids booking with approved
+  Progressive evidence and no Legacy Payment, then returns PASS or FAIL for this
+  exact artifact/SHA. Do not Promote before PASS. See `PROJECT_STATE.md` for the
+  authoritative mutable-state matrix.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 

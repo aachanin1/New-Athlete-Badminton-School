@@ -17064,3 +17064,91 @@ no-rebuild Promotion, Production verification, and documentation publication.
   **Yes**.
 - Next Action: Owner selects and authorizes the next task. Rollback candidate
   `dpl_GjmdPaHq9iFhkXTPViF3KkrCjbG6` remains available and was not used.
+
+## 2026-08-26 — Progressive Kids Lesson Wallet Compatibility READY FOR OWNER UAT
+
+State observed at this READY handoff. The prior Private Wallet task had reached
+TASK DONE, then Production evidence reopened the work as a distinct regression:
+a verified Progressive Kids booking with approved Progressive batch/allocation
+evidence and no Legacy `public.payments` row failed Store with
+`LESSON_WALLET_PAYMENT_EVIDENCE_MISSING`.
+
+- Fresh Gate 0 proved the regression class without exposing PII. TypeScript/API
+  and the applied `lesson_wallet_store_v2` resolved Legacy Payment/tier evidence
+  before the Kids policy, while the former Kids UAT always created a Legacy
+  Payment. A sanitized Production class count found `150` matching bookings / `275`
+  future scheduled sessions; the selected fingerprint had verified booking,
+  approved Progressive allocation `1`, Legacy Payment `0`, eligible session `1`,
+  Attendance `0`, and Wallet residue `0`.
+- Functional Source changed only `src/lib/lesson-wallet-entitlement.ts` and
+  `src/app/api/lesson-wallet/route.ts`. Inherited/re-wallet evidence remains first;
+  fresh Kids entitlement now returns truthful null Payment/tier evidence and exact
+  Bangkok same-month start/expiry before Legacy evidence reads. Adult containment,
+  Private greatest-threshold matching, typed error forwarding, Family atomicity,
+  identity, Pricing, UI, and SlipOK behavior were not changed.
+- Tests changed only `scripts/check-lesson-wallet-regression.mjs` and
+  `scripts/uat-lesson-wallet.js`. The UAT uses the normal Progressive prepare,
+  submit, and approve RPC chain, creates no Legacy Payment for the Kids fixture,
+  verifies same-month Store/Redeem, cross-month rejection, re-wallet preservation,
+  truthful evidence, and exact child identity. Financial invariance covered `34`
+  Store/Redeem results with Payment/Progressive-allocation/Coupon/Ledger/Finance/
+  Attendance deltas `0/0/0/0/0/0`; fixture residue was `0`.
+- Bounded correction usage was `1/2`: the first UAT run reached corrected Product
+  behavior but compared equivalent PostgREST timestamp strings (`+00:00` versus
+  `Z`). Read-only database evidence proved the exact millisecond, so the assertion
+  was corrected to compare instants. No Product or migration byte changed; attempt
+  2 was unused.
+- Verification passed: Lesson Wallet `40/40`; clean local reset through migration
+  `20260826021944`; full atomic Wallet UAT; Family grouping; Coach lifecycle
+  `53/53`; Admin assignment state `39/39`; Coach hours `20/20`; Progressive pricing,
+  transactions `33/33`, shadow, Legacy baseline `32/32`, and booking entry `31/31`;
+  Booking/Admin E2E `13/13` each with failed/skipped/unexpected/retry/flaky all
+  `0` and residue `0`; TypeScript; zero-warning lint; mojibake `265` files;
+  Production build/static generation `94/94`; prod readiness; post-build root,
+  health, real static asset, protected redirects, browser console/hydration/error
+  checks; and `git diff --check`.
+- Pricing Source/Test remained exact at blobs
+  `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` /
+  `2d4472ab76edb7b2b93f74b234dd086ad4a974dd`, diff `0`. Read-only substitute
+  evidence passed Kids 16 = 6,496 at 406, first/next eight = 4,000/2,496, Adult
+  600/1,100/3,500, Private four/ten = 3,600@900 / 8,000@800. The original stale
+  script remains **KNOWN OWNER-ACCEPTED STALE BASELINE — NOT COUNTED AS PASS**.
+- Application/Test/Migration commit
+  `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`, tree
+  `7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264`, contains exact counts Functional/
+  Test/Migration `2/2/1` and was pushed normally; Scope Expansion/Breach are
+  None/None. Protected `src/lib/schedule-slot-utils.ts` remained unstaged at blob/
+  SHA-256 `4521281d099efb189429a744909552d67871ff23` /
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- CLI-generated migration
+  `supabase/migrations/20260826021944_separate_progressive_kids_wallet_entitlement.sql`,
+  SHA-256 `CCE660D44734539F1AD7E89F3E1BD601C67B4B60DC2066E9AC22D6B2B3800504`,
+  was the only dry-run candidate and was applied once through the normal linked
+  file workflow. Pending is `0`; history count is `1`; signature, SECURITY DEFINER,
+  pinned `public, pg_temp`, service-role execute, and PUBLIC/anon/authenticated
+  denial are exact. Adult/Private predicates remain exact. Immediate pre/post
+  protected counts and row digests matched; schema/metadata change was one history
+  row plus the Store function only; customer/business/financial rows changed `0`;
+  Data Repaired No. Advisors named no task function.
+- One clean branch clone of exact SHA/tree created staged Production-target
+  artifact `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`, immutable URL
+  `https://new-athlete-badminton-school-4lo2safe9-aachanin1s-projects.vercel.app`,
+  branch `spike/next-major-security-upgrade`, target/state `production/READY`,
+  region `icn1`, aliases `0`. Build errors and bounded runtime warning/error/fatal/
+  5xx/SlipOK/1003 matches were `0`; root/health/login/real static asset returned
+  `200`, and unauthenticated Schedule/Wallet/Admin Payments returned exact Login
+  `307`s. Production `SLIPOK_TEST_MODE` remained exact lowercase `true`; no
+  Environment value changed.
+- All four established Production aliases remain on
+  `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`.
+  No alias, Promotion, Developer Controlled Write UAT, customer write, or financial
+  write occurred. This current Production artifact is the rollback candidate.
+- Final classification: Source Complete/Tests Passed/Committed/Pushed **Yes**;
+  Documentation count `4`; Config/Dependency/Lockfile/Environment/UI/Pricing
+  changes `0`; Owner UAT **Not run**; Promoted/Production Active for the new Source
+  **No/No**; Controlled Write UAT **Not run**; Customer Impact **staged only**;
+  Financial Impact **None**; Documentation Drift **No**; Blocker **None technical
+  for Owner UAT**; Task Done **No**.
+- Next Action: Owner returns PASS or FAIL for exact artifact
+  `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` and Application SHA `c87a89d...`. Do not
+  Promote or move an alias before exact-artifact PASS.

@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-08-24
+Last updated: 2026-08-26
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -330,11 +330,16 @@ Main portals:
   single-session, and Private single-hour credits must remain in the original
   month and must never create a new payment, coupon, Ledger, Finance, refund, or
   financial-credit row.
+- Kids Group Wallet storage uses the verified booking plus the existing Wallet
+  safety guards and always remains same-month. It does not require a Legacy
+  `payments` row or historical `pricing_tiers` entitlement evidence, including
+  for Progressive Kids bookings. This compatibility rule does not change Kids
+  pricing, ordering, snapshots, allocations, or monthly true-up behavior.
 - Adult Group and Family Private packages above one purchased session/hour receive
   a ten-month Lesson Wallet entitlement only when exactly one approved
   `payments` row has a trustworthy `verified_at` and unambiguous historical
-  `pricing_tiers` evidence was effective on that Bangkok approval date. Adult and
-  Kids tier evidence uses inclusive containment: `min_sessions <=
+  `pricing_tiers` evidence was effective on that Bangkok approval date. Adult
+  tier evidence uses inclusive containment: `min_sessions <=
   purchasedQuantity` and `(max_sessions IS NULL OR purchasedQuantity <=
   max_sessions)`, with exactly one effective match. Private historical packages
   instead select the greatest effective `min_sessions` threshold that does not
