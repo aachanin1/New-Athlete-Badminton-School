@@ -1032,11 +1032,12 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly five active candidates remain unselected and unauthorized, in this Owner-
+Exactly six active candidates remain unselected and unauthorized, in this Owner-
 approved order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE
 EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**;
-`4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; and `5.`
-**HOMEPAGE LV COPY AUDIT/FIX**. Private Self + Child Identity Integrity /
+`4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `5.` **HOMEPAGE
+LV COPY AUDIT/FIX**; and `6.` **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS,
+CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Private Self + Child Identity Integrity /
 Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
 Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
 Parking Lot items.
@@ -1183,6 +1184,79 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   confirmation.
 - Await explicit Owner selection before any audit or implementation work.
 
+### Admin Recommendations — Round Risk Alerts, Chronological Order & Read-only Detail Modal
+
+Canonical name: **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER
+& READ-ONLY DETAIL MODAL**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Owner appended this candidate as Parking Lot position `6` on 2026-08-26 without
+  selecting it or changing the order/status of the first five. Active Task remains
+  **None — Awaiting Owner Selection**. The approved commercial estimate is
+  **22,000 บาท**; it is a work estimate only, not an application Pricing, Payment,
+  Finance, or Production-data change.
+- Current Source fact: the low-enrollment builder counts distinct learners only
+  for verified Kids/Adult Group bookings and `scheduled|completed|absent` sessions,
+  excludes Private, makeup rows, cancelled rows, and every status outside
+  that set (including direct `walleted`), then emits only counts `1–2`. It currently
+  sorts branch before date/time. The workspace uses red/yellow mainly on the icon
+  and summary text, keeps a neutral card/count badge, and links with the wording
+  “เปิดจัดรอบ/จัดกลุ่ม”. It has no slot-specific read-only detail Modal; an existing
+  Dialog elsewhere in the component is the customer follow-up Send preview.
+- Future low-enrollment contract: real learner `1` is red, `2` is yellow, and `0`
+  is hidden; color must be prominent and consistent across the whole card, icon,
+  count badge, and summary. It continues to cover `kids_group` and `adult_group`;
+  Private remains excluded.
+- Future Kids Group per-coach group contracts: each assignment group with `>=6`
+  real learners is green, including counts above `6`; confirmed latest learner
+  Level spread `max - min > 20` is blue, while exactly `20` is excluded. A missing
+  Level must be displayed as unavailable and must never be assumed to be LV 0.
+- Future 90-minute contract: every branch's Kids Group slot whose duration is
+  exactly `90` minutes and real learner count is `>=4` is red; `3` is excluded.
+  “Immediate” means the current page displays the latest Server response through
+  initial load/refresh and the existing refresh mechanism, not WebSocket, Push, or
+  second-by-second Realtime.
+- Real-learner count contract: exclude the Lesson Wallet source session, direct
+  `walleted` status, credits still in Wallet, cancelled, and rescheduled-out rows.
+  After Redeem, count only the destination session that requires attendance;
+  Makeup/rescheduled-in likewise counts only its attending destination. Stale
+  `coach_assignment_group_students` membership must not re-include an ineligible
+  session, and one learner/session must not be counted twice.
+- Sort one combined cross-branch list by `date`, `start_time`, branch, then stable
+  id. When one slot matches multiple rules, emit one item only, display every
+  matching condition badge, and choose the primary color in this order: red >
+  blue > yellow > green.
+- Clicking the item must open that slot's read-only Modal directly and display
+  branch, date, start/end time, duration, course type, group, coach, learners,
+  each confirmed Level or unavailable state, real learner count, and every alert
+  reason/color. The Modal must not divide/move learners, assign/change a coach,
+  Save, call a mutation API, write the database, or say that Admin can arrange the
+  round/group there.
+- Responsibility remains in the existing Assignment flow: the branch Head Coach
+  divides groups and assigns coaches; Super Admin can act across branches under
+  existing authority. Regular Admin/coach does not group from this Modal. Current
+  Source allows `/coach/assign-groups` to `head_coach|super_admin`, while the
+  Assignment Group API role allowlist also includes `admin`; this existing
+  Page/API difference is **Unknown / Need future verification**, not permission
+  work authorized by this registration. Any permission change requires a separate
+  Owner Hard Stop and Scope approval.
+- Future regression plan must cover boundary counts `0/1/2`, `5/6/>6`, Level gaps
+  `20/>20/missing`, duration `89/90/91` with learner counts `3/4`, all wallet/
+  reschedule/makeup/cancelled/stale-membership/dedup cases, chronological cross-
+  branch ordering, multi-condition merge/color priority, complete read-only Modal
+  content, no mutation call, role visibility, and unchanged Assignment Save. Owner
+  UAT must confirm colors, order, badges, detail content, read-only behavior, and
+  refresh semantics on the exact future artifact.
+- Protected/out of scope: Product Source/UI/API/tests in this registration; role,
+  permission, RLS, menu access, Assignment Save/group lifecycle, Booking, Capacity,
+  Reschedule, Makeup, Lesson Wallet Store/Redeem/expiry/entitlement, Pricing,
+  Payment, Coupon, Ledger, Finance, Attendance, Payroll, polling/realtime, external
+  LINE/Email/Push, Migration, Environment, feature/allowlist, Deploy/Promotion,
+  Production UAT, and Production/customer data. No Product action is authorized.
+- Next gate: Owner selects this item as Active Task and approves a separate
+  implementation Scope Contract. Do not audit or implement it automatically.
+
 ## Historical / Superseded Reference — Kids Group Pricing Reconciliation
 
 State observed at the 2026-07-13 closeout. This retained reference is historical;
@@ -1286,10 +1360,10 @@ Confirmed final state:
 - The only pre-existing unrelated dirty path is protected
   `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
 - Active Task is **None — Awaiting Owner Selection**. This documentation-only
-  publication registers the Head Coach verified-booking assignment alert without
-  authorizing Product work. After publication, only the protected unrelated dirty
-  file remains local. Exact mutable state is authoritative in the first
-  `PROJECT_STATE.md` matrix.
+  publication appends the Admin Recommendations round-risk/read-only-detail
+  candidate as Parking Lot position `6` without authorizing Product work. After
+  publication, only the protected unrelated dirty file remains local. Exact
+  mutable state is authoritative in the first `PROJECT_STATE.md` matrix.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

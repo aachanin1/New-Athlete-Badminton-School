@@ -56,12 +56,12 @@ PRODUCTION VERIFICATION PASSED**.
 | Customer Impact / Financial Impact | **Owner-controlled Kids Store only; corrected compatibility is now Production-active / None**. Linked Progressive evidence predates Store; Legacy Payment remains absent; Payment/Allocation/Coupon/Ledger/Finance/Attendance Store deltas were `0/0/0/0/0/0` |
 | Rollback Candidate | `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; retained READY and not used |
 | Known Limitations | Two historical Private attendance rows remain unrepaired and out of scope. The original pricing assertion remains an Owner-accepted stale baseline and is not counted as PASS. Dependency audit reported the existing `8` package vulnerabilities during remote install; no dependency change is authorized. Redeem Controlled Write UAT was not run |
-| Documentation Drift | **Resolved by the containing documentation-only publication:** the completed Private Identity / Name-Level correction is no longer presented as selectable Parking Lot work, and `PROJECT_STATE.md` plus `TODO-CODEX.md` agree on the exact five-candidate queue |
+| Documentation Drift | **Resolved by the containing documentation-only publication:** `PROJECT_STATE.md` and `TODO-CODEX.md` agree on the Owner-approved six-candidate queue, with the new Admin Recommendations candidate appended at position `6` and no Product authorization implied |
 | Blocker | **None** |
 | Remaining Work | **None for this task** |
 | Task Done | **Yes** |
 | Next Gate / Next Action | **Owner selects and authorizes the next task** |
-| Parking Lot authorization state | Exactly five candidates remain, all unselected and unauthorized, in Owner order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**; `4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `5.` **HOMEPAGE LV COPY AUDIT/FIX**. The first item is Owner priority; the other four remain unselected. Private Identity / Name-Level Separation is completed/subsumed and is not selectable future work; no Parking Lot item may start automatically |
+| Parking Lot authorization state | Exactly six candidates remain, all unselected and unauthorized, in Owner order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**; `4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `5.` **HOMEPAGE LV COPY AUDIT/FIX**; `6.` **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. The first item remains Owner priority; the other five remain unselected. The new item is registration-only at a commercial estimate of **22,000 บาท**, not an application Pricing/Payment change. Private Identity / Name-Level Separation remains completed/subsumed and is not selectable future work; no Parking Lot item may start automatically |
 
 ## Current Parking Lot Priority — Head Coach Verified-Booking Assignment Alert
 
@@ -100,6 +100,53 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   rows. The two historical Private attendance rows remain unrepaired and out of
   scope as the separate known limitation already recorded above; they do not
   reopen completed Source/UI identity work.
+
+## Current Parking Lot #6 — Admin Recommendations Round Risk Alerts
+
+Canonical name: **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER
+& READ-ONLY DETAIL MODAL**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Owner decision on 2026-08-26 appends this item after the existing five without
+  changing their order or status. Registration is complete at a commercial
+  estimate of **22,000 บาท**; this estimate is planning information only and does
+  not change application Pricing, Payment, Finance, or customer data. Active Task
+  remains **None — Awaiting Owner Selection**.
+- Future intended behavior, only after a separate Owner-approved implementation
+  Scope Contract: retain low-enrollment alerts for real kids/adult group learners
+  (`1` red, `2` yellow, `0` hidden; Private excluded); add per-coach Kids Group
+  alerts for `>=6` learners (green) and confirmed Level spread `>20` (blue); add a
+  red alert for a `90`-minute Kids Group slot with `>=4` real learners; show one
+  item per slot with every matching badge and primary-color priority red > blue >
+  yellow > green; and sort all branches by date, start time, branch, then stable id.
+- Real-learner counting must exclude Wallet source sessions/credits, `walleted`,
+  cancelled, and rescheduled-out sessions; count only redeemed/makeup/rescheduled-
+  in destination sessions that require attendance; reject stale assignment-group
+  membership and duplicate learner/session counting. Missing Level remains visibly
+  unknown and must not be converted to LV 0. “Immediate” means the latest server
+  data delivered through existing load/refresh behavior, not WebSocket, Push, or
+  second-by-second Realtime.
+- Clicking an alert is intended to open a direct read-only slot-detail Modal with
+  branch, date/time, duration, course, group, coach, learner names/Levels, real
+  count, and all alert reasons. It must not divide/move learners, assign/change a
+  coach, Save, call a mutation API, write the database, or imply that Admin groups
+  learners from the Modal. The branch Head Coach uses the existing Assignment
+  flow; Super Admin retains existing all-branch authority.
+- Current Source fact: `/coach/assign-groups` page access allows `head_coach` and
+  `super_admin`, while the Assignment Group API role allowlist also includes
+  `admin`. This existing Page/API difference is **Unknown / Need future
+  verification** for any Product scope; permission changes require a separate
+  Owner Hard Stop and are not authorized here.
+- Protected flows: Assignment Save/group lifecycle, role/RLS/menu access, Booking,
+  Capacity, Reschedule, Makeup, Lesson Wallet, Pricing, Payment, Coupon, Ledger,
+  Finance, Attendance, Payroll, refresh/realtime behavior, external notifications,
+  Migration, Environment, feature control, allowlist, Deploy, and Production data.
+  This registration changes Functional/Test/Migration/config/dependency/runtime
+  files and Production/customer/financial state by `0`.
+- Next gate: Owner must select this item as the Active Task and approve a separate
+  implementation Scope Contract, including focused regressions and Owner UAT,
+  before any Product audit or development begins.
 
 ## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff
 

@@ -17344,3 +17344,137 @@ claim was **DOCUMENTATION DRIFT** and is corrected by this publication.
   paths.
 - Next Action: Owner selects one of the five remaining candidates and approves its
   Scope Contract. Do not start any candidate automatically.
+
+## 2026-08-26 — Admin Recommendations Round Risk Alerts Parking Lot Registration
+
+State observed at this documentation-only decision record: Active Task remains
+**None — Awaiting Owner Selection**. The Owner appended **ADMIN RECOMMENDATIONS —
+ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL** as Parking Lot
+position `6`, status **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO
+START**. The approved commercial estimate is **22,000 บาท**; it is planning
+information only and is not an application Pricing, Payment, Finance, or customer-
+data change.
+
+### Fresh Gate 0 and Current Source Facts
+
+- Pre-edit Git state was repository root
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`, branch
+  `spike/next-major-security-upgrade`, local/upstream HEAD
+  `5a61ed7359d563625b31b568bc9289481d618b90`, ahead/behind `0/0`, staged paths `0`.
+  The only dirty path was protected `src/lib/schedule-slot-utils.ts`; it remained
+  unstaged at Git blob `4521281d099efb189429a744909552d67871ff23` and SHA-256
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Before this Owner decision, the current queue contained exactly five unselected,
+  unauthorized candidates in the preserved order. The canonical new name was not
+  already registered, no concurrent Parking Lot edit was present, and Active Task
+  was None. The registration therefore did not require Product or permission work.
+- `buildLowEnrollmentRecommendations` currently accepts only verified bookings,
+  excludes Private, makeup and cancelled sessions, accepts session status
+  `scheduled|completed|absent`, deduplicates learner identity in a slot/fallback
+  group, emits only `1–2` learners, assigns red to `1` and yellow to `2`, and sorts
+  branch before date/start/id. Direct `walleted` is already outside its accepted
+  status set.
+- The Recommendation Workspace currently displays neutral cards/count badges with
+  red/yellow emphasis mainly on icons and summary text and uses “เปิดจัดรอบ/จัดกลุ่ม”
+  as a link to Admin Schedules. It has no low-enrollment slot-detail Modal; the
+  existing Dialog in that component belongs to customer-follow-up Send preview.
+  Current recommendation regression evidence preserves the low-enrollment formula
+  and Private exclusion but does not cover the future rule matrix below.
+- `/coach/assign-groups` currently admits `head_coach` and `super_admin`; the
+  Assignment Group API role allowlist includes `head_coach`, `admin`, and
+  `super_admin`. This Page/API difference is an existing **Fact** and **Need future
+  verification**. It is not corrected, normalized, or treated as permission
+  authority by this registration.
+- Lesson Wallet Source uses atomic Store/Redeem RPCs; its post-Store assignment
+  review re-queries only active session statuses before intersecting assignment
+  membership. This supports a future fail-closed counting requirement but does not
+  prove a Root Cause for Recommendation data. Exact Recommendation integration
+  design, authoritative latest-Level query, assignment-group reconciliation, and
+  permission intent remain **Unknown / Need verification** under a future Scope.
+
+### Future Intended Behavior — Separate Approval Required
+
+- Low enrollment remains Kids/Adult Group only: real learner `1` red, `2` yellow,
+  `0` hidden; Private excluded; color prominent across card, icon, count badge, and
+  summary. Kids assignment groups alert green for `>=6` real learners per coach,
+  including counts above `6`.
+- For each Kids assignment group, use the latest confirmed learner Levels; alert
+  blue only when `max - min > 20`. Exactly `20` does not match. Missing Level must
+  be shown as unavailable and must not be assumed to be LV 0.
+- A Kids Group slot exactly `90` minutes long alerts red at `>=4` real learners;
+  `3` does not match. “Immediate” means after the page receives the latest Server
+  data through load/refresh and its existing refresh mechanism, not WebSocket,
+  Push, or second-by-second Realtime.
+- Count only sessions that require attendance in the target slot: exclude Lesson
+  Wallet source sessions, `walleted`, unused Wallet credits, cancelled, and
+  rescheduled-out; after Redeem count only the destination; count Makeup/
+  rescheduled-in only at its destination; reject stale assignment membership and
+  deduplicate learner/session identity.
+- Sort one cross-branch list by date, start time, branch, then stable id. Emit one
+  item per slot, attach every matched condition badge, and select primary color in
+  priority red > blue > yellow > green.
+- Clicking an alert opens that exact slot's read-only Modal with branch, date,
+  start/end, duration, course, group, coach, learners, each confirmed Level or
+  unavailable state, real count, and every alert reason/color. It cannot divide or
+  move learners, assign/change a coach, Save, call mutation APIs, write the
+  database, or imply Admin may group from the Modal. The branch Head Coach handles
+  assignment through the existing flow; Super Admin retains all-branch authority.
+
+### Future Regression/UAT Matrix and Scope Boundaries
+
+- A future approved regression matrix must cover counts `0/1/2`, `5/6/>6`, Level
+  gaps `20/>20/missing`, durations `89/90/91` with learner counts `3/4`, Wallet
+  source/credit/redeemed destination, cancelled, rescheduled-out/in, Makeup,
+  stale membership, deduplication, chronological cross-branch ordering, stable
+  tie-breaks, multi-condition merge and color priority, every required Modal field,
+  zero mutation requests, role visibility, and unchanged Assignment Save. Owner
+  UAT must verify colors, order, badges, direct detail, read-only behavior, and
+  load/refresh semantics on the exact future artifact.
+- Likely future technical surfaces are
+  `src/lib/admin-notification-recommendations.ts`,
+  `src/components/admin/notification-recommendations-workspace.tsx`,
+  `src/app/(admin)/admin/notifications/page.tsx`, current Admin/Coach schedule
+  models and reads, Assignment Group reads/API, and focused regressions. This list
+  is audit guidance only and is **not** an implementation allowlist.
+- Protected/out of scope for this registration: every Product Source/UI/API/test;
+  role, permission, RLS, menu access, Assignment Save/group lifecycle, Booking,
+  Capacity, Reschedule, Makeup, Lesson Wallet Store/Redeem/expiry/entitlement,
+  Pricing, Payment, Coupon, Ledger, Finance, Attendance, Payroll, refresh/realtime,
+  external LINE/Email/Push, Migration, Environment/secrets, feature/allowlist,
+  dependency/lockfile, Deploy/Promotion/Alias/Rollback, Production UAT, and any
+  Production/customer/data query or write.
+- Exact publication allowlist/counts: Functional `0`; Test `0`; Documentation `3`
+  (`PROJECT_STATE.md`, `TODO-CODEX.md`, and this record); Migration `0`;
+  Configuration `0`; Dependency/Lockfile `0`; Environment `0`. Application tests,
+  TypeScript, lint, build, browser UAT, Deploy, Promotion, and Production UAT are
+  **Not Run / Not Applicable / Not Authorized**, not PASS. Source/Test/Migration/
+  Production/Data changes are `0`; Customer/Financial Impact **None/None**; Scope
+  Expansion/Breach **None/None**.
+- Classification: Parking Lot Registration **Complete after this publication**;
+  Product Task **Not Started**; Owner Selection for Implementation **Not Given**;
+  Documentation Drift **Resolved by the internally consistent six-item queue**;
+  Blocker **None for documentation registration**.
+- Next Action: Owner selects this item as Active Task and approves a separate
+  implementation Scope Contract before any Product audit, change, test, artifact,
+  deployment, or UAT. Do not start it automatically.
+
+### Registration Closeout Status
+
+| Field | State observed at this closeout |
+| --- | --- |
+| Parking Lot Registration | **Complete after publication** |
+| Product Task | **Not Started** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Owner Selection for Implementation | **Not Given** |
+| Source Changed | **No** |
+| Tests Changed / Run | **No / Not Applicable** |
+| Migration | **No** |
+| Environment / Feature / Allowlist | **No / No / No** |
+| Deploy / Promotion | **No / No** |
+| Production UAT / Controlled Write UAT | **Not Run / Not Run** |
+| Production Active for Product Task | **No — Product task not started** |
+| Production Data Changed / Data Repaired | **No / No** |
+| Customer Impact / Financial Impact | **None / None** |
+| Commercial Estimate | **22,000 บาท — planning estimate only** |
+| Blocker | **None for documentation registration** |
+| Next Action | **Owner selects this item and approves a separate implementation Scope Contract** |
