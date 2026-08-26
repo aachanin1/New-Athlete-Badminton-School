@@ -2,32 +2,31 @@
 
 Last updated: 2026-08-26
 
-The completed Private Wallet release was reopened by a Production regression in
-Progressive Kids Wallet storage. Application/Test/Migration Source is committed
-and pushed at `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`, tree
-`7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264`. Migration `20260826021944` is
-applied exactly once to linked project `tvnhholicwjtxdhlxfqs`, pending `0`.
-Exact staged Production-target artifact `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`
-is READY and unaliased. Owner UAT has not run and Promotion is prohibited until
-exact-artifact PASS. Current Production and all four aliases remain on
-`dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25...`.
+The Progressive Kids Wallet Production regression is closed. Application/Test/
+Migration Source `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`, tree
+`7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264`, is pushed; migration
+`20260826021944` is applied exactly once to linked project
+`tvnhholicwjtxdhlxfqs`, pending `0`; and Owner UAT passed exact artifact
+`dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`. That same artifact was promoted once without
+rebuild and now owns all four established Production aliases. Production smoke,
+authenticated read surfaces, logs, and read-only database reconciliation passed.
 
 ## Current State — Progressive Kids Lesson Wallet Compatibility
 
-Status: **READY FOR OWNER UAT — SOURCE PUSHED, MIGRATION APPLIED, EXACT STAGED
-PRODUCTION ARTIFACT READY, NOT PROMOTED**.
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **PROGRESSIVE KIDS LESSON WALLET COMPATIBILITY** |
-| Task Status | **READY FOR OWNER UAT** |
+| Active Task | **None — PROGRESSIVE KIDS LESSON WALLET COMPATIBILITY completed** |
+| Task Status | **TASK DONE** |
 | Owner Policy | Verified Kids Group bookings use existing Wallet safety guards and same-month expiry without requiring Legacy `public.payments` or historical tier evidence. No Payment/tier evidence is fabricated and no Progressive price is reinterpreted. Adult inclusive containment and Private greatest-threshold behavior remain unchanged |
 | Intended Behavior | A verified Progressive Kids booking with approved Progressive batch/allocation evidence and no Legacy Payment can Store, Redeem only inside the original Bangkok month, preserve inherited entitlement on re-wallet, and create no financial or Attendance row |
 | Root Cause | **Proven:** TypeScript/API and `lesson_wallet_store_v2` entered Legacy Payment/tier evidence resolution before the Kids-specific policy; the former UAT always created a Legacy Payment for Kids and masked the Production shape |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD / Remote HEAD | Containing documentation-only READY closeout commit / same after publication; exact Application artifact Source remains `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254` |
+| Local HEAD / Remote HEAD | Containing documentation-only TASK DONE closeout commit / same after publication; exact Application artifact Source remains `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254` |
 | Ahead / Behind | `0/0` after documentation publication; staged paths `0` |
 | Source Complete | **Yes** — exact Application/Test/Migration Source is committed and pushed at `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254` |
 | Tests Passed | **Yes for all authorized gates.** Deterministic Wallet `40/40`; atomic Wallet UAT exit `0` with `34` financially guarded Store/Redeem results; Booking/Admin E2E `13/13` each; Family grouping, Coach lifecycle `53/53`, Admin state `39/39`, Coach hours `20/20`, Progressive pricing/transactions/shadow/legacy/entry, TypeScript, zero-warning lint, mojibake, build `94/94`, prod readiness, post-build smoke/browser, and diff checks passed. The stale pricing script remains excluded and is not reported as PASS |
@@ -35,33 +34,33 @@ PRODUCTION ARTIFACT READY, NOT PROMOTED**.
 | Functional / Test / Documentation / Migration Files | `2 / 2 / 4 / 1`; no direct-dependency expansion |
 | Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0` |
 | Scope Expansion / Scope Breach | **None / None.** No path outside the frozen allowlists changed; the protected dirty file remains excluded |
-| Committed / Pushed | **Application/Test/Migration: Yes / Yes. READY documentation: Yes / Yes after publication** |
+| Committed / Pushed | **Application/Test/Migration: Yes / Yes. TASK DONE documentation: Yes / Yes after publication** |
 | Current Source / Pushed Source | `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254` / same; tree `7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264` |
-| Deployed Source | Staged `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` contains exact Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`; current Production remains `dpl_9Tc...` / `29ce2c25...` |
+| Deployed Source | Production `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` contains exact Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`, tree `7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264` |
 | Migration Source / Applied | `supabase/migrations/20260826021944_separate_progressive_kids_wallet_entitlement.sql`, SHA-256 `CCE660D44734539F1AD7E89F3E1BD601C67B4B60DC2066E9AC22D6B2B3800504` / **Local reset Yes; linked remote Yes exactly once; pending `0`** |
 | Migration Verification | Signature `lesson_wallet_store_v2(uuid,uuid,uuid)` unchanged; SECURITY DEFINER true; search path `public, pg_temp`; PUBLIC/anon/authenticated execute denied; service_role allowed; Kids branch precedes Legacy Payment lookup; Adult containment and Private threshold predicates unchanged. Advisors name no task function; static temp-table findings remain pre-existing |
 | Schema / Metadata Changed | **Yes:** one migration-history row and the Store function definition only |
-| Production Customer / Business Rows Changed | **No by Developer.** Immediate pre/post migration counts and row digests matched for all protected tables; only migration metadata and the Store function changed |
+| Production Customer / Business Rows Changed | **Owner UAT only:** `+1` Kids Wallet credit, `+1` exact child member, and the exact selected source session changed to `walleted`. Promotion-attributable delta was `0`; no Developer customer write occurred |
 | Local Fixture Residue | Atomic UAT cleanup residue `0`; each of `34` Store/Redeem results had Payment/Progressive-allocation/Coupon/Ledger/Finance/Attendance deltas `0/0/0/0/0/0` |
-| Data Repaired / Controlled Write UAT | **No / Not run** |
+| Data Repaired / Controlled Write UAT | **No / Owner Kids Store passed; Redeem not run** |
 | Environment Changed / Feature Enabled / Allowlisted | **No / No / No** |
 | Pricing Guardrail | `src/lib/pricing.ts` and `scripts/check-pricing-true-up.js` stayed unchanged at blobs `39eb0da4e3d0293d95f51f9517fcd13b835dfd02` and `2d4472ab76edb7b2b93f74b234dd086ad4a974dd`. The original stale script remains **KNOWN OWNER-ACCEPTED STALE BASELINE — NOT COUNTED AS PASS** |
 | Failed / Ineligible Artifact | Existing ineligible artifacts remain `dpl_CBw...`, `dpl_HzK2...`, `dpl_JDr...`, and `dpl_8aKi...`; documentation Preview `dpl_FU4...` remains non-UAT. None was reused |
-| Staged Artifact | `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`; `https://new-athlete-badminton-school-4lo2safe9-aachanin1s-projects.vercel.app`; target/state `production/READY`; branch `spike/next-major-security-upgrade`; Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`; tree `7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264`; region `icn1`; aliases `0` |
-| Staged Smoke / SlipOK / Logs | Root/health/login/static returned `200`; User Schedule, Wallet, and Admin Payments returned exact Login `307`s. Build errors and bounded runtime warning/error/fatal/5xx/SlipOK/1003 matches were `0`; the only `lesson-wallet` log was the expected `307` smoke. Production environment remained exact lowercase `SLIPOK_TEST_MODE=true` and was not changed |
-| Production Artifact / Aliases | Current Production remains `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; all four established aliases remain there |
-| Deployed / Promoted | **Yes — staged Production target only / No** |
-| Production Active | **No** for Application `c87a89d...`; current Production Source remains `29ce2c25...` pending Owner PASS |
-| Owner UAT / Production UAT | **Not run / Not run** |
+| Owner-tested / Promoted Artifact | `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`; `https://new-athlete-badminton-school-4lo2safe9-aachanin1s-projects.vercel.app`; target/state `production/READY`; branch `spike/next-major-security-upgrade`; Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`; tree `7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264`; region `icn1`; all four Production aliases after Promotion |
+| Production Smoke / Browser / SlipOK / Logs | Root/health/login/real static asset returned `200`; unauthenticated Schedule/Wallet/Admin Schedule/Admin Payments returned exact Login `307`s. Authenticated exact-artifact Schedule and Wallet loaded with no login fallback, overlay, warning, or error; Wallet displayed `31 ส.ค. 69`. Runtime warning/error/fatal/5xx/SlipOK/1003 matches were `0`; Wallet logs were only expected `200` reads, the Owner `POST 200`, and deliberate unauthenticated `307`. Production remained exact lowercase `SLIPOK_TEST_MODE=true` and no Environment value changed |
+| Production Artifact / Aliases | `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` / `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`; all four established aliases resolve to this exact artifact |
+| Deployed / Promoted | **Yes / Yes — exactly once, no rebuild, no manual alias command** |
+| Production Active | **Yes** for exact Application `c87a89d...` / tree `7528c4c5...` |
+| Owner UAT / Production UAT | **PASS / PASS.** Store returned `200`; booking remained verified; exact session walleted; one credit/member; same-month policy; truthful null Payment/tier IDs and `verified_booking` evidence; expiry exact Bangkok Aug 31 month-end. Redeem was opened/read only and not executed |
 | Protected Dirty File | `src/lib/schedule-slot-utils.ts` remains unstaged and invariant at blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
-| Customer Impact / Financial Impact | **Staged only; no Developer customer write / None** |
-| Rollback Candidate | Current Production `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; retained active and unchanged |
+| Customer Impact / Financial Impact | **Owner-controlled Kids Store only; corrected compatibility is now Production-active / None**. Linked Progressive evidence predates Store; Legacy Payment remains absent; Payment/Allocation/Coupon/Ledger/Finance/Attendance Store deltas were `0/0/0/0/0/0` |
+| Rollback Candidate | `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; retained READY and not used |
 | Known Limitations | Two historical Private attendance rows remain unrepaired and out of scope. The original pricing assertion remains an Owner-accepted stale baseline and is not counted as PASS. Dependency audit reported the existing `8` package vulnerabilities during remote install; no dependency change is authorized. Redeem Controlled Write UAT was not run |
 | Documentation Drift | **No after this closeout consistency matrix and publication** |
-| Blocker | **None technical for Owner UAT** |
-| Remaining Work | Owner tests the exact staged artifact and returns PASS or FAIL. Promotion remains prohibited before exact-artifact PASS |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner UAT on `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` / `c87a89d...`; do not Promote automatically** |
+| Blocker | **None** |
+| Remaining Work | **None for this task** |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Owner selects and authorizes the next task** |
 | Parking Lot authorization state | No Parking Lot candidate is authorized by this closeout |
 
 ## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff

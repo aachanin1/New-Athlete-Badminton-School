@@ -17152,3 +17152,71 @@ evidence and no Legacy `public.payments` row failed Store with
 - Next Action: Owner returns PASS or FAIL for exact artifact
   `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` and Application SHA `c87a89d...`. Do not
   Promote or move an alias before exact-artifact PASS.
+
+## 2026-08-26 — Progressive Kids Lesson Wallet Compatibility TASK DONE
+
+State observed at this closeout: the Owner returned PASS for exact staged
+Production artifact `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`, Application
+`c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`, tree
+`7528c4c5fdbc1a7aa20f5113c76e961bb2ff2264`. The same deployment was promoted
+exactly once without rebuild or a manual alias command. Its created/building/ready
+timestamps remained `1787713207385 / 1787713208437 / 1787713271290`.
+
+- Sanitized read-only reconciliation found exactly one qualifying post-deploy
+  Owner Store. The booking remained verified; the exact source session was
+  walleted; one Kids credit and one exact child member existed; policy was
+  `same_month`; Payment/tier evidence IDs were null; evidence source was
+  `verified_booking`; and expiry was exactly `2026-08-31 23:59:59.999`
+  Asia/Bangkok. The linked approved Progressive allocation/batch/bookings rows and
+  ledger-view evidence all predated Store; Legacy `public.payments` remained `0`;
+  Coupon and source Attendance remained `0`; no unrelated booking session changed
+  at the Store boundary.
+- Controlled Write UAT was **Kids Store passed; Redeem not run**. Production
+  customer/business rows changed by Owner UAT were exactly `+1` Kids credit,
+  `+1` member, and the selected session to `walleted`. Payment/Progressive
+  allocation/Coupon/Ledger/Finance/Attendance mutation attributable to Store was
+  `0/0/0/0/0/0`; Data Repaired **No**; Financial Impact **None**.
+- Pre-Promotion identity passed: target/state `production/READY`, aliases `0`,
+  exact SHA/tree/timestamps, branch `spike/next-major-security-upgrade`; Git HEAD
+  and upstream were equal at the prior READY documentation commit with only the
+  protected dirty file local; migration pending was `0`; all four live aliases
+  still resolved to rollback candidate `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` /
+  `29ce2c25cc33ce9b3727beb4670467554a983100`. Production
+  `SLIPOK_TEST_MODE=true` retained its pre-artifact configuration timestamp and no
+  Environment value changed.
+- Post-Promotion all four established aliases resolved to exact
+  `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU`. Root/health/login/static were `200`;
+  unauthenticated Schedule/Wallet/Admin Schedule/Admin Payments were exact login
+  `307`s. Authenticated Schedule and Wallet loaded from the exact immutable
+  Production artifact with no login fallback, Next overlay, warning, or error;
+  Wallet showed expiry `31 ส.ค. 69` and read-only `ใช้วันเรียน` controls without
+  activation. Runtime warning/error/fatal/5xx/SlipOK/1003 matches were `0`;
+  `lesson-wallet` matches were only expected `200` reads, the successful Owner
+  `POST 200`, and the deliberate unauthenticated `307` smoke.
+- Exact pre/post-Promotion read-only database snapshots matched: the sanitized
+  UAT credit/session/member identity and entitlement evidence were unchanged;
+  global Payment/Allocation/Coupon/Finance/Attendance/Wallet counts remained
+  `570/349/0/1/3600/186 credits + 20 members`. Promotion-attributable customer and
+  financial mutation was `0`. Migration history count remained `1`, pending `0`;
+  signature `lesson_wallet_store_v2(uuid,uuid,uuid)`, SECURITY DEFINER, pinned
+  `public, pg_temp`, service-role execute, and PUBLIC/anon/authenticated denial
+  remained exact.
+- No Functional, Test, Migration, Pricing, UI, SlipOK, Environment, config,
+  dependency, lockfile, feature, or allowlist change occurred after Owner PASS.
+  This closeout changed only `PROJECT_STATE.md`, `TODO-CODEX.md`, and this dated
+  record. Scope Expansion/Breach **None/None**. Protected
+  `src/lib/schedule-slot-utils.ts` remained unstaged/invariant at blob/SHA-256
+  `4521281d099efb189429a744909552d67871ff23` /
+  `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`.
+- Final classification: Active Task **None — completed**; Task Status **TASK
+  DONE**; Source Complete/Tests Passed **Yes/Yes with the disclosed
+  Owner-accepted stale pricing baseline exclusion**; Committed/Pushed **Yes/Yes
+  after this documentation publication**; Migration Source/Applied **Yes/Yes
+  exactly once**, pending `0`; Owner UAT **PASS**; Promoted/Production Active
+  **Yes/Yes**; Controlled Write UAT **Kids Store passed, Redeem not run**; Data
+  Repaired **No**; Production Customer/Business Rows Changed **Owner UAT only**;
+  Customer Impact **corrected Progressive Kids Store is Production-active**;
+  Financial Impact **None**; Documentation Drift **No**; Blocker/Remaining Work
+  **None/None for this task**; Task Done **Yes**.
+- Next Action: Owner selects and authorizes the next task. Rollback candidate
+  `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` remains READY and was not used.
