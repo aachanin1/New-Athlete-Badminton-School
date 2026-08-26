@@ -9,29 +9,39 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **DEVELOPING — Coach Teaching Program Built-in Presets; authenticated
-actor smoke blocked; exact staged artifact ready; not Promoted**.
+Status: **NONE — Awaiting Owner Selection; Coach Teaching Program Built-in
+Presets is TASK DONE**.
 
-- Application Source `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
-  `0abd9d833d29062bdf967c6ece23f622e88dd7fd`, is committed and pushed with
-  exactly one functional file. Deterministic checks, TypeScript, zero-warning
-  lint, mojibake `265`, build `94/94`, diff, post-build browser, staged public
-  smoke, exact identity, zero-alias, and runtime log gates passed.
-- Exact Production-target staged artifact
-  `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` is `READY` at
-  `https://new-athlete-badminton-school-f1mnq1rzr-aachanin1s-projects.vercel.app`.
-  It is not Promoted; all four Production aliases remain on `dpl_EhG2...`.
-- Required authenticated staging smoke for both Coach and Head Coach is not run:
-  the available staging browser has no actor session, and credential entry needs
-  Owner participation. This task is not `READY FOR OWNER UAT` and not done.
-- Next action: Owner signs in to the exact artifact as Coach and Head Coach;
-  Developer runs the four-preset no-write UI smoke and exact-deployment log check.
-  Do not Promote before that smoke passes and the Owner later returns explicit
-  UAT PASS for the exact artifact/SHA.
+- Exact Application `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
+  `0abd9d833d29062bdf967c6ece23f622e88dd7fd`, remains committed and pushed.
+- Owner UAT passed exact artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`, including
+  all four choices and Template B LV 71–73. Owner confirmed the Super Head Coach
+  test account intentionally has no real teaching rounds and authorized Promotion.
+- The exact artifact was Promoted once without rebuild. All four Production
+  aliases resolve to it; automated Production health/static/auth/log checks
+  passed. No Migration, Environment, feature/allowlist, or Production-data
+  operation occurred.
+- Next action: Owner selects and authorizes the next task. Existing Parking Lot
+  items remain unselected and must not start automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
+
+### COACH TEACHING PROGRAM BUILT-IN PRESETS
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Production is exact artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`, Application
+  `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
+  `0abd9d833d29062bdf967c6ece23f622e88dd7fd`; all four aliases converge.
+- Owner accepted the four presets and Template B LV 71–73 using the no-real-round
+  Super Head Coach test account. Preset selection caused no mutation; Draft and
+  Submit were not invoked.
+- Root/health/login/static/auth-boundary and bounded post-Promotion logs passed.
+  Prior Production `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` remains READY as rollback.
+  See `PROJECT_STATE.md` and the 2026-08-26 closeout in `DEVELOPMENT_TODO.md`.
 
 Each entry below is a historical summary of state observed at that task's
 closeout; artifact and alias wording does not override the current mutable state

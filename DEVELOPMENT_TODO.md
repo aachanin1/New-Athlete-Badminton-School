@@ -2,6 +2,76 @@
 
 ## Decision / Reconciliation Records
 
+### 2026-08-26 — Coach Teaching Program Built-in Presets Production closeout
+
+State observed at this closeout: **TASK DONE — OWNER UAT PASS; EXACT PASSED
+PRODUCTION-TARGET ARTIFACT PROMOTED WITHOUT REBUILD; AUTOMATED PRODUCTION
+VERIFICATION PASSED; NO DATA WRITE**.
+
+#### Owner PASS and exact-artifact gate
+
+- Owner accepted artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` / Application
+  `97b09c6697034fcdae4be147061b8214a73a5cdd` / tree
+  `0abd9d833d29062bdf967c6ece23f622e88dd7fd` and explicitly authorized
+  Promotion. Screenshots showed all four choices, correct Basic/C/B content,
+  Template B through LV 71–73, and the identity label `โค้ช Super Head Coach
+  (หัวหน้า)`. Owner confirmed this test user intentionally has no real teaching
+  rounds; disabled Draft/Submit was therefore expected fixture behavior.
+- A separate standard-Coach staging screenshot was not supplied. Owner accepted
+  the exact-artifact UAT result and authorized release because Coach and Head Coach
+  use the same unchanged component/workflow and the task changed no role,
+  permission, API, RLS, or persistence behavior. No Draft or Submit action ran.
+- Pre-Promotion Git was branch `spike/next-major-security-upgrade`, local/upstream
+  documentation HEAD `1966660b596a8c2fc7b9139f46f17546a5ba8917`, ahead/behind
+  `0/0`, staged paths `0`. Application was an ancestor; changes after it were the
+  three allowlisted documentation files only. Protected
+  `src/lib/schedule-slot-utils.ts` remained unstaged at blob
+  `4521281d099efb189429a744909552d67871ff23`.
+- Vercel API/CLI confirmed the candidate target/state `production/READY`, aliases
+  `0`, metadata SHA exact, and original created/building/ready timestamps
+  unchanged. Existing Production `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` was `READY`
+  and retained as rollback candidate.
+
+#### Promotion and Production verification
+
+- Exactly one pinned `vercel@59.1.3 promote
+  dpl_4aig1hqYJH44vzcQXFojsSpxCxDr --yes` invocation ran from
+  `2026-08-26T15:17:44.838Z` through `15:17:51.585Z`, exited `0`, and reported
+  success. Build, rebuild, deploy, redeploy, retry, rollback, and separate alias
+  command counts were all `0`.
+- Post-Promotion deployment identity remained exact and `READY`; alias assignment
+  was `2026-08-26T15:17:51.460Z`. All four established Production aliases
+  resolved to the same deployment ID. The rollback candidate remained `READY`
+  and was not deleted or used.
+- Canonical Production root, `/api/health`, `/auth/login`, and real CSS asset
+  `/_next/static/css/422e2b23e0a187b8.css` returned `200`. Anonymous
+  `/coach/programs` returned `307` to the expected Login URL.
+- Bounded exact-deployment logs since Promotion returned warning/error/fatal/5xx
+  `0/0/0/0` and POST/PUT/PATCH/DELETE `0/0/0/0`. Developer verification used
+  read-only GET requests only.
+
+#### Final classification
+
+- Functional/Test/Documentation/Migration files for the full task were
+  `1/0/3/0`; Scope Expansion and Scope Breach were **None/None**. Deterministic,
+  TypeScript, zero-warning lint, mojibake `265`, build `94/94`, diff, staged UAT,
+  and Production verification gates passed.
+- Owner-authored Template wording remained unchanged. LV 71–73 were not created,
+  activated, or edited in the database. The Owner's future Level update through
+  the system remains a separate task.
+- Migration Applied **No**; Environment Changed **No**; Feature/Allowlist Changed
+  **No/No**; Controlled Write UAT **Not run**; Data Repaired **No**; Production
+  Data Changed **No**; Financial Impact **None**. Customer impact is limited to
+  the four built-in Teaching Program choices now being Production-active for
+  Coach/Head Coach while the existing Draft/Submit workflow remains unchanged.
+- Known limitation: LV 71–73 may remain unavailable in the evaluation system
+  until the Owner separately adds/activates them through the system.
+- Source Complete, Tests Passed, Committed, Pushed, Deployed, Production Active,
+  Owner UAT, and automated Production verification are **Yes/PASS**. Production
+  manual UAT was not rerun and was not required for the identical no-rebuild
+  artifact. Task Done **Yes**; blocker and remaining work are **None**; next action
+  is Owner selection and authorization of the next task.
+
 ### 2026-08-26 — Coach Teaching Program Built-in Presets safe handoff
 
 State observed at this handoff: **DEVELOPING — EXACT STAGED ARTIFACT READY;

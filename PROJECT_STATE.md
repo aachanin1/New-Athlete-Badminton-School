@@ -2,62 +2,63 @@
 
 Last updated: 2026-08-26
 
-Coach Teaching Program Built-in Presets is the Active Task. Owner-authored
-Application Source `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
-`0abd9d833d29062bdf967c6ece23f622e88dd7fd`, is committed and pushed. Exact
-Production-target staged artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` is `READY`,
-unaliased, and not Promoted. Local deterministic, TypeScript, lint, mojibake,
-build, diff, post-build browser, staged public smoke, and exact-deployment log
-gates passed. Required authenticated staged smoke for both Coach and Head Coach
-remains incomplete because no staging app session exists for either actor and
-using credentials through browser requires Owner participation. Do not report
-`READY FOR OWNER UAT` or Promote until that gate passes.
+Coach Teaching Program Built-in Presets is **TASK DONE**. Owner accepted the exact
+staged artifact in UAT and authorized Promotion. Exact Application Source
+`97b09c6697034fcdae4be147061b8214a73a5cdd`, tree
+`0abd9d833d29062bdf967c6ece23f622e88dd7fd`, remains committed and pushed.
+Artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` was Promoted exactly once without
+rebuild and is now `READY` behind all four established Production aliases.
+Automated Production health, static-asset, auth-boundary, and bounded runtime-log
+checks passed. No Migration, Environment, feature/allowlist, or Production-data
+operation occurred. There is no Active Task; wait for Owner selection.
 
 ## Current State — Coach Teaching Program Built-in Presets
 
-Status: **DEVELOPING — MATERIAL HARD STOP AT AUTHENTICATED ACTOR SMOKE; EXACT
-STAGED ARTIFACT READY; NOT PROMOTED**.
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **COACH TEACHING PROGRAM BUILT-IN PRESETS** |
-| Task Status | **DEVELOPING — exact staged artifact ready, but required authenticated Coach + Head Coach smoke is incomplete; not READY FOR OWNER UAT** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — Owner UAT PASS; exact artifact Production-active; automated Production verification passed** |
 | Owner Policy | Preserve the Owner-authored Template text exactly, including spelling and LV 71–73 in Template B. This task does not create, activate, edit, or assume Level rows in the database; the Owner's future Level update through the system is a separate task and was not performed by Developer |
 | Intended Behavior | `/coach/programs` offers exactly four built-in presets with IDs `draf-phraram2-competition-technique`, `draf-basic`, `draf-c`, and `draf-b`; choosing one fills its own content client-side while Draft/Submit remains the existing workflow |
 | Root Cause / Change Rationale | The committed baseline exposed one active built-in preset. The Owner-authored diff updates that preset and adds the three approved curriculum presets without changing API, persistence, role, permission, or workflow semantics |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD / Remote HEAD | Containing documentation safe-handoff commit / same after publication; exact Application Source remains `97b09c6697034fcdae4be147061b8214a73a5cdd` |
-| Ahead / Behind | `0/0` after containing documentation publication; staged paths `0` |
+| Local HEAD / Remote HEAD | Containing documentation TASK DONE closeout commit / same after publication; exact Application Source remains `97b09c6697034fcdae4be147061b8214a73a5cdd` |
+| Ahead / Behind | `0/0` after closeout publication; staged paths `0` |
 | Source Complete | **Yes** — exact Application Source is committed and pushed at `97b09c6697034fcdae4be147061b8214a73a5cdd` |
-| Tests Passed | **No for the complete required gate set.** Passed: deterministic preset count/IDs/uniqueness/no-colon/non-empty/mapping/LV 71–73 checks; TypeScript; zero-warning lint; mojibake `265`; build `94/94`; diff checks; post-build root/static/auth-redirect browser checks; staged public smoke and exact-deployment logs. Incomplete: authenticated staged Coach and Head Coach UI smoke |
+| Tests Passed | **Yes for the accepted release gates.** Deterministic preset count/IDs/uniqueness/no-colon/non-empty/mapping/LV 71–73; TypeScript; zero-warning lint; mojibake `265`; build `94/94`; diff; post-build browser; staged public/log checks; Owner authenticated UAT; and automated Production smoke/log checks passed |
 | Bounded Correction Attempts | Product corrections `0/2`; Source did not require Developer correction. Tooling retries corrected only generated `.next` deletion and `vercel curl` CLI syntax; no Product Source or behavior changed |
 | Functional / Test / Documentation / Migration Files | `1 / 0 / 3 / 0`; no direct-dependency expansion |
 | Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0` |
 | Scope Expansion / Scope Breach | **None / None.** Owner-authored copy was not retyped or edited; no path outside the allowlists was staged or committed |
-| Committed / Pushed | **Application: Yes / Yes. Documentation safe handoff: Yes / Yes after publication** |
+| Committed / Pushed | **Application: Yes / Yes. Documentation TASK DONE closeout: Yes / Yes after publication** |
 | Current Source / Pushed Source | `97b09c6697034fcdae4be147061b8214a73a5cdd` / same; tree `0abd9d833d29062bdf967c6ece23f622e88dd7fd` |
-| Deployed Source | Staged Production-target artifact only: exact Application `97b09c6697034fcdae4be147061b8214a73a5cdd`; current Production remains `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` / Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254` |
-| Deployment ID / URL | `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`; `https://new-athlete-badminton-school-f1mnq1rzr-aachanin1s-projects.vercel.app`; target/state `production/READY`; aliases `0`; `autoAssignCustomDomains=false`; region `icn1` |
-| Staged Smoke / Logs | Public/root health/login/static `200/200/200/200`; anonymous `/coach/programs` `307` to staged Login. Exact-deployment logs: `13` GET only, status `200 x11` and `307 x2`, mutation methods `0`, error/fatal/5xx `0`. Authenticated actor smoke remains incomplete and is not reported PASS |
-| Production Artifact / Aliases | All four established Production aliases remained on `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` before and after staging; the new artifact has no custom alias and Production traffic did not move |
-| Deployed / Promoted | **Yes — staged Production-target only / No**. Deploy invocation `1`; retry/force/redeploy/Promotion/alias/rollback counts `0/0/0/0/0/0` |
+| Deployed Source | Production artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` contains exact Application `97b09c6697034fcdae4be147061b8214a73a5cdd`, tree `0abd9d833d29062bdf967c6ece23f622e88dd7fd` |
+| Deployment ID / URL | `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`; `https://new-athlete-badminton-school-f1mnq1rzr-aachanin1s-projects.vercel.app`; target/state `production/READY`; region `icn1`; alias assignment `2026-08-26T15:17:51.460Z` |
+| Owner UAT Evidence | **PASS.** Owner screenshots showed the four-item dropdown, content fill for New Athlete/Basic/C/B, Template B through LV 71–73, Draft/Submit controls, and the test identity labelled `โค้ช Super Head Coach (หัวหน้า)`. Owner confirmed the account intentionally has no real teaching rounds and explicitly authorized Promotion. A separate standard-Coach screenshot was not supplied; Owner accepted this fixture limitation for the shared unchanged Coach/Head Coach component and workflow |
+| Staged Smoke / Logs | Public root/health/login/static `200/200/200/200`; anonymous `/coach/programs` `307` to Login. Owner selection generated no mutation; bounded staged log filters reported POST/PUT/PATCH/DELETE and error/5xx `0` |
+| Production Artifact / Aliases | All four established aliases — `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`, and both team aliases — resolve to exact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`. Prior `dpl_EhG2f66U8sTMmTUPCkWT6ukYkAwU` remains `READY` as rollback candidate |
+| Deployed / Promoted | **Yes / Yes — exactly once, no rebuild, no redeploy, no separate alias command**. Promotion ran `2026-08-26T15:17:44.838Z`–`15:17:51.585Z`, exit `0` |
 | Migration Source / Applied | **None / No** |
 | Environment Changed / Feature Enabled / Allowlisted | **No / No / No** |
-| Production Active | **No for Application `97b09c...`**; existing Production behavior remains unchanged |
-| Owner UAT / Production UAT | **Not run / Not run** |
-| Controlled Write UAT | **Not run; no Draft or Submit action was invoked** |
+| Production Active | **Yes** for Application `97b09c...` / tree `0abd9d...` |
+| Owner UAT / Production UAT | **PASS on the exact staged artifact / Not run and not required because Production is the identical no-rebuild artifact; automated Production verification passed** |
+| Controlled Write UAT | **Not run by design; the test user had no real teaching rounds and no Draft/Submit action was invoked** |
 | Data Repaired / Production Data Changed | **No / No** |
 | Protected Dirty File | `src/lib/schedule-slot-utils.ts` remains unstaged and invariant at blob `4521281d099efb189429a744909552d67871ff23`, SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181` |
-| Customer Impact / Financial Impact | **None before Promotion / None** |
+| Customer Impact / Financial Impact | **Coach and Head Coach now see four built-in Teaching Program choices in Production; no existing Draft/Submit or data workflow changed / None** |
 | Known Limitations | Template B mentions LV 71–73, but those Levels may remain unavailable in the evaluation system until the Owner separately adds/activates them through the system. Remote install still reports the existing `8` package vulnerabilities; no dependency change is authorized |
-| Documentation Drift | **No after the containing safe-handoff publication**; current mutable state is owned by this matrix and `TODO-CODEX.md` derives its short next action from it |
-| Blocker | **Required authenticated staged smoke for Coach and Head Coach cannot be completed without an existing staging app session or Owner-authorized credential entry. This is an external authentication gate, not a Product failure** |
-| Remaining Work | Owner signs in to the exact staged artifact as Coach and Head Coach; Developer then runs the no-write four-preset UI smoke and log check. If it passes, publish READY FOR OWNER UAT; if it fails, apply only bounded in-scope correction |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner provides authenticated Coach and Head Coach staging sessions for `dpl_4aig...`; do not Promote. After smoke PASS, update to READY FOR OWNER UAT and wait for explicit Owner PASS/FAIL** |
-| Parking Lot authorization state | The existing six candidates remain unselected and unauthorized while this Active Task is open; no Parking Lot task may start automatically |
+| Production Smoke / Logs | Canonical root/health/login/static returned `200/200/200/200`; anonymous `/coach/programs` returned `307` to the expected Login URL. Post-Promotion warning/error/fatal/5xx and POST/PUT/PATCH/DELETE filters all returned `0` |
+| Documentation Drift | **No after the containing TASK DONE publication**; `PROJECT_STATE.md` remains authoritative and `TODO-CODEX.md` derives its short status from it |
+| Blocker | **None** |
+| Remaining Work | **None for this task** |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Owner selects and authorizes the next task** |
+| Parking Lot authorization state | Exactly six existing candidates remain unselected and unauthorized; no Parking Lot task may start automatically |
 
 ## Historical / Superseded — Progressive Kids Lesson Wallet Compatibility
 
