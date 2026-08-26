@@ -1032,14 +1032,14 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-The six active candidates below remain unselected and unauthorized. **HEAD COACH
-VERIFIED-BOOKING ASSIGNMENT ALERT** is listed first by Owner priority; the five
-existing candidates retain their prior relative order: Private Self + Child
-Identity Integrity / Name-Level Separation; LINE External-Browser Handoff Audit;
-Thai UI Terminology & Shared Helper; External Head Coach Assignment Save HTTP 500
-Attempts; and Homepage LV Copy Audit/Fix. Adult Group + Family Private 10-Month
-Entitlement and Progressive Kids Lesson Wallet Compatibility are completed and
-are not Active/Parking Lot items.
+Exactly five active candidates remain unselected and unauthorized, in this Owner-
+approved order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE
+EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**;
+`4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; and `5.`
+**HOMEPAGE LV COPY AUDIT/FIX**. Private Self + Child Identity Integrity /
+Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
+Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
+Parking Lot items.
 
 ### Head Coach Verified-Booking Assignment Alert
 
@@ -1065,33 +1065,42 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Owner must select this candidate and approve a separate Scope Contract before
   any audit or implementation begins.
 
-### Private Self + Child Identity Integrity / Name-Level Separation
+### Historical / Superseded / Completed — Private Self + Child Identity Integrity / Name-Level Separation
 
 Canonical name: **PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATION**.
 
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+Status: **COMPLETED / SUBSUMED BY THE 2026-08-24 COMBINED FAMILY PRIVATE
+CORRECTIVE TASK — NOT ACTIVE OR SELECTABLE PARKING LOT WORK**.
 
-- This existing Parking Lot candidate remains unselected and unauthorized. Active
-  Task is **None — Awaiting Owner Selection**.
-- This decision is durably registered/published. Product audit, implementation,
-  regression work, Production audit, and data repair remain unauthorized.
-- Visible symptom: self plus one child across two time slots produced the expected
-  four attendee/session rows, but every visible row and the Head Coach view used
-  the booking owner's name/Level. This is an identity/name/Level separation
-  symptom, not evidence of duplicate attendee rows.
-- Intended behavior: self uses the user/profile identity, name, and Level; each
-  child uses `booking_sessions.child_id`, the child's name, and the child's Level.
-  Attendance uses `bookings.user_id` for self and `child_id` for the child.
-- Root Cause is **Unknown / Need Verification**. Any Owner-authorized future task
-  must start with a bounded audit of exact Source/deployment provenance and the
-  affected identity path; no Production SELECT is authorized by this record.
-- Protected flows remain unchanged: time-slot count, hours, `total_sessions`,
-  pricing, Payment, Attendance policy, Coach grouping/assignment, Reschedule,
-  Lesson Wallet, Makeup, Payroll, Finance, and the separate Adult/Family
-  entitlement candidate.
+- Historical registration fact: the original symptom showed self plus one child
+  across two time slots with the expected four attendee/session rows, while every
+  visible row and the Head Coach view used the booking owner's name/Level. It was
+  correctly recorded as identity/name/Level separation rather than duplicate-row
+  creation. Root Cause and exact Production rows were Unknown at registration.
+- Completed behavior: self uses the user/profile identity, name, and Level; each
+  child uses exact `booking_sessions.child_id`, the child's name, and the child's
+  Level. Attendance identity expectation remains `bookings.user_id` for self and
+  `child_id` for the child.
+- Commit `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` implemented the combined
+  Adult/Family Wallet Range + Family Unit + Identity correction. It is an ancestor
+  of Application `29ce2c25...` and current Production Application `c87a89d1...`.
+  Current Customer Schedule, Admin, Head Coach, and Family Wallet rendering retain
+  distinct self/child identity. Booking E2E, Admin identity regression, and Coach
+  identity regression remain present.
+- The 2026-08-25 exact-artifact closeout records Owner UAT PASS, Promotion, and
+  Production verification with two distinct participant/Level rows. Therefore
+  this item is not future selectable work and Active Task remains **None —
+  Awaiting Owner Selection**.
+- The two historical Private attendance rows remain unrepaired and out of scope.
+  That separate Production-data limitation does not reopen the completed Source/UI
+  identity correction. Pricing, Payment, entitlement, time-slot count, hours,
+  `total_sessions`, Assignment, Reschedule, Lesson Wallet, Makeup, Payroll, and
+  Finance are unchanged by this documentation correction.
 
 Detailed Fact, Source evidence, Inference, Unknowns, and audit requirements: see
-the dated 2026-08-07 Private Self + Child record in `DEVELOPMENT_TODO.md`.
+the preserved dated 2026-08-07 registration; completion evidence is in the
+2026-08-24 combined corrective records and 2026-08-25 Production closeout in
+`DEVELOPMENT_TODO.md`.
 
 ### LINE External-Browser Handoff Audit
 

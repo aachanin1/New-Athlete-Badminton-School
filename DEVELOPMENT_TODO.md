@@ -17276,3 +17276,71 @@ does not authorize Product/Production audit or implementation.
   **None/None**; Task Done **Yes for documentation registration only**.
 - Next Action: Owner selects the candidate and approves its Scope Contract before
   any Product audit or development begins. Do not start it automatically.
+
+## 2026-08-26 — Remove Completed Private Identity Work from Current Parking Lot
+
+State observed at this documentation consistency closeout: Active Task remains
+**None — Awaiting Owner Selection**. The current queue had incorrectly retained
+**PRIVATE SELF + CHILD IDENTITY INTEGRITY / NAME-LEVEL SEPARATION** as active,
+unselected Parking Lot work and consequently reported six candidates. Fresh
+Developer verification proves that entry is completed/subsumed by the 2026-08-24
+combined Adult/Family Wallet Range + Family Unit + Identity correction. The queue
+claim was **DOCUMENTATION DRIFT** and is corrected by this publication.
+
+- The original 2026-08-07 Private Identity Parking Lot registration remains intact
+  as dated historical evidence. It accurately records the then-observed repeated-
+  owner name/Level symptom, expected four attendee rows, intended self/child
+  identity rules, and the Unknowns that existed before implementation.
+- Commit `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91` contains the combined identity/
+  Family-unit correction and is an ancestor of current documentation HEAD, Private
+  Wallet Application `29ce2c25cc33ce9b3727beb4670467554a983100`, and current
+  Production Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`.
+- Fresh current-Source inspection confirmed separate identity resolution remains
+  present across Customer Schedule, Head Coach Assignment, Admin Schedule, and
+  Family Private unit grouping: self resolves through `bookings.user_id` with
+  adult Level; a child resolves through exact `booking_sessions.child_id` with
+  child name/Level; Family units preserve distinct participant identities.
+- Regression evidence remains present and was not modified: Booking E2E verifies
+  two exact Family hours, self/child names, `LV 12`/`LV 47`, four rows, and two
+  self/two child ids; Admin identity regression asserts separate learner ids,
+  types, names, Levels, and child linkage; Coach identity regression asserts
+  separate self/child names and Level keys.
+- The 2026-08-25 exact-artifact Production closeout records Owner UAT PASS,
+  Promotion without rebuild, and authenticated Production verification showing
+  two distinct participant/Level rows. It also records one self plus one child
+  Wallet member and exact participant session state.
+- Two historical Private self Attendance rows with non-owner/non-child
+  `student_id` remain unrepaired and out of scope. This is a separate known
+  Production-data limitation; no data repair was authorized or performed, and it
+  does not reopen the completed Source/UI identity correction.
+- The corrected active Parking Lot contains exactly five unselected candidates in
+  Owner order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE
+  EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**;
+  `4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `5.` **HOMEPAGE
+  LV COPY AUDIT/FIX**. None is selected or authorized to start.
+- Exact change scope is Documentation `3`: `PROJECT_STATE.md`, `TODO-CODEX.md`,
+  and this record. Functional/Test/Migration/Configuration/Dependency/Lockfile
+  counts are `0/0/0/0/0/0`; Environment, Feature, Allowlist, Deploy, Promotion,
+  alias, Supabase, Production-data, and staged-artifact actions are `0`.
+- Git pre-edit state was branch `spike/next-major-security-upgrade`, local/upstream
+  HEAD `761997b0fa73f2f2abeff27ed58f4d5c177ca764`, ahead/behind `0/0`, staged paths
+  `0`. Protected `src/lib/schedule-slot-utils.ts` remained the sole pre-existing
+  dirty path at Git blob `4521281d099efb189429a744909552d67871ff23`,
+  SHA-256 `A934C28DD7EED94CF7E98A6959D3E74FC3A3FE348A74DC06C205EACC38CDD181`;
+  it is excluded from this task.
+- Classification: Documentation Drift **Resolved by this publication**; Source
+  Complete **Yes from the completed/subsuming Product task; unchanged this round**;
+  Product Tests **Not Run / Not Required because Source and tests are byte-
+  unchanged; documentation substitute verification applies**; Production Data
+  Changed/Data Repaired **No/No**; Customer/Financial Impact **None/None**; Scope
+  Expansion/Breach **None/None**; Task Done **Yes for this documentation correction**.
+- Documentation substitute verification passed: mojibake guard scanned `265`
+  files; `git diff --check` passed; current-section count-phrase scan found no
+  `six active candidates` or `other five active candidates`; the Parking Lot has
+  exactly five active status entries in the required order; Active Task remains
+  None; Private Identity is historical/completed; and the two unrepaired
+  historical Attendance rows remain disclosed. Complete diff inspection found
+  exactly the three documentation paths and zero Product/Test/Migration/config
+  paths.
+- Next Action: Owner selects one of the five remaining candidates and approves its
+  Scope Contract. Do not start any candidate automatically.

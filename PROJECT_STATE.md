@@ -56,12 +56,12 @@ PRODUCTION VERIFICATION PASSED**.
 | Customer Impact / Financial Impact | **Owner-controlled Kids Store only; corrected compatibility is now Production-active / None**. Linked Progressive evidence predates Store; Legacy Payment remains absent; Payment/Allocation/Coupon/Ledger/Finance/Attendance Store deltas were `0/0/0/0/0/0` |
 | Rollback Candidate | `dpl_9TcEjVfA6x2qixnTaRuE2uKHVcjn` / `29ce2c25cc33ce9b3727beb4670467554a983100`; retained READY and not used |
 | Known Limitations | Two historical Private attendance rows remain unrepaired and out of scope. The original pricing assertion remains an Owner-accepted stale baseline and is not counted as PASS. Dependency audit reported the existing `8` package vulnerabilities during remote install; no dependency change is authorized. Redeem Controlled Write UAT was not run |
-| Documentation Drift | **Resolved by the containing documentation-only publication:** `TODO-CODEX.md` no longer presents Adult/Family Wallet as awaiting Owner UAT or Preview SlipOK as the current Active Task |
+| Documentation Drift | **Resolved by the containing documentation-only publication:** the completed Private Identity / Name-Level correction is no longer presented as selectable Parking Lot work, and `PROJECT_STATE.md` plus `TODO-CODEX.md` agree on the exact five-candidate queue |
 | Blocker | **None** |
 | Remaining Work | **None for this task** |
 | Task Done | **Yes** |
 | Next Gate / Next Action | **Owner selects and authorizes the next task** |
-| Parking Lot authorization state | **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT** is listed first by Owner priority with status **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**. The other five active candidates remain unselected and unauthorized; no Parking Lot item may start automatically |
+| Parking Lot authorization state | Exactly five candidates remain, all unselected and unauthorized, in Owner order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**; `4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `5.` **HOMEPAGE LV COPY AUDIT/FIX**. The first item is Owner priority; the other four remain unselected. Private Identity / Name-Level Separation is completed/subsumed and is not selectable future work; no Parking Lot item may start automatically |
 
 ## Current Parking Lot Priority — Head Coach Verified-Booking Assignment Alert
 
@@ -89,6 +89,17 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - This documentation-only registration changes Product Source, tests, Migration,
   configuration, dependency, deployment, feature/allowlist state, and Production
   data by `0`; customer and financial impact are **None**.
+- **Private Self + Child Identity Integrity / Name-Level Separation is completed
+  and subsumed by the 2026-08-24 combined Adult/Family Wallet Range + Family Unit
+  + Identity correction.** Commit `3d3f1bc0e3eeab0e81f8a6ed43e9145035afbb91`
+  is an ancestor of Application `29ce2c25cc33ce9b3727beb4670467554a983100`
+  and current Production Application `c87a89d1a9456d7f2b5fae11740e5a0d1ed30254`;
+  current Source and the Booking/Admin/Coach identity regressions retain separate
+  self/child ids, names, and Levels. The 2026-08-25 exact-artifact closeout records
+  Owner UAT PASS and Production verification with two distinct participant/Level
+  rows. The two historical Private attendance rows remain unrepaired and out of
+  scope as the separate known limitation already recorded above; they do not
+  reopen completed Source/UI identity work.
 
 ## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff
 
