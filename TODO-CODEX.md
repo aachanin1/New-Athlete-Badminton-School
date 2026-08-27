@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -1208,71 +1208,70 @@ Canonical name: **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORD
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- Owner appended this candidate as Parking Lot position `6` on 2026-08-26 without
-  selecting it or changing the order/status of the first five. Active Task remains
-  **None — Awaiting Owner Selection**. The approved commercial estimate is
-  **22,000 บาท**; it is a work estimate only, not an application Pricing, Payment,
-  Finance, or Production-data change.
-- Current Source fact: the low-enrollment builder counts distinct learners only
-  for verified Kids/Adult Group bookings and `scheduled|completed|absent` sessions,
-  excludes Private, makeup rows, cancelled rows, and every status outside
-  that set (including direct `walleted`), then emits only counts `1–2`. It currently
-  sorts branch before date/time. The workspace uses red/yellow mainly on the icon
-  and summary text, keeps a neutral card/count badge, and links with the wording
-  “เปิดจัดรอบ/จัดกลุ่ม”. It has no slot-specific read-only detail Modal; an existing
-  Dialog elsewhere in the component is the customer follow-up Send preview.
-- Future low-enrollment contract: real learner `1` is red, `2` is yellow, and `0`
-  is hidden; color must be prominent and consistent across the whole card, icon,
-  count badge, and summary. It continues to cover `kids_group` and `adult_group`;
-  Private remains excluded.
-- Future Kids Group per-coach group contracts: each assignment group with `>=6`
-  real learners is green, including counts above `6`; confirmed latest learner
-  Level spread `max - min > 20` is blue, while exactly `20` is excluded. A missing
-  Level must be displayed as unavailable and must never be assumed to be LV 0.
-- Future 90-minute contract: every branch's Kids Group slot whose duration is
-  exactly `90` minutes and real learner count is `>=4` is red; `3` is excluded.
-  “Immediate” means the current page displays the latest Server response through
-  initial load/refresh and the existing refresh mechanism, not WebSocket, Push, or
-  second-by-second Realtime.
-- Real-learner count contract: exclude the Lesson Wallet source session, direct
-  `walleted` status, credits still in Wallet, cancelled, and rescheduled-out rows.
-  After Redeem, count only the destination session that requires attendance;
-  Makeup/rescheduled-in likewise counts only its attending destination. Stale
-  `coach_assignment_group_students` membership must not re-include an ineligible
-  session, and one learner/session must not be counted twice.
-- Sort one combined cross-branch list by `date`, `start_time`, branch, then stable
-  id. When one slot matches multiple rules, emit one item only, display every
-  matching condition badge, and choose the primary color in this order: red >
-  blue > yellow > green.
-- Clicking the item must open that slot's read-only Modal directly and display
-  branch, date, start/end time, duration, course type, group, coach, learners,
-  each confirmed Level or unavailable state, real learner count, and every alert
-  reason/color. The Modal must not divide/move learners, assign/change a coach,
-  Save, call a mutation API, write the database, or say that Admin can arrange the
-  round/group there.
-- Responsibility remains in the existing Assignment flow: the branch Head Coach
-  divides groups and assigns coaches; Super Admin can act across branches under
-  existing authority. Regular Admin/coach does not group from this Modal. Current
-  Source allows `/coach/assign-groups` to `head_coach|super_admin`, while the
-  Assignment Group API role allowlist also includes `admin`; this existing
-  Page/API difference is **Unknown / Need future verification**, not permission
-  work authorized by this registration. Any permission change requires a separate
-  Owner Hard Stop and Scope approval.
-- Future regression plan must cover boundary counts `0/1/2`, `5/6/>6`, Level gaps
-  `20/>20/missing`, duration `89/90/91` with learner counts `3/4`, all wallet/
-  reschedule/makeup/cancelled/stale-membership/dedup cases, chronological cross-
-  branch ordering, multi-condition merge/color priority, complete read-only Modal
-  content, no mutation call, role visibility, and unchanged Assignment Save. Owner
-  UAT must confirm colors, order, badges, detail content, read-only behavior, and
-  refresh semantics on the exact future artifact.
-- Protected/out of scope: Product Source/UI/API/tests in this registration; role,
-  permission, RLS, menu access, Assignment Save/group lifecycle, Booking, Capacity,
-  Reschedule, Makeup, Lesson Wallet Store/Redeem/expiry/entitlement, Pricing,
-  Payment, Coupon, Ledger, Finance, Attendance, Payroll, polling/realtime, external
-  LINE/Email/Push, Migration, Environment, feature/allowlist, Deploy/Promotion,
-  Production UAT, and Production/customer data. No Product action is authorized.
-- Next gate: Owner selects this item as Active Task and approves a separate
-  implementation Scope Contract. Do not audit or implement it automatically.
+- The 2026-08-27 Owner revision supersedes the current rules from the preserved
+  2026-08-26 historical registration. Position remains exactly `6`; Active Task is
+  **None — Awaiting Owner Selection**; Owner Selection for Implementation:
+  **Not Given**; Product Task: **Not Started**.
+- Low enrollment stays Kids/Adult Group only: `0` hidden, `1` prominent red, `2`
+  prominent yellow; Private excluded. Saved Kids groups only: `0–4` no high-count
+  warning, `5–6` prominent green action warning plus mandatory in-app notification,
+  and `>6` prominent red escalation plus mandatory escalated in-app notification.
+  Unsaved drafts never trigger. An unassigned saved group retains its warning,
+  displays no-coach state, and notifies branch Head Coach audience plus Admin/
+  Super Admin.
+- Saved-group notification recipients are affected-branch Head Coach user(s), the
+  assigned coach when present, and Admin/Super Admin. Notify once on entering
+  `5–6`, do not repeat for `5↔6`, notify red on crossing above `6`, and begin a new
+  cycle only after dropping below `5` and re-entering. Prevent duplicate/replay/
+  retry storms. Exact idempotency key, storage, and producer remain **Unknown /
+  Need verification**. Notification failure must not roll back a successful Save
+  and must surface truthful warning/failure evidence. External LINE, Email, Push,
+  WebSocket, and second-by-second Realtime remain out of scope.
+- The persisted saved group is grouping Source of Truth, reconciled against
+  current eligible state: verified bookings and target-slot sessions genuinely
+  requiring attendance only. Exclude Wallet source sessions, direct `walleted`,
+  unused credits, cancelled, and rescheduled-out; after Redeem/Makeup/reschedule,
+  count only the attending destination. Reject stale group membership, deduplicate
+  learner/session identity, and never trust stale stored counts alone.
+- Saved Kids Level spread `max - min > 20` is blue; exactly `20` does not match;
+  missing Level is unavailable, never LV 0. A Kids slot exactly `90` minutes with
+  `>=4` real learners is prominent **green** (`3` excluded) and does not require a
+  saved group. Only saved-group `5–6`/`>6` thresholds require multi-role
+  notifications; other conditions remain visual unless the same group crosses a
+  notification threshold.
+- Sort one cross-branch list by date, start time, branch, stable id; emit one item
+  per slot with every badge and priority red > blue > yellow > green. Click opens
+  the exact read-only Modal with branch/date/time/duration/course, saved group,
+  assigned coach or unassigned state, learners, confirmed Level/unavailable, real
+  count, and all reasons/colors. It cannot move learners, change coach, Save, call
+  mutation APIs, write data, or imply Admin groups learners there.
+- Do not create a Teaching Program tracker or use `submitted`/`approved` to close
+  learner-count warnings. Existing Admin Teaching Program Review and Admin
+  Schedules remain the operational status surfaces; future copy may link there.
+  Existing Teaching Program behavior remains unchanged.
+- Current Source guidance only: Assignment Save persists through
+  `save_coach_assignment_groups_v2` before its existing assigned-coach notification
+  step; current Admin Recommendations implements only slot-level low enrollment;
+  existing Admin Schedules and Teaching Program Review already expose program
+  presence/status. Future recipient/idempotency/reconciliation/failure design and
+  Page/API role difference require Gate 0 audit; nothing is implemented now.
+- Commercial estimate: **22,000 บาท was the prior planning estimate for the
+  earlier scope**, not a final/currently approved price for revised multi-role
+  notifications. Re-estimation is required after future Gate 0 and technical
+  audit. Product Pricing, Payment, Finance, customer data, and financial records
+  remain unchanged.
+- Future regression/UAT must cover counts `0/1/2`, saved `4/5/6/7`, transition and
+  replay cycles, saved/unsaved/unassigned groups, every recipient/failure case,
+  eligibility reconciliation, Level `20/>20/missing`, duration `89/90/91` with
+  `3/4`, ordering/merge/color priority, complete read-only Modal/no mutation, and
+  unchanged Assignment Save and Teaching Program behavior.
+- Documentation Drift: **Resolved**; Parking Lot Registration Revision: **Complete**;
+  Functional/Test/Documentation/Migration/Config/Dependency/Lockfile/Environment
+  changes `0/0/3/0/0/0/0/0`; Developer Deploy/Promotion **No action/No**;
+  Production Data Changed/Repaired: **No/No**; Customer/Financial Impact:
+  **None/None**; Scope Expansion/Breach: **None/None**.
+- Next Action: **Owner separately selects item `6` and approves a future Product
+  implementation Scope Contract**. Do not audit or implement automatically.
 
 ## Historical / Superseded Reference — Kids Group Pricing Reconciliation
 

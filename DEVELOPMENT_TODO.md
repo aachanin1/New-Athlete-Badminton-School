@@ -17520,6 +17520,143 @@ claim was **DOCUMENTATION DRIFT** and is corrected by this publication.
 - Next Action: Owner selects one of the five remaining candidates and approves its
   Scope Contract. Do not start any candidate automatically.
 
+## 2026-08-27 — Admin Recommendations Round Risk Alerts Owner Revision
+
+State observed at this documentation-only revision: **PARKING LOT REGISTRATION
+REVISION COMPLETE; DOCUMENTATION DRIFT RESOLVED; PRODUCT TASK NOT STARTED**.
+Active Task remains **None — Awaiting Owner Selection**. Item `6` remains
+unselected and unauthorized; Owner Selection for Implementation: **Not Given**.
+
+### Historical prior registration
+
+- The original dated 2026-08-26 record below remains preserved as the historical
+  state observed when item `6` was first registered. Its then-current `>=6` green,
+  90-minute `>=4` red, notification-outside-scope, and `22,000 บาท` planning
+  statements are superseded for current planning by this 2026-08-27 Owner
+  decision; they are not rewritten into a false historical state.
+- The six-item Parking Lot order is unchanged: `1.` Head Coach Verified-Booking
+  Assignment Alert; `2.` LINE External-Browser Handoff Audit; `3.` Thai UI
+  Terminology & Shared Helper; `4.` External Head Coach Assignment Save HTTP 500
+  Attempts; `5.` Homepage LV Copy Audit/Fix; `6.` Admin Recommendations — Round
+  Risk Alerts, Chronological Order & Read-only Detail Modal. All six remain
+  unselected and unauthorized.
+
+### Latest Owner decision — future intended Product behavior
+
+- Low enrollment remains Kids/Adult Group only: `0` hidden, `1` prominent red,
+  `2` prominent yellow; Private excluded.
+- Use only saved Kids assignment groups successfully persisted by Assignment
+  Save. `0–4` real eligible learners per saved group/assigned coach has no
+  high-count warning; `5–6` is prominent green with mandatory in-app notification
+  and operational follow-up; `>6` is prominent red with mandatory escalated
+  in-app notification. Unsaved client drafts never generate the warning or
+  notification. An unassigned saved group retains the warning, clearly states no
+  coach, and notifies affected-branch Head Coach user(s) plus Admin/Super Admin.
+- For saved-group `5–6` and `>6`, in-app recipients are affected-branch Head Coach
+  user(s), the assigned coach when present, and Admin/Super Admin central staff.
+  Send one green notification on entry to `5–6`; do not repeat within the band or
+  on `5↔6`; send a new red escalation on crossing above `6`; reset the risk cycle
+  only after dropping below `5` and later re-entering. Prevent duplicate, replay,
+  retry duplication, and notification storms. A notification failure must never
+  roll back an already-successful Assignment Save and must surface truthful
+  warning/failure evidence instead of reporting complete delivery. External LINE,
+  Email, Push, WebSocket, and second-by-second Realtime remain out of scope.
+- The saved group is grouping Source of Truth, but persisted membership must be
+  intersected with current eligible session state. Count only verified bookings
+  and target-slot sessions genuinely requiring attendance. Exclude Lesson Wallet
+  source sessions, direct `walleted`, unused Wallet credits, cancelled, and
+  rescheduled-out sessions. After Redeem count only the destination; Makeup and
+  rescheduled-in count only at the attending destination. Reject stale
+  `coach_assignment_group_students`, deduplicate learner/session identity, and
+  never use stale member count without current reconciliation.
+- For each saved Kids group, confirmed latest Level spread `max - min > 20` is
+  blue; exactly `20` does not match; missing Level displays unavailable and never
+  becomes LV 0. A Kids Group slot exactly `90` minutes with `>=4` real learners is
+  a prominent **green** slot-level Recommendation; `3` does not match and a saved
+  group is not required. Multi-role notification applies only to saved-group
+  `5–6` and `>6`; low enrollment, Level spread, and 90-minute conditions remain
+  visual unless the same saved group also crosses a notification threshold.
+- Sort one cross-branch list by date, start time, branch, then stable id. Emit one
+  item per slot, show every matched badge, and use primary priority red > blue >
+  yellow > green. Clicking opens the exact slot's read-only Modal with branch,
+  date, start/end, duration, course, saved group, assigned coach or unassigned
+  state, learners, confirmed Level/unavailable, real count, and all reasons/colors.
+  It cannot divide/move learners, assign/change coach, Save, call a mutation API,
+  write the database, or imply Admin groups learners there.
+- Do not create Teaching Program tracking, follow-up status, acknowledgement, or
+  tables. Do not use `submitted` or `approved` as learner-count warning close
+  conditions. Existing Admin Teaching Program Review and Admin Schedules remain
+  operational program presence/status surfaces; future copy may direct staff to
+  an existing page. Learner-count warnings remain current-count-derived and
+  existing Teaching Program behavior remains unchanged.
+
+### Current Source facts — read-only evidence
+
+- `src/app/api/coach/assignment-groups/route.ts` calls
+  `save_coach_assignment_groups_v2` and handles Save success before awaiting the
+  existing assigned-coach notification step. This ordering is a fact, not proof
+  of the future failure/evidence contract.
+- `src/lib/admin-notification-recommendations.ts` currently builds only
+  slot-level low-enrollment Recommendations for verified Kids/Adult Group
+  sessions and does not implement saved-group load thresholds or their multi-role
+  notification transitions.
+- `src/components/admin/schedules-client.tsx` already exposes per-assignment-group
+  Teaching Program presence and `draft|submitted|approved|rejected` status.
+  `src/components/admin/teaching-programs-client.tsx` already exposes the same
+  review-state family and its existing approve/return workflow.
+- These observations authorize no Product change. Assignment lifecycle, current
+  notification producers/rows, Teaching Program behavior, roles/permissions/RLS,
+  and all other protected flows remain unchanged.
+
+### Future Unknowns requiring implementation audit
+
+- Exact idempotency key, durable transition-cycle storage, notification producer,
+  recipient resolution for branch Head Coaches and central roles, current-
+  eligibility reconciliation query, latest-Level evidence, Save-success warning
+  response/UX, concurrency, replay/retry behavior, and notification failure
+  observability are **Unknown / Need verification**.
+- The existing `/coach/assign-groups` Page/API role difference remains **Unknown /
+  Need verification**. Permission change is not implied or authorized.
+
+### Future regression and Owner UAT matrix
+
+- Boundaries: low enrollment `0/1/2`; saved group `4/5/6/7`; Level gaps
+  `20/>20/missing`; duration `89/90/91` with real counts `3/4`.
+- Transitions: below-5 to green, `5↔6` no repeat, above-6 red escalation,
+  above/below/re-entry new cycle, duplicate/replay/retry/concurrent events; saved
+  versus unsaved; assigned versus unassigned; exact recipients; notification
+  failure after successful Save with truthful evidence and no rollback.
+- Eligibility: Wallet source/direct walleted/unused credit/Redeem destination,
+  cancelled, rescheduled-out/in, Makeup destination, stale membership, and
+  learner/session deduplication.
+- Presentation and boundaries: chronological cross-branch ordering, stable tie,
+  one-slot merge, every badge, red > blue > yellow > green priority, full read-only
+  Modal, zero mutation calls, unchanged Assignment Save, and unchanged Teaching
+  Program workflow. Future Owner UAT must run only after a separately approved
+  Product Scope and exact artifact exists.
+
+### Documentation-only scope and closeout
+
+- Exact files/counts: Functional `0`; Test `0`; Documentation `3`
+  (`PROJECT_STATE.md`, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md`); Migration `0`;
+  Configuration `0`; Dependency/Lockfile `0`; Environment `0`. Product tests,
+  TypeScript, lint, build, browser UAT, staged artifact, Deploy, Promotion, and
+  Production UAT are **Not Run / Not Applicable**, not PASS.
+- Developer Deploy/Promotion: **No action / No**; Production Active change:
+  **No**; Feature Enabled: **No**; Allowlisted: **No**; Production Data
+  Changed/Repaired: **No/No**; Customer/Financial Impact: **None/None**; Scope
+  Expansion/Breach: **None/None**.
+- Commercial classification: **22,000 บาท was the prior planning estimate for the
+  earlier scope**. It is not final or currently approved for revised multi-role
+  notification scope. Re-estimation is required after future implementation Gate
+  0 and technical audit. This planning statement changes Product Pricing,
+  Payment, Finance, customer data, and financial records by `0`.
+- Documentation Drift: **Resolved by this publication**; Parking Lot Registration
+  Revision: **Complete**; Product Task: **Not Started**; Product Task Done: **No**;
+  documentation-only Task Done **Yes after commit/push**; Blocker **None**.
+- Next Action: **Owner separately selects item `6` and approves a future
+  implementation Scope Contract**. Do not start Product audit or work automatically.
+
 ## 2026-08-26 — Admin Recommendations Round Risk Alerts Parking Lot Registration
 
 State observed at this documentation-only decision record: Active Task remains

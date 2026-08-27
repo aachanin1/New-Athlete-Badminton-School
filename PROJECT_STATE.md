@@ -1,6 +1,6 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 Coach Teaching Program Built-in Presets is **TASK DONE**. Owner accepted the exact
 staged artifact in UAT and authorized Promotion. Exact Application Source
@@ -158,46 +158,87 @@ Canonical name: **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORD
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- Owner decision on 2026-08-26 appends this item after the existing five without
-  changing their order or status. Registration is complete at a commercial
-  estimate of **22,000 บาท**; this estimate is planning information only and does
-  not change application Pricing, Payment, Finance, or customer data. The Active
-  Task is now **Coach Teaching Program Built-in Presets**; this item remains
-  unselected and unauthorized.
-- Future intended behavior, only after a separate Owner-approved implementation
-  Scope Contract: retain low-enrollment alerts for real kids/adult group learners
-  (`1` red, `2` yellow, `0` hidden; Private excluded); add per-coach Kids Group
-  alerts for `>=6` learners (green) and confirmed Level spread `>20` (blue); add a
-  red alert for a `90`-minute Kids Group slot with `>=4` real learners; show one
-  item per slot with every matching badge and primary-color priority red > blue >
-  yellow > green; and sort all branches by date, start time, branch, then stable id.
-- Real-learner counting must exclude Wallet source sessions/credits, `walleted`,
-  cancelled, and rescheduled-out sessions; count only redeemed/makeup/rescheduled-
-  in destination sessions that require attendance; reject stale assignment-group
-  membership and duplicate learner/session counting. Missing Level remains visibly
-  unknown and must not be converted to LV 0. “Immediate” means the latest server
-  data delivered through existing load/refresh behavior, not WebSocket, Push, or
-  second-by-second Realtime.
-- Clicking an alert is intended to open a direct read-only slot-detail Modal with
-  branch, date/time, duration, course, group, coach, learner names/Levels, real
-  count, and all alert reasons. It must not divide/move learners, assign/change a
-  coach, Save, call a mutation API, write the database, or imply that Admin groups
-  learners from the Modal. The branch Head Coach uses the existing Assignment
-  flow; Super Admin retains existing all-branch authority.
-- Current Source fact: `/coach/assign-groups` page access allows `head_coach` and
-  `super_admin`, while the Assignment Group API role allowlist also includes
-  `admin`. This existing Page/API difference is **Unknown / Need future
-  verification** for any Product scope; permission changes require a separate
-  Owner Hard Stop and are not authorized here.
-- Protected flows: Assignment Save/group lifecycle, role/RLS/menu access, Booking,
-  Capacity, Reschedule, Makeup, Lesson Wallet, Pricing, Payment, Coupon, Ledger,
-  Finance, Attendance, Payroll, refresh/realtime behavior, external notifications,
-  Migration, Environment, feature control, allowlist, Deploy, and Production data.
-  This registration changes Functional/Test/Migration/config/dependency/runtime
-  files and Production/customer/financial state by `0`.
-- Next gate: Owner must select this item as the Active Task and approve a separate
-  implementation Scope Contract, including focused regressions and Owner UAT,
-  before any Product audit or development begins.
+- The 2026-08-27 Owner revision supersedes the current rules from the original
+  2026-08-26 registration without rewriting that dated historical record. Active
+  Task remains **None — Awaiting Owner Selection**; item `6` remains unselected,
+  unauthorized. Product Task: **Not Started**. Owner Selection for
+  Implementation: **Not Given**.
+- Existing low-enrollment behavior remains a future visual Recommendation for
+  Kids Group and Adult Group only: `0` real learners hidden, `1` prominent red,
+  `2` prominent yellow; Private excluded.
+- Saved Kids assignment-group load is based only on an exact group successfully
+  persisted by Assignment Save. `0–4` real eligible learners has no high-count
+  group warning; `5–6` is a prominent green action warning with mandatory in-app
+  notification and operational follow-up; `>6` is a prominent red escalation with
+  mandatory escalated in-app notification. Unsaved client drafts never produce a
+  group-load warning or notification. An unassigned saved group keeps its warning,
+  identifies the unassigned state, and notifies affected-branch Head Coach users
+  plus Admin/Super Admin.
+- Green/red saved-group recipients use the existing in-app notification system:
+  affected-branch Head Coach user(s), the saved group's assigned coach when one is
+  present, and Admin/Super Admin central staff. Send once on entry to `5–6`; do not
+  repeat while remaining in that band, including `5` to `6`; send a new red
+  escalation on crossing above `6`; dropping below `5` and later re-entering
+  starts a new risk cycle. Duplicate, replay, retry duplication, and storms must
+  be prevented. Exact idempotency key/storage/producer design remains **Unknown /
+  Need verification** in a future implementation audit. Notification failure must
+  not roll back a successful Assignment Save and must surface truthful failure or
+  warning evidence rather than claim complete delivery. External LINE, Email,
+  Push, WebSocket, and second-by-second Realtime remain out of scope.
+- The persisted saved group is grouping Source of Truth, intersected with current
+  eligible session state. Count only verified bookings and target-slot sessions
+  genuinely requiring attendance. Exclude Lesson Wallet source sessions, direct
+  `walleted`, unused Wallet credits, cancelled, and rescheduled-out sessions;
+  after Redeem count only the destination; Makeup/rescheduled-in counts only at
+  the attending destination. Reject stale `coach_assignment_group_students`
+  membership, deduplicate learner/session identity, and never trust a stale stored
+  member count without reconciliation.
+- Each saved Kids group is blue only when confirmed latest Level spread
+  `max - min > 20`; exactly `20` does not match. Missing Level displays as
+  unavailable and never becomes LV 0. A Kids Group slot exactly `90` minutes with
+  `>=4` real learners is a prominent **green** slot-level Recommendation; `3` does
+  not match and no saved group is required. Multi-role notification applies only
+  to saved-group thresholds `5–6` and `>6`; low enrollment, Level spread, and
+  90-minute conditions remain visual unless the same saved group also crosses a
+  notification threshold.
+- Sort one cross-branch list by date, start time, branch, then stable id. Emit one
+  item per slot, display every matching badge, and use primary-color priority red
+  > blue > yellow > green. Click opens the exact slot's read-only Modal containing
+  branch, date, start/end, duration, course, saved group, assigned coach or
+  unassigned state, learners, confirmed Level/unavailable, real count, and every
+  alert reason/color. The Modal cannot divide/move learners, assign/change coach,
+  Save, call mutation APIs, write the database, or imply Admin groups learners.
+- Teaching Program remains a protected existing workflow: do not add tracking,
+  follow-up status, acknowledgement, or tables; do not use `submitted` or
+  `approved` to close learner-count warnings. Admin Teaching Program Review and
+  Admin Schedules remain existing program-presence/status follow-up surfaces;
+  notification copy may link to an appropriate existing page. Learner-count
+  warnings remain derived from current count only.
+- Current Source facts are read-only guidance: Assignment Save calls
+  `save_coach_assignment_groups_v2` before the existing assigned-coach
+  notification step; `admin-notification-recommendations.ts` currently builds
+  slot-level low enrollment only; Admin Schedules exposes per-group Teaching
+  Program presence/status; Admin Teaching Program Review exposes Draft,
+  Submitted, Approved, and Rejected. Recipient resolution, current-eligibility
+  query design, transition storage/idempotency, notification-failure evidence,
+  and the existing Page/API role difference require future audit. No Product rule
+  in this registration is implemented by these observations.
+- Commercial classification: **22,000 บาท was the prior planning estimate for the
+  earlier scope**. It is not a final or currently approved implementation price
+  for the revised multi-role notification scope. Re-estimation is required after
+  future implementation Gate 0 and technical audit. This is project-planning
+  information only and changes Product Pricing, Payment, Finance, customer data,
+  and financial records by `0`.
+- Documentation Drift: **Resolved by this publication**; Parking Lot
+  Registration Revision: **Complete**. This documentation-only revision changes
+  Functional/Test/Documentation/Migration/Config/Dependency/Lockfile/Environment
+  counts by `0/0/3/0/0/0/0/0`; Developer Deploy/Promotion is **No action / No**;
+  Production Data Changed/Repaired: **No/No**; Customer/Financial Impact:
+  **None/None**; Scope Expansion/Breach: **None/None**.
+- Next Action: **Owner separately selects item `6` and approves a future
+  implementation Scope Contract** before any Product audit, implementation,
+  test, notification delivery, artifact, deployment, or UAT. Do not start it
+  automatically.
 
 ## Historical / Superseded — Adult/Family Ten-Month Lesson Wallet READY Handoff
 
