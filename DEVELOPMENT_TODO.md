@@ -17887,3 +17887,43 @@ staged artifact, and Owner UAT are later gates.
 - Developer did not redeem either customer credit. Production migration, commit,
   push, staged artifact, Owner UAT, Promotion, and permanent Production verification
   have not occurred at this checkpoint.
+
+### 2026-08-28 — Schedule Slot Template Integrity READY FOR OWNER UAT
+
+State observed at this closeout: **READY FOR OWNER UAT — exact staged
+Production-target artifact, not Promoted**.
+
+- Exact Application/Test/Migration Source
+  `34eb3fb3ba4e0178d2065862623829319858de2d` was committed and pushed from a
+  complete 14-path allowlisted staged diff. Git was clean and upstream `0/0`
+  before staging the artifact.
+- Linked project `tvnhholicwjtxdhlxfqs` dry-run listed only
+  `20260828020022_permanent_schedule_slot_template_integrity.sql`; `db push`
+  applied that exact migration once with vault updates skipped and no seed/role.
+  Production catalog now confirms the original FK name with delete action
+  `RESTRICT`, nullable legacy column, unchanged RPC signature, `SECURITY DEFINER`,
+  pinned `search_path`, and service-role-only execute.
+- Production advisor comparison is exact and clean: security `30 -> 30`,
+  performance `333 -> 333`, added/removed findings `0/0` for both. Remediation
+  references are [Database Linter](https://supabase.com/docs/guides/database/database-linter)
+  and [Going into Production](https://supabase.com/docs/guides/deployment/going-into-prod);
+  no new security regression exists.
+- Post-migration read-back preserved the two repaired slots as `open` with their
+  exact authorized template IDs. Both credits remain active, unredeemed, and
+  unexpired. The migration performed no customer-row repair or redemption.
+- `vercel --prod --skip-domain` from the exact clean commit produced staged
+  artifact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` at
+  `https://new-athlete-badminton-school-mev44zqza-aachanin1s-projects.vercel.app`.
+  Vercel metadata records exact SHA `34eb3fb...`, target `production`, state
+  `READY`, region `icn1`. Root/health/login/static returned `200`; anonymous
+  Wallet returned `307`; bounded error/fatal/5xx logs were `0/0/0`.
+- The staged artifact is unaliased. All four established Production aliases still
+  point to prior `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`; no Promotion, alias change,
+  environment change, or second Production build occurred.
+- Owner UAT: log in as user `9c12e869-5ed0-4ae8-aceb-c6ea1e3c0108` on the exact
+  staged URL; redeem the Aug 30 Thawi Watthana 15:00–17:00 credit and the Aug 31
+  Thawi Watthana 16:30–18:00 credit; confirm no charge and report PASS/FAIL.
+  Developer did not and must not perform these redemptions.
+- Promotion is prohibited until Owner PASS. After PASS, promote only exact
+  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, then run Production smoke/log checks and
+  reconcile the exact credit/session/payment/ledger/finance/attendance deltas.

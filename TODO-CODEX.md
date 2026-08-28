@@ -10,23 +10,21 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 ## Current Active Work
 
 Status: **PERMANENT SCHEDULE SLOT TEMPLATE INTEGRITY + URGENT AUG 30–31 WALLET
-RECOVERY — DEVELOPING / LOCAL CERTIFICATION PASSED / PRE-COMMIT**.
+RECOVERY — READY FOR OWNER UAT / EXACT STAGED ARTIFACT / NOT PROMOTED**.
 
 - Exact Owner-authorized Production repair is complete: affected rows `2`, and
   only the two specified `schedule_slots.template_id` values changed. Both Wallet
   credits remain active and unredeemed; no payment/finance/ledger/attendance or
   other customer row was written.
-- Permanent source, one CLI-created migration, tests, and durable rules are local
-  and uncommitted. Reversible Owner-authorized Docker recovery succeeded; clean
-  local reset, all deterministic/DB/E2E/Wallet-UAT gates, build `94/94`, local
-  advisors, prod readiness, and post-build smoke pass.
-- No current blocker. Product correction budget is used `2/2`; the final exact
-  unique Bangkok canonical rule passes the full gate set. No additional customer
-  row, environment, dependency, lockfile, feature, or allowlist changed.
-- Next action: commit/push the exact allowlisted tree, apply only the exact
-  Production migration, compare advisors, and create/smoke the unaliased staged
-  Production-target artifact. Do not Promote, redeem customer credits, or start
-  Parking Lot work.
+- Permanent Source `34eb3fb3ba4e0178d2065862623829319858de2d` is committed and
+  pushed. Migration `20260828020022` is applied exactly once in Production;
+  catalog/grants pass and advisor sets are unchanged (`30/333`, zero new).
+- Exact staged Production-target artifact
+  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` is `READY`, exact-SHA, unaliased, and passed
+  smoke/log gates. Existing Production aliases remain on the prior artifact.
+- Next action: Owner uses the staged URL to redeem Aug 30 15:00–17:00 and Aug 31
+  16:30–18:00, then returns PASS/FAIL. Developer must not redeem the credits and
+  must not Promote before Owner PASS. Parking Lot work remains unauthorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
