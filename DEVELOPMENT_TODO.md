@@ -18045,3 +18045,188 @@ PROMOTED WITHOUT REBUILD; PRODUCTION VERIFICATION PASSED**.
 - Active Task: **None — Awaiting Owner Selection**. Task Done: **Yes**. Next
   Action: Owner selects and authorizes the next Scope Contract; no Parking Lot
   item may start automatically.
+
+## 2026-08-28 — End-to-End Schedule Lifecycle & Legacy Slot Provenance Hardening Parking Lot Registration
+
+State observed at this documentation registration: the prior **PERMANENT SCHEDULE
+SLOT TEMPLATE INTEGRITY + URGENT AUG 30–31 WALLET RECOVERY** task remains
+**TASK DONE** and is not reopened. The Owner approved registration only of the
+canonical future task **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE
+HARDENING** at Parking Lot position `1`. Active Task remains **None — Awaiting
+Owner Selection**.
+
+### Owner Decision, Resulting Queue, and Authorization
+
+- Exactly seven active Parking Lot candidates result, all unselected and
+  unauthorized, in this order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
+  PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
+  `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
+  HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
+  **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS,
+  CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**.
+- Registration status is exactly **PARKING LOT — OWNER SELECTION REQUIRED; NOT
+  AUTHORIZED TO START**. This is not Active Task selection and is not authority to
+  begin even a read-only Product or Production audit.
+- Authorized action is limited to editing, verifying, committing once, and
+  pushing the exact documentation allowlist: `PROJECT_STATE.md`, `TODO-CODEX.md`,
+  and `DEVELOPMENT_TODO.md` on the existing branch/upstream. No branch create,
+  switch, merge, or rebase is authorized.
+- Exact planned counts are Functional `0`, Test `0`, Documentation `3`, Migration
+  `0`, Config `0`, Dependency `0`, Lockfile `0`, Environment `0`.
+- Product Source/UI/API, tests/fixtures, Migration/schema/constraint/trigger/
+  function/RLS/grants, Supabase state, Production query/write/repair/backfill,
+  Vercel Deploy/Promotion/alias, Environment, secret, feature control, allowlist,
+  permission, customer data, and financial data are not authorized.
+
+### Gate 0 and Proven Current Source Facts
+
+- Repository root was exact
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`;
+  branch `spike/next-major-security-upgrade`; local/upstream HEAD exact
+  `a7183e05f04811cff2f415a39cc9384754ea9596`; ahead/behind `0/0`; worktree,
+  staged diff, and unstaged diff clean before documentation edits.
+- Current documents proved Active Task **None — Awaiting Owner Selection**, six
+  active candidates in the prior Owner order, and no existing occurrence of the
+  new canonical name. No same-file collision or duplicate registration existed.
+- `AGENTS.md` already contains the permanent rule that every new general Kids
+  Group booking uses Progressive after Entry activation, while Legacy rows supply
+  compatibility baseline/evidence only and must not be repriced, rewritten, or
+  backfilled. No `AGENTS.md` edit is needed or authorized.
+- `src/components/admin/schedule-templates-client.tsx` currently types the PATCH
+  update payload as `{ isActive?: boolean }` and sends only template id plus that
+  update. In contrast, `src/app/api/admin/schedule-templates/route.ts` still
+  defines and accepts PATCH updates to `branch_id`, `course_type_id`,
+  `day_of_week`, `start_time`, and `end_time`, in addition to active/notes fields.
+  This is registration evidence only; no Product audit or correction occurred.
+- `schedule_slots.template_id` remains nullable for Legacy compatibility in the
+  current Source/database contract. Migration
+  `20260828020022_permanent_schedule_slot_template_integrity.sql` replaces the
+  FK with `ON DELETE RESTRICT`, so referenced template physical deletion is
+  rejected at the database boundary.
+- `src/lib/schedule-slot-utils.ts` is the current canonical TypeScript helper. It
+  resolves one exact active template by branch, course, Bangkok weekday, start,
+  and end; validates existing physical-slot identity/status/provenance; binds a
+  NULL Legacy slot conditionally; inserts new slots with non-NULL canonical
+  `template_id`; and fails closed on missing/ambiguous/mismatched/raced evidence.
+- New User Booking and pending Booking edit share the booking write path in
+  `src/app/api/bookings/route.ts`; User Reschedule, Admin Makeup, and Coach
+  assignment fallback call `ensureScheduleSlot`. Lesson Wallet Redeem instead
+  selects the exact active template in the API and calls the separate service-
+  role database RPC `lesson_wallet_redeem_v2`, whose current migration performs
+  its own unique-template/provenance/atomic legacy-bind validation.
+- `src/app/api/bookings/availability/route.ts` uses the Progressive entry decision
+  for new Kids Group and retains an existing booking's `pricing_scope_id` to
+  determine pending-edit mode. `src/lib/progressive-pricing-feature.ts` identifies
+  general `kids_group` as Progressive when Entry is enabled. These are current
+  Source observations only; no feature/environment/allowlist value was queried or
+  changed in this registration.
+- The prior Production inventory—exact NULL `78` total (`1` current/future),
+  no-match NULL `48` total (`2` current/future), ambiguous `0`—is historical
+  evidence observed at the prior task closeout. It is not a fresh/current
+  Production inventory and must not be presented as current without a separately
+  authorized new Production audit.
+
+### Intended Future Product Behavior
+
+- `schedule_templates` controls future selectable recurring rounds. Referenced
+  templates deactivate instead of hard-delete. Future Product API must reject
+  mutation of template identity—branch, course, Bangkok weekday, start time, and
+  end time. A schedule change deactivates the old template and creates a new one.
+  The database boundary must prevent duplicate active canonical templates.
+- Owner example: when Admin changes Monday 17:00–19:00 to 17:30–19:00, existing
+  booked/paid learners stay on 17:00–19:00; the existing Coach and Assignment
+  Group stay on 17:00–19:00; Check-in, Attendance, Teaching Program, Payroll,
+  history, and finance continue to reference that original round. Only new
+  learners see 17:30–19:00, and only new Reschedule, Makeup, and Wallet targets
+  see the newly active template. No learner or Coach migrates automatically.
+- Future audit/implementation must cover every normal `schedule_slot` creation
+  path: New User Booking, pending Booking edit, User Reschedule, Admin Makeup/
+  Replacement date, Coach Assignment fallback, Lesson Wallet Redeem, and any
+  other API, RPC, function, trigger, cron, integration, or direct write proven by
+  that future audit. Creation requires exactly one active canonical template
+  matching branch, course, Bangkok weekday, start time, and end time. Missing,
+  duplicate, ambiguous, mismatched, and raced provenance fails closed before a
+  physical slot is created.
+- Referenced physical-slot identity—date, time, branch, course, and template—must
+  become immutable once any Booking Session, learner, Coach assignment, Check-in,
+  Attendance, Teaching Program, Payroll, or Wallet relation exists.
+- Future audit must reconcile each `booking_sessions` row to its exact
+  `schedule_slot_id` across date, start/end, branch, course, and learner identity.
+  Reschedule, Makeup, and Wallet must create a correct destination without
+  changing source history retroactively.
+
+### Wallet, Kids, and Legacy NULL Boundaries
+
+- Future active-flow regression includes **Progressive Kids Group**, Adult Group,
+  Private, and Family Private. Progressive Kids is the only active new Kids
+  booking flow. Historical Kids data is compatibility/regression protection only:
+  do not create a Legacy Kids booking, reopen Legacy entry, or reprice, rewrite,
+  scope, snapshot, credit, refund, or backfill historical Kids rows. Schedule
+  hardening must preserve existing historical customer rights.
+- Existing Wallet rules do not change: Store before the 48-hour cutoff; started,
+  Attendance, and Makeup guards remain; same-month/10-month behavior follows the
+  existing entitlement; Family Private moves all participants as one atomic
+  unit; existing credits do not disappear; Redeem creates no repeat charge and no
+  new Payment, Coupon, Allocation, Ledger, Finance, or Refund row.
+- A future task must classify Legacy NULL slots using fresh evidence. Exact unique
+  match may bind on use or be proposed as an exact-row repair. No-match must never
+  be guessed and requires an impact report plus Owner decision. Ambiguous must
+  fail closed without choosing a template. Bulk backfill is prohibited.
+- Any Production repair is a separate Owner-approved Production Data Operation
+  requiring exact UUIDs, predicates, fingerprints, protected deltas, transaction
+  plan, affected-row assertions, and rollback rules.
+
+### Future Regression, UAT, and Completion Matrix
+
+- Deactivate old template and create new; existing learner remains on old time;
+  existing Coach/group remains on old time; new Booking sees new time only;
+  Reschedule/Makeup/Wallet target sees the active new template; eligible Wallet
+  Store from the old booked session remains valid.
+- Reject template identity mutation and referenced physical delete. Reject NULL,
+  mismatched, and duplicate provenance. Exact Legacy bind-on-use succeeds
+  atomically; no-match, ambiguous, and race cases fail closed with zero residue.
+- Cover Progressive Kids, Adult, Private, and Family Private. Protected Payment,
+  Allocation, Coupon, Ledger, Finance, and Attendance deltas remain zero, and the
+  future release creates no attributable new Legacy NULL inventory.
+- Future Product completion requires one canonical rule across every proven normal
+  creation path, database-boundary prevention of new incomplete/mismatched
+  provenance, no retroactive referenced template/slot mutation, no automatic
+  learner/Coach migration, explicit disposition for current/future Legacy NULL
+  rows, all protected business flows passing, exact staged-artifact Owner UAT PASS
+  before Promotion, and Production reconciliation/advisors PASS.
+
+### Unknown / Need Verification in the Future Authorized Task
+
+- Exhaustive normal and non-Product `schedule_slot` creation/mutation inventory,
+  including direct database writers and integration/cron paths.
+- Exact database design for duplicate active canonical-template prevention and
+  referenced physical-slot identity immutability without harming legitimate
+  lifecycle operations.
+- Fresh Production Legacy NULL classification, exact affected customer/Coach/
+  Wallet relationships, and any proposed exact-row disposition or rollback.
+- Complete booking-session versus physical-slot consistency inventory and the
+  exact scope of any existing mismatch. No inference here authorizes a query or
+  repair.
+
+### Documentation-Only Closeout Classification
+
+| Field | State observed at this registration closeout |
+| --- | --- |
+| Active Task | **None — Awaiting Owner Selection** |
+| Parking Lot | **Exactly seven candidates in the Owner order above; all unselected and unauthorized** |
+| Registration Status | **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** |
+| Source Complete | **Not applicable for the future Product task; documentation registration complete only** |
+| Tests | **Product tests not run and not authorized; documentation checks only** |
+| Functional / Test / Documentation / Migration | `0 / 0 / 3 / 0` |
+| Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0` |
+| Commit / Push | **One docs-only commit / existing upstream push authorized and completed after publication** |
+| Deploy / Production | **No action / unchanged** |
+| Feature / Allowlist / Environment | **Unchanged / unchanged / unchanged** |
+| Production UAT / Controlled Write UAT | **Not run / Not run** |
+| Data Repaired / Production Data Changed | **No / No** |
+| Customer Impact / Financial Impact | **None / None** |
+| Documentation Drift | **No after publication** |
+| Scope Expansion / Scope Breach | **None / None** |
+| Documentation Registration Task Done | **Yes after commit/push verification** |
+| Future Product Task | **Not started; not authorized** |
+| Next Action | **Owner later selects a candidate and approves a separate implementation Scope Contract** |

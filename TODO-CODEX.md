@@ -14,8 +14,12 @@ Status: **NONE — AWAITING OWNER SELECTION**.
 - The schedule-slot template integrity and Aug 30–31 Wallet recovery task is
   **TASK DONE** after Owner UAT PASS, exact-artifact Promotion, and Production
   verification.
-- No Parking Lot item is selected or authorized. Next action: Owner selects and
-  approves the next Scope Contract; do not start queued work automatically.
+- Owner registered **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE
+  HARDENING** as Parking Lot priority `1`, but did not select it as the Active
+  Task. Exactly seven candidates are registered; none is authorized to start.
+  Next action: Owner selects a candidate and approves a separate implementation
+  Scope Contract; do not start Product/Production audit or queued work
+  automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
@@ -1063,15 +1067,86 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly six active candidates remain unselected and unauthorized, in this Owner-
-approved order: `1.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**; `2.` **LINE
-EXTERNAL-BROWSER HANDOFF AUDIT**; `3.` **THAI UI TERMINOLOGY & SHARED HELPER**;
-`4.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `5.` **HOMEPAGE
-LV COPY AUDIT/FIX**; and `6.` **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS,
-CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Private Self + Child Identity Integrity /
+Exactly seven active candidates remain unselected and unauthorized, in this
+Owner-approved order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
+PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
+`3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
+HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
+**HOMEPAGE LV COPY AUDIT/FIX**; and `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
+ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Private Self + Child Identity Integrity /
 Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
 Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
 Parking Lot items.
+
+### End-to-End Schedule Lifecycle & Legacy Slot Provenance Hardening
+
+Canonical name: **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE
+HARDENING**.
+
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Owner registered this future Product task at position `1`; Active Task remains
+  **None — Awaiting Owner Selection**. This round authorizes documentation only:
+  no Product/Production audit, Source/Test change, fixture mutation, Migration,
+  Deploy, remote query, data operation, feature/environment/allowlist/permission
+  change, or customer/financial action.
+- Intended template lifecycle: `schedule_templates` determines rounds offered in
+  the future. A referenced template deactivates instead of hard-deleting. Future
+  Product API must reject mutation of branch, course, Bangkok weekday, start time,
+  and end time; a schedule change deactivates the old template and creates a new
+  template. The database boundary must prevent duplicate active canonical
+  templates.
+- Existing booked rounds are immutable history. For an Admin change from Monday
+  17:00–19:00 to 17:30–19:00, existing paid learners, Coach/group, Check-in,
+  Attendance, Teaching Program, Payroll, history, and finance stay on
+  17:00–19:00. New Booking, Reschedule, Makeup, and Wallet targets see only the
+  active 17:30–19:00 template. No learner or Coach moves automatically.
+- Future creation-path audit includes New User Booking, pending Booking edit,
+  User Reschedule, Admin Makeup/Replacement date, Coach Assignment fallback,
+  Lesson Wallet Redeem, and every API/RPC/function/trigger/cron/integration/direct
+  write found by that future audit. Each new normal slot requires exactly one
+  active canonical template matching branch, course, Bangkok weekday, start time,
+  and end time; missing, duplicate, ambiguous, mismatched, and raced evidence must
+  fail closed before physical-slot creation.
+- Referenced physical-slot identity—date, time, branch, course, and template—must
+  not change after any Booking Session, learner, Coach assignment, Check-in,
+  Attendance, Teaching Program, Payroll, or Wallet relation exists.
+  `booking_sessions` must match its exact `schedule_slot_id` across date,
+  start/end, branch, course, and learner identity. Reschedule, Makeup, and Wallet
+  create a consistent destination without rewriting source history.
+- Future active-flow Wallet regression covers **Progressive Kids Group**, Adult
+  Group, Private, and Family Private. Progressive is the only active new Kids
+  booking flow. Historical Kids rows are compatibility/regression protection
+  only: never create a Legacy Kids booking, reopen Legacy entry, or reprice,
+  rewrite, or backfill historical Kids rows. Existing historical customer rights
+  must survive schedule hardening.
+- Existing Wallet rules remain protected: Store before 48 hours; started,
+  Attendance, and Makeup guards; existing same-month/10-month entitlement;
+  Family Private all-family atomic movement; no lost credit, repeat charge, or new
+  Payment, Coupon, Allocation, Ledger, Finance, or Refund row.
+- Legacy NULL handling requires fresh future evidence. Exact unique match may
+  bind on use or be proposed for an exact-row repair; no-match must not be guessed
+  and requires an impact report plus Owner decision; ambiguous fails closed.
+  Bulk backfill is prohibited. Every Production repair requires a separate
+  Owner-approved Production Data Operation with exact UUIDs, predicates,
+  fingerprints, protected deltas, transaction plan, and rollback rules.
+- Future verification matrix: deactivate old/create new; old learner and
+  Coach/group remain on old time; new Booking/Reschedule/Makeup/Wallet sees new
+  time; eligible old-session Wallet Store remains valid; template mutation and
+  referenced physical delete reject; NULL/mismatch/duplicate reject; exact Legacy
+  bind succeeds atomically; no-match/ambiguous/race leaves zero residue;
+  Progressive Kids/Adult/Private/Family Private coverage; protected Payment/
+  Allocation/Coupon/Ledger/Finance/Attendance deltas zero; and no release-
+  attributable new Legacy NULL inventory.
+- Future completion requires one canonical rule across every proven normal
+  creation path, database-boundary provenance enforcement, retroactive identity
+  immutability, no automatic learner/Coach migration, explicit current/future
+  Legacy NULL disposition, protected-flow regression, exact staged-artifact Owner
+  UAT PASS before Promotion, and Production reconciliation/advisors PASS.
+- Current Source facts and Unknowns are evidence for future Gate 0 only; detailed
+  registration is in the dated 2026-08-28 `DEVELOPMENT_TODO.md` record. Owner must
+  select this item and approve a separate implementation Scope Contract before
+  any audit or implementation begins.
 
 ### Head Coach Verified-Booking Assignment Alert
 
@@ -1079,8 +1154,10 @@ Canonical name: **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**.
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- Owner places verified-booking assignment notification first in the Parking Lot,
-  but has not selected or authorized Product/Production audit or development.
+- Owner originally placed verified-booking assignment notification first; the
+  2026-08-28 registration moves it to position `2` while preserving the relative
+  order of all six prior candidates. Owner has not selected or authorized
+  Product/Production audit or development.
   Active Task remains **None — Awaiting Owner Selection**.
 - Future intended behavior: notify only Head Coaches attached to the relevant
   branch when booking/session evidence is genuinely ready for the assignment
@@ -1223,7 +1300,7 @@ Canonical name: **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORD
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
 - The 2026-08-27 Owner revision supersedes the current rules from the preserved
-  2026-08-26 historical registration. Position remains exactly `6`; Active Task is
+  2026-08-26 historical registration. Current position is exactly `7`; Active Task is
   **None — Awaiting Owner Selection**; Owner Selection for Implementation:
   **Not Given**; Product Task: **Not Started**.
 - Low enrollment stays Kids/Adult Group only: `0` hidden, `1` prominent red, `2`
@@ -1284,7 +1361,7 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   changes `0/0/3/0/0/0/0/0`; Developer Deploy/Promotion **No action/No**;
   Production Data Changed/Repaired: **No/No**; Customer/Financial Impact:
   **None/None**; Scope Expansion/Breach: **None/None**.
-- Next Action: **Owner separately selects item `6` and approves a future Product
+- Next Action: **Owner separately selects item `7` and approves a future Product
   implementation Scope Contract**. Do not audit or implement automatically.
 
 ## Historical / Superseded Reference — Kids Group Pricing Reconciliation
@@ -1387,12 +1464,13 @@ Confirmed final state:
 ## Worktree / Safety Notes
 
 - Branch: `spike/next-major-security-upgrade`.
-- Pre-closeout Git was clean at local/upstream
-  `a17a9e835259ad7f0e5fe0c58a9f43f6a12d2e72`, ahead/behind `0/0`; only the three
-  authorized documentation files change for this TASK DONE publication.
+- Pre-registration Gate 0 Git was clean at local/upstream
+  `a7183e05f04811cff2f415a39cc9384754ea9596`, ahead/behind `0/0`; only the three
+  authorized documentation files change for this Parking Lot registration.
 - Active Task is **None — Awaiting Owner Selection**. Exact mutable state is
-  authoritative in the first `PROJECT_STATE.md` matrix; Parking Lot position and
-  authorization remain unchanged.
+  authoritative in the first `PROJECT_STATE.md` matrix; Parking Lot now contains
+  exactly seven candidates in the Owner-approved order, and every candidate
+  remains unselected and unauthorized.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.
