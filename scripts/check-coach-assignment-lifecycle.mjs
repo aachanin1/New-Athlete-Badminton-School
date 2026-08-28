@@ -54,11 +54,33 @@ const assignmentHistoryRoute = fs.existsSync(path.join(root, assignmentHistoryRo
   ? read(assignmentHistoryRoutePath)
   : ''
 const assignmentRoute = read('src/app/api/coach/assignment-groups/route.ts')
+const legacyAssignmentRoute = read('src/app/api/coach/assignments/route.ts')
+const scheduleSlotResolver = read('src/lib/schedule-slot-utils.ts')
 const rescheduleRoute = read('src/app/api/reschedule/route.ts')
 const walletRoute = read('src/app/api/lesson-wallet/route.ts')
 const teachingHours = read('src/lib/coach-teaching-hours.ts')
 const migration = read('supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql')
 const v1Migration = read('supabase/migrations/20260717070225_coach_assignment_conflict_guards.sql')
+const scheduleSlotIntegrityMigration = read('supabase/migrations/20260828020022_permanent_schedule_slot_template_integrity.sql')
+
+await check('legacy Coach assignment fallback requires unique canonical template provenance', () => {
+  assert.match(legacyAssignmentRoute, /resolveCanonicalScheduleTemplate\(/)
+  assert.match(legacyAssignmentRoute, /templateId: canonicalTemplate\.id/)
+  assert.match(legacyAssignmentRoute, /scheduleSlotId: scheduleSlotId \|\| existingSessionSlotIds\[0\] \|\| null/)
+  assert.match(legacyAssignmentRoute, /SCHEDULE_SLOT_SESSION_SLOT_CONFLICT/)
+  assert.match(legacyAssignmentRoute, /error instanceof ScheduleSlotIntegrityError[\s\S]*code: error\.code/)
+  assert.doesNotMatch(legacyAssignmentRoute, /ensureScheduleSlot\(\{[\s\S]{0,240}templateId:\s*null/)
+})
+
+await check('schedule-slot helper binds only exact unique active legacy NULL rows and fails closed on mismatch/race', () => {
+  assert.match(scheduleSlotResolver, /\.eq\('is_active', true\)/)
+  assert.match(scheduleSlotResolver, /data\.length !== 1[\s\S]*SCHEDULE_SLOT_TEMPLATE_AMBIGUOUS/)
+  assert.match(scheduleSlotResolver, /existing\.data\.template_id === null[\s\S]*bindLegacySlot/)
+  assert.match(scheduleSlotResolver, /\.is\('template_id', null\)[\s\S]*loadScheduleSlot/)
+  assert.match(scheduleSlotResolver, /slot\.template_id !== expected\.templateId[\s\S]*SCHEDULE_SLOT_TEMPLATE_MISMATCH/)
+  assert.match(scheduleSlotResolver, /createError\.code === '23505'[\s\S]*validateSlot/)
+  assert.match(scheduleSlotIntegrityMigration, /ON DELETE RESTRICT/)
+})
 
 await check('assignment page reads a canonical selected month from Promise searchParams', () => {
   assert.match(assignmentPage, /searchParams\?: Promise<\{[\s\S]*month\?: string \| string\[\]/)

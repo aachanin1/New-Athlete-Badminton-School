@@ -23,6 +23,9 @@ const migration = read('supabase/migrations/20260823090000_adult_private_ten_mon
 const correctiveMigration = read('supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql')
 const privateThresholdMigration = read('supabase/migrations/20260824154718_correct_private_wallet_package_tier_matching.sql')
 const progressiveKidsMigration = read('supabase/migrations/20260826021944_separate_progressive_kids_wallet_entitlement.sql')
+const integrityMigration = read('supabase/migrations/20260828020022_permanent_schedule_slot_template_integrity.sql')
+const adminTemplateRoute = read('src/app/api/admin/schedule-templates/route.ts')
+const coachAssignmentsRoute = read('src/app/api/coach/assignments/route.ts')
 const walletPage = read('src/app/(dashboard)/dashboard/lesson-wallet/page.tsx')
 const walletClient = read('src/components/dashboard/lesson-wallet-client.tsx')
 
@@ -246,8 +249,10 @@ check('course type validation never defaults missing data to Kids Group', () => 
   assert.equal(normalizeCourseTypeName('kids_group'), 'kids_group')
   assert.equal(route.includes("|| 'kids_group'"), false)
 })
-check('supplied template id is a hint and canonical fallback still executes', () => {
-  assert.match(route, /if \(payload\.scheduleTemplateId\)[\s\S]*loadTemplates\(payload\.scheduleTemplateId\)[\s\S]*return loadTemplates\(\)/)
+check('supplied template id remains a hint while exact active canonical matching must be unique', () => {
+  assert.match(route, /const exactMatches = await loadTemplates\(\)/)
+  assert.match(route, /exactMatches\.length !== 1[\s\S]*LESSON_WALLET_TEMPLATE_AMBIGUOUS/)
+  assert.match(route, /payload\.scheduleTemplateId === canonicalTemplate\.id[\s\S]*return canonicalTemplate/)
 })
 check('template lookup requires canonical branch, authoritative course, Bangkok weekday and active state', () => {
   for (const predicate of [".eq('branch_id', payload.branchId)", ".eq('course_type_id', courseTypeId)", ".eq('day_of_week', bangkokDayOfWeek)", ".eq('is_active', true)"]) {
@@ -260,13 +265,61 @@ check('template time matching uses normalized exact start and end', () => {
   assert.match(route, /normalizeScheduleTime\(template\.end_time[\s\S]*=== normalizeScheduleTime\(payload\.endTime/)
 })
 check('real slot resolution persists and revalidates canonical template and exact interval atomically', () => {
-  assert.equal(slotResolver.includes('template_id: templateId || null'), true)
+  assert.equal(slotResolver.includes('template_id: effectiveTemplateId,'), true)
+  assert.equal(slotResolver.includes('template_id: templateId || null'), false)
+  assert.match(slotResolver, /resolveCanonicalScheduleTemplate\([\s\S]*const effectiveTemplateId = canonicalTemplate\.id/)
+  assert.match(slotResolver, /existing\.data\.template_id === null[\s\S]*bindLegacySlot/)
+  assert.match(slotResolver, /\.is\('template_id', null\)[\s\S]*select\(SLOT_COLUMNS\)[\s\S]*loadScheduleSlot/)
+  assert.match(slotResolver, /createError\.code === '23505'[\s\S]*loadScheduleSlot[\s\S]*validateSlot/)
   for (const required of ['v_schedule_slot.template_id IS DISTINCT FROM p_schedule_template_id', 'v_schedule_slot.end_time IS DISTINCT FROM p_end_time', 'ON CONFLICT (branch_id, course_type_id, date, start_time) DO NOTHING']) {
     assert.equal(migration.includes(required), true, required)
   }
 })
+check('permanent migration binds only a unique active canonical legacy NULL slot and revalidates under lock', () => {
+  for (const required of [
+    'v_active_template_match_count <> 1',
+    'LESSON_WALLET_TEMPLATE_AMBIGUOUS',
+    'v_schedule_slot.template_id IS NULL',
+    'SET template_id = p_schedule_template_id',
+    'slot_row.template_id IS NULL',
+    'WHERE slot_row.id = v_schedule_slot.id',
+    'FOR UPDATE',
+    'v_schedule_slot.template_id IS DISTINCT FROM p_schedule_template_id',
+    'v_schedule_slot.end_time IS DISTINCT FROM p_end_time',
+    "v_schedule_slot.status::text NOT IN ('open', 'full')",
+  ]) assert.equal(integrityMigration.includes(required), true, required)
+})
+check('permanent migration discovers the live FK, changes SET NULL to RESTRICT, and preserves nullable legacy rows', () => {
+  assert.match(integrityMigration, /FROM pg_catalog\.pg_constraint/)
+  assert.match(integrityMigration, /constraint_row\.conkey[\s\S]*attribute\.attname = 'template_id'/)
+  assert.match(integrityMigration, /DROP CONSTRAINT %I/)
+  assert.match(integrityMigration, /ON DELETE RESTRICT/)
+  assert.doesNotMatch(integrityMigration, /template_id\s+uuid\s+NOT NULL/i)
+  assert.doesNotMatch(integrityMigration, /80117017|de0d599b|bfacfafd|4896fce1|eabcf632|d6a54b6f|9c12e869/i)
+})
+check('permanent Redeem remains service-role-only and has no financial or attendance mutation', () => {
+  assert.match(integrityMigration, /CREATE OR REPLACE FUNCTION public\.lesson_wallet_redeem_v2\(/)
+  assert.match(integrityMigration, /SECURITY DEFINER[\s\S]*SET search_path = public, pg_temp/)
+  assert.match(integrityMigration, /REVOKE ALL ON FUNCTION public\.lesson_wallet_redeem_v2[\s\S]*FROM PUBLIC, anon, authenticated/)
+  assert.match(integrityMigration, /GRANT EXECUTE ON FUNCTION public\.lesson_wallet_redeem_v2[\s\S]*TO service_role/)
+  for (const table of ['payments', 'coupon_usages', 'payment_ledger', 'finance_expenses', 'attendance']) {
+    assert.doesNotMatch(integrityMigration, new RegExp(`(?:INSERT\\s+INTO|UPDATE|DELETE\\s+FROM)\\s+public\\.${table}`, 'i'), table)
+  }
+})
+check('referenced templates deactivate, unreferenced templates may delete, and the FK race fails safely', () => {
+  assert.match(adminTemplateRoute, /referencedSlotCount[\s\S]*deactivateReferencedTemplate\('referenced'\)/)
+  assert.match(adminTemplateRoute, /update\(\{ is_active: false \}\)/)
+  assert.match(adminTemplateRoute, /deleteError\?\.code === '23503'[\s\S]*deactivateReferencedTemplate\('delete_race'\)/)
+  assert.match(adminTemplateRoute, /action: 'delete_unreferenced_schedule_template'/)
+})
+check('coach assignment fallback resolves one canonical template and never creates a NULL-provenance slot', () => {
+  assert.match(coachAssignmentsRoute, /resolveCanonicalScheduleTemplate\(/)
+  assert.match(coachAssignmentsRoute, /templateId: canonicalTemplate\.id/)
+  assert.match(coachAssignmentsRoute, /existingSessionSlotIds\.length > 1[\s\S]*SCHEDULE_SLOT_SESSION_SLOT_CONFLICT/)
+  assert.doesNotMatch(coachAssignmentsRoute, /ensureScheduleSlot\(\{[\s\S]{0,240}templateId:\s*null/)
+})
 check('missing canonical template and invalid course data return distinct typed Thai errors', () => {
-  for (const code of ['LESSON_WALLET_TEMPLATE_NOT_FOUND', 'LESSON_WALLET_COURSE_INVALID']) assert.equal(route.includes(code), true)
+  for (const code of ['LESSON_WALLET_TEMPLATE_NOT_FOUND', 'LESSON_WALLET_TEMPLATE_AMBIGUOUS', 'LESSON_WALLET_COURSE_INVALID']) assert.equal(route.includes(code), true)
   assert.equal(route.includes('ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก'), true)
   assert.equal(route.includes('ข้อมูลคอร์สของสิทธิ์ไม่ถูกต้อง'), true)
 })

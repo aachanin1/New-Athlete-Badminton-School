@@ -835,6 +835,85 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
     await deleteCreditAndTarget(creditId)
   }
 
+  const legacyNullCreditId = await createCredit()
+  const legacyNullSlotId = 'a8000000-0000-4000-8000-000000000010'
+  const { error: legacyNullSlotError } = await admin.from('schedule_slots').insert({
+    id: legacyNullSlotId,
+    template_id: null,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    date: targetDate,
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    status: 'open',
+    current_students: 0,
+    max_students: 1,
+  })
+  if (legacyNullSlotError) throw new Error(legacyNullSlotError.message)
+  const legacyNullResponse = await redeem(legacyNullCreditId, canonicalTemplateId)
+  expect(legacyNullResponse.status, JSON.stringify(legacyNullResponse.body)).toBe(200)
+  const { data: legacyNullBound } = await admin.from('schedule_slots').select('template_id').eq('id', legacyNullSlotId).single()
+  expect(legacyNullBound?.template_id).toBe(canonicalTemplateId)
+  await deleteCreditAndTarget(legacyNullCreditId)
+
+  const ambiguousTemplateId = 'a3000000-0000-4000-8000-000000000099'
+  const { error: ambiguousTemplateError } = await admin.from('schedule_templates').insert({
+    id: ambiguousTemplateId,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    day_of_week: 0,
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    is_active: true,
+    notes: 'Disposable ambiguous Wallet target',
+  })
+  if (ambiguousTemplateError) throw new Error(ambiguousTemplateError.message)
+  const ambiguousSlotId = 'a8000000-0000-4000-8000-000000000011'
+  await admin.from('schedule_slots').insert({
+    id: ambiguousSlotId,
+    template_id: null,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    date: targetDate,
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    status: 'open',
+    current_students: 0,
+    max_students: 1,
+  })
+  const ambiguousCreditId = await createCredit()
+  const ambiguousResponse = await redeem(ambiguousCreditId, canonicalTemplateId)
+  expect(ambiguousResponse).toMatchObject({ status: 409, body: { code: 'LESSON_WALLET_TEMPLATE_AMBIGUOUS' } })
+  const { data: ambiguousSlotAfter } = await admin.from('schedule_slots').select('template_id').eq('id', ambiguousSlotId).single()
+  const { data: ambiguousCreditAfter } = await admin.from('lesson_wallet_credits').select('status,redeemed_at,redeemed_session_id').eq('id', ambiguousCreditId).single()
+  expect(ambiguousSlotAfter?.template_id).toBeNull()
+  expect(ambiguousCreditAfter).toMatchObject({ status: 'active', redeemed_at: null, redeemed_session_id: null })
+  await admin.from('lesson_wallet_credits').delete().eq('id', ambiguousCreditId)
+  await admin.from('schedule_slots').delete().eq('id', ambiguousSlotId)
+  await admin.from('schedule_templates').delete().eq('id', ambiguousTemplateId)
+
+  const mismatchSlotId = 'a8000000-0000-4000-8000-000000000012'
+  const { error: mismatchSlotError } = await admin.from('schedule_slots').insert({
+    id: mismatchSlotId,
+    template_id: otherBranchTemplateId,
+    branch_id: fixture.branchId,
+    course_type_id: fixture.privateCourseId,
+    date: targetDate,
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    status: 'open',
+    current_students: 0,
+    max_students: 1,
+  })
+  if (mismatchSlotError) throw new Error(mismatchSlotError.message)
+  const mismatchCreditId = await createCredit()
+  const mismatchResponse = await redeem(mismatchCreditId, canonicalTemplateId)
+  expect(mismatchResponse).toMatchObject({ status: 409, body: { code: 'LESSON_WALLET_TARGET_UNAVAILABLE' } })
+  const { data: mismatchSlotAfter } = await admin.from('schedule_slots').select('template_id').eq('id', mismatchSlotId).single()
+  expect(mismatchSlotAfter?.template_id).toBe(otherBranchTemplateId)
+  await admin.from('lesson_wallet_credits').delete().eq('id', mismatchCreditId)
+  await admin.from('schedule_slots').delete().eq('id', mismatchSlotId)
+
   const renderedCreditId = await createCredit()
   await page.goto('/dashboard/lesson-wallet')
   await expect(page.getByRole('heading', { name: 'กระเป๋าวันเรียน' })).toBeVisible()

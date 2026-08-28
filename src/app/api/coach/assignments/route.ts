@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { createClient } from '@/lib/supabase/server'
-import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
+import {
+  ensureScheduleSlot,
+  resolveCanonicalScheduleTemplate,
+  ScheduleSlotIntegrityError,
+} from '@/lib/schedule-slot-utils'
 import type { UserRole } from '@/types/database'
 
 interface ProfileRoleRow {
@@ -36,6 +40,7 @@ interface MatchingSessionRow {
 
 interface DbError {
   message: string
+  code?: string
 }
 
 async function requireAssignmentManager(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -87,15 +92,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const resolvedSlotId = scheduleSlotId || await ensureScheduleSlot({
-      branchId,
-      courseTypeId,
-      date,
-      startTime,
-      endTime,
-    })
-
-    const { data: matchingSessions } = await adminSupabase
+    const { data: matchingSessions, error: matchingSessionsError } = await adminSupabase
       .from('booking_sessions')
       .select('id, schedule_slot_id, bookings!inner(course_type_id)')
       .eq('date', date)
@@ -103,10 +100,48 @@ export async function POST(request: NextRequest) {
       .eq('start_time', startTime)
       .eq('end_time', endTime)
       .neq('status', 'rescheduled')
-      .neq('status', 'walleted') as unknown as { data: MatchingSessionRow[] | null }
+      .neq('status', 'walleted') as unknown as {
+        data: MatchingSessionRow[] | null
+        error: DbError | null
+      }
 
-    const sessionIdsToBackfill = (matchingSessions || [])
-      .filter((session) => session.bookings?.course_type_id === courseTypeId && session.schedule_slot_id !== resolvedSlotId)
+    if (matchingSessionsError) throw matchingSessionsError
+
+    const matchingCourseSessions = (matchingSessions || [])
+      .filter((session) => session.bookings?.course_type_id === courseTypeId)
+    const existingSessionSlotIds = Array.from(new Set(
+      matchingCourseSessions
+        .map((session) => session.schedule_slot_id)
+        .filter((slotId): slotId is string => Boolean(slotId)),
+    ))
+    if (!scheduleSlotId && existingSessionSlotIds.length > 1) {
+      return NextResponse.json({
+        code: 'SCHEDULE_SLOT_SESSION_SLOT_CONFLICT',
+        error: 'พบ schedule slot มากกว่าหนึ่งรายการสำหรับรอบสอนเดียวกัน กรุณาให้ผู้ดูแลตรวจสอบ',
+      }, { status: 409 })
+    }
+
+    const canonicalTemplate = await resolveCanonicalScheduleTemplate({
+      supabase: adminSupabase,
+      branchId,
+      courseTypeId,
+      date,
+      startTime,
+      endTime,
+    })
+    const resolvedSlotId = await ensureScheduleSlot({
+      supabase: adminSupabase,
+      scheduleSlotId: scheduleSlotId || existingSessionSlotIds[0] || null,
+      templateId: canonicalTemplate.id,
+      branchId,
+      courseTypeId,
+      date,
+      startTime,
+      endTime,
+    })
+
+    const sessionIdsToBackfill = matchingCourseSessions
+      .filter((session) => session.schedule_slot_id !== resolvedSlotId)
       .map((session) => session.id)
 
     if (sessionIdsToBackfill.length > 0) {
@@ -171,6 +206,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, scheduleSlotId: resolvedSlotId })
   } catch (error) {
     console.error('Coach assignment error:', error)
+    if (error instanceof ScheduleSlotIntegrityError) {
+      return NextResponse.json({ code: error.code, error: error.message }, { status: 409 })
+    }
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

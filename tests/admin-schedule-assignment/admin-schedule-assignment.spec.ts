@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
 import {
   TEST_ADMIN_ACCOUNT,
   TEST_ACCOUNT,
@@ -606,6 +607,128 @@ test('production-active assignment write routes reject anonymous callers', async
   expect(programRead.status()).toBe(401)
   const invalidProgramRead = await request.get('/api/schedule/program?sessionId=not-a-uuid')
   expect(invalidProgramRead.status()).toBe(400)
+})
+
+test('referenced schedule-template DELETE deactivates while unreferenced DELETE remains physical', async ({ page }) => {
+  await loginAsAdmin(page)
+  const admin = createLocalAdmin()
+  const fixture = readBookingFixture()
+  const date = addCalendarDays(bangkokToday, 40)
+  const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
+  const referencedTemplateId = randomUUID()
+  const unreferencedTemplateId = randomUUID()
+  const slotId = randomUUID()
+
+  try {
+    assertNoError((await admin.from('schedule_templates').insert([
+      { id: referencedTemplateId, branch_id: fixture.branchId, course_type_id: fixture.kidsCourseId, day_of_week: dayOfWeek, start_time: '08:00', end_time: '10:00', is_active: true, notes: 'Referenced lifecycle regression' },
+      { id: unreferencedTemplateId, branch_id: fixture.branchId, course_type_id: fixture.kidsCourseId, day_of_week: dayOfWeek, start_time: '10:00', end_time: '12:00', is_active: true, notes: 'Unreferenced lifecycle regression' },
+    ])).error, 'insert schedule-template lifecycle fixtures')
+    assertNoError((await admin.from('schedule_slots').insert({
+      id: slotId,
+      template_id: referencedTemplateId,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date,
+      start_time: '08:00',
+      end_time: '10:00',
+      status: 'open',
+    })).error, 'insert referenced schedule slot')
+
+    const directDelete = await admin.from('schedule_templates').delete().eq('id', referencedTemplateId)
+    expect(directDelete.error?.code).toBe('23503')
+
+    const referencedResponse = await page.evaluate(async (templateId) => {
+      const response = await fetch(`/api/admin/schedule-templates?id=${templateId}`, { method: 'DELETE' })
+      return { status: response.status, body: await response.json() }
+    }, referencedTemplateId)
+    expect(referencedResponse).toMatchObject({
+      status: 200,
+      body: { success: true, action: 'deactivated', isActive: false, referencedSlotCount: 1 },
+    })
+    const { data: referencedTemplate } = await admin.from('schedule_templates').select('is_active').eq('id', referencedTemplateId).single()
+    const { data: referencedSlot } = await admin.from('schedule_slots').select('template_id').eq('id', slotId).single()
+    expect(referencedTemplate?.is_active).toBe(false)
+    expect(referencedSlot?.template_id).toBe(referencedTemplateId)
+
+    const unreferencedResponse = await page.evaluate(async (templateId) => {
+      const response = await fetch(`/api/admin/schedule-templates?id=${templateId}`, { method: 'DELETE' })
+      return { status: response.status, body: await response.json() }
+    }, unreferencedTemplateId)
+    expect(unreferencedResponse).toMatchObject({ status: 200, body: { success: true, action: 'deleted', referencedSlotCount: 0 } })
+    const { count: deletedCount } = await admin.from('schedule_templates').select('id', { count: 'exact', head: true }).eq('id', unreferencedTemplateId)
+    expect(deletedCount).toBe(0)
+  } finally {
+    await admin.from('activity_logs').delete().in('entity_id', [referencedTemplateId, unreferencedTemplateId])
+    await admin.from('schedule_slots').delete().eq('id', slotId)
+    await admin.from('schedule_templates').delete().in('id', [referencedTemplateId, unreferencedTemplateId])
+  }
+})
+
+test('Coach assignment fallback creates only canonical-provenance slots and blocks ambiguity', async ({ page }) => {
+  await loginAsHeadCoach(page)
+  const admin = createLocalAdmin()
+  const fixture = readBookingFixture()
+  const date = addCalendarDays(bangkokToday, 41)
+  const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
+  const canonicalTemplateId = randomUUID()
+  const ambiguousTemplateIds = [randomUUID(), randomUUID()]
+  let createdSlotId = ''
+
+  try {
+    assertNoError((await admin.from('schedule_templates').insert([
+      { id: canonicalTemplateId, branch_id: fixture.branchId, course_type_id: fixture.kidsCourseId, day_of_week: dayOfWeek, start_time: '08:30', end_time: '10:30', is_active: true, notes: 'Coach fallback canonical regression' },
+      ...ambiguousTemplateIds.map((id) => ({ id, branch_id: fixture.branchId, course_type_id: fixture.kidsCourseId, day_of_week: dayOfWeek, start_time: '12:30', end_time: '14:30', is_active: true, notes: 'Coach fallback ambiguity regression' })),
+    ])).error, 'insert Coach fallback templates')
+
+    const canonicalResponse = await page.evaluate(async (payload) => {
+      const response = await fetch('/api/coach/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      return { status: response.status, body: await response.json() }
+    }, { branchId: fixture.branchId, courseTypeId: fixture.kidsCourseId, date, startTime: '08:30', endTime: '10:30', coachId: null })
+    expect(canonicalResponse.status, JSON.stringify(canonicalResponse.body)).toBe(200)
+    createdSlotId = canonicalResponse.body.scheduleSlotId
+    const { data: createdSlot } = await admin.from('schedule_slots')
+      .select('template_id, branch_id, course_type_id, date, start_time, end_time, status')
+      .eq('id', createdSlotId)
+      .single()
+    expect(createdSlot).toMatchObject({
+      template_id: canonicalTemplateId,
+      branch_id: fixture.branchId,
+      course_type_id: fixture.kidsCourseId,
+      date,
+      start_time: '08:30:00',
+      end_time: '10:30:00',
+      status: 'open',
+    })
+
+    const ambiguousResponse = await page.evaluate(async (payload) => {
+      const response = await fetch('/api/coach/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      return { status: response.status, body: await response.json() }
+    }, { branchId: fixture.branchId, courseTypeId: fixture.kidsCourseId, date, startTime: '12:30', endTime: '14:30', coachId: null })
+    expect(ambiguousResponse).toMatchObject({ status: 409, body: { code: 'SCHEDULE_SLOT_TEMPLATE_AMBIGUOUS' } })
+    const { count: ambiguousSlotCount } = await admin.from('schedule_slots')
+      .select('id', { count: 'exact', head: true })
+      .eq('branch_id', fixture.branchId)
+      .eq('course_type_id', fixture.kidsCourseId)
+      .eq('date', date)
+      .eq('start_time', '12:30:00')
+    expect(ambiguousSlotCount).toBe(0)
+  } finally {
+    if (createdSlotId) {
+      await admin.from('activity_logs').delete().eq('entity_id', createdSlotId)
+      await admin.from('coach_assignments').delete().eq('schedule_slot_id', createdSlotId)
+      await admin.from('schedule_slots').delete().eq('id', createdSlotId)
+    }
+    await admin.from('schedule_templates').delete().in('id', [canonicalTemplateId, ...ambiguousTemplateIds])
+  }
 })
 
 test('local performance instrumentation measures summary, month, day, search, calls, and transfer', async ({ page }) => {

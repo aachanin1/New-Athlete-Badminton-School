@@ -27,6 +27,7 @@ interface InsertedTemplateRow {
 
 interface DbError {
   message: string
+  code?: string
 }
 
 function getErrorMessage(error: unknown) {
@@ -218,23 +219,74 @@ export async function DELETE(request: NextRequest) {
     if (!templateId) return NextResponse.json({ error: 'template id is required' }, { status: 400 })
 
     const supabaseAdmin = getServiceRoleClient()
-    const { error } = await supabaseAdmin
+    const { count: referencedSlotCount, error: referenceError } = await supabaseAdmin
+      .from('schedule_slots')
+      .select('id', { count: 'exact', head: true })
+      .eq('template_id', templateId) as unknown as {
+        count: number | null
+        error: DbError | null
+      }
+    if (referenceError) return NextResponse.json({ error: referenceError.message }, { status: 500 })
+
+    const deactivateReferencedTemplate = async (reason: 'referenced' | 'delete_race') => {
+      const { data, error } = await supabaseAdmin
+        .from('schedule_templates')
+        .update({ is_active: false })
+        .eq('id', templateId)
+        .select('id')
+        .maybeSingle() as unknown as {
+          data: { id: string } | null
+          error: DbError | null
+        }
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (!data) return NextResponse.json({ error: 'ไม่พบรอบเรียนประจำ' }, { status: 404 })
+
+      await logActivity({
+        userId: admin.user.id,
+        action: 'deactivate_referenced_schedule_template',
+        entityType: 'schedule_template',
+        entityId: templateId,
+        details: { reason, referencedSlotCount: referencedSlotCount || 0 },
+        ipAddress: request.headers.get('x-forwarded-for'),
+      })
+      return NextResponse.json({
+        success: true,
+        action: 'deactivated',
+        isActive: false,
+        referencedSlotCount: referencedSlotCount || 0,
+      })
+    }
+
+    if ((referencedSlotCount || 0) > 0) {
+      return deactivateReferencedTemplate('referenced')
+    }
+
+    const { data: deletedTemplate, error: deleteError } = await supabaseAdmin
       .from('schedule_templates')
       .delete()
-      .eq('id', templateId) as unknown as { error: DbError | null }
+      .eq('id', templateId)
+      .select('id')
+      .maybeSingle() as unknown as {
+        data: { id: string } | null
+        error: DbError | null
+      }
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (deleteError?.code === '23503') {
+      return deactivateReferencedTemplate('delete_race')
+    }
+    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    if (!deletedTemplate) return NextResponse.json({ error: 'ไม่พบรอบเรียนประจำ' }, { status: 404 })
 
     await logActivity({
       userId: admin.user.id,
-      action: 'delete_schedule_template',
+      action: 'delete_unreferenced_schedule_template',
       entityType: 'schedule_template',
       entityId: templateId,
-      details: {},
+      details: { referencedSlotCount: 0 },
       ipAddress: request.headers.get('x-forwarded-for'),
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, action: 'deleted', referencedSlotCount: 0 })
   } catch (error) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }

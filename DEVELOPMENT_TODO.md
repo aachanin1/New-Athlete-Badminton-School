@@ -17790,3 +17790,100 @@ data change.
 | Commercial Estimate | **22,000 บาท — planning estimate only** |
 | Blocker | **None for documentation registration** |
 | Next Action | **Owner selects this item and approves a separate implementation Scope Contract** |
+
+## 2026-08-28 — Schedule Slot Template Integrity / Urgent Wallet Repair Safe Handoff
+
+State observed at this safe handoff: the urgent exact two-row Production repair
+is complete, while permanent delivery is blocked before local database gates.
+This is not a Task Done closeout.
+
+- Root cause: referenced `schedule_templates` could be hard-deleted; the actual
+  `schedule_slots_template_id_fkey` used `ON DELETE SET NULL`; and the Coach
+  assignment fallback could create a normal slot without `template_id`. The
+  service-role-only Wallet RPC then correctly failed closed on provenance mismatch.
+- Production audit revalidated both slots, exact metadata, one active canonical
+  template per slot, two active/unredeemed/unexpired credits, exact booking/child
+  identity, and no conflicting target session before writing.
+- One transaction locked the exact two slots and two credits, repeated all
+  predicates, conditionally updated only the two `template_id` columns, asserted
+  affected row count `2`, and committed. Slot A now references
+  `eabcf632-2e05-41ad-a9d5-d1eae79f439a`; slot B now references
+  `d6a54b6f-9bb1-43dd-be84-66db37dfb494`.
+- Pre-write fingerprints: slots `983da36a750e6980de0476c43addc494`;
+  templates `eba7f353bd29ac19528c68e2823eb308`; credits
+  `2a97bb3d3c85e781ea48a8c6babc9eca`; credit members `d41d8...`;
+  booking sessions `767097160d5318811112275454cb9520`; booking
+  `ea4d53e82b7855b02af1b419d193e4a9`; payments `d41d8...`;
+  progressive allocation `e16f2c8aa4920b5d88777b2a43b8277e`; coupons and
+  related attendance both `d41d8...`.
+- Post-write slot row fingerprints are `262e16b50a9385efadf239fca74ea4e5`
+  and `06d1863771d6afd766d2b94413cb9a46`; post combined fingerprint is
+  `6c1b8e4c22d84329f1c3c2e997fa58b1`. Every
+  protected fingerprint/count was invariant inside the transaction. Global
+  attendance changed externally from `3648` to `3651` before the transaction and
+  remained `3651` pre/post inside it; no task-attributable attendance write exists.
+- Both credits remain `active` with `redeemed_at` and `redeemed_session_id` NULL.
+  Developer did not perform customer redemption.
+- Remaining NULL inventory was read only: exact `78` (`1` current/future),
+  no-match `48` (`2` current/future), ambiguous `0`. No additional slot was fixed.
+- Local changes remain inside the exact allowlists: functional `4`, tests `5`,
+  documentation `4`, migration `1`; CLI-created migration filename is
+  `20260828020022_permanent_schedule_slot_template_integrity.sql`. No Production
+  UUID appears in source/migration.
+- Passed partial gates: TypeScript, lint, build `94/94`, mojibake `265`, Wallet
+  source regression `45/45`, Admin schedule assignment `39/39`, Coach resolution
+  `33/33`, Coach lifecycle source-only `42/42`, diff check, and post-build local
+  root/static `200/200`.
+- Blocked/not passed: Supabase local clean reset, DB-backed Coach conflict/lifecycle,
+  Admin/Booking E2E, and Wallet UAT. Docker Desktop repeatedly crashes while
+  initializing its inference manager because it cannot remove the AppData
+  `dockerInference` reparse point. No AppData file was deleted or changed; the
+  official Model Runner disable command could not complete and left the setting
+  enabled.
+- Production advisors were captured before any permanent migration for later
+  exact comparison. Production migration, commit, push, staged artifact, Owner
+  UAT, Promotion, and permanent Production verification were not performed.
+- Conditional rollback remains available before Owner redemption only if the
+  exact credit/session/protected state still matches this pre-write evidence.
+  After redemption, blind rollback is prohibited.
+- Next gate: restore Docker Desktop without expanding repository scope, then run
+  explicit local reset and all DB-backed gates. Do not apply the Production
+  migration or deploy before those gates pass.
+
+### 2026-08-28 — Owner-Authorized Reversible Docker Recovery and Local Certification Resume
+
+State observed at this checkpoint: the prior local-tooling Hard Stop is superseded;
+the task remains **DEVELOPING** only because commit/push, Production migration,
+staged artifact, and Owner UAT are later gates.
+
+- Owner authorized a bounded reversible recovery outside the repository. The
+  exact Docker settings file was backed up, only `EnableDockerAI` changed from
+  `true` to `false`, and the exact stale `run` and `docker-secrets-engine`
+  directories were renamed rather than deleted. Docker recreated fresh runtime
+  directories and the engine became healthy. No Docker image, volume, cache,
+  registry, WSL registration, application environment, repository file, secret,
+  dependency, or lockfile was changed by this recovery.
+- `supabase db reset --local` completed on loopback-only ports and applied
+  `20260828020022_permanent_schedule_slot_template_integrity.sql` exactly once.
+  Local catalog evidence confirms FK delete action `RESTRICT`, nullable
+  `template_id`, unchanged Wallet RPC signature, `SECURITY DEFINER`, pinned
+  `search_path`, and execute revoked from PUBLIC/anon/authenticated with explicit
+  `service_role` execute.
+- Final local gates pass: lint; mojibake `265`; build `94/94`; Wallet `45/45`;
+  Admin assignment `39/39`; Coach resolution `33/33`; conflicts `22/22` with zero
+  residue; lifecycle `55/55` with zero residue; Admin E2E `15/15`; Booking E2E
+  `13/13`; Wallet UAT exit `0` with Payment/Allocation/Coupon/Ledger/Finance/
+  Attendance deltas `0/0/0/0/0/0`; prod readiness; diff check; and post-build
+  root/static `200/200`.
+- Local advisors exit `0`. Security has `7` pre-existing out-of-scope warnings
+  and no task-object finding. Performance has `192` pre-existing warnings; the
+  eight schedule table findings are existing multiple-permissive SELECT-policy
+  notices, not introduced by this migration.
+- Product correction budget is `2/2` used for the same stale host-timezone caller
+  hint root cause. Exact unique active Bangkok canonical metadata is authoritative;
+  stored non-NULL mismatch remains fail closed. The later Wallet UAT fixture
+  correction only reused an existing canonical fixture to avoid accidental test
+  ambiguity and did not change Product semantics.
+- Developer did not redeem either customer credit. Production migration, commit,
+  push, staged artifact, Owner UAT, Promotion, and permanent Production verification
+  have not occurred at this checkpoint.

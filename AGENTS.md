@@ -310,6 +310,19 @@ Main portals:
 
 - `schedule_templates` is the DB source of truth for bookable recurring slots.
 - `schedule_slots` are real dated teaching slots and must be linked from `booking_sessions.schedule_slot_id`.
+- A referenced schedule template must be deactivated with `is_active = false`; it
+  must not be hard-deleted. Database referential integrity must preserve the
+  existing `schedule_slots.template_id` even if an API race bypasses lifecycle
+  checks.
+- Every newly created normal/bookable `schedule_slot` must carry the exact active
+  canonical `template_id` for its branch, course, Bangkok weekday, start time, and
+  end time. Creation must fail closed when that provenance is missing or
+  ambiguous.
+- Legacy `schedule_slots.template_id IS NULL` compatibility is bind-on-use only:
+  the requested template must be the single active exact canonical match for
+  branch, course, Bangkok weekday, start time, and end time. Non-NULL mismatch,
+  zero matches, multiple matches, status/time conflict, or a race must fail
+  closed; do not bulk backfill legacy NULL rows.
 - `src/lib/branch-schedules.ts` is legacy/reference only unless code inspection proves otherwise.
 - Normal teaching rounds have no fixed learner-capacity ceiling. Occupancy, configured
   `max_students`, cached `current_students`, or a derived `full` state must not block

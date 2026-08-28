@@ -204,8 +204,21 @@ async function setupMasterData() {
   ]), 'pricing tiers')
 }
 
-async function createTemplateSlot(courseTypeId, date, start, end, { status = 'open', currentStudents = 0 } = {}) {
-  const template = await ok(await supabase.from('schedule_templates').insert({
+async function createTemplateSlot(courseTypeId, date, start, end, {
+  status = 'open',
+  currentStudents = 0,
+  templateProvenance = 'canonical',
+} = {}) {
+  const canonicalTemplates = await ok(await supabase.from('schedule_templates')
+    .select('id')
+    .eq('branch_id', IDS.branch)
+    .eq('course_type_id', courseTypeId)
+    .eq('day_of_week', dayOfWeek(date))
+    .eq('start_time', start)
+    .eq('end_time', end)
+    .eq('is_active', true), 'canonical templates')
+  assert(canonicalTemplates.length <= 1, 'UAT fixture must not create accidental canonical-template ambiguity')
+  const template = canonicalTemplates[0] || await ok(await supabase.from('schedule_templates').insert({
     branch_id: IDS.branch,
     course_type_id: courseTypeId,
     day_of_week: dayOfWeek(date),
@@ -215,7 +228,7 @@ async function createTemplateSlot(courseTypeId, date, start, end, { status = 'op
     notes: MARKER,
   }).select('id').single(), 'template')
   const slot = await ok(await supabase.from('schedule_slots').insert({
-    template_id: template.id,
+    template_id: templateProvenance === 'legacy_null' ? null : template.id,
     branch_id: IDS.branch,
     course_type_id: courseTypeId,
     date,
@@ -225,7 +238,7 @@ async function createTemplateSlot(courseTypeId, date, start, end, { status = 'op
     current_students: currentStudents,
     max_students: 6,
   }).select('id, template_id, date, start_time, end_time, branch_id, course_type_id, status').single(), 'slot')
-  return slot
+  return { ...slot, canonical_template_id: template.id }
 }
 
 async function createBooking({
@@ -672,6 +685,87 @@ async function run() {
   await ok(await supabase.from('schedule_slots').update({ status: 'cancelled' }).eq('id', cancelledTarget.id), 'cancel target slot')
   await expectRpcCode(redeem(parentId, cancelledCredit.credit_id, cancelledTarget), 'LESSON_WALLET_TARGET_UNAVAILABLE', 'cancelled target')
 
+  const legacyNullSource = await createTemplateSlot(IDS.adult, sourceDate, '02:00', '03:00')
+  const legacyNullTarget = await createTemplateSlot(IDS.adult, sameMonthDate, '02:00', '03:00', { templateProvenance: 'legacy_null' })
+  const legacyNullBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: legacyNullSource, label: 'legacy-null-target' })
+  const legacyNullCredit = await ok(await store(parentId, legacyNullBooking.sessions[0].id), 'store legacy NULL target fixture')
+  const legacyNullRedeemed = await ok(await redeem(parentId, legacyNullCredit.credit_id, {
+    ...legacyNullTarget,
+    template_id: legacyNullTarget.canonical_template_id,
+  }), 'bind and redeem exact legacy NULL target')
+  const legacyNullBound = await ok(await supabase.from('schedule_slots').select('template_id').eq('id', legacyNullTarget.id).single(), 'read bound legacy NULL target')
+  assert(legacyNullBound.template_id === legacyNullTarget.canonical_template_id, 'Exact unique active legacy NULL target must bind to its canonical template')
+  assert(legacyNullRedeemed.schedule_slot_id === legacyNullTarget.id, 'Legacy NULL redemption must retain the exact original target slot')
+
+  const ambiguousSource = await createTemplateSlot(IDS.adult, sourceDate, '03:00', '04:00')
+  const ambiguousTarget = await createTemplateSlot(IDS.adult, sameMonthDate, '03:00', '04:00', { templateProvenance: 'legacy_null' })
+  await ok(await supabase.from('schedule_templates').insert({
+    branch_id: IDS.branch,
+    course_type_id: IDS.adult,
+    day_of_week: dayOfWeek(sameMonthDate),
+    start_time: '03:00',
+    end_time: '04:00',
+    is_active: true,
+    notes: MARKER,
+  }), 'duplicate canonical template')
+  const ambiguousBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: ambiguousSource, label: 'ambiguous-null-target' })
+  const ambiguousCredit = await ok(await store(parentId, ambiguousBooking.sessions[0].id), 'store ambiguous NULL target fixture')
+  const ambiguousSessionCountBefore = (await ok(await supabase.from('booking_sessions').select('id').eq('schedule_slot_id', ambiguousTarget.id), 'ambiguous target before')).length
+  await expectRpcCode(redeem(parentId, ambiguousCredit.credit_id, {
+    ...ambiguousTarget,
+    template_id: ambiguousTarget.canonical_template_id,
+  }), 'LESSON_WALLET_TEMPLATE_AMBIGUOUS', 'ambiguous canonical target')
+  const ambiguousSlotAfter = await ok(await supabase.from('schedule_slots').select('template_id').eq('id', ambiguousTarget.id).single(), 'ambiguous slot after')
+  const ambiguousCreditAfter = await ok(await supabase.from('lesson_wallet_credits').select('status, redeemed_at, redeemed_session_id').eq('id', ambiguousCredit.credit_id).single(), 'ambiguous credit after')
+  const ambiguousSessionCountAfter = (await ok(await supabase.from('booking_sessions').select('id').eq('schedule_slot_id', ambiguousTarget.id), 'ambiguous target after')).length
+  assert(ambiguousSlotAfter.template_id === null, 'Ambiguous canonical target must not bind a legacy NULL slot')
+  assert(ambiguousCreditAfter.status === 'active' && ambiguousCreditAfter.redeemed_at === null && ambiguousCreditAfter.redeemed_session_id === null, 'Ambiguous target must leave credit active and unredeemed')
+  assert(ambiguousSessionCountAfter === ambiguousSessionCountBefore, 'Ambiguous target must leave zero session residue')
+
+  const mismatchSource = await createTemplateSlot(IDS.adult, sourceDate, '04:00', '05:00')
+  const mismatchTarget = await createTemplateSlot(IDS.adult, sameMonthDate, '04:00', '05:00')
+  const mismatchTemplate = await ok(await supabase.from('schedule_templates').insert({
+    branch_id: IDS.branch,
+    course_type_id: IDS.adult,
+    day_of_week: dayOfWeek(sameMonthDate),
+    start_time: '04:30',
+    end_time: '05:30',
+    is_active: true,
+    notes: MARKER,
+  }).select('id').single(), 'mismatched provenance template')
+  await ok(await supabase.from('schedule_slots').update({ template_id: mismatchTemplate.id }).eq('id', mismatchTarget.id), 'set non-NULL mismatched provenance')
+  const mismatchBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: mismatchSource, label: 'mismatched-target' })
+  const mismatchCredit = await ok(await store(parentId, mismatchBooking.sessions[0].id), 'store mismatched target fixture')
+  await expectRpcCode(redeem(parentId, mismatchCredit.credit_id, {
+    ...mismatchTarget,
+    template_id: mismatchTarget.canonical_template_id,
+  }), 'LESSON_WALLET_TARGET_UNAVAILABLE', 'non-NULL template mismatch')
+  const mismatchSlotAfter = await ok(await supabase.from('schedule_slots').select('template_id').eq('id', mismatchTarget.id).single(), 'mismatch slot after')
+  assert(mismatchSlotAfter.template_id === mismatchTemplate.id, 'Non-NULL mismatch must never rebind the target slot')
+
+  const raceNullSource = await createTemplateSlot(IDS.adult, sourceDate, '00:30', '01:30')
+  const raceNullTarget = await createTemplateSlot(IDS.adult, sameMonthDate, '00:30', '01:30', { templateProvenance: 'legacy_null' })
+  const raceNullBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: raceNullSource, label: 'legacy-null-race' })
+  const raceNullCredit = await ok(await store(parentId, raceNullBooking.sessions[0].id), 'store legacy NULL race fixture')
+  const raceNullTargetRequest = { ...raceNullTarget, template_id: raceNullTarget.canonical_template_id }
+  const raceNullResults = await Promise.all([
+    redeem(parentId, raceNullCredit.credit_id, raceNullTargetRequest),
+    redeem(parentId, raceNullCredit.credit_id, raceNullTargetRequest),
+  ])
+  assert(raceNullResults.filter((result) => !result.error).length === 1, 'Legacy NULL race must have exactly one winner')
+  assert(raceNullResults.filter((result) => result.error?.message.includes('LESSON_WALLET_CREDIT_STALE')).length === 1, 'Legacy NULL race loser must be typed stale')
+  const raceNullSlotAfter = await ok(await supabase.from('schedule_slots').select('template_id').eq('id', raceNullTarget.id).single(), 'legacy NULL race slot')
+  assert(raceNullSlotAfter.template_id === raceNullTarget.canonical_template_id, 'Legacy NULL race must bind only the exact canonical template')
+
+  const referencedLifecycle = await createTemplateSlot(IDS.adult, sameMonthDate, '01:30', '02:30')
+  const referencedDelete = await supabase.from('schedule_templates').delete().eq('id', referencedLifecycle.canonical_template_id)
+  assert(referencedDelete.error?.code === '23503', 'Referenced template physical delete must be blocked by the FK')
+  const referencedSlotAfterDelete = await ok(await supabase.from('schedule_slots').select('template_id').eq('id', referencedLifecycle.id).single(), 'referenced slot after delete guard')
+  assert(referencedSlotAfterDelete.template_id === referencedLifecycle.canonical_template_id, 'Delete guard must preserve slot.template_id')
+  await ok(await supabase.from('schedule_templates').update({ is_active: false }).eq('id', referencedLifecycle.canonical_template_id), 'deactivate referenced template')
+  const referencedTemplateAfter = await ok(await supabase.from('schedule_templates').select('is_active').eq('id', referencedLifecycle.canonical_template_id).single(), 'referenced template after deactivate')
+  assert(referencedTemplateAfter.is_active === false, 'Referenced template lifecycle must deactivate without unlinking its slot')
+
   const missingPaymentSlot = await createTemplateSlot(IDS.adult, sourceDate, '11:00', '12:00')
   const missingPaymentBooking = await createBooking({ userId: parentId, courseTypeId: IDS.adult, totalSessions: 1, amount: 600, slot: missingPaymentSlot, label: 'missing-payment' })
   await ok(await supabase.from('payments').delete().eq('booking_id', missingPaymentBooking.booking.id), 'remove Payment evidence')
@@ -781,6 +875,8 @@ async function run() {
   console.log('PASS Assignment retirement, destination unassigned, over-capacity allowed, and no new Payment/Coupon/Ledger')
   console.log('PASS Store guards: 48-hour cutoff, started, attendance, and makeup')
   console.log('PASS Redeem guards: inactive template, cancelled target, same-month, expiry, and participant overlap')
+  console.log('PASS Exact unique legacy NULL slots bind atomically; ambiguous, mismatched, and race paths fail closed without wrong rebind')
+  console.log('PASS Referenced template FK blocks physical delete and deactivate preserves slot provenance')
   console.log('PASS Missing/ambiguous Payment and Adult/Private tier evidence fail closed; existing active/expired credits remain unchanged')
   console.log(`PASS Financial invariance around ${protectedFinancialRpcChecks} Store/Redeem RPC results: Payment/Allocation/Coupon/Ledger/Finance/Attendance deltas 0/0/0/0/0/0`)
 

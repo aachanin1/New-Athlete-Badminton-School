@@ -35,6 +35,10 @@ interface DbError {
   code?: string
 }
 
+class LessonWalletTemplateError extends Error {
+  readonly code = 'LESSON_WALLET_TEMPLATE_AMBIGUOUS'
+}
+
 interface BookingRelation {
   user_id: string
   course_type_id: string
@@ -182,8 +186,8 @@ async function findMatchingTemplate(
   const bangkokDayOfWeek = getBangkokDayOfWeek(payload.targetDate)
   if (bangkokDayOfWeek === null) return null
 
-  const loadTemplates = async (scheduleTemplateId?: string | null) => {
-    let query = adminSupabase
+  const loadTemplates = async () => {
+    const query = adminSupabase
       .from('schedule_templates')
       .select('id, start_time, end_time')
       .eq('branch_id', payload.branchId)
@@ -191,22 +195,23 @@ async function findMatchingTemplate(
       .eq('day_of_week', bangkokDayOfWeek)
       .eq('is_active', true)
 
-    if (scheduleTemplateId) query = query.eq('id', scheduleTemplateId)
-
     const { data, error } = await query as unknown as { data: TemplateRow[] | null; error: DbError | null }
     if (error) throw new Error(`โหลดรอบเรียนประจำไม่สำเร็จ: ${error.message}`)
 
-    return (data || []).find((template) => (
+    return (data || []).filter((template) => (
       normalizeScheduleTime(template.start_time, payload.targetDate) === normalizeScheduleTime(payload.startTime, payload.targetDate)
       && normalizeScheduleTime(template.end_time, payload.targetDate) === normalizeScheduleTime(payload.endTime, payload.targetDate)
-    )) || null
+    ))
   }
 
-  if (payload.scheduleTemplateId) {
-    const templateById = await loadTemplates(payload.scheduleTemplateId)
-    if (templateById) return templateById
+  const exactMatches = await loadTemplates()
+  if (exactMatches.length === 0) return null
+  if (exactMatches.length !== 1) {
+    throw new LessonWalletTemplateError('พบรอบเรียนประจำที่เปิดใช้งานซ้ำกัน กรุณาให้ผู้ดูแลตรวจสอบ')
   }
-  return loadTemplates()
+  const canonicalTemplate = exactMatches[0]
+  if (payload.scheduleTemplateId === canonicalTemplate.id) return canonicalTemplate
+  return canonicalTemplate
 }
 
 function inheritedEntitlement(credit: CreditRelation): LessonWalletEntitlement {
@@ -399,6 +404,7 @@ function rpcErrorResponse(error: DbError) {
     LESSON_WALLET_ENTITLEMENT_EXPIRED: 'สิทธิ์นี้หมดอายุแล้วและไม่สามารถนำกลับมาใช้ใหม่ได้',
     LESSON_WALLET_TARGET_AFTER_EXPIRY: 'รอบที่เลือกอยู่หลังวันหมดอายุของสิทธิ์',
     LESSON_WALLET_TEMPLATE_NOT_FOUND: 'ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก',
+    LESSON_WALLET_TEMPLATE_AMBIGUOUS: 'พบรอบเรียนประจำที่เปิดใช้งานซ้ำกัน กรุณาให้ผู้ดูแลตรวจสอบ',
     LESSON_WALLET_TARGET_UNAVAILABLE: 'รอบเรียนนี้ถูกยกเลิกหรือไม่พร้อมใช้งานแล้ว',
     LESSON_WALLET_PAYMENT_EVIDENCE_MISSING: 'ไม่พบหลักฐาน Payment ที่อนุมัติครบถ้วน จึงยังเก็บสิทธิ์ไม่ได้',
     LESSON_WALLET_PAYMENT_EVIDENCE_AMBIGUOUS: 'พบหลักฐาน Payment มากกว่าหนึ่งรายการ จึงยังเก็บสิทธิ์ไม่ได้',
@@ -577,6 +583,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'ไม่พบ action ที่รองรับ' }, { status: 400 })
   } catch (error) {
     if (error instanceof LessonWalletEntitlementError) return rpcErrorResponse(error)
+    if (error instanceof LessonWalletTemplateError) return rpcErrorResponse(error)
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }, { status: 500 })
   }
 }
