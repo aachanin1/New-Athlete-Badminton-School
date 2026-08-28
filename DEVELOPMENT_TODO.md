@@ -17927,3 +17927,121 @@ Production-target artifact, not Promoted**.
 - Promotion is prohibited until Owner PASS. After PASS, promote only exact
   `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, then run Production smoke/log checks and
   reconcile the exact credit/session/payment/ledger/finance/attendance deltas.
+
+### 2026-08-28 — Schedule Slot Template Integrity / Aug 30–31 Wallet Recovery TASK DONE
+
+State observed at this closeout: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT
+PROMOTED WITHOUT REBUILD; PRODUCTION VERIFICATION PASSED**.
+
+- Root cause remains the proven three-part chain: referenced
+  `schedule_templates` could be hard-deleted, the actual
+  `schedule_slots_template_id_fkey` used `ON DELETE SET NULL`, and the Coach
+  assignment fallback could create a normal `schedule_slot` without
+  `template_id`. `lesson_wallet_redeem_v2` correctly failed closed on the
+  resulting provenance mismatch.
+- The earlier exact Developer data repair remains bounded to the two authorized
+  rows and affected exactly `2`: slot `bfacfafd-cadc-4534-9c8a-bf9b5434c267`
+  now references `eabcf632-2e05-41ad-a9d5-d1eae79f439a`, and slot
+  `4896fce1-9508-4b69-9024-905a01a71bb0` now references
+  `d6a54b6f-9bb1-43dd-be84-66db37dfb494`. No other slot was repaired.
+- Repair fingerprints remain recorded as slots pre
+  `983da36a750e6980de0476c43addc494`, post rows
+  `262e16b50a9385efadf239fca74ea4e5` /
+  `06d1863771d6afd766d2b94413cb9a46`, and post combined
+  `6c1b8e4c22d84329f1c3c2e997fa58b1`. Protected pre/post fingerprints were
+  templates `eba7f353bd29ac19528c68e2823eb308`, credits
+  `2a97bb3d3c85e781ea48a8c6babc9eca`, members/payments/coupons/attendance
+  `d41d8cd98f00b204e9800998ecf8427e`, sessions
+  `767097160d5318811112275454cb9520`, booking
+  `ea4d53e82b7855b02af1b419d193e4a9`, and allocation
+  `e16f2c8aa4920b5d88777b2a43b8277e`; all were invariant inside the repair
+  transaction.
+- Permanent Source is exact commit
+  `34eb3fb3ba4e0178d2065862623829319858de2d`. Functional files were
+  `src/lib/schedule-slot-utils.ts` for required/revalidated canonical provenance,
+  `src/app/api/coach/assignments/route.ts` for non-NULL exact fallback creation,
+  `src/app/api/admin/schedule-templates/route.ts` for referenced-template
+  deactivation and safe unreferenced deletion, and
+  `src/app/api/lesson-wallet/route.ts` only as the proven typed-error dependency.
+  Five allowlisted regression files cover lifecycle, Coach fallback, atomic
+  legacy binding, ambiguity/mismatch/races, rollback, no financial/Attendance
+  side effects, and Bangkok timezone behavior.
+- CLI-created migration
+  `20260828020022_permanent_schedule_slot_template_integrity.sql` is applied once.
+  Catalog verification confirms FK name `schedule_slots_template_id_fkey`, delete
+  action `RESTRICT`, nullable `template_id`, unchanged signature
+  `lesson_wallet_redeem_v2(uuid,uuid,date,time without time zone,time without time zone,uuid,uuid)`,
+  `SECURITY DEFINER`, owner `postgres`, pinned `search_path=public, pg_temp`,
+  execute denied to PUBLIC/anon/authenticated, and explicit `service_role`
+  execute. The migration contains no Production UUID.
+- Final automated delivery gates remain PASS: clean local Supabase reset; lint;
+  mojibake `265`; build `94/94`; Wallet `45/45`; Admin assignment `39/39`; Coach
+  resolution `33/33`; conflicts `22/22`; lifecycle `55/55`; Admin E2E `15/15`;
+  Booking E2E `13/13`; Wallet UAT exit `0` with protected financial/Attendance
+  deltas zero; prod readiness; local advisors; diff check; and post-build smoke.
+- Owner explicitly returned PASS for exact staged artifact
+  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`. Credit
+  `de0d599b-8725-4027-8384-33347a1355de` redeemed at
+  `2026-08-28T04:09:42.917813Z` to session
+  `abde753a-9caa-4358-bd4b-66794533245b`, the original Aug 30 15:00–17:00
+  slot. Credit `80117017-9ca2-43a1-9df4-4db33d76ce22` redeemed at
+  `2026-08-28T04:10:11.783474Z` to session
+  `a6ba563d-9bea-48cd-8e0f-b13c59872dfa`, the original Aug 31 16:30–18:00
+  slot. Both target sessions are `scheduled`, keep child
+  `cb2b9128-28aa-4eab-8ad8-e0436db94f89`, point to the exact original slots,
+  and have the exact original sessions as `rescheduled_from_id`; descendant count
+  is `2`. Developer performed no redemption.
+- Post-UAT reconciliation confirms booking
+  `b5d89148-37c9-4475-ad33-05c54111e796` remains `verified` with unchanged
+  `updated_at=2026-08-15T10:15:46.163364Z`. UAT and post-Promotion
+  Payment/Coupon/Progressive-allocation/Ledger/Finance/target-Attendance writes
+  are `0/0/0/0/0/0`. The one allocation `df349885...` and one corresponding
+  ledger row are pre-existing Aug 15 payment evidence, not UAT writes.
+- Gate 0 matched branch `spike/next-major-security-upgrade`, documentation HEAD
+  and upstream `a17a9e835259ad7f0e5fe0c58a9f43f6a12d2e72`, ahead/behind `0/0`,
+  clean worktree, reachable exact Application SHA, and artifact target/state
+  `production/READY`. Deployment `createdAt=1787889084672`,
+  `buildingAt=1787889087321`, `ready=1787889194913`, build
+  `bld_10ack8e9s`, immutable URL, and Git SHA were frozen before Promotion.
+- Exactly one `vercel promote` invocation succeeded for
+  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`. `aliasAssignedAt=1787890818590`
+  (`2026-08-28T04:20:18.590Z`); deployment/build IDs, timestamps, URL, and SHA
+  remained unchanged. Promotion retry/rebuild/redeploy/new-deployment/manual
+  alias-command counts are `0/0/0/0/0`.
+- All four established aliases now map exactly to the approved artifact:
+  `www.newathleteschool.com`, `new-athlete-badminton-school.vercel.app`,
+  `new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app`, and
+  `new-athlete-badminton-school-aachanin1s-projects.vercel.app`. Alias
+  added/removed/unexpected counts are `0/0/0`. Prior artifact
+  `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` remains `READY` and was not used.
+- Production smoke returned canonical root/health/login/static `200` and
+  anonymous Wallet `307` to Login. The two protected team aliases resolve to the
+  exact deployment and return expected Vercel SSO `302` when opened directly.
+  Post-Promotion warning/error/fatal/5xx are `0/0/0/0`; the latest bounded
+  `200`-request sample is all `info`.
+- The only post-Promotion mutation log was an external Head Coach
+  `POST /api/coach/assignment-groups` `200` at
+  `2026-08-28T04:21:50.078Z`. Its activity row at
+  `2026-08-28T04:21:50.873445Z` conclusively attributes a normal assignment Save
+  that added redeemed session `abde753a...` to group
+  `458667a0-fc8a-4570-a813-f522f423df5d`; target session status and timestamp did
+  not change. This is unrelated Production traffic, not a Wallet or Promotion
+  side effect.
+- Supabase advisor sets are invariant: security `30 -> 30`, performance
+  `333 -> 333`, added/removed `0/0` for both; no new security regression exists.
+  Existing findings remain out of scope. References: [Database Linter](https://supabase.com/docs/guides/database/database-linter)
+  and [Going into Production](https://supabase.com/docs/guides/deployment/going-into-prod).
+- Remaining legacy NULL inventory stays read-only and unrepaired: exact `78` total
+  (`1` current/future), no-match `48` total (`2` current/future), ambiguous `0`.
+  Because Owner redemption changed credit/session state, blind metadata rollback
+  is now prohibited; any data rollback requires a new Hard Stop and exact
+  evidence-driven plan.
+- This closeout changes Functional/Test/Migration/Config/Dependency/Environment
+  files by `0/0/0/0/0/0` and only the three authorized documentation files.
+  Feature/allowlist state is unchanged. Customer impact is the successful two
+  Wallet redemptions; financial impact is **None**. Documentation publication is
+  committed and pushed after this record; Source remains exact Application
+  `34eb3fb...`.
+- Active Task: **None — Awaiting Owner Selection**. Task Done: **Yes**. Next
+  Action: Owner selects and authorizes the next Scope Contract; no Parking Lot
+  item may start automatically.

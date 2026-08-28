@@ -3,62 +3,64 @@
 Last updated: 2026-08-28
 
 The exact Owner-authorized two-row Production metadata repair, permanent Source,
-Production migration, and exact staged Production-target artifact are complete.
-Application Source `34eb3fb3ba4e0178d2065862623829319858de2d` is committed and
-pushed. Staged artifact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` is `READY`, exact-SHA,
-and unaliased. Owner redemption UAT and Promotion have not occurred; Production
-aliases still serve the prior artifact.
+Production migration, Owner cross-day Wallet UAT, exact-artifact Promotion, and
+Production verification are complete. Application Source
+`34eb3fb3ba4e0178d2065862623829319858de2d` is committed, pushed, and active on all
+four established Production aliases through exact artifact
+`dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`. No rebuild or replacement deployment occurred.
 
 ## Current State — Permanent Schedule Slot Template Integrity + Urgent Aug 30–31 Wallet Recovery
 
-Status: **READY FOR OWNER UAT — EXACT STAGED PRODUCTION-TARGET ARTIFACT; NOT
-PROMOTED; EXACT TWO-ROW DATA REPAIR AND PERMANENT MIGRATION COMPLETE**.
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **PERMANENT SCHEDULE SLOT TEMPLATE INTEGRITY + URGENT AUG 30–31 WALLET RECOVERY** |
-| Task Status | **READY FOR OWNER UAT — exact staged artifact ready; Owner PASS/FAIL pending; not Promoted** |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status | **TASK DONE — Owner UAT PASS; exact artifact Promoted; Production verification passed** |
 | Owner Policy | Repair only the two authorized `schedule_slots.template_id` values; do not mutate credits, sessions, bookings, payments, coupon, Ledger, Finance, attendance, or other customer rows. Referenced templates deactivate instead of hard-delete; new bookable slots require exact canonical template provenance; legacy NULL compatibility is exact, unique, active, bind-on-use, and fail closed. Developer must not redeem customer credits; Owner performs UAT |
 | Intended Behavior | Preserve template provenance permanently across template lifecycle and all normal slot creation paths, while allowing an exact legacy NULL slot to bind atomically during Wallet redemption only when one active canonical template matches every branch/course/Bangkok weekday/time field |
 | Root Cause / Change Rationale | Proven chain: `schedule_templates` hard-delete plus `schedule_slots.template_id ON DELETE SET NULL`, and Coach assignment fallback creation without `template_id`; Wallet RPC correctly rejected the resulting provenance mismatch with `LESSON_WALLET_TARGET_UNAVAILABLE` |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD / Remote HEAD | Containing READY handoff documentation commit / same after publication; exact Application Source is `34eb3fb3ba4e0178d2065862623829319858de2d` |
-| Ahead / Behind | `0/0` after READY handoff publication; staged paths `0` |
+| Local HEAD / Remote HEAD | Containing TASK DONE documentation commit / same after publication; exact Application Source is `34eb3fb3ba4e0178d2065862623829319858de2d` |
+| Ahead / Behind | `0/0` after TASK DONE publication; staged paths `0` |
 | Source Complete | **Yes** — exact permanent Application/Test/Migration Source is committed and pushed at `34eb3fb3ba4e0178d2065862623829319858de2d` |
 | Tests Passed | **Yes for the authorized local gate set.** Clean `supabase db reset --local`; migration applied once; TypeScript through build; zero-warning lint; build `94/94`; mojibake `265`; Wallet `45/45`; Admin assignment `39/39`; Coach resolution `33/33`; conflicts `22/22`; lifecycle `55/55`; Admin E2E `15/15`; Booking E2E `13/13`; Wallet UAT exit `0` with protected Payment/Allocation/Coupon/Ledger/Finance/Attendance deltas `0/0/0/0/0/0`; local advisors; `git diff --check`; prod readiness; post-build root/static `200/200` |
 | Bounded Correction Attempts | Product/root-cause corrections `2/2` used. Both addressed the same stale host-timezone template hint exposed by Admin Makeup; the final rule treats the required caller ID as a non-authoritative hint and persists the exact unique active Bangkok canonical template. Stored non-NULL provenance mismatch remains fail closed. A later UAT fixture-only correction prevented accidental duplicate canonical fixtures and did not relax Product behavior |
-| Functional / Test / Documentation / Migration Files | Local planned set `4 / 5 / 4 / 1`; migration path `supabase/migrations/20260828020022_permanent_schedule_slot_template_integrity.sql` was created by Supabase CLI and contains no Production UUIDs |
+| Functional / Test / Documentation / Migration Files | Delivered permanent set `4 / 5 / 4 / 1`; post-UAT/Promotion closeout delta `0 / 0 / 3 / 0`. Migration path `supabase/migrations/20260828020022_permanent_schedule_slot_template_integrity.sql` was created by Supabase CLI and contains no Production UUIDs |
 | Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0` |
 | Scope Expansion / Scope Breach | **None / None.** Wallet API was a proven direct typed-error dependency. No path outside the exact allowlists was edited; no extra Production row was repaired |
-| Committed / Pushed | **Application/Test/Migration: Yes / Yes. READY handoff documentation: Yes / Yes after publication** |
+| Committed / Pushed | **Application/Test/Migration: Yes / Yes. TASK DONE documentation: Yes / Yes after publication** |
 | Current Source / Pushed Source | `34eb3fb3ba4e0178d2065862623829319858de2d` / same; exact clean committed tree was used for staging |
-| Deployed Source | Unaliased staged Production-target artifact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` contains exact Application `34eb3fb3ba4e0178d2065862623829319858de2d`. Production aliases still serve prior artifact `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` / Source `97b09c6697034fcdae4be147061b8214a73a5cdd` |
-| Deployment ID / URL | `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`; `https://new-athlete-badminton-school-mev44zqza-aachanin1s-projects.vercel.app`; target/state `production/READY`; region `icn1`; unaliased |
-| Owner UAT Evidence | **Not run.** Developer did not redeem either credit. Owner UAT remains reserved for the exact staged artifact after all automated gates pass |
-| Staged Smoke / Logs | Exact staged root/health/login/static `200/200/200/200`; anonymous Wallet `307` to auth; bounded error/fatal/5xx logs `0/0/0` |
-| Production Artifact / Aliases | All four established Production aliases remain on prior `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr`; staged `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` has no Production alias. No Promotion occurred |
-| Deployed / Promoted | **Staged Production-target: Yes / Promoted: No** |
+| Deployed Source | Production artifact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` contains exact Application `34eb3fb3ba4e0178d2065862623829319858de2d`; deployment/build identity and timestamps remained unchanged through Promotion |
+| Deployment ID / URL | `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`; `https://new-athlete-badminton-school-mev44zqza-aachanin1s-projects.vercel.app`; target/state/substate `production/READY/PROMOTED`; region `icn1`; build `bld_10ack8e9s`; alias assigned `2026-08-28T04:20:18.590Z` |
+| Owner UAT Evidence | **PASS on the exact staged artifact.** Owner redeemed Aug 30 15:00–17:00 to the existing Aug 31 16:30–18:00 slot and Aug 31 16:30–18:00 to the existing Aug 30 15:00–17:00 slot. Both succeeded with no charge; Developer performed no redemption |
+| Staged Smoke / Logs | Before Promotion, exact staged root/health/login/static `200/200/200/200`; anonymous Wallet `307`; both Owner Wallet POSTs returned `200`; error/fatal/5xx `0/0/0` |
+| Production Artifact / Aliases | All four established Production aliases resolve to exact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`; aliases added/removed/unexpected `0/0/0`. Prior `dpl_4aig1hqYJH44vzcQXFojsSpxCxDr` remains `READY` as rollback candidate |
+| Deployed / Promoted | **Yes / Yes — one exact Promote invocation; retries/rebuilds/new deployments/manual alias commands `0/0/0/0`** |
 | Migration Source / Applied | CLI-created `20260828020022_permanent_schedule_slot_template_integrity.sql` / **Local clean reset: Yes; Production: Yes exactly once** |
 | Environment Changed / Feature Enabled / Allowlisted | **No / No / No** |
-| Production Active | **Urgent two-row repair and permanent DB migration: Yes. New Application Source: staged only, not aliased/Production-active** |
-| Owner UAT / Production UAT | **Not run / Not run** |
-| Controlled Write UAT | Exact authorized transactional metadata repair completed with affected row count `2`; customer redemption was not performed |
-| Data Repaired / Production Data Changed | **Yes / Yes — exactly two `schedule_slots.template_id` values only**: `bfacfafd-cadc-4534-9c8a-bf9b5434c267` -> `eabcf632-2e05-41ad-a9d5-d1eae79f439a`; `4896fce1-9508-4b69-9024-905a01a71bb0` -> `d6a54b6f-9bb1-43dd-be84-66db37dfb494` |
+| Production Active | **Yes** — urgent two-row repair, permanent DB protection, and exact Application `34eb3fb...` are active |
+| Owner UAT / Production UAT | **PASS on exact staged Production artifact / no second manual run required; automated post-Promotion Production verification passed** |
+| Controlled Write UAT | Owner performed the two exact Wallet redemptions once each; Developer performed none. Exact transactional metadata repair earlier completed with affected row count `2` |
+| Data Repaired / Production Data Changed | **Yes / Yes.** Developer repair changed exactly two `schedule_slots.template_id` values: `bfacfafd-cadc-4534-9c8a-bf9b5434c267` -> `eabcf632-2e05-41ad-a9d5-d1eae79f439a`; `4896fce1-9508-4b69-9024-905a01a71bb0` -> `d6a54b6f-9bb1-43dd-be84-66db37dfb494`. Later Owner UAT legitimately redeemed the two credits and created the exact two target sessions; no Developer customer redemption occurred |
 | Repair Evidence / Protected Delta | Transaction locked the exact two slots and credits, repeated all predicates, and required affected rows `=2`. Slot combined pre-write fingerprint was `983da36a750e6980de0476c43addc494`; post-write row fingerprints are `262e16b50a9385efadf239fca74ea4e5` and `06d1863771d6afd766d2b94413cb9a46` (post combined `6c1b8e4c22d84329f1c3c2e997fa58b1`). Template `eba7f353bd29ac19528c68e2823eb308`, credits `2a97bb3d3c85e781ea48a8c6babc9eca`, members `d41d8cd98f00b204e9800998ecf8427e`, sessions `767097160d5318811112275454cb9520`, booking `ea4d53e82b7855b02af1b419d193e4a9`, payments `d41d8cd98f00b204e9800998ecf8427e`, allocation `e16f2c8aa4920b5d88777b2a43b8277e`, coupons `d41d8cd98f00b204e9800998ecf8427e`, and related attendance `d41d8cd98f00b204e9800998ecf8427e` were invariant inside the transaction. Global attendance advanced externally `3648` -> `3651` before the repair transaction and stayed `3651` pre/post inside it; it is not attributable to this write |
-| Credits After Repair | Both remain `active`, `redeemed_at IS NULL`, `redeemed_session_id IS NULL`; no customer redemption was attempted |
+| Credits After Owner UAT | Both are `redeemed` exactly once: `de0d599b...` at `2026-08-28T04:09:42.917813Z` -> session `abde753a...` on original slot A, and `80117017...` at `2026-08-28T04:10:11.783474Z` -> session `a6ba563d...` on original slot B. Descendant count is exactly `2`; both target sessions are `scheduled` and preserve child identity |
 | Remaining Legacy NULL Inventory | Production read-only classification: exact `78` total (`1` current/future), no-match `48` total (`2` current/future), ambiguous `0`; no additional row was changed |
-| Rollback Readiness | Before Owner redemption, exact two-row NULL rollback is conditionally available only if credit/session/protected fingerprints still equal the pre-write state. After redemption, blind rollback is prohibited and requires a new Hard Stop/evidence review |
-| Customer Impact / Financial Impact | The two specified Wallet targets now retain the expected schedule-template metadata for later Owner UAT; credits remain unused / **None** — no Payment, Coupon, Ledger, Finance, refund, price, or allocation write |
-| Known Limitations | Existing legacy NULL inventory remains intentionally untouched. Owner redemption UAT is pending and Developer did not redeem either credit. Remote build reports the existing `8` dependency vulnerabilities; dependency changes are out of scope |
-| Production Smoke / Logs | Staged artifact only: root/health/login/static and anonymous auth boundary passed; bounded error/fatal/5xx `0/0/0`. Production aliases were not changed, so post-Promotion smoke/log reconciliation is pending |
-| Documentation Drift | **No after READY handoff publication**; `PROJECT_STATE.md` is authoritative and `TODO-CODEX.md` derives its short status here |
-| Blocker | **Owner UAT PASS is the required Promotion gate.** No technical blocker remains; Developer must not perform the two customer redemptions |
-| Remaining Work | Owner performs the two exact Wallet redemptions on the staged artifact and reports PASS/FAIL. After PASS only, Promote exact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, smoke/log check, and reconcile exact Production deltas |
-| Task Done | **No** |
-| Next Gate / Next Action | **Owner UAT on the exact staged URL: redeem Aug 30 15:00–17:00 and Aug 31 16:30–18:00 for the specified user, then return PASS/FAIL. Do not Promote before PASS** |
-| Parking Lot authorization state | Existing Parking Lot remains unchanged and unauthorized; this is the only Active Task |
+| Post-UAT Protected Delta | Booking remains `verified` with unchanged `updated_at=2026-08-15T10:15:46.163364Z`. UAT and post-Promotion Payment/Coupon/Progressive-allocation/Ledger/Finance/target-Attendance writes are `0/0/0/0/0/0`; one allocation and one ledger row remain the pre-existing Aug 15 payment evidence. A post-Promotion external Head Coach Save added one assignment membership for redeemed session `abde753a...`; activity/log attribution proves normal assignment workflow, not Wallet/Promotion side effect, and target session state/timestamp remained unchanged |
+| Advisor Results | Security `30 -> 30`, performance `333 -> 333`; added/removed findings `0/0` for both and no new security regression. Existing findings remain out of scope; see [Database Linter](https://supabase.com/docs/guides/database/database-linter) and [Going into Production](https://supabase.com/docs/guides/deployment/going-into-prod) |
+| Rollback Readiness | **Blind two-row NULL rollback is now prohibited** because Owner redemption changed credit/session state. Any data rollback requires a new Hard Stop and evidence-driven plan. Prior Application artifact `dpl_4aig1...` remains `READY` as code rollback candidate |
+| Customer Impact / Financial Impact | **Positive:** both exact Wallet credits redeemed successfully to the two original teaching slots with correct child identity / **None** — no Payment, Coupon, new Allocation, Ledger, Finance, refund, price, or Attendance write |
+| Known Limitations | Existing legacy NULL inventory remains intentionally untouched. Remote build reports the existing `8` dependency vulnerabilities; dependency changes are out of scope |
+| Production Smoke / Logs | Canonical root/health/login/static `200`; anonymous Wallet `307`. Two protected team aliases map exactly but return expected Vercel SSO `302` when opened directly. Post-Promotion warning/error/fatal/5xx `0/0/0/0`; latest `200`-request sample is all `info`. The only mutation log is the attributed external Head Coach assignment Save `POST 200` |
+| Documentation Drift | **No after TASK DONE publication**; `PROJECT_STATE.md` is authoritative and `TODO-CODEX.md` derives its short status here |
+| Blocker | **None** |
+| Remaining Work | **None for this task** |
+| Task Done | **Yes** |
+| Next Gate / Next Action | **Owner selects and authorizes the next task; do not start Parking Lot work automatically** |
+| Parking Lot authorization state | Existing Parking Lot remains unchanged, unselected, and unauthorized; no Active Task is selected |
 
 ## Historical / Superseded — Progressive Kids Lesson Wallet Compatibility
 
@@ -119,8 +121,8 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Owner decision on 2026-08-26: list **HEAD COACH VERIFIED-BOOKING ASSIGNMENT
   ALERT** first in the Parking Lot because verified-booking assignment readiness is
   a high Owner priority. This registration does not select it as the Active Task;
-  the Active Task is now **Coach Teaching Program Built-in Presets**, and this
-  Parking Lot item remains unauthorized.
+  the Active Task is **None — Awaiting Owner Selection**, and this Parking Lot item
+  remains unauthorized.
 - Future intended behavior, only after a separate Owner-approved Scope Contract:
   notify only Head Coaches attached to the relevant branch when a booking/session
   becomes genuinely ready for the assignment page; never notify while it remains

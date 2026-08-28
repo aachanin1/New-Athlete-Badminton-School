@@ -9,26 +9,38 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **PERMANENT SCHEDULE SLOT TEMPLATE INTEGRITY + URGENT AUG 30–31 WALLET
-RECOVERY — READY FOR OWNER UAT / EXACT STAGED ARTIFACT / NOT PROMOTED**.
+Status: **NONE — AWAITING OWNER SELECTION**.
 
-- Exact Owner-authorized Production repair is complete: affected rows `2`, and
-  only the two specified `schedule_slots.template_id` values changed. Both Wallet
-  credits remain active and unredeemed; no payment/finance/ledger/attendance or
-  other customer row was written.
-- Permanent Source `34eb3fb3ba4e0178d2065862623829319858de2d` is committed and
-  pushed. Migration `20260828020022` is applied exactly once in Production;
-  catalog/grants pass and advisor sets are unchanged (`30/333`, zero new).
-- Exact staged Production-target artifact
-  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` is `READY`, exact-SHA, unaliased, and passed
-  smoke/log gates. Existing Production aliases remain on the prior artifact.
-- Next action: Owner uses the staged URL to redeem Aug 30 15:00–17:00 and Aug 31
-  16:30–18:00, then returns PASS/FAIL. Developer must not redeem the credits and
-  must not Promote before Owner PASS. Parking Lot work remains unauthorized.
+- The schedule-slot template integrity and Aug 30–31 Wallet recovery task is
+  **TASK DONE** after Owner UAT PASS, exact-artifact Promotion, and Production
+  verification.
+- No Parking Lot item is selected or authorized. Next action: Owner selects and
+  approves the next Scope Contract; do not start queued work automatically.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
+
+### PERMANENT SCHEDULE SLOT TEMPLATE INTEGRITY + URGENT AUG 30–31 WALLET RECOVERY
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Developer repaired exactly the two authorized `schedule_slots.template_id`
+  values in one transaction with affected rows `2`; migration `20260828020022`
+  permanently protects FK/template provenance and remains applied once.
+- Application `34eb3fb3ba4e0178d2065862623829319858de2d` is Production-active as
+  exact artifact `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` on all four established
+  aliases. Promotion count is `1`; retry/rebuild/new deployment/manual alias
+  mutation counts are `0/0/0/0`.
+- Owner cross-day UAT redeemed both credits successfully to the opposite original
+  Aug 30/Aug 31 slots with no charge. Descendant sessions are exactly `2`; Payment,
+  Coupon, new Allocation, Ledger, Finance, and target Attendance deltas are all
+  zero. Security/performance advisors remain `30/333` with no finding delta.
+- Post-Promotion smoke and logs pass. One external Head Coach assignment Save was
+  separately attributed as normal Production traffic, not a Wallet/Promotion side
+  effect. Blind metadata rollback is prohibited after redemption. See the current
+  matrix in `PROJECT_STATE.md` and the 2026-08-28 closeout record.
 
 ### COACH TEACHING PROGRAM BUILT-IN PRESETS
 
@@ -1375,13 +1387,12 @@ Confirmed final state:
 ## Worktree / Safety Notes
 
 - Branch: `spike/next-major-security-upgrade`.
-- The only pre-existing unrelated dirty path is protected
-  `src/lib/schedule-slot-utils.ts`; it remains excluded and content-invariant.
-- Active Task is **None — Awaiting Owner Selection**. This documentation-only
-  publication appends the Admin Recommendations round-risk/read-only-detail
-  candidate as Parking Lot position `6` without authorizing Product work. After
-  publication, only the protected unrelated dirty file remains local. Exact
-  mutable state is authoritative in the first `PROJECT_STATE.md` matrix.
+- Pre-closeout Git was clean at local/upstream
+  `a17a9e835259ad7f0e5fe0c58a9f43f6a12d2e72`, ahead/behind `0/0`; only the three
+  authorized documentation files change for this TASK DONE publication.
+- Active Task is **None — Awaiting Owner Selection**. Exact mutable state is
+  authoritative in the first `PROJECT_STATE.md` matrix; Parking Lot position and
+  authorization remain unchanged.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.
