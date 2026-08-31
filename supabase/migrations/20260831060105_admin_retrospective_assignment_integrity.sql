@@ -19,7 +19,7 @@ alter table public.coach_assignment_groups
       and btrim(name) <> 'ยังไม่จัดกลุ่ม'
       and name !~ '\s*\(\s*\d+\s*คน\s*\)\s*$'
     )
-  );
+  ) not valid;
 
 create or replace function public.admin_apply_retrospective_assignment_transition_v1(
   p_operation text,
