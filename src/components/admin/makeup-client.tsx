@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +29,7 @@ import {
   CalendarPlus,
   CheckCircle2,
   Clock,
+  Loader2,
   Search,
   User,
   Users,
@@ -47,6 +48,47 @@ type ReviewAction =
   | 'close_review'
   | 'return_entitlement'
 type UnassignedRoundMode = 'taught' | 'return_entitlement' | 'close_review'
+type AdminRetrospectiveOperation =
+  | 'assign_coach_to_round'
+  | 'resolve_unassigned_round'
+  | 'mark_attendance'
+  | 'replace_coach_for_past_round'
+  | 'move_learner_to_existing_coach_group'
+
+interface AdminRetrospectiveSnapshot {
+  groups?: Array<{ id: string; coach_id: string | null; name?: string | null }>
+  memberships?: Array<{ id: string; group_id: string; booking_session_id: string }>
+  attendance?: Array<{ booking_session_id: string; status: AttendanceStatus }>
+  sessionStatuses?: Array<{ id: string; status: string }>
+}
+
+interface AdminRetrospectiveTransition {
+  changed?: boolean
+  idempotentReplay?: boolean
+  operation?: AdminRetrospectiveOperation
+  groupId?: string
+  targetSessionIds?: string[]
+  after?: AdminRetrospectiveSnapshot
+}
+
+interface AdminRetrospectiveResponse {
+  changed?: boolean
+  idempotentReplay?: boolean
+  operation?: AdminRetrospectiveOperation
+  group_id?: string
+  warnings?: unknown
+  result?: AdminRetrospectiveTransition
+}
+
+interface RetrospectiveMutationOptions {
+  operation: AdminRetrospectiveOperation
+  targetIdentity: string
+  targetSessionIds: string[]
+  body: Record<string, unknown>
+  failureMessage: string
+  successMessage: string
+  intendedCoachId?: string
+}
 
 interface BookingSessionData {
   id: string
@@ -354,6 +396,17 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
 
 export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, reviewTarget }: MakeupClientProps) {
   const router = useRouter()
+  const [isRefreshPending, startRefreshTransition] = useTransition()
+  const inFlightTargetKeysRef = useRef(new Set<string>())
+  const inFlightSessionIdsRef = useRef(new Set<string>())
+  const mutationSequenceRef = useRef(new Map<string, number>())
+  const refreshTargetKeysRef = useRef(new Set<string>())
+  const refreshSessionIdsRef = useRef(new Set<string>())
+  const refreshObservedRef = useRef(false)
+  const [sessionOverrides, setSessionOverrides] = useState<Record<string, Partial<BookingSessionData>>>({})
+  const [pendingSessionIds, setPendingSessionIds] = useState<Set<string>>(() => new Set())
+  const [reconcilingSessionIds, setReconcilingSessionIds] = useState<Set<string>>(() => new Set())
+  const [completionMessage, setCompletionMessage] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<MakeupTab>('review')
   const [reviewSearch, setReviewSearch] = useState('')
   const [reviewBranch, setReviewBranch] = useState('all')
@@ -399,6 +452,175 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const reviewTargetSessionId = reviewTarget?.sessionId || null
   const reviewTargetDate = reviewTarget?.date || null
 
+  const projectedSessions = useMemo(
+    () => sessions.map((session) => ({ ...session, ...(sessionOverrides[session.id] || {}) })),
+    [sessionOverrides, sessions]
+  )
+
+  useEffect(() => {
+    setSessionOverrides((current) => {
+      let changed = false
+      const next = { ...current }
+      sessions.forEach((session) => {
+        const override = current[session.id]
+        if (!override) return
+        const reconciled = (['group_id', 'group_name', 'coach_id', 'coach_name', 'status', 'attendance_status'] as const)
+          .every((field) => override[field] === undefined || override[field] === session[field])
+        if (!reconciled) return
+        delete next[session.id]
+        changed = true
+      })
+      return changed ? next : current
+    })
+  }, [sessions])
+
+  const setSessionIdsPending = useCallback((targetSessionIds: string[], pending: boolean) => {
+    setPendingSessionIds((current) => {
+      const next = new Set(current)
+      targetSessionIds.forEach((sessionId) => pending ? next.add(sessionId) : next.delete(sessionId))
+      return next
+    })
+  }, [])
+
+  const isTargetBusy = useCallback((targetSessionIds: string[]) => (
+    targetSessionIds.some((sessionId) => pendingSessionIds.has(sessionId) || reconcilingSessionIds.has(sessionId))
+  ), [pendingSessionIds, reconcilingSessionIds])
+
+  useEffect(() => {
+    if (isRefreshPending) {
+      refreshObservedRef.current = true
+      return
+    }
+    if (!refreshObservedRef.current || refreshTargetKeysRef.current.size === 0) return
+
+    refreshObservedRef.current = false
+    refreshTargetKeysRef.current.clear()
+    refreshSessionIdsRef.current.clear()
+    setReconcilingSessionIds(new Set())
+  }, [isRefreshPending])
+
+  const applyCanonicalProjection = useCallback((
+    response: AdminRetrospectiveResponse,
+    fallbackSessionIds: string[],
+    intendedCoachId?: string
+  ) => {
+    const transition: AdminRetrospectiveTransition = response.result || {
+      changed: response.changed,
+      idempotentReplay: response.idempotentReplay,
+      operation: response.operation,
+      groupId: response.group_id,
+    }
+    const targetSessionIds = transition.targetSessionIds || fallbackSessionIds
+    const after = transition.after
+    const groups = after?.groups || []
+    const memberships = after?.memberships || []
+    const attendance = after?.attendance || []
+    const sessionStatuses = after?.sessionStatuses || []
+    const fallbackGroupId = transition.groupId || response.group_id || null
+    const sameSlotCoachGroups = groups
+      .filter((group) => Boolean(group.coach_id))
+      .map((group) => {
+        const coach = coaches.find((item) => item.id === group.coach_id)
+        return {
+          groupId: group.id,
+          groupName: group.name || 'ไม่ระบุชื่อกลุ่ม',
+          coachId: group.coach_id || '',
+          coachName: coach?.name || 'ไม่ทราบโค้ช',
+          sessionCount: memberships.filter((membership) => membership.group_id === group.id).length,
+        }
+      })
+      .filter((group) => group.sessionCount > 0)
+
+    setSessionOverrides((current) => {
+      const next = { ...current }
+      targetSessionIds.forEach((sessionId) => {
+        const membership = memberships.find((item) => item.booking_session_id === sessionId)
+        const groupId = membership?.group_id || fallbackGroupId
+        const group = groups.find((item) => item.id === groupId)
+        const coachId = group?.coach_id || intendedCoachId || null
+        const coach = coaches.find((item) => item.id === coachId)
+        const status = sessionStatuses.find((item) => item.id === sessionId)?.status
+        const attendanceStatus = attendance.find((item) => item.booking_session_id === sessionId)?.status
+
+        next[sessionId] = {
+          ...next[sessionId],
+          ...(groupId ? { group_id: groupId } : {}),
+          ...(group?.name ? { group_name: group.name } : {}),
+          coach_id: coachId,
+          coach_name: coach?.name || (coachId ? 'ไม่ทราบโค้ช' : null),
+          ...(status ? { status } : {}),
+          ...(attendanceStatus ? { attendance_status: attendanceStatus, attendance_scope_count: 1 } : {}),
+          same_slot_coach_groups: sameSlotCoachGroups.filter((item) => item.groupId !== groupId),
+        }
+      })
+      return next
+    })
+  }, [coaches])
+
+  const runRetrospectiveMutation = useCallback(async ({
+    operation,
+    targetIdentity,
+    targetSessionIds,
+    body,
+    failureMessage,
+    successMessage,
+    intendedCoachId,
+  }: RetrospectiveMutationOptions) => {
+    if (
+      inFlightTargetKeysRef.current.has(targetIdentity)
+      || refreshTargetKeysRef.current.has(targetIdentity)
+      || targetSessionIds.some((sessionId) => inFlightSessionIdsRef.current.has(sessionId) || refreshSessionIdsRef.current.has(sessionId))
+    ) {
+      return false
+    }
+
+    const nextSequence = (mutationSequenceRef.current.get(targetIdentity) || 0) + 1
+    mutationSequenceRef.current.set(targetIdentity, nextSequence)
+    inFlightTargetKeysRef.current.add(targetIdentity)
+    targetSessionIds.forEach((sessionId) => inFlightSessionIdsRef.current.add(sessionId))
+    setSessionIdsPending(targetSessionIds, true)
+    setCompletionMessage(null)
+    setError(null)
+
+    try {
+      const httpResponse = await fetch('/api/admin/makeup', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, action: operation }),
+      })
+      const response = await httpResponse.json().catch(() => null) as AdminRetrospectiveResponse & { error?: string } | null
+
+      if (!httpResponse.ok || !response) {
+        setError(response?.error || failureMessage)
+        return false
+      }
+      if (mutationSequenceRef.current.get(targetIdentity) !== nextSequence) return false
+
+      applyCanonicalProjection(response, targetSessionIds, intendedCoachId)
+      if (response.warnings) toast.warning(String(response.warnings))
+
+      const idempotentReplay = response.idempotentReplay === true || response.result?.idempotentReplay === true
+      const confirmation = idempotentReplay
+        ? `${successMessage} (ข้อมูลเป็นปัจจุบันอยู่แล้ว)`
+        : successMessage
+      setCompletionMessage(confirmation)
+      toast.success(confirmation)
+
+      refreshTargetKeysRef.current.add(targetIdentity)
+      targetSessionIds.forEach((sessionId) => refreshSessionIdsRef.current.add(sessionId))
+      setReconcilingSessionIds((current) => new Set([...current, ...targetSessionIds]))
+      startRefreshTransition(() => router.refresh())
+      return true
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      return false
+    } finally {
+      inFlightTargetKeysRef.current.delete(targetIdentity)
+      targetSessionIds.forEach((sessionId) => inFlightSessionIdsRef.current.delete(sessionId))
+      setSessionIdsPending(targetSessionIds, false)
+    }
+  }, [applyCanonicalProjection, router, setSessionIdsPending])
+
   const isReviewTargetSession = useCallback((session: BookingSessionData) => {
     if (reviewTargetSessionId) return session.id === reviewTargetSessionId
     if (reviewTargetDate) return session.date === reviewTargetDate
@@ -414,7 +636,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     }
 
     const groupMap = new Map<string, SameSlotCoachGroupOption>()
-    sessions.forEach((session) => {
+    projectedSessions.forEach((session) => {
       if (!session.group_id || !session.coach_id) return
       if (session.group_id === sourceSession.group_id) return
       if (session.schedule_slot_id !== sourceSession.schedule_slot_id) return
@@ -442,21 +664,21 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     return Array.from(groupMap.values())
       .filter((group) => group.sessionCount > 0)
       .sort((a, b) => compareTextTh(a.coachName, b.coachName) || compareTextTh(a.groupName, b.groupName) || a.groupId.localeCompare(b.groupId))
-  }, [sessions])
+  }, [projectedSessions])
 
   const makeupSourceIds = useMemo(
-    () => new Set(sessions.map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
-    [sessions]
+    () => new Set(projectedSessions.map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
+    [projectedSessions]
   )
   const courseOptions = useMemo(
-    () => Array.from(new Set(sessions.map((session) => session.course_type).filter(Boolean))).sort(compareTextTh),
-    [sessions]
+    () => Array.from(new Set(projectedSessions.map((session) => session.course_type).filter(Boolean))).sort(compareTextTh),
+    [projectedSessions]
   )
 
   const monthGroups = useMemo(() => {
     const groups = new Map<string, MonthGroup & { learnerName: string; userName: string; branches: string[] }>()
 
-    sessions.filter(isMissedSession).forEach((session) => {
+    projectedSessions.filter(isMissedSession).forEach((session) => {
       const learnerKey = `${session.user_name}::${session.learner_name}`
       const monthKey = getMonthKey(session.date)
       const key = `${learnerKey}::${monthKey}`
@@ -498,7 +720,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       canCreate: !group.hasMakeup && !group.isExpired,
       sessions: group.sessions.sort((a, b) => a.date.localeCompare(b.date)),
     }))
-  }, [makeupSourceIds, sessions])
+  }, [makeupSourceIds, projectedSessions])
 
   const filteredMonthGroups = useMemo(() => {
     const q = makeupSearch.trim().toLowerCase()
@@ -556,7 +778,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const reviewSessions = useMemo(() => {
     const q = reviewSearch.trim().toLowerCase()
 
-    return sessions
+    return projectedSessions
       .filter(isReviewOrEvidenceSession)
       .filter((session) => {
         if (reviewBranch !== 'all' && session.branch_id !== reviewBranch) return false
@@ -582,7 +804,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         if (aTarget !== bTarget) return aTarget ? -1 : 1
         return b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time)
       })
-  }, [isReviewTargetSession, reviewBranch, reviewCourse, reviewSearch, reviewStatus, sessions])
+  }, [isReviewTargetSession, projectedSessions, reviewBranch, reviewCourse, reviewSearch, reviewStatus])
 
   const reviewSessionGroups = useMemo<ReviewSessionGroup[]>(() => {
     const groups = new Map<string, ReviewSessionGroup>()
@@ -647,7 +869,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }, [isReviewTargetSession, reviewSessions])
 
   const stats = useMemo(() => {
-    const reviewItems = sessions.filter(isReviewOrEvidenceSession)
+    const reviewItems = projectedSessions.filter(isReviewOrEvidenceSession)
 
     return {
       total: monthGroups.length,
@@ -659,7 +881,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       reviewNoCoach: reviewItems.filter((session) => !session.coach_name).length,
       reviewCoachEvidence: reviewItems.filter(isCoachEvidenceReviewSession).length,
     }
-  }, [monthGroups, sessions])
+  }, [monthGroups, projectedSessions])
 
   const totalPages = Math.max(1, Math.ceil(learnerGroups.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -879,6 +1101,25 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     setError(null)
 
     try {
+      if (needsRetroCoach) {
+        const succeeded = await runRetrospectiveMutation({
+          operation: 'mark_attendance',
+          targetIdentity: `mark-attendance:${reviewSession.group_id || reviewSession.id}`,
+          targetSessionIds: [reviewSession.id],
+          body: {
+            session_id: reviewSession.id,
+            attendance_status: reviewAttendanceStatus,
+            reason,
+            coach_id: reviewCoachId,
+          },
+          intendedCoachId: reviewCoachId,
+          failureMessage: 'บันทึกผลตรวจสอบไม่สำเร็จ',
+          successMessage: 'บันทึกการเช็คชื่อและมอบหมายโค้ชย้อนหลังสำเร็จ',
+        })
+        if (succeeded) setReviewSession(null)
+        return
+      }
+
       const response = await fetch('/api/admin/makeup', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -959,35 +1200,19 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       return
     }
 
+    const sessionIds = targetSessions.map((session) => session.id)
     setReplacementSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/admin/makeup', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'replace_coach_for_past_round',
-          session_ids: targetSessions.map((session) => session.id),
-          coach_id: replacementCoachId,
-          reason,
-        }),
-      })
-
-      const result = await response.json().catch(() => null)
-      if (!response.ok) {
-        setError(result?.error || 'เปลี่ยนโค้ชย้อนหลังไม่สำเร็จ')
-        return
-      }
-
-      if (result?.warnings) toast.warning(result.warnings)
-      setReplacementGroup(null)
-      router.refresh()
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setReplacementSubmitting(false)
-    }
+    const succeeded = await runRetrospectiveMutation({
+      operation: 'replace_coach_for_past_round',
+      targetIdentity: `replace:${replacementGroup.key}`,
+      targetSessionIds: sessionIds,
+      body: { session_ids: sessionIds, coach_id: replacementCoachId, reason },
+      intendedCoachId: replacementCoachId,
+      failureMessage: 'เปลี่ยนโค้ชย้อนหลังไม่สำเร็จ',
+      successMessage: 'เปลี่ยนโค้ชย้อนหลังสำเร็จ',
+    })
+    setReplacementSubmitting(false)
+    if (succeeded) setReplacementGroup(null)
   }
 
   const submitMoveLearner = async () => {
@@ -1014,35 +1239,22 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     }
 
     setMoveSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/admin/makeup', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'move_learner_to_existing_coach_group',
-          session_ids: [targetSession.id],
-          target_group_id: targetGroup.groupId,
-          coach_id: targetGroup.coachId,
-          reason,
-        }),
-      })
-
-      const result = await response.json().catch(() => null)
-      if (!response.ok) {
-        setError(result?.error || 'ย้ายผู้เรียนเข้ากลุ่มโค้ชไม่สำเร็จ')
-        return
-      }
-
-      if (result?.warnings) toast.warning(result.warnings)
-      setMoveGroup(null)
-      router.refresh()
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setMoveSubmitting(false)
-    }
+    const succeeded = await runRetrospectiveMutation({
+      operation: 'move_learner_to_existing_coach_group',
+      targetIdentity: `move:${moveGroup.key}:${targetSession.id}`,
+      targetSessionIds: [targetSession.id],
+      body: {
+        session_ids: [targetSession.id],
+        target_group_id: targetGroup.groupId,
+        coach_id: targetGroup.coachId,
+        reason,
+      },
+      intendedCoachId: targetGroup.coachId,
+      failureMessage: 'ย้ายผู้เรียนเข้ากลุ่มโค้ชไม่สำเร็จ',
+      successMessage: 'ย้ายผู้เรียนเข้ากลุ่มโค้ชสำเร็จ',
+    })
+    setMoveSubmitting(false)
+    if (succeeded) setMoveGroup(null)
   }
 
   const openRoundAttendanceDialog = (group: ReviewSessionGroup) => {
@@ -1166,23 +1378,19 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
     try {
       if (unassignedMode === 'taught') {
-        const response = await fetch('/api/admin/makeup', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'assign_coach_to_round',
-            session_ids: targetSessions.map((session) => session.id),
-            coach_id: unassignedCoachId,
-            reason,
-          }),
+        const sessionIds = targetSessions.map((session) => session.id)
+        const succeeded = await runRetrospectiveMutation({
+          operation: 'assign_coach_to_round',
+          targetIdentity: `assign:${unassignedGroup.key}`,
+          targetSessionIds: sessionIds,
+          body: { session_ids: sessionIds, coach_id: unassignedCoachId, reason },
+          intendedCoachId: unassignedCoachId,
+          failureMessage: 'มอบหมายโค้ชให้รอบนี้ไม่สำเร็จ',
+          successMessage: 'มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ',
         })
-
-        const result = await response.json().catch(() => null)
-        if (!response.ok) {
-          setError(result?.error || 'มอบหมายโค้ชให้รอบนี้ไม่สำเร็จ')
-          return
-        }
-        if (result?.warnings) toast.warning(result.warnings)
+        if (!succeeded) return
+        setUnassignedGroup(null)
+        return
       } else {
         const action = unassignedMode === 'return_entitlement' ? 'return_entitlement' : 'close_review'
 
@@ -1219,10 +1427,12 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     roundAttendanceTargetSessions.every((session) => Boolean(roundAttendance[session.id]))
   const unassignedTargetSessions = unassignedGroup?.sessions.filter(isAttendanceReviewSession) || []
   const unassignedSaveDisabled = unassignedSubmitting ||
+    isTargetBusy(unassignedTargetSessions.map((session) => session.id)) ||
     !unassignedReason.trim() ||
     (unassignedMode === 'taught' && !unassignedCoachId)
   const replacementTargetSessions = replacementGroup?.sessions.filter(isReviewOrEvidenceSession) || []
   const replacementSaveDisabled = replacementSubmitting ||
+    isTargetBusy(replacementTargetSessions.map((session) => session.id)) ||
     !replacementCoachId ||
     !replacementReason.trim() ||
     replacementTargetSessions.length === 0
@@ -1231,9 +1441,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const moveTargetGroups = selectedMoveSession ? getSameSlotCoachGroups(selectedMoveSession) : []
   const selectedMoveTargetGroup = moveTargetGroups.find((group) => group.groupId === moveTargetGroupId) || null
   const moveSaveDisabled = moveSubmitting ||
+    (selectedMoveSession ? isTargetBusy([selectedMoveSession.id]) : false) ||
     !selectedMoveSession ||
     !selectedMoveTargetGroup ||
     !moveReason.trim()
+  const reviewTargetBusy = reviewSession ? isTargetBusy([reviewSession.id]) : false
 
   return (
     <div className="space-y-5">
@@ -1250,6 +1462,29 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           ขาดหลายครั้งในเดือนเดียวกัน ชดเชยได้ 1 ครั้ง
         </Badge>
       </div>
+
+      {(pendingSessionIds.size > 0 || reconcilingSessionIds.size > 0) && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+        >
+          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+          <div>
+            <p className="font-semibold">
+              {pendingSessionIds.size > 0 ? 'กำลังบันทึกข้อมูล กรุณารอสักครู่' : 'บันทึกสำเร็จ กำลังยืนยันข้อมูลกับระบบ'}
+            </p>
+            <p className="mt-0.5 text-xs text-blue-700">ระบบปิดการทำรายการซ้ำสำหรับรอบนี้ไว้จนกว่าจะยืนยันข้อมูลเรียบร้อย</p>
+          </div>
+        </div>
+      )}
+
+      {completionMessage && (
+        <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {completionMessage}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-6">
         <Card className={stats.review > 0 ? 'border-orange-300 bg-orange-50/40' : 'border-gray-200'}>
@@ -1400,6 +1635,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 const canMoveLearnerToExistingGroup = group.sessions
                   .filter(isReviewOrEvidenceSession)
                   .some((session) => getSameSlotCoachGroups(session).length > 0)
+                const groupMutationBusy = isTargetBusy(group.sessions.map((session) => session.id))
 
                 return (
                   <div
@@ -1470,7 +1706,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                                 size="sm"
                                 variant="outline"
                                 className="h-9 border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
-                                disabled={moveSubmitting}
+                                disabled={moveSubmitting || groupMutationBusy}
                                 onClick={() => openMoveLearnerDialog(group)}
                               >
                                 ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน
@@ -1484,6 +1720,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             <Button
                               size="sm"
                               className="h-9 bg-[#2748bf] text-white hover:bg-[#153c85]"
+                              disabled={groupMutationBusy}
                               onClick={() => openUnassignedRoundDialog(group)}
                             >
                               มอบหมายโค้ชใหม่
@@ -1506,7 +1743,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             size="sm"
                             variant="outline"
                             className="h-9 border-amber-200 bg-white text-amber-700 hover:bg-amber-50"
-                            disabled={reviewGroupLoadingKey === groupLoadingKey || !group.coachName}
+                            disabled={reviewGroupLoadingKey === groupLoadingKey || !group.coachName || groupMutationBusy}
                             onClick={() => void (canRequestCoachEvidenceOnly ? requestCoachEvidenceForGroup(group) : sendReviewGroupToCoach(group))}
                             title={!group.coachName ? 'ยังไม่มีโค้ชให้ส่งกลับตรวจสอบ' : undefined}
                           >
@@ -1520,7 +1757,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             size="sm"
                             variant="outline"
                             className="h-9 border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
-                            disabled={replacementSubmitting}
+                            disabled={replacementSubmitting || groupMutationBusy}
                             onClick={() => openCoachReplacementDialog(group)}
                           >
                             เปลี่ยนโค้ชย้อนหลัง
@@ -1529,7 +1766,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             size="sm"
                             variant="outline"
                             className="h-9 border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50"
-                            disabled={!canMoveLearnerToExistingGroup || moveSubmitting}
+                            disabled={!canMoveLearnerToExistingGroup || moveSubmitting || groupMutationBusy}
                             onClick={() => openMoveLearnerDialog(group)}
                             title={!canMoveLearnerToExistingGroup ? 'ไม่พบกลุ่มโค้ชอื่นในรอบเดียวกัน' : undefined}
                           >
@@ -1539,7 +1776,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             size="sm"
                             variant="outline"
                             className="h-9 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
-                            disabled={!groupNeedsAttendanceReview}
+                            disabled={!groupNeedsAttendanceReview || groupMutationBusy}
                             onClick={() => openRoundAttendanceDialog(group)}
                             title={!groupNeedsAttendanceReview ? 'รอบนี้ไม่มีรายการที่ต้องบันทึก attendance ย้อนหลังแล้ว' : undefined}
                           >
@@ -1549,7 +1786,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             size="sm"
                             variant="outline"
                             className="h-9 border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                            disabled={reviewGroupLoadingKey === `${group.key}:close`}
+                            disabled={reviewGroupLoadingKey === `${group.key}:close` || groupMutationBusy}
                             onClick={() => void closeReviewGroup(group)}
                           >
                             {reviewGroupLoadingKey === `${group.key}:close` ? 'กำลังปิดเคส...' : 'ปิดเคสทั้งรอบ'}
@@ -1871,7 +2108,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           if (!open && !replacementSubmitting) setReplacementGroup(null)
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">เปลี่ยนโค้ชย้อนหลัง</DialogTitle>
             <DialogDescription>
@@ -1976,7 +2213,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           }
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">ย้ายเข้ากลุ่มโค้ชในรอบเดียวกัน</DialogTitle>
             <DialogDescription>
@@ -2212,10 +2449,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       <Dialog
         open={Boolean(reviewSession)}
         onOpenChange={(open) => {
-          if (!open && !reviewSubmitting) setReviewSession(null)
+          if (!open && !reviewSubmitting && !reviewTargetBusy) setReviewSession(null)
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">ตรวจสอบการเช็คชื่อย้อนหลัง</DialogTitle>
             <DialogDescription>
@@ -2317,13 +2554,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
               </div>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <Button type="button" variant="outline" disabled={reviewSubmitting} onClick={() => setReviewSession(null)}>
+                <Button type="button" variant="outline" disabled={reviewSubmitting || reviewTargetBusy} onClick={() => setReviewSession(null)}>
                   ยกเลิก
                 </Button>
                 <Button
                   type="button"
                   className="bg-[#2748bf] hover:bg-[#153c85]"
-                  disabled={reviewSubmitting}
+                  disabled={reviewSubmitting || reviewTargetBusy}
                   onClick={submitReviewAction}
                 >
                   {reviewSubmitting ? 'กำลังบันทึก...' : getReviewActionLabel(reviewAction)}
@@ -2340,7 +2577,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           if (!open && !unassignedSubmitting) setUnassignedGroup(null)
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">จัดการรอบที่ยังไม่มีโค้ช</DialogTitle>
             <DialogDescription>

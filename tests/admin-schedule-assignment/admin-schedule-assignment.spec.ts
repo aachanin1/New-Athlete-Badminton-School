@@ -609,6 +609,197 @@ test('production-active assignment write routes reject anonymous callers', async
   expect(invalidProgramRead.status()).toBe(400)
 })
 
+test('Admin Makeup retrospective completion is guarded, visible, canonical, and replay-safe on desktop/mobile', async ({ page }, testInfo) => {
+  const admin = createLocalAdmin()
+  const fixture = readBookingFixture()
+  const feedbackCoachEmail = `admin-makeup-feedback-${randomUUID()}@example.com`
+  const { data: feedbackCoach, error: feedbackCoachError } = await admin.auth.admin.createUser({
+    email: feedbackCoachEmail,
+    password: TEST_ADMIN_ACCOUNT.password,
+    email_confirm: true,
+    user_metadata: { full_name: 'Feedback Fixture Coach' },
+  })
+  assertNoError(feedbackCoachError, 'create Admin Makeup feedback coach')
+  if (!feedbackCoach.user) throw new Error('create Admin Makeup feedback coach: user missing')
+  const feedbackCoachId = feedbackCoach.user.id
+  assertNoError((await admin.from('profiles').update({
+    full_name: 'Feedback Fixture Coach',
+    role: 'head_coach',
+  }).eq('id', feedbackCoachId)).error, 'update Admin Makeup feedback coach')
+  assertNoError((await admin.from('coach_branches').insert({
+    coach_id: feedbackCoachId,
+    branch_id: fixture.branchId,
+  })).error, 'insert Admin Makeup feedback coach branch')
+  assertNoError((await admin.from('coach_assignment_group_students').insert({
+    group_id: IDS.unassignedGroup,
+    booking_session_id: IDS.sessions[2],
+    student_id: IDS.children[2],
+    student_type: 'child',
+  })).error, 'complete Admin Makeup feedback group roster')
+  const feedbackSessionIds = [IDS.sessions[1], IDS.sessions[2]]
+
+  let phase: 'conflict' | 'server-error' | 'changed' | 'replay' = 'conflict'
+  let phasePatchCount = 0
+  let releasePatch = () => {}
+  let releaseRefresh = () => {}
+  let refreshBlocked = false
+  let successReturned = false
+  const successResponse = (idempotentReplay: boolean) => ({
+    success: true,
+    changed: !idempotentReplay,
+    idempotentReplay,
+    operation: 'assign_coach_to_round',
+    group_id: IDS.unassignedGroup,
+    result: {
+      changed: !idempotentReplay,
+      idempotentReplay,
+      operation: 'assign_coach_to_round',
+      scheduleSlotId: IDS.slot,
+      groupId: IDS.unassignedGroup,
+      targetSessionIds: feedbackSessionIds,
+      after: {
+        groups: [
+          { id: IDS.validGroup, coach_id: coachUserId, name: 'Fixture Assigned Group' },
+          { id: IDS.unassignedGroup, coach_id: feedbackCoachId, name: 'ยังไม่จัดกลุ่ม' },
+        ],
+        memberships: [
+          { id: 'feedback-member-assigned', group_id: IDS.validGroup, booking_session_id: IDS.sessions[0] },
+          { id: 'feedback-member-target', group_id: IDS.unassignedGroup, booking_session_id: IDS.sessions[1] },
+          { id: 'feedback-member-target-2', group_id: IDS.unassignedGroup, booking_session_id: IDS.sessions[2] },
+        ],
+        attendance: [],
+        sessionStatuses: feedbackSessionIds.map((id) => ({ id, status: 'scheduled' })),
+      },
+    },
+  })
+
+  await page.route('**/api/admin/makeup', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue()
+    const body = route.request().postDataJSON() as { action?: string; session_ids?: string[] }
+    if (body.action !== 'assign_coach_to_round' || !feedbackSessionIds.every((id) => body.session_ids?.includes(id))) return route.continue()
+    phasePatchCount += 1
+
+    if (phase === 'conflict') {
+      await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'ข้อมูลรายชื่อรอบเรียนเปลี่ยนแล้ว กรุณาตรวจสอบอีกครั้ง' }) })
+      return
+    }
+    if (phase === 'server-error') {
+      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'ระบบไม่สามารถบันทึกได้ กรุณาลองใหม่อีกครั้ง' }) })
+      return
+    }
+
+    await new Promise<void>((resolve) => { releasePatch = resolve })
+    successReturned = true
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(successResponse(phase === 'replay')),
+    })
+  })
+
+  await page.route('**/admin/makeup?**', async (route) => {
+    if (!successReturned || route.request().headers().rsc !== '1') return route.continue()
+    refreshBlocked = true
+    await new Promise<void>((resolve) => { releaseRefresh = resolve })
+    await route.continue()
+  })
+
+  const openAssignmentDialog = async () => {
+    await page.getByRole('button', { name: 'มอบหมายโค้ชใหม่', exact: true }).first().click()
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('button[role="combobox"]').nth(1).click()
+    await page.getByRole('option', { name: /Feedback Fixture Coach/ }).click()
+    await dialog.getByPlaceholder(/หัวหน้าโค้ชลืมมอบหมาย/).fill('ทดสอบ completion feedback แบบ local เท่านั้น')
+    return { dialog, submit: dialog.getByRole('button', { name: 'มอบหมายโค้ชให้รอบนี้', exact: true }) }
+  }
+
+  try {
+    await loginAsAdmin(page)
+    await page.goto(`/admin/makeup?session=${IDS.sessions[1]}`)
+    await expect(page.getByRole('heading', { name: 'วันชดเชย', exact: true })).toBeVisible()
+
+    let controls = await openAssignmentDialog()
+    await controls.submit.click()
+    await expect(controls.dialog.getByText('ข้อมูลรายชื่อรอบเรียนเปลี่ยนแล้ว กรุณาตรวจสอบอีกครั้ง', { exact: true })).toBeVisible()
+    await expect(controls.dialog.getByPlaceholder(/หัวหน้าโค้ชลืมมอบหมาย/)).toHaveValue('ทดสอบ completion feedback แบบ local เท่านั้น')
+    await expect(page.getByText(/มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ/)).toHaveCount(0)
+
+    phase = 'server-error'
+    phasePatchCount = 0
+    await controls.submit.click()
+    await expect(controls.dialog.getByText('ระบบไม่สามารถบันทึกได้ กรุณาลองใหม่อีกครั้ง', { exact: true })).toBeVisible()
+    await expect(controls.submit).toBeEnabled()
+    expect(phasePatchCount).toBe(1)
+
+    phase = 'changed'
+    phasePatchCount = 0
+    await controls.submit.evaluate((button: HTMLButtonElement) => {
+      button.click()
+      button.click()
+    })
+    await expect(page.getByText('กำลังบันทึกข้อมูล กรุณารอสักครู่', { exact: true })).toBeVisible()
+    await expect(controls.submit).toBeDisabled()
+    expect(phasePatchCount).toBe(1)
+    await testInfo.attach('admin-makeup-desktop-pending', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+
+    releasePatch()
+    await expect(page.getByText('มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Feedback Fixture Coach', { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'เปลี่ยนโค้ชย้อนหลัง', exact: true }).first()).toBeDisabled()
+    await expect.poll(() => refreshBlocked).toBe(true)
+    await testInfo.attach('admin-makeup-desktop-success-before-refresh', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+    releaseRefresh()
+    await expect(page.getByText('Feedback Fixture Coach', { exact: true }).first()).toBeVisible()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    phase = 'replay'
+    phasePatchCount = 0
+    successReturned = false
+    releasePatch = () => {}
+    releaseRefresh = () => {}
+    refreshBlocked = false
+    await page.reload()
+    controls = await openAssignmentDialog()
+    await controls.submit.evaluate((button: HTMLButtonElement) => {
+      button.click()
+      button.click()
+    })
+    await expect(page.getByText('กำลังบันทึกข้อมูล กรุณารอสักครู่', { exact: true })).toBeVisible()
+    expect(phasePatchCount).toBe(1)
+    await testInfo.attach('admin-makeup-mobile-pending', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+    releasePatch()
+    await expect(page.getByText('มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ (ข้อมูลเป็นปัจจุบันอยู่แล้ว)', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Feedback Fixture Coach', { exact: true }).first()).toBeVisible()
+    await testInfo.attach('admin-makeup-mobile-replay-success', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+    await expect.poll(() => refreshBlocked).toBe(true)
+    releaseRefresh()
+  } finally {
+    releasePatch()
+    releaseRefresh()
+    if (!page.isClosed()) {
+      await page.unroute('**/api/admin/makeup')
+      await page.unroute('**/admin/makeup?**')
+    }
+    await admin.from('coach_assignment_group_students')
+      .delete()
+      .eq('group_id', IDS.unassignedGroup)
+      .eq('booking_session_id', IDS.sessions[2])
+    await admin.auth.admin.deleteUser(feedbackCoachId)
+  }
+})
+
 test('referenced schedule-template DELETE deactivates while unreferenced DELETE remains physical', async ({ page }) => {
   await loginAsAdmin(page)
   const admin = createLocalAdmin()

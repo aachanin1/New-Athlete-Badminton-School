@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 const routeSource = read('src/app/api/admin/makeup/route.ts')
+const clientSource = read('src/components/admin/makeup-client.tsx')
 const conflictSource = read('src/lib/coach-assignment-conflicts.ts')
 const migrationSource = read('supabase/migrations/20260831060105_admin_retrospective_assignment_integrity.sql')
 let passed = 0
@@ -33,6 +34,29 @@ assert.doesNotMatch(
 )
 assert.match(routeSource, /if \(result\.changed\) \{[\s\S]*?notifyUser/)
 check('all five Admin actions route through one canonical RPC without direct assignment DML or the legacy create RPC')
+
+for (const operation of [
+  'assign_coach_to_round',
+  'resolve_unassigned_round',
+  'mark_attendance',
+  'replace_coach_for_past_round',
+  'move_learner_to_existing_coach_group',
+]) assert.ok(clientSource.includes(`'${operation}'`), `client lifecycle missing ${operation}`)
+for (const required of [
+  'runRetrospectiveMutation',
+  'inFlightTargetKeysRef',
+  'inFlightSessionIdsRef',
+  'refreshSessionIdsRef',
+  'applyCanonicalProjection',
+  'projectedSessions',
+  'idempotentReplay',
+  'toast.success',
+  'startRefreshTransition(() => router.refresh())',
+  'กำลังบันทึกข้อมูล กรุณารอสักครู่',
+  'บันทึกสำเร็จ กำลังยืนยันข้อมูลกับระบบ',
+]) assert.ok(clientSource.includes(required), `client completion lifecycle missing ${required}`)
+assert.doesNotMatch(clientSource, /(?:window\.)?location\.reload|setTimeout\(|setInterval\(/)
+check('all five Admin retrospective operations share ref-guarded completion, canonical projection, Thai feedback, and background reconciliation primitives')
 
 for (const prefix of ['ROSTER', 'LIFECYCLE', 'DUPLICATE', 'STALE_STATE', 'COACH_CONFLICT']) {
   assert.ok(conflictSource.includes(`ADMIN_RETRO_ASSIGNMENT_${prefix}`))
