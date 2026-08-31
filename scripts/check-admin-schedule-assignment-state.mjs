@@ -27,6 +27,7 @@ const schedulesRead = read('src/lib/admin-schedules-read.ts')
 const schedulesModel = read('src/lib/admin-schedules-model.ts')
 const assignmentRoute = read('src/app/api/coach/assignment-groups/route.ts')
 const makeupRoute = read('src/app/api/admin/makeup/route.ts')
+const adminRetrospectiveMigration = read('supabase/migrations/20260831060105_admin_retrospective_assignment_integrity.sql')
 const assignmentClient = read('src/components/coach/assign-groups-client.tsx')
 const coachAssignedSchedule = read('src/lib/coach-assigned-schedule.ts')
 
@@ -261,7 +262,7 @@ check('Coach assigned schedule remains persisted-membership and visible-lifecycl
   assert.equal(coachAssignedSchedule.includes('draftsBySlot'), false)
 })
 
-check('all production-active exact write surfaces retain authorization and shared validation', () => {
+check('all production-active exact write surfaces retain authorization and one Admin transaction boundary', () => {
   for (const required of ['requireAssignmentManager', "manager.role === 'head_coach'", "from('coach_branches')", 'checkCoachAssignmentConflicts']) {
     assert.equal(assignmentRoute.includes(required), true)
   }
@@ -273,7 +274,12 @@ check('all production-active exact write surfaces retain authorization and share
     'resolve_unassigned_round',
     "action === 'mark_attendance'",
   ]) assert.equal(makeupRoute.includes(action), true)
-  assert.ok(makeupRoute.match(/validateExactCoachAssignment\(/g).length >= 6)
+  assert.equal((makeupRoute.match(/admin_apply_retrospective_assignment_transition_v1/g) || []).length, 1)
+  assert.equal(makeupRoute.includes('create_exact_coach_assignment_group_v1'), false)
+  assert.doesNotMatch(
+    makeupRoute,
+    /from\(['"](?:coach_assignment_groups|coach_assignment_group_students|coach_assignments|coach_assignment_exact_reservations)['"]\)[\s\S]{0,180}?\.(?:insert|update|delete)\(/,
+  )
 })
 
 const namingStudent = (level, levelCategory = 'basic', levelProgramName = 'ชุดพื้นฐาน') => ({
@@ -434,12 +440,12 @@ check('Coach Base LV 3 and LV 6 fixture deterministically proposes ชุดพ�
   assert.deepEqual([result.name, result.levelMin, result.levelMax], ['ชุดพื้นฐาน', 3, 6])
 })
 
-check('Coach save opts into warning-only naming while Admin Makeup keeps shared default behavior', () => {
+check('Coach save keeps its naming policy while Admin retrospective reuse preserves legacy names explicitly', () => {
   assert.equal(assignmentRoute.includes('loadAssignmentGroupNamingStudents'), true)
   assert.equal(assignmentRoute.includes('resolveCoachAssignmentGroupName'), true)
-  assert.equal(makeupRoute.includes('loadAssignmentGroupNamingStudents'), true)
-  assert.equal(makeupRoute.includes('resolveAssignmentGroupName'), true)
   assert.equal(makeupRoute.includes('resolveCoachAssignmentGroupName'), false)
+  assert.equal(adminRetrospectiveMigration.includes('admin_retrospective_preserved_name'), true)
+  assert.equal(adminRetrospectiveMigration.includes("btrim(group_item.name) = 'ยังไม่จัดกลุ่ม'"), true)
 })
 
 console.log(`\nAdmin Schedule assignment-state checks passed: ${passed}`)

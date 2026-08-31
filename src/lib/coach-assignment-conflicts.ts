@@ -89,12 +89,62 @@ export function formatLegacyCoachWarnings(warnings: LegacyCoachAssignmentWarning
 }
 
 export function formatCoachAssignmentDatabaseError(message: string) {
-  if (!message.includes('COACH_ASSIGNMENT_CONFLICT|')) return null
+  const conflictPrefix = message.includes('ADMIN_RETRO_ASSIGNMENT_COACH_CONFLICT|')
+    ? 'ADMIN_RETRO_ASSIGNMENT_COACH_CONFLICT|'
+    : message.includes('COACH_ASSIGNMENT_CONFLICT|')
+      ? 'COACH_ASSIGNMENT_CONFLICT|'
+      : null
 
-  const [, date, startTime, endTime, branchName, groupName, groupId] = message.split('|')
+  if (!conflictPrefix) return null
+
+  const conflictMessage = message.slice(message.indexOf(conflictPrefix))
+  const [, date, startTime, endTime, branchName, groupName, groupId] = conflictMessage.split('|')
   if (!groupId) {
     return 'บันทึกไม่ได้: มีคำสั่งอื่นมอบหมายโค้ชคนนี้ในช่วงเวลาทับกัน กรุณารีเฟรชแล้วตรวจสอบอีกครั้ง'
   }
 
   return `บันทึกไม่ได้: โค้ชคนนี้รับผิดชอบกลุ่มอื่นที่เวลาทับกัน วันที่ ${formatThaiDate(date)} เวลา ${shortTime(startTime)}–${shortTime(endTime)} สาขา ${branchName} กลุ่ม ${groupName} (${groupId})`
+}
+
+export interface AdminRetrospectiveAssignmentConflict {
+  code:
+    | 'ADMIN_RETRO_ASSIGNMENT_ROSTER_CONFLICT'
+    | 'ADMIN_RETRO_ASSIGNMENT_LIFECYCLE_CONFLICT'
+    | 'ADMIN_RETRO_ASSIGNMENT_DUPLICATE'
+    | 'ADMIN_RETRO_ASSIGNMENT_STALE_STATE'
+    | 'ADMIN_RETRO_ASSIGNMENT_COACH_CONFLICT'
+  error: string
+}
+
+export function getAdminRetrospectiveAssignmentConflict(
+  message: string,
+): AdminRetrospectiveAssignmentConflict | null {
+  if (message.includes('ADMIN_RETRO_ASSIGNMENT_COACH_CONFLICT|')) {
+    return {
+      code: 'ADMIN_RETRO_ASSIGNMENT_COACH_CONFLICT',
+      error: formatCoachAssignmentDatabaseError(message)
+        || 'บันทึกไม่ได้: โค้ชคนนี้มีรอบสอนที่เวลาทับกัน กรุณารีเฟรชแล้วตรวจสอบอีกครั้ง',
+    }
+  }
+
+  const conflicts: Array<AdminRetrospectiveAssignmentConflict> = [
+    {
+      code: 'ADMIN_RETRO_ASSIGNMENT_ROSTER_CONFLICT',
+      error: 'รายชื่อผู้เรียนหรือกลุ่มไม่ตรงกับข้อมูลล่าสุด กรุณารีเฟรชและเลือกรายการทั้งกลุ่มอีกครั้ง',
+    },
+    {
+      code: 'ADMIN_RETRO_ASSIGNMENT_LIFECYCLE_CONFLICT',
+      error: 'สถานะรอบเรียน การจอง หรือเส้นทางดำเนินการเปลี่ยนแล้ว กรุณารีเฟรชและตรวจสอบอีกครั้ง',
+    },
+    {
+      code: 'ADMIN_RETRO_ASSIGNMENT_DUPLICATE',
+      error: 'พบข้อมูลผู้เรียนหรือหลักฐานซ้ำ ระบบยังไม่ได้บันทึก กรุณารีเฟรชและตรวจสอบข้อมูล',
+    },
+    {
+      code: 'ADMIN_RETRO_ASSIGNMENT_STALE_STATE',
+      error: 'ข้อมูลกลุ่มเปลี่ยนระหว่างดำเนินการ ระบบยังไม่ได้บันทึก กรุณารีเฟรชแล้วลองใหม่',
+    },
+  ]
+
+  return conflicts.find((conflict) => message.includes(`${conflict.code}|`)) || null
 }

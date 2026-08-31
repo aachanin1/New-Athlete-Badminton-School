@@ -171,7 +171,8 @@ export interface Database {
       }
       coach_assignment_groups: {
         Row: CoachAssignmentGroup
-        Insert: Omit<CoachAssignmentGroup, 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<CoachAssignmentGroup, 'id' | 'created_at' | 'updated_at' | 'admin_retrospective_preserved_name'>
+          & Partial<Pick<CoachAssignmentGroup, 'admin_retrospective_preserved_name'>>
         Update: Partial<Omit<CoachAssignmentGroup, 'id' | 'created_at'>>
         Relationships: []
       }
@@ -395,6 +396,25 @@ export interface Database {
       coach_assignment_slot_snapshot_v2: {
         Args: {
           p_schedule_slot_id: string
+        }
+        Returns: Json
+      }
+      admin_apply_retrospective_assignment_transition_v1: {
+        Args: {
+          p_operation:
+            | 'assign_coach_to_round'
+            | 'resolve_unassigned_round'
+            | 'mark_attendance'
+            | 'replace_coach_for_past_round'
+            | 'move_learner_to_existing_coach_group'
+          p_schedule_slot_id: string
+          p_actor_id: string
+          p_coach_id: string
+          p_booking_session_ids: string[]
+          p_target_group_id?: string | null
+          p_reason?: string | null
+          p_attendance_by_session_id?: Json
+          p_test_fail_stage?: string | null
         }
         Returns: Json
       }
@@ -975,6 +995,7 @@ export interface CoachAssignmentGroup {
   id: string
   schedule_slot_id: string
   coach_id: string | null
+  admin_retrospective_preserved_name: boolean
   name: string
   level_min: number | null
   level_max: number | null

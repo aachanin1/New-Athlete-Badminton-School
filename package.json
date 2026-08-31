@@ -13,6 +13,7 @@
     "test:admin-notification-recommendations": "node --no-warnings --experimental-strip-types scripts/check-admin-notification-recommendations.mjs",
     "test:lesson-wallet-regression": "node scripts/check-lesson-wallet-regression.mjs",
     "test:admin-schedule-assignment": "node scripts/check-admin-schedule-assignment-state.mjs",
+    "test:admin-retrospective-assignment-integrity": "node --no-warnings scripts/check-admin-retrospective-assignment-integrity.mjs",
     "test:admin-schedules-performance": "node scripts/check-admin-schedules-performance.mjs",
     "test:schedule-learning-details": "node --no-warnings --experimental-strip-types scripts/check-schedule-learning-details.mjs",
     "test:admin-teaching-program-review": "node --no-warnings --experimental-strip-types scripts/check-admin-teaching-program-review.mjs",
