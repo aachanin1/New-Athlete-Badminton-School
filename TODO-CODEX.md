@@ -9,35 +9,44 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **PERMANENT ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY — CORRECTIVE
-ADMIN MAKEUP COMPLETION FEEDBACK — READY FOR OWNER UAT**.
+Status: **None — Awaiting Owner Selection**.
 
-- Old artifact `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o` passed backend integrity but
-  failed completion-feedback UX and overall Owner UAT. Owner performed the one
-  authorized assignment; Production data therefore changed legitimately, no
-  repair occurred, and that artifact is permanently ineligible for Promotion.
-- Artifact `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV` was rejected by PM review because
-  `resolve_unassigned_round` was not an executable client path. It received no
-  Owner UAT, retains aliases `0`, and is permanently ineligible for Promotion.
-- Replacement Production-target artifact `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`
-  is `READY` at
-  `https://new-athlete-badminton-school-p8rzadd2k-aachanin1s-projects.vercel.app`
-  from Application `66be707dcbcffc810cf484fc059448373ceda72f`; aliases `0` and
-  Promotion **No**. Executable lifecycle evidence covers all five operations;
-  full Admin E2E is `17/17`; technical, visual, build, smoke, log, and diff gates
-  passed.
-- Current Production aliases remain on prior artifact
-  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`. Corrective Migration, Environment,
-  feature, allowlist, dependency, and lockfile changes are all `0`.
-- Next action: Owner selects one fresh eligible candidate and confirms the actual
-  coach, then performs exactly one assignment on `dpl_EzbD...`.
-  Developer performs read-only reconciliation afterward. Do not reuse/reverse/
-  replay the completed group; do not Promote, rebuild, redeploy, change aliases,
-  or perform Developer data repair/write before explicit Owner PASS.
+- Permanent Admin Retrospective Coach Assignment Integrity and corrective Admin
+  Makeup completion feedback are **TASK DONE**. The exact Owner-passed artifact is
+  Production-active and post-Promotion verification passed; see the first entry
+  under Recently Completed and the authoritative matrix in `PROJECT_STATE.md`.
+- No Parking Lot item is authorized. Do not repeat, reverse, replay, or repair
+  either completed Owner UAT target.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 
 ## Recently Completed
+
+### PERMANENT ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY — ADMIN MAKEUP COMPLETION FEEDBACK
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD;
+PRODUCTION VERIFICATION PASSED**.
+
+- Owner passed exact artifact `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application
+  `66be707dcbcffc810cf484fc059448373ceda72f`, tree
+  `43b77eeaa874088f25952e0e06b06d150e587b70`. One exact Promote invocation moved
+  the same deployment to Production; retry/rebuild/redeploy/new-deployment/manual
+  alias/rollback counts are all `0`.
+- All four established Production aliases point to that artifact. Root, health,
+  Login, promoted static asset, Admin auth boundary, bounded runtime error/fatal/
+  5xx, and post-Promotion read-only data checks passed.
+- Replacement UAT reconciliation proves one PATCH `200`, the same group and three
+  membership IDs, coach assigned, one legacy row, one activity row, three exact
+  `present` Attendance rows, three `completed` sessions, three intended learner
+  notifications, duplicate memberships `0`, and expected historical reservation
+  count `0`. Developer performed no controlled write or repair.
+- Corrective Functional/Test/Documentation counts are `1/2/3`; Migration, test
+  config, dependency, lockfile, and Environment counts are `0/0/0/0/0`. Feature
+  and allowlist state are unchanged. Financial impact is none.
+- Coach check-in remains `0`; the Admin retrospective exception did not create
+  selfie/GPS/check-in evidence and does not by itself make the round coach-payable.
+- Next action: await Owner selection of a new task. `PROJECT_STATE.md` is
+  authoritative.
 
 ### PERMANENT SCHEDULE SLOT TEMPLATE INTEGRITY + URGENT AUG 30–31 WALLET RECOVERY
 

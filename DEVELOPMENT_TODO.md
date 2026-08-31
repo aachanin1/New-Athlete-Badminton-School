@@ -18540,3 +18540,61 @@ success; canonical coach/group and exact Attendance visible without manual
 refresh; later manual refresh stays consistent. Developer then performs read-only
 reconciliation. Do not reuse the completed Aug 30 group. Do not Promote before an
 explicit PASS on this exact replacement artifact plus successful reconciliation.
+
+## 2026-08-31 — Admin retrospective assignment integrity corrective: Owner PASS, exact Promotion, TASK DONE
+
+State observed at this closeout: Owner explicitly passed exact staged
+Production-target artifact `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application
+`66be707dcbcffc810cf484fc059448373ceda72f`, tree
+`43b77eeaa874088f25952e0e06b06d150e587b70`. Fresh Gate 0, read-only UAT
+reconciliation, exact-artifact Promotion, Production verification, and
+documentation closeout passed. The Active Task is **TASK DONE**.
+
+### Owner PASS and read-only UAT reconciliation
+
+- Owner performed exactly one `resolve_unassigned_round` action on slot
+  `8f7b98fd-40fd-47d2-9dbe-79af176c2986`, group
+  `5c7ec612-f744-4ab0-aa9e-4ab885dfbb35`, coach
+  `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`, and the three previously recorded
+  session IDs. Vercel runtime evidence contains exactly one
+  `PATCH /api/admin/makeup` `200` in the UAT window and no error/fatal/5xx.
+- Group ID, name `ชุดเตรียมนักกีฬา ชุด C`, marker `false`, and all three exact
+  membership IDs are preserved. Every membership retains its exact session and
+  learner identity. The coach is the Owner-selected coach.
+- Core evidence is exactly one legacy assignment and one activity
+  `admin_retrospective_assignment_resolve_unassigned_round`. Attendance is
+  exactly three `present` rows with exact learner identity; all three booking
+  sessions are `completed`; intended learner schedule notifications are exactly
+  three. Duplicate target memberships are `0`; historical exact reservation
+  count is correctly `0`.
+- Wallet, Payment, and Coupon counts for the target bookings remain `0/0/0`.
+  Existing Ledger and Progressive allocation evidence remains `2/2`; no
+  task-attributable financial row changed. Coach check-in remains `0`, so this
+  Admin retrospective exception did not create selfie/GPS/check-in evidence and
+  does not by itself make the round coach-payable.
+- Developer performed no controlled write, retry, reversal, repair, Attendance,
+  notification, or check-in action. The completed target must not be reused,
+  reversed, replayed, or repaired.
+
+### Exact Promotion and Production verification
+
+| Field | State observed at this closeout |
+| --- | --- |
+| Gate 0 Git | Exact root; branch `spike/next-major-security-upgrade`; pre-closeout local/upstream `641c6d9d51c1efca6debb8508f2543ac75794f35`; ahead/behind `0/0`; worktree clean |
+| Exact artifact | `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`; `production/READY`; region `icn1`; exact SHA/tree above; pre-Promotion aliases `0` |
+| Rollback evidence | Prior Production `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, Application `34eb3fb3ba4e0178d2065862623829319858de2d`, remained `READY` |
+| Promotion | One `vercel promote dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW` invocation succeeded at `2026-08-31T13:02:57Z`; retry/redeploy/rebuild/new-deployment/manual-alias/rollback `0/0/0/0/0/0` |
+| No-rebuild identity | Deployment ID, URL, Source SHA, `createdAt=1788173189227`, `buildingAt=1788173190201`, and `ready=1788173277373` remained unchanged before/after Promotion |
+| Production aliases | All four established aliases map to source host `new-athlete-badminton-school-p8rzadd2k-aachanin1s-projects.vercel.app` |
+| Smoke / auth | Public alias roots, `/api/health`, `/auth/login`, and the exact promoted static chunk returned `200`; anonymous `/admin/makeup` returned `307` to Login. Two team-scoped aliases are Vercel-SSO protected when fetched anonymously |
+| Runtime logs | Post-Promotion error/fatal/5xx `0/0/0`; no `/api/admin/makeup` mutation request occurred after Promotion |
+| Post-Promotion data | The exact group, membership, legacy, activity, Attendance, session, notification, reservation, check-in, Wallet, Payment, Coupon, Ledger, and Progressive allocation evidence matched the pre-Promotion reconciliation; no additional business-data write occurred |
+| Source / tests | Product Source complete **Yes** at `66be707...`; all previously recorded deterministic, E2E, TypeScript, lint, mojibake, build, readiness, smoke, and visual gates remain passed. No Product Source/test was changed or rerun during this Promotion-only closeout |
+| Files / controls | Promotion-closeout Functional/Test/Migration/Config/Dependency/Lockfile/Environment `0/0/0/0/0/0/0`; Documentation `3`; Feature/Allowlist unchanged |
+| Scope Expansion / Breach | **None / None** |
+| Data Repaired / Production Data Changed | **No / Yes by the two legitimate Owner-controlled UAT actions across the task; Promotion itself changed no business data** |
+| Customer / Financial Impact | Correct selected-coach and retrospective Attendance completion are active; exactly three learner notifications arose from replacement UAT. No additional post-Promotion customer notification or mutation; financial impact **None** |
+| Documentation Drift | Prior pending-UAT and prior-Production mutable claims corrected; dated historical evidence preserved |
+| Commit / Push | Corrective Application/Test Source already committed/pushed at `66be707...`; this three-file documentation closeout is committed/pushed after this record |
+| Blocker / Next Action | **None / await Owner selection of a new task** |
+| Task Done | **Yes** |
