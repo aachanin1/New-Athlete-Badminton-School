@@ -35,13 +35,22 @@ assert.doesNotMatch(
 assert.match(routeSource, /if \(result\.changed\) \{[\s\S]*?notifyUser/)
 check('all five Admin actions route through one canonical RPC without direct assignment DML or the legacy create RPC')
 
-for (const operation of [
+const expectedClientOperations = [
   'assign_coach_to_round',
   'resolve_unassigned_round',
   'mark_attendance',
   'replace_coach_for_past_round',
   'move_learner_to_existing_coach_group',
-]) assert.ok(clientSource.includes(`'${operation}'`), `client lifecycle missing ${operation}`)
+]
+const executableClientOperations = Array.from(clientSource.matchAll(
+  /runRetrospectiveMutation\(\{\s*operation:\s*'([^']+)'/g,
+), (match) => match[1])
+for (const operation of expectedClientOperations) {
+  assert.ok(
+    executableClientOperations.includes(operation),
+    `client lifecycle has no executable runRetrospectiveMutation call for ${operation}`,
+  )
+}
 for (const required of [
   'runRetrospectiveMutation',
   'inFlightTargetKeysRef',

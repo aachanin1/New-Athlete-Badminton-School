@@ -800,6 +800,228 @@ test('Admin Makeup retrospective completion is guarded, visible, canonical, and 
   }
 })
 
+test('Admin Makeup executable unassigned-round resolution is guarded, canonical, replay-safe, and retains exact inputs', async ({ page }, testInfo) => {
+  const admin = createLocalAdmin()
+  const fixture = readBookingFixture()
+  const resolveCoachEmail = `admin-makeup-resolve-${randomUUID()}@example.com`
+  const { data: resolveCoach, error: resolveCoachError } = await admin.auth.admin.createUser({
+    email: resolveCoachEmail,
+    password: TEST_ADMIN_ACCOUNT.password,
+    email_confirm: true,
+    user_metadata: { full_name: 'Resolve Feedback Fixture Coach' },
+  })
+  assertNoError(resolveCoachError, 'create Admin Makeup resolve coach')
+  if (!resolveCoach.user) throw new Error('create Admin Makeup resolve coach: user missing')
+  const resolveCoachId = resolveCoach.user.id
+  assertNoError((await admin.from('profiles').update({
+    full_name: 'Resolve Feedback Fixture Coach',
+    role: 'head_coach',
+  }).eq('id', resolveCoachId)).error, 'update Admin Makeup resolve coach')
+  assertNoError((await admin.from('coach_branches').insert({
+    coach_id: resolveCoachId,
+    branch_id: fixture.branchId,
+  })).error, 'insert Admin Makeup resolve coach branch')
+  assertNoError((await admin.from('coach_assignment_group_students').insert({
+    group_id: IDS.unassignedGroup,
+    booking_session_id: IDS.sessions[2],
+    student_id: IDS.children[2],
+    student_type: 'child',
+  })).error, 'complete Admin Makeup resolve group roster')
+
+  const resolveSessionIds = [IDS.sessions[1], IDS.sessions[2]]
+  const expectedAttendance = {
+    [IDS.sessions[1]]: 'present',
+    [IDS.sessions[2]]: 'absent',
+  }
+  let phase: 'conflict' | 'changed' | 'replay' = 'conflict'
+  let phasePatchCount = 0
+  let releasePatch = () => {}
+  let releaseRefresh = () => {}
+  let refreshBlocked = false
+  let successReturned = false
+  const successResponse = (idempotentReplay: boolean) => ({
+    success: true,
+    changed: !idempotentReplay,
+    idempotentReplay,
+    operation: 'resolve_unassigned_round',
+    group_id: IDS.unassignedGroup,
+    result: {
+      changed: !idempotentReplay,
+      idempotentReplay,
+      operation: 'resolve_unassigned_round',
+      scheduleSlotId: IDS.slot,
+      groupId: IDS.unassignedGroup,
+      targetSessionIds: resolveSessionIds,
+      after: {
+        groups: [
+          { id: IDS.validGroup, coach_id: coachUserId, name: 'Fixture Assigned Group' },
+          { id: IDS.unassignedGroup, coach_id: resolveCoachId, name: 'ยังไม่จัดกลุ่ม' },
+        ],
+        memberships: [
+          { id: 'resolve-member-assigned', group_id: IDS.validGroup, booking_session_id: IDS.sessions[0] },
+          { id: 'resolve-member-target', group_id: IDS.unassignedGroup, booking_session_id: IDS.sessions[1] },
+          { id: 'resolve-member-target-2', group_id: IDS.unassignedGroup, booking_session_id: IDS.sessions[2] },
+        ],
+        attendance: [
+          { booking_session_id: IDS.sessions[1], status: 'present' },
+          { booking_session_id: IDS.sessions[2], status: 'absent' },
+        ],
+        sessionStatuses: [
+          { id: IDS.sessions[1], status: 'completed' },
+          { id: IDS.sessions[2], status: 'absent' },
+        ],
+      },
+    },
+  })
+
+  await page.route('**/api/admin/makeup', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue()
+    const body = route.request().postDataJSON() as {
+      action?: string
+      session_ids?: string[]
+      coach_id?: string
+      attendance_by_session_id?: Record<string, string>
+    }
+    if (body.action !== 'resolve_unassigned_round' || !resolveSessionIds.every((id) => body.session_ids?.includes(id))) {
+      return route.continue()
+    }
+    phasePatchCount += 1
+    expect(body.coach_id).toBe(resolveCoachId)
+    expect(body.attendance_by_session_id).toEqual(expectedAttendance)
+
+    if (phase === 'conflict') {
+      await route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'ข้อมูลรายชื่อรอบเรียนเปลี่ยนแล้ว กรุณาตรวจสอบอีกครั้ง' }),
+      })
+      return
+    }
+
+    await new Promise<void>((resolve) => { releasePatch = resolve })
+    successReturned = true
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(successResponse(phase === 'replay')),
+    })
+  })
+
+  await page.route('**/admin/makeup?**', async (route) => {
+    if (!successReturned || route.request().headers().rsc !== '1') return route.continue()
+    refreshBlocked = true
+    await new Promise<void>((resolve) => { releaseRefresh = resolve })
+    await route.continue()
+  })
+
+  const openResolutionDialog = async () => {
+    await page.getByRole('button', { name: 'บันทึกโค้ชและเช็คชื่อย้อนหลัง', exact: true }).first().click()
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('button[role="combobox"]').nth(1).click()
+    await page.getByRole('option', { name: /Resolve Feedback Fixture Coach/ }).click()
+    await dialog.getByTestId(`unassigned-session-${IDS.sessions[1]}`).getByRole('combobox').click()
+    await page.getByRole('option', { name: 'มาเรียน', exact: true }).click()
+    await dialog.getByTestId(`unassigned-session-${IDS.sessions[2]}`).getByRole('combobox').click()
+    await page.getByRole('option', { name: 'ขาดเรียน', exact: true }).click()
+    await dialog.getByPlaceholder(/หัวหน้าโค้ชลืมมอบหมาย/).fill('ทดสอบ resolve completion feedback แบบ local เท่านั้น')
+    return {
+      dialog,
+      submit: dialog.getByRole('button', { name: 'บันทึกโค้ชและเช็คชื่อทั้งรอบ', exact: true }),
+      reason: dialog.getByPlaceholder(/หัวหน้าโค้ชลืมมอบหมาย/),
+      coach: dialog.locator('button[role="combobox"]').nth(1),
+      firstAttendance: dialog.getByTestId(`unassigned-session-${IDS.sessions[1]}`).getByRole('combobox'),
+      secondAttendance: dialog.getByTestId(`unassigned-session-${IDS.sessions[2]}`).getByRole('combobox'),
+    }
+  }
+
+  try {
+    await loginAsAdmin(page)
+    await page.goto(`/admin/makeup?session=${IDS.sessions[1]}`)
+    await expect(page.getByRole('heading', { name: 'วันชดเชย', exact: true })).toBeVisible()
+
+    let controls = await openResolutionDialog()
+    await controls.submit.click()
+    await expect(controls.dialog.getByText('ข้อมูลรายชื่อรอบเรียนเปลี่ยนแล้ว กรุณาตรวจสอบอีกครั้ง', { exact: true })).toBeVisible()
+    await expect(controls.reason).toHaveValue('ทดสอบ resolve completion feedback แบบ local เท่านั้น')
+    await expect(controls.coach).toContainText('Resolve Feedback Fixture Coach')
+    await expect(controls.firstAttendance).toContainText('มาเรียน')
+    await expect(controls.secondAttendance).toContainText('ขาดเรียน')
+    await expect(controls.submit).toBeEnabled()
+    await expect(page.getByText(/บันทึกโค้ชและเช็คชื่อย้อนหลังทั้งรอบสำเร็จ/)).toHaveCount(0)
+
+    phase = 'changed'
+    phasePatchCount = 0
+    await controls.submit.evaluate((button: HTMLButtonElement) => {
+      button.click()
+      button.click()
+    })
+    await expect(page.getByText('กำลังบันทึกข้อมูล กรุณารอสักครู่', { exact: true })).toBeVisible()
+    await expect(controls.submit).toBeDisabled()
+    await expect(controls.reason).toBeDisabled()
+    await expect(controls.firstAttendance).toBeDisabled()
+    expect(phasePatchCount).toBe(1)
+    await testInfo.attach('admin-makeup-resolve-desktop-pending', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+
+    releasePatch()
+    await expect(page.getByText('บันทึกโค้ชและเช็คชื่อย้อนหลังทั้งรอบสำเร็จ', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Resolve Feedback Fixture Coach', { exact: true }).first()).toBeVisible()
+    await expect(page.getByTestId(`review-session-${IDS.sessions[1]}`).getByText('มาเรียน', { exact: true })).toBeVisible()
+    await expect(page.getByTestId(`review-session-${IDS.sessions[2]}`).getByText('ขาดเรียน', { exact: true })).toBeVisible()
+    const resolvedTargetCard = page.getByTestId(`review-session-${IDS.sessions[1]}`)
+      .locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]')
+    await expect(resolvedTargetCard.getByRole('button', { name: 'บันทึกโค้ชและเช็คชื่อย้อนหลัง', exact: true })).toHaveCount(0)
+    await expect.poll(() => refreshBlocked).toBe(true)
+    await testInfo.attach('admin-makeup-resolve-desktop-success-before-refresh', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+    releaseRefresh()
+    await expect(page.getByText('Resolve Feedback Fixture Coach', { exact: true }).first()).toBeVisible()
+    await expect(page.getByTestId(`review-session-${IDS.sessions[1]}`).getByText('มาเรียน', { exact: true })).toBeVisible()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    phase = 'replay'
+    phasePatchCount = 0
+    successReturned = false
+    releasePatch = () => {}
+    releaseRefresh = () => {}
+    refreshBlocked = false
+    await page.reload()
+    controls = await openResolutionDialog()
+    await controls.submit.evaluate((button: HTMLButtonElement) => {
+      button.click()
+      button.click()
+    })
+    await expect(page.getByText('กำลังบันทึกข้อมูล กรุณารอสักครู่', { exact: true })).toBeVisible()
+    expect(phasePatchCount).toBe(1)
+    releasePatch()
+    await expect(page.getByText('บันทึกโค้ชและเช็คชื่อย้อนหลังทั้งรอบสำเร็จ (ข้อมูลเป็นปัจจุบันอยู่แล้ว)', { exact: true }).first()).toBeVisible()
+    await expect(page.getByTestId(`review-session-${IDS.sessions[1]}`).getByText('มาเรียน', { exact: true })).toBeVisible()
+    await expect(page.getByTestId(`review-session-${IDS.sessions[2]}`).getByText('ขาดเรียน', { exact: true })).toBeVisible()
+    await testInfo.attach('admin-makeup-resolve-mobile-replay-success', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    })
+    await expect.poll(() => refreshBlocked).toBe(true)
+    releaseRefresh()
+  } finally {
+    releasePatch()
+    releaseRefresh()
+    if (!page.isClosed()) {
+      await page.unroute('**/api/admin/makeup')
+      await page.unroute('**/admin/makeup?**')
+    }
+    await admin.from('coach_assignment_group_students')
+      .delete()
+      .eq('group_id', IDS.unassignedGroup)
+      .eq('booking_session_id', IDS.sessions[2])
+    await admin.auth.admin.deleteUser(resolveCoachId)
+  }
+})
+
 test('referenced schedule-template DELETE deactivates while unreferenced DELETE remains physical', async ({ page }) => {
   await loginAsAdmin(page)
   const admin = createLocalAdmin()

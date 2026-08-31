@@ -47,7 +47,7 @@ type ReviewAction =
   | 'request_coach_evidence'
   | 'close_review'
   | 'return_entitlement'
-type UnassignedRoundMode = 'taught' | 'return_entitlement' | 'close_review'
+type UnassignedRoundMode = 'assign_only' | 'taught' | 'return_entitlement' | 'close_review'
 type AdminRetrospectiveOperation =
   | 'assign_coach_to_round'
   | 'resolve_unassigned_round'
@@ -428,8 +428,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [reviewCoachId, setReviewCoachId] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [unassignedGroup, setUnassignedGroup] = useState<ReviewSessionGroup | null>(null)
-  const [unassignedMode, setUnassignedMode] = useState<UnassignedRoundMode>('taught')
+  const [unassignedMode, setUnassignedMode] = useState<UnassignedRoundMode>('assign_only')
   const [unassignedCoachId, setUnassignedCoachId] = useState('')
+  const [unassignedAttendance, setUnassignedAttendance] = useState<Record<string, AttendanceStatus | ''>>({})
   const [unassignedReason, setUnassignedReason] = useState('')
   const [unassignedSubmitting, setUnassignedSubmitting] = useState(false)
   const [replacementGroup, setReplacementGroup] = useState<ReviewSessionGroup | null>(null)
@@ -1148,10 +1149,21 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     }
   }
 
-  const openUnassignedRoundDialog = (group: ReviewSessionGroup) => {
+  const openUnassignedRoundDialog = (
+    group: ReviewSessionGroup,
+    initialMode: Extract<UnassignedRoundMode, 'assign_only' | 'taught'> = 'assign_only'
+  ) => {
+    const attendanceMap: Record<string, AttendanceStatus | ''> = {}
+    group.sessions
+      .filter(isAttendanceReviewSession)
+      .forEach((session) => {
+        attendanceMap[session.id] = ''
+      })
+
     setUnassignedGroup(group)
-    setUnassignedMode('taught')
+    setUnassignedMode(initialMode)
     setUnassignedCoachId('')
+    setUnassignedAttendance(attendanceMap)
     setUnassignedReason('')
     setError(null)
   }
@@ -1357,12 +1369,22 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       return
     }
 
-    if (unassignedMode === 'taught' && !unassignedCoachId) {
+    const assignsCoach = unassignedMode === 'assign_only' || unassignedMode === 'taught'
+
+    if (assignsCoach && !unassignedCoachId) {
       setError('กรุณาเลือกโค้ชที่จะรับผิดชอบรอบนี้ก่อนมอบหมาย')
       return
     }
 
     if (unassignedMode === 'taught') {
+      const missingSessions = targetSessions.filter((session) => !unassignedAttendance[session.id])
+      if (missingSessions.length > 0) {
+        setError('กรุณาเลือกสถานะเช็คชื่อให้ครบทุกคนในรอบนี้')
+        return
+      }
+    }
+
+    if (assignsCoach) {
       const existingCoachGroup = targetSessions
         .flatMap((session) => getSameSlotCoachGroups(session))
         .find((group) => group.coachId === unassignedCoachId)
@@ -1377,7 +1399,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     setError(null)
 
     try {
-      if (unassignedMode === 'taught') {
+      if (unassignedMode === 'assign_only') {
         const sessionIds = targetSessions.map((session) => session.id)
         const succeeded = await runRetrospectiveMutation({
           operation: 'assign_coach_to_round',
@@ -1387,6 +1409,29 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           intendedCoachId: unassignedCoachId,
           failureMessage: 'มอบหมายโค้ชให้รอบนี้ไม่สำเร็จ',
           successMessage: 'มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ',
+        })
+        if (!succeeded) return
+        setUnassignedGroup(null)
+        return
+      } else if (unassignedMode === 'taught') {
+        const sessionIds = targetSessions.map((session) => session.id)
+        const attendanceBySessionId = Object.fromEntries(sessionIds.map((sessionId) => [
+          sessionId,
+          unassignedAttendance[sessionId],
+        ]))
+        const succeeded = await runRetrospectiveMutation({
+          operation: 'resolve_unassigned_round',
+          targetIdentity: `resolve:${unassignedGroup.key}`,
+          targetSessionIds: sessionIds,
+          body: {
+            session_ids: sessionIds,
+            coach_id: unassignedCoachId,
+            attendance_by_session_id: attendanceBySessionId,
+            reason,
+          },
+          intendedCoachId: unassignedCoachId,
+          failureMessage: 'บันทึกโค้ชและเช็คชื่อย้อนหลังทั้งรอบไม่สำเร็จ',
+          successMessage: 'บันทึกโค้ชและเช็คชื่อย้อนหลังทั้งรอบสำเร็จ',
         })
         if (!succeeded) return
         setUnassignedGroup(null)
@@ -1426,10 +1471,15 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const roundAttendanceComplete = roundAttendanceTargetSessions.length > 0 &&
     roundAttendanceTargetSessions.every((session) => Boolean(roundAttendance[session.id]))
   const unassignedTargetSessions = unassignedGroup?.sessions.filter(isAttendanceReviewSession) || []
+  const unassignedTargetBusy = isTargetBusy(unassignedTargetSessions.map((session) => session.id))
+  const unassignedAssignsCoach = unassignedMode === 'assign_only' || unassignedMode === 'taught'
+  const unassignedAttendanceComplete = unassignedTargetSessions.length > 0 &&
+    unassignedTargetSessions.every((session) => Boolean(unassignedAttendance[session.id]))
   const unassignedSaveDisabled = unassignedSubmitting ||
-    isTargetBusy(unassignedTargetSessions.map((session) => session.id)) ||
+    unassignedTargetBusy ||
     !unassignedReason.trim() ||
-    (unassignedMode === 'taught' && !unassignedCoachId)
+    (unassignedAssignsCoach && !unassignedCoachId) ||
+    (unassignedMode === 'taught' && !unassignedAttendanceComplete)
   const replacementTargetSessions = replacementGroup?.sessions.filter(isReviewOrEvidenceSession) || []
   const replacementSaveDisabled = replacementSubmitting ||
     isTargetBusy(replacementTargetSessions.map((session) => session.id)) ||
@@ -1721,7 +1771,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                               size="sm"
                               className="h-9 bg-[#2748bf] text-white hover:bg-[#153c85]"
                               disabled={groupMutationBusy}
-                              onClick={() => openUnassignedRoundDialog(group)}
+                              onClick={() => openUnassignedRoundDialog(group, 'assign_only')}
                             >
                               มอบหมายโค้ชใหม่
                             </Button>
@@ -1735,6 +1785,20 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                                 </p>
                               </>
                             )}
+                          </div>
+                          <div className="max-w-64 space-y-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-9 border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                              disabled={groupMutationBusy}
+                              onClick={() => openUnassignedRoundDialog(group, 'taught')}
+                            >
+                              บันทึกโค้ชและเช็คชื่อย้อนหลัง
+                            </Button>
+                            <p className="text-xs text-blue-700">
+                              ใช้เมื่อสอนจริงและต้องเลือก attendance ให้ครบทั้งรอบ
+                            </p>
                           </div>
                         </>
                       ) : (
@@ -1798,13 +1862,18 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
                   <div className="divide-y divide-gray-100">
                     {group.sessions.map((session) => (
-                      <div key={session.id} className="grid gap-3 p-3 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                      <div key={session.id} data-testid={`review-session-${session.id}`} className="grid gap-3 p-3 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-semibold text-gray-950">{session.learner_name}</span>
                             {isCoachEvidenceReviewSession(session) ? (
                               <>
                                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700">บันทึก attendance แล้ว</Badge>
+                                {session.attendance_status && (
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                    {getAttendanceStatusLabel(session.attendance_status)}
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className="bg-amber-50 text-amber-700">ยังไม่มีหลักฐานโค้ช</Badge>
                               </>
                             ) : (
@@ -2574,7 +2643,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       <Dialog
         open={Boolean(unassignedGroup)}
         onOpenChange={(open) => {
-          if (!open && !unassignedSubmitting) setUnassignedGroup(null)
+          if (!open && !unassignedSubmitting && !unassignedTargetBusy) setUnassignedGroup(null)
         }}
       >
         <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
@@ -2603,23 +2672,32 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
               <div>
                 <label className="text-sm font-semibold text-gray-900">ผลที่ต้องการปิดรอบนี้</label>
-                <Select value={unassignedMode} onValueChange={(value) => setUnassignedMode(value as UnassignedRoundMode)}>
+                <Select
+                  value={unassignedMode}
+                  onValueChange={(value) => setUnassignedMode(value as UnassignedRoundMode)}
+                  disabled={unassignedSubmitting || unassignedTargetBusy}
+                >
                   <SelectTrigger className="mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="taught">สอนจริง แต่ลืมมอบหมาย/เช็คชื่อ</SelectItem>
+                    <SelectItem value="assign_only">มอบหมายโค้ชอย่างเดียว (ยังไม่เช็คชื่อ)</SelectItem>
+                    <SelectItem value="taught">สอนจริงและบันทึกเช็คชื่อทั้งรอบ</SelectItem>
                     <SelectItem value="return_entitlement">คืนสิทธิ์ทั้งรอบ</SelectItem>
                     <SelectItem value="close_review">ปิดเคสทั้งรอบ ไม่สร้างสิทธิ์ชดเชย</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {unassignedMode === 'taught' && (
+              {unassignedAssignsCoach && (
                 <>
                   <div>
                     <label className="text-sm font-semibold text-gray-900">โค้ชที่สอนจริง</label>
-                    <Select value={unassignedCoachId} onValueChange={setUnassignedCoachId}>
+                    <Select
+                      value={unassignedCoachId}
+                      onValueChange={setUnassignedCoachId}
+                      disabled={unassignedSubmitting || unassignedTargetBusy}
+                    >
                       <SelectTrigger className="mt-2">
                         <SelectValue placeholder="เลือกโค้ชที่สอนจริงในรอบนี้" />
                       </SelectTrigger>
@@ -2632,7 +2710,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                       </SelectContent>
                     </Select>
                     <p className="mt-1 text-xs text-gray-500">
-                      ระบบจะสร้างกลุ่ม assignment ย้อนหลังให้ทั้งรอบนี้เท่านั้น ยังไม่เขียน attendance และยังไม่เปลี่ยนสถานะรอบเรียน
+                      {unassignedMode === 'assign_only'
+                        ? 'ระบบจะมอบหมายโค้ชย้อนหลังให้ทั้งรอบนี้เท่านั้น ยังไม่เขียน attendance และยังไม่เปลี่ยนสถานะรอบเรียน'
+                        : 'ระบบจะมอบหมายโค้ชและบันทึก attendance ตามสถานะที่เลือกให้ครบทุกคนใน transaction เดียว'}
                     </p>
                   </div>
 
@@ -2642,15 +2722,38 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                     </div>
                     <div className="max-h-72 divide-y divide-gray-100 overflow-y-auto">
                       {unassignedTargetSessions.map((session) => (
-                        <div key={session.id} className="px-3 py-3">
+                        <div key={session.id} data-testid={`unassigned-session-${session.id}`} className="px-3 py-3">
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-950">{session.learner_name}</p>
                             <p className="mt-1 text-xs text-gray-500">
                               ผู้ปกครอง/ผู้ใช้: {session.user_name}
                             </p>
-                            <p className="mt-1 text-xs text-blue-700">
-                              รอให้โค้ชตรวจสอบและบันทึก attendance หลังได้รับมอบหมายรอบนี้
-                            </p>
+                            {unassignedMode === 'taught' ? (
+                              <div className="mt-2">
+                                <label className="text-xs font-medium text-gray-700">สถานะเช็คชื่อ</label>
+                                <Select
+                                  value={unassignedAttendance[session.id] || ''}
+                                  onValueChange={(value) => setUnassignedAttendance((current) => ({
+                                    ...current,
+                                    [session.id]: value as AttendanceStatus,
+                                  }))}
+                                  disabled={unassignedSubmitting || unassignedTargetBusy}
+                                >
+                                  <SelectTrigger className="mt-1 h-9">
+                                    <SelectValue placeholder="เลือกสถานะ มาเรียน/มาสาย/ขาดเรียน" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="present">มาเรียน</SelectItem>
+                                    <SelectItem value="late">มาสาย</SelectItem>
+                                    <SelectItem value="absent">ขาดเรียน</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-xs text-blue-700">
+                                รอให้โค้ชตรวจสอบและบันทึก attendance หลังได้รับมอบหมายรอบนี้
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -2677,6 +2780,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   className="mt-2 min-h-24"
                   value={unassignedReason}
                   onChange={(event) => setUnassignedReason(event.target.value)}
+                  disabled={unassignedSubmitting || unassignedTargetBusy}
                   placeholder="เช่น หัวหน้าโค้ชลืมมอบหมาย แต่มีการสอนจริง / คืนสิทธิ์ทั้งรอบเพราะไม่ได้เปิดสอน / ปิดเคสตามการตรวจสอบของ Admin"
                 />
                 <p className="mt-1 text-xs text-gray-500">จำเป็นสำหรับ audit log เพื่อให้ตรวจสอบย้อนหลังได้</p>
@@ -2686,7 +2790,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={unassignedSubmitting}
+                  disabled={unassignedSubmitting || unassignedTargetBusy}
                   onClick={() => setUnassignedGroup(null)}
                 >
                   ยกเลิก
@@ -2699,8 +2803,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 >
                   {unassignedSubmitting
                     ? 'กำลังบันทึก...'
-                    : unassignedMode === 'taught'
+                    : unassignedMode === 'assign_only'
                       ? 'มอบหมายโค้ชให้รอบนี้'
+                      : unassignedMode === 'taught'
+                        ? 'บันทึกโค้ชและเช็คชื่อทั้งรอบ'
                       : 'บันทึกผลทั้งรอบ'}
                 </Button>
               </div>
