@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-28
+Last updated: 2026-08-31
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,17 +9,23 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **NONE — AWAITING OWNER SELECTION**.
+Status: **PERMANENT ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY — READY FOR
+OWNER UAT**.
 
-- The schedule-slot template integrity and Aug 30–31 Wallet recovery task is
-  **TASK DONE** after Owner UAT PASS, exact-artifact Promotion, and Production
-  verification.
-- Owner registered **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE
-  HARDENING** as Parking Lot priority `1`, but did not select it as the Active
-  Task. Exactly seven candidates are registered; none is authorized to start.
-  Next action: Owner selects a candidate and approves a separate implementation
-  Scope Contract; do not start Product/Production audit or queued work
-  automatically.
+- Exact staged Production artifact `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o` is READY
+  at `https://new-athlete-badminton-school-j28latjgp-aachanin1s-projects.vercel.app`
+  from Application `c0cb014de826e5bc4aec8cc6900fdb41765f2c9f`; aliases `0` and Promotion **No**.
+- Additive migration `20260831060105_admin_retrospective_assignment_integrity`
+  is applied locally and to linked Production exactly once. No customer row was
+  repaired or mutated; the dated NULL-group inventory remains `27 / 18 / 31`
+  (all populated past) with `9` populated mixed slots.
+- Required local, database, E2E, build, staged smoke, runtime-log, security, and
+  diff gates passed. Owner UAT and Developer post-UAT read-only reconciliation
+  remain pending.
+- Next action: Owner performs exactly one authorized assignment on the staged
+  artifact, then Developer reconciles the protected deltas. Do not Promote,
+  rebuild, redeploy, change aliases, substitute an artifact, or repair data before
+  explicit Owner PASS and successful reconciliation.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 

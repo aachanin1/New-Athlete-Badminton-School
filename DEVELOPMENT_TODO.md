@@ -18230,3 +18230,67 @@ Owner Selection**.
 | Documentation Registration Task Done | **Yes after commit/push verification** |
 | Future Product Task | **Not started; not authorized** |
 | Next Action | **Owner later selects a candidate and approves a separate implementation Scope Contract** |
+
+## 2026-08-31 — Permanent Admin Retrospective Coach Assignment Integrity — READY FOR OWNER UAT
+
+State observed at this closeout: Owner approved continuous delivery through an
+exact no-alias staged Production artifact, but explicitly reserved the customer
+assignment mutation and Promotion. Application Source
+`c0cb014de826e5bc4aec8cc6900fdb41765f2c9f` / tree
+`67f4fc54f156bfea9dff306a4333a4160a5e30ff` is committed, pushed, migrated, and
+staged as `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o`; Owner UAT is pending.
+
+### Proven cause and implemented contract
+
+- The route discarded NULL coach IDs when reading an otherwise persisted exact
+  group. It then attempted legacy exact-group creation for sessions that already
+  had memberships, so the intentionally retained unique session constraint
+  rejected the duplicate and surfaced as an untyped HTTP `500`.
+- The five Admin actions previously used different group/member/legacy/activity/
+  Attendance sequences. The permanent boundary is
+  `admin_apply_retrospective_assignment_transition_v1`, a service-role-only
+  `SECURITY INVOKER` function with pinned `public, pg_temp` search path.
+- Transition matrix: no target creates one exact assigned group; one exact
+  roster-matching NULL group is assigned in place; a mixed slot mutates only that
+  explicit group; an assigned target requires Replace or Move routing; partial,
+  spanning, multiple, identity-mismatched, stale, or raced evidence fails closed.
+- Lock order is deterministic: slot advisory lock, schedule slot, submitted
+  sessions, applicable bookings, groups, memberships, then Attendance. Existing
+  conflict/reservation triggers remain the collision boundary.
+- Before/after invariants preserve unrelated group and membership identity,
+  duplicate memberships `0`, unintended empty groups `0`, assign-only Attendance
+  and session-status delta `0`, and protected financial/Wallet delta `0`.
+- Stable roster/lifecycle/duplicate/stale/coach-conflict prefixes map to Thai
+  `409` responses. Exact replay returns `changed=false` and
+  `idempotentReplay=true`, with no duplicate activity or notification.
+- Core group, membership, legacy compatibility, reservation, activity, and the
+  action-authorized Attendance/session-status writes commit in one transaction.
+  Notifications remain after-transaction and run only for `changed=true`.
+
+### Verification and release evidence
+
+| Field | State observed at this closeout |
+| --- | --- |
+| Functional / Test / Migration / Test Config / Documentation | `3 / 2 / 1 / 1 / 3` |
+| Dependency / Lockfile / Environment | `0 / 0 / 0` |
+| Direct-dependency addition | No path addition. The one migration adds an explicit retrospective-preserved-name marker because exact historical group identity/name must survive assignment while normal new-group naming remains guarded |
+| Scope Expansion / Scope Breach | **None / None** |
+| Bounded Corrections | `3`: fixture enum, unused SQL variable, and one safe migration constraint-validation correction after the first remote transaction rolled back. No same failure survived two corrections |
+| Deterministic Integrity Matrix | `37/37`, including legacy duplicate-key reproduction, exact NULL reuse, replay, mixed groups, conflicts, concurrency, and seven injected core-write failures with zero residue |
+| Protected Regressions | Admin assignment `39/39`; conflict `22/22`; lifecycle `55/55`; resolution `33/33`; teaching hours `20/20`; payroll `14/14`; Wallet `45/45`; Admin E2E `15/15`; Booking E2E `13/13` |
+| Static / Build Gates | TypeScript, zero-warning lint, mojibake `265`, Production build `94/94`, prod readiness, diff checks, and clean post-build root/health/static passed |
+| Local Migration | Clean reset passed; security/grant/search-path/constraint metadata verified; DB lint has only two pre-existing Lesson Wallet temporary-table analyzer findings |
+| Commit / Push | `4c6954017250dddbf2c6c9d08c4a07fd46719633` plus bounded migration correction `c0cb014de826e5bc4aec8cc6900fdb41765f2c9f`; both pushed non-force on the existing upstream |
+| Production Migration | Applied exactly once after linked dry-run; pending `0`. First apply failed transactionally before migration/data commit; retry succeeded after restoring `NOT VALID` historical-row compatibility |
+| Production Inventory | Fresh dated read-only evidence `27` NULL groups, `18` populated, `31` memberships, every populated group past, `9` populated mixed slots; preservation marker count `0`; no bulk repair and no inference that 18 incidents occurred |
+| Advisors | Security/performance `30/333`, unchanged and with no task finding |
+| Staged Artifact | `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o`; exact SHA/tree above; `production/READY`, region `icn1`, build `bld_7d9z81zx8`, aliases `0` |
+| Staged Verification | Root/health/login/static `200`; Admin redirect `307`; anonymous mutation `401`; build/runtime error/fatal/5xx `0/0/0` |
+| Production Artifact / Promotion | Existing `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` retains all four Production aliases; Promotion **No** |
+| Owner UAT / Controlled Write UAT | **Pending / Not run by Developer** |
+| Feature / Allowlist | **Unchanged / Unchanged** |
+| Production Data Changed / Data Repaired | **No customer/business data / No**. Additive schema and migration-history state changed only |
+| Customer / Financial Impact | **None yet / None** |
+| Known limitation | Two historical Private attendance identity rows remain unrepaired/out of scope; Owner UAT and post-UAT reconciliation remain |
+| Task Done | **No — READY FOR OWNER UAT** |
+| Next Action | Owner performs one exact assignment on the staged artifact; Developer performs read-only reconciliation; Promote only this exact artifact after explicit PASS |
