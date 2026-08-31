@@ -9,23 +9,27 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **PERMANENT ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY — READY FOR
-OWNER UAT**.
+Status: **PERMANENT ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY — CORRECTIVE
+ADMIN MAKEUP COMPLETION FEEDBACK — READY FOR OWNER UAT**.
 
-- Exact staged Production artifact `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o` is READY
-  at `https://new-athlete-badminton-school-j28latjgp-aachanin1s-projects.vercel.app`
-  from Application `c0cb014de826e5bc4aec8cc6900fdb41765f2c9f`; aliases `0` and Promotion **No**.
-- Additive migration `20260831060105_admin_retrospective_assignment_integrity`
-  is applied locally and to linked Production exactly once. No customer row was
-  repaired or mutated; the dated NULL-group inventory remains `27 / 18 / 31`
-  (all populated past) with `9` populated mixed slots.
-- Required local, database, E2E, build, staged smoke, runtime-log, security, and
-  diff gates passed. Owner UAT and Developer post-UAT read-only reconciliation
-  remain pending.
-- Next action: Owner performs exactly one authorized assignment on the staged
-  artifact, then Developer reconciles the protected deltas. Do not Promote,
-  rebuild, redeploy, change aliases, substitute an artifact, or repair data before
-  explicit Owner PASS and successful reconciliation.
+- Old artifact `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o` passed backend integrity but
+  failed completion-feedback UX and overall Owner UAT. Owner performed the one
+  authorized assignment; Production data therefore changed legitimately, no
+  repair occurred, and that artifact is permanently ineligible for Promotion.
+- New exact Production-target artifact `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV` is
+  `READY` at
+  `https://new-athlete-badminton-school-baoiekivo-aachanin1s-projects.vercel.app`
+  from Application `3954094c9c22faee90a74099bb64987005e432c3`; aliases `0` and
+  Promotion **No**. All technical, E2E, visual, build, smoke, log, and diff gates
+  passed.
+- Current Production aliases remain on prior artifact
+  `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`. Corrective Migration, Environment,
+  feature, allowlist, dependency, and lockfile changes are all `0`.
+- Next action: Owner selects one fresh eligible candidate and confirms the actual
+  coach, then performs exactly one assignment on the new staged artifact.
+  Developer performs read-only reconciliation afterward. Do not reuse/reverse/
+  replay the completed group; do not Promote, rebuild, redeploy, change aliases,
+  or perform Developer data repair/write before explicit Owner PASS.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 

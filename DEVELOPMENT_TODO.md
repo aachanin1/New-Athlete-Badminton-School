@@ -18294,3 +18294,141 @@ staged as `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o`; Owner UAT is pending.
 | Known limitation | Two historical Private attendance identity rows remain unrepaired/out of scope; Owner UAT and post-UAT reconciliation remain |
 | Task Done | **No — READY FOR OWNER UAT** |
 | Next Action | Owner performs one exact assignment on the staged artifact; Developer performs read-only reconciliation; Promote only this exact artifact after explicit PASS |
+
+## 2026-08-31 — Admin Makeup Completion Feedback Corrective — READY FOR OWNER UAT
+
+State observed at this corrective handoff: the Active Task remains **PERMANENT
+ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY**. The first staged artifact proved
+the permanent database transition but failed Owner completion-feedback UAT. The
+corrective Application `3954094c9c22faee90a74099bb64987005e432c3`, tree
+`42edd604cb7a53ffef1b4cbc4df706b14308c145`, is committed, pushed, and staged as
+exact no-alias Production-target artifact `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV`.
+Promotion remains prohibited pending a new Owner PASS and Developer read-only
+post-UAT reconciliation.
+
+### Old artifact UAT and completed write reconciliation
+
+- Owner used old artifact `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o`, Application
+  `c0cb014de826e5bc4aec8cc6900fdb41765f2c9f`, exactly once. Backend integrity
+  UAT **PASS**; completion-feedback UX **FAIL**; overall Owner UAT **FAIL**. The
+  artifact has aliases `0` and is permanently ineligible for Promotion.
+- `PATCH /api/admin/makeup` returned `200`; the follow-on Admin Makeup GET proves
+  `router.refresh()` ran, while the Owner observed no durable success signal and
+  had to refresh manually. Bounded runtime error/fatal/5xx counts were `0/0/0`.
+- Group `dd41cae4-1b60-4b4f-a84f-a05fd954f29e` retained name `ชุดเตรียมนักกีฬา
+  ชุด C`, slot `888604fe-b182-4beb-a2e8-11f25fb9a783`, group identity, and marker
+  `false`; its coach is now `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`.
+- Exact preserved member/session pairs are:
+  `cf42d674-50f4-4ff9-9c62-ccd66ccb1e7f` /
+  `79a712c3-d957-4623-b864-beeb0377bca1`;
+  `78e9ae35-fcbf-4a3c-8711-a149e0b76c72` /
+  `b82dd3a3-4313-4a2c-b328-d82e7e508a38`;
+  `76b8f4d9-0c7f-4b39-b0f3-977bca10b8ea` /
+  `b84bd388-bda3-466b-9ac1-938ef8c72de0`; and
+  `555839a8-dc69-4ba0-a07a-7ce173b3cb29` /
+  `dfd01ed0-4522-4524-9098-c4787d545544`.
+- Exactly one legacy assignment
+  `15f146e5-efc6-4e87-b7da-8dc7b507ea31`, one activity
+  `202b8aeb-f23e-4bac-9211-10c984c60659` with action
+  `admin_retrospective_assignment_assign_coach_to_round`, and one coach
+  notification `45ed0d21-7ae1-4e35-bc4e-166250b20f04` exist for this transition.
+  Historical exact reservation count `0` is expected because reservation
+  protection applies to current/future rounds.
+- Target Attendance count/delta is `0`; all four booking sessions remain
+  `scheduled`; duplicate/missing member, orphan, and empty-group anomalies are
+  `0`. Available before/after evidence shows Payment/Pricing/Coupon/Allocation/
+  Ledger/Finance/Wallet deltas `0`. No assignment was repeated, reversed,
+  replaced, or repaired by Developer.
+- Production Data Changed is **Yes**, solely from the authorized Owner UAT
+  assignment. Data Repaired is **No**. Operational impact is one legitimate
+  historical coach assignment and one notification to that coach; Attendance,
+  session status, customer entitlement, and financial impact are **None**.
+- Fresh post-UAT read-only inventory is `26` NULL-coach groups, `17` populated,
+  `27` memberships, all populated past, `9` mixed slots, and preservation markers
+  `0`. These dated shapes do not imply bulk repair or confirmed incidents.
+
+### Corrective cause, implementation, and scope
+
+- Confirmed client cause: independent React submit state did not synchronously
+  prevent two handler entries; success closed the dialog without toast/banner;
+  and `router.refresh()` was the sole completion signal. A cached or equivalent
+  RSC payload could therefore preserve the stale action. The route response
+  already carried canonical before/after group, member, Attendance/session state,
+  `changed`, and replay evidence, so the conditional API dependency was not used.
+- `src/components/admin/makeup-client.tsx` now owns one shared mutation lifecycle:
+  a ref-backed operation/target lock, visible mutation-and-reconciliation state,
+  disabled related actions, sequence protection, canonical local projection,
+  Thai success/error feedback, and background transition refresh. Changed and
+  idempotent replay both complete safely; failures retain entered input and allow
+  one deliberate retry. No hard reload, timer synchronization, or polling exists.
+- All five included operations are covered by the lifecycle:
+  `assign_coach_to_round`, `resolve_unassigned_round`, retrospective
+  `mark_attendance`, `replace_coach_for_past_round`, and
+  `move_learner_to_existing_coach_group`.
+- Exact corrective counts are Functional `1`, Test `2`, Documentation `3`,
+  Migration `0`, Test config `0`, Dependency `0`, Lockfile `0`, Environment `0`.
+  Test files are `scripts/check-admin-retrospective-assignment-integrity.mjs` and
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`. Scope
+  Expansion and Scope Breach are **None / None**.
+- Protected RPC/database transitions, Head Coach Save, Check-in, normal Coach
+  Attendance, Teaching Hours/Payroll, Reschedule, Wallet, Payment/Pricing/Coupon/
+  Allocation/Ledger/Finance/Refund, booking entitlement, schedule-template
+  policy, auth, roles, and Admin permissions are unchanged.
+- One bounded correction added scoped max-height/overflow after the first focused
+  browser run showed the existing tall assignment dialog outside the test
+  viewport. This remained inside completion-feedback/accessibility behavior; no
+  second repeated failure occurred.
+
+### Corrective verification and staged release
+
+| Field | State observed at this handoff |
+| --- | --- |
+| Retrospective / Admin Assignment | `38/38` / `39/39` |
+| Conflicts / Lifecycle / Resolution | `22/22` / `55/55` / `33/33` |
+| Teaching Hours / Payroll / Wallet | `20/20` / `14/14` / `45/45` |
+| Admin Schedule E2E | Full suite `16/16`; final focused feedback rerun `1/1` after the last small accessibility/duplicate-lock adjustment |
+| Feedback evidence | Delayed PATCH shows pending and disables actions; synchronous double-click emits one PATCH; Thai success and canonical coach appear before a blocked RSC refresh; stale refresh cannot restore the action; idempotent replay succeeds; `409`, `500`, and network failures retain input, avoid false success, and permit controlled retry; desktop/mobile pending and success states were visually inspected |
+| Static/build gates | TypeScript, zero-warning lint, mojibake `265`, Production build `94/94`, prod readiness, and `git diff --check` passed |
+| Protected-suite decision | Teaching Hours, Payroll, and Wallet deterministic suites ran and passed. Full Booking and Check-in E2E were not rerun because no database, route, shared runtime helper, or shared fixture changed; assignment/conflict/lifecycle/resolution suites and the full Admin E2E covered the touched boundary |
+| Local/linked database | No corrective schema write. Local DB lint retains only two pre-existing Lesson Wallet temporary-table analyzer findings; linked migration inventory still ends with `20260831060105_admin_retrospective_assignment_integrity` |
+| Commit / Push | Corrective `3954094c9c22faee90a74099bb64987005e432c3` pushed non-force on the existing branch/upstream; documentation publication follows this record |
+| New staged artifact | `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV`; `https://new-athlete-badminton-school-baoiekivo-aachanin1s-projects.vercel.app`; exact SHA/tree above; `production/READY`; region `icn1`; aliases `0` |
+| Staged verification | Authenticated-share root/health/login/static `200/200/200/200`; anonymous application Admin boundary `307`; build errors and bounded runtime error/fatal/5xx `0/0/0/0` |
+| Current Production | `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, Application `34eb3fb3ba4e0178d2065862623829319858de2d`, retains all four established aliases. Corrective application is not Production-active |
+| Promotion / Feature / Allowlist / Environment | **No / unchanged / unchanged / unchanged** |
+| New Owner UAT / Task Done | **Pending / No** |
+
+### Read-only candidates for the new Owner UAT
+
+These candidates expose no learner names and were filtered to past populated
+NULL-coach groups with exact scheduled rosters and no Attendance. The Owner must
+select one exact candidate and confirm the actual coach before any write.
+
+1. Preferred: 2026-08-22 10:30–12:30, รัชดา; slot
+   `adb20de8-7b53-4839-a34f-2094f6cff9cc`; group
+   `bf801013-ee66-4c6f-b11a-b5847ff0b2c7`; session
+   `e1f39ca1-c7d6-4635-a7a8-a20faf10714c`; roster `1`; scheduled `1`;
+   Attendance `0`; other coached group `0`; legacy assignment `0`. Confirm the
+   selected coach has no time conflict.
+2. Preferred: 2026-08-17 17:00–19:00, เทพารักษ์; slot
+   `8f7b98fd-40fd-47d2-9dbe-79af176c2986`; group
+   `5c7ec612-f744-4ab0-aa9e-4ab885dfbb35`; sessions
+   `11e93575-0f45-4a0a-adfe-c3a6332b1348`,
+   `1ebf83e4-5c01-4f0c-b7e9-d68b06c74b94`, and
+   `4ee7ad85-5ce0-4e39-abc5-3723e4844f28`; roster/scheduled `3/3`;
+   Attendance `0`; other coached group `0`; legacy assignment `0`. Confirm coach
+   time-overlap safety.
+3. Higher caution: 2026-08-12 15:00–17:00, แจ้งวัฒนะ; slot
+   `d771f5a4-9def-4484-a1b0-e459f1a63775`; group
+   `1400081a-53a0-402e-85fe-fa4cf2dbb27b`; session
+   `eb0b7229-e97d-4e71-b9bf-0ac9bab34de6`; roster/scheduled `1/1`;
+   Attendance `0`; this is a mixed slot with one unrelated coached group and one
+   legacy assignment, both of which must remain invariant. Confirm coach overlap
+   safety; prefer candidate 1 or 2 when otherwise suitable.
+
+Next action: Owner selects one candidate and actual coach, then uses the exact new
+staged artifact once. Expected UX is immediate loading, duplicate action disabled,
+one PATCH, Thai success confirmation, visible coach/group update without manual
+refresh, and a consistent later manual refresh. Developer then performs read-only
+reconciliation. Do not reuse, reverse, or replay the completed Aug 30 group. Do
+not Promote until explicit Owner PASS and reconciliation both succeed.
