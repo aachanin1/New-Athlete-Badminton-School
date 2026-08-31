@@ -6,13 +6,15 @@ Last updated: 2026-08-31
 
 Corrective: **ADMIN MAKEUP COMPLETION FEEDBACK**.
 
-Status: **READY FOR OWNER UAT — NEW EXACT STAGED PRODUCTION-TARGET ARTIFACT;
-NOT PROMOTED**.
+Status: **READY FOR OWNER UAT — REPLACEMENT EXACT STAGED PRODUCTION-TARGET
+ARTIFACT; NOT PROMOTED**.
 
 `PROJECT_STATE.md` is authoritative for this mutable state. The first Owner UAT
-proved the database transition but failed completion-feedback UX. Its artifact is
-permanently ineligible for Promotion. The corrective artifact is staged with zero
-aliases and awaits a new exact Owner-selected target and coach.
+proved the database transition but failed completion-feedback UX. The next staged
+artifact was rejected because it omitted an executable
+`resolve_unassigned_round` client path. Both artifacts are permanently ineligible
+for Promotion. The replacement corrective artifact is staged with zero aliases
+and awaits a new exact Owner-selected target and coach.
 
 ### Current Project Matrix
 
@@ -21,40 +23,41 @@ aliases and awaits a new exact Owner-selected target and coach.
 | Active Task | **PERMANENT ADMIN RETROSPECTIVE COACH ASSIGNMENT INTEGRITY** — corrective **ADMIN MAKEUP COMPLETION FEEDBACK** |
 | Task Status | **READY FOR OWNER UAT** |
 | Owner Policy | The first click must immediately show pending and block duplicate submission; successful canonical responses must show Thai completion feedback and project server truth without requiring manual refresh. Failure retains input and never shows false success. No database/business-write semantics change |
-| Intended Behavior | All five Admin retrospective mutations share one ref-guarded mutation/reconciliation lifecycle. A successful changed or idempotent response updates the visible coach/group/Attendance state deterministically, while `router.refresh()` reconciles in the background without restoring stale actions |
-| Confirmed UI Root Cause | Per-dialog React state flags did not synchronously guard a second handler entry; success closed the dialog without toast/banner; `router.refresh()` was the sole completion signal, so a cached/same RSC payload could leave the old action visible. The API already returned sufficient canonical evidence, so no route change was needed |
+| Intended Behavior | All five Admin retrospective mutations have executable `runRetrospectiveMutation` calls and share one ref-guarded mutation/reconciliation lifecycle. Assign-only remains distinct; resolving an unassigned historical round requires a coach plus exact Attendance for every learner. A successful changed or idempotent response updates visible coach/group/Attendance state deterministically while `router.refresh()` reconciles without restoring stale actions |
+| Confirmed UI Root Cause | Original UX cause: React state alone did not synchronously guard a second handler entry; success had no durable feedback; and `router.refresh()` was the sole completion signal. Confirmed scope omission in the first correction: the taught unassigned-round handler still invoked `assign_coach_to_round`, so `resolve_unassigned_round` existed only as a type/string; an `includes()` architecture assertion falsely passed. The API already returned sufficient canonical evidence, so no route change was needed |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD / Remote HEAD | Documentation publication commit containing this matrix / same after publication; exact staged Application Source `3954094c9c22faee90a74099bb64987005e432c3` |
+| Local HEAD / Remote HEAD | Documentation publication commit containing this matrix / same after publication; exact staged Application Source `66be707dcbcffc810cf484fc059448373ceda72f` |
 | Ahead / Behind | `0/0` after documentation publication; staged/unstaged paths `0` |
-| Source Complete | **Yes** — corrective Application/Test Source committed and pushed at `3954094c9c22faee90a74099bb64987005e432c3`, tree `42edd604cb7a53ffef1b4cbc4df706b14308c145` |
-| Current Source / Pushed Source | `3954094c9c22faee90a74099bb64987005e432c3` / same exact corrective Application Source |
-| Tests Passed | **Yes.** Retrospective integrity `38/38`; Admin assignment `39/39`; conflicts `22/22`; lifecycle `55/55`; resolution `33/33`; teaching hours `20/20`; payroll `14/14`; Wallet `45/45`; full Admin Schedule E2E `16/16`; final focused feedback E2E `1/1`; TypeScript; zero-warning lint; mojibake `265`; Production build `94/94`; prod readiness; diff checks; desktop/mobile delayed-response visual verification; post-build local root/static/auth checks |
-| Bounded Corrections | **1** — the first focused E2E exposed the existing tall assignment dialog outside the mobile/desktop viewport; a scoped max-height/scroll accessibility correction kept the same UX root cause and behavior. No repeated failure exhausted two attempts |
+| Source Complete | **Yes** — replacement corrective Application/Test Source committed and pushed at `66be707dcbcffc810cf484fc059448373ceda72f`, tree `43b77eeaa874088f25952e0e06b06d150e587b70` |
+| Current Source / Pushed Source | `66be707dcbcffc810cf484fc059448373ceda72f` / same exact corrective Application Source |
+| Tests Passed | **Yes.** Retrospective integrity `38/38`; Admin assignment `39/39`; conflicts `22/22`; lifecycle `55/55`; resolution `33/33`; teaching hours `20/20`; payroll `14/14`; Wallet `45/45`; full Admin Schedule E2E `17/17`; focused executable resolve case `1/1`; TypeScript; zero-warning lint; mojibake `265`; Production build `94/94`; prod readiness; diff checks; desktop/mobile delayed-response visual verification; post-build local root/health/login/static/auth checks |
+| Bounded Corrections | **2/2 at Product-artifact level** — first completion-feedback correction produced rejected `dpl_8C8...` because executable resolve was omitted; the second restored that distinct path and replaced the weak assertion/E2E. One test-only adjustment scoped a global action-count assertion to the exact target card; it did not change Product behavior. The corrected Product failure did not recur |
 | Functional / Test / Documentation Files | `1 / 2 / 3`. Functional: `src/components/admin/makeup-client.tsx`. Tests: retrospective integrity architecture guard and Admin Schedule assignment E2E. API route remained unchanged |
 | Migration / Test Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0 / 0` for this corrective |
 | Scope Expansion / Scope Breach | **None / None** |
 | Included Flows | `assign_coach_to_round`; `resolve_unassigned_round`; retrospective `mark_attendance` when no exact coach exists; `replace_coach_for_past_round`; `move_learner_to_existing_coach_group` |
 | Protected Flows | RPC/schema/atomic transition; Head Coach Save; Check-in; normal Coach Attendance; Teaching Hours/Payroll; Reschedule; Wallet; Payment/Pricing/Coupon/Allocation/Ledger/Finance/Refund; booking entitlement; schedule templates; auth/roles/permissions are unchanged |
-| Committed / Pushed | **Yes / Yes** — corrective commit `3954094c9c22faee90a74099bb64987005e432c3`; documentation publication committed/pushed after this matrix |
+| Committed / Pushed | **Yes / Yes** — replacement corrective commit `66be707dcbcffc810cf484fc059448373ceda72f`; documentation publication committed/pushed after this matrix |
 | Migration Source / Applied | Corrective migration **None**. Existing `20260831060105_admin_retrospective_assignment_integrity` remains applied locally and in linked Production exactly once; current linked migration inventory includes it and has no corrective addition |
 | Old Artifact UAT | `dpl_Be8f8ycJYWCrUBbcszFomoRsLt6o`, Application `c0cb014de826e5bc4aec8cc6900fdb41765f2c9f`: backend integrity **PASS**; completion-feedback UX **FAIL**; overall Owner UAT **FAIL**; aliases `0`; permanently ineligible for Promotion |
 | Completed Owner UAT Reconciliation | Owner performed one authorized assignment only. Group `dd41cae4-1b60-4b4f-a84f-a05fd954f29e` retained its identity/name and four membership identities; coach became `05ca3f2e-fe83-4a80-ba60-6cbcf52fdaa5`; exactly one legacy row, one activity row, and one coach notification exist; Attendance delta `0`; all four sessions remain `scheduled`; reservation `0` is expected for the historical slot; duplicate/orphan/empty anomalies and protected financial/Wallet deltas are `0` |
-| Current NULL-group Inventory | Fresh 2026-08-31 read-only evidence after Owner UAT: `26` NULL-coach groups, `17` populated, `27` memberships, all populated past; `9` mixed slots; preservation markers `0`. These are state shapes, not repaired or confirmed incidents |
-| New Staged Artifact / Source | `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV`; `https://new-athlete-badminton-school-baoiekivo-aachanin1s-projects.vercel.app`; target/state `production/READY`; Source `3954094c9c22faee90a74099bb64987005e432c3`; tree `42edd604cb7a53ffef1b4cbc4df706b14308c145`; region `icn1`; aliases `0` |
-| Deployed Source / Deployment ID | Staged corrective Source `3954094c9c22faee90a74099bb64987005e432c3` / `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV`; Production-active Source remains `34eb3fb3ba4e0178d2065862623829319858de2d` / `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` |
+| Rejected Corrective Artifact | `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV`, Application `3954094c9c22faee90a74099bb64987005e432c3`: PM review **CORRECTION REQUIRED** because executable resolve was absent; aliases `0`; no Owner UAT requested/performed; permanently ineligible for Promotion |
+| Current NULL-group Inventory | Fresh 2026-08-31 read-only evidence after Owner UAT: `26` NULL-coach groups, `17` populated, `27` memberships, all populated past (`0` current/future); `9` slots mix a populated NULL group with a populated coached group; preservation markers `0`. These are state shapes, not repaired or confirmed incidents |
+| New Staged Artifact / Source | `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`; `https://new-athlete-badminton-school-p8rzadd2k-aachanin1s-projects.vercel.app`; target/state `production/READY`; Source `66be707dcbcffc810cf484fc059448373ceda72f`; tree `43b77eeaa874088f25952e0e06b06d150e587b70`; region `icn1`; aliases `0` |
+| Deployed Source / Deployment ID | Staged replacement Source `66be707dcbcffc810cf484fc059448373ceda72f` / `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`; Production-active Source remains `34eb3fb3ba4e0178d2065862623829319858de2d` / `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a` |
 | New Staged Smoke / Logs | Authenticated-share root/health/login/static `200/200/200/200`; anonymous application Admin boundary `307` to Login; build errors `0`; bounded runtime error/fatal/5xx `0/0/0` |
-| Production Artifact / Aliases | Current Production remains `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, Application `34eb3fb3ba4e0178d2065862623829319858de2d`. All four established Production aliases remain there; both UAT artifacts have aliases `0` |
+| Production Artifact / Aliases | Current Production remains `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`, Application `34eb3fb3ba4e0178d2065862623829319858de2d`. Fresh `vercel alias ls` shows all four established Production aliases still map there; old UAT, rejected corrective, and replacement staged artifacts each have aliases `0` |
 | Deployed / Promoted | **New staged Production-target artifact: Yes / No.** No Production alias changed and no Promotion occurred |
 | Feature Enabled / Allowlisted | **No change / No change** |
 | Production Active | Existing database transition **Yes**; corrective application **No**, staged only |
-| Owner UAT / Production UAT | New corrective artifact **Pending / Not run**. Old artifact result remains backend PASS, UX/overall FAIL |
+| Owner UAT / Production UAT | Replacement corrective artifact **Pending / Not run**. Old artifact result remains backend PASS, UX/overall FAIL; rejected corrective artifact was never offered for UAT |
 | Controlled Write UAT | **Performed exactly once by Owner on the old artifact.** Developer performed none. The completed group must not be reused, reversed, replayed, or repaired |
 | Data Repaired / Production Data Changed | **No / Yes.** The authorized Owner UAT legitimately assigned one historical group; no separate repair occurred |
 | Customer Impact / Financial Impact | Selected coach was assigned and received exactly one notification; no Attendance/session-status/Wallet/payment/pricing/coupon/allocation/ledger/finance/refund effect / **None** |
-| Advisor Results | Local DB lint retains only the two pre-existing Lesson Wallet temporary-table analyzer findings; linked advisors retain existing out-of-scope findings with no corrective schema delta |
-| Documentation Drift | **Corrected** — the stale “UAT pending / no business data changed” claims are replaced by the reconciled old-UAT and corrective states |
-| Blocker | Owner must select one eligible candidate and confirm the actual coach, then PASS the exact new artifact; Developer post-UAT read-only reconciliation must also pass before Promotion |
-| Remaining Work | One Owner-controlled assignment on a newly selected target; Developer read-only reconciliation; explicit Owner PASS; then Promote only this exact artifact without substitution |
+| Advisor Results | Local DB lint retains only the two pre-existing Lesson Wallet temporary-table analyzer findings; fresh linked security/performance counts are `30/333`, with no corrective schema delta |
+| Documentation Drift | **Corrected at this handoff** — prior false “all five executable / `dpl_8C8...` READY for UAT” claims are superseded while legitimate historical evidence remains |
+| Blocker | Owner must select one eligible candidate and confirm the actual coach, then PASS exact `dpl_EzbD...`; Developer post-UAT read-only reconciliation must also pass before Promotion |
+| Remaining Work | One Owner-controlled assignment on a newly selected target using `dpl_EzbD...`; Developer read-only reconciliation; explicit Owner PASS; then Promote only this exact artifact without substitution |
 | Task Done | **No** |
 | Next Gate / Next Action | **OWNER selects one candidate and coach for UAT on the new staged URL. Do not reuse the completed Aug 30 group; do not Promote, rebuild, redeploy, change aliases, or perform Developer data repair/write** |
 | Parking Lot authorization state | Existing Parking Lot remains unchanged and unauthorized while this Active Task is open |

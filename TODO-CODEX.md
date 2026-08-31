@@ -16,17 +16,21 @@ ADMIN MAKEUP COMPLETION FEEDBACK — READY FOR OWNER UAT**.
   failed completion-feedback UX and overall Owner UAT. Owner performed the one
   authorized assignment; Production data therefore changed legitimately, no
   repair occurred, and that artifact is permanently ineligible for Promotion.
-- New exact Production-target artifact `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV` is
-  `READY` at
-  `https://new-athlete-badminton-school-baoiekivo-aachanin1s-projects.vercel.app`
-  from Application `3954094c9c22faee90a74099bb64987005e432c3`; aliases `0` and
-  Promotion **No**. All technical, E2E, visual, build, smoke, log, and diff gates
+- Artifact `dpl_8C8uRhMyNtNUEx5Pq6KQ5wDXLSiV` was rejected by PM review because
+  `resolve_unassigned_round` was not an executable client path. It received no
+  Owner UAT, retains aliases `0`, and is permanently ineligible for Promotion.
+- Replacement Production-target artifact `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`
+  is `READY` at
+  `https://new-athlete-badminton-school-p8rzadd2k-aachanin1s-projects.vercel.app`
+  from Application `66be707dcbcffc810cf484fc059448373ceda72f`; aliases `0` and
+  Promotion **No**. Executable lifecycle evidence covers all five operations;
+  full Admin E2E is `17/17`; technical, visual, build, smoke, log, and diff gates
   passed.
 - Current Production aliases remain on prior artifact
   `dpl_D2h2jtcVUJLLVGEz4uMNgQTys25a`. Corrective Migration, Environment,
   feature, allowlist, dependency, and lockfile changes are all `0`.
 - Next action: Owner selects one fresh eligible candidate and confirms the actual
-  coach, then performs exactly one assignment on the new staged artifact.
+  coach, then performs exactly one assignment on `dpl_EzbD...`.
   Developer performs read-only reconciliation afterward. Do not reuse/reverse/
   replay the completed group; do not Promote, rebuild, redeploy, change aliases,
   or perform Developer data repair/write before explicit Owner PASS.
