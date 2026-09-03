@@ -18598,3 +18598,58 @@ documentation closeout passed. The Active Task is **TASK DONE**.
 | Commit / Push | Corrective Application/Test Source already committed/pushed at `66be707...`; this three-file documentation closeout is committed/pushed after this record |
 | Blocker / Next Action | **None / await Owner selection of a new task** |
 | Task Done | **Yes** |
+
+## 2026-09-03 — Permanent Admin Makeup Bangkok weekday / next-month canonical slot fix: READY FOR OWNER UAT
+
+State observed at this closeout: Owner selected and approved the Active Task
+**PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL SLOT FIX** for
+continuous delivery through an exact staged Production-target artifact and
+read-only verification. Application/Test Source is committed and pushed; exact
+artifact `dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK` is `READY` with aliases `0`.
+Promotion, alias changes, Controlled Write UAT, and Production data writes remain
+unauthorized. Status is **READY FOR OWNER UAT**, not TASK DONE.
+
+### Root Cause, regression-first proof, and correction
+
+- Gate 0 re-confirmed exact root, branch `spike/next-major-security-upgrade`,
+  starting HEAD/upstream `525cc07f2e685c28a2e49b089a5bf361c409686a`,
+  ahead/behind `0/0`, and clean worktree. The current route blob matched
+  Production Application `66be707dcbcffc810cf484fc059448373ceda72f`.
+- UI next-month availability was correct. The POST route alone constructed
+  Bangkok midnight and then used host-dependent `Date#getDay()`, so UTC runtime
+  queried the previous weekday. `getBangkokDayOfWeek` and `ensureScheduleSlot` already held
+  the canonical timezone-independent behavior.
+- Regression-first used actual POST and Supabase paths under Server TZ=UTC with
+  source month June 2031, target Saturday `2031-07-26`, exact active Saturday
+  16:00–18:00 template, and no exact Friday decoy. Current Source reproduced HTTP
+  `400` with `รอบชดเชยไม่ตรงกับรอบเรียนประจำที่เปิดใช้งาน`; cleanup residue was
+  `0`.
+- The route now imports the shared helper, computes the weekday once, rejects a
+  null weekday with typed `INVALID_MAKEUP_DATE` HTTP `400`, and uses the validated
+  value in the unchanged active branch/course/time template query. The existing
+  `ensureScheduleSlot` call and all month/future/duplicate/overlap/one-Makeup and
+  no-capacity rules remain unchanged.
+- Corrected isolated E2E passed `1/1`: POST `200`; exact Saturday canonical slot;
+  non-NULL `schedule_slot_id`; Makeup scheduled; source unchanged; invalid date,
+  duplicate/overlap, and second-Makeup guards remained fail closed; protected
+  Payment/Coupon/Wallet/Attendance/Ledger/Finance deltas and cleanup residue were
+  all `0`.
+
+### Verification and exact staged artifact
+
+| Field | State observed at this closeout |
+| --- | --- |
+| Functional / Test / Documentation | `1 / 2 / 3`; exact paths are recorded in the authoritative `PROJECT_STATE.md` matrix |
+| Migration / Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0 / 0` |
+| Architecture / regression suites | Architecture `27/27`; Booking E2E `14/14`; Lesson Wallet `45/45`; Admin Schedule Assignment `39/39`; Admin Retrospective Integrity `38/38`; no required suite skipped |
+| Static/full gates | TypeScript passed; lint passed with zero warnings; mojibake passed across `265` files; Production build passed `94/94`; `git diff --check` passed |
+| Post-build local smoke | After deleting only the verified repo `.next` and restarting this repo on `127.0.0.1:3000`, root/health/login/static were `200`; anonymous Admin Makeup was `307` to Login |
+| Diff compliance | Complete unstaged and staged diffs reviewed; exact allowlist only; unexpected paths `0`; secret-pattern findings `0`; Scope Expansion/Breach `None/None` |
+| Application Commit / Push | `2aafd99c0c83f5a13e01a893025f9d403fc26f1c`, tree `6ff145ac43147004b840dee2de5bb45ff116b51a`; local/remote `0/0`, clean before staging |
+| Staged artifact | `dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK`; `https://new-athlete-badminton-school-jivi2lksa-aachanin1s-projects.vercel.app`; target/state `production/READY`; source SHA matches exact Application commit; aliases `0` |
+| Staged smoke / logs | Root/health/login/static `200/200/200/200`; anonymous Admin Makeup `307` to Login; bounded logs `7` GET/info requests, status `200=6` and `307=1`, error/fatal/5xx `0/0/0`, Makeup POST `0` |
+| Production state | `www.newathleteschool.com` still resolves to prior `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application `66be707dcbcffc810cf484fc059448373ceda72f`; staged fix is not Production-active |
+| Production/Data/Controls | Promotion `No`; alias change `No`; Migration/Environment/Feature/Allowlist change `No`; Controlled Write UAT `Not authorized/not run`; Production data changed/repaired `No/No`; customer/financial impact `None/None` |
+| Documentation Drift | Prior `None — Awaiting Owner Selection` mutable claim is superseded; current state is authoritative in `PROJECT_STATE.md` and the short index derives from it |
+| Blocker / Next Action | Owner no-write UAT PASS/FAIL pending. Stop before `สร้างวันชดเชย`; do not Promote, alias, write Production, or begin another task |
+| Task Done | **No — READY FOR OWNER UAT** |

@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-08-31
+Last updated: 2026-09-03
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,14 +9,25 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **None — Awaiting Owner Selection**.
+Status: **READY FOR OWNER UAT**.
 
-- Permanent Admin Retrospective Coach Assignment Integrity and corrective Admin
-  Makeup completion feedback are **TASK DONE**. The exact Owner-passed artifact is
-  Production-active and post-Promotion verification passed; see the first entry
-  under Recently Completed and the authoritative matrix in `PROJECT_STATE.md`.
-- No Parking Lot item is authorized. Do not repeat, reverse, replay, or repair
-  either completed Owner UAT target.
+- Active Task: **PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL
+  SLOT FIX**.
+- Root Cause is confirmed: the Admin Makeup POST route used host-dependent
+  `Date#getDay()` and resolved a Bangkok Saturday as Friday under Server TZ=UTC.
+- Exact Application/Test commit `2aafd99c0c83f5a13e01a893025f9d403fc26f1c`,
+  tree `6ff145ac43147004b840dee2de5bb45ff116b51a`, is pushed. All required local
+  regression, adjacent, static, build, diff, and post-build smoke gates passed.
+- Exact staged Production-target artifact
+  `dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK` is `READY` at
+  `https://new-athlete-badminton-school-jivi2lksa-aachanin1s-projects.vercel.app`
+  with aliases `0`. Read-only smoke/log checks passed and Makeup POST count is `0`.
+- Current Production remains Application `66be707dcbcffc810cf484fc059448373ceda72f`
+  on `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`; the new fix is not Production-active.
+- Next action: Owner performs the no-write staged UI UAT and stops before
+  `สร้างวันชดเชย`, then returns PASS or FAIL. Controlled Write UAT, Promotion,
+  alias changes, Production data writes, migrations, environment changes, and
+  starting another task remain unauthorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 

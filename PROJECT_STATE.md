@@ -1,8 +1,60 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-08-31
+Last updated: 2026-09-03
 
-## Current State — Permanent Admin Retrospective Coach Assignment Integrity
+## Current State — Permanent Admin Makeup Bangkok Weekday / Next-Month Canonical Slot Fix
+
+Status: **READY FOR OWNER UAT**.
+
+`PROJECT_STATE.md` is authoritative for this mutable state. The permanent
+Application/Test correction is committed and pushed, and an exact staged
+Production-target artifact exists without aliases. Promotion, alias changes,
+Production Makeup writes, migrations, environment changes, and Controlled Write
+UAT remain unauthorized.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL SLOT FIX** |
+| Task Status | **READY FOR OWNER UAT** — local regression and all required gates passed; exact staged artifact is ready for no-write Owner review |
+| Owner Policy | Admin Makeup must validate the active canonical target template with a Browser/Server-timezone-independent Bangkok weekday. Target eligibility remains the next calendar month only, one Makeup per learner per source month, future/not-started, exact branch/course/time, no exact-learner duplicate or overlap, no capacity ceiling, and canonical non-NULL `schedule_slot_id`. Missing, inactive, ambiguous, invalid, mismatched, or raced evidence fails closed |
+| Root Cause | **Confirmed.** The POST route constructed Bangkok midnight and then used host-dependent `Date#getDay()`. Under the configured UTC server runtime, Bangkok midnight is the previous UTC date, so Saturday was queried as Friday. The all-seven-weekday fixture supplied a decoy Friday template and masked the defect |
+| Intended Behavior | The POST route computes the target weekday once with shared `getBangkokDayOfWeek`, rejects a `null` result with typed HTTP `400` code `INVALID_MAKEUP_DATE`, queries the existing active branch/course template with the validated Bangkok weekday, and retains `ensureScheduleSlot` canonical provenance plus every existing month/future/duplicate/overlap/one-Makeup guard |
+| Branch | `spike/next-major-security-upgrade` |
+| Local HEAD / Remote HEAD | Documentation-closeout commit containing this matrix / same after publication; exact staged Application SHA is `2aafd99c0c83f5a13e01a893025f9d403fc26f1c` |
+| Ahead / Behind | `0/0` after documentation publication; staged/unstaged tracked paths `0` |
+| Source Complete | **Yes** — exact Application/Test Source committed and pushed at `2aafd99c0c83f5a13e01a893025f9d403fc26f1c`, tree `6ff145ac43147004b840dee2de5bb45ff116b51a` |
+| Current Source / Pushed Source | Application `2aafd99c0c83f5a13e01a893025f9d403fc26f1c` / same |
+| Tests Passed | **Yes.** Focused isolated corrected UTC E2E `1/1`; architecture `27/27`; Booking E2E `14/14`; Lesson Wallet `45/45`; Admin Schedule Assignment `39/39`; Admin Retrospective Integrity `38/38`; TypeScript; zero-warning lint; mojibake `265`; Production build `94/94`; `git diff --check`; post-build local root/health/login/static/auth-boundary checks |
+| Regression-first Evidence | Before the functional fix, isolated Saturday `2031-07-26` with source month June 2031, target month July 2031, UTC server, one exact active Saturday 16:00–18:00 template, and no exact Friday decoy reproduced HTTP `400` with `รอบชดเชยไม่ตรงกับรอบเรียนประจำที่เปิดใช้งาน`; cleanup residue was `0` |
+| Corrected Regression Evidence | The same actual POST/Supabase path passed `1/1`: HTTP `200`; created `is_makeup=true`, `status=scheduled`, non-NULL slot with the exact Saturday canonical template; invalid date returned typed `400`; source session/history were unchanged; duplicate/overlap and second-Makeup guards rejected; Payment/Coupon/Wallet/Attendance/Ledger/Finance protected deltas and cleanup residue were `0` |
+| Bounded Corrections | Product Root Cause was corrected once with the approved minimal route change. Two required-gate test-only updates in the allowlisted architecture script replaced stale Wallet route-text assertions with the current atomic RPC/migration protections; no Wallet Product behavior changed and no failure recurred |
+| Functional / Test / Documentation Files | `1 / 2 / 3`. Functional: `src/app/api/admin/makeup/route.ts`. Tests: `tests/booking-regression/booking.spec.ts`, `scripts/check-unlimited-slot-entry-and-price-ux.mjs`. Documentation: this file, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md` |
+| Migration / Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 0 / 0` |
+| Scope Expansion / Scope Breach | **None / None**. Local Docker/Supabase and port-3000 recovery changed no repository Source, dependency, environment file, schema, migration, remote data, or business state |
+| Included Flow | Admin Makeup creation only: `POST /api/admin/makeup` target Bangkok-weekday template resolution and its existing canonical `ensureScheduleSlot` continuation |
+| Protected Flows | UI selection; schedule-template CRUD/lifecycle; Wallet; User Reschedule; Booking; capacity semantics; Pricing/Payment/Coupon/SlipOK; Attendance; Check-in; Assignment; Payroll; Ledger; Finance; Notifications; auth/permissions; Production data are unchanged |
+| Committed / Pushed | **Yes / Yes** — Application/Test commit `2aafd99c0c83f5a13e01a893025f9d403fc26f1c`; this three-file documentation closeout is committed/pushed after this matrix |
+| Staged Artifact / Source | `dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK`; `https://new-athlete-badminton-school-jivi2lksa-aachanin1s-projects.vercel.app`; target/state `production/READY`; source `cli`; exact Application SHA/tree `2aafd99c0c83f5a13e01a893025f9d403fc26f1c` / `6ff145ac43147004b840dee2de5bb45ff116b51a`; aliases `0` |
+| Staged Smoke / Logs | Read-only root/health/login/static returned `200/200/200/200`; anonymous Admin Makeup returned `307` to `/auth/login?redirect=%2Fadmin%2Fmakeup`. Bounded runtime sample: `7` requests, all GET/info; status `200=6`, `307=1`; error/fatal/5xx `0/0/0`; Makeup POST `0` |
+| Deployed Source / Deployment ID | Current Production domain still resolves to Application `66be707dcbcffc810cf484fc059448373ceda72f` / `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`. The new fix is staged only and is not Production-active |
+| Deployed / Promoted | Staged Production-target artifact created **Yes** / Promoted **No**. No alias/domain change and no rebuild after staging |
+| Migration Source / Applied | **None / No action** |
+| Environment Changed / Feature Enabled / Allowlisted | **No / No change / No change** |
+| Production Active | Existing prior Application **Yes**; this Bangkok-weekday fix **No** |
+| Owner UAT / Production UAT | **Pending / Not run** |
+| Controlled Write UAT | **Not authorized and not run.** Developer did not call staged or Production Makeup POST |
+| Data Repaired / Production Data Changed | **No / No** |
+| Customer Impact / Financial Impact | **None / None** — no Production Application, customer/business row, payment, coupon, Wallet, Attendance, Ledger, Finance, or notification changed |
+| Documentation Drift | **No after this closeout publication.** Prior `None — Awaiting Owner Selection` state is superseded by this Owner-selected task; historical task evidence remains dated below |
+| Blocker | **Owner UAT PASS/FAIL is pending.** Real staged POST remains intentionally untested because it would write Production business data and Controlled Write UAT is not authorized |
+| Remaining Work | Owner performs the approved no-write staged UI review and returns PASS or FAIL. Promotion remains prohibited until an explicit PASS and a later authorized Promotion step |
+| Task Done | **No** |
+| Next Gate / Next Action | **Owner no-write UAT on exact staged artifact; stop before `สร้างวันชดเชย`; await Owner PASS/FAIL. Do not Promote, alias, mutate Production, or begin another task** |
+| Parking Lot authorization state | Existing Parking Lot remains unchanged and unauthorized pending explicit Owner selection after this Active Task |
+
+## Historical / Superseded — Permanent Admin Retrospective Coach Assignment Integrity
 
 Corrective: **ADMIN MAKEUP COMPLETION FEEDBACK**.
 
