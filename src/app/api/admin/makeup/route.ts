@@ -4,6 +4,7 @@ import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-t
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
+import { getBangkokDayOfWeek } from '@/lib/schedule-template-utils'
 import {
   formatCoachAssignmentDatabaseError,
   formatLegacyCoachWarnings,
@@ -364,10 +365,6 @@ function isFutureMakeupTarget(date: string, startTime: string) {
   return new Date(`${date}T${normalizeSlotTime(startTime)}+07:00`).getTime() > Date.now()
 }
 
-function getDayOfWeek(date: string) {
-  return new Date(`${date}T00:00:00+07:00`).getDay()
-}
-
 function normalizeReason(value: unknown) {
   return typeof value === 'string' ? value.trim().slice(0, 500) : ''
 }
@@ -546,6 +543,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'กรุณาเลือกวัน รอบเรียน และสาขาให้ครบ' }, { status: 400 })
     }
 
+    const makeupDayOfWeek = getBangkokDayOfWeek(makeupDate)
+    if (makeupDayOfWeek === null) {
+      return NextResponse.json({ code: 'INVALID_MAKEUP_DATE', error: 'วันที่ชดเชยไม่ถูกต้อง' }, { status: 400 })
+    }
+
     const { data: originalSession, error: originalError } = await supabaseAdmin
       .from('booking_sessions')
       .select('id, booking_id, date, end_time, status, child_id, bookings(user_id, course_type_id)')
@@ -583,7 +585,7 @@ export async function POST(req: NextRequest) {
       .select('id, start_time, end_time')
       .eq('branch_id', branchId)
       .eq('course_type_id', originalSession.bookings.course_type_id)
-      .eq('day_of_week', getDayOfWeek(makeupDate))
+      .eq('day_of_week', makeupDayOfWeek)
       .eq('is_active', true)
 
     if (templateError) return NextResponse.json({ error: templateError.message }, { status: 500 })

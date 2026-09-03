@@ -13,6 +13,10 @@ const migrationFiles = fs.readdirSync(path.join(root, 'supabase/migrations'))
 assert.equal(migrationFiles.length, 1, 'exactly one unlimited-slot migration source is required')
 
 const migration = read(`supabase/migrations/${migrationFiles[0]}`)
+const walletIntegrityMigrationFiles = fs.readdirSync(path.join(root, 'supabase/migrations'))
+  .filter((name) => name.endsWith('_permanent_schedule_slot_template_integrity.sql'))
+assert.equal(walletIntegrityMigrationFiles.length, 1, 'exactly one permanent schedule-slot integrity migration source is required')
+const walletIntegrityMigration = read(`supabase/migrations/${walletIntegrityMigrationFiles[0]}`)
 const availability = read('src/lib/booking-slot-availability.ts')
 const availabilityRoute = read('src/app/api/bookings/availability/route.ts')
 const bookingClient = read('src/components/dashboard/booking-client.tsx')
@@ -103,10 +107,13 @@ check('migration refresh keeps occupancy informational and normalizes historical
   assert.equal(migration.includes("ELSE 'open'::public.slot_status"), true)
   assert.equal(migration.includes('counts.active_count >= ss.max_students'), false)
 })
-check('Wallet accepts historical full and still rejects cancelled', () => {
-  assert.equal(walletRoute.includes("!['open', 'full'].includes(slot.status)"), true)
-  assert.equal(walletRoute.includes("slot.status === 'cancelled'"), true)
+check('Wallet delegates canonical target status to the atomic RPC without a capacity ceiling', () => {
+  assert.equal(walletRoute.includes("rpc('lesson_wallet_redeem_v2'"), true)
+  assert.equal(walletRoute.includes("LESSON_WALLET_TARGET_UNAVAILABLE"), true)
+  assert.equal(walletIntegrityMigration.includes("status::text NOT IN ('open', 'full')"), true)
+  assert.equal(walletIntegrityMigration.includes("MESSAGE = 'LESSON_WALLET_TARGET_UNAVAILABLE'"), true)
   assert.equal(walletRoute.includes('current_students || 0) >= Number(slot.max_students'), false)
+  assert.equal(walletIntegrityMigration.includes('current_students >= max_students'), false)
 })
 check('Reschedule and Makeup have no capacity ceiling', () => {
   for (const source of [rescheduleRoute, makeupRoute]) {
@@ -116,16 +123,25 @@ check('Reschedule and Makeup have no capacity ceiling', () => {
 })
 check('Makeup preserves canonical target and overlap safety without adding capacity authority', () => {
   assert.equal(makeupRoute.includes(".from('schedule_templates')"), true)
+  assert.equal(makeupRoute.includes("import { getBangkokDayOfWeek } from '@/lib/schedule-template-utils'"), true)
+  assert.equal(makeupRoute.includes('const makeupDayOfWeek = getBangkokDayOfWeek(makeupDate)'), true)
+  assert.equal(makeupRoute.includes("code: 'INVALID_MAKEUP_DATE'"), true)
+  assert.equal(makeupRoute.includes(".eq('day_of_week', makeupDayOfWeek)"), true)
+  assert.equal(/function\s+getDayOfWeek\s*\(/.test(makeupRoute), false)
+  assert.equal(makeupRoute.includes('.getDay()'), false)
   assert.equal(makeupRoute.includes('ensureScheduleSlot({'), true)
   assert.equal(makeupRoute.includes('schedule_slot_id: scheduleSlotId'), true)
   assert.equal(makeupRoute.includes(".lt('start_time'"), true)
   assert.equal(makeupRoute.includes(".gt('end_time'"), true)
 })
-check('Booking, Wallet and Reschedule use overlap comparisons', () => {
-  for (const source of [bookingRoute, walletRoute, rescheduleRoute]) {
+check('Booking and Reschedule routes plus the atomic Wallet RPC use overlap comparisons', () => {
+  for (const source of [bookingRoute, rescheduleRoute]) {
     assert.equal(source.includes(".lt('start_time'"), true)
     assert.equal(source.includes(".gt('end_time'"), true)
   }
+  assert.equal(walletIntegrityMigration.includes('existing_session.start_time < p_end_time'), true)
+  assert.equal(walletIntegrityMigration.includes('existing_session.end_time > p_start_time'), true)
+  assert.equal(walletIntegrityMigration.includes("MESSAGE = 'LESSON_WALLET_TARGET_CONFLICT'"), true)
 })
 
 console.log(`\nUnlimited slot entry and customer price UX checks passed: ${passed}`)

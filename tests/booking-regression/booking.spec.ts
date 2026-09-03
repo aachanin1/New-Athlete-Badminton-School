@@ -1053,6 +1053,220 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
   await admin.from('branches').delete().eq('id', otherBranchId)
 })
 
+test('Admin Makeup resolves an isolated Saturday canonical slot under UTC without a Friday decoy', async ({ page }) => {
+  const admin = createLocalAdmin()
+  const branchId = randomUUID()
+  const childId = randomUUID()
+  const bookingId = randomUUID()
+  const originalSessionId = randomUUID()
+  const saturdayTemplateId = randomUUID()
+  const sourceDate = '2031-06-14'
+  const targetDate = '2031-07-26'
+  const secondTargetDate = '2031-07-19'
+  const notificationMessage = `Admin จัดวันชดเชยให้วันที่ ${targetDate} เวลา 16:00-18:00 เรียบร้อยแล้ว`
+  const protectedTables = [
+    'payments',
+    'progressive_coupon_reservations',
+    'coupon_usages',
+    'lesson_wallet_credits',
+    'attendance',
+    'payment_ledger_allocations_v1',
+    'finance_expenses',
+  ] as const
+  const protectedBefore = await countTables(protectedTables)
+
+  const postMakeup = async (makeupDate: string) => page.evaluate(async (payload) => {
+    const response = await fetch('/api/admin/makeup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return { status: response.status, body: await response.json() }
+  }, {
+    original_session_id: originalSessionId,
+    booking_id: bookingId,
+    makeup_date: makeupDate,
+    start_time: '16:00',
+    end_time: '18:00',
+    branch_id: branchId,
+  })
+
+  try {
+    const { error: branchError } = await admin.from('branches').insert({
+      id: branchId,
+      name: 'Isolated Saturday Makeup Branch',
+      slug: `isolated-saturday-${branchId.slice(0, 8)}`,
+      address: 'Local regression only',
+      is_active: true,
+    })
+    if (branchError) throw new Error(branchError.message)
+
+    const { error: childError } = await admin.from('children').insert({
+      id: childId,
+      parent_id: fixture.otherUserId,
+      full_name: 'Isolated Saturday Makeup Learner',
+      date_of_birth: '2015-01-01',
+    })
+    if (childError) throw new Error(childError.message)
+
+    const { error: templateError } = await admin.from('schedule_templates').insert({
+      id: saturdayTemplateId,
+      branch_id: branchId,
+      course_type_id: fixture.kidsCourseId,
+      day_of_week: 6,
+      start_time: '16:00:00',
+      end_time: '18:00:00',
+      is_active: true,
+      notes: 'UTC Saturday Admin Makeup regression',
+    })
+    if (templateError) throw new Error(templateError.message)
+
+    const fridayTemplates = await admin.from('schedule_templates')
+      .select('*', { count: 'exact', head: true })
+      .eq('branch_id', branchId)
+      .eq('course_type_id', fixture.kidsCourseId)
+      .eq('day_of_week', 5)
+      .eq('start_time', '16:00:00')
+      .eq('end_time', '18:00:00')
+      .eq('is_active', true)
+    if (fridayTemplates.error) throw new Error(fridayTemplates.error.message)
+    expect(fridayTemplates.count || 0).toBe(0)
+
+    const { error: bookingError } = await admin.from('bookings').insert({
+      id: bookingId,
+      user_id: fixture.otherUserId,
+      learner_type: 'child',
+      child_id: childId,
+      branch_id: branchId,
+      course_type_id: fixture.kidsCourseId,
+      month: 6,
+      year: 2031,
+      total_sessions: 1,
+      total_price: 0,
+      status: 'verified',
+    })
+    if (bookingError) throw new Error(bookingError.message)
+
+    const { error: sessionError } = await admin.from('booking_sessions').insert({
+      id: originalSessionId,
+      booking_id: bookingId,
+      date: sourceDate,
+      start_time: '16:00:00',
+      end_time: '18:00:00',
+      branch_id: branchId,
+      child_id: childId,
+      status: 'absent',
+    })
+    if (sessionError) throw new Error(sessionError.message)
+
+    const { data: sourceBefore, error: sourceBeforeError } = await admin.from('booking_sessions')
+      .select('id,booking_id,date,start_time,end_time,branch_id,child_id,status,is_makeup,rescheduled_from_id')
+      .eq('id', originalSessionId)
+      .single()
+    if (sourceBeforeError) throw new Error(sourceBeforeError.message)
+    const { data: bookingBefore, error: bookingBeforeError } = await admin.from('bookings')
+      .select('id,status,total_sessions,total_price')
+      .eq('id', bookingId)
+      .single()
+    if (bookingBeforeError) throw new Error(bookingBeforeError.message)
+
+    await loginAs(page, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.password)
+    const createdResponse = await postMakeup(targetDate)
+    expect(createdResponse.status, JSON.stringify(createdResponse.body)).toBe(200)
+
+    const invalidDateResponse = await postMakeup('2031-07-32')
+    expect(invalidDateResponse).toMatchObject({
+      status: 400,
+      body: { code: 'INVALID_MAKEUP_DATE', error: 'วันที่ชดเชยไม่ถูกต้อง' },
+    })
+
+    const { data: makeupSession, error: makeupError } = await admin.from('booking_sessions')
+      .select('id,schedule_slot_id,date,start_time,end_time,is_makeup,status,rescheduled_from_id')
+      .eq('rescheduled_from_id', originalSessionId)
+      .eq('date', targetDate)
+      .single()
+    if (makeupError) throw new Error(makeupError.message)
+    expect(makeupSession).toMatchObject({
+      date: targetDate,
+      start_time: '16:00:00',
+      end_time: '18:00:00',
+      is_makeup: true,
+      status: 'scheduled',
+      rescheduled_from_id: originalSessionId,
+    })
+    expect(makeupSession.schedule_slot_id).toBeTruthy()
+
+    const { data: canonicalSlot, error: canonicalSlotError } = await admin.from('schedule_slots')
+      .select('id,template_id,branch_id,course_type_id,date,start_time,end_time,status')
+      .eq('id', makeupSession.schedule_slot_id)
+      .single()
+    if (canonicalSlotError) throw new Error(canonicalSlotError.message)
+    expect(canonicalSlot).toMatchObject({
+      template_id: saturdayTemplateId,
+      branch_id: branchId,
+      course_type_id: fixture.kidsCourseId,
+      date: targetDate,
+      start_time: '16:00:00',
+      end_time: '18:00:00',
+      status: 'open',
+    })
+
+    const { data: sourceAfter, error: sourceAfterError } = await admin.from('booking_sessions')
+      .select('id,booking_id,date,start_time,end_time,branch_id,child_id,status,is_makeup,rescheduled_from_id')
+      .eq('id', originalSessionId)
+      .single()
+    if (sourceAfterError) throw new Error(sourceAfterError.message)
+    const { data: bookingAfter, error: bookingAfterError } = await admin.from('bookings')
+      .select('id,status,total_sessions,total_price')
+      .eq('id', bookingId)
+      .single()
+    if (bookingAfterError) throw new Error(bookingAfterError.message)
+    expect(sourceAfter).toEqual(sourceBefore)
+    expect(bookingAfter).toEqual(bookingBefore)
+
+    const overlapResponse = await postMakeup(targetDate)
+    expect(overlapResponse).toMatchObject({
+      status: 409,
+      body: { error: 'ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว' },
+    })
+
+    const secondMakeupResponse = await postMakeup(secondTargetDate)
+    expect(secondMakeupResponse).toMatchObject({
+      status: 400,
+      body: { error: 'ผู้เรียนนี้ใช้สิทธิ์ชดเชยของเดือนนี้แล้ว' },
+    })
+    expect(await countTables(protectedTables)).toEqual(protectedBefore)
+  } finally {
+    await admin.from('notifications').delete()
+      .eq('user_id', fixture.otherUserId)
+      .eq('title', 'ได้รับวันชดเชยแล้ว')
+      .eq('message', notificationMessage)
+    await admin.from('booking_sessions').delete().eq('booking_id', bookingId)
+    await admin.from('schedule_slots').delete().eq('branch_id', branchId)
+    await admin.from('bookings').delete().eq('id', bookingId)
+    await admin.from('schedule_templates').delete().eq('id', saturdayTemplateId)
+    await admin.from('children').delete().eq('id', childId)
+    await admin.from('branches').delete().eq('id', branchId)
+
+    const residueChecks = await Promise.all([
+      admin.from('branches').select('*', { count: 'exact', head: true }).eq('id', branchId),
+      admin.from('children').select('*', { count: 'exact', head: true }).eq('id', childId),
+      admin.from('bookings').select('*', { count: 'exact', head: true }).eq('id', bookingId),
+      admin.from('booking_sessions').select('*', { count: 'exact', head: true }).eq('booking_id', bookingId),
+      admin.from('schedule_templates').select('*', { count: 'exact', head: true }).eq('id', saturdayTemplateId),
+      admin.from('schedule_slots').select('*', { count: 'exact', head: true }).eq('branch_id', branchId),
+      admin.from('notifications').select('*', { count: 'exact', head: true })
+        .eq('user_id', fixture.otherUserId)
+        .eq('title', 'ได้รับวันชดเชยแล้ว')
+        .eq('message', notificationMessage),
+    ])
+    for (const result of residueChecks) {
+      if (result.error) throw new Error(result.error.message)
+      expect(result.count || 0).toBe(0)
+    }
+  }
+})
+
 test('Admin Makeup selects a canonical slot above occupancy 20 without a capacity rejection', async ({ page }) => {
   const browserErrors = observeBrowserErrors(page)
   const admin = createLocalAdmin()
