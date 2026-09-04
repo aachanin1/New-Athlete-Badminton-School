@@ -6,7 +6,7 @@ Last updated: 2026-09-04
 
 Corrective: **ADMIN MAKEUP CREATE — UI FEEDBACK / SINGLE-SUBMIT**.
 
-Status: **DEVELOPING — RECOVERY VERIFIED; PUBLICATION / STAGED GATES IN PROGRESS**.
+Status: **READY FOR OWNER UAT**.
 
 `PROJECT_STATE.md` is authoritative. Docker/local Supabase is ready. The approved
 UI/identity corrective is implemented locally and actual button-interaction tests
@@ -18,61 +18,87 @@ Owner manually removed `.next`; Developer verified it absent before restarting
 dev. Fresh root/login/health/static checks returned 200, browser content rendered
 with no error overlay or recorded runtime errors. Generated output was recreated
 by Next; no Developer deletion or policy bypass occurred. The prior UX-FAIL
-artifact remains ineligible for Promotion. This is a pre-publication checkpoint;
-exact release identity and staged results will be recorded at the UAT handoff.
+artifact remains ineligible for Promotion. The exact replacement is READY with
+aliases 0 and read-only smoke/log checks completed. Owner UAT remains.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
 | Active Task | **PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL SLOT FIX**; corrective **ADMIN MAKEUP CREATE — UI FEEDBACK / SINGLE-SUBMIT** |
-| Task Status | **DEVELOPING — publication/staged gates in progress**; not READY FOR OWNER UAT or TASK DONE |
+| Task Status | **READY FOR OWNER UAT**; not TASK DONE |
 | Intended Behavior | Synchronous UI single-submit lock, unchanged captured POST payload, pending spinner/status and locked dialog/selection, truthful success/error/uncertainty, exact learner/month projection surviving stale refresh; backend/business rules unchanged |
 | Root Cause | **Confirmed by Source and UI regression**: POST lacked a synchronous lock and completion lifecycle, accepted HTTP-ok without confirmed data, and grouped learner/month rows by names. UI root cause unchanged. Deployment exclusions and test calendar preconditions are corrected; manual cleanup resolved the recovery prerequisite |
 | Approved Scope Amendment | Owner approved server page identity props, **+1 config `.vercelignore`**, and **+1 test `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`** on 2026-09-04. Counts **2/3/1/3**. Test-only helper navigates displayed month/year through real UI controls, max 120 steps, covering all three date-assumption sites; no Product/query/clock/config change |
 | Runtime Blocker | **Resolved by Owner manual cleanup**, not a Developer policy change. `.next` absence and zero port-3000 listeners verified before startup. Dev startup initially timed out, then served normally without source/process correction. Root/login/health/real webpack asset 200; browser overlay 0, runtime error list empty, content 1833 characters; screenshot inspected |
 | Branch | `spike/next-major-security-upgrade` |
-| Local HEAD | Pre-publication audit baseline `74f09ba630c26f685c655f2beafe1c9a6c08937d`; release commit identity pending publication |
-| Remote HEAD | Same audit baseline, freshly checked with `git ls-remote`; release remote identity pending publication |
-| Ahead / Behind | Audit `0/0`; nine allowlisted edits preserved for publication; final clean release state pending |
-| Source Complete | UI/identity, exclusions and test-navigation correction **Yes**; recovery verified; publication/staged readiness pending |
-| Current Source / Pushed Source | Corrective working tree on `74f09ba...` / no corrective pushed. Prior Bangkok-weekday Application `2aafd99c0c83f5a13e01a893025f9d403fc26f1c` unchanged |
-| Application SHA / Tree | **No new committed Application SHA/tree**. Working blobs: client `5ff66437ce4d3901cd0e36702b1fbc92e26e4cb0`; server page `6561aeb90ff97992d35e3e41e6fcf53db2960b93` |
+| Local HEAD | Application/config `8148249f4dc5a626fefdd70834e93ffebd55d1a1`; documentation HEAD is the documentation-only commit containing this closeout (resolve with `git log -1 --format=%H -- PROJECT_STATE.md`) |
+| Remote HEAD | Application `8148249f4dc5a626fefdd70834e93ffebd55d1a1` verified by `git ls-remote`; documentation-only HEAD is published separately on the same upstream |
+| Ahead / Behind | Application publication `0/0`, clean. Documentation-only closeout publication must also finish `0/0` and clean, without rebuilding |
+| Source Complete | **Yes** — UI/identity, exclusions and test correction; recovery and exact staged verification completed |
+| Current Source / Pushed Source | Application/config `8148249f4dc5a626fefdd70834e93ffebd55d1a1`, committed/pushed. Backend Bangkok weekday fix retained unchanged; documentation-only HEAD is separate |
+| Application SHA / Tree | `8148249f4dc5a626fefdd70834e93ffebd55d1a1` / `656a7b7c25c6f0323932598976232a2ed861cbfe`. Github/application metadata match; all 401 uploaded file SHA-1 hashes match clean local inputs, mismatches `0` |
 | Regression-first | Actual create-button test sent POST once but failed because pending role/status was absent; controls and Close remained enabled and six same-name source rows collapsed into one group. Expected failure `1/1`; fixture/global residue `0`; before screenshot retained |
 | Corrected UI Evidence | Focused UI `9/9`: desktop/mobile pending, rapid-click/keyboard POST=1, X/Escape/outside lock, confirmed target-only update before held refresh and after stale refresh, five same-name child/self identities and cross-booking/branch grouping, 400/409/500/network/malformed behavior, missing identity. Simulated responses are separate from real API/DB evidence |
-| Tests Passed | Required test/static/build suites passed; **staged gates incomplete, no overall PASS**. Retained same-source results: UI `9/9`, Booking `23/23`, retrospective runtime `38/38`, affected Assignment UI `3/3` (2.2m), full Assignment E2E `18/18` (4.7m), Wallet `45/45`, Assignment state `39/39`, TypeScript `--noEmit --incremental false`, zero-warning lint, mojibake `265`, build (94/94 static generation). Fresh architecture/manifest `34/34` and post-build recovery passed. Hashes of all six functional/test/config files match retained results; both E2E last-run files show passed. No runtime-suite/build rerun claimed |
+| Tests Passed | **Yes, required checks**. Retained same-source/dependency results, not fresh reruns: UI `9/9`, Booking `23/23`, retrospective runtime `38/38`, affected Assignment `3/3`, full Assignment E2E `18/18`, Wallet `45/45`, Assignment state `39/39`, TypeScript `--noEmit --incremental false`, zero-warning lint, mojibake `265`, local build `94/94` static pages. Fresh recovery, architecture/manifest `34/34`, diff/secret compliance and staged remote build/smoke passed. E2E last-run files remain passed, local residue `0` |
 | Real API / DB Evidence | Preserved Saturday `2031-07-26`, June-to-July, UTC/no-Friday-decoy regression passed inside Booking E2E: canonical slot, source/history preservation, duplicate/overlap/one-Makeup guards and protected local deltas `0`. Full Booking global cleanup residue `0` |
-| Outstanding Verification | Full staged-diff/publication gates, clean SHA/tree, staged deployment/smoke/logs and Owner no-write UAT remain. Required post-build recovery is now freshly verified, not waived |
+| Outstanding Verification | Owner no-write UAT of exact replacement. Staged real POST not run/authorized; no technical gate waived. Local UI interception does not reconcile Production transactions |
 | Bounded Corrections | Prior resolved corrections retained: pending-button aria-label and exclusion trailing-slash directory entries. Latest Owner clarification applies the two-attempt limit per unresolved failure. Date helper succeeded; one new coverage assertion initially hit duplicate `AUGONLY` legend/card labels, corrected to assert preserved selected-day state. Affected `3/3` and full `18/18` then passed; original business assertions unchanged. Host-policy denial was not bypassed |
-| Committed | **No corrective commit** |
-| Pushed | **No corrective push** |
+| Committed | **Yes** — Application/config/test `8148249f4dc5a626fefdd70834e93ffebd55d1a1`; documentation-only closeout separate |
+| Pushed | **Yes** — non-force same branch; remote Application SHA verified; no merge/rebase/branch change |
 | Functional Files / Count | `2`: `src/components/admin/makeup-client.tsx` (UI/identity/results); `src/app/(admin)/admin/makeup/page.tsx` (only two identity-prop mapping additions) |
 | Test Files / Count | `3`: `tests/booking-regression/booking.spec.ts`; `scripts/check-unlimited-slot-entry-and-price-ux.mjs`; `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts` |
 | Documentation Files / Count | `3`: `PROJECT_STATE.md`; `TODO-CODEX.md`; `DEVELOPMENT_TODO.md` |
 | API / Query / Migration / Config / Dependency / Lockfile / Environment | `0 / 0 / 0 / 1 / 0 / 0 / 0`; config is only `.vercelignore` |
-| Protected Invariance | API/backend/canonical helper diff paths `0`; page changes only two identity mapping lines; retrospective handlers unchanged; User Schedule, AGENTS/shared UI/package/lockfile/other configs/migrations unchanged. Only approved Assignment E2E navigation/coverage changed this turn |
+| Protected Invariance | API/backend/canonical helper diff paths `0`; server page only two identity-prop additions; retrospective handlers unchanged; User Schedule, AGENTS/shared UI/package/lockfile/other configs/migrations unchanged. Six staged functional/test/config blobs match tested content |
 | Scope Expansion / Scope Breach | Approved identity `+1` functional, exclusion `+1` config and date-navigation `+1` test amendments; **Unauthorized Scope Expansion None / Scope Breach None** |
-| Deployment Exclusion Verification | CLI `59.11.2`, `vercel deploy --dry --format=json`: before `472` entries included local secret/tooling/test/generated categories; fresh after recovery `405`, forbidden `0`, required inputs `355/355`, bytes `8114646` before this doc update; architecture/manifest `34/34`. Repeat on clean committed inputs immediately before deploy. No secret/auth-state contents read/printed or evidence deleted. Safe dry-run now does not establish historical deployments were secret-free |
+| Deployment Exclusion Verification | CLI `59.11.2` dry-run before exclusions `472` entries / `13858341` bytes with forbidden categories. After recovery/immediately before upload `405` entries, forbidden `0`, required `355/355`; committed upload bytes `8115768`. Uploaded source: `401` files / `550` tree entries including virtual directories; forbidden `0`, raw SHA-1 mismatches `0`. No secret/auth-state values printed or evidence removed. Safe manifest does not prove historical deployments were secret-free |
 | Rejected Artifact / Owner UAT | `dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK`, Application `2aafd99...`: Owner reports creation success but **UX FAIL**. PM reports POST `200` at 2026-09-04 08:28:45 Bangkok. Exact event/transaction rows not independently reconciled; artifact cannot be Promoted |
-| Replacement Deployment ID / URL / State / Aliases | **None / None / Not created / Not applicable** |
-| Deployed | **No replacement deployment**; read-only dry-run only |
-| Deployed Source / Rollback Candidate | Fresh 2026-09-04 domain inspection: `www.newathleteschool.com` resolves to READY Production `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application `66be707dcbcffc810cf484fc059448373ceda72f`; alias endpoint confirms four established aliases. Existing Production remains rollback candidate; no domain change |
+| Replacement Deployment ID / URL / State / Aliases | `dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf` / https://new-athlete-badminton-school-4r8x21gj8-aachanin1s-projects.vercel.app / **READY**, target **production** / aliases **0** via deployment aliases endpoint |
+| Deployed | **Yes — staged Production-target only**, one `--prod --skip-domain` invocation; no Promotion/domain assignment |
+| Deployed Source / Rollback Candidate | Production/rollback remains READY `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application `66be707dcbcffc810cf484fc059448373ceda72f`, https://new-athlete-badminton-school-p8rzadd2k-aachanin1s-projects.vercel.app. Health/login 200/200; all four established aliases unchanged after push/deployment |
 | Production Active | Corrective **No**; existing Production unchanged |
-| Staged Smoke / Logs | No replacement to verify; not run. Existing mapping/READY/alias checks were read-only; no staged Makeup POST |
+| Staged Smoke / Logs | Read-only root/health 200; `/login` 307 to `/auth/login`, `/auth/login` 200; `/admin/makeup` 307 to login; actual `/_next/static/chunks/webpack-a1425f7572da71b3.js` 200. Bounded `--since 30m --limit 100`: 6 GET, error/5xx 0, non-GET 0, Makeup POST 0; separate error-level scan empty |
 | Migration Source / Migration Applied | **None / No remote action**; existing migrations replayed only by approved disposable local resets |
-| Feature Enabled | **No Developer change**; corrective not deployed; live controls not re-audited |
+| Feature Enabled | Existing controls unchanged; corrective available on staged URL only, not Production-active; live settings not re-audited |
 | Allowlisted | **No Developer change** |
-| Production UAT / Owner UAT Passed | No new Production UAT; old staged UX **FAIL**; replacement UAT unavailable |
+| Production UAT / Owner UAT Passed | Replacement **Not yet — awaiting Owner PASS/FAIL**; prior staged UX FAIL preserved; no new Production UAT |
 | Controlled Write UAT | **Not authorized for corrective; not performed by Developer**. No new Owner POST authorized |
 | Production Data Changed | Owner reports creation; PM reports POST `200`. Exact rows, duplicates, notifications and protected deltas **Unknown / Need verification**. Developer Production writes **None** |
 | Data Repaired | **No**; no repeat, reversal, replay or repair |
 | Customer Impact | No Developer customer mutation; prior Owner creation scope/duplication **Unknown / Need verification**. Local UI evidence does not reconcile Production transactions |
 | Financial Impact | No Developer financial mutation; prior Owner transaction effects **Unknown / Need verification**, not assumed zero |
-| Documentation Drift | Obsolete cleanup blocker superseded by verified Owner manual deletion/recovery. Retained suite/build evidence remains distinct from fresh recovery/manifest checks. Historical policy denials retained, not erased |
-| Blocker / Remaining Work | No remaining cleanup blocker. Publication compliance, commit/push, clean manifest, exact no-alias artifact and read-only smoke/logs, then no-write UAT |
+| Documentation Drift | Resolved: cleanup/recovery/publication/staged facts supersede obsolete blockers; history retained. PROJECT_STATE → TODO-CODEX → dated history reconciled. Application/config SHA distinct from documentation-only HEAD |
+| Blocker / Remaining Work | No technical blocker. Owner no-write UAT remains; real-write UAT requires separate exact learner/source/target authorization and reconciliation plan |
 | Task Done | **No** |
-| Next Gate / Next Action | Continue already-authorized publication and exact staged Production-target verification; no new Product scope approval needed. Never Promote or POST Makeup on staged/Production |
+| Next Gate / Next Action | Owner reviews exact replacement and same-source evidence, returns PASS/FAIL. Stop before Create; no Promote/alias change, Production write, rebuild after PASS, or new task |
 | Parking Lot authorization state | Unchanged and unauthorized; same Active Task |
+
+### Owner no-write handoff and limitations
+
+1. Open the exact replacement URL above as Admin/Super Admin with Makeup access.
+2. Inspect learner/source-month groups, including same-name learners.
+3. Select next month, day, branch and time; check the selected summary.
+4. Stop before “สร้างวันชดเชย” on the Production-connected staged artifact.
+5. Review same-source local button evidence and return PASS/FAIL for this artifact.
+
+Expected: correct Bangkok calendar/active slots, separate exact learners, no UI/runtime
+error. Staged real POST is **not tested**; local UTC API/DB evidence and simulated UI
+responses are separate. Controlled Write UAT needs exact learner/source/target and
+reconciliation authorization. UI locking does not guarantee cross-tab/server idempotency.
+
+Retained local evidence: `.playwright/makeup-create-evidence/` (12 images).
+Desktop/mobile `*-pending-observed.png` and `*-confirmed-before-refresh.png`,
+`before-fix-desktop.png` and `*-error-preserved.png` match the tested blobs now
+committed in the Application SHA above. Success phases have POST=1 through rapid
+clicks/keyboard/stale refresh. 400/409 reach POST=2 only on explicit user retry;
+500/network/malformed stay POST=1, automatic retries=0. Local fixture residue=0.
+
+Remote install reported 10 audit vulnerabilities (2 low, 8 high), permissive Node
+engine and two install-script warnings. Dependency/lockfile/settings unchanged;
+these warnings were not triaged/repaired in this UI-only scope. Remote build passed.
+Safe upload evidence does not establish zero historical secret exposure or zero
+financial effect of the earlier Owner transaction.
 
 ## Historical / Superseded — 2026-09-03 Bangkok weekday staged handoff
 

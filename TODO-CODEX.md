@@ -9,7 +9,7 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **DEVELOPING — RECOVERY VERIFIED; PUBLICATION / STAGED GATES IN PROGRESS**.
+Status: **READY FOR OWNER UAT**.
 
 - Active Task: **PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL
   SLOT FIX**.
@@ -26,11 +26,14 @@ Status: **DEVELOPING — RECOVERY VERIFIED; PUBLICATION / STAGED GATES IN PROGRE
 - Owner manually removed `.next`; Developer verified absence, restarted dev,
   and verified root/login/health/static plus browser rendering/errors. No policy
   bypass or Developer deletion occurred; Next recreated generated output.
-- Next action: complete publication compliance, commit/push, clean manifest and
-  exact no-alias staged Production artifact with read-only smoke/log checks.
-  No further Product scope approval needed; stop at READY FOR OWNER UAT.
-- All nine allowlisted edits remain local/uncommitted. No replacement artifact,
-  Production write, Promotion, alias change, or new task was performed.
+- Application/config/tests are committed and pushed; exact replacement staged
+  Production-target artifact is READY with aliases 0. Read-only smoke/log gates
+  passed; URL/SHA/tree and complete evidence are authoritative in PROJECT_STATE.
+- Next action: Admin/Super Admin reviews that exact replacement without writing,
+  checks learner/month/selection and same-source local button evidence, then
+  returns PASS/FAIL. Stop before creating Makeup on staged/Production.
+- No Promotion, alias/feature/allowlist/environment change, Developer Production
+  write/repair, or new task. Real-write UAT needs separate exact-target approval.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 

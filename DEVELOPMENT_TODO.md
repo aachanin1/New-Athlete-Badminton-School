@@ -19087,3 +19087,70 @@ publication/staged gates pending. Owner transaction effects remain Unknown;
 Developer Production writes/repairs None; Task Done No. Next at this checkpoint:
 publication compliance, normal commit/push, exact no-alias Production-target
 artifact and read-only verification, then READY FOR OWNER UAT, not Promotion.
+
+## 2026-09-04 — Exact UI/identity corrective staged; READY FOR OWNER UAT
+
+State observed at this closeout: post-build recovery completed after Owner manual
+deletion, with no Developer deletion/policy bypass or functional/test/config edit
+in this continuation. Scope remains exactly 2 Functional / 3 Tests / 1 Config /
+3 Docs relative to baseline 74f09ba630c26f685c655f2beafe1c9a6c08937d. The approved
+identity-prop, deployment-exclusion and Assignment test-navigation amendments
+remain distinct from Unauthorized Expansion/Breach: None/None. Complete diff,
+staged path/content, protected invariance and added-secret-pattern checks passed;
+nine paths, unstaged 0, protected diff 0, secret matches 0. Source hashes match
+retained test/build evidence; no test weakening, backend/query change or new fix.
+
+Application/config/test commit 8148249f4dc5a626fefdd70834e93ffebd55d1a1,
+tree 656a7b7c25c6f0323932598976232a2ed861cbfe, was committed and normally pushed
+to spike/next-major-security-upgrade. Remote SHA matched, ahead/behind 0/0,
+worktree clean. Project Production branch remained main and Production mapping
+did not change after push. Clean committed dry-run immediately before upload:
+405 included entries, forbidden 0, required 355/355, 8115768 bytes. Fresh
+architecture/manifest 34/34. Retained same-source checks, not fresh reruns:
+actual-button UI 9/9, Booking 23/23 (including real Saturday UTC/no-Friday-decoy),
+retrospective runtime 38/38, affected Assignment 3/3, full Assignment E2E 18/18,
+Wallet 45/45, Assignment state 39/39, TSC, zero-warning lint, mojibake 265,
+local build 94/94 static pages. Both last-run records passed; local fixture
+residue 0 and all 12 Makeup screenshots retained. Simulated UI response evidence
+does not replace real API/DB or Production transaction reconciliation.
+
+One staged command used --prod --skip-domain from that clean release, with exact
+Application SHA/tree metadata. Replacement ID dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf:
+https://new-athlete-badminton-school-4r8x21gj8-aachanin1s-projects.vercel.app
+Target production, state READY, aliases 0 via the deployment aliases endpoint.
+Github SHA/application SHA/tree match. Read-only uploaded-source verification
+compared 401 file SHA-1 hashes against local inputs: mismatches 0; forbidden 0.
+The source tree API lists 550 entries including virtual directories versus 405
+upload manifest entries; this is not an added-file claim. No secret contents read.
+Remote build compiled and typechecked, generated 94/94 pages and completed.
+Install emitted 10 audit vulnerabilities (2 low/8 high), Node-engine and two
+install-script warnings; dependency/lockfile/settings unchanged and those
+warnings were not triaged or repaired in this UI scope.
+
+Fresh read-only staged smoke: root/health 200, /login 307 to /auth/login,
+/auth/login 200, /admin/makeup 307 to login, real static asset
+/_next/static/chunks/webpack-a1425f7572da71b3.js 200. Bounded runtime logs
+(since 30m, limit 100): six GET records, error/5xx 0, non-GET 0, Makeup POST 0;
+separate error-level scan empty. No real staged/Production Makeup POST.
+Production remained READY dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW, SHA
+66be707dcbcffc810cf484fc059448373ceda72f, with all four aliases unchanged.
+That rollback candidate's health/login GET returned 200/200. No Promotion,
+alias/domain/settings/environment/secret/feature/allowlist/migration change.
+
+Source Complete Yes; required Tests Passed Yes (fresh/retained separated above);
+Committed/Pushed/Staged Deployed Yes/Yes/Yes; corrective Production Active No;
+Owner replacement UAT Not yet; Controlled Write UAT unauthorized/unperformed;
+Developer Production writes/repairs None; Task Done No. Prior Owner creation
+success and old artifact UX FAIL remain facts, exact rows/duplicates/customer/
+financial effects Unknown / Need verification. Nothing repaired or replayed.
+Safe current upload cannot establish historical secret exposure was zero.
+
+PROJECT_STATE -> TODO-CODEX -> this history were reconciled for the no-write
+handoff. The documentation-only closeout HEAD is separate from the exact
+Application/config SHA; publishing these docs must not rebuild the artifact.
+Next at this closeout: Owner Admin/Super Admin opens the exact replacement,
+checks exact learner/month and next-month day/branch/time summary, stops before
+Create, reviews local pending/success/error/single-submit evidence from that
+Source, and returns PASS/FAIL. Staged real POST remains untested; any requested
+write UAT requires separate exact learner/source/target and reconciliation
+authorization. Stop at READY FOR OWNER UAT; do not Promote or start another task.
