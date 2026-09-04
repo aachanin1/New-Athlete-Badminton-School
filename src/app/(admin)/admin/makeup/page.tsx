@@ -519,6 +519,8 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     return {
       id: session.id,
       booking_id: session.booking_id,
+      child_id: session.child_id,
+      user_id: session.bookings?.user_id || null,
       branch_id: session.branch_id,
       schedule_slot_id: session.schedule_slot_id,
       rescheduled_from_id: session.rescheduled_from_id,

@@ -93,6 +93,8 @@ interface RetrospectiveMutationOptions {
 interface BookingSessionData {
   id: string
   booking_id: string
+  child_id: string | null
+  user_id: string | null
   branch_id: string
   schedule_slot_id?: string | null
   rescheduled_from_id: string | null
@@ -148,6 +150,7 @@ interface MakeupClientProps {
 
 interface MonthGroup {
   key: string
+  learnerIdentity: string
   monthKey: string
   monthLabel: string
   nextMonthLabel: string
@@ -194,6 +197,31 @@ interface PickedSlot {
   end: string
   branchId: string
   branchName: string
+}
+
+interface MakeupCreateResult {
+  status: 'confirmed' | 'uncertain'
+  source: BookingSessionData
+  slot: PickedSlot
+  message: string
+}
+
+function getMakeupLearnerIdentity(session: BookingSessionData): string | null {
+  if (typeof session.child_id === 'string' && session.child_id.trim()) return `child:${session.child_id}`
+  if (session.child_id === null && typeof session.user_id === 'string' && session.user_id.trim()) return `self:${session.user_id}`
+  return null
+}
+
+function isConfirmedMakeup(data: unknown, source: BookingSessionData, slot: PickedSlot): boolean {
+  if (!data || typeof data !== 'object') return false
+  const row = data as Record<string, unknown>
+  return typeof row.id === 'string' && Boolean(row.id.trim()) && row.id !== source.id
+    && typeof row.schedule_slot_id === 'string' && Boolean(row.schedule_slot_id.trim())
+    && row.booking_id === source.booking_id && row.rescheduled_from_id === source.id
+    && row.child_id === source.child_id && row.is_makeup === true && row.status === 'scheduled'
+    && row.date === slot.date && row.branch_id === slot.branchId
+    && typeof row.start_time === 'string' && row.start_time.slice(0, 5) === slot.start.slice(0, 5)
+    && typeof row.end_time === 'string' && row.end_time.slice(0, 5) === slot.end.slice(0, 5)
 }
 
 interface SameSlotCoachGroupOption {
@@ -420,6 +448,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  // POST locks/results are independent of the retrospective PATCH lifecycle.
+  const createInFlightRef = useRef<string | null>(null)
+  const createBlockedKeysRef = useRef(new Set<string>())
+  const [createResults, setCreateResults] = useState<Record<string, MakeupCreateResult>>({})
+  const [createCompletion, setCreateCompletion] = useState<string | null>(null)
   const [reviewGroupLoadingKey, setReviewGroupLoadingKey] = useState<string | null>(null)
   const [reviewSession, setReviewSession] = useState<BookingSessionData | null>(null)
   const [reviewAction, setReviewAction] = useState<ReviewAction>('confirm_absent')
@@ -680,7 +713,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     const groups = new Map<string, MonthGroup & { learnerName: string; userName: string; branches: string[] }>()
 
     projectedSessions.filter(isMissedSession).forEach((session) => {
-      const learnerKey = `${session.user_name}::${session.learner_name}`
+      const learnerKey = getMakeupLearnerIdentity(session)
+      if (!learnerKey) return
       const monthKey = getMonthKey(session.date)
       const key = `${learnerKey}::${monthKey}`
       const range = getMonthRange(session.date)
@@ -689,6 +723,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       if (!groups.has(key)) {
         groups.set(key, {
           key,
+          learnerIdentity: learnerKey,
           monthKey,
           monthLabel: range.monthLabel,
           nextMonthLabel: range.nextMonthLabel,
@@ -718,10 +753,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
     return Array.from(groups.values()).map((group) => ({
       ...group,
-      canCreate: !group.hasMakeup && !group.isExpired,
+      hasMakeup: group.hasMakeup || createResults[group.key]?.status === 'confirmed',
+      canCreate: !group.hasMakeup && !group.isExpired && !createResults[group.key],
       sessions: group.sessions.sort((a, b) => a.date.localeCompare(b.date)),
     }))
-  }, [makeupSourceIds, projectedSessions])
+  }, [createResults, makeupSourceIds, projectedSessions])
+
+  const missingMakeupIdentity = projectedSessions.filter((session) => isMissedSession(session) && !getMakeupLearnerIdentity(session))
 
   const filteredMonthGroups = useMemo(() => {
     const q = makeupSearch.trim().toLowerCase()
@@ -749,7 +787,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     const groups = new Map<string, LearnerGroup>()
 
     filteredMonthGroups.forEach((month) => {
-      const learnerKey = `${month.userName}::${month.learnerName}`
+      const learnerKey = month.learnerIdentity
       if (!groups.has(learnerKey)) {
         groups.set(learnerKey, {
           key: learnerKey,
@@ -877,7 +915,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       actionable: monthGroups.filter((group) => group.canCreate).length,
       expired: monthGroups.filter((group) => group.isExpired && !group.hasMakeup).length,
       makeups: monthGroups.filter((group) => group.hasMakeup).length,
-      learners: new Set(monthGroups.map((group) => `${group.userName}:${group.learnerName}`)).size,
+      learners: new Set(monthGroups.map((group) => group.learnerIdentity)).size,
       review: reviewItems.length,
       reviewNoCoach: reviewItems.filter((session) => !session.coach_name).length,
       reviewCoachEvidence: reviewItems.filter(isCoachEvidenceReviewSession).length,
@@ -913,6 +951,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }, [availableDays, selectedMonth])
 
   const openMakeupDialog = (month: MonthGroup) => {
+    if (createInFlightRef.current || createBlockedKeysRef.current.has(month.key) || !month.canCreate) return
     const days = buildAvailableDays(month, branches, scheduleTemplates)
     setError(null)
     setSelectedMonth(month)
@@ -922,43 +961,92 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }
 
   const createMakeup = async () => {
+    if (createInFlightRef.current) return
     if (!selectedMonth || !pickedSlot) {
       setError('กรุณาเลือกวันและรอบเรียนสำหรับชดเชย')
       return
     }
 
+    const key = selectedMonth.key
+    if (createBlockedKeysRef.current.has(key) || !selectedMonth.canCreate) return
+    const source = { ...selectedMonth.sourceSession }
+    const slot = { ...pickedSlot }
+    if (getMakeupLearnerIdentity(source) !== selectedMonth.learnerIdentity) {
+      setError('ไม่พบรหัสผู้เรียนที่ตรงกับรายการ กรุณาตรวจสอบข้อมูลก่อนสร้างวันชดเชย')
+      return
+    }
+    const payload = {
+      original_session_id: source.id,
+      booking_id: source.booking_id,
+      makeup_date: slot.date,
+      start_time: slot.start,
+      end_time: slot.end,
+      branch_id: slot.branchId,
+    }
+    createInFlightRef.current = key
     setLoading(true)
     setError(null)
+    setCreateCompletion(null)
+
+    const uncertain = (detail?: string) => {
+      const message = `ยังยืนยันผลไม่ได้ ระบบอาจบันทึกแล้ว กรุณาตรวจสอบสถานะก่อนสร้างอีกครั้ง${detail ? ` (${detail})` : ''}`
+      createBlockedKeysRef.current.add(key)
+      setCreateResults((current) => ({ ...current, [key]: { status: 'uncertain', source, slot, message } }))
+      setError(message)
+    }
 
     try {
       const response = await fetch('/api/admin/makeup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          original_session_id: selectedMonth.sourceSession.id,
-          booking_id: selectedMonth.sourceSession.booking_id,
-          makeup_date: pickedSlot.date,
-          start_time: pickedSlot.start,
-          end_time: pickedSlot.end,
-          branch_id: pickedSlot.branchId,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json().catch(() => null)
 
-      if (!response.ok) {
-        setError(result?.error || 'สร้างวันชดเชยไม่สำเร็จ')
+      if (!response.ok && response.status >= 400 && response.status < 500) {
+        setError(typeof result?.error === 'string' ? result.error : 'สร้างวันชดเชยไม่สำเร็จ')
         return
       }
-
+      if (!response.ok || result?.success !== true || !isConfirmedMakeup(result?.data, source, slot)) {
+        uncertain(typeof result?.error === 'string' ? result.error : undefined)
+        return
+      }
+      const message = `${source.learner_name} • ${formatDate(slot.date)} • ${formatTime(slot.start, slot.end)} • ${slot.branchName}`
+      createBlockedKeysRef.current.add(key)
+      setCreateResults((current) => ({ ...current, [key]: { status: 'confirmed', source, slot, message } }))
+      setCreateCompletion(message)
+      toast.success('สร้างวันชดเชยสำเร็จ', { description: message })
       setDialogOpen(false)
       router.refresh()
     } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      uncertain()
     } finally {
+      createInFlightRef.current = null
       setLoading(false)
     }
   }
+
+  // A read-only refresh may confirm an uncertain POST, but absence/stale reads
+  // never unlock it or erase a previously confirmed result.
+  useEffect(() => {
+    const confirmed = Object.entries(createResults).filter(([, result]) => result.status === 'uncertain'
+      && sessions.some((session) => getMakeupLearnerIdentity(session) === getMakeupLearnerIdentity(result.source)
+        && isConfirmedMakeup(session, result.source, result.slot)))
+    if (!confirmed.length) return
+    setCreateResults((current) => {
+      const next = { ...current }
+      for (const [key, result] of confirmed) next[key] = { ...result, status: 'confirmed' }
+      return next
+    })
+    const selected = confirmed.find(([key]) => key === selectedMonth?.key)
+    if (selected) {
+      const { source, slot } = selected[1]
+      setCreateCompletion(`${source.learner_name} • ${formatDate(slot.date)} • ${formatTime(slot.start, slot.end)} • ${slot.branchName}`)
+      setError(null)
+      setDialogOpen(false)
+    }
+  }, [createResults, selectedMonth, sessions])
 
   const sendReviewGroupToCoach = async (group: ReviewSessionGroup) => {
     const targetSessions = group.sessions.filter(isAttendanceReviewSession)
@@ -1529,6 +1617,13 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         </div>
       )}
 
+      {createCompletion && (
+        <div role="status" className="fixed inset-x-3 top-3 z-40 mx-auto max-w-xl rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 shadow-lg">
+          <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-5 w-5 shrink-0" />สร้างวันชดเชยสำเร็จ</p>
+          <p className="mt-1 break-words">{createCompletion}</p>
+          <button type="button" className="mt-2 underline" onClick={() => setCreateCompletion(null)}>ปิดข้อความ</button>
+        </div>
+      )}
       {completionMessage && (
         <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -2072,6 +2167,12 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
             </CardContent>
           </Card>
 
+      {missingMakeupIdentity.length > 0 && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          ไม่พบรหัสผู้เรียนที่จำเป็น จึงไม่สามารถจัดกลุ่มหรือสร้างวันชดเชยให้รายการเหล่านี้ได้:
+          {missingMakeupIdentity.map((session) => <p key={session.id}>{session.learner_name} • {formatDate(session.date)} • รายการ {session.id}</p>)}
+        </div>
+      )}
       {learnerGroups.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-14 text-center text-gray-400">
@@ -2083,7 +2184,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       ) : (
         <div className="space-y-3">
           {pagedLearnerGroups.map((group) => (
-            <Card key={group.key} className="border-gray-200">
+            <Card key={group.key} data-makeup-learner={group.key} className="border-gray-200">
               <CardContent className="p-4">
                 <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -2106,7 +2207,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
                 <div className="mt-3 grid gap-3 xl:grid-cols-2">
                   {group.months.map((month) => (
-                    <div key={month.key} className={`rounded-lg border p-3 ${month.canCreate ? 'border-orange-200 bg-orange-50/40' : month.hasMakeup ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-200 bg-gray-50/70'}`}>
+                    <div key={month.key} data-makeup-month={month.key} className={`rounded-lg border p-3 ${month.canCreate ? 'border-orange-200 bg-orange-50/40' : month.hasMakeup ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-200 bg-gray-50/70'}`}>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -2133,7 +2234,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                         </div>
                         <div className="sm:shrink-0">
                           {month.canCreate ? (
-                            <Button size="sm" className="h-9 bg-[#f57e3b] text-white hover:bg-[#e06d2e]" onClick={() => openMakeupDialog(month)}>
+                            <Button size="sm" disabled={loading} className="h-9 bg-[#f57e3b] text-white hover:bg-[#e06d2e]" onClick={() => openMakeupDialog(month)}>
                               <CalendarPlus className="mr-2 h-4 w-4" />
                               เลือกรอบชดเชย
                             </Button>
@@ -2141,6 +2242,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             <div className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
                               <CheckCircle2 className="h-4 w-4" />
                               ใช้สิทธิ์แล้ว
+                            </div>
+                          ) : createResults[month.key]?.status === 'uncertain' ? (
+                            <div className="text-sm text-amber-800">
+                              ยังยืนยันผลไม่ได้ กรุณาตรวจสอบก่อนสร้างอีกครั้ง
+                              <Button variant="outline" size="sm" onClick={() => router.refresh()}>ตรวจสอบสถานะล่าสุด</Button>
                             </div>
                           ) : (
                             <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
@@ -2815,8 +2921,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="flex max-h-[92vh] max-w-5xl flex-col overflow-hidden">
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!createInFlightRef.current) setDialogOpen(open) }}>
+        <DialogContent
+          aria-busy={loading}
+          onEscapeKeyDown={(event) => { if (createInFlightRef.current) event.preventDefault() }}
+          onPointerDownOutside={(event) => { if (createInFlightRef.current) event.preventDefault() }}
+          onInteractOutside={(event) => { if (createInFlightRef.current) event.preventDefault() }}
+          className="flex max-h-[92vh] max-w-5xl flex-col overflow-hidden"
+        >
           <DialogHeader>
             <DialogTitle className="text-[#153c85]">เลือกวันและรอบเรียนชดเชย</DialogTitle>
             <DialogDescription className="sr-only">เลือกวัน สาขา และรอบเรียนจริงจากตารางสำหรับสร้างรอบชดเชยให้ผู้เรียน</DialogDescription>
@@ -2824,8 +2936,11 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           {selectedMonth && (
             <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
               {error && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                <div role="alert" className="shrink-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                   {error}
+                  {createResults[selectedMonth.key]?.status === 'uncertain' && (
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>ตรวจสอบสถานะล่าสุด</Button>
+                  )}
                 </div>
               )}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
@@ -2866,7 +2981,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                             <button
                               key={cell.dateInput}
                               type="button"
-                              disabled={!isAvailable}
+                              disabled={loading || !isAvailable}
                               className={`flex aspect-square min-h-11 flex-col items-center justify-center rounded-lg border text-xs transition sm:min-h-14 ${
                                 isSelected
                                   ? 'border-[#2748bf] bg-[#2748bf] text-white shadow-sm'
@@ -2875,7 +2990,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                                     : 'border-gray-100 bg-gray-50 text-gray-300'
                               }`}
                               onClick={() => {
-                                if (!cell.availableDay) return
+                                if (createInFlightRef.current || !cell.availableDay) return
                                 setSelectedDate(cell.dateInput)
                                 setPickedSlot(null)
                               }}
@@ -2917,16 +3032,17 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                                       key={`${branch.id}-${selectedDay.dateInput}-${slot.start}`}
                                       type="button"
                                       size="sm"
+                                      disabled={loading}
                                       variant={isPicked ? 'default' : 'outline'}
                                       className={`justify-start ${isPicked ? 'bg-[#2748bf] hover:bg-[#153c85]' : ''}`}
-                                      onClick={() => setPickedSlot({
+                                      onClick={() => { if (!createInFlightRef.current) setPickedSlot({
                                         date: selectedDay.dateInput,
                                         dayOfWeek: selectedDay.dayOfWeek,
                                         start: slot.start,
                                         end: slot.end,
                                         branchId: branch.id,
                                         branchName: branch.name,
-                                      })}
+                                      }) }}
                                     >
                                       <Clock className="mr-1 h-3.5 w-3.5" />
                                       {formatTime(slot.start, slot.end)}
@@ -2949,8 +3065,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 </div>
               )}
 
-              <Button className="h-10 w-full bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={createMakeup} disabled={loading || !pickedSlot}>
-                {loading ? 'กำลังบันทึก...' : 'สร้างวันชดเชย'}
+              <Button aria-label={loading ? 'กำลังบันทึกวันชดเชย...' : 'สร้างวันชดเชย'} className="h-10 w-full shrink-0 bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={createMakeup} disabled={loading || !pickedSlot || Boolean(createResults[selectedMonth.key])}>
+                {loading ? <span role="status" className="inline-flex items-center gap-2"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />กำลังบันทึกวันชดเชย...</span> : 'สร้างวันชดเชย'}
               </Button>
             </div>
           )}

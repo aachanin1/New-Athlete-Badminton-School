@@ -143,10 +143,40 @@ async function loginAsUser(page: Page, email = TEST_ACCOUNT.email) {
   await page.waitForURL(/\/dashboard(?:\/|$)/)
 }
 
+async function selectUserScheduleMonth(page: Page, targetYear: number, targetMonth: number) {
+  expect(Number.isInteger(targetYear) && targetYear > 0).toBe(true)
+  expect(Number.isInteger(targetMonth) && targetMonth >= 1 && targetMonth <= 12).toBe(true)
+  const monthNames = Array.from({ length: 12 }, (_, month) => new Intl.DateTimeFormat('th-TH', {
+    month: 'long', timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2026, month, 1))))
+  const monthLabel = page.getByText(new RegExp(`^(${monthNames.join('|')}) \\d{4}$`))
+  const targetIndex = targetYear * 12 + targetMonth - 1
+  const targetLabel = `${monthNames[targetMonth - 1]} ${targetYear + 543}`
+  await expect(monthLabel).toBeVisible()
+  for (let step = 0; step <= 120; step++) {
+    const displayed = (await monthLabel.innerText()).trim()
+    const [name, buddhistYear] = displayed.split(/\s+/)
+    const month = monthNames.indexOf(name)
+    const year = Number(buddhistYear) - 543
+    expect(month).toBeGreaterThanOrEqual(0)
+    expect(Number.isInteger(year)).toBe(true)
+    const currentIndex = year * 12 + month
+    if (currentIndex === targetIndex) {
+      await expect(monthLabel).toHaveText(targetLabel)
+      return
+    }
+    expect(step, `calendar navigation exceeded 120 steps: ${displayed} -> ${targetLabel}`).toBeLessThan(120)
+    const direction = currentIndex < targetIndex ? 1 : -1
+    await page.getByRole('button', { name: direction === 1 ? 'เดือนถัดไป' : 'เดือนก่อนหน้า', exact: true }).click()
+    const nextIndex = currentIndex + direction
+    await expect(monthLabel).toHaveText(`${monthNames[nextIndex % 12]} ${Math.floor(nextIndex / 12) + 543}`)
+  }
+}
+
 async function openUserScheduleDate(page: Page) {
   await page.goto('/dashboard/schedule')
   await expect(page.getByRole('heading', { name: 'ตารางเรียน', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'เดือนก่อนหน้า', exact: true }).click()
+  await selectUserScheduleMonth(page, 2026, 7)
   await expect(page.getByText('กรกฎาคม 2569', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-07-17', exact: true }).click()
 }
@@ -1388,6 +1418,20 @@ test('Parent program API is ownership-safe, exact-group-only, allowed-status-onl
   await otherContext.close()
 })
 
+test('User Schedule fixture month navigation handles other months, both year boundaries, and an already selected month', async ({ page }) => {
+  await loginAsUser(page)
+  await page.goto('/dashboard/schedule')
+  await expect(page.getByRole('heading', { name: 'ตารางเรียน', exact: true })).toBeVisible()
+  await selectUserScheduleMonth(page, 2026, 12)
+  await selectUserScheduleMonth(page, 2027, 1)
+  await selectUserScheduleMonth(page, 2026, 12)
+  await selectUserScheduleMonth(page, 2026, 8)
+  await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-08-01', exact: true }).click()
+  await selectUserScheduleMonth(page, 2026, 8)
+  await expect(page.getByRole('button', { name: 'ดูตารางวันที่ 2026-08-01', exact: true })).toHaveClass(/ring-2/)
+  await expect(page.getByText('รวม 1 ครั้ง', { exact: true })).toBeVisible()
+})
+
 test('User Schedule loads visible program on demand, caches by session, and shows neutral empty state on desktop/mobile', async ({ page }) => {
   const admin = createLocalAdmin()
   const programRequests: string[] = []
@@ -1410,12 +1454,13 @@ test('User Schedule loads visible program on demand, caches by session, and show
   await loginAsUser(page)
   await page.goto('/dashboard/schedule')
   await expect(page.getByRole('heading', { name: 'ตารางเรียน', exact: true })).toBeVisible()
+  await selectUserScheduleMonth(page, 2026, 8)
   await expect(page.getByText('สิงหาคม 2569', { exact: true })).toBeVisible()
   await expect(page.getByText('รวม 1 ครั้ง', { exact: true })).toBeVisible()
   expect(pageErrors).toEqual([])
   expect(consoleErrors).toEqual([])
   await expect(page.getByRole('button', { name: 'Open issues overlay', exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: 'เดือนก่อนหน้า', exact: true }).click()
+  await selectUserScheduleMonth(page, 2026, 7)
   await expect(page.getByText('กรกฎาคม 2569', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-07-17', exact: true }).click()
   expect(programRequests).toHaveLength(0)
@@ -1483,6 +1528,7 @@ test('high-cardinality User Schedule preserves legacy coach display without lega
 
   await loginAsUser(page)
   await page.goto('/dashboard/schedule')
+  await selectUserScheduleMonth(page, 2026, 8)
   await expect(page.getByText('สิงหาคม 2569', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'ดูตารางวันที่ 2026-08-01', exact: true }).click()
 

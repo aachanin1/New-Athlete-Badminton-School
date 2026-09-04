@@ -1,5 +1,7 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 import {
   BOOKING_DATES,
   BOOKING_MONTH,
@@ -1051,6 +1053,280 @@ test('Lesson Wallet canonical Private Sunday redemption falls back safely and re
   await admin.from('bookings').delete().eq('id', privateBookingId)
   await admin.from('schedule_templates').delete().in('id', [canonicalTemplateId, otherBranchTemplateId])
   await admin.from('branches').delete().eq('id', otherBranchId)
+})
+
+// UI evidence uses real local page/DB fixtures and intercepted POST responses.
+// The separate Saturday test below remains the real API/DB mutation evidence.
+async function withMakeupUiFixture(run: (data: {
+  name: string; childIds: string[]; userIds: string[]; sessionIds: string[];
+  bookingIds: string[]; branchIds: string[]; monthKey: string;
+}) => Promise<void>) {
+  const admin = createLocalAdmin() // refuses every non-local Supabase URL
+  const name = `ชื่อซ้ำ UI ${randomUUID().slice(0, 8)}`
+  const userIds = [fixture.userId, fixture.otherUserId]
+  const childIds = [randomUUID(), randomUUID(), randomUUID()]
+  const bookingIds = Array.from({ length: 6 }, () => randomUUID())
+  const sessionIds = Array.from({ length: 6 }, () => randomUUID())
+  const branchIds = [randomUUID(), randomUUID()]
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date())
+  const [year, month] = today.split('-').map(Number)
+  const source = new Date(Date.UTC(year, month - 2, 5))
+  const sourceDate = source.toISOString().slice(0, 10)
+  const monthKey = sourceDate.slice(0, 7)
+  const profiles = await admin.from('profiles').select('id,full_name').in('id', userIds)
+  if (profiles.error) throw profiles.error
+  const requireOk = (result: { error: { message: string } | null }) => {
+    if (result.error) throw new Error(result.error.message)
+  }
+  try {
+    requireOk(await admin.from('profiles').update({ full_name: name }).in('id', userIds))
+    requireOk(await admin.from('branches').insert(branchIds.map((id, index) => ({
+      id, name: `${name} สาขา ${index + 1}`, slug: `makeup-ui-${id}`, is_active: true,
+    }))))
+    requireOk(await admin.from('children').insert(childIds.map((id, index) => ({
+      id, parent_id: userIds[index === 2 ? 1 : 0], full_name: name, nickname: name, date_of_birth: '2015-01-01',
+    }))))
+    requireOk(await admin.from('schedule_templates').insert(branchIds.flatMap((branchId) => (
+      Array.from({ length: 7 }, (_, day) => ({
+        branch_id: branchId, course_type_id: fixture.kidsCourseId, day_of_week: day,
+        start_time: '16:00:00', end_time: '18:00:00', is_active: true,
+      }))
+    ))))
+    const children = [childIds[0], childIds[1], childIds[2], null, null, childIds[0]]
+    requireOk(await admin.from('bookings').insert(bookingIds.map((id, index) => ({
+      id, user_id: userIds[index === 2 || index === 4 ? 1 : 0],
+      learner_type: children[index] ? 'child' : 'self', child_id: children[index],
+      branch_id: branchIds[index === 5 ? 1 : 0], course_type_id: fixture.kidsCourseId,
+      month: source.getUTCMonth() + 1, year: source.getUTCFullYear(),
+      total_sessions: 1, total_price: 0, status: 'verified',
+    }))))
+    requireOk(await admin.from('booking_sessions').insert(sessionIds.map((id, index) => ({
+      id, booking_id: bookingIds[index], child_id: children[index], date: sourceDate,
+      branch_id: branchIds[index === 5 ? 1 : 0], start_time: '16:00:00', end_time: '18:00:00', status: 'absent',
+    }))))
+    await run({ name, childIds, userIds, sessionIds, bookingIds, branchIds, monthKey })
+  } finally {
+    requireOk(await admin.from('booking_sessions').delete().in('booking_id', bookingIds))
+    requireOk(await admin.from('bookings').delete().in('id', bookingIds))
+    requireOk(await admin.from('schedule_templates').delete().in('branch_id', branchIds))
+    requireOk(await admin.from('children').delete().in('id', childIds))
+    requireOk(await admin.from('branches').delete().in('id', branchIds))
+    for (const profile of profiles.data || []) {
+      requireOk(await admin.from('profiles').update({ full_name: profile.full_name }).eq('id', profile.id))
+    }
+    for (const [table, column, ids] of [
+      ['booking_sessions', 'booking_id', bookingIds], ['bookings', 'id', bookingIds],
+      ['schedule_templates', 'branch_id', branchIds], ['children', 'id', childIds], ['branches', 'id', branchIds],
+    ] as const) {
+      const result = await admin.from(table).select('*', { count: 'exact', head: true }).in(column, [...ids])
+      requireOk(result)
+      expect(result.count, `${table} UI fixture residue`).toBe(0)
+    }
+    console.log('[makeup-ui] exact local fixture residue: 0')
+  }
+}
+
+async function openMakeupUi(page: Page, name: string) {
+  await loginAs(page, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.password)
+  await page.goto('/admin/makeup')
+  await page.getByRole('tab', { name: /^เลือกวันชดเชย/ }).click()
+  await page.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน...').fill(name)
+}
+
+async function captureMakeupUi(page: Page, testInfo: TestInfo, phase: string) {
+  const directory = resolve('.playwright/makeup-create-evidence')
+  mkdirSync(directory, { recursive: true })
+  const path = resolve(directory, `${testInfo.title.replace(/[^a-zA-Z0-9-]/g, '_')}-${phase}.png`)
+  await page.screenshot({ path, fullPage: false })
+  await testInfo.attach(phase, { path, contentType: 'image/png' })
+}
+
+for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 'mobile', width: 390, height: 844 }]) {
+  test(`Admin Makeup UI delayed single-submit and confirmed exact-target success ${viewport.name}`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport)
+    await withMakeupUiFixture(async (data) => {
+      await openMakeupUi(page, data.name)
+      // Before correction the same-name sources collapse, but this still clicks
+      // the real create controls so the pending regression independently fails.
+      await page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true }).first().click()
+      const dialog = page.getByRole('dialog')
+      await dialog.getByRole('button', { name: '16:00-18:00', exact: true }).first().click()
+      let posts = 0
+      let payload: Record<string, string> = {}
+      let releasePost!: () => void
+      const postGate = new Promise<void>((resolveGate) => { releasePost = resolveGate })
+      let releaseRefresh!: () => void
+      const refreshGate = new Promise<void>((resolveGate) => { releaseRefresh = resolveGate })
+      let refreshes = 0
+      let staleDelivered = 0
+      await page.route('**/api/admin/makeup', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue()
+        expect(new URL(route.request().url()).hostname).toBe('127.0.0.1')
+        posts += 1
+        payload = route.request().postDataJSON()
+        await postGate
+        const index = data.sessionIds.indexOf(payload.original_session_id)
+        await route.fulfill({ json: { success: true, data: {
+          id: randomUUID(), booking_id: payload.booking_id, rescheduled_from_id: payload.original_session_id,
+          date: payload.makeup_date, branch_id: payload.branch_id, start_time: payload.start_time,
+          end_time: payload.end_time, child_id: index === 3 || index === 4 ? null : data.childIds[index === 5 ? 0 : index],
+          is_makeup: true, status: 'scheduled', schedule_slot_id: randomUUID(),
+        } } })
+      })
+      await page.route('**/admin/makeup?*', async (route) => {
+        if (route.request().headers().rsc !== '1') return route.continue()
+        refreshes += 1
+        const stale = await route.fetch()
+        await refreshGate
+        await route.fulfill({ response: stale })
+        staleDelivered += 1
+      })
+      try {
+        const submit = dialog.getByRole('button', { name: 'สร้างวันชดเชย', exact: true })
+        await submit.click({ clickCount: 3 })
+        await page.keyboard.press('Enter')
+        await page.keyboard.press('Space')
+        await expect.poll(() => posts).toBe(1)
+        await captureMakeupUi(page, testInfo, 'pending-observed')
+        const pending = dialog.getByRole('status').filter({ hasText: 'กำลังบันทึกวันชดเชย...' })
+        await expect(pending).toBeVisible()
+        await expect(pending).toBeInViewport()
+        await expect(dialog).toHaveAttribute('aria-busy', 'true')
+        await expect(dialog.getByRole('button', { name: 'กำลังบันทึกวันชดเชย...' })).toBeDisabled()
+        const selectionButtons = dialog.getByRole('button').filter({ hasText: /รอบ$|16:00-18:00/ })
+        for (const button of await selectionButtons.all()) await expect(button).toBeDisabled()
+        await dialog.getByRole('button', { name: 'Close', exact: true }).click({ force: true })
+        await page.keyboard.press('Escape')
+        await page.mouse.click(2, 2)
+        await expect(dialog).toBeVisible()
+        expect(posts).toBe(1)
+        const keys = ['booking_id', 'branch_id', 'end_time', 'makeup_date', 'original_session_id', 'start_time']
+        expect(Object.keys(payload).sort()).toEqual(keys)
+        releasePost()
+        await expect(dialog).not.toBeVisible()
+        const success = page.getByRole('status').filter({ hasText: 'สร้างวันชดเชยสำเร็จ' }).first()
+        await expect(success).toContainText(data.name)
+        await expect(success).toContainText('16:00-18:00')
+        await expect(success).toContainText('สาขา')
+        await expect(success).toBeInViewport()
+        await expect.poll(() => refreshes).toBeGreaterThan(0)
+        const sourceIndex = data.sessionIds.indexOf(payload.original_session_id)
+        const identity = sourceIndex === 3 || sourceIndex === 4
+          ? `self:${data.userIds[sourceIndex === 4 ? 1 : 0]}`
+          : `child:${data.childIds[sourceIndex === 5 ? 0 : sourceIndex]}`
+        const target = page.locator(`[data-makeup-month="${identity}::${data.monthKey}"]`)
+        await expect(target).toContainText('ใช้สิทธิ์แล้ว')
+        await expect(page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true })).toHaveCount(4)
+        await captureMakeupUi(page, testInfo, 'confirmed-before-refresh')
+        releaseRefresh()
+        await expect.poll(() => staleDelivered).toBeGreaterThan(0)
+        await expect.poll(() => page.locator('[data-makeup-month]').count()).toBe(5)
+        await expect(target).toContainText('ใช้สิทธิ์แล้ว')
+        await expect(page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true })).toHaveCount(4)
+        expect(posts).toBe(1)
+        console.log(`[makeup-ui] ${viewport.name}: pending POST=1; confirmed POST=1; stale-refresh POST=1`)
+      } finally {
+        releasePost()
+        releaseRefresh()
+        await page.unrouteAll({ behavior: 'wait' })
+      }
+    })
+  })
+}
+
+test('Admin Makeup UI exact identity separates same names and retains one monthly group across bookings', async ({ page }, testInfo) => {
+  await withMakeupUiFixture(async (data) => {
+    await openMakeupUi(page, data.name)
+    await expect(page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true })).toHaveCount(5)
+    for (const identity of [...data.childIds.map((id) => `child:${id}`), ...data.userIds.map((id) => `self:${id}`)]) {
+      await expect(page.locator(`[data-makeup-learner="${identity}"]`)).toHaveCount(1)
+      await expect(page.locator(`[data-makeup-month="${identity}::${data.monthKey}"]`)).toHaveCount(1)
+    }
+    const combined = page.locator(`[data-makeup-month="child:${data.childIds[0]}::${data.monthKey}"]`)
+    await expect(combined).toContainText('ขาด/เลยวันเรียน 2 ครั้ง')
+    await expect(page.locator(`[data-makeup-learner="child:${data.childIds[0]}"]`)).toContainText('สาขา 2')
+    await captureMakeupUi(page, testInfo, 'five-exact-identities')
+  })
+})
+
+for (const outcome of ['400', '409', '500', 'network', 'malformed'] as const) {
+  test(`Admin Makeup UI truthful ${outcome} outcome preserves selection without automatic retry`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await withMakeupUiFixture(async (data) => {
+      await openMakeupUi(page, data.name)
+      await page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true }).first().click()
+      const dialog = page.getByRole('dialog')
+      await dialog.getByRole('button', { name: '16:00-18:00', exact: true }).first().click()
+      const selected = dialog.getByText(/^เลือกแล้ว:/)
+      const selectedText = await selected.innerText()
+      let posts = 0
+      const rejection = `คำตอบทดสอบ ${outcome}`
+      await page.route('**/api/admin/makeup', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue()
+        expect(new URL(route.request().url()).hostname).toBe('127.0.0.1')
+        posts += 1
+        if (outcome === 'network') return route.abort('failed')
+        if (outcome === 'malformed') return route.fulfill({ status: 200, json: null })
+        return route.fulfill({ status: Number(outcome), json: { error: rejection } })
+      })
+      try {
+        await dialog.getByRole('button', { name: 'สร้างวันชดเชย', exact: true }).click()
+        const error = dialog.getByRole('alert')
+        if (outcome === '400' || outcome === '409') {
+          await expect(error).toContainText(rejection)
+          await expect(dialog.getByRole('button', { name: 'สร้างวันชดเชย', exact: true })).toBeEnabled()
+        } else {
+          await expect(error).toContainText('ยังยืนยันผลไม่ได้')
+          await expect(dialog.getByRole('button', { name: 'สร้างวันชดเชย', exact: true })).toBeDisabled()
+        }
+        await expect(error).toBeInViewport()
+        await expect(dialog).toBeVisible()
+        await expect(selected).toHaveText(selectedText)
+        await expect(page.getByText('สร้างวันชดเชยสำเร็จ', { exact: false })).toHaveCount(0)
+        await captureMakeupUi(page, testInfo, 'error-preserved')
+        expect(posts).toBe(1)
+        if (outcome === '400' || outcome === '409') {
+          await dialog.getByRole('button', { name: 'สร้างวันชดเชย', exact: true }).click()
+          await expect.poll(() => posts).toBe(2) // only this explicit user retry
+        } else {
+          await dialog.getByRole('button', { name: 'ตรวจสอบสถานะล่าสุด', exact: true }).click()
+          await expect(error).toContainText('ยังยืนยันผลไม่ได้')
+          expect(posts).toBe(1) // read-only reconciliation never retries POST
+        }
+        console.log(`[makeup-ui] ${outcome}: automatic retries=0; POST=${posts}`)
+      } finally {
+        await page.unrouteAll({ behavior: 'wait' })
+      }
+    })
+  })
+}
+
+test('Admin Makeup UI missing identity fails visibly without a display-name fallback', async ({ page }, testInfo) => {
+  await withMakeupUiFixture(async (data) => {
+    let injected = 0
+    // Simulate an incomplete read payload, not a successful mutation response.
+    await page.route('**/admin/makeup?*', async (route) => {
+      if (route.request().headers().rsc !== '1') return route.continue()
+      const response = await route.fetch()
+      const text = await response.text()
+      if (!text.includes(data.childIds[0])) return route.fulfill({ response })
+      injected += 1
+      await route.fulfill({ response, body: text.replaceAll(data.childIds[0], '').replaceAll(data.userIds[1], '') })
+    })
+    try {
+      await loginAs(page, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.password)
+      await page.locator('a[href="/admin/makeup"]').first().click()
+      await page.getByRole('tab', { name: /^เลือกวันชดเชย/ }).click()
+      await page.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน...').fill(data.name)
+      await expect.poll(() => injected).toBeGreaterThan(0)
+      await expect(page.getByRole('alert').filter({ hasText: 'ไม่พบรหัสผู้เรียน' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true })).toHaveCount(3)
+      await expect(page.locator(`[data-makeup-learner="child:${data.childIds[0]}"]`)).toHaveCount(0)
+      await captureMakeupUi(page, testInfo, 'missing-identity')
+    } finally {
+      await page.unrouteAll({ behavior: 'wait' })
+    }
+  })
 })
 
 test('Admin Makeup resolves an isolated Saturday canonical slot under UTC without a Friday decoy', async ({ page }) => {

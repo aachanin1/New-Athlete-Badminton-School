@@ -5,3 +5,14 @@ backups/
 .env
 .env.*
 *.log
+
+# Local Supabase CLI state and runtime secrets; not application inputs.
+/supabase/.temp
+/supabase/.branches
+# Local browser fixtures, auth state, screenshots, traces and reports.
+/.playwright
+/test-results
+/playwright-report
+# Generated locally; Next/TypeScript recreate these during build.
+/tsconfig.tsbuildinfo
+/next-env.d.ts

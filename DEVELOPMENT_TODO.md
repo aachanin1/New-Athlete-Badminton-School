@@ -18653,3 +18653,437 @@ unauthorized. Status is **READY FOR OWNER UAT**, not TASK DONE.
 | Documentation Drift | Prior `None — Awaiting Owner Selection` mutable claim is superseded; current state is authoritative in `PROJECT_STATE.md` and the short index derives from it |
 | Blocker / Next Action | Owner no-write UAT PASS/FAIL pending. Stop before `สร้างวันชดเชย`; do not Promote, alias, write Production, or begin another task |
 | Task Done | **No — READY FOR OWNER UAT** |
+
+## 2026-09-04 — Admin Makeup create UI feedback corrective: pre-edit identity-scope Hard Stop
+
+State observed at this safe handoff: Owner reported successful creation but
+completion-feedback/duplicate-submit UX FAIL on `dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK`.
+PM reported POST `200` at 08:28:45 Asia/Bangkok. Developer did not independently
+read that runtime event or reconcile exact rows. Exact source/created rows,
+duplicate count, notifications, customer scope, and financial/protected-domain
+deltas remain **Unknown / Need verification**. The prior artifact is ineligible
+for Promotion; no transaction was repeated, reversed, replayed, or repaired.
+
+Gate 0 independently verified exact repository root, branch
+`spike/next-major-security-upgrade`, local/remote
+`74f09ba630c26f685c655f2beafe1c9a6c08937d`, upstream, ahead/behind `0/0`, and clean
+staged/unstaged state. API routes and canonical helpers retain the existing
+Bangkok weekday correction. UI-only scope did not authorize any backend/server
+page or additional functional path.
+
+Source audit confirmed state-only POST loading, no synchronous handler lock,
+editable and closable pending dialog, no confirmed success toast/banner/card
+projection, and HTTP-ok responses accepted without a valid success body. The
+existing ref-backed completion lifecycle covers retrospective PATCH only.
+
+The required exact-learner projection exposed a scope blocker before edits:
+`makeup-client.tsx` groups months and learners by display names, while
+`src/app/(admin)/admin/makeup/page.tsx` selects `child_id` and `bookings.user_id`
+but omits both from `sessionList` passed to the client. Session and booking IDs
+alone do not identify the same learner across bookings or distinguish same-named
+Family participants within one booking. Guessing or changing monthly entitlement
+grouping would not satisfy the approved behavior.
+
+Recommended Owner decision: add only the server Makeup page to the functional
+allowlist for forwarding the two already-selected identity fields, with exact
+identity use in the existing allowlisted component. This proposes no API POST
+contract, query, mutation sequence, DB/schema, permission, or business-rule
+change. It was not implemented because the current command expressly prohibits
+out-of-allowlist/protected changes.
+
+At this handoff: Functional/Test edits `0/0`; documentation `3` local/uncommitted;
+API/Migration/Config/Dependency/Lockfile/Environment changes all `0`; Scope
+Expansion/Breach `None performed/None`; corrective Source Complete `No`; UI
+regression-first and required suites `Not run` due pre-edit Hard Stop; commit,
+push, replacement deploy, Promotion, and Developer Production writes `No`.
+The current-state docs supersede old pending/POST-zero/no-write claims and retain
+the dated evidence. Status: **DEVELOPING — HARD STOP**, Task Done `No`. Next gate:
+Owner scope decision; do not start another task or request a real Makeup POST.
+
+## 2026-09-04 — Exact learner identity Scope Amendment approved; local regression runtime handoff
+
+State observed at this handoff: Owner approved the additional server Makeup page
+path solely to forward already-selected `child_id` and `bookings.user_id`, plus
+necessary exact-learner/month grouping in the client. The prior identity-scope
+Hard Stop is superseded. Final approved Functional/Test/Docs counts are `2/2/3`;
+API/query/mutation/schema/config/dependency/environment changes remain forbidden.
+
+Fresh Gate 0 verified root, branch, local and remote HEAD
+`74f09ba630c26f685c655f2beafe1c9a6c08937d`, upstream and ahead/behind `0/0`.
+The three prior uncommitted documentation files were preserved. All functional
+and test files initially matched baseline. No Source correction was made before
+regression-first evidence.
+
+Nine local UI regression cases were drafted in the allowlisted Booking spec:
+desktop/mobile delayed pending and single-submit/confirmed success with a held
+stale RSC refresh; exact same-name identity and multi-booking/multi-branch
+grouping; 400/409/500/network/malformed response behavior; and an incomplete
+identity read payload. These click real rendered controls and distinguish
+intercepted UI responses from the preserved real Saturday UTC API/DB regression.
+They are **unexecuted/unverified**, not reported as passed.
+
+The focused command exited `1` while loading Playwright config: local Supabase
+could not connect to `//./pipe/dockerDesktopLinuxEngine`. Docker Desktop was not
+running. Host policy rejected automatic startup; Owner was asked to open it, and
+no alternate launch bypass was attempted. **0 UI tests executed**; this is not
+the required before-fix UI failure. No test fixture was created by that command,
+and no runtime screenshot/request-count/cleanup evidence exists yet. TypeScript
+`npx.cmd tsc --noEmit --incremental false` passed for the test draft.
+
+The misplaced earlier Hard Stop record was moved to the dated history tail and
+the old Next Action table row restored, without deleting historical evidence.
+Actual edits at this handoff: Functional/Test/Docs `0/1/3`, all local/uncommitted.
+Protected API/query/backend and Bangkok weekday Source remain unchanged.
+Approved Scope Amendment `+1` server page; Unauthorized Expansion/Breach
+`None/None`. Product correction attempts used `0`.
+
+No commit, push, replacement deployment, Promotion, feature/allowlist/environment
+change, or Developer Production mutation occurred. Owner's earlier reported
+creation success and UX FAIL remain recorded; exact rows, duplicates, and
+financial/customer effects remain Unknown / Need verification. No repair or
+replay occurred. Status **DEVELOPING — BLOCKED on local runtime**, Task Done
+**No**. Next action: Owner opens Docker Desktop, then continue the already-approved
+regression-first corrective without another identity-scope approval.
+
+## 2026-09-04 — UI/identity corrective verified locally; deployment-input safety Hard Stop
+
+State observed at this safe handoff: Owner opened Docker Desktop; fresh local
+Supabase and Git checks succeeded. Branch remained
+`spike/next-major-security-upgrade`, local/remote HEAD
+`74f09ba630c26f685c655f2beafe1c9a6c08937d`, ahead/behind `0/0`. Inherited dirty
+docs/test draft were preserved. No backend/query/config file was changed.
+
+Regression-first clicked the real create controls against the local page with
+isolated DB fixtures and a held intercepted POST response. Exactly one request
+was sent, but expected pending status was missing; controls/Close stayed enabled
+and six same-named sources collapsed into one group. Expected failure `1/1`,
+fixture and global residue `0`; screenshot retained as
+`.playwright/makeup-create-evidence/before-fix-desktop.png`.
+
+The approved implementation forwards only existing `child_id` and
+`bookings.user_id` in the server page (two added mapping lines), then uses exact
+child/self identity plus source month in both grouping levels and POST result
+state. The client snapshots the unchanged six-field POST payload, locks before
+await, blocks pending selection and X/Escape/outside dismissal, shows spinner
+and accessible status, validates HTTP/success/exact created-session evidence,
+projects only confirmed target usage before refresh, and keeps that result
+through stale reads. Known 4xx errors retain selections and permit user retry;
+500/network/malformed results say the outcome is uncertain and never auto-retry.
+Read-only reconciliation cannot infer failure from absent/stale evidence.
+No claim of server idempotency or cross-tab concurrency protection was made.
+
+One bounded correction was used: a status nested inside the submit button left
+its accessible name empty, so an explicit Thai aria-label was added. The first
+post-fix focused run failed that assertion; after correction the focused suite
+passed `9/9`. No assertion was weakened and no success was mocked outside the
+explicit local interception cases. Desktop/mobile success each sent POST `1`
+across rapid clicks, keyboard activation, pending dismissal attempts, confirmed
+projection and held/stale refresh. 400/409 had POST `1` until explicit user retry
+made `2`; 500/network/malformed remained POST `1` through read-only refresh.
+Five same-name child/self identities stayed separate; one learner across two
+bookings/branches remained one source-month group; missing identity failed visibly.
+Screenshots for pending/success/errors/identity are retained in
+`.playwright/makeup-create-evidence/` and were visually inspected.
+
+Verification observed at this handoff:
+
+- Focused UI `9/9`; full Booking E2E `23/23`, global teardown residue `0`.
+- The preserved real Saturday `2031-07-26` UTC/no-Friday-decoy API/DB case passed
+  inside the full suite, including canonical provenance, source/history,
+  duplicate/overlap/second-Makeup and protected-local-delta assertions.
+- Architecture `32/32`; Lesson Wallet `45/45`; Admin Assignment state `39/39`.
+- TypeScript `--noEmit --incremental false`, zero-warning lint, mojibake `265`,
+  and diff check passed. Backend/helper diff paths `0`; page adds only identity
+  mappings; retrospective handler comparison unchanged. Added diff secret-pattern
+  matches `0`. Functional/Test/Docs are exactly `2/2/3` across the seven allowlisted paths.
+- Retrospective integrity passed its first `4` architecture checks but could not
+  start runtime assertions while another suite reset the local DB. It must rerun
+  serially; this is not a passed suite. Admin Assignment E2E and build were not
+  run before the material Hard Stop. Required gates are not waived. No build was
+  performed, so post-build recovery remains for the later build; test-owned dev
+  server stopped and no port-3000 listener remained.
+
+Read-only `vercel deploy --dry --json` exposed a new delivery blocker: the upload
+manifest included one 64-byte file under `supabase/.temp/start-secrets/`, local
+Supabase metadata, `.playwright/` fixtures/evidence, `test-results/`, and
+`playwright-report/` despite Git ignores. Counts varied during tests. Secret
+contents were not read/printed and no source files were uploaded. The existing
+`.vercelignore` does not exclude these paths. Fixing that config is outside the
+Owner's exact allowlist, so no config edit, workaround, commit/push or deployment
+was attempted. A narrow Owner amendment for `.vercelignore` exclusions was requested.
+UI Root Cause is unchanged; Unauthorized Scope Expansion/Breach `None/None`.
+
+Fresh Production domain inspection still resolved to READY
+`dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application
+`66be707dcbcffc810cf484fc059448373ceda72f`; the alias endpoint showed four
+established aliases. This existing Production artifact was the verified rollback
+candidate. No replacement artifact, Promotion, domain/environment/feature/
+allowlist/schema change or Developer Production write occurred.
+Owner's earlier creation success and old artifact UX FAIL remain recorded;
+exact transaction rows/duplicates/customer/financial effects remain Unknown /
+Need verification. Local UI evidence is not Production reconciliation. No repair.
+
+State observed at handoff: UI Source implemented locally; Tests Passed partial;
+Committed/Pushed/Replacement Deployed `No/No/No`; corrective Production Active
+`No`; Owner UAT for replacement unavailable; Controlled Write UAT unauthorized;
+Task Done `No`; status **DEVELOPING — HARD STOP**. All seven edits remain
+uncommitted. Documentation was updated in PROJECT_STATE → TODO-CODEX → this
+dated history order. Next gate: approval for narrow deployment exclusions, then
+remaining verification/clean exact-source publication/staged no-alias artifact
+and no-write UAT handoff. The rejected old artifact must not be Promoted.
+
+## 2026-09-04 — Approved deployment exclusions; required Assignment E2E date-assumption Hard Stop
+
+State observed at this safe handoff: Owner approved **+1 config file,
+`.vercelignore`**, superseding the preceding pending-approval record. The exact
+corrective allowlist is Functional/Test/Config/Docs `2/2/1/3` (eight paths),
+relative to baseline `74f09ba630c26f685c655f2beafe1c9a6c08937d`. Fresh root,
+branch, upstream and remote checks confirmed the same branch and local/remote
+HEAD, ahead/behind `0/0`; all inherited edits were preserved. No commit or push.
+
+CLI `59.11.2` supports `deploy --dry --format=json`. Before exclusion, its real
+manifest contained `472` entries / `13858341` bytes, including local Supabase
+runtime-secret metadata, browser fixtures/auth state and generated evidence.
+Only paths/categories/counts/sizes were inspected, never secret values. Existing
+ignore rules were retained and the following narrow patterns were added:
+
+- `/supabase/.temp`: local CLI/runtime secrets and metadata, not application input.
+- `/supabase/.branches`: local branch marker, not migrations or application input.
+- `/.playwright`: local browser fixtures/auth state/evidence, not test source.
+- `/test-results` and `/playwright-report`: generated traces/reports/screenshots.
+- `/tsconfig.tsbuildinfo`: generated incremental cache, not TypeScript configuration.
+- `/next-env.d.ts`: generated by Next's TypeScript declaration writer during build.
+
+No broad exclusion of source/public/scripts/tests/migrations/packages/build config
+was added. The architecture test now verifies the narrow rules and optionally
+checks the actual manifest against all tracked required inputs. Initial trailing
+slash patterns left zero-byte directory entries included; bounded correction
+**2** removed trailing slashes to exclude both entries and descendants. The
+previous pending-button aria-label correction remains correction **1**; no reset
+of that counter. Subsequent real manifest checks passed `34/34`, including
+`405` included entries, forbidden `0`, required inputs `355/355`, `8094189` bytes
+before this documentation update. Counts/bytes may change with documentation;
+the manifest must be rerun after future build/dev recovery and before deployment.
+No secrets or evidence were deleted/moved or uploaded. A safe manifest now is
+not evidence that historical deployments never contained secrets.
+
+Application and UI-test source was not reworked. Fresh hashes matched retained
+passing evidence: client `5ff66437ce4d3901cd0e36702b1fbc92e26e4cb0`, page
+`6561aeb90ff97992d35e3e41e6fcf53db2960b93`, Booking test
+`a7ec28972fe575706f93872c9c48bfc7dc20b34d`. Focused UI `9/9` and full Booking
+`23/23` are **retained same-source results**, not newly rerun claims. Booking
+last-run status remains passed, screenshots retained, including regression-first
+and desktop/mobile actual-button evidence; real Saturday UTC/no-Friday-decoy
+evidence remains distinct from intercepted UI responses. This turn's architecture
+blob is `b0358f0cf473b0fcafe3cf9578d1ef89c3aa19ef`; config blob is
+`44c5a9af7b31a8228d8da0f021f171c71a90eb0d`.
+
+New verification: retrospective integrity completed serially `38/38`, including
+runtime transaction/race/rollback/protected-delta checks. TypeScript
+`--noEmit --incremental false`, zero-warning lint, mojibake `265`, Assignment
+state `39/39` and Wallet `45/45` completed successfully. Required Assignment E2E
+ran against isolated local Supabase with Server TZ=UTC, then stopped its owned
+dev server. Its `.last-run.json` records failure with one failed test ID out of
+17 configured tests; do not report the suite as passed or infer a passed-test
+count from `--list`. Read-only post-teardown fixture count is `0`.
+
+Failure evidence: the test at
+`tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts:1391`
+expects `สิงหาคม 2569` at line `1413`, without selecting that month or fixing
+the test clock. The retained error-context/screenshot shows `กันยายน 2569`
+and September's dates. No UI corrective/API/query/backend/User Schedule change
+caused by this turn is present. Deterministic calendar handling in that test
+would require a file outside the approved allowlist, so no test edit, assertion
+weakening, skip, environment/time change or workaround was attempted. This is
+a required verification blocker, not a changed Makeup root cause.
+
+Build and post-build recovery were not performed before this Hard Stop and are
+not waived. A read-only browser probe after the test-owned server stopped got
+connection refused; it is not reported as a UI smoke success. No port-3000
+listener remained at handoff. Source publication/full staged-diff/secret gates,
+exact clean artifact, smoke/logs and no-write Owner UAT remain outstanding.
+Read-only project linking confirmed Production branch `main`, distinct from
+the current spike branch; no push or project-setting change occurred.
+
+State observed: Source implemented locally; Tests partial, required gate failed;
+Committed/Pushed/Replacement Deployed `No/No/No`; no new Application SHA/tree;
+corrective Production Active `No`; Feature/Allowlist/Environment/Migration
+changes `0`; no Promotion, Controlled Write UAT or Developer Production writes.
+Earlier Owner creation and UX FAIL remain recorded; exact rows/duplicates/
+customer/financial effects remain Unknown / Need verification, not assumed zero.
+No data repair or replay. Unauthorized Scope Expansion/Breach `None/None`.
+Documentation was reconciled in PROJECT_STATE → TODO-CODEX → dated history
+order. Status **DEVELOPING — HARD STOP**, Task Done **No**, not READY FOR OWNER
+UAT. Next action: request narrowly scoped authorization for deterministic date
+handling in the Assignment E2E test, then resume the same task's remaining gates;
+do not alter production behavior or start another task.
+
+## 2026-09-04 — Assignment date-navigation amendment verified; post-build cleanup denied by host policy
+
+State observed at this safe handoff: Owner approved **+1 test file**,
+`tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`, solely for
+deterministic fixture-month navigation. The previous request for test-scope
+approval is superseded. Exact Functional/Test/Config/Docs counts are **2/3/1/3**,
+nine paths relative to `74f09ba630c26f685c655f2beafe1c9a6c08937d`. Fresh Git
+confirmed that same local/remote SHA on `spike/next-major-security-upgrade`,
+ahead/behind `0/0`, preserving all eight inherited edits. The Assignment spec
+initially matched baseline blob `a9bbacdfda5e0fbd78776c4ffc44ecd56eef704b`.
+
+Source and retained failure evidence confirmed a test precondition defect:
+User Schedule derives the initial month/year from the server's Bangkok date,
+while three locations assumed August 2026 or one previous click to July.
+The approved correction reads the actual Thai month/Buddhist year, computes the
+month distance and clicks actual previous/next controls with an explicit
+120-step bound and an expected month assertion after each click. All three
+sites now select July/August 2026 before existing checks. No machine/server
+clock, browser clock, shared fixture, config or Product source was changed.
+
+Added coverage navigates December 2026 → January 2027 → December 2026 → August
+2026 and verifies that selecting August again preserves the selected August 1
+day. The first new coverage run reached the correct months but its `AUGONLY`
+text assertion matched both legend and card: `1 failed`, `2 did not run`.
+One bounded correction changed only that new assertion to verify the selected
+day's state. Original program/exact-coach/request-count/cache/forbidden-content/
+neutral-state/desktop-mobile assertions remain unchanged. Affected tests then
+passed **3/3 (2.2m)**; full Assignment E2E passed **18/18 (4.7m)**, no skipped
+tests, with disposable fixture residue **0** after both successful runs.
+All mutating suites ran serially against verified `127.0.0.1:54321`, Server
+TZ=UTC. Final Assignment spec blob: `023cec67605f4057ec053d6e89ffe11298649daf`.
+Old date-failure and new locator-failure artifacts were copied for retention to
+`.playwright/assignment-date-before-20260904/` and
+`.playwright/assignment-date-locator-20260904/`; no evidence was deleted/moved.
+
+Owner clarified the two-correction limit as per unresolved failure, not a global
+quota across already solved problems. The prior pending aria-label and exclusion
+trailing-slash corrections remain in history; neither was repeated or concealed.
+No second date-root-cause correction was needed. No test was skipped/weakened.
+
+Fresh verification also passed: architecture/real manifest **34/34**, Assignment
+state **39/39**, Wallet **45/45**, TypeScript `--noEmit --incremental false`, lint
+with zero warnings, mojibake **265**, and Production build (compile, TypeScript,
+94/94 static-page generation, trace/optimization completion, exit `0`).
+Retained same-relevant-source/dependency evidence, not fresh rerun claims:
+Makeup actual-button UI **9/9**, Booking **23/23** including real Saturday UTC/
+no-Friday-decoy, and retrospective integrity runtime **38/38**. UI/page/Booking
+test blobs match those recorded at the preceding handoff; API/helper/migration/
+package/lockfile/config dependencies are unchanged. Added source/test/config
+secret-pattern matches **0**. React review retained the separate ref lock/UI
+state and only two serialized identity props; no opportunistic refactor.
+
+During test-owned dev-server runs, browser root verification displayed meaningful
+content, key controls and no Next error overlay (`0`); a screenshot was inspected.
+This is separate from post-build recovery. After full E2E, no port-3000 listener
+remained and build ran without a concurrent dev server. For required recovery,
+the generated directory resolved exactly to
+`C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/.next`,
+an ordinary directory without a link/reparse target. Host policy rejected the
+combined recovery command before execution, then also rejected a standalone
+`Remove-Item -LiteralPath` of that exact verified path. **Neither deletion ran**.
+No alternate shell/API/deletion mechanism or policy bypass was attempted; no dev
+restart was performed against uncleared build output. Owner manual removal of
+only that directory is needed; no new Product-scope approval is requested.
+
+Read-only Vercel project inspection confirmed Production branch `main`, distinct
+from the working spike branch; the GitHub Pages push workflow also targets main.
+Production mapping remained READY `dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW`, Application
+`66be707dcbcffc810cf484fc059448373ceda72f`, with the same four aliases. Rollback
+candidate health/login GET returned **200/200**. No commit/push/deploy/Promotion
+or alias/project/environment change occurred. Safe dry-run still does not
+establish that historical deployments were secret-free.
+
+State observed: local Source Complete **Yes**; required test/static/build suites
+passed, but post-build recovery/publication/artifact gates incomplete. No new
+Application SHA/tree, replacement URL/ID or staged smoke/log result exists.
+Committed/Pushed/Deployed **No/No/No**, corrective Production Active **No**,
+Feature/Allowlist/Environment/Migration changes **0**, Controlled Write UAT
+unauthorized/unperformed, Owner replacement UAT not performed, Task Done **No**.
+Developer Production writes/repairs **None**. Owner's earlier creation/UX FAIL
+is preserved; exact rows/duplicates/customer/financial effects remain Unknown /
+Need verification. Unauthorized Scope Expansion/Breach **None/None**.
+
+Documentation was updated in PROJECT_STATE → TODO-CODEX → this dated record
+order, superseding current test-approval/build-unrun claims while retaining
+history. Next action at this handoff: Owner removes only repo-local `.next` and
+confirms, then continue already-approved dev recovery, repeated manifest,
+publication compliance, commit/push and exact no-alias staged artifact before
+READY FOR OWNER UAT. Do not Promote, write Production or begin another task.
+
+## 2026-09-04 — Renewed Owner cleanup approval; Developer execution policy still denies literal deletion
+
+State observed at this safe handoff: Owner explicitly approved deleting only
+the generated repository `.next` and continuing the existing delivery contract.
+This was not a Product scope expansion; nine allowed files and counts `2/3/1/3`
+remain unchanged. Fresh root/branch/upstream/remote audit again confirmed local
+and remote `74f09ba630c26f685c655f2beafe1c9a6c08937d`, ahead/behind `0/0`, empty
+staged diff and the nine inherited modified paths. No inherited work was reset,
+stashed or overwritten. Functional/test/config content was not edited this turn.
+
+Read-only target checks confirmed the exact absolute path
+`C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/.next`,
+ordinary directory, no root link/junction and zero nested reparse entries.
+Generated build markers/manifests/server/static/cache directories were present.
+Dev/build/test candidate processes and port-3000 listeners were both `0`.
+The task's supplied context advertised unrestricted filesystem access and
+approval policy `never`; no inference was made from PM-task permissions.
+
+One newly authorized `Remove-Item -LiteralPath` command using that exact
+absolute path and `-Recurse -Force` was submitted. The execution tool rejected
+it with **blocked by policy before CreateProcess**. No deletion occurred, no
+alternate shell/API or other bypass was tried, and no dev server was restarted
+against uncleared build output. Owner approval is present; effective tool
+execution permission is the remaining blocker, not Product scope.
+
+Fresh hashes matched retained client/page/Booking/Assignment/architecture/config
+blobs `5ff66437ce4d3901cd0e36702b1fbc92e26e4cb0`,
+`6561aeb90ff97992d35e3e41e6fcf53db2960b93`,
+`a7ec28972fe575706f93872c9c48bfc7dc20b34d`,
+`023cec67605f4057ec053d6e89ffe11298649daf`,
+`b0358f0cf473b0fcafe3cf9578d1ef89c3aa19ef`, and
+`44c5a9af7b31a8228d8da0f021f171c71a90eb0d`. Both E2E last-run files still show
+passed. The earlier UI/Booking/retrospective/affected/Assignment/architecture/
+Wallet/state results `9/23/38/3/18/34/45/39`, static checks and successful build
+are retained evidence, not fresh reruns. Protected API/backend/helpers/
+migrations/package/lockfile/AGENTS/.gitignore diff remained empty.
+
+State observed: Source Complete locally **Yes**; post-build recovery and
+publication/staged gates incomplete. Committed/Pushed/Replacement Deployed
+**No/No/No**; no new Application SHA/tree, artifact ID/URL/alias or smoke/log
+result. No Promotion, Feature/Allowlist/Environment/Permission/Migration change,
+Controlled Write UAT or Developer Production write/repair. Corrective Production
+Active **No**, Owner replacement UAT unperformed, Task Done **No**. Prior Owner
+transaction rows/duplicates/customer/financial effects remain Unknown / Need
+verification. Unauthorized Expansion/Breach **None/None**.
+
+Documentation was reconciled in PROJECT_STATE → TODO-CODEX → this dated record
+order without claiming the blocker resolved. Next action at this handoff:
+Owner manually removes only the verified `.next`, or resolves the effective
+execution-policy restriction for this Developer task; then resume the already
+authorized recovery/publication steps. Developer must not change permissions,
+bypass policy, request Product scope again, or start another task.
+
+## 2026-09-04 — Owner manual cleanup confirmed; post-build recovery completed
+
+State observed at this pre-publication checkpoint: Owner reported `.next` removed.
+Developer freshly verified the exact target absent and no port-3000 listener,
+then started the approved dev command. No deletion, permission change or bypass
+was performed by Developer. Next recreated disposable generated output.
+Initial server/browser requests timed out during startup; subsequent verification
+succeeded without Source edits or process correction. Root, login, health and
+the actual `/_next/static/chunks/webpack.js` each returned 200. Browser rendered
+1833 content characters, expected controls, overlay count 0 and an empty runtime
+error list. Screenshot `C:/Users/aacha/.agent-browser/tmp/screenshots/screenshot-1788495446749.png`
+was visually inspected. This is fresh post-build evidence, not the earlier test
+server probe. All retained UI screenshots and both passed E2E last-run files
+remain intact; source/test/config blobs and package-lock hash match passed suites.
+
+Fresh architecture/manifest checks passed 34/34: 405 included entries, forbidden
+0, required inputs 355/355, 8114646 bytes before documentation update. Production
+project still targets branch main, whereas this task remains on the spike branch.
+Production mapping remains READY dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW / 66be707d...
+with its four established aliases. No upload or domain/setting change yet.
+Nine approved paths remain 2/3/1/3; no functional/test/config edit this turn.
+Source Complete Yes; retained suites/build passed; fresh recovery passed;
+publication/staged gates pending. Owner transaction effects remain Unknown;
+Developer Production writes/repairs None; Task Done No. Next at this checkpoint:
+publication compliance, normal commit/push, exact no-alias Production-target
+artifact and read-only verification, then READY FOR OWNER UAT, not Promotion.

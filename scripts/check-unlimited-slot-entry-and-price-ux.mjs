@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execSync } from 'node:child_process'
 import { formatLearnerDisplayName, joinLearnerDisplayNames } from '../src/lib/learner-display-name.ts'
 import { calculateProgressiveBookingPrice } from '../src/lib/progressive-booking-pricing.ts'
 import { formatPricingTierRange } from '../src/lib/pricing.ts'
@@ -143,5 +144,61 @@ check('Booking and Reschedule routes plus the atomic Wallet RPC use overlap comp
   assert.equal(walletIntegrityMigration.includes('existing_session.end_time > p_start_time'), true)
   assert.equal(walletIntegrityMigration.includes("MESSAGE = 'LESSON_WALLET_TARGET_CONFLICT'"), true)
 })
+
+const makeupClient = read('src/components/admin/makeup-client.tsx')
+const makeupPage = read('src/app/(admin)/admin/makeup/page.tsx')
+const createHandler = makeupClient.slice(makeupClient.indexOf('  const createMakeup = async () => {'), makeupClient.indexOf('  const sendReviewGroupToCoach ='))
+const createDialog = makeupClient.slice(makeupClient.indexOf('<Dialog open={dialogOpen}'))
+check('Makeup POST locks synchronously and snapshots the unchanged six-field payload', () => {
+  assert.ok(createHandler.indexOf('createInFlightRef.current = key') < createHandler.indexOf('await fetch('))
+  for (const required of ['if (createInFlightRef.current) return', 'const source = { ...selectedMonth.sourceSession }', 'const slot = { ...pickedSlot }', "method: 'POST'", 'body: JSON.stringify(payload)', 'createBlockedKeysRef.current.has(key)']) assert.ok(createHandler.includes(required), required)
+  const payload = createHandler.match(/const payload = \{([\s\S]*?)\n    \}/)?.[1]
+  assert.ok(payload)
+  assert.deepEqual([...payload.matchAll(/^\s+(\w+):/gm)].map((match) => match[1]).sort(), ['booking_id', 'branch_id', 'end_time', 'makeup_date', 'original_session_id', 'start_time'])
+  for (const forbidden of ['setTimeout', 'debounce', 'location.reload', 'runRetrospectiveMutation']) assert.equal(createHandler.includes(forbidden), false)
+})
+check('Makeup POST requires confirmed response data and retains exact-key results through refresh', () => {
+  for (const required of ['result?.success !== true', 'isConfirmedMakeup(result?.data, source, slot)', "[key]: { status: 'confirmed'", "[key]: { status: 'uncertain'", "toast.success('สร้างวันชดเชยสำเร็จ'", 'ยังยืนยันผลไม่ได้']) assert.ok(createHandler.includes(required), required)
+  assert.ok(makeupClient.includes("hasMakeup: group.hasMakeup || createResults[group.key]?.status === 'confirmed'"))
+  assert.ok(makeupClient.includes('!group.isExpired && !createResults[group.key]'))
+  assert.equal(createHandler.includes('createBlockedKeysRef.current.delete'), false)
+})
+check('Makeup create dialog exposes pending status and blocks selection/dismissal', () => {
+  for (const required of ['aria-busy={loading}', 'onEscapeKeyDown=', 'onPointerDownOutside=', 'onInteractOutside=', 'event.preventDefault()', 'disabled={loading || !isAvailable}', 'disabled={loading}', 'role="status"', 'กำลังบันทึกวันชดเชย...', 'animate-spin', 'role="alert"', 'ตรวจสอบสถานะล่าสุด']) assert.ok(createDialog.includes(required), required)
+})
+check('Makeup identity props come only from existing selected child/user IDs', () => {
+  assert.ok(makeupPage.includes('child_id: session.child_id,'))
+  assert.ok(makeupPage.includes('user_id: session.bookings?.user_id || null,'))
+  const identity = makeupClient.slice(makeupClient.indexOf('function getMakeupLearnerIdentity'), makeupClient.indexOf('function isConfirmedMakeup'))
+  for (const required of ['`child:${session.child_id}`', '`self:${session.user_id}`', 'session.child_id === null', 'return null']) assert.ok(identity.includes(required))
+  for (const forbidden of ['user_name', 'learner_name', 'booking_id', 'session.id']) assert.equal(identity.includes(forbidden), false)
+})
+check('Makeup learner/month grouping shares exact identity and missing evidence is visible', () => {
+  const grouping = makeupClient.slice(makeupClient.indexOf('  const monthGroups ='), makeupClient.indexOf('  const reviewSessions ='))
+  for (const required of ['getMakeupLearnerIdentity(session)', 'if (!learnerKey) return', '`${learnerKey}::${monthKey}`', 'const learnerKey = month.learnerIdentity']) assert.ok(grouping.includes(required))
+  assert.equal(grouping.includes('`${session.user_name}::${session.learner_name}`'), false)
+  assert.ok(makeupClient.includes('ไม่พบรหัสผู้เรียนที่จำเป็น'))
+})
+
+const deploymentExclusions = ['/supabase/.temp', '/supabase/.branches', '/.playwright', '/test-results', '/playwright-report', '/tsconfig.tsbuildinfo', '/next-env.d.ts']
+check('deployment exclusions retain original rules and narrowly exclude local generated state', () => {
+  const rules = read('.vercelignore').split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#'))
+  assert.deepEqual(rules, ['.agents/', 'SlipOK API Guide.docx', 'SlipOK_API/', 'backups/', '.env', '.env.*', '*.log', ...deploymentExclusions])
+})
+if (process.argv.includes('--deployment-manifest')) {
+  check('real Vercel dry-run excludes forbidden files and retains every tracked build/runtime/test input', () => {
+    const manifest = JSON.parse(execSync('npx.cmd vercel deploy --dry --format=json', { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }))
+    const included = new Set(manifest.files.map((file) => file.path.replaceAll('\\', '/')))
+    for (const rule of deploymentExclusions) {
+      const relative = rule.slice(1)
+      assert.equal([...included].some((file) => file === relative || file.startsWith(`${relative}/`)), false, rule)
+    }
+    const tracked = execSync('git -c core.quotepath=false ls-files', { cwd: root, encoding: 'utf8' }).trim().split(/\r?\n/)
+    const required = tracked.filter((file) => /^(src|public|scripts|tests|supabase\/migrations)\//.test(file)
+      || /^(package(?:-lock)?\.json|next\.config\.mjs|tsconfig\.json|tailwind\.config\.ts|postcss\.config\.mjs|eslint\.config\.mjs|vercel\.json|server\.js)$/.test(file))
+    for (const file of required) assert.ok(included.has(file), `required deployment input missing: ${file}`)
+    console.log(`[deployment-manifest] included=${included.size}; forbidden=0; required=${required.length}; bytes=${manifest.totalSize}`)
+  })
+}
 
 console.log(`\nUnlimited slot entry and customer price UX checks passed: ${passed}`)
