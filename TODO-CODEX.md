@@ -9,31 +9,24 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT**.
+Status: **TASK DONE — OWNER UAT PASS; EXACT PROMOTION AND PRODUCTION VERIFICATION COMPLETED**.
 
 - Active Task: **PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL
   SLOT FIX**.
-- Corrective: **ADMIN MAKEUP CREATE — UI FEEDBACK / SINGLE-SUBMIT**.
-- Owner reports successful creation but UX FAIL; the original artifact is not
-  eligible for Promotion. Exact rows, duplicates, and financial/data effects
-  remain Unknown / Need verification; Developer must not repeat or repair it.
-- Owner approved identity props, `.vercelignore` exclusions and the Assignment
-  E2E date-navigation amendment. Functional/Test/Config/Docs are `2/3/1/3`;
-  no API/query/backend business change is authorized.
-- Date navigation now passes affected and full Assignment E2E, including cleanup.
-  Build and required test/static suites passed; counts and retained-versus-fresh
-  evidence are authoritative in `PROJECT_STATE.md`.
-- Owner manually removed `.next`; Developer verified absence, restarted dev,
-  and verified root/login/health/static plus browser rendering/errors. No policy
-  bypass or Developer deletion occurred; Next recreated generated output.
-- Application/config/tests are committed and pushed; exact replacement staged
-  Production-target artifact is READY with aliases 0. Read-only smoke/log gates
-  passed; URL/SHA/tree and complete evidence are authoritative in PROJECT_STATE.
-- Next action: Admin/Super Admin reviews that exact replacement without writing,
-  checks learner/month/selection and same-source local button evidence, then
-  returns PASS/FAIL. Stop before creating Makeup on staged/Production.
-- No Promotion, alias/feature/allowlist/environment change, Developer Production
-  write/repair, or new task. Real-write UAT needs separate exact-target approval.
+- Corrective: **ADMIN MAKEUP CREATE — UI FEEDBACK / SINGLE-SUBMIT**; completed.
+- Owner passed the exact replacement after a real Makeup transaction. Developer
+  reconciled the supplied source/child/booking/Makeup IDs before and after exact
+  Promotion: one source-month use, no overlap, correct active canonical slot,
+  unchanged source/target rows during Promotion.
+- All established Production aliases now point to the Owner-tested artifact;
+  read-only smoke and bounded error/fatal/5xx verification passed. No rebuild,
+  redeploy, replacement artifact, Developer data write/repair or new task.
+- This round changes only three docs; Functional/Test/Config changes 0/0/0.
+  Prior regression/build results are retained same-source evidence, not reruns.
+- Latest Owner transaction is separate from the earlier UX-FAIL artifact event.
+  Earlier exact effects and unaudited financial deltas remain Unknown, not zero.
+- Next action: stop and await a new explicit Owner task selection. No additional
+  Makeup creation or dependency/financial/repair work is authorized.
 
 `PROJECT_STATE.md` is authoritative for the full mutable-state matrix.
 

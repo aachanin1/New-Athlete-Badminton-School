@@ -2,7 +2,70 @@
 
 Last updated: 2026-09-04
 
-## Current State — Permanent Admin Makeup Bangkok Weekday / Next-Month Canonical Slot Fix
+## Current State — Admin Makeup exact-artifact Promotion and closeout
+
+Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD; PRODUCTION VERIFIED**.
+
+PROJECT_STATE.md is authoritative. Owner confirmed PASS on 2026-09-04 after
+creating น้องมีนา's August Makeup for Sunday 6 September 2026, 15:00–17:00,
+พระราม 2. Owner observed loading, disabled duplicate submit, success feedback and
+the used-entitlement card. Developer reconciled the exact supplied IDs read-only,
+Promoted the exact approved artifact once, and verified Production and the same
+rows afterward. No Source/test/config edit, new deployment, rebuild, data repair,
+Developer business mutation or new task occurred.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **PERMANENT ADMIN MAKEUP BANGKOK WEEKDAY / NEXT-MONTH CANONICAL SLOT FIX**, including **ADMIN MAKEUP CREATE — UI FEEDBACK / SINGLE-SUBMIT**; completed |
+| Task Status / Task Done | **TASK DONE / Yes** — exact Promotion, Production checks and required reconciliation completed; documentation-only publication closes this record |
+| Intended Behavior | Bangkok-independent canonical weekday and next-month Makeup; immediate pending/single-submit, truthful confirmed/error feedback and exact learner/source-month UI. Existing server eligibility, overlap and protected business rules retained |
+| Root Cause | Confirmed: host-dependent weekday query (prior backend correction); UI lacked synchronous POST lock/confirmed completion and used display-name grouping. This round only activates the already-tested correction |
+| Owner Decision / UAT | Owner PASS 2026-09-04 for exact dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf; authorized exact Promotion and read-only reconciliation. Supersedes the old pending/no-write handoff, not the prohibition on Developer writes |
+| Branch | spike/next-major-security-upgrade; unchanged |
+| Local HEAD | Application/config 8148249f4dc5a626fefdd70834e93ffebd55d1a1. Pre-Promotion documentation HEAD 05b70d8169b3fb5850b4399cd2b321c50d5335a5. Final documentation HEAD is the documentation-only commit containing this record, resolvable by git log -1 --format=%H -- PROJECT_STATE.md |
+| Remote HEAD / Ahead-Behind | Fresh pre-Promotion remote matched 05b70d8169b3fb5850b4399cd2b321c50d5335a5, 0/0, clean. Documentation closeout is normally pushed to the same upstream; final SHA/0/0/clean verification is reported after publication |
+| Source Complete | **Yes**; functional/test/config changes this round 0/0/0 |
+| Current Source / Pushed Source | 8148249f4dc5a626fefdd70834e93ffebd55d1a1; only documentation differs at HEAD |
+| Application SHA / Tree | **8148249f4dc5a626fefdd70834e93ffebd55d1a1 / 656a7b7c25c6f0323932598976232a2ed861cbfe**; exact approved artifact metadata and all established aliases match |
+| Tests Passed | **Yes — retained same-source evidence, not rerun**: UI 9/9, Booking 23/23 (UTC Saturday/no-Friday-decoy), Assignment E2E 18/18, retrospective 38/38, Assignment state 39/39, Wallet 45/45; prior TSC/lint/build and fixture cleanup. Fresh artifact comparison: 398 non-doc uploaded files, 0 hash mismatches; lockfile SHA256 unchanged. No build/rebuild or mutation tests this round |
+| Fresh Verification | Git/source/artifact/team/project/alias/rollback audit; exact Owner transaction before and after Promotion; Production root/health/login/static/auth boundary; bounded error/fatal/5xx; documentation/diff/secret compliance |
+| Committed / Pushed | Application already committed/pushed; this round publishes only the three allowlisted docs, non-force, same branch; no merge/rebase |
+| Files / Counts This Round | Functional 0; Tests 0; Config 0; Docs 3: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md |
+| Protected Invariance | API/query/backend/business rules, tests, config, dependencies/lockfile, .next, AGENTS.md, environment/permissions/secrets, migrations and feature/access controls unchanged |
+| Scope Expansion / Scope Breach | **None / None**; no new business behavior or technical path |
+| Deployment ID / Immutable URL | **dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf** / https://new-athlete-badminton-school-4r8x21gj8-aachanin1s-projects.vercel.app |
+| Target / State / Deployed | production / READY / **Yes, same exact artifact** |
+| Promoted | **Yes**, one existing authenticated vercel promote invocation, started 2026-09-04 06:30:42 UTC (13:30:42 Bangkok); CLI success. Rebuild/redeploy/replacement/manual-alias/retry/rollback counts 0 |
+| Production Active / Deployed Source | **Yes**, approved Makeup correction active on the exact Application SHA above |
+| Production Aliases | **4/4 match approved deployment**: www.newathleteschool.com; new-athlete-badminton-school.vercel.app; new-athlete-badminton-school-aachanin1s-projects.vercel.app; new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app |
+| Rollback Candidate | dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW, SHA 66be707dcbcffc810cf484fc059448373ceda72f, READY; immutable health/login 200/200 before Promotion. Retained, not invoked |
+| Production Smoke | www.newathleteschool.com root 200, health 200, /login 307 to /auth/login, /auth/login 200, /admin/makeup 307 to login; actual /_next/static/chunks/webpack-a1425f7572da71b3.js 200; root title correct |
+| Production Logs / Attribution | Window **2026-09-04 06:30:42–06:32:00 UTC (13:30:42–13:32:00 Bangkok)**, limit 100 each. Six observed GET smoke requests on www domain, correct statuses; separate error/fatal/5xx filters each 0. No task-attributable Production error observed in this bounded window; not a claim about all future or unrelated traffic |
+| Owner UAT / Production UAT Passed | **Owner exact-artifact UAT PASS** before Promotion; fresh automated Production verification passed. No second manual Production UAT required or requested |
+| Controlled Write UAT | Owner performed the supplied real transaction; Developer performed **no write UAT**, POST/PATCH replay or extra creation. Owner PASS is not Developer data-write authority |
+| Owner Transaction — Latest | Makeup 2001fa15-d586-4eae-b3f7-b09705656d34; source 3da20a82-526a-4073-9e03-6d72fae9b392; child 9f75dc47-4e6d-4ef6-9e50-05e8e1ea5d77; booking 4daaf4cd-c302-44ed-a690-f87b791ed791. Exact IDs reconciled before/after Promotion |
+| Owner Transaction — Reconciliation | Source 2026-08-30 absent with exact-child absent Attendance; target 2026-09-06 15:00–17:00 พระราม 2, is_makeup true, scheduled, same child/booking, exact source link. Makeup/source rows 1/1; source-month Makeup count 1; exact-child overlap 0; exact active canonical template count 1; created before target start |
+| Canonical Provenance | schedule_slot_id 3f4ca9b7-94b5-4684-88f6-7f40960eda19 → active Sunday template f2a968f3-912c-47bc-8623-2c1a18bdd6c6; branch 9eea389d-0eb2-49e9-bf53-245f000f375f, course dad34543-e555-4294-8240-1119d31535f2, date/time exact; slot open |
+| Owner Write Evidence / Row Preservation | Staged artifact POST /api/admin/makeup 200 at 06:12:16.548 UTC; row created 06:12:17.381140 UTC. Before/after row fingerprints identical: source 4f7b52686b60229aa4f145c605d46267; Makeup 6e9e63651266cafdb7c391c38f0b2d9f. No source/target row changed during Promotion |
+| Earlier UX-FAIL Transaction | Separate earlier Owner action on dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK, PM POST 200 at 08:28:45 Bangkok. Exact rows/duplicates/customer/financial effects **Unknown / Need verification**; not reconciled by checking the latest supplied IDs; artifact never Promoted |
+| Production Data Changed | **Owner: Yes**, latest created Makeup independently confirmed. **Developer: no business-data writes**; read-only queries and deployment Promotion only |
+| Data Repaired | **No** — no replay, reversal, repair or rollback |
+| Customer Impact | Corrected Makeup now live; latest Owner learner/target and single source-month use verified. Earlier UX-FAIL transaction effects remain Unknown |
+| Financial Impact | No Developer financial mutation or changed pricing/payment semantics. Financial/protected-ledger deltas of Owner transactions **Unknown / not audited**, not assumed zero from UI PASS |
+| Feature Enabled / Allowlisted | Existing feature settings and access allowlists unchanged; code enabled through exact Promotion only |
+| Environment / Migration Source / Migration Applied | 0 / 0 / no remote migration action |
+| Known Limitations | Retained audit vulnerabilities 10 (2 low, 8 high), Node-engine/install-script warnings not addressed. UI lock is not cross-tab/server idempotency. Prior safe upload does not prove historical secret exposure was zero |
+| Documentation Drift | Old Pending/POST=0/no-write claims explicitly historical. Latest Owner PASS/write and pre/post reconciliation supersede them. Matrix resolved under latest Owner decision before Promotion; closeout follows PROJECT_STATE → TODO-CODEX → dated history |
+| Blocker / Remaining Work | No blocker or required work remains for this task after documentation publication; optional broader financial/earlier-transaction reconciliation is not silently included |
+| Next Action / Parking Lot | **Stop; await a new explicit Owner task selection.** No additional Makeup creation, new task, repair or dependency work authorized |
+
+## Historical / Superseded — 2026-09-04 pre-Owner-UAT staged handoff
+
+State observed at the earlier staged handoff, before Owner's 13:12 Bangkok real
+transaction and subsequent PASS/Promotion. All pending/no-write/POST-zero and
+next-action statements below are historical, not current instructions.
 
 Corrective: **ADMIN MAKEUP CREATE — UI FEEDBACK / SINGLE-SUBMIT**.
 

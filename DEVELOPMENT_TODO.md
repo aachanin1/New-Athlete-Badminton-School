@@ -19154,3 +19154,97 @@ Create, reviews local pending/success/error/single-submit evidence from that
 Source, and returns PASS/FAIL. Staged real POST remains untested; any requested
 write UAT requires separate exact learner/source/target and reconciliation
 authorization. Stop at READY FOR OWNER UAT; do not Promote or start another task.
+
+## 2026-09-04 — Owner real-write UAT PASS; exact Admin Makeup artifact Promoted and Production verified
+
+State observed at this closeout: Owner confirmed “ผมว่าผ่านแล้วครับ” for the
+exact replacement artifact after creating น้องมีนา's August 2026 Makeup for
+Sunday 2026-09-06, 15:00–17:00, พระราม 2. Owner verified loading, blocked
+duplicate submission, success feedback and the used-entitlement card. This
+supersedes the preceding pending/no-write handoff; it does not authorize a
+Developer POST/PATCH, replay, repair or other business-data mutation.
+
+Fresh Gate 0: exact repository root, branch spike/next-major-security-upgrade,
+Local/Remote documentation HEAD 05b70d8169b3fb5850b4399cd2b321c50d5335a5,
+ahead/behind 0/0, clean worktree and empty staged/unstaged diff. Only three
+documentation paths differed from Application/config release
+8148249f4dc5a626fefdd70834e93ffebd55d1a1, tree
+656a7b7c25c6f0323932598976232a2ed861cbfe. Fresh artifact source comparison:
+401 uploaded files, excluding only the three later documentation files, all
+398 remaining SHA-1 hashes matched local inputs. Lockfile SHA256 remained
+72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8.
+Required retained evidence, not rerun: UI 9/9, Booking 23/23 including Saturday
+UTC/no-Friday-decoy, Assignment E2E 18/18, retrospective 38/38, Assignment state
+39/39, Wallet 45/45, TSC/lint/build and local fixture cleanup. Both retained
+E2E last-run files passed. No build or .next deletion occurred in this round.
+
+Authenticated project/team were verified: prj_v034HOI6AjaMpBezWvuvT0W24pTp,
+team_gw8Y6CPd602WAKRsVFobPGCL (aachanin1s-projects), Production branch main.
+Before mutation, each of four established aliases independently resolved to
+READY dpl_EzbDkjbuMA3q2qcbX6G3aHg1tACW, Application
+66be707dcbcffc810cf484fc059448373ceda72f. That rollback candidate's immutable
+health/login returned 200/200. Approved replacement was production/READY,
+aliases 0, exact Github SHA/application tree verified. No competing Production
+change was observed. Old Pending/POST-zero claims were resolved as historical
+under the latest explicit Owner decision before mutation.
+
+Read-only reconciliation on project tvnhholicwjtxdhlxfqs:
+
+- Makeup 2001fa15-d586-4eae-b3f7-b09705656d34.
+- Source 3da20a82-526a-4073-9e03-6d72fae9b392, 2026-08-30, absent with exact-child
+  absent Attendance; child 9f75dc47-4e6d-4ef6-9e50-05e8e1ea5d77 (น้องมีนา).
+- Booking 4daaf4cd-c302-44ed-a690-f87b791ed791, verified; correct child/source link.
+- Target 2026-09-06, 15:00–17:00, พระราม 2; is_makeup true, scheduled, slot open.
+- schedule_slot_id 3f4ca9b7-94b5-4684-88f6-7f40960eda19, active Sunday template
+  f2a968f3-912c-47bc-8623-2c1a18bdd6c6; exact branch
+  9eea389d-0eb2-49e9-bf53-245f000f375f and course
+  dad34543-e555-4294-8240-1119d31535f2, date/time match.
+- Source/Makeup rows 1/1; all-booking exact-child August source-month use 1;
+  exact-child overlap 0 (excluding rescheduled/walleted); exact active canonical
+  template count 1; created before target start. No exact-child Makeup attendance row.
+- Owner artifact log: POST /api/admin/makeup 200 at 06:12:16.548 UTC; created_at
+  06:12:17.381140 UTC (13:12 Bangkok). No request replay was performed.
+
+One command `vercel promote dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf` under the verified
+team started 06:30:42 UTC (13:30:42 Bangkok); CLI returned success for that same
+deployment. No retry/rebuild/redeploy/replacement/manual-alias/rollback action.
+Exact immutable URL remains:
+https://new-athlete-badminton-school-4r8x21gj8-aachanin1s-projects.vercel.app
+After Promotion, four of four aliases independently matched the same READY
+deployment/SHA/tree and the alias endpoint returned the exact established set:
+www.newathleteschool.com; new-athlete-badminton-school.vercel.app;
+new-athlete-badminton-school-aachanin1s-projects.vercel.app;
+new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app.
+
+Fresh Production GET smoke: root/health/auth-login 200, /login 307 to auth-login,
+/admin/makeup 307 to login, actual
+/_next/static/chunks/webpack-a1425f7572da71b3.js 200; root title correct.
+Bounded logs 06:30:42–06:32:00 UTC (13:30:42–13:32:00 Bangkok), limit 100 per
+query: six observed www-domain GET smoke requests; error/fatal/5xx separate
+filters each 0. No task-attributable regression in that window; no universal
+claim about unrelated traffic or future errors. Post-Promotion reconciliation
+at 06:31:29 UTC matched pre-Promotion 06:29:33 UTC: all counts unchanged and
+whole-row fingerprints identical, source 4f7b52686b60229aa4f145c605d46267,
+Makeup 6e9e63651266cafdb7c391c38f0b2d9f. Production activation did not rewrite
+the supplied Owner rows.
+
+Source Complete Yes; Tests Passed Yes (retained evidence above); Application
+Committed/Pushed Yes; exact Promoted/Deployed/Production Active Yes; Owner exact
+UAT PASS and automated Production checks passed. No second manual creation/UAT
+requested. Feature/Allowlist/Environment/Migration/permissions unchanged.
+This round Functional/Test/Config 0/0/0, Docs 3; protected flows unchanged;
+Unauthorized Scope Expansion/Breach None/None. Developer business-data writes
+None, Controlled Write UAT not performed by Developer, Data Repaired No.
+Owner Production-data creation Yes; latest learner/target/single use verified.
+Financial/ledger deltas not audited and remain Unknown, not inferred zero from
+UI PASS. Earlier UX-FAIL artifact dpl_Ds2sW5fXkq6d1yp7RqjzYPNj64EK transaction
+is separate; its exact rows/duplicates/customer/financial effects remain Unknown.
+Retained 10 audit vulnerabilities (2 low, 8 high) and other dependency warnings
+are not repaired or reclassified in this Promotion-only scope.
+
+PROJECT_STATE -> TODO-CODEX -> this dated record were reconciled once at closeout,
+preserving the earlier no-write handoff as explicitly historical. Documentation
+publication is a separate normal same-branch commit/push, not a new Application
+SHA or rebuild. State at completed publication: TASK DONE; no task blocker or
+required next work. Next action: stop and await a new explicit Owner task selection;
+do not create another Makeup, repair data, rebuild or begin unrelated work.
