@@ -9,23 +9,19 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **DEVELOPING — required local security verification passed;
-staged artifact delivery in progress**.
+Status: **READY FOR OWNER UAT — exact staged Production artifact verified**.
 
-- Active Task: **ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production**; Owner approved
-  continuous delivery on 2026-09-05. Full scope/evidence/current mutable state
-  are authoritative in the first PROJECT_STATE.md matrix.
-- Required local E2E, retrospective DB runtime, authenticated role/session checks,
-  fixture cleanup, Linux dependency/native verification and dev recovery passed.
-  Retained install/audit/build/deterministic evidence and the fresh harness
-  correction/results are recorded in PROJECT_STATE.md.
-- Previous Docker/generated-output prerequisites are resolved by fresh checks.
-- Next: final diff/secret/upload compliance, normal commit/push, exact staged
-  Production artifact and smoke/log/identity checks, then Owner no-write UAT.
-  No new artifact PASS or Promotion is authorized yet.
-- Preserve the completed Makeup history and concurrent LV 0 registration. All
-  eight Parking Lot implementations remain unselected; this security task is
-  separately authorized. No pricing/permission/data/Environment/Production change.
+- Active Task: **ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production**; Owner approval
+  2026-09-05. PROJECT_STATE.md is authoritative for artifact URL/identity, current
+  Git/Production state, test evidence, residual risks and the six UAT steps.
+- Required local checks, full E2E, fixture cleanup, Linux install/native checks,
+  staged build/smoke/logs and exact source/lock identity passed.
+- Next: Owner no-write UAT on the exact staged URL in PROJECT_STATE.md. Sign in
+  through the existing Vercel Authentication gate, then use the app role.
+- Await PASS/FAIL for this artifact. PASS permits exact-artifact Promotion without
+  rebuild and post-Promotion verification; no Promotion has occurred.
+- Preserve closed Makeup work and all eight unselected Parking Lot items. No
+  persistent Environment, permission, migration or Production business-data change.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

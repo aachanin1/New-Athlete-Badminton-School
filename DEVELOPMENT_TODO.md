@@ -19628,3 +19628,133 @@ Full baseline: 15 npm affected package labels (10 own-advisory packages + 5 inhe
 | ws (inherited); @supabase/supabase-js > @supabase/realtime-js > ws | [GHSA-96hv-2xvq-fx4p](https://github.com/advisories/GHSA-96hv-2xvq-fx4p); CVE-2026-48779; high | 8.20.1 → 8.21.0 | >= 1.1.0, < 5.2.5; >= 6.0.0, < 6.2.4; >= 7.0.0, < 7.5.11; >= 8.0.0, < 8.21.0 / 5.2.5, 6.2.4, 7.5.11, 8.21.0 | Runtime transport potential; native browser WebSocket is separate. No application channel/WebSocket usage found, but transitive presence remains potentially relevant and is patched. Local fix, not Production-active. |
 
 Inherited labels @eslint/config-array, @eslint/eslintrc, minimatch, @supabase/realtime-js and @supabase/supabase-js add no unique advisories here. ws/brace-expansion remediation removes their metavulnerabilities without changing their versions. Per-node paths/versions and raw upstream/audit JSON are in `.playwright/security-dependencies/`.
+
+
+## 2026-09-06 — Dependency security exact staged artifact READY FOR OWNER UAT
+
+State observed at this handoff (Asia/Bangkok; underlying checks dated 2026-09-05
+UTC): **READY FOR OWNER UAT**, not TASK DONE. This continues Owner approval of
+2026-09-05 and the explicit Docker/.next resume command. Earlier safe-handoff
+failures above remain historical, including the policy-rejected generated-folder
+cleanup. Owner subsequently removed that folder; Developer verified absence and
+Docker engine/API/DB/storage readiness before any fixture mutation.
+
+### Source, scope and fresh verification
+
+Pre-resume HEAD/upstream **049d3985fb606e87ad189931108c08b23edd2f51**, 0/0, six
+original modified paths and empty index; lock hash exactly matched the Owner/PM
+checkpoint. Preserved that concurrent docs-only LV 0 registration and all eight
+Parking Lot items. Published security commit **cc0af9998e3b5040d9cfa77753239b90aa01ce4b**, tree
+**a6da6073ea8d0f4d6475712d7c5f32b36e55e6a1**, normal push on spike/next-major-security-upgrade.
+Final lock SHA256 **AD252F85DFAAF55DC58638B71860DB672488B5669BC254B9C82909FFE8838DDA**.
+This handoff is a separate documentation-only descendant; the UAT artifact remains
+the tested source commit, with no subsequent rebuild.
+
+Actual task paths/counts: functional **0**, dependency **2**, tests **2**, config
+**0**, docs **3** = **7**: package.json, package-lock.json,
+scripts/check-pricing-true-up.js, tests/history-payment-regression/history-payment.spec.ts,
+PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md. Only the pricing test was a
+bounded addition outside the initial test list; Owner explicitly confirmed it in
+the resume command. History spec was already conditional. No new business scope,
+protected source edit or unauthorized path.
+
+History E2E initially failed prepare because its fixed August 2026 expiry/session
+dates were past the actual clock; the existing SQL correctly rejected expired
+bookings (1 failed, 9 serial cases not run). The before-edit reason is preserved
+in pre-edit-history-fixture-plan.md. One bounded correction moves the disposable
+fixture's scope/booking year, expiry and session/slot dates to future August in
+test.beforeAll. All 10 cases, original amounts (including 4,330), strict checks,
+identity, revision/order and financial expectations remain unchanged. Full rerun
+passed 10/10. No pricing/payment production source or database policy changed.
+
+| Required check | Evidence/result at handoff |
+| --- | --- |
+| Booking E2E | Fresh **23/23**, including Makeup pending/single-submit/success, exact learner/source-month and isolated Saturday UTC regression |
+| History/Payment E2E | Fresh corrected full run **10/10**; initial failure retained, no assertions reduced |
+| Admin Assignment E2E | Fresh **18/18**, including Coach/User program/ownership boundaries and Admin retrospective UI |
+| Retrospective DB/runtime | Fresh **38/38**, including atomicity, races, rollback injection and protected financial evidence unchanged |
+| Built User/Coach/Head Coach/Admin/Super Admin | Fresh **45 checks**, login/reload/logout, portal/API and standard-Admin restrictions; hydration/static errors 0, remote Supabase requests 0 |
+| Fixture cleanup | DB/Auth/Storage metadata 0 after each suite; all five built-role users removed; exact History physical blob cleanup 15 → 0 |
+| Linux clean install/graph/audits/native | Node 24.16.0/npm 11.13.0, 511 installed/512 audited, all exits 0; lock unchanged; sharp 0.35.4/libvips 8.18.6, SWC 16.2.12; PNG/JPEG/WebP pass |
+| Retained checks | Same tested application/config/lock bytes: Windows clean install/graph/audits, zero-warning lint, original TSC, webpack Production build 94/94; Wallet 45, Assignment state 39, pricing 14, Progressive pricing17/entry31/transactions33/coupon38/batches44/integration29/notifications16/Legacy32 |
+| Fresh checks after harness edit | TSC exit 0; mojibake 265; architecture + real upload manifest **34/34** |
+| Dev recovery | Owner deletion verified, root .next has no Production BUILD_ID; separate local-auth build stayed in ignored evidence copy; listener 127.0.0.1:3000, root/static 7/7 = 200, temporary 3002 stopped |
+| Staged build | Node 24.x, Next 16.2.12 webpack; npm ci 511/512, zero vulnerabilities; 94/94 generated pages |
+| Staged smoke/logs | Root/health/login/API auth/static/local+allowed remote images/hydration passed; no error/fatal or 5xx in bounded 17:17:17–17:24:25 UTC exact-deployment query |
+
+Every final required local case executed and passed; no final fail/skip. Retained
+results are distinguished from fresh executions above, not borrowed from another
+dependency set. Full before/final audit JSON and dependency paths remain under
+.playwright/security-dependencies/. Full original per-advisory exposure/range/patch
+matrix above remains valid; the retained baseline inventory has **26 unique advisories**
+across 10 own-advisory packages and 15 npm affected labels (5 inherited). Both
+full/omit-dev final audits succeeded with zero graph findings. Historical install
+**10 vulnerabilities** remains aggregate-only evidence and is not reinterpreted.
+
+### Final before → after advisory index
+
+| Package | Before → tested/staged after | Unique advisories |
+| --- | --- | --- |
+| @babel/core | 7.29.0 → 7.29.7 | [GHSA-4x5r-pxfx-6jf8](https://github.com/advisories/GHSA-4x5r-pxfx-6jf8) |
+| brace-expansion | 5.0.6, 1.1.13 → 5.0.9, 1.1.18 | [GHSA-3jxr-9vmj-r5cp](https://github.com/advisories/GHSA-3jxr-9vmj-r5cp), [GHSA-mh99-v99m-4gvg](https://github.com/advisories/GHSA-mh99-v99m-4gvg), [GHSA-rgw5-rvv9-x895](https://github.com/advisories/GHSA-rgw5-rvv9-x895) |
+| browserslist | 4.28.2 → 4.28.9 | [GHSA-c83g-rgw3-j3cx](https://github.com/advisories/GHSA-c83g-rgw3-j3cx), [GHSA-73wf-gq98-2v4g](https://github.com/advisories/GHSA-73wf-gq98-2v4g) |
+| js-yaml | 4.1.1 → 4.3.2 | [GHSA-h67p-54hq-rp68](https://github.com/advisories/GHSA-h67p-54hq-rp68), [GHSA-52cp-r559-cp3m](https://github.com/advisories/GHSA-52cp-r559-cp3m), [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj) |
+| nanoid | 3.3.12 → 3.3.18 | [GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv), [GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8) |
+| next | 16.2.6 → 16.2.12 | [GHSA-6gpp-xcg3-4w24](https://github.com/advisories/GHSA-6gpp-xcg3-4w24), [GHSA-m99w-x7hq-7vfj](https://github.com/advisories/GHSA-m99w-x7hq-7vfj), [GHSA-89xv-2m56-2m9x](https://github.com/advisories/GHSA-89xv-2m56-2m9x), [GHSA-68g3-v927-f742](https://github.com/advisories/GHSA-68g3-v927-f742), [GHSA-4633-3j49-mh5q](https://github.com/advisories/GHSA-4633-3j49-mh5q), [GHSA-4c39-4ccg-62r3](https://github.com/advisories/GHSA-4c39-4ccg-62r3), [GHSA-p9j2-gv94-2wf4](https://github.com/advisories/GHSA-p9j2-gv94-2wf4), [GHSA-q8wf-6r8g-63ch](https://github.com/advisories/GHSA-q8wf-6r8g-63ch), [GHSA-955p-x3mx-jcvp](https://github.com/advisories/GHSA-955p-x3mx-jcvp) |
+| postcss | 8.5.10, 8.5.15 → 8.5.28 | [GHSA-6g55-p6wh-862q](https://github.com/advisories/GHSA-6g55-p6wh-862q), [GHSA-fxqj-rqcc-2cmp](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp), [GHSA-r28c-9q8g-f849](https://github.com/advisories/GHSA-r28c-9q8g-f849) |
+| postcss-selector-parser | 6.1.2 → 6.1.4 | [GHSA-w9m9-85wc-3x92](https://github.com/advisories/GHSA-w9m9-85wc-3x92) |
+| sharp | 0.34.5 → 0.35.4 | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) |
+| ws | 8.20.1 → 8.21.0 | [GHSA-96hv-2xvq-fx4p](https://github.com/advisories/GHSA-96hv-2xvq-fx4p) |
+
+Next compiled Babel/browserslist/nanoid/ws copies remain exactly as assessed in
+the preceding bundled-copy table; root overrides do not patch them. Source/config,
+build traces and Node 24 native WebSocket establish the observed Production
+conditions. Dev HMR ws residual remains and the listener is loopback-only. No
+remaining confirmed Production-applicable or Unknown High/Critical finding was
+accepted as safe; no global security/financial clearance is asserted.
+
+### Immutable artifact and publication safety
+
+Artifact **dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq**, URL https://new-athlete-badminton-school-89vusndmx-aachanin1s-projects.vercel.app,
+source **cc0af9998e3b5040d9cfa77753239b90aa01ce4b**, tree **a6da6073ea8d0f4d6475712d7c5f32b36e55e6a1**.
+Actual deployment state READY/**STAGED**, target production, source CLI, Node24.x,
+runtime region icn1; created with Vercel CLI59.11.2 --prod --skip-domain.
+All **401 actual source-file SHA1 hashes** matched upload inputs; lock SHA256
+matched. Manifest 405 entries/355 required/forbidden files0; empty virtual dirs
+contain no evidence/backup files. Raw evidence, local env/auth state, reports and
+secrets were excluded. Final complete staged diff/secret compliance passed.
+
+Initial direct GET received existing Vercel SSO protection redirect, not an app
+regression. Verification reused the pre-existing automation-bypass credential
+(created May2026) read-only, in memory and only on this exact deployment origin.
+No protection token/share URL/settings/env/allowlist were created or changed.
+Owner must use existing Vercel membership before app Login. No actual application
+login or business write was submitted on staged/Production. Cloud package/native
+selection is supported by exact lock/npm-ci/Node/platform continuity and hosted
+image smoke; direct binary-version loading was proved in disposable local Linux.
+
+Staged aliases **empty**. Existing Production/rollback **dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf**,
+application **8148249f4dc5a626fefdd70834e93ffebd55d1a1**, tree
+**656a7b7c25c6f0323932598976232a2ed861cbfe** remains READY/PROMOTED on all four
+original domains. Health/login200 before publication. Git integration production
+branch main was reverified immediately before push; spike branch push only makes
+Preview artifacts. Those Preview artifacts are not the Owner UAT target. Rollback
+after eventual Promotion may restore the old dependency risks.
+
+Source Complete/Tests Passed/Committed/Pushed/Staged Deployed: **Yes**. Promoted:
+**No**. Security Production Active/Owner UAT/Production UAT Passed: **No**.
+Feature Enabled/Allowlisted: no change. Migration source/remote migration: no
+change/action; existing migrations only applied by disposable local reset.
+Persistent Environment/secrets/settings: no change. Controlled Write UAT: local
+fixtures passed, staged/Production none. Production Data Changed/Data Repaired:
+no task business writes/no repair. Customer Impact: no security change activated
+yet. Financial Impact: no mutation/formula change; earlier Owner transactions
+outside scope. Scope Expansion/Breach: no new business scope/no unauthorized path.
+Blocker/Drift: none for no-write Owner UAT/resolved. Task Done: **No**.
+
+Next action: the six no-write steps in PROJECT_STATE.md (Login roles;
+Booking/Schedule/prices; History/slip images; Wallet/next-month Makeup without
+confirming; Coach/Admin/data/images; exact artifact PASS/FAIL). New Owner PASS
+permits Promote only this artifact without rebuild, followed by Production
+alias/health/static/image/auth/log/artifact-continuity checks. Real-write UAT
+requires separate exact-target authorization. No Parking Lot work starts.
