@@ -30,7 +30,10 @@ function check(name, actual, expected) {
 check(
   'single booking 16 sessions uses 15-18 tier',
   getKidsGroupTotal(16),
-  { total: 6496, perSession: 406, tierLabel: '15-18 ครั้ง' },
+  {
+    total: 6496, perSession: 406, tierLabel: '15-18 ครั้ง',
+    selectedTier: { id: null, minSessions: 15, maxSessions: 18, pricePerSession: 406, packagePrice: 6500, unit: 'session' },
+  },
 )
 
 check(
@@ -47,6 +50,7 @@ check(
     totalSessionsForMonth: 8,
     totalCostForMonth: 4000,
     effectivePerSession: 500,
+    selectedTier: { id: null, minSessions: 7, maxSessions: 10, pricePerSession: 500, packagePrice: 4000, unit: 'session' },
   },
 )
 
@@ -64,6 +68,7 @@ check(
     totalSessionsForMonth: 16,
     totalCostForMonth: 6496,
     effectivePerSession: 312,
+    selectedTier: { id: null, minSessions: 15, maxSessions: 18, pricePerSession: 406, packagePrice: 6500, unit: 'session' },
   },
 )
 
@@ -81,6 +86,7 @@ check(
     totalSessionsForMonth: 9,
     totalCostForMonth: 4500,
     effectivePerSession: 500,
+    selectedTier: { id: null, minSessions: 7, maxSessions: 10, pricePerSession: 500, packagePrice: 4000, unit: 'session' },
   },
 )
 
@@ -116,6 +122,7 @@ check(
     totalSessionsForMonth: 7,
     totalCostForMonth: 3500,
     effectivePerSession: 0,
+    selectedTier: { id: null, minSessions: 7, maxSessions: 10, pricePerSession: 500, packagePrice: 4000, unit: 'session' },
   },
 )
 
@@ -146,13 +153,19 @@ check(
 check(
   'adult 1 session unchanged',
   getAdultGroupTotal(1),
-  { total: 600, perSession: 600, tierLabel: 'รายครั้ง' },
+  {
+    total: 600, perSession: 600, tierLabel: 'รายครั้ง',
+    selectedTier: { id: null, minSessions: 1, maxSessions: 1, pricePerSession: 600, packagePrice: 600, unit: 'session' },
+  },
 )
 
 check(
   'adult 10-session package unchanged',
   getAdultGroupTotal(10),
-  { total: 5500, perSession: 550, tierLabel: '10 ครั้ง' },
+  {
+    total: 5500, perSession: 550, tierLabel: '10 ครั้ง',
+    selectedTier: { id: null, minSessions: 10, maxSessions: 10, pricePerSession: 550, packagePrice: 5500, unit: 'session' },
+  },
 )
 
 console.log('Pricing true-up checks passed.')

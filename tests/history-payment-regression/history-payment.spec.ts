@@ -21,13 +21,27 @@ const READ_OPERATION_TIMEOUT_MS = 10_000
 test.beforeAll(async () => {
   fixture = readHistoryPaymentFixture()
   localAdmin = createLocalAdmin()
+  // Payment preparation requires unexpired bookings and future sessions.
+  const fixtureYear = new Date().getUTCFullYear() + 1
+  const { error: scopeDateError } = await localAdmin.from('booking_pricing_scopes')
+    .update({ lesson_year: fixtureYear })
+    .eq('id', fixture.scopeId)
+  if (scopeDateError) throw new Error(`move disposable History scope: ${scopeDateError.message}`)
+  const { error: bookingDateError } = await localAdmin.from('bookings')
+    .update({ year: fixtureYear })
+    .in('id', [...fixture.bookingIds, ...fixture.legacyBookingIds, fixture.legacyInvalidBookingId])
+  if (bookingDateError) throw new Error(`move disposable History bookings: ${bookingDateError.message}`)
+  const { error: expiryError } = await localAdmin.from('bookings')
+    .update({ expires_at: `${fixtureYear}-08-31T16:59:59Z` })
+    .in('id', fixture.bookingIds)
+  if (expiryError) throw new Error(`move disposable History expiry: ${expiryError.message}`)
   const { data: sessions, error: sessionError } = await localAdmin.from('booking_sessions')
     .select('id,schedule_slot_id')
     .in('booking_id', fixture.bookingIds)
     .order('date', { ascending: true })
   if (sessionError) throw new Error(`read disposable History sessions: ${sessionError.message}`)
   for (const [index, session] of sessions.entries()) {
-    const date = `2026-08-${String(22 + index).padStart(2, '0')}`
+    const date = `${fixtureYear}-08-${String(22 + index).padStart(2, '0')}`
     const { error: bookingSessionError } = await localAdmin.from('booking_sessions')
       .update({ date })
       .eq('id', session.id)

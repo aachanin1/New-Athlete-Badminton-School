@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -8,6 +8,30 @@ use `TODO.md` only as stale legacy reference after code verification. Current
 mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
+
+Status: **DEVELOPING — required local security verification passed;
+staged artifact delivery in progress**.
+
+- Active Task: **ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production**; Owner approved
+  continuous delivery on 2026-09-05. Full scope/evidence/current mutable state
+  are authoritative in the first PROJECT_STATE.md matrix.
+- Required local E2E, retrospective DB runtime, authenticated role/session checks,
+  fixture cleanup, Linux dependency/native verification and dev recovery passed.
+  Retained install/audit/build/deterministic evidence and the fresh harness
+  correction/results are recorded in PROJECT_STATE.md.
+- Previous Docker/generated-output prerequisites are resolved by fresh checks.
+- Next: final diff/secret/upload compliance, normal commit/push, exact staged
+  Production artifact and smoke/log/identity checks, then Owner no-write UAT.
+  No new artifact PASS or Promotion is authorized yet.
+- Preserve the completed Makeup history and concurrent LV 0 registration. All
+  eight Parking Lot implementations remain unselected; this security task is
+  separately authorized. No pricing/permission/data/Environment/Production change.
+
+## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
+
+Separate registration published at 049d398; following task/authorization claims
+are scoped to that documentation registration. The eight candidate decisions
+remain in Parking Lot; security work is separately approved in the current matrix.
 
 Status: **Documentation-only LV 0 Parking Lot registration; complete only after
 documentation checks and commit/push verification**. Product implementation is
@@ -1140,8 +1164,7 @@ HARDENING**.
 
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- Owner registered this future Product task at position `1`; Active Task remains
-  **None — Awaiting Owner Selection**. This round authorizes documentation only:
+- Owner registered this future Product task at position `1`; at its registration no Product Task was selected. This candidate permits documentation only:
   no Product/Production audit, Source/Test change, fixture mutation, Migration,
   Deploy, remote query, data operation, feature/environment/allowlist/permission
   change, or customer/financial action.
@@ -1213,7 +1236,7 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   2026-08-28 registration moves it to position `2` while preserving the relative
   order of all six prior candidates. Owner has not selected or authorized
   Product/Production audit or development.
-  Active Task remains **None — Awaiting Owner Selection**.
+  This Parking Lot implementation remains unselected; active work is in PROJECT_STATE.md.
 - Future intended behavior: notify only Head Coaches attached to the relevant
   branch when booking/session evidence is genuinely ready for the assignment
   page; never notify while `pending_payment`; cover direct verified/zero-price,
@@ -1253,8 +1276,7 @@ CORRECTIVE TASK — NOT ACTIVE OR SELECTABLE PARKING LOT WORK**.
   identity regression remain present.
 - The 2026-08-25 exact-artifact closeout records Owner UAT PASS, Promotion, and
   Production verification with two distinct participant/Level rows. Therefore
-  this item is not future selectable work and Active Task remains **None —
-  Awaiting Owner Selection**.
+  this item is not future selectable work and the Active Task is recorded in PROJECT_STATE.md.
 - The two historical Private attendance rows remain unrepaired and out of scope.
   That separate Production-data limitation does not reopen the completed Source/UI
   identity correction. Pricing, Payment, entitlement, time-slot count, hours,
@@ -1355,8 +1377,7 @@ Canonical name: **ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORD
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
 - The 2026-08-27 Owner revision supersedes the current rules from the preserved
-  2026-08-26 historical registration. Current position is exactly `7`; Active Task is
-  **None — Awaiting Owner Selection**; Owner Selection for Implementation:
+  2026-08-26 historical registration. Current position is exactly `7`; this candidate is unselected; Owner Selection for Implementation:
   **Not Given**; Product Task: **Not Started**.
 - Low enrollment stays Kids/Adult Group only: `0` hidden, `1` prominent red, `2`
   prominent yellow; Private excluded. Saved Kids groups only: `0–4` no high-count
@@ -1549,12 +1570,12 @@ Confirmed final state:
 
 ## Worktree / Safety Notes
 
-- Actual Git/worktree and documentation publication state are recorded only in
-  the first `PROJECT_STATE.md` matrix. Preserve the pre-existing outside-scope
-  edits identified there; no clean-worktree claim applies to this registration.
-- Active Product Task is **None — Awaiting Owner Selection**. `PROJECT_STATE.md`
-  is authoritative; Parking Lot contains exactly eight candidates in the approved
-  order, all unselected for implementation and unauthorized to start.
+- Actual Git/worktree, security-task ownership, verification and publication
+  states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
+  concurrent work; do not reset, stash or overwrite the local security patch.
+- Active Task is the separately Owner-approved dependency security remediation.
+  Parking Lot retains exactly eight candidates in the approved order, all
+  unselected for implementation and unauthorized to start.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

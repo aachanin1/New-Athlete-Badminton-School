@@ -19361,3 +19361,270 @@ Customer Impact/Financial Impact: **None/None** from registration, with future
 additional charge confirmed **0 บาท**. Task-attributable Scope Expansion/Breach:
 **None/None**. Next action at this registration: await explicit Owner selection
 and a new Product Scope Contract; no queued task starts automatically.
+
+
+## 2026-09-05 — Dependency security remediation safe handoff; runtime prerequisites unresolved
+
+State observed at this handoff: **DEVELOPING, not READY FOR OWNER UAT, not TASK
+DONE**. Owner's 2026-09-05 command authorizes continuous audit, scoped fixes,
+fresh verification, bounded corrections, normal commit/push and staged
+Production-target deployment without domains. New Owner artifact PASS is required
+before exact no-rebuild Promotion. This record does not reopen the completed
+Makeup tasks or certify unaudited financial effects of earlier Owner transactions.
+
+### Approved scope and actual changes
+
+Actor: Developer. Before: historical Production install reported only 10
+vulnerabilities (2 low/8 high), with no complete advisory/exposure assessment.
+Expected: remediate Production-relevant runtime/client/build dependency findings
+while preserving business behavior and role access. Blast radius: all portals;
+planned/actual application functional files **0/0**.
+
+- Dependency allowlist: `package.json`, `package-lock.json` (both changed).
+- Conditional config allowlist: `next.config.mjs`, `eslint.config.mjs` (unused).
+- Conditional test allowlist: `tests/booking-regression/booking.spec.ts`,
+  `tests/history-payment-regression/history-payment.spec.ts`,
+  `tests/admin-schedule-assignment/admin-schedule-assignment.spec.ts`,
+  `scripts/check-security-dependencies.mjs` (all unused).
+- Documentation allowlist: `PROJECT_STATE.md`, `TODO-CODEX.md`,
+  `DEVELOPMENT_TODO.md` (safe handoff, uncommitted).
+- Bounded technical addition, reason recorded before editing:
+  **`scripts/check-pricing-true-up.js` (+1 test)**. The mandatory existing
+  Legacy regression failed identically when run on unchanged HEAD copies of
+  the test/pricing source: expected objects omitted `selectedTier` added by
+  established commit `4ab6a69` on 2026-07-15. Added explicit expected metadata to
+  seven object assertions; all 14 scenarios, strict deep equality and every
+  original price/rate/true-up expectation remain unchanged. No pricing source,
+  formula, business expectation or entitlement behavior changed. Initial failure
+  and baseline reproduction retained; one bounded correction passed 14/14.
+
+Actual tracked changes: dependency **2**, test **1**, docs **3**, config **0**,
+functional **0** = **6**. No new business scope or unauthorized path. Temporary
+audit/smoke helpers and raw evidence live only under
+`.playwright/security-dependencies/`, ignored and excluded from deployment.
+
+Protected: Legacy/Progressive pricing, Payment/Coupon/Wallet/Ledger/Finance,
+payroll/Attendance, identity/canonical calendar/Makeup/single-submit behavior,
+role/permission/RLS/auth/admin controls, schema/migrations, Environment/secrets,
+SlipOK mode/flags/allowlists/Vercel settings/infrastructure controls and remote
+business data. No changes to these. Local fixture lifecycle is authorized only
+after proving disposable local DB/storage; engine failure prevented any reset,
+seed, mutation or cleanup. No Production exploit/load/fuzz or financial repair.
+
+### Fresh Gate 0 and concurrent work
+
+Started 2026-09-05 15:33 UTC. Root matched the Owner's Developer repository;
+branch `spike/next-major-security-upgrade`; initial HEAD/upstream
+`bfccc806c7ac7b67b726b11cb90a5d05ab819a78`, fresh remote equal, 0/0, clean/staged
+empty. Baseline lock SHA256
+`72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`.
+Node **24.16.0**, npm **11.13.0**, registry **https://registry.npmjs.org/**,
+omit empty, ignore-scripts false, legacy-peer-deps false. Baseline full and
+omit-dev JSON completed successfully with exit **1/1**; errors/stderr retained.
+Full audit: **15 package labels**, omit-dev **8**; **26 unique GHSA**. The old
+10 total remains valid aggregate-only historical install evidence; it was not
+rewritten to imply an earlier complete audit.
+
+Read-only live Vercel evidence: linked project
+`prj_v034HOI6AjaMpBezWvuvT0W24pTp`, team
+`team_gw8Y6CPd602WAKRsVFobPGCL`, Node **24.x**, framework **Next.js/LAMBDAS**,
+`npm ci`, `npm run build` → `next build --webpack`. Production/rollback candidate
+**dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf**, application
+**8148249f4dc5a626fefdd70834e93ffebd55d1a1**, tree
+**656a7b7c25c6f0323932598976232a2ed861cbfe**, READY/PROMOTED. Four aliases
+unchanged, exact health/login 200. Existing immutable URL:
+https://new-athlete-badminton-school-4r8x21gj8-aachanin1s-projects.vercel.app .
+Rollback after a future security release can restore old dependency risks.
+
+Production uploaded lock bytes exactly match the baseline copy. Existing
+next.config/proxy/vercel config raw hashes match deployment source; retrieved
+package.json raw hash matches artifact and normalized contents match HEAD.
+Initial git-show raw hashes differed because upload bytes use mixed LF/CRLF,
+not a source mismatch; final identity checks resolved that distinction.
+`server.js` exists but live managed framework/LAMBDAS and build logs, not its
+existence, establish the deployed architecture. Git Production branch is `main`;
+this spike branch creates Preview deployments on push without moving Production.
+
+During execution another task published documentation-only **049d3985fb606e87ad189931108c08b23edd2f51**
+registering LV 0 Parking Lot item 8. Local HEAD moved to the same commit; a fresh
+fetch/remote comparison verified 0/0. All three security implementation files
+were preserved unchanged. That commit's former unknown-ownership/authorization
+claims are historical to its isolated context; this task has explicit Owner
+authorization and verification evidence. Preserve its exact LV 0 decision and
+eight-item order; no queued implementation is authorized by this security task.
+Fresh handoff Vercel state still points to the same Production artifact; the
+concurrent documentation push created only Preview
+`dpl_BiNxfuMppe7nVTNzmwGS9CtaFNqu` at 049d398, not a security staged artifact.
+
+### Remediation and compatibility
+
+Root cause: old dependency resolutions and overrides pinned newly vulnerable
+versions; prior audits kept aggregate output only. Retained maintained Next
+16.2 patch line and webpack architecture. Next/eslint-config-next **16.2.6 →
+16.2.12** includes [16.2.11 security fixes](https://github.com/vercel/next.js/releases/tag/v16.2.11)
+and [16.2.12 maintenance fixes](https://github.com/vercel/next.js/releases/tag/v16.2.12).
+React/DOM **18.3.1**, types, TypeScript **5.9.3**, ESLint **9.39.1**, and Supabase
+SDK versions remain unchanged. Next's peer range supports React 18.2+.
+
+PostCSS root and Next override **8.5.10/8.5.15 → 8.5.28**, deduped; ws override
+**8.20.1 → 8.21.0**; sharp override **0.35.4** replaces Next 16.2's vulnerable
+0.34 requirement. This sharp line is requested by upstream Next 16.3.4 too;
+native Node minimum 20.9 fits this repo/runtime. Inspected Next optimizer for
+removed sharp APIs, loaded native Windows binary and exercised image requests.
+All platform sharp/libvips/SWC lock entries updated together. Windows sharp
+0.35.4/libvips **8.18.6** loaded. Linux staged execution remains unverified.
+
+Targeted package-manager updates also patched Babel core/helpers, browserslist
+and its compatibility datasets, js-yaml, nanoid, selector-parser and nested
+brace-expansion. Version-only differences are detailed below; 72 lock entries
+changed, including transitive support/platform records. No blanket latest
+update, forced audit fix, hand-edited integrity or node_modules changes.
+Dormant brace-expansion@2 override **2.0.3 → 2.1.4** because upstream affected
+range covers it even though no current @2 copy was installed. Other overrides
+retained. Registry metadata/peers/scripts/native options and root/nested graph
+were inspected. sharp 0.35 removes its install script; unrs-resolver remains an
+existing install-script dependency, with macOS-only fsevents records. No engine
+conflict for installed Windows x64 or intended Linux x64 packages; optional
+win32-ia32 supports Node 20 only, is excluded by CPU and is not a target here.
+
+`npm ci` added 509 installed packages, exit 0; final lock SHA256 unchanged before/
+after clean install: **AD252F85DFAAF55DC58638B71860DB672488B5669BC254B9C82909FFE8838DDA**.
+Fresh full/omit-dev audit **0/0**, successful exit **0/0**, `npm ls --all` exit
+**0**. Audit is graph evidence, not whole-system security clearance. Before-fix
+evidence uses version/range, full dependency paths and upstream patches instead
+of dangerous DoS/image PoCs. All 26 GitHub advisory records fetched successfully;
+maintainer descriptions and release evidence retained locally.
+
+### Next bundled copies outside npm audit
+
+Upstream 16.2.12 package manifest (and comparison with 16.3.4) still lists compiled
+Babel **7.26.10**, browserslist **4.28.1**, ws **8.2.3**, nanoid **3.1.32**.
+Root overrides do **not** replace these bundled implementations. They are not
+reported as fixed or hidden by the zero audit count.
+
+| Bundled copy | Exposure / observed evidence | Disposition |
+| --- | --- | --- |
+| Babel 7.26.10 / GHSA-4x5r-pxfx-6jf8 (low) | webpack-config selects SWC without Babel config; no Babel config in repo/ancestor search, no customer source compiler; 106 build traces include no compiled Babel. Upstream explicitly excludes trusted-only compilation | Not applicable to observed Production/build invocation; bundled source-map reader remains in distributed Next package; re-evaluate if Babel/untrusted compilation introduced |
+| browserslist 4.28.1 / GHSA-c83g-rgw3-j3cx, GHSA-73wf-gq98-2v4g (high) | `get-supported-browsers` loads fixed repo config once during bounded build; no browserslist config/stats found in project or ancestors, no user queries/custom stats; compiled package absent from 106 runtime traces | Triggers absent in observed build/runtime. Not a patched-copy claim; re-evaluate custom stats/query services or build-config changes |
+| nanoid 3.1.32 / GHSA-28wg-ghj8-5hjv, GHSA-2v37-7h3g-55p8 (high) | build/index passes secure `nanoid` as build ID callback; default size 21; no non-secure API or custom zero-size input. Present in one build trace | Vulnerable entry points not invoked by observed build; copy retained, re-evaluate future direct/custom generator usage |
+| ws 8.2.3 / GHSA-96hv-2xvq-fx4p (high) | traced in 106 runtime manifests due `node-environment-baseline` fallback; getter only used when native global WebSocket is missing. Node 24 has native WebSocket. Other imports are webpack/Turbopack dev HMR | Production fallback condition absent; **dev HMR residual remains**, local dev must bind 127.0.0.1 as existing recovery command specifies. Do not classify the bundled copy as patched. No external dev listener left running |
+
+Compiled postcss plugins operate on repository CSS, not customer CSS. Absence of
+direct imports alone was not used as a Production-safety argument. Source scan,
+configuration, upstream call paths, local build action/routes manifests and
+runtime traces support the bounded dispositions. They do not prove protection
+for arbitrary future configs or new endpoints; Linux deployment inspection is
+still required before release.
+
+### Fresh verification and bounded corrections
+
+Required coverage was fixed before edits in local `pre-edit-plan.md`.
+
+| Check | Final execution result at this handoff |
+| --- | --- |
+| Clean install / graph / full audit / omit-dev audit | PASS, exit 0; lock reproducible, npm graph zero |
+| TypeScript / zero-warning lint / mojibake | PASS; `--noEmit --incremental false`; 265 source files scanned |
+| Production webpack build | PASS; Next 16.2.12, 94/94 generated static pages |
+| Unlimited slot entry / price architecture + real upload manifest | PASS 34/34; 405 entries, required 355/355, forbidden files 0 |
+| Lesson Wallet regression | PASS 45/45 |
+| Admin Assignment state | PASS 39/39 |
+| Legacy pricing true-up | Initial baseline/final-harness shape failure retained; additive metadata correction PASS 14/14, original prices/assertion strength unchanged |
+| Progressive booking pricing / entry / transactions | PASS 17/17, 31/31, 33/33 |
+| Progressive coupon / payment batches / integration / notifications | PASS 38/38, 44/44, 29/29, 16/16 |
+| Progressive Legacy baseline | PASS 32/32 |
+| Retrospective architecture only | PASS 4/4; does not substitute for DB/runtime suite |
+| Built anonymous runtime | PASS root/health/login 200, User/Coach/Admin redirects 307, POST-only paths GET 405, dynamic payment status auth 401; local PNG + permitted placehold/dicebear images 200, unlisted host 400 |
+| Built browser / hydration / static / rendered images | Public/Login screenshots visually inspected; password visibility interaction proves hydration; page errors/static errors 0; both rendered logo variants GET 200 (off-screen footer was initially lazy/unloaded). No form submission |
+| Full Booking, History/Payment, Admin Assignment E2E | **NOT EXECUTED** — disposable Docker/Supabase unavailable; no old PASS reused, no test skipped/softened |
+| Retrospective runtime / local DB fixture residue | **NOT EXECUTED** — local readiness failed before fixtures; no fixture created/reset; no residue-zero claim from an unexecuted suite |
+| Authenticated role/session flows / Linux staged images/native identity | **NOT EXECUTED**, required before READY |
+| Post-build dev recovery | **INCOMPLETE** — `.next` deletion rejected by execution policy; verified task built server stopped, ports 3000/3002 unbound; no stale dev session handed back |
+
+Built runtime used existing `.env.local` remote Supabase configuration for
+anonymous GETs only; no sign-in, business mutation or exploit request. Actual
+mutation suites obtain local keys from Supabase status and reject non-local
+API origins; no Production fallback was used. Temporary smoke helper initially
+assumed GET 401 for POST-only endpoints and arbitrary Login text length; source/
+screenshots resolved those harness assumptions to method 405 and a real Login
+control interaction. Product source did not change.
+
+### Blockers, artifact safety and next gate
+
+Docker startup failed with backend error at local runtime path
+`C:/Users/aacha/AppData/Local/Docker/run/dockerInference`: file inaccessible /
+listener path invalid. Normal `docker desktop restart --timeout 45` failed to
+stop processes; separate bounded local Supabase status timed out. User was
+notified while independent verification continued. No factory reset, Docker
+settings change, manual socket delete, remote fallback or local fixture reset.
+
+After build, execution policy rejected the command containing the exact
+generated `.next` deletion with **`blocked by policy`**, before execution.
+No alternative deletion bypass was attempted. Independent manifest capture and
+stopping the verified task server then succeeded. `.next` remains. Required
+recovery awaits manual cleanup, then authorized `npm run dev -- --hostname
+127.0.0.1 --port 3000` and root/static asset checks.
+
+Fresh upload manifest has no evidence/env/auth/report/backup **files**; an empty
+`backups` directory entry has size 0 and directory mode only. Source-tree API
+confirms baseline deployment's equivalent virtual directory, not uploaded
+backup content. Safe current manifest does not establish no historical secret
+exposure. No evidence of compromise was established by this dependency audit;
+no broad forensic clearance or secret rotation is claimed.
+
+At this handoff: no security commit/push/staged artifact/Promotion. No domain,
+feature/allowlist, Environment, Migration, permission, Production-data or
+financial changes. Existing Production and rollback target unchanged. Local
+dependency source is implemented, but release Source Complete/Tests Passed and
+Task Done are **not** claimed. Required next actions: restore Docker engine and
+finish generated-output cleanup, verify disposable local endpoints, run pending
+full suites and cleanup, dev recovery, final diff/secret/upload/platform checks,
+normal commit/push and `vercel --prod --skip-domain`, exact SHA/tree/lock/native
+artifact verification, read-only staged smoke/logs, then Owner UAT.
+
+Owner no-write UAT after an eligible artifact exists: (1) exact URL/login roles;
+(2) booking/schedules/prices/entitlements; (3) history/existing slip images;
+(4) Wallet/next-month Makeup choices; (5) Coach/Admin/images/data; (6) exact
+artifact PASS/FAIL. Stop before real transactions; any real-write UAT requires
+separate exact target authorization. After PASS, Promote only that staged
+Production artifact without rebuild, then alias/health/static/image/auth/log
+continuity checks before TASK DONE.
+
+Documentation updated once at safe handoff in PROJECT_STATE → TODO-CODEX →
+this dated history order. No documentation commit or push while required gates
+remain incomplete. The concurrent LV 0 registration's commit is separate.
+
+
+### Advisory matrix — observed 2026-09-05 UTC
+
+Full baseline: 15 npm affected package labels (10 own-advisory packages + 5 inherited labels); 26 unique GHSA (17 high / 7 moderate / 2 low). One sharp GHSA references four upstream CVEs; GHSA/CVE counts are not interchangeable. Omit-dev baseline: 8 package labels. Both final audits succeeded, exit 0, zero npm-graph findings.
+
+| Package / path | Advisory / severity | Before → local after | Affected range / first patches | Exposure and disposition |
+| --- | --- | --- | --- | --- |
+| @babel/core (inherited); eslint-config-next > eslint-plugin-react-hooks > @babel/core | [GHSA-4x5r-pxfx-6jf8](https://github.com/advisories/GHSA-4x5r-pxfx-6jf8); CVE-2026-49356; low | 7.29.0 → 7.29.7 | >= 8.0.0-alpha.0, < 8.0.0-rc.5; <= 7.29.0 / 8.0.0-rc.6, 7.29.6 | Dev lint/compiler dependency; production webpack selects SWC. Trusted repository input, no user-code compiler API. Root copy patched; Next compiled copy assessed separately. Local fix, not Production-active. |
+| brace-expansion (inherited); eslint/config > minimatch@3 > brace-expansion@1; @typescript-eslint/typescript-estree > minimatch@10 > brace-expansion@5 | [GHSA-3jxr-9vmj-r5cp](https://github.com/advisories/GHSA-3jxr-9vmj-r5cp); CVE-2026-13149; high | 5.0.6, 1.1.13 → 5.0.9, 1.1.18 | >= 3.0.0, < 5.0.7; < 1.1.16; >= 2.0.0, < 2.1.2 / 5.0.7, 1.1.16, 2.1.2 | Dev lint path expansion over repository paths/config, no application request path. Both installed majors patched; dormant override @2 hardened to 2.1.4. Local fix, not Production-active. |
+| brace-expansion (inherited); eslint/config > minimatch@3 > brace-expansion@1; @typescript-eslint/typescript-estree > minimatch@10 > brace-expansion@5 | [GHSA-mh99-v99m-4gvg](https://github.com/advisories/GHSA-mh99-v99m-4gvg); CVE-2026-14257; high | 5.0.6, 1.1.13 → 5.0.9, 1.1.18 | >= 4.0.0, < 5.0.8; >= 3.0.0, < 3.0.3; >= 2.0.0, < 2.1.3; < 1.1.17 / 5.0.8, 3.0.3, 2.1.3, 1.1.17 | Dev lint path expansion over repository paths/config, no application request path. Both installed majors patched; dormant override @2 hardened to 2.1.4. Local fix, not Production-active. |
+| brace-expansion (inherited); eslint/config > minimatch@3 > brace-expansion@1; @typescript-eslint/typescript-estree > minimatch@10 > brace-expansion@5 | [GHSA-rgw5-rvv9-x895](https://github.com/advisories/GHSA-rgw5-rvv9-x895); CVE-2026-69152; high | 5.0.6, 1.1.13 → 5.0.9, 1.1.18 | < 1.1.18; >= 2.0.0, < 2.1.4; >= 3.0.0, < 3.0.6; >= 4.0.0, < 5.0.9 / 1.1.18, 2.1.4, 3.0.6, 5.0.9 | Dev lint path expansion over repository paths/config, no application request path. Both installed majors patched; dormant override @2 hardened to 2.1.4. Local fix, not Production-active. |
+| browserslist (inherited); eslint-config-next > eslint-plugin-react-hooks > @babel/helper-compilation-targets > browserslist | [GHSA-c83g-rgw3-j3cx](https://github.com/advisories/GHSA-c83g-rgw3-j3cx); CVE-2026-73089; high | 4.28.2 → 4.28.9 | <= 4.28.6 / 4.28.7 | Build/tool target resolution; no exposed user query/stats input. Root copy patched; Next compiled copy assessed separately. Local fix, not Production-active. |
+| browserslist (inherited); eslint-config-next > eslint-plugin-react-hooks > @babel/helper-compilation-targets > browserslist | [GHSA-73wf-gq98-2v4g](https://github.com/advisories/GHSA-73wf-gq98-2v4g); CVE-2026-73088; high | 4.28.2 → 4.28.9 | <= 4.28.6 / 4.28.7 | Build/tool target resolution; no exposed user query/stats input. Root copy patched; Next compiled copy assessed separately. Local fix, not Production-active. |
+| js-yaml (inherited); eslint > @eslint/eslintrc > js-yaml | [GHSA-h67p-54hq-rp68](https://github.com/advisories/GHSA-h67p-54hq-rp68); CVE-2026-53550; medium | 4.1.1 → 4.3.2 | >= 4.0.0, <= 4.1.1; < 3.15.0 / 4.2.0, 3.15.0 | Dev ESLint config loader; repository uses eslint.config.mjs, no customer YAML parser. Same 4.x line patched. Local fix, not Production-active. |
+| js-yaml (inherited); eslint > @eslint/eslintrc > js-yaml | [GHSA-52cp-r559-cp3m](https://github.com/advisories/GHSA-52cp-r559-cp3m); CVE-2026-59869; high | 4.1.1 → 4.3.2 | >= 3.0.0, < 3.15.0; >= 4.0.0, < 4.3.0 / 3.15.0, 4.3.0 | Dev ESLint config loader; repository uses eslint.config.mjs, no customer YAML parser. Same 4.x line patched. Local fix, not Production-active. |
+| js-yaml (inherited); eslint > @eslint/eslintrc > js-yaml | [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj); No single CVE; high | 4.1.1 → 4.3.2 | >= 4.0.0, < 4.3.1; >= 3.0.0, < 3.15.1 / 4.3.1, 3.15.1 | Dev ESLint config loader; repository uses eslint.config.mjs, no customer YAML parser. Same 4.x line patched. Local fix, not Production-active. |
+| nanoid (inherited); next > postcss > nanoid; postcss/tailwindcss > postcss > nanoid | [GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv); CVE-2026-67214; high | 3.3.12 → 3.3.18 | < 3.3.16; >= 4.0.0, < 5.1.16 / 3.3.16, 5.1.16 | Build CSS AST identifiers. No customer-controlled zero/negative generator size observed. All lockfile copies patched; Next compiled copy assessed separately. Local fix, not Production-active. |
+| nanoid (inherited); next > postcss > nanoid; postcss/tailwindcss > postcss > nanoid | [GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8); CVE-2026-67213; high | 3.3.12 → 3.3.18 | >= 4.0.0, < 5.1.6; < 3.3.18 / 5.1.6, 3.3.18 | Build CSS AST identifiers. No customer-controlled zero/negative generator size observed. All lockfile copies patched; Next compiled copy assessed separately. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-6gpp-xcg3-4w24](https://github.com/advisories/GHSA-6gpp-xcg3-4w24); CVE-2026-64642; high | 16.2.6 → 16.2.12 | >= 16.0.0, < 16.2.11 / 16.2.11 | Not applicable to observed Production: webpack build confirmed by live log/scripts; no i18n single-locale config. Framework patched. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-m99w-x7hq-7vfj](https://github.com/advisories/GHSA-m99w-x7hq-7vfj); CVE-2026-64641; high | 16.2.6 → 16.2.12 | >= 13.0.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | Trigger absent in source/final local build: no use server and empty Node/Edge Server Action maps. Framework patched. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-89xv-2m56-2m9x](https://github.com/advisories/GHSA-89xv-2m56-2m9x); CVE-2026-64649; high | 16.2.6 → 16.2.12 | >= 14.1.1, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | Not applicable to observed Vercel managed LAMBDAS adapter plus absent Server Actions. server.js existence does not prove Vercel execution; managed hosting pins host per maintainer. Patched. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-68g3-v927-f742](https://github.com/advisories/GHSA-68g3-v927-f742); CVE-2026-64648; medium | 16.2.6 → 16.2.12 | >= 13.0.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | App Router fetch-cache path potentially relevant through transitive SDK fetch. Patched without accepting reachability uncertainty. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-4633-3j49-mh5q](https://github.com/advisories/GHSA-4633-3j49-mh5q); CVE-2026-64647; medium | 16.2.6 → 16.2.12 | >= 13.0.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | App Router body-cache path potentially relevant. Patched without assuming every request satisfies UTF-8 preconditions. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-4c39-4ccg-62r3](https://github.com/advisories/GHSA-4c39-4ccg-62r3); CVE-2026-64646; medium | 16.2.6 → 16.2.12 | >= 13.0.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | Trigger absent: no Edge Server Actions in source/final manifest. Patched. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-p9j2-gv94-2wf4](https://github.com/advisories/GHSA-p9j2-gv94-2wf4); CVE-2026-64645; high | 16.2.6 → 16.2.12 | >= 12.0.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | Trigger absent: source/final routes manifest has no external dynamic-host rewrites/redirects. Patched. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-q8wf-6r8g-63ch](https://github.com/advisories/GHSA-q8wf-6r8g-63ch); CVE-2026-64644; medium | 16.2.6 → 16.2.12 | >= 15.5.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | Maintainer explicitly excludes Vercel hosting; self-hosted image path relevant locally because remotePatterns exists. Patched; local image smoke required. Local fix, not Production-active. |
+| next (direct); direct next | [GHSA-955p-x3mx-jcvp](https://github.com/advisories/GHSA-955p-x3mx-jcvp); CVE-2026-64643; medium | 16.2.6 → 16.2.12 | >= 13.0.0, < 15.5.21; >= 16.0.0, < 16.2.11 / 15.5.21, 16.2.11 | Trigger absent: no use server/use cache application endpoints and empty action manifest. Patched. Local fix, not Production-active. |
+| postcss (direct); direct dev postcss; next > postcss; tailwindcss > postcss | [GHSA-6g55-p6wh-862q](https://github.com/advisories/GHSA-6g55-p6wh-862q); CVE-2026-45623; high | 8.5.10, 8.5.15 → 8.5.28 | <= 8.5.11 / 8.5.12 | Production artifact CSS build. Malicious CSS can expose build files through source maps. Both installed copies replaced/deduped with patched 8.5.28. No user/CMS CSS compiler endpoint observed. Local fix, not Production-active. |
+| postcss (direct); direct dev postcss; next > postcss; tailwindcss > postcss | [GHSA-fxqj-rqcc-2cmp](https://github.com/advisories/GHSA-fxqj-rqcc-2cmp); CVE-2026-69153; medium | 8.5.10, 8.5.15 → 8.5.28 | <= 8.5.22 / 8.5.23 | Production artifact CSS build. Malicious CSS can expose build files through source maps. Both installed copies replaced/deduped with patched 8.5.28. No user/CMS CSS compiler endpoint observed. Local fix, not Production-active. |
+| postcss (direct); direct dev postcss; next > postcss; tailwindcss > postcss | [GHSA-r28c-9q8g-f849](https://github.com/advisories/GHSA-r28c-9q8g-f849); CVE-2026-73646; high | 8.5.10, 8.5.15 → 8.5.28 | <= 8.5.17 / 8.5.18 | Production artifact CSS build. Malicious CSS can expose build files through source maps. Both installed copies replaced/deduped with patched 8.5.28. No user/CMS CSS compiler endpoint observed. Local fix, not Production-active. |
+| postcss-selector-parser (inherited); tailwindcss > postcss-selector-parser; postcss-nested > postcss-selector-parser | [GHSA-w9m9-85wc-3x92](https://github.com/advisories/GHSA-w9m9-85wc-3x92); CVE-2026-9358; low | 6.1.2 → 6.1.4 | >= 6.1.0, < 6.1.3; >= 7.1.0, < 7.1.3 / 6.1.3, 7.1.3 | Production artifact CSS build over repository CSS; no customer CSS AST serialization endpoint. Patched 6.x. Omit-dev placement does not prove request-time execution. Local fix, not Production-active. |
+| sharp (inherited); next > optional sharp > platform @img/sharp + libvips | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj); No single CVE; high | 0.34.5 → 0.35.4 | < 0.35.0 / 0.35.0 | Runtime/native image processing. remotePatterns permits Supabase storage/placehold.co/api.dicebear.com. Treat as relevant and patch all platform lock entries. Windows sharp 0.35.4/libvips 8.18.6 loads; Linux artifact validation pending. Local fix, not Production-active. |
+| ws (inherited); @supabase/supabase-js > @supabase/realtime-js > ws | [GHSA-96hv-2xvq-fx4p](https://github.com/advisories/GHSA-96hv-2xvq-fx4p); CVE-2026-48779; high | 8.20.1 → 8.21.0 | >= 1.1.0, < 5.2.5; >= 6.0.0, < 6.2.4; >= 7.0.0, < 7.5.11; >= 8.0.0, < 8.21.0 / 5.2.5, 6.2.4, 7.5.11, 8.21.0 | Runtime transport potential; native browser WebSocket is separate. No application channel/WebSocket usage found, but transitive presence remains potentially relevant and is patched. Local fix, not Production-active. |
+
+Inherited labels @eslint/config-array, @eslint/eslintrc, minimatch, @supabase/realtime-js and @supabase/supabase-js add no unique advisories here. ws/brace-expansion remediation removes their metavulnerabilities without changing their versions. Per-node paths/versions and raw upstream/audit JSON are in `.playwright/security-dependencies/`.

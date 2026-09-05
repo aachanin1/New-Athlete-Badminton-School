@@ -1,8 +1,80 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06 (Asia/Bangkok; audit evidence timestamps UTC)
 
-## Current State — LV 0 Parking Lot documentation registration
+## Current State — Production dependency security remediation
+
+Status: **DEVELOPING — LOCAL TECHNICAL GATES PASSED; STAGED ARTIFACT PENDING**.
+
+PROJECT_STATE.md is authoritative. Owner approval dated 2026-09-05 and the
+explicit resume command authorize this same task continuously through staged
+Production delivery. The completed Makeup history and all eight unselected
+Parking Lot items, including LV 0 registration at `049d398`, are preserved.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production** |
+| Task Status | **DEVELOPING**; publication gate, not yet READY FOR OWNER UAT |
+| Owner approval / Actor | 2026-09-05; Developer; audit → remediation → verification → bounded corrections → normal commit/push → staged Production artifact; new exact-artifact Owner PASS required for Promotion |
+| Intended Behavior / Blast radius | Fix Production-relevant dependency risks while preserving business behavior/access; functional files 0, framework/build/runtime can affect every portal |
+| Root Cause | Older lock resolutions/framework and pinned overrides retained affected versions; historical install totals lacked advisory/exposure evidence. Two pre-existing test-harness preconditions corrected without changing business assertions |
+| Branch / Upstream | `spike/next-major-security-upgrade` / `origin/spike/next-major-security-upgrade` |
+| Gate 0 Source / Lock | `bfccc806c7ac7b67b726b11cb90a5d05ab819a78`; SHA256 `72CF2B334C372D6982367DC9838FE0B4DCC85C0104B386D7AFBEBCF4F35482F8`; initially clean and remote equal |
+| Local HEAD / Remote HEAD / Ahead-Behind | At this pre-publication verification: `049d3985fb606e87ad189931108c08b23edd2f51` / same / `0/0`; concurrent docs-only LV 0 registration preserved |
+| Current Source / Pushed Source | HEAD plus seven task paths; dependency/test changes not yet pushed. Deployed application lineage remains `8148249f4dc5a626fefdd70834e93ffebd55d1a1` |
+| Worktree / Staged | Seven allowed modified paths; preparing complete staged diff review |
+| Source Complete | **Yes**, dependency remediation and necessary harness compatibility complete; artifact delivery remains |
+| Audit baseline | Successful full audit: 15 affected package labels (10 own-advisory packages + 5 inherited labels); **26 unique GHSA: 17 high, 7 moderate, 2 low**. Omit-dev: 8 affected labels. Historical aggregate-only **10** remains historical, not a complete advisory inventory |
+| Final audits / dependency graph | Windows and Linux full/omit-dev audits succeeded with exit 0 and zero npm-graph findings; both resolved graphs valid. Compiled Next copies remain separately assessed below; audit zero is not whole-system clearance |
+| Final dependency lock | SHA256 **AD252F85DFAAF55DC58638B71860DB672488B5669BC254B9C82909FFE8838DDA**; Windows/Linux `npm ci` preserved bytes; Node 24.16.0/npm 11.13.0 |
+| Final versions | Next/eslint-config-next 16.2.12; sharp 0.35.4/libvips 8.18.6; ws 8.21.0; PostCSS 8.5.28; nanoid 3.3.18; brace-expansion 1.1.18/5.0.9 (dormant @2 override 2.1.4); js-yaml 4.3.2; Babel core 7.29.7; browserslist 4.28.9; selector-parser 6.1.4 |
+| Tests Passed | **Yes, required local checks.** Booking **23/23**, History/Payment **10/10**, Admin Assignment **18/18**, retrospective runtime **38/38**, built authenticated role/session checks **45**; final required runs have no failed/skipped cases |
+| Retained verification | Same dependency/application/config bytes: TSC, zero-warning lint, mojibake 265, webpack Production build 94/94; architecture/manifest 34; Wallet 45; Assignment state 39; pricing 14; Progressive pricing 17/entry 31/transactions 33/coupon 38/payment batches 44/integration 29/notifications 16/Legacy baseline 32. Fresh TSC passed again after History test edit |
+| Bounded corrections | Pricing test adds explicit `selectedTier` expected metadata to seven strict assertions, retaining 14 scenarios/amounts. History test moves disposable fixture dates/expiry/scope year to future August, retaining 10 cases, amounts and assertions; initial expired-fixture failure preserved (1 failed, 9 not run), full rerun passed |
+| Built runtime / UI | Public/login/protected paths, dynamic API, allowed local/remote image optimization and rejected unlisted host verified. Additional build in ignored evidence copy with local Supabase passed; five roles login/reload/logout and boundaries verified, hydration/static errors 0, remote Supabase requests 0; screenshots inspected |
+| Linux / optional native packages | Disposable Linux x64 glibc clean install: 511 installed/512 audited; selected `@img/sharp-linux-x64` 0.35.4, `@img/sharp-libvips-linux-x64` 1.3.3 and `@next/swc-linux-x64-gnu` 16.2.12. PNG/JPEG/WebP transforms passed. Native global WebSocket present. Linux staged build/smoke remains |
+| Fixture targets / Cleanup | Verified local API/Storage `http://127.0.0.1:54321`, DB `127.0.0.1:54322`, project-specific disposable Docker volumes. Each suite's DB/Auth/Storage metadata residue 0; History's 15 task-owned physical blob files removed from its two exact user directories and verified 0, unrelated older local blobs preserved |
+| Committed / Pushed | **No security-task commit / No security-task push yet** at this gate |
+| Files / Counts | Functional **0**, dependencies **2**, tests **2**, config **0**, docs **3**, total **7**. Exact paths: `package.json`, `package-lock.json`, `scripts/check-pricing-true-up.js`, `tests/history-payment-regression/history-payment.spec.ts`, `PROJECT_STATE.md`, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md` |
+| Scope Expansion / Scope Breach | One previously disclosed bounded test addition (`scripts/check-pricing-true-up.js`); History spec was already conditionally allowed. **No new business scope / no unauthorized path** |
+| Deployed / Staged Deployed | **No security artifact yet** |
+| Security artifact ID / URL / SHA / Tree | **None / None / awaiting commit / awaiting artifact** |
+| Promoted | **No**; new artifact Owner PASS not received |
+| Deployed Source / Production ID | Existing application **8148249f4dc5a626fefdd70834e93ffebd55d1a1** / **dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf**, READY/PROMOTED; four existing aliases retained in live resume check |
+| Production URL / Rollback candidate | https://www.newathleteschool.com ; rollback **dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf**, https://new-athlete-badminton-school-4r8x21gj8-aachanin1s-projects.vercel.app ; tree `656a7b7c25c6f0323932598976232a2ed861cbfe`. Rollback may reintroduce the old dependency risks |
+| Git integration / Deployment settings | Live read-only: Production branch `main`; this spike branch push creates Preview, not Production activation. Node 24.x, Next.js LAMBDAS, `npm ci`, `npm run build` → webpack; no setting changed |
+| Feature Enabled / Allowlisted | **No changes / No changes** |
+| Production Active | **Security patch No**; existing Makeup behavior remains active |
+| Owner UAT / Production UAT Passed | **No for this security artifact**; Makeup PASS is separate |
+| Controlled Write UAT | Local disposable fixture writes verified; **no staged/Production controlled write UAT** |
+| Migration Source / Migration Applied | **No source change / No remote migration**; existing migrations applied only by authorized disposable local resets |
+| Environment / Secrets / Infrastructure settings | **No persistent changes**. Local child-process-only test environment overrides; Docker engine restored by Owner and freshly verified healthy; no remote setting/secret/flag change |
+| Production Data Changed / Data Repaired | **No task-attributable business writes / No repair** |
+| Customer Impact | No security change activated for customers yet; existing Production exposure remains pending Owner-approved release |
+| Financial Impact | No financial mutation or formula change; earlier Owner transactions remain outside this task and their unaudited effects are not declared zero |
+| Bundled-copy residual risks | Next compiled Babel 7.26.10, browserslist 4.28.1, nanoid 3.1.32, ws 8.2.3 are not patched by overrides. Current trusted SWC build/no user target or stats input/default secure nanoid use and Node 24 native WebSocket make identified Production trigger conditions absent; compiled ws dev HMR exposure remains, local listener bound to 127.0.0.1. Reassess if these conditions change; no whole-system safety claim |
+| Deployment input / Secret compliance | Final manifest **405 entries, 355/355 required, forbidden files 0**; complete staged path/secret checks passed, no protected source diff. Local evidence/env/auth state/reports excluded; raw failed browser trace discarded while retaining log/screenshot/context |
+| Documentation Drift | Prior current Docker/.next blockers superseded by fresh Developer evidence; historical failed startup/policy rejection retained. This matrix owns current state and TODO derives from it |
+| Blocker | **None in local prerequisites/tests**; remaining publication and artifact verification gates are in progress |
+| Dev recovery | Owner-cleared root `.next` verified absent before E2E; no root Production BUILD_ID. Separate local-auth build did not touch root output. Dev restarted at **127.0.0.1:3000**; root 200 and all 7 discovered static assets 200; temporary built server 3002 stopped |
+| Remaining Work / Next Gate | Complete diff/secret/upload checks, normal commit/push, create `vercel --prod --skip-domain`, verify exact artifact identity/Linux build/images/auth/static/logs/unchanged domains, then no-write Owner UAT |
+| Parking Lot authorization state | All **8** candidates retained in existing order, implementation unselected, including **LV 0 · นักเรียนใหม่/รอประเมิน**; security task is separately approved |
+| Task Done | **No** |
+
+The dated 2026-09-05 dependency security safe handoff in DEVELOPMENT_TODO.md
+preserves the full 26-advisory matrix, historical failures and bundled-copy
+analysis. Resume evidence: `.playwright/security-dependencies/`, local-only and
+excluded from Git/deployment; includes `pre-edit-history-fixture-plan.md`, all
+fresh E2E/runtime results, Linux install/graph/audits/native checks and cleanup.
+
+
+## Historical / Superseded — 2026-09-05 LV 0 Parking Lot documentation registration
+
+State observed by the separate registration task at commit 049d398. Its global
+Active Task/unknown security-edit facts are superseded by the current matrix
+above; the eight Parking Lot decisions and implementation boundaries are retained.
 
 PROJECT_STATE.md is authoritative. This round registers **LV 0 — SHARED LEARNER
 LABEL & RED VISIBILITY ACROSS PORTALS** at position **8**, dated 2026-09-05.
