@@ -19248,3 +19248,116 @@ publication is a separate normal same-branch commit/push, not a new Application
 SHA or rebuild. State at completed publication: TASK DONE; no task blocker or
 required next work. Next action: stop and await a new explicit Owner task selection;
 do not create another Makeup, repair data, rebuild or begin unrelated work.
+
+## 2026-09-05 — LV 0 Shared Learner Label & Red Visibility Across Portals Parking Lot Registration
+
+State observed at this documentation registration: Owner authorized only the
+three-document Parking Lot registration, documentation checks, one commit and a
+normal push on the existing branch/upstream. This records a future Product task;
+the completed Admin Makeup release is not reopened. PROJECT_STATE.md owns the
+current mutable-state matrix; this is dated decision and Gate 0 evidence.
+
+### Owner Decision and Future Product Scope
+
+- Canonical name: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
+- Position **8**, appended after the seven existing candidates without reordering.
+  Duplicate search found no prior canonical registration or exact label.
+- Status: **PARKING LOT — OWNER SELECTION FOR IMPLEMENTATION REQUIRED; NOT AUTHORIZED TO START**.
+- Customer option/text decision: **Confirmed**; customer selected option 1.
+  Additional charge: **0 บาท**. Parking Lot registration: **Authorized**.
+  Product implementation: **Not started / Not authorized**.
+- Latest exact text: **LV 0 · นักเรียนใหม่/รอประเมิน**. Red, bold and easier to
+  read on mobile and desktop. This is the LV 0 status label, not a statement that
+  the learner is attending for the first time. LV 0 data still means unassessed.
+- Include both child and adult learners at every existing learner LV 0 label and
+  fallback text for that label. Do not add a new label to every learner name.
+- Future portal scope: **Admin: ตารางเรียน และ Ranking; Head Coach: มอบหมายงาน/จัดกลุ่ม;
+  Coach: เรียนวันนี้ รายชื่อผู้เรียน และประเมิน Level; User: ตารางเรียน และพัฒนาการ;
+  Public: Ranking**. This is not limited to Admin schedules.
+- Future approach: extend the existing central helper and common badge styling;
+  reconcile separately written labels/styles. When Owner explicitly starts
+  development, perform a dependency audit and define an exact functional-file
+  allowlist in a new Scope Contract. This registration does not audit or edit
+  Product Source or establish a guessed file inventory.
+- Exclude first-attendance detection and new Attendance-history conditions;
+  option 2 and the 8,000 บาท proposal; stored level/assessment/name/group-name
+  changes; grouping, booking, attendance, payment and entitlement changes.
+  This item remains separate from **Thai UI Terminology & Shared Helper** and
+  **Homepage LV Copy Audit/Fix**. Prior text/price proposals do not supersede this
+  Owner decision; completed tasks remain closed.
+
+### Registration Scope Contract and Fresh Gate 0
+
+- Actor: Developer Codex recording the confirmed Owner decision. Current problem
+  supplied by Owner: existing learner LV 0 display uses shared and separate text/
+  styles across portals. Expected result this round: a durable, consistent Parking
+  Lot record only. No Product behavior claim is made from a Source audit.
+- Exact documentation allowlist under
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`:
+  `PROJECT_STATE.md`, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md`.
+  Functional/Test/Documentation/Config/Migration counts: **0/0/3/0/0**.
+- Fresh repository root matched that exact path; branch
+  `spike/next-major-security-upgrade`; HEAD
+  `bfccc806c7ac7b67b726b11cb90a5d05ab819a78`; upstream
+  `origin/spike/next-major-security-upgrade`; fresh remote branch query matched
+  the same SHA, ahead/behind **0/0**, staged diff empty.
+- **DOCUMENTATION DRIFT / baseline discrepancy:** PM's clean-worktree observation
+  was no longer true. Before any edit, Developer found unstaged `package.json`,
+  `package-lock.json`, `scripts/check-pricing-true-up.js`; diff totals 445 added /
+  349 deleted lines. Read-only inspection identified dependency-version/override
+  edits and pricing test expected-object additions. These are pre-existing,
+  outside this registration, not authorization to upgrade or change pricing.
+  Their owner/completion/test status is **Unknown / Need verification**.
+- Preserve outside-scope bytes and exclude them from staging/publication. Gate 0
+  SHA256 fingerprints: package.json
+  `C7B57FD3D201B4FC37D61040A56BE0FAA2008E11D0241624F5FA2A72E2027E8D`;
+  package-lock.json
+  `AD252F85DFAAF55DC58638B71860DB672488B5669BC254B9C82909FFE8838DDA`;
+  scripts/check-pricing-true-up.js
+  `D85975C834C7137914E73B67967968844B49C7B592733AA82E9CA7D4C4549AF3`.
+- Documentation correction scope includes replacing stale TODO safety/Git claims
+  with a reference to the authoritative matrix and marking the previous Makeup
+  closeout as historical. Prior dated seven-item registrations stay historical;
+  only current queue counts become eight. No reset, stash, branch change, force
+  push, merge or overwrite of unrelated work is permitted or performed.
+
+### Documentation Verification and Future Product Acceptance
+
+- Registration acceptance: exact label and 0 บาท, complete portal/learner/fallback
+  scope, eight candidates in preserved order, explicit registration/implementation
+  authorization separation, complete three-file diff review, and internally
+  consistent PROJECT_STATE → TODO-CODEX → dated history.
+- Run `npm run check:mojibake`; its built-in targets omit PROJECT_STATE and
+  TODO-CODEX, so also apply the same guard patterns to the three allowlisted docs
+  in memory without changing the guard. Run `git diff --check` and staged
+  `git diff --cached --check`, inspect complete staged diff and each staged path.
+  Application build/E2E, fixtures and application tests are not applicable and
+  are not run. Final check and publication results are reported after execution.
+- Observed documentation checks passed: standard mojibake guard **265 files**,
+  explicit guard over **3 allowlisted docs**, exact label/price/portal scope and
+  eight-item queue checks, unstaged diff whitespace check, and byte-preservation
+  comparison for all three pre-existing dirty files.
+- Future Product acceptance: child/adult LV 0 text exactly matches the decision;
+  red, bold, readable on mobile/desktop; every listed page and fallback checked;
+  evaluated levels, original learner names and stored levels unchanged; no
+  first-attendance logic or business-data writes.
+- Staged artifact, Owner Product UAT and Promotion are **N/A** to this registration.
+  A separately selected Product task must establish its new Scope Contract and
+  satisfy all applicable AGENTS.md release gates before release.
+
+### Closeout Classification at Registration
+
+Registration completion requires documentation checks and verified docs-only
+commit/push; it does not mean LV 0 Source Complete or Product Task Done. Only
+**Parking Lot registration complete** may be reported after publication. Exact
+containing commit SHA, push result, ahead/behind and preserved dirty worktree are
+verified in the final handoff. Source Complete for LV 0: **No, not started**;
+Product tests: **Not run**; Product implementation: **Not authorized**.
+
+Deploy/Promotion/Environment/Feature/Allowlist/Migration actions: **None**;
+Production Active change: **None**; Production UAT: **N/A**; Controlled Write UAT:
+**Not run**; Data Repaired/Production Data Changed: **No/No**;
+Customer Impact/Financial Impact: **None/None** from registration, with future
+additional charge confirmed **0 บาท**. Task-attributable Scope Expansion/Breach:
+**None/None**. Next action at this registration: await explicit Owner selection
+and a new Product Scope Contract; no queued task starts automatically.

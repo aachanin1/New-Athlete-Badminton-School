@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -8,6 +8,27 @@ use `TODO.md` only as stale legacy reference after code verification. Current
 mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
+
+Status: **Documentation-only LV 0 Parking Lot registration; complete only after
+documentation checks and commit/push verification**. Product implementation is
+**Not started / Not authorized**; Active Product Task **None — Awaiting Owner Selection**.
+
+- Register item **8**, **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
+- Customer option/text decision **Confirmed**; additional charge **0 บาท**;
+  Parking Lot registration **Authorized**. Exact label: **LV 0 · นักเรียนใหม่/รอประเมิน**.
+- Only `PROJECT_STATE.md`, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md` may change.
+  Functional/Test/Documentation/Config/Migration: **0/0/3/0/0**.
+- `PROJECT_STATE.md` is authoritative for actual Git/worktree, checks/publication,
+  preserved Production evidence and the complete Documentation Consistency Matrix.
+- Documentation content/count and encoding checks passed; final staged checks
+  and publication evidence follow the authoritative matrix and final handoff.
+- Next action: Owner explicitly selects Product implementation and approves its
+  separate Scope Contract; no automatic development or release.
+
+## Historical / Completed — 2026-09-04 Admin Makeup closeout
+
+State observed at that closeout; the prior task remains closed. The following
+release, data, Git and next-action evidence is historical.
 
 Status: **TASK DONE — OWNER UAT PASS; EXACT PROMOTION AND PRODUCTION VERIFICATION COMPLETED**.
 
@@ -1100,13 +1121,14 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly seven active candidates remain unselected and unauthorized, in this
+Exactly eight active candidates remain unselected for implementation and unauthorized to start, in this
 Owner-approved order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
 HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
-**HOMEPAGE LV COPY AUDIT/FIX**; and `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
-ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Private Self + Child Identity Integrity /
+**HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
+ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; and `8.` **LV 0 — SHARED
+LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**. Private Self + Child Identity Integrity /
 Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
 Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
 Parking Lot items.
@@ -1397,6 +1419,37 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Next Action: **Owner separately selects item `7` and approves a future Product
   implementation Scope Contract**. Do not audit or implement automatically.
 
+### LV 0 — Shared Learner Label & Red Visibility Across Portals
+
+Canonical name: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
+
+Status: **PARKING LOT — OWNER SELECTION FOR IMPLEMENTATION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Position **8**, registered 2026-09-05; items 1–7 keep their order.
+  Customer option/text decision **Confirmed** (option 1); additional charge
+  **0 บาท**; Parking Lot registration **Authorized**; Product implementation
+  **Not started / Not authorized**. `PROJECT_STATE.md` is authoritative.
+- Exact text **LV 0 · นักเรียนใหม่/รอประเมิน**; red, bold, easier to read for
+  children and adults. LV 0 remains unassessed, not proof of first attendance.
+- Future scope: **Admin: ตารางเรียน และ Ranking; Head Coach: มอบหมายงาน/จัดกลุ่ม;
+  Coach: เรียนวันนี้ รายชื่อผู้เรียน และประเมิน Level; User: ตารางเรียน และพัฒนาการ;
+  Public: Ranking**. Cover existing LV 0 labels and their fallback text; do not
+  add a label wherever a learner name appears.
+- Extend existing shared helper and common badge presentation; reconcile isolated
+  text/styles. Owner must first start development; then perform dependency audit
+  and define the exact functional-file allowlist under a new Scope Contract.
+- Do not detect first attendance, inspect Attendance history for a new condition,
+  implement option 2 / 8,000 บาท, or alter stored levels, assessments, names,
+  grouping, booking, attendance, payments or entitlements. Keep separate from
+  **Thai UI Terminology & Shared Helper** and **Homepage LV Copy Audit/Fix**.
+- Future verification: exact child/adult label at every listed page and fallback;
+  red/bold/readable on mobile and desktop; evaluated levels, original names and
+  levels unchanged; no first-attendance logic or business-data writes.
+- Registration permits docs/checks/commit/push only. Source/Test/Config/Migration/
+  Environment/Production-data changes, Deploy and Promotion are unauthorized;
+  staged artifact and Owner Product UAT are N/A now. Full applicable release gates
+  must be satisfied in the separately authorized future Product task.
+
 ## Historical / Superseded Reference — Kids Group Pricing Reconciliation
 
 State observed at the 2026-07-13 closeout. This retained reference is historical;
@@ -1496,14 +1549,12 @@ Confirmed final state:
 
 ## Worktree / Safety Notes
 
-- Branch: `spike/next-major-security-upgrade`.
-- Pre-registration Gate 0 Git was clean at local/upstream
-  `a7183e05f04811cff2f415a39cc9384754ea9596`, ahead/behind `0/0`; only the three
-  authorized documentation files change for this Parking Lot registration.
-- Active Task is **None — Awaiting Owner Selection**. Exact mutable state is
-  authoritative in the first `PROJECT_STATE.md` matrix; Parking Lot now contains
-  exactly seven candidates in the Owner-approved order, and every candidate
-  remains unselected and unauthorized.
+- Actual Git/worktree and documentation publication state are recorded only in
+  the first `PROJECT_STATE.md` matrix. Preserve the pre-existing outside-scope
+  edits identified there; no clean-worktree claim applies to this registration.
+- Active Product Task is **None — Awaiting Owner Selection**. `PROJECT_STATE.md`
+  is authoritative; Parking Lot contains exactly eight candidates in the approved
+  order, all unselected for implementation and unauthorized to start.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

@@ -1,8 +1,85 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
-## Current State — Admin Makeup exact-artifact Promotion and closeout
+## Current State — LV 0 Parking Lot documentation registration
+
+PROJECT_STATE.md is authoritative. This round registers **LV 0 — SHARED LEARNER
+LABEL & RED VISIBILITY ACROSS PORTALS** at position **8**, dated 2026-09-05.
+Only Parking Lot registration is authorized; no Active Product Task is selected.
+The completed Admin Makeup task remains closed; its evidence below is historical.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | Documentation-only LV 0 Parking Lot registration; Active Product Task: **None — Awaiting Owner Selection** |
+| Task Status / Task Done | **Parking Lot registration complete only after documentation checks and commit/push verification**; Product Task Done **No** |
+| Customer option/text decision | **Confirmed** — customer selected option 1; exact label **LV 0 · นักเรียนใหม่/รอประเมิน**; red, bold, easier to read |
+| Additional charge | **0 บาท**; commercial decision only, no financial-record mutation |
+| Parking Lot registration / Product implementation | **Authorized / Not started; Not authorized** |
+| Branch / Upstream | `spike/next-major-security-upgrade` / `origin/spike/next-major-security-upgrade`; unchanged |
+| Local HEAD | Gate 0 `bfccc806c7ac7b67b726b11cb90a5d05ab819a78`; publication SHA is the containing documentation commit, resolvable by `git log -1 --format=%H -- PROJECT_STATE.md` |
+| Remote HEAD / Ahead-Behind | Fresh `git ls-remote` matches Gate 0 HEAD; `0/0`. Normal same-upstream publication is authorized; exact post-push SHA and ahead/behind are verified in the final report |
+| Worktree / Staged | Gate 0 has three pre-existing unstaged paths: `package.json`, `package-lock.json`, `scripts/check-pricing-true-up.js`; staged empty. Preserve these byte-for-byte and exclude them from this commit; do not claim a clean worktree |
+| Current Source / Pushed Source | Committed application/config remains `8148249f4dc5a626fefdd70834e93ffebd55d1a1`; Gate 0 HEAD adds docs only. Local working tree also contains the three pre-existing dependency/test edits above; their completion, authorization and validation are **Unknown / Need verification**, outside this task |
+| Source Complete | **N/A for registration; LV 0 Product implementation not started**; this task changes no functional Source |
+| Tests Passed | **Documentation content/queue and encoding checks passed**: exact text, price, portal scope, eight-item order/count and authorization; `check:mojibake` 265 files plus explicit three-doc scan; unstaged `git diff --check`. Three pre-existing file hashes match Gate 0. Final consistency matrix/staged diff checks are required before commit; application build/E2E/tests/fixtures not run |
+| Committed / Pushed | Only the three allowlisted docs are authorized for one commit and normal push; final publication evidence is reported after execution, not inferred from this record |
+| Functional / Test / Documentation / Config / Migration | **0 / 0 / 3 / 0 / 0** task-attributable files: `PROJECT_STATE.md`, `TODO-CODEX.md`, `DEVELOPMENT_TODO.md` |
+| Deployed / Staged artifact / Promotion | **No action / N/A / No action** for this registration |
+| Deployed Source / Deployment ID | Last verified at the preserved 2026-09-04 closeout: `8148249f4dc5a626fefdd70834e93ffebd55d1a1` / `dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf`; live state not re-audited in this documentation task |
+| Migration Source / Migration Applied | **No change / No action** |
+| Environment / Feature Enabled / Allowlisted | **No change / No change / No change**; no live control inventory queried |
+| Production Active | No LV 0 change activated by this task; prior Makeup release evidence retained, not a fresh Production claim |
+| Production UAT Passed / Controlled Write UAT | **N/A / Not run**; staged artifact and Owner Product UAT are not applicable to registration |
+| Data Repaired / Production Data Changed | **No / No** task-attributable action |
+| Customer Impact / Financial Impact | **None / None** from documentation registration; future additional charge confirmed **0 บาท** |
+| Documentation Drift | Gate 0 disproves PM clean-worktree baseline; current matrix records actual dirty paths. Old clean/Source-only claims below are explicitly historical; stale TODO safety baseline replaced by reference to this matrix |
+| Scope Expansion / Scope Breach | **None / None** for this task; pre-existing outside-scope work is preserved and excluded |
+| Blocker / Remaining Work | No conflict in the approved LV 0 decision or documentation allowlist. Registration closes only after checks and publication; future Product dependency audit, file allowlist, implementation and release remain unauthorized |
+| Next Gate / Next Action | Await explicit Owner selection for Product implementation, then a new Scope Contract and full applicable AGENTS.md release gates; no automatic Product work |
+| Parking Lot authorization state | **Exactly eight candidates**, ordered as below. Items 1–7 retain their authorization; item 8: **PARKING LOT — OWNER SELECTION FOR IMPLEMENTATION REQUIRED; NOT AUTHORIZED TO START** |
+
+### Parking Lot order — 2026-09-05
+
+1. END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE HARDENING
+2. HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT
+3. LINE EXTERNAL-BROWSER HANDOFF AUDIT
+4. THAI UI TERMINOLOGY & SHARED HELPER
+5. EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS
+6. HOMEPAGE LV COPY AUDIT/FIX
+7. ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL
+8. LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS
+
+### Item 8 — Confirmed future scope and boundaries
+
+- Exact label: **LV 0 · นักเรียนใหม่/รอประเมิน**; red, bold, readable on mobile
+  and desktop, for both children and adults wherever a learner LV 0 label already
+  appears, including fallback text for that same label. Do not add labels at every
+  learner-name location. LV 0 still means unassessed; the label does not assert
+  that this is the learner's first attendance.
+- Future portals: **Admin: ตารางเรียน และ Ranking; Head Coach: มอบหมายงาน/จัดกลุ่ม;
+  Coach: เรียนวันนี้ รายชื่อผู้เรียน และประเมิน Level; User: ตารางเรียน และพัฒนาการ;
+  Public: Ranking**. Scope is not limited to Admin schedules.
+- Extend the existing shared helper and shared badge presentation; reconcile
+  separately written text/styles. Dependency audit and an exact functional-file
+  allowlist must be defined when Owner explicitly starts Product development.
+- Protected/out of scope: first-attendance detection or Attendance-history logic;
+  option 2 and its 8,000 บาท proposal; stored levels, assessments, learner/group
+  names, grouping, booking, attendance, payment and entitlement changes; Source,
+  tests, config, migrations, environment and Production data. Keep this separate
+  from items 4 and 6; do not reopen completed work.
+- Future verification: exact label for child/adult LV 0 across all listed pages
+  and fallbacks; red/bold/readable on mobile and desktop; evaluated levels, names
+  and stored levels unchanged; no first-attendance condition or business-data
+  write. A future staged artifact, Owner UAT and release gates require a new
+  approved Product Scope Contract.
+
+## Historical / Superseded — 2026-09-04 Admin Makeup exact-artifact Promotion and closeout
+
+State observed at that closeout. Git/worktree, release, UAT, data and next-action
+statements in this section preserve that dated evidence, not current task state.
 
 Status: **TASK DONE — OWNER UAT PASS; EXACT ARTIFACT PROMOTED WITHOUT REBUILD; PRODUCTION VERIFIED**.
 
