@@ -20133,3 +20133,100 @@ browser-final.log,browser-results/,dev-recovery-checks.json,staged-deploy.log,
 staged-input-identity.json,staged-identity-verification.json,staged-smoke.json,
 staged-ranking-*-lv0.png,staged-runtime-summary.json,final-publication.json}.
 These local evidence files are excluded from Git and deployment input.
+
+
+## 2026-09-07 — LV 0 exact-artifact Promotion closeout
+
+State observed at this closeout: **TASK DONE**. Owner manual staged UAT **PASS**;
+exact passed artifact Promoted without rebuild; required Production checks passed.
+Latest Owner command explicitly reports “ผมว่าผ่านแล้วครับผม”, references supporting
+conversation images, names the exact artifact/SHA/tree/URL and authorizes release.
+That acceptance superseded the earlier PASS-pending handoff. No image was used
+to infer a saved assessment, business transaction, data repair or financial effect.
+
+Fresh Developer Gate 0: exact TARGET root, branch spike/next-major-security-upgrade,
+upstream origin/spike/next-major-security-upgrade, HEAD/fresh remote
+17861433334e3a9cfd1d79e2df12f533ccb3ef06, ahead/behind 0/0, clean worktree/staged
+empty. After application 7f27864cd100d860644c1e20c75b170ac0cb0986, only three approved documentation
+files differed. All 15 tested functional/test byte fingerprints matched.
+The ancestor CMS NASC/AGENTS.md was discovered as a PM-workspace router; the
+Owner's explicit Developer-in-TARGET instruction and target Developer guide
+governed this authorized release. This corrects the older audit's overly narrow
+"only root AGENTS applies" wording; no PM workspace or notes were modified.
+
+Read-only live identity/rollback checks at 2026-09-07T04:39:16.462Z: project
+prj_v034HOI6AjaMpBezWvuvT0W24pTp, team team_gw8Y6CPd602WAKRsVFobPGCL.
+Production was still security artifact dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq; all four aliases
+matched. The rollback candidate was READY with root/health/Login 200 and unchanged
+security lock. Candidate dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc was STAGED/READY, production target,
+no aliases. Actual uploaded source hashes **404/404** and downloaded lock matched
+captured input, not just metadata. No source/config change after UAT was found.
+
+Exactly one pinned CLI promote command ran 2026-09-07T04:39:43.691Z–2026-09-07T04:39:50.244Z,
+exit 0, reporting success for **dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**. No deploy/build/rebuild/
+redeploy/replacement/rollback or manual alias command ran. Application SHA
+**7f27864cd100d860644c1e20c75b170ac0cb0986**, tree **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3**,
+immutable URL **https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app** remained unchanged.
+createdAt/buildingAt/ready values **1788754580297/1788754581275/1788754658200**
+matched staged evidence before/after. Lock SHA256 **ad252f85dfaaf55dc58638b71860db672488b5669bc254b9c82909ffe8838dda**
+matched actual deployed bytes. Final same-artifact continuity is checked again
+after documentation publication; Git integration output must never replace it.
+
+Post-Promotion live aliases all matched the passed ID:
+- new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app
+- new-athlete-badminton-school-aachanin1s-projects.vercel.app
+- new-athlete-badminton-school.vercel.app
+- www.newathleteschool.com
+
+Automated Production smoke 2026-09-07T04:43:29.587Z–2026-09-07T04:43:57.087Z passed root,
+health, Login and Ranking on all four aliases plus the immutable URL. Public www
+and canonical vercel.app used anonymous reads. Two project aliases retained their
+existing SSO redirect to vercel.com/sso-api; the initial smoke's assumption of
+anonymous 200 was incorrect. A shell quoting error prevented the first harness
+edit from applying and the unchanged check repeated that result. Only excluded
+verification-tool plumbing was corrected to use the existing in-memory automation
+credential on protected hosts; no product/settings/protection edit occurred.
+The completed smoke passed without another Promotion or application change.
+
+Public Ranking real child/adult LV 0: 15 visible rows per tab at 390/1440px,
+exact red text, rgb(185,28,28), weight 700, 14px, normal wrapping/no badge clipping.
+Search/filter passed. For evaluated learners, names, Level values, labels and
+computed colors matched the immutable artifact for 15 rows in each tab. Eight
+protected scoped routes returned 307 to their correct Login target. 68 distinct
+static URLs across Production/immutable completed with no page/console/hydration/
+static error and zero browser write requests. Rendered Production screenshots
+were inspected. No app login submission or business action was performed.
+
+Bounded exact deployment logs **2026-09-07T04:39:50Z–2026-09-07T04:44:10Z**:
+dedicated error/fatal query **0**, dedicated 5xx query **0**. The CLI log exporter
+repeated its 50-row page to the 1000-row limit (50 unique IDs); its stream was
+not treated as exhaustive. The grouped API returned top two of three values
+(200:70,307:1), so no complete request total is asserted. Separate exact-deployment
+error/fatal and 5xx queries both returned no matching logs. No task-attributable
+regression was found in this bounded evidence; no forever-no-errors claim.
+
+Retained same-source checks: TypeScript, lint, mojibake, build 94/94, focused LV 0,
+schedule 17, assignment 39, resolution 33, lifecycle source-only 42, component
+fixtures 27/27 across nine pages at 320/390/1440px. No rerun build or DB fixtures
+was needed for Promotion. **Authenticated DB E2E remains not run**; earlier local
+Docker/disposable-DB constraint is not transformed into an E2E PASS. Owner manual
+staged UAT passed; no second manual Production UAT was performed or required.
+
+This Promotion round changed exactly **three documentation files**:
+PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md. Functional/Test/Dependency/
+Config/Migration changes **0/0/0/0/0**. No Scope Expansion or Scope Breach.
+Source Complete/Tests Passed/Committed/Pushed/Deployed/Production Active **Yes**
+within the separate evidence scopes above; Feature/Allowlist/Environment/Settings/
+Secrets/Protection/Permission changes **none**; Migration **none**; Controlled Write
+UAT **not run**; Production Data Changed/Data Repaired **No/No**. Customer impact:
+approved LV 0 visibility is live. Financial mutation **none**, extra charge **0 บาท**.
+Blocker/Remaining Work **none**; Documentation Drift resolved at closeout.
+Active Task **None — Awaiting Owner Selection**; Parking Lot 1–7 preserved in
+original order and unauthorized to start. Normal documentation commit/push
+publishes the closeout without replacing the Owner-passed Production artifact.
+
+Excluded evidence: .playwright/lv0/promotion-{before,after,final}-continuity.json,
+promotion-command-start.json, promotion-command-result.json, promotion-command.log,
+production-smoke.json, production-ranking-*-lv0.png, promotion-runtime-logs.jsonl,
+promotion-runtime-api.json, promotion-runtime-summary.json,
+promotion-closeout-compliance.json and promotion-final-publication.json.

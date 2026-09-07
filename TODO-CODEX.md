@@ -9,16 +9,15 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — LV 0 exact staged artifact; Owner PASS pending**.
+Status: **TASK DONE — LV 0 exact-artifact Promotion and Production verification complete**.
 
-- Active Task: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
-- Former item 8 is selected and authorized; source/tests and staged verification
-  passed. PROJECT_STATE.md alone owns source/publication/artifact/data details.
-- Next action: Owner completes the six read-only UAT steps in PROJECT_STATE.md.
-  After this task's exact-artifact PASS, Developer may Promote without rebuild
-  and perform required Production checks/documentation closeout.
-- Task Done: **No**. Preserve security/Makeup histories and original unselected
-  Parking Lot 1–7; do not begin another task automatically.
+- Active Task: **None — Awaiting Owner Selection**.
+- Completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
+  Owner staged PASS, exact Promotion without rebuild, fresh Production checks and
+  documentation closeout are recorded in the authoritative PROJECT_STATE.md matrix.
+- Next action: wait for Owner selection. Do not begin Parking Lot 1–7 automatically.
+- No second manual Production UAT is required after the passed automated checks.
+- Preserve completed security/Makeup and LV 0 registration/implementation history.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
@@ -1144,8 +1143,8 @@ PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
 HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
-ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Former item 8 is the
-authorized Active Task above. Private Self + Child Identity Integrity /
+ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Former item 8 is
+completed; see PROJECT_STATE.md. Private Self + Child Identity Integrity /
 Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
 Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
 Parking Lot items.
@@ -1573,7 +1572,7 @@ Confirmed final state:
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
   concurrent work; do not reset, stash or overwrite work to conceal a diff.
 - Current task and next gate are derived only from PROJECT_STATE.md.
-  LV 0 is selected/authorized; the seven remaining Parking Lot items keep their
+  LV 0 is completed; the seven remaining Parking Lot items keep their
   original order and remain unauthorized to start. Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.

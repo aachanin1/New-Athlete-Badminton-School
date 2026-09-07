@@ -2,97 +2,61 @@
 
 Last updated: 2026-09-07 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — LV 0 shared learner label READY FOR OWNER UAT
+## Current State — LV 0 exact-artifact Production closeout
 
-Status: **READY FOR OWNER UAT — exact staged Production artifact verified; waiting for Owner PASS**.
+Status: **TASK DONE — OWNER-PASSED EXACT ARTIFACT PROMOTED AND VERIFIED**.
 
-PROJECT_STATE.md is the sole authority for current mutable state. Owner's
-2026-09-07 command selected former Parking Lot item 8 and authorized continuous
-delivery through a staged Production artifact and READY FOR OWNER UAT. That
-authorization supersedes the earlier registration-only/unselected wording.
-No further implementation approval is requested. Owner manually removed the generated .next folder; authorized delivery resumed.
-
-This matrix supersedes the pre-publication snapshot in the implementation commit.
-Application SHA and staged artifact stay fixed; this handoff changes documentation only.
+PROJECT_STATE.md is the sole authority for current mutable state. Owner's latest
+2026-09-07 command explicitly confirms staged UAT PASS for this exact artifact,
+references the conversation's supporting images and supersedes the earlier
+PASS-pending handoff. Images are UI evidence; no business write is inferred.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** |
-| Task Status | **READY FOR OWNER UAT**; waiting for this task's exact-artifact Owner PASS |
-| Actor / Owner decision | Developer; Admin/Super Admin, Head Coach, Coach, User/Parent and Public Ranking. Exact text **LV 0 · นักเรียนใหม่/รอประเมิน**, red/bold/readable; additional charge **0 บาท**; LV 0 still means unassessed |
-| Intended Behavior / Blast radius | Central LV 0 label and Badge-based presentation at existing learner labels/fallbacks across the approved nine pages; keep assessed levels, identities, group summaries and business behavior |
-| Root Cause | Shared helper used gray/short text, schedule fallbacks duplicated old text, Head Coach formatted separately, and named-level precedence could replace the status label in Ranking/evaluation presentation |
-| Branch / Upstream | `spike/next-major-security-upgrade` / `origin/spike/next-major-security-upgrade`; unchanged |
-| Local HEAD | Documentation handoff revision containing this matrix; parent/source **7f27864cd100d860644c1e20c75b170ac0cb0986**. Exact documentation SHA is in the final report and excluded final-publication.json to avoid self-reference |
-| Remote HEAD / Ahead-Behind | Same documentation revision after normal push verification / **0/0** in final-publication.json. Application publication was independently verified at **7f27864cd100d860644c1e20c75b170ac0cb0986** before deployment |
-| Worktree / Staged | **Clean / empty after handoff publication**, verified in final-publication.json. Implementation changed 18 approved paths: 12 functional, 3 tests, 3 documentation; this final handoff changes only those same 3 docs |
-| Current Source | Application/test source **7f27864cd100d860644c1e20c75b170ac0cb0986**, tree **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3**. All 15 tested functional/test fingerprints unchanged; later handoff documentation does not alter application/config/dependency bytes |
-| Pushed Source | **7f27864cd100d860644c1e20c75b170ac0cb0986** — normal push to the unchanged branch/upstream; no unrelated work pushed |
-| Source Complete | **Yes — LV 0 implementation**; Owner UAT/Promotion/Production closeout remain |
-| Tests Passed | **Yes for executed focused source/display checks**: TypeScript, lint 0 warnings, mojibake 266, build 94 routes, LV 0 regression, schedule-learning-details 17, Assignment state 39, exact/Legacy resolution 33, lifecycle source-only 42, browser component fixtures 27, diff whitespace. Mandatory post-build recovery **passed**: root 200 and all 7 static assets 200 |
-| Browser evidence | Actual scoped React components/server page rendering with in-memory read providers, at **320/390/1440px**; red `rgb(185,28,28)`, weight 700, 14px, wrap/no horizontal badge clipping; long names, stale names, child/adult, assessed labels, current-Level dialog, Family participant/Store dialog display and Ranking search/filter; zero browser write requests |
-| Verification limitations | Local browser substitution is **not authenticated DB E2E**. Docker Desktop ingest-socket failure prevented proving a disposable DB; reset runner was inspected and not run. Lifecycle runtime failed during local status discovery before setup; source-only 42 passed. Staged authenticated Admin/Coach/User content is **Owner UAT pending**; anonymous redirects were tested. Public Ranking child/adult LV 0 and assessed data were verified on the real staged artifact. Missing/stale/null fallback examples remain local-only evidence |
-| Committed | **Yes** — implementation **7f27864cd100d860644c1e20c75b170ac0cb0986**; separate documentation handoff revision described above |
-| Pushed | **Yes** — implementation verified remotely before staging; documentation normal-publication evidence in final-publication.json |
-| Staged artifact / Deployed | **Yes / staged Production target, READY, zero aliases, autoAssignCustomDomains=false**; created once with vercel --prod --skip-domain; no Promotion |
-| Artifact ID / SHA / Tree / URL for LV 0 | **dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc** / **7f27864cd100d860644c1e20c75b170ac0cb0986** / **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3** / https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app |
-| Deployed Source / Artifact Tree | Staged LV 0 **7f27864cd100d860644c1e20c75b170ac0cb0986 / 0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3**; Production-domain security source **cc0af9998e3b5040d9cfa77753239b90aa01ce4b / a6da6073ea8d0f4d6475712d7c5f32b36e55e6a1** remains separate |
-| Deployment ID / Production URL | Existing **dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq**, READY/PROMOTED, https://www.newathleteschool.com ; immutable URL https://new-athlete-badminton-school-89vusndmx-aachanin1s-projects.vercel.app |
-| Fresh Production identity | Vercel project **prj_v034HOI6AjaMpBezWvuvT0W24pTp**, team **team_gw8Y6CPd602WAKRsVFobPGCL**, Production branch **main**. At **2026-09-07 04:18:20 UTC**, Production target and all four existing aliases still matched the security artifact; staged aliases **0**. All **404/404** uploaded raw file hashes matched captured clean source input/SHA/tree/lock |
-| Owner UAT / Production UAT Passed | **Not run / No LV 0 PASS**; prior security PASS applies only to its historical task |
-| Promotion / Production Active | **No LV 0 Promotion / LV 0 change not Production active**; security release remains active |
-| Production checks / Manual Production UAT | No LV 0 post-Promotion or manual Production UAT yet. **Staged smoke passed**: root/health/login/ranking 200, eight protected paths 307 to Login, 34 static assets without error, zero browser mutation requests. Staged logs **04:17:38–04:19:30 UTC**: 50 GET requests, 34x200/16x307, error/fatal/5xx **0**; bounded window only |
-| Feature Enabled / Allowlisted | **No control change / No allowlist change**; no new flag needed |
-| Environment / Secrets / Settings | **No persistent changes**; no protection change or new credentials. Local fixture providers contain no real credentials |
+| Active Task | **None — Awaiting Owner Selection**; completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS / exact-artifact Promotion & closeout** |
+| Task Status / Task Done | **TASK DONE / Yes**, after exact Promotion, required Production checks and documentation publication |
+| Intended Behavior / Actor | Developer released the Owner-tested **LV 0 · นักเรียนใหม่/รอประเมิน**, red/bold/readable at the approved existing learner labels across nine pages, preserving other behavior |
+| Blast radius / Changed files | Production domains now use the passed LV 0 artifact. This Promotion round: **Functional 0 / Tests 0 / Dependency 0 / Config 0 / Migration 0 / Documentation 3**: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md |
+| Root Cause / Corrections | Original duplicate/gray/fallback label and named-Level precedence were fixed in the existing tested source. This round changed no application behavior. Read-only smoke harness used existing automation access for two SSO-protected Vercel aliases; no protection change |
+| Branch / Upstream | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade; unchanged |
+| Local HEAD | Documentation closeout commit containing this matrix; parent **17861433334e3a9cfd1d79e2df12f533ccb3ef06**. Exact documentation SHA recorded in final report and excluded promotion-final-publication.json, avoiding recursive self-reference |
+| Remote HEAD / Ahead-Behind | Same documentation closeout revision after verified normal push / **0/0** in promotion-final-publication.json. Fresh pre-Promotion remote matched parent HEAD above |
+| Worktree / Staged | **Clean / empty after closeout publication**, verified in promotion-final-publication.json; fresh Gate 0 was also clean |
+| Current Source / Pushed Source | **7f27864cd100d860644c1e20c75b170ac0cb0986**, application tree **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3**; later commits change only the three approved docs, not application/test/config/dependency bytes |
+| Source Complete | **Yes**; unchanged Owner-passed implementation, no source edits this round |
+| Tests Passed | **Yes — retained same-source evidence**: TypeScript, lint 0 warnings, mojibake, Production build 94/94, focused LV 0, schedule 17, assignment 39, resolution 33, lifecycle source-only 42, component fixtures 27/27 at 320/390/1440px, diff. Fresh Production health/browser/identity/error queries passed. No build or fixture rerun for Promotion |
+| Verification limitations | **Authenticated DB E2E not run**; original Docker/disposable-DB limitation remains. Component fixtures 27/27 and fallback/dialog/Family tests are local evidence. Owner manual staged UAT is **PASS**, not an automated DB E2E claim |
+| Committed / Pushed | **Yes / Yes** — existing application and normal documentation-only closeout; exact publication evidence retained separately |
+| Deployed / Artifact ID | **Yes — existing artifact dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc, production/READY/PROMOTED**; no new deployment, rebuild or replacement command |
+| Artifact immutable URL | https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app |
+| Deployed Source / Artifact Tree | **7f27864cd100d860644c1e20c75b170ac0cb0986 / 0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3** |
+| Dependency lock | SHA256 **ad252f85dfaaf55dc58638b71860db672488b5669bc254b9c82909ffe8838dda**; actual deployed bytes downloaded read-only and matched, unchanged locally |
+| Owner UAT | **PASS** — latest Owner command records “ผมว่าผ่านแล้วครับผม” with referenced conversation images for this exact ID/SHA/tree/URL; no new PASS requested |
+| Promotion | **Yes** — one exact promote command, **2026-09-07T04:39:43.691Z–2026-09-07T04:39:50.244Z**, exit **0**; 11:39:50 Asia/Bangkok completion |
+| No-rebuild continuity | **404/404 uploaded raw file hashes**, **15/15 tested fingerprints**, deployed lock, ID/SHA/tree/URL all matched before/after; createdAt **1788754580297**, buildingAt **1788754581275**, ready **1788754658200** unchanged. Deploy/rebuild/redeploy/rollback/manual-alias commands **0** |
+| Production Active / Deployment ID | **Yes — LV 0 artifact dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc** at https://www.newathleteschool.com |
+| Production aliases | All four point to the exact passed artifact: new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app; new-athlete-badminton-school-aachanin1s-projects.vercel.app; new-athlete-badminton-school.vercel.app; www.newathleteschool.com |
+| Production health / Browser | Fresh **2026-09-07T04:43:29.587Z–2026-09-07T04:43:57.087Z**: root/health/Login/Ranking 200 on four aliases and immutable URL; eight protected scoped routes 307 to correct Login; **68** distinct static URLs across Production/immutable, no page/console/hydration/static errors or browser write requests. Public LV 0 child/adult 15 visible badges per tab at 390/1440px red rgb(185,28,28), weight 700, 14px, no clipping; search/filter passed. Assessed names/levels/labels/colors matched immutable for 15 rows per tab |
+| Production logs | Exact deployment, **2026-09-07T04:39:50Z–2026-09-07T04:44:10Z**: dedicated error/fatal query **0**, 5xx query **0**. CLI repeated 50 unique request IDs up to its 1000-row limit; grouped API reports top values only, so no exhaustive request-total claim. Raw/filtered evidence retained; bounded window, not an indefinite no-error guarantee |
+| Rollback candidate | **dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq**, READY, https://new-athlete-badminton-school-89vusndmx-aachanin1s-projects.vercel.app; verified before Promotion with root/health/Login 200 and same security lock. Retained READY afterward; no rollback executed or implicitly authorized |
+| Production UAT Passed / Manual Production UAT | Owner manual **staged PASS**; manual Production UAT **not rerun**, as authorized. Fresh automated Production checks passed with unchanged exact artifact |
+| Feature Enabled / Allowlisted | LV 0 presentation **Production active** through Promotion; **no feature-control or allowlist changes**, no new flag |
+| Environment / Secrets / Settings / Protection | **No changes**; existing automation credential used in memory only for existing protected Vercel hosts. Public www and canonical vercel.app checked anonymously |
 | Migration Source / Migration Applied | **No change / No action** |
-| Controlled Write UAT | **Not run**; dialogs opened for display only, no assessment or Wallet confirmation |
-| Data Repaired / Production Data Changed | **No / No** task-attributable business writes |
-| Customer Impact / Financial Impact | **No live customer change / No financial mutation**; agreed additional charge **0 บาท** |
-| Bounded corrections / Additions | Unused import removed; planned schedule regression uses existing alias loader for its new helper import; test framework adapters, correct zero-based month/actual button selectors and stable dialog screenshots. **0 additional tracked paths beyond allowlist** |
-| Scope Expansion / Scope Breach | **None / None**; no API/data-contract/grouping/identity/assessment-write/payment/attendance/entitlement/Wallet logic change; dependencies/config/global Badge untouched |
-| Documentation Drift | **Resolved**: first matrix replaces pre-publication facts; earlier cleanup/security/registration states are explicitly historical. TODO derives its status from this matrix; original Parking Lot 1–7 preserved |
-| Blocker | **No technical blocker**. Waiting for Owner PASS of **dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**; no prior task PASS applies |
-| Remaining Work / Next Gate / Next Action | Owner performs the six read-only UAT steps below on the exact staged URL and returns PASS/FAIL. Only after PASS: reverify unchanged artifact/source/config and usable rollback candidate, Promote that same artifact without rebuild, verify Production aliases/health/static/routes/bounded logs, publish final documentation closeout. Do not start other Parking Lot tasks |
-| Parking Lot authorization state | **Seven unselected candidates, original items 1–7 unchanged and in order**; former item 8 is the authorized Active Task. Registration and completed security/Makeup histories retained |
-| Task Done | **No** |
+| Controlled Write UAT | **Not run** |
+| Production Data Changed / Data Repaired | **No / No** task-attributable business writes; no database reset, fixtures, assessment/group/Attendance/Booking/Wallet/financial operation |
+| Customer Impact / Financial Impact | Approved LV 0 wording/visibility now live across the passed artifact's scoped portals; **no financial mutation**, additional charge **0 บาท** |
+| Scope Expansion / Scope Breach | **None / None**; protected flows, source, tests, dependencies, config and permissions untouched in this round |
+| Documentation Drift | **Resolved**: prior PASS-pending/Production-inactive handoff replaced in current state; dated implementation/UAT/security/registration histories retained. TODO derives the completed status from this matrix |
+| Blocker / Remaining Work | **None / None for LV 0**; no required second manual Production UAT |
+| Next Gate / Next Action | **Wait for Owner to select the next task**. Parking Lot items 1–7 remain unselected and unauthorized to start |
+| Parking Lot authorization state | Exactly **seven**, original items 1–7 in unchanged order; former item 8 **completed**, not Active or unselected |
 
-Detailed scope, exact changed-path inventory, coverage and reproducible no-reset
-test instructions are in the dated **2026-09-07 LV 0 safe handoff** record in
-DEVELOPMENT_TODO.md. Evidence remains local/Git-and-deployment-excluded under
-`.playwright/lv0/`. The exact-artifact UAT handoff follows.
-
-
-### Owner UAT — six steps on the exact staged artifact
-
-Immutable base: https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app
-Sign in at https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app/auth/login using each existing role. Preserve existing
-deployment protection; use the Owner's existing Vercel access if requested.
-No user/account/role or data setup was created for this UAT.
-
-1. **Admin/Super Admin**: /admin/schedules and /admin/ranking — open existing
-   child/adult LV 0 rows; exact text must be red, bold and fully visible.
-2. **Head Coach**: /coach/assign-groups — verify the badge belongs to the correct
-   learner; existing group names and group Level ranges/count summaries stay the same.
-3. **Coach**: /coach/today and /coach/students — compare existing learners; the
-   LV 0 label must agree across both pages.
-4. **Coach**: /coach/levels — inspect the list and open the current-Level dialog;
-   verify the correct learner/Level and close it **without saving an assessment**.
-5. **User/Parent**: /dashboard/schedule and /dashboard/progress — check self and
-   children separately, including available Family Private participants and
-   read-only details; do not confirm Store/Redeem or other business actions.
-6. **Public/mobile**: /ranking — switch child/adult tabs, filter **Level 0**,
-   search **LV 0 · นักเรียนใหม่/รอประเมิน**, and compare evaluated learners after
-   clearing the filter. Check mobile/desktop text, wrap and control separation.
-
-Available staged Public cases at verification: child Level 0 result count **87**,
-adult count **16**, with **15 visible rows** inspected per tab at 390/1440px;
-actual result counts may change through normal school operations. No assumption
-is made about available private-portal schedules or Family bookings. Missing
-fallback examples are covered by the isolated local fixtures and focused script,
-not manufactured in Production. Owner UAT result **Pending**; Promotion **No**;
-Task Done **No**.
+Detailed dated Promotion evidence: DEVELOPMENT_TODO.md, **2026-09-07 LV 0 exact-artifact
+Promotion closeout**. Raw evidence remains excluded under .playwright/lv0/;
+no credentials, screenshots, fixtures or logs were added to Git/deployment input.
 
 ## Historical / Superseded — 2026-09-07 Production dependency security closeout
 
