@@ -9,17 +9,16 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **DEVELOPING — LV 0 implementation verified locally; post-build recovery passed; publication/staging pending**.
+Status: **READY FOR OWNER UAT — LV 0 exact staged artifact; Owner PASS pending**.
 
 - Active Task: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
-- Owner selected former item 8 and authorized implementation/publication/staging
-  on 2026-09-07; no repeated implementation approval is needed.
-- Local source, focused checks and component browser evidence are recorded in
-  the authoritative first PROJECT_STATE.md matrix. No LV 0 release or UAT claim.
-- Next action: Developer completes normal commit/push and staged artifact verification
-  under existing approval. The Owner-assisted dev recovery passed; detailed state
-  and remaining gates are authoritative in PROJECT_STATE.md.
-- Preserve security/Makeup closeouts and original unselected Parking Lot 1–7.
+- Former item 8 is selected and authorized; source/tests and staged verification
+  passed. PROJECT_STATE.md alone owns source/publication/artifact/data details.
+- Next action: Owner completes the six read-only UAT steps in PROJECT_STATE.md.
+  After this task's exact-artifact PASS, Developer may Promote without rebuild
+  and perform required Production checks/documentation closeout.
+- Task Done: **No**. Preserve security/Makeup histories and original unselected
+  Parking Lot 1–7; do not begin another task automatically.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
@@ -1573,7 +1572,7 @@ Confirmed final state:
 - Actual Git/worktree, security-task ownership, verification and publication
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
   concurrent work; do not reset, stash or overwrite work to conceal a diff.
-- Current task and recovery blocker are derived only from PROJECT_STATE.md.
+- Current task and next gate are derived only from PROJECT_STATE.md.
   LV 0 is selected/authorized; the seven remaining Parking Lot items keep their
   original order and remain unauthorized to start. Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored

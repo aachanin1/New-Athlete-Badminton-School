@@ -20045,3 +20045,91 @@ needed. Fresh remote still matched baseline 08fea365547b6feaa51ef75e8a1b86b2e968
 Production artifact/aliases remained the security release at 04:13:52 UTC.
 The earlier cleanup blocker was resolved. Commit/push and staged LV 0 artifact
 remained pending at this checkpoint; original Owner authorization persisted.
+
+
+## 2026-09-07 — LV 0 READY FOR OWNER UAT exact staged artifact handoff
+
+State observed at this handoff: **READY FOR OWNER UAT**. Owner PASS **pending**;
+Promotion **No**, Task Done **No**. The earlier cleanup Hard Stop was resolved by
+Owner deletion; dev root and all seven static assets passed. Source/test bytes
+remained identical to the successful local checks; no local rebuild was needed.
+
+Implementation commit/pushed SHA **7f27864cd100d860644c1e20c75b170ac0cb0986**, tree
+**0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3**, unchanged branch/upstream. Exactly the 18
+allowlisted paths documented in the earlier LV 0 coverage inventory changed:
+12 functional, 3 tests, 3 documentation. No scope expansion/breach or extra
+tracked path. This handoff publication is documentation-only, with no new
+application/config/dependency change or redeployment.
+
+Complete staged diff/name-status/stat/whitespace and file-by-file review preceded
+commit. One additional automated content comparison hit Node's default output
+buffer on DEVELOPMENT_TODO; the PowerShell sequence continued to commit. The
+comparison was rerun with a bounded 12 MB read buffer before push and confirmed
+all 18 committed contents exactly matched the reviewed working bytes. This was
+verification-tool plumbing, not an assertion or product correction. No history
+rewrite, reset or concealment occurred. Evidence: implementation-compliance.json
+and implementation-complete-staged.diff under excluded .playwright/lv0/.
+
+One Production-target deploy used **vercel@59.11.2 --prod --skip-domain** after
+verified clean source, normal remote publication, project/team and dry input:
+project prj_v034HOI6AjaMpBezWvuvT0W24pTp, team team_gw8Y6CPd602WAKRsVFobPGCL.
+Artifact **dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**, URL **https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app**,
+READY, target production, autoAssignCustomDomains=false, aliases **0**.
+Metadata source SHA/tree matched; **404/404 uploaded source file raw SHA1s**
+matched the captured clean input, including the unchanged dependency lock SHA256
+**ad252f85dfaaf55dc58638b71860db672488b5669bc254b9c82909ffe8838dda**. The dry manifest had 408 entries,
+404 actual files. Fixture/config/log/secret/local-state exclusions were verified.
+The first read-only API verifier had Windows command-argument quoting trouble;
+using the already-proven exec form resolved it without any artifact mutation.
+Cloud Next 16.2.12 build/TypeScript/static generation **94/94** passed, npm ci
+reported zero dependency audit findings. Existing build warnings (Node >= engine
+range and unrs-resolver install-script advisory) did not fail checks; settings
+and dependencies were not changed in this display task.
+
+Staged smoke observed **2026-09-07T04:19:13.983Z–2026-09-07T04:19:25.488Z**:
+root, health, Login and Ranking 200; all eight protected scoped routes redirected
+307 to their correct Login path. Real Public Ranking child/adult tabs and Level 0
+filter at **390/1440px** displayed 15 visible zero badges each, with red
+rgb(185,28,28), weight 700, 14px, normal wrapping and no badge horizontal clipping.
+Child filter returned 87 results, adult 16 at that time. New-label search retained
+the filtered result set; assessed learner labels remained visible with filter
+cleared. Screenshots were visually inspected. **34** distinct static assets,
+zero page/console/static failures, zero browser write requests.
+
+Exact staged logs **2026-09-07T04:17:38Z–2026-09-07T04:19:30Z** contained
+**50 GET requests**: 34x200, 16x307; **zero error/fatal/5xx and mutation methods**.
+Limit 1000 was not reached. This is bounded smoke evidence, not an indefinite
+absence-of-errors claim. Production target and its four aliases stayed on
+security artifact dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq. No LV 0 Promotion occurred.
+
+Local required evidence retained unchanged: TSC, lint, mojibake, build, focused
+LV 0, schedule 17, assignment 39, resolution 33, lifecycle source-only 42,
+browser **27/27** across all nine pages at 320/390/1440px, and diff whitespace.
+The coverage matrix in the earlier dated LV 0 record remains applicable.
+Docker/reset-runner limitation persists: no authenticated disposable-DB E2E was
+run. Protected staged role content awaits Owner UAT. Null/undefined/missing/stale
+fallbacks, exact self/child fixtures, Family participant details and current-Level
+dialog are local component/logic evidence, not fabricated staged database data.
+
+Owner handoff: use this exact URL with the existing Admin/Super Admin, Head Coach,
+Coach and User roles, following the six steps in PROJECT_STATE.md: Admin
+schedules/Ranking; Head Coach groups; Coach today/students; evaluation list/current
+Level without save; User schedule/progress and available Family; Public Ranking
+child/adult Level 0 search/filter on mobile plus assessed comparison. Owner PASS
+must identify this artifact. After PASS, reverify identity and usable rollback
+candidate, Promote this same artifact without rebuild, perform read-only bounded
+Production checks, and then close documentation. No other Parking Lot starts.
+
+State observed here: Source Complete/Tests Passed/Committed/Pushed **Yes** in
+their stated scope; Deployed **staged only**; Owner/Production UAT **pending/not
+run**; LV 0 Production Active **No**; Feature/Allowlist/Environment/Migration
+changes **none**; Controlled Write UAT **none**; Production Data Changed/Data
+Repaired **No/No**; Customer live impact **none**; Financial mutations **none**;
+agreed extra charge **0 บาท**; Blocker **Owner PASS gate only**. Documentation
+drift resolved at this handoff; seven unselected tasks preserved.
+
+Evidence: .playwright/lv0/{tested-fingerprints.json,required-checks.json,build.log,
+browser-final.log,browser-results/,dev-recovery-checks.json,staged-deploy.log,
+staged-input-identity.json,staged-identity-verification.json,staged-smoke.json,
+staged-ranking-*-lv0.png,staged-runtime-summary.json,final-publication.json}.
+These local evidence files are excluded from Git and deployment input.
