@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-06
+Last updated: 2026-09-07
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,17 +9,14 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **READY FOR OWNER UAT — exact staged Production artifact verified**.
+Status: **TASK DONE — dependency security exact-artifact Promotion complete**.
 
-- Active Task: **ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production**; Owner approval
-  2026-09-05. PROJECT_STATE.md is authoritative for artifact URL/identity, current
-  Git/Production state, test evidence, residual risks and the six UAT steps.
-- Required local checks, full E2E, fixture cleanup, Linux install/native checks,
-  staged build/smoke/logs and exact source/lock identity passed.
-- Next: Owner no-write UAT on the exact staged URL in PROJECT_STATE.md. Sign in
-  through the existing Vercel Authentication gate, then use the app role.
-- Await PASS/FAIL for this artifact. PASS permits exact-artifact Promotion without
-  rebuild and post-Promotion verification; no Promotion has occurred.
+- Active Task: **None — Awaiting Owner Selection**.
+- Completed: ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production. Owner PASS, exact
+  Promotion without rebuild, Production checks and documentation closeout are
+  recorded in the authoritative PROJECT_STATE.md matrix.
+- Next: wait for Owner to select the next task. No second manual Production UAT
+  is required after the passed automated checks and unchanged artifact.
 - Preserve closed Makeup work and all eight unselected Parking Lot items. No
   persistent Environment, permission, migration or Production business-data change.
 
@@ -1568,8 +1565,8 @@ Confirmed final state:
 
 - Actual Git/worktree, security-task ownership, verification and publication
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
-  concurrent work; do not reset, stash or overwrite the local security patch.
-- Active Task is the separately Owner-approved dependency security remediation.
+  concurrent work; do not reset, stash or overwrite work to conceal a diff.
+- Active Task is **None — Awaiting Owner Selection**; dependency security is closed.
   Parking Lot retains exactly eight candidates in the approved order, all
   unselected for implementation and unauthorized to start.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored

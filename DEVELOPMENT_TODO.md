@@ -19758,3 +19758,116 @@ confirming; Coach/Admin/data/images; exact artifact PASS/FAIL). New Owner PASS
 permits Promote only this artifact without rebuild, followed by Production
 alias/health/static/image/auth/log/artifact-continuity checks. Real-write UAT
 requires separate exact-target authorization. No Parking Lot work starts.
+
+
+## 2026-09-07 — Dependency security exact Promotion and TASK DONE
+
+State observed at this closeout: **TASK DONE** after Owner PASS of 2026-09-07,
+exact-artifact Promotion and read-only Production verification. Active Task
+becomes **None — Awaiting Owner Selection**. This supersedes the earlier
+PASS-pending/staged-only state; legitimate audit, failure and Makeup history and
+all eight unselected Parking Lot decisions remain unchanged.
+
+Owner explicitly approved only artifact **dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq**,
+https://new-athlete-badminton-school-89vusndmx-aachanin1s-projects.vercel.app,
+source **cc0af9998e3b5040d9cfa77753239b90aa01ce4b**, tree
+**a6da6073ea8d0f4d6475712d7c5f32b36e55e6a1**, lock SHA256
+**AD252F85DFAAF55DC58638B71860DB672488B5669BC254B9C82909FFE8838DDA**.
+No source/test/dependency/config edit, rebuild/redeploy, replacement artifact,
+manual alias workaround, environment/settings/data operation was authorized or
+performed in this Promotion round. This PASS is separate from Makeup PASS.
+
+Fresh Developer Gate 0 confirmed root/branch/upstream/remote/worktrees/index,
+HEAD and live remote **4a325b7a82be92e47799df64e9ee808122a8a28b**, clean and 0/0.
+That HEAD was a documentation-only descendant of the tested Source; it was not
+the application SHA. The exact artifact was READY/STAGED, target production,
+correct project/team. All 401 deployed input SHA1 hashes, 256 retained
+source/config/test fingerprints and downloaded deployed lock SHA256 matched.
+Retained required regression evidence remained valid; no fixture mutations or
+rebuilds were needed. One local read-only verifier command initially lost a Git
+caret through cmd quoting; using execFileSync with literal Git arguments fixed
+the evidence command. This was no application/test failure or tracked change.
+
+Rollback candidate **dpl_431Mp3VuDJfN9qyBA4MyK4tc2nAf** was READY/PROMOTED with
+all four Production aliases before the switch; immutable root/health/login all
+200. Its source **8148249f4dc5a626fefdd70834e93ffebd55d1a1**, tree
+**656a7b7c25c6f0323932598976232a2ed861cbfe** remains retained and READY after
+Promotion. Rolling back could reintroduce earlier dependency vulnerabilities;
+no rollback was executed or inferred to be authorized.
+
+Vercel CLI 59.11.2 help and official promote documentation were verified.
+The existing staged **Production** artifact was promoted once, using exact ID
+and existing team scope. Command interval **2026-09-07 02:17:50.513–02:17:56.916
+UTC** (09:17:50–09:17:56 Asia/Bangkok), exit **0**, explicit success for the same
+ID. Fresh API readback at **02:18:40 UTC** showed READY/PROMOTED. Artifact
+createdAt **1788628637643**, buildingAt **1788628638746**, ready
+**1788628713971** and ID/SHA/tree/lock remained unchanged: no rebuild/replacement.
+Workflow reference: https://vercel.com/docs/cli/promote .
+
+All four original aliases pointed to the passed artifact:
+
+- www.newathleteschool.com
+- new-athlete-badminton-school.vercel.app
+- new-athlete-badminton-school-aachanin1s-projects.vercel.app
+- new-athlete-badminton-school-aachanin1-aachanin1s-projects.vercel.app
+
+Fresh Production smoke completed **02:19:04 UTC**: **29** recorded checks;
+root/health/login 200 on four aliases plus immutable artifact URL; protected
+User/Coach/Admin redirects, dynamic API 401 and unsupported GET 405; optimized
+local image and allowed placehold.co/dicebear images 200, unlisted host 400.
+Public/login browser UI and password visibility passed; **30** static assets,
+page/console/hydration/static errors **0**, all visible images loaded; screenshots
+inspected. Custom domain was checked anonymously, protected Vercel hosts used
+the pre-existing May 2026 automation credential in memory on those exact hosts.
+No credential/share URL/protection or allowlist settings changed; no login
+submission or Production business write.
+
+Exact-deployment Production logs for **02:17:57–02:19:30 UTC** on 2026-09-07
+(09:17:57–09:19:30 Bangkok): no error/fatal entries or 5xx. Returned status
+counts included 200=25, 401=2, 405=2; the latter match our deliberate read-only
+auth/method checks. The provider's grouped formatter reported four distinct
+values but displayed three; this is not an exhaustive traffic count. Separate
+error/fatal and 5xx filters returned no entries. No task-attributable regression
+was observed; this bounded window does not establish future error absence.
+
+Retained evidence (not rerun in this round): full Booking 23/23, History/Payment
+10/10, Admin Assignment 18/18, retrospective runtime 38/38, five-role built
+session/boundary checks 45; Wallet/assignment/pricing/payment deterministic
+suites, TSC/lint/mojibake/build/install/graph/audits/native proof and cleanup.
+The dated full table above remains authoritative historical detail. Baseline
+**26 advisories / 15 affected package labels**, final full/omit-dev audit **zero**,
+and older aggregate-only **10** remain distinct. Next compiled-copy residuals
+(Babel/browserslist/nanoid/ws) and absent observed Production trigger conditions
+remain unchanged; dev HMR ws residual remains. Linux native binary versions
+were directly loaded only in disposable local Linux; cloud selection remains
+an inference supported by exact lock/install/platform and hosted image smoke.
+No whole-system security or earlier-transaction financial clearance is asserted.
+
+State observed at closeout: Source Complete **Yes**; Tests Passed **Yes (retained
+regressions + fresh Production verification)**; Committed/Pushed **Yes**, normal
+same-branch documentation publication; Deployed/Promoted/Production Active
+**Yes**, exact ID above; Owner UAT **PASS 2026-09-07**. Manual Production UAT
+**not repeated/not claimed as a second manual PASS**, because no difference or
+regression required it. Controlled Write UAT **none on staged/Production**;
+local earlier fixtures retained. Feature controls/allowlists/environment/secrets/
+settings/migrations **unchanged**; Production business data **not written**;
+Data Repaired **No**. Customer Impact: tested dependency patch now active, no
+observed regression in the bounded checks. Financial Impact: no formula/data
+change; older Owner transactions remain unaudited and outside scope.
+
+Exact changed paths this round: **PROJECT_STATE.md, TODO-CODEX.md,
+DEVELOPMENT_TODO.md** — documentation **3**, functional/test/dependency/config
+**0**, bounded additions **0**. No scope expansion/breach. Documentation
+consistency matrix, mojibake, complete staged diff, path/secret checks and normal
+publication verification completed. The closeout commit is a documentation-only
+descendant of 4a325b7; its exact SHA/remote/clean/0-0 proof is recorded in final
+publication evidence and report, not substituted for the Production Source.
+Production branch remained main; Git Preview from this documentation branch
+is not the approved Production artifact. Blocker/Documentation Drift **none /
+resolved**; Task Done **Yes**; Next Action **wait for Owner task selection**.
+
+Evidence remains local-only and excluded from Git/deployment at
+.playwright/security-dependencies/: promotion-before/after/final-continuity.json,
+promotion-command.log/result.json, production-smoke.json/log and screenshots,
+promotion-runtime-logs-0/1/2.md, promotion-closeout-compliance.json,
+promotion-closeout-complete.diff and promotion-final-publication.json.
