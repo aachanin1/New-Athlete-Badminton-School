@@ -20347,3 +20347,226 @@ retained from the dated LV 0 closeout, not re-audited in this registration.
 Scope Expansion **None**; Scope Breach **None**; Documentation Drift **None found
 in fresh Gate 0**. Product Task Done **No**. Next action at registration:
 **รอ Owner เลือกเริ่มพัฒนางานนี้**.
+
+## 2026-09-07 — Branch payment accounts Parking Lot registration
+
+State observed at this registration, dated **2026-09-07 Asia/Bangkok**: Owner
+authorized documentation-only registration/checks/commit/normal push. Product
+implementation selection **Not Given**; implementation **Not Started / Not
+Authorized**; Product Active Task **None — Awaiting Owner Selection**.
+PROJECT_STATE.md owns current mutable state; TODO-CODEX.md is the queue/index.
+This dated record is the sole detailed account/requirement/design/decision record.
+
+### Registration contract and fresh Gate 0
+
+- Name: **บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก**.
+  Canonical: **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
+  Position **9**; status **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+- Actor: Developer Codex. Intended behavior this round: a searchable, complete,
+  consistent Parking Lot record without changing system behavior. Owner's problem
+  statement is that settings support one account set and slip upload shows the
+  same transfer information for every branch; bounded Source evidence follows.
+- Exact writable root: C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School.
+  Only PROJECT_STATE.md, TODO-CODEX.md and DEVELOPMENT_TODO.md may change.
+  **Functional/Test/Documentation 0/0/3**; Migration/Config/Dependency/Environment
+  changes **0/0/0/0**. Blast radius: status and queue documentation only.
+- Authorized actions: necessary Source/Git reads, edit these three docs, document
+  checks/diff review, commit and normal non-force push of this task only.
+- Completion requires unique name/meaning, correct count/order, complete details,
+  consistent authorization, preservation of existing work/history, passed
+  documentation gates and verified commit/push. Product tests/build/UAT are
+  **N/A — not run**; no fixtures or Controlled Write UAT.
+- Fresh root matched the exact target. Branch **spike/next-major-security-upgrade**;
+  upstream **origin/spike/next-major-security-upgrade**; origin fetch/push URL
+  **https://github.com/aachanin1/New-Athlete-Badminton-School.git**. After fresh
+  fetch, local/upstream HEAD **cabb03ea104e80556bc961a9361e4e4cde611bc8** matched;
+  ahead/behind **0/0**, worktree clean, staged/unstaged name-status/stat empty.
+  PM's baseline matched the independently fetched Developer evidence.
+- Name/canonical and related account/settings history review found no existing
+  equivalent multi-account booking-relevant Parking Lot candidate. The existing
+  payment-settings implementation history is not this future task. Original
+  candidates **1–8** retain order and authorization; this appends **9**, for
+  **nine** unselected candidates. Coach-coverage registration and completed LV 0,
+  security, Makeup and other histories remain unchanged in status.
+- No reset, stash, checkout overwrite, force push, hidden diff or concurrent-work
+  replacement. Registration needs no further answer on the open decisions below.
+
+### Owner-confirmed requirements and decision record
+
+- Owner wants multiple receiving accounts editable by the existing authorized
+  payment-settings actor, with one account able to cover multiple branches.
+- Show only accounts for branches relevant to the booking set being paid. Include
+  all relevant lesson-session branches; the booking header's branch alone is
+  insufficient when its sessions span branches.
+- If several relevant branches share the same account, show one card with their
+  relevant branch names. Identical account-holder name or bank name alone is
+  insufficient to merge different accounts.
+- Make account number and recipient name easy to read, with bank name and color
+  identification, on mobile and desktop. Provide account-number copy, preserve
+  leading zeros, and report clipboard success/failure truthfully.
+- A branch lacking account information must visibly show missing information;
+  never silently substitute another account.
+- Owner first chose that a combined multi-branch total should go to the primary
+  receiving account designated by the school. When asked which account is primary,
+  Owner replied exactly: **“แสดงสาขาที่เกี่ยวข้องตามการจองได้เลยครับ”**.
+  This confirms relevant-branch display, but **does not identify a primary account**
+  and **does not confirm that users may transfer the total to any account**.
+  Preserve the unresolved destination decision before Product development; do not
+  ask again merely to finish this documentation registration.
+
+### Owner-supplied account data — unverified, documentation only
+
+Exactly **8 accounts covering 12 branch names** supplied by Owner. These details
+have **not** been verified against a bank or mapped to live database branch IDs.
+Preserve original spelling, number formatting and leading zeros. All numbers
+below are text, never numeric values. No account data is saved to system_settings
+or any live database. Do not infer PromptPay, QR or a primary receiving account.
+
+| No. | Owner-supplied branch label(s) | Bank | Account number (exact text) | Account holder (exact text) |
+| --- | --- | --- | --- | --- |
+| 1 | NEW ATHLETE แจ้งวัฒนะ | SCB | `1362694923` | ทัศนีย์ อรุนแสนไชยา |
+| 2 | NEW ATHLETE พระราม 2 | SCB | `428-234390-1` | กุสุมา วิริยะวัฒนาพงศ์ |
+| 3 | NEW ATHLETE รามอินทรา | กรุงศรี | `804-9-04226-9` | พอพล จันดาวรรณ |
+| 4 | NEW ATHLETE เทพารักษ์ | กรุงศรี | `045-1-46686-5` | มณี พรรัตนพิทักษ์ |
+| 5 | NEW ATHLETE Eastville | กรุงศรี | `147-1-86206-5` | รชต จันดาวรรณ |
+| 6 | NEW ATHLETE พุทธมณฑลสาย 1 | TTB | `819-2-03705-2` | รชต จันดาวรรณ |
+| 7 | NEW ATHLETE 345 | ธ.กรุงเทพ | `097-0-043956` | ประพิศ จันดาวรรณ |
+| 8 | NEW ATHLETE สุวรรณภูมิ, รัชดา, ราชพฤกษ์, ทวีวัฒนา, ปิ่นเกล้า | TTB | `275-2-35617-6` | กุสุมา วิริยะวัฒนาพงศ์ |
+
+### PM design proposals — not fully Owner-confirmed details
+
+- Proposed colors: SCB purple; กรุงศรี golden yellow; TTB orange/blue;
+  กรุงเทพ blue, using pale backgrounds and dark readable text.
+- Proposed extra **“คัดลอกข้อมูลทั้งหมด”** button beyond account-number copy.
+- Proposed settings workflow edits one account at a time and previews its card.
+- Extending JSON in the existing settings table is one possible technical design,
+  **not a decision that no migration is needed**. Persistence design, compatibility
+  and migration need must be determined by the future dependency audit/contract.
+
+### Source facts — bounded local read-only evidence
+
+Evidence was read from the clean **cabb03e** baseline on this registration date;
+it proves local Source structure, not current live settings, DB contents or
+Production runtime. No customer-data query or runtime audit was performed.
+
+- `src/lib/payment-settings.ts`: PaymentTransferSettings is one object containing
+  bankName/accountName/accountNumber/promptPay/branchName/instructions strings;
+  normalizePaymentTransferSettings returns the same single-object shape, with
+  no branch-account collection. PAYMENT_TRANSFER_SETTING_KEY is
+  `payment_transfer_settings`.
+- `src/components/admin/payment-settings-client.tsx`: one settings form edits
+  that object and sends PATCH `/api/admin/payment-settings`.
+  `src/app/api/admin/payment-settings/route.ts` guards with
+  requireAdminMenuAccess('payments'), normalizes the body and upserts one
+  `system_settings` row keyed by `payment_transfer_settings`. The future task
+  must preserve existing permissions; this registration calls no API.
+- `src/app/(dashboard)/dashboard/history/page.tsx`: loads that single settings
+  key and passes normalized paymentTransferSettings to HistoryClient. It loads
+  booking_sessions with their own branch_id and branches(name).
+  `src/components/dashboard/history-client.tsx`: slip dialog renders the shared
+  account fields; combined Legacy payment uses the pending booking ID set, and
+  Progressive payment uses its scope booking set. No booking-branch account
+  filtering exists in that transfer-information block.
+- `src/app/api/bookings/route.ts`, resolveSessionRows: each session supplies its
+  own branchId while every generated row shares the same bookingId; the creation
+  path inserts those rows. A booking's sessions can therefore represent different
+  branches. This is Source/model evidence, not a claim about a real booking.
+- Progressive mandatory full pending-scope batch remains in Source: History maps
+  the full scopeBookings set to selectedIds; `src/lib/progressive-payment-batch.ts`
+  calls prepare_progressive_payment_batch_v2. Existing migration Source
+  `supabase/migrations/20260817042635_enforce_complete_progressive_payment_scope_v2.sql`
+  locks/collects all pending_payment booking IDs ordered by created_at/id in one
+  pricing_scope_id and rejects any differing ID set. Different scopes remain
+  separate; this registration does not change or execute those functions.
+- Related historical references reviewed: the payment-settings addition in the
+  Admin UI history and **2026-08-17 — Progressive Mandatory Full Pending-Scope
+  Batch** records. They are historical evidence, not new Production verification.
+  Existing SlipOK-related UI warning text does not supersede the current
+  Owner-approved shared server-side SLIPOK_TEST_MODE policy in AGENTS.md.
+
+### Open Decisions / Unknown / Need verification before Product development
+
+- **Primary receiving account and destination rule for one total spanning
+  multiple different receiving accounts** remain unresolved. Display scope alone
+  is not payment-destination authorization.
+- Match the twelve supplied branch names to real branch IDs; confirm bank/account
+  evidence and prevent wrong account-to-branch bindings. No live lookup this round.
+- Decide compatibility with the existing settings format.
+- Decide how account edits affect pending payments and bookings with slips
+  already submitted; do not silently rewrite historical evidence.
+- Establish exact functional/test allowlists after dependency audit. No Product
+  file allowance or migration exemption is inferred from this registration.
+- Development fee/estimate/free status **Unknown / no Owner decision supplied**;
+  do not quote a fee or claim the work is free.
+
+### Protected behavior and future execution boundary
+
+Showing multiple accounts must **not** be interpreted as permission to transfer
+to any account, split amounts, attach multiple slips, always pick the first
+account or booking-header branch, change pricing/combined-payment rules, or enable
+Live SlipOK. Preserve amounts, pricing, coupons, batch membership, approval,
+Ledger, Finance, Wallet, slip/history semantics and historical data. Shared
+SLIPOK_TEST_MODE policy remains unchanged; no live verification activation.
+
+This round prohibits Source/UI/API/Tests/SQL/Migration/AGENTS.md/Config/Dependency/
+Lockfile/Environment/Permission/Feature/Allowlist edits; live account entry,
+fixtures, slip upload, Controlled Write UAT, Production writes/repairs, deploy,
+promote, migrate and all other Parking Lot work. Staged/Production artifact/SHA,
+Owner Product UAT and Promotion **N/A**; no artifact is created for registration.
+Future Product work requires Owner selection and a new Scope Contract, fresh
+audit, regression, exact staged artifact/SHA, Owner UAT and exact-artifact
+Promotion under the project release rules. The Open Decision is not silently
+resolved by publication of this document.
+
+### Future acceptance criteria — recorded only, not executed
+
+| Future case | Expected evidence under the future approved Scope Contract |
+| --- | --- |
+| Edit/save/reopen settings | Saved account details reopen correctly under existing authorization |
+| Single branch | Only its relevant account appears |
+| Multiple branches, same account | One account card with the relevant branch names |
+| Multiple branches, different accounts | Correct separate cards; payment destination follows the separately resolved Owner rule |
+| One booking with sessions across branches | All relevant session branches considered, not just the booking header |
+| Missing branch account / wrong binding | Missing information visible; no fallback substitution or incorrect binding |
+| Copy account number / any approved full-details copy | Correct text, original leading zeros preserved |
+| Clipboard failure | Truthful failure feedback, no false success |
+| Mobile / desktop | Readable bank/recipient/number, clear color labels and usable copy controls |
+| Protected regressions | Existing permissions, amounts, pricing, combined payment, slips and history remain correct |
+
+### Registration verification and closeout
+
+Documentation gates: unique canonical/name/meaning; exactly nine queue entries
+in the existing order plus new item 9; all eight account rows/twelve branches and
+exact Owner text; confirmed requirements, PM proposals, Source facts and Unknowns
+separated; Active Product Task unchanged; no reopening completed tasks or granting
+implementation permission to any candidate. Run npm.cmd run check:mojibake,
+git diff --check, name-status/stat, full staged diff and exact three-file allowlist.
+
+Documentation verification passed: identical nine-item queue in state/index;
+dated registration count matches; original 1–8 unchanged; exact eight account rows
+and twelve distinct branch names, including leading zeros; account details occur
+only in this record; Owner/PM/Source/Open Decision sections are separate;
+previous dated history and completed-task content preserved. Mojibake passed
+**266 files** and git diff --check passed. Complete staged review is required
+before the authorized publication; final Git result is reported separately.
+
+The Documentation Consistency Matrix compares Active Task, Task Status, Branch,
+Local/Remote HEAD, Ahead/Behind, Source Complete, Tests Passed, Committed/Pushed,
+Current/Deployed Source, Deployment ID, Migration Source/Applied, Feature Enabled,
+Allowlisted, Production Active/UAT, Controlled Write UAT, Data Repaired,
+Production Data Changed, Customer/Financial Impact, Blocker, Remaining Work,
+Next Gate/Action and Parking Lot authorization. PROJECT_STATE.md holds those
+current values; this historical record does not duplicate the live matrix.
+
+Registration Done is **Yes only after required checks and verified publication**;
+the final report records the containing commit SHA, normal push, remote equality
+and final worktree state. Source Complete **N/A for registration / Product not
+started**; Product tests/build/UAT **N/A — not run**; Controlled Write UAT **not
+run**. Developer Deploy/Promotion/Production checks **No action/No action/Not run**;
+external automatic deployment from push **Unknown / Need verification**, reported
+separately from Developer actions if evidence appears. Feature/Allowlist/
+Environment/Migration/Permission changes **None**; Production Data Changed/Data
+Repaired **No/No**; Customer/Financial Impact **None/None** from registration.
+Scope Expansion/Breach **None/None**; Documentation Drift **None found at fresh
+Gate 0**. Product Task Done **No — not started**. Primary account Open Decision
+remains. Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.

@@ -9,16 +9,16 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **Documentation-only registration — สถานะมอบหมายโค้ชตรงกับข้อมูลจริง**.
+Status: **Documentation-only registration — บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก**.
 
 - Active Task: **None — Awaiting Owner Selection**.
 - Completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
   Owner staged PASS, exact Promotion without rebuild, fresh Production checks and
   documentation closeout remain preserved in PROJECT_STATE.md's dated LV 0 history.
-- Register new item **8**, **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
+- Register new item **9**, **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**;
   Product implementation **not started / not authorized**. PROJECT_STATE.md owns
   registration checks, publication status and the consistency matrix.
-- Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**. Do not begin items 1–8 automatically.
+- Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**. Do not begin items 1–9 automatically.
 - Preserve completed security/Makeup and LV 0 registration/implementation history.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
@@ -1139,13 +1139,14 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly eight active candidates remain unselected for implementation and unauthorized to start, in this
+Exactly nine active candidates remain unselected for implementation and unauthorized to start, in this
 Owner-approved order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
 HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
-ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; `8.` **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
+ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; `8.` **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
+`9.` **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
 Historical item 8 **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** is
 completed and remains closed; use names to distinguish it from the new item 8.
 PROJECT_STATE.md is authoritative. Private Self + Child Identity Integrity /
@@ -1456,6 +1457,20 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - PROJECT_STATE.md owns current status; DEVELOPMENT_TODO.md retains the dated
   registration contract. Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.
 
+### บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก
+
+Canonical: **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Position **9**, registered **2026-09-07 (Asia/Bangkok)**; original items 1–8
+  retain order and authorization. Product selection **Not Given**; implementation
+  **Not Started / Not Authorized**. PROJECT_STATE.md owns current mutable state.
+- Full requirements, eight supplied accounts/twelve branches, PM proposals,
+  Source facts, open decisions and future acceptance are recorded only in
+  DEVELOPMENT_TODO.md → **2026-09-07 — Branch payment accounts Parking Lot registration**.
+- Primary receiving account remains an Open Decision before development.
+  Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.
+
 ## Historical / Selected — 2026-09-05 LV 0 registration
 
 The following is registration-time history. Owner selected and authorized item 8
@@ -1596,8 +1611,8 @@ Confirmed final state:
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
   concurrent work; do not reset, stash or overwrite work to conceal a diff.
 - Current task and next gate are derived only from PROJECT_STATE.md.
-  LV 0 is completed; original Parking Lot items 1–7 retain their order and new
-  coach-coverage item 8 is appended. All eight remain unauthorized to start.
+  LV 0 is completed; original Parking Lot items 1–8 retain their order and new
+  branch-payment-accounts item 9 is appended. All nine remain unauthorized to start.
   Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.

@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-07 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Coach assignment coverage Parking Lot registration
+## Current State — Branch payment accounts Parking Lot registration
 
 PROJECT_STATE.md is the sole authority for current mutable state. This is the
 2026-09-07 Owner-approved documentation registration only. Product Active Task
@@ -13,23 +13,23 @@ remain closed; their dated evidence below is preserved.
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **None — Awaiting Owner Selection** (Product); this round registers **สถานะมอบหมายโค้ชตรงกับข้อมูลจริง** only |
+| Active Task | **None — Awaiting Owner Selection** (Product); this round registers **บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก** only |
 | Task Status | **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** for the new Product candidate |
 | Registration / Task Done | Documentation content/checks complete; registration closeout is published by the commit containing this matrix, with exact commit/push proof in the final report. **Product Task Done: No — not started** |
-| Owner Decision / Actor | Developer Codex registers: **บันทึกกลุ่มที่ยังไม่มีโค้ชได้ แต่ห้ามแสดงว่ามอบหมายครบแล้ว**. No Product implementation selection or retrospective data repair approval |
-| Current / Expected Behavior | Owner reports saved groups can be represented as assigned despite missing coaches. This round records the future correction only; runtime cause remains **Unknown / Need verification** until future authorized dependency audit |
+| Owner Decision / Actor | Developer Codex registers the Owner-approved candidate only. Product implementation selection **Not Given**; implementation **Not Started / Not Authorized**. Full requirements, supplied data, PM proposals and open decisions are recorded only in the dated DEVELOPMENT_TODO.md registration |
+| Current / Expected Behavior | Bounded local Source review confirms one transfer-settings object shared by History payment display. Expected result this round: searchable, complete documentation registration; no system behavior change |
 | Scope / Blast Radius | Exactly PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md under repository root; **Functional/Test/Documentation 0/0/3**. Documentation queue only |
-| Authorized Actions / Protected Flows | Documentation edits/checks/commit/normal push only. No Source, Tests, API, SQL, Migration, Config, Dependencies, Environment, controls, permission, Deployment, Production-data operations or other task |
+| Authorized Actions / Protected Flows | Read necessary Source/Git, edit/check three docs, commit/normal push only. No Source, Tests, API, SQL, AGENTS.md, Migration, Config, Dependencies, Lockfile, Environment, controls, permission, Deployment, Production-data operations or other task |
 | Branch / Upstream / Remote | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade / https://github.com/aachanin1/New-Athlete-Badminton-School.git |
-| Local HEAD / Remote HEAD / Ahead-Behind | Fresh Gate 0: **3821a2a13678910534c5e87acbc1f35aa2b4c50a / same / 0/0**, after fetch. Registration publication revision is the commit containing this matrix; exact SHA and final remote equality are reported after publication, avoiding self-reference |
+| Local HEAD / Remote HEAD / Ahead-Behind | Fresh Gate 0: **cabb03ea104e80556bc961a9361e4e4cde611bc8 / same / 0/0**, after fetch. Registration publication revision is the commit containing this matrix; exact SHA and final remote equality are reported after publication, avoiding self-reference |
 | Worktree / Staged | Fresh Gate 0 **clean / empty**. Publication permits only these three docs; final clean/staged state must be verified after push |
 | Current Source / Pushed Source | **7f27864cd100d860644c1e20c75b170ac0cb0986**, application tree **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3** retained. Git comparison to Gate 0 shows only the three documentation paths since that source |
 | Source Complete | **N/A for registration; new Product implementation not started**. Completed LV 0 source remains unchanged |
-| Tests Passed | **Yes — documentation only**: queue/duplicate/history/consistency review, npm.cmd run check:mojibake **266 files**, git diff --check. Complete staged diff/allowlist reviewed before commit. Product tests/build/UAT are **N/A, not run** |
+| Tests Passed | **Yes — documentation only**: unique nine-item queue/order, eight accounts/twelve branches, exact Owner data/leading zeros, confirmed/proposed/Source/open distinction, preserved history and consistency review; npm.cmd run check:mojibake **266 files**, git diff --check. Complete staged diff/allowlist checked before commit. Product tests/build/UAT **N/A, not run** |
 | Committed / Pushed | **Containing documentation commit / same revision on upstream after verified normal push**; exact SHA and remote equality are recorded in the final publication report, not recursively embedded here. No functional commit |
-| Deployed / Promotion | **No action / No action** in this registration. Staged artifact/SHA **N/A**; no Developer Deploy/Promote |
-| Deployed Source / Deployment ID | Last confirmed LV 0 release: **7f27864cd100d860644c1e20c75b170ac0cb0986 / dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**. Preserved prior release evidence below; live deployment not re-audited in this docs-only round |
-| Production Active | New coach-coverage behavior **No**. Existing LV 0 release retained as last confirmed Production behavior; no activation action |
+| Deployed / Promotion / Production Checks | **No Developer action / No action / Not run**. Staged artifact/SHA **N/A**. External automatic deployment from Git push **Unknown / Need verification**; no deployment/config command authorized or executed |
+| Deployed Source / Deployment ID | Live identity **Unknown / Need verification — not queried this round**. Prior LV 0 deployment/SHA evidence remains in its dated closeout below and is not a new current-Production verification |
+| Production Active | New branch-payment-account behavior **No implementation or activation by this task**. Existing live runtime not re-audited |
 | Production UAT Passed | **N/A for registration; not run**. Prior exact-artifact LV 0 Owner staged PASS and automated Production checks remain historical evidence |
 | Controlled Write UAT | **Not run**; no test data created |
 | Feature Enabled / Allowlisted | **No changes / No changes**; no new feature enabled or allowlist operation |
@@ -38,10 +38,10 @@ remain closed; their dated evidence below is preserved.
 | Data Repaired / Production Data Changed | **No / No** task actions; no retrospective correction authorized |
 | Customer Impact / Financial Impact | **None / None** from registration; no runtime/business behavior change |
 | Scope Expansion / Scope Breach | **None / None** |
-| Documentation Drift | **None found in fresh registration Gate 0**. Supersede prior current Git/queue claims with this matrix; preserve dated LV 0/completed histories |
-| Blocker / Remaining Work | **None for registration after verified publication**. Future Product dependency audit, exact functional-file allowlist, implementation and acceptance require separate Owner selection/Scope Contract |
+| Documentation Drift | **None found in fresh registration Gate 0**. Prior coach-coverage registration was published at cabb03e; current queue/Git summary updated without reopening it or completed histories |
+| Blocker / Remaining Work | No registration blocker. Primary receiving account/multi-account destination is an **Open Decision before Product development**, not a blocker to registration. Future dependency audit, functional/test allowlists and release require separate Owner selection/Scope Contract |
 | Next Gate / Next Action | **รอ Owner เลือกเริ่มพัฒนางานนี้**; no Product task starts automatically |
-| Parking Lot Authorization State | Exactly **eight** unselected candidates in the order below. New item 8 is identified by its name/canonical name; historical LV 0 item 8 is completed, not reopened |
+| Parking Lot Authorization State | Exactly **nine** unselected candidates in the order below. Original items 1–8 unchanged; new branch-payment-accounts item 9 is registration only. Historical LV 0 item 8 remains completed |
 
 ### Current Parking Lot order
 
@@ -53,6 +53,19 @@ remain closed; their dated evidence below is preserved.
 6. HOMEPAGE LV COPY AUDIT/FIX
 7. ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL
 8. COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE
+9. BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY
+
+### Current Parking Lot #9 — บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก
+
+Canonical: **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+Registered **2026-09-07 (Asia/Bangkok)**; no Product implementation selection.
+Full Owner-supplied account data, confirmed future requirements, PM proposals,
+Source evidence, open decisions and future acceptance exist only in
+DEVELOPMENT_TODO.md → **2026-09-07 — Branch payment accounts Parking Lot registration**.
+Primary receiving account remains an Open Decision. No Product audit continuation,
+implementation, data entry, fee decision or release is authorized by registration.
 
 ### Current Parking Lot #8 — สถานะมอบหมายโค้ชตรงกับข้อมูลจริง
 
@@ -78,7 +91,7 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   truthful completeness/waiting counts, persisted-versus-draft state, consistent
   surfaces and retained duplicate/overlap safeguards. No Product UAT or fixtures
   are run or created for registration.
-- Registration completion criteria: unique item, consistent eight-item order and
+- At its registration, completion criteria were: unique item, consistent eight-item order and
   authorization in all three docs, preserved completed history, documentation
   checks, exact three-file staged diff, commit and normal push verified.
 
