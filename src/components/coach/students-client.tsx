@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getLevelDisplay } from '@/constants/levels'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
 
 export interface CoachStudentListItem {
@@ -192,7 +193,7 @@ export function StudentsClient({ students }: StudentsClientProps) {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {student.type === 'child' ? <Baby className="h-3.5 w-3.5 text-pink-500" /> : <User className="h-3.5 w-3.5 text-blue-500" />}
                       <span className="truncate text-sm font-medium">{student.name}</span>
-                      <Badge className={`${levelInfo.color} text-[10px]`}>{levelInfo.label}</Badge>
+                      <LearnerLevelBadge level={student.level} className={`${levelInfo.color} text-[10px]`}>{levelInfo.label}</LearnerLevelBadge>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
                       {student.parentName && <span>ผู้ปกครอง: {student.parentName}</span>}

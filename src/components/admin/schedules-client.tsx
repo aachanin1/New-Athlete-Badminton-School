@@ -33,6 +33,7 @@ import { fmtTime } from '@/lib/utils'
 import { getAdminScheduleRoundLearnerBuckets } from '@/lib/admin-schedule-assignment-state'
 import { stripDynamicMemberCount } from '@/lib/coach-assignment-group-naming'
 import { formatScheduleLevel } from '@/lib/schedule-learning-details'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import {
   getAdminScheduleSummaryTotals,
   type AdminScheduleMonthSummary,
@@ -936,7 +937,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                                         <div className="min-w-0">
                                           <div className="flex flex-wrap items-center gap-2">
                                             <p className="font-medium text-[#153c85]">{learner.learner_name}</p>
-                                            <Badge variant="outline" className="text-[10px]">{formatLevel(learner)}</Badge>
+                                            <LearnerLevelBadge level={learner.level} variant="outline" className="text-[10px]">{formatLevel(learner)}</LearnerLevelBadge>
                                             <Badge className={`text-[10px] ${learnerStatus.badge}`}>{learnerStatus.label}</Badge>
                                             {learner.is_makeup && (
                                               <Badge variant="outline" className="border-orange-200 text-[10px] text-orange-600">
@@ -991,7 +992,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                                         <div className="min-w-0">
                                           <div className="flex flex-wrap items-center gap-2">
                                             <p className="font-medium text-[#153c85]">{learner.learner_name}</p>
-                                            <Badge variant="outline" className="text-[10px]">{formatLevel(learner)}</Badge>
+                                            <LearnerLevelBadge level={learner.level} variant="outline" className="text-[10px]">{formatLevel(learner)}</LearnerLevelBadge>
                                             <Badge className={`text-[10px] ${learnerStatus.badge}`}>{learnerStatus.label}</Badge>
                                             {learner.is_makeup && (
                                               <Badge variant="outline" className="border-orange-200 text-[10px] text-orange-600">
@@ -1030,7 +1031,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                                       <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
                                           <p className="font-medium text-[#153c85]">{learner.learner_name}</p>
-                                          <Badge variant="outline" className="text-[10px]">{formatLevel(learner)}</Badge>
+                                          <LearnerLevelBadge level={learner.level} variant="outline" className="text-[10px]">{formatLevel(learner)}</LearnerLevelBadge>
                                           <Badge className={`text-[10px] ${learnerStatus.badge}`}>{learnerStatus.label}</Badge>
                                         </div>
                                         {learner.parent_name && <p className="mt-0.5 text-xs text-gray-500">ผู้ปกครอง: {learner.parent_name}</p>}
@@ -1058,7 +1059,7 @@ export function SchedulesClient({ summary, initialPerformance, branches, initial
                                     <div className="min-w-0">
                                       <div className="flex flex-wrap items-center gap-2">
                                         <p className="font-medium text-[#153c85]">{learner.learner_name}</p>
-                                        <Badge variant="outline" className="text-[10px]">{formatLevel(learner)}</Badge>
+                                        <LearnerLevelBadge level={learner.level} variant="outline" className="text-[10px]">{formatLevel(learner)}</LearnerLevelBadge>
                                         <Badge className="bg-violet-100 text-[10px] text-violet-700">อยู่ในกระเป๋า</Badge>
                                       </div>
                                       {learner.parent_name && <p className="mt-0.5 text-xs text-gray-500">ผู้ปกครอง: {learner.parent_name}</p>}

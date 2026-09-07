@@ -19871,3 +19871,177 @@ Evidence remains local-only and excluded from Git/deployment at
 promotion-command.log/result.json, production-smoke.json/log and screenshots,
 promotion-runtime-logs-0/1/2.md, promotion-closeout-compliance.json,
 promotion-closeout-complete.diff and promotion-final-publication.json.
+
+
+## 2026-09-07 — LV 0 shared learner label safe handoff
+
+State observed at this handoff: **DEVELOPING**, local implementation/display
+verification complete, no commit/push/staged artifact/Owner UAT/Promotion. The
+Owner's final continuous-delivery command selected former item 8 and superseded
+registration-time "Not authorized". Additional charge remains **0 บาท**.
+
+### Scope, evidence and protected behavior
+
+Actor: Developer. Approved actors/pages: Admin/Super Admin schedules and Ranking;
+Head Coach assignment groups; Coach today/students/evaluation; User schedule and
+progress; Public Ranking. Existing child/adult LV 0 badges and their fallbacks now
+use **LV 0 · นักเรียนใหม่/รอประเมิน**. Red/bold/mobile wrap applies through a shared
+component based on the existing Badge. Existing named/unnamed Level > 0 text and
+classes are retained. New/current-level selection and assessment writes are not
+changed; first-attendance detection is not added.
+
+Fresh Gate 0: exact requested root, only root AGENTS.md applies, branch/upstream
+matched Owner baseline, HEAD and fresh remote were 08fea365547b6feaa51ef75e8a1b86b2e968d42d,
+ahead/behind 0/0, worktree clean/staged empty. Baseline tree was
+e9ba6cb95159c8617b3d67166a5499f4925099eb. Diff between deployed security SHA and
+Gate 0 HEAD contains only the three documentation files. Existing security and
+Makeup source/dependency/config bytes were preserved. Fresh Vercel identity read
+is in `.playwright/lv0/gate0-production.json`; it confirms the security artifact
+still owns all four Production aliases. No deployed-file upload or Promotion ran.
+
+Root cause confirmed before functional edits: getLevelDisplay returned short gray
+text; formatScheduleLevel and two page fallback objects duplicated old schedule
+copy; Head Coach used its own label formatter; Ranking/evaluation named-level
+presentation could replace status wording. Baseline focused regression failed
+with actual "ยังไม่ประเมิน" versus approved exact text. The final check passes.
+Ranking also retains the previous unassessed search term and accepts the new
+status text without changing membership, sort/rank computation or filters.
+
+Exact functional allowlist used (**12 = 11 existing + 1 new**), relative to TARGET:
+- `src/constants/levels.ts`
+- `src/lib/schedule-learning-details.ts`
+- `src/components/shared/learner-level-badge.tsx`
+- `src/components/shared/ranking-board.tsx`
+- `src/components/admin/schedules-client.tsx`
+- `src/components/coach/assign-groups-client.tsx`
+- `src/components/coach/students-client.tsx`
+- `src/components/coach/levels-client.tsx`
+- `src/components/dashboard/schedule-calendar-client.tsx`
+- `src/app/(coach)/coach/today/page.tsx`
+- `src/app/(dashboard)/dashboard/schedule/page.tsx`
+- `src/app/(dashboard)/dashboard/progress/page.tsx`
+
+Exact test allowlist used (**3**, last two new):
+- `scripts/check-schedule-learning-details.mjs`
+- `scripts/check-learner-level-label.mjs`
+- `tests/admin-schedule-assignment/learner-level-label.spec.ts`
+
+Exact documentation allowlist used (**3**):
+- `PROJECT_STATE.md`
+- `TODO-CODEX.md`
+- `DEVELOPMENT_TODO.md`
+
+No tracked technical addition, Scope Expansion or Scope Breach. The global Badge,
+CSS, package/lock/config, API/data producers, level selection/identity, group
+naming/ranges/logic, Booking/Payment/pricing/entitlements/Attendance/Wallet/Makeup/
+Payroll/Finance/notifications, environment/flags/allowlists/migrations and remote
+business data were not changed. The schedule regression's import registration
+uses the existing ts-alias-loader; no dependency/config change or business
+assertion weakening. Temporary fixture assets/config/logs are excluded under
+`.playwright/lv0/` and are not deployment inputs.
+
+### Coverage matrix and limits
+
+| Role / Page | Actual presentation source | Cases and evidence |
+| --- | --- | --- |
+| Admin/Super Admin /admin/schedules | schedules-client.tsx | Four existing learner Badge sites switched; standalone child/adult LV 0 and assessed named/unnamed rendered at 320/390/1440; all bucket/identity/group logic retained by 39 deterministic assertions |
+| Admin /admin/ranking | ranking-board.tsx | Child/adult tabs, stale name precedence, exact status search, old search term retained, unassessed filter and unchanged rank computation |
+| Head Coach /coach/assign-groups | assign-groups-client.tsx | Existing StudentRow badge, child/adult, named/unnamed evaluated values; original group name and LV 9–10 + unassessed count summary |
+| Coach /coach/today | today/page.tsx | Actual async page rendered using in-memory read providers, exact learner labels and original group summary; normal fallback helper exercised |
+| Coach /coach/students | students-client.tsx | Child/adult rows, existing Basic labels and badges for assessed levels |
+| Coach /coach/levels | levels-client.tsx | Lists, opening current-Level dialog without submit, old Level-name override prevented; selection/save behavior retained |
+| User /dashboard/schedule | schedule page fallback + schedule-calendar-client.tsx | Calendar detail, one Family unit with exact self/two-child participants, missing label and stale LV 0 label; participant names/levels and read-only Store dialog, no confirmation |
+| User /dashboard/progress | progress/page.tsx | Actual async page with in-memory reads; self and child LV 0, evaluated child; visible wrap at 320px |
+| Public /ranking | ranking-board.tsx | Same child/adult named-level precedence and search/filter checks; no management writes |
+
+Final browser test: **27/27**, nine pages times 320/390/1440px. Assertions inspect
+actual rendered computed color rgb(185,28,28), font weight >=700, font size >=14,
+normal whitespace and no badge horizontal overflow. PNGs include current-Level
+and Family dialogs after animation opacity reaches 1. Screenshots were inspected;
+fallback data is explicitly local fixture evidence, not staged real data.
+
+This substitute is **not authenticated database E2E**. The existing
+playwright.admin-schedule.config.ts was read: setup and teardown reset the local
+database. Docker Desktop was unavailable and reported its ingest socket could
+not be accessed. An ordinary hidden startup was attempted; no Docker reset,
+socket deletion or machine-setting change was attempted. No disposable DB could
+be proved, so that runner and all DB fixtures were withheld. One lifecycle
+command failed at local status discovery before mutation; rerunning its existing
+`--source-only` mode passed 42 checks, without claiming runtime coverage.
+
+The no-reset browser test instead uses repository-installed Playwright,
+TypeScript, React, Tailwind and Next's bundled webpack. Actual presentation code
+is loaded from source; only framework navigation/image and server read providers
+are replaced. All outbound browser requests are restricted to the temporary
+127.0.0.1 fixture server; non-GET requests are rejected and asserted absent.
+Service-role access and fake-provider writes throw. The fixture consists only of
+in-memory objects; no local/remote database, login, cookie or credentials.
+
+Reproduce without reset (do not use the database-reset configuration): the
+excluded `.playwright/lv0/no-reset.config.cjs` sets testDir to the existing
+tests/admin-schedule-assignment directory, testMatch to learner-level-label.spec.ts,
+workers 1, retries 0, timeout 120000, Chrome headless and no globalSetup,
+globalTeardown or webServer. Run
+`npx playwright test --config=.playwright/lv0/no-reset.config.cjs`.
+The spec creates and closes its own ephemeral loopback fixture server. Earlier
+harness attempts exposed Next image/process and React server-cache dependencies;
+test-only adapters resolved them. Actual UI button and zero-based month fixtures
+were corrected; no product logic changed to accommodate the harness.
+
+Passed checks: TypeScript (also after final test edit), lint 0 warnings,
+check:mojibake 266, Production webpack build 94/94, focused LV 0 helper/render
+regression (null/undefined/zero/negative compatibility, child/adult/missing rows,
+stale labels, evaluated boundaries 1/34/35/58/59/70 and self/child separation),
+schedule-learning-details 17, Admin Assignment 39, exact/Legacy resolution 33,
+lifecycle source-only 42, browser 27 and git diff --check. New code's initial
+unused Badge import was removed and lint passed. No business assertion was
+relaxed. Local logs/fingerprints are in `.playwright/lv0/`.
+
+### Material execution blocker and continuation
+
+After the final build, the required AGENTS.md dev-recovery command verified the
+repository and computed .next path, required no port-3000 listener, then intended
+to remove only generated .next and restart loopback Next dev. The host's
+automatic approval review rejected the command **before execution**, stating
+**blocked by policy**. Read-only follow-up confirms .next still exists and port
+3000 has no listener. No alternate removal mechanism or policy bypass was used.
+Temporary fixture/debug servers were stopped. The production-build output stays
+intact. Mandatory dev root/static verification therefore remains incomplete.
+
+Next action at this handoff: Owner manually removes only
+`C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School\.next`.
+Developer then verifies absence, starts
+`npm run dev -- --hostname 127.0.0.1 --port 3000`, checks root/_next/static assets,
+finishes diff compliance and publishes only the approved paths on the unchanged
+branch/upstream. Then verify exact staging input/project/team and create
+`vercel --prod --skip-domain`, prove source SHA/tree/uploaded hashes and staged
+smoke, and issue READY FOR OWNER UAT. No new implementation approval is needed.
+
+The future six Owner UAT steps remain: (1) Admin schedules/Ranking child/adult;
+(2) Head Coach identity and unchanged group names/ranges; (3) Coach today/students;
+(4) evaluation list/current-Level dialog with no save; (5) User schedule/progress
+and available Family participants; (6) Public Ranking/mobile search/filter and
+Level > 0 comparison. Supply the exact staged URL/roles/available real cases only
+after staging; never manufacture Production examples for fallback UAT. Owner
+PASS must target that task's artifact; Promote it without rebuild only afterward,
+with rollback readiness and bounded Production health/log verification.
+
+State observed at this handoff: Source Complete **local only**; executed focused
+Tests Passed **Yes**; mandatory dev recovery **pending**; Committed/Pushed/Deployed
+for LV 0 **No/No/No**; Owner/Production UAT **not run**; Promotion **No**; Feature/
+Allowlist/Environment/Migration changes **none**; Controlled Write UAT **none**;
+Production Data Changed/Data Repaired **No/No**; live Customer/Financial impact
+**none/none**, extra charge 0 บาท; Task Done **No**. Seven other Parking Lot
+candidates remain unselected and are not authorized to start.
+
+
+### 2026-09-07 — Resumed after Owner removed generated .next
+
+State observed at resumed pre-publication gate: Owner confirmed manual deletion;
+Developer verified .next absent and port 3000 free, then started the existing
+loopback dev command. Root and all 7 referenced static assets returned 200.
+All 15 tested functional/test byte fingerprints were unchanged; no rebuild was
+needed. Fresh remote still matched baseline 08fea365547b6feaa51ef75e8a1b86b2e968d42d.
+Production artifact/aliases remained the security release at 04:13:52 UTC.
+The earlier cleanup blocker was resolved. Commit/push and staged LV 0 artifact
+remained pending at this checkpoint; original Owner authorization persisted.

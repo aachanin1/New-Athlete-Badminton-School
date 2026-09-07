@@ -1,3 +1,5 @@
+import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
+
 export type ScheduleStudentType = 'adult' | 'child'
 
 export interface ScheduleStudentLevelRow {
@@ -64,7 +66,7 @@ export function buildActiveScheduleLevelNameMap(levels: ScheduleLevelDefinition[
 }
 
 export function formatScheduleLevel(level: number, levelName: string | null) {
-  if (level <= 0) return 'LV 0 / ยังไม่ประเมิน'
+  if (level <= 0) return UNASSESSED_LEVEL_LABEL
   return `LV ${level}${levelName ? ` · ${levelName}` : ''}`
 }
 

@@ -54,7 +54,8 @@ export const LEVEL_RANGES: LevelRange[] = [
 export const DEFAULT_EXTENDED_LEVEL_CATEGORY: LevelCategory = 'athlete_3'
 export const MIN_LEVEL = 0
 export const UNASSESSED_LEVEL = 0
-export const UNASSESSED_LEVEL_LABEL = 'ยังไม่ประเมิน'
+export const UNASSESSED_LEVEL_LABEL = 'LV 0 · นักเรียนใหม่/รอประเมิน'
+export const UNASSESSED_LEVEL_BADGE_CLASS = 'max-w-full whitespace-normal break-words border-red-200 bg-red-50 text-left text-sm font-bold leading-5 text-red-700 hover:bg-red-50'
 
 export function formatLevelRange(range: LevelRange) {
   return range.maxLevel === EXTENDED_LEVEL_MAX
@@ -77,7 +78,7 @@ export function getLevelDisplay(level: number | null | undefined) {
     return {
       level: UNASSESSED_LEVEL,
       label: UNASSESSED_LEVEL_LABEL,
-      color: 'bg-gray-100 text-gray-600',
+      color: 'bg-red-50 text-red-700',
       range: null,
     }
   }

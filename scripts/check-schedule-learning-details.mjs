@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { register } from 'node:module'
+
+register('./ts-alias-loader.mjs', import.meta.url)
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
@@ -47,7 +50,7 @@ check('latest level selection is deterministic by created_at then row id', () =>
 
 check('Level 0 fallback matches User Coach and Admin presentation', () => {
   const details = getScheduleLevelDetails('child', 'missing', latestLevels, activeLevelNames)
-  assert.deepEqual(details, { level: 0, levelName: null, label: 'LV 0 / ยังไม่ประเมิน' })
+  assert.deepEqual(details, { level: 0, levelName: null, label: 'LV 0 · นักเรียนใหม่/รอประเมิน' })
   assert.equal(formatScheduleLevel(details.level, details.levelName), details.label)
 })
 

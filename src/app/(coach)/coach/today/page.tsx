@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
+import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
 import {
   Baby,
   CalendarCheck,
@@ -508,7 +510,7 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                       {slot.students.map((student) => {
                         const studentStatus = getStudentScheduleStatus(slot, student)
                         const levelDetails = levelDetailsBySessionId.get(student.bookingSessionId)
-                          || { level: 0, levelName: null, label: 'LV 0 / ยังไม่ประเมิน' }
+                          || { level: 0, levelName: null, label: UNASSESSED_LEVEL_LABEL }
 
                         return (
                           <div key={student.bookingSessionId} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
@@ -524,9 +526,9 @@ export default async function CoachSchedulePage({ searchParams }: CoachScheduleP
                                     {student.assignmentGroupName}
                                   </Badge>
                                 )}
-                                <Badge variant="outline" className="bg-white text-[10px] text-indigo-700">
+                                <LearnerLevelBadge level={levelDetails.level} variant="outline" className="bg-white text-[10px] text-indigo-700">
                                   {levelDetails.label}
-                                </Badge>
+                                </LearnerLevelBadge>
                               </div>
                               {student.parentName && <p className="truncate text-xs text-gray-400">ผู้ปกครอง: {student.parentName}</p>}
                             </div>

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
 import Link from 'next/link'
 import { AlertTriangle, Clock, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -431,7 +432,7 @@ export default async function SchedulePage() {
     const studentType: ScheduleStudentType = session.child_id ? 'child' : 'adult'
     const levelDetails = studentId
       ? getScheduleLevelDetails(studentType, studentId, latestStudentLevels, activeLevelNames)
-      : { level: 0, levelName: null, label: 'LV 0 / ยังไม่ประเมิน' }
+      : { level: 0, levelName: null, label: UNASSESSED_LEVEL_LABEL }
 
     return {
       ...session,

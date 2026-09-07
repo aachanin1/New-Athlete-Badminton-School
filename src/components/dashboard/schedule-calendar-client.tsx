@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight, AlertTriangle, BookOpenCheck, CalendarDays, Chec
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
+import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -570,9 +572,9 @@ export function ScheduleCalendarClient({
                                     {displayStatus.label}
                                   </Badge>
                                   <Badge className={colorClass} variant="outline">{getLearnerName(session)}</Badge>
-                                  <Badge variant="outline" className="border-indigo-100 bg-indigo-50 text-xs text-indigo-700">
-                                    {session.level_label || 'LV 0 / ยังไม่ประเมิน'}
-                                  </Badge>
+                                  <LearnerLevelBadge level={session.level_label ? session.level : 0} variant="outline" className="border-indigo-100 bg-indigo-50 text-xs text-indigo-700">
+                                    {session.level_label || UNASSESSED_LEVEL_LABEL}
+                                  </LearnerLevelBadge>
                                   {!unit.isFamilyPrivate && (
                                     <Badge className="border-blue-100 bg-blue-50 text-xs text-blue-700" variant="outline">
                                       {session.bookings?.course_types?.name || 'คอร์สเรียน'}
@@ -776,7 +778,9 @@ export function ScheduleCalendarClient({
                 {walletUnit.sessions.map((session) => (
                   <li key={session.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white px-2 py-1">
                     <span className="font-medium text-[#153c85]">{getLearnerName(session)}</span>
-                    <span className="text-xs text-indigo-700">{session.level_label || 'LV 0 / ยังไม่ประเมิน'}</span>
+                    {session.level_label && (session.level ?? 0) > 0
+                      ? <span className="text-xs text-indigo-700">{session.level_label}</span>
+                      : <LearnerLevelBadge level={0} variant="outline" />}
                   </li>
                 ))}
               </ul>

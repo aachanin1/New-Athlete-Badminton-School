@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Trophy, User } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { getLevelDisplay } from '@/constants/levels'
@@ -95,12 +95,12 @@ export default async function ProgressPage() {
             <Card key={student.id} className={student.type === 'self' ? 'border-2 border-[#2748bf]/20' : ''}>
               <CardContent className="p-5">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-full ${student.type === 'self' ? 'bg-[#2748bf]/10' : 'bg-[#f57e3b]/10'}`}>
+                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${student.type === 'self' ? 'bg-[#2748bf]/10' : 'bg-[#f57e3b]/10'}`}>
                     <User className={`h-6 w-6 ${student.type === 'self' ? 'text-[#2748bf]' : 'text-[#f57e3b]'}`} />
                   </div>
-                  <div>
-                    <p className="font-bold">{student.name}</p>
-                    <Badge className={levelInfo.color}>{levelInfo.label}</Badge>
+                  <div className="min-w-0">
+                    <p className="break-words font-bold">{student.name}</p>
+                    <LearnerLevelBadge level={student.level} className={levelInfo.color}>{levelInfo.label}</LearnerLevelBadge>
                   </div>
                 </div>
                 <div className="text-center">

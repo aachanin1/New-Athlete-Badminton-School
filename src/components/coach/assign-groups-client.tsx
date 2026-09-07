@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
+import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
 import { toast } from 'sonner'
 import {
   AlertTriangle,
@@ -191,6 +193,7 @@ function getMemoryText(memory: CoachMemoryEntry) {
 
 function getLevelLabel(student: AssignmentStudent) {
   const level = student.level ?? 0
+  if (level <= 0) return UNASSESSED_LEVEL_LABEL
   return `${student.levelName || `Level ${level}`} (LV ${level})`
 }
 
@@ -1803,7 +1806,7 @@ function StudentRow({
             {student.parentName && <span className="text-xs text-gray-400">ผู้ปกครอง: {student.parentName}</span>}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge className="bg-blue-100 text-[10px] text-blue-700">{getLevelLabel(student)}</Badge>
+            <LearnerLevelBadge level={student.level} className="bg-blue-100 text-[10px] text-blue-700">{getLevelLabel(student)}</LearnerLevelBadge>
             {student.levelCategory && (
               <Badge variant="outline" className="bg-white text-[10px] text-gray-600">
                 {LEVEL_CATEGORY_LABELS[student.levelCategory]}

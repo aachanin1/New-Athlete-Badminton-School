@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { Award, Building2, Medal, Search, Trophy } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -108,6 +108,7 @@ function studentMatchesSearch(student: RankingStudent, searchTerm: string) {
     `LV${level}`,
     `Level ${level}`,
     levelLabel,
+    ...(levelInfo.level === 0 ? [levelInfo.label, 'ยังไม่ประเมิน'] : []),
     levelCategory,
   ].filter(Boolean)
 
@@ -182,7 +183,7 @@ function RankingList({
               <div className="flex flex-wrap items-center gap-2">
                 <p className="min-w-0 truncate font-semibold text-[#153c85]">{student.name}</p>
                 <StudentAchievementPills achievements={student.achievements} />
-                <Badge className={levelInfo.color}>{levelLabel}</Badge>
+                <LearnerLevelBadge level={student.level} className={levelInfo.color}>{levelLabel}</LearnerLevelBadge>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                 <span className="inline-flex items-center gap-1">

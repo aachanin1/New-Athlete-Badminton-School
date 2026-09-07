@@ -9,22 +9,23 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **TASK DONE — dependency security exact-artifact Promotion complete**.
+Status: **DEVELOPING — LV 0 implementation verified locally; post-build recovery passed; publication/staging pending**.
 
-- Active Task: **None — Awaiting Owner Selection**.
-- Completed: ตรวจและแก้ช่องโหว่แพ็กเกจที่กระทบ Production. Owner PASS, exact
-  Promotion without rebuild, Production checks and documentation closeout are
-  recorded in the authoritative PROJECT_STATE.md matrix.
-- Next: wait for Owner to select the next task. No second manual Production UAT
-  is required after the passed automated checks and unchanged artifact.
-- Preserve closed Makeup work and all eight unselected Parking Lot items. No
-  persistent Environment, permission, migration or Production business-data change.
+- Active Task: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
+- Owner selected former item 8 and authorized implementation/publication/staging
+  on 2026-09-07; no repeated implementation approval is needed.
+- Local source, focused checks and component browser evidence are recorded in
+  the authoritative first PROJECT_STATE.md matrix. No LV 0 release or UAT claim.
+- Next action: Developer completes normal commit/push and staged artifact verification
+  under existing approval. The Owner-assisted dev recovery passed; detailed state
+  and remaining gates are authoritative in PROJECT_STATE.md.
+- Preserve security/Makeup closeouts and original unselected Parking Lot 1–7.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
 Separate registration published at 049d398; following task/authorization claims
-are scoped to that documentation registration. The eight candidate decisions
-remain in Parking Lot; security work is separately approved in the current matrix.
+are scoped to that documentation registration. Item 8 was selected and authorized
+on 2026-09-07; see Current Active Work and PROJECT_STATE.md.
 
 Status: **Documentation-only LV 0 Parking Lot registration; complete only after
 documentation checks and commit/push verification**. Product implementation is
@@ -1138,14 +1139,14 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly eight active candidates remain unselected for implementation and unauthorized to start, in this
+Exactly seven active candidates remain unselected for implementation and unauthorized to start, in this
 Owner-approved order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
 HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
-ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; and `8.` **LV 0 — SHARED
-LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**. Private Self + Child Identity Integrity /
+ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Former item 8 is the
+authorized Active Task above. Private Self + Child Identity Integrity /
 Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
 Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
 Parking Lot items.
@@ -1433,6 +1434,12 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Next Action: **Owner separately selects item `7` and approves a future Product
   implementation Scope Contract**. Do not audit or implement automatically.
 
+## Historical / Selected — 2026-09-05 LV 0 registration
+
+The following is registration-time history. Owner selected and authorized item 8
+on 2026-09-07; implementation authorization below is superseded by Current Active
+Work and PROJECT_STATE.md. Original items 1–7 above remain unselected.
+
 ### LV 0 — Shared Learner Label & Red Visibility Across Portals
 
 Canonical name: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
@@ -1566,9 +1573,9 @@ Confirmed final state:
 - Actual Git/worktree, security-task ownership, verification and publication
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
   concurrent work; do not reset, stash or overwrite work to conceal a diff.
-- Active Task is **None — Awaiting Owner Selection**; dependency security is closed.
-  Parking Lot retains exactly eight candidates in the approved order, all
-  unselected for implementation and unauthorized to start.
+- Current task and recovery blocker are derived only from PROJECT_STATE.md.
+  LV 0 is selected/authorized; the seven remaining Parking Lot items keep their
+  original order and remain unauthorized to start. Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

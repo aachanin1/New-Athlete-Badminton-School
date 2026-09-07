@@ -2,7 +2,71 @@
 
 Last updated: 2026-09-07 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Production dependency security closeout
+## Current State — LV 0 shared learner label delivery resumed
+
+Status: **DEVELOPING — local implementation verified; post-build recovery passed; publication/staging pending**.
+
+PROJECT_STATE.md is the sole authority for current mutable state. Owner's
+2026-09-07 command selected former Parking Lot item 8 and authorized continuous
+delivery through a staged Production artifact and READY FOR OWNER UAT. That
+authorization supersedes the earlier registration-only/unselected wording.
+No further implementation approval is requested. Owner manually removed the generated .next folder; authorized delivery resumed.
+
+This matrix records the verified pre-publication gate; commit/push/staging results
+will replace it at the READY FOR OWNER UAT handoff.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** |
+| Task Status | **DEVELOPING**; not READY FOR OWNER UAT |
+| Actor / Owner decision | Developer; Admin/Super Admin, Head Coach, Coach, User/Parent and Public Ranking. Exact text **LV 0 · นักเรียนใหม่/รอประเมิน**, red/bold/readable; additional charge **0 บาท**; LV 0 still means unassessed |
+| Intended Behavior / Blast radius | Central LV 0 label and Badge-based presentation at existing learner labels/fallbacks across the approved nine pages; keep assessed levels, identities, group summaries and business behavior |
+| Root Cause | Shared helper used gray/short text, schedule fallbacks duplicated old text, Head Coach formatted separately, and named-level precedence could replace the status label in Ranking/evaluation presentation |
+| Branch / Upstream | `spike/next-major-security-upgrade` / `origin/spike/next-major-security-upgrade`; unchanged |
+| Local HEAD | **08fea365547b6feaa51ef75e8a1b86b2e968d42d** |
+| Remote HEAD / Ahead-Behind | Fresh normal-publication query matches **08fea365547b6feaa51ef75e8a1b86b2e968d42d** / **0/0** |
+| Worktree / Staged | **18 task-owned changed/new paths staged for the implementation commit**; 12 functional, 3 tests, 3 documentation. Gate 0 was clean; no pre-existing work overwritten |
+| Current Source | Uncommitted LV 0 work over HEAD above. Exact 15 functional/test byte fingerprints: local excluded `.playwright/lv0/tested-fingerprints.json`. No release SHA/tree assigned to these working bytes |
+| Pushed Source | Baseline application **cc0af9998e3b5040d9cfa77753239b90aa01ce4b**; later pushed commits through HEAD change documentation only. LV 0 source **not pushed** |
+| Source Complete | **Yes — local LV 0 implementation**; release workflow incomplete |
+| Tests Passed | **Yes for executed focused source/display checks**: TypeScript, lint 0 warnings, mojibake 266, build 94 routes, LV 0 regression, schedule-learning-details 17, Assignment state 39, exact/Legacy resolution 33, lifecycle source-only 42, browser component fixtures 27, diff whitespace. Mandatory post-build recovery **passed**: root 200 and all 7 static assets 200 |
+| Browser evidence | Actual scoped React components/server page rendering with in-memory read providers, at **320/390/1440px**; red `rgb(185,28,28)`, weight 700, 14px, wrap/no horizontal badge clipping; long names, stale names, child/adult, assessed labels, current-Level dialog, Family participant/Store dialog display and Ranking search/filter; zero browser write requests |
+| Verification limitations | This is component rendering/interaction substitution, **not authenticated DB E2E or staged UAT**. Docker Desktop fails at its local ingest socket. Existing reset runner was inspected and **not run**. Lifecycle runtime attempt failed during local status discovery before fixture setup; its 42 source-only checks passed separately. No database reset, local DB fixture or remote fixture was used |
+| Committed | **No** — LV 0 source/tests/docs remain local at this safe handoff |
+| Pushed | **No** — no LV 0 commit or push |
+| Staged artifact / Deployed | **None / No LV 0 deployment** |
+| Artifact ID / SHA / Tree / URL for LV 0 | **N/A — not created** |
+| Deployed Source / Artifact Tree | Existing security release **cc0af9998e3b5040d9cfa77753239b90aa01ce4b** / **a6da6073ea8d0f4d6475712d7c5f32b36e55e6a1** |
+| Deployment ID / Production URL | Existing **dpl_G9Lg59UdXZ8LSVkBYjYfwVmMJxPq**, READY/PROMOTED, https://www.newathleteschool.com ; immutable URL https://new-athlete-badminton-school-89vusndmx-aachanin1s-projects.vercel.app |
+| Fresh Production identity | Vercel project **prj_v034HOI6AjaMpBezWvuvT0W24pTp**, team **team_gw8Y6CPd602WAKRsVFobPGCL**, Production branch **main**; ID/SHA/tree metadata and four existing aliases matched at **2026-09-07 04:13:52 UTC**. No new promotion or alias change |
+| Owner UAT / Production UAT Passed | **Not run / No LV 0 PASS**; prior security PASS applies only to its historical task |
+| Promotion / Production Active | **No LV 0 Promotion / LV 0 change not Production active**; security release remains active |
+| Production checks / Manual Production UAT | No LV 0 post-Promotion checks applicable; no manual Production UAT this round. Fresh identity read only; historical security health/log checks are not relabeled as fresh LV 0 evidence |
+| Feature Enabled / Allowlisted | **No control change / No allowlist change**; no new flag needed |
+| Environment / Secrets / Settings | **No persistent changes**; no protection change or new credentials. Local fixture providers contain no real credentials |
+| Migration Source / Migration Applied | **No change / No action** |
+| Controlled Write UAT | **Not run**; dialogs opened for display only, no assessment or Wallet confirmation |
+| Data Repaired / Production Data Changed | **No / No** task-attributable business writes |
+| Customer Impact / Financial Impact | **No live customer change / No financial mutation**; agreed additional charge **0 บาท** |
+| Bounded corrections / Additions | Unused import removed; planned schedule regression uses existing alias loader for its new helper import; test framework adapters, correct zero-based month/actual button selectors and stable dialog screenshots. **0 additional tracked paths beyond allowlist** |
+| Scope Expansion / Scope Breach | **None / None**; no API/data-contract/grouping/identity/assessment-write/payment/attendance/entitlement/Wallet logic change; dependencies/config/global Badge untouched |
+| Documentation Drift | **Resolved in this local handoff**: selected item 8 replaces unselected state; older security/registration values are explicitly historical. No publication claimed |
+| Blocker | **None at resumed pre-publication gate**. Owner removed .next; verified absent before restart. Dev server root and 7 static assets passed. Earlier automatic-review rejection is historical |
+| Remaining Work / Next Gate / Next Action | Complete staged diff review and normal commit/push, capture clean deployment input, create vercel --prod --skip-domain, verify exact uploaded bytes and staged smoke, then issue READY FOR OWNER UAT. Promotion requires this task's exact-artifact Owner PASS |
+| Parking Lot authorization state | **Seven unselected candidates, original items 1–7 unchanged and in order**; former item 8 is the authorized Active Task. Registration and completed security/Makeup histories retained |
+| Task Done | **No** |
+
+Detailed scope, exact changed-path inventory, coverage and reproducible no-reset
+test instructions are in the dated **2026-09-07 LV 0 safe handoff** record in
+DEVELOPMENT_TODO.md. Evidence remains local/Git-and-deployment-excluded under
+`.playwright/lv0/`. No staged UAT URL exists for this task yet.
+
+## Historical / Superseded — 2026-09-07 Production dependency security closeout
+
+State observed at that completed closeout. The current LV 0 matrix above supersedes
+its Active Task, next selection, Git/worktree and Parking Lot authorization facts.
 
 Status: **TASK DONE — EXACT ARTIFACT PROMOTED AND VERIFIED**.
 

@@ -20,6 +20,7 @@ import {
   type ManagedStudentAchievement,
 } from '@/components/shared/student-achievement-manager'
 import { LEVEL_RANGES, MIN_LEVEL, formatLevelRange, getLevelDisplay, getLevelRange } from '@/constants/levels'
+import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import type { LevelCategory } from '@/types/database'
 
 interface LevelOption {
@@ -224,7 +225,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
                       {student.parentName && <span>ผู้ปกครอง: {student.parentName}</span>}
-                      <Badge className={`${levelInfo.color} text-[10px]`}>{levelName || levelInfo.label}</Badge>
+                      <LearnerLevelBadge level={student.currentLevel} className={`${levelInfo.color} text-[10px]`}>{levelName || levelInfo.label}</LearnerLevelBadge>
                       {updatedText && <span>อัปเดต: {updatedText}</span>}
                     </div>
                   </div>
@@ -275,9 +276,11 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
 
               <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3">
                 {editStudent.type === 'child' ? <Baby className="h-4 w-4 text-pink-500" /> : <User className="h-4 w-4 text-blue-500" />}
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium">{editStudent.name}</p>
-                  <p className="text-xs text-gray-400">Level ปัจจุบัน: {editStudent.currentLevel ?? MIN_LEVEL}</p>
+                  <div className="text-xs text-gray-400">Level ปัจจุบัน: {getLevelDisplay(editStudent.currentLevel).level === 0
+                    ? <LearnerLevelBadge level={editStudent.currentLevel} />
+                    : editStudent.currentLevel ?? MIN_LEVEL}</div>
                 </div>
               </div>
 
