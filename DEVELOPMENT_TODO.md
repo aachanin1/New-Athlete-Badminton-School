@@ -20230,3 +20230,120 @@ promotion-command-start.json, promotion-command-result.json, promotion-command.l
 production-smoke.json, production-ranking-*-lv0.png, promotion-runtime-logs.jsonl,
 promotion-runtime-api.json, promotion-runtime-summary.json,
 promotion-closeout-compliance.json and promotion-final-publication.json.
+
+## 2026-09-07 — Coach assignment coverage Parking Lot registration
+
+State observed at this registration: Owner authorized documentation registration,
+checks, commit and normal push only. Product implementation selection **Not Given**;
+Product Task **Not Started**; Active Product Task **None — Awaiting Owner Selection**.
+PROJECT_STATE.md owns current mutable state; this dated record preserves the
+registration contract and evidence, not an independent live execution matrix.
+
+### Owner decision and registration contract
+
+- Name: **สถานะมอบหมายโค้ชตรงกับข้อมูลจริง**. Canonical:
+  **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
+  Position **8**; status **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+- Actor: Developer Codex documenting the Owner-reported problem: group Save is
+  treated as assigned even when some groups have no coach, so statuses/totals
+  suggest completion. This is an Owner report, not a fresh runtime diagnosis.
+- Owner decision: **บันทึกกลุ่มที่ยังไม่มีโค้ชได้ แต่ห้ามแสดงว่ามอบหมายครบแล้ว**.
+  Expected result of this round is durable registration only. No retrospective
+  data repair, implementation, or other Product task was selected.
+- Exact root: C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School.
+  Exact allowlist: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md.
+  **Functional/Test/Documentation 0/0/3**; blast radius is the documentation queue.
+- Authorized: read-only Git/documentation audit, those document edits, document
+  checks, commit and normal non-force push. Protected/out of scope: Source,
+  Tests, API, SQL, Migration, Config, Dependencies, Environment, feature controls,
+  allowlists, permissions, Deploy/Promote and Production data. No other task,
+  Product UAT or test fixtures. Staged artifact/SHA and Owner Product UAT **N/A**.
+- Completion criteria: unique named registration, correct count/order across
+  documents, preserve original seven and every completed status/history, pass
+  mojibake/diff/consistency checks, inspect exact complete three-file staged diff,
+  then verify commit and normal push. Product acceptance is a future separate task.
+
+### Fresh Gate 0 and duplicate/history review
+
+- Verified root above, branch spike/next-major-security-upgrade, upstream
+  origin/spike/next-major-security-upgrade, origin fetch/push URL
+  https://github.com/aachanin1/New-Athlete-Badminton-School.git.
+- After git fetch origin, local/upstream HEAD matched
+  **3821a2a13678910534c5e87acbc1f35aa2b4c50a**, ahead/behind **0/0**. Worktree clean;
+  staged/unstaged name-status and stat empty. PM's 3821a2a observation matched.
+  No reset, stash, overwrite, branch change or force push.
+- Search of the three documents found no pre-existing canonical/name entry for
+  this candidate. Related completed **Coach Assignment Status Communication +
+  Save Feedback** history (2026-07-24) covered exclusive saved/changed/unassigned
+  summaries and Save feedback; **Admin Schedules — Unassigned Coach Group
+  Incorrectly Shown as Green** is separately completed. Neither is reopened or
+  declared regressed by registration. A future audit must establish exact causes.
+- The previous **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**
+  item 8 completed with its 2026-09-07 exact-artifact Promotion closeout. Preserve
+  its registration, implementation and release history; identify by name, not
+  historical ordinal. Prior current matrix becomes explicitly dated history.
+- Resulting queue at this registration (all eight unselected/unauthorized):
+
+1. END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE HARDENING
+2. HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT
+3. LINE EXTERNAL-BROWSER HANDOFF AUDIT
+4. THAI UI TERMINOLOGY & SHARED HELPER
+5. EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS
+6. HOMEPAGE LV COPY AUDIT/FIX
+7. ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL
+8. COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE
+
+### Future behavior and acceptance — not authorized to execute
+
+- Separate saved grouping from complete responsible-coach coverage. A group may
+  persist without a coach; show how many groups/learners still await coverage.
+  “มอบหมายครบแล้ว” must derive from actually saved groups and the current roster.
+- Calendar, summary totals, slot cards, filters and post-save feedback must agree;
+  unsaved edits must remain distinct from data currently in effect. Preserve
+  duplicate-coach and overlapping-time validation.
+- “โค้ชติดสอนหมด” is an unverified report. Cause **Unknown / Need verification**;
+  retain for investigation after selection, without claiming it is a proven bug.
+- After separate Owner selection, perform dependency audit and define the exact
+  functional-file allowlist under a future Scope Contract. Registration grants
+  no permission to change the system. Keep HTTP 500 and Admin Recommendations
+  separate, and preserve all other protected business flows.
+
+| Future case | Expected evidence after separately authorized implementation |
+| --- | --- |
+| All groups lack coaches | Save may succeed; waiting group/learner counts truthful; no complete-assignment claim |
+| Only some groups lack coaches | Partial coverage and remaining counts agree on every surface |
+| Fill every missing coach and save | Completeness reflects persisted groups and current roster, consistently |
+| Remove a coach | Unsaved removal is distinct; saved removal restores incomplete/waiting state |
+| New learner arrives | Current roster is reconciled; old saved groups cannot falsely prove full completion |
+| Save fails | No false saved/completed transition; effective data remains accurately represented |
+| Refresh | Recomputed state/totals agree with persisted data and the current roster |
+| Mobile / desktop | Calendar, totals, cards, filters and feedback stay consistent/readable |
+| Duplicate coach / overlapping times | Existing safeguards remain effective |
+
+### Documentation closeout evidence and limits
+
+Registration checks cover name/canonical uniqueness, eight-item queue/order,
+historical LV 0 preservation and the Documentation Consistency Matrix: Active
+Task, Task Status, Branch, Local/Remote HEAD, Ahead/Behind, Source Complete,
+Tests Passed, Committed, Pushed, Current/Deployed Source, Deployment ID, Migration
+Source/Applied, Feature Enabled, Allowlisted, Production Active/UAT, Controlled
+Write UAT, Data Repaired, Production Data Changed, Customer/Financial Impact,
+Blocker, Remaining Work, Next Gate/Action and Parking Lot authorization. Current
+values are only in PROJECT_STATE.md; TODO-CODEX.md derives its short queue.
+
+Documentation verification passed: npm.cmd run check:mojibake **266 files**,
+git diff --check, queue/name/order and history/consistency review. Publication
+also requires the exact three-file allowlist and complete staged diff inspection. Commit SHA and final
+normal-push/remote equality are supplied in the final report, avoiding recursive
+commit self-reference. Registration is complete only after those gates pass.
+
+Source Complete **N/A for registration / Product not started**; Product tests,
+build, Product UAT and Controlled Write UAT **not run**. Developer Deploy/Promotion
+**No action/No action**; staged artifact/SHA **N/A**. Feature/Allowlist/Environment/
+Permission changes **None**; Migration **None**; Production Active for the new
+behavior **No**; Data Repaired/Production Data Changed **No/No**. Customer Impact
+**None**; Financial Impact **None**. Existing Production release evidence is
+retained from the dated LV 0 closeout, not re-audited in this registration.
+Scope Expansion **None**; Scope Breach **None**; Documentation Drift **None found
+in fresh Gate 0**. Product Task Done **No**. Next action at registration:
+**รอ Owner เลือกเริ่มพัฒนางานนี้**.

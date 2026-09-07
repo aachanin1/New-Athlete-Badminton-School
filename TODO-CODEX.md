@@ -9,14 +9,16 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **TASK DONE — LV 0 exact-artifact Promotion and Production verification complete**.
+Status: **Documentation-only registration — สถานะมอบหมายโค้ชตรงกับข้อมูลจริง**.
 
 - Active Task: **None — Awaiting Owner Selection**.
 - Completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
   Owner staged PASS, exact Promotion without rebuild, fresh Production checks and
-  documentation closeout are recorded in the authoritative PROJECT_STATE.md matrix.
-- Next action: wait for Owner selection. Do not begin Parking Lot 1–7 automatically.
-- No second manual Production UAT is required after the passed automated checks.
+  documentation closeout remain preserved in PROJECT_STATE.md's dated LV 0 history.
+- Register new item **8**, **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
+  Product implementation **not started / not authorized**. PROJECT_STATE.md owns
+  registration checks, publication status and the consistency matrix.
+- Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**. Do not begin items 1–8 automatically.
 - Preserve completed security/Makeup and LV 0 registration/implementation history.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
@@ -1137,14 +1139,16 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly seven active candidates remain unselected for implementation and unauthorized to start, in this
+Exactly eight active candidates remain unselected for implementation and unauthorized to start, in this
 Owner-approved order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
 HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
-ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**. Former item 8 is
-completed; see PROJECT_STATE.md. Private Self + Child Identity Integrity /
+ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; `8.` **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
+Historical item 8 **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** is
+completed and remains closed; use names to distinguish it from the new item 8.
+PROJECT_STATE.md is authoritative. Private Self + Child Identity Integrity /
 Name-Level Separation, Adult Group + Family Private 10-Month Entitlement, and
 Progressive Kids Lesson Wallet Compatibility are completed and are not Active/
 Parking Lot items.
@@ -1432,6 +1436,26 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Next Action: **Owner separately selects item `7` and approves a future Product
   implementation Scope Contract**. Do not audit or implement automatically.
 
+### สถานะมอบหมายโค้ชตรงกับข้อมูลจริง
+
+Canonical: **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Position **8**, registered **2026-09-07** after unchanged items 1–7; documentation
+  registration only. Owner decision: **บันทึกกลุ่มที่ยังไม่มีโค้ชได้ แต่ห้ามแสดงว่ามอบหมายครบแล้ว**.
+- Future scope separates saved groups from complete coach coverage; show waiting
+  group/learner counts, reconcile persisted groups with current learners, align
+  calendar/totals/slot cards/filters/post-save messages and distinguish unsaved
+  edits. Retain duplicate-coach and overlapping-time checks.
+- “โค้ชติดสอนหมด” remains unverified, for audit only after Owner selection.
+  Future dependency audit must define the exact functional-file allowlist.
+- Separate from HTTP 500 and Admin Recommendations; completed LV 0 and earlier
+  assignment fixes remain closed. No implementation or retrospective repair.
+- Future acceptance: all/some missing coaches, fill all, remove coach, new learners,
+  failed Save, refresh, mobile/desktop. Product UAT/fixtures **not run/created**.
+- PROJECT_STATE.md owns current status; DEVELOPMENT_TODO.md retains the dated
+  registration contract. Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.
+
 ## Historical / Selected — 2026-09-05 LV 0 registration
 
 The following is registration-time history. Owner selected and authorized item 8
@@ -1572,8 +1596,9 @@ Confirmed final state:
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
   concurrent work; do not reset, stash or overwrite work to conceal a diff.
 - Current task and next gate are derived only from PROJECT_STATE.md.
-  LV 0 is completed; the seven remaining Parking Lot items keep their
-  original order and remain unauthorized to start. Dependency security is closed.
+  LV 0 is completed; original Parking Lot items 1–7 retain their order and new
+  coach-coverage item 8 is appended. All eight remain unauthorized to start.
+  Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
   Do not replay Production confirmation without separate Owner authorization.

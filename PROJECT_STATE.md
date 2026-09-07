@@ -2,7 +2,93 @@
 
 Last updated: 2026-09-07 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — LV 0 exact-artifact Production closeout
+## Current State — Coach assignment coverage Parking Lot registration
+
+PROJECT_STATE.md is the sole authority for current mutable state. This is the
+2026-09-07 Owner-approved documentation registration only. Product Active Task
+remains **None — Awaiting Owner Selection**. LV 0 and all other completed work
+remain closed; their dated evidence below is preserved.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **None — Awaiting Owner Selection** (Product); this round registers **สถานะมอบหมายโค้ชตรงกับข้อมูลจริง** only |
+| Task Status | **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START** for the new Product candidate |
+| Registration / Task Done | Documentation content/checks complete; registration closeout is published by the commit containing this matrix, with exact commit/push proof in the final report. **Product Task Done: No — not started** |
+| Owner Decision / Actor | Developer Codex registers: **บันทึกกลุ่มที่ยังไม่มีโค้ชได้ แต่ห้ามแสดงว่ามอบหมายครบแล้ว**. No Product implementation selection or retrospective data repair approval |
+| Current / Expected Behavior | Owner reports saved groups can be represented as assigned despite missing coaches. This round records the future correction only; runtime cause remains **Unknown / Need verification** until future authorized dependency audit |
+| Scope / Blast Radius | Exactly PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md under repository root; **Functional/Test/Documentation 0/0/3**. Documentation queue only |
+| Authorized Actions / Protected Flows | Documentation edits/checks/commit/normal push only. No Source, Tests, API, SQL, Migration, Config, Dependencies, Environment, controls, permission, Deployment, Production-data operations or other task |
+| Branch / Upstream / Remote | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade / https://github.com/aachanin1/New-Athlete-Badminton-School.git |
+| Local HEAD / Remote HEAD / Ahead-Behind | Fresh Gate 0: **3821a2a13678910534c5e87acbc1f35aa2b4c50a / same / 0/0**, after fetch. Registration publication revision is the commit containing this matrix; exact SHA and final remote equality are reported after publication, avoiding self-reference |
+| Worktree / Staged | Fresh Gate 0 **clean / empty**. Publication permits only these three docs; final clean/staged state must be verified after push |
+| Current Source / Pushed Source | **7f27864cd100d860644c1e20c75b170ac0cb0986**, application tree **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3** retained. Git comparison to Gate 0 shows only the three documentation paths since that source |
+| Source Complete | **N/A for registration; new Product implementation not started**. Completed LV 0 source remains unchanged |
+| Tests Passed | **Yes — documentation only**: queue/duplicate/history/consistency review, npm.cmd run check:mojibake **266 files**, git diff --check. Complete staged diff/allowlist reviewed before commit. Product tests/build/UAT are **N/A, not run** |
+| Committed / Pushed | **Containing documentation commit / same revision on upstream after verified normal push**; exact SHA and remote equality are recorded in the final publication report, not recursively embedded here. No functional commit |
+| Deployed / Promotion | **No action / No action** in this registration. Staged artifact/SHA **N/A**; no Developer Deploy/Promote |
+| Deployed Source / Deployment ID | Last confirmed LV 0 release: **7f27864cd100d860644c1e20c75b170ac0cb0986 / dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**. Preserved prior release evidence below; live deployment not re-audited in this docs-only round |
+| Production Active | New coach-coverage behavior **No**. Existing LV 0 release retained as last confirmed Production behavior; no activation action |
+| Production UAT Passed | **N/A for registration; not run**. Prior exact-artifact LV 0 Owner staged PASS and automated Production checks remain historical evidence |
+| Controlled Write UAT | **Not run**; no test data created |
+| Feature Enabled / Allowlisted | **No changes / No changes**; no new feature enabled or allowlist operation |
+| Migration Source / Migration Applied | **No change / No action** |
+| Environment / Permission / Configuration | **No changes** |
+| Data Repaired / Production Data Changed | **No / No** task actions; no retrospective correction authorized |
+| Customer Impact / Financial Impact | **None / None** from registration; no runtime/business behavior change |
+| Scope Expansion / Scope Breach | **None / None** |
+| Documentation Drift | **None found in fresh registration Gate 0**. Supersede prior current Git/queue claims with this matrix; preserve dated LV 0/completed histories |
+| Blocker / Remaining Work | **None for registration after verified publication**. Future Product dependency audit, exact functional-file allowlist, implementation and acceptance require separate Owner selection/Scope Contract |
+| Next Gate / Next Action | **รอ Owner เลือกเริ่มพัฒนางานนี้**; no Product task starts automatically |
+| Parking Lot Authorization State | Exactly **eight** unselected candidates in the order below. New item 8 is identified by its name/canonical name; historical LV 0 item 8 is completed, not reopened |
+
+### Current Parking Lot order
+
+1. END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE HARDENING
+2. HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT
+3. LINE EXTERNAL-BROWSER HANDOFF AUDIT
+4. THAI UI TERMINOLOGY & SHARED HELPER
+5. EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS
+6. HOMEPAGE LV COPY AUDIT/FIX
+7. ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL
+8. COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE
+
+### Current Parking Lot #8 — สถานะมอบหมายโค้ชตรงกับข้อมูลจริง
+
+Canonical: **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
+Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+
+- Registered **2026-09-07**, appended after unchanged items 1–7. Registration
+  approval does not select Product implementation or authorize historical repair.
+- Future behavior: separate successful group persistence from complete responsible
+  coach coverage. Saved groups without coaches remain saveable and show the
+  numbers of groups and learners still waiting. “มอบหมายครบแล้ว” must use actual
+  persisted groups reconciled with the current learner roster.
+- Calendar, summary totals, slot cards, filters and post-save messages must agree.
+  Unsaved edits remain distinct from effective saved data; preserve duplicate-coach
+  and overlapping-time checks.
+- “โค้ชติดสอนหมด” is an unverified claim; cause **Unknown / Need verification**.
+  Retain it for future selected audit, without declaring a confirmed bug.
+- Determine the exact functional-file allowlist after future dependency audit.
+  Keep this task separate from item 5 HTTP 500 and item 7 Admin Recommendations;
+  do not reopen completed Save Feedback, Admin no-coach color, or LV 0 work.
+- Future acceptance only: all groups missing coaches; some missing; fill all;
+  remove a coach; new learners; failed Save; refresh; mobile and desktop. Verify
+  truthful completeness/waiting counts, persisted-versus-draft state, consistent
+  surfaces and retained duplicate/overlap safeguards. No Product UAT or fixtures
+  are run or created for registration.
+- Registration completion criteria: unique item, consistent eight-item order and
+  authorization in all three docs, preserved completed history, documentation
+  checks, exact three-file staged diff, commit and normal push verified.
+
+Detailed dated registration scope and acceptance criteria are in
+DEVELOPMENT_TODO.md, **2026-09-07 — Coach assignment coverage Parking Lot registration**.
+
+## Historical / Completed — 2026-09-07 LV 0 exact-artifact Production closeout
+
+State observed at that closeout. Its Git, task, publication and seven-item queue
+claims below are historical; the registration matrix above owns current state.
 
 Status: **TASK DONE — OWNER-PASSED EXACT ARTIFACT PROMOTED AND VERIFIED**.
 
