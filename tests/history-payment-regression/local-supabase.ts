@@ -1,7 +1,11 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
+import { PAYMENT_TRANSFER_DEFAULT_BRANCHES } from '../../src/lib/payment-transfer-defaults'
+import { PAYMENT_TRANSFER_SETTING_KEY } from '../../src/lib/payment-settings'
 import {
   createLocalAdmin,
+  getLocalSupabaseEnv,
   resetLocalDatabase,
   waitForLocalSupabaseAuth,
 } from '../booking-regression/local-supabase'
@@ -9,14 +13,33 @@ import {
 const ROOT = resolve(__dirname, '../..')
 const FIXTURE_PATH = resolve(ROOT, '.playwright/history-payment-fixture.json')
 
+// The real migrations expose payment_ledger_allocations_v1, not a Ledger table.
+// Verify absence in the database catalog; never turn a failed REST read into zero.
+export function verifyLocalLegacyLedgerAbsent() {
+  const local = getLocalSupabaseEnv()
+  if (new URL(local.apiUrl).origin !== 'http://127.0.0.1:54321') throw new Error('Unexpected History DB endpoint')
+  const container = 'supabase_db_New-Athlete-Badminton-School'
+  const identity = JSON.parse(execFileSync('docker', ['inspect', container, '--format', '{{json .Config.Labels}}'], { encoding: 'utf8' }))
+  if (identity['com.supabase.cli.project'] !== 'New-Athlete-Badminton-School'
+    || identity['com.supabase.cli.workdir'] !== ROOT) throw new Error('Unexpected History DB container identity')
+  const result = execFileSync('docker', ['exec', container, 'psql', '-U', 'postgres', '-d', 'postgres', '-X', '-qAt',
+    '-v', 'ON_ERROR_STOP=1', '-c', `BEGIN READ ONLY; SELECT to_regclass('public."Ledger"') IS NULL; COMMIT;`], { encoding: 'utf8' }).trim()
+  if (result !== 't') throw new Error('Unexpected Ledger relation: review schema before payment verification')
+  return 'absent-verified-by-postgres-catalog'
+}
+
 export const HISTORY_ACCOUNT = {
   email: 'history-payment-regression@example.com',
   password: 'LocalHistory!2026',
   fullName: 'ผู้ปกครองทดสอบ History Payment',
 }
 
+export const PAYMENT_SETTINGS_ADMIN = { email: 'payment-settings-admin@example.com', password: 'LocalPaymentSettings!2026' }
+export const PAYMENT_SETTINGS_STANDARD_ADMIN = { email: 'payment-settings-standard@example.com', password: PAYMENT_SETTINGS_ADMIN.password }
+export const HISTORY_LEGACY_TRANSFER_SETTINGS = { bankName: '', accountNumber: '0000000000', accountName: '', branchName: 'legacy bank branch', promptPay: '', instructions: 'TEST Mode' }
+
 export const HISTORY_IDS = {
-  branch: '12000000-0000-4000-8000-000000000001',
+  branch: 'aa77eba0-d05e-4539-9606-f55fe8a530ca',
   course: '23000000-0000-4000-8000-000000000001',
   child: '34000000-0000-4000-8000-000000000001',
   scope: '45000000-0000-4000-8000-000000000001',
@@ -34,6 +57,8 @@ export const HISTORY_IDS = {
 
 export interface HistoryPaymentFixture {
   userId: string
+  settingsAdminId: string
+  settingsStandardAdminId: string
   scopeId: string
   bookingIds: [string, string]
   legacyBookingIds: string[]
@@ -77,13 +102,20 @@ export async function seedHistoryPaymentFixture() {
     role: 'user',
   }).eq('id', userId)).error, 'update History profile')
 
-  assertNoError((await admin.from('branches').insert({
-    id: HISTORY_IDS.branch,
-    name: 'สาขาทดสอบ History Localhost',
-    slug: 'history-localhost',
-    address: 'Disposable database only',
-    is_active: true,
-  })).error, 'insert History branch')
+  // createLocalAdmin has already verified localhost identity; never use these
+  // real branch IDs as permission to seed or update the Production project.
+  const adminIds: string[] = []
+  for (const [account, role] of [[PAYMENT_SETTINGS_ADMIN, 'super_admin'], [PAYMENT_SETTINGS_STANDARD_ADMIN, 'admin']] as const) {
+    const created = await admin.auth.admin.createUser({ ...account, email_confirm: true })
+    assertNoError(created.error, 'create disposable payment settings actor')
+    if (!created.data.user) throw new Error('disposable settings actor missing')
+    adminIds.push(created.data.user.id)
+    assertNoError((await admin.from('profiles').update({ role, email: account.email, full_name: 'ผู้ดูแลบัญชีทดสอบ Localhost' }).eq('id', created.data.user.id)).error, 'set disposable settings role')
+  }
+  assertNoError((await admin.from('branches').insert(PAYMENT_TRANSFER_DEFAULT_BRANCHES.map(branch => ({
+    ...branch, address: 'Disposable database only',
+  })))).error, 'insert exact payment branch roster in disposable DB')
+  assertNoError((await admin.from('system_settings').upsert({ key: PAYMENT_TRANSFER_SETTING_KEY, value: HISTORY_LEGACY_TRANSFER_SETTINGS }, { onConflict: 'key' })).error, 'insert disposable legacy transfer settings')
   assertNoError((await admin.from('course_types').insert({
     id: HISTORY_IDS.course,
     name: 'kids_group',
@@ -221,6 +253,8 @@ export async function seedHistoryPaymentFixture() {
 
   const fixture: HistoryPaymentFixture = {
     userId,
+    settingsAdminId: adminIds[0],
+    settingsStandardAdminId: adminIds[1],
     scopeId: HISTORY_IDS.scope,
     bookingIds: [HISTORY_IDS.booking1, HISTORY_IDS.booking2],
     legacyBookingIds,
@@ -263,7 +297,14 @@ export async function getHistoryFixtureResidueCount() {
   }
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
   assertNoError(error, 'count History auth residue')
-  residue += data.users.filter((user) => user.email === HISTORY_ACCOUNT.email).length
+  residue += data.users.filter((user) => [HISTORY_ACCOUNT.email, PAYMENT_SETTINGS_ADMIN.email, PAYMENT_SETTINGS_STANDARD_ADMIN.email].includes(user.email || '')).length
+  const rosterResidue = await admin.from('branches').select('id', { count: 'exact', head: true })
+    .in('id', PAYMENT_TRANSFER_DEFAULT_BRANCHES.slice(1).map(branch => branch.id))
+  assertNoError(rosterResidue.error, 'count payment roster fixture residue')
+  residue += rosterResidue.count || 0
+  const settingsResidue = await admin.from('system_settings').select('id', { count: 'exact', head: true }).eq('key', PAYMENT_TRANSFER_SETTING_KEY)
+  assertNoError(settingsResidue.error, 'count payment settings residue')
+  residue += settingsResidue.count || 0
   const { data: storageEntries, error: storageError } = await admin.storage
     .from('progressive-payment-slips')
     .list(`${fixture.userId}/batches`, { limit: 100, offset: 0 })

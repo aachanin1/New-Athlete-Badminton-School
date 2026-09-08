@@ -312,6 +312,10 @@ export default async function HistoryPage() {
     throw new Error(`[dashboard/history] payment transfer setting read failed: ${getQueryErrorMessage(paymentSettingError)}`)
   }
 
+  const { data: paymentBranches, error: paymentBranchesError } = await supabase
+    .from('branches').select('id,name,slug,is_active').order('name')
+  if (paymentBranchesError) throw new Error('[dashboard/history] Unable to load payment branch roster')
+
   const bookingIds = bookings.map((booking) => booking.id)
   const progressivePaymentEnabled = !isAdmin && isProgressivePaymentDrainAvailable()
   const progressiveScopeIds = Array.from(new Set(bookings
@@ -455,7 +459,8 @@ export default async function HistoryPage() {
         bookingChildNamesMap={bookingChildNamesMap}
         bookingSessionsMap={bookingSessionsMap}
         couponUsageMap={couponUsageMap}
-        paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
+        paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value, paymentBranches || [])}
+        paymentBranches={paymentBranches || []}
         progressivePaymentEnabled={progressivePaymentEnabled}
         progressiveScopeRevisionMap={progressiveScopeRevisionMap}
         activeProgressiveBatches={(activeProgressiveResult.data || []) as ActiveProgressiveBatchRow[]}

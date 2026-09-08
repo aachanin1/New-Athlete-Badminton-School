@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { PaymentSettingsClient } from '@/components/admin/payment-settings-client'
 import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
-import type { PaymentTransferSettings } from '@/lib/payment-settings'
+import type { PaymentBranch, PaymentTransferSettings } from '@/lib/payment-settings'
 import {
   AlertTriangle,
   Banknote,
@@ -83,6 +83,7 @@ interface PaymentsClientProps {
   payments: PaymentData[]
   incompleteBookings: IncompleteBookingData[]
   paymentTransferSettings: PaymentTransferSettings
+  paymentBranches: PaymentBranch[]
   slipOkMode: 'live' | 'test'
   canViewFinancialAmounts: boolean
 }
@@ -173,6 +174,7 @@ export function PaymentsClient({
   payments,
   incompleteBookings,
   paymentTransferSettings,
+  paymentBranches,
   slipOkMode,
   canViewFinancialAmounts,
 }: PaymentsClientProps) {
@@ -686,7 +688,7 @@ export function PaymentsClient({
             <DialogTitle className="text-[#153c85]">ตั้งค่าการชำระเงิน</DialogTitle>
             <DialogDescription className="sr-only">ตั้งค่าข้อมูลบัญชีที่แสดงให้ผู้ใช้เห็นในขั้นตอนแนบสลิป</DialogDescription>
           </DialogHeader>
-          <PaymentSettingsClient settings={paymentTransferSettings} compact />
+          <PaymentSettingsClient settings={paymentTransferSettings} branches={paymentBranches} compact />
         </DialogContent>
       </Dialog>
 

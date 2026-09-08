@@ -20570,3 +20570,1422 @@ Repaired **No/No**; Customer/Financial Impact **None/None** from registration.
 Scope Expansion/Breach **None/None**; Documentation Drift **None found at fresh
 Gate 0**. Product Task Done **No — not started**. Primary account Open Decision
 remains. Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.
+
+## 2026-09-07 — Branch payment accounts Owner selection, destination decision and Gate 0 safe handoff
+
+State observed at this safe handoff, **2026-09-07 Asia/Bangkok**, evidence around
+**13:00–13:15 UTC**. PROJECT_STATE.md owns current mutable state; this is dated
+audit/decision evidence, not a second current-state matrix.
+
+### Later Owner decision — supersedes the registration's open destination
+
+Owner selected original task **9**, **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT
+DISPLAY & COPY**, for Product implementation. Exact later answer:
+**“แสดงสาขาที่เกี่ยวข้องก็พอครับ เลือก 1 ในบัญชีที่แสดง”**.
+
+- Display only receiving accounts for branches relevant to the booking set being
+  paid, including its lesson-session branches. The user may transfer the entire
+  total into any one displayed relevant account and attach one slip.
+- A primary account is not needed. No mandatory account selection field or stored
+  selected-account transaction field is required in this round. Preserve total,
+  Legacy grouping and Progressive mandatory full pending-scope semantics.
+- Same bank plus same account number may merge into one card showing only the
+  relevant branch names. Shared holder or bank name alone is not sufficient.
+- Required copy: **“เลือกโอนยอดทั้งหมดเข้าบัญชีใดบัญชีหนึ่งด้านล่าง แล้วแนบสลิป 1 ใบ”**.
+- Display instructions do not prove a historical recipient or live verification.
+  No shared SlipOK-mode, credentials, duplicate-slip or financial-history change.
+- These are later confirmations; the earlier **2026-09-07 — Branch payment
+  accounts Parking Lot registration** and its genuinely unresolved decision at
+  that time remain preserved without rewriting the original Owner statement.
+- AGENTS.md receives only the permanent account-destination/display rule. Original
+  Parking Lot 1–8 keep their positions and lack of implementation authorization.
+  Item 9 is selected, not appended again. Completed work remains closed.
+
+### Approved Scope Contract and release boundary
+
+Actors: Admin/Super Admin with the existing payments-menu access, and User paying
+their own booking set. The observed single transfer object is to become versioned
+accounts associated with exact branch IDs. Completion requires readable bank
+colors, full names and exact string numbers/leading zeros; truthful number/full
+copy and manual-copy fallback; consistent standalone/Dialog Admin drafts and
+save behavior; server validation, concurrency protection and existing activity
+logging; relevant-booking/session filtering for Legacy and Progressive prepare
+and resume; explicit missing/configuration-changed states; no repeat-transfer
+instruction after slip submission; all required checks and exact staged artifact.
+
+Exact functional allowlist **10**:
+
+1. src/lib/payment-settings.ts
+2. src/lib/payment-transfer-defaults.ts (new)
+3. src/components/payments/payment-transfer-card.tsx (new)
+4. src/components/admin/payment-settings-client.tsx
+5. src/app/api/admin/payment-settings/route.ts
+6. src/app/(admin)/admin/payments/settings/page.tsx
+7. src/app/(admin)/admin/payments/page.tsx
+8. src/components/admin/payments-client.tsx
+9. src/app/(dashboard)/dashboard/history/page.tsx
+10. src/components/dashboard/history-client.tsx
+
+Exact test allowlist **3**:
+
+- scripts/check-payment-transfer-settings.mjs (new)
+- tests/history-payment-regression/history-payment.spec.ts
+- tests/history-payment-regression/local-supabase.ts
+
+Exact documentation allowlist **4**: AGENTS.md (permanent account rule only),
+PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md. Planned
+Migration/Dependency/Lockfile/Environment changes **0/0/0/0**.
+
+Blast radius: Admin settings standalone/Dialog, settings PATCH and page loaders,
+History transfer display for Legacy and Progressive. Pricing, coupon, amount,
+entitlement, Legacy grouping, Progressive mandatory full pending scope,
+prepare/submit/cancel/approval, shared SlipOK mode/live requests/duplicate rules,
+Ledger, Finance, Wallet, Attendance, Payroll, permissions, controls, allowlists,
+historical transactions and Parking Lot 1–8 remain protected/out of scope.
+
+Owner authorized audit → implementation → focused local verification → bounded
+corrections within the same behavior → diff compliance → commit/normal push →
+staged Production artifact → READY FOR OWNER UAT. Fixtures/writes are authorized
+only after checking the identity of a disposable database. Production permits
+necessary branch/settings SELECTs only: no settings save, booking creation,
+payment-batch prepare, transfer, slip upload, seed or backfill by Developer.
+
+After all gates, create the staged artifact with **vercel --prod --skip-domain**,
+verify exact ID/SHA/effective defaults fingerprint and rollback candidate, and
+perform no-write staged smoke. Stop for Owner PASS. Only that exact tested
+Production artifact may later be promoted, without rebuild; changed source,
+configuration or effective account data after PASS requires focused retest.
+No release step was reached at this audit handoff.
+
+### Fresh Gate 0 and dependency evidence
+
+- Root verified as C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School.
+  Branch **spike/next-major-security-upgrade**, upstream
+  **origin/spike/next-major-security-upgrade**, remote
+  **https://github.com/aachanin1/New-Athlete-Badminton-School.git**.
+  Fresh fetch yielded matching local/remote **1d8d0282e67c644dd93021f9cdb745916c344adf**,
+  ahead/behind **0/0**, clean worktree and empty staged/unstaged diffs. No other
+  developing Product task was present in the active index. PM's observation was
+  independently verified. No concurrent change was overwritten or hidden.
+- Source comparison from application **7f27864cd100d860644c1e20c75b170ac0cb0986**
+  to HEAD showed only the prior three documentation files. Existing application
+  tree **0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3** remained unchanged.
+- Confirmed dependency: PaymentTransferSettings/normalizer → shared Admin form
+  and PATCH → standalone/Admin payment/History page loaders → History payment
+  dialog. All TypeScript consumers occur in the approved functional paths.
+  production-readiness-check.js also requires the same settings key; it is not
+  a typed account consumer and was not edited or used to write defaults.
+- Actual normalizer exposes six legacy strings, with no version/accounts/branch
+  relation. Admin form owns one object, sends it to PATCH and calls refresh after
+  success. PATCH requires requireAdminMenuAccess('payments'), normalizes the body,
+  then upserts the settings key, without expected revision or activity logging.
+- Authorization review covered the actual route, src/proxy.ts, Admin layout and
+  src/lib/auth/admin.ts: role/page/menu checks remain in their existing layers;
+  no access widening or auth-helper edits are authorized or made.
+- History loads the settings key and every visible booking's sessions, including
+  branch_id/branches(name), status and reschedule information. Legacy single uses
+  one payBookingIds entry; combined Legacy uses its complete pending ID set.
+  Progressive prepare sends the whole ordered scopeBookings set; resume reads
+  batch.bookingIds from the existing status response. Transfer display presently
+  ignores those IDs and renders the same one-account object in every dialog,
+  including misleading live-SlipOK copy. No API lifecycle call was changed/run.
+- Relevant historical review: Admin/System payment-settings implementation,
+  per-session multi-branch booking audit, and **2026-08-17 — Progressive Mandatory
+  Full Pending-Scope Batch** safe handoff/UAT/Production records. The Source
+  remains on prepare_progressive_payment_batch_v2 with complete pending-scope
+  validation; no prefix-payment behavior is reintroduced.
+- JSONB system_settings has a unique key, id, value, updated_by and updated_at.
+  No migration was found necessary merely to represent accounts; implementation
+  must still prove atomic stale-write protection in the disposable API tests.
+
+### SELECT-only Production roster and account compatibility evidence
+
+Connected project list identified **New Athlete Badminton School**, project ref
+**tvnhholicwjtxdhlxfqs**. Used SELECT of branches(id,name,slug,is_active) and only
+the payment_transfer_settings row; no secret or other business-table query.
+Roster returned twelve distinct active IDs. The table below was shown to Owner
+before any Source mapping. Removing the common NEW ATHLETE school prefix yields
+ten exact names. The remaining two rows are candidates awaiting confirmation;
+no fuzzy matching or Source binding was performed.
+
+| Owner label | Live name | Live slug | Live branch ID | Mapping evidence at handoff |
+| --- | --- | --- | --- | --- |
+| NEW ATHLETE แจ้งวัฒนะ | แจ้งวัฒนะ | chaengwattana | aa77eba0-d05e-4539-9606-f55fe8a530ca | Exact name |
+| NEW ATHLETE พระราม 2 | พระราม 2 | rama2 | 9eea389d-0eb2-49e9-bf53-245f000f375f | Exact name |
+| NEW ATHLETE รามอินทรา | รามอินทรา | ram-intra | c873d81d-5f2c-4baf-a926-4c4adc1ab173 | Exact name |
+| NEW ATHLETE เทพารักษ์ | เทพารักษ์ | theparak | da5ff28b-23a3-4cdb-87ad-8dc5a39a78c5 | Exact name |
+| NEW ATHLETE Eastville | East Ville | east-ville | 919ce092-f257-46cb-9858-35cc223371b7 | Unconfirmed candidate; spacing differs |
+| NEW ATHLETE พุทธมณฑลสาย 1 | พุทธมณฑลสาย 1 | พุทธมณฑล | 22e34e69-4c13-42fa-9d8b-471b54b09310 | Exact name |
+| NEW ATHLETE 345 | 345 | 345 | 14ae2056-374e-4a65-b516-a2c15220f0fc | Exact name |
+| NEW ATHLETE สุวรรณภูมิ | สุวรรณภูมิ | suvarnabhumi | a3af38e2-dfc6-4888-91f7-5ee0fa981f7d | Exact name |
+| รัชดา | รัชดา | ratchada | 3b8f9c44-fe14-4d64-b80c-5f4458ab39c2 | Exact name |
+| ราชพฤกษ์ | ราชพฤกษ์-ตลิ่งชัน | ratchaphruek-talingchan | 58495e7e-7f2b-4fe4-af54-4f810b502a5d | Unconfirmed candidate; additional location in live name |
+| ทวีวัฒนา | ทวีวัฒนา | ทวีวัฒนา | 573d71ef-c74b-4c80-a5dd-cfec70c27898 | Exact name |
+| ปิ่นเกล้า | ปิ่นเกล้า | ปิ่นเกล้า | 6dbd08be-c5f9-4a7a-9999-3d3dad2bcc14 | Exact name |
+
+Settings SELECT returned the legacy object: bankName/promptPay/branchName/
+accountName blank, accountNumber **"0000000000"**, instructions **"TEST Mode"**,
+updated_at **2026-05-18 12:24:00.995606+00**. No saved version/accounts collection
+was present. The eight exact Owner bank/account/holder rows remain the original
+registration's source data, including **045-1-46686-5** and **097-0-043956**;
+bank ownership itself was not independently verified. No PromptPay or QR inferred.
+No Source defaults file or effective-defaults fingerprint exists at this stop.
+No settings save or automatic write occurred.
+
+Fresh Vercel read resolved **www.newathleteschool.com** to the existing LV 0
+artifact **dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**, production/READY, URL
+https://new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app,
+application SHA **7f27864cd100d860644c1e20c75b170ac0cb0986** and tree above.
+This confirms identity only; no task-9 staged artifact, new rollback health proof,
+Promotion, authenticated UAT or post-Promotion checks were performed.
+
+### Pre-fix proof, disposable runtime and remaining verification
+
+- At **2026-09-07T13:07:27.865Z**, transpiled and invoked the actual unchanged
+  src/lib/payment-settings.ts normalizer in memory with a synthetic versioned
+  two-account payload. It returned only empty legacy fields and retained **zero
+  accounts**. This is expected pre-fix capability failure, not a source-string
+  check. Source SHA256
+  **8f7c010bd0fb5df9089c484aeb21d0cfc35f9683b69d01d2e478ee04ec2fe59d**;
+  excluded evidence: .playwright/branch-payment-accounts/prefixed-normalizer-evidence.json.
+  No API request or DB write. No substitute for the required post-fix UI/API tests
+  was accepted or claimed.
+- Test harness reads local Supabase status and refuses API hosts other than
+  localhost/127.0.0.1. Playwright configuration derives local keys in memory and
+  uses the existing shared test mode; fixtures/reset target disposable local DB.
+  No credentials were emitted. Local environment identity could not complete
+  because the Docker Linux engine was not running, so setup/fixtures never ran.
+- One hidden startup of the installed Docker Desktop **4.89.0** failed. Runtime
+  log at **13:05:38 UTC** reports: starting services / initializing Ingest server;
+  cannot rename **C:/Users/aacha/AppData/Local/Docker/run/sailor-ingest.sock** to
+  its .stale path, “The file cannot be accessed by the system.” The existing
+  zero-byte socket reports Archive/ReparsePoint. No socket deletion/rename,
+  factory reset, WSL reset, host settings change or package upgrade was attempted.
+  Only the seven verified processes started by this task at 13:05:34–38 UTC were
+  stopped after their failed startup; no pre-existing process was stopped.
+- **npm.cmd run test:history-payment:e2e** exited **1** while loading config:
+  npx.cmd supabase status -o env cannot connect to dockerDesktopLinuxEngine.
+  It did not reach global setup, fixture creation, browser tests or database reset.
+  This is a required-suite infrastructure blocker, not successful UI/API evidence.
+- Unchanged-source deterministic baselines passed: payment batches **44/44**,
+  payment integration **29/29**, shared SlipOK test mode **6/6**. These scripts
+  include model/source checks as well as executed helper logic; they do not replace
+  disposable persistence, concurrency, activity-log or protected-table evidence.
+- All post-fix coverage remains required: defaults/legacy/saved/invalid/empty and
+  stale payloads; eight accounts/twelve exact IDs and leading zeros; one/multiple
+  shared or separate accounts; same bank/holder with different number; multi-session
+  branches; multi-booking scope and Progressive resume; unrelated/cancelled/old
+  exclusions; missing/ambiguous config; Admin save/reload/failure/concurrent/denied;
+  real clipboard success/failure; 320/390/desktop layout, hydration and submit
+  visibility; no re-transfer guidance after submission; protected financial-table
+  before/after evidence for settings changes; TypeScript, lint, mojibake, build,
+  git diff checks and relevant existing History/Batch/Integration/SlipOK tests.
+
+### Stop, local documentation and continuation
+
+No functional/test file was edited. Actual tracked Functional/Test/Documentation
+count **0/0/4**. AGENTS.md adds the later permanent account rule; PROJECT_STATE.md
+replaces the active snapshot while retaining the registration under a Historical
+heading; TODO-CODEX.md derives selected item 9/next action and leaves 1–8 intact;
+this file appends the later decision and bounded evidence. No Scope Expansion or
+Breach, source correction attempt, commit, push, deployment or data repair.
+
+Local documentation checks passed: mojibake **266 files**, git diff --check,
+exact four-doc paths, task-state consistency review, unchanged original
+registration/eight account rows, and unchanged original queue 1–8 content/order.
+No staged diff or publication exists; all four documents remain uncommitted.
+
+Task-selection/destination drift is corrected in the local handoff. A pre-existing
+AGENTS.md stack snapshot says Next **16.2.6**, while inspected package.json says
+**16.2.12**. The old stack statement is explicitly stale, not authoritative, and
+was not edited under the account-rule-only AGENTS allowance. No upgrade happened.
+The first PROJECT_STATE.md matrix owns the unresolved-value and publication state.
+
+At this stop: task 9 remains selected and **DEVELOPING**, Source Complete **No**,
+required Tests Passed **No**, Committed/Pushed/Deployed **No/No/No this round**,
+READY FOR OWNER UAT **No**, Owner staged/Production UAT **not run**, Controlled
+Write UAT **not run**, task-attributable Production Data Changed/Data Repaired
+**No/No**; customer/financial impact **none yet**. Owner real data action was not
+reported or performed. Migration, Environment, features, allowlists, permissions,
+dependencies and lockfile were unchanged. Task Done **No**.
+
+Next gate at this handoff: answer the pending question confirming only
+**Eastville = East Ville (919ce092-f257-46cb-9858-35cc223371b7)** and
+**ราชพฤกษ์ = ราชพฤกษ์-ตลิ่งชัน (58495e7e-7f2b-4fe4-af54-4f810b502a5d)**,
+and establish a working disposable Supabase runtime. The Owner command explicitly
+prohibits fuzzy matching; no additional primary-account or whole-Scope approval
+is needed. Continue the already-authorized implementation after resolving these
+blockers. Any necessary host/runtime repair outside scope needs its concrete
+change/effect/rollback assessed before execution; do not use Production fixtures.
+
+Planned Owner UAT after all technical gates: existing authorized Admin reviews
+eight defaults and bindings; User checks one branch; shared-account branches;
+different-account cards and one-total instruction; copy/paste on mobile; unchanged
+total/slip area. Save/upload testing belongs to disposable environment. Owner may
+choose a real transaction separately; opening Progressive payment can create a
+batch and is not read-only. Developer must not click it for Owner and must reconcile
+that exact Owner transaction if such UAT is later performed.
+
+## 2026-09-07 — Branch payment accounts confirmed aliases, implementation and disposable-runtime handoff
+
+**Historical evidence: state observed at this continuation handoff.**
+PROJECT_STATE.md owns current mutable state; TODO-CODEX.md is its execution index.
+The original registration and earlier Gate 0 safe handoff above are preserved in
+full, including their then-unconfirmed mappings and previous startup attempt.
+This record supersedes those blockers; it does not imply earlier Owner consent.
+
+### Owner decisions and fresh Gate 0
+
+Owner explicitly confirmed both aliases in the continuation command:
+
+- Eastville = East Ville / east-ville / 919ce092-f257-46cb-9858-35cc223371b7;
+  กรุงศรี 147-1-86206-5, รชต จันดาวรรณ.
+- ราชพฤกษ์ = ราชพฤกษ์-ตลิ่งชัน / ratchaphruek-talingchan /
+  58495e7e-7f2b-4fe4-af54-4f810b502a5d; shared TTB 275-2-35617-6,
+  กุสุมา วิริยะวัฒนาพงศ์.
+
+These are approved aliases, not fuzzy matches. Fresh read-only Production SELECT
+confirmed all 12 IDs/names/slugs and active states before mapping was used, and
+again after implementation. Both mapping blockers closed. Owner's destination
+decision remains: pay the whole combined total into any one relevant displayed
+account, attach one slip, no primary account, no partial payment or mandatory
+recorded account selection. Exact User instruction:
+
+> เลือกโอนยอดทั้งหมดเข้าบัญชีใดบัญชีหนึ่งด้านล่าง แล้วแนบสลิป 1 ใบ
+
+Observed root was C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School.
+Fresh fetch confirmed branch spike/next-major-security-upgrade, upstream
+origin/spike/next-major-security-upgrade, remote
+https://github.com/aachanin1/New-Athlete-Badminton-School.git, HEAD/upstream both
+1d8d0282e67c644dd93021f9cdb745916c344adf, ahead/behind 0/0. Only the four previous
+handoff documentation files were dirty at entry; staged empty. Their complete
+diff was read and preserved. No competing active task was found in the execution
+index. Items 1–8 remained unauthorized and untouched. The same Git identity was
+verified again at this handoff; no commit/push occurred.
+
+### Verified mapping and exact account data
+
+Owner labels below omit only the common school brand prefix. No spelling or
+numeric account correction was inferred. Actual database names/slugs are separate.
+
+| Owner branch label | Live branch name | Live slug | Exact branch ID | Receiving account |
+| --- | --- | --- | --- | --- |
+| แจ้งวัฒนะ | แจ้งวัฒนะ | chaengwattana | aa77eba0-d05e-4539-9606-f55fe8a530ca | SCB 1362694923 |
+| พระราม 2 | พระราม 2 | rama2 | 9eea389d-0eb2-49e9-bf53-245f000f375f | SCB 428-234390-1 |
+| รามอินทรา | รามอินทรา | ram-intra | c873d81d-5f2c-4baf-a926-4c4adc1ab173 | กรุงศรี 804-9-04226-9 |
+| เทพารักษ์ | เทพารักษ์ | theparak | da5ff28b-23a3-4cdb-87ad-8dc5a39a78c5 | กรุงศรี 045-1-46686-5 |
+| Eastville — Owner-confirmed alias | East Ville | east-ville | 919ce092-f257-46cb-9858-35cc223371b7 | กรุงศรี 147-1-86206-5 |
+| พุทธมณฑลสาย 1 | พุทธมณฑลสาย 1 | พุทธมณฑล | 22e34e69-4c13-42fa-9d8b-471b54b09310 | TTB 819-2-03705-2 |
+| 345 | 345 | 345 | 14ae2056-374e-4a65-b516-a2c15220f0fc | ธ.กรุงเทพ 097-0-043956 |
+| สุวรรณภูมิ | สุวรรณภูมิ | suvarnabhumi | a3af38e2-dfc6-4888-91f7-5ee0fa981f7d | TTB 275-2-35617-6 |
+| รัชดา | รัชดา | ratchada | 3b8f9c44-fe14-4d64-b80c-5f4458ab39c2 | TTB 275-2-35617-6 |
+| ราชพฤกษ์ — Owner-confirmed alias | ราชพฤกษ์-ตลิ่งชัน | ratchaphruek-talingchan | 58495e7e-7f2b-4fe4-af54-4f810b502a5d | TTB 275-2-35617-6 |
+| ทวีวัฒนา | ทวีวัฒนา | ทวีวัฒนา | 573d71ef-c74b-4c80-a5dd-cfec70c27898 | TTB 275-2-35617-6 |
+| ปิ่นเกล้า | ปิ่นเกล้า | ปิ่นเกล้า | 6dbd08be-c5f9-4a7a-9999-3d3dad2bcc14 | TTB 275-2-35617-6 |
+
+| Bank | Exact original display number | Exact account name |
+| --- | --- | --- |
+| SCB | 1362694923 | ทัศนีย์ อรุนแสนไชยา |
+| SCB | 428-234390-1 | กุสุมา วิริยะวัฒนาพงศ์ |
+| กรุงศรี | 804-9-04226-9 | พอพล จันดาวรรณ |
+| กรุงศรี | 045-1-46686-5 | มณี พรรัตนพิทักษ์ |
+| กรุงศรี | 147-1-86206-5 | รชต จันดาวรรณ |
+| TTB | 819-2-03705-2 | รชต จันดาวรรณ |
+| ธ.กรุงเทพ | 097-0-043956 | ประพิศ จันดาวรรณ |
+| TTB | 275-2-35617-6 | กุสุมา วิริยะวัฒนาพงศ์ |
+
+Numbers remain strings. Copy removes only whitespace/hyphens and retains leading
+zeros (0451466865, 0970043956). No QR or PromptPay data was invented.
+
+### Root cause, compatibility and actual change set
+
+Original PaymentTransferSettings and its normalizer retained only six singleton
+fields; Admin PATCH overwrote that single object and History rendered it without
+payBookingIds/session-branch filtering. Pre-fix normalizer SHA-256 was still
+8f7c010bd0fb5df9089c484aeb21d0cfc35f9683b69d01d2e478ee04ec2fe59d, so the earlier
+actual-normalizer evidence remained valid: two input accounts became zero. The
+new focused test also failed before implementation on the absent resolver.
+
+Dependency chain inspected: type/normalizer → Admin form and protected PATCH →
+page loaders → History display. All consumers were checked, including standalone
+and Dialog settings, existing layout/proxy/menu/API guards, Legacy single/group,
+Progressive prepare/resume and the existing complete pending-scope IDs. Those
+payment lifecycle handlers and shared SlipOK implementation were not changed.
+
+| Class | Exact repository-relative path | Change |
+| --- | --- | --- |
+| Functional | src/lib/payment-settings.ts | Version 2 model, fail-closed normalization, validation, canonical read token, exact booking/session resolver and copy details |
+| Functional — new | src/lib/payment-transfer-defaults.ts | Exact 8 accounts / 12 verified IDs, read-only source defaults |
+| Functional — new | src/components/payments/payment-transfer-card.tsx | Shared colored cards/copy/manual fallback and explicit live configuration-change handling |
+| Functional | src/components/admin/payment-settings-client.tsx | Multi-account draft/editor, exact branch bindings, preview, reload/failure/stale feedback |
+| Functional | src/app/api/admin/payment-settings/route.ts | Existing permission guard, GET reload, validated PATCH, atomic compare-and-swap and existing activity helper |
+| Functional | src/app/(admin)/admin/payments/settings/page.tsx | Read settings and live branch roster, fail visibly on read error |
+| Functional | src/app/(admin)/admin/payments/page.tsx | Supply roster and normalized collection to shared settings Dialog |
+| Functional | src/components/admin/payments-client.tsx | Pass roster to the same editor |
+| Functional | src/app/(dashboard)/dashboard/history/page.tsx | Supply roster and normalized collection alongside existing complete session data |
+| Functional | src/components/dashboard/history-client.tsx | Render shared instructions for exact payBookingIds, suppress after slip receipt, truthful processing copy |
+| Test — new | scripts/check-payment-transfer-settings.mjs | 19 actual-logic cases and optional actual-component UI harness via --ui |
+| Test | tests/history-payment-regression/history-payment.spec.ts | Six new real-environment cases for Admin/API/CAS/audit/protected tables, multi-session/resume and copy/config/layout |
+| Test | tests/history-payment-regression/local-supabase.ts | Disposable-only 12-branch roster, two Admin actors, legacy settings and residue checks |
+| Documentation | AGENTS.md | Permanent receiving-account rule and Owner-authorized factual observed Next-version correction only |
+| Documentation | PROJECT_STATE.md | Single authoritative current matrix |
+| Documentation | TODO-CODEX.md | Active item 9 / runtime next gate; unchanged 1–8 |
+| Documentation | DEVELOPMENT_TODO.md | Preserved registration/earlier stop plus this dated decision/evidence |
+
+Planned and actual counts: **10 functional / 3 test / 4 documentation**. No
+technical expansion, protected-flow change or scope breach. Generated local
+evidence is excluded under .playwright/branch-payment-accounts/, not shipped.
+
+Version 2 is stored at the existing payment_transfer_settings key with accounts
+and a unique revision. Read token compares canonical full JSON; UPDATE also
+compares the original JSONB in the SQL predicate, so concurrent requests cannot
+both overwrite it. First INSERT relies on the existing unique key. Old payloads
+and stale revisions return 409 asking to load the latest page. Server validates
+required strings, known banks, UUID branch membership, uniqueness and conflicting
+assignments. Existing logActivity writes only the intentional settings action.
+Its existing best-effort behavior is retained; no transactional audit guarantee
+or live DB proof is claimed until disposable tests run.
+
+Reads never write or seed. Legacy values select source defaults without using
+legacy branchName as a school ID or offering the old global account. Existing
+raw legacy fields are preserved when saving for old-reader rollback compatibility.
+Saved empty accounts stay empty; malformed/new/deleted-account collections never
+silently become defaults. Missing branches/accounts are explicit.
+
+Resolver uses every exact payBookingId and its relevant non-cancelled/non-old
+session branches, including multi-session bookings. Undated Legacy bookings with
+no session rows use their exact booking branch; a missing branch on an existing
+session never falls back to the header. Bank plus normalized account digits is
+the grouping key; same bank/holder with different numbers stays separate.
+Only relevant branch names appear. Current account cards are instructions, never
+historical recipient evidence. Receipt/processing states show no new transfer
+instruction. Read-only checking at open/focus/30 seconds detects settings/roster
+changes; cards are hidden until explicit acknowledgement, not silently replaced.
+
+### Post-fix verification and bounded corrections
+
+| Check | Observed result at this handoff | Limit |
+| --- | --- | --- |
+| node scripts/check-payment-transfer-settings.mjs | **19/19 passed** after implementation and the final malformed-legacy guard | Executes actual functions; does not prove database persistence |
+| node scripts/check-payment-transfer-settings.mjs --ui | **Passed 320, 390, 1440**; two real cards, shared names, leading-zero number/full copy, clipboard failure/manual text, unchanged single total, visible submit, explicit config change, submitted suppression and failed-save draft | Actual shipped components/CSS with isolated providers; not real API/DB or Next hydration evidence |
+| node scripts/check-progressive-payment-batches.js | **44/44 passed post-fix** | Deterministic protected-flow check |
+| node scripts/check-progressive-payment-integration.js | **29/29 passed post-fix** | Deterministic protected-flow check |
+| node scripts/check-shared-slipok-test-mode.js | **6/6 passed post-fix** | Shared mode unchanged; no live SlipOK call |
+| npm run test:history-payment:e2e | **Blocked before global setup**: npx.cmd supabase status -o env cannot connect to dockerDesktopLinuxEngine pipe | Zero fixtures, resets, API writes or DB writes; all real persistence/CAS/audit/protected-table and integrated UI assertions remain unexecuted |
+| npx tsc --noEmit | **Passed** after query result typing correction and final test changes | First run identified two inferred-never query results; one focused correction fixed both |
+| npm run lint | **Passed**, zero warnings | src lint |
+| npm run check:mojibake | **Passed**, 268 scanned files | Rerun at documentation closeout |
+| npm run build | **Passed**, Next 16.2.12, 94 pages, webpack and TypeScript completed | Local production build, no deployment |
+| Local dev after build | **Passed**: agent-browser rendered homepage, no error overlay/browser error, all observed _next/static assets HTTP 200 | Unauthenticated health only; no payment/booking action |
+| git diff --check / allowlist / matrix | **Passed** at local handoff | Staged empty; no commit. Full staged review still required before future commit |
+
+Review also corrected the new E2E member-table name and actual resume selector,
+kept session/slot/template branch evidence coherent, and positioned its prepared
+batch fixture after the unchanged initial batch-count regression. These were
+pre-execution test-review corrections, not claims of passing runtime assertions.
+No identical behavior failure persisted after two corrective runs; UI passed its
+first execution. No unrelated refactor or package upgrade was made.
+
+After build, automatic approval review rejected the generated .next deletion
+command with only "blocked by policy". The safer action verified exact source
+and destination paths and moved the newly generated build into
+.playwright/branch-payment-accounts/production-build without deleting it. A fresh
+.next was generated by the normal dev server, health/assets verified, browser
+closed, and only that task's verified server/launcher processes stopped. This
+keeps the pending disposable suite's required port 3000 available. No project
+environment file or dependency changed.
+
+Screenshots/result JSON: .playwright/branch-payment-accounts/components/.
+The isolated UI result timestamp was 2026-09-07T14:05:04.322Z. Its account-defaults
+fingerprint is SHA-256 over paymentTransferReadToken(normalized default accounts):
+**29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6**.
+This is local account data evidence, not an artifact ID or Production activation.
+
+### Docker blocker and exact proposed recovery — not executed
+
+Earlier normal hidden Docker Desktop startup on 2026-09-07 failed at
+13:05:35–13:05:38Z while initializing Ingest server. It could not rename
+C:\Users\aacha\AppData\Local\Docker\run\sailor-ingest.sock to its .stale name:
+"The file cannot be accessed by the system" (Windows 1920). The prior task-started
+Docker processes were stopped; this continuation found no Docker backend running.
+The unchanged WSL service is not treated as a failed or disposable process.
+The exact socket remains a zero-byte reparse point; read-only reparse inspection
+also returns 1920. The Linux-engine named pipe is absent. No blind startup loop
+or repeated failed repair was attempted.
+
+The ordinary run directory (not itself a reparse point) contains five zero-byte
+runtime socket/reparse entries: dockerEthernetVfkit, dockerInference,
+dockerInference.stale, sailor-ingest.sock and userAnalyticsOtlpHttp.sock. This
+supports a narrow runtime-directory quarantine proposal; it does not prove its
+underlying host cause or guarantee the repair will succeed.
+
+**Proposed Owner-authorized host action, not performed:**
+
+1. Recheck that Docker Desktop/backend is stopped and exact paths/contents still
+   match the evidence. Stop if concurrent processes or unexpected files appear.
+2. Rename only C:\Users\aacha\AppData\Local\Docker\run to
+   C:\Users\aacha\AppData\Local\Docker\run.task9-before-recovery-20260907,
+   preserving every original entry. Fail if the destination exists. This changes
+   host runtime state outside the approved application files and needs a specific
+   Owner decision under continuation command section 8.
+3. Start the installed C:\Program Files\Docker\Docker\Docker Desktop.exe normally
+   with a hidden window. Inspect new startup evidence and engine health. Do not
+   upgrade, reset Docker/WSL, delete images/containers/volumes/VHDs, change ACLs,
+   security or project environment. If the same error remains, stop and report.
+4. If healthy, start the existing local Supabase runtime normally, verify the
+   local project/container identity and loopback endpoint before any authorized
+   disposable reset/fixture. Then run the real History suite and bounded fixes.
+
+Expected impact: Docker recreates its local IPC endpoints while stopped; the
+original socket directory remains available for rollback. Stored database/volume
+and WSL disks are outside this operation. No Production action is involved.
+
+**Rollback:** stop only the newly started task-owned Docker processes; preserve
+any newly created run directory under
+C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery-20260907 (fail on
+collision), then rename run.task9-before-recovery-20260907 back to run. Recheck
+exact parent/target paths before every move. Do not delete either copy. This
+restores the original runtime-directory state; it does not claim the original
+Docker state was healthy. No host action has been approved or performed yet.
+
+### Release/data states and remaining gate
+
+At this handoff the complete source was present locally but **Source Complete
+was not certified** pending real DB evidence. Required Tests Passed **Partial**;
+Committed **No**, Pushed **No**, Deployed for task 9 **No**, staged URL/ID/SHA
+**None**, READY FOR OWNER UAT **No**, Owner staged UAT **Not run**, Promotion
+**Not performed**, task-9 Production checks **Not run**, Production UAT Passed
+**Not run**, Controlled Write UAT **Blocked**, Task Done **No**.
+
+Fresh deployment read resolved www.newathleteschool.com to existing production
+READY artifact dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc, source/application SHA
+7f27864cd100d860644c1e20c75b170ac0cb0986, application tree
+0d91b10ea1eac0125e8af9d13d7ff3ab3aed15b3. It is a rollback candidate to recheck
+before release, not a task-9 artifact. Production retained legacy settings
+accountNumber 0000000000 / instructions TEST Mode / remaining fields empty,
+updated_at 2026-05-18T12:24:00.995606+00:00. No new saved collection existed. The
+new source would select the verified source defaults; the old live source still
+shows the legacy singleton. No read performs automatic seed/backfill/migration.
+
+Migration Source/Applied, Environment, Dependencies/Lockfile, Permissions,
+Feature Enabled and Allowlist changes: **None**. Production Active for task 9:
+**No**. Developer data actions: **SELECT-only Production branch/settings reads**;
+isolated in-memory/UI fixtures only, zero disposable or Production DB writes.
+Owner data actions: **None reported/performed in this round**. Production Data
+Changed by this task **No**; Data Repaired **No**. Unrelated live activity was not
+audited. Customer Impact **none released**; local cards improve receiving-account
+instructions. Financial Impact **no amount, price, entitlement or transaction
+change**; destination guidance is separate from financial evidence.
+
+Documentation consistency review reconciled every required current field in the
+first PROJECT_STATE.md matrix against Git/source/Production reads and the index.
+Historical records retain their observed state. Next 16.2.6 → 16.2.12 in AGENTS
+was an explicitly authorized factual correction checked against package.json and
+package-lock.json, with its reason stated before editing. No unresolved current
+documentation drift remained, and no documentation was published at this stop.
+
+Next gate at this handoff: Owner decision on the exact host-runtime recovery
+above, then real disposable tests. Do not ask either alias, primary-account or
+task Scope again. Commit/normal push must still wait for all required checks and
+full staged diff/matrix review; recheck Git integration cannot move Production
+domain before Owner PASS. Then verify rollback, create staged Production via
+vercel --prod --skip-domain, bind exact artifact/SHA/effective data fingerprint,
+and run read-only smoke. No Preview artifact may substitute for immutable UAT.
+
+Planned UAT after READY gates (not an available UAT handoff): existing authorized
+Admin/Super Admin at /admin/payments/settings and User at /dashboard/history on
+the exact staged URL; URL/ID/SHA remained unavailable at this stop.
+
+1. Inspect eight accounts and all verified branch bindings in Admin settings.
+2. Inspect one-branch card, complete recipient and exact number.
+3. Inspect shared-account branches merged into one card with relevant names only.
+4. Inspect different accounts and the instruction to transfer the entire total
+   into one of them.
+5. Copy/paste number and full details on mobile; confirm leading zeros and manual
+   fallback if clipboard access is denied.
+6. Confirm one unchanged total and the existing accessible slip-upload area.
+
+Save/prepare/upload tests belong to the disposable environment. If Owner chooses
+a real transaction, opening Progressive payment may create a batch and is not
+read-only. Developer must not perform that action for Owner and must reconcile
+that exact Owner transaction separately. Owner PASS authorizes only exact staged
+Production-artifact Promotion without rebuild, then health/log/display checks
+and required closeout before TASK DONE.
+
+## 2026-09-07 — Task 9 authorized Docker recovery attempt and verified rollback
+
+**Historical evidence: state observed at this recovery handoff.** Current mutable
+state belongs to the first PROJECT_STATE.md matrix; TODO-CODEX.md derives its next
+action from that matrix. The earlier proposed recovery and its then-pending
+approval remain intact above. No earlier consent is inferred retrospectively.
+
+### Authorization and fresh preflight
+
+Owner's latest TASK 9 command approved exactly one run-directory rename, normal
+Hidden start of the installed Docker Desktop and preserving rollback if unhealthy.
+It explicitly added these host paths to the existing product scope:
+
+- C:\Users\aacha\AppData\Local\Docker\run
+- C:\Users\aacha\AppData\Local\Docker\run.task9-before-recovery-20260907
+- C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery-20260907
+- Executable: C:\Program Files\Docker\Docker\Docker Desktop.exe
+
+Fresh Gate 0 verified repository root, branch spike/next-major-security-upgrade,
+upstream origin/spike/next-major-security-upgrade and remote
+https://github.com/aachanin1/New-Athlete-Badminton-School.git. Fetch returned HEAD
+and upstream 1d8d0282e67c644dd93021f9cdb745916c344adf, ahead/behind 0/0. The same
+17 allowed files were pending; staged empty. No existing Source/Test was changed
+by this recovery round. Active Task remained only 9; items 1–8 stayed unauthorized.
+
+At 2026-09-07T14:42:34.8228051Z preflight found zero Docker processes. The exact
+Docker parent and run were ordinary directories, not directory reparse points,
+and resolved to the named absolute paths. Both before/after destinations were
+absent. Run contained precisely five zero-byte Archive/ReparsePoint entries:
+dockerEthernetVfkit, dockerInference, dockerInference.stale, sailor-ingest.sock,
+userAnalyticsOtlpHttp.sock. Approval and this evidence were recorded before rename
+in .playwright/branch-payment-accounts/docker-recovery-preflight.json.
+
+### Single recovery attempt and new failure
+
+PowerShell Rename-Item with LiteralPath and no overwrite/Force renamed run to the
+approved before-recovery name. All five original entries were retained and
+checked. Start-Process invoked the exact installed executable with WindowStyle
+Hidden at 2026-09-07T14:43:04.7416537Z. Launcher PID 25120 started at
+14:43:04.9262438Z. No second startup or installation was attempted.
+
+Process ancestry/start-time evidence recorded:
+
+| Process | PID | Parent PID |
+| --- | --- | --- |
+| Docker Desktop launcher | 25120 | 34088 — task PowerShell launcher |
+| Docker backend | 24884 | 25120 |
+| Docker backend | 32032 | 24884 |
+| Docker frontend | 14060 | 32032 |
+| Docker frontend child | 30856 | 14060 |
+| Docker frontend child | 28448 | 14060 |
+| Docker frontend child | 33396 | 14060 |
+| Task's docker info health probe | 19560 | 28072 — task health PowerShell |
+
+Docker recreated run with two entries, dockerInference and sailor-ingest.sock.
+It passed the original Ingest socket initialization but failed within seconds
+at a different service. New backend log at 2026-09-07T14:43:09.122957Z reported:
+
+> starting services: initializing Secrets Engine: listening on unix://C:/Users/aacha/AppData/Local/docker-secrets-engine/engine.sock
+
+The attempted engine.sock → engine.sock.stale rename returned "The file cannot
+be accessed by the system." This second directory was outside the approved
+recovery paths. The error identifies the next blocked socket; it does not prove
+the underlying Windows/filesystem cause of the inaccessible reparse points.
+
+Docker context read was desktop-linux, endpoint
+npipe:////./pipe/dockerDesktopLinuxEngine, confirming the intended local named
+pipe context, not a remote Docker endpoint. The server-version/health probe did
+not return a healthy engine and was stopped with the task-owned processes after
+the fatal startup evidence. No engine/container identity or local DB readiness
+was asserted. Startup was not retried.
+
+### Rollback executed and verified
+
+Before stopping, every observed Docker PID was compared with the stored process
+snapshot using executable path, parent PID and exact creation-time UTC ticks.
+The first guard falsely paused because parsing a DateTime through a formatted
+string lost precision; read-only saved/live comparison showed identical UTC
+timestamps. The guard was corrected to compare the actual DateTime ticks, then
+passed. No process was stopped before that identity check passed.
+
+Only the recorded task-owned processes were stopped. A subsequent process query
+waited for exit completion and confirmed zero Docker processes before rollback.
+Parent/run/before directories and destinations were rechecked; no concurrent
+process or destination collision was bypassed.
+
+Rollback operations, using native Rename-Item/LiteralPath without Force:
+
+1. New run → run.task9-after-recovery-20260907, preserving both new entries.
+2. Original run.task9-before-recovery-20260907 → run after confirming run absent.
+3. Compare restored original names, lengths and attributes with pre-rollback
+   evidence; all five matched. Confirm no Docker processes remained.
+
+Rollback verification timestamp: **2026-09-07T14:46:08.1510723Z**.
+
+| Exact path after rollback | Observed state |
+| --- | --- |
+| C:\Users\aacha\AppData\Local\Docker\run | Original five entries restored; ordinary directory |
+| C:\Users\aacha\AppData\Local\Docker\run.task9-before-recovery-20260907 | Name absent because original was renamed back; no deletion |
+| C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery-20260907 | Preserved new ordinary directory with dockerInference and sailor-ingest.sock, both zero-byte reparse entries |
+
+**Recovery attempted: Yes, once. Recovery successful: No. Rollback attempted:
+Yes. Rollback successful: Yes, directory state only.** Host Runtime Changed:
+**Yes**, including normal startup/log/process side effects and retained after
+directory. This does not mean Docker became healthy or a database backup was
+made. No original/new runtime data was deleted or overwritten. No Docker/WSL
+data reset, volume/image/container/VHD/distribution deletion, upgrade/reinstall,
+ACL/security or application-environment change was performed.
+
+JSON evidence under .playwright/branch-payment-accounts/:
+docker-recovery-preflight.json, docker-recovery-launch.json,
+docker-recovery-processes.json, docker-recovery-stopped-processes.json and
+docker-recovery-rollback.json. These are excluded local evidence, not new shipped
+technical files.
+
+### Verification and source/data/release separation
+
+After rollback, npm.cmd run test:history-payment:e2e again exited 1 while loading
+playwright.history.config.ts: getLocalSupabaseEnv invoked npx.cmd supabase status
+-o env and could not connect to the absent local Docker Linux-engine pipe. It
+did not reach global setup, reset, fixtures, dev server, payment API or teardown.
+Created test fixtures: **none**. Teardown/residue query: **not run**, not a measured
+zero-residue DB result. Existing local Supabase container/database identity is
+**Unknown / Need verification** until the engine works.
+
+Read harness evidence: supabase/config.toml names project
+New-Athlete-Badminton-School and API port 54321; getLocalSupabaseEnv obtains the
+CLI's local settings in memory and rejects non-localhost/non-127.0.0.1 endpoints.
+History setup/reset and fixtures use that client. Those are intended identity
+guards, not proof of a healthy endpoint. No credentials were displayed, no secret
+file contents were read, and Production was not used as a disposable substitute.
+
+Source/Test changes in this round: **0/0**. Exact pending 13 Source/Test file hashes
+were saved in docker-recovery-source-manifest.json. Earlier post-implementation
+logic 19/19, isolated component UI 320/390/1440, Batch 44/44, Integration 29/29,
+shared SlipOK 6/6, TypeScript/lint/build results remain evidence on the unchanged
+code; they were not reported as new real-DB results. This round reran the blocked
+History command and documentation mojibake/diff/matrix checks only. No application
+bounded correction was made; required real persistence, authorization, concurrent
+UPDATE/INSERT, audit and protected-table checks remain outstanding.
+
+This round's tracked edits: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md
+(Functional/Test/Documentation **0/0/3**). Cumulative pending task count remains
+**10/3/4**, exactly the 17 paths listed in the preceding implementation handoff.
+AGENTS.md's earlier permanent account rule and factual Next-version correction
+were preserved without adding temporary machine state. Authorized scope addition:
+the exact host recovery only. Product Scope Expansion **None**; Scope Breach
+**None**. Registration/alias/approval history remains intact.
+
+Fresh read-only Production deployment resolution still returned
+dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc, production READY, source
+7f27864cd100d860644c1e20c75b170ac0cb0986. Payment settings SELECT still returned
+the legacy singleton, accountNumber 0000000000 / instructions TEST Mode, timestamp
+2026-05-18T12:24:00.995606+00:00. No saved collection existed. Source defaults and
+fingerprint 29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6
+were unchanged; task 9 was not active in Production.
+
+At this handoff: Active Task **9 / DEVELOPING**, Source Complete **not certified**,
+Tests Passed **Partial**, Committed **No**, Pushed **No**, Deployed for task 9
+**No**, staged URL/ID/SHA **None**, READY FOR OWNER UAT **No**, Owner UAT **Not run**,
+Promotion **Not performed**, Production checks for task 9 **Not run**, Production
+UAT Passed **Not run**, Controlled Write UAT **Blocked**, Feature Enabled changes
+**None**, Allowlisted changes **None**, Production Active for task 9 **No**.
+Migration Source/Applied, Application Environment, Permission, Dependencies and
+Lockfile changes **None**. Host Runtime Changed **Yes, recovery rolled back with
+new runtime retained**. Production Data Changed by task **No**, Data Repaired
+**No**, Owner data actions **host approval only; no real transaction reported**.
+Customer Impact **none released**; Financial Impact **no amount/transaction or
+historical-data change**. Documentation Drift **resolved at this safe handoff**;
+Task Done **No**. Queue 1–8 and all protected business rules remained unchanged.
+
+### Concrete follow-up proposal — outside this approval, not executed
+
+Host repair stopped after the approved single attempt and rollback. Read-only
+metadata inspection of the newly named blocker found an ordinary directory
+C:\Users\aacha\AppData\Local\docker-secrets-engine containing only engine.sock
+and engine.sock.stale, both zero-byte reparse points. No socket or secret contents
+were opened. A further targeted attempt would require **new Owner authorization**
+because the original run was restored and the second directory is outside the
+first scope. This proposal does not imply approval to execute it now.
+
+Proposed next scope: quarantine both known blocked IPC directories together,
+start the same installed Docker once, and roll both back if startup fails. Recheck
+ordinary parent/source directories, exact entry sets and zero concurrent Docker
+processes immediately before any move; stop on drift. Preserve the first
+after-recovery folder and never reuse or overwrite its name.
+
+| Proposed source | Proposed preserved original | Proposed preservation of new directory on rollback |
+| --- | --- | --- |
+| C:\Users\aacha\AppData\Local\Docker\run | C:\Users\aacha\AppData\Local\Docker\run.task9-before-recovery2-20260907 | C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery2-20260907 |
+| C:\Users\aacha\AppData\Local\docker-secrets-engine | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-before-recovery2-20260907 | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-after-recovery2-20260907 |
+
+All four proposed destination names were absent during read-only proposal audit.
+The start executable would remain C:\Program Files\Docker\Docker\Docker Desktop.exe,
+Hidden; no reinstall/upgrade, ACL/security change or stored-data deletion. Expected
+effect is regeneration of IPC endpoints for both services with originals intact;
+it is not a proven fix for the underlying Windows error and could reveal another
+blocked startup path. If it fails, stop rather than expanding the scope again.
+
+Rollback proposal: stop only verified new task-owned processes, verify no
+concurrent Docker process, move each newly created directory to its exact second
+after path if present, then return each second-before directory to its original
+name only when the original destination is empty. If only the first quarantine
+succeeded before a failure, restore only that moved original. Preserve every
+copy, stop on any collision or path mismatch, and report exact partial state.
+No secret contents need to be read or changed. No Production data action is part
+of this proposed scope.
+
+Next action at this handoff: Owner/host support decides on this new bounded scope
+or another concrete host recovery plan. Existing task-9 continuous-delivery
+approval remains valid once the runtime is healthy; do not ask the two aliases,
+primary account or product Scope again. Real disposable checks must pass before
+commit/normal push, staged Production artifact, immutable Owner UAT and eventual
+Promotion. No artifact/UAT handoff or TASK DONE claim was made at this stop.
+
+## 2026-09-08 — Task 9 second bounded Docker recovery and rollback reconciliation stop
+
+State observed at this material safe handoff, 2026-09-08 Asia/Bangkok. This dated
+record preserves the first recovery and its then-unapproved follow-up proposal.
+PROJECT_STATE.md owns mutable status; this is not a release or UAT closeout.
+
+### New authorization and fresh Gate 0
+
+Owner explicitly approved the proposed two-directory recovery on 2026-09-08:
+one quarantine/startup attempt, preserving rollback of both parts on failure,
+existing installed Docker only, no third-directory repair. This superseded the
+earlier pending-approval wording only. The literal suffix 20260907 is the approved
+directory label, not the execution date. The receiving-account decision and two
+confirmed branch aliases remain unchanged; task 9 is the sole selected task.
+
+Fresh root, branch, remote/upstream and fetch comparison matched:
+C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School;
+spike/next-major-security-upgrade;
+origin/spike/next-major-security-upgrade;
+https://github.com/aachanin1/New-Athlete-Badminton-School.git;
+HEAD and upstream 1d8d0282e67c644dd93021f9cdb745916c344adf, ahead/behind 0/0.
+Staged was empty; all 17 allowed pending paths were preserved. The recovery2
+manifest captured all 13 functional/test hashes and matched the first recovery
+manifest exactly. No additional Source/Test edits or application corrections.
+
+The first recovery had passed sailor-ingest.sock and then failed at the Secrets
+Engine socket. These two observed inaccessible socket locations supported the
+approved combined quarantine experiment. They did not establish filesystem
+corruption, an ACL defect, or another Windows root cause.
+
+### Exact preflight and operations
+
+Preflight: 2026-09-08T01:22:50.5845362Z / 08:22:50 Asia/Bangkok. Immediate guards
+were repeated before each quarantine rename. Parent/source directories resolved
+to the exact approved absolute paths, were ordinary directories, and had no
+directory reparse-point attribute. A contained the five expected zero-byte
+reparse-point entries; B contained exactly engine.sock and engine.sock.stale.
+All four second-round destinations were absent. First-round after-recovery A
+remained present with its two entries. No socket/secret contents were read.
+
+| Part | Source | Before-recovery2 | After-recovery2 on rollback |
+| --- | --- | --- | --- |
+| A | C:\Users\aacha\AppData\Local\Docker\run | C:\Users\aacha\AppData\Local\Docker\run.task9-before-recovery2-20260907 | C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery2-20260907 |
+| B | C:\Users\aacha\AppData\Local\docker-secrets-engine | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-before-recovery2-20260907 | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-after-recovery2-20260907 |
+
+There was no concurrent Docker/backend, containerd, vmmem, Supabase or local test
+runner observed. com.docker.service was Stopped/Manual. No listener on 2375, 2376,
+54321, 54322 or 3000. The pre-existing wslservice.exe PID 5684, started August 25,
+was left untouched. These observations do NOT prove there are no offline or
+auto-restart containers. A later task inventory showed other non-Docker app work
+active on the host; it was not interrupted. Other Docker workload inventory and
+the full effect on other workloads could not be established with the engine down.
+
+Native PowerShell Rename-Item -LiteralPath moved A and B to their before2 names;
+no Force/overwrite or cross-shell filesystem operation. The move ledger recorded
+both completed at 2026-09-08T01:23:41.7949986Z. Installed
+C:\Program Files\Docker\Docker\Docker Desktop.exe started once with
+WindowStyle Hidden at 01:23:41.7968920Z, launcher PID 33308, process creation
+01:23:41.8326804Z. The planned health deadline was 01:27:41.7968920Z.
+
+At 01:23:42.5773162Z the new backend log again reported:
+
+`starting services: initializing Secrets Engine ... engine.sock ... rename ... engine.sock.stale: The file cannot be accessed by the system.`
+
+Backend crash was recorded at 01:23:45.5873207Z; Linux engines were shut down.
+The same Secrets Engine failure was decisive; no repeat startup or third-path
+quarantine was attempted. Docker Desktop version remained 4.89.0.
+
+Recorded process ancestry: launcher 33308 -> backend 12352 -> backend 22960 ->
+frontend 36500 -> frontend children 34284, 18004, 7340. These seven processes were
+matched against saved PID, executable, parent and exact UTC creation-time ticks
+before stopping. Unknown processes would have stopped rollback; none was found.
+No other process/service was stopped, and a fresh runtime query was empty before
+the rollback renames. WSL/service settings and restart policies were not changed.
+
+### Rollback result — rename completion is not full content restoration proof
+
+Every rollback move rechecked the resolved exact parent/source/destination,
+ordinary directories, destination absence and absence of concurrent runtime
+processes. No collision or command failure occurred. Sequence (UTC):
+
+1. 01:28:23.7983900: A canonical -> A after2.
+2. 01:28:24.0463073: A before2 -> A canonical.
+3. 01:28:24.2664259: B canonical -> B after2.
+4. 01:28:24.4774227: B before2 -> B canonical.
+
+Verification completed at 01:28:24.5195240Z / 08:28:24 Asia/Bangkok. Both before2
+names were absent because of rename-back, not deletion. HOWEVER, the following
+metadata discrepancy prevents certifying a complete B rollback:
+
+| Remaining directory | Observed entries after rollback | Finding |
+| --- | --- | --- |
+| C:\Users\aacha\AppData\Local\Docker\run | dockerEthernetVfkit, dockerInference, dockerInference.stale, sailor-ingest.sock, userAnalyticsOtlpHttp.sock | Matches A's original five-entry set |
+| C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery-20260907 | dockerInference, sailor-ingest.sock | First-round generated set retained untouched |
+| C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery2-20260907 | dockerInference, sailor-ingest.sock | Both timestamps correspond to the second launch |
+| C:\Users\aacha\AppData\Local\docker-secrets-engine | engine.sock only | Does not match preflight's two-entry set; socket creation timestamp 2026-09-03T08:18:14.4842731Z |
+| C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-after-recovery2-20260907 | engine.sock, engine.sock.stale | Both have pre-attempt timestamps (creation 2026-09-04T02:27:33.7439206Z), so this cannot be described as a proven freshly generated B set |
+
+Post-rollback file ID of canonical B:
+0x000000000000000000170000000aa7fd; B after2:
+0x0000000000000000002400000001a202. Both share parent file ID
+0x00000000000000000006000000030f51. Exact-path fsutil queryfileid and usn readdata
+confirmed the two distinct directory identities. Preflight did not capture
+directory file IDs, and no post-quarantine contents snapshot was taken before
+startup; the retained evidence cannot prove the original identity chain for B.
+The cause of the mismatch remains Unknown. No further rename or attempted swap
+was made after discovering it. Existing older sibling recovery directories were
+observed by name/metadata only and left untouched.
+
+The automatic outcome sentence in recovery2-rollback.json said originals were
+restored based on successful rename calls. Its raw operations/snapshots remain
+valid evidence, but that broad sentence is superseded by
+recovery2-reconciliation.json and this explicit limitation. No full rollback,
+Docker-health, full-data-backup, or zero-other-workload-impact claim is made.
+
+Read-only diagnosis: parent and both B directory case sensitivity was disabled;
+ordinary directory attributes were 16. fsutil reparsepoint query on engine.sock
+in each B location failed with Windows error 1920; socket contents were not read.
+Windows was Home Single Language 10.0.26200, last boot August 25. System event
+query for 08:22–08:29 local returned no critical/error/warning rows; this narrow
+window does not exclude a filesystem or filter-driver problem. Underlying host
+Root Cause remains unproven.
+
+A similar error class is reported in [Docker desktop-feedback issue 531](https://github.com/docker/desktop-feedback/issues/531).
+This is a third-party reproduction in Docker's issue tracker, not a maintainer
+diagnosis of this machine. Microsoft's [reparse-point documentation](https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-point-tags)
+distinguishes tags; the attribute alone is insufficient to identify the local
+socket's tag because the query failed. No copied workaround, feature change,
+reset, downgrade, reinstall or permission adjustment was executed.
+
+### Database verification and retained checks
+
+Docker context desktop-linux points to
+npipe:////./pipe/dockerDesktopLinuxEngine. Read-only docker info after rollback
+exited 1 because that pipe did not exist. Actual container inventory and database
+identity were unavailable. The unchanged local harness/config identify intended
+project New-Athlete-Badminton-School, API 54321, DB 54322 and PG17; the harness
+rejects a non-localhost/non-127.0.0.1 API endpoint. Intended config is not proof of
+a running disposable target. No Supabase start/reset, fixtures or tests that write
+data were attempted after the failed engine gate. History E2E was not retried
+against the identical unavailable engine; its prior before-setup failure remains.
+Fixture setup count for this task remains zero; teardown and residue were not
+queried, so there is no measured zero-residue claim.
+
+Fresh focused payment logic passed 19/19 after recovery. All 13 Source/Test
+hashes still matched before/after this round and the previous checked source.
+Retained implementation evidence: isolated actual-component UI 320/390/1440,
+Batch 44/44, Integration 29/29, shared SlipOK 6/6, TypeScript, lint and Production
+build. Application source/config/dependencies were not changed by recovery.
+Required real History UI/API/persistence, authorization, concurrent UPDATE and
+first INSERT, rejected stale/invalid writes, audit/protected-table comparison,
+save/reload, Progressive resume and teardown evidence remain BLOCKED. Simulated
+UI and logic results do not replace them.
+
+Fresh read-only Production deployment lookup still returned
+dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc, READY, source
+7f27864cd100d860644c1e20c75b170ac0cb0986. Payment settings SELECT still returned
+the legacy singleton accountNumber 0000000000 / instructions TEST Mode,
+updated_at 2026-05-18T12:24:00.995606+00. No saved versioned collection exists.
+New local source therefore uses eight defaults without a write; live old source
+still uses its old display. The account-defaults fingerprint remains
+29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6.
+
+### Concrete next proposal — diagnose identity before another host repair
+
+The two approved recovery rounds are consumed. Do not repeat quarantine or chase
+a third directory. The smallest next step is host-level diagnosis of the B
+identity discrepancy, with all five current directory sets retained:
+
+1. Host support reconciles metadata/USN rename evidence for the two exact B file
+   IDs above, parent ID, approved paths and the 01:22–01:29Z window. Compare native
+   directory lookup and enumeration without opening socket/secret contents.
+   Do not rename another directory merely because it has an old recovery label.
+2. If a further startup trace is needed, first define the exact filtered local
+   trace, output path and one-start scope for Owner review. No support upload or
+   external message is authorized here. Docker's [diagnostic workflow](https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/)
+   includes an upload action; it has NOT been run. Review any proposed collection
+   for sensitive contents and obtain explicit authorization before upload.
+3. A possible later maintenance option is an Owner-coordinated Windows Restart,
+   followed by metadata recheck and one normal Docker launch. This is proposed,
+   NOT executed or claimed to fix the fault. It requires all other active work
+   to be saved and a maintenance window: it interrupts the whole host and WSL,
+   and may trigger unknown auto-restart workloads. It cannot restore unsaved
+   process state by rollback. Therefore this is not an automatic continuation of
+   the two-directory approval. No reset, reinstall, ACL or feature change is
+   bundled into it; all existing directory sets must remain retained.
+
+Impact of the diagnostic first step is metadata/log reads and a local evidence
+record only; stopping collection ends it without reverting application or runtime
+data. An exact corrective rename or filesystem repair cannot be responsibly
+specified until the B identity discrepancy is resolved. Any later change must
+have its own concrete target/effect/rollback for review. Do not infer authorization
+from the earlier two-directory approval. Product continuous-delivery approval
+remains valid once a healthy, verified disposable runtime is available.
+
+### Changed files, delivery states and consistency
+
+This recovery round: Functional/Test/Documentation **0/0/3**; only
+PROJECT_STATE.md, TODO-CODEX.md and this DEVELOPMENT_TODO.md record changed.
+AGENTS.md's existing permanent account rule/version correction was preserved.
+Cumulative pending work remains the exact 10/3/4 allowlist:
+
+- Functional: src/lib/payment-settings.ts; src/lib/payment-transfer-defaults.ts;
+  src/components/payments/payment-transfer-card.tsx;
+  src/components/admin/payment-settings-client.tsx;
+  src/app/api/admin/payment-settings/route.ts;
+  src/app/(admin)/admin/payments/settings/page.tsx;
+  src/app/(admin)/admin/payments/page.tsx;
+  src/components/admin/payments-client.tsx;
+  src/app/(dashboard)/dashboard/history/page.tsx;
+  src/components/dashboard/history-client.tsx.
+- Tests: scripts/check-payment-transfer-settings.mjs;
+  tests/history-payment-regression/history-payment.spec.ts;
+  tests/history-payment-regression/local-supabase.ts.
+- Documentation: AGENTS.md; PROJECT_STATE.md; TODO-CODEX.md; DEVELOPMENT_TODO.md.
+
+No technical file was added to the allowlist; product scope expansion none;
+no observed host operation outside approved paths. Recovery startup attempts this
+round 1, additional application correction attempts 0. The rollback evidence gap
+is explicitly reported rather than hidden with an additional rename.
+
+At this handoff: Source Complete **not certified**, Tests Passed **Partial**,
+Committed **No**, Pushed **No**, task-9 Deployed **No**, staged URL/ID/SHA **None**,
+READY FOR OWNER UAT **No**, Owner UAT **Not run**, Promotion **Not performed**,
+task-9 Production checks **Not run**, Production UAT Passed **Not run**,
+Controlled Write UAT **Blocked**, Feature Enabled changes **None**, Allowlisted
+changes **None**, task-9 Production Active **No**. Host Runtime Changed **Yes**;
+Application Environment, Migration Source/Applied, Permission, Dependency and
+Lockfile changes **None**. Developer Production Data Changed **No**; Data Repaired
+**No**. Owner data actions **approval only; no real transaction reported**.
+Customer Impact **no released change**; Financial Impact **no amount or transaction
+change; proposed cards are transfer instructions only**. Active Task **9 /
+DEVELOPING**, Task Done **No**. Tasks 1–8 remain in order and unauthorized.
+
+Documentation Consistency Matrix reconciles the sole current PROJECT_STATE.md
+matrix, both short index references, and explicitly dated history. Old approval
+and first-recovery wording is preserved as historical, not a current blocker.
+Unknown host facts stay Unknown; no combined PASS conceals missing database tests.
+Final mojibake, diff, exact allowlist and unchanged-hash verification are recorded
+with the excluded recovery2 evidence. Nothing is staged, committed, pushed or
+deployed while required tests remain blocked.
+
+Evidence directory (excluded): .playwright/branch-payment-accounts/;
+recovery2-preflight.json, recovery2-source-manifest.json, recovery2-moves.json,
+recovery2-launch.json, recovery2-processes.json, recovery2-failure.json,
+recovery2-stopped-processes.json, recovery2-rollback-operations.json,
+recovery2-rollback.json and recovery2-reconciliation.json. The last file corrects
+the rollback JSON's automatic summary without deleting the original record.
+
+## 2026-09-08 — Task 9 urgent B identity reconciliation and verified native restoration
+
+State observed at this safe handoff, 2026-09-08 Asia/Bangkok. Owner's urgent
+instruction authorized diagnosis and restoration of the proven original B,
+preserving the distinct current set, without another startup, A mutation, reset,
+reboot, feature/permission change or Production write. Earlier records retain
+what was known then; this record supersedes their B identity uncertainty and
+incorrect physical-parent assumptions. PROJECT_STATE.md remains authoritative.
+
+### Gate 0 and additional identity evidence
+
+Fresh repository root, branch, HEAD/upstream, origin and fetch were verified:
+C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School;
+spike/next-major-security-upgrade;
+1d8d0282e67c644dd93021f9cdb745916c344adf on both local/upstream, 0/0;
+https://github.com/aachanin1/New-Athlete-Badminton-School.git.
+Staged empty, 17 allowed pending paths preserved. All 13 Source/Test hashes
+matched recovery2-source-manifest.json before and after reconciliation. The
+existing AGENTS permanent payment rule/version correction was not edited.
+
+The seven requested recovery2 evidence files were read and compared with the
+operation ledger. Directory IDs matched PM's values, but they did not establish
+the pre-recovery native location until the journal was read. Normal token was
+not elevated. This exact metadata command failed with Error 5, Access is denied:
+
+`C:\Windows\System32\fsutil.exe usn readjournal C: csv minVer=2 maxVer=3 startUsn=0x000000025b800000`
+
+queryjournal itself succeeded. Journal ID was 0x01dcf96a38492aeb. First retained
+USN advanced from 0x25b800000 to 0x25c000000 during diagnosis, so the successful
+read used startUsn=0 (oldest retained) rather than requesting a discarded start.
+A .ps1 diagnostic launch under Windows PowerShell was blocked by its existing
+Restricted execution policy; no policy or ACL was changed. Normal Windows UAC
+with RunAs was then used for the native read/filter pipeline:
+
+`C:\Windows\System32\fsutil.exe usn readjournal C: csv minVer=2 maxVer=3 startUsn=0`
+
+Its stdout/stderr was piped directly to native findstr, retaining only either B
+directory ID (also matching child-parent references) and error lines before
+writing the local CSV. No whole-journal file, unrelated path list or secret
+contents was stored/displayed. The privileged read succeeded and returned nine
+related rename/close records. CSV Buddhist-year local times were converted using
+th-TH and SE Asia Standard Time; all nine fall within 01:22–01:29 UTC. No related
+child create/delete/rename/change record was returned in that retained read.
+
+The decisive evidence is file identity and parent transitions, not timestamps:
+
+| Identity | Actual physical location established with queryfilenamebyid and Explorer |
+| --- | --- |
+| 0x0000000000000000000200000000db44 | C:\Users\aacha\AppData\Local — real native parent |
+| 0x00000000000000000006000000030f51 | C:\Users\aacha\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local — private Codex parent |
+| 0x000000000000000000170000000aa7fd | Before reconciliation: private LocalCache\Local\docker-secrets-engine, one engine.sock |
+| 0x0000000000000000002400000001a202 | Before reconciliation: private LocalCache\Local\docker-secrets-engine.task9-after-recovery2-20260907, engine.sock and engine.sock.stale; journal proves prior real native B location |
+
+| UTC / USN | Proven transition |
+| --- | --- |
+| 01:23:41 / 10158165040 -> 10158165144 -> 10158165312 | Shadow aa7fd: B -> before-recovery2, parent 30f51 unchanged |
+| 01:28:24 / 10159213496 -> 10159213600 -> 10159213768 | Native original 1a202: B under real parent db44 -> after-recovery2 under private parent 30f51 |
+| 01:28:24 / 10159215296 -> 10159215464 -> 10159215568 | Shadow aa7fd: before-recovery2 -> B, private parent 30f51 unchanged |
+
+### Established cause of the discrepancy
+
+The Codex packaged process had an MSIX merged/redirected AppData view. Logical
+Resolve-Path and ordinary-directory attributes alone therefore did not establish
+the real filesystem parent. Preflight enumeration exposed two names from the
+combined view, while the first B rename moved only the one-entry private shadow.
+The original native two-entry B was never quarantined before Docker startup.
+The earlier rollback then moved that native B into private LocalCache as after2
+and restored the shadow at the logical canonical name. This explains both the
+1-versus-2 entry mismatch and why the second startup still encountered the old
+native Secrets Engine socket. It does NOT establish the underlying cause of
+Windows error 1920 on that old socket.
+
+This observed behavior is consistent with Microsoft's [packaged AppData rules](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes):
+private app data can be merged into the apparent AppData namespace. Even an
+elevated child launched directly from Codex still observed parent 30f51. The
+ordinary Shell.Application instance also retained that view. The existing Explorer
+desktop dispatch, obtained through Windows().FindWindowSW and
+Document.Application.ShellExecute, produced the real parent db44 without changing
+any virtualization, security or application setting. This uses the supported
+[Explorer launch mechanism](https://learn.microsoft.com/en-us/windows/win32/shell/samples-execinexplorer).
+
+At 02:10:18.920373Z that independent native snapshot proved: real B absent, real
+after2 absent, approved preservation destination absent; shadow aa7fd and original
+after2 1a202 present at their expanded private paths. Both source directories were
+ordinary, with the expected one/two zero-byte reparse-point entries (1056).
+No concurrent Docker process existed then or at either move guard. A transient
+unrelated docker.exe CLI PID 4120 had appeared during an earlier read-only
+snapshot and exited; it was not stopped or used as authorization for a mutation.
+
+### Authorized restoration performed, with identity guards
+
+The physical paths below identify the same two Owner-authorized B objects by
+file ID, not an additional directory set. Their expansion was explained and
+recorded in reconcile-b-approved-identity-plan.json BEFORE mutation. Using those
+exact physical sources through native Explorer-context PowerShell was necessary
+to return original B to its real parent instead of repeating redirection.
+
+Before each Move-Item, guards verified absolute resolved paths, ordinary parents
+and sources, exact file IDs, empty destination and no concurrent runtime process.
+No Force, copy, socket merge, overwrite, delete or cross-shell filesystem move.
+PowerShell received the reviewed native commands directly; no execution policy
+was disabled and no script-file restriction was changed. The actual moves were:
+
+| Time UTC / Bangkok | Source | Destination | Verified identity |
+| --- | --- | --- | --- |
+| 02:13:09.6767092 / 09:13:09 | C:\Users\aacha\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\docker-secrets-engine | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-preserved-before-reconcile-20260908 | aa7fd retained; new parent db44; one engine.sock |
+| 02:13:10.0237409 / 09:13:10 | C:\Users\aacha\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\docker-secrets-engine.task9-after-recovery2-20260907 | C:\Users\aacha\AppData\Local\docker-secrets-engine | 1a202 retained; original parent db44 restored; two entries |
+
+Final native verification completed at 02:13:10.1039750Z. Both directories retain
+attributes 16; their one/two entries retain length 0 and attributes 1056. Former
+private B and after2 paths are absent due to moves, not deletion. The original B
+directory and distinct shadow are both preserved. Step-B failure rollback was
+prepared to return preservation to the exact original private shadow location
+only when destinations stayed empty; it was NOT needed or executed.
+
+Independent follow-up queryfilenamebyid and readdata confirmed canonical B now
+has ID 1a202 and actual parent db44, and aa7fd resolves to the approved native
+preservation path. A second filtered USN read independently confirmed six new
+rename/close records: shadow move USNs 10173886592/10173886696/10173886888 and
+original restoration USNs 10173889120/10173889288/10173889392. Both move from
+private parent 30f51 to native parent db44, with unchanged directory IDs.
+
+**B identity established: Yes. Native original B restored: Yes. Docker healthy:
+No.** This verifies the B rollback correction only; it is not a Docker repair or
+a backup of all Docker data. No engine/startup/service action was taken. Read-only
+docker info still exited 1 because dockerDesktopLinuxEngine pipe was absent.
+
+### A preserved; concrete next runtime proposal, not executed
+
+Native metadata read at 02:14:58.6008685Z confirmed A and its retained sets were
+unchanged by this reconciliation:
+
+| Native path | Directory ID | Entries |
+| --- | --- | --- |
+| C:\Users\aacha\AppData\Local\Docker\run | 0x000000000000000000f8000000015556 | Original five |
+| C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery-20260907 | 0x0000000000000000018a000000019fd2 | Two |
+| C:\Users\aacha\AppData\Local\Docker\run.task9-after-recovery2-20260907 | 0x00000000000000000005000000008680 | Two |
+
+Native Docker parent ID is 0x00000000000000000010000000025cd7; private
+LocalCache\Local\Docker and its run variants were absent. No A move was made.
+
+There is new evidence for a next runtime attempt: the original native B was never
+quarantined in round two. Repeating the old logical-path operation is inappropriate.
+A proposed additional scope would operate from the verified Explorer native
+context against both real A and restored real B, with these exact fresh names:
+
+| Native source | Preserve original, proposed only | Preserve new directory if rollback, proposed only |
+| --- | --- | --- |
+| C:\Users\aacha\AppData\Local\Docker\run | C:\Users\aacha\AppData\Local\Docker\run.task9-before-native-recovery-20260908 | C:\Users\aacha\AppData\Local\Docker\run.task9-after-native-recovery-20260908 |
+| C:\Users\aacha\AppData\Local\docker-secrets-engine | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-before-native-recovery-20260908 | C:\Users\aacha\AppData\Local\docker-secrets-engine.task9-after-native-recovery-20260908 |
+
+Before any such attempt, recheck native parents, source file IDs above, full entry
+sets, no shadow collisions, all proposed destinations absent and no concurrent
+runtime workload. Stop on changed identity; do not silently choose another set.
+After each quarantine, verify the original ID under the native before path and
+that the native source is actually absent. Start only
+C:\Program Files\Docker\Docker\Docker Desktop.exe once, Hidden, from that same
+native context, record PID/ancestry/creation and new logs, with a four-minute
+engine-health deadline. No feature/settings/ACL/reboot/reset/reinstall action.
+
+If either move or startup fails, stop only verified task-owned startup processes;
+check no concurrent runtime; preserve each newly generated native directory at
+its proposed after name; restore each before directory to its original native
+parent by file ID. Stop on collision; never overwrite. Retain every existing
+recovery copy and the newly preserved aa7fd directory. This rollback returns
+runtime directories, not guaranteed engine health. If a different socket fails,
+stop and report rather than extending the directory list.
+
+Expected host effect is regeneration of IPC directories for the two real native
+services. Existing containers with restart policies may start once the engine
+becomes healthy; inventory is currently unavailable, so the effect on other
+Docker workloads is Unknown. No restart-policy change or other workload stop is
+included. Verify inventory and isolate this project's local Supabase before any
+test reset/fixtures. Owner review is required for this additional A/startup scope
+under the latest command's sections 4 and 8; urgent B restoration approval does
+not authorize it. No proposed path was created and no extra startup occurred.
+
+### Application evidence, scope and handoff states
+
+No new application tests were required for these two host moves because all 13
+Source/Test files still match their checked manifest. Retained implementation
+checks: focused logic 19/19, isolated UI 320/390/1440, Batch 44/44, Integration
+29/29, shared SlipOK 6/6, TypeScript, lint and Production build. Required History
+DB E2E remains blocked: actual container/database identity cannot be verified
+without the engine. No disposable reset, fixtures, save/prepare/upload or teardown
+was run; residue is not measured. Simulated UI/logic is not persistence evidence.
+
+This round changes **Functional/Test/Documentation 0/0/3**: PROJECT_STATE.md,
+TODO-CODEX.md and DEVELOPMENT_TODO.md. Cumulative exact pending allowlist remains
+10/3/4, 17 paths listed in the preceding record. No product scope expansion or
+application bounded correction. Prior physical B target deviation is established
+and corrected; this round restores the same approved B identities only. No A or
+third-set mutation. One corrective two-move sequence, no retry or rollback needed.
+
+Excluded local diagnostic artifacts were added for this direct host diagnosis:
+reconcile-b-read-usn.ps1 (filtered read helper; normal permission failure and
+script-policy failure retained), native read/dispatch command records, filtered
+CSV/parsed JSON, native/private/Explorer snapshots, approved identity plan,
+reconcile-b-native-operation-command.txt and reconcile-b-operation-result.json.
+They are evidence helpers, not new application/test/dependency files. No external
+diagnostic upload, secret content read, file deletion or data merge.
+
+At this handoff: Source Complete **not certified**, Tests Passed **Partial**,
+Committed **No**, Pushed **No**, Deployed for task 9 **No**, staged URL/ID/SHA
+**None**, READY **No**, Owner UAT **Not run**, Promotion **Not performed**,
+Production checks for task 9 **Not run**, Feature Enabled changes **None**,
+Allowlisted changes **None**, Production Active for task 9 **No**, Production UAT
+**Not run**, Controlled Write UAT **Blocked**. Host Runtime Changed **Yes**, B
+restoration **verified**; Application Environment, Migration Source/Applied,
+Permission, Dependencies and Lockfile changes **None**. Production Data Changed
+**No**; financial/application Data Repaired **No**. Owner data actions **urgent
+host approval only; no real transaction reported**. Customer Impact **no released
+change**; Financial Impact **no amount, pricing or transaction change**.
+
+The earlier same-day Production lookup/settings SELECT remain the last evidence:
+existing artifact dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc / source
+7f27864cd100d860644c1e20c75b170ac0cb0986, legacy payment configuration. No Production
+query or mutation in this urgent round. Local source defaults/fingerprint remain
+unchanged. Documentation Drift is resolved for current B status, with earlier
+uncertainty retained as history; Windows socket root cause remains explicit.
+Active Task **9 / DEVELOPING**, Task Done **No**; items 1–8 remain unauthorized.
+Next action: Owner reviews the exact additional native runtime scope above; once
+healthy, verify disposable identity and complete real DB tests before release.
+
+Documentation matrix/index/history, exact pending allowlist and Source/Test hashes
+were reconciled. Final mojibake/diff checks and concise current identities are
+retained in reconcile-b-handoff-checks.json under the excluded evidence directory.
+No staged changes, commit, push, deploy or UAT-ready claim at this host handoff.
+
+## 2026-09-08 — Task 9 disposable verification resumed and passed
+
+State observed before implementation publication, approximately 03:20–03:45 UTC
+on 2026-09-08. PROJECT_STATE.md remains the only current-state authority. Owner
+reported Docker Server 29.7.2, desktop-linux, 12 containers / 10 running and
+authorized continuing task 9 through READY under the existing 10/3/4 contract.
+This supersedes the old Docker-down/A-B-startup proposal; it does not assert how
+the Owner restored the engine, a Developer upgrade, or a permanent socket fix.
+The verified B restoration and prior physical-target deviation remain historical.
+No further recovery directory move, Docker startup, reset/reinstall, ACL/security
+change, or recovery-copy deletion was performed in this continuation.
+
+### Fresh Gate 0 and disposable identity before any suite setup
+
+Root, branch, origin and fresh fetch were verified: the requested repository;
+spike/next-major-security-upgrade; origin at
+https://github.com/aachanin1/New-Athlete-Badminton-School.git;
+HEAD/upstream 1d8d0282e67c644dd93021f9cdb745916c344adf, 0/0, 17 pending allowed
+paths and empty stage. All 13 incoming Source/Test hashes matched the prior
+manifest. All pending work was retained. AGENTS, current docs, the requested
+dated decisions, actual settings/API/loaders/components, test setup/teardown,
+shared harness, config and relevant migrations were inspected before execution.
+
+Developer's own Docker calls succeeded without elevation or an access workaround:
+Client/Server 29.7.2, Docker Desktop 4.90.0, desktop-linux and local
+npipe:////./pipe/dockerDesktopLinuxEngine. The inventory was 10 running, one
+exited Edge runtime, and one restarting/unhealthy Vector. Every container had
+the New-Athlete-Badminton-School project label and shared project network:
+
+| ID at Gate 0 | Container suffix after supabase_ | Scope/disposition |
+| --- | --- | --- |
+| f9466333e374 | db_New-Athlete-Badminton-School | Verified disposable DB; exact root workdir; reset authorized |
+| 1f1025820aa2 | studio_New-Athlete-Badminton-School | Related existing service, preserved |
+| b7084d664703 | pg_meta_New-Athlete-Badminton-School | Related existing service, preserved |
+| 989eae0e27a2 | edge_runtime_New-Athlete-Badminton-School | Exited; preserved, no repair/start |
+| 1ce3d634e3d4 | storage_New-Athlete-Badminton-School | Verified test storage; original files preserved |
+| 52a24e4be0e8 | rest_New-Athlete-Badminton-School | Related API service, preserved |
+| ad6d2a1a1ee1 | realtime_New-Athlete-Badminton-School | Related service, preserved |
+| da6e20ba5458 | inbucket_New-Athlete-Badminton-School | Related local mail service, preserved |
+| 113a533a7d96 | auth_New-Athlete-Badminton-School | Related local Auth service, test actors only |
+| d3ff6c8bd2ec | kong_New-Athlete-Badminton-School | Project API gateway; existing reset harness restarts it |
+| e062c46c37e3 | vector_New-Athlete-Badminton-School | Restarting; preserved, no repair/stop |
+| 92215d2ea614 | analytics_New-Athlete-Badminton-School | Related existing service, preserved |
+
+The 11 older service labels retain workdir
+C:\Users\aacha\AppData\Local\Temp\sld-exact-base-4174941b2c33472187c7f00048e838cb\New-Athlete-Badminton-School.
+That label alone was not treated as ownership proof: the exact DB root workdir,
+project-labelled volumes, container network addresses, actual DB connections,
+config and empty data were also checked. No other project/container was found
+or stopped. No concurrent Next/Playwright workload or port-3000 listener existed.
+pg_stat_activity clients mapped only to this project's own services, idle and
+outside transactions.
+
+Config and redacted status matched project_id New-Athlete-Badminton-School, API
+http://127.0.0.1:54321, DB 127.0.0.1:54322/postgres, PostgreSQL 17.6 and data
+directory /var/lib/postgresql/data. System identifier at Gate 0 was
+7682098156654641194. The DB mount was named volume
+supabase_db_New-Athlete-Badminton-School; storage mounted
+supabase_storage_New-Athlete-Badminton-School at /mnt. Actual SELECT counts showed
+no Auth users/profiles/business rows/settings/storage objects. Remaining public
+rows were the migration's 70 levels and one retention configuration. All 30
+Auth-audit rows matched example.com test actors. All 35 installed migration
+versions matched the repository, latest 20260831060105. No seed.sql exists;
+the CLI's existing no-match warning was retained, not fixed outside scope.
+
+Storage had 88 pre-existing physical files despite zero object metadata. Their
+exact path manifest was retained and none was authorized for deletion. This
+distinction was recorded before running the suite; local/global teardown resets
+the DB but does not prove physical blob cleanup. The disposable gate was written
+to resume-disposable-gate.json BEFORE loading the suite/globalSetup.
+
+The unpinned existing npx command fetched cache Supabase CLI 2.117.0 during its
+version probe. Help and redacted status were inspected; no project dependency or
+lockfile changed. Its approved local reset also pulled Realtime v2.130.0 for
+initialization. These local tooling/setup effects are disclosed separately from
+Docker/WSL upgrade, project environment and Production configuration changes.
+
+### Actual failures and bounded test corrections
+
+1. First full suite: one failure before the first settings mutation. The test
+   queried public.Ledger, which does not exist in the actual migration schema.
+   Source Finance uses payment_ledger_allocations_v1; migrations create that view
+   and the actual payments/allocation/finance tables. No fake Ledger table was
+   created and no read error was interpreted as zero. The allowed local-supabase
+   helper now verifies exact local endpoint/project/root container, executes
+   read-only to_regclass against PostgreSQL, and fails if the unexpected Ledger
+   relation exists. Fingerprints include this explicit absence evidence and
+   full data from the real protected tables/view. Existing payment lifecycle
+   snapshots use the same catalog proof. One correction; subsequent runs passed.
+2. Second suite: three real tests passed, then failed-save UI assertion hit both
+   the real error paragraph and Next's route-announcer role=alert. The expected
+   Thai error was present. Scope the two alert selectors to payment-settings-editor;
+   keep the exact error/draft/persisted-row assertions. One correction; passed.
+3. Final full suite: **16/16 passed**, 4.1 minutes, no retries. Added actual Dialog
+   save, persisted value, reload and second intended audit assertion to the same
+   settings test; standalone and Dialog both verified. No functional source edit.
+
+Each attempt completed globalTeardown and its residue query returned zero.
+The passing run demonstrated UPDATE and absent-row INSERT races with exactly
+one 200 and one 409, one intended audit each; stale/old/invalid bodies leave
+settings unchanged; User returns 401 and denied standard Admin 403. Full protected
+data fingerprints remain unchanged after settings saves. Failed save preserves
+draft, concurrent edit is explicit, saved empty collection never revives defaults.
+
+Actual History UI passed 320/390/desktop copy and manual fallback, no overflow,
+visible submit, explicit configuration-change acknowledgement and unchanged total.
+Multiple actual lesson-session branches resolve into shared/separate cards; only
+the batch members' accounts/names appear and Progressive resume retains one batch.
+Existing rapid prepare/cancel/stale/full-scope rejection, invalid-file zero-write,
+Legacy uploads and Progressive shared Test Mode approval/allocation tests passed.
+UI transport-failure injection is limited to that error-path test, not a substitute
+for persistence/concurrency/auth evidence. No live SlipOK request was enabled.
+
+### Cleanup and checks on the tested source
+
+Independent post-teardown SELECTs measured Auth users, profiles, bookings,
+sessions, payments, batches, settings, activity logs and storage object metadata
+all zero. The final fixture user was a9566934-16b3-443f-afd8-217b2047ad44.
+Physical storage comparison found exactly 15 newly created files beneath that
+user's two payment-slip prefixes and all original 88 paths still present.
+The exact 15-file plan, container/volume identity and authorization were recorded
+before cleanup. A single Node filesystem operation inside that verified storage
+container checked real paths and no symlinks, removed only those 15 files and
+21 empty fixture directories, then verified both fixture roots absent. Independent
+inventory returned exactly the original **88/88** files, no new fixture files.
+Result timestamp 2026-09-08T03:39:48.0786079Z. No volume/container deletion or
+other-workload cleanup. Physical residue zero is separate from DB/API residue zero.
+
+Fresh checks: focused logic **19/19**, Batch **44/44**, Integration **29/29**,
+shared SlipOK **6/6**, History **16/16**, npx tsc --noEmit, src lint with zero
+warnings, and Production build Next **16.2.12**, 94 pages. All ten functional
+file hashes are unchanged from the incoming verified manifest. Prior isolated
+component UI evidence remains valid but the fresh real UI/API/DB suite now
+supplies the required integration evidence. Build output was preserved under
+.playwright/branch-payment-accounts/production-build-resume-20260908; a fresh
+local dev server returned homepage 200 and seven static assets 200. No payment
+action was performed in that post-build check. Final mojibake/diff/matrix and
+staged-review evidence accompanies publication.
+
+### Release preflight, unchanged decisions and observed states
+
+Fresh Production SELECT confirmed all 12 exact branch IDs/names/slugs/active
+states and the same legacy payment configuration: accountNumber 0000000000,
+instructions TEST Mode, other fields blank, updated_at
+2026-05-18T12:24:00.995606+00:00. No saved account collection or Production write.
+New source therefore uses the original eight defaults. Canonical fingerprint:
+29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6.
+No primary-account or alias decision was reopened.
+
+Installed cached Vercel CLI 59.11.7 deploy help confirms --prod --skip-domain.
+The api-help update worker timed out once; a subsequent real read-only API call
+succeeded. No CLI/dependency upgrade or authentication-setting change was needed.
+Fresh project API shows productionBranch main, no branch deploy hooks, and both
+www.newathleteschool.com / new-athlete-badminton-school.vercel.app unbound to the
+spike branch. GitHub Pages workflow triggers main only. Normal push on the task
+branch therefore does not promote the task to those Production domains.
+Production target/rollback candidate remains READY:
+dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc,
+new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app,
+source 7f27864cd100d860644c1e20c75b170ac0cb0986. Existing Preview of docs HEAD is
+dpl_9vLxUgBnkHCJFBZRiMt2UpwDHAeQ; it is not a task-9 UAT artifact. Deployment dry
+inspection listed 411 inputs and no env, local runtime/fixture/report, backup,
+node_modules or Git files. A staged Production artifact remains the next gate.
+
+This continuation's changes are **0 functional / 2 test / 3 documentation**;
+cumulative exact allowlist remains **10/3/4**. Only the two History test files
+and PROJECT_STATE/TODO-CODEX/DEVELOPMENT_TODO changed this round. No additional
+technical source file, product expansion, new scope breach or application
+correction. Earlier host deviation is retained as history. No AGENTS addition.
+
+At this pre-publication observation: Source Complete Yes, required application
+Tests Passed Yes; Committed/Pushed and Deployed task-9 artifact pending authorized
+publication; READY No; Owner UAT/Promotion/Production checks not run. Production
+Active task 9 No, Production UAT not run, Controlled Write UAT passed only in the
+disposable environment. Feature Enabled/Allowlisted changes None. Host Runtime
+Changed Yes for local Supabase resets/fixtures; no recovery action. Application
+configuration, dependencies/lockfile, permission and migration source unchanged;
+35 existing migrations applied only to disposable DB, never Production. Production
+Data Changed No; Data Repaired No. Owner reported engine health and continuation
+approval, no real transaction. Customer Impact no released change; Financial
+Impact no Production amount/transaction change. Documentation Drift corrected for
+the recovered engine and completed DB verification. Active Task 9 / DEVELOPING,
+Task Done No; original 1–8 remain unauthorized. Next: verified commit/normal push,
+exact staged Production artifact and no-write smoke, then READY FOR OWNER UAT.

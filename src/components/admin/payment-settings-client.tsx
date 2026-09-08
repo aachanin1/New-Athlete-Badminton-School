@@ -1,167 +1,167 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowLeft, Banknote, Loader2, Save } from 'lucide-react'
-
+import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import type { PaymentTransferSettings } from '@/lib/payment-settings'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { PaymentTransferCard } from '@/components/payments/payment-transfer-card'
+import { PAYMENT_BANK_NAMES, paymentTransferReadToken, transferAccountKey, validateTransferAccounts,
+  type PaymentBranch, type PaymentTransferAccount, type PaymentTransferSettings } from '@/lib/payment-settings'
 
 interface PaymentSettingsClientProps {
   settings: PaymentTransferSettings
+  branches: PaymentBranch[]
   compact?: boolean
 }
 
-export function PaymentSettingsClient({ settings, compact = false }: PaymentSettingsClientProps) {
+export function PaymentSettingsClient({ settings, branches, compact = false }: PaymentSettingsClientProps) {
   const router = useRouter()
-  const [form, setForm] = useState(settings)
+  const [saved, setSaved] = useState(settings)
+  const [observed, setObserved] = useState(settings)
+  const [roster, setRoster] = useState(branches)
+  const [form, setForm] = useState(settings.accounts)
+  const [activeId, setActiveId] = useState<string | null>(settings.accounts[0]?.id || null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const updateField = (field: keyof PaymentTransferSettings, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }))
-    setMessage(null)
-    setError(null)
+  const [confirmation, setConfirmation] = useState<'reload' | 'remove' | null>(null)
+  useEffect(() => { setObserved(settings) }, [settings])
+  const active = form.find(account => account.id === activeId)
+  const dirty = paymentTransferReadToken(form) !== paymentTransferReadToken(saved.accounts)
+  const stale = observed.readToken !== saved.readToken
+  const clearFeedback = () => { setMessage(null); setError(null) }
+  const update = (change: Partial<PaymentTransferAccount>) => {
+    setForm(current => current.map(account => account.id === activeId ? { ...account, ...change } : account))
+    clearFeedback()
   }
-
+  const acceptSaved = (result: { settings: PaymentTransferSettings; branches: PaymentBranch[] }) => {
+    setSaved(result.settings); setObserved(result.settings); setForm(result.settings.accounts); setRoster(result.branches)
+    setActiveId(current => result.settings.accounts.some(account => account.id === current) ? current : result.settings.accounts[0]?.id || null)
+  }
+  const reload = async () => {
+    setSaving(true); clearFeedback()
+    try {
+      const response = await fetch('/api/admin/payment-settings', { cache: 'no-store' })
+      const result = await response.json()
+      if (!response.ok || !result.settings || !Array.isArray(result.branches)) throw new Error()
+      acceptSaved(result)
+      setMessage('โหลดข้อมูลล่าสุดแล้ว')
+    } catch { setError('โหลดข้อมูลล่าสุดไม่สำเร็จ แบบร่างยังอยู่ กรุณาลองใหม่') }
+    finally { setSaving(false) }
+  }
   const save = async () => {
+    if (saving) return
+    clearFeedback()
+    const validation = validateTransferAccounts(form, roster)
+    if (validation.error) { setError(validation.error); return }
     setSaving(true)
-    setMessage(null)
-    setError(null)
-
     try {
       const response = await fetch('/api/admin/payment-settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: 2, accounts: form, expectedReadToken: saved.readToken }),
       })
       const result = await response.json().catch(() => null)
-
-      if (!response.ok) {
-        setError(result?.error || 'บันทึกข้อมูลการชำระเงินไม่สำเร็จ')
+      if (!response.ok || !result?.success || result.settings?.source !== 'saved' || !Array.isArray(result.branches)) {
+        setError(result?.error || 'บันทึกไม่สำเร็จ แบบร่างยังอยู่ กรุณาโหลดข้อมูลล่าสุดเพื่อตรวจสอบสถานะก่อนลองใหม่')
         return
       }
-
+      acceptSaved(result)
       setMessage('บันทึกข้อมูลการชำระเงินเรียบร้อยแล้ว')
       router.refresh()
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setSaving(false)
-    }
+    } catch { setError('ยังยืนยันผลการบันทึกไม่ได้ แบบร่างยังอยู่ กรุณาโหลดข้อมูลล่าสุดเพื่อตรวจสอบก่อนลองใหม่') }
+    finally { setSaving(false) }
   }
-
-  return (
-    <div className="space-y-5">
-      <div className={`flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between ${compact ? 'hidden' : ''}`}>
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
-            <Banknote className="h-4 w-4" />
-            Payment Settings
+  const add = () => {
+    const id = crypto.randomUUID()
+    setForm(current => [...current, { id, bankName: 'SCB', accountNumber: '', accountName: '', branchIds: [] }])
+    setActiveId(id); clearFeedback()
+  }
+  return <div className="min-w-0 space-y-4" data-testid="payment-settings-editor">
+    {!compact && <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div><h1 className="text-2xl font-bold text-[#153c85]">ตั้งค่าการชำระเงิน</h1><p className="text-sm text-slate-600">บัญชีรับเงินและสาขาที่ใช้บัญชีร่วมกัน</p></div>
+      <Button variant="outline" asChild><Link href="/admin/payments"><ArrowLeft className="mr-2 h-4 w-4" />กลับหน้าตรวจชำระเงิน</Link></Button>
+    </div>}
+    <div className="space-y-1 rounded-xl border bg-blue-50 p-4 text-sm text-blue-950">
+      <p>ลูกค้าเลือกโอนยอดทั้งหมดเข้าบัญชีใดบัญชีหนึ่งที่เกี่ยวข้องกับชุดชำระ แล้วแนบสลิป 1 ใบ</p>
+      <p>การตั้งค่านี้เป็นข้อมูลแนะนำการโอน ไม่ใช่การตรวจผู้รับเงินจริง และไม่แก้ประวัติธุรกรรมย้อนหลัง</p>
+    </div>
+    <p className="text-sm text-slate-600" data-testid="payment-settings-source">
+      {saved.source === 'defaults' ? 'ใช้ข้อมูลตั้งต้นของโรงเรียน — ยังไม่มีชุดบัญชีที่บันทึกใหม่' : saved.source === 'saved' ? 'ใช้ชุดบัญชีที่บันทึกแล้ว' : 'ข้อมูลที่บันทึกผิดรูปแบบ กรุณาตรวจสอบและแก้ไข'}
+      {' · '}{dirty ? 'มีแบบร่างที่ยังไม่บันทึก' : 'ไม่มีการแก้ไขในแบบร่าง'}
+    </p>
+    {saved.error && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">{saved.error}</p>}
+    {stale && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">มีการตั้งค่ารุ่นใหม่แล้ว แบบร่างนี้ยังคงอยู่ กรุณาโหลดข้อมูลล่าสุดก่อนบันทึก</p>}
+    {(error || message) && <p role={error ? 'alert' : 'status'} className={'rounded-lg border p-3 text-sm ' + (error ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-900')}>{error || message}</p>}
+    <fieldset disabled={saving} className="min-w-0 space-y-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {form.map((account, index) => <button key={account.id} type="button" onClick={() => setActiveId(account.id)}
+          aria-pressed={activeId === account.id} data-testid="payment-settings-account"
+          className={'min-h-16 min-w-0 rounded-lg border p-3 text-left text-sm ' + (activeId === account.id ? 'border-blue-500 bg-blue-50' : 'bg-white')}>
+          <span className="block font-semibold">บัญชี {index + 1} · {account.bankName}</span>
+          <span className="block break-all font-mono">{account.accountNumber || 'ยังไม่ได้ระบุเลขบัญชี'}</span>
+          <span className="block break-words text-slate-600">{account.branchIds.map(id => roster.find(branch => branch.id === id)?.name || 'ไม่พบสาขา').join(' · ') || 'ยังไม่ได้เลือกสาขา'}</span>
+        </button>)}
+      </div>
+      <Button type="button" variant="outline" onClick={add} disabled={form.length >= 100}><Plus className="mr-2 h-4 w-4" />เพิ่มบัญชีรับเงิน</Button>
+      {form.length === 0 && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950">ไม่มีบัญชีรับเงิน การบันทึกชุดว่างจะไม่แสดงบัญชีให้ลูกค้า และจะไม่คืนข้อมูลตั้งต้นอัตโนมัติ</p>}
+      {active && <div className="min-w-0 space-y-4 rounded-xl border bg-white p-4" data-testid="payment-settings-active-account">
+        <div className="grid min-w-0 gap-4 md:grid-cols-2">
+          <div className="min-w-0 space-y-2">
+            <Label htmlFor="transfer-bank">ธนาคาร</Label>
+            <select id="transfer-bank" value={active.bankName} className="h-11 w-full rounded-md border bg-white px-3 text-sm" onChange={event => update({ bankName: event.target.value })}>
+              {PAYMENT_BANK_NAMES.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+            </select>
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตั้งค่าการชำระเงิน</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            ข้อมูลนี้จะแสดงให้ผู้ใช้เห็นในหน้าแนบสลิปโอนเงิน
-          </p>
+          <div className="min-w-0 space-y-2">
+            <Label htmlFor="transfer-number">เลขบัญชี</Label>
+            <Input id="transfer-number" inputMode="numeric" maxLength={40} value={active.accountNumber} onChange={event => update({ accountNumber: event.target.value })} />
+          </div>
+          <div className="min-w-0 space-y-2 md:col-span-2">
+            <Label htmlFor="transfer-recipient">ชื่อบัญชี</Label>
+            <Input id="transfer-recipient" maxLength={200} value={active.accountName} onChange={event => update({ accountName: event.target.value })} />
+          </div>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/admin/payments">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            กลับหน้าตรวจชำระเงิน
-          </Link>
+        <fieldset className="space-y-2"><legend className="text-sm font-semibold">สาขาที่ใช้บัญชีนี้</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {roster.map(branch => {
+              const checked = active.branchIds.includes(branch.id)
+              const elsewhere = form.some(account => account.id !== active.id && account.branchIds.includes(branch.id) && transferAccountKey(account) !== transferAccountKey(active))
+              return <label key={branch.id} className={'flex min-h-11 items-center gap-3 rounded-lg border p-2 text-sm ' + (elsewhere ? 'text-slate-400' : 'text-slate-800')}>
+                <input type="checkbox" className="h-4 w-4 shrink-0" checked={checked} disabled={elsewhere && !checked}
+                  onChange={event => update({ branchIds: event.target.checked ? [...active.branchIds, branch.id] : active.branchIds.filter(id => id !== branch.id) })} />
+                <span className="break-words">{branch.name}{!branch.is_active ? ' (ปิดใช้งาน)' : ''}{elsewhere ? ' · ผูกบัญชีอื่นแล้ว' : ''}</span>
+              </label>
+            })}
+          </div>
+          {active.branchIds.some(id => !roster.some(branch => branch.id === id)) && <p role="alert" className="text-sm text-red-700">มีสาขาที่ไม่พบในระบบ กรุณาโหลดข้อมูลล่าสุด</p>}
+        </fieldset>
+        <p className="text-sm font-semibold text-slate-600">ตัวอย่างจากแบบร่าง</p>
+        <PaymentTransferCard key={paymentTransferReadToken(active)} account={{ ...active, branches: roster.filter(branch => active.branchIds.includes(branch.id)) }} />
+        <Button type="button" variant="outline" className="text-red-700" onClick={() => setConfirmation('remove')}><Trash2 className="mr-2 h-4 w-4" />นำบัญชีนี้ออกจากแบบร่าง</Button>
+      </div>}
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="outline" onClick={() => dirty ? setConfirmation('reload') : void reload()}>โหลดข้อมูลล่าสุด</Button>
+        <Button type="button" className="bg-[#2748bf]" onClick={() => void save()} disabled={saving || stale} data-testid="payment-settings-save">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}บันทึกการตั้งค่า
         </Button>
       </div>
-
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="flex gap-3 p-4 text-sm text-amber-800">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div>
-            <p className="font-semibold">เลขบัญชีที่แสดงในระบบต้องตรงกับบัญชีที่ตั้งไว้ใน SlipOK</p>
-            <p className="mt-1 text-amber-700">
-              ถ้าเลขบัญชีหรือบัญชีรับเงินไม่ตรงกัน ผู้ใช้อาจโอนถูกตามหน้าระบบ แต่ SlipOK ตรวจไม่ผ่านหรือทำให้ทีมตรวจสอบสับสนได้
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-gray-200">
-        <CardContent className={`grid gap-5 p-4 ${compact ? 'md:grid-cols-2' : 'lg:grid-cols-2'}`}>
-          <div className="space-y-2">
-            <Label htmlFor="bankName">ธนาคาร</Label>
-            <Input
-              id="bankName"
-              value={form.bankName}
-              onChange={(event) => updateField('bankName', event.target.value)}
-              placeholder="เช่น กสิกรไทย"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="accountName">ชื่อบัญชี</Label>
-            <Input
-              id="accountName"
-              value={form.accountName}
-              onChange={(event) => updateField('accountName', event.target.value)}
-              placeholder="ชื่อบัญชีที่รับโอน"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="accountNumber">เลขบัญชี</Label>
-            <Input
-              id="accountNumber"
-              value={form.accountNumber}
-              onChange={(event) => updateField('accountNumber', event.target.value)}
-              placeholder="เลขบัญชีที่ต้องตรงกับ SlipOK"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="promptPay">PromptPay / พร้อมเพย์</Label>
-            <Input
-              id="promptPay"
-              value={form.promptPay}
-              onChange={(event) => updateField('promptPay', event.target.value)}
-              placeholder="ถ้ามี"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="branchName">สาขาบัญชี</Label>
-            <Input
-              id="branchName"
-              value={form.branchName}
-              onChange={(event) => updateField('branchName', event.target.value)}
-              placeholder="ถ้ามี"
-            />
-          </div>
-          <div className={`space-y-2 ${compact ? 'md:col-span-2' : 'lg:col-span-2'}`}>
-            <Label htmlFor="instructions">ข้อความแนะนำผู้ใช้</Label>
-            <Textarea
-              id="instructions"
-              value={form.instructions}
-              onChange={(event) => updateField('instructions', event.target.value)}
-              placeholder="เช่น โอนยอดให้ตรงกับยอดชำระ และแนบสลิปที่เห็นวันเวลา/ยอดเงินชัดเจน"
-              className="min-h-28"
-            />
-          </div>
-
-          {(message || error) && (
-            <div className={`rounded-lg border px-3 py-2 text-sm ${compact ? 'md:col-span-2' : 'lg:col-span-2'} ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-              {error || message}
-            </div>
-          )}
-
-          <div className={`flex justify-end ${compact ? 'md:col-span-2' : 'lg:col-span-2'}`}>
-            <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={save} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              บันทึกการตั้งค่า
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
+    </fieldset>
+    <AlertDialog open={confirmation !== null} onOpenChange={open => { if (!open) setConfirmation(null) }}>
+      <AlertDialogContent><AlertDialogHeader>
+        <AlertDialogTitle>{confirmation === 'reload' ? 'โหลดข้อมูลล่าสุดและละทิ้งแบบร่าง?' : 'นำบัญชีนี้ออกจากแบบร่าง?'}</AlertDialogTitle>
+        <AlertDialogDescription>{confirmation === 'reload' ? 'การแก้ไขที่ยังไม่บันทึกจะถูกแทนด้วยค่าล่าสุดเมื่อโหลดสำเร็จ' : 'การนำออกจะมีผลกับข้อมูลรับโอนเมื่อกดบันทึกการตั้งค่า ประวัติธุรกรรมเดิมไม่เปลี่ยน'}</AlertDialogDescription>
+      </AlertDialogHeader><AlertDialogFooter>
+        <AlertDialogCancel>กลับไปแก้ไข</AlertDialogCancel>
+        <AlertDialogAction onClick={() => {
+          if (confirmation === 'reload') void reload()
+          else { const remaining = form.filter(account => account.id !== activeId); setForm(remaining); setActiveId(remaining[0]?.id || null); clearFeedback() }
+          setConfirmation(null)
+        }}>ยืนยัน</AlertDialogAction>
+      </AlertDialogFooter></AlertDialogContent>
+    </AlertDialog>
+  </div>
 }

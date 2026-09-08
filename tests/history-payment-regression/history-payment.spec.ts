@@ -1,8 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createHash } from 'node:crypto'
+import { PAYMENT_TRANSFER_DEFAULT_ACCOUNTS } from '../../src/lib/payment-transfer-defaults'
+import { PAYMENT_TRANSFER_INSTRUCTION, PAYMENT_TRANSFER_SETTING_KEY, transferAccountNumber } from '../../src/lib/payment-settings'
 import {
   HISTORY_ACCOUNT,
+  HISTORY_LEGACY_TRANSFER_SETTINGS,
+  PAYMENT_SETTINGS_ADMIN,
+  PAYMENT_SETTINGS_STANDARD_ADMIN,
   createLocalAdmin,
   readHistoryPaymentFixture,
+  verifyLocalLegacyLedgerAbsent,
   type HistoryPaymentFixture,
 } from './local-supabase'
 
@@ -300,7 +307,7 @@ async function financialSnapshot() {
     countRows('payments'),
     countRows('progressive_payment_verification_attempts'),
     countRows('progressive_payment_allocations'),
-    countRows('Ledger'),
+    Promise.resolve(verifyLocalLegacyLedgerAbsent()),
     countRows('payment_ledger_allocations_v1'),
     countRows('finance_expenses'),
     countRows('progressive_coupon_reservations'),
@@ -467,6 +474,186 @@ async function verifyPaymentDialogLayout(page: Page) {
   await page.getByTestId('payment-modal-cancel').click()
 }
 
+async function loginSettings(page: Page, account = PAYMENT_SETTINGS_ADMIN) {
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(account.email)
+  await page.locator('#password').fill(account.password)
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+  await page.waitForURL(/\/admin(?:\/|$)/)
+  await page.goto('/admin/payments/settings')
+}
+
+async function transferSettingsRow() {
+  const result = await localAdmin.from('system_settings').select('*').eq('key', PAYMENT_TRANSFER_SETTING_KEY).maybeSingle()
+  if (result.error) throw result.error
+  return result.data
+}
+
+async function restoreLegacyTransferSettings() {
+  const result = await localAdmin.from('system_settings').upsert({ key: PAYMENT_TRANSFER_SETTING_KEY, value: HISTORY_LEGACY_TRANSFER_SETTINGS }, { onConflict: 'key' })
+  if (result.error) throw result.error
+}
+
+async function transferProtectedFingerprint() {
+  const rows: Record<string, unknown> = { Ledger: verifyLocalLegacyLedgerAbsent() }
+  for (const table of ['bookings', 'booking_sessions', 'payments', 'progressive_payment_batches',
+    'progressive_payment_batch_bookings', 'progressive_payment_verification_attempts', 'progressive_payment_allocations',
+    'booking_pricing_scopes', 'progressive_coupon_reservations', 'coupon_usages',
+    'payment_ledger_allocations_v1', 'finance_expenses', 'lesson_wallet_credits']) {
+    const result = await localAdmin.from(table).select('*')
+    if (result.error) throw new Error('protected fingerprint ' + table + ': ' + result.error.message)
+    rows[table] = result.data.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+  }
+  return createHash('sha256').update(JSON.stringify(rows)).digest('hex')
+}
+
+test('transfer settings: real Admin save/reload preserves legacy, changes only settings and intended audit', async ({ page }) => {
+  await loginSettings(page)
+  await expect(page.getByTestId('payment-settings-account')).toHaveCount(8)
+  await expect(page.getByTestId('payment-settings-source')).toContainText('ข้อมูลตั้งต้น')
+  const before = await transferProtectedFingerprint()
+  const logs = await countRows('activity_logs', { action: 'update_payment_transfer_settings' })
+  await page.locator('#transfer-recipient').fill('ผู้รับทดสอบ Localhost')
+  await page.getByTestId('payment-settings-save').click()
+  await expect(page.getByRole('status').filter({ hasText: 'บันทึกข้อมูลการชำระเงินเรียบร้อยแล้ว' })).toBeVisible()
+  const row = await transferSettingsRow()
+  expect(row.value.version).toBe(2)
+  expect(row.value.accounts[0].accountName).toBe('ผู้รับทดสอบ Localhost')
+  for (const [key, value] of Object.entries(HISTORY_LEGACY_TRANSFER_SETTINGS)) expect(row.value[key]).toBe(value)
+  expect(await transferProtectedFingerprint()).toBe(before)
+  expect(await countRows('activity_logs', { action: 'update_payment_transfer_settings' })).toBe(logs + 1)
+  await page.reload()
+  await expect(page.locator('#transfer-recipient')).toHaveValue('ผู้รับทดสอบ Localhost')
+  await page.goto('/admin/payments')
+  await page.getByRole('button', { name: 'ตั้งค่าการชำระเงิน', exact: true }).click()
+  await expect(page.getByRole('dialog').locator('#transfer-recipient')).toHaveValue('ผู้รับทดสอบ Localhost')
+  const dialog = page.getByRole('dialog')
+  await dialog.locator('#transfer-recipient').fill('ผู้รับทดสอบผ่าน Dialog')
+  await dialog.getByTestId('payment-settings-save').click()
+  await expect(dialog.getByRole('status').filter({ hasText: 'บันทึกข้อมูลการชำระเงินเรียบร้อยแล้ว' })).toBeVisible()
+  expect((await transferSettingsRow()).value.accounts[0].accountName).toBe('ผู้รับทดสอบผ่าน Dialog')
+  expect(await transferProtectedFingerprint()).toBe(before)
+  expect(await countRows('activity_logs', { action: 'update_payment_transfer_settings' })).toBe(logs + 2)
+  await page.reload()
+  await page.getByRole('button', { name: 'ตั้งค่าการชำระเงิน', exact: true }).click()
+  await expect(page.getByRole('dialog').locator('#transfer-recipient')).toHaveValue('ผู้รับทดสอบผ่าน Dialog')
+  await restoreLegacyTransferSettings()
+})
+
+test('transfer settings: real atomic concurrent UPDATE and first INSERT have one winner; stale and invalid bodies do not write', async ({ page }) => {
+  await loginSettings(page)
+  const protectedBefore = await transferProtectedFingerprint()
+  for (const firstInsert of [false, true]) {
+    if (firstInsert) {
+      const deleted = await localAdmin.from('system_settings').delete().eq('key', PAYMENT_TRANSFER_SETTING_KEY)
+      if (deleted.error) throw deleted.error
+    }
+    const current = await (await page.request.get('/api/admin/payment-settings')).json()
+    const logs = await countRows('activity_logs', { action: 'update_payment_transfer_settings' })
+    const results = await Promise.all(['winner-a', 'winner-b'].map(name => page.request.patch('/api/admin/payment-settings', {
+      data: { version: 2, expectedReadToken: current.settings.readToken,
+        accounts: current.settings.accounts.map((account: { id: string }, index: number) => index === 0 ? { ...account, accountName: name } : account) },
+    })))
+    expect(results.map(result => result.status()).sort()).toEqual([200, 409])
+    const winner = await results.find(result => result.status() === 200)!.json()
+    expect((await transferSettingsRow()).value.accounts[0].accountName).toBe(winner.settings.accounts[0].accountName)
+    expect(await countRows('activity_logs', { action: 'update_payment_transfer_settings' })).toBe(logs + 1)
+    const saved = await transferSettingsRow()
+    expect((await page.request.patch('/api/admin/payment-settings', { data: HISTORY_LEGACY_TRANSFER_SETTINGS })).status()).toBe(409)
+    expect((await page.request.patch('/api/admin/payment-settings', { data: { version: 2, expectedReadToken: current.settings.readToken, accounts: [] } })).status()).toBe(409)
+    for (const accounts of [[{ ...winner.settings.accounts[0], branchIds: ['missing'] }],
+      [{ ...winner.settings.accounts[0], accountNumber: 123 }],
+      [winner.settings.accounts[0], { ...winner.settings.accounts[1], branchIds: winner.settings.accounts[0].branchIds }]]) {
+      expect((await page.request.patch('/api/admin/payment-settings', { data: { version: 2, expectedReadToken: winner.settings.readToken, accounts } })).status()).toBe(400)
+    }
+    expect(await transferSettingsRow()).toEqual(saved)
+  }
+  expect(await transferProtectedFingerprint()).toBe(protectedBefore)
+  await restoreLegacyTransferSettings()
+})
+
+test('transfer settings: unauthorized User and denied Admin cannot read/write Admin API', async ({ page }) => {
+  const before = await transferSettingsRow()
+  await loginAndOpenHistory(page)
+  expect((await page.request.get('/api/admin/payment-settings')).status()).toBe(401)
+  expect((await page.request.patch('/api/admin/payment-settings', { data: { version: 2, accounts: [], expectedReadToken: 'null' } })).status()).toBe(401)
+  await page.context().clearCookies()
+  const previous = await localAdmin.from('system_settings').select('*').eq('key', 'admin_menu_permissions').maybeSingle()
+  const denied = await localAdmin.from('system_settings').upsert({ key: 'admin_menu_permissions', value: { adminAllowedMenuKeys: ['dashboard'] } }, { onConflict: 'key' })
+  if (denied.error || previous.error) throw denied.error || previous.error
+  try {
+    await loginSettings(page, PAYMENT_SETTINGS_STANDARD_ADMIN)
+    expect((await page.request.get('/api/admin/payment-settings')).status()).toBe(403)
+    expect((await page.request.patch('/api/admin/payment-settings', { data: { version: 2, accounts: [], expectedReadToken: 'null' } })).status()).toBe(403)
+    expect(await transferSettingsRow()).toEqual(before)
+  } finally {
+    const restored = previous.data
+      ? await localAdmin.from('system_settings').upsert(previous.data, { onConflict: 'key' })
+      : await localAdmin.from('system_settings').delete().eq('key', 'admin_menu_permissions')
+    if (restored.error) throw restored.error
+  }
+})
+
+test('transfer settings: failed UI save retains draft; real concurrent edit is explicit; empty saved collection stays empty', async ({ page }) => {
+  await loginSettings(page)
+  const before = await transferSettingsRow()
+  await page.locator('#transfer-recipient').fill('แบบร่างที่ต้องคงอยู่')
+  await page.route('**/api/admin/payment-settings', route => route.request().method() === 'PATCH'
+    ? route.fulfill({ status: 503, json: { error: 'ทดสอบบันทึกล้มเหลว' } }) : route.continue())
+  await page.getByTestId('payment-settings-save').click()
+  await expect(page.getByTestId('payment-settings-editor').getByRole('alert')).toContainText('ทดสอบบันทึกล้มเหลว')
+  await expect(page.locator('#transfer-recipient')).toHaveValue('แบบร่างที่ต้องคงอยู่')
+  expect(await transferSettingsRow()).toEqual(before)
+  await page.unroute('**/api/admin/payment-settings')
+  const current = await (await page.request.get('/api/admin/payment-settings')).json()
+  const changed = await page.request.patch('/api/admin/payment-settings', { data: { version: 2, expectedReadToken: current.settings.readToken, accounts: [] } })
+  expect(changed.status()).toBe(200)
+  await page.getByTestId('payment-settings-save').click()
+  await expect(page.getByTestId('payment-settings-editor').getByRole('alert')).toContainText('โหลดหน้าล่าสุด')
+  await expect(page.locator('#transfer-recipient')).toHaveValue('แบบร่างที่ต้องคงอยู่')
+  await page.reload()
+  await expect(page.getByTestId('payment-settings-account')).toHaveCount(0)
+  await expect(page.getByTestId('payment-settings-source')).toContainText('ชุดบัญชีที่บันทึกแล้ว')
+  await restoreLegacyTransferSettings()
+})
+
+test('transfer instructions: 320/390/desktop copy and config-change acknowledgement preserve total and visible submit', async ({ page, context }) => {
+  const errors = observeBrowserErrors(page)
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await loginAndOpenHistory(page)
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 700 })
+    await page.getByRole('button', { name: /ชำระเงินรวม/ }).click()
+    const card = page.getByTestId('payment-transfer-card')
+    await expect(card).toHaveCount(1)
+    await card.getByRole('button', { name: 'คัดลอกเลขบัญชี', exact: true }).click()
+    await expect(card.getByRole('status')).toHaveText('คัดลอกแล้ว')
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(transferAccountNumber(PAYMENT_TRANSFER_DEFAULT_ACCOUNTS[0].accountNumber))
+    await card.getByRole('button', { name: 'คัดลอกข้อมูลทั้งหมด', exact: true }).click()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('ทัศนีย์ อรุนแสนไชยา')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await expect(page.getByTestId('payment-slip-submit')).toBeInViewport()
+    await page.getByTestId('payment-modal-cancel').click()
+  }
+  await page.getByRole('button', { name: /ชำระเงินรวม/ }).click()
+  await expect(page.getByTestId('payment-transfer-card')).toHaveCount(1)
+  const total = await page.getByTestId('payment-slip-total').textContent()
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('denied') } } }))
+  await page.getByRole('button', { name: 'คัดลอกเลขบัญชี', exact: true }).click()
+  await expect(page.getByLabel('ข้อความสำหรับคัดลอกด้วยตนเอง')).toHaveValue('1362694923')
+  const changed = await localAdmin.from('system_settings').update({ value: { ...HISTORY_LEGACY_TRANSFER_SETTINGS, version: 2, revision: 'fixture-change', accounts: [] } }).eq('key', PAYMENT_TRANSFER_SETTING_KEY)
+  if (changed.error) throw changed.error
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(page.getByTestId('payment-transfer-changed')).toBeVisible()
+  await expect(page.getByTestId('payment-transfer-card')).toHaveCount(0)
+  await page.getByRole('button', { name: 'แสดงบัญชีรับเงินล่าสุด' }).click()
+  await expect(page.getByTestId('payment-transfer-instructions')).toContainText('ยังไม่มีบัญชีรับเงิน')
+  expect(await page.getByTestId('payment-slip-total').textContent()).toBe(total)
+  await page.getByTestId('payment-modal-cancel').click()
+  await restoreLegacyTransferSettings()
+  expect(errors).toEqual([])
+})
+
 test('rapid prepare is single-flight; cancel waits for refresh; reprepare uses the new revision', async ({ page }, testInfo) => {
   const browserErrors = observeBrowserErrors(page)
   const financialBefore = await financialSnapshot()
@@ -535,6 +722,62 @@ test('rapid prepare is single-flight; cancel waits for refresh; reprepare uses t
   expect(await protectedBookingSnapshot()).toEqual(protectedBefore)
   expect(await countRows('activity_logs', { user_id: fixture.userId }) - activityBefore).toBe(4)
   expect(browserErrors).toEqual([])
+})
+
+test('transfer instructions: real multi-session branches and resumed Progressive batch display only member accounts', async ({ page }) => {
+  const sessions = await localAdmin.from('booking_sessions').select('id,branch_id,schedule_slot_id').eq('booking_id', fixture.bookingIds[0]).order('id').limit(2)
+  if (sessions.error) throw sessions.error
+  const slots = await localAdmin.from('schedule_slots').select('*').in('id', sessions.data.map(row => row.schedule_slot_id))
+  if (slots.error) throw slots.error
+  const temporaryTemplates: string[] = []
+  const branches = PAYMENT_TRANSFER_DEFAULT_ACCOUNTS[7].branchIds
+  // Keep session, real slot and canonical template branch evidence consistent.
+  // Restore the disposable fixture before the existing payment regressions.
+  try {
+    for (const [index, row] of sessions.data.entries()) {
+      const slot = slots.data.find(item => item.id === row.schedule_slot_id)!
+      const templateId = crypto.randomUUID()
+      const template = await localAdmin.from('schedule_templates').insert({ id: templateId,
+        branch_id: branches[index], course_type_id: slot.course_type_id,
+        day_of_week: new Date(slot.date + 'T12:00:00Z').getUTCDay(), start_time: slot.start_time,
+        end_time: slot.end_time, is_active: true, notes: 'Disposable branch transfer fixture' })
+      if (template.error) throw template.error
+      temporaryTemplates.push(templateId)
+      const movedSlot = await localAdmin.from('schedule_slots').update({ branch_id: branches[index], template_id: templateId }).eq('id', slot.id)
+      if (movedSlot.error) throw movedSlot.error
+      const result = await localAdmin.from('booking_sessions').update({ branch_id: branches[index] }).eq('id', row.id)
+      if (result.error) throw result.error
+    }
+    await loginAndOpenHistory(page)
+    await page.getByTestId('progressive-payment-prepare-' + fixture.scopeId).click()
+    await expect(page.getByTestId('payment-transfer-card')).toHaveCount(2)
+    await expect(page.getByTestId('payment-transfer-instructions')).toContainText(PAYMENT_TRANSFER_INSTRUCTION)
+    const shared = page.locator('[data-account-id="ttb-shared"]')
+    await expect(shared).toContainText('สุวรรณภูมิ')
+    await expect(shared).toContainText('รัชดา')
+    await expect(shared).not.toContainText('ราชพฤกษ์')
+    await expect(page.getByTestId('payment-transfer-instructions')).not.toContainText('147-1-86206-5')
+    const batchId = (await readBatches()).at(-1)!.id
+    await page.reload()
+    await page.getByRole('button', { name: 'ดำเนินการชำระต่อ', exact: true }).click()
+    await expect(page.getByTestId('payment-transfer-card')).toHaveCount(2)
+    expect((await readBatches()).filter(batch => batch.status === 'prepared').map(batch => batch.id)).toEqual([batchId])
+    await page.getByTestId('payment-modal-cancel').click()
+    await waitForLifecycle(page, 'idle')
+  } finally {
+    for (const row of sessions.data) {
+      const result = await localAdmin.from('booking_sessions').update({ branch_id: row.branch_id }).eq('id', row.id)
+      if (result.error) throw result.error
+    }
+    for (const row of slots.data) {
+      const restored = await localAdmin.from('schedule_slots').update({ branch_id: row.branch_id, template_id: row.template_id }).eq('id', row.id)
+      if (restored.error) throw restored.error
+    }
+    if (temporaryTemplates.length) {
+      const removed = await localAdmin.from('schedule_templates').delete().in('id', temporaryTemplates)
+      if (removed.error) throw removed.error
+    }
+  }
 })
 
 test('Payment Dialog keeps one CTA visible without mobile overflow, hydration, or console errors', async ({ page }) => {

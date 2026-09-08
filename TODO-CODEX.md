@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
 file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
@@ -9,16 +9,19 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **Documentation-only registration — บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก**.
+Status: **DEVELOPING — disposable verification passed; release gates in progress**.
 
-- Active Task: **None — Awaiting Owner Selection**.
+- Active Task: **9 — BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
 - Completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
   Owner staged PASS, exact Promotion without rebuild, fresh Production checks and
   documentation closeout remain preserved in PROJECT_STATE.md's dated LV 0 history.
-- Register new item **9**, **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**;
-  Product implementation **not started / not authorized**. PROJECT_STATE.md owns
-  registration checks, publication status and the consistency matrix.
-- Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**. Do not begin items 1–9 automatically.
+- Owner selected original item **9** and approved continuous delivery. Destination
+  decision is closed: transfer the whole total to any one displayed relevant
+  account, one slip, no primary account. No duplicate registration.
+- Both branch aliases are Owner-confirmed and verified; the mapping blocker is closed.
+- Developer independently verified the working Docker engine and disposable target before reset. Real History/API/UI/persistence tests now pass; prior recovery history remains preserved.
+- Next action: complete final diff/matrix and authorized commit/push, create the exact staged Production artifact, perform no-write smoke, and hand off Owner UAT. PROJECT_STATE.md owns all detailed states. **Not READY FOR OWNER UAT until artifact gates pass; Task Done: No**.
+- Original Parking Lot items **1–8** retain order and remain unauthorized to start.
 - Preserve completed security/Makeup and LV 0 registration/implementation history.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
@@ -1139,14 +1142,16 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly nine active candidates remain unselected for implementation and unauthorized to start, in this
-Owner-approved order: `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
+Exactly eight candidates (original items 1–8) remain unselected for implementation
+and unauthorized to start. Original item 9 is selected/active; retain its position
+and history. PROJECT_STATE.md is authoritative. Original order:
+`1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
 HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
 ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; `8.` **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
-`9.` **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
+`9.` **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY — SELECTED / ACTIVE**.
 Historical item 8 **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** is
 completed and remains closed; use names to distinguish it from the new item 8.
 PROJECT_STATE.md is authoritative. Private Self + Child Identity Integrity /
@@ -1460,16 +1465,15 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 ### บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก
 
 Canonical: **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
-Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+Status: **SELECTED / ACTIVE — DEVELOPING; verification passed, release gates in progress**.
 
-- Position **9**, registered **2026-09-07 (Asia/Bangkok)**; original items 1–8
-  retain order and authorization. Product selection **Not Given**; implementation
-  **Not Started / Not Authorized**. PROJECT_STATE.md owns current mutable state.
-- Full requirements, eight supplied accounts/twelve branches, PM proposals,
-  Source facts, open decisions and future acceptance are recorded only in
+- Original position **9**, registered and later selected **2026-09-07**. Continuous
+  delivery is authorized; PROJECT_STATE.md owns current implementation/release
+  status. Items 1–8 remain unchanged and unauthorized.
+- Original eight-account/twelve-branch data and registration history remain in
   DEVELOPMENT_TODO.md → **2026-09-07 — Branch payment accounts Parking Lot registration**.
-- Primary receiving account remains an Open Decision before development.
-  Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.
+- Latest evidence: **2026-09-08 — Task 9 disposable verification resumed and passed**. Earlier handoffs remain historical; both aliases and the destination decision are closed.
+- Next action derives from PROJECT_STATE.md: final publication checks, commit/push, exact staged Production artifact and no-write smoke, then Owner UAT. No further A/B recovery.
 
 ## Historical / Selected — 2026-09-05 LV 0 registration
 
@@ -1611,8 +1615,8 @@ Confirmed final state:
   states are authoritative only in the first PROJECT_STATE.md matrix. Preserve
   concurrent work; do not reset, stash or overwrite work to conceal a diff.
 - Current task and next gate are derived only from PROJECT_STATE.md.
-  LV 0 is completed; original Parking Lot items 1–8 retain their order and new
-  branch-payment-accounts item 9 is appended. All nine remain unauthorized to start.
+  LV 0 is completed; original Parking Lot items 1–8 retain their order and remain
+  unauthorized. Original branch-payment-accounts item 9 is selected and active.
   Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.

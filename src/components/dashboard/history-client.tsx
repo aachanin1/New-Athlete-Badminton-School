@@ -5,7 +5,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
 import { fmtTime } from '@/lib/utils'
-import { hasPaymentTransferSettings, type PaymentTransferSettings } from '@/lib/payment-settings'
+import type { PaymentBranch, PaymentTransferSettings } from '@/lib/payment-settings'
+import { PaymentTransferInstructions } from '@/components/payments/payment-transfer-card'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -145,6 +146,7 @@ interface HistoryClientProps {
   bookingSessionsMap?: Record<string, SessionDetail[]>
   couponUsageMap?: Record<string, CouponUsageDetail[]>
   paymentTransferSettings?: PaymentTransferSettings
+  paymentBranches?: PaymentBranch[]
   progressivePaymentEnabled?: boolean
   progressiveScopeRevisionMap?: Record<string, { revision: number; currency: string }>
   activeProgressiveBatches?: ProgressiveBatchSummary[]
@@ -253,7 +255,7 @@ const PAYMENT_STATUS_MAP: Record<string, { label: string; color: string }> = {
 
 const STATUS_HELP: Record<string, string> = {
   pending_payment: 'ยังไม่ส่งสลิป กรุณาโอนเงินและแนบสลิปเพื่อให้ระบบตรวจสอบ',
-  paid: 'ระบบรับสลิปแล้ว แต่ SlipOK ยังไม่ยืนยันอัตโนมัติ แอดมินจะตรวจสอบต่อ',
+  paid: 'ระบบรับสลิปแล้ว เจ้าหน้าที่จะตรวจสอบต่อ กรุณาอย่าโอนเงินซ้ำ',
   verified: 'ระบบยืนยันการชำระเงินแล้ว ตารางเรียนพร้อมใช้งาน',
   cancelled: 'รายการนี้ถูกยกเลิกแล้ว',
 }
@@ -290,7 +292,7 @@ const PAYMENT_UPLOAD_STEP_TEXT: Record<PaymentUploadStep, { title: string; descr
   },
   verifying: {
     title: 'กำลังตรวจสอบสลิป',
-    description: 'SlipOK อาจใช้เวลาหลายวินาที ระบบยังทำงานอยู่',
+    description: 'ระบบกำลังดำเนินการกับสลิป กรุณารอและอย่าโอนเงินซ้ำ',
   },
   refreshing: {
     title: 'บันทึกสลิปสำเร็จ',
@@ -379,6 +381,7 @@ export function HistoryClient({
   bookingSessionsMap = {},
   couponUsageMap = {},
   paymentTransferSettings,
+  paymentBranches = [],
   progressivePaymentEnabled = false,
   progressiveScopeRevisionMap = {},
   activeProgressiveBatches = [],
@@ -431,7 +434,6 @@ export function HistoryClient({
   const [alertDesc, setAlertDesc] = useState('')
   const [alertAction, setAlertAction] = useState<(() => void) | null>(null)
   const [alertVariant, setAlertVariant] = useState<'danger' | 'warning'>('danger')
-  const showPaymentTransferSettings = paymentTransferSettings && hasPaymentTransferSettings(paymentTransferSettings)
 
   const showConfirm = useCallback((title: string, desc: string, action: () => void, variant: 'danger' | 'warning' = 'danger') => {
     setAlertTitle(title)
@@ -1463,19 +1465,18 @@ export function HistoryClient({
               </div>
             )}
 
-            {showPaymentTransferSettings && paymentTransferSettings ? (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm">
-                <p className="mb-2 font-medium text-blue-700">ข้อมูลการโอนเงิน</p>
-                {paymentTransferSettings.bankName && <p className="text-blue-600">ธนาคาร: {paymentTransferSettings.bankName}</p>}
-                {paymentTransferSettings.accountNumber && <p className="text-blue-600">เลขบัญชี: {paymentTransferSettings.accountNumber}</p>}
-                {paymentTransferSettings.accountName && <p className="text-blue-600">ชื่อบัญชี: {paymentTransferSettings.accountName}</p>}
-                {paymentTransferSettings.branchName && <p className="text-blue-600">สาขาบัญชี: {paymentTransferSettings.branchName}</p>}
-                {paymentTransferSettings.promptPay && <p className="text-blue-600">PromptPay: {paymentTransferSettings.promptPay}</p>}
-                {paymentTransferSettings.instructions && <p className="mt-2 text-blue-700">{paymentTransferSettings.instructions}</p>}
-                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
-                  กรุณาโอนเข้าบัญชีที่แสดงเท่านั้น เลขบัญชีนี้ต้องตรงกับบัญชีที่ระบบ SlipOK ใช้ตรวจสอบ
-                </p>
-              </div>
+            {payDialogOpen && paymentTransferSettings ? (
+              <PaymentTransferInstructions
+                settings={paymentTransferSettings}
+                branches={paymentBranches}
+                payBookingIds={payBookingIds}
+                bookings={bookings}
+                bookingSessionsMap={bookingSessionsMap}
+                submitted={loading || Boolean(verifyResult)
+                  || (paymentMode === 'progressive' && ['submitted', 'under_review', 'approved'].includes(progressiveBatch?.status || ''))
+                  || payBookingIds.some(id => bookings.some(booking => booking.id === id && ['paid', 'verified'].includes(booking.status))
+                    || paymentsByBookingId.get(id)?.some(payment => ['pending', 'approved'].includes(payment.status)))}
+              />
             ) : (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
                 ยังไม่ได้ตั้งค่าข้อมูลบัญชีรับโอน กรุณาติดต่อเจ้าหน้าที่ก่อนแนบสลิป

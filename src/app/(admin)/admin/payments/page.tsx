@@ -403,6 +403,10 @@ export default async function PaymentsPage() {
     throw new Error(`[admin/payments] payment transfer setting read failed: ${getQueryErrorMessage(paymentSettingError)}`)
   }
 
+  const { data: paymentBranches, error: paymentBranchesError } = await supabase
+    .from('branches').select('id,name,slug,is_active').order('name')
+  if (paymentBranchesError) throw new Error('[admin/payments] Unable to load payment branch roster')
+
   // Transform data
   const paymentList = payments.map((p) => ({
     source_kind: 'legacy' as const,
@@ -508,7 +512,8 @@ export default async function PaymentsPage() {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ))}
       incompleteBookings={incompleteBookingList}
-      paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value)}
+      paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value, paymentBranches || [])}
+      paymentBranches={paymentBranches || []}
       slipOkMode={process.env.SLIPOK_TEST_MODE === 'true' ? 'test' : 'live'}
       canViewFinancialAmounts={canViewFinancialAmounts}
     />

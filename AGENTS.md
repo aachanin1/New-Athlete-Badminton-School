@@ -205,7 +205,7 @@ effects, verification, and rollback.
 ## Current Project
 
 New Athlete Badminton School is a badminton school management system for Thailand.
-Observed stack from `package.json`: Next.js 16.2.6 App Router, React 18,
+Observed stack from `package.json`: Next.js 16.2.12 App Router, React 18,
 TypeScript 5, TailwindCSS 3.4, shadcn/Radix UI, Supabase, SlipOK, SWR,
 Zustand, React Hook Form, Zod, Sonner, and Lucide.
 
@@ -262,6 +262,21 @@ Main portals:
 - Keep `SLIPOK_API_URL` and `SLIPOK_API_KEY` server-only; never expose keys in UI.
 - Do not add a UI toggle for SlipOK mode. Mode belongs in environment variables and redeploy flow.
 - SlipOK success should keep `bookings`, `payments`, history, and notifications consistent.
+
+#### Branch Payment Accounts — Owner Destination Rule
+
+- Show receiving accounts only for branches relevant to the booking set being
+  paid, including every relevant lesson-session branch. When relevant branches
+  share the same bank and account number, show one card with those branch names.
+- The customer may transfer the entire combined total to any one of the displayed
+  relevant accounts and upload one slip. A primary account is not required.
+  Preserve Legacy grouping and Progressive mandatory full pending-scope batching;
+  do not split amounts, introduce partial payments, or require a recorded account
+  selection in the transaction for this display flow.
+- These cards are transfer instructions, not evidence of the actual recipient of
+  a past payment or proof of live recipient verification. Missing branch-account
+  information must be visible and must never substitute another account. Keep
+  historical financial records and the shared server-side SlipOK mode unchanged.
 
 ### Pricing
 
