@@ -9,7 +9,7 @@ mutable state is authoritative only in `PROJECT_STATE.md`.
 
 ## Current Active Work
 
-Status: **DEVELOPING — disposable verification passed; release gates in progress**.
+Status: **READY FOR OWNER UAT**. PROJECT_STATE.md owns the exact artifact and all release states.
 
 - Active Task: **9 — BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
 - Completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
@@ -20,7 +20,7 @@ Status: **DEVELOPING — disposable verification passed; release gates in progre
   account, one slip, no primary account. No duplicate registration.
 - Both branch aliases are Owner-confirmed and verified; the mapping blocker is closed.
 - Developer independently verified the working Docker engine and disposable target before reset. Real History/API/UI/persistence tests now pass; prior recovery history remains preserved.
-- Next action: complete final diff/matrix and authorized commit/push, create the exact staged Production artifact, perform no-write smoke, and hand off Owner UAT. PROJECT_STATE.md owns all detailed states. **Not READY FOR OWNER UAT until artifact gates pass; Task Done: No**.
+- Implementation is committed/pushed; exact staged Production artifact and no-write smoke passed. Next action: Owner tests the artifact identified in PROJECT_STATE.md and returns PASS/FAIL. **No Promotion before PASS; Task Done: No**.
 - Original Parking Lot items **1–8** retain order and remain unauthorized to start.
 - Preserve completed security/Makeup and LV 0 registration/implementation history.
 
@@ -1465,15 +1465,15 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 ### บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก
 
 Canonical: **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
-Status: **SELECTED / ACTIVE — DEVELOPING; verification passed, release gates in progress**.
+Status: **SELECTED / ACTIVE — READY FOR OWNER UAT**; PROJECT_STATE.md is authoritative.
 
 - Original position **9**, registered and later selected **2026-09-07**. Continuous
   delivery is authorized; PROJECT_STATE.md owns current implementation/release
   status. Items 1–8 remain unchanged and unauthorized.
 - Original eight-account/twelve-branch data and registration history remain in
   DEVELOPMENT_TODO.md → **2026-09-07 — Branch payment accounts Parking Lot registration**.
-- Latest evidence: **2026-09-08 — Task 9 disposable verification resumed and passed**. Earlier handoffs remain historical; both aliases and the destination decision are closed.
-- Next action derives from PROJECT_STATE.md: final publication checks, commit/push, exact staged Production artifact and no-write smoke, then Owner UAT. No further A/B recovery.
+- Latest evidence: **2026-09-08 — Task 9 exact staged Production artifact and READY handoff**. Earlier handoffs remain historical; both aliases and the destination decision are closed.
+- Next action derives from PROJECT_STATE.md: Owner UAT of the exact staged artifact, then PASS permits its Promotion without rebuild. No further A/B recovery; items 1–8 remain unauthorized.
 
 ## Historical / Selected — 2026-09-05 LV 0 registration
 

@@ -21989,3 +21989,132 @@ Impact no Production amount/transaction change. Documentation Drift corrected fo
 the recovered engine and completed DB verification. Active Task 9 / DEVELOPING,
 Task Done No; original 1–8 remain unauthorized. Next: verified commit/normal push,
 exact staged Production artifact and no-write smoke, then READY FOR OWNER UAT.
+
+## 2026-09-08 — Task 9 exact staged Production artifact and READY handoff
+
+State observed at this READY handoff, 2026-09-08, artifact/read-only smoke evidence
+03:52–03:58 UTC. PROJECT_STATE.md owns current mutable state. This supersedes
+the immediately preceding pre-publication status while retaining every recovery,
+identity-deviation and verification record. Active Task remains original 9;
+original items 1–8 remain unauthorized and retain their order.
+
+### Publication and exact artifact proof
+
+The complete staged diff of all 17 allowed paths was reviewed before commit,
+including preserved historical docs. Tested Source/Test SHA-256 hashes matched;
+no unstaged or outside-scope path appeared. Diff check, exact 10/3/4 allowlist,
+protected dependency/blast-radius review and Documentation Consistency Matrix
+passed. Required fresh application checks are the preceding record's results.
+Implementation commit and normal upstream push both succeeded:
+
+- Branch: spike/next-major-security-upgrade.
+- Implementation/source SHA: **99b70fe373bfaa14424e2163136719024e5f0b0b**.
+- src tree: **87049830fbf14fb48ceb4b166f18b32d47d34c82**.
+- Dependency lock SHA-256: ad252f85dfaaf55dc58638b71860db672488b5669bc254b9c82909ffe8838dda.
+- Fresh local/upstream comparison after push: same SHA, ahead/behind 0/0, clean.
+
+Installed Vercel CLI **59.11.7** created one staged Production artifact using
+**deploy --prod --skip-domain --yes --no-wait** with source/tree/lock/defaults
+fingerprints in metadata. The command's early response said INITIALIZING; this
+was not accepted as readiness. Later deployment API independently confirmed:
+
+- URL: **https://new-athlete-badminton-school-llo19jlt9-aachanin1s-projects.vercel.app**.
+- Deployment ID: **dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**.
+- State/substate/target: **READY / STAGED / production**.
+- Assigned alias list: **empty**; no Promotion was executed.
+- Both applicationSha and githubCommitSha: **99b70fe373bfaa14424e2163136719024e5f0b0b**.
+- Build completed with Next **16.2.12**. No remote application build failure.
+- Deployment source-file listing contains 407 files; every one of the 13 changed
+  Source/Test file UIDs equals its local tested SHA-1. No .env, .playwright,
+  test-results, playwright-report, backup, node_modules or Git file is uploaded.
+  Empty directory entries in the listing are not shipped backup contents.
+
+The containing READY documentation commit is a separate successor that changes
+only PROJECT_STATE.md, TODO-CODEX.md and this historical record. It publishes the
+handoff without rebuilding/replacing this artifact or changing tested application
+files. Final report/evidence records its actual Git HEAD and push equality;
+artifact source always remains the implementation SHA above.
+
+### No-write smoke, effective configuration and retained Production
+
+The staged URL retains existing Vercel authentication. A temporary deployment
+share session from the existing Vercel connector allowed GET-only smoke; no
+project protection/permission or environment setting was changed. No app login,
+Admin save, payment prepare, booking action or slip upload was performed there.
+
+- Homepage and /auth/login: **200**; title New Athlete Badminton School.
+- /api/health: **200 / ok**, twelve branches, no reported data-read errors.
+- /api/admin/payment-settings without an app session: **401**.
+- /admin/payments/settings, /admin/payments and /dashboard/history: **307** to
+  their correct login redirect targets, preserving existing access guards.
+- All **21** referenced static CSS/JS assets: **200**, linked to this deployment.
+- Scoped staged error/fatal log query and 5xx query during the smoke window:
+  **no entries returned**. This bounded observation is not a claim about future
+  traffic or authenticated Owner UAT.
+
+Fresh SELECT-only Production roster/settings after staging confirms all twelve
+exact branches and the same legacy singleton timestamp/value. The actual shipped
+normalizer yields **source defaults / 8 accounts**, with canonical fingerprint
+**29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6**,
+matching artifact metadata. Read-token hash is
+29059ae4b28ffd9899267dd2c0cb15a942cae40cf4968792595eafd578d4cb3a.
+No saved collection, automatic seed/backfill or Production settings change.
+Both confirmed aliases, original recipients/numbers and leading zeros remain.
+
+After stage, project target and independent alias-ID lookups confirmed
+www.newathleteschool.com, new-athlete-badminton-school.vercel.app and
+new-athlete-badminton-school-aachanin1s-projects.vercel.app still reference
+**dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**, source
+**7f27864cd100d860644c1e20c75b170ac0cb0986**. That READY rollback candidate's
+Production /api/health returned 200/ok with twelve branches. This is existing
+Production/rollback health, not task-9 post-Promotion verification. Git integration
+uses productionBranch main, so normal task-branch pushes do not promote it.
+
+### Owner handoff and state separation
+
+Use the exact staged URL with the existing authorized Vercel account if prompted,
+then school Admin/Super Admin with payments permission, or the User's own account.
+The six UAT steps and expected results are maintained in PROJECT_STATE.md:
+Admin eight-account/twelve-binding review; one branch; shared account; separate
+accounts/whole-total instruction; number/full copy on mobile; unchanged total,
+accessible slip controls and no re-transfer instruction after submission.
+
+Admin review/copy does not require a save. Technical save/prepare/upload tests
+already passed in the verified disposable environment. If Owner chooses to open
+a genuine pending Progressive payment, that action can create a batch and must
+be treated as an Owner Production write, not read-only. Developer did not perform
+it. Any such real transaction must be identified/reconciled separately. No fake
+Production cases are required; absent genuine branch combinations remain a manual
+UAT limitation and were covered by real disposable tests. Owner returns PASS/FAIL
+for this exact artifact. After PASS, promote this artifact without rebuild,
+rechecking unchanged source/config/effective account data; retest changes.
+
+At this READY handoff: Source Complete **Yes**; Tests Passed **Yes**; Committed
+**Yes**; Pushed **Yes**; Deployed **Yes, staged Production only**; READY **Yes**.
+Owner UAT **Waiting**; Promotion **No**; task-9 post-Promotion Production checks
+**Not run**; Production Active **No**; Production UAT Passed **Not run**.
+Controlled Write UAT **Passed only in disposable technical tests**; final DB/API
+and physical fixture residue **0**, original 88 storage files preserved.
+Feature Enabled/Allowlisted changes **None**. Host actions remain the authorized
+local Supabase setup/reset/fixture cleanup; no new recovery action. Application
+configuration, dependencies/lockfile, permissions and migration source unchanged;
+existing migrations applied only to disposable DB. Local npx cache/initialization
+image effects remain disclosed in the preceding record. No Production environment
+or migration action, no Developer Production write, no financial Data Repaired,
+and no Owner transaction reported. Customer impact on Production domains **None
+yet**; staged receiving guidance/copy changes, amounts and transactions do not.
+Product expansion/new scope breach **None**; earlier physical-target deviation
+retained. This continuation corrected two test defects once each, no functional
+source correction. Cumulative files **10/3/4**, continuation **0/2/3**.
+Documentation Drift **Resolved**; technical blocker **None**; Task Done **No**.
+Next action **Owner UAT PASS**, then exact Promotion and required closeout.
+
+Excluded local evidence: resume-release-checks.json, resume-staged-deploy.log,
+resume-staged-identity.json, resume-artifact-files.json,
+resume-artifact-source-proof.json, resume-staged-smoke.json,
+resume-production-aliases-after-stage.json, resume-rollback-health.json,
+resume-ready-account-data.json and resume-ready-account-proof.json. Source/test,
+disposable identity, failure, cleanup and fresh-check evidence remains in the
+same .playwright/branch-payment-accounts directory. No secret/session token is
+included in this handoff or published evidence. Complete documentation staged
+diff, mojibake and matrix are checked again before publishing this READY record.
