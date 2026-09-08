@@ -22118,3 +22118,186 @@ disposable identity, failure, cleanup and fresh-check evidence remains in the
 same .playwright/branch-payment-accounts directory. No secret/session token is
 included in this handoff or published evidence. Complete documentation staged
 diff, mojibake and matrix are checked again before publishing this READY record.
+
+## 2026-09-08 — Task 9 Owner PASS, exact Promotion, Production verification and closeout
+
+State observed at this closeout (UTC timestamps; Bangkok is UTC+7). This dated
+record supersedes the READY handoff's waiting-for-PASS and no-reported-Owner-write
+states. Registration, implementation, disposable verification, Docker recovery,
+B reconciliation and the earlier physical-target deviation remain preserved.
+PROJECT_STATE.md owns the current matrix; TODO-CODEX.md is the short index.
+
+### Owner decision and fresh release gate
+
+Owner returned **“Pass ครับ”**, reported three UAT screenshots, and confirmed
+**“เปิดดู/คัดลอก ไม่กดบันทึกหรือส่งสลิป”** for exact staged Production artifact
+**dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, Application SHA
+**99b70fe373bfaa14424e2163136719024e5f0b0b**. The acceptance authorizes exact
+Promotion without rebuild, read-only Production verification and documentation
+publication. The stated absence of settings save/slip submission is distinct
+from the independently observed booking/batch history below. Screenshot pixels
+were not independently re-inspected during this release round; deployment and
+backend evidence were checked directly.
+
+Fresh Gate 0: correct repository root and branch spike/next-major-security-upgrade,
+HEAD/upstream **63bb183f8bbc346bead3c2b796531c52e198bc54**, fetched origin,
+ahead/behind **0/0**, clean worktree and empty stage. Remote remains
+https://github.com/aachanin1/New-Athlete-Badminton-School.git. All thirteen tested
+Source/Test SHA-256 hashes match resume-final-source-checks.json. src tree is
+**87049830fbf14fb48ceb4b166f18b32d47d34c82**; only three documentation paths
+differ after Application SHA. Tracked release configuration and dependency lock
+are unchanged. No Source/Test edits or application correction in this round.
+
+Vercel project **prj_v034HOI6AjaMpBezWvuvT0W24pTp**, team
+**team_gw8Y6CPd602WAKRsVFobPGCL** were verified through project/account and actual
+deployment ownerId/team.id fields. The exact Owner-PASS artifact was
+READY/STAGED/production, with correct Application SHA and fingerprints.
+Production environment metadata predates the staged build; values were not
+printed or modified. Installed CLI **59.11.7** and promote help were inspected.
+Git integration productionBranch **main** was unchanged; normal spike-branch
+pushes cannot replace the Production target through that integration.
+
+Before-state of all three existing aliases was independently verified as
+**dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**, SHA
+**7f27864cd100d860644c1e20c75b170ac0cb0986**. This READY rollback candidate's
+Production health was 200/ok before Promotion. No rollback or data reversal ran.
+
+### Exact Promotion and Production verification
+
+One authorized operation began **2026-09-08T04:35:41.4602262Z**:
+
+`vercel promote dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa --scope aachanin1s-projects --yes --timeout 45s`
+
+It completed **04:35:47.1642099Z**, exit **0**. No retry, deploy, rebuild or
+replacement Production artifact was created. Fresh API verification confirmed
+READY/PROMOTED/production, with unchanged created/building/ready timestamps
+**1788839575200 / 1788839576199 / 1788839651551** and Application SHA. All aliases:
+
+- **www.newathleteschool.com**
+- **new-athlete-badminton-school.vercel.app**
+- **new-athlete-badminton-school-aachanin1s-projects.vercel.app**
+
+point to **dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**. Immutable artifact URL:
+https://new-athlete-badminton-school-llo19jlt9-aachanin1s-projects.vercel.app.
+Production entry: **https://www.newathleteschool.com**.
+
+GET-only smoke completed at **04:38:54.6492648Z**: public aliases health
+200/ok/twelve branches; homepage/login 200; all **21** CSS/JS assets 200 and linked
+to the exact artifact; unauthenticated Admin settings API **401**; Admin settings,
+Admin payments and User History pages **307** to their correct login routes.
+The third alias retains existing Vercel protection (anonymous 302); temporary
+connector-authorized access verified its health 200/ok at **04:38:06.6746474Z**.
+No app login, prepare, booking action, settings save or slip upload was used.
+No protection setting or permission changed.
+
+Deployment-scoped error/fatal and 5xx queries after **04:35:47Z** returned no
+entries in the checked window. The deployment inventory query from 04:35:40Z
+returned zero new deployments during Promotion. This bounded observation does
+not claim future traffic is error-free or exclude an unrelated automatic Preview
+from the later documentation push. Final publication evidence checks Production
+identity again after that push. No task-attributable regression was observed.
+Owner staged UAT remains **PASS**; Production automated checks **PASS**;
+Production manual UAT **not repeated**, with no separate manual PASS claimed.
+
+### SELECT-only Production reconciliation and effective configuration
+
+Production identity was independently confirmed as **tvnhholicwjtxdhlxfqs**,
+NewAthleteBadmintonSchool, ACTIVE_HEALTHY, host
+**db.tvnhholicwjtxdhlxfqs.supabase.co**. Schema inspection preceded exact-row
+queries, executed in read-only transactions. No Production fixture, save,
+cleanup, cancellation, unlock or repair was executed by Developer.
+
+The legacy payment_transfer_settings row
+**8204c8a6-a515-42fb-b91f-95463f96fa1e** remains unchanged:
+accountNumber **0000000000**, instructions **TEST Mode**, other legacy fields
+blank, updated_at **2026-05-18T12:24:00.995606+00:00**. There is no saved accounts
+collection and no settings-save activity since staging. Before/after Promotion
+settings and all twelve active exact branch IDs/names/slugs match. The actual
+normalizer yields **Source defaults / 8 accounts / 12 branches**, fingerprint
+**29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6**,
+matching the tested source and artifact metadata. Both Owner-confirmed aliases
+remain exact. No automatic seed/backfill or legacy global-account substitution.
+
+Read-only reconciliation found this chronology during Owner UAT:
+
+| UTC time | Exact row / recorded event |
+| --- | --- |
+| 04:15:49.689478 | Booking **0717c0fb-20cb-4405-aecb-1c8b3ebc4088** created: 2 sessions / **1,250** |
+| 04:15:57.282367 | Batch **4387f611-a869-4d7a-be8f-e50c07444938** prepared: **1,250** |
+| 04:16:11.032896 | That batch cancelled, reason user_cancelled |
+| 04:16:15.748915 | First booking cancelled; its two sessions soft-cancelled |
+| 04:16:43.970173 | Booking **437fe762-3047-448f-8353-72961e9e705d** created: 3 sessions / **1,875** |
+| 04:16:47.016623 | Batch **252e56c9-6fa8-48c6-8647-5c6cd89d3d40** prepared: **1,875** |
+| 04:17:12.470582 | That batch cancelled, reason user_cancelled |
+| 04:19:31.286796 | Second booking edited later to **1 session / 700**; expiry preserved |
+| 04:19:34.320466 / 04:19:38.546639 | Related **700** batch **9929e26c-d371-4bb1-a352-6734b3635caa** prepared / cancelled |
+| 04:20:02.212587 / 04:20:09.760241 | Related **700** batch **3530584a-960e-4ab1-99b0-94fc691d3950** prepared / cancelled |
+| 04:20:50.674846 | Second booking cancelled; remaining session soft-cancelled |
+
+The original 1,250 and 1,875 batch snapshots match the supplied cases. Comparing
+later 700 state with the earlier 1,875 UAT view would mix different times and is
+not evidence of a display bug. These are backend events during the Owner UAT
+period; the event record alone does not prove which physical person clicked
+each action. Owner's no-settings-save/no-slip statement is preserved separately.
+
+Both bookings and all **four** related batches are cancelled. All four member
+rows are inactive. Shared scope **1f96600e-d7f5-4da4-970c-94246701e05d** has revision
+**9**, locked_at and locked_by_payment_batch_id **NULL**. All four batches have no
+slip/approver, submission/upload/review/approval timestamps. Related payments,
+payment slips, verification attempts and allocations: **0**. The complete queried
+booking/batch/member/scope and thirteen activity rows match before/after Promotion.
+No historical transaction was rewritten or repaired.
+
+Therefore **Developer Production writes: No; Owner-period Production data
+changed: Yes; Payment settings changed: No; matched slip/payment/approval: None;
+Data Repaired: No**. Promotion changes infrastructure aliases, not these DB rows.
+
+### Retained tests, scope and publication
+
+Same-source evidence remains valid: History **16/16**, focused **19/19**, Batch
+**44/44**, Integration **29/29**, shared SlipOK **6/6**, TypeScript, lint, mojibake
+and Production build passed. No rebuild or disposable reset was repeated for
+Promotion. Prior disposable Controlled Write UAT/persistence/auth/concurrency/
+audit/protected-table tests passed; recorded final DB/API/new physical residue
+was zero and original **88/88** storage files preserved. No new fixtures/cleanup
+or Docker/WSL/directory/backup operation in this round.
+
+Only **PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md** change here:
+Functional/Test/Documentation **0/0/3**, cumulative **10/3/4**. No new technical
+file, product scope expansion or scope breach this round; previous host deviation
+remains historical. Read-only verification helpers needed field/type/redirect
+handling corrections; no application failure or functional correction resulted.
+Migration source/application/Production application, Environment, dependencies,
+lockfile, permissions, feature controls, allowlists and shared SlipOK mode have
+**no change this round**. Feature behavior is active through exact Promotion.
+Customer impact: relevant account cards, merged shared accounts, bank colors,
+copy/manual fallback and Admin binding management are now available. Financial
+impact: receiving instructions change; pricing/combined totals/payment lifecycle
+and historical financial records do not. UAT create/edit/cancel effects above
+are separate from this source change; no settled payment in matched cases.
+
+Documentation Consistency Matrix, exact allowlist, name-status/stat, complete
+staged diff, mojibake and git diff --check are reviewed before the containing
+normal documentation commit/push. Application SHA and artifact identity above
+remain separate from that documentation commit. Final exact commit SHA, remote
+0/0 and clean worktree/stage plus unchanged Production aliases are recorded in
+publication evidence and the final report, avoiding recursive commit references.
+
+At this published closeout: Source Complete **Yes**, Tests Passed **Yes**,
+Committed/Pushed **Yes**, Deployed/Promoted **Yes**, Owner staged UAT **PASS**,
+Production Active/automated verification **Yes**, Production manual UAT **not
+repeated**, Data Repaired **No**, Production Data Changed **Yes during Owner
+UAT**, Developer writes **No**. Documentation Drift **resolved**; no remaining
+release blocker. **Task 9 TASK DONE; Active Task None — Awaiting Owner Selection**.
+Original Parking Lot items **1–8** keep order and remain unauthorized; completed
+item 9 stays in history. Next action: await a new explicit Owner selection.
+
+Excluded local evidence: promotion-gate0.json, promotion-vercel-before.json,
+promotion-ownership-proof.json, promotion-uat-before.json, promotion-uat-after.json,
+promotion-account-before.json, promotion-account-after.json,
+promotion-effective-proof.json, promotion-rollback-health.json,
+promotion-operation.json/.log/-result.json, promotion-vercel-after.json,
+promotion-protected-alias-health.json, promotion-production-smoke.json,
+promotion-observability.json and final promotion-closeout-publication.json in
+.playwright/branch-payment-accounts/. No secret contents or session tokens are
+published. Earlier raw evidence and recovery copies are retained.

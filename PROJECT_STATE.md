@@ -2,59 +2,63 @@
 
 Last updated: 2026-09-08 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task 9 / READY FOR OWNER UAT
+## Current State — Task 9 released / TASK DONE
 
-PROJECT_STATE.md is the sole authority for current mutable state. Owner reported
-working Docker and authorized resuming the existing disposable tests. Developer
-independently confirmed engine access, project/volume/data identity before suite
-setup. History E2E now passes, including real saves, authorization, concurrency,
-audit and payment lifecycle. The committed/pushed source now has a verified staged
-Production artifact with no Production domains assigned. No further A/B recovery was attempted. Original
-receiving-account decisions and both confirmed aliases remain unchanged.
+PROJECT_STATE.md is the sole authority for current mutable state. Owner PASS of
+exact artifact dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa authorized Promotion without rebuild.
+Developer completed that Promotion, fresh Production checks and SELECT-only UAT
+reconciliation. This closeout is published by its containing documentation commit;
+exact commit/remote equality and final unchanged Production identity are recorded
+in publication evidence. No task from the remaining queue starts automatically.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **9 — BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY** |
-| Task Status / Task Done | **READY FOR OWNER UAT / No**; waiting for Owner PASS of the exact staged artifact |
-| Owner Decision / Actors | Authorized Admin/Super Admin with existing payments permission; User paying their own bookings. Show every relevant booking/session branch, merge identical bank/account numbers, transfer the whole total to any one displayed account, one slip, no primary account or stored selection. Both aliases remain confirmed |
-| Scope / Blast Radius | Cumulative Functional/Test/Documentation **10/3/4**, exact 17 allowed files. This continuation changes **0/2/3**: two allowed History test files and three state/history docs. No new product path or business flow; AGENTS unchanged this round |
-| Protected Flows | Pricing, coupons, totals, entitlement, Legacy grouping, Progressive full pending scope, prepare/upload/approval lifecycle, shared SlipOK mode, Ledger/Finance/Wallet/Attendance/Payroll, permissions and controls unchanged |
+| Active Task | **None — Awaiting Owner Selection** |
+| Task Status / Task Done | **Task 9: TASK DONE / Yes**, with exact Promotion, Production verification and this authorized closeout publication |
+| Completed Task / Intended Behavior | **9 — BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**. Admin/Super Admin with payments permission manages accounts; User sees every relevant booking/session branch, identical bank/number cards merge, copy number/details, whole combined total into one displayed account with one slip. No primary or recorded account selection |
+| Scope / Blast Radius | This closeout **Functional/Test/Documentation 0/0/3**: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md only. Cumulative **10/3/4**. Exact Owner-PASS artifact promoted to the three existing Production aliases; no new business flow |
+| Protected Flows | Pricing/coupons/totals/entitlement, Legacy grouping, Progressive full pending scope and payment lifecycle, shared SlipOK mode, historical recipients, Ledger/Finance/Wallet/Attendance/Payroll and permissions unchanged |
 | Branch / Upstream / Remote | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade / https://github.com/aachanin1/New-Athlete-Badminton-School.git |
-| Local HEAD / Remote HEAD / Ahead-Behind | Implementation **99b70fe373bfaa14424e2163136719024e5f0b0b** was committed and normal-pushed; exact upstream equality **0/0** verified. The containing READY handoff commit is a documentation-only successor; its exact Git HEAD/remote equality is in the final publication evidence, avoiding recursive self-reference |
-| Worktree / Staged | Implementation's complete 17-path staged diff, hashes and allowlist passed before commit. READY publication changes only PROJECT_STATE.md, TODO-CODEX.md and DEVELOPMENT_TODO.md; complete staged diff/matrix checked again. No hidden or overwritten concurrent work |
-| Current Source / Pushed Source | **99b70fe373bfaa14424e2163136719024e5f0b0b / same**, src tree **87049830fbf14fb48ceb4b166f18b32d47d34c82**. READY handoff commit changes docs only; tested application and artifact remain this exact implementation SHA |
-| Source Complete | **Yes — implementation accepted after real disposable DB/UI verification**; release and Owner acceptance remain separate |
-| Tests Passed | **Yes**: fresh History **16/16**, focused logic **19/19**, Batch **44/44**, Integration **29/29**, shared SlipOK **6/6**, TypeScript, lint, mojibake **268 files**, Production build **Next 16.2.12 / 94 pages**, diff/allowlist and Documentation Consistency Matrix. Staged remote build and no-write smoke also passed |
-| Verification Limits | Failed-save transport response is intentionally injected, while draft preservation and unchanged persisted state are real. CAS, auth, save/reload, protected fingerprints, audit, prepare/upload/approval use actual local API/DB. The nonexistent Ledger relation is verified absent via PostgreSQL catalog; real allocation view and financial tables are compared. No mock table or suppressed DB error |
-| Committed / Pushed | **Yes / Yes**, implementation **99b70fe373bfaa14424e2163136719024e5f0b0b**, normal push on the existing branch. The containing READY documentation commit publishes this handoff separately without changing the artifact |
-| Deployed / Staged URL-ID-SHA / READY | **Yes, staged Production / READY FOR OWNER UAT**. **dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, https://new-athlete-badminton-school-llo19jlt9-aachanin1s-projects.vercel.app, exact source **99b70fe373bfaa14424e2163136719024e5f0b0b**. CLI 59.11.7 used --prod --skip-domain; API confirms **READY / STAGED / target production / alias []**. Uploaded Source/Test hashes match all 13 tested files |
-| Deployed Source / Deployment ID / Rollback Candidate | Fresh Vercel read: Production target **7f27864cd100d860644c1e20c75b170ac0cb0986 / dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc / READY**, URL new-athlete-badminton-school-m6d17uus9-aachanin1s-projects.vercel.app |
-| Push Integration / Production Domains | Vercel productionBranch **main**; current spike branch produces Preview, with no domain bound to that branch. www.newathleteschool.com and new-athlete-badminton-school.vercel.app remain Production domains. GitHub Pages workflow also triggers only main. No integration/control change |
-| Owner Staged UAT / Promotion / Production Checks | **Waiting for Owner / Not performed / Post-Promotion task-9 checks not run**. Staged no-write smoke passed homepage/login/health and 21 assets 200; Admin API 401 and protected pages 307 to login. Scoped error/fatal and 5xx queries returned no entries during smoke. Existing Production health 200; all three Production aliases remain on the old rollback artifact |
-| Production Active / Production UAT Passed | **No for task 9 / Not run for task 9** |
-| Controlled Write UAT | **Developer disposable technical tests passed**. Admin standalone/Dialog save/reload, UPDATE/first INSERT races, stale/invalid/denied requests, protected table snapshots and audit verified; Legacy/Progressive totals and shared Test Mode transitions passed. No Owner or Developer Production transaction |
-| Fixtures / Cleanup / Residue | Three suite attempts, each completed local teardown and residue query **0**. Final independent Auth/profile/booking/session/payment/batch/settings/activity/storage-metadata counts **0**. Final suite created 15 physical slip files; exact fixture-only cleanup removed those plus empty fixture folders. Original **88/88** storage files preserved; new physical fixture residue **0** |
-| Effective Account Configuration | Fresh Production SELECT: legacy singleton, accountNumber **0000000000**, instructions **TEST Mode**, other fields blank, updated_at **2026-05-18T12:24:00.995606+00:00**. No saved collection. New implementation uses eight source defaults read-only; currently active old source still uses legacy display |
-| Account Defaults Fingerprint | Canonical eight-account SHA-256 **29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6**, present in staged metadata and independently recomputed from actual normalizer + fresh live SELECT after staging. Effective source **defaults**, 8 accounts / 12 exact branches, saved legacy unchanged |
-| Branch Mapping | Fresh 2026-09-08 Production SELECT confirms all **12 active IDs/names/slugs**, including Eastville/East Ville and ราชพฤกษ์/ราชพฤกษ์-ตลิ่งชัน. Exact names/numbers remain the original eight Owner accounts; no mapping change |
-| Docker / Disposable Identity | Developer Server **29.7.2**, Context **desktop-linux**, local named pipe, PostgreSQL **17.6**, project **New-Athlete-Badminton-School**. API **127.0.0.1:54321**, DB **127.0.0.1:54322/postgres**, DB volume **supabase_db_New-Athlete-Badminton-School**, storage volume **supabase_storage_New-Athlete-Badminton-School**. Gate-0 DB ID f9466333e374, system identifier 7682098156654641194; approved resets recreate DB container |
-| Container Ownership / Other Workloads | All 12 inventoried containers share this project's label/network. DB workdir matches root; 11 service labels retain an old disposable checkout. Pre-reset DB had no users/business rows, only migration defaults and 30 example.com fixture auth-audit rows. Connections mapped to own idle services; no concurrent Next/test workload. Edge remained exited and Vector restarting; neither was repaired/stopped. No other project container found or stopped |
-| Host Runtime Changed / Host Recovery | **Yes — authorized local Supabase reset/restart, fixtures and cleanup / No new Docker startup, A/B rename or recovery action**. Prior B restoration and physical-target deviation remain in dated history; recovery copies retained. Owner's working-engine evidence supersedes the old startup proposal; permanent socket root cause remains unproven |
-| Application Environment / Dependencies / Lockfile / Permission | **No tracked changes / No project changes / No changes / No changes**. Existing harness process-local test variables used. Unpinned npx probe fetched cache CLI **2.117.0**, and its reset pulled Realtime **v2.130.0** for setup. These are disclosed local tooling/setup effects, not a Developer Docker upgrade or Production environment change |
-| Migration Source / Migration Applied | **No source change / Existing 35 migrations applied only during approved disposable resets; no Production migration** |
-| Feature Enabled / Allowlisted | **No changes / No changes**; task-9 is not Production active |
-| Developer Data Actions / Owner Data Actions | Developer: verified disposable reset, test actors/fixtures, real settings/prepare/upload tests, teardown and exact new-file cleanup; Production branches/settings SELECT only. Owner reported docker info and renewed continuation approval; no real transaction reported |
-| Production Data Changed / Data Repaired | **No Developer Production writes / No Production or financial repair**; test fixtures are separate |
-| Customer Impact / Financial Impact | **No change on Production domains yet / No Production amount or transaction change**. Staged artifact shows booking-relevant receiving-account instructions and copy; prices, totals, payment lifecycle and historical recipients remain unchanged |
-| Scope Expansion / Breach / Corrections | **No product expansion or new breach this round**. Earlier B physical-target deviation is preserved, not hidden. Two test defects fixed once each: absent Ledger assumption and unscoped alert selector; Dialog persistence assertions added. No functional correction or weakened assertion |
-| Documentation Drift | **Resolved**: old Docker-down/next-A-B-recovery and pre-publication states superseded by verified engine/tests/artifact evidence. Prior recovery records and physical-target deviation retained; AGENTS unchanged this round |
-| Blocker / Remaining Work | **No technical release blocker**. Owner UAT PASS pending; then exact-artifact Promotion, read-only Production health/log/display checks and final closeout. Staged URL uses existing Vercel authentication; no protection setting changed |
-| Next Gate / Next Action | **Owner UAT on dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa / 99b70fe373bfaa14424e2163136719024e5f0b0b**. Stop here. After PASS promote this same artifact without rebuild; recheck effective config/source and retest any change |
-| Parking Lot Authorization State | Original **1–8** retain order and remain unauthorized; original **9** is the sole Active Task |
+| Local HEAD / Remote HEAD / Ahead-Behind | Gate 0 fresh fetch: **63bb183f8bbc346bead3c2b796531c52e198bc54 / same / 0/0**, clean and staged empty. This containing closeout commit is the documentation-only successor; exact final SHA and remote equality are recorded in the publication report, avoiding recursive self-reference |
+| Worktree / Staged | Only three allowed closeout docs changed; complete staged diff/name-status/stat/check and consistency matrix reviewed before commit. Clean/staged-empty after normal push is verified in final evidence |
+| Current Source / Pushed Source / Application SHA | **99b70fe373bfaa14424e2163136719024e5f0b0b / same**. src tree **87049830fbf14fb48ceb4b166f18b32d47d34c82**. All 13 tested Source/Test hashes match; changes after application SHA are documentation only |
+| Source Complete | **Yes**; no functional/test correction in this release round |
+| Tests Passed | **Yes**. Retained, hash-bound History **16/16**, focused **19/19**, Batch **44/44**, Integration **29/29**, SlipOK **6/6**, TypeScript/lint/mojibake/Production build. No rebuild or disposable reset repeated. Fresh Production smoke, scoped logs, exact identity/config checks and documentation mojibake/diff/matrix passed |
+| Committed / Pushed | **Yes / Yes** for application 99b70fe373bfaa14424e2163136719024e5f0b0b; this containing documentation-only closeout commit is separately normal-pushed and verified |
+| Deployed / Promoted Artifact | **Yes / dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, target production, **READY / PROMOTED**, Application SHA **99b70fe373bfaa14424e2163136719024e5f0b0b** |
+| Artifact URL / Production URL | https://new-athlete-badminton-school-llo19jlt9-aachanin1s-projects.vercel.app / **https://www.newathleteschool.com** |
+| Promotion / Rebuild / Replacement Deployment | **Completed 2026-09-08 04:35:41–04:35:47 UTC (11:35:41–11:35:47 Bangkok) / No / No Production replacement**. One CLI promote of exact ID, exit 0. Created/building/ready timestamps and source metadata unchanged; no deployment created during Promotion. Documentation push may trigger a separate Preview, never used as the promoted artifact |
+| Production Aliases | **www.newathleteschool.com**, **new-athlete-badminton-school.vercel.app**, **new-athlete-badminton-school-aachanin1s-projects.vercel.app** all verified against the exact promoted ID. Git productionBranch remains **main**; closeout spike-branch push cannot promote its Preview |
+| Rollback Candidate | **dpl_CU1J3Vurx6JZby9oQtLqnNhcDaRc**, SHA **7f27864cd100d860644c1e20c75b170ac0cb0986**. Fresh READY and prior alias identity/health 200 verified before Promotion; no rollback or data reversal performed |
+| Owner Staged UAT | **PASS**, exact ID/Application SHA above. Owner reported three screenshots and confirmed **“เปิดดู/คัดลอก ไม่กดบันทึกหรือส่งสลิป”**. This acceptance is separate from the backend-recorded booking/batch actions below |
+| Production Active / Feature Behavior Active | **Yes / Yes**, receiving-account display/copy on the exact promoted source; current accounts are instructions, not proof of historical/live-verified recipients |
+| Production Automated Checks | **Passed fresh**: two public aliases health 200/ok; third existing protected alias health 200 through temporary Vercel access (anonymous 302 to Vercel). Homepage/login and 21 exact-artifact assets 200; Admin API anonymous 401; protected Admin/History pages 307 to correct login routes. No application login/prepare/upload/save used for smoke |
+| Production Scoped Logs | Deployment-scoped **error/fatal and 5xx queries returned no entries**, from 04:35:47 UTC after Promotion through the checked window. No task-attributable regression observed; this is bounded evidence, not a promise about future traffic |
+| Production Manual UAT / Production UAT Passed | **Not repeated / No separate manual Production PASS claimed**. Owner staged PASS and fresh automated Production checks apply to the unchanged exact artifact; no repeat requested |
+| Controlled Write UAT | Prior Developer disposable API/DB tests **passed**. During Owner UAT, real booking create/edit/cancel and batch prepare/cancel records were independently reconciled read-only; no slip/payment/approval found. No Developer Production writes or repair |
+| Effective Account Configuration | **Source defaults: 8 accounts / 12 exact active branches**. payment_transfer_settings remains legacy singleton, accountNumber 0000000000, instructions TEST Mode, other fields blank, updated_at **2026-05-18T12:24:00.995606+00:00**. No saved collection or settings-save audit since staging; before/after Promotion value and roster identical |
+| Defaults Fingerprint / Configuration Gate | **29036b3d1131efbc2b5cbecb1934b9c9cba32f31b94170ed4671ce3cea42f7f6** matches actual normalizer, original roster and artifact metadata. Both confirmed aliases unchanged. Tracked config unchanged; Production environment metadata predates staged build; no secret values exposed or changed |
+| UAT Matched Rows / Timeline | Bookings **0717c0fb-20cb-4405-aecb-1c8b3ebc4088** and **437fe762-3047-448f-8353-72961e9e705d** are cancelled. Named batches **4387f611-a869-4d7a-be8f-e50c07444938 / 1,250** and **252e56c9-6fa8-48c6-8647-5c6cd89d3d40 / 1,875** are cancelled. Second booking later edited at **04:19:31 UTC** to 1 session/700; two later 700 batches also cancelled. Old 1,875 snapshot is not compared with later 700 state as a UI defect |
+| UAT Financial/Lock Result | All **4** related batch memberships inactive; scope **1f96600e-d7f5-4da4-970c-94246701e05d**, revision 9, locked_by_payment_batch_id/locked_at null. All batches have no slip/upload/submission/review/approval; matched payments, payment slips, verification attempts and allocations **0**. Full queried booking/batch/member/scope/audit values unchanged across Promotion |
+| Developer Production Writes / Owner-period Data Changes | **No / Yes**. Developer did SELECT/health reads and infrastructure alias Promotion only. Backend records two booking creations, one later edit, two booking cancellations and four batch prepare/cancel pairs during Owner UAT. Do not infer no data changes from no settings save or no slip upload |
+| Production Data Changed / Payment Settings Changed / Data Repaired | **Yes during Owner UAT / No / No**. Promotion itself did not change the reconciled application rows. No cleanup, cancellation, unlock, migration or financial repair by Developer |
+| Host Runtime Changed | **No this round**: no Docker/WSL/startup/directory/backup action, no local reset/fixtures. Prior authorized recovery, B physical-target deviation/restoration and disposable cleanup remain in dated history |
+| Application / Production Environment | **No changes this round**; immutable staged build retained. Prior local npx/Supabase setup effects are historical, not new release actions |
+| Migration Source / Migration Applied | **No source change / No application or Production migration this round**; earlier 35 existing migrations were applied only to disposable tests |
+| Dependencies / Lockfile / Permissions | **No changes / No changes / No changes** |
+| Feature-control Changes / Allowlisted | **None / No changes**. Feature behavior is active through source Promotion; no new feature flag, allowlist or shared SlipOK-mode change |
+| Fixtures / Cleanup | **No new fixtures or cleanup this round**. Retained disposable evidence: DB/API/new physical residue 0, original 88/88 storage files preserved. Production UAT history retained intact |
+| Customer Impact | Customers now see relevant branch accounts, merged shared cards, bank colors and truthful copy/manual fallback; Admin manages branch bindings with stale-save protection |
+| Financial Impact | Receiving instructions changed; pricing/combined amounts/payment lifecycle and financial history did not. UAT booking quantities/prices changed through recorded create/edit/cancel actions; no settled payment, receipt, approval or allocation in matched cases |
+| Scope Expansion / Scope Breach / Corrections | **None this round / None this round / No application correction**. Only bounded read-only verification helper adjustments; earlier host physical-target deviation remains historical and is not hidden |
+| Documentation Drift | **Resolved**: READY/waiting-for-PASS and no-Owner-transaction statements superseded by explicit Owner PASS, exact Promotion and fresh backend chronology. Registration, implementation, Docker and prior handoffs preserved |
+| Blocker / Remaining Work | **None for task 9**. Required technical/release/data reconciliation and closeout publication complete; no follow-up product work inferred |
+| Next Gate / Next Action | **Await Owner selection of another task**; do not start Parking Lot 1–8 automatically |
+| Parking Lot Authorization State | Original **1–8** retain order and remain unauthorized. Original **9** is completed and preserved as history, not a new queue entry |
 
-Current queue — original positions retained
+Remaining Owner-selection queue — original positions retained:
 
 1. END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT PROVENANCE HARDENING
 2. HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT
@@ -64,37 +68,11 @@ Current queue — original positions retained
 6. HOMEPAGE LV COPY AUDIT/FIX
 7. ADMIN RECOMMENDATIONS — ROUND RISK ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL
 8. COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE
-9. **SELECTED / ACTIVE:** BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY
 
-Detailed evidence: DEVELOPMENT_TODO.md → **2026-09-08 — Task 9 disposable verification resumed and passed** and **2026-09-08 — Task 9 exact staged Production artifact and READY handoff**. Exact 10/3/4 paths and account mapping remain in the confirmed-alias handoff. Earlier recovery records remain historical.
-
-### Owner UAT — exact staged artifact
-
-URL: https://new-athlete-badminton-school-llo19jlt9-aachanin1s-projects.vercel.app.
-Use the existing authorized Vercel account if the protection login appears, then
-the school's existing Admin/Super Admin with payments permission or User account.
-Artifact/SHA are in the current matrix. No Production fixtures were created.
-
-1. **Read only:** open /admin/payments/settings and the settings Dialog under
-   /admin/payments. Expect eight defaults, twelve exact branch bindings, complete
-   recipient names and original numbers. Do not save on Production for this UAT.
-2. For the User's own one-branch pending payment, expect only that branch's card.
-3. For relevant branches sharing an account, expect one card with only their names.
-4. For branches with different accounts, expect multiple cards and the instruction
-   to transfer the entire total into one displayed account, with one slip.
-5. Copy number/full details and paste on mobile; expect digits only with leading
-   zeros for number copy, complete same-card details, and manual text on failure.
-6. Check one unchanged total, accessible slip controls and no overflow at 320/390px.
-   If a slip is already submitted, expect no instruction to transfer again.
-
-Steps 2–6 must use available genuine pending cases only if Owner chooses a real
-transaction review. **Opening a Progressive payment dialog can create a payment
-batch; this is an Owner write action, not read-only.** Developer did not do it on
-Production. Save/prepare/upload technical tests already passed in disposable DB;
-do not manufacture Production cases. Any Owner real write must be identified and
-reconciled separately before acceptance. Missing real branch combinations are a
-manual-UAT limitation, with their behavior covered by real disposable fixtures.
-Return PASS/FAIL for this exact artifact; no Promotion before PASS.
+Original item **9 — BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY** is
+completed. Exact 10/3/4 paths, accounts/mapping and earlier evidence remain in
+DEVELOPMENT_TODO.md. Latest release record: **2026-09-08 — Task 9 Owner PASS,
+exact Promotion, Production verification and closeout**.
 
 ## Historical / Superseded — Branch payment accounts Parking Lot registration
 
