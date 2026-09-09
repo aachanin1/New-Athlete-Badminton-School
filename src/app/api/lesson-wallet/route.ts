@@ -391,6 +391,8 @@ async function notifyHeadCoachesAndAssignedCoach(
 }
 
 function rpcErrorResponse(error: DbError) {
+  const task10Code = /TASK10_[A-Z_]+/.exec(error.message)?.[0]
+  if (task10Code) return NextResponse.json({ code: task10Code, error: 'ต้นทางนี้ไม่พร้อมใช้หรือถูกจัดชดเชยแล้ว กรุณาโหลดข้อมูลใหม่' }, { status: task10Code === 'TASK10_UNAUTHORIZED' ? 403 : 409 })
   const code = resolveLessonWalletErrorCode(error)
   const status = code.endsWith('_NOT_FOUND') ? 404
     : /(STALE|CONFLICT|AMBIGUOUS|UNAVAILABLE)/.test(code) ? 409

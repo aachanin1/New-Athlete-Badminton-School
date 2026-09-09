@@ -1,8 +1,77 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-08 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-09 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task 9 released / TASK DONE
+## Current State — Task 10 local verification complete / remote migration gate
+
+PROJECT_STATE.md is the sole authority for current mutable state. Owner's FINAL
+command approves the [single strict 66-file Scope](DEVELOPMENT_TODO.md#parking-lot-10-development-scope).
+The explicit cutoff correction preserves Reschedule12/Wallet48. Other decisions,
+48,000 บาท including automatic cancellation, and Parking Lot1–9 remain unchanged.
+This source and safe handoff are published by the containing Task10 commit; its
+exact SHA and equality with the live upstream are verified in the publication
+report, avoiding a recursive SHA inside its own commit.
+
+### Current Project Matrix
+
+| Field | Current value |
+| --- | --- |
+| Active Task | **10 — Kids booking-date pricing + family Makeup + destination minimum/settings + automatic no-slip cancellation** |
+| Task Status | **DEVELOPING — Source and local verification complete; awaiting named-project exact-SQL migration approval**. READY FOR OWNER UAT **No**; Task Done **No** |
+| Actor / Scope | Parent existing booking/payment/Wallet; authorized Makeup Admin; Super Admin settings; scheduler; Developer verification; Owner exact-artifact UAT. Strict **41/15/4/5/1 = 66** paths |
+| Owner Decision | All eight decisions, both pricing settings entries, Super Admin editor and forward-only minimum approved. **Reschedule >=12h; Wallet Store >48h**: exact12 permitted, exact48 rejected. Earlier Reschedule48 wording superseded as an error |
+| Commercial Record | **Approved 48,000 บาท**, automatic cancellation included at no extra charge. Customer payment **Unknown / no evidence supplied** |
+| Branch | **spike/next-major-security-upgrade** |
+| Upstream / Remote | **origin/spike/next-major-security-upgrade** / https://github.com/aachanin1/New-Athlete-Badminton-School.git |
+| Local HEAD | **Containing Task10 source/safe-handoff publication commit**; verified pre-publication parent **3bcdf86525a86373c9c2ed15e26b89d99875b106** |
+| Remote HEAD | **Same containing publication commit after verified normal push**; exact live SHA recorded in publication report |
+| Ahead / Behind | **0 / 0 after publication verification** |
+| Worktree / Staged | Publication change set **59 allowed paths: 40 functional /9 tests /4 docs /5 migrations /1 config**, 40 existing +19 new. Seven planned paths unchanged. Original three dirty Task10 docs preserved. Clean/staged-empty required and checked after publication; generated ignored outputs excluded |
+| Current Source / Pushed Source | **Task10 source in the containing publication commit / same on upstream**. Tested src tree **55a1cd39886dcebc44d5a649b8070264b91afcee**. Prior application **99b70fe373bfaa14424e2163136719024e5f0b0b** is the unchanged Production source |
+| Source Complete | **Yes — approved source, five migrations and local test implementation complete**. Remote release/activation remain separate |
+| Tests Passed | **Yes for required local technical scope**: Task10 **40/40**, final pricing-summary correction **1/1** focused rerun; original Booking **23/23**, affected protected Booking cases rerun **15/15**; History **16/16**. Wallet/Progressive **45/17/33/32/44/29/38**; SlipOK **6**; retrospective DB **38**; teaching hours **20**; schedule assignment **39**; learner identity **17**. TypeScript, lint, Production build, mojibake and diff checks passed. Detailed mapping and same-source limits in dated evidence |
+| Committed | **Containing Task10 publication commit**, normal commit only after checks and complete diff/scope review; exact SHA in publication report |
+| Pushed | **Same source commit on the named upstream**, verified normal push; no force push |
+| Deployed | **No Task10 staged Production deployment or Production release**. Git-triggered Preview, if any, is not the authorized exact-artifact UAT target |
+| Deployed Source / Deployment ID | Fresh Vercel Production target: **99b70fe373bfaa14424e2163136719024e5f0b0b / dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY, unchanged Task9 |
+| Artifact | **No Task10 staged artifact, ID or URL yet**. Required workflow after migration gate: production-target **vercel --prod --skip-domain**, no alias switch |
+| Owner Staged UAT | **Not run**; prepared seven-step runbook only. Disposable functional evidence and staged Production OFF smoke must remain separate |
+| Promotion | **No action; prohibited before Owner PASS for the exact staged artifact/SHA** |
+| Production Health Checks | **Task10 post-Promotion checks not run**. Existing Task9 health endpoint returned HTTP200/ok in read-only verification; this is not Task10 Production acceptance |
+| Migration Source | **All five approved M1–M5 complete**, exact SHA-256 manifest in [dated migration handoff](DEVELOPMENT_TODO.md#task10-migration-handoff-2026-09-09); local SQL bytes equal staged Git blobs |
+| Migration Applied | **Five applied only to verified disposable local DB**. Remote project **tvnhholicwjtxdhlxfqs** still has **0 Task10 migrations**, no Task10 policy relation, no minimum key, no cron.job relation at **2026-09-09 07:03:52 UTC** |
+| Environment / Scheduler / Config / Permissions | One approved local Playwright config. No Production environment, secret, allowlist or infrastructure change. Production pg_cron already preloaded for postgres; M5 would create the extension and register its job **inactive**. Local ACL/RLS verified; service_role cannot activate, pause or run scheduler |
+| Activation / effective_at | **Not activated / NULL**. Local cleanup restored never_activated, revision0, all three controls false and cron inactive. No caller-supplied Production clock override |
+| Feature Enabled | **No Task10 feature enabled in Production** |
+| Allowlisted | **No changes**; existing live values not re-audited |
+| Production Active | **Task10 No; existing Task9 remains active** |
+| Production UAT Passed | **Not run for Task10** |
+| Controlled Write UAT | **No Production controlled-write UAT**. Synthetic disposable API/DB/Storage tests passed and were cleaned |
+| Data Repaired | **No** |
+| Production Data Changed | **No task-attributable writes**; only read-only remote queries |
+| Customer Impact | **None from this unpublished-to-Production Task10 source** |
+| Financial Impact | **No Production financial changes**. Synthetic test payments/coupons and their cleanup are local only; no customer payment claim |
+| Disposable Cleanup | At **07:21:35 UTC** users/bookings/payments/Wallet/receipts/Makeup uses/cohort/origins/cancellations all **0**; five migrations remain inert; real clock function restored; original physical Storage file count **88** preserved |
+| Local Dev Handoff | Fresh dev process at **http://127.0.0.1:3000**, bound to verified disposable API **127.0.0.1:54321** through process-only variables. Root and seven discovered static assets **HTTP200**. Manual .next deletion was rejected by automatic approval review; retained as an explicit protocol limitation, not a passing deletion claim. No fixture accounts remain |
+| Scope Expansion / Scope Breach | **0 / 0**; no package, lockfile, deployment config, historical migration or outside-66 source edit |
+| Documentation Drift | **Resolved**: Owner cutoff correction and current matrix replace earlier partial state. Earlier scope/partial handoffs are explicitly historical. All publication fields use this containing-commit identity and are verified after normal push |
+| Blocker | **Owner command §9 requires named-project approval of the exact five SQL hashes before remote schema/catalog/inactive-job apply**. Source-plan approval does not authorize that operation |
+| Remaining Work | Exact remote migration approval/apply and OFF compatibility checks; staged Production artifact and OFF smoke; Owner exact-artifact PASS; no-rebuild Promotion/health; separately approved actual-clock activation manifest and post-activation reconciliation/closeout |
+| Next Gate / Next Action | Owner reviews the five-file SQL manifest, target identity, local evidence, effects and rollback, and approves only the exact inert remote apply. Developer then continues authorized staging. No formula/scope reapproval; no activation or old-data repair inferred |
+| Parking Lot Authorization State | **1–8 unselected; 9 completed; 10 implementation approved**. No next task starts automatically |
+
+### Current Parking Lot positions
+
+Original positions and candidates1–9 remain recorded in TODO-CODEX.md. Only item10
+is selected for development. See the dated handoff for the exact59-path manifest,
+seven unchanged paths, requirement-to-evidence mapping and prepared Owner UAT.
+
+## Historical / Completed — Task 9 released / TASK DONE
+
+State observed at the Task 9 release closeout published in **3bcdf865**. All
+current-state wording, Git/Production values, queue and next-action statements
+inside this retained section are scoped to that closeout and superseded by the
+first matrix above. Task 9's completed status and legitimate evidence are unchanged.
 
 PROJECT_STATE.md is the sole authority for current mutable state. Owner PASS of
 exact artifact dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa authorized Promotion without rebuild.

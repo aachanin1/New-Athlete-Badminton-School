@@ -22301,3 +22301,1420 @@ promotion-protected-alias-health.json, promotion-production-smoke.json,
 promotion-observability.json and final promotion-closeout-publication.json in
 .playwright/branch-payment-accounts/. No secret contents or session tokens are
 published. Earlier raw evidence and recovery copies are retained.
+
+<a id="parking-lot-10-registration-2026-09-08"></a>
+
+## 2026-09-08 — Parking Lot 10: Kids booking-date pricing, family makeup and no-slip cancellation registration
+
+**Historical / Superseded registration checkpoint.** All pending-decision,
+authorization and next-action wording in this registration is scoped to that
+earlier checkpoint. Owner subsequently closed all seven questions and authorized
+the [decision record and read-only Audit](#parking-lot-10-decision-audit-2026-09-08).
+The checklist below now links each closure; legitimate original history is retained.
+
+State observed at this registration: **recorded locally only; some business
+details awaiting Owner confirmation; Product implementation not authorized**.
+[PROJECT_STATE.md](PROJECT_STATE.md#current-project-matrix) owns current mutable
+state; [TODO-CODEX.md](TODO-CODEX.md#parking-lot) is the short execution index.
+This dated record preserves requirements and decisions at registration time,
+not a claim that the new rules were implemented or active in Production.
+
+### Name, commercial proposal and authorization
+
+- Position **10**; exact name: **ปรับเรทราคาคอร์สเด็กตามวันจอง + ชดเชยร่วมครอบครัว + ยกเลิกบิลไม่มีสลิปอัตโนมัติ**.
+- **ราคาเสนอ 48,000 บาท โดยแถมระบบยกเลิกบิลอัตโนมัติ ไม่คิดเพิ่ม**.
+  This is the recorded commercial proposal, not a statement that the quotation
+  was accepted/paid or that implementation or database course-price changes
+  were approved.
+- The latest Owner instruction authorizes this documentation registration and
+  supersedes the earlier unfinished read-only implementation-scope audit as the
+  work for this round. Earlier bounded Source observations do not constitute
+  completed Developer dependency verification or an approved development Scope.
+- The confirmed future requirements below are Owner decisions. Other PM
+  suggestions, unspecified formulas and answers to the open checklist are not
+  approved by this registration. Questions do not block recording the candidate.
+- Original positions **1–8** retained their order and remained unselected;
+  original **9** remained completed history. At registration there were exactly
+  **nine unselected candidates: 1–8 and 10**; no duplicate item 10 was found.
+
+### Confirmed future rule — Kids family makeup pool
+
+- รวมจำนวนเรียนของพี่น้องในบัญชีผู้ปกครองเดียวกัน แยกตามเดือนเรียนต้นทาง.
+  The exact qualifying quantity basis is still an open decision below.
+
+| จำนวนเรียนรวมของครอบครัวในเดือนต้นทาง | โควตาชดเชยร่วม |
+| --- | --- |
+| 4–7 ครั้ง | 1 ครั้ง |
+| 8–11 ครั้ง | 2 ครั้ง |
+| 12–15 ครั้ง | 3 ครั้ง |
+| 16–19 ครั้ง | 4 ครั้ง |
+| 20 ครั้งขึ้นไป | 5 ครั้ง |
+
+- เป็นโควตาร่วม ผู้ปกครองเลือกให้เด็กคนไหนในบัญชีเดียวกันใช้ก็ได้
+  **ไม่แบ่งเพดานรายเด็ก**. Only an **Admin with the required permission** makes
+  the makeup transaction; no customer self-service makeup operation is approved.
+- ขาดเรียนและกระเป๋าเด็กที่เหลือข้ามเดือนใช้เพดานเดียวกัน.
+- ตัวอย่าง: **ซื้อรวม 20 ครั้ง ขาด 6 ครั้ง เหลือกระเป๋า 2 ครั้ง** มีรายการต้นทาง
+  **6 + 2 = 8** แต่ใช้ชดเชยเดือนถัดไปได้ **สูงสุดรวม 5 ครั้ง**, not 5 per child
+  or separate absence/wallet quotas.
+- ใช้ได้ถึง **สิ้นเดือนถัดจากเดือนต้นทาง** รวมเครดิตเดิมที่ยังไม่หมดอายุ
+  **ตามเงื่อนไขวันเปิดใช้**. Exact activation/old-credit transition criteria are
+  still open; this sentence does not approve revival of already-expired credits.
+- การใช้กระเป๋าภายในเดือนและการเปลี่ยนวันเรียนคงกฎเดิม.
+- กระเป๋า **Adult/Private รวมถึงสิทธิ์แพ็กเกจ 10 เดือนต้องคงกฎเดิม**.
+  This Kids pool does not replace Adult/Private Wallet semantics.
+
+### Confirmed future rule — Kids pricing by booking date
+
+ทำรายการจองวันที่ **16–สิ้นเดือน** ใช้เรทต่อครั้งดังนี้:
+
+| จำนวนครั้งตามฐานสะสมที่กฎพี่น้อง/Progressive ใช้อยู่ | เรทต่อครั้ง (บาท) |
+| --- | --- |
+| 1 | 700 |
+| 2–3 | 625 |
+| 4–5 | 500 |
+| 6–7 | 433 |
+| 8–9 | 406 |
+| 10 ขึ้นไป | 350 |
+
+- เลือกจองเดือนถัดไปได้ แต่ **คนละเดือนเรียนต้องแยกบิลและจำนวนสะสม**.
+- **กฎพี่น้องและสูตร Progressive ยังคงเดิม**. This confirms the specified new
+  rate set, not a switch to Legacy monthly true-up, a new sibling formula, or
+  retrospective repricing/refunds/credits for existing settled bookings.
+- ตัวอย่างทำรายการ **วันที่ 17 ก.ย. เมื่อไม่มีฐานเดิม**:
+
+| กรณี | ผลที่ Owner ยืนยัน | ตรวจเลขจากเรทที่ระบุ |
+| --- | --- | --- |
+| ก.ย. 4 ครั้ง | 2,000 บาท | 4 × 500 = 2,000 |
+| ต.ค. 10 ครั้ง | 3,500 บาท | 10 × 350 = 3,500 |
+| ก.ย. 4 ครั้ง และ ต.ค. 6 ครั้ง | แยกบิล 2,000 บาท และ 2,598 บาท | ก.ย. 4 × 500; ต.ค. 6 × 433; ห้ามรวมเป็นฐาน 10 ครั้ง |
+
+The examples use no prior baseline and do not decide mixed-regime edits or
+historical transitions. The timestamp source/timezone and preserving a rate
+regime when editing are open below. No additional new rate set for days 1–15 is
+approved by this record; existing behavior and compatibility require future audit.
+
+### Confirmed future rule — Automatic cancellation of bills without slips
+
+- **บิลไม่มีสลิป เมื่อถึงรอบเรียนที่จอง ต้องยกเลิกการจองตามขอบเขตที่จะปิดรายละเอียด**.
+- รายการที่ยกเลิกต้องออกจาก **หน้าติดตามชำระเงินของ Admin**.
+- ต้องใช้ **helper/บริการกลาง** และตรวจผลกระทบต่อส่วนที่เกี่ยวข้อง.
+- The exact lesson deadline, cancelled unit, applicable course/Legacy/Progressive
+  flows, submitted-slip exemption and relation to existing expiry remain open.
+  No scheduler choice/cadence, batch-unlock rule, payment transition, data repair
+  or blanket cancellation of all unpaid records is approved by registration.
+
+### Registration questions — all seven subsequently closed by Owner
+
+- [x] **จำนวนต่ำกว่า 4 ครั้ง และฐานโควตา** — [Decision 1](#parking-lot-10-decision-1): verified purchased entitlement; min(5, floor(N/4)); no descendant recount.
+- [x] **เครดิตหมดอายุก่อนเปิดใช้** — [Decision 2](#parking-lot-10-decision-2): no revival; qualifying unexpired credits retain source-month eligibility.
+- [x] **Bangkok booking date / แก้บิล** — [Decision 3](#parking-lot-10-decision-3): successful server creation; preserve each booking's regime and existing algorithms.
+- [x] **Deadline / expiry เดิม** — [Decision 4](#parking-lot-10-decision-4): earlier first active lesson or existing expiry; exact booking and all its sessions only.
+- [x] **ประเภทคอร์ส/Legacy/Progressive** — [Decision 5](#parking-lot-10-decision-5): all existing flows; paid wallets and Adult/Private rules protected.
+- [x] **สลิปรออนุมัติ** — [Decision 6](#parking-lot-10-decision-6): successfully linked receipt before deadline exempts; atomic races/replay; rejected-slip policy unchanged.
+- [x] **เปิดใช้/ข้อมูลเก่า** — [Decision 7](#parking-lot-10-decision-7): after actual Production; actual-clock effective_at; already-overdue requires separate report/plan.
+
+### Documentation-only Scope Contract and fresh Gate 0
+
+Actor: **Developer Codex**. Prior behavior at this checkpoint: confirmed rules and
+questions were dispersed in chat, with no matching central Parking Lot item found.
+Expected result: one searchable item 10, complete confirmed requirements/examples
+and open questions, short index links, truthful local-only state, and preserved
+positions 1–8/completed item 9.
+
+Exact write allowlists at registration:
+
+- Functional = **[]**; Tests = **[]**; Migration = **[]**; Config = **[]**.
+- Documentation = **[PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md]**.
+- Count **0/0/3/0/0**, exactly **3 files**, all under
+  `C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School`.
+
+Fresh Gate 0 observed that exact root; branch
+**spike/next-major-security-upgrade**; local HEAD, stored upstream
+**origin/spike/next-major-security-upgrade** and live remote HEAD all
+**3bcdf86525a86373c9c2ed15e26b89d99875b106**; ahead/behind **0/0**. Worktree was
+clean; staged and unstaged name-status/stat were empty. `git ls-remote` was
+read-only; no fetch/ref mutation. Recent history confirmed Task 9 closeout at
+3bcdf865, handoff at 63bb183 and application at 99b70fe. Compared with application
+**99b70fe373bfaa14424e2163136719024e5f0b0b**, HEAD differed only in the three
+documentation paths; src tree **87049830fbf14fb48ceb4b166f18b32d47d34c82** matched.
+Duplicate/title/price and queue searches found no existing matching registration.
+
+Only documentation edits and read-only verification were authorized. No Source,
+API/RPC, tests, pricing-tier/data, migration, Config, Environment, scheduler,
+permissions, feature controls, allowlist, dependency/lockfile, Production, deploy,
+commit or push operation was authorized. No other Parking Lot work was selected.
+No private-service context or PM-OWNER-NOTES.local.md was copied into the target.
+
+### Future development boundary and documentation ownership
+
+Future development still needs Owner selection and a Scope Contract that closes
+the relevant decisions, names exact functional/test/migration/config allowlists,
+actors, included/protected flows, dependencies and completion/UAT criteria.
+It must separately authorize scheduler/environment/migration/data operations,
+specify canonical source and actual attending-child identity, shared-quota
+consumption, duplicate/concurrency guards, per-booking pricing evidence and atomic
+expiry/payment coordination. Those are future design/verification requirements,
+not approved implementation details from this registration.
+
+Preserve sibling/Progressive, Legacy baseline compatibility and historical money,
+same-month Kids Wallet/reschedule, Adult/Private ten-month entitlement, receiving
+accounts, SlipOK, Attendance/Payroll and other protected business rules. Do not use
+the new Kids proposal to label a Production policy mismatch merely because it has
+not been activated yet. Add the approved future Kids exceptions/business decision
+records to AGENTS.md only under a later authorized documentation allowlist;
+**AGENTS.md is unchanged in this round**.
+
+The later release contract must retain bounded corrections, complete diff/Scope
+compliance, required backend/disposable verification and a rollback candidate.
+Supply the exact staged artifact/SHA for Owner UAT; require Owner PASS before
+Promotion and no rebuild between PASS and Promotion. Use the staged Production
+artifact workflow required by AGENTS.md when that no-rebuild contract applies.
+UI PASS cannot replace backend reconciliation for money, entitlements or data writes.
+
+PROJECT_STATE.md owns current status and actual Git/Production/data evidence.
+TODO-CODEX.md holds only the short index and next action. This dated
+DEVELOPMENT_TODO.md record owns detailed policy, examples, questions and history.
+No old task is reopened or relabelled as running under these new rules.
+
+### Verification and session closeout at registration
+
+Documentation verification **passed**: exact three-file diff/allowlist, one
+candidate at position 10, nine unselected candidates with completed 9 preserved,
+all quota bands/rates/examples and seven unchecked questions, new Markdown links,
+Thai encoding in all three docs, `npm.cmd run check:mojibake` **268 files**,
+`git diff --check` and the Documentation Consistency Matrix. Prior development
+history was preserved; HEAD was unchanged, stage empty and untracked files absent.
+The matrix separates registration, Product, Git, artifact, UAT, controls, data,
+customer/financial impact and next gate. Registration content/checks are complete
+locally; files remain unstaged/uncommitted. Product tests/build/disposable
+API/DB/E2E/UAT are **not run / N/A** for this documentation round; no fixtures or
+data-writing test is run.
+
+At this registration: future Owner decisions **recorded**, unresolved decisions
+**explicit**; Product Source Complete **No**, implementation **Not Started**;
+Committed/Pushed **No/No**; Artifact **None**; Owner/Production UAT **Not Run**;
+Promotion/Deploy/Environment/Scheduler/Migration/controls/allowlist operations
+**None**; Data Repaired **No**; Production Data Changed **No task-attributable
+write**; Customer/Financial Impact **None from registration**. Production runtime
+and unrelated live activity were **Unknown / Need verification**, not queried.
+Product Task Done **No**. The registration ends locally without publication;
+future audit/development requires separate Owner selection and Scope approval.
+
+
+---
+
+<a id="parking-lot-10-decision-audit-2026-09-08"></a>
+
+## 2026-09-08 — Parking Lot 10: seven Owner decisions closed; Implementation Audit and proposed Scope
+
+State observed at this closeout: **DECISIONS 7/7 CONFIRMED; AUDIT/SCOPE READY FOR REVIEW; IMPLEMENTATION NOT AUTHORIZED**. Continue [registration 10](#parking-lot-10-registration-2026-09-08), not a duplicate. [PROJECT_STATE.md](PROJECT_STATE.md#current-project-matrix) owns current mutable state; [TODO-CODEX.md](TODO-CODEX.md#parking-lot) is the index. All observations below are dated to this audit.
+
+### Authority and current-round Scope Contract
+
+Owner confirmed **“ยืนยันทั้ง 7 ข้อ ข้อ 7 เปิดใช้งานหลัง production ครับ”**. The FINAL command closes the business questions and authorizes documentation plus read-only implementation audit only. These are **Owner-confirmed future policies, not Production-active behavior**. Existing conflicting Kids rules become future development dependencies; do not reopen the seven decisions.
+
+Retain **ปรับเรทราคาคอร์สเด็กตามวันจอง + ชดเชยร่วมครอบครัว + ยกเลิกบิลไม่มีสลิปอัตโนมัติ** and **ราคาเสนอ 48,000 บาท โดยแถมระบบยกเลิกบิลอัตโนมัติ ไม่คิดเพิ่ม**. This is a quotation record, not evidence of customer acceptance/payment or development authorization.
+
+Actor: Developer Codex. At entry, three dirty documents contained item 10 and seven open questions. Expected result: complete decision record, independent Source/dependency audit and one development Scope proposal; preserve prior registration, items 1–8 and completed 9. Completion is local documentation/Audit, not Product TASK DONE.
+
+Exact authorized writes this round, all under `C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/`: **PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md**. Functional/Test/Documentation/Migration/Config **0/0/3/0/0**. No Source/tests/migrations/config/AGENTS edits, fixtures/reset/repair, Git mutation/commit/push, environment/flags/scheduler/permissions/data writes, deploy or Promotion. No private-service context or PM-OWNER-NOTES.local.md copied into target.
+
+### Searchable Owner Decision Record — 7/7 closed
+
+<a id="parking-lot-10-decision-1"></a>
+
+**1. โควตาครอบครัว — CLOSED**
+
+- N = สิทธิ์เรียนคอร์สเด็กที่ซื้อและยืนยันชำระแล้วของครอบครัวในบัญชีผู้ปกครองเดียวกัน แยกเดือนเรียนต้นทาง; **quota = min(5, floor(N / 4))**.
+- **0–3 = 0 / 4–7 = 1 / 8–11 = 2 / 12–15 = 3 / 16–19 = 4 / 20 ขึ้นไป = 5**.
+- ไม่รวมบิลรอชำระหรือยกเลิก; ไม่เพิ่มจำนวนจากรายการเปลี่ยนวัน ใช้กระเป๋า หรือชดเชยที่สร้างต่อ. การเรียนไปแล้วหรือเก็บกระเป๋าไม่ทำให้สิทธิ์ซื้อเดิมถูกนับใหม่.
+- ใช้ไม่เกินรายการต้นทางที่ยังเหลือและเข้าเงื่อนไขจริง. โควตาร่วมไม่แบ่งเพดานรายเด็ก; ผู้ปกครองเลือกเด็กในบัญชีเดียวกันได้ แต่ **เฉพาะ Admin ที่มีสิทธิ์** ทำรายการ และต้องตรวจที่ server/transaction.
+- ขาดเรียนและ Kids Wallet ข้ามเดือนใช้เพดานเดียวกัน: **ซื้อ 20 / ขาด 6 / Wallet 2 => ต้นทาง 8 / ชดเชยเดือนถัดไปสูงสุดรวม 5**, แม้ให้เด็กคนเดียวใช้ทั้งหมด.
+
+<a id="parking-lot-10-decision-2"></a>
+
+**2. เครดิตและเดือนต้นทาง — CLOSED**
+
+- ไม่คืนเครดิตที่หมดอายุก่อนวันเปิดใช้. เครดิตเดิมที่ยังไม่หมดอายุ ณ effective_at และเข้าเงื่อนไขให้รองรับกฎใหม่ โดยรักษาเดือนต้นทาง.
+- เมื่อพ้นเดือนต้นทาง เครดิตที่เข้าเงื่อนไขใหม่แล้วยังใช้ผ่าน Admin Makeup ถึงสิ้นเดือนถัดไปภายใต้โควตารวม; **ห้ามตัดสิทธิ์เพียงเพราะพ้นช่วงใช้กระเป๋าภายในเดือน**.
+- วันเรียนชดเชยต้องอยู่ภายในสิ้นเดือนถัดจากเดือนต้นทาง ไม่ต่ออายุไปอีกเดือน. กระเป๋าภายในเดือนและการเปลี่ยนวันเรียนคงเดิม; ไม่ขยายกฎนี้ไป Adult/Private.
+
+<a id="parking-lot-10-decision-3"></a>
+
+**3. Booking-date pricing — CLOSED**
+
+- ใช้วันสร้าง booking สำเร็จที่ server ตาม **Asia/Bangkok**. วันที่ **1–15** ใช้ชุดราคาเดิมจากแหล่งราคาหลัก; วันที่ **16–สิ้นเดือน** ใช้เรทต่อครั้งดังนี้:
+
+| จำนวนครั้งตามฐานสะสมพี่น้อง/Progressive เดิม | บาทต่อครั้ง |
+| --- | ---: |
+| 1 | 700 |
+| 2–3 | 625 |
+| 4–5 | 500 |
+| 6–7 | 433 |
+| 8–9 | 406 |
+| 10 ขึ้นไป | 350 |
+
+- คงพี่น้องและสูตร Progressive รวม pending ที่ยังเข้าเงื่อนไขเดิม. **ห้ามนำฐาน verified-only ของโควตาชดเชยไปแทนฐาน Progressive**.
+- จองเดือนถัดไปได้ แต่แยกบิล/ฐานสะสมตามเดือนเรียน; ไม่เริ่มฐานใหม่วันที่ 16.
+- แก้บิลคงชุดราคาเดิมของบิล แต่คำนวณตามจำนวนที่แก้และกฎเดิมได้; pending ลำดับถัดไปที่ต้องคำนวณใหม่รักษาชุดราคาของแต่ละบิล.
+- บิลก่อนเปิดใช้คงกติกาเดิม ไม่เปลี่ยนราคาใหม่ย้อนหลัง ไม่เปลี่ยน Legacy เป็น Progressive และไม่ย้อนแก้ยอดชำระแล้ว.
+- ตัวอย่าง **17 ก.ย. ไม่มีฐานเดิม**: ก.ย. 4 = **4 × 500 = 2,000**; ต.ค. 10 = **10 × 350 = 3,500**; ก.ย. 4 + ต.ค. 6 แยก **2,000** และ **6 × 433 = 2,598 บาท**, ไม่รวมสองเดือนเป็นฐาน 10.
+
+<a id="parking-lot-10-decision-4"></a>
+
+**4. Deadline / หน่วยที่ยกเลิก — CLOSED**
+
+- ใช้เวลาที่ถึงก่อนระหว่างเวลาเริ่มคาบแรกที่ยังจองอยู่ในบิล กับ expires_at เดิมหากมี. ไม่ขยาย expiry เดิม ไม่เพิ่ม TTL ให้ประเภทที่เดิมไม่มี.
+- ถึงกำหนดและไม่มีสลิปที่บันทึกสำเร็จ: ยกเลิก **booking นั้นและรอบเรียนทั้งหมดใน booking นั้น**; ไม่ยกเลิกบิลอื่นของครอบครัวตาม.
+- เอาออกจากหน้าติดตามชำระเงินและยอดค้างที่เกี่ยวข้อง พร้อมรักษาประวัติและเหตุผล.
+
+<a id="parking-lot-10-decision-5"></a>
+
+**5. ประเภทที่ครอบคลุม — CLOSED**
+
+- No-slip cancellation ครอบคลุม **Kids / Adult / Private และ Legacy / Progressive ที่มีอยู่จริง**; ไม่สร้าง Progressive Adult/Private ใหม่.
+- Wallet จากการชำระแล้วไม่อยู่ในขอบเขตยกเลิก. คง Adult/Private ทั้งหมด รวมแพ็กเกจ 10 เดือน หลักฐานราคา/วันอนุมัติ ข้อยกเว้นและ Family Private atomic unit.
+
+<a id="parking-lot-10-decision-6"></a>
+
+**6. สลิปรออนุมัติและ concurrency — CLOSED**
+
+- ยกเว้นการยกเลิกเมื่อระบบบันทึกรับสลิปที่ผูกกับรายการชำระของบิลสำเร็จ **ก่อน deadline** แม้รอตรวจ/อนุมัติ. เลือกไฟล์หรืออัปโหลดไม่สำเร็จไม่นับ.
+- บิลยืนยันชำระแล้วต้องไม่ถูกยกเลิกด้วยกฎนี้. ป้องกัน upload/cancel ชนกันและคำสั่งซ้ำด้วย transaction/idempotency.
+- ไม่เพิ่มนโยบายยกเลิกเมื่อสลิปถูกปฏิเสธ; คงกระบวนการตรวจ คืนให้แนบใหม่ และ Admin review เดิม.
+
+<a id="parking-lot-10-decision-7"></a>
+
+**7. เปิดใช้หลัง Production — CLOSED**
+
+- เริ่มมีผล **หลัง Production จริง** ผ่าน Owner UAT และ Promote ตามเดิม. Staged artifact แม้ environment ชื่อ production **ยังไม่ถือว่าเปิดใช้กับลูกค้า**.
+- effective_at เป็นเวลาเปิดใช้จริง พร้อมเวลาอ่านแบบ Asia/Bangkok; ไม่สมมติเป็นวันที่ส่งคำสั่ง เริ่มพัฒนา staging หรือต้นเดือน. เวลาจริงเป็นหลักฐานตอนเปิดใช้ ไม่ใช่คำถามที่ต้องถามซ้ำก่อน Audit.
+- Booking ใหม่หลัง effective_at เลือกชุดราคาใหม่; บิลเดิมคงกติกาเดิม. เครดิตเดิมที่ยังไม่หมดอายุ ณ จุดเปิดใช้เข้าเงื่อนไขข้อ 2.
+- บิลไม่มีสลิปเดิมที่ **ยังไม่ถึงกำหนด** เข้าเงื่อนไขยกเลิก. บิลเลยกำหนดก่อนเปิดใช้ต้องมีรายงานและแผนแยกก่อนดำเนินการย้อนหลัง; **ไม่มีอำนาจยกเลิกเหมารวมจากคำสั่งนี้**.
+
+### Fresh Gate 0 and bounded live evidence
+
+Developer independently verified exact target root; branch **spike/next-major-security-upgrade**; HEAD, upstream **origin/spike/next-major-security-upgrade** and read-only live remote all **3bcdf86525a86373c9c2ed15e26b89d99875b106**; ahead/behind **0/0**. git ls-remote did not fetch/change refs. Worktree inventory included this checkout and other existing worktrees; none was created/moved/changed.
+
+Entry staged diff was empty; unstaged diff was only the allowed docs: DEVELOPMENT_TODO **+204/-0**, PROJECT_STATE **+76/-1**, TODO-CODEX **+31/-7**, total **+311/-8**. Preserve those registration changes; no reset/stash/overwrite. Relevant history independently checked: Task 9 closeout 3bcdf865, handoff 63bb183, application **99b70fe373bfaa14424e2163136719024e5f0b0b**. Only three docs differed from that application SHA; src tree **87049830fbf14fb48ceb4b166f18b32d47d34c82** unchanged. PM evidence was a pointer, not Developer verification.
+
+Read actual Source/API/latest overriding SQL, relevant tests/config and bounded related historical records. Live binding from supabase/.temp/project-ref matched **tvnhholicwjtxdhlxfqs / NewAthleteBadmintonSchool**. SELECT-only evidence at **2026-09-08 08:16:55.07542 UTC (15:16:55.07542 Bangkok)**: PostgreSQL **17.6**, timezone UTC; **35 applied migration versions** matched local order through **20260831060105**; pg_cron and cron.job absent. No mutation RPC/test called.
+
+Fourteen live RPC bodies matched latest local definitions after whitespace normalization, with anon/authenticated EXECUTE false: admin_notification_follow_up_workspace_v3, approve_progressive_payment_batch_v1, cancel_progressive_pending_booking_v1, create_progressive_booking_v1, expire_progressive_prepared_batch_v1, lesson_wallet_redeem_v2, lesson_wallet_store_v2, prepare_progressive_payment_batch_v2, progressive_acquire_scope_v1, progressive_legacy_baseline_v1, progressive_reprice_scope_v1, record_progressive_payment_upload_v1, reject_progressive_payment_batch_v1, update_progressive_pending_booking_v1. This does not prove every function/security path or the deployed web artifact.
+
+### Source/API/RPC dependency findings
+
+Paths/line positions refer to unchanged Source under the verified root. SQL filenames in this table are under supabase/migrations.
+
+| Evidence | Current behavior and implementation consequence |
+| --- | --- |
+| src/app/api/admin/makeup/route.ts:519,551,561,630,656,671,702 | Menu guard exists; eligibility uses absent/past scheduled cache, one makeup per learner/month, copies original child, check/insert separately and bulk-marks source-month scheduled rows absent. New Kids transaction needs exact attendance, family quota and atomic source consumption, without that bulk attendance side effect. |
+| src/app/(admin)/admin/makeup/page.tsx:253; src/components/admin/makeup-client.tsx:215,712,972 | Verified booking loading; learner/month grouping and target-child-equals-source checks; no family Wallet pool/actual-child selector. API-only change would leave valid sibling transfer unsupported. |
+| src/lib/auth/admin.ts; src/lib/admin-navigation.ts; src/proxy.ts | Layout/route/menu authorization differ. New endpoint and transaction must retain actual Admin/Super Admin makeup permission; hidden UI is insufficient. |
+| src/lib/session-attendance-status.ts:43,118,142; src/lib/admin-attendance-state.ts:48,105; src/lib/attendance-write-through.ts | Exact session + actual student attendance is authoritative. Missing attendance requires existing Admin confirmation, not automatic absence in new makeup. |
+| src/app/api/admin/makeup/route.ts:715,930 | PATCH also handles retrospective attendance/coach review/return-entitlement. Kids return-to-wallet must coordinate consumed roots; unrelated retrospective behavior is protected. |
+| src/lib/lesson-wallet-entitlement.ts; 20260826021944_separate_progressive_kids_wallet_entitlement.sql:194,314 | Kids verified store is same-month and needs no Legacy payment row; Adult/Private historical payment/tier and ten-month semantics are separate. Do not broaden generic Wallet expiry to implement Kids makeup. |
+| 20260828020022_permanent_schedule_slot_template_integrity.sql:43,75,87,99; src/app/api/lesson-wallet/route.ts:420,483 | Redeem locks credits and enforces expiry/month/future/template/learner. Add shared canonical-consumption guards across store/redeem/return; normal same-month use does not spend makeup quota. |
+| src/app/(dashboard)/dashboard/lesson-wallet/page.tsx:165; src/components/dashboard/lesson-wallet-client.tsx:149 | Wallet derives expired display from timestamp/status. Add separate Admin eligibility/usage display; preserve stored expiry and prohibit customer cross-month redemption. |
+| src/app/api/reschedule/route.ts:288,354; src/lib/coach-assignment-resolution.ts:91 | Historical audit incorrectly recorded a month/48-hour Reschedule rule. **2026-09-09 correction and explicit Owner confirmation:** preserve **Reschedule12** (exact12 eligible) and **Wallet48** (exact48 ineligible), as implemented by Source. Release commit c6b470d confirms the distinction. No Scope expansion or cutoff policy change. Reschedule still rejects makeup and creates descendants; provenance prioritizes is_makeup as admin_makeup. |
+| src/lib/booking-pricing.ts; src/lib/pricing.ts:254 | Legacy Kids is monthly true-up against settled paid/verified history; Adult/Private package formulas separate. New rate selection must not convert formulas. |
+| src/lib/progressive-booking-pricing.ts:134,176; src/lib/progressive-booking-preview.ts:65,75,89,145 | Progressive uses ordered eligible pending/paid/verified and Legacy baseline; one lesson month. Preview tier date uses UTC today; new date policy must use Bangkok without substituting quota's verified-only basis. |
+| src/app/api/bookings/preview/route.ts:35; src/app/api/bookings/route.ts:28,143,161,720,845,906,1016 | Preview/Create/Edit/Cancel dispatch by pricing scope/entry policy. Legacy uses separate calls; Progressive uses RPC. Central deadline/policy enforcement needed in both; Legacy create has no new TTL. |
+| src/lib/progressive-pricing-feature.ts | Existing general Kids entry uses payment-entry dependencies. Preserve flags/Legacy compatibility; no new Progressive Adult/Private or implicit Task 10 enablement. |
+| src/app/(dashboard)/dashboard/booking/page.tsx; src/components/dashboard/booking-client.tsx:814,984,1230,1375,1540 | Authoritative preview coexists with local fallback/tier table and submit refresh. Carry policy evidence/display through edits and reject stale midnight/activation preview before charging. |
+| 20260710160000_add_progressive_pricing_foundation.sql; src/types/database.ts:766 | Booking selected tier/rate/amount snapshots exist, but not full per-booking rate-set evidence; one selected rate cannot support edited quantities crossing tiers. |
+| 20260713210000_add_progressive_legacy_baseline_compatibility.sql:41,69,133,223,290,355,439 | Frozen Legacy baseline/fingerprint, reprice selects current pricing_tiers, Progressive create TTL 14 days. Must preserve each pending regime and original expiry; cancellation can create baseline drift. |
+| 20260710170000_add_progressive_pricing_transactions.sql:815; 20260710180000_add_progressive_coupon_lifecycle.sql:740,867 | Progressive edit/cancel already locks/idempotently guards payments/attendance/Wallet/descendants; soft-cancel/release/reprice. Extend coherently, not separate unchecked worker updates. |
+| src/app/api/verify-slip/route.ts:174,192,244,278 | Storage, provider check, payments insert and unconditional booking update are separate. Late finalization can contradict cancellation. Commit linked receipt before verification; guarded finalize/review must prevent resurrection. |
+| src/app/api/admin/payments/route.ts:127,141 | Review writes payment then booking with compensation. Central atomic review must preserve approve/send-back/cancel and permission semantics. |
+| src/app/api/progressive-payments/upload/route.ts:99; src/app/api/progressive-payments/submit/route.ts; src/lib/progressive-payment-integration.ts:72 | File success differs from DB receipt. Prepared expiry is lazy, including status GET. New booking expiry cannot depend on page visits. |
+| 20260711150500_add_progressive_payment_integration.sql:115,170,180,227 | Upload path/hash/time recorded under batch lock; 30-minute prepared timeout cancels/unlocks batch. Batch expiry is not booking cancellation; retain prior accepted-slip evidence through terminal batch states. |
+| 20260711120000_add_progressive_payment_batches.sql:106,131,156,455,672; 20260817042635_enforce_complete_progressive_payment_scope_v2.sql:38,60 | Full ordered pending scope, fingerprints/members/locks interact with expiry. Invalidate only necessary no-slip batch; cancel only due bill and reprepare full remaining scope. Uploaded evidence must be protected. |
+| 20260713153000_notify_staff_on_progressive_payment_approval.sql; src/lib/progressive-coupon-lifecycle.ts | Approval verifies bookings, consumes reservations, writes allocations/notifications. Common lock order must include approve/reject, not only upload. |
+| src/app/api/bookings/route.ts:941,1077; src/app/api/validate-coupon/route.ts | Legacy coupon consumed at create; existing cancel does not restore it. Progressive reserve/release differs. Preserve each; do not invent Legacy coupon refunds. |
+| src/app/(admin)/admin/payments/page.tsx:310,318,483; src/components/admin/payments-client.tsx:260; src/app/(dashboard)/dashboard/history/page.tsx:270; src/components/dashboard/history-client.tsx:447,493,1011 | Follow-up/due/history depend on booking/payment/batch truth. Shared read projection must remove exact cancelled bill, retain reason and proper receipt review queue. |
+| src/app/(dashboard)/dashboard/page.tsx:78,87; src/app/(dashboard)/dashboard/schedule/page.tsx:167,187 | Customer pending counts are additional consumers needing reconciliation, not just Admin Payments. |
+| 20260811125610_admin_notification_follow_up_dynamic_monthly_queue.sql:116; src/app/api/admin/notifications/customer-follow-up/route.ts | Monthly customer-return recommendations already filter active states but are distinct from payment follow-up. Preserve family/history and purpose; no queue redesign. |
+| src/app/(admin)/admin/finance/page.tsx:148; payment_ledger_allocations_v1 | Approved payment/allocation evidence feeds Finance. No unpaid expiry/makeup may create financial credit/refund/approved allocation or alter settled history. |
+| 20260506082635_current_remote_baseline.sql:1334,1346,1352,1694; live policies/grants | Own booking/session direct-table writes are broader than server flow. RPC execute revocation alone does not stop is_makeup/source/status/evidence spoofing. Targeted DB guards and compatible server mutations are required. |
+| vercel.json; live extension catalog | No Vercel cron in repo; pg_cron absent live. Unattended scheduler installation/activation needs distinct future authority. |
+| supabase/config.toml; tests/booking-regression/local-supabase.ts:92; tests/history-payment-regression/local-supabase.ts:19; Playwright configs | Local ports 54321/54322, DB17, localhost/container guards exist; fixture/reset tests write. No such test executed now. |
+| scripts/check-lesson-wallet-regression.mjs:1; progressive check scripts | Helper assertions/source-contract checks are useful but cannot prove SQL locks/RLS/upload races; actual disposable API/DB concurrency tests are required. |
+
+**Root-cause dependency: frozen Legacy baseline.** Cancelling a qualifying Legacy pending booking changes the active Legacy quantity/fingerprint and can cause progressive_acquire_scope_v1 to return baseline drift. Proposed correction: append-only cancellation-event-backed baseline adjustment/revision used consistently by acquire/preview/reprice, preserving frozen original evidence. Apply only the exact authorized expiry delta; no arbitrary rebase, Legacy money rewrite, scope assignment or settled changes. This is a direct dependency of all-flow cancellation.
+
+### Dated data findings and Unknowns
+
+| Flow at audit timestamp | Pending | Already due/no linked slip | Future deadline/no linked slip |
+| --- | ---: | ---: | ---: |
+| Kids Legacy | 2 | 2 | 0 |
+| Kids Progressive | 12 | 10 | 2 |
+| Adult Legacy | 7 | 7 | 0 |
+| Private Legacy | 3 | 3 | 0 |
+| Total | **24** | **22** | **2** |
+
+No missing active session was found in those 24. Receipt inspection used Legacy payment slip links and Progressive upload timestamp/path across linked memberships, including historical memberships. These aggregates are **not an execution manifest**, do not verify every storage object, and must be recomputed at actual activation. The 22 already-due rows require a separate exact report/plan; no cancellation performed.
+
+Wallet aggregates: **Kids active 72 / only 8 with expires_at after audit clock**; Adult active 23/22 future expiry; Private active 19/13. Thus 64 Kids rows labelled active already had expired timestamps. Do not revive them or assume the eight qualify on the eventual activation date. Validate original month, unused root, purchase evidence and time at effective_at.
+
+**Unknown / Need verification at future gates:** current Vercel deployed Source/artifact/aliases/environment controls not freshly queried; pg_cron installation permission/limits and external schedulers not verified; direct authenticated bypass/races not executed; complete historical lineage/payment/storage integrity not reconciled; exact cutover/overdue row manifests not approved; disposable bootability and proposed tests not executed; compatible rollback artifact not yet built/tested. These are technical/release gates, not reopened business questions.
+
+
+<a id="parking-lot-10-development-scope"></a>
+
+### Owner-approved Development Scope Contract — strict 66-file continuous delivery
+
+**Owner authority 2026-09-09:** FINAL CODEX COMMAND approves this single Scope:
+**Functional 41 / Tests 15 / Documentation 4 / Migration 5 / Config 1 = 66**,
+**47 existing / 19 new**, commercial price **48,000 บาท**, automatic unpaid-bill
+cancellation included at no extra charge. Payment receipt is not evidenced.
+Super Admin minimum editing and forward-only transaction timing are **approved decisions**.
+Both Kids pricing settings entries and separate early/late versioned catalogs are included.
+Strict66 overrides the ordinary direct-dependency exception: no path addition,
+rename, move or out-of-scope behavior without an exact Owner amendment before editing.
+Source/tests/docs/five migration files, verified local disposable tests/cleanup,
+bounded corrections, normal commit/push and staged Production artifact are authorized.
+Named-project remote migration SHA approval, exact-artifact Owner PASS, Promotion,
+health, actual-clock activation/data manifest remain separate gates. No Production
+write tests, historical repair, environment/secret/allowlist changes are authorized.
+Original Decisions 1–8 are retained. PROJECT_STATE.md owns execution state.
+
+**Owner clarification 2026-09-09:** preserve Reschedule12 hours and Wallet48 hours,
+including the existing exact-cutoff operators. The FINAL command's Reschedule48
+example was erroneous wording, not policy intent. Strict66 and all other Task10
+decisions remain unchanged; no Reschedule client path is added. This resolves the
+dated cutoff safe-handoff finding without reopening the original business decisions.
+
+**Actors:** Developer implements and reconciles backend evidence; existing authorized Admin/Super Admin makes Kids makeup and payment-review transactions; parent selects a child in their account and uses existing booking/upload flows; DB scheduler runs narrowly eligible expiry without browser activity; Owner tests/reviews and returns exact-artifact PASS before Promotion. No new role or Admin booking-on-behalf.
+
+**Current/expected behavior:** replace Kids per-learner one-makeup check with family/source-month allowance, canonical consumption and a separate verified-purchase gate for the next calendar lesson month (default minimum 2, centrally configurable); add the settings form and truthful eligibility display. Replace current-date-only pending repricing with each booking's retained rate-set evidence; add all-existing-flow atomic no-slip expiry and receipt protection with truthful history/due totals. Original Decisions 1–7 plus Decision 8 are the policy; Super Admin settings authority and forward-only application of setting changes are Owner-approved.
+
+**Included:** Kids absent/Wallet pool and existing-credit transition, actual-child selection, source interactions with store/redeem/return/reschedule; Kids Preview/Create/Edit/Cancel/Reprice and Legacy baseline; Legacy grouped slips and Progressive full pending batch prepare/upload/submit/status/expiry/review/approve/reject; coupon/session/assignment cleanup, payment follow-up/history/counts; dormant migration, scheduler and post-Production activation.
+
+**Protected:** Adult/Private prices and ten-month Wallet evidence/expiry, atomic Family Private participants/identity; same-month Kids Wallet and reschedule constraints; exact attendance/Payroll truth; canonical templates/slots, unlimited learner entry with exact overlap prevention; distinct Legacy true-up vs Progressive booking formula/sibling monthly accumulation; settled money, receiving accounts, full pending batch, shared SlipOK mode and rejected-slip policy; Finance/Ledger/notifications/history. Admin booking remains redirect/410. No unrelated refactor, dependency change, new portal/course, customer makeup mutation, automatic financial credit/refund or broad historical repair.
+
+Additional included flow: the Kids makeup minimum form in the existing settings
+shell, its exact setting-key API/DB validation, revision/audit persistence and
+destination-month entitlement checks on every old/new Kids makeup entry. Protect
+all other system settings and permission menus; do not add the destination gate
+to same-month Wallet, reschedule, pricing or Adult/Private. Do not treat destination
+purchases as a second quota, spend them, or reset the original source-month cap.
+
+**Development completion criteria:**
+
+1. Implement every decision through server/DB guards; direct API/REST/RPC spoofing and races cannot bypass quota, price or deadline. UI totals/status alone never establish eligibility.
+2. Pass the disposable matrix below and protected suites, backend reconciliation, TypeScript/lint/mojibake/Production build. No failing required test hidden by UI PASS.
+3. Reconcile full diff against the exact **66-file** plan; normal commit/push is authorized after required checks and diff compliance.
+4. Demonstrate dormant migration/staged artifact leaves customer behavior unchanged; bind exact tested Source SHA to staged Production artifact; handoff distinguishes disposable functional UAT from exact-artifact off-state smoke.
+5. Owner PASS before exact no-rebuild Promotion; verify Production identity/health, then separately authorized actual-clock activation and scheduler. Product DONE additionally requires post-activation reconciliation/closeout; Audit completion does not satisfy it.
+
+6. Destination 0/1 fails at default 2; verified sibling 1+1 passes the minimum;
+   20/6/2 source with destination purchase 2 still allows at most 5, subject to
+   unused sources/expiry. Settings must persist across a fresh page, show loading
+   and truthful success/error, enforce the approved Super Admin editor permission and latest
+   server/DB value, and pass setting/purchase-change races plus old/new API bypass
+   tests. Completed-transaction evidence retains the exact rule revision used.
+
+### Approved central services and enforcement
+
+**Kids-specific Admin makeup transaction**
+
+- Add kids-family-makeup service and /api/admin/makeup/kids-family GET/POST. Show N, quota/used/remaining, original-month sources and attending children. Existing Admin POST must delegate active-policy Kids calls to the same transaction; old payload cannot bypass it. Preserve other course/retrospective actions.
+- Family key = **parent user ID + original lesson year/month** across Kids purchases/branches, not child or target month. Pricing retains its user/course/month/currency scope. N sums each verified Kids booking's stable entitlement once (entitlement_sessions with validated total_sessions fallback); paid-awaiting-verification is not verified purchase. Do not require a Legacy payments row for legitimate verified Progressive Kids entitlement.
+- Compute **D**, verified Kids purchased entitlement for the same family in
+  **source month + one calendar month**, separately from N. Use stable purchased
+  booking quantities once, including siblings/branches; exclude pending_payment,
+  paid awaiting verification, cancelled, other-family and other-period bills.
+  Attendance or Wallet storage does not reduce the purchase; redemption,
+  reschedule or makeup descendants do not increase D. The existing Progressive
+  Legacy-baseline RPC is not this aggregate: it includes pending/paid and only
+  Legacy rows. Preserve the pricing baseline unchanged.
+- Let M be the latest valid global setting, initially 2. Eligibility requires
+  **D >= M AND source quota remaining > 0 AND an eligible unused source AND all
+  existing role/child/slot/time guards**. M and D neither replace nor consume
+  min(5, floor(N/4)); five makeup uses can rely on the same two purchased
+  destination entitlements. Buying after the original expiry grants no extension.
+- Canonical source = **booking ID + original root booking_session ID**, resolved via reschedule/Wallet original/member links, preserving source month and source child. Missing/deleted/cyclic/multiple roots or inconsistent ownership/month fail visibly with evidence IDs; do not reconstruct by guess. Descendants never increase N or sources.
+- Store **actual attending_child_id** separately from original source child; validate same parent, Kids course and canonical target slot/template. Target session has the actual child, is_makeup=true and source link. Never rewrite original booking ownership/quantity or historical attendance.
+- Retain the existing Admin makeup target-month boundary: the lesson is in the next calendar month after the original source month, still in the future and no later than that month's end in Bangkok. Do not turn the new pool into an additional same-month reschedule/Wallet flow.
+- Absence uses exact authoritative absent attendance; gaps use existing Admin confirmation. Wallet cross-month eligibility uses separate evidence/usage, preserving original Wallet expiry/history. Eligible-at-cutover credits retain Admin eligibility through next-month end after ordinary Wallet expiry. No generic Adult/Private entitlement change or customer cross-month Redeem.
+- Under family/source/credit/booking/learner-slot locks, recheck permission, quota, source unused, future target and deadline. Insert destination, unique source-use record, family usage, idempotent receipt and activity outcome atomically. Same key/payload returns same receipt; different payload conflicts. Last quota/source concurrency yields one winner/no residue.
+- Add a shared lock on the setting revision before family locks; lock both source
+  and destination family/month scopes in deterministic order, then affected
+  bookings/roots. Read current M, D and verified statuses again inside the consume
+  transaction, not from page data. Purchase insert/status/entitlement changes must
+  participate in the same month locks (including targeted direct-write guards),
+  so row locking alone cannot miss aggregate phantoms. Recheck exact Admin/menu
+  rights, canonical source and remaining quota at the write boundary.
+- Setting update takes the corresponding exclusive setting lock before downstream
+  locks. A change committed before consumption acquires that lock is observed;
+  otherwise consumption may finish first using its recorded revision. No stale
+  page can force its old M/D. Preserve original replay receipts for already
+  successful idempotent operations; a replay is not a new grant. Record M/revision,
+  D, contributing booking IDs/quantities/status fingerprint, source/destination
+  periods, N/quota/usage, actor/child and decision time with each successful use.
+- Same-month redeem does not consume makeup quota but removes that unused Wallet source; re-wallet/reschedule retains root. Store/redeem/return and relevant reschedule mutations share source guards. Pre-existing makeup counts as consumed for the same root/month; preserve old grants even if greater than new quota, expose zero remaining and do not grant duplicates. Capture evidence without bulk changing old credits.
+- Retain exact child attendance/provenance/Payroll helpers; do not copy the old POST's bulk absence rewrite. No automatic quota refund or undo of completed makeup on rollback.
+
+**Settings UI/API design — Super Admin and forward-only timing approved**
+
+- Approved route: `/admin/settings?section=kids-makeup`, using the existing
+  Super Admin page guard and settings shell. Authorized Makeup Admin reads the
+  threshold/eligibility on Makeup but does not gain settings permission. This
+  role split follows current Source and is approved within this Scope.
+- Form label: **จำนวนเรียนขั้นต่ำในเดือนถัดไปเพื่อใช้สิทธิ์ชดเชย**; initial value
+  **2 ครั้ง**; accept positive whole numbers >=1, rejecting blank, zero, negative,
+  fractional and invalid input at UI/server/DB. No new business upper limit or
+  per-child/branch override. Do not silently coerce invalid input to default 2.
+- Save enters **กำลังบันทึก...**, disables duplicate submission, clears stale
+  success and waits for a committed server receipt containing stored value and
+  revision. Only then show **บันทึกสำเร็จ**. Error/timeout keeps an honest retry
+  state, never success; an uncertain response can reconcile/replay its receipt.
+  A fresh page reads persisted server value; read failure is visible, not a
+  successful-looking default. Initial default applies only to genuine bootstrap.
+- Approved non-secret `system_settings` key:
+  `kids_makeup_destination_minimum_sessions`, with value/revision evidence and
+  server updater/time. Pure `kids-makeup-settings.ts` shares key, types/default
+  and strict validation across form/API; it never imports privileged clients.
+  Existing planned Kids/activation services and SQL remain enforcement owners.
+- Reuse `/api/admin/settings` POST/PATCH: resolve actual row key for id-based
+  writes before selecting the protected branch, reject conflicting id/key, and
+  send this key through one guarded settings transaction. Other setting keys
+  retain current semantics. Targeted SQL guards cover direct INSERT/UPDATE/key
+  rename/delete as well, so generic routes or a privileged direct-table path
+  cannot skip validity, revision/history or lock ordering. Keep unrelated settings
+  policies untouched. Record old/new value, actor and revision atomically; use
+  expected revision to prevent lost updates from two settings editors.
+- **Owner-approved decision:** changed minimum governs the next new makeup
+  transaction after successful save according to the lock order above; preserve
+  completed makeup and its original evidence, with no retrospective cancellation
+  or automatic quota refund. Store rule history separately from public setting
+  value; do not place family/booking evidence in publicly readable settings.
+
+**Per-booking pricing policy evidence**
+
+- Central TypeScript/server resolver plus SQL enforcement share versioned policy evidence: activation ID, successful server creation instant/Bangkok date, lesson month, formula family, regime, **complete tier-set** snapshot/reference+hash, selected rate, quantity and calculation revision.
+- New days 1–15 bookings resolve primary pricing_tiers and retain that complete rate set for edits; late rates use a separate versioned policy catalog. Do not overwrite existing pricing_tiers or generic Adult/Private helpers.
+- Pre-activation bookings without new evidence use explicit original-rule compatibility; no retroactive policy assignment, settled rewrite or Legacy scope/backfill. General new Kids entry remains Progressive when existing entry policy requires it.
+- Determine successful creation time under activation/scope locks using server DB clock after lock acquisition, consistently with creation/order evidence. Browser/caller timestamps and an old transaction-start clock from before a long wait cannot select the regime. Rolled-back create leaves no booking/evidence.
+- Preview includes expected policy/version and existing scope/baseline fingerprint. Create/edit rechecks; crossing day 15/16, effective_at or relevant revision yields refresh-required conflict before charging. Edits preserve regime while quantity/coupon calculation follows existing rules.
+- Reprice each affected pending booking using its own rate set; never reset monthly cumulative quantity on day 16 or replace eligible pending baseline with verified-only. Preserve settled snapshots and original Legacy/Progressive algorithms.
+- Append exact cancellation-backed Legacy baseline deltas/revisions while preserving original frozen baseline. Acquire/preview/reprice use them together; unrelated drift fails closed. New payment fingerprints include policy evidence; existing batch compatibility remains explicit.
+
+**Atomic receipt/expiry service**
+
+- Central booking-payment-lifecycle service/RPC computes earlier first still-active lesson (Bangkok) or existing expires_at. Preserve TTL/null expiry. Missing/invalid session/time evidence is an exception requiring investigation, not an invented deadline. Recheck under locks after an allowed pre-deadline edit; never extend expires_at or permit post-deadline escape.
+- Receipt = successful Storage plus **committed DB receipt linked to each booking's payment/batch membership**, server time and immutable amount/membership fingerprint. Register before provider verification, then guarded finalize/review. Storage-only/failed DB registration is not exempt. Keep global SLIPOK_TEST_MODE.
+- Common lock order across prepare/upload/submit/review/approval/edit/cancel/worker: activation gate; applicable Kids setting revision; sorted family/pricing scopes (both source and destination where required); sorted batches; sorted bookings/source rows; dependent coupon/slot rows. Discover full dependency set before taking lower locks and revalidate; changed membership yields typed retry. Other flows need not lock the Kids setting, but must never acquire it after lower locks. Do not retain current inverse lock orders.
+- Receipt strictly before deadline wins exemption even when review happens later; at/after deadline without receipt, expiry wins. Never resurrect a cancelled bill. Grouped/full-scope upload remains all-or-nothing; an ineligible member returns refreshed selection conflict, no partial payment or cancellation of other bills.
+- Atomic cancellation writes reason, deadline/effective_at, exact booking/session IDs, previous state/policy and idempotent receipt; soft-cancels all sessions of that bill, retires only relevant operational memberships and refreshes slot caches. Anomalous attendance/settled-payment evidence blocks automatic cancellation and records an exception.
+- Progressive: invalidate necessary unsubmitted no-slip prepared batch safely; cancel only due booking(s), release only their reserved coupons with existing expired reason, reprice remaining pending with own regimes, then require full remaining-scope reprepare. Do not cancel every batch member.
+- Prepared 30-minute timeout is separate from bill expiry. Persist on-time slip exemption through batch timeout/cancel/reject and expose review/re-upload resolution; an invalid money snapshot must yield visible conflict/review, not silent approval/reuse, loss of receipt or new rejected-slip auto-cancellation. Test expired uploaded batches explicitly.
+- Legacy: replace relevant multi-call create/edit/cancel/receipt/review boundaries with guarded transactions while preserving formula, grouped slips, zero-charge handling and original coupon-use history. Legacy cancel does not newly refund coupons; Progressive reserve/release remains separate.
+- Shared read projection drives Admin Payments, History and customer dashboard/schedule due counts/reasons. Keep monthly return recommendations distinct. Activity/notification outcomes must be idempotent and reflect committed transactions.
+- Server authenticates actual actor; DB rechecks ownership/Admin role/menu. New privileged functions have restricted EXECUTE/fixed search_path. Targeted write guards protect canonical consumption, is_makeup/child/source, server timestamp/policy/receipt and critical status from direct-table spoofing. No unrelated authorization redesign.
+
+### Exact planned development allowlists
+
+Root for every exact relative path below: **C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/**. This exact list is authorized by the FINAL command. Gate 0 verified 66 unique paths, all 47 existing files present and all 19 NEW paths absent. No wildcard allowance.
+
+| Category | Existing | New | Total |
+| --- | ---: | ---: | ---: |
+| Functional | 34 | 7 | **41** |
+| Tests | 9 | 6 | **15** |
+| Documentation | 4 | 0 | **4** |
+| Migration | 0 | 5 | **5** |
+| Config | 0 | 1 | **1** |
+| Total | **47** | **19** | **66** |
+
+**Functional 41:** entries 1–7 cover Kids source/Wallet/reschedule, 8–15 pricing, 16–21 payments, 22–27 due/history consumers, 28 types; 29–33 are shared services/endpoint; 34–38 add the existing settings shell/API plus isolated form/pure settings contract. 39–41 add both pricing settings entries and atomic early/late catalog editing. File count does not replace flow/dependency analysis.
+
+| # | Exact relative path | Change |
+| --- | --- | --- |
+| 1 | `src/app/api/admin/makeup/route.ts` | Existing |
+| 2 | `src/app/(admin)/admin/makeup/page.tsx` | Existing |
+| 3 | `src/components/admin/makeup-client.tsx` | Existing |
+| 4 | `src/app/api/lesson-wallet/route.ts` | Existing |
+| 5 | `src/app/(dashboard)/dashboard/lesson-wallet/page.tsx` | Existing |
+| 6 | `src/components/dashboard/lesson-wallet-client.tsx` | Existing |
+| 7 | `src/app/api/reschedule/route.ts` | Existing |
+| 8 | `src/app/api/bookings/preview/route.ts` | Existing |
+| 9 | `src/app/api/bookings/route.ts` | Existing |
+| 10 | `src/lib/booking-pricing.ts` | Existing |
+| 11 | `src/lib/progressive-booking-pricing.ts` | Existing |
+| 12 | `src/lib/progressive-booking-preview.ts` | Existing |
+| 13 | `src/lib/progressive-booking-write.ts` | Existing |
+| 14 | `src/app/(dashboard)/dashboard/booking/page.tsx` | Existing |
+| 15 | `src/components/dashboard/booking-client.tsx` | Existing |
+| 16 | `src/app/api/verify-slip/route.ts` | Existing |
+| 17 | `src/app/api/admin/payments/route.ts` | Existing |
+| 18 | `src/lib/progressive-payment-batch.ts` | Existing |
+| 19 | `src/lib/progressive-payment-integration.ts` | Existing |
+| 20 | `src/lib/progressive-payment-route.ts` | Existing |
+| 21 | `src/app/api/progressive-payments/upload/route.ts` | Existing |
+| 22 | `src/app/(admin)/admin/payments/page.tsx` | Existing |
+| 23 | `src/components/admin/payments-client.tsx` | Existing |
+| 24 | `src/app/(dashboard)/dashboard/history/page.tsx` | Existing |
+| 25 | `src/components/dashboard/history-client.tsx` | Existing |
+| 26 | `src/app/(dashboard)/dashboard/page.tsx` | Existing |
+| 27 | `src/app/(dashboard)/dashboard/schedule/page.tsx` | Existing |
+| 28 | `src/types/database.ts` | Existing |
+| 29 | `src/lib/task10-policy.ts` | NEW |
+| 30 | `src/lib/booking-pricing-policy.ts` | NEW |
+| 31 | `src/lib/kids-family-makeup.ts` | NEW |
+| 32 | `src/lib/booking-payment-lifecycle.ts` | NEW |
+| 33 | `src/app/api/admin/makeup/kids-family/route.ts` | NEW |
+| 34 | `src/app/(admin)/admin/settings/page.tsx` | Existing |
+| 35 | `src/components/admin/settings-client.tsx` | Existing |
+| 36 | `src/app/api/admin/settings/route.ts` | Existing |
+| 37 | `src/components/admin/kids-makeup-settings-client.tsx` | NEW |
+| 38 | `src/lib/kids-makeup-settings.ts` | NEW |
+| 39 | `src/app/(admin)/admin/settings/pricing/page.tsx` | Existing |
+| 40 | `src/components/admin/pricing-settings-client.tsx` | Existing |
+| 41 | `src/app/api/admin/pricing/route.ts` | Existing |
+
+**Tests 15:** retain existing helper/source contracts and protected E2E behavior; add disposable setup/cleanup, policy, real API/DB transaction/concurrency and UI scenarios. Do not merely change assertions to match new code.
+
+The six already-planned task10-regression files absorb the added destination and
+settings cases: local-supabase/setup/teardown own restricted/full Admin fixtures,
+source/destination purchases and setting cleanup; policy spec owns M/D/period
+boundaries; transactions spec owns revision/purchase races and bypass; UI spec
+owns settings save/reload/loading/error and Makeup explanations. No new test path
+or runner is needed for this increment.
+
+| # | Exact relative path | Change |
+| --- | --- | --- |
+| 1 | `scripts/check-lesson-wallet-regression.mjs` | Existing |
+| 2 | `scripts/check-progressive-booking-pricing.js` | Existing |
+| 3 | `scripts/check-progressive-pricing-transactions.js` | Existing |
+| 4 | `scripts/check-progressive-legacy-baseline.js` | Existing |
+| 5 | `scripts/check-progressive-payment-batches.js` | Existing |
+| 6 | `scripts/check-progressive-payment-integration.js` | Existing |
+| 7 | `scripts/check-progressive-coupon-lifecycle.js` | Existing |
+| 8 | `tests/booking-regression/booking.spec.ts` | Existing |
+| 9 | `tests/history-payment-regression/history-payment.spec.ts` | Existing |
+| 10 | `tests/task10-regression/local-supabase.ts` | NEW |
+| 11 | `tests/task10-regression/global-setup.ts` | NEW |
+| 12 | `tests/task10-regression/global-teardown.ts` | NEW |
+| 13 | `tests/task10-regression/task10-policy.spec.ts` | NEW |
+| 14 | `tests/task10-regression/task10-transactions.spec.ts` | NEW |
+| 15 | `tests/task10-regression/task10-ui.spec.ts` | NEW |
+
+**Documentation 4:** AGENTS gains permanent approved policy/activation constraints only after development authorization; PROJECT_STATE owns mutable state, TODO short index, DEVELOPMENT_TODO dated decisions/evidence.
+
+| # | Exact relative path | Change |
+| --- | --- | --- |
+| 1 | `AGENTS.md` | Existing |
+| 2 | `PROJECT_STATE.md` | Existing |
+| 3 | `TODO-CODEX.md` | Existing |
+| 4 | `DEVELOPMENT_TODO.md` | Existing |
+
+**Migration 5:** additive new files only; no editing applied migrations. Filenames are planning identifiers, not effective dates. Exact filenames are approved and collision-free. Any replacement requires an Owner path amendment before writing; do not use automatic CLI naming to bypass Strict66.
+
+| # | Exact relative path | Change |
+| --- | --- | --- |
+| 1 | `supabase/migrations/20260909000100_task10_policy_evidence_foundation.sql` | NEW |
+| 2 | `supabase/migrations/20260909000200_task10_booking_pricing_policy_transactions.sql` | NEW |
+| 3 | `supabase/migrations/20260909000300_task10_kids_family_makeup_transactions.sql` | NEW |
+| 4 | `supabase/migrations/20260909000400_task10_atomic_booking_payment_expiry.sql` | NEW |
+| 5 | `supabase/migrations/20260909000500_task10_activation_and_inactive_scheduler.sql` | NEW |
+
+Migration responsibilities in order: (1) dormant policy/catalog, immutable booking/source/usage/receipt/transition/baseline evidence with indexes/constraints/RLS; seed only inert new reference rates, no old tier/data rewrite; (2) policy-aware pricing/Legacy compatibility; (3) Kids/source-guard transactions; (4) atomic lifecycle/batch/coupon/deadline/read projection/write guards and bounded worker; (5) cutover functions, authorized extension/inactive job and enable/disable. Compatibility wrappers retain old behavior while inactive. Migration must not set effective_at or activate/cancel customer records.
+
+Increment within the same five proposed migrations: foundation adds the valid
+global minimum, revision/history and per-use M/D evidence, seeding default 2 only
+when genuinely absent; Kids migration adds strict settings update/consume
+transactions and source/destination aggregate locks; lifecycle guards serialize
+purchase status/quantity changes with those locks; activation verifies the saved
+minimum and disabled gate before cutover. No extra migration, scheduler or
+environment variable; no overwrite of an existing saved threshold on reapply.
+
+**Config 1:** new isolated test runner only; package.json, lockfiles, vercel.json and supabase/config.toml remain unchanged.
+
+| # | Exact relative path | Change |
+| --- | --- | --- |
+| 1 | `playwright.task10.config.ts` | NEW |
+
+Separately bounded future disposable generated outputs: .playwright/task10-fixture.json, test-results/task10-regression/, existing Playwright report/output directories and ordinary local build outputs; not committed feature files; generated only by authorized local verification. Fixtures/test DB objects only in verified disposable local project, removed there.
+
+Read-only dependencies outside planned edits: pricing.ts; auth/admin/admin-navigation; exact attendance/assignment/provenance and schedule-slot/template helpers; Finance/notification-follow-up; validate-coupon; SlipOK provider; Progressive prepare/submit/status/cancel wrappers; existing local fixture helpers; old migrations and deployment config. Verify through callers/tests. Strict66: any necessary additional path requires one exact Owner Scope amendment before editing, even if it is a direct technical dependency.
+
+
+### Migration, scheduler, activation, data authority and rollback
+
+**Dormant release design:** proposed DB record task10_policy_activation starts inactive/effective_at NULL, with independently stoppable new-pricing assignment, Kids consumption and expiry execution. Every affected server/SQL mutation reads it. Do not infer enablement from NODE_ENV, deployment target, migration name/date or an environment called production. Old compatibility paths must behave the same while inactive.
+
+The minimum setting is configuration, not an activation switch. Its authorized
+bootstrap/save never enables makeup before the same post-Promotion/health gate.
+Cutover evidence must include valid saved M and revision (default 2 for first
+bootstrap), and the consume transaction must check destination purchases at use
+time, not freeze an activation-time family purchase list. Capturing an eligible
+old credit does not waive the new destination condition. A corrupt/missing
+required setting after bootstrap fails visibly; no silent fallback grant.
+
+**Scheduler proposal:** one pg_cron job **task10-expire-unpaid-bookings-v1**, once per minute, calling the central SQL worker with initial bounded limit **50** and short lock/statement timeouts. Discover candidate IDs without lower locks; try family/scope lock, then consistent row/skip-locked handling. Record/retry exceptions without losing the rest of the queue. Deadline is enforced exactly on mutations/read projection; physical cancellation normally follows a successful tick, with backlog/lock latency measured, not claimed hard real-time.
+
+Supabase supports direct SQL/function jobs and run history, with inactive jobs available. This supports the DB-job proposal without an HTTP secret. [Supabase Cron](https://supabase.com/docs/guides/cron), [Cron quickstart](https://supabase.com/docs/guides/cron/quickstart). The extension is absent in the inspected DB; verify installation authority/support before implementation, do not silently substitute Edge/Vercel infrastructure. Expose last success, oldest eligible overdue, skipped/conflicting IDs and failure counts. Three missed ticks or growing overdue backlog is an operational failure requiring investigation; UI filtering does not prove scheduler success. No new external messaging service is assumed.
+
+| Operation | Authorized now | Future authority/gate proposed |
+| --- | --- | --- |
+| Source/tests/config/docs | Exact 41/15/4/5/1 list and bounded corrections approved | Required verification and diff compliance |
+| Disposable DB/API/E2E | Local-only migrations/fixtures/reset/clock-controlled tests approved | Verify endpoint/container/workdir before any writes or cleanup |
+| Migration Source | Five exact additive files approved | Targeted guards and inactive compatibility; remote apply remains gated |
+| Remote schema/catalog | None | Named-project migration SHA approval, off-state evidence and rollback before applying |
+| Environment/secrets | None | No new secret/env value planned; preserve current flags/SlipOK. Required changes demand exact separate scope |
+| Scheduler | None | Explicit extension/job installation, collision check, inactive registration; execution only after authorized activation |
+| Activation/control/data | None | Actual-clock activation record and exact transition manifest after Production Promotion/health |
+| Minimum setting/permission | Super Admin page/API/DB implementation and local tests approved | Positive integer, revision/audit, forward-only use; Production setting operation remains separately gated |
+| Routine new-rule writes | None | Later approval covers new policy evidence, authorized makeup and narrowly eligible automated expiry; verify receipts/effects |
+| Historical overdue/ambiguous repairs | None | Separate exact IDs/actions/effects/verification/rollback and approval; excluded from automatic cutover |
+| Git/staged artifact | Normal commit/push and staged Production artifact approved | Passing checks/diff compliance; exact tested Source SHA; no alias switch |
+| Promotion | None | Owner PASS naming exact artifact/SHA; no intervening rebuild/change |
+| Production write UAT | None | Not implied by UAT: exact synthetic rows/actions and rollback need explicit scope |
+
+**Proposed release sequence:**
+
+1. Fresh pre-release Source/Git/migration/runtime identity audit and compatible rollback candidate. SELECT-only manifests identify exact old-valid credits/source months, existing not-yet-due no-slip bills, prior canonical makeup usage and already-due/ambiguous exceptions. Include IDs/time/fingerprints/effects; no old-data rewrite.
+2. Run disposable off/on migration, policy and concurrency tests. Apply only approved dormant remote migrations/reference catalog/inactive job. Confirm old app behavior and zero new eligibility/cancellation. No Production fixtures.
+3. Build staged **Production** artifact via repository-required **vercel --prod --skip-domain**. Pin tested Source SHA, deployment ID/URL/config and migration hashes. Do not use Preview for the no-rebuild release contract. [Vercel staging/Promotion guidance](https://vercel.com/docs/deployments/promoting-a-deployment) is supplementary; repository exact-artifact rules govern.
+4. Deliver the explicitly split UAT contract below. Owner PASS names the exact staged Production artifact/SHA. Promote that same artifact without rebuild, verify aliases/identity, health and scoped logs. Staging/environment naming never activates policy.
+5. Only after successful Production Promotion/health, execute the separately approved activation operation. Acquire common gate lock, use actual DB clock at cutover and record Bangkok rendering. Validate exact transition manifest against then-current locked evidence; material row/effect change requires refreshed review. Append cohort/original-month/prior-usage evidence to new tables without rewriting old credit expiry or financial records. Commit effective_at, artifact/SHA and active controls together; worker requires this gate.
+6. New booking/credit operations serialize with activation, so a long-waiting transaction cannot use stale pre-cutover/day-15 time. Capture eligible old credits at the cutover boundary; subsequent same-month Wallet expiry does not erase their next-month Admin eligibility. Existing not-yet-due bills join the new expiry cohort; already-due bills remain excluded pending a separate plan.
+7. Reconcile initial worker ticks and exact booking/session/batch/coupon/price/Wallet/attendance/financial effects. Verify no receipt-protected/verified cancellation, duplicates or unrelated due changes. Record actual effective_at and health/evidence in PROJECT_STATE. This, not staging, is customer activation.
+
+**Rollback:** disable new price assignment, Kids makeup consumption and expiry/job under the same gate; in-flight writes must complete consistently or roll back wholly. Preserve effective_at, rate evidence, receipts, already-used sources, cancellation history and settled amounts. Existing new-regime bills still need compatible edit/review reads; do not redeploy old code unable to understand them. Test a compatible rollback artifact before release, or block unsafe mutations pending a bounded forward fix. No automatic quota refill, Wallet revival, uncancellation, repricing, refund or financial reversal. Additive schema/history normally stays; destructive down-migration/data restoration requires separate exact approval. Deployment rollback alone cannot stop the DB worker.
+
+Also preserve saved M/revisions and each completed use's destination-purchase
+evidence. Disabling the new Kids gate must not fall back to an older Kids POST
+that bypasses M/D; block new Kids makeup consumption until a compatible version
+is available. Do not reset M to 2, cancel completed makeup or return quota as a
+side effect of rollback. Any corrective setting write uses its audited authority.
+
+### Disposable regression matrix and Owner UAT
+
+Isolation: verify localhost API/DB/Storage, exact local Supabase project/container/workdir before fixtures/reset; use synthetic accounts/data, server TZ UTC and browser Asia/Bangkok. Do not inherit Production binding into disposable clients. Shared SlipOK test mode; no real customer/slip data. Clock-controlled tests may override a private clock function only in the verified disposable DB; production mutations must expose no caller-supplied clock/test override. None of these tests ran in this audit.
+
+All retained quota/Wallet/makeup tests establish sufficient destination purchases
+unless they explicitly test the new gate, so a minimum failure cannot mask a
+quota/source/expiry regression. Settings fixtures include Super Admin, ordinary
+Admin with Makeup permission and a denied Admin; do not promote every test actor
+to Super Admin and claim the permission matrix passed.
+
+| Matrix | Required cases/results | Evidence |
+| --- | --- | --- |
+| All quota edges | N=0,3,4,7,8,11,12,15,16,19,20,24 => 0,0,1,1,2,2,3,3,4,4,5,5; malformed/ambiguous quantity fails | Pure policy + actual DB aggregate |
+| Family/month/status | Siblings/branches combine; one child may consume full quota; original months separate; pending/paid-awaiting-verification/cancelled excluded; verified original entitlement counted once despite attendance/storage | DB/API exact booking quantities |
+| 20/6/2/5 with destination 2 | Source purchase20/absent6/Wallet2 gives eight sources; destination verified purchase2 passes default M2; five combined uses, not two or eight; sixth rejected; all five to one child valid | API/E2E + usage/session reconciliation |
+| Destination minimum | D0/D1 fail, D2/D3 pass M2; sibling1+1 counts2; no per-child purchase requirement; sufficient D with zero source quota/remaining sources still fails | Pure helper + actual DB/API |
+| Destination purchase identity | Count each verified purchased entitlement once; attended/walleted quantity retained; Wallet redemption/reschedule/makeup descendants add zero; pending/paid-awaiting-review/cancelled/other-month/other-family excluded | DB quantity/status/root evidence |
+| Destination period/expiry | Source month+1 including Dec/Jan; independent of Admin page-open date; late purchase after original next-month expiry does not revive/extend; valid old credit still needs D>=M | Clock/API + persisted original expiry |
+| Settings UI/persistence | Default2; save positive integer; blank/0/negative/fraction/invalid rejected; loading blocks repeats, only server receipt produces success; server/network/read errors truthful; fresh page sees stored value | Disposable UI/API/DB, force failures without Production data |
+| Settings permission/bypass | Approved Super Admin only writes; Makeup Admin reads/applies but cannot edit; generic POST/PATCH by id/key/conflicting id+key and direct-table rename/delete cannot bypass new-key guards | Actual role/API/REST + DB audit revision |
+| Settings/purchase races | M2->3 and D2->1/verified->cancelled, or new payment confirmation, concurrent with consume; under-lock state decides, no stale-page grant or aggregate phantom; simultaneous settings saves conflict/replay correctly | Independent DB sessions + receipts and no residue |
+| Changed-minimum history | Approved new M applies to next new use; prior successful destination/usage unchanged, no automatic cancellation/refund; same idempotency replay returns original receipt/evidence | DB/UI audit and quota reconciliation |
+| Canonical identity/history | Reschedule/redeem/re-wallet descendants, duplicate roots, missing/cyclic lineage and existing makeup; no extra N/source; prior usage reduces remaining without rewriting history | DB lineage + independent sessions |
+| Admin/direct API | Anonymous/User/Coach/restricted Admin denied; allowed Admin/Super Admin works; other-parent child/forged actor/time/policy/direct-table/RPC bypass denied | Actual auth/API/REST/grants tests |
+| Quota/source races | Last quota, same root, two Admins, same key replay/different payload; concurrent Wallet redeem/return/reschedule vs makeup | One winner/no orphan session/usage/member/notification; no deadlock |
+| Wallet transition | Same-month unchanged; Admin-only next-month; valid-at-cutover survives normal expiry; expired-before-cutover excluded; next-month end/time boundary; no rolling extension | Controlled DB clock + UI and stored-expiry comparison |
+| Adult/Private wallets | Single-unit same-month; inclusive ten-month Bangkok expiry, historical tier/payment ambiguity, original re-wallet expiry and Family Private atomic participants | Existing Wallet/Booking suite + DB |
+| Bangkok 15/16 | 15 23:59:59.999 vs 16 00:00:00; UTC boundary, lock wait, stale preview, effective_at/month/year crossing | Pure timestamp + disposable transaction clock/API |
+| Month/pricing examples | 17 Sep: 4=2,000; Oct10=3,500; Sep4/Oct6 separate 2,000/2,598; sibling accumulation by lesson month; no reset on16 | API/UI + persisted bill/scope totals |
+| Mixed regime edit/reprice | Old implicit + new early/late bills same scope; quantity edits/downstream reprice use each own set; settled snapshots unchanged; cancelled/expired exclusion remains correct | Actual SQL order/revision/fingerprint + API |
+| Legacy baseline | Legacy true-up vs Progressive ordered formula; old eligible pending baseline retained; exact cancellation delta, unrelated drift rejected; no Legacy money subtraction in Progressive | Existing baseline tests + mixed-scope DB |
+| Every deadline flow | Kids Legacy/Progressive, Adult Legacy, Private Legacy; earlier lesson/expiry, null expiry, multi-session bill, changed first active lesson, other bill survives; malformed/no-session exception | Worker/API exact session history/reasons |
+| Slip protection/races | File selected/storage-only/failed DB not exempt; committed receipt before deadline under review exempt; exact-deadline/late loses; verified safe; upload/submit/review/worker retries and grouped all-or-nothing | Storage/API/DB concurrency, no contradictory lifecycle |
+| Expired batches | Prepared timeout vs bill expiry; on-time receipt survives timeout/cancel/reject; reprepare full remaining scope; approved allocations unchanged; invalid snapshot visible conflict/review | Batch/Integration suites + real RPC |
+| Coupons/Finance | Progressive release once; consumed approved protected; Legacy usage history retained; no extra approved payment/allocation, credit/refund or changed settled amount | Exact before/after SQL rows/amounts |
+| Attendance/Payroll/slots | Actual child/Level across Schedule/Admin/Coach; absent vs walleted truth; no payroll from source Wallet/makeup creation; canonical slot/template, unlimited capacity but overlap guard | Existing operational checks + focused E2E |
+| Payment queues/history | Exact cancelled bill leaves Admin/customer due; reason/history retained; other bill/slip review remains; monthly recommendation purpose preserved | UI + common backend projection |
+| Activation/scheduler/rollback | Off migration/staged artifact; worker without browser; busy skip/retry/failure recovery; old-overdue exclusion; exact cohort; disable stops future actions without undoing history | Disposable off/on SQL, scheduler ticks and compatible artifact |
+
+Later focused checks include existing Booking/History Playwright suites; Wallet and Progressive pricing/transaction/baseline/coupon/batch/integration scripts; relevant assignment/attendance/payroll checks; **npx playwright test --config=playwright.task10.config.ts**; TypeScript, lint, mojibake and Production build. New tests must exercise actual transactions/persistence, not copied formulas/regex only. If DB/scheduler regression cannot run, mark those rows **NOT VERIFIED** and block READY/PASS; static review is supplementary. A separately approved isolated project can substitute for unavailable local scheduler, never unannounced Production tests.
+
+**Owner UAT — seven steps, updated 2026-09-09.** New behavior requires writes/activation, while staged Production must remain inactive. Proposed handoff separates **disposable functional UAT at the tested Source SHA** from **exact staged Production artifact off-state smoke**. PASS of that exact artifact explicitly accepts linked functional/backend evidence; do not label it Production write UAT. If new-rule write UAT on the exact artifact is required instead, revise Scope for isolated runtime binding/exact synthetic rows before staging; never activate customers early.
+
+1. Disposable Super Admin: open Kids makeup settings, see default2, save3 with loading/success, open a fresh page to confirm3, test an error/invalid value and restore2. Ordinary Makeup Admin cannot edit via page/API. Changed M governs new committed transactions only; existing successful Makeup is preserved.
+2. Disposable family cases D0/D1 show minimum deficit, sibling1+1 passes2. For source20/absent6/Wallet2 plus destination purchase2, Admin assigns five to one child; remaining0/sixth blocked. Expect source/target months, N/quota/used/remaining, D/M and reasons clearly shown; restricted Admin/old API bypass fails. Developer supplies settings/purchase-race and preserved-completed-history evidence.
+3. Disposable old-valid/old-expired/new Kids credits across month end with sufficient D where applicable. Expect only eligible Admin next-month usage, no late-purchase extension, unchanged ordinary same-month and Adult/Private ten-month examples.
+4. Disposable Bangkok15/16 cases: create Sep/Oct examples, edit/cancel mixed-regime pending. Expect separate months/totals and each bill's retained rate set, unchanged settled/Legacy amounts.
+5. Disposable deadline cases for all existing flows plus on-time slip awaiting review. Expect only due no-slip bill/all its sessions cancelled with reason, other bill/slip protected. Developer supplies race/batch/coupon/financial reconciliation.
+6. **Exact staged Production URL**, existing authorized read-only User/Admin access: inspect off-state pricing/Wallet/payment/settings/permissions and saved M/revision plus inactive gate evidence. No save/upload/makeup/control change; expect no new customer behavior/data write from this UAT.
+7. Review one manifest: disposable SHA/results, exact staged artifact ID/URL/SHA/config/migration hashes, settings/destination backend evidence, inactive gate/job, compatible rollback/cutover plan. Owner PASS/FAIL names artifact. PASS precedes no-rebuild Promotion; activation is later under distinct authority.
+
+### Bounded corrections, remaining gates, documentation and effort
+
+Under the approved Scope, bounded corrections stay within root cause/intended behavior/allowlist. Stop for material root-cause change, same failure after two reasonable attempts, new business/protected domain, unapproved environment/migration/control/data action or required check failure. Before later commit inspect full staged diff/name-status/stat, every path and changed behavior; unexplained path is **SCOPE BREACH — REJECT RESULT**, never concealed by reset/stash. Any Source/config change after PASS invalidates it; new artifact/retest required, no rebuild between PASS/Promotion.
+
+Owner-approved AGENTS.md requirements: searchable policy constraints and activation reference; quota verified-only distinct from Progressive baseline; Kids Admin cross-month exception separate from generic Wallet/Adult/Private; canonical source/actual child/idempotency; each bill's retained rate regime and Legacy compatibility; atomic deadline/receipt; post-Production effective_at and no blanket historical revival/cancellation. Do not label future rules active prematurely. AGENTS.md records only approved policy and preserves the activation gate.
+
+Also add Decision 8's separate destination gate/default2, stable verified-purchase
+basis and no extension. Record editor authority and setting-change timing in
+AGENTS under the FINAL command's explicit development approval.
+
+**Original eight business decisions are approved.** Super Admin edits the global
+minimum, and changed M applies to the next new transaction without retroactive
+undo. These are no longer proposals. Subsequent Source-verification findings and
+the sole current blocker/next action belong to PROJECT_STATE.md, including any
+protected-flow discrepancy. Other gates remain real disposable verification,
+live artifact/controls, extension/job, exact cutover manifests, compatible rollback
+and separate overdue data plan. Actual activation time is release evidence,
+not a repeated business-policy question.
+
+**Revised effort estimate 2026-09-09:** approximately **16–23 developer working
+days** after Scope approval: prior 14–20 plus 2–3 for settings/verified-destination
+integration, revision/aggregate concurrency and added verification. Owner review,
+platform waits and historical repairs additional. This does not change the
+48,000-baht quotation or prove customer acceptance/payment.
+
+
+**Two-period pricing settings — approved extension:** both `/admin/settings/pricing` and
+`/admin/settings?section=pricing` use one loader/resolver. Super Admin saves one
+complete early or late tier set atomically with expected revision, gap/overlap
+validation and immutable history. New bookings retain the chosen complete version;
+edits/downstream repricing use each booking's own evidence. Early bootstrap copies
+the authoritative existing Kids tiers without changing their initial prices; late
+bootstrap is 700/625/500/433/406/350 over 1,2–3,4–5,6–7,8–9,10+.
+Both-entry save/reload/error/concurrent-editor/version retention coverage belongs
+to the already listed Task10 tests. Adult/Private remains unchanged.
+
+### Historical — 2026-09-08 documentation consistency and closeout
+
+Verify decisions7/7, original formulas/examples, one item10, original1–8/completed9, historical registration labelling, links/anchors, exact proposed **33/15/4/5/1** and actual **0/0/3/0/0**, Thai UTF-8/mojibake, complete three-doc diff and Documentation Consistency Matrix. Source/API/DB/E2E/build/UAT tests **not run**; Source reads/SELECTs are not Product test PASS.
+
+Documentation checks **passed**: seven checked closures with unique decision anchors; **21** relevant links; strict UTF-8 **3/3**; repository mojibake **268 files**; exact unique planned paths **58 = 41 existing + 17 new**, with every Existing path present and every NEW path absent; actual changed paths only the three allowed docs, stage/untracked empty. Original pre-registration DEVELOPMENT_TODO history, retained Task 9 PROJECT_STATE snapshot and item 1–8 bodies compared unchanged. Complete diff/whitespace review passed; no application, test, migration or config modification.
+
+Consistency Matrix reviewed Active Task/status/authorization; Branch/Local HEAD/Remote HEAD/ahead-behind; Source complete/current/pushed/deployed identity; tests/commit/push; artifact/deployment/Owner and Production UAT; migration source/applied; environment/scheduler/feature/allowlist/activation; controlled writes/data repair/Production data; customer/financial impact; blocker/remaining work/next gate. PROJECT_STATE has one current value per field; TODO derives its short status and next action; this record and the earlier registration are explicitly dated. No unresolved Documentation Drift and no Product TASK DONE claim.
+
+State observed at this closeout: Documentation **complete locally**; decisions **7/7 closed**; Audit/Scope **ready for review with stated Unknowns**; Implementation/Source Complete **No**; Product Tests **Not Run**; Commit/Push **No/No**; Artifact **None**; Owner/Production/Controlled Write UAT **Not Run**; Deploy/Promotion/Activation **No action**; Migration/Environment/Scheduler/permissions/feature/allowlist changes **None**; Data Repaired **No**; Production Data Changed **No task-attributable write** (bounded SELECT-only audit); Customer/Financial Impact **None from this work**, quotation only. **Product Task Done: No**. Next action is Owner review of this single Scope and future authorities; no development/publication/activation starts automatically. PROJECT_STATE owns current mutable state.
+
+
+---
+
+<a id="parking-lot-10-destination-minimum-2026-09-09"></a>
+
+## 2026-09-09 — Parking Lot 10: destination-month purchase minimum and consolidated Scope revision
+
+Dated documentation amendment only. Owner sent the draft command for execution
+within its explicit three-document boundary. Continue item 10; retain Decisions
+1–7 and the registration/audit history. The [single consolidated Scope above](#parking-lot-10-development-scope)
+is revised in place, not duplicated. [PROJECT_STATE.md](PROJECT_STATE.md#current-project-matrix)
+owns current state; [TODO-CODEX.md](TODO-CODEX.md#parking-lot) is the short index.
+
+### Decision 8 — confirmed additional future policy
+
+<a id="parking-lot-10-decision-8"></a>
+
+- ใช้กับ **Kids ชดเชยข้ามเดือน** ทั้งจากขาดเรียนและ Wallet ที่เข้าเงื่อนไข.
+- ครอบครัวต้องซื้อ Kids ของ **เดือนที่จะเรียนชดเชย** และยืนยันชำระแล้วรวม
+  อย่างน้อย **2 ครั้ง**; 2 เป็นค่าเริ่มต้นของขั้นต่ำกลางที่ปรับได้ฝั่ง Admin.
+- รวมพี่น้องในบัญชีผู้ปกครองเดียวกัน ไม่บังคับซื้อครบรายเด็ก.
+- นับสิทธิ์ซื้อเดือนปลายทางครั้งเดียวจากหลักฐานตรวจสอบได้; การเรียนไปแล้วหรือ
+  เก็บ Wallet ไม่ลดสิทธิ์ซื้อเดิม. ใช้ Wallet/เปลี่ยนวัน/ชดเชยไม่เพิ่มยอดซื้อ.
+- บิลรอชำระ รอตรวจยืนยัน หรือยกเลิกไม่นับ; ไม่นับคนละครอบครัว/เดือนเรียน.
+  เดือนปลายทางคือ **เดือนปฏิทินถัดจากเดือนต้นทาง** ไม่ใช่ถัดจากวันที่เปิดหน้า.
+- ขั้นต่ำเป็นเงื่อนไขเข้าใช้ ไม่เปลี่ยนโควตา **min(5, floor(N/4))** ของเดือนต้นทาง
+  และไม่เพิ่มสิทธิ์เหนือรายการต้นทางที่ยังเหลือจริง.
+- เฉพาะ Admin ที่มีสิทธิ์ทำรายการชดเชย. หมดสิทธิ์สิ้นเดือนถัดจากเดือนต้นทาง
+  เหมือนเดิม; ซื้อครบหลังหมดสิทธิ์ไม่ต่ออายุหรือคืนสิทธิ์.
+- คงคำตัดสินเดิม 7 ข้อ รวมเปิดใช้หลัง **Production Promotion + health success**;
+  staged artifact ไม่เปิดใช้กับลูกค้า. คง **ราคาเสนอ 48,000 บาท** แถมยกเลิกบิล
+  อัตโนมัติไม่คิดเพิ่ม; ไม่มีหลักฐานว่าลูกค้ายอมรับหรือชำระราคาเสนอแล้ว.
+
+ตัวอย่าง: เดือนต้นทางซื้อ20/ขาด6/Wallet2 มีต้นทาง8 และโควตา5; เดือนปลายทาง
+ซื้อยืนยันแล้ว2 ผ่านขั้นต่ำ แล้วใช้ชดเชยได้ **สูงสุด5** ไม่ใช่2หรือ8. พี่ซื้อ1
+และน้องซื้อ1 รวม2ได้ และเลือกให้เด็กคนเดียวใช้ชดเชยทั้งหมดได้ภายใต้สิทธิ์ที่เหลือ.
+
+**Confirmed UI requirements for the development plan:** ช่อง
+“จำนวนเรียนขั้นต่ำในเดือนถัดไปเพื่อใช้สิทธิ์ชดเชย” default2 รับจำนวนเต็ม >=1;
+ปุ่มบันทึก/loading/กันกดซ้ำ, success เมื่อ server บันทึกจริง, error ให้ลองใหม่
+โดยไม่แสดงสำเร็จลวง, เปิดหน้าใหม่อ่านค่าที่บันทึก. Makeup แสดงเดือนต้นทาง/
+ปลายทาง, โควตา/ใช้แล้ว/เหลือ, ยอดซื้อยืนยันปลายทาง/ขั้นต่ำ และเหตุผลที่ยังใช้ไม่ได้.
+
+### Historical proposals — approved by FINAL command on 2026-09-09
+
+1. **Settings editor:** Super Admin only, using existing settings page/API guards;
+   ordinary Admin with Makeup permission reads/applies the rule while consuming
+   makeup but cannot change the global minimum. Source supports this role split;
+   the new setting's editor policy is proposed, not already Owner-confirmed.
+2. **Change timing:** new saved minimum governs the next new makeup transaction
+   using the common lock/revision order. Preserve completed transactions and their
+   original rule/evidence; no retrospective cancellation or automatic quota return.
+   This is a proposal pending Scope approval, not an eighth-decision assertion.
+
+No additional uncovered business conflict was found. These two proposals are
+collected here for the eventual single Scope approval; none of the old seven
+questions is reopened or made a condition for recording this amendment.
+
+### Fresh incremental Gate 0 and Source evidence
+
+Exact root: C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School.
+Branch **spike/next-major-security-upgrade**; HEAD/upstream
+**origin/spike/next-major-security-upgrade** and read-only live remote all
+**3bcdf86525a86373c9c2ed15e26b89d99875b106**; ahead/behind **0/0**.
+Worktree inventory read; no worktree/ref operation. Stage empty; entry dirty
+paths exactly PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md, total
+**+730/-12** (DEV +611/-0; STATE +79/-1; TODO +40/-11), preserved and continued.
+Relevant documentation history still ends at Task 9 closeout 3bcdf865 with
+handoff63bb183/application99b70fe. No full Task10 re-audit or new live DB query.
+
+| Read-only Source evidence | Incremental consequence |
+| --- | --- |
+| src/app/(admin)/admin/settings/page.tsx:48,55,63,131 | Existing Super Admin shell selects four sections and loads settings; add one kids-makeup section/read here, not a new settings portal. This path was absent from original functional allowlist. |
+| src/components/admin/settings-client.tsx:9,16,59 | Section union/cards and explicit Super Admin copy need the new entry. Shell does not contain a form's persistence state. |
+| src/app/api/admin/settings/route.ts:9,24,39,52,54 | Super Admin POST/PATCH accepts generic value; PATCH by id bypasses a check based only on supplied key. Add exact-key validation/transaction branch resolving id to actual key; retain unrelated settings. |
+| src/lib/auth/admin.ts:60,94,118; src/lib/admin-navigation.ts | Existing menu access and Super Admin page/API guards support the proposed split; no guard/menu-module edit or new role required. |
+| src/components/admin/coach-ot-settings-client.tsx:60,92,101,110,116; src/app/api/admin/coach-ot-settings/route.ts:51 | Existing isolated form shows loading, success/error, refresh and settings audit pattern. Reuse the pattern, not its payroll rules or numeric validation. Dedicated Kids form/pure contract prevents mixing protected domains. |
+| supabase/migrations/20260506082635_current_remote_baseline.sql:612,787,1234,1306,1472 | system_settings has unique key, JSON value and public reads with Super Admin mutation policy. New setting is non-secret; family/booking evidence must stay in restricted transaction/history tables. Targeted guard covers direct mutation, not just UI. Live policy equivalence was not re-queried today. |
+| src/app/api/admin/makeup/route.ts:519,551,575; src/components/admin/makeup-client.tsx:712,757,979 | Existing menu guard/next-source-month check but no destination purchase minimum. Old POST/client eligibility must join the proposed common Kids check; page-state approval alone is insufficient. |
+| src/types/database.ts:775,779; supabase/migrations/20260713210000_add_progressive_legacy_baseline_compatibility.sql:69 | Stable booking entitlement fields available. Existing baseline includes pending/paid and only Legacy; cannot reuse it as verified destination-purchase sum. Reuse proposed verified-family entitlement calculation for a different period, not Progressive pricing baseline. |
+| tests/booking-regression/local-supabase.ts:92,182; tests/history-payment-regression/history-payment.spec.ts:581 | Local endpoint guards and permission-change fixtures exist; booking admin fixture is Super Admin, so additional ordinary/denied Admin fixtures are necessary to prove the new split. Existing planned Task10 setup/spec files can hold them. |
+
+The proposed Kids helper/RPC and new settings files are **not implemented**.
+Their exact paths are a plan, not evidence that functions already exist. No
+current setting value, live deployment/permissions, actual race behavior or
+Production activation is certified by this Source-only increment. Retain prior
+2026-09-08 SQL aggregates/35 migrations/14 RPC checks as dated history only.
+
+### Planned screen layouts — text wireframes, not implemented screenshots
+
+**Existing settings shell, proposed Super Admin section:**
+
+```text
+ตั้งค่าระบบ > วันชดเชยคอร์สเด็ก
+จำนวนเรียนขั้นต่ำในเดือนถัดไปเพื่อใช้สิทธิ์ชดเชย
+[ 2 ] ครั้ง
+รวมยอดซื้อที่ยืนยันแล้วของพี่น้องในบัญชีเดียวกัน
+[บันทึก] -> [กำลังบันทึก...] -> บันทึกสำเร็จ
+ข้อผิดพลาด: บันทึกไม่สำเร็จ กรุณาลองใหม่
+```
+
+Only one actual outcome is displayed; success never accompanies failure. After
+editing again, clear obsolete success. Fresh navigation reads persisted value.
+Under the timing proposal, helper text explains effect on future new transactions
+and preservation of already completed makeup.
+
+**Existing Makeup family panel:**
+
+```text
+ครอบครัว: บัญชีผู้ปกครองที่เลือก
+เดือนต้นทาง: ก.ย. 2569 -> เดือนชดเชย: ต.ค. 2569
+สิทธิ์ซื้อเดือนต้นทาง 20 | โควตา 5 | ใช้แล้ว 0 | เหลือ 5
+รายการต้นทางเข้าเงื่อนไข 8
+ยอดซื้อยืนยันเดือนชดเชย 1 | ขั้นต่ำ 2
+ลงเรียนเพิ่มอีก 1 ครั้ง
+เด็กที่จะเรียนชดเชย [เลือกเด็กในบัญชีเดียวกัน]
+[จัดวันชดเชย — ยังใช้ไม่ได้]
+```
+
+When D becomes2, refresh eligibility and permit only if source/quota/time guards
+also pass. When no source remains, show that reason rather than suggesting another
+purchase guarantees a grant. Deficit = max(0, M-D); distinguish “รอตรวจยืนยัน”
+from a confirmed purchase and read-error from zero purchases. A stale panel
+refreshes from a typed server conflict; server/DB remains authoritative.
+
+### Exact change in the proposed file budget
+
+Original **33/15/4/5/1 = 58** is historical. Revised single Scope:
+**38/15/4/5/1 = 63**, comprising **44 existing + 19 proposed new paths**.
+
+| Functional addition | Reason |
+| --- | --- |
+| src/app/(admin)/admin/settings/page.tsx (existing) | Section selection, server read and existing page guard |
+| src/components/admin/settings-client.tsx (existing) | New section/card in existing shell |
+| src/app/api/admin/settings/route.ts (existing) | Protected setting POST/PATCH, id/key bypass prevention and guarded save |
+| src/components/admin/kids-makeup-settings-client.tsx (new) | Focused minimum form, loading/retry/success/reload |
+| src/lib/kids-makeup-settings.ts (new) | Shared non-privileged key/default/types/strict validation; keeps server clients out of UI |
+
+Within the old allowlist, reuse Makeup route/page/client, proposed Kids family/
+activation/lifecycle helpers, database types, five migrations and six Task10 test
+files for D/M evidence, locks, role fixtures and regression. **Tests/docs/migration/
+config file counts do not increase**; their planned contents do. The consolidated
+allowlist above is the sole exact development list. No Source file created now.
+
+### Actual authority and documentation closeout for this amendment
+
+Actor Developer Codex; completion is recorded Decision8, Source-backed delta,
+one revised Scope/UI/dependency/test/UAT/activation/rollback contract and consistent
+index/state. Exact actual write allowlist:
+
+- C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/PROJECT_STATE.md
+- C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/TODO-CODEX.md
+- C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School/DEVELOPMENT_TODO.md
+
+Actual Functional/Test/Documentation/Migration/Config **0/0/3/0/0**. No Source,
+tests, AGENTS, migrations/config, Production setting/data, role/control/scheduler
+or environment change. No commit/push/artifact/deploy/UAT/Promotion/activation.
+No fixtures/reset/write-test. Preserve pending local work and queue1–8/history9.
+
+Documentation verification covers Decision8/retained7, confirmed-versus-proposed
+labels, arithmetic/month bounds, unique item/Scope, exact63 paths/counts and delta,
+links, UTF-8/mojibake, complete diff and consistency matrix. Product tests/build
+are **not run**, and current Source/DB/UAT behavior is not claimed PASS.
+
+Verification result at this amendment: **passed for documentation only**. Strict
+UTF-8 3/3, mojibake268 files, 17 Task10 links/unique decision anchors, one exact
+63-path list (44 Existing present/19 NEW absent), seven UAT steps and actual
+0/0/3/0/0 writes checked. SHA-256 comparisons preserved the original seven
+decisions, pre-item10 DEV history, item1–9 bodies and Task9 snapshot exactly.
+Stage/untracked remain empty; HEAD/upstream unchanged; complete scoped diff and
+matrix retain distinct Source/tests/Git/artifact/UAT/activation/data/customer/
+financial/next-action states. No Source/config/migration/AGENTS change.
+
+At this dated closeout: Documentation/Scope **ready for Owner development
+approval**; Implementation/Source Complete **No**; Product Tests **Not Run**;
+Committed **No**, Pushed **No**, Artifact **None**, Deployed **No action**;
+Owner/Production UAT **Not Run**, Controlled Write UAT **Not Run**, Promotion
+**No action**, Activation/Feature Enabled **No**, Allowlist **unchanged**;
+Data Repaired **No**, Production Data Changed **No write**; Customer Impact
+**None**, Financial Impact **None**, quotation unchanged. Product TASK DONE **No**.
+Next action: Owner reviews the single revised Scope including the two explicit
+proposals and future operation authorities; no implementation starts automatically.
+
+<a id="task10-development-safe-handoff-2026-09-09"></a>
+## Historical — 2026-09-09 Task 10 partial implementation / protected-cutoff safe handoff
+
+State observed at this safe handoff. PROJECT_STATE.md owns the actual mutable
+state and next gate; this dated evidence is not a second current-state matrix.
+Owner's FINAL command approved strict66, 48,000 บาท, cancellation at no extra
+charge, both pricing entries, Super Admin minimum editing and forward-only
+transaction timing. No payment receipt was supplied. No prior decision was reopened.
+
+### Material finding and concrete alternatives
+
+The FINAL command line424 describes protected Reschedule conditions as48 hours.
+The earlier Task10 audit table repeated that figure. Read-only verification found:
+
+- `src/app/api/reschedule/route.ts:77`: `RESCHEDULE_CUTOFF_HOURS = 12`;
+  the eligibility check and API rejection use that constant.
+- `src/components/dashboard/reschedule-client.tsx:89`: the same12-hour constant;
+  eligibility and visible copy at line308 agree with the API.
+- Release source `c6b470dbba646f5b4db023a7dedf0df8d7b08f37` independently contains
+  the12-hour API constant. The retained release record explicitly distinguished
+  User Reschedule12 from unchanged Lesson Wallet48. This is historical release
+  evidence, not a fresh claim about the live deployment identity.
+- The API is F07 in strict66; the Reschedule client is **not** an approved path.
+  Neither file was changed at this handoff. No protected cutoff was silently changed.
+
+This is **DOCUMENTATION DRIFT / conflicting protected-flow intent**, rather than
+a request to reapprove pricing, quota, D/M, Super Admin authority or forward-only M.
+AGENTS.md Material Hard Stops and Documentation Consistency Gate D require stopping
+publication and resolving conflicting business/source evidence. The FINAL command
+also prohibits out-of-66 edits or expanding behavior within allowed files.
+
+The recommended resolution presented to Owner was to preserve **Reschedule12 /
+Wallet48**, correct the Task10 audit and continue the approved66 paths. The
+alternative was an explicit Reschedule48 policy plus exact allowance for
+`src/components/dashboard/reschedule-client.tsx`, bringing the plan to67 paths
+(42 functional /15 tests /4 docs /5 migrations /1 config;48 existing /19 new).
+Either choice still requires complete implementation and focused cutoff regression;
+neither authorizes Production activation. The clarification was pending at handoff.
+
+### Source and verification observed at this handoff
+
+There were29 changed/untracked allowed paths: **15 functional /6 tests /4 docs /
+3 migrations /1 config**. The original three dirty documents were preserved.
+The66 approved paths were unique; all29 changes were within that list; staged
+diff was empty. Branch was `spike/next-major-security-upgrade`; local HEAD and
+fresh live remote both equalled `3bcdf86525a86373c9c2ed15e26b89d99875b106`,0/0.
+No Task10 commit, push, staged artifact, deployment or Promotion occurred.
+
+- Foundations: pure policy/settings/catalog contracts; inert activation/evidence
+  tables, immutable catalog/settings revisions and service-only RPC access.
+- Settings: M form and protected API id/key dispatch; two independent Kids catalog
+  editors through both existing pricing entries; database revision conflicts and
+  atomic audit persistence. Adult/Private editor behavior was retained.
+- Makeup draft: canonical lineage and verified purchase helpers, quota/D/M state,
+  same-family actual-child consume RPC, new authorized endpoint, old-entry dispatch
+  and family panel. This is **incomplete**, without complete competing purchase,
+  Wallet/Return/Reschedule guards or family transaction/UI regression evidence.
+- Tests/config: six Task10 test/setup/teardown files and one local Playwright
+  config. Test credentials were confined to disposable configuration; the fixture
+  file contains synthetic IDs and is generated output, not a committed artifact.
+
+The targeted suite passed **12/12** (five pure policy, four real database settings/
+catalog transaction cases, three settings/auth UI cases) after correcting a test
+selector that also matched Next's route announcer. These are partial results;
+subsequent Makeup UI additions have not received their required functional tests.
+Latest `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake` (274 files),
+and `git diff --check` passed. The two lint errors in pricing loaders were corrected
+by deriving the error message from the awaited result, without closure reassignment.
+Build, complete Task10 races, prior Booking/History/Wallet/Progressive/operational
+suites and full requirement reconciliation were **not run**. No full PASS was claimed.
+
+Docker Desktop was initially stopped and was launched normally without host/config
+repair. Verification checked exact repo DB workdir/project labels, named DB volume,
+127.0.0.1 API and actual REST/Auth/Storage DB URLs and network. Retained API services
+had historical temporary workdir labels; their real bindings matched the verified
+local DB. No unrelated container recreation or physical Storage deletion occurred.
+Local PostgreSQL17.6 offered pg_cron; no Task10 scheduler job had yet been created.
+Task10 setup/reset/fixtures and teardown affected only this verified disposable DB.
+Final local counts were users0, bookings0, accepted receipts0, Makeup uses0;
+policy was never_activated/revision0/effective_at NULL with all controls false.
+
+Draft migration hashes (SHA-256 of local file bytes, not remote apply authorization):
+
+| Exact file | SHA-256 |
+| --- | --- |
+| 20260909000100_task10_policy_evidence_foundation.sql | 38532f90c7e8cc3a8e9b16b72bb61420f134a4be129bdf73be9c769d36c760fa |
+| 20260909000200_task10_booking_pricing_policy_transactions.sql | 745021067204c2d7dd20aba4ac224778ac703bf25ac6df32e0e89f6baa37d74a |
+| 20260909000300_task10_kids_family_makeup_transactions.sql | 6c7bfa6d5b036fb7e28ff6b0b884ccedfdab19877ea274c4e5282243c04fedbd |
+
+M1–M3 were recorded in local migration history after disposable reset. M4/M5 had
+not been written. No remote migration or Production operation occurred. These
+drafts must not be applied remotely as a completed five-migration release.
+
+At this handoff Source Complete **No**, Task Done **No**, READY **No**. Production
+feature activation, allowlist changes, UAT, controlled Production writes and data
+repair were not performed. There was no task-attributable customer or Production
+financial impact. Synthetic local changes were cleaned; no commercial payment
+claim was made. No new work from Parking Lot1–8 or change to Task9 was authorized.
+
+After resolving the cutoff discrepancy, the retained remaining work was shared
+purchase/source locking; Wallet/Return/Reschedule coordination; authoritative
+per-booking pricing evidence/create/edit/reprice; receipt/expiry/coupon/baseline
+transactions and matching projections; activation manifest/inactive scheduler;
+complete real concurrency/API/Storage/UI and existing-flow regressions; build;
+diff and documentation consistency; normal commit/push; gated remote migration
+and exact staged Production artifact for Owner UAT. No technical checkpoint
+within that existing authority requires repeated Owner approval.
+
+
+<a id="task10-migration-handoff-2026-09-09"></a>
+## Historical — 2026-09-09 Task 10 verified source / exact remote migration approval handoff
+
+State observed at this handoff. PROJECT_STATE.md alone owns the actual mutable
+state; this record is dated evidence, an operation proposal and a prepared UAT
+runbook. It is not a release, activation, Production write UAT or TASK DONE.
+
+### Authority, scope and result
+
+Owner's FINAL command authorized the single Strict66 implementation, local
+disposable verification, normal commit/push and production-target staging.
+Owner subsequently confirmed **Reschedule >=12 hours / Wallet Store >48 hours**,
+including exact12 allowed/exact48 rejected. Earlier Reschedule48 wording was an
+error. No formula, role, scope or commercial decision was reopened. Approved
+48,000 บาท includes automatic cancellation at no extra charge; customer payment
+remained Unknown because no payment evidence was supplied.
+
+Source implementation was complete at this handoff. The containing Task10
+source/publication commit binds tested src tree
+**55a1cd39886dcebc44d5a649b8070264b91afcee** to the tests/config/migrations below.
+The exact containing commit SHA and live upstream equality are supplied by the
+verified publication report; the last pre-publication HEAD/upstream was
+**3bcdf86525a86373c9c2ed15e26b89d99875b106**, branch
+**spike/next-major-security-upgrade**. No force push, reset, stash or overwriting
+prior Task10 documentation occurred.
+
+Actual change set: **40 functional /9 tests /4 docs /5 migrations /1 config =59**,
+inside approved **41/15/4/5/1 =66**; **40 existing +19 new**. Scope Expansion0,
+Scope Breach0. The full path manifest below includes the three Task10 documents
+already dirty at entry, preserved with their prior decisions and history.
+
+Blast radius includes Kids pricing and Admin family Makeup; shared Kids
+Wallet/Return/Reschedule transactions; **all existing Legacy booking and payment
+mutation boundaries**, Progressive payment scope/receipt/expiry/review, and their
+User/Admin projections. Adult/Private price formulas, ten-month Wallet evidence,
+atomic Family Private identity, attendance/Payroll, receiving accounts,
+Finance/Ledger, full pending-scope payment and global SlipOK policy remain protected.
+The Legacy multi-call mutation bodies were moved into guarded atomic SQL, not
+removed as business behavior. The source is larger because the latest existing
+Progressive SQL contracts are retained while changing their common lock ordering,
+price evidence and lifecycle enforcement.
+
+Seven planned paths did not need edits:
+
+- src/lib/progressive-booking-pricing.ts: retained pure Progressive formula,
+  supplied the per-bill catalog through approved callers/SQL.
+- scripts/check-lesson-wallet-regression.mjs: retained and passed45 checks.
+- scripts/check-progressive-booking-pricing.js: retained and passed17 checks.
+- scripts/check-progressive-pricing-transactions.js: retained and passed33 checks.
+- scripts/check-progressive-legacy-baseline.js: retained and passed32 checks.
+- scripts/check-progressive-coupon-lifecycle.js: retained and passed38 checks.
+- tests/booking-regression/booking.spec.ts: retained all cases; full23 passed,
+  then affected15 passed again after final shared-source SQL changes.
+
+### Requirement-to-evidence mapping
+
+| Requirement | Implementation and actual verification |
+| --- | --- |
+| Family N/quota | M3 canonical source/verified purchase helpers and consume RPC, F31/F33/F01–03. Real DB tested N0/3/4/7/8/11/12/15/16/19/20/24, old usage/root dedup, status exclusions, N20 with absent6+valid Wallet2, one child using all5 and sixth denial |
+| Destination D/M | Separate family next-calendar-month verified original purchase aggregate; D is not spent. D0/1/2/3, sibling1+1, pending/paid/cancelled exclusions, wrong family/month, and stored/attended entitlement stability verified; expiry does not revive after late purchase |
+| Minimum settings | Existing Super Admin shell/API, new exact-key form/service, immutable setting revisions. Real save/loading/reload/invalid input, concurrent editors, request replay, id/key/direct UPDATE/rename/delete bypass denial, ordinary/denied Admin, saved-M change and destination purchase change while consume waits |
+| Source competition and cutoff | Shared activation/setting/family/source guards, old Kids endpoint delegation after activation including pause. Independent Makeup/Wallet Redeem/Return/Reschedule race, attendance row changed while waiting, source/last quota uniqueness and no residue. Exact12 and exact48 boundary transactions verified; unchanged protected Wallet/Family Private E2E rerun |
+| Booking-date pricing | M2 successful post-lock server clock, complete immutable catalog origin and calculation revisions, quote conflicts and each pending bill's own set. Actual creation/edit/cancellation/downstream reprice, Sep/Oct and split examples, UTC/year/month/15-to16, coupon-lock wait crossing midnight, original TTL, mixed Legacy baseline and direct-write guard tests |
+| Two pricing entries | F39–41 and existing settings entry share independent early/late catalog editors and guarded SQL. Both entries saved each set, tested loading/error/stale409/reload and opposite-catalog preservation. Final focused test lowered the last-tier rate and proved the summary changes immediately after commit and after reload, then restores; Adult/Private stay on their original editor |
+| Legacy payment lifecycle | M4 atomic Legacy create/edit/cancel/accept/finalize/review, server request/Storage-content identity, notifications/activity. Real API PNG upload with simultaneous retry produced one approved payment, one receipt and one finalize activity. Zero-charge Legacy remains verified; cancellation retains original coupon history |
+| Progressive payment lifecycle | Existing full pending-scope prepare/upload/submit/approve/reject/timeout contracts updated under common locks. Actual local Storage receipts survive prepared timeout and rejected review; changed membership conflicts. Due exact bill cancels once, reserved coupon releases once, other pending bills remain and require complete-scope reprepare |
+| Receipt versus expiry | Earlier first active lesson/original expires_at, no invented TTL; strict-before committed receipt protection. Independent held DB sessions prove receipt wins, review wins, and cancellation wins without resurrection or partial writes. Storage-only, failed registration, exact/late receipt, duplicate workers and paid/verified protections verified |
+| Cohort/UI/history | One common projection governs actions, due totals and queues. Old overdue is excluded consistently from worker and API; final real User History/API test shows it remains visible and payable. Due no-slip loses payment action before worker commit; cancelled exact bill remains in history with reason |
+| Scheduler and rollback | M5 registers inactive one-minute pg_cron job, maximum50,45-second statement timeout/40-second run budget,250ms row-lock timeout, skip/failure/run evidence. Actual background cron tick (no browser required) retried a busy family/row and recorded exactly one cancellation. Actual-clock manifest verification, owner-only activation, pause/resume, preserved effective_at and paused existing-bill edit/new-consumption denial tested |
+| Protected operational domains | Original Booking/History/Wallet/Progressive suites, full38-case retrospective real DB suite,39 schedule-assignment,17 learner-identity,20 teaching-hours,6 shared-SlipOK checks. Retrospective failure injection/concurrency proved no unintended payment/coupon/allocation/Wallet/Finance/check-in/payroll/notification writes |
+
+Verification ran on the exact verified Docker DB
+**supabase_db_New-Athlete-Badminton-School**, PostgreSQL17.6, local API
+**http://127.0.0.1:54321**, repo/project labels and named DB volume. REST/Auth/Storage
+retained historical temporary-workdir labels, but their actual DB host, port,
+database and common network were checked before fixture/reset/cleanup. No
+Production credential was printed and no remote fixture or clock override was used.
+
+Task10 complete run **40/40,20.1 minutes, workers1/retries0**:6 pure cases,
+27 actual database/transaction cases,7 browser/API/scheduler cases. It completed
+before the final isolated pricing-summary correction in F40; that correction and
+its stronger T15 assertions passed **1/1,2.6 minutes** through both pricing entries.
+No SQL or other functional flow changed after the40-case run. The final TypeScript,
+lint and Production build covered the final corrected source.
+
+Additional passing results: original Booking23/23 (earlier complete run) and
+affected15/15 repeated on the final shared SQL; History16/16; Wallet45,
+Progressive price17/transaction33/baseline32/batch44/integration29/coupon38;
+shared SlipOK6; retrospective real DB38; teaching-hours20; assignment-state39;
+learner identity17. Static-only operational checks are not described as
+Production reconciliation; the retrospective suite used real local transactions.
+
+Earlier exploratory failures were not suppressed or skipped. Bounded corrections
+within the approved paths addressed fixture state/constraints, observed UI text,
+stable concurrency readiness barriers and source transaction/receipt handling.
+The final complete Task10 run had no failures. A later read of the diff found the
+old price-summary data source; the approved F40/T15 correction was verified
+separately as described above. No new task, dependency upgrade or opportunistic
+refactor was included.
+
+TypeScript, lint, mojibake, full Next16.2.12 Production build and whitespace/scope
+checks passed. The build generated95 static pages. The readonly prod:check also
+passed (no seed profiles/auth users in its reported Production checks); it is
+existing-system readiness evidence, not Task10 release approval.
+
+Final local cleanup at **2026-09-09 07:21:35 UTC**: auth users, bookings, payments,
+Wallet credits, Task10 accepted receipts, family uses, expiry cohort, pricing
+origins and cancellations all0; five local migrations retained; policy
+never_activated/revision0/effective_at NULL/all controls false; cron inactive;
+task10_clock_v1 restored to clock_timestamp(). Original physical Storage files
+remained88. Tests delete only recorded synthetic owners/paths before DB reset,
+preserving pre-existing physical files.
+
+ACL verification: all Task10 tables have RLS; service_role has no direct
+INSERT/UPDATE/DELETE on them and cannot execute activate/pause/scheduler.
+The only Task10 routine executable by anon/authenticated is the established-state
+boolean; private manifests and operational evidence remain protected.
+The preserved Wallet Store/Redeem function bodies match the observed remote
+pre-Task10 MD5 values **44b9f1eb00b66be46b2e1c07083210c8** and
+**45df8f5e780c065928f3bc77a5a77997**.
+
+After build, no old port3000 dev process remained. Automatic approval review
+rejected both verified and exact-literal PowerShell deletion of generated .next
+with only "blocked by policy"; no alternate deletion tool was used. A normal
+fresh npm dev process was started with process-only disposable Supabase bindings.
+Root and all7 discovered _next/static assets returned200. The explicit .next
+deletion step remained unfulfilled and is a documented local protocol limitation.
+No .env, config, infrastructure or secret file changed. No local fixture account
+was left for manual UAT; the prepared functional runbook requires a fresh verified
+fixture session at the published Source SHA.
+
+### Exact remote migration proposal — Owner command §9 gate
+
+**Not yet approved for remote apply at this handoff.** Target was freshly verified
+as **tvnhholicwjtxdhlxfqs / New Athlete Badminton School**, ACTIVE_HEALTHY,
+ap-northeast-2, PostgreSQL17.6.1.063. SELECT-only evidence at
+**2026-09-09 07:03:52.069587 UTC** showed0 Task10 migrations, no policy relation,
+no minimum-setting key and no cron.job relation. pg_cron is already in
+shared_preload_libraries and cron.database_name is postgres, so no host/preload
+configuration change is proposed.
+
+Apply exactly the following five files, in this order, using their complete
+tested SQL. SHA-256 is over exact LF file bytes and equals the staged Git blob
+bytes; no applied historical migration is edited.
+
+| File under supabase/migrations | SHA-256 |
+| --- | --- |
+| 20260909000100_task10_policy_evidence_foundation.sql | 836e1a1db37f783aced1467ee0b113786e6e9fa92663407843630fa85e9dea8d |
+| 20260909000200_task10_booking_pricing_policy_transactions.sql | 783b12e98cc7de3d563b8e44c86beb14f54ecc04dfc4b921168d859ed2734658 |
+| 20260909000300_task10_kids_family_makeup_transactions.sql | e0290c9258ab655ff8d27d995057655bda2a1f94b224fe2e08a59089ddabe2f7 |
+| 20260909000400_task10_atomic_booking_payment_expiry.sql | c12103a08ab60dd54f59ce5627c8844a44347f649fb56b28e961901fe9ba5446 |
+| 20260909000500_task10_activation_and_inactive_scheduler.sql | 6ccfbf9f8a377dae9de68ebbe1f1bf24744ce13290c9c6c54224d8674072108f |
+
+Expected immediate effects: new private evidence/catalog/control tables and
+narrow RPC/trigger wrappers; one dormant activation singleton; initial independent
+early/late catalog versions (early copied from the valid primary Kids rates,
+late the approved6 ranges); default minimum2/revision1 only if genuinely absent;
+pg_cron extension and **one inactive job**. Existing malformed/ambiguous bootstrap
+evidence or a job collision fails closed rather than overwriting it.
+No effective_at, enable/allowlist operation, customer-booking cancellation, payment,
+credit transition, old-booking cohort, data repair, refund or historical backfill
+is part of applying these files. Target data/DDL identity and each applied hash
+must be verified again before and after apply.
+
+OFF compatibility evidence: inert reset/application of all5 leaves controls false,
+job inactive and operational counts0. Existing Booking/History and original RPC
+contracts run against the migrated local schema. Original Wallet function bodies
+are retained unchanged under their restricted previous names. Legacy direct DML
+and original Progressive signatures remain compatible with the never-activated
+state. This is source/local evidence, not a claim that a staged Task10 Production
+artifact or live write UAT has already passed.
+
+Fresh Vercel evidence identified project
+**prj_v034HOI6AjaMpBezWvuvT0W24pTp**, team
+**team_gw8Y6CPd602WAKRsVFobPGCL**, production branch main. Its actual Production
+target remained Task9 **dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY, application
+**99b70fe373bfaa14424e2163136719024e5f0b0b**, src tree
+**87049830fbf14fb48ceb4b166f18b32d47d34c82**. Artifact URL observed:
+https://new-athlete-badminton-school-llo19jlt9-aachanin1s-projects.vercel.app .
+This is the existing release/rollback reference, **not** a Task10 UAT URL.
+
+Rollback before activation: retain the inert schema/job and existing compatible
+Task9 web artifact; no destructive down migration or schema/data restoration is
+proposed. Before every stage/promotion, reverify this rollback candidate and actual
+Production identity. After activation, Task9 code is **not compatible** with the
+new evidence/guards. The supported operational rollback is an explicitly
+authorized owner-only pause of Task10 controls and cron while retaining compatible
+Task10 code, effective_at and all evidence. Web rollback alone does not stop cron.
+No uncancellation, quota refund, expired-Wallet revival, financial rewrite, drop or
+backfill is permitted. The pause/retained-bill path was exercised locally.
+
+Release binding hashes at this handoff:
+
+| Item | SHA-256 / identity |
+| --- | --- |
+| Tested src Git tree | 55a1cd39886dcebc44d5a649b8070264b91afcee |
+| playwright.task10.config.ts (file and Git blob) | dbefb10e509837408c2bcc16b475a7c68c421bc7e301931a651baa63a13fd426 |
+| vercel.json (unchanged file/Git blob) | 3bb58de6cb4656fdc1633ff6d7112600e98a2c220d3247fa24111dc121426f3e |
+| supabase/config.toml (unchanged file/Git blob) | ebc6eb06ce3350a465e557cdba42ef48e66eccbf8f076cbd6f3e765321ddfddc |
+| package.json unchanged Windows file bytes | c7b57fd3d201b4fc37d61040a56be0faa2008e11d0241624f5fa2a72e2027e8d |
+| package.json canonical Git blob | 7baffd060111df63b60a59a455914e753cd3e0462f8898da8d0b4cc23127a7f2 |
+| package-lock.json unchanged Windows file bytes | ad252f85dfaaf55dc58638b71860db672488b5669bc254b9c82909ffe8838dda |
+| package-lock.json canonical Git blob | 90eb282bf845b5a4ab2b41e7feff9439f675d7d8c2703640852067d5f64a8fc0 |
+
+The two package-file byte variants reflect existing CRLF versus canonical LF,
+not a package/lockfile edit. Stage from the committed source and record the actual
+deployment input hashes explicitly; migration bytes have no such difference.
+All56 staged non-closeout paths were compared against reviewed/tested local text
+with line-ending normalization; mismatches0. The three closeout documents are
+checked separately before the containing59-path commit. Full staged diff,
+name-status/stat, business-flow dependencies and the Scope path set are reviewed;
+no unexplained path is hidden.
+
+### Prepared seven-step Owner UAT runbook — not READY yet
+
+Steps1–5 are on a **fresh verified disposable fixture session** at the published
+Source SHA, base URL **http://127.0.0.1:3000**. The actual prepared fixture account
+IDs and results must be recorded for that session; this cleaned dev instance has
+no test accounts. Source/config changes after acceptance require focused retest.
+Steps6–7 require the Task10 staged Production artifact, whose ID/URL/SHA were
+**not available at this migration gate**. Never substitute the Task9 URL above.
+
+1. **Disposable Super Admin — /admin/settings?section=kids-makeup**:
+   save M2→3, observe disabled/loading, success and fresh reload; invalid0 fails,
+   ordinary Makeup Admin cannot write; restore2. Completed prior Makeup retains
+   its original decision evidence.
+2. **Disposable Makeup Admin — /admin/makeup**: check D0/D1 blocks and verified
+   sibling1+1 passes. With N20/absent6/Wallet2 choose an exact source and another
+   child of the same parent; up to5 uses for one child succeeds, sixth fails;
+   quota/D/M/reason and source versus attendee identities remain truthful.
+3. **Disposable User/Admin — /dashboard/lesson-wallet and /admin/makeup**:
+   compare valid-at-cutover/expired-before-cutover and next-month end. Late buying
+   does not revive rights. Normal Kids Wallet stays same-month; Adult/Private
+   packages preserve ten-month and Family-hour identity. Reschedule exact12 works;
+   Wallet exact48 fails. Reconcile source races with the linked transaction tests.
+4. **Disposable Super Admin/User — /admin/settings/pricing,
+   /admin/settings?section=pricing and /dashboard/booking**: independently save
+   early/late and reload both entries, including summary figures. Exercise local
+   Bangkok15/16 and September/October examples; old bill retains its complete set,
+   new bill takes the saved version and mixed downstream repricing is correct;
+   Adult/Private rates remain unchanged.
+5. **Disposable User/Admin — /dashboard/history and /admin/payments**: for every
+   existing flow, only due no-slip bills cancel; on-time receipt awaiting review
+   and unrelated bills stay safe. Excluded old overdue remains visible/payable.
+   Reconcile exact sessions, payment/receipt rows, coupon release, baseline deltas,
+   no unintended Finance/Ledger changes and actual scheduler/lock outcomes.
+6. **Exact staged Production artifact — User/Admin, read-only OFF smoke**:
+   after approved migration and authorized **vercel --prod --skip-domain**,
+   open its actual deployment URL and inspect pricing/Wallet/payments/settings/
+   permissions. Do not save, upload, create Makeup or change controls. Verify
+   effective_at NULL, all Task10 gates false and cron inactive. This is not a
+   Production write UAT.
+7. **Owner manifest review**: compare exact committed/pushed Source, tested tree,
+   config/migration hashes, local functional/backend results, staged ID/URL/SHA,
+   inactive state, rollback and activation plan. Return PASS/FAIL naming the exact
+   staged artifact and accepted linked functional evidence. PASS permits only
+   no-rebuild Promotion of that artifact. Production identity/aliases/health/logs
+   then precede a separately authorized actual-clock activation manifest.
+
+The later activation proposal must contain the actual promoted artifact/SHA,
+five applied hashes, saved early/late and M revisions, eligible old credits and
+source months, prior uses, not-yet-due bills and excluded overdue/ambiguous rows.
+Recompute under cutover locks and abort on material manifest change. No
+historical repair or row operation is inferred from development, migration or UAT
+approval. New-rule functional tests, exact staged OFF smoke and Production
+controlled writes remain distinct states.
+
+At this handoff: Source complete/local technical verification passed; containing
+source commit/push publication is verified separately. No Task10 staged artifact,
+deployment, Owner UAT, Promotion, activation, Production feature/control/allowlist
+change, Production write UAT, data repair or task-attributable customer/financial
+effect occurred. Product Task Done remainedNo. The next material gate was exact
+remote migration approval under Owner command §9; staging continues after that
+gate, and no next Parking Lot item is authorized.
+
+### Exact changed-path manifest at this handoff
+
+| Category | Exact repository-relative path |
+| --- | --- |
+| Documentation | `AGENTS.md` |
+| Documentation | `DEVELOPMENT_TODO.md` |
+| Documentation | `PROJECT_STATE.md` |
+| Documentation | `TODO-CODEX.md` |
+| Config | `playwright.task10.config.ts` |
+| Test | `scripts/check-progressive-payment-batches.js` |
+| Test | `scripts/check-progressive-payment-integration.js` |
+| Functional | `src/app/(admin)/admin/makeup/page.tsx` |
+| Functional | `src/app/(admin)/admin/payments/page.tsx` |
+| Functional | `src/app/(admin)/admin/settings/page.tsx` |
+| Functional | `src/app/(admin)/admin/settings/pricing/page.tsx` |
+| Functional | `src/app/(dashboard)/dashboard/booking/page.tsx` |
+| Functional | `src/app/(dashboard)/dashboard/history/page.tsx` |
+| Functional | `src/app/(dashboard)/dashboard/lesson-wallet/page.tsx` |
+| Functional | `src/app/(dashboard)/dashboard/page.tsx` |
+| Functional | `src/app/(dashboard)/dashboard/schedule/page.tsx` |
+| Functional | `src/app/api/admin/makeup/kids-family/route.ts` |
+| Functional | `src/app/api/admin/makeup/route.ts` |
+| Functional | `src/app/api/admin/payments/route.ts` |
+| Functional | `src/app/api/admin/pricing/route.ts` |
+| Functional | `src/app/api/admin/settings/route.ts` |
+| Functional | `src/app/api/bookings/preview/route.ts` |
+| Functional | `src/app/api/bookings/route.ts` |
+| Functional | `src/app/api/lesson-wallet/route.ts` |
+| Functional | `src/app/api/progressive-payments/upload/route.ts` |
+| Functional | `src/app/api/reschedule/route.ts` |
+| Functional | `src/app/api/verify-slip/route.ts` |
+| Functional | `src/components/admin/kids-makeup-settings-client.tsx` |
+| Functional | `src/components/admin/makeup-client.tsx` |
+| Functional | `src/components/admin/payments-client.tsx` |
+| Functional | `src/components/admin/pricing-settings-client.tsx` |
+| Functional | `src/components/admin/settings-client.tsx` |
+| Functional | `src/components/dashboard/booking-client.tsx` |
+| Functional | `src/components/dashboard/history-client.tsx` |
+| Functional | `src/components/dashboard/lesson-wallet-client.tsx` |
+| Functional | `src/lib/booking-payment-lifecycle.ts` |
+| Functional | `src/lib/booking-pricing-policy.ts` |
+| Functional | `src/lib/booking-pricing.ts` |
+| Functional | `src/lib/kids-family-makeup.ts` |
+| Functional | `src/lib/kids-makeup-settings.ts` |
+| Functional | `src/lib/progressive-booking-preview.ts` |
+| Functional | `src/lib/progressive-booking-write.ts` |
+| Functional | `src/lib/progressive-payment-batch.ts` |
+| Functional | `src/lib/progressive-payment-integration.ts` |
+| Functional | `src/lib/progressive-payment-route.ts` |
+| Functional | `src/lib/task10-policy.ts` |
+| Functional | `src/types/database.ts` |
+| Migration | `supabase/migrations/20260909000100_task10_policy_evidence_foundation.sql` |
+| Migration | `supabase/migrations/20260909000200_task10_booking_pricing_policy_transactions.sql` |
+| Migration | `supabase/migrations/20260909000300_task10_kids_family_makeup_transactions.sql` |
+| Migration | `supabase/migrations/20260909000400_task10_atomic_booking_payment_expiry.sql` |
+| Migration | `supabase/migrations/20260909000500_task10_activation_and_inactive_scheduler.sql` |
+| Test | `tests/history-payment-regression/history-payment.spec.ts` |
+| Test | `tests/task10-regression/global-setup.ts` |
+| Test | `tests/task10-regression/global-teardown.ts` |
+| Test | `tests/task10-regression/local-supabase.ts` |
+| Test | `tests/task10-regression/task10-policy.spec.ts` |
+| Test | `tests/task10-regression/task10-transactions.spec.ts` |
+| Test | `tests/task10-regression/task10-ui.spec.ts` |

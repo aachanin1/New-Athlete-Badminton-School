@@ -2,6 +2,7 @@ import { PaymentsClient } from '@/components/admin/payments-client'
 import { getServiceRoleClient, requireAdminPageAccess } from '@/lib/auth/admin'
 import { createProgressiveSlipSignedUrl } from '@/lib/progressive-payment-integration'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
+import { bookingPaymentLifecycleMessage, loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import type { PaymentReviewQueueRow } from '@/types/database'
 import {
   PAYMENT_TRANSFER_SETTING_KEY,
@@ -366,6 +367,10 @@ export default async function PaymentsPage() {
     legacyPaymentsPromise,
     incompleteBookingsPromise,
   ])
+  const lifecycle = await loadBookingPaymentLifecycle(getServiceRoleClient(), [
+    ...payments.map((payment) => payment.booking_id), ...incompleteBookings.map((booking) => booking.id),
+    ...progressiveMembers.map((member) => member.booking_id),
+  ])
 
   const sessionLearnerNameByBookingId = await fetchSessionLearnerNameMap(supabase, [
     ...payments.map((payment) => payment.booking_id),
@@ -409,6 +414,8 @@ export default async function PaymentsPage() {
 
   // Transform data
   const paymentList = payments.map((p) => ({
+    lifecycle_blocked: Boolean(lifecycle.get(p.booking_id)?.due || lifecycle.get(p.booking_id)?.status === 'cancelled'),
+    lifecycle_message: bookingPaymentLifecycleMessage(lifecycle.get(p.booking_id)),
     source_kind: 'legacy' as const,
     id: p.id,
     booking_id: p.booking_id,
@@ -450,6 +457,8 @@ export default async function PaymentsPage() {
 
     return {
       source_kind: 'progressive' as const,
+      lifecycle_blocked: members.some((member) => lifecycle.get(member.booking_id)?.due || lifecycle.get(member.booking_id)?.status === 'cancelled'),
+      lifecycle_message: members.map((member) => bookingPaymentLifecycleMessage(lifecycle.get(member.booking_id))).find(Boolean) || null,
       id: row.source_id,
       booking_id: firstBookingId,
       user_id: row.user_id,
@@ -474,7 +483,7 @@ export default async function PaymentsPage() {
     }
   }))
 
-  const incompleteBookingList = incompleteBookings.map((booking) => {
+  const incompleteBookingList = incompleteBookings.filter((booking) => !lifecycle.get(booking.id)?.due && lifecycle.get(booking.id)?.status !== 'cancelled').map((booking) => {
     const latestPayment = [...(booking.payments || [])].sort((a, b) => {
       const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
       const bTime = b.created_at ? new Date(b.created_at).getTime() : 0

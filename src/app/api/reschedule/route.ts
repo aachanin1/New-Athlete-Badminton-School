@@ -15,6 +15,7 @@ import {
   type RescheduleAssignmentNotificationSummary,
 } from '@/lib/coach-notification-delivery'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
+import { callTask10, Task10Error } from '@/lib/task10-policy'
 import type { CourseTypeName, Database } from '@/types/database'
 
 interface ReschedulePayload {
@@ -283,10 +284,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ข้อมูลการเปลี่ยนวันเรียนไม่ครบ กรุณาตรวจสอบอีกครั้ง' }, { status: 400 })
     }
 
-    if (!isFutureSlot(targetDate, startTime)) {
-      return NextResponse.json({ error: 'รอบเรียนใหม่ต้องเป็นรอบที่ยังไม่เริ่มเท่านั้น' }, { status: 400 })
-    }
-
     const adminSupabase = getServiceRoleClient()
     const { data: session, error: sessionError } = await adminSupabase
       .from('booking_sessions')
@@ -299,6 +296,30 @@ export async function POST(request: NextRequest) {
 
     if (sessionError || !session || session.bookings?.user_id !== user.id) {
       return NextResponse.json({ error: 'ไม่พบรอบเรียนที่ต้องการเปลี่ยน' }, { status: 404 })
+    }
+
+    if (session.bookings.course_types?.name === 'kids_group') {
+      const template = await findMatchingTemplate(adminSupabase, session.bookings.course_type_id, {
+        targetDate, startTime, endTime, branchId, scheduleTemplateId,
+      })
+      if (!template) return NextResponse.json({ error: 'รอบเรียนใหม่ไม่ตรงกับรอบเรียนประจำในระบบ' }, { status: 400 })
+      const committed = await callTask10<{ sessionId: string; scheduleSlotId: string; assignmentRetirement: { removed_count?: number } }>(
+        adminSupabase, 'task10_reschedule_kids_v1', {
+          p_user_id: user.id, p_session_id: sessionId, p_target_date: targetDate,
+          p_start_time: normalizeTime(startTime), p_end_time: normalizeTime(endTime), p_branch_id: branchId, p_template_id: template.id,
+        },
+      )
+      const notificationReport = await notifyReschedule(adminSupabase, user.id, session.branch_id, branchId,
+        session.date, session.start_time, session.end_time, targetDate, startTime, endTime,
+        Number(committed.assignmentRetirement?.removed_count || 0),
+      ).catch((error) => summarizeAssignmentReviewNotifications([], [{
+        audience: 'unexpected', stage: 'unexpected', message: error instanceof Error ? error.message : 'Notification delivery failed',
+      }], 2))
+      return NextResponse.json(buildRescheduleSuccessResponse(committed.sessionId, committed.scheduleSlotId, notificationReport))
+    }
+
+    if (!isFutureSlot(targetDate, startTime)) {
+      return NextResponse.json({ error: 'รอบเรียนใหม่ต้องเป็นรอบที่ยังไม่เริ่มเท่านั้น' }, { status: 400 })
     }
 
     if (session.bookings.status !== 'verified') {
@@ -472,6 +493,6 @@ export async function POST(request: NextRequest) {
     ))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message, ...(error instanceof Task10Error ? { code: error.code } : {}) }, { status: error instanceof Task10Error ? error.status : 500 })
   }
 }

@@ -1,4 +1,6 @@
 import { getAdultGroupTotal, getKidsGroupIncremental, getPrivateTotal, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
+import { legacyTiersFromPolicy, loadBookingPricingPolicy, type BookingPricingPolicyQuote } from '@/lib/booking-pricing-policy'
+import type { Task10RpcClient } from '@/lib/task10-policy'
 
 interface BookingPricingParams {
   supabase: SupabaseQueryClient
@@ -12,7 +14,7 @@ interface BookingPricingParams {
   excludeBookingId?: string
 }
 
-interface SupabaseQueryClient {
+interface SupabaseQueryClient extends Task10RpcClient {
   from(table: string): unknown
 }
 
@@ -33,6 +35,7 @@ interface ExistingBookingTable {
 }
 
 export interface BookingBasePricePreview {
+  policy?: BookingPricingPolicyQuote
   totalPrice: number
   selectedTier: import('@/lib/pricing').SelectedPricingTierEvidence
   existingSessions: number
@@ -71,6 +74,7 @@ export async function calculateBookingBasePricePreview({
   const pricingTiers = await fetchPricingTiers(supabase)
 
   if (courseTypeName === 'kids_group') {
+    const policy = await loadBookingPricingPolicy(supabase, { userId, courseTypeId, month, year, formula: 'legacy', bookingId: excludeBookingId })
     const bookingsTable = supabase.from('bookings') as ExistingBookingTable
     let query = bookingsTable
       .select('id, total_sessions, total_price')
@@ -89,8 +93,9 @@ export async function calculateBookingBasePricePreview({
     const existing = (existingBookings || []) as ExistingBookingRow[]
     const existingSessions = existing.reduce((sum, booking) => sum + Number(booking.total_sessions || 0), 0)
     const existingPaid = existing.reduce((sum, booking) => sum + Number(booking.total_price || 0), 0)
-    const pricing = getKidsGroupIncremental(existingSessions, existingPaid, newSessions, pricingTiers)
+    const pricing = getKidsGroupIncremental(existingSessions, existingPaid, newSessions, policy.catalog ? legacyTiersFromPolicy(policy.catalog) : pricingTiers)
     return {
+      policy,
       totalPrice: pricing.incrementalPrice,
       selectedTier: pricing.selectedTier,
       existingSessions,

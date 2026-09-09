@@ -11,6 +11,7 @@ import {
   type AttendanceSessionRow,
 } from '@/lib/session-attendance-status'
 import type { CourseTypeName } from '@/types/database'
+import { loadTask10Policy } from '@/lib/task10-policy'
 
 interface MakeupSessionRow {
   id: string
@@ -222,6 +223,7 @@ async function readChunkedRangePages<T>(
 export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const supabase = await createClient()
   const adminSupabase = getServiceRoleClient()
+  const familyPolicy = await loadTask10Policy(adminSupabase)
   const resolvedSearchParams = await resolveSearchParams(searchParams)
   const reviewTarget = {
     sessionId: getSingleSearchParam(resolvedSearchParams.session),
@@ -245,6 +247,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const [
     sourceSessions,
     linkedMakeupSessions,
+    futureKidsWalletSessions,
     { data: branches, error: branchesError },
     { data: scheduleTemplates, error: scheduleTemplatesError },
     { data: coaches, error: coachesError },
@@ -255,7 +258,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
         .from('booking_sessions')
         .select(makeupSessionSelect)
         .eq('bookings.status', 'verified')
-        .in('status', ['absent', 'scheduled', 'completed'])
+        .in('status', familyPolicy.effectiveAt ? ['absent', 'scheduled', 'completed', 'walleted'] : ['absent', 'scheduled', 'completed'])
         .lte('date', todayInput)
         .gte('date', historyStartInput)
         .order('date', { ascending: false })
@@ -272,6 +275,14 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
         .order('date', { ascending: false })
         .order('id', { ascending: true })
         .range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
+    familyPolicy.effectiveAt
+      ? readAllRangePages<MakeupSessionRow>('future Kids wallet sources', (start, end) =>
+        supabase.from('booking_sessions')
+          .select(makeupSessionSelect.replace('course_types(name)', 'course_types!inner(name)'))
+          .eq('bookings.status', 'verified').eq('bookings.course_types.name', 'kids_group')
+          .eq('status', 'walleted').eq('is_makeup', false).gt('date', todayInput)
+          .order('date').order('id').range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>)
+      : Promise.resolve([] as MakeupSessionRow[]),
     supabase
       .from('branches')
       .select('id, name, slug')
@@ -301,6 +312,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const sessionById = new Map<string, MakeupSessionRow>()
   sourceSessions.forEach((session) => sessionById.set(session.id, session))
   linkedMakeupSessions.forEach((session) => sessionById.set(session.id, session))
+  futureKidsWalletSessions.forEach((session) => sessionById.set(session.id, session))
   const sessions = Array.from(sessionById.values())
 
   const visibleSessionIds = new Set(sessions.map((session) => session.id))
@@ -554,6 +566,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
 
   return (
     <MakeupClient
+      familyPolicy={familyPolicy}
       sessions={sessionList}
       branches={branches || []}
       scheduleTemplates={(scheduleTemplates || []).map((template) => ({

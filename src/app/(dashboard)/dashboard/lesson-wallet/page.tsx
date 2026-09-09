@@ -5,6 +5,7 @@ import { getServiceRoleClient } from '@/lib/auth/admin'
 import { normalizeCourseTypeName } from '@/lib/schedule-template-utils'
 import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName } from '@/types/database'
+import { loadTask10Policy, nextLessonMonth } from '@/lib/task10-policy'
 
 interface WalletCreditRow {
   id: string
@@ -84,6 +85,7 @@ export default async function LessonWalletPage() {
 
   const adminSupabase = getServiceRoleClient()
   const nowIso = new Date().toISOString()
+  const familyPolicy = await loadTask10Policy(adminSupabase)
 
   const [{ data: credits }, { data: branches }, { data: scheduleTemplates }, { data: existingSessions }, { data: profile }] = await Promise.all([
     adminSupabase
@@ -130,6 +132,17 @@ export default async function LessonWalletPage() {
       .single() as unknown as PromiseLike<{ data: ProfileRow | null }>,
   ])
 
+  const kidsCreditIds = (credits || []).filter((credit) => credit.course_types?.name === 'kids_group').map((credit) => credit.id)
+  const [familyUses, transitions] = familyPolicy.effectiveAt && kidsCreditIds.length
+    ? await Promise.all([
+      adminSupabase.from('task10_family_makeup_uses').select('credit_id').eq('parent_id', user.id).in('credit_id', kidsCreditIds),
+      adminSupabase.from('task10_wallet_transition_evidence').select('credit_id').in('credit_id', kidsCreditIds),
+    ])
+    : [{ data: [], error: null }, { data: [], error: null }]
+  if (familyUses.error || transitions.error) throw new Error('ไม่สามารถตรวจสอบการใช้สิทธิ์ชดเชยร่วมครอบครัวได้')
+  const familyUsedCreditIds = new Set((familyUses.data || []).map((row) => row.credit_id))
+  const transitionCreditIds = new Set((transitions.data || []).map((row) => row.credit_id))
+
   const walletScheduleTemplates = (scheduleTemplates || []).flatMap((template) => {
     const courseTypeName = normalizeCourseTypeName(template.course_types?.name)
     const branchSlug = template.branches?.slug
@@ -155,13 +168,19 @@ export default async function LessonWalletPage() {
       <div>
         <h1 className="text-2xl font-bold text-[#153c85]">กระเป๋าวันเรียน</h1>
         <p className="mt-1 text-sm text-gray-500">
-          เก็บสิทธิ์วันเรียนที่ชำระแล้วก่อนเวลาเรียนอย่างน้อย 48 ชั่วโมง แพ็กเกจ Adult Group/Family Private ที่เข้าเงื่อนไขใช้ได้ถึงวันหมดอายุ ส่วนสิทธิ์อื่นใช้ได้เฉพาะเดือนเดิม
+          เก็บสิทธิ์วันเรียนที่ชำระแล้วก่อนเวลาเรียนมากกว่า 48 ชั่วโมง แพ็กเกจ Adult Group/Family Private ที่เข้าเงื่อนไขใช้ได้ถึงวันหมดอายุ ส่วนสิทธิ์อื่นใช้ได้เฉพาะเดือนเดิม
         </p>
       </div>
 
       <LessonWalletClient
         credits={(credits || []).map((credit) => ({
           ...credit,
+          familyMakeupUsed: familyUsedCreditIds.has(credit.id),
+          familyMakeupMonth: familyPolicy.effectiveAt && credit.course_types?.name === 'kids_group'
+            && !familyUsedCreditIds.has(credit.id) && credit.status !== 'redeemed' && !credit.redeemed_session_id
+            && (transitionCreditIds.has(credit.id) || credit.stored_at >= familyPolicy.effectiveAt && credit.expires_at >= credit.stored_at)
+            && nextLessonMonth(credit.original_date.slice(0, 7)) >= new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 7)
+            ? nextLessonMonth(credit.original_date.slice(0, 7)) : null,
           status: credit.status === 'active' && credit.expires_at < nowIso ? 'expired' as const : credit.status,
         }))}
         branches={branches || []}

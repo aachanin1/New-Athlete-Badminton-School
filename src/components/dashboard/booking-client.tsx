@@ -23,6 +23,7 @@ import {
 import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption, type TimeSlot } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, formatPricingTierRange, type CourseCategory, type PricingTierInput, type SelectedPricingTierEvidence } from '@/lib/pricing'
+import { legacyTiersFromPolicy, type BookingPricingPolicyQuote } from '@/lib/booking-pricing-policy'
 import { formatLearnerDisplayName, joinLearnerDisplayNames } from '@/lib/learner-display-name'
 import { fmtTime } from '@/lib/utils'
 import {
@@ -121,6 +122,8 @@ interface BookingClientProps {
   existingBookingSessions?: ExistingBookingSession[]
   editBooking?: EditBookingData | null
   pricingTiers?: PricingTierData[]
+  initialKidsPricingPolicy?: BookingPricingPolicyQuote | null
+  initialKidsPricingError?: string | null
 }
 
 type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
@@ -142,6 +145,7 @@ interface BookingDraft {
 }
 
 interface LegacyBookingPreview {
+  policy?: BookingPricingPolicyQuote
   mode: 'legacy'
   totalPrice: number
   grossPrice: number
@@ -156,6 +160,7 @@ interface LegacyBookingPreview {
 }
 
 interface ProgressiveBookingPreview {
+  policy?: BookingPricingPolicyQuote
   mode: 'progressive'
   totalPrice: number
   grossPrice: number
@@ -346,6 +351,7 @@ function isSameVisiblePreview(left: AuthoritativeBookingPreview | null, right: A
     && left.grossPrice === right.grossPrice
     && left.discountAmount === right.discountAmount
     && left.totalPrice === right.totalPrice
+    && left.policy?.fingerprint === right.policy?.fingerprint
     && left.selectedTier.id === right.selectedTier.id,
   )
 }
@@ -439,7 +445,7 @@ function sanitizeBookingDraft(
   return { ...draft, step: getSafeStep(value.step, draft) }
 }
 
-export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [] }: BookingClientProps) {
+export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError }: BookingClientProps) {
   const router = useRouter()
   const isEditMode = !!editBooking
   const editSelectedBranchIds = useMemo(
@@ -1394,6 +1400,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             })),
             clientRequestId,
             expectedScopeRevision: submissionPreview.expectedScopeRevision,
+            expectedPolicyFingerprint: submissionPreview.policy?.fingerprint || null,
           }),
         })
 
@@ -1438,6 +1445,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             expectedScopeRevision: submissionPreview.expectedScopeRevision,
             expectedLegacyBaselineSessions: submissionPreview.legacyBaselineSessions,
             expectedLegacyBaselineFingerprint: submissionPreview.legacyBaselineFingerprint,
+            expectedPolicyFingerprint: submissionPreview.policy?.fingerprint || null,
           }),
         })
 
@@ -1537,7 +1545,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                           </tr>
                         </thead>
                         <tbody>
-                          {getKidsGroupTiers(pricingTiers as PricingTierInput[]).map((t) => (
+                          {getKidsGroupTiers((authoritativePreview?.policy?.catalog || initialKidsPricingPolicy?.catalog)
+                            ? legacyTiersFromPolicy((authoritativePreview?.policy?.catalog || initialKidsPricingPolicy?.catalog)!)
+                            : pricingTiers as PricingTierInput[]).map((t) => (
                             <tr key={t.min} className="border-b last:border-0">
                               <td className="py-2 pr-4 font-medium">{t.label}</td>
                               <td className="py-2 pr-4 text-right text-[#2748bf] font-medium">{t.per_session} บาท</td>
@@ -1550,6 +1560,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       </table>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">* ผู้เรียนพี่น้องนับจำนวนครั้งรวมกันเพื่อเลือกช่วงราคา</p>
+                    {(authoritativePreview?.policy || initialKidsPricingPolicy)?.catalog ? <p className="text-xs text-gray-500 mt-2">
+                      ชุดราคาวันจองช่วง {(authoritativePreview?.policy || initialKidsPricingPolicy)?.catalog?.regime === 'early' ? '1–15' : '16–สิ้นเดือน'} · ระบบตรวจราคาก่อนยืนยันการจอง
+                    </p> : null}
+                    {initialKidsPricingError && !authoritativePreview?.policy ? <p role="alert" className="text-sm text-red-600">{initialKidsPricingError}</p> : null}
                   </>
                 )}
                 {courseType === 'adult_group' && (

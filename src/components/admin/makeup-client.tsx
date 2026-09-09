@@ -21,6 +21,9 @@ import {
 import { isAttendanceGapReviewSession, isMakeupEligibleMissedSession } from '@/lib/session-attendance-status'
 import { getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import type { AttendanceStatus } from '@/types/database'
+import type { Task10Policy } from '@/lib/task10-policy'
+import { familyMakeupReason, type KidsFamilyMakeupState } from '@/lib/kids-family-makeup'
+import { getBangkokDayOfWeek } from '@/lib/schedule-template-utils'
 import {
   AlertCircle,
   Building2,
@@ -138,6 +141,7 @@ interface CoachOption {
 }
 
 interface MakeupClientProps {
+  familyPolicy: Task10Policy
   sessions: BookingSessionData[]
   branches: BranchOption[]
   scheduleTemplates: ScheduleTemplateOption[]
@@ -422,7 +426,87 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
     .filter((day) => day.slotsByBranch.length > 0)
 }
 
-export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, reviewTarget }: MakeupClientProps) {
+function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<MakeupClientProps, 'sessions' | 'scheduleTemplates' | 'branches'>) {
+  const scopes = Array.from(new Map(sessions.filter((s) => s.course_type === 'kids_group' && s.user_id && !s.is_makeup).map((s) => [
+    `${s.user_id}:${s.date.slice(0, 7)}`, { parentId: s.user_id!, sourceMonth: s.date.slice(0, 7), name: s.user_name },
+  ])).entries())
+  const [scopeKey, setScopeKey] = useState(scopes[0]?.[0] || '')
+  const [state, setState] = useState<KidsFamilyMakeupState | null>(null)
+  const [sourceId, setSourceId] = useState('')
+  const [childId, setChildId] = useState('')
+  const [date, setDate] = useState('')
+  const [templateId, setTemplateId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [reload, setReload] = useState(0)
+  const inFlight = useRef(false)
+  const request = useRef<{ fingerprint: string; id: string } | null>(null)
+  useEffect(() => {
+    if (!scopeKey) return
+    const controller = new AbortController()
+    const split = scopeKey.lastIndexOf(':')
+    setLoading(true); setState(null); setError(null); setSourceId(''); setChildId('')
+    fetch(`/api/admin/makeup/kids-family?parentId=${encodeURIComponent(scopeKey.slice(0, split))}&sourceMonth=${scopeKey.slice(split + 1)}`, { signal: controller.signal })
+      .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error); return data as KidsFamilyMakeupState })
+      .then((data) => { if (!controller.signal.aborted) { setState(data); setDate(`${data.destinationMonth}-01`); setTemplateId('') } })
+      .catch((cause) => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'อ่านข้อมูลไม่สำเร็จ') })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [scopeKey, reload])
+  const templates = scheduleTemplates.filter((t) => t.course_type_name === 'kids_group' && t.is_active && t.day_of_week === getBangkokDayOfWeek(date))
+  async function consume() {
+    if (inFlight.current || !state?.eligible || !sourceId || !childId) return
+    const template = templates.find((t) => t.id === templateId)
+    if (!template) { setError('เลือกรอบเรียนให้ครบ'); return }
+    const body = { original_session_id: sourceId, attending_child_id: childId, schedule_template_id: template.id,
+      branch_id: template.branch_id, makeup_date: date, start_time: template.start_time, end_time: template.end_time }
+    const fingerprint = JSON.stringify(body)
+    if (request.current?.fingerprint !== fingerprint) request.current = { fingerprint, id: crypto.randomUUID() }
+    inFlight.current = true; setSaving(true); setError(null); setSuccess(null)
+    try {
+      const response = await fetch('/api/admin/makeup/kids-family', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, request_id: request.current.id }) })
+      const data = await response.json()
+      if (!response.ok || !data.success || !data.data?.id) throw new Error(data.error || 'ยังยืนยันผลการจัดชดเชยไม่ได้')
+      setSuccess(`จัดชดเชยสำเร็จ โควตาเหลือ ${data.remaining} ครั้ง`)
+      request.current = null; setReload((n) => n + 1)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'จัดชดเชยไม่สำเร็จ') }
+    finally { inFlight.current = false; setSaving(false) }
+  }
+  return <Card><CardContent className="space-y-4 p-4">
+    <h2 className="text-lg font-bold text-[#153c85]">ชดเชยคอร์สเด็ก — สิทธิ์ร่วมครอบครัว</h2>
+    <Select value={scopeKey} disabled={saving} onValueChange={(value) => { setScopeKey(value); setSuccess(null) }}><SelectTrigger aria-label="ครอบครัวและเดือนต้นทาง"><SelectValue placeholder="เลือกครอบครัวและเดือนต้นทาง" /></SelectTrigger>
+      <SelectContent>{scopes.map(([key, scope]) => <SelectItem key={key} value={key}>{scope.name} · {scope.sourceMonth}</SelectItem>)}</SelectContent>
+    </Select>
+    {loading ? <p role="status">กำลังอ่านสิทธิ์ซื้อและรายการต้นทาง...</p> : null}
+    {error ? <p role="alert" className="text-red-600">{error}</p> : null}
+    {success ? <p role="status" className="text-emerald-700">{success}</p> : null}
+    {state?.sourceMonth ? <>
+      <p>เดือนต้นทาง {state.sourceMonth} → เดือนปลายทาง {state.destinationMonth}</p>
+      <p>โควตา {state.quota} · ใช้แล้ว {state.used} · เหลือ {state.remaining} · ต้นทางที่ใช้ได้ {state.sources.length}</p>
+      <p>ซื้อเดือนปลายทางยืนยันแล้ว {state.destinationPurchase.quantity} ครั้ง · ขั้นต่ำ {state.minimum.minimum} ครั้ง</p>
+      <p className="text-sm text-gray-600">รอชำระ {state.destinationPurchase.pendingQuantity} ครั้ง · รอตรวจยืนยัน {state.destinationPurchase.awaitingReviewQuantity} ครั้ง — ยังไม่นับเป็นยอดยืนยัน</p>
+      {state.reason ? <p className="text-amber-700">{familyMakeupReason(state)}</p> : null}
+      <Select value={sourceId} onValueChange={setSourceId} disabled={saving || !state.eligible}><SelectTrigger aria-label="รายการต้นทาง"><SelectValue placeholder="เลือกรายการต้นทาง" /></SelectTrigger><SelectContent>
+        {state.sources.map((s) => <SelectItem key={s.sourceSessionId} value={s.sourceSessionId}>{s.sourceDate} · {state.children.find((c) => c.id === s.sourceChildId)?.name || 'ไม่พบข้อมูลเด็กต้นทาง'} · {s.kind === 'wallet' ? 'กระเป๋า' : 'ขาดเรียน'}</SelectItem>)}
+      </SelectContent></Select>
+      <Select value={childId} onValueChange={setChildId} disabled={saving || !state.eligible}><SelectTrigger aria-label="เด็กที่มาเรียนจริง"><SelectValue placeholder="เลือกเด็กที่มาเรียนจริง" /></SelectTrigger><SelectContent>
+        {state.children.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+      </SelectContent></Select>
+      <Input aria-label="วันชดเชยร่วมครอบครัว" type="date" value={date} disabled={saving || !state.eligible} min={`${state.destinationMonth}-01`} max={new Date(Date.parse(state.expiresAt) - 1 + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+        onChange={(event) => { setDate(event.target.value); setTemplateId('') }} />
+      <Select value={templateId} onValueChange={setTemplateId} disabled={saving || !state.eligible}><SelectTrigger aria-label="รอบชดเชยร่วมครอบครัว"><SelectValue placeholder="เลือกรอบเรียน" /></SelectTrigger><SelectContent>
+        {templates.map((t) => <SelectItem key={t.id} value={t.id}>{branches.find((b) => b.id === t.branch_id)?.name} · {t.start_time}–{t.end_time}</SelectItem>)}
+      </SelectContent></Select>
+      <Button disabled={saving || !state.eligible || !sourceId || !childId || !templateId} onClick={consume}>{saving ? 'กำลังจัดชดเชย...' : 'จัดชดเชยร่วมครอบครัว'}</Button>
+    </> : null}
+    <Button variant="outline" disabled={saving || loading} onClick={() => setReload((n) => n + 1)}>โหลดสิทธิ์ใหม่</Button>
+  </CardContent></Card>
+}
+
+export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, reviewTarget, familyPolicy }: MakeupClientProps) {
   const router = useRouter()
   const [isRefreshPending, startRefreshTransition] = useTransition()
   const inFlightTargetKeysRef = useRef(new Set<string>())
@@ -712,7 +796,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const monthGroups = useMemo(() => {
     const groups = new Map<string, MonthGroup & { learnerName: string; userName: string; branches: string[] }>()
 
-    projectedSessions.filter(isMissedSession).forEach((session) => {
+    projectedSessions.filter((session) => isMissedSession(session) && !(familyPolicy.effectiveAt && session.course_type === 'kids_group')).forEach((session) => {
       const learnerKey = getMakeupLearnerIdentity(session)
       if (!learnerKey) return
       const monthKey = getMonthKey(session.date)
@@ -757,7 +841,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       canCreate: !group.hasMakeup && !group.isExpired && !createResults[group.key],
       sessions: group.sessions.sort((a, b) => a.date.localeCompare(b.date)),
     }))
-  }, [createResults, makeupSourceIds, projectedSessions])
+  }, [createResults, makeupSourceIds, projectedSessions, familyPolicy.effectiveAt])
 
   const missingMakeupIdentity = projectedSessions.filter((session) => isMissedSession(session) && !getMakeupLearnerIdentity(session))
 
@@ -1587,6 +1671,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
   return (
     <div className="space-y-5">
+      {familyPolicy.effectiveAt ? <KidsFamilyMakeupPanel sessions={sessions} scheduleTemplates={scheduleTemplates} branches={branches} /> : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
@@ -1594,10 +1679,10 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
             Makeup Sessions
           </div>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">วันชดเชย</h1>
-          <p className="mt-1 text-sm text-gray-500">สรุปสิทธิ์ชดเชยรายผู้เรียนและรายเดือน โดย 1 เดือนชดเชยได้สูงสุด 1 ครั้ง</p>
+          <p className="mt-1 text-sm text-gray-500">{familyPolicy.effectiveAt ? 'คอร์สเด็กใช้โควตาร่วมครอบครัวและตรวจยอดซื้อยืนยันของเดือนถัดไป ส่วนคอร์สอื่นใช้เงื่อนไขเดิม' : 'สรุปสิทธิ์ชดเชยรายผู้เรียนและรายเดือน โดย 1 เดือนชดเชยได้สูงสุด 1 ครั้ง'}</p>
         </div>
         <Badge variant="outline" className="w-fit border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
-          ขาดหลายครั้งในเดือนเดียวกัน ชดเชยได้ 1 ครั้ง
+          {familyPolicy.effectiveAt ? 'คอร์สเด็กตรวจสิทธิ์จากครอบครัวและเดือนต้นทาง' : 'ขาดหลายครั้งในเดือนเดียวกัน ชดเชยได้ 1 ครั้ง'}
         </Badge>
       </div>
 

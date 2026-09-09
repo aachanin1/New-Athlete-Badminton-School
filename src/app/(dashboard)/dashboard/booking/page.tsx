@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingClient } from '@/components/dashboard/booking-client'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { loadBookingPricingPolicy } from '@/lib/booking-pricing-policy'
+import { bangkokDate } from '@/lib/task10-policy'
+import { decideProgressiveBookingEntry } from '@/lib/progressive-pricing-feature'
 import type { Branch, Child, CourseType, CourseTypeName, LearnerType } from '@/types/database'
 
 interface ScheduleTemplateRow {
@@ -176,6 +180,16 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
     }
   }
 
+  const kidsCourse = (courseTypes || []).find((course) => course.name === 'kids_group')
+  const todayBangkok = bangkokDate(new Date().toISOString())
+  const kidsPolicyResult = kidsCourse && (!editBookingData || editBookingData.course_type_id === kidsCourse.id)
+    ? await loadBookingPricingPolicy(getServiceRoleClient(), {
+      userId: user.id, courseTypeId: kidsCourse.id, bookingId: editBookingData?.id,
+      month: editBookingData?.month || Number(todayBangkok.slice(5, 7)), year: editBookingData?.year || Number(todayBangkok.slice(0, 4)),
+      formula: editBookingData ? (editBookingData.pricing_scope_id ? 'progressive' : 'legacy') : decideProgressiveBookingEntry('kids_group').mode,
+    }).then((policy) => ({ policy, error: null })).catch(() => ({ policy: null, error: 'อ่านชุดราคาคอร์สเด็กไม่สำเร็จ กรุณาโหลดหน้าใหม่' }))
+    : { policy: null, error: null }
+
   return (
     <div className="space-y-6">
       <div>
@@ -187,6 +201,8 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
         </p>
       </div>
       <BookingClient
+        initialKidsPricingPolicy={kidsPolicyResult.policy}
+        initialKidsPricingError={kidsPolicyResult.error}
         userId={user.id}
         userName={profile?.full_name || ''}
         learnerChildren={children || []}

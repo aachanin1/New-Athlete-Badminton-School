@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { getServiceRoleClient } from '@/lib/auth/admin'
-import { notifyRoles, notifyUser } from '@/lib/notifications'
 import {
   inspectProgressiveSlip,
   PROGRESSIVE_PAYMENT_MAX_FILE_BYTES,
 } from '@/lib/progressive-payment-integration'
 import { isSlipOKTimeout, validateSlipData, verifySlip, type SlipOKResponse } from '@/lib/slipok'
-import type { Database, PaymentStatus } from '@/types/database'
+import type { PaymentStatus } from '@/types/database'
+import { Task10Error } from '@/lib/task10-policy'
+import { acceptLegacySlip, finalizeLegacySlip, readLegacySlipRequest } from '@/lib/booking-payment-lifecycle'
 
 export const runtime = 'nodejs'
 
@@ -17,25 +19,6 @@ interface BookingRow {
   status: string
 }
 
-interface DbError {
-  message: string
-}
-
-interface PaymentInsertTable {
-  insert(values: Database['public']['Tables']['payments']['Insert'][]): Promise<{ error: DbError | null }>
-}
-
-interface BookingStatusUpdateQuery {
-  eq(column: string, value: string): {
-    in(column: string, values: string[]): Promise<{ error: DbError | null }>
-  }
-}
-
-interface BookingUpdateTable {
-  update(values: { status: 'paid' | 'verified' }): BookingStatusUpdateQuery
-}
-
-type NotificationSupabase = Parameters<typeof notifyUser>[0]
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
@@ -54,10 +37,6 @@ function parseBookingIds(value: string | null) {
   } catch {
     return []
   }
-}
-
-function buildSlipPublicPath(userId: string, bookingId: string, extension: string) {
-  return `${userId}/${bookingId}-${Date.now()}.${extension}`
 }
 
 function buildCanonicalSlipFileName(extension: string) {
@@ -98,6 +77,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  let receiptAccepted = false
 
   try {
     const formData = await request.formData()
@@ -105,6 +85,11 @@ export async function POST(request: NextRequest) {
     const file = formFile instanceof File ? formFile : null
     const bookingIds = parseBookingIds(formData.get('bookingIds') as string | null)
     const expectedAmount = Number(formData.get('expectedAmount'))
+    const receiptRequestId = typeof formData.get('requestId') === 'string' ? String(formData.get('requestId')) : randomUUID()
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(receiptRequestId)) {
+      return jsonError('รหัสส่งสลิปไม่ถูกต้อง', 400, { code: VERIFY_SLIP_ERROR_CODES.invalidPayload })
+    }
+    const adminSupabase = getServiceRoleClient()
 
     if (!file || bookingIds.length === 0 || !Number.isFinite(expectedAmount) || expectedAmount <= 0) {
       return jsonError('ข้อมูลไม่ครบ กรุณาเลือกสลิปและลองส่งอีกครั้ง', 400, {
@@ -132,12 +117,19 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const priorReceipt = await readLegacySlipRequest(adminSupabase, user.id, receiptRequestId)
+    if (priorReceipt?.found && (priorReceipt.sha256 !== inspected.sha256 || priorReceipt.totalAmount !== expectedAmount
+      || JSON.stringify([...(priorReceipt.bookingIds || [])].sort()) !== JSON.stringify([...bookingIds].sort()))) {
+      throw new Task10Error('TASK10_IDEMPOTENCY_CONFLICT', 'คำขอส่งสลิปนี้ไม่ตรงกับรายการที่ระบบรับไว้แล้ว')
+    }
+    receiptAccepted = Boolean(priorReceipt?.found)
+
     const { data: bookings, error: bookingError } = await supabase
       .from('bookings')
       .select('id, total_price, status')
       .eq('user_id', user.id)
       .in('id', bookingIds)
-      .eq('status', 'pending_payment')
+      .in('status', priorReceipt?.found ? ['pending_payment', 'paid', 'verified'] : ['pending_payment'])
 
     if (bookingError) {
       console.error('[verify-slip] Failed to load pending bookings', {
@@ -169,12 +161,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const fileName = buildSlipPublicPath(user.id, bookingIds[0], inspected.extension)
+    if (priorReceipt?.finalized) return NextResponse.json({ success: true, verified: true, paymentStatus: 'approved',
+      bookingStatus: 'verified', slipData: null, notes: priorReceipt.notes, reviewMessage: null, warningCode: null })
 
-    const { error: uploadError } = await supabase
-      .storage
-      .from('payment-slips')
-      .upload(fileName, fileBuffer, { contentType: inspected.mimeType })
+    const fileName = priorReceipt?.storagePath || `${user.id}/${receiptRequestId}-${inspected.sha256}.${inspected.extension}`
+    let uploadError: { message: string } | null = null
+    if (!priorReceipt?.found) {
+      const upload = await supabase.storage.from('payment-slips').upload(fileName, fileBuffer, { contentType: inspected.mimeType })
+      uploadError = upload.error
+      if (upload.error && String(upload.error.statusCode) === '409') {
+        // A Storage-only retry may reuse exactly these content-addressed bytes.
+        const existing = await adminSupabase.storage.from('payment-slips').download(fileName)
+        if (existing.data && !existing.error && inspectProgressiveSlip(Buffer.from(await existing.data.arrayBuffer()))?.sha256 === inspected.sha256) uploadError = null
+      }
+    }
 
     if (uploadError) {
       console.error('[verify-slip] Slip upload failed', {
@@ -188,6 +188,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: { publicUrl } } = supabase.storage.from('payment-slips').getPublicUrl(fileName)
+
+    if (!priorReceipt?.found) {
+      await acceptLegacySlip(adminSupabase, { userId: user.id, bookingIds, storagePath: fileName,
+        publicUrl, sha256: inspected.sha256, expectedAmount, requestId: receiptRequestId })
+      receiptAccepted = true
+    }
 
     const isTestMode = process.env.SLIPOK_TEST_MODE === 'true'
     let verificationStatus: PaymentStatus = 'pending'
@@ -239,85 +245,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const adminSupabase = getServiceRoleClient()
-    const now = new Date().toISOString()
-    const paymentRows: Database['public']['Tables']['payments']['Insert'][] = bookingRows.map((booking) => ({
-      booking_id: booking.id,
-      user_id: user.id,
-      amount: Number(booking.total_price || 0),
-      method: 'transfer',
-      slip_image_url: publicUrl,
-      status: verificationStatus,
-      verified_by: null,
-      verified_at: verificationStatus === 'approved' ? now : null,
-      notes: verificationNotes,
-    }))
-
-    const paymentsTable = adminSupabase.from('payments') as unknown as PaymentInsertTable
-    const { error: paymentError } = await paymentsTable
-      .insert(paymentRows)
-
-    if (paymentError) {
-      console.error('[verify-slip] Payment insert failed after slip upload', {
-        userId: user.id,
-        bookingIds,
-        paymentStatus: verificationStatus,
-        error: paymentError.message,
-      })
-      return jsonError(
-        'อัปโหลดสลิปสำเร็จแล้ว แต่บันทึกข้อมูลการชำระเงินไม่สำเร็จ กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่พร้อม Booking ID',
-        500,
-        {
-          code: VERIFY_SLIP_ERROR_CODES.paymentInsertFailed,
-          paymentRecorded: false,
-          supportReviewRequired: true,
-        }
-      )
-    }
+    await finalizeLegacySlip(adminSupabase, { userId: user.id, requestId: receiptRequestId,
+      approved: verificationStatus === 'approved', notes: verificationNotes })
 
     const nextBookingStatus = verificationStatus === 'approved' ? 'verified' : 'paid'
-    const bookingsTable = adminSupabase.from('bookings') as unknown as BookingUpdateTable
-    const { error: bookingUpdateError } = await bookingsTable
-      .update({ status: nextBookingStatus })
-      .eq('user_id', user.id)
-      .in('id', bookingIds)
-
-    if (bookingUpdateError) {
-      console.error('[verify-slip] Booking status update failed after payment insert', {
-        userId: user.id,
-        bookingIds,
-        nextBookingStatus,
-        paymentStatus: verificationStatus,
-        error: bookingUpdateError.message,
-      })
-      return jsonError(
-        'ระบบรับสลิปและบันทึกการชำระเงินแล้ว แต่ยังอัปเดตสถานะการจองไม่สำเร็จ กรุณาติดต่อเจ้าหน้าที่ให้ตรวจสอบ Booking ID',
-        500,
-        {
-          code: VERIFY_SLIP_ERROR_CODES.bookingStatusUpdateFailed,
-          paymentRecorded: true,
-          supportReviewRequired: true,
-        }
-      )
-    }
-
-    await notifyRoles(adminSupabase as NotificationSupabase, {
-      roles: ['admin', 'super_admin'],
-      title: verificationStatus === 'approved' ? 'SlipOK ยืนยันการชำระเงินแล้ว' : 'มีสลิปรอตรวจสอบ',
-      message: `${bookingIds.length} รายการ • ยอด ${expectedAmount.toLocaleString('th-TH')} บาท`,
-      type: 'payment',
-      link_url: '/admin/payments',
-    })
-
-    await notifyUser(adminSupabase as NotificationSupabase, {
-      user_id: user.id,
-      title: verificationStatus === 'approved' ? 'ชำระเงินสำเร็จ' : 'ส่งสลิปแล้ว รอตรวจสอบ',
-      message: verificationStatus === 'approved'
-        ? `ระบบยืนยันสลิปของคุณแล้วสำหรับ ${bookingIds.length} รายการ`
-        : 'ระบบรับสลิปของคุณแล้ว หาก SlipOK ยังไม่ยืนยันอัตโนมัติ แอดมินจะตรวจสอบต่อ',
-      type: 'payment',
-      link_url: '/dashboard/history',
-    })
 
     return NextResponse.json({
       success: true,
@@ -335,6 +266,7 @@ export async function POST(request: NextRequest) {
       warningCode: slipWarningCode,
     })
   } catch (error) {
+    if (error instanceof Task10Error) return jsonError(error.message, error.status, { code: error.code, paymentRecorded: receiptAccepted, refreshRequired: error.status === 409 })
     console.error('Verify slip error:', error)
     return jsonError(`เกิดข้อผิดพลาด: ${getErrorMessage(error)}`, 500, {
       code: VERIFY_SLIP_ERROR_CODES.unexpected,

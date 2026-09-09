@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { buildPricingCatalog, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
+import { validateKidsTierSet, type KidsRateCatalog } from '@/lib/booking-pricing-policy'
 
 interface PricingTierData {
   id: string
@@ -26,6 +27,8 @@ interface PricingTierData {
 
 interface PricingSettingsClientProps {
   tiers: PricingTierData[]
+  kidsCatalogs?: { early: KidsRateCatalog | null; late: KidsRateCatalog; active: boolean } | null
+  kidsCatalogError?: string
 }
 
 const COURSE_LABELS: Record<CourseCategory, string> = {
@@ -57,21 +60,78 @@ function calculateAutoPackagePrice(tier: Pick<PricingTierData, 'min_sessions' | 
   return Math.round(Number(tier.min_sessions || 0) * Number(tier.price_per_session || 0))
 }
 
-export function PricingSettingsClient({ tiers }: PricingSettingsClientProps) {
+function KidsCatalogEditor({ catalog, onSaved }: { catalog: KidsRateCatalog; onSaved: (catalog: KidsRateCatalog) => void }) {
+  const [rows, setRows] = useState(catalog.tiers)
+  const [saved, setSaved] = useState(catalog)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  async function save() {
+    if (loading) return
+    setSuccess(false)
+    setError(null)
+    try {
+      const tiers = validateKidsTierSet(rows)
+      setLoading(true)
+      const response = await fetch('/api/admin/pricing', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regime: saved.regime, expectedRevision: saved.revision, tiers }) })
+      const result = await response.json()
+      if (!response.ok || !result.success) throw new Error(result.error || 'บันทึกราคาไม่สำเร็จ กรุณาโหลดข้อมูลใหม่')
+      const updated = result.data as KidsRateCatalog
+      if (updated.regime !== saved.regime || updated.revision !== saved.revision + 1) throw new Error('ยังยืนยันผลการบันทึกไม่ได้ กรุณาโหลดข้อมูลใหม่')
+      setSaved(updated)
+      setRows(updated.tiers)
+      onSaved(updated)
+      setSuccess(true)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'บันทึกไม่สำเร็จ') }
+    finally { setLoading(false) }
+  }
+  return <Card><CardContent className="space-y-4 p-4">
+    <h2 className="font-semibold text-[#153c85]">เด็ก — {catalog.regime === 'early' ? 'จองวันที่ 1–15' : 'จองวันที่ 16–สิ้นเดือน'}</h2>
+    <p className="text-sm text-gray-500">บันทึกแยกชุด บิลเดิมยังใช้ชุดราคาที่เก็บไว้เมื่อจอง</p>
+    {rows.map((row, index) => <div key={index} className="grid grid-cols-3 gap-3">
+      {(['minSessions', 'maxSessions', 'ratePerSession'] as const).map((field) => <Label key={field} className="space-y-2">
+        <span>{field === 'minSessions' ? 'เริ่มที่' : field === 'maxSessions' ? 'ถึง (ว่าง = ไม่จำกัด)' : 'ราคา/ครั้ง'}</span>
+        <Input type="number" disabled={loading} value={row[field] ?? ''} onChange={(event) => {
+          setError(null); setSuccess(false)
+          const value = event.target.value
+          setRows((current) => current.map((item, i) => i === index ? { ...item, [field]: field === 'maxSessions' && value === '' ? null : Number(value) } : item))
+        }} />
+      </Label>)}
+    </div>)}
+    {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
+    {success ? <p role="status" className="text-sm text-emerald-700">บันทึกสำเร็จ</p> : null}
+    <Button disabled={loading} onClick={save}>{loading ? 'กำลังบันทึก...' : `บันทึกราคาช่วง${catalog.regime === 'early' ? 'วันที่ 1–15' : 'วันที่ 16–สิ้นเดือน'}`}</Button>
+  </CardContent></Card>
+}
+
+export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }: PricingSettingsClientProps) {
   const router = useRouter()
   const [rows, setRows] = useState<PricingTierData[]>(tiers)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [catalogUpdates, setCatalogUpdates] = useState<Partial<Record<KidsRateCatalog['regime'], KidsRateCatalog>>>({})
 
   const catalog = useMemo(() => buildPricingCatalog(rows as PricingTierInput[]), [rows])
 
-  const stats = useMemo(() => ({
-    total: rows.length,
-    kidsLowest: Math.min(...catalog.kids_group.map((tier) => tier.price_per_session)),
-    adultBase: catalog.adult_group[0]?.price_per_session || 0,
-    privateBase: catalog.private[0]?.price_per_session || 0,
-  }), [catalog, rows.length])
+  const stats = useMemo(() => {
+    const kidsTiers = kidsCatalogs ? [kidsCatalogs.early, kidsCatalogs.late].flatMap((saved) => {
+      if (!saved) return []
+      const updated = catalogUpdates[saved.regime]
+      return (updated && updated.revision > saved.revision ? updated : saved).tiers
+    }) : null
+    return {
+      total: kidsTiers ? rows.filter((row) => row.course_type_name !== 'kids_group').length + kidsTiers.length : rows.length,
+      kidsLowest: Math.min(...(kidsTiers ? kidsTiers.map((tier) => tier.ratePerSession) : catalog.kids_group.map((tier) => tier.price_per_session))),
+      adultBase: catalog.adult_group[0]?.price_per_session || 0,
+      privateBase: catalog.private[0]?.price_per_session || 0,
+    }
+  }, [catalog, rows, kidsCatalogs, catalogUpdates])
+
+  const onKidsCatalogSaved = (saved: KidsRateCatalog) => {
+    setCatalogUpdates((current) => ({ ...current, [saved.regime]: saved }))
+  }
 
   const updateRow = (id: string, field: keyof Pick<PricingTierData, 'min_sessions' | 'max_sessions' | 'price_per_session'>, value: string) => {
     setError(null)
@@ -96,7 +156,7 @@ export function PricingSettingsClient({ tiers }: PricingSettingsClientProps) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tiers: rows.map((row) => ({
+          tiers: rows.filter((row) => !kidsCatalogs || row.course_type_name !== 'kids_group').map((row) => ({
             id: row.id,
             min_sessions: row.min_sessions,
             max_sessions: row.max_sessions,
@@ -160,7 +220,13 @@ export function PricingSettingsClient({ tiers }: PricingSettingsClientProps) {
       )}
 
       <div className="space-y-4">
-        {COURSE_ORDER.map((courseType) => {
+        {kidsCatalogError ? <p role="alert" className="text-red-600">{kidsCatalogError}</p> : null}
+        {kidsCatalogs ? <>
+          {!kidsCatalogs.active ? <p className="text-sm text-amber-700">ชุดราคาสองช่วงยังไม่เปิดใช้กับการจอง</p> : null}
+          {kidsCatalogs.early ? <KidsCatalogEditor key={kidsCatalogs.early.versionId} catalog={kidsCatalogs.early} onSaved={onKidsCatalogSaved} /> : <p role="alert">ยังไม่มีหลักฐานชุดราคาช่วงวันที่ 1–15 กรุณาตรวจสอบข้อมูลราคา</p>}
+          <KidsCatalogEditor key={kidsCatalogs.late.versionId} catalog={kidsCatalogs.late} onSaved={onKidsCatalogSaved} />
+        </> : null}
+        {COURSE_ORDER.filter((courseType) => !kidsCatalogs || courseType !== 'kids_group').map((courseType) => {
           const courseRows = rows
             .filter((row) => row.course_type_name === courseType)
             .sort((a, b) => a.min_sessions - b.min_sessions)

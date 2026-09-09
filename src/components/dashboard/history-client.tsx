@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { bookingPaymentLifecycleMessage, type BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
@@ -44,6 +45,7 @@ import {
 } from 'lucide-react'
 
 interface BookingWithRelations {
+  lifecycle?: BookingPaymentLifecycle
   id: string
   user_id: string
   learner_type: string
@@ -116,6 +118,7 @@ interface VerifySlipResult {
 }
 
 interface VerifySlipApiResponse extends VerifySlipResult {
+  refreshRequired?: boolean
   success?: boolean
   error?: string
   code?: string
@@ -372,7 +375,7 @@ function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: strin
 }
 
 export function HistoryClient({
-  bookings,
+  bookings: sourceBookings,
   payments,
   userId: _userId,
   isAdmin = false,
@@ -386,6 +389,7 @@ export function HistoryClient({
   progressiveScopeRevisionMap = {},
   activeProgressiveBatches = [],
 }: HistoryClientProps) {
+  const bookings = sourceBookings
   const router = useRouter()
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
@@ -401,6 +405,7 @@ export function HistoryClient({
   const [paymentMode, setPaymentMode] = useState<'legacy' | 'progressive'>('legacy')
   const [progressiveBatch, setProgressiveBatch] = useState<ProgressiveBatchSummary | null>(null)
   const cancelRequestIds = useRef(new Map<string, string>())
+  const legacyReceiptRequest = useRef<{ file: File; selection: string; requestId: string } | null>(null)
   const [authoritativeBatchTotal, setAuthoritativeBatchTotal] = useState<number | null>(null)
   const [progressiveLifecycle, setProgressiveLifecycle] = useState<ProgressivePaymentLifecycle>('idle')
   const [progressivePaymentError, setProgressivePaymentError] = useState<string | null>(null)
@@ -444,7 +449,7 @@ export function HistoryClient({
   }, [])
 
   // Group pending bookings for combined payment
-  const pendingBookings = bookings.filter((b) => b.status === 'pending_payment')
+  const pendingBookings = bookings.filter((b) => b.status === 'pending_payment' && !b.lifecycle?.due)
   const progressivePendingGroups = useMemo(() => {
     if (!progressivePaymentEnabled) return []
     const groups = new Map<string, BookingWithRelations[]>()
@@ -914,6 +919,11 @@ export function HistoryClient({
       formData.append('file', slipFile)
       formData.append('bookingIds', JSON.stringify(payBookingIds))
       formData.append('expectedAmount', String(expectedAmount))
+      const selection = JSON.stringify([payBookingIds, expectedAmount])
+      if (legacyReceiptRequest.current?.file !== slipFile || legacyReceiptRequest.current.selection !== selection) {
+        legacyReceiptRequest.current = { file: slipFile, selection, requestId: crypto.randomUUID() }
+      }
+      formData.append('requestId', legacyReceiptRequest.current.requestId)
 
       const res = await fetch('/api/verify-slip', { method: 'POST', body: formData })
       const json = await res.json().catch(() => ({})) as VerifySlipApiResponse
@@ -923,7 +933,7 @@ export function HistoryClient({
         setError(json.error || 'เกิดข้อผิดพลาดในการตรวจสอบสลิป กรุณาลองใหม่อีกครั้ง')
         setLoading(false)
         setUploadStep('failed')
-        if (json.paymentRecorded || json.supportReviewRequired) {
+        if (json.paymentRecorded || json.supportReviewRequired || json.refreshRequired) {
           router.refresh()
         }
         return
@@ -1008,7 +1018,7 @@ export function HistoryClient({
       const items = map.get(key)!
       const first = items[0]
       const total = items
-        .filter((b) => b.status !== 'cancelled')
+        .filter((b) => b.status !== 'cancelled' && !b.lifecycle?.due)
         .reduce((sum, b) => sum + b.total_price, 0)
       groups.push({
         key,
@@ -1238,16 +1248,17 @@ export function HistoryClient({
                 )
 
                 return (
-                  <Card key={booking.id} className="hover:shadow-md transition-shadow">
+                  <Card key={booking.id} data-testid={`history-booking-${booking.id}`} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={status.color}>{status.label}</Badge>
+                            <Badge className={status.color}>{booking.lifecycle?.due ? 'หมดกำหนดรับสลิป' : status.label}</Badge>
                             <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                           </div>
-                          <p className="text-xs text-gray-500">{STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
-                          {!isAdmin && booking.status === 'pending_payment' && latestRejectedPayment?.notes && (
+                          <p className="text-xs text-gray-500">{bookingPaymentLifecycleMessage(booking.lifecycle) || STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
+                          {booking.lifecycle?.inCohort && booking.lifecycle.deadline && <p className="text-xs text-gray-500">กำหนดรับสลิป {new Date(booking.lifecycle.deadline).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>}
+                          {!isAdmin && booking.status === 'pending_payment' && !booking.lifecycle?.due && latestRejectedPayment?.notes && (
                             <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                               <p className="font-medium">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
                               <p className="mt-1 whitespace-pre-wrap">{latestRejectedPayment.notes}</p>
@@ -1289,7 +1300,7 @@ export function HistoryClient({
                             </div>
                           )}
                           <div className="flex flex-wrap justify-end gap-2">
-                            {booking.status !== 'cancelled' && (
+                            {(
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1300,7 +1311,7 @@ export function HistoryClient({
                                 ดูรายละเอียด
                               </Button>
                             )}
-                            {!isAdmin && booking.status === 'pending_payment' && !progressiveBookingIds.has(booking.id) && legacyPendingBookings.length <= 1 && (
+                            {!isAdmin && booking.status === 'pending_payment' && !booking.lifecycle?.due && !progressiveBookingIds.has(booking.id) && legacyPendingBookings.length <= 1 && (
                               <Button
                                 size="sm"
                                 className="bg-[#f57e3b] hover:bg-[#e06a2a]"
@@ -1352,7 +1363,7 @@ export function HistoryClient({
                                       ดูสลิป
                                     </a>
                                   )}
-                                  {isAdmin && payment.status === 'pending' && (
+                                  {isAdmin && payment.status === 'pending' && booking.status !== 'cancelled' && !booking.lifecycle?.due && (
                                     <span className="text-xs text-gray-500">ตรวจต่อที่เมนูตรวจสอบการชำระเงิน</span>
                                   )}
                                 </div>
@@ -1571,6 +1582,7 @@ export function HistoryClient({
               )}
 
               {/* Summary */}
+              {bookingPaymentLifecycleMessage(selectedBooking.lifecycle) && <p className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{bookingPaymentLifecycleMessage(selectedBooking.lifecycle)}</p>}
               <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-gray-600">
                   <p>จำนวนที่ชำระ: <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
@@ -1617,7 +1629,7 @@ export function HistoryClient({
                 </div>
               )}
 
-              {!isAdmin && selectedBooking.status === 'pending_payment' && getLatestRejectedPayment(selectedBooking.id)?.notes && (
+              {!isAdmin && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && getLatestRejectedPayment(selectedBooking.id)?.notes && (
                 <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
                   <p className="font-semibold">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
                   <p className="mt-1 whitespace-pre-wrap">{getLatestRejectedPayment(selectedBooking.id)?.notes}</p>
@@ -1631,7 +1643,7 @@ export function HistoryClient({
                 ) : (
                   selectedActiveSessions.map((session) => {
                     const dayLabel = getSessionDateLabel(session)
-                    const isPending = selectedBooking.status === 'pending_payment'
+                    const isPending = selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due
                     const sessionStatus = getSessionStatusConfig(session)
 
                     return (
@@ -1746,7 +1758,7 @@ export function HistoryClient({
 
               {/* Actions */}
               <div className="flex flex-col gap-2 pt-2 border-t">
-                {!isAdmin && selectedBooking.status === 'pending_payment' && (
+                {!isAdmin && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && (
                   <Button
                     className="w-full bg-[#2748bf] hover:bg-[#153c85]"
                     onClick={() => router.push(`/dashboard/booking?editBookingId=${selectedBooking.id}`)}
@@ -1756,7 +1768,7 @@ export function HistoryClient({
                   </Button>
                 )}
                 <div className="flex gap-2">
-                  {!isAdmin && selectedBooking.status === 'pending_payment' && (
+                  {!isAdmin && selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due && (
                     <Button
                       variant="outline"
                       className="flex-1 text-red-600 border-red-300 hover:bg-red-50"

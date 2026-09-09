@@ -8,6 +8,7 @@ import {
 } from '@/lib/progressive-pricing-feature'
 import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName } from '@/types/database'
+import { Task10Error } from '@/lib/task10-policy'
 
 interface PreviewPayload {
   bookingId?: string | null
@@ -19,6 +20,7 @@ interface PreviewPayload {
 }
 
 function previewError(error: unknown) {
+  if (error instanceof Task10Error) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
   if (error instanceof ProgressiveBookingPreviewError) {
     const status = error.code === 'PROGRESSIVE_SCOPE_LOCKED'
       || error.code === 'PROGRESSIVE_LEGACY_SCOPE_NOT_READY'
@@ -105,6 +107,7 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({
       mode: 'legacy',
+      policy: 'policy' in price ? price.policy : undefined,
       totalPrice: price.totalPrice,
       grossPrice: price.totalPrice,
       discountAmount: 0,

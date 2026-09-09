@@ -132,7 +132,8 @@ check('25 Legacy upload reuses the four mebibyte magic-byte contract',
 check('26 Legacy file rejection happens before Storage and payment writes',
   legacyUploadRoute.indexOf('file.size > PROGRESSIVE_PAYMENT_MAX_FILE_BYTES') < legacyUploadRoute.indexOf(".from('payment-slips')")
   && legacyUploadRoute.indexOf('inspectProgressiveSlip(fileBuffer)') < legacyUploadRoute.indexOf(".from('payment-slips')")
-  && legacyUploadRoute.indexOf('inspectProgressiveSlip(fileBuffer)') < legacyUploadRoute.indexOf(".from('payments')"))
+  && legacyUploadRoute.indexOf('await acceptLegacySlip(') > legacyUploadRoute.indexOf(".from('payment-slips')")
+  && !legacyUploadRoute.includes(".from('payments')"))
 check('27 Legacy exposes stable Thai upload errors for payload, size, and content',
   legacyUploadRoute.includes('INVALID_SLIP_UPLOAD_PAYLOAD')
   && legacyUploadRoute.includes('SLIP_FILE_TOO_LARGE')
@@ -140,7 +141,7 @@ check('27 Legacy exposes stable Thai upload errors for payload, size, and conten
   && legacyUploadRoute.includes("'ไฟล์สลิปต้องมีขนาดไม่เกิน 4 MB'")
   && legacyUploadRoute.includes("'เนื้อไฟล์ไม่ใช่ JPEG, PNG หรือ WebP ที่ระบบรองรับ'"))
 check('28 Legacy Storage MIME and extension come only from inspected bytes',
-  legacyUploadRoute.includes('buildSlipPublicPath(user.id, bookingIds[0], inspected.extension)')
+  legacyUploadRoute.includes('${receiptRequestId}-${inspected.sha256}.${inspected.extension}')
   && legacyUploadRoute.includes('contentType: inspected.mimeType')
   && !legacyUploadRoute.includes('contentType: file.type'))
 check('29 future Legacy live SlipOK uses a canonical detected extension',

@@ -21,6 +21,8 @@ import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
 
 interface WalletCredit {
+  familyMakeupUsed?: boolean
+  familyMakeupMonth?: string | null
   id: string
   original_date: string
   original_start_time: string
@@ -146,13 +148,13 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const activeCredits = credits.filter((credit) => credit.status === 'active')
-  const usedCredits = credits.filter((credit) => credit.status !== 'active')
+  const activeCredits = credits.filter((credit) => credit.status === 'active' && !credit.familyMakeupUsed)
+  const usedCredits = credits.filter((credit) => credit.status !== 'active' || credit.familyMakeupUsed)
 
   const stats = useMemo(() => ({
     active: activeCredits.length,
-    redeemed: credits.filter((credit) => credit.status === 'redeemed').length,
-    expired: credits.filter((credit) => credit.status === 'expired').length,
+    redeemed: credits.filter((credit) => credit.status === 'redeemed' || credit.familyMakeupUsed).length,
+    expired: credits.filter((credit) => credit.status === 'expired' && !credit.familyMakeupUsed).length,
   }), [activeCredits.length, credits])
 
   const selectedMonthParts = getMonthParts(selectedMonthKey || selectedCredit?.original_date || new Date().toISOString().slice(0, 10))
@@ -315,7 +317,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-semibold">กฎกระเป๋าวันเรียน</p>
-            <p>เก็บได้เฉพาะรอบที่ชำระเงินแล้วและก่อนเวลาเรียนอย่างน้อย 48 ชั่วโมง แพ็กเกจ Adult Group/Family Private มากกว่า 1 ครั้งหรือชั่วโมงใช้ได้ถึงวันหมดอายุ ส่วน Kids และแบบรายครั้ง/รายชั่วโมงใช้ได้เฉพาะเดือนเดิม</p>
+            <p>เก็บได้เฉพาะรอบที่ชำระเงินแล้วและก่อนเวลาเรียนมากกว่า 48 ชั่วโมง แพ็กเกจ Adult Group/Family Private มากกว่า 1 ครั้งหรือชั่วโมงใช้ได้ถึงวันหมดอายุ ส่วน Kids และแบบรายครั้ง/รายชั่วโมงใช้ได้เฉพาะเดือนเดิม</p>
           </div>
         </div>
       </div>
@@ -388,13 +390,14 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                 <div>
                   <p className="font-medium text-gray-900">{getLearnerName(credit, userName)} · {formatDateThai(credit.original_date)}</p>
                   <p className="text-gray-500">{fmtTime(credit.original_start_time)}-{fmtTime(credit.original_end_time)} · {credit.branches?.name || '-'}</p>
+                  {credit.familyMakeupMonth && <p className="mt-1 text-xs text-violet-700">ติดต่อผู้ดูแลเพื่อตรวจสิทธิ์ชดเชยร่วมครอบครัวในเดือน {credit.familyMakeupMonth} ต้องมีโควตาและสิทธิ์ซื้อที่ยืนยันแล้วตามเงื่อนไข ไม่สามารถกดใช้ข้ามเดือนจากกระเป๋าได้</p>}
                 </div>
                 <Badge
                   variant="outline"
-                  className={credit.status === 'redeemed' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500'}
+                  className={credit.status === 'redeemed' || credit.familyMakeupUsed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500'}
                 >
-                  {credit.status === 'redeemed' ? <CheckCircle2 className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
-                  {credit.status === 'redeemed' ? 'ใช้แล้ว' : 'หมดอายุ'}
+                  {credit.status === 'redeemed' || credit.familyMakeupUsed ? <CheckCircle2 className="mr-1 h-3 w-3" /> : <XCircle className="mr-1 h-3 w-3" />}
+                  {credit.familyMakeupUsed ? 'ใช้ชดเชยร่วมครอบครัวแล้ว' : credit.status === 'redeemed' ? 'ใช้แล้ว' : 'หมดอายุ'}
                 </Badge>
               </div>
             ))}

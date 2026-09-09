@@ -14,6 +14,7 @@ import {
   type DisplaySessionStatus,
 } from '@/lib/session-attendance-status'
 import { isProgressivePaymentDrainAvailable } from '@/lib/progressive-pricing-feature'
+import { loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 
 interface HistoryBookingRow {
   id: string
@@ -440,6 +441,7 @@ export default async function HistoryPage() {
     bookingSessionsMap[s.booking_id].push(s)
   })
 
+  const lifecycle = await loadBookingPaymentLifecycle(adminSupabase, bookings.map((booking) => booking.id))
   return (
     <div className="space-y-6">
       <div>
@@ -451,7 +453,7 @@ export default async function HistoryPage() {
         </p>
       </div>
       <HistoryClient
-        bookings={bookings}
+        bookings={bookings.map((booking) => ({ ...booking, status: lifecycle.get(booking.id)?.status || booking.status, lifecycle: lifecycle.get(booking.id) }))}
         payments={payments}
         userId={user.id}
         isAdmin={isAdmin}

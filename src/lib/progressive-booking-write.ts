@@ -4,6 +4,7 @@ import {
   isProgressivePricingWritesEnabled,
 } from '@/lib/progressive-pricing-feature'
 import type { LearnerType } from '@/types/database'
+import { Task10Error } from '@/lib/task10-policy'
 
 export type ProgressiveBookingWriteErrorCode =
   | 'PROGRESSIVE_BOOKING_CONFLICT'
@@ -96,6 +97,7 @@ export interface ProgressiveBookingMutationResult {
 }
 
 interface ProgressiveCreateInput {
+  expectedPolicyFingerprint?: string | null
   userId: string
   learnerType: LearnerType
   childId: string | null
@@ -110,6 +112,7 @@ interface ProgressiveCreateInput {
 }
 
 interface ProgressiveUpdateInput {
+  expectedPolicyFingerprint?: string | null
   userId: string
   bookingId: string
   branchId: string
@@ -154,8 +157,10 @@ function getRpcClient(): ProgressiveRpcClient {
   return getServiceRoleClient() as unknown as ProgressiveRpcClient
 }
 
-function mapRpcError(error: RpcErrorLike): ProgressiveBookingWriteError {
+function mapRpcError(error: RpcErrorLike): ProgressiveBookingWriteError | Task10Error {
   const source = [error.message, error.details, error.hint].filter(Boolean).join(' ')
+  const task10Code = /TASK10_[A-Z_]+/.exec(source)?.[0]
+  if (task10Code) return new Task10Error(task10Code, 'ข้อมูลราคา สถานะ หรือสิทธิ์เปลี่ยนแล้ว กรุณาโหลดข้อมูลใหม่', task10Code === 'TASK10_UNAUTHORIZED' ? 403 : 409)
   const matchedCode = Array.from(KNOWN_ERROR_CODES).find((code) => source.includes(code))
   if (matchedCode) {
     return new ProgressiveBookingWriteError(matchedCode, source || matchedCode, error)
@@ -260,7 +265,7 @@ async function executeProgressiveMutation(
 }
 
 export function createProgressiveBooking(input: ProgressiveCreateInput) {
-  return executeProgressiveMutation('create_progressive_booking_v1', {
+  return executeProgressiveMutation('task10_create_progressive_booking_v1', {
     p_user_id: input.userId,
     p_learner_type: input.learnerType,
     p_child_id: input.childId,
@@ -272,17 +277,19 @@ export function createProgressiveBooking(input: ProgressiveCreateInput) {
     p_expected_scope_revision: input.expectedScopeRevision,
     p_expected_legacy_baseline_sessions: input.expectedLegacyBaselineSessions,
     p_expected_legacy_baseline_fingerprint: input.expectedLegacyBaselineFingerprint,
+    p_expected_policy_fingerprint: input.expectedPolicyFingerprint || null,
   }, { requireCouponLifecycle: Boolean(input.couponId) })
 }
 
 export function updateProgressivePendingBooking(input: ProgressiveUpdateInput) {
-  return executeProgressiveMutation('update_progressive_pending_booking_v1', {
+  return executeProgressiveMutation('task10_update_progressive_booking_v1', {
     p_user_id: input.userId,
     p_booking_id: input.bookingId,
     p_branch_id: input.branchId,
     p_sessions: normalizeSessions(input.sessions),
     p_client_request_id: input.clientRequestId,
     p_expected_scope_revision: input.expectedScopeRevision,
+    p_expected_policy_fingerprint: input.expectedPolicyFingerprint || null,
   })
 }
 

@@ -270,9 +270,13 @@ check('source calls v2 prepare and History renders a required complete scope', (
   assert.doesNotMatch(history, /progressiveSelectedCounts|progressive-payment-select-|slice\(0, selectedCount\)|type="checkbox"/)
 })
 
-check('legacy verify-slip behavior remains unchanged with the shared SlipOK mode', () => {
-  const changed = require('child_process').execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
-  assert.ok(!changed.includes('src/app/api/verify-slip/route.ts'), 'src/app/api/verify-slip/route.ts')
+check('Legacy atomic receipts retain the shared SlipOK mode and original verifier', () => {
+  const legacy = fs.readFileSync(path.join(__dirname, '..', 'src/app/api/verify-slip/route.ts'), 'utf8')
+  assert.match(legacy, /process\.env\.SLIPOK_TEST_MODE === 'true'/)
+  assert.match(legacy, /await acceptLegacySlip\(/)
+  assert.match(legacy, /await finalizeLegacySlip\(/)
+  assert.ok(legacy.indexOf('await acceptLegacySlip(') < legacy.indexOf('await verifySlip('))
+  assert.doesNotMatch(legacy, /\.from\('payments'\)|\.update\(\{ status:/)
 
   const normalizeEol = (value) => value.replace(/\r\n/g, '\n')
   const isolationCommit = '50f355f660d04f46af7ad00ae8aa8a5ec9762bb6'

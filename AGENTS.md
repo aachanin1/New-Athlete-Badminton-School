@@ -354,6 +354,11 @@ Main portals:
   restore `/admin/booking` or `POST /api/admin/booking`.
 - Lesson wallet credits can store a verified scheduled session only before the
   48-hour cutoff, with no attendance, no started session, and no makeup session.
+- Owner-confirmed cutoff compatibility (2026-09-09): User Reschedule retains
+  12 hours, including eligibility at exactly 12 hours before the original start.
+  Wallet Store retains 48 hours and rejects at exactly 48 hours. Preserve the
+  existing operators and Bangkok start-time interpretation. Task10's earlier
+  Reschedule48 wording was a documentation error, not a policy change.
 - Same-month redemption is the default. Kids Group at every tier, Adult Group
   single-session, and Private single-hour credits must remain in the original
   month and must never create a new payment, coupon, Ledger, Finance, refund, or
@@ -407,6 +412,76 @@ Main portals:
 - Verified teaching evidence requires assigned slot/group, active learner(s), coach check-in, photo, location, and attendance.
 - `coach_weekly_teaching_summaries` is the closed weekly summary/audit source.
 - Employment types are `full_time`, `half_time`, and `part_time`.
+
+### Task 10 — Approved Future Policy and Activation Boundary
+
+- These Owner-approved rules take effect only at the separately authorized actual
+  DB-clock activation after exact Production Promotion and health checks. Source,
+  migrations, settings bootstrap and a staged Production artifact do not activate
+  them. PROJECT_STATE.md owns the actual activation state.
+- Kids family Makeup uses the parent's verified original purchased entitlement,
+  across siblings and branches, separately by source lesson month: quota is
+  `min(5, floor(N / 4))`. Paid-awaiting-review, pending and cancelled purchases do
+  not count. Attending, Wallet storage or descendants never reduce or multiply
+  original purchased entitlement. This verified-only basis never replaces the
+  Progressive active ordering/baseline.
+- Exact absent sources and eligible Kids Wallet sources share that quota. Only an
+  Admin with Makeup permission can consume it; the attending child may differ
+  from the source child within the same parent. Preserve both identities and the
+  canonical original source; no source-free entitlement or duplicate consumption.
+- The target is the next calendar month after the source month in Asia/Bangkok,
+  in a not-yet-started canonical slot, no later than that month's end. The same
+  family's verified original Kids purchases in that target month must satisfy
+  `D >= M`. D is not spent and is not another quota. Buying after expiry does not
+  revive or extend eligibility. At N20, six absent plus two Wallet sources and
+  D2/M2, at most five uses are permitted, including all five for one child.
+- `kids_makeup_destination_minimum_sessions` is a global positive integer,
+  default2 only at genuine bootstrap. Only Super Admin edits it. Atomic audited
+  revisions prevent lost updates and direct id/key/table bypass. A saved minimum
+  applies to new Makeup transactions in commit/lock order; completed grants and
+  successful idempotent replays retain their original result and M/D evidence.
+- Eligible credits unexpired at actual cutover retain their source month and
+  separate Admin eligibility through the next month despite normal same-month
+  Wallet expiry. No pre-cutover expired-credit revival, rolling extension,
+  parent cross-month redemption or conversion of Wallet into absent attendance.
+  Existing same-month Kids and Adult/Private Wallet rules remain protected.
+- New Kids booking pricing selects by successful server creation after acquiring
+  locks, in Bangkok: days1–15 retain the original initial primary rates; days16+
+  use 700/625/500/433/406/350 for 1/2–3/4–5/6–7/8–9/10+ sessions. Keep sibling
+  accumulation by lesson month, eligible pending and created_at/id order. Never
+  reset the baseline on day16 or combine months; no automatic cart splitting.
+- Preserve distinct formulas: Progressive new sessions times the cumulative
+  tier rate; Legacy max(0, cumulative sessions times rate minus settled history).
+  Each new bill retains regime, activation/version, server/Bangkok creation time,
+  lesson month, formula, complete tier-set evidence/hash and calculation revision.
+  Edits/downstream reprice use that bill's set. Stale preview conflicts before
+  charging. No settled rewrite, Legacy conversion or invented historical evidence.
+- Super Admin edits complete independent early/late Kids catalogs through both
+  existing pricing settings entries, atomically with revision/audit, gap/overlap
+  validation and truthful reload. Saved prices govern new bills selecting that
+  version; prior bills retain their evidence. Adult/Private prices stay unchanged.
+- For all existing Legacy/Progressive Kids/Adult/Private flows, no-slip deadline is
+  the earlier first still-booked lesson start or original expires_at when present.
+  Never extend expiry or add a TTL. Only a correctly linked committed DB receipt
+  strictly before deadline exempts a bill, including pending review. Storage-only,
+  failed registration and exact/late receipt do not win expiry. Verified bills are
+  protected; uploads/review cannot resurrect cancellation. Shared SlipOK and
+  rejected-slip policy remain unchanged. Prepared-batch timeout is separate and
+  cannot erase accepted on-time receipt evidence.
+- Cancellation is atomic and limited to the exact due bill and its sessions,
+  preserving history/reason, financial safeguards and other family bills.
+  Progressive reserved coupons release once; Legacy coupon history is retained.
+  Remaining pending bills reprice from their own evidence; Legacy baseline changes
+  require append-only cancellation-backed deltas, never unrelated drift acceptance.
+- Capture not-yet-due old bills at actual cutover; exclude already-overdue or
+  ambiguous rows pending separately authorized exact-row plans. Cohort exceptions
+  must agree in worker, mutation, payment eligibility, projections and due queues,
+  preserving original expiry behavior outside the cohort.
+- The approved inactive pg_cron job is task10-expire-unpaid-bookings-v1, every
+  minute, initial limit50, with skip/retry/timeouts/run evidence. Migration cannot
+  set effective_at or cancel bills. Pause preserves activation/history, stops new
+  Kids consumption without falling back to a bypass, and retains compatible
+  pricing/payment reads. No quota refill, Wallet revival, uncancellation or refund.
 
 ## Technical Guardrails
 

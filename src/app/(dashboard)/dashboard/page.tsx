@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, TrendingUp, CreditCard, Bell, ArrowRight, Upload, BookOpen } from 'lucide-react'
 import { DashboardCalendar } from '@/components/dashboard/dashboard-calendar'
+import { getServiceRoleClient } from '@/lib/auth/admin'
+import { loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 
 interface BookingTotalRow {
   total_sessions: number | null
@@ -74,13 +76,15 @@ export default async function DashboardPage() {
   const totalSessions = (verifiedBookings || []).reduce((sum, booking) => sum + (booking.total_sessions || 0), 0)
 
   // Pending payment bookings (full data for guidance)
-  const { data: pendingBookings } = await supabase
+  const { data: pendingBookingsData } = await supabase
     .from('bookings')
     .select('id, total_price, total_sessions, status')
     .eq('user_id', user.id)
     .eq('status', 'pending_payment') as unknown as { data: PendingBookingRow[] | null }
 
-  const pendingAmount = (pendingBookings || []).reduce((sum, booking) => sum + (booking.total_price || 0), 0)
+  const pendingLifecycle = await loadBookingPaymentLifecycle(getServiceRoleClient(), (pendingBookingsData || []).map((booking) => booking.id))
+  const pendingBookings = (pendingBookingsData || []).filter((booking) => !pendingLifecycle.get(booking.id)?.due && pendingLifecycle.get(booking.id)?.status === 'pending_payment')
+  const pendingAmount = pendingBookings.reduce((sum, booking) => sum + (booking.total_price || 0), 0)
   const hasPending = (pendingBookings || []).length > 0
 
   // Paid but not yet verified
@@ -89,7 +93,8 @@ export default async function DashboardPage() {
     .select('id')
     .eq('user_id', user.id)
     .eq('status', 'paid') as unknown as { data: BookingIdRow[] | null }
-  const hasPaidWaiting = (paidBookings || []).length > 0
+  const paidLifecycle = await loadBookingPaymentLifecycle(getServiceRoleClient(), (paidBookings || []).map((booking) => booking.id))
+  const hasPaidWaiting = (paidBookings || []).some((booking) => !paidLifecycle.get(booking.id)?.due && paidLifecycle.get(booking.id)?.status === 'paid')
 
   // Unread notifications
   const { count: unreadCount } = await supabase

@@ -1,6 +1,9 @@
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { calculateProgressiveBookingPrice, type ProgressivePricingTier } from '@/lib/progressive-booking-pricing'
 import { calculateProgressiveCouponDiscount, type ProgressiveCouponDiscountType } from '@/lib/progressive-coupon-lifecycle'
+import { loadBookingPricingPolicy, progressiveTiersFromPolicy } from '@/lib/booking-pricing-policy'
+import { loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
+import { Task10Error } from '@/lib/task10-policy'
 
 interface PreviewInput {
   userId: string
@@ -71,6 +74,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
   }
 
   const client = getServiceRoleClient()
+  const policy = await loadBookingPricingPolicy(client, { ...input, formula: 'progressive' })
   const today = new Date().toISOString().slice(0, 10)
   const { data: scopeData, error: scopeError } = await client
     .from('booking_pricing_scopes')
@@ -96,7 +100,8 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
       p_lesson_month: input.month,
     },
   )
-  if (baselineError) fail('PROGRESSIVE_RPC_UNAVAILABLE', baselineError.message)
+  if (baselineError) fail(baselineError.message.includes('PROGRESSIVE_LEGACY_BASELINE_DRIFT')
+    ? 'PROGRESSIVE_LEGACY_BASELINE_DRIFT' : 'PROGRESSIVE_RPC_UNAVAILABLE', baselineError.message)
   const currentBaseline = ((baselineData || []) as LegacyBaselineRow[])[0]
   if (!currentBaseline
     || !Number.isInteger(Number(currentBaseline.baseline_sessions))
@@ -116,8 +121,12 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
     .in('status', ['pending_payment', 'paid', 'verified'])
   if (bookingError) fail('PROGRESSIVE_RPC_UNAVAILABLE', bookingError.message)
 
+  const lifecycle = await loadBookingPaymentLifecycle(client, (periodBookings || []).map((booking) => booking.id))
+  if ([...lifecycle.values()].some((state) => state.due)) {
+    throw new Task10Error('TASK10_BOOKING_DEADLINE', 'มีบิลหมดกำหนดในเดือนนี้ ระบบกำลังปรับรายการ กรุณาคำนวณราคาใหม่อีกครั้ง')
+  }
   const activeBookings = ((periodBookings || []) as BookingRow[])
-    .filter((booking) => activePendingFilter(booking, Date.now()))
+    .filter((booking) => lifecycle.get(booking.id)?.inCohort || activePendingFilter(booking, Date.now()))
 
   const legacyBookings = activeBookings.filter((booking) => booking.pricing_scope_id === null)
   const progressiveBookings = activeBookings.filter((booking) => booking.pricing_scope_id !== null)
@@ -126,8 +135,10 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
   }
 
   if (scope?.legacy_baseline_initialized_at) {
-    if (scope.legacy_baseline_sessions !== legacyBaselineSessions
-      || scope.legacy_baseline_fingerprint !== legacyBaselineFingerprint) {
+    const effective = await client.rpc('task10_effective_scope_baseline_v1', { p_scope_id: scope.id })
+    if (effective.error) fail('PROGRESSIVE_LEGACY_BASELINE_DRIFT', effective.error.message)
+    if (effective.data?.sessions !== legacyBaselineSessions
+      || effective.data?.fingerprint !== legacyBaselineFingerprint) {
       fail('PROGRESSIVE_LEGACY_BASELINE_DRIFT', 'รายการจองเดิมของเดือนนี้เปลี่ยนหลังเริ่ม Progressive Pricing กรุณาติดต่อผู้ดูแลระบบ')
     }
   } else if (scope && legacyBookings.length > 0) {
@@ -182,7 +193,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
   const price = calculateProgressiveBookingPrice({
     previousActiveSessions,
     newBookingEntitlementSessions: input.entitlementSessions,
-    pricingTiers: Array.from(uniqueRanges.values()),
+    pricingTiers: policy.catalog ? progressiveTiersFromPolicy(policy.catalog) : Array.from(uniqueRanges.values()),
   })
   if (!price.ok) fail(`PROGRESSIVE_${price.error.code}`, price.error.message)
 
@@ -248,6 +259,7 @@ export async function previewProgressiveKidsGroupBooking(input: PreviewInput) {
 
   return {
     mode: 'progressive' as const,
+    policy,
     totalPrice: finalPrice,
     grossPrice: price.value.grossBookingPrice,
     discountAmount,

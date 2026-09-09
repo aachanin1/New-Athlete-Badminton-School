@@ -6,7 +6,7 @@ import { BarChart3, ShieldCheck, Tags, Wallet } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 
-export type SettingsSection = 'admin-menus' | 'levels' | 'pricing' | 'coach-ot'
+export type SettingsSection = 'admin-menus' | 'levels' | 'pricing' | 'coach-ot' | 'kids-makeup'
 
 interface SettingsClientProps {
   activeSection: SettingsSection
@@ -20,6 +20,13 @@ const SECTIONS: Array<{
   href: string
   icon: typeof ShieldCheck
 }> = [
+  {
+    key: 'kids-makeup',
+    title: 'สิทธิ์ชดเชยคอร์สเด็ก',
+    description: 'ตั้งค่าจำนวนเรียนขั้นต่ำที่ยืนยันแล้วในเดือนถัดไป',
+    href: '/admin/settings?section=kids-makeup',
+    icon: ShieldCheck,
+  },
   {
     key: 'admin-menus',
     title: 'สิทธิ์เมนู Admin',

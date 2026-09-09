@@ -1,5 +1,6 @@
 import { PricingSettingsClient } from '@/components/admin/pricing-settings-client'
-import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireSuperAdminPageAccess } from '@/lib/auth/admin'
+import { loadKidsPricingCatalogs } from '@/lib/booking-pricing-policy'
 import type { CourseCategory } from '@/lib/pricing'
 
 interface PricingTierRow {
@@ -16,7 +17,9 @@ interface PricingTierRow {
 }
 
 export default async function PricingSettingsPage() {
-  const { supabase } = await requireSuperAdminPageAccess()
+  const { supabase, user } = await requireSuperAdminPageAccess()
+  const kidsCatalogs = await loadKidsPricingCatalogs(getServiceRoleClient(), user!.id).catch(() => null)
+  const kidsCatalogError = kidsCatalogs ? undefined : 'อ่านชุดราคาสองช่วงไม่สำเร็จ กรุณาโหลดข้อมูลใหม่'
 
   const { data: tiers } = await supabase
     .from('pricing_tiers')
@@ -42,5 +45,5 @@ export default async function PricingSettingsPage() {
       created_at: tier.created_at,
     }))
 
-  return <PricingSettingsClient tiers={tierList} />
+  return <PricingSettingsClient tiers={tierList} kidsCatalogs={kidsCatalogs} kidsCatalogError={kidsCatalogError} />
 }

@@ -1,4 +1,5 @@
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { task10RpcError } from '@/lib/task10-policy'
 import {
   isProgressiveCouponLifecycleEnabled,
   isProgressivePaymentBatchEnabled,
@@ -94,6 +95,8 @@ export class ProgressivePaymentBatchError extends Error {
 
 function mapRpcError(error: RpcErrorLike) {
   const source = [error.message, error.details, error.hint].filter(Boolean).join(' ')
+  const task10Code = /TASK10_[A-Z_]+/.exec(source)?.[0]
+  if (task10Code) return task10RpcError(task10Code)
   const matched = Array.from(KNOWN_ERROR_CODES).find((code) => source.includes(code))
   return new ProgressivePaymentBatchError(
     matched || 'PROGRESSIVE_RPC_UNAVAILABLE',

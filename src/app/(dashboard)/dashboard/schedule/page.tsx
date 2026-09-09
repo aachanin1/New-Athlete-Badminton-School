@@ -5,6 +5,7 @@ import { AlertTriangle, Clock, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import { createClient } from '@/lib/supabase/server'
 import { ScheduleCalendarClient } from '@/components/dashboard/schedule-calendar-client'
 import {
@@ -183,7 +184,9 @@ export default async function SchedulePage() {
       .order('id') as unknown as PromiseLike<{ data: ActiveLevelRow[] | null }>,
   ])
 
-  const incompleteBookings = incompleteBookingsData || []
+  const lifecycle = await loadBookingPaymentLifecycle(adminSupabase, (incompleteBookingsData || []).map((booking) => booking.id))
+  const incompleteBookings = (incompleteBookingsData || []).filter((booking) => !lifecycle.get(booking.id)?.due && ['pending_payment', 'paid'].includes(lifecycle.get(booking.id)?.status || ''))
+    .map((booking) => ({ ...booking, status: lifecycle.get(booking.id)?.status || booking.status }))
   const waitingSlipCount = incompleteBookings.filter((booking) => booking.status === 'pending_payment').length
   const waitingVerifyCount = incompleteBookings.filter((booking) => booking.status === 'paid').length
   const incompleteSessions = incompleteBookings.reduce((sum, booking) => sum + Number(booking.total_sessions || 0), 0)

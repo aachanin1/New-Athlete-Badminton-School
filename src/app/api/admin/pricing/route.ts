@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { logActivity } from '@/lib/activity-log'
 import { getServiceRoleClient, requireSuperAdminUser } from '@/lib/auth/admin'
+import { validateKidsTierSet } from '@/lib/booking-pricing-policy'
+import { callTask10, loadTask10Policy, Task10Error } from '@/lib/task10-policy'
 
 interface PricingTierUpdate {
   id?: string
@@ -40,6 +42,16 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json()
+    if ('regime' in body) {
+      if (!['early', 'late'].includes(body.regime) || !Number.isSafeInteger(body.expectedRevision) || body.expectedRevision < 0) {
+        return NextResponse.json({ error: 'ช่วงราคาหรือรุ่นข้อมูลไม่ถูกต้อง' }, { status: 400 })
+      }
+      const data = await callTask10(getServiceRoleClient(), 'task10_save_pricing_catalog_v1', {
+        p_actor_id: admin.user.id, p_regime: body.regime, p_expected_revision: body.expectedRevision,
+        p_tiers: validateKidsTierSet(body.tiers),
+      })
+      return NextResponse.json({ success: true, data })
+    }
     const tiers = Array.isArray(body.tiers) ? body.tiers as PricingTierUpdate[] : []
 
     if (tiers.length === 0) {
@@ -52,6 +64,14 @@ export async function PATCH(req: NextRequest) {
     }
 
     const supabaseAdmin = getServiceRoleClient()
+    if ((await loadTask10Policy(supabaseAdmin)).effectiveAt) {
+      const selected = await supabaseAdmin.from('pricing_tiers').select('id, course_types!inner(name)').in('id', tiers.map((tier) => tier.id!))
+      if (selected.error) throw selected.error
+      const selectedRows = selected.data as unknown as Array<{ course_types: { name: string } | Array<{ name: string }> | null }> | null
+      if (selectedRows?.some(({ course_types: course }) => Array.isArray(course) ? course.some((c) => c.name === 'kids_group') : course?.name === 'kids_group')) {
+        return NextResponse.json({ code: 'TASK10_VERSIONED_CATALOG_REQUIRED', error: 'กรุณาบันทึกราคาคอร์สเด็กเป็นชุดตามช่วงวันจอง' }, { status: 409 })
+      }
+    }
     const updatedRows = []
 
     for (const tier of tiers) {
@@ -91,6 +111,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: updatedRows })
   } catch (error) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(error), code: error instanceof Task10Error ? error.code : undefined },
+      { status: error instanceof Task10Error ? error.status : 500 })
   }
 }

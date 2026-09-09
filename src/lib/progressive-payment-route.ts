@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isProgressivePaymentDrainAvailable } from '@/lib/progressive-pricing-feature'
 import { isSameOriginMutation } from '@/lib/progressive-payment-integration'
+import { Task10Error } from '@/lib/task10-policy'
 
 const PAYMENT_ERROR_CONTRACT = {
   PROGRESSIVE_INVALID_REQUEST: { status: 400, error: 'Invalid progressive payment request', refreshRequired: false },
@@ -68,6 +69,7 @@ export async function requireProgressivePaymentUser(
 }
 
 export function progressivePaymentError(error: unknown) {
+  if (error instanceof Task10Error) return NextResponse.json({ code: error.code, error: error.message, refreshRequired: error.status === 409 }, { status: error.status })
   const code = getPaymentErrorCode(error)
   if (!code) {
     return NextResponse.json({

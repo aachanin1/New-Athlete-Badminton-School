@@ -3,9 +3,13 @@ import { AdminMenuPermissionsClient } from '@/components/admin/admin-menu-permis
 import { CoachOtSettingsClient } from '@/components/admin/coach-ot-settings-client'
 import { LevelsSettingsClient } from '@/components/admin/levels-settings-client'
 import { PricingSettingsClient } from '@/components/admin/pricing-settings-client'
+import { KidsMakeupSettingsClient } from '@/components/admin/kids-makeup-settings-client'
+import type { KidsMakeupSettings } from '@/lib/kids-makeup-settings'
+import { callTask10 } from '@/lib/task10-policy'
+import { loadKidsPricingCatalogs } from '@/lib/booking-pricing-policy'
 import { SettingsClient, type SettingsSection } from '@/components/admin/settings-client'
 import { ADMIN_MENU_ITEMS, ADMIN_MENU_PERMISSION_SETTING_KEY, getAllowedAdminMenuKeys } from '@/lib/admin-navigation'
-import { requireSuperAdminPageAccess } from '@/lib/auth/admin'
+import { getServiceRoleClient, requireSuperAdminPageAccess } from '@/lib/auth/admin'
 import { COACH_TEACHING_RULES_SETTING_KEY, normalizeCoachTeachingRulesSettings } from '@/lib/coach-teaching-rules'
 import type { CourseCategory } from '@/lib/pricing'
 import type { LevelCategory } from '@/types/database'
@@ -45,18 +49,29 @@ interface SettingsPageProps {
   }>
 }
 
-const VALID_SECTIONS: SettingsSection[] = ['admin-menus', 'levels', 'pricing', 'coach-ot']
+const VALID_SECTIONS: SettingsSection[] = ['admin-menus', 'levels', 'pricing', 'coach-ot', 'kids-makeup']
 
 function getActiveSection(value?: string): SettingsSection {
   return value && VALID_SECTIONS.includes(value as SettingsSection) ? value as SettingsSection : 'admin-menus'
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
-  const { supabase } = await requireSuperAdminPageAccess()
+  const { supabase, user } = await requireSuperAdminPageAccess()
   const resolvedSearchParams = await searchParams
   const activeSection = getActiveSection(resolvedSearchParams?.section)
 
   let sectionContent: ReactNode = null
+
+  if (activeSection === 'kids-makeup') {
+    let setting: KidsMakeupSettings | null = null
+    let loadError: string | undefined
+    try {
+      setting = await callTask10<KidsMakeupSettings>(getServiceRoleClient(), 'task10_read_makeup_setting_v1', { p_actor_id: user!.id })
+    } catch {
+      loadError = 'อ่านค่าขั้นต่ำไม่สำเร็จ กรุณาโหลดข้อมูลใหม่'
+    }
+    sectionContent = <KidsMakeupSettingsClient key={setting ? `${setting.id}:${setting.revision}` : 'unavailable'} initial={setting} loadError={loadError} />
+  }
 
   if (activeSection === 'admin-menus') {
     const { data: permissionSetting } = await supabase
@@ -97,6 +112,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   }
 
   if (activeSection === 'pricing') {
+    const kidsCatalogs = await loadKidsPricingCatalogs(getServiceRoleClient(), user!.id).catch(() => null)
+    const kidsCatalogError = kidsCatalogs ? undefined : 'อ่านชุดราคาสองช่วงไม่สำเร็จ กรุณาโหลดข้อมูลใหม่'
     const { data: tiers } = await supabase
       .from('pricing_tiers')
       .select(`
@@ -108,6 +125,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
     sectionContent = (
       <PricingSettingsClient
+        kidsCatalogs={kidsCatalogs}
+        kidsCatalogError={kidsCatalogError}
         tiers={(tiers || [])
           .filter((tier) => tier.course_types?.name)
           .map((tier) => ({

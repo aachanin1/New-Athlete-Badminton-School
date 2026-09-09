@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import { task10RpcError } from '@/lib/task10-policy'
 
 export const PROGRESSIVE_PAYMENT_BUCKET = 'progressive-payment-slips'
 export const PROGRESSIVE_PAYMENT_MAX_FILE_BYTES = 4 * 1024 * 1024
@@ -47,6 +48,8 @@ function rpcClient() {
 }
 
 function rpcError(error: RpcErrorLike) {
+  const task10Code = /TASK10_[A-Z_]+/.exec(error.message || '')?.[0]
+  if (task10Code) return task10RpcError(task10Code)
   return new Error([error.message, error.details, error.hint].filter(Boolean).join(' ') || 'Progressive payment RPC failed.')
 }
 

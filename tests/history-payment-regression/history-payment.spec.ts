@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createHash } from 'node:crypto'
+import { verifyDisposableIdentity } from '../task10-regression/local-supabase'
 import { PAYMENT_TRANSFER_DEFAULT_ACCOUNTS } from '../../src/lib/payment-transfer-defaults'
 import { PAYMENT_TRANSFER_INSTRUCTION, PAYMENT_TRANSFER_SETTING_KEY, transferAccountNumber } from '../../src/lib/payment-settings'
 import {
@@ -59,6 +60,27 @@ test.beforeAll(async () => {
         .eq('id', session.schedule_slot_id)
       if (slotError) throw new Error(`move disposable History slot: ${slotError.message}`)
     }
+  }
+})
+
+// Remove only objects owned by this newly created disposable fixture before the
+// global DB reset removes their metadata. Historical physical files stay intact.
+test.afterAll(async () => {
+  verifyDisposableIdentity()
+  if (!fixture || !localAdmin) return
+  for (const bucket of ['payment-slips','progressive-payment-slips']) {
+    const paths:string[]=[]
+    const visit=async(prefix:string)=>{
+      const result=await localAdmin.storage.from(bucket).list(prefix,{limit:1000})
+      if(result.error) throw result.error
+      for(const entry of result.data) {
+        const path=`${prefix}/${entry.name}`
+        if(!path.startsWith(`${fixture.userId}/`) || path.includes('..')) throw new Error('Unverified History Storage cleanup path')
+        if(entry.id) paths.push(path);else await visit(path)
+      }
+    }
+    await visit(fixture.userId)
+    if(paths.length) {const result=await localAdmin.storage.from(bucket).remove(paths);if(result.error) throw result.error}
   }
 })
 
@@ -1268,7 +1290,7 @@ test('Legacy upload shares the four MiB magic-byte contract and keeps invalid re
       amount: fixture.legacyAmount,
     })
     expect(payment?.notes).toContain('[TEST MODE] Auto-verified')
-    expect(payment?.slip_image_url).toMatch(new RegExp(`${bookingId}-\\d+\\.${accepted.expectedExtension}$`))
+    expect(payment?.slip_image_url).toMatch(new RegExp(`/[a-f0-9-]{36}-[a-f0-9]{64}\\.${accepted.expectedExtension}$`))
     const stored = await fetch(payment!.slip_image_url!, { method: 'HEAD' })
     expect(stored.ok).toBe(true)
     expect(stored.headers.get('content-type')?.split(';')[0]).toBe(accepted.expectedMime)

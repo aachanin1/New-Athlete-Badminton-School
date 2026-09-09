@@ -35,6 +35,8 @@ import {
 import type { LucideIcon } from 'lucide-react'
 
 interface PaymentData {
+  lifecycle_blocked?: boolean
+  lifecycle_message?: string | null
   source_kind: 'legacy' | 'progressive'
   id: string
   booking_id: string
@@ -203,6 +205,7 @@ export function PaymentsClient({
 
     return payments.filter((payment) => {
       if (filterStatus !== 'all' && payment.status !== filterStatus) return false
+      if (filterStatus === 'pending' && payment.lifecycle_blocked) return false
       if (!q) return true
 
       return [
@@ -247,7 +250,7 @@ export function PaymentsClient({
 
   const stats = useMemo(() => {
     const approved = payments.filter((payment) => payment.status === 'approved')
-    const pending = payments.filter((payment) => payment.status === 'pending')
+    const pending = payments.filter((payment) => payment.status === 'pending' && !payment.lifecycle_blocked)
     const rejected = payments.filter((payment) => payment.status === 'rejected')
 
     return {
@@ -280,6 +283,7 @@ export function PaymentsClient({
   }
 
   const openReviewDialog = (payment: PaymentData, action: PaymentReviewAction) => {
+    if (payment.lifecycle_blocked) return
     setReviewPayment(payment)
     setReviewAction(action)
     setReviewNotes('')
@@ -635,6 +639,7 @@ export function PaymentsClient({
                     <p className="mt-1 text-xs text-gray-400">
                       {MONTH_NAMES[payment.booking_month]} {payment.booking_year} · {payment.total_sessions} ครั้ง · {BOOKING_STATUS_LABELS[payment.booking_status] || payment.booking_status || '-'}
                     </p>
+                    {payment.lifecycle_message && <p className="mt-1 text-xs text-rose-700">{payment.lifecycle_message}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -804,7 +809,8 @@ export function PaymentsClient({
                 </div>
               )}
 
-              {detailPayment.status === 'pending' && (
+              {detailPayment.lifecycle_message && <p className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{detailPayment.lifecycle_message}</p>}
+              {detailPayment.status === 'pending' && !detailPayment.lifecycle_blocked && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <p className="text-sm font-semibold text-amber-900">การตอบกลับรายการนี้</p>
                   <p className="mt-1 text-xs text-amber-700">

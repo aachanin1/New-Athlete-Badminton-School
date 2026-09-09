@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { Task10Error } from '@/lib/task10-policy'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import {
   expireProgressiveBatchIfNeeded,
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
       upload: { sha256: inspected.sha256, mimeType: inspected.mimeType, sizeBytes: inspected.sizeBytes },
     })
   } catch (error) {
+    if (error instanceof Task10Error) return NextResponse.json({ code: error.code, error: error.message, requestId, refreshRequired: true }, { status: error.status })
     if (hasErrorCode(error, ['PROGRESSIVE_BATCH_NOT_FOUND', 'PROGRESSIVE_BATCH_NOT_SUBMITTABLE', 'PROGRESSIVE_BATCH_EXPIRED', 'PROGRESSIVE_PAYMENT_EXISTS'])) {
       return uploadError('PROGRESSIVE_UPLOAD_BATCH_NOT_READY', requestId, logContext)
     }

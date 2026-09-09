@@ -21,6 +21,18 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      task10_family_makeup_uses: {
+        Row: { id: string; parent_id: string; source_month: string; source_booking_id: string; source_root_id: string; source_session_id: string; source_child_id: string; attending_child_id: string; destination_session_id: string; credit_id: string | null; minimum_revision: number; decision_evidence: Json; actor_id: string; request_id: string; request_fingerprint: string; result: Json; created_at: string }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      task10_wallet_transition_evidence: {
+        Row: { credit_id: string; source_month: string; source_root_id: string; effective_at: string; original_expires_at: string; evidence: Json }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       profiles: {
         Row: Profile
         Insert: Omit<Profile, 'created_at' | 'updated_at' | 'coach_employment_type'> & Partial<Pick<Profile, 'coach_employment_type'>>

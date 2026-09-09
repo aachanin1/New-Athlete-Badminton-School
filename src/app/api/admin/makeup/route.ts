@@ -5,6 +5,8 @@ import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
 import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
 import { getBangkokDayOfWeek } from '@/lib/schedule-template-utils'
+import { consumeKidsFamilyMakeup } from '@/lib/kids-family-makeup'
+import { callTask10, loadTask10Policy, Task10Error } from '@/lib/task10-policy'
 import {
   formatCoachAssignmentDatabaseError,
   formatLegacyCoachWarnings,
@@ -28,7 +30,7 @@ interface OriginalSessionRow {
   end_time: string | null
   status: string
   child_id: string | null
-  bookings?: { user_id: string | null; course_type_id: string | null } | null
+  bookings?: { user_id: string | null; course_type_id: string | null; course_types?: { name: string } | null } | null
 }
 
 interface SourceSessionRow {
@@ -52,6 +54,7 @@ interface ReviewSessionRow {
     user_id: string | null
     course_type_id: string | null
     learner_type: string | null
+    course_types?: { name: string } | null
   } | null
 }
 
@@ -550,12 +553,31 @@ export async function POST(req: NextRequest) {
 
     const { data: originalSession, error: originalError } = await supabaseAdmin
       .from('booking_sessions')
-      .select('id, booking_id, date, end_time, status, child_id, bookings(user_id, course_type_id)')
+      .select('id, booking_id, date, end_time, status, child_id, bookings(user_id, course_type_id, course_types(name))')
       .eq('id', originalSessionId)
       .single<OriginalSessionRow>()
 
     if (originalError) {
       return NextResponse.json({ error: originalError.message }, { status: 500 })
+    }
+
+    if (originalSession?.bookings?.course_types?.name === 'kids_group') {
+      const policy = await loadTask10Policy(supabaseAdmin)
+      // effectiveAt persists during pause: never fall back to the former per-child
+      // POST after activation, including when the new gate is paused.
+      if (policy.effectiveAt) {
+        if (originalSession.booking_id !== bookingId) return NextResponse.json({ error: 'ข้อมูลการจองต้นทางไม่ตรงกัน' }, { status: 409 })
+        const { data: matches, error: matchError } = await supabaseAdmin.from('schedule_templates').select('id')
+          .eq('branch_id', branchId).eq('course_type_id', originalSession.bookings.course_type_id!)
+          .eq('day_of_week', makeupDayOfWeek).eq('start_time', startTime).eq('end_time', endTime).eq('is_active', true)
+        if (matchError) throw new Error(matchError.message)
+        if (matches?.length !== 1) return NextResponse.json({ error: 'รอบเรียนประจำขาดหรือกำกวม' }, { status: 409 })
+        const result = await consumeKidsFamilyMakeup(supabaseAdmin, access.ctx.user.id, {
+          ...body, schedule_template_id: matches[0].id,
+          attending_child_id: body.attending_child_id || originalSession.child_id,
+        })
+        return NextResponse.json(result)
+      }
     }
 
     if (!originalSession || (originalSession.status !== 'absent' && !(originalSession.status === 'scheduled' && isPastSession(originalSession.date, originalSession.end_time)))) {
@@ -707,7 +729,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data })
   } catch (error) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(error), code: error instanceof Task10Error ? error.code : undefined },
+      { status: error instanceof Task10Error ? error.status : 500 })
   }
 }
 
@@ -766,7 +789,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('booking_sessions')
-      .select('id, booking_id, branch_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, rescheduled_from_id, child_id, bookings(user_id, course_type_id, learner_type)')
+      .select('id, booking_id, branch_id, schedule_slot_id, date, start_time, end_time, status, is_makeup, rescheduled_from_id, child_id, bookings(user_id, course_type_id, learner_type, course_types(name))')
       .eq('id', sessionId)
       .single<ReviewSessionRow>()
 
@@ -928,6 +951,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'return_entitlement') {
+      if (session.bookings?.course_types?.name === 'kids_group') {
+        return NextResponse.json(await callTask10(supabaseAdmin, 'task10_return_kids_entitlement_v1', {
+          p_actor_id: access.ctx.user.id, p_session_id: session.id, p_reason: reason,
+        }))
+      }
       if (!session.bookings?.user_id || !session.bookings?.course_type_id || !session.branch_id) {
         return NextResponse.json({ error: 'ข้อมูล booking ไม่ครบสำหรับคืนสิทธิ์เข้ากระเป๋า' }, { status: 400 })
       }
@@ -1076,6 +1104,6 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, warnings: assignmentWarning })
   } catch (error) {
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(error), ...(error instanceof Task10Error ? { code: error.code } : {}) }, { status: error instanceof Task10Error ? error.status : 500 })
   }
 }

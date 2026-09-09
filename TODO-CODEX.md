@@ -1,32 +1,29 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
-This is the short current queue. Read `AGENTS.md`, `PROJECT_STATE.md`, and this
-file first. Use `DEVELOPMENT_TODO.md` for detailed history and decision records;
-use `TODO.md` only as stale legacy reference after code verification. Current
-mutable state is authoritative only in `PROJECT_STATE.md`.
+This is the short current queue. Read AGENTS.md, PROJECT_STATE.md and this file
+first; DEVELOPMENT_TODO.md owns dated evidence. PROJECT_STATE.md is authoritative
+for all mutable Source/Git/deployment/controls/data and task states.
 
 ## Current Active Work
 
-Status: **None — Awaiting Owner Selection**. PROJECT_STATE.md owns all release states.
+Status: **Task 10 — DEVELOPING; local source verification complete, remote
+migration gate pending**. This is not READY FOR OWNER UAT or TASK DONE.
 
-- Active Task: **None — Awaiting Owner Selection**.
-- Completed: **9 — BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
-  Owner staged PASS, exact Promotion without rebuild, fresh Production checks and
-  read-only UAT reconciliation passed. TASK DONE is published by the authorized
-  documentation closeout; PROJECT_STATE.md holds the artifact and data states.
-- Completed: **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS**.
-  Owner staged PASS, exact Promotion without rebuild, fresh Production checks and
-  documentation closeout remain preserved in PROJECT_STATE.md's dated LV 0 history.
-- Owner selected original item **9** and approved continuous delivery. Destination
-  decision is closed: transfer the whole total to any one displayed relevant
-  account, one slip, no primary account. No duplicate registration.
-- Both branch aliases are Owner-confirmed and verified; the mapping blocker is closed.
-- Developer independently verified the working Docker engine and disposable target before reset. Real History/API/UI/persistence tests now pass; prior recovery history remains preserved.
-- Next action: **รอ Owner เลือกงานถัดไป**. No automatic implementation or release of another task.
-- Original Parking Lot items **1–8** retain order and remain unauthorized to start.
-- Preserve completed security/Makeup and LV 0 registration/implementation history.
+- Active: Kids booking-date pricing, family Makeup, destination minimum,
+  two-period pricing settings and automatic no-slip cancellation.
+- [Single approved Strict66 Scope](DEVELOPMENT_TODO.md#parking-lot-10-development-scope)
+  and all eight decisions remain unchanged. Owner confirmed Reschedule12/Wallet48
+  with the original exact-cutoff behavior.
+- [PROJECT_STATE.md](PROJECT_STATE.md#current-project-matrix) owns publication,
+  verification, remaining gates and local dev limitations.
+- Next action: review and approve the [exact five-file inert migration manifest](DEVELOPMENT_TODO.md#task10-migration-handoff-2026-09-09)
+  for its named project under Owner command §9. Then continue authorized staged
+  Production artifact creation and separate OFF smoke/Owner UAT.
+- Promotion requires exact Owner PASS; activation and any historical-data action
+  retain their separate authority. No additional formula or role decision is open.
+- Parking Lot1–8 unselected; item9 and prior LV0/security/Makeup work remain completed.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
@@ -1146,8 +1143,8 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly eight candidates (original items 1–8) remain unselected for implementation
-and unauthorized to start. Original item 9 is completed; retain its original
+Exactly nine candidates (original items 1–8 plus item 10) await implementation
+selection/authorization. Item 10 is selected for decision/audit only. Original item 9 is completed; retain its original
 position as history. PROJECT_STATE.md is authoritative. Original order:
 `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
@@ -1156,6 +1153,10 @@ HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 **HOMEPAGE LV COPY AUDIT/FIX**; `7.` **ADMIN RECOMMENDATIONS — ROUND RISK
 ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; `8.` **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
 Historical `9.` **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY — COMPLETED**.
+`10.` **ปรับเรทราคาคอร์สเด็กตามวันจอง + ชดเชยร่วมครอบครัว + ยกเลิกบิลไม่มีสลิปอัตโนมัติ**
+has the additional destination minimum recorded and revised Scope ready for approval;
+development remains unauthorized.
+See the short entry below and authoritative PROJECT_STATE.md.
 Historical item 8 **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** is
 completed and remains closed; use names to distinguish it from the new item 8.
 PROJECT_STATE.md is authoritative. Private Self + Child Identity Integrity /
@@ -1472,12 +1473,22 @@ Canonical: **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY**.
 Status: **HISTORICAL / COMPLETED — TASK DONE**; PROJECT_STATE.md is authoritative.
 
 - Original position **9**, registered and later selected **2026-09-07**. Continuous
-  delivery is authorized; PROJECT_STATE.md owns current implementation/release
+  delivery was authorized and completed; PROJECT_STATE.md owns implementation/release
   closeout. Items 1–8 remain unchanged and unauthorized.
 - Original eight-account/twelve-branch data and registration history remain in
   DEVELOPMENT_TODO.md → **2026-09-07 — Branch payment accounts Parking Lot registration**.
 - Latest evidence: **2026-09-08 — Task 9 Owner PASS, exact Promotion, Production verification and closeout**. Registration, READY and recovery histories are preserved; both aliases and the destination decision remain closed.
-- Next action derives from PROJECT_STATE.md: await another explicit Owner selection. No further A/B recovery or automatic task start.
+- At Task 9 closeout, the next action was another explicit Owner selection; current next action is owned by PROJECT_STATE.md. No further A/B recovery or automatic task start.
+
+### ปรับเรทราคาคอร์สเด็กตามวันจอง + ชดเชยร่วมครอบครัว + ยกเลิกบิลไม่มีสลิปอัตโนมัติ
+
+- Position **10**, registered 2026-09-08, implementation authorized by the
+  **2026-09-09 FINAL command**. **DEVELOPING**, strict66.
+- Approved **48,000 บาท**; automatic cancellation included at no extra charge.
+  No customer payment claim. Super Admin/forward-only minimum and both pricing
+  settings entries included. Future rules await actual authorized activation.
+- [Single Scope](DEVELOPMENT_TODO.md#parking-lot-10-development-scope);
+  [authoritative current state and next action](PROJECT_STATE.md#current-project-matrix).
 
 ## Historical / Selected — 2026-09-05 LV 0 registration
 
@@ -1621,6 +1632,7 @@ Confirmed final state:
 - Current task and next gate are derived only from PROJECT_STATE.md.
   LV 0 is completed; original Parking Lot items 1–8 retain their order and remain
   unauthorized. Original branch-payment-accounts item 9 is completed.
+  Item10 is approved for strict66 implementation; see the authoritative current matrix.
   Dependency security is closed.
 - Historical safety note: the Owner-controlled Production `4+4` draft was restored
   browser-locally after two atomic `409` capacity rejections. No booking was created.
