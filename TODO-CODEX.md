@@ -1,6 +1,6 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 This is the short current queue. Read AGENTS.md, PROJECT_STATE.md and this file
 first; DEVELOPMENT_TODO.md owns dated evidence. PROJECT_STATE.md is authoritative
@@ -8,21 +8,25 @@ for all mutable Source/Git/deployment/controls/data and task states.
 
 ## Current Active Work
 
-Status: **Task 10 — DEVELOPING; local source verification complete, remote
-migration gate pending**. This is not READY FOR OWNER UAT or TASK DONE.
+Status: **Task 10 — DEVELOPING; corrective source verified and locally committed;
+push held for the no-deploy constraint**. READY FOR OWNER UAT **No**; TASK DONE **No**.
 
-- Active: Kids booking-date pricing, family Makeup, destination minimum,
-  two-period pricing settings and automatic no-slip cancellation.
-- [Single approved Strict66 Scope](DEVELOPMENT_TODO.md#parking-lot-10-development-scope)
-  and all eight decisions remain unchanged. Owner confirmed Reschedule12/Wallet48
-  with the original exact-cutoff behavior.
-- [PROJECT_STATE.md](PROJECT_STATE.md#current-project-matrix) owns publication,
-  verification, remaining gates and local dev limitations.
-- Next action: review and approve the [exact five-file inert migration manifest](DEVELOPMENT_TODO.md#task10-migration-handoff-2026-09-09)
-  for its named project under Owner command §9. Then continue authorized staged
-  Production artifact creation and separate OFF smoke/Owner UAT.
-- Promotion requires exact Owner PASS; activation and any historical-data action
-  retain their separate authority. No additional formula or role decision is open.
+- Owner-approved Wallet never-activated compatibility and bounded Family Private
+  Store lock corrections are complete within the [Strict66 Scope](DEVELOPMENT_TODO.md#parking-lot-10-development-scope).
+  Reschedule >=12h / Wallet Store >48h and all other Task10 decisions remain unchanged.
+- [PROJECT_STATE.md](PROJECT_STATE.md#current-project-matrix) owns actual Source,
+  tests, Git, cleanup and unchanged Production state.
+- The [dated correction closeout](DEVELOPMENT_TODO.md#task10-family-wallet-concurrency-closeout-2026-09-10)
+  resolves the prior protected concurrency Hard Stop with baseline/lock evidence.
+  UI remains one all-family Store action; different-participant races are direct-RPC probes.
+- Next action: Owner resolves the conflict between normal push and the existing
+  automatic Vercel Preview deployment, which is outside this round's no-deploy scope.
+  Tests/local commit do not authorize deployment or configuration changes.
+- After normal push and live SHA verification, review the
+  [new named-project exact M1–M5 SQL candidate](DEVELOPMENT_TODO.md#task10-family-wallet-migration-manifest-2026-09-10)
+  for separate migration approval. Earlier manifests are superseded; no remote apply is authorized.
+- Subsequent release remains approved migration → exact staged Production artifact
+  → Owner exact PASS → no-rebuild Promotion → health checks. Activation needs separate authority.
 - Parking Lot1–8 unselected; item9 and prior LV0/security/Makeup work remain completed.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration

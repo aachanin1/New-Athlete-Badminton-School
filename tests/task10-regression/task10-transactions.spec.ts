@@ -1,7 +1,317 @@
 import { expect, test } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { INITIAL_LATE_KIDS_TIERS } from '../../src/lib/booking-pricing-policy'
-import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, setDisposableClock, sqlLiteral, task10MigrationHashes, uploadTask10Slip, type FamilyFixture } from './local-supabase'
+import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, uploadTask10Slip, protectedWalletFixture, raceFamilyWalletStore, type ProtectedWalletFixture, type FamilyFixture } from './local-supabase'
+
+test.describe('Wallet corrective compatibility',()=>{
+  // Only synthetic local rows. The reset verifies the disposable identity and
+  // restores the original suite's inert controls, real clocks and inactive cron.
+  test.afterAll(async()=>{ await setupTask10() })
+
+  function walletCase(operation:'store'|'redeem',history:'used'|'ambiguous'|'clean'='used') {
+    const f=readTask10Fixture()
+    const c={parent:f.userId,child:randomUUID(),booking:randomUUID(),source:randomUUID(),credit:randomUUID(),
+      history:randomUUID(),slot:randomUUID(),targetSlot:randomUUID(),template:randomUUID(),targetTemplate:randomUUID(),branch:f.branchId}
+    // Unique times keep canonical template matching unambiguous across cases.
+    const start=`12:${String(walletMinute++).padStart(2,'0')}:00`;const end='16:00:00'
+    const sql=`INSERT INTO public.children(id,parent_id,full_name,date_of_birth) VALUES('${c.child}','${c.parent}','Wallet corrective fixture','2016-01-01');
+      INSERT INTO public.bookings(id,user_id,learner_type,child_id,branch_id,course_type_id,month,year,total_sessions,total_price,status)
+        VALUES('${c.booking}','${c.parent}','child','${c.child}','${c.branch}','${f.kidsCourseId}',9,2051,1,700,'verified');
+      INSERT INTO public.schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active) VALUES
+        ('${c.template}','${c.branch}','${f.kidsCourseId}',extract(dow FROM date '2051-09-10'),'${start}','${end}',true),
+        ('${c.targetTemplate}','${c.branch}','${f.kidsCourseId}',extract(dow FROM date '2051-09-12'),'${start}','${end}',true);
+      INSERT INTO public.schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status) VALUES
+        ('${c.slot}','${c.template}','${c.branch}','${f.kidsCourseId}','2051-09-10','${start}','${end}',6,0,'open'),
+        ('${c.targetSlot}','${c.targetTemplate}','${c.branch}','${f.kidsCourseId}','2051-09-12','${start}','${end}',6,0,'open');
+      INSERT INTO public.booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
+        VALUES('${c.source}','${c.booking}','${c.slot}','2051-09-10','${start}','${end}','${c.branch}','${c.child}','${operation==='store'?'scheduled':'walleted'}',false);
+      ${history==='used'?`INSERT INTO public.booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup,rescheduled_from_id)
+        VALUES('${c.history}','${c.booking}','${c.slot}','2051-09-10','${start}','${end}','${c.branch}','${c.child}','completed',true,'${c.source}');`:''}
+      ${history==='ambiguous'?`UPDATE public.booking_sessions SET rescheduled_from_id=id WHERE id='${c.source}';`:''}
+      ${operation==='redeem'?`INSERT INTO public.lesson_wallet_credits(id,user_id,booking_id,original_session_id,child_id,branch_id,course_type_id,original_schedule_slot_id,
+        original_date,original_start_time,original_end_time,status,expires_at) VALUES('${c.credit}','${c.parent}','${c.booking}','${c.source}','${c.child}','${c.branch}',
+        '${f.kidsCourseId}','${c.slot}','2051-09-10','${start}','${end}','active','2051-09-30T23:59:59.999+07:00');`:''}`
+    const args=operation==='store'?{p_user_id:c.parent,p_session_id:c.source,p_actor_id:c.parent}:
+      {p_user_id:c.parent,p_credit_id:c.credit,p_target_date:'2051-09-12',p_start_time:start,p_end_time:end,p_branch_id:c.branch,p_schedule_template_id:c.targetTemplate}
+    const params=operation==='store'?`'${c.parent}','${c.source}','${c.parent}'`:
+      `'${c.parent}','${c.credit}','2051-09-12','${start}','${end}','${c.branch}','${c.targetTemplate}'`
+    const rpc=`lesson_wallet_${operation}_v2`
+    const snapshot=`SELECT jsonb_build_object(
+      'sourceStatus',(SELECT status FROM public.booking_sessions WHERE id='${c.source}'),
+      'credits',(SELECT count(*) FROM public.lesson_wallet_credits WHERE booking_id='${c.booking}'),
+      'creditStatuses',(SELECT jsonb_agg(status ORDER BY status) FROM public.lesson_wallet_credits WHERE booking_id='${c.booking}'),
+      'members',(SELECT count(*) FROM public.lesson_wallet_credit_members m JOIN public.lesson_wallet_credits w ON w.id=m.credit_id WHERE w.booking_id='${c.booking}'),
+      'descendants',(SELECT count(*) FROM public.booking_sessions WHERE booking_id='${c.booking}' AND rescheduled_from_id='${c.source}' AND NOT is_makeup AND id<>'${c.source}'),
+      'history',(SELECT jsonb_agg(jsonb_build_object('id',id,'status',status,'is_makeup',is_makeup,'predecessor',rescheduled_from_id)) FROM public.booking_sessions WHERE id='${c.history}'),
+      'payments',(SELECT count(*) FROM public.payments WHERE booking_id='${c.booking}'),
+      'mutations',(SELECT count(*) FROM public.task10_source_mutations WHERE source_session_id='${c.source}'))`
+    return {...c,sql,args,params,rpc,snapshot}
+  }
+  let walletMinute=0
+  const never=`UPDATE public.task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;`
+  const seed=(sql:string)=>localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${never} ${sql} COMMIT;`)
+  const artifact=()=>({sourceSha:'a'.repeat(40),deploymentId:'dpl_local_wallet_corrective',targetProjectRef:'verified-local-disposable',
+    migrationHashes:task10MigrationHashes(),productionPromotionConfirmed:true,healthChecksPassed:true})
+
+  for(const operation of ['store','redeem'] as const) for(const history of ['used','ambiguous'] as const) {
+    test(`never_activated original ${operation} RPC matches preserved behavior with ${history} historical lineage`,async()=>{
+      const c=walletCase(operation,history);seed(c.sql)
+      const before=localSql(c.snapshot)
+      const baseline=localSql(`BEGIN; SELECT public.task10_previous_wallet_${operation}_v2(${c.params}); ${c.snapshot}; ROLLBACK;`).split('\n').map(line=>JSON.parse(line))
+      expect(baseline[0]).toMatchObject({participant_count:1})
+      expect(localSql(c.snapshot)).toBe(before)
+      const result=await createLocalAdmin().rpc(c.rpc,c.args)
+      expect(result.error,JSON.stringify(result.error)).toBeNull()
+      expect(result.data).toMatchObject({participant_count:1,original_date:'2051-09-10'})
+      expect(JSON.parse(localSql(c.snapshot))).toEqual(baseline[1])
+      expect(localSql('SELECT public.task10_source_policy_established_v1();')).toBe('f')
+    })
+  }
+
+  test('never_activated Wallet uses the preserved transaction clock at before/exact/after 48h',()=>{
+    // Do not fake task10_clock_v1 to test the old body's cutoff: that body reads
+    // transaction_timestamp(). Construct source date/time from that SAME DB tx.
+    for(const delta of [-1,0,1]) for(const previous of [true,false]) {
+      const c=walletCase('store','clean')
+      const functionName=previous?'task10_previous_wallet_store_v2':'lesson_wallet_store_v2'
+      const result=JSON.parse(localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${never} ${c.sql}
+        UPDATE public.schedule_slots SET date=((transaction_timestamp()+interval '48 hours'+interval '${delta} milliseconds') AT TIME ZONE 'Asia/Bangkok')::date,
+          start_time=((transaction_timestamp()+interval '48 hours'+interval '${delta} milliseconds') AT TIME ZONE 'Asia/Bangkok')::time,end_time='24:00' WHERE id='${c.slot}';
+        UPDATE public.booking_sessions s SET date=x.date,start_time=x.start_time,end_time=x.end_time FROM public.schedule_slots x WHERE s.id='${c.source}' AND x.id=s.schedule_slot_id;
+        CREATE TEMP TABLE corrective_outcome(result jsonb,error text) ON COMMIT DROP;
+        DO $test$ BEGIN BEGIN INSERT INTO corrective_outcome(result) SELECT public.${functionName}(${c.params});
+          EXCEPTION WHEN OTHERS THEN INSERT INTO corrective_outcome(error) VALUES(SQLERRM); END; END $test$;
+        SELECT jsonb_build_object('error',(SELECT error FROM corrective_outcome),'participants',(SELECT result->'participant_count' FROM corrective_outcome),
+          'deltaMs',(SELECT extract(epoch FROM ((date+start_time) AT TIME ZONE 'Asia/Bangkok'-transaction_timestamp()-interval '48 hours'))*1000 FROM public.booking_sessions WHERE id='${c.source}'),
+          'credits',(SELECT count(*) FROM public.lesson_wallet_credits WHERE booking_id='${c.booking}'),
+          'sourceStatus',(SELECT status FROM public.booking_sessions WHERE id='${c.source}')); ROLLBACK;`).split('\n').filter(Boolean).at(-1)!)
+      expect(result).toEqual({deltaMs:delta,error:delta>0?null:'LESSON_WALLET_UNIT_NOT_STORABLE',participants:delta>0?1:null,credits:delta>0?1:0,sourceStatus:delta>0?'walleted':'scheduled'})
+    }
+  })
+
+  test('active and paused retain source guards for Wallet, Reschedule and Return without evidence changes',async()=>{
+    for(const state of ['active','paused']) for(const operation of ['store','redeem'] as const) {
+      const c=walletCase(operation);seed(c.sql)
+      localSql(`UPDATE public.task10_policy_activation SET state='${state}',effective_at='2051-09-01T00:00:00+07:00',revision=1;
+        INSERT INTO public.task10_wallet_transition_evidence(credit_id,source_month,source_root_id,effective_at,original_expires_at,evidence)
+        SELECT id,'2051-09-01',original_session_id,'2051-09-01T00:00:00+07:00',expires_at,'{"correctiveFixture":true}' FROM public.lesson_wallet_credits WHERE id='${c.credit}';`)
+      const before=localSql(`${c.snapshot}; SELECT row_to_json(a) FROM public.task10_policy_activation a;
+        SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY credit_id),'[]') FROM public.task10_wallet_transition_evidence e;`)
+      const denied=await createLocalAdmin().rpc(c.rpc,c.args)
+      expect(denied.error?.message).toContain('TASK10_SOURCE_ALREADY_USED')
+      expect(()=>localSql(`SELECT public.task10_reschedule_kids_v1('${c.parent}','${c.source}','2051-09-12','12:00','16:00','${c.branch}','${c.targetTemplate}');`)).toThrow('TASK10_SOURCE_ALREADY_USED')
+      expect(()=>localSql(`SELECT public.task10_return_kids_entitlement_v1('${readTask10Fixture().makeupAdminId}','${c.source}','corrective guard verification');`)).toThrow('TASK10_SOURCE_ALREADY_USED')
+      expect(localSql(`${c.snapshot}; SELECT row_to_json(a) FROM public.task10_policy_activation a;
+        SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY credit_id),'[]') FROM public.task10_wallet_transition_evidence e;`)).toBe(before)
+    }
+  })
+
+  test('active and paused allow eligible Wallet Store/Redeem once and preserve the original bodies',async()=>{
+    expect(localSql(`SELECT md5(prosrc) FROM pg_proc WHERE oid='public.task10_previous_wallet_store_v2(uuid,uuid,uuid)'::regprocedure;`)).toBe('44b9f1eb00b66be46b2e1c07083210c8')
+    expect(localSql(`SELECT md5(prosrc) FROM pg_proc WHERE oid='public.task10_previous_wallet_redeem_v2(uuid,uuid,date,time,time,uuid,uuid)'::regprocedure;`)).toBe('45df8f5e780c065928f3bc77a5a77997')
+    for(const state of ['active','paused']) {
+      const c=walletCase('store','clean');seed(c.sql)
+      localSql(`UPDATE public.task10_policy_activation SET state='${state}',effective_at='2026-09-01T00:00:00+07:00',revision=1;`)
+      const client=createLocalAdmin();const stored=await client.rpc(c.rpc,c.args)
+      expect(stored.error).toBeNull()
+      expect(stored.data).toMatchObject({participant_count:1,policy_type:'same_month'})
+      const again=await client.rpc(c.rpc,c.args)
+      expect(again.error?.message).toBe('LESSON_WALLET_UNIT_NOT_STORABLE')
+      const args={p_user_id:c.parent,p_credit_id:stored.data.credit_id,p_target_date:'2051-09-12',
+        p_start_time:stored.data.original_start_time,p_end_time:stored.data.original_end_time,p_branch_id:c.branch,p_schedule_template_id:c.targetTemplate}
+      const redeemed=await client.rpc('lesson_wallet_redeem_v2',args)
+      expect(redeemed.error).toBeNull()
+      expect(redeemed.data).toMatchObject({participant_count:1,credit_id:stored.data.credit_id})
+      const before=localSql(c.snapshot)
+      expect((await client.rpc('lesson_wallet_redeem_v2',args)).error?.message).toBe('LESSON_WALLET_CREDIT_STALE')
+      expect(localSql(c.snapshot)).toBe(before)
+      expect(JSON.parse(before)).toMatchObject({credits:1,members:1,descendants:1,creditStatuses:['redeemed'],payments:0})
+    }
+  })
+
+  test('Wallet commit precedes activation and invalidates a stale manifest; activation commit precedes waiting Wallet guards',async()=>{
+    test.setTimeout(180_000)
+    setDisposableClock('2051-09-01T00:00:00+07:00')
+    const f=readTask10Fixture();const release=sqlLiteral(JSON.stringify(artifact()))
+    for(const operation of ['store','redeem'] as const) {
+      const c=walletCase(operation,'clean');seed(c.sql)
+      const manifest=localSql(`SELECT public.task10_activation_manifest_v1('${f.adminUserId}',${release}::jsonb);`)
+      const holder=await holdLocalTransaction(`SELECT public.${c.rpc}(${c.params});`,`corrective-wallet-holder-${randomUUID()}`)
+      const app=`corrective-activation-wait-${randomUUID()}`
+      const pending=concurrentLocalSql(`SET application_name='${app}'; SELECT public.task10_activate_v1('${f.adminUserId}',${sqlLiteral(manifest)}::jsonb);`).then(value=>({value,error:''}),error=>({value:'',error:String(error)}))
+      try {
+        await expect.poll(()=>localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name='${app}' AND wait_event='advisory';`)).toBe('1')
+      } finally { await holder.finish() }
+      expect((await pending).error).toContain('TASK10_MANIFEST_CHANGED')
+      expect(localSql('SELECT state FROM public.task10_policy_activation;')).toBe('never_activated')
+      expect(localSql('SELECT count(*) FROM public.task10_activation_events;')).toBe('0')
+    }
+    const cases=(['store','redeem'] as const).map(operation=>walletCase(operation))
+    seed(cases.map(c=>c.sql).join('\n'))
+    const holder=await holdLocalTransaction(`SELECT public.task10_activate_v1('${f.adminUserId}',public.task10_activation_manifest_v1('${f.adminUserId}',${release}::jsonb));
+      SELECT cron.alter_job(jobid,active:=false) FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1';`,`corrective-activation-holder-${randomUUID()}`)
+    const waiters=cases.map(c=>{
+      const before=localSql(c.snapshot);const app=`corrective-wallet-wait-${randomUUID()}`
+      const pending=concurrentLocalSql(`SET application_name='${app}'; SELECT public.${c.rpc}(${c.params});`).then(value=>({value,error:''}),error=>({value:'',error:String(error)}))
+      return {c,before,app,pending}
+    })
+    try {
+      for(const waiter of waiters) await expect.poll(()=>localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name='${waiter.app}' AND wait_event='advisory';`)).toBe('1')
+    } finally { await holder.finish() }
+    for(const waiter of waiters) {
+      expect((await waiter.pending).error).toContain('TASK10_SOURCE_ALREADY_USED')
+      expect(localSql(waiter.c.snapshot)).toBe(waiter.before)
+    }
+    expect(localSql('SELECT state FROM public.task10_policy_activation;')).toBe('active')
+    expect(localSql("SELECT active FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1';")).toBe('f')
+  })
+})
+
+test.describe('Family Wallet lock correction', () => {
+  test.afterAll(async () => { await setupTask10() })
+  const never = `UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,revision=0,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;`
+  const prepare = (c: ProtectedWalletFixture, state: string, fixtureSql = '') => localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${never} ${c.seed} ${fixtureSql}
+    ${state === 'never_activated' ? '' : `UPDATE task10_policy_activation SET state='${state}',effective_at=transaction_timestamp(),revision=1,pricing_enabled=${state === 'active'},makeup_enabled=${state === 'active'};`} COMMIT;`)
+  const expected = (c: ProtectedWalletFixture, redeemed = false) => ({ credits:1, members:c.children.length, memberIdentity:true,
+    walleted:c.children.length, otherScheduled:c.others.length, descendants:redeemed ? c.children.length : 0, childIdentity:true,
+    targetSlots:redeemed ? 1 : 0, orphanCredits:0 })
+
+  for (const state of ['never_activated', 'active', 'paused']) {
+    for (const different of [false, true]) test(`${state}: ${different ? 'different-participant direct RPC' : 'same representative button duplicate'} Store race is atomic with typed loser`, async () => {
+      const c = await protectedWalletFixture(readTask10Fixture()); prepare(c, state)
+      const evidenceBefore = localSql('SELECT to_jsonb(a) FROM task10_policy_activation a; SELECT count(*) FROM task10_source_mutations;')
+      const proof = await raceFamilyWalletStore(c, different)
+      await test.info().attach('family-store-race.json', { body:Buffer.from(JSON.stringify(proof,null,2)), contentType:'application/json' })
+      expect(proof.barrierReached, JSON.stringify(proof)).toBe(true)
+      // Assert committed state and finance even if the error contract is wrong.
+      expect(proof.snapshot).toEqual(expected(c))
+      expect(proof.invariantsUnchanged).toBe(true)
+      expect(proof.results.filter(r => !r.error)).toHaveLength(1)
+      expect(proof.results.find(r => r.error)?.error).toContain('LESSON_WALLET_UNIT_NOT_STORABLE')
+      expect(proof.results.some(r => /deadlock detected|lock timeout|statement timeout/.test(r.error))).toBe(false)
+      expect(localSql('SELECT to_jsonb(a) FROM task10_policy_activation a; SELECT count(*) FROM task10_source_mutations;')).toBe(evidenceBefore)
+
+      const credit = JSON.parse(proof.results.find(r => !r.error)!.output).credit_id as string
+      const before = localSql(c.invariants)
+      const args = { p_user_id:c.userId, p_credit_id:credit, p_target_date:c.dates.target, p_start_time:c.start,
+        p_end_time:c.end, p_branch_id:c.branch, p_schedule_template_id:c.targetTemplate }
+      const replays = await Promise.all([createLocalAdmin().rpc('lesson_wallet_redeem_v2', args), createLocalAdmin().rpc('lesson_wallet_redeem_v2', args)])
+      expect(JSON.parse(localSql(c.snapshot))).toEqual(expected(c, true))
+      expect(localSql(c.invariants)).toBe(before)
+      expect(replays.filter(r => !r.error)).toHaveLength(1)
+      expect(replays.find(r => r.error)?.error?.message).toBe('LESSON_WALLET_CREDIT_STALE')
+    })
+
+    test(`${state}: original Adult/Private Store and Redeem retain single/package expiry and participant identity`, async () => {
+      test.setTimeout(180_000) // Four isolated API/DB fixtures, each with identity verification.
+      for (const privateLesson of [false, true]) for (const quantity of [1, 2]) {
+        const c = await protectedWalletFixture(readTask10Fixture(), privateLesson, quantity); prepare(c, state)
+        const before = localSql(c.invariants)
+        const stored = await createLocalAdmin().rpc('lesson_wallet_store_v2', { p_user_id:c.userId, p_session_id:c.sources[0], p_actor_id:c.userId })
+        expect(stored.error).toBeNull()
+        expect(stored.data).toMatchObject({ participant_count:c.children.length, policy_type:quantity > 1 ? 'ten_month_package' : 'same_month' })
+        expect(localSql(`SELECT expires_at=CASE WHEN ${quantity}>1 THEN
+          (date_trunc('month',entitlement_started_at AT TIME ZONE 'Asia/Bangkok')+interval '10 months') AT TIME ZONE 'Asia/Bangkok'-interval '1 millisecond'
+          ELSE (date_trunc('month',original_date::timestamp)+interval '1 month') AT TIME ZONE 'Asia/Bangkok'-interval '1 millisecond' END
+          FROM lesson_wallet_credits WHERE id='${stored.data.credit_id}';`)).toBe('t')
+        const redeemed = await createLocalAdmin().rpc('lesson_wallet_redeem_v2', { p_user_id:c.userId, p_credit_id:stored.data.credit_id,
+          p_target_date:c.dates.target, p_start_time:c.start, p_end_time:c.end, p_branch_id:c.branch, p_schedule_template_id:c.targetTemplate })
+        expect(redeemed.error).toBeNull()
+        expect(JSON.parse(localSql(c.snapshot))).toEqual(expected(c, true))
+        expect(localSql(c.invariants)).toBe(before)
+      }
+    })
+
+    test(`${state}: missing payment and one attended Family member still deny the entire Store without residue`, async () => {
+      for (const privateLesson of [false, true]) {
+        const f = readTask10Fixture(); const c = await protectedWalletFixture(f, privateLesson)
+        // Construct missing evidence while the disposable fixture is inert;
+        // payment lifecycle guards must remain in force during the real RPC.
+        prepare(c, state, `DELETE FROM payments WHERE id='${c.payment}';`)
+        const before = localSql(`${c.snapshot}; ${c.invariants};`)
+        const result = await createLocalAdmin().rpc('lesson_wallet_store_v2', {p_user_id:c.userId,p_session_id:c.sources[0],p_actor_id:c.userId})
+        expect(result.error?.message).toBe('LESSON_WALLET_PAYMENT_EVIDENCE_MISSING')
+        expect(localSql(`${c.snapshot}; ${c.invariants};`)).toBe(before)
+      }
+      const f = readTask10Fixture(); const c = await protectedWalletFixture(f)
+      prepare(c, state, `INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status)
+        VALUES('${c.sources[1]}','${c.childId}','child','${f.adminUserId}','present');`)
+      const before = localSql(`${c.snapshot}; ${c.invariants};`)
+      const result = await createLocalAdmin().rpc('lesson_wallet_store_v2', {p_user_id:c.userId,p_session_id:c.sources[0],p_actor_id:c.userId})
+      expect(result.error?.message).toBe('LESSON_WALLET_ATTENDANCE_EXISTS')
+      expect(localSql(`${c.snapshot}; ${c.invariants};`)).toBe(before)
+    })
+
+    test(`${state}: Family Store another purchased hour and Redeem an existing credit both commit without a lock cycle`, async () => {
+      const c = await protectedWalletFixture(readTask10Fixture()); prepare(c, state)
+      const stored = JSON.parse(localSql(`SELECT lesson_wallet_store_v2(${c.storeArgs()});`))
+      const before = localSql(c.financialInvariants)
+      const holder = await holdLocalTransaction(`SELECT id FROM bookings WHERE id='${c.booking}' FOR UPDATE;`, `mixed-wallet-holder-${randomUUID()}`)
+      const names = [`mixed-wallet-store-${randomUUID()}`, `mixed-wallet-redeem-${randomUUID()}`]
+      const calls = [
+        `SELECT lesson_wallet_store_v2(${c.storeArgs(c.others[0])});`,
+        `SELECT lesson_wallet_redeem_v2(${c.redeemArgs(stored.credit_id)});`,
+      ].map((sql, i) => concurrentLocalSql(`SET application_name='${names[i]}'; SET statement_timeout='45s'; ${sql}`)
+        .then(output => ({output,error:''}), error => ({output:'',error:String(error)})))
+      try {
+        await expect.poll(() => localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name IN ('${names.join("','")}') AND wait_event_type='Lock';`)).toBe('2')
+      } finally { await holder.finish() }
+      const results = await Promise.all(calls)
+      expect(results.map(r => r.error)).toEqual(['', ''])
+      expect(JSON.parse(localSql(c.snapshot))).toEqual({...expected(c, true), credits:2, otherScheduled:0})
+      // The second original hour intentionally becomes walleted in this test.
+      expect(localSql(`SELECT count(*) FROM lesson_wallet_credit_members m JOIN lesson_wallet_credits w ON w.id=m.credit_id WHERE w.booking_id='${c.booking}';`)).toBe('4')
+      expect(localSql(`SELECT total_sessions FROM bookings WHERE id='${c.booking}';`)).toBe('2')
+      expect(localSql(c.financialInvariants)).toBe(before)
+    })
+  }
+
+  test('Family Store/Redeem coordinate with actual activation in both transaction orders', async () => {
+    test.setTimeout(240_000)
+    const f = readTask10Fixture()
+    const release = sqlLiteral(JSON.stringify({sourceSha:'a'.repeat(40),deploymentId:'dpl_local_family_lock',targetProjectRef:'verified-local-disposable',
+      migrationHashes:task10MigrationHashes(),productionPromotionConfirmed:true,healthChecksPassed:true}))
+    for (const activationFirst of [false, true]) {
+      const store = await protectedWalletFixture(f); prepare(store, 'never_activated')
+      const redeem = await protectedWalletFixture(f); prepare(redeem, 'never_activated')
+      const credit = JSON.parse(localSql(`SELECT lesson_wallet_store_v2(${redeem.storeArgs()});`)).credit_id as string
+      const work = [{c:store,sql:`SELECT lesson_wallet_store_v2(${store.storeArgs()});`,redeemed:false},
+        {c:redeem,sql:`SELECT lesson_wallet_redeem_v2(${redeem.redeemArgs(credit)});`,redeemed:true}]
+      const before = work.map(w => localSql(w.c.invariants))
+      const manifest = localSql(`SELECT task10_activation_manifest_v1('${f.adminUserId}',${release}::jsonb);`)
+      const activate = `SELECT task10_activate_v1('${f.adminUserId}',${sqlLiteral(manifest)}::jsonb);`
+      if (activationFirst) {
+        const holder = await holdLocalTransaction(`${activate} SELECT cron.alter_job(jobid,active:=false) FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1';`, `family-activation-${randomUUID()}`)
+        const names = work.map(() => `family-activation-wait-${randomUUID()}`)
+        const calls = work.map((w,i) => concurrentLocalSql(`SET application_name='${names[i]}'; SET statement_timeout='45s'; ${w.sql}`)
+          .then(output => ({output,error:''}), error => ({output:'',error:String(error)})))
+        try {
+          for (const name of names) await expect.poll(() => localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name='${name}' AND wait_event='advisory';`)).toBe('1')
+        } finally { await holder.finish() }
+        expect((await Promise.all(calls)).map(r => r.error)).toEqual(['',''])
+        expect(localSql('SELECT state FROM task10_policy_activation;')).toBe('active')
+      } else {
+        const holders = []
+        for (const w of work) holders.push(await holdLocalTransaction(w.sql, `family-before-activation-${randomUUID()}`))
+        const name = `family-activation-wait-${randomUUID()}`
+        // Execute the real activation after Wallet commit, then roll it back so
+        // the reverse ordering can exercise the actual initial cutover too.
+        const pending = concurrentLocalSql(`SET application_name='${name}'; BEGIN; SET LOCAL statement_timeout='45s'; ${activate} ROLLBACK;`)
+          .then(output => ({output,error:''}), error => ({output:'',error:String(error)}))
+        try {
+          await expect.poll(() => localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name='${name}' AND wait_event='advisory';`)).toBe('1')
+        } finally { for (const holder of holders) await holder.finish() }
+        expect((await pending).error).toBe('')
+        expect(localSql('SELECT state FROM task10_policy_activation;')).toBe('never_activated')
+      }
+      for (const [i,w] of work.entries()) {
+        expect(JSON.parse(localSql(w.c.snapshot))).toEqual(expected(w.c,w.redeemed))
+        expect(localSql(w.c.invariants)).toBe(before[i])
+      }
+      expect(localSql("SELECT active FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1';")).toBe('f')
+    }
+  })
+})
 
 test('Migration and catalog/settings saves never activate policy', async () => {
   expect(JSON.parse(localSql('SELECT row_to_json(a) FROM public.task10_policy_activation a;'))).toMatchObject({
@@ -477,19 +787,19 @@ test.describe('Task10 retained pricing catalogs',()=>{
     setDisposableClock('2031-09-15T23:59:59.999+07:00')
     localSql(`INSERT INTO coupons(id,code,discount_type,discount_value,max_uses,current_uses,is_active,created_by) VALUES('${coupon}','${app}','fixed',1,5,0,true,'${f.adminUserId}');`)
     const early=await quote(11);expect(early.error).toBeNull()
-    const holder=concurrentLocalSql(`SET application_name='${app}'; BEGIN; SELECT id FROM coupons WHERE id='${coupon}' FOR UPDATE; SELECT pg_sleep(18); COMMIT;`)
+    // Release after the observed clock crossing; a fixed18s hold races the API's8s timeout.
+    const holder=await holdLocalTransaction(`SELECT id FROM coupons WHERE id='${coupon}' FOR UPDATE;`,app)
     try {
-      await expect.poll(()=>localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name='${app}' AND wait_event='PgSleep';`)).toBe('1')
       const pending=create(11,20,4,early.data.fingerprint,f.userId,f.mainChildId,coupon)
       await expect.poll(()=>localSql(`SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%task10_create_progressive_booking_v1%';`)).toBe('1')
       setDisposableClock('2031-09-16T00:00:00+07:00')
-      await holder
+      await holder.finish()
       const rejected=await pending
       expect(rejected.result.error?.message).toContain('TASK10_PREVIEW_CONFLICT')
       expect(localSql(`SELECT count(*) FROM bookings WHERE client_request_id='${rejected.requestId}';`)).toBe('0')
       expect(localSql(`SELECT count(*) FROM schedule_slots WHERE date>='2031-11-01' AND date<'2031-12-01';`)).toBe('0')
       expect(localSql(`SELECT current_uses FROM coupons WHERE id='${coupon}';`)).toBe('0')
-    } finally { await holder }
+    } finally { await holder.finish() }
   })
 
   test('15-to-16 stale preview and direct writes fail atomically before booking/slot residue',async()=>{

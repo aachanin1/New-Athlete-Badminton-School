@@ -23513,6 +23513,8 @@ fixture session at the published Source SHA.
 
 ### Exact remote migration proposal — Owner command §9 gate
 
+**Superseded proposal:** the [2026-09-09 Wallet corrective safe handoff](#task10-wallet-corrective-hard-stop-2026-09-09) withdrew this manifest from the next approval gate. Its old hashes remain historical evidence. Protected concurrency blocked the candidate at that handoff; the [2026-09-10 correction and new manifest](#task10-family-wallet-concurrency-closeout-2026-09-10) supersede that state.
+
 **Not yet approved for remote apply at this handoff.** Target was freshly verified
 as **tvnhholicwjtxdhlxfqs / New Athlete Badminton School**, ACTIVE_HEALTHY,
 ap-northeast-2, PostgreSQL17.6.1.063. SELECT-only evidence at
@@ -23544,7 +23546,9 @@ credit transition, old-booking cohort, data repair, refund or historical backfil
 is part of applying these files. Target data/DDL identity and each applied hash
 must be verified again before and after apply.
 
-OFF compatibility evidence: inert reset/application of all5 leaves controls false,
+**Superseded OFF conclusion:** the statement below did not test the historical-lineage cases exposed by the Wallet corrective. Controls false and preserved bodies alone did not prove complete original-RPC compatibility. See the later red/green tests and the [2026-09-10 Family correction](#task10-family-wallet-concurrency-closeout-2026-09-10); do not use this paragraph as a current PASS.
+
+Historical OFF compatibility evidence (superseded): inert reset/application of all5 leaves controls false,
 job inactive and operational counts0. Existing Booking/History and original RPC
 contracts run against the migrated local schema. Original Wallet function bodies
 are retained unchanged under their restricted previous names. Legacy direct DML
@@ -23718,3 +23722,667 @@ gate, and no next Parking Lot item is authorized.
 | Test | `tests/task10-regression/task10-policy.spec.ts` |
 | Test | `tests/task10-regression/task10-transactions.spec.ts` |
 | Test | `tests/task10-regression/task10-ui.spec.ts` |
+
+<a id="task10-wallet-corrective-hard-stop-2026-09-09"></a>
+## 2026-09-09 — Task10 Wallet corrective: uncommitted safe handoff / protected concurrency Hard Stop
+
+**Historical / superseded:** Owner subsequently authorized the bounded Family lock
+correction. The [2026-09-10 record](#task10-family-wallet-concurrency-closeout-2026-09-10)
+resolves this protected verification gate and records a separate push/deployment
+boundary. The failed runs and uncommitted state below describe this earlier handoff.
+
+**State observed at this safe handoff, 2026-09-09; UTC evidence timestamps below.**
+This record supersedes the previous migration-approval next action and broad OFF
+compatibility conclusion. PROJECT_STATE.md owns current mutable values.
+**Task10 DEVELOPING; Source Complete No overall; Tests Passed No overall;
+READY FOR OWNER UAT No; Task Done No. No new commit or push.**
+
+### Owner decision, exact Scope and Gate0
+
+Owner explicitly approved audit → Wallet state-routing correction → verification →
+diff → normal commit/push → new manifest, conditional on the required gates, with
+no repeated technical approval. Reschedule **>=12 hours**, including exact12,
+and Wallet Store **>48 hours**, excluding exact48, remain unchanged. The previous
+Reschedule48 wording was a documentation error; all other Task10 decisions and
+Strict66 remain unchanged. This source approval authorizes neither an old/new
+remote migration manifest nor deploy, Production activation/cron, write UAT or
+data repair.
+
+The exact permitted six paths are M3, the Task10 transaction test, its optional
+local-supabase helper and PROJECT_STATE/TODO-CODEX/DEVELOPMENT_TODO. Actual edits
+at this handoff are **five existing paths**, all in the original Strict66:
+
+| Kind | Changed path | Reason |
+| --- | --- | --- |
+| Migration | `supabase/migrations/20260909000300_task10_kids_family_makeup_transactions.sql` | 11 lines: Wallet-only never-activated delegation under activation's shared transaction lock |
+| Test | `tests/task10-regression/task10-transactions.spec.ts` | Eight actual RPC/DB regressions, preserved-body comparisons and activation races |
+| Documentation | `PROJECT_STATE.md` | Replace current complete/await-migration claims with verified uncommitted Hard Stop state |
+| Documentation | `TODO-CODEX.md` | Derive next action from the current matrix |
+| Documentation | `DEVELOPMENT_TODO.md` | Owner decision, red/green evidence, failed protected check, superseded/candidate manifest and safe handoff |
+
+Counts: **functional TS/TSX0; migration1; test1; documentation3; config0**.
+The optional helper remains unchanged. No M1/M2/M4/M5, historical migration,
+dependency, permission, price, cutoff, participant or application-source edit.
+No additional file was created for the supplemental verifier; its stdin source
+is retained below as historical reproduction evidence.
+
+Gate0 freshly verified the exact root
+`C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School`,
+branch `spike/next-major-security-upgrade`, upstream
+`origin/spike/next-major-security-upgrade`, origin
+`https://github.com/aachanin1/New-Athlete-Badminton-School.git`, and HEAD/live remote
+**331409a30dff22eb20174ba7d1036ccf300e7de5**, ahead0/behind0. The initial worktree
+and index were clean; relevant Task10 history and all helper callers were read.
+No reset, stash, user-work overwrite, force push or staged source occurred.
+Safe-handoff live remote remained the same SHA. Corrective source is **local and
+uncommitted**, not represented by that published SHA.
+
+### Root cause and minimal correction
+
+Fact: published M3 called `task10_begin_source_v1()` before preserved Wallet
+Store/Redeem behavior even when effective_at was NULL. The helper applied Kids
+lineage/usage guards without a never-activated exemption. Real original-name
+Store and Redeem RPCs rejected ambiguous historical lineage even though their
+unchanged pre-Task10 bodies succeeded.
+
+The local correction is only in those two Wallet wrappers. They acquire
+`pg_advisory_xact_lock_shared(10,1)`, inspect the existing
+`task10_source_policy_established_v1()`, and delegate immediately to their
+preserved previous function when no effective_at exists. Redeem does this before
+reading credit lineage. The lock persists through the old operation's transaction;
+M5 actual activation uses the exclusive matching lock. When effective_at exists,
+including paused-after-activation, the original Task10 guards continue.
+
+All four helper callers were inspected: Wallet Store, Wallet Redeem,
+`task10_reschedule_kids_v1`, and `task10_return_kids_entitlement_v1`.
+A blanket false return in the helper would change the latter callers' contract,
+so the helper and both Reschedule/Return implementations were left unchanged.
+No Task10 pricing, Makeup quota/D/M, entitlement, attendance or financial rule changed.
+
+Preserved local function-body MD5 values match fresh remote pre-Task10 bodies:
+Store **44b9f1eb00b66be46b2e1c07083210c8** and Redeem
+**45df8f5e780c065928f3bc77a5a77997**. These hashes confirm body preservation;
+they do not establish that every historical concurrency behavior meets today's
+acceptance criteria.
+
+### Actual revision and fresh regression evidence
+
+The passing corrective/full suites and later failed protected probe used:
+- base Git HEAD **331409a30dff22eb20174ba7d1036ccf300e7de5**;
+- unchanged application src tree **55a1cd39886dcebc44d5a649b8070264b91afcee**;
+- corrected M3 SHA-256 **2574f6736b2713a3e14e9d5daa36fb317448951d6ea14a38c8e58873884d56d7**;
+- corrected transaction-test SHA-256 **f7f378aff3cfd2ac8233e881b826bd9147ec9ce3bdfb615eaedc51990da58963**.
+
+These are working-file bytes, not a newly committed revision. Only documentation
+changed after those runs. Earlier publication's40-test and other historical
+results are reference evidence only and are not relabeled as fresh results.
+
+| Run | Observed result and limits |
+| --- | --- |
+| Pre-correction original RPC regression, session8578 | **Two real red failures**: Store and Redeem each returned P0001/TASK10_AMBIGUOUS_SOURCE after its preserved-body baseline succeeded, with old M3 hash e0290c9258ab655ff8d27d995057655bda2a1f94b224fe2e08a59089ddabe2f7. Two separate historical-use cases initially failed an invalid fixture enum `cancelled`; those are fixture errors, not regression evidence; fixture changed to `completed` |
+| New corrective describe, session28987 | **8/8 passed,7.9m**. Store/Redeem original RPCs compared with rollback-isolated preserved function output and actual DB state, used/ambiguous lineage, before/exact/after48h, active/paused guards and success/replay, Reschedule/Return guard retention, both activation lock directions |
+| Full Task10, session85112 | **48/48 passed,26.1m**, one worker, no retry:6 pure +35 transaction +7 UI/API/local scheduler cases. Includes exact12/exact48, Wallet/Return/Reschedule/Makeup race, settings/pricing/payment receipt/expiry/cohort and local cron |
+| Original Booking, session29736 | **23/23 passed,4.5m**, including protected Adult/Private displays, Family grouping, original Wallet/Reschedule and Admin Makeup flows. The Family UI test cancels action dialogs/seeds credits; this is **not** proof of concurrent atomic Family Store |
+| Wallet script | `npm run test:lesson-wallet-regression` **45/45 passed**; pure/source checks, not independent transaction coverage |
+| Static/build | `npx tsc --noEmit`, `npm run lint`, `npm run check:mojibake` (**275 files**) passed. `npm run build` session1198 passed (Next16.2.12;95 static pages) |
+| Supplemental actual protected DB/RPC verifier, session8594 | **FAILED** in never_activated concurrent different-participant Family Store: one RPC success, loser `deadlock detected`, expected typed `LESSON_WALLET_UNIT_NOT_STORABLE` or `LESSON_WALLET_UNIT_STALE`. Required protected gate remains failed |
+
+The cutoff test derives a source start from **the same transaction_timestamp()**
+read by the preserved body, at48h minus1ms/exact48h/plus1ms. No substituted
+task10_clock is used as a proxy for that old clock. Both preserved and current
+functions reject the first two with zero credit residue and allow the last.
+Active/paused tests compare actual source, credit, member, descendant, history,
+control and evidence rows; no source-text assertion substitutes for those writes.
+
+The activation race uses held transactions and observed advisory wait events.
+Wallet-first invalidates a stale activation manifest after commit and leaves no
+activation event. Activation-first commits before waiting Wallet sees retained
+source guards. Activation/cron in these tests are **verified disposable only**;
+the activation-race job is deactivated within its transaction before commit.
+
+### Material Hard Stop: Family Private different-participant Store race
+
+A supplemental verifier was needed because Booking23's Family UI coverage does
+not execute the all-family Store mutation. It planned24 cases across
+never_activated/active/paused: Adult and Private quantity1/2 actual Store/Redeem,
+same-month versus ten-month expiry, identity/participants/other-hour preservation,
+missing payment and attended participant denial, and concurrent Store/Redeem.
+
+The final isolated run completed **seven preliminary never-activated scenarios**
+(four sequential positive cases, two missing-payment cases and one attended-family
+denial), then stopped on the concurrent Store assertion. **Do not report24 passed.**
+The final run did not reach active/paused supplemental cases, concurrent Redeem,
+or the post-race residue/financial comparison. Those outcomes remain unverified
+by this probe even though separate Task10 cases passed.
+
+The concurrent calls selected self and child source-session IDs belonging to the
+same verified two-hour Family booking and exact original hour. The assertion for
+exactly one RPC success passed; the loser's returned error was:
+
+```text
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression
+/LESSON_WALLET_(UNIT_NOT_STORABLE|UNIT_STALE)/. Input:
+
+'deadlock detected'
+at [stdin]:74:10
+```
+
+Read-only source audit identifies a plausible lock-order cause in the preserved
+Store body (historical migration `20260826021944_separate_progressive_kids_wallet_entitlement.sql`):
+first select the chosen session and booking `FOR UPDATE OF session_item, booking`,
+then gather all Family members ordered by ID `FOR UPDATE`. Two calls choosing
+different members can acquire participant locks before contending for the common
+booking. **This is an inference; a server deadlock graph and an isolated
+pre-corrective race baseline have not yet been captured.** The body is unchanged
+and both shared Task10 helpers return the non-Kids path, so no new Family policy
+change has been demonstrated. Do not claim the corrective introduced or fixed it.
+
+Earlier supplemental probe corrections were verification-only: query actual
+financial relations rather than nonexistent payment_ledger; explicitly cast
+date to timestamp for Bangkok expiry comparison; isolate each state's race with
+a distinct synthetic parent/child to avoid a legitimate target-overlap conflict.
+None weakened a business guard or changed production source. Session8594 is the
+final isolated failure, not one of those exploratory fixture errors.
+
+Owner corrective §5 protects Family participants/entitlement and §9 requires a
+Hard Stop for a material root change or scope expansion. AGENTS.md likewise
+requires stopping before entering another protected root/domain. Therefore no
+locking correction, preserved-body modification, staged commit or push was made.
+The exact original defect's green tests do not override this required failure.
+
+**Proposed next scope for Owner decision:** authorize a bounded Family Private
+Store lock-order investigation/correction, first proving the lock graph and
+pre-corrective behavior, then enforcing one winner plus typed loser while moving
+all participants atomically and preserving entitlement/finance. Prefer the
+existing M3/T14/optional local helper and three docs; preserve previous Wallet
+bodies and all protected policies. No historical applied migration rewrite,
+M1/M2/M4/M5 or Production operation is implicitly approved. If a safe solution
+cannot fit that concrete scope, present its direct dependencies before editing.
+After approval, finish the protected matrix and relevant gates before publication.
+
+<details>
+<summary>Final supplemental stdin verifier — failed reproduction, retained for review</summary>
+
+This is the exact final isolated verifier source, executed from the root through
+Node stdin using the existing TypeScript helper. It is historical evidence of a
+**failed** run, not an instruction to execute against any remote project. It uses
+identity-verified disposable setup/reset and finally teardown. New work must
+reverify its target and obtain the protected-scope decision described above.
+
+```javascript
+const fs=require('fs'),ts=require('typescript'),assert=require('node:assert/strict'),{randomUUID:uuid}=require('node:crypto');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,f);
+const l=require('./tests/task10-regression/local-supabase.ts');
+const off="UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,revision=0,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;";
+const stateSql=s=>s==='never_activated'?off:`UPDATE task10_policy_activation SET state='${s}',effective_at=transaction_timestamp(),revision=1,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;`;
+const financial=`SELECT md5(jsonb_build_object('payments',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM payments p),'coupons',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM coupon_usages c),'ledgerRelation',to_regclass('public.payment_ledger'),'allocations',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY to_jsonb(a)::text),'[]') FROM progressive_payment_allocations a),'finance',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY to_jsonb(e)::text),'[]') FROM finance_expenses e))::text)`;
+(async()=>{
+ await l.setupTask10();
+ try {
+ const f=l.readTask10Fixture();let sequence=0;const results=[];
+ const dates=JSON.parse(l.localSql("SELECT jsonb_build_object('source',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 10 days')::date,'other',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 13 days')::date,'target',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 11 days')::date);"));
+ function fixture(privateLesson,quantity) {
+  const booking=uuid(),payment=uuid(),course=privateLesson?f.privateCourseId:f.adultCourseId;
+  const start=`06:${String(sequence).padStart(2,'0')}:00`,end=`07:${String(sequence++).padStart(2,'0')}:00`;
+  const children=privateLesson?[null,f.mainChildId]:[null],sources=children.map(()=>uuid()),others=quantity>1?children.map(()=>uuid()):[];
+  const targetTemplate=uuid(),slotIds=[uuid(),uuid(),uuid()];
+  const statements=[`INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status) VALUES('${booking}','${f.userId}','self','${f.branchId}','${course}',extract(month FROM date '${dates.source}'),extract(year FROM date '${dates.source}'),${quantity},${quantity*(privateLesson?1000:500)},'verified');
+  INSERT INTO payments(id,booking_id,user_id,amount,status,verified_at) VALUES('${payment}','${booking}','${f.userId}',${quantity*(privateLesson?1000:500)},'approved',transaction_timestamp());`];
+  [dates.source,dates.other,dates.target].forEach((date,i)=>{
+   const template=i===2?targetTemplate:uuid();
+   statements.push(`INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active) VALUES('${template}','${f.branchId}','${course}',extract(dow FROM date '${date}'),'${start}','${end}',true);
+   INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status) VALUES('${slotIds[i]}','${template}','${f.branchId}','${course}','${date}','${start}','${end}',1,0,'open');`);
+   if(i<2) (i===0?sources:others).forEach((id,j)=>statements.push(`INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup) VALUES('${id}','${booking}','${slotIds[i]}','${date}','${start}','${end}','${f.branchId}',${children[j]?l.sqlLiteral(children[j]):'NULL'},'scheduled',false);`));
+  });
+  const ids=sources.map(l.sqlLiteral).join(','),otherIds=others.length?others.map(l.sqlLiteral).join(','):"NULL::uuid";
+  const storeArgs=`'${f.userId}','${sources[0]}','${f.userId}'`;
+  const redeemArgs=credit=>`'${f.userId}',${credit},'${dates.target}','${start}','${end}','${f.branchId}','${targetTemplate}'`;
+  const snapshot=`SELECT jsonb_build_object('credits',(SELECT count(*) FROM lesson_wallet_credits WHERE booking_id='${booking}'),'members',(SELECT count(*) FROM lesson_wallet_credit_members WHERE original_session_id IN (${ids})),'walleted',(SELECT count(*) FROM booking_sessions WHERE id IN (${ids}) AND status='walleted'),'otherScheduled',(SELECT count(*) FROM booking_sessions WHERE id IN (${otherIds}) AND status='scheduled'),'descendants',(SELECT count(*) FROM booking_sessions WHERE rescheduled_from_id IN (${ids})),'childIdentity',(SELECT coalesce(bool_and(n.child_id IS NOT DISTINCT FROM o.child_id),true) FROM booking_sessions n JOIN booking_sessions o ON o.id=n.rescheduled_from_id WHERE o.id IN (${ids})),'targetSlots',(SELECT count(DISTINCT schedule_slot_id) FROM booking_sessions WHERE rescheduled_from_id IN (${ids})))`;
+  return {booking,payment,sources,others,quantity,privateLesson,children,seed:statements.join('\n'),storeArgs,redeemArgs,snapshot,targetTemplate,start,end};
+ }
+ for(const state of ['never_activated','active','paused']) {
+  l.verifyDisposableIdentity();
+  const parent=await l.createLocalAdmin().auth.admin.createUser({email:'wallet-proof-'+uuid()+'@example.com',password:l.TASK10_PASSWORD,email_confirm:true});
+  assert.equal(parent.error,null);f.userId=parent.data.user.id;f.mainChildId=uuid();
+  l.localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${off} INSERT INTO children(id,parent_id,full_name,date_of_birth) VALUES('${f.mainChildId}','${f.userId}','Protected Wallet child','2016-01-01'); COMMIT;`);
+  for(const privateLesson of [false,true]) for(const quantity of [1,2]) {
+   const c=fixture(privateLesson,quantity);const n=c.children.length;
+   const lines=l.localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${off} ${c.seed} ${stateSql(state)}
+    CREATE TEMP TABLE proof(s jsonb,r jsonb,finance text,booking text) ON COMMIT DROP;
+    INSERT INTO proof(finance,booking) SELECT (${financial}),md5(to_jsonb(b)::text) FROM bookings b WHERE id='${c.booking}';
+    UPDATE proof SET s=lesson_wallet_store_v2(${c.storeArgs});
+    SELECT jsonb_build_object('participants',s->'participant_count','policy',s->>'policy_type','expiryCorrect',(s->>'expires_at')::timestamptz=CASE WHEN ${quantity}>1 THEN (date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '10 months') AT TIME ZONE 'Asia/Bangkok'-interval '1 millisecond' ELSE (date_trunc('month',date '${dates.source}'::timestamp)+interval '1 month') AT TIME ZONE 'Asia/Bangkok'-interval '1 millisecond' END) FROM proof;
+    UPDATE proof SET r=lesson_wallet_redeem_v2(${c.redeemArgs("(s->>'credit_id')::uuid")});
+    ${c.snapshot};
+    SELECT jsonb_build_object('financeSame',finance=(${financial}),'bookingSame',booking=(SELECT md5(to_jsonb(b)::text) FROM bookings b WHERE id='${c.booking}')) FROM proof;
+    ROLLBACK;`).split('\n').filter(Boolean).map(JSON.parse);
+   assert.deepEqual(lines[0],{participants:n,policy:quantity>1?'ten_month_package':'same_month',expiryCorrect:true});
+   assert.deepEqual(lines[1],{credits:1,members:n,walleted:n,otherScheduled:(quantity-1)*n,descendants:n,childIdentity:true,targetSlots:1});
+   assert.deepEqual(lines[2],{financeSame:true,bookingSame:true});
+   results.push({state,course:privateLesson?'Family Private':'Adult',quantity,participants:n,result:'store/redeem + expiry + identity + financial invariance passed'});
+  }
+  for(const privateLesson of [false,true]) {
+   const c=fixture(privateLesson,2);
+   const result=l.localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${off} ${c.seed}
+    DELETE FROM payments WHERE id='${c.payment}'; ${stateSql(state)}
+    DO $proof$ BEGIN BEGIN PERFORM lesson_wallet_store_v2(${c.storeArgs}); RAISE EXCEPTION 'EXPECTED_MISSING_PAYMENT_DENIAL';
+    EXCEPTION WHEN OTHERS THEN IF SQLERRM<>'LESSON_WALLET_PAYMENT_EVIDENCE_MISSING' THEN RAISE; END IF; END; END $proof$;
+    SELECT count(*) FROM lesson_wallet_credits WHERE booking_id='${c.booking}'; ROLLBACK;`);
+   assert.equal(result.trim(),'0');results.push({state,course:privateLesson?'Family Private':'Adult',result:'missing approved payment denied without credit residue'});
+  }
+  const invalid=fixture(true,2);
+  const denied=l.localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${off} ${invalid.seed}
+   INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${invalid.sources[1]}','${f.mainChildId}','child','${f.adminUserId}','present'); ${stateSql(state)}
+   DO $proof$ BEGIN BEGIN PERFORM lesson_wallet_store_v2(${invalid.storeArgs}); RAISE EXCEPTION 'EXPECTED_PARTICIPANT_DENIAL';
+   EXCEPTION WHEN OTHERS THEN IF SQLERRM<>'LESSON_WALLET_ATTENDANCE_EXISTS' THEN RAISE; END IF; END; END $proof$;
+   ${invalid.snapshot}; ROLLBACK;`).split('\n').filter(Boolean).at(-1);
+  assert.deepEqual(JSON.parse(denied),{credits:0,members:0,walleted:0,otherScheduled:2,descendants:0,childIdentity:true,targetSlots:0});
+  results.push({state,course:'Family Private',result:'one attended participant rejects the entire Store unit without residue'});
+  const c=fixture(true,2);l.localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${off} ${c.seed} ${stateSql(state)} COMMIT;`);
+  const moneyBefore=l.localSql(financial);l.verifyDisposableIdentity();
+  const stores=await Promise.all(c.sources.map(id=>l.createLocalAdmin().rpc('lesson_wallet_store_v2',{p_user_id:f.userId,p_session_id:id,p_actor_id:f.userId})));
+  assert.equal(stores.filter(x=>!x.error).length,1,JSON.stringify(stores));
+  assert.match(stores.find(x=>x.error).error.message,/LESSON_WALLET_(UNIT_NOT_STORABLE|UNIT_STALE)/);
+  const credit=stores.find(x=>!x.error).data.credit_id;l.verifyDisposableIdentity();
+  const args={p_user_id:f.userId,p_credit_id:credit,p_target_date:dates.target,p_start_time:c.start,p_end_time:c.end,p_branch_id:f.branchId,p_schedule_template_id:c.targetTemplate};
+  const redeems=await Promise.all([l.createLocalAdmin().rpc('lesson_wallet_redeem_v2',args),l.createLocalAdmin().rpc('lesson_wallet_redeem_v2',args)]);
+  assert.equal(redeems.filter(x=>!x.error).length,1,JSON.stringify(redeems));
+  assert.equal(redeems.find(x=>x.error).error.message,'LESSON_WALLET_CREDIT_STALE');
+  assert.deepEqual(JSON.parse(l.localSql(c.snapshot)),{credits:1,members:2,walleted:2,otherScheduled:2,descendants:2,childIdentity:true,targetSlots:1});
+  assert.equal(l.localSql(financial),moneyBefore);
+  results.push({state,course:'Family Private',result:'different-participant concurrent Store + concurrent Redeem: one winner each, exact two participants, other purchased hour unchanged'});
+  console.log('PROTECTED_WALLET_STATE_PASS '+state+' cumulativeScenarios='+results.length);
+ }
+ console.log('PROTECTED_WALLET_RESULTS '+JSON.stringify({scenarios:results.length,results}));
+ } finally { await l.teardownTask10(); }
+})().catch(error=>{console.error(error);process.exitCode=1});
+```
+
+</details>
+
+<a id="task10-wallet-corrective-candidate-manifest-2026-09-09"></a>
+### Superseding local candidate M1–M5 manifest — NOT READY for remote approval
+
+**Historical candidate, superseded by the [2026-09-10 exact local Git-byte
+manifest](#task10-family-wallet-migration-manifest-2026-09-10).** The old M3 hash and
+verification blocker below are retained as dated evidence, not the current proposal.
+
+The old M3 manifest is superseded as a proposal. The following local candidate
+records the exact tested source bytes, **not an approved apply and not a published
+commit manifest**. Resolve protected verification first, then recalculate after
+normal commit/push and verify exact file/Git bytes and live SHA before asking for
+the separate named-project SQL approval. Any later M3 fix will require a new hash.
+
+Target freshly read at **2026-09-09 14:45:55.185953 UTC**:
+**tvnhholicwjtxdhlxfqs / New Athlete Badminton School**, ACTIVE_HEALTHY,
+ap-northeast-2, PostgreSQL17.6.1.063. Remote history contains35 migrations, latest
+**20260831060105**, **zero M1–M5**, absent Task10 policy and cron.job relations,
+and zero destination-minimum keys. **M3 was not applied remotely**; no applied
+shared migration history was rewritten.
+
+| File under supabase/migrations | Candidate SHA-256 over exact file bytes | Change from331409a |
+| --- | --- | --- |
+| 20260909000100_task10_policy_evidence_foundation.sql | 836e1a1db37f783aced1467ee0b113786e6e9fa92663407843630fa85e9dea8d | Unchanged; equals HEAD blob bytes |
+| 20260909000200_task10_booking_pricing_policy_transactions.sql | 783b12e98cc7de3d563b8e44c86beb14f54ecc04dfc4b921168d859ed2734658 | Unchanged; equals HEAD blob bytes |
+| 20260909000300_task10_kids_family_makeup_transactions.sql | 2574f6736b2713a3e14e9d5daa36fb317448951d6ea14a38c8e58873884d56d7 | Changed local candidate; HEAD still has old e0290c9258ab655ff8d27d995057655bda2a1f94b224fe2e08a59089ddabe2f7 bytes |
+| 20260909000400_task10_atomic_booking_payment_expiry.sql | c12103a08ab60dd54f59ce5627c8844a44347f649fb56b28e961901fe9ba5446 | Unchanged; equals HEAD blob bytes |
+| 20260909000500_task10_activation_and_inactive_scheduler.sql | 6ccfbf9f8a377dae9de68ebbe1f1bf24744ce13290c9c6c54224d8674072108f | Unchanged; equals HEAD blob bytes |
+
+Potential effects **only after a later exact apply approval**: Task10 evidence,
+catalog/control tables and narrow wrappers, dormant activation singleton,
+independent early/late catalogs, default minimum2 at genuine bootstrap, pg_cron
+extension and one **inactive** job. Applying those files must not set effective_at,
+activate a feature, consume an entitlement, cancel a bill, change operational
+payment/Wallet/attendance rows, capture a cohort, or repair/backfill history.
+No such remote effect occurred this round.
+
+Rollback this round: **nothing was applied or deployed remotely**, so there is no
+remote rollback action. Keep the uncommitted corrective and evidence available
+for review; do not conceal work with reset/stash. For a future approved inert
+apply, retain inert schema/job and the compatible pre-activation Task9 artifact;
+no destructive down migration is proposed. Reverify compatibility and rollback
+identity at that future gate. After actual activation, the old Task9 code is not
+a compatible rollback: use separately authorized pause/inactive-cron controls
+with Task10-compatible reads/evidence, without quota refill, Wallet revival,
+uncancellation, refund or historical rewriting.
+
+### Cleanup, unchanged Production and documentation consistency
+
+Verified disposable identity before reset/SQL/fixture operations: API
+**http://127.0.0.1:54321**, DB container/volume
+**supabase_db_New-Athlete-Badminton-School**, PostgreSQL17.6, exact project/root
+labels and DB-volume mount, local API service bindings/network. Temporary state
+changes/clock overrides and the full suite's actual cron run were local only.
+Physical Storage content was reconciled against the original88-file count.
+
+Final cleanup at **14:57:10.586325 UTC**:
+users, bookings, sessions, payments, credits, credit members, receipts, source
+mutations, Makeup uses, cohort, origins, cancellations and activation events **0**;
+activation **never_activated / effective_at NULL / revision0**, three controls
+false; cron inactive. Clock bodies restored to `SELECT clock_timestamp()` and
+`SELECT transaction_timestamp()`. Physical Storage files **88**, port3000
+listeners **0**. Auth connection reset messages during teardown were followed by
+successful ready/cleanup verification; they are not left as an unresolved reset.
+
+Fresh Vercel metadata at **14:45:53 UTC**: project
+**prj_v034HOI6AjaMpBezWvuvT0W24pTp**, team **team_gw8Y6CPd602WAKRsVFobPGCL**;
+Production still Task9 **dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY, source
+**99b70fe373bfaa14424e2163136719024e5f0b0b**. No Task10 artifact/UAT/Promotion,
+post-Promotion checks, activation, allowlist, Production data repair/write or
+customer/financial change occurred. Test servers were stopped before the passing
+build; no UI was handed back and no .next deletion/restart is claimed. The prior
+automatic-review deletion rejection remains historical, not a new approval request.
+
+Safe-handoff docs were updated PROJECT_STATE → TODO-CODEX → this dated record.
+Consistency matrix: Task10 DEVELOPING/Hard Stop; branch/live HEAD331409a and0/0;
+source/tests **No overall** with narrow green evidence; current working source
+uncommitted, pushed source331409a; new commit/push **No**; deployed source Task9;
+local migrations only, remote Task10 **0**; artifact/READY/UAT/Promotion/activation
+**No**; Production controls/allowlist/data/customer/finance unchanged; cleanup
+safe; blocker protected concurrency; next action bounded lock-scope decision,
+then verification/publication and a separate exact migration gate. Parking1–8
+unselected,9 complete,10 developing. The old manifest and OFF-complete statement
+remain below their historical heading but are explicitly superseded.
+
+<a id="task10-family-wallet-concurrency-closeout-2026-09-10"></a>
+## 2026-09-10 — Task10 Wallet compatibility and bounded Family Private concurrency corrective
+
+State observed at this local corrective commit and safe handoff. PROJECT_STATE.md owns later
+mutable state. This record supersedes the protected Hard Stop and candidate manifest
+in the 2026-09-09 Wallet corrective record; legitimate failed-test history is retained.
+
+### Owner decision, scope and Gate 0
+
+Owner authorized baseline/lock investigation and the proven Family Private Store
+lock correction through tests, diff review and normal commit/push, retaining the
+previous Wallet never-activated correction. Exact six-path allowlist remains within
+Strict66: 0 functional TS/TSX, 1 migration, 2 tests, 3 documentation, 0 config.
+No preserved-body, M1/M2/M4/M5, dependency, UI, entitlement, pricing, attendance,
+payment or payroll edit; no remote migration/deploy/activation/Production write.
+Reschedule >=12 hours includes exact12; Wallet >48 hours excludes exact48.
+The earlier Reschedule48 wording remains a documentation error, not changed policy.
+
+Actual UI has one all-family Store action, sending walletUnit.representative.id
+(schedule-calendar-client.tsx lines353/703 at the unchanged src revision).
+Both concurrency patterns below call the original RPC directly. The same-ID case
+matches that button's payload; different-participant IDs are robustness probes,
+not separate UI buttons, manual Owner UAT or observed customer incidents.
+
+Fresh Gate0 verified the exact authorized root, branch
+spike/next-major-security-upgrade, HEAD/upstream/live remote
+331409a30dff22eb20174ba7d1036ccf300e7de5, ahead0/behind0, five pre-existing modified
+corrective paths and empty staging. All existing work was preserved; no reset,
+stash, overwrite or unexplained path. The permitted local helper is the sixth path.
+
+Remote SELECT-only evidence before editing M3: named project
+tvnhholicwjtxdhlxfqs / New Athlete Badminton School, 35 historical migrations,
+latest20260831060105, zero Task10 migrations at03:51:09 UTC and again04:12:26 UTC.
+The policy relation was absent. The original remote Store/Redeem body MD5s were
+44b9f1eb00b66be46b2e1c07083210c8 / 45df8f5e780c065928f3bc77a5a77997.
+Final remote/Production observations appear below; no migration history was rewritten.
+
+### Comparable baseline and actual lock graph
+
+Six audit cases completed in session67831 (exit0) on the verified disposable.
+Each phase used the same fixture factory, isolated parent, two purchased Private
+hours, self+child participants, original-name RPCs and booking-row holder barrier.
+pg_stat_activity/pg_blocking_pids proved both requests were waiting before release.
+Committed DB state and financial/other-hour fingerprints were checked after every race.
+
+| Disposable phase | Same representative ID | Different participant IDs |
+| --- | --- | --- |
+| Actual pre-Task10 schema reset through20260831060105; Task10 relation absent | One success, LESSON_WALLET_UNIT_NOT_STORABLE | One success, deadlock detected |
+| Published331409a exact Git M1–M5 SQL | One success, LESSON_WALLET_UNIT_NOT_STORABLE | One success, deadlock detected |
+| Previous local Wallet corrective, before Family correction | One success, LESSON_WALLET_UNIT_NOT_STORABLE | One success, deadlock detected |
+
+Every case left one credit, two identity-correct members, two walleted sources,
+the other hour's two rows still scheduled and byte-equivalent in the fingerprint,
+zero descendants and orphan credits; booking/financial fingerprint unchanged.
+The demonstrated defect predates Task10 and its Wallet compatibility correction.
+This attribution comes from actual executions, not an inference from unchanged bodies.
+
+PostgreSQL deadlock DETAIL/server context recorded these cycles:
+- Pre-Task10: PID633 waited for transaction1646 held by618;618 waited for1648 held by633
+  (server04:05:27.635 UTC).
+- Published Task10:939 waited for1749 held by924;924 waited for1751 held by939
+  (server04:07:08.150 UTC).
+- Previous local corrective:1190 waited for1833 held by1183;1183 waited for1835 held by1190.
+
+The context was locking a bookings tuple in the original initial
+SELECT ... FOR UPDATE OF session_item, booking. Different requests can first hold
+different participant rows. One obtains the common booking and later needs all Family
+members; the other holds its participant while waiting for that booking, forming the cycle.
+
+### Red regression, smallest correction and dependency review
+
+The new direct-RPC regression failed on previous local M3 in session5863:
+one expected failure,43.4s. Barrier, one-winner, committed membership/residue and
+financial assertions passed before the typed-error assertion failed:
+expected LESSON_WALLET_UNIT_NOT_STORABLE, actual deadlock detected
+(PIDs530/546, transactions1616/1618).
+
+First and only business-source correction: six added lines in M3 Store wrapper.
+After shared activation advisory lock(10,1), lock the owned Private booking
+FOR UPDATE OF b before either the never-activated or established-policy route.
+It serializes the common booking before any selected participant. The old body
+already locked that booking later. No error remapping/catching or preserved-body edit.
+
+Together with the prior11-line Wallet routing correction, M3 adds17 lines:
+never_activated/effective_at NULL delegates Store and Redeem before additional
+Task10 lineage/usage/time policy checks, while retaining activation synchronization.
+The Family lock correction is the expressly authorized exception to unchanged legacy
+concurrency behavior; never-activated does not acquire Task10 Makeup/lineage guards.
+
+All four shared helper callers were inspected: Store, Redeem, Kids Reschedule and
+Return Entitlement. The helper remains unchanged; non-Kids returns false before
+lineage. Active/paused source guards remain, using effective_at rather than disabled
+flags to distinguish a previous activation. Non-Private flows do not acquire the
+additional booking lock. Original Redeem retains credit/target-slot coordination;
+mixed Store/Redeem and actual activation are transaction-tested below.
+Activation takes exclusive(10,1) before other locks; Wallet retains shared(10,1)
+through its whole transaction. Settings locks and the shared helper are unchanged.
+
+Local preserved body MD5s match the original remote bodies above. Preserved names
+remain executable only by postgres; original RPC names remain postgres/service_role
+only, SECURITY DEFINER with public,pg_temp search_path. No ACL changes.
+
+### Fresh verification on the final frozen revision
+
+| Fresh verification | Result / scope |
+| --- | --- |
+| Full Task10, `npx playwright test --config=playwright.task10.config.ts` | Session29520 **64/64 passed**, exit0,45.2m: 6 pure +51 transaction +7 UI/API/scheduler tests; transaction file36.8m |
+| Focused pricing verification on unchanged final bytes | Session20247 **7/7 passed**, exit0,6.0m; replaces the failed verification attempts below |
+| Existing Booking suite, unchanged Playwright config/tests | Session39945 **23/23 passed**, exit0,4.7m; in-memory runner called verified disposable identity before both reset calls and fixture creation; final reset count2 and residue0 |
+| `npm run test:lesson-wallet-regression` | Fresh final **45/45 passed**, exit0; pure/source checks supported by the transaction tests above |
+| `npx tsc --noEmit` | Passed on final transaction-test revision, exit0 |
+| `npm run lint` | Session89739 passed, exit0, eslint src with max-warnings0 |
+| `npm run check:mojibake` | Passed after final documentation update; exact count in final command evidence |
+| `npm run build` | Session26634 passed, exit0; compile26.8s, TypeScript11.6s, generated95/95 pages and completed traces |
+| Local Supabase security advisors | Error-level findings0 on unchanged final M3; not a claim that every advisory level is empty |
+| Diff / scope / manifest | Full staged name-status/stat/diff reviewed for every allowed path; diff-check passed; exact file/index/commit blob SHA-256 verified |
+
+The final revision was frozen for acceptance verification:
+- M3 SHA-256 e77ea5e37a618d08884c62029820c0fa5c7e2d4683c88154e84773d2b8e6250a.
+- local-supabase.ts SHA-256 bc2029b1a9ce1623bd55aa785298bb543d22eb82a48ae387c36dc70838743abf.
+- task10-transactions.spec.ts SHA-256 2020d03d4784aecf9688defb07863ed5550c9a17db58920084e4f235fbd882c3.
+- Unchanged application src Git tree55a1cd39886dcebc44d5a649b8070264b91afcee.
+
+The16 new Family cases cover both Store race patterns and concurrent Redeem in all
+three states; original Adult/Private RPCs with single/package expiry; missing-payment
+and any-member attendance denials; concurrent Store of the other purchased hour with
+Redeem; and actual activation in both transaction orders. Store loser is
+LESSON_WALLET_UNIT_NOT_STORABLE; concurrent Redeem loser is LESSON_WALLET_CREDIT_STALE.
+Assertions reconcile complete member/child/booking/owner identity, unique descendants
+at one target slot, one credit, no orphan/partial writes, the other hour and financial/
+booking entitlement invariance even after a failed request.
+
+The retained eight corrective tests call original Store/Redeem with historical used
+and ambiguous lineage and compare committed state to preserved behavior.
+Before/exact/after48h uses the SAME transaction_timestamp() as the preserved body,
+not an unrelated Task10 clock override. Active/paused used-source denials preserve
+evidence for Wallet/Reschedule/Return; activation ordering rejects stale manifests
+or applies the established guard after activation commits. Original Task10 tests
+also retain Reschedule12/cutoff, Makeup/quota/settings/pricing/payment protections.
+
+Exploratory results are not final acceptance:
+- Two early baseline harness attempts could not SET deadlock_timeout as local postgres
+  and never reached Wallet. Removed the override; no permission/config change.
+- The first focused16-case worker loaded older fixtures. It produced9 narrow passes
+  and3 fixture failures: deleting a payment after activation correctly hit
+  TASK10_GUARDED_PAYMENT_LIFECYCLE; paused=true controls violated the activation check.
+  The exact runner subtree was stopped and the disposable explicitly cleaned.
+- Fixture construction now precedes activation; paused controls are false, with
+  effective_at retained. Four sequential verified fixtures have a180s test budget.
+  Membership/unique-descendant assertions were strengthened. Race JSON is attached
+  to test results in memory; no standalone persisted JSON file is claimed.
+  No further M3 correction or weakening of M4 was required.
+- First full64 run (session66067,43.7m) passed62 and failed2. Its test hash was
+  1af909d18b9d0d2923fd2540217c15baa6070e9f06c754481588bb081b657a02;
+  M3/helper were already the final bytes. All16 Family cases and all8 Wallet
+  corrective cases passed. The existing coupon test's fixed18s holder exceeded
+  authenticator's unchanged8s statement/lock timeout: at05:05:27.409 UTC the RPC
+  timed out waiting on the coupon; the holder finished at05:05:27.505 UTC.
+  The call stack was original Progressive creation/M2, not M3. Worker restart then
+  lost created[0] for the following fixture-dependent test; that test's independent
+  stale-preview backend assertions had already returned the expected conflict.
+  Necessary verification-only correction in the allowed transaction test replaces
+  fixed sleep with existing holdLocalTransaction, released immediately after the
+  observed wait and clock transition. No pricing/coupon SQL, timeout, configuration
+  or protected behavior changed. It also releases in finally. Fresh focused and
+  final results are listed above; the failed full run is not reported as PASS.
+- The first focused pricing rerun (session85849) passed3/7 and failed4/7:
+  UND_ERR_SOCKET on the existing receipt test followed by three120s timeouts.
+  Exact transport cause was not established; it is not a Family SQL failure or a
+  passing verification. The later Windows sleep06:26–10:38 UTC occurred after the
+  run and is not causal evidence for it. After wake, verified local DB/API were
+  healthy (three HTTP200 reads), no OOM/restart evidence, users0, inert controls and
+  inactive cron. Repeated verification uses unchanged final SQL/test bytes, with
+  no permission, timeout, configuration or infrastructure mutation.
+- The prior day's48/48 Task10,23/23 Booking,45/45 Wallet/build passes remain historical
+  references; the fresh final runs above are the acceptance evidence for this revision.
+
+### Cleanup, local commit, push gate and documentation consistency
+
+Final cleanup at **11:41:05 UTC** reconciled 25 tables to zero:
+auth.users, profiles, children, bookings, booking_sessions, schedule_slots, payments,
+lesson_wallet_credits, lesson_wallet_credit_members, accepted receipts, family Makeup
+uses, expiry cohort, pricing evidence, source mutations, cancellations, activation
+events, Wallet transition evidence, booking calculations, Legacy baseline deltas,
+worker runs, Progressive payment batches, allocations, coupon usages, attendance,
+and finance expenses. Test connections0. Controls were never_activated,
+effective_at NULL, revision0, artifact NULL and three false; cron inactive.
+Clock functions were restored to SELECT clock_timestamp() and
+SELECT transaction_timestamp(). Preserved Wallet MD5s matched baseline.
+The verified storage mount supabase_storage_New-Athlete-Badminton-School at /mnt
+retained all88 original physical files. No port3000 listener remained before build;
+no dev UI handback, generated .next deletion or restart is claimed.
+
+Final remote SELECT at **11:41:35 UTC** again showed35 migration records,
+latest20260831060105, M1–M5 count0, Task10 policy/cron relations absent,
+minimum-setting keys0, original Wallet MD5s unchanged and preserved Task10
+Wallet names absent. Vercel at **11:43:25 UTC** still pointed Production to
+Task9 **99b70fe373bfaa14424e2163136719024e5f0b0b /
+dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY. These metadata reads are not
+Task10 Production health acceptance. No remote migration, deployment,
+activation, cron execution, repair or Production write occurred.
+
+The exact changed paths, relative to the authorized root
+C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School, are:
+
+| Path | Purpose |
+| --- | --- |
+| supabase/migrations/20260909000300_task10_kids_family_makeup_transactions.sql | Preserve never-activated Wallet routing and serialize Family Store on the owned booking |
+| tests/task10-regression/task10-transactions.spec.ts | Original-RPC compatibility, state/cutoff/race/activation and protected acceptance; deterministic coupon-holder verification |
+| tests/task10-regression/local-supabase.ts | Verified disposable protected Wallet fixtures, lock barrier, DB/identity/financial snapshots |
+| PROJECT_STATE.md | Sole current-state matrix and push blocker |
+| TODO-CODEX.md | Short active queue derived from PROJECT_STATE |
+| DEVELOPMENT_TODO.md | Owner decisions, baseline/red/green evidence, superseded history and new manifest |
+
+Counts: **6 paths = functional TS/TSX0 / migration1 / tests2 / docs3 / config0**,
+all existing Strict66 paths. Source/test diff: M3 +17/-0, helper +90/-0,
+transaction test +315/-5. Original five dirty corrective paths were preserved.
+The complete staged diff, name-status/stat, six-path allowlist and business
+blast radius were reviewed before one normal local commit. No active Git hook
+or custom hooksPath was found. The containing commit has parent331409a; its exact
+SHA and clean final worktree are reported after commit. Live remote remained
+331409a, ahead1/behind0; **no push was performed**. File/index/commit blob byte
+comparisons cover all five migration hashes below.
+
+Vercel read-only evidence rechecked at11:43:25.451 UTC: project
+prj_v034HOI6AjaMpBezWvuvT0W24pTp / new-athlete-badminton-school,
+gitProviderOptions.createDeployments=enabled, commandForIgnoringBuildStep=null,
+production branch main. The source branch is spike/next-major-security-upgrade;
+latest existing Preview was dpl_EzMzLarPLrWVB1urWoGaqJdtgRFe at331409a.
+[Official Git deployment behavior](https://vercel.com/docs/git/vercel-for-github)
+and [project settings](https://vercel.com/docs/project-configuration/project-settings)
+confirm a push triggers a Preview. No documented commit-message skip was verified
+under current configuration; vercel.json has no deployment-disable/ignore rule.
+Using [Git deployment controls](https://vercel.com/docs/project-configuration/git-configuration)
+or Ignored Build Step would change configuration, outside the six-path/config0 scope.
+
+Owner's latest §5 expressly excludes deploy, while normal push is authorized.
+Developer therefore completed independent source verification, build, full diff review
+and the local commit, then held push rather than triggering the excluded deployment.
+No Git/Vercel configuration, commit-author workaround, automatic deployment, deployment
+cancellation or new remote write was used to bypass this boundary. This stop comes
+from the Owner scope and verified provider behavior, not a tool approval rejection
+or a skill-imposed approval requirement. Owner must explicitly allow this exact
+commit's automatic Preview, or separately authorize a deployment-control change,
+before push can continue. Production migration/Promotion/activation remain separate.
+
+Documentation was updated PROJECT_STATE → TODO-CODEX → this dated record.
+The consistency matrix distinguishes corrective Source/tests/publication completion
+from Task10 release completion: Task10 DEVELOPING with push held, READY No, Task Done No;
+locally committed corrective source and unchanged remote331409a; no Task10 staged artifact/UAT/Promotion/health acceptance; local
+migrations only; remote Task10 absent; activation/allowlist/Production data/customer/
+financial effects unchanged. The next gate is Owner direction on the automatic-Preview/no-deploy conflict;
+then normal push/live SHA verification and separate named-project exact-SQL approval.
+No additional Family business correction approval is needed. Parking1–8 unselected,
+9 completed,10 developing.
+
+<a id="task10-family-wallet-migration-manifest-2026-09-10"></a>
+### New M1–M5 exact local Git-byte candidate — push gate precedes remote approval
+
+Named destination: **tvnhholicwjtxdhlxfqs / New Athlete Badminton School**.
+Source identity: containing local corrective commit, parent331409a. Final report
+names its exact SHA and unchanged live remote331409a; no new push was performed. Hashes are SHA-256 of exact UTF-8/LF
+file bytes and corresponding Git blob bytes, with no PowerShell text normalization.
+
+| Migration | Exact SHA-256 | Change from published331409a |
+| --- | --- | --- |
+| 20260909000100_task10_policy_evidence_foundation.sql | 836e1a1db37f783aced1467ee0b113786e6e9fa92663407843630fa85e9dea8d | Unchanged |
+| 20260909000200_task10_booking_pricing_policy_transactions.sql | 783b12e98cc7de3d563b8e44c86beb14f54ecc04dfc4b921168d859ed2734658 | Unchanged |
+| 20260909000300_task10_kids_family_makeup_transactions.sql | e77ea5e37a618d08884c62029820c0fa5c7e2d4683c88154e84773d2b8e6250a | Changed: Wallet state routing and Family Store locking |
+| 20260909000400_task10_atomic_booking_payment_expiry.sql | c12103a08ab60dd54f59ce5627c8844a44347f649fb56b28e961901fe9ba5446 | Unchanged |
+| 20260909000500_task10_activation_and_inactive_scheduler.sql | 6ccfbf9f8a377dae9de68ebbe1f1bf24744ce13290c9c6c54224d8674072108f | Unchanged |
+
+Only M3 differs from the published331409a manifest
+(e0290c9258ab655ff8d27d995057655bda2a1f94b224fe2e08a59089ddabe2f7)
+and the previous uncommitted corrective candidate
+(2574f6736b2713a3e14e9d5daa36fb317448951d6ea14a38c8e58873884d56d7).
+Both are superseded by this manifest. M1/M2/M4/M5 remain exact unchanged Git bytes.
+
+Future apply effects: original Wallet RPC compatibility and the Family booking-before-
+participant lock correction take effect immediately on M3 SQL apply, including
+never_activated. The Task10 pricing, Makeup and no-slip expiry policies remain
+inactive until separately authorized actual activation. M1–M5 create private evidence/
+control/catalog structures, dormant bootstrap state, the bootstrap minimum2, pg_cron
+extension and one inactive job. Apply does not set effective_at, capture a cohort,
+consume entitlement, cancel bills, rewrite operational Wallet/payment/attendance/
+financial records or backfill/repair history. None of these remote apply effects
+occurred during this source-only corrective round.
+
+Rollback: nothing was migrated/deployed remotely this round. The verified existing
+Task9 artifact remains the pre-activation web fallback, but web rollback cannot undo
+database wrappers. Any database rollback or forward correction requires separately
+reviewed exact SQL; never rewrite applied migration history or drop evidence.
+After actual activation, old Task9 source is not a compatible rollback: use separately
+authorized pause/inactive cron with Task10-compatible reads and retained evidence,
+without quota refill, Wallet revival, uncancellation or refund.
+
+This source approval does not automatically approve old or new SQL manifests.
+Resolve the push gate and verify the exact live SHA before proposing remote apply. After explicit named-project exact-SQL approval, the remaining
+release sequence is approved migration → exact staged Production artifact
+(vercel --prod --skip-domain) and OFF smoke → Owner exact artifact/SHA PASS →
+Promotion of that artifact without rebuild → Production health/error checks.
+Activation still needs its own authority.

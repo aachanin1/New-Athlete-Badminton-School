@@ -245,3 +245,93 @@ export async function teardownTask10() {
 }
 
 export { createLocalAdmin, getLocalSupabaseEnv }
+
+// Synthetic protected-Wallet fixtures also work on the actual pre-Task10 schema.
+// Each parent is isolated; different participant IDs below are direct-RPC probes,
+// not separate buttons in the customer UI (which sends one representative ID).
+let protectedWalletMinute = 0
+export async function protectedWalletFixture(f: BookingFixture, privateLesson = true, quantity = 2) {
+  verifyDisposableIdentity()
+  const parent = await createLocalAdmin().auth.admin.createUser({
+    email: `wallet-lock-${randomUUID()}@example.com`, password: TASK10_PASSWORD, email_confirm: true,
+  })
+  if (parent.error || !parent.data.user) throw new Error(parent.error?.message || 'Missing protected fixture parent')
+  const userId = parent.data.user.id; const childId = randomUUID(); const booking = randomUUID(); const payment = randomUUID()
+  const course = privateLesson ? f.privateCourseId : f.adultCourseId
+  const minute = protectedWalletMinute++
+  const start = `${String(5 + Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}:00`
+  const end = `${String(6 + Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}:00`
+  const dates = JSON.parse(localSql(`SELECT jsonb_build_object(
+    'source',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 10 days')::date,
+    'other',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 13 days')::date,
+    'target',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 11 days')::date);`)) as { source: string; other: string; target: string }
+  const children = privateLesson ? [null, childId] : [null]
+  const sources = children.map(() => randomUUID()); const others = quantity > 1 ? children.map(() => randomUUID()) : []
+  const targetTemplate = randomUUID(); const slots = [randomUUID(), randomUUID(), randomUUID()]
+  const statements = [`INSERT INTO children(id,parent_id,full_name,date_of_birth) VALUES('${childId}','${userId}','Protected Wallet child','2016-01-01');
+    INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)
+      VALUES('${booking}','${userId}','self','${f.branchId}','${course}',extract(month FROM date '${dates.source}'),extract(year FROM date '${dates.source}'),${quantity},${quantity * (privateLesson ? 1000 : 500)},'verified');
+    INSERT INTO payments(id,booking_id,user_id,amount,status,verified_at)
+      VALUES('${payment}','${booking}','${userId}',${quantity * (privateLesson ? 1000 : 500)},'approved',transaction_timestamp());`]
+  ;[dates.source, dates.other, dates.target].forEach((date, i) => {
+    const template = i === 2 ? targetTemplate : randomUUID()
+    statements.push(`INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
+      VALUES('${template}','${f.branchId}','${course}',extract(dow FROM date '${date}'),'${start}','${end}',true);
+      INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
+      VALUES('${slots[i]}','${template}','${f.branchId}','${course}','${date}','${start}','${end}',1,0,'open');`)
+    if (i < 2) (i === 0 ? sources : others).forEach((id, j) => statements.push(`INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
+      VALUES('${id}','${booking}','${slots[i]}','${date}','${start}','${end}','${f.branchId}',${children[j] ? sqlLiteral(children[j]!) : 'NULL'},'scheduled',false);`))
+  })
+  const ids = sources.map(sqlLiteral).join(','); const otherIds = others.length ? others.map(sqlLiteral).join(',') : 'NULL::uuid'
+  const storeArgs = (id = sources[0]) => `'${userId}','${id}','${userId}'`
+  const redeemArgs = (credit: string) => `'${userId}',${sqlLiteral(credit)},'${dates.target}','${start}','${end}','${f.branchId}','${targetTemplate}'`
+  const snapshot = `SELECT jsonb_build_object(
+    'credits',(SELECT count(*) FROM lesson_wallet_credits WHERE booking_id='${booking}'),
+    'members',(SELECT count(*) FROM lesson_wallet_credit_members WHERE original_session_id IN (${ids})),
+    'memberIdentity',(SELECT coalesce(bool_and(m.child_id IS NOT DISTINCT FROM s.child_id AND w.booking_id=s.booking_id AND w.user_id='${userId}'),true) FROM lesson_wallet_credit_members m JOIN booking_sessions s ON s.id=m.original_session_id JOIN lesson_wallet_credits w ON w.id=m.credit_id WHERE s.id IN (${ids})),
+    'walleted',(SELECT count(*) FROM booking_sessions WHERE id IN (${ids}) AND status='walleted'),
+    'otherScheduled',(SELECT count(*) FROM booking_sessions WHERE id IN (${otherIds}) AND status='scheduled'),
+    'descendants',(SELECT count(*) FROM booking_sessions WHERE rescheduled_from_id IN (${ids})),
+    'childIdentity',(SELECT coalesce(bool_and(n.child_id IS NOT DISTINCT FROM o.child_id),true) AND count(*)=count(DISTINCT n.rescheduled_from_id) FROM booking_sessions n JOIN booking_sessions o ON o.id=n.rescheduled_from_id WHERE o.id IN (${ids})),
+    'targetSlots',(SELECT count(DISTINCT schedule_slot_id) FROM booking_sessions WHERE rescheduled_from_id IN (${ids})),
+    'orphanCredits',(SELECT count(*) FROM lesson_wallet_credits w WHERE booking_id='${booking}' AND NOT EXISTS(SELECT 1 FROM lesson_wallet_credit_members m WHERE m.credit_id=w.id)))`
+  const financialInvariants = `SELECT md5(jsonb_build_object(
+    'booking',(SELECT to_jsonb(b) FROM bookings b WHERE id='${booking}'),
+    'payments',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM payments p),
+    'coupons',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM coupon_usages c),
+    'allocations',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY to_jsonb(a)::text),'[]') FROM progressive_payment_allocations a),
+    'finance',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY to_jsonb(e)::text),'[]') FROM finance_expenses e))::text)`
+  const invariants = financialInvariants.replace("'booking',", `'otherHour',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s WHERE id IN (${otherIds})), 'booking',`)
+  return { userId, childId, booking, payment, sources, others, children, quantity, privateLesson, dates, start, end,
+    targetTemplate, branch: f.branchId, seed: statements.join('\n'), storeArgs, redeemArgs, snapshot, invariants, financialInvariants }
+}
+
+export type ProtectedWalletFixture = Awaited<ReturnType<typeof protectedWalletFixture>>
+
+// Delay both real original-name calls at the same booking row without modifying
+// any function body. Capture results AND committed DB state even when one fails.
+export async function raceFamilyWalletStore(c: ProtectedWalletFixture, differentParticipants: boolean) {
+  const prefix = `family-lock-${randomUUID()}`
+  const names = [`${prefix}-a`, `${prefix}-b`]
+  const before = localSql(c.invariants)
+  const holder = await holdLocalTransaction(`SELECT id FROM bookings WHERE id='${c.booking}' FOR UPDATE;`, `${prefix}-holder`)
+  const calls = [c.sources[0], differentParticipants ? c.sources[1] : c.sources[0]].map((id, i) =>
+    concurrentLocalSql(`SET application_name=${sqlLiteral(names[i])}; SET lock_timeout='35s'; SET statement_timeout='45s';
+      SELECT public.lesson_wallet_store_v2(${c.storeArgs(id)});`)
+      .then(output => ({ output, error: '' }), error => ({ output: '', error: String(error) })))
+  const graphSql = `SELECT coalesce(jsonb_agg(jsonb_build_object('pid',pid,'app',application_name,'waitType',wait_event_type,'wait',wait_event,
+    'blockers',pg_blocking_pids(pid),'query',query) ORDER BY application_name),'[]') FROM pg_stat_activity WHERE application_name LIKE '${prefix}%';`
+  let waiting: Array<{ waitType: string | null; app: string }> = []
+  let barrierReached = false
+  try {
+    const deadline = Date.now() + 25_000
+    do {
+      waiting = JSON.parse(localSql(graphSql))
+      if (waiting.filter(row => names.includes(row.app) && row.waitType === 'Lock').length === 2) { barrierReached = true; break }
+      await new Promise(resolveWait => setTimeout(resolveWait, 100))
+    } while (Date.now() < deadline)
+  } finally { await holder.finish() }
+  const releasedGraph = JSON.parse(localSql(graphSql))
+  const results = await Promise.all(calls)
+  return { barrierReached, waiting, releasedGraph, results, snapshot: JSON.parse(localSql(c.snapshot)), invariantsUnchanged: localSql(c.invariants) === before }
+}

@@ -326,6 +326,18 @@ CREATE FUNCTION public.lesson_wallet_store_v2(p_user_id uuid,p_session_id uuid,p
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE v_guard boolean; v_result jsonb;
 BEGIN
+  -- Serialize the state decision and the entire legacy operation with activation.
+  -- effective_at retains the guards after pause; disabled flags alone do not.
+  PERFORM pg_advisory_xact_lock_shared(10,1);
+  -- Family callers must lock the common booking before any selected participant.
+  -- This lock correction applies to both policy paths without lineage guards.
+  PERFORM 1 FROM public.bookings b JOIN public.booking_sessions s ON s.booking_id=b.id
+    JOIN public.course_types c ON c.id=b.course_type_id
+    WHERE s.id=p_session_id AND b.user_id=p_user_id AND c.name::text='private'
+    FOR UPDATE OF b;
+  IF NOT public.task10_source_policy_established_v1() THEN
+    RETURN public.task10_previous_wallet_store_v2(p_user_id,p_session_id,p_actor_id);
+  END IF;
   v_guard:=public.task10_begin_source_v1(p_session_id,p_user_id);
   IF v_guard AND EXISTS(SELECT 1 FROM public.booking_sessions WHERE id=p_session_id
     AND (date+start_time) AT TIME ZONE 'Asia/Bangkok'<=public.task10_clock_v1()+interval '48 hours') THEN
@@ -341,6 +353,11 @@ CREATE FUNCTION public.lesson_wallet_redeem_v2(p_user_id uuid,p_credit_id uuid,p
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE v_source uuid; v_guard boolean; v_result jsonb;
 BEGIN
+  -- Decide before reading lineage or applying any additional Task10 time guard.
+  PERFORM pg_advisory_xact_lock_shared(10,1);
+  IF NOT public.task10_source_policy_established_v1() THEN
+    RETURN public.task10_previous_wallet_redeem_v2(p_user_id,p_credit_id,p_target_date,p_start_time,p_end_time,p_branch_id,p_schedule_template_id);
+  END IF;
   SELECT original_session_id INTO v_source FROM public.lesson_wallet_credits WHERE id=p_credit_id;
   v_guard:=public.task10_begin_source_v1(v_source,p_user_id);
   IF v_guard AND EXISTS(SELECT 1 FROM public.lesson_wallet_credits WHERE id=p_credit_id

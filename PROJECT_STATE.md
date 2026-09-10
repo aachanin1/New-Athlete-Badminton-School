@@ -1,70 +1,70 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-09 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-10 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task 10 local verification complete / remote migration gate
+## Current State — Task 10 corrective local commit / push blocked by automatic deployment
 
-PROJECT_STATE.md is the sole authority for current mutable state. Owner's FINAL
-command approves the [single strict 66-file Scope](DEVELOPMENT_TODO.md#parking-lot-10-development-scope).
-The explicit cutoff correction preserves Reschedule12/Wallet48. Other decisions,
-48,000 บาท including automatic cancellation, and Parking Lot1–9 remain unchanged.
-This source and safe handoff are published by the containing Task10 commit; its
-exact SHA and equality with the live upstream are verified in the publication
-report, avoiding a recursive SHA inside its own commit.
+PROJECT_STATE.md is the sole authority for current mutable state. Owner approved
+the Wallet never-activated corrective and the bounded Family Private Store lock
+correction within Strict66. The [dated closeout](DEVELOPMENT_TODO.md#task10-family-wallet-concurrency-closeout-2026-09-10)
+resolves the previous protected concurrency Hard Stop. Normal push is held because
+existing Vercel Git auto-deployment conflicts with this round's no-deploy scope.
+The corrective is a local committed result, not an installed or activated Task10 release.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **10 — Kids booking-date pricing + family Makeup + destination minimum/settings + automatic no-slip cancellation** |
-| Task Status | **DEVELOPING — Source and local verification complete; awaiting named-project exact-SQL migration approval**. READY FOR OWNER UAT **No**; Task Done **No** |
-| Actor / Scope | Parent existing booking/payment/Wallet; authorized Makeup Admin; Super Admin settings; scheduler; Developer verification; Owner exact-artifact UAT. Strict **41/15/4/5/1 = 66** paths |
-| Owner Decision | All eight decisions, both pricing settings entries, Super Admin editor and forward-only minimum approved. **Reschedule >=12h; Wallet Store >48h**: exact12 permitted, exact48 rejected. Earlier Reschedule48 wording superseded as an error |
-| Commercial Record | **Approved 48,000 บาท**, automatic cancellation included at no extra charge. Customer payment **Unknown / no evidence supplied** |
+| Active Task | **10 — Wallet compatibility before activation and bounded Family Private Store concurrency corrective**, within the approved Task10 scope |
+| Task Status | **DEVELOPING — PUSH HARD STOP**; READY FOR OWNER UAT **No**; Task Done **No** |
+| Actor / Scope | Wallet users and Developer. Exact six paths: M3, two Task10 test files, three context documents; 0 functional TS/TSX /1 migration /2 tests /3 docs /0 config, within Strict66 |
+| Owner Decision | Both corrective scopes authorized through verification and normal commit/push. **Reschedule >=12h (exact12 allowed) / Wallet Store >48h (exact48 denied)**, Bangkok interpretation and all other Task10 decisions unchanged. No remote migration/deploy/activation/Production write authority this round |
+| Commercial Record | **Approved 48,000 บาท**, automatic cancellation included at no extra charge; customer payment **Unknown / no evidence supplied** |
 | Branch | **spike/next-major-security-upgrade** |
 | Upstream / Remote | **origin/spike/next-major-security-upgrade** / https://github.com/aachanin1/New-Athlete-Badminton-School.git |
-| Local HEAD | **Containing Task10 source/safe-handoff publication commit**; verified pre-publication parent **3bcdf86525a86373c9c2ed15e26b89d99875b106** |
-| Remote HEAD | **Same containing publication commit after verified normal push**; exact live SHA recorded in publication report |
-| Ahead / Behind | **0 / 0 after publication verification** |
-| Worktree / Staged | Publication change set **59 allowed paths: 40 functional /9 tests /4 docs /5 migrations /1 config**, 40 existing +19 new. Seven planned paths unchanged. Original three dirty Task10 docs preserved. Clean/staged-empty required and checked after publication; generated ignored outputs excluded |
-| Current Source / Pushed Source | **Task10 source in the containing publication commit / same on upstream**. Tested src tree **55a1cd39886dcebc44d5a649b8070264b91afcee**. Prior application **99b70fe373bfaa14424e2163136719024e5f0b0b** is the unchanged Production source |
-| Source Complete | **Yes — approved source, five migrations and local test implementation complete**. Remote release/activation remain separate |
-| Tests Passed | **Yes for required local technical scope**: Task10 **40/40**, final pricing-summary correction **1/1** focused rerun; original Booking **23/23**, affected protected Booking cases rerun **15/15**; History **16/16**. Wallet/Progressive **45/17/33/32/44/29/38**; SlipOK **6**; retrospective DB **38**; teaching hours **20**; schedule assignment **39**; learner identity **17**. TypeScript, lint, Production build, mojibake and diff checks passed. Detailed mapping and same-source limits in dated evidence |
-| Committed | **Containing Task10 publication commit**, normal commit only after checks and complete diff/scope review; exact SHA in publication report |
-| Pushed | **Same source commit on the named upstream**, verified normal push; no force push |
-| Deployed | **No Task10 staged Production deployment or Production release**. Git-triggered Preview, if any, is not the authorized exact-artifact UAT target |
-| Deployed Source / Deployment ID | Fresh Vercel Production target: **99b70fe373bfaa14424e2163136719024e5f0b0b / dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY, unchanged Task9 |
-| Artifact | **No Task10 staged artifact, ID or URL yet**. Required workflow after migration gate: production-target **vercel --prod --skip-domain**, no alias switch |
-| Owner Staged UAT | **Not run**; prepared seven-step runbook only. Disposable functional evidence and staged Production OFF smoke must remain separate |
-| Promotion | **No action; prohibited before Owner PASS for the exact staged artifact/SHA** |
-| Production Health Checks | **Task10 post-Promotion checks not run**. Existing Task9 health endpoint returned HTTP200/ok in read-only verification; this is not Task10 Production acceptance |
-| Migration Source | **All five approved M1–M5 complete**, exact SHA-256 manifest in [dated migration handoff](DEVELOPMENT_TODO.md#task10-migration-handoff-2026-09-09); local SQL bytes equal staged Git blobs |
-| Migration Applied | **Five applied only to verified disposable local DB**. Remote project **tvnhholicwjtxdhlxfqs** still has **0 Task10 migrations**, no Task10 policy relation, no minimum key, no cron.job relation at **2026-09-09 07:03:52 UTC** |
-| Environment / Scheduler / Config / Permissions | One approved local Playwright config. No Production environment, secret, allowlist or infrastructure change. Production pg_cron already preloaded for postgres; M5 would create the extension and register its job **inactive**. Local ACL/RLS verified; service_role cannot activate, pause or run scheduler |
-| Activation / effective_at | **Not activated / NULL**. Local cleanup restored never_activated, revision0, all three controls false and cron inactive. No caller-supplied Production clock override |
-| Feature Enabled | **No Task10 feature enabled in Production** |
-| Allowlisted | **No changes**; existing live values not re-audited |
-| Production Active | **Task10 No; existing Task9 remains active** |
-| Production UAT Passed | **Not run for Task10** |
-| Controlled Write UAT | **No Production controlled-write UAT**. Synthetic disposable API/DB/Storage tests passed and were cleaned |
+| Local HEAD | Containing local corrective commit; parent **331409a30dff22eb20174ba7d1036ccf300e7de5**. Exact resulting SHA is in the final commit report, avoiding a recursive self-SHA |
+| Remote HEAD | Live named branch remains **331409a30dff22eb20174ba7d1036ccf300e7de5**; no corrective push |
+| Ahead / Behind | **1 / 0 after the verified local corrective commit** |
+| Worktree / Staged | Six allowed paths included in the local corrective commit; final clean worktree/staged state verified in the commit report. No outside-path edit, reset, stash or overwrite |
+| Current Source | Local corrective commit contains both approved corrections; unchanged src tree **55a1cd39886dcebc44d5a649b8070264b91afcee** |
+| Pushed Source | **331409a30dff22eb20174ba7d1036ccf300e7de5**, without this corrective |
+| Source Complete | **Yes for both corrective scopes**; full Task10 release remains incomplete |
+| Tests Passed | **Yes on the final frozen corrective bytes**: Task10 **64/64** (including 16 new Family cases and 8 retained Wallet corrective cases), Booking **23/23**, Wallet **45/45**; TypeScript, lint, mojibake and Production build passed. Earlier failed runs are explicitly retained in the dated record |
+| Committed | **Yes — containing local corrective commit** |
+| Pushed | **No**. Existing Vercel Git auto-deployment is enabled and Ignored Build Step is null; pushing this non-production branch would create a Preview outside the no-deploy scope |
+| Deployed | **No Task10 staged Production deployment or release this round**; no deploy command issued |
+| Deployed Source / Deployment ID | Read-only evidence **2026-09-10 11:43:25 UTC**: unchanged Task9 **99b70fe373bfaa14424e2163136719024e5f0b0b / dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY |
+| Artifact | **No Task10 staged Production artifact, ID or UAT URL**. Local build is not a deployed artifact |
+| Owner Staged UAT / Production UAT Passed | **Not run for Task10** |
+| Promotion | **No action**; Owner exact artifact/SHA PASS required before no-rebuild Promotion |
+| Production Health Checks | **No Task10 post-Promotion checks**. Read-only existing deployment metadata is not Task10 health acceptance |
+| Migration Source | [New exact local Git-byte M1–M5 candidate](DEVELOPMENT_TODO.md#task10-family-wallet-migration-manifest-2026-09-10); only M3 changed, SHA-256 **e77ea5e37a618d08884c62029820c0fa5c7e2d4683c88154e84773d2b8e6250a**. Earlier manifests superseded; resolve push gate before the separate named-project exact-SQL migration approval |
+| Migration Applied | Remote **tvnhholicwjtxdhlxfqs / New Athlete Badminton School**, **2026-09-10 11:41:35 UTC**: **0 M1–M5**, 35 historical migrations, latest **20260831060105**, Task10 policy/cron relations absent and minimum-setting keys0; revised M1–M5 applied only to verified disposable |
+| Environment / Scheduler / Config / Permissions | **No remote changes**. Local activation/cron/clock tests and cleanup were disposable only; no production cron execution or secret operation |
+| Activation / effective_at | **Production Task10 not activated**; Task10 policy relation absent. Disposable final state never_activated / NULL / revision0 / three controls false |
+| Feature Enabled | **No Task10 Production activation** |
+| Allowlisted | **No changes**; unrelated values not re-audited |
+| Production Active | **Task10 No; Task9 deployment unchanged** |
+| Controlled Write UAT | **No Production write UAT**; fresh transactional verification used synthetic disposable fixtures |
 | Data Repaired | **No** |
-| Production Data Changed | **No task-attributable writes**; only read-only remote queries |
-| Customer Impact | **None from this unpublished-to-Production Task10 source** |
-| Financial Impact | **No Production financial changes**. Synthetic test payments/coupons and their cleanup are local only; no customer payment claim |
-| Disposable Cleanup | At **07:21:35 UTC** users/bookings/payments/Wallet/receipts/Makeup uses/cohort/origins/cancellations all **0**; five migrations remain inert; real clock function restored; original physical Storage file count **88** preserved |
-| Local Dev Handoff | Fresh dev process at **http://127.0.0.1:3000**, bound to verified disposable API **127.0.0.1:54321** through process-only variables. Root and seven discovered static assets **HTTP200**. Manual .next deletion was rejected by automatic approval review; retained as an explicit protocol limitation, not a passing deletion claim. No fixture accounts remain |
-| Scope Expansion / Scope Breach | **0 / 0**; no package, lockfile, deployment config, historical migration or outside-66 source edit |
-| Documentation Drift | **Resolved**: Owner cutoff correction and current matrix replace earlier partial state. Earlier scope/partial handoffs are explicitly historical. All publication fields use this containing-commit identity and are verified after normal push |
-| Blocker | **Owner command §9 requires named-project approval of the exact five SQL hashes before remote schema/catalog/inactive-job apply**. Source-plan approval does not authorize that operation |
-| Remaining Work | Exact remote migration approval/apply and OFF compatibility checks; staged Production artifact and OFF smoke; Owner exact-artifact PASS; no-rebuild Promotion/health; separately approved actual-clock activation manifest and post-activation reconciliation/closeout |
-| Next Gate / Next Action | Owner reviews the five-file SQL manifest, target identity, local evidence, effects and rollback, and approves only the exact inert remote apply. Developer then continues authorized staging. No formula/scope reapproval; no activation or old-data repair inferred |
-| Parking Lot Authorization State | **1–8 unselected; 9 completed; 10 implementation approved**. No next task starts automatically |
+| Production Data Changed | **No task-attributable writes**; remote DB access SELECT/read-only |
+| Customer Impact | **No Production change**. UI remains one all-family button sending representative ID; different-participant races are direct-RPC tests, not observed customer events |
+| Financial Impact | **No Production financial change**. Disposable race checks preserve booking entitlement quantity, payments, coupon usages, allocations, finance and unrelated hour, including when one request fails |
+| Disposable Cleanup | Verified **2026-09-10 11:41:05 UTC**: all 25 checked fixture/evidence tables **0**, test connections0; never_activated / effective_at NULL / revision0 / three controls false, cron inactive, real clock/transaction-clock bodies restored; original Storage files **88**, preserved Wallet bodies unchanged |
+| Local Dev Handoff | **No port3000 listener; no UI handback this round**. Test servers closed before build; no .next deletion/restart claimed |
+| Scope Expansion / Scope Breach | **0 / 0**. M3 adds17 lines total: previous11-line compatibility correction plus6-line Family lock correction; preserved Wallet bodies/shared helper unchanged |
+| Documentation Drift | **Resolved by this safe handoff**: prior Family failure/inferred baseline replaced by verified correction; local commit, unchanged remote and new push gate kept distinct. Historical failed runs/manifests retained |
+| Blocker | Owner §5 forbids deploy and configuration changes. Verified Vercel project **prj_v034HOI6AjaMpBezWvuvT0W24pTp** has Git createDeployments enabled and no Ignored Build Step. No documented commit-message skip was verified under current configuration; do not change configuration or push into automatic Preview without Owner direction |
+| Remaining Work | Resolve automatic-Preview/no-deploy conflict, normal push and exact live SHA verification; then separate named-project migration approval, exact staged Production artifact/OFF smoke, Owner exact PASS, no-rebuild Promotion/health; separately authorized activation |
+| Next Gate / Next Action | Owner decides whether this exact local corrective commit may be pushed with the existing automatic Preview deployment. No remote migration, Production deployment/Promotion, activation or data-write authority is implied |
+| Parking Lot Authorization State | **1–8 unselected; 9 completed; 10 DEVELOPING**. No other task starts automatically |
 
 ### Current Parking Lot positions
 
-Original positions and candidates1–9 remain recorded in TODO-CODEX.md. Only item10
-is selected for development. See the dated handoff for the exact59-path manifest,
-seven unchanged paths, requirement-to-evidence mapping and prepared Owner UAT.
+Original positions and candidates1–9 remain in TODO-CODEX.md. Only item10 is
+selected. The original59-path publication is historical; this corrective modifies
+six existing Strict66 paths. The local commit is not pushed and does not authorize
+a remote release.
 
 ## Historical / Completed — Task 9 released / TASK DONE
 
