@@ -205,7 +205,7 @@ effects, verification, and rollback.
 ## Current Project
 
 New Athlete Badminton School is a badminton school management system for Thailand.
-Observed stack from `package.json`: Next.js 16.2.12 App Router, React 18,
+Observed stack from `package.json`: Next.js 16.3.3 App Router, React 18,
 TypeScript 5, TailwindCSS 3.4, shadcn/Radix UI, Supabase, SlipOK, SWR,
 Zustand, React Hook Form, Zod, Sonner, and Lucide.
 

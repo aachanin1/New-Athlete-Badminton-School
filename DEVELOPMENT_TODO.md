@@ -24386,3 +24386,1003 @@ release sequence is approved migration → exact staged Production artifact
 (vercel --prod --skip-domain) and OFF smoke → Owner exact artifact/SHA PASS →
 Promotion of that artifact without rebuild → Production health/error checks.
 Activation still needs its own authority.
+
+<a id="task10-step1-exact-push-preview-2026-09-10"></a>
+## 2026-09-10 — Task10 step 1: exact corrective push and automatic Preview
+
+**State observed at this step 1 closeout; timestamps UTC. Step 1 complete within
+the verification limits below. Task10 DEVELOPING; READY FOR OWNER UAT No;
+Task Done No.** PROJECT_STATE.md owns later mutable state. This record and the
+two current context documents remain local/uncommitted under Owner instruction.
+
+### Owner authority and exact action
+
+Owner explicitly authorized only normal push of
+**c8613046370cfdc29c7e90a57e0ff025085d658b** to the existing
+**spike/next-major-security-upgrade** branch and its automatic Vercel Preview.
+This replaced the earlier no-deploy restriction only for that Preview.
+Authorization was recorded in these local documents before push. No new commit,
+manual deployment, remote SQL, Production/staged Production deployment, Promotion,
+activation, scheduler, environment/secret/permission/allowlist/settings or
+Production-data action was authorized or performed. Finish step 1, send its result
+to Owner/PM, then stop. Step 2 requires a separate command.
+
+### Fresh Gate 0 and side-effect audit
+
+Verified authorized root C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School,
+branch spike/next-major-security-upgrade, upstream origin/spike/next-major-security-upgrade,
+origin https://github.com/aachanin1/New-Athlete-Badminton-School.git,
+local c8613046370cfdc29c7e90a57e0ff025085d658b and live remote
+331409a30dff22eb20174ba7d1036ccf300e7de5, ahead1/behind0. Initial worktree and
+staging were clean; other worktrees were inventoried and left untouched.
+The approved corrective commit contains exactly its previous six allowed paths.
+No reset/stash/overwrite, amend/rebase/merge, force push, extra branch or tag.
+
+Fresh byte verification at12:49:54 UTC matched files to exact approved Git blobs:
+M1–M5 hashes remain the [preceding manifest](#task10-family-wallet-migration-manifest-2026-09-10).
+M3 e77ea5e37a618d08884c62029820c0fa5c7e2d4683c88154e84773d2b8e6250a;
+helper bc2029b1a9ce1623bd55aa785298bb543d22eb82a48ae387c36dc70838743abf;
+transactions 2020d03d4784aecf9688defb07863ed5550c9a17db58920084e4f235fbd882c3;
+src tree55a1cd39886dcebc44d5a649b8070264b91afcee.
+Source, tests, migrations, package/lockfile, Next/Vercel/Playwright configuration
+are unchanged in this step. Prior Task10 **64/64**, Booking **23/23**, Wallet
+**45/45**, TypeScript/lint/local-build evidence is reused on that basis,
+**not claimed as freshly rerun**.
+
+Vercel project **prj_v034HOI6AjaMpBezWvuvT0W24pTp / new-athlete-badminton-school**,
+team **team_gw8Y6CPd602WAKRsVFobPGCL**, GitHub
+aachanin1/New-Athlete-Badminton-School, Production branch **main**.
+Git createDeployments enabled; rootDirectory/buildCommand/installCommand overrides
+null; Ignored Build Step null; Vercel deployHooks empty. vercel.json selects
+npm ci and npm run build; package build is next build --webpack.
+No root lifecycle pre/post install/build migration/seed hook, custom Git hooksPath,
+active local Git hook, or instrumentation entry was found. Next config only
+configures image hosts and Windows build cache. GitHub repository webhooks count0;
+one active GitHub Pages workflow, triggered only by main push or manual dispatch.
+It does not run for this branch push and contains no SQL/seed operation.
+No settings or hooks were modified.
+
+### Push and automatic Preview identity
+
+Pre-push recheck at12:52:05 UTC confirmed exact HEAD/branch, allowed local docs
+only, empty index and live remote331409a. Executed once:
+
+```text
+git push origin c8613046370cfdc29c7e90a57e0ff025085d658b:refs/heads/spike/next-major-security-upgrade
+```
+
+Normal push exit0, **331409a → c861304**. Subsequent live ls-remote equals
+**c8613046370cfdc29c7e90a57e0ff025085d658b**, local HEAD same, ahead0/behind0.
+The local document edits were not staged, committed or pushed.
+
+| Preview field | Observed result |
+| --- | --- |
+| Project / source | Exact named Vercel project above / source=git |
+| Deployment ID | **dpl_3H5Wp6TULoERTG7rhd9Ks6gC2DYV** |
+| URL | https://new-athlete-badminton-school-ceyx5racb-aachanin1s-projects.vercel.app |
+| Branch alias | new-athlete-badminton-school-git-spi-6a0ce4-aachanin1s-projects.vercel.app |
+| Target | **Preview**, confirmed by CLI; API target=null, no Production target |
+| Commit | **c8613046370cfdc29c7e90a57e0ff025085d658b**, exact authorized branch |
+| Build | **READY**; created12:52:13.109, building12:52:15.703, ready12:53:36.424 UTC |
+| Build log | Cloned exact branch/commit; npm ci; Next16.2.12 next build --webpack; Build Completed12:53:27; Deployment completed12:53:36 |
+| Deployment count | One new deployment in the project since12:51 UTC; exact Preview above, no manual deployment |
+| Warnings | npm install reported1 critical audit vulnerability, Node engine auto-upgrade warning and unrs-resolver install-script approval warning. Build succeeded; warnings were not fixed or security-triaged in this step |
+
+### Read-only smoke and limits
+
+The Vercel fetch connector returned an SSO302 redirect, so that attempt was not
+counted as application smoke. Existing in-app browser access opened the exact
+deployment URL without changing protection or entering credentials.
+Fresh screenshot/DOM showed the complete rendered landing page and login form.
+No login/signup, booking, Wallet, payment or other form/action was submitted.
+
+Loaded asset evidence: two application CSS sheets parsed with18 and1005 rules;
+JavaScript chunks and8 fonts appeared in observed resource inventory, and logo
+images rendered at48/128 natural pixels. Inventory contained38 asset entries
+(including19 scripts,2 stylesheets,8 fonts,4 images); this is browser resource/
+render evidence, not an assertion of individually measured HTTP200 for all assets.
+Browser error/warning log reads on landing/login returned empty.
+
+An additional /api/health GET navigation was blocked by the browser client
+(net::ERR_BLOCKED_BY_CLIENT). Its response/health result remains **Unknown**.
+No bypass, protection reduction, credential creation or configuration change
+was attempted to make this optional endpoint pass. The temporary verification
+tab was closed after the read-only checks.
+
+Vercel runtime log queries were scoped to this Preview deployment/environment:
+- Error/fatal,12:52:13–12:56:48 UTC: no matching logs.
+- HTTP5xx,12:52:13–12:57:38 UTC: no matching logs.
+- Status-count query returned11 HTTP200 and2 HTTP204 entries, but its summary
+  stated3 distinct values while showing only2; it is not treated as an exhaustive
+  status distribution or proof that all requests succeeded.
+
+These are limited page/asset/error observations, not Owner UAT, full backend
+acceptance or Task10 Production health checks. Preview READY is not READY FOR
+OWNER UAT and this Preview is not the artifact for Production Promotion.
+
+### Production and database before/after
+
+| Evidence | Before push | After smoke |
+| --- | --- | --- |
+| Production target read |12:49:26 UTC |12:56:44 UTC |
+| Production source |99b70fe373bfaa14424e2163136719024e5f0b0b |Same |
+| Production deployment |dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa / READY |Same |
+| Domain alias reads |12:50:13 UTC |12:56:38 UTC |
+| www.newathleteschool.com |Exact Task9 deployment above |Same |
+| new-athlete-badminton-school.vercel.app |Exact Task9 deployment above |Same |
+| Named DB SELECT |12:49:56 UTC |12:56:46 UTC |
+| Migration history |35 records, latest20260831060105; M1–M5 count0 |Same |
+| Task10 activation / cron.job relation |Absent / absent |Same |
+| Destination-minimum key |0 |Same |
+| Original Wallet Store MD5 |44b9f1eb00b66be46b2e1c07083210c8 |Same |
+| Original Wallet Redeem MD5 |45df8f5e780c065928f3bc77a5a77997 |Same |
+
+Vercel project, Production target, domain inventory and alias-to-deployment
+metadata compared equal before/after, including existing
+ssoProtection=all_except_custom_domains. This proves the inspected routing/target/
+policy facts; it is not a full Production health or operational-data audit.
+No remote SQL apply, activation/scheduler execution, allowlist/environment/secret/
+permission change, Production write UAT, repair or task-attributable customer/
+financial-data change occurred. Unrelated live traffic was not audited or assumed
+to leave all operational tables unchanged.
+
+### Local-only documentation and closeout
+
+Exact edits this step, all uncommitted:
+- PROJECT_STATE.md — replace current push-blocker state with actual push/Preview/
+  Production facts, evidence limits, local-doc status and explicit stop.
+- TODO-CODEX.md — derive short active index and Owner/PM review next action.
+- DEVELOPMENT_TODO.md — this dated authorization/Gate0/push/verification record;
+  preserve prior test evidence and exact SQL manifest/history.
+
+Counts: **documentation3 / functional source0 / tests0 / migrations0 / config0**.
+Scope expansion0, scope breach0. Documentation updated PROJECT_STATE → TODO-CODEX
+→ DEVELOPMENT_TODO, with pre-push authorization required by Owner and final state
+reconciled at closeout. Documentation consistency, three-path diff allowlist,
+empty staging, unchanged source/test/migration/config bytes, diff-check and
+mojibake were checked; final command/report holds the results.
+No new commit was created, so the approved remote and Preview SHA remain exact.
+Pushed documents intentionally contain the prior closeout; these local status
+updates are explicitly not part of that published commit.
+
+Source Complete Yes for corrective; prior Tests Passed reused after byte checks;
+Committed corrective Yes / new docs No; Pushed corrective Yes / new docs No;
+Deployed automatic Preview Yes / Production No; Migration0 remote; Feature/
+Activation No; Scheduler absent/no execution; Allowlist unchanged; Task10
+Production Active No; Owner/Production UAT not run; Controlled Write UAT No;
+Promotion No; Data Repaired No; no task-attributable Production data/customer/
+financial change. Task10 DEVELOPING, READY No, Task Done No.
+
+**Next action: submit this step 1 result to Owner/PM for review and stop.
+Do not start step 2 without a new Owner command.**
+
+<a id="task10-step2-exact-migrations-off-2026-09-10"></a>
+## 2026-09-10 — Task10 step 2: exact M1–M5 applied, business policies OFF
+
+**State observed at this step 2 closeout; timestamps UTC. Step 2 complete within
+the verification limits below. Task10 DEVELOPING; READY FOR OWNER UAT No;
+Task Done No.** PROJECT_STATE.md owns later mutable state. This record and both
+current context documents remain local/uncommitted. The preceding step 1 history
+and original manifest remain intact; this later Owner command supersedes the
+historical no-remote-apply restriction only for these five exact migrations.
+
+### Owner authorization and boundaries
+
+Owner authorized apply of exact M1–M5 from source
+**c8613046370cfdc29c7e90a57e0ff025085d658b** to
+**tvnhholicwjtxdhlxfqs / New Athlete Badminton School**, in order, while keeping
+Task10 business policies OFF. Authorized effects are only the exact schema,
+evidence, control, pricing catalog and minimum bootstrap, RPC/trigger wrappers,
+Wallet corrective, RLS/GRANT/REVOKE, pg_cron/inactive job and true migration history.
+Wallet routing and Family Store locking take effect immediately after M3,
+including never_activated; source publication alone had not installed them.
+
+No SQL/source/tests/config/dependency edit, extra migration, reset/seed/history
+repair, deployment, staged Production, domain change, Git push, Promotion,
+activation/pause/worker invocation, scheduler enable, environment/secret/allowlist
+change, Production write UAT or customer/financial repair was performed.
+The original all-family Store button, Reschedule >=12h (exact12 included),
+Wallet >48h (exact48 excluded), same-month/ten-month entitlement and other approved
+policies remain protected. This command does not authorize step 3.
+
+### Gate 0, target and recovery evidence
+
+Fresh root/branch/HEAD/upstream/live ls-remote, ahead/behind, worktree and index
+confirmed the authorized repository, spike/next-major-security-upgrade,
+origin/spike/next-major-security-upgrade, local/remote exact c861304, ahead0/behind0.
+The initial three dirty status documents were the retained step 1 work; index empty.
+Their complete diff was inspected; no reset/stash/overwrite or additional commit.
+M1–M5 file bytes equaled Git blobs and approved SHA256 values, including immediately
+before apply. The two frozen test hashes and src tree55a1cd39886dcebc44d5a649b8070264b91afcee
+also matched prior evidence; source/tests/config remained unchanged.
+
+Fresh Supabase project identity: ref/id tvnhholicwjtxdhlxfqs, exact school name,
+host db.tvnhholicwjtxdhlxfqs.supabase.co, ap-northeast-2, ACTIVE_HEALTHY,
+Postgres17.6.1.063. Management identity and SELECT history/schema were checked again
+immediately before the write invocation at13:25:54 UTC. The CLI explicitly bound
+--linked --project-ref tvnhholicwjtxdhlxfqs and used the same project connection
+for its sequential migration loop. No connection switch or parallel migration.
+
+Pre-apply history35/latest20260831060105; no Task10 relation/function/trigger or
+cron.job collision. pg_cron1.6.4 available, not installed, already in preload
+libraries; pgcrypto1.3 installed. No minimum key existed. The six effective Kids
+tiers were unambiguous and contiguous:1:700,2–6:625,7–10:500,11–14:433,
+15–18:406,19+:350, valid_from2026-02-07, valid_to NULL. M1 preserves those IDs/rates
+in early catalog revision1; the separately stored late catalog uses approved
+1/2–3/4–5/6–7/8–9/10+ ranges and700/625/500/433/406/350.
+
+Read-only comparison with the verified disposable showed all47 existing public
+tables/columns/RLS/ACL, existing triggers/policies,258 constraints and146 indexes
+matched. The24 original functions that M1–M5 replace matched their latest
+pre-Task10 historical migration bodies. Other pre-existing function metadata
+matched the disposable. No unaccounted schema/permission drift was found.
+All88 final function definitions extracted from exact M1–M5 matched the disposable
+body hashes, including restored real DB clocks. No fixture/reset/test-clock/
+control/cron write was needed.
+
+Existing backup evidence, read through installed CLI: seven COMPLETED physical
+backups, latest **1626453829 / 2026-09-09T17:35:05.190Z**; PITR=false,
+walg_enabled=true, region ap-northeast-2. Availability was confirmed; restoration
+was not tested or invoked. This daily backup does not establish a point immediately
+before apply, and restoring it could lose subsequent live changes. The existing
+Task9 web artifact was freshly verified as the web fallback. Web rollback does
+not undo database wrappers. Any DB rollback/forward correction needs separately
+reviewed exact SQL; no automatic down migration, evidence drop, history rewrite,
+service change or restore was attempted.
+
+### Runner, exact applied manifest and transaction evidence
+
+Installed cached Supabase CLI **2.116.0**, inspected through --help,
+db push --help, migration up --help, backups list --help and db query --help.
+Current Supabase docs/changelog were consulted; no CLI upgrade or config edit.
+The runner reads actual files, extracts filename version/name, preserves each
+file's BEGIN/COMMIT and records the executed statements. Its sequential loop stops
+on the first error. No handwritten replacement SQL was submitted.
+
+Dry-run:
+
+```text
+supabase db push --linked --project-ref tvnhholicwjtxdhlxfqs --dry-run --skip-vault
+```
+
+Returned only the following five files, in order; seeds[] and roles[].
+The one authorized write invocation, started13:25:55.836 UTC, was:
+
+```text
+supabase db push --linked --project-ref tvnhholicwjtxdhlxfqs --skip-vault --yes
+```
+
+The installed binary was used directly from the npm cache, without installation.
+Normal migration-runner authentication printed "Initialising login role"; no
+application role/secret configuration was edited, and skip-vault excluded config
+vault updates. No include-all/include-seed/include-roles, repair or retry.
+Runner output showed M1→M2→M3→M4→M5, then Finished supabase db push, exit0,
+confirmed by13:27:02 UTC. Each file contains one BEGIN and one COMMIT; no
+multi-file atomicity or per-file commit timestamp beyond runner/history evidence
+is claimed.
+
+| File / recorded version | Exact file and Git SHA-256 | Result / history statements |
+| --- | --- | --- |
+| 20260909000100_task10_policy_evidence_foundation.sql | 836e1a1db37f783aced1467ee0b113786e6e9fa92663407843630fa85e9dea8d | Applied /33 |
+| 20260909000200_task10_booking_pricing_policy_transactions.sql | 783b12e98cc7de3d563b8e44c86beb14f54ecc04dfc4b921168d859ed2734658 | Applied /33 |
+| 20260909000300_task10_kids_family_makeup_transactions.sql | e77ea5e37a618d08884c62029820c0fa5c7e2d4683c88154e84773d2b8e6250a | Applied /30 |
+| 20260909000400_task10_atomic_booking_payment_expiry.sql | c12103a08ab60dd54f59ce5627c8844a44347f649fb56b28e961901fe9ba5446 | Applied /83 |
+| 20260909000500_task10_activation_and_inactive_scheduler.sql | 6ccfbf9f8a377dae9de68ebbe1f1bf24744ce13290c9c6c54224d8674072108f | Applied /15 |
+
+All versions/names are the actual filename values; none were reassigned a new
+timestamp. Fresh history count40. At13:28:20 UTC, all194 stored statements were
+compared in sequence to the approved file bytes: every statement is an exact
+substring, with only whitespace and semicolon separators outside the stored
+statements. This verifies actual SQL correspondence despite the runner's normal
+statement splitting; the raw file/Git SHA256 values remain unchanged. No SQL was
+summarized, re-encoded through PowerShell text output, or edited for submission.
+
+### Schema, Wallet, bootstrap and OFF verification
+
+Full public table/column/trigger/policy/function metadata after apply matched the
+verified disposable, including every function body MD5, signature/result,
+owner/SECURITY DEFINER/search_path and ACL. Constraints and indexes also matched.
+This is fresh remote metadata verification of the tested candidate, not a newly
+run transaction suite. There are65 public tables and331 public functions after
+installation:18 additional Task10 tables,66 additional signatures including the
+two preserved Wallet names, and24 changed original bodies.
+
+The complete pre-apply Wallet definitions, body MD5/SHA256 and ACL were captured.
+Post-apply preserved definitions compare exactly after replacing only the renamed
+function declaration:
+
+| Wallet | Baseline = preserved body SHA-256 | Preserved body MD5 |
+| --- | --- | --- |
+| Store | 7b6a180c4cf31c7b0b13ecfc26e40b2b2f694366fd4ea43c5bc83b5e2412545f | 44b9f1eb00b66be46b2e1c07083210c8 |
+| Redeem | f231edc6dbf8ed0fb823651ffba5ca2ec23d2a46222c116033bb2b7b4e780bff | 45df8f5e780c065928f3bc77a5a77997 |
+
+Original RPC ACL before/after: {postgres=X/postgres,service_role=X/postgres}.
+Preserved task10_previous_wallet_store_v2/redeem_v2 ACL becomes
+{postgres=X/postgres}, as explicitly required by M3. Wrapper body MD5s equal the
+tested candidate: Store d242493b08eaeeaead35e80b5e45f627;
+Redeem7c93be1431f6cf436763d6288b125b20. The original Store wrapper locks the owned
+Private booking before any selected participant; both wrappers take shared
+activation lock(10,1) and delegate never_activated before Task10 lineage/time
+guards. effective_at distinguishes established/paused policy; existing active/
+paused guards and shared Reschedule/Return callers are the exact tested bodies.
+No Wallet/booking RPC was called for a Production write test.
+
+At13:27:05 and13:31:05 UTC:
+
+- state=never_activated, effective_at=NULL, revision=0, artifact=NULL.
+- pricing_enabled=false, makeup_enabled=false, expiry_enabled=false.
+- minimum={minimum:2,revision:1}; one bootstrap setting revision.
+- early and late heads/version revision1; both catalog hashes recompute correctly.
+  Early fingerprint6ce3ffa6823ae803b27cb3a266c0b8702ce986e612f880d301346fd7c6ec5610;
+  late43a8ab14a41d04b153e6ac4a51ec1e5a7f5d12453c5fe05097e8082a6e6e7993.
+- One cron job, jobid1, task10-expire-unpaid-bookings-v1, * * * * *,
+  command SET statement_timeout = '45s'; SELECT public.task10_run_expiry_v1(50);
+  database postgres, username postgres, active=false.
+- cron.job_run_details0, task10_worker_runs0, activation_events0, Task10 activity0.
+- All14 non-bootstrap Task10 evidence/operation tables empty, including cohort,
+  Wallet transition, accepted receipts, Makeup/source uses and cancellations.
+  Only activation singleton1, catalog heads2/versions2 and setting revision1 exist.
+
+Supabase security advisors were read, without applying recommendations. The18
+new private Task10 tables intentionally have RLS and no client policies, and only
+service_role SELECT through bypass-RLS; mutations use the approved fixed-search-path
+RPCs. The new anon/authenticated SECURITY DEFINER notices both concern only
+task10_source_policy_established_v1, whose exact M1 body returns a boolean and no
+private activation artifact. Its explicit grants match the tested candidate.
+Other notices include existing mutable-search-path helpers, btree_gist in public,
+public helper executability and disabled leaked-password protection. They were
+not repaired or presented as a security PASS.
+Advisor references:
+[RLS no policy](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy),
+[anon SECURITY DEFINER](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable),
+[authenticated SECURITY DEFINER](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+
+### Production web and bounded operational evidence
+
+Vercel project prj_v034HOI6AjaMpBezWvuvT0W24pTp, team_gw8Y6CPd602WAKRsVFobPGCL.
+Before13:16:35 / after13:27:45 UTC, Production remains exact Task9
+**99b70fe373bfaa14424e2163136719024e5f0b0b /
+dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa / READY**. Domain alias reads before13:16:29 /
+after13:27:39 show www.newathleteschool.com and
+new-athlete-badminton-school.vercel.app mapping to that same deployment.
+Project, target, domain and alias metadata compare equal; no deployment/settings/
+protection change was made.
+
+Read-only browser smoke before/after apply: landing page and, after apply, login
+dialog rendered. Two Task9 CSS assets parsed18/1004 rules, logos48/128 pixels,
+no browser error/warning entries observed. No credential, form submit, booking,
+Wallet, payment or attendance operation. The temporary tab was closed.
+The source of /api/health was verified SELECT/auth-read only and unchanged from
+Production SHA, but its GET navigation was blocked by client
+net::ERR_BLOCKED_BY_CLIENT. Endpoint result remains **Unknown**; no bypass.
+
+Detailed Vercel error/fatal log retrieval13:25:55–13:27:43 timed out. Narrower and
+final grouped queries succeeded: deployment/environment-scoped error/fatal and5xx,
+13:25:55.836–13:30:58.420 UTC, no matching rows. This supports bounded absence of
+matching logged errors, not exhaustive server-log coverage or health acceptance.
+No separate exhaustive Supabase/Postgres server-log review is claimed. The prior
+Preview npm1 critical audit warning, Node engine and unrs-resolver warnings remain
+historical/unresolved; no dependency/security fix or overall security PASS.
+
+Eight limited operational table fingerprints were taken at13:25:17 and13:27:04
+UTC using count plus MD5 of ordered full-row digests; no customer row contents
+were exported. Every count/hash was identical:
+
+| Table | Rows before = after | Fingerprint before = after |
+| --- | --- | --- |
+| bookings |1270 |de30dbc7fbf77670885b8b0e4ca39550 |
+| booking_sessions |6513 |47738934efb99a57ecb15ef013d837cb |
+| lesson_wallet_credits |241 |b7ffba3d87bc26383fc77e2b994ef177 |
+| lesson_wallet_credit_members |99 |ef412c7ebe0d78d8922e3eb5973f61f9 |
+| payments |599 |cb7864e65735bc123cc08ddf1264447f |
+| attendance |4217 |e1f9c30d500e177d10b6611485c99e27 |
+| coupon_usages |0 |d41d8cd98f00b204e9800998ecf8427e |
+| progressive_payment_allocations |544 |e0c59fc3878eaddb7951fca3cd259be0 |
+
+This does not claim that every operational table or later live traffic is
+unchanged. Developer issued only authorized SQL installation and read-only
+verification, no operational/customer/financial write UAT or repair. Production
+**DB schema/bootstrap/history changed**, and Wallet corrective is now effective;
+Production **web SHA/domain did not change**. Task10 policy activation is still No.
+
+### Tests, local documentation and stop
+
+Prior disposable tests **Task10 64/64, Booking23/23, Wallet45/45**, TypeScript/lint/
+local-build evidence were reused after matching file/Git bytes. No long suite,
+build, reset or fixture was rerun. Frozen helper hash:
+bc2029b1a9ce1623bd55aa785298bb543d22eb82a48ae387c36dc70838743abf;
+transactions2020d03d4784aecf9688defb07863ed5550c9a17db58920084e4f235fbd882c3.
+Fresh verification this step is migration history/SQL correspondence, remote
+schema/ACL/preserved definitions/controls/catalog/job, bounded data fingerprints,
+web/log reads, Git/scope and documentation checks.
+
+Exactly three allowed files updated, in order PROJECT_STATE.md → TODO-CODEX.md →
+DEVELOPMENT_TODO.md. Existing step 1 local work and all historical test/manifest
+evidence retained. Functional0 / Tests0 / Migration source0 / Config0 / Docs3;
+scope expansion0 / breach0. Documentation consistency, unchanged source bytes,
+three-path diff allowlist, empty index and diff-check passed. Fresh
+npm run check:mojibake passed (275 files scanned). No new commit/push;
+local/remote HEAD remain exact c861304,0/0.
+These status documents are intentionally local/uncommitted, while published docs
+retain the earlier closeout.
+
+Source Complete corrective Yes; prior Tests Passed reused; Committed/Pushed
+corrective Yes; docs No/No; new Deployed web No; remote M1–M5 Applied Yes;
+Wallet corrective Installed Yes; Task10 Feature Enabled/Production Active No;
+Allowlist unchanged; Owner/Production UAT not run; Controlled Write UAT No;
+Promotion No; Data Repaired No; Production DB/bootstrap Changed Yes;
+no Developer operational/financial write outside exact SQL. Task10 DEVELOPING,
+READY FOR OWNER UAT No; Task Done No.
+
+**Next action: Owner/PM reviews this step 2 result before issuing a separate
+step 3 command to prepare the web UAT artifact. Stop here; no automatic staging,
+UAT, Promotion, activation or other task.**
+
+
+<a id="task10-next1633-local-2026-09-10"></a>
+## 2026-09-10 — Task10 LOCAL exact Next.js16.3.3 dependency verification
+
+**State observed at this local closeout, timestamps UTC.** Requested package work,
+clean installation and required checks completed with the log limitations below.
+Task10 remains DEVELOPING; READY FOR OWNER UAT No; Task Done No.
+PROJECT_STATE.md owns later mutable state. This record and all step1–2 local
+status-document work are intentionally uncommitted/unpushed.
+
+### Owner authority and exact scope
+
+Owner superseded the default continuous-delivery publication sequence for this
+subtask with **LOCAL audit → package correction → verification → documentation → stop**.
+Actor Developer. Current package declarations/installation were next16.2.12 and
+eslint-config-next16.2.12. Expected exact16.3.3 in the same dependency categories,
+reproducible npm ci, preserved policies and fresh compatibility evidence across
+the shared framework. Approval explicitly adds **two dependency paths** to the
+prior three-document scope; do not characterize approved expansion as zero.
+
+Exact tracked allowlist/counts at this closeout:
+
+| Path | Category / change |
+| --- | --- |
+| package.json | Dependency1; only next and eslint-config-next exact version strings |
+| package-lock.json | Dependency1; necessary Next family/SWC resolution and integrity changes |
+| PROJECT_STATE.md | Docs1; current local candidate, checks, preserved applied migrations and release boundary |
+| TODO-CODEX.md | Docs1; execution index derived from current matrix and Owner/PM-review stop |
+| DEVELOPMENT_TODO.md | Docs1; append this dated evidence; preserve all prior records byte-for-byte |
+
+**Dependency files2 / Docs3 / Functional TS/TSX0 / Tests0 / Migrations0 / Other config0.**
+Approved scope expansion2 paths; further expansion0; scope breach0. Framework
+blast radius includes public, User, Coach and Admin portals; no new business policy.
+All-family Store, Reschedule >=12h/exact12 allowed, Wallet >48h/exact48 rejected,
+same-month/ten-month, participants, price, entitlement and financial rules retained.
+No codemod/refactor/audit-fix-force, React/Node upgrade, source/test/helper/SQL/config
+edit or added tracked artifact. No stage/commit/push, deployment of any kind,
+remote migration/reset/seed/repair, UAT/Promotion/activation/worker, persisted env,
+secret/permission/allowlist change or Production/customer/financial write.
+
+### Fresh Gate0 and byte evidence
+
+Fresh root matched C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School.
+Branch spike/next-major-security-upgrade; upstream origin/spike/next-major-security-upgrade;
+origin https://github.com/aachanin1/New-Athlete-Badminton-School.git.
+Local HEAD, upstream and live ls-remote all **c8613046370cfdc29c7e90a57e0ff025085d658b**,
+ahead0/behind0. Index empty; only the three expected dirty status documents from
+step1–2. Worktrees/history/full pending-doc context inspected and preserved; no
+reset/stash/overwrite/amend/rebase/merge. Final live Git identity remains the same.
+AGENTS.md and the three docs were read, including only relevant manifest/step1–2
+historical sections. Read source auth/environment binding, actual package graph,
+overrides, scripts, Next/ESLint/Playwright configurations and fixture/reset helpers.
+
+Baseline SHA256:
+- package.json c7b57fd3d201b4fc37d61040a56be0faa2008e11d0241624f5fa2a72e2027e8d.
+- package-lock.json ad252f85dfaaf55dc58638b71860db672488b5669bc254b9c82909ffe8838dda.
+
+**Final tested SHA256, unchanged throughout successful verification:**
+- package.json **2a12036fce0797090976211273ca8543efa6644ba427d81b137ad1d9fe93227c**.
+- package-lock.json **b98e5d67eb569e774021e8bb1702d7f3da00da2e3d394e7e941102a2d34cc2b7**.
+
+All489 tracked paths were hashed at Gate0; all484 outside the exact five-path
+allowlist remained equal. Protected sorted path/NUL/SHA256/newline manifests:
+
+| Group | Files | SHA256 of manifest | Changed |
+| --- | --- | --- | --- |
+| src |259 |846fcbbd548ebc2181d3df1248ff421673cfb8d6b92eb6a2d2bc5052f6a2ed60 |0 |
+| tests |16 |b7b190b6582ba241bb87977b785325095e58d4bc320e88239721da0e09001684 |0 |
+| supabase/migrations |40 |58c9cacf360d1057d77f9fe68f506f01cf5495b915dd365b136761d78231fba4 |0 |
+| audited config/workflow/server/env-example paths |13 |7e8501e08d3e0415f43bb557cf3039192859b7d5f3a04b308f7bcb9c7f82b0f0 |0 |
+
+src Git tree55a1cd39886dcebc44d5a649b8070264b91afcee and exact applied M1–M5 hashes
+remain unchanged; no SQL manifest is replaced by this package operation.
+The [step2 manifest](#task10-step2-exact-migrations-off-2026-09-10) remains the actual
+remote apply record. Test/helper assertions and configuration bytes were not changed.
+
+### Official advisories, peers, install and dependency delta
+
+Primary references checked:
+- [Next.js16.3 release notes](https://nextjs.org/blog/next-16-3).
+- [Next.js16.3.3 release](https://github.com/vercel/next.js/releases/tag/v16.3.3).
+- [August2026 security release](https://nextjs.org/blog/august-2026-security-release).
+- [GHSA-p293-qw3h-jr36](https://github.com/vercel/next.js/security/advisories/GHSA-p293-qw3h-jr36).
+- [GHSA-2xp9-vwfh-vxw4](https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4).
+- [Official version16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16).
+
+The two advisories mark16.3.3 patched: Windows-hosted RCE under the described
+router conditions and Image Optimization AVIF dependency exposure. Release16.3.3
+disables AVIF optimization pending upstream propagation. No exploit was attempted;
+package affectedness does not establish exploitation or applicability of every
+advisory condition to this application. Existing upload JPEG/PNG/WebP tests passed.
+
+Baseline npm audit full graph and --omit=dev each reported **1 critical package
+(next), with2 advisory entries** above. After npm ci both audit modes reported
+**0 info/low/moderate/high/critical; total0**. This resolves the observed package
+findings for the local candidate, not an assurance of whole-system security.
+Production was not patched by these local operations. The prior Preview warning
+remains a historical16.2.12 artifact observation, not a current local audit result.
+
+Observed Node24.16.0/npm11.13.0 were retained. Installed React/react-dom18.3.1 satisfy
+the target peer range ^18.2.0; Node meets >=20.9.0. ESLint9.39.1 and TypeScript5
+satisfy config peers. No dependency category/script/override was altered.
+Edited only the two exact strings, then ran npm install --package-lock-only
+--ignore-scripts, inspected complete lock delta, and **npm ci exit0** (21s,
+509 packages installed/audited510 on this platform). No lockfile deletion.
+Installed next/eslint-config-next and @next/env/plugin/SWC were verified16.3.3.
+
+Lock retains567 entries including root; no package entry added/removed. Changed
+13 existing package entries: next, eslint-config-next, @next/env,
+@next/eslint-plugin-next, eight optional platform SWC packages16.2.12→16.3.3,
+and @swc/helpers0.5.15→0.5.23. The plugin adds an eslint-utils4.9.1 dependency edge
+satisfied by the already locked version. Next declared postcss/sharp ranges changed,
+but existing overrides continue to resolve postcss8.5.28 and sharp0.35.4. Other
+package versions/integrities remain unchanged. npm audit suggested a newer target,
+but Owner's exact16.3.3 was retained and verified rather than substituted.
+
+### Fresh verification on the final package/lockfile bytes
+
+| Check / actual command | New candidate result |
+| --- | --- |
+| npx tsc --noEmit |PASS, exit0; session45270 |
+| npm run lint |PASS, exit0, max-warnings0; session27132 |
+| npm run check:mojibake |PASS,275 files; rerun after final docs |
+| npm run build |PASS, exit0; Next16.3.3 webpack, compile37.4s, TypeScript10.9s,95/95 generated pages;14:45:37.961–14:46:55.147 UTC |
+| npx playwright test --config=playwright.task10.config.ts |**64/64 PASS**, exit0,45.8m;14:57:02.890–15:42:53.444 UTC; session26599 |
+| npm run test:booking-regression:e2e |**23/23 PASS**, exit0,4.5m;15:43:08.383–15:47:39.982 UTC; session10536 |
+| npm run test:lesson-wallet-regression |**45/45 PASS**, exit0; pure/source checks backed by Task10/Booking transaction coverage |
+| npm run test:history-payment:e2e |**16/16 PASS**, exit0,4.0m;15:48:31.443–15:52:33.688 UTC; session6134 |
+| Production-build local browser smoke |**15 checks PASS**, exit0; anonymous/User/ordinary Admin/Super Admin roles, pages/assets and cleanup |
+| Final cleanup / protected bytes / Git |PASS at15:53:28 UTC; all484 protected paths equal, final package hashes above, local/remote c861304/0–0/index empty |
+
+All148 requested regression cases are **fresh16.3.3 results**, not reused16.2.12
+passes. No test skipped, assertion reduced, retry flag added or test/helper/config
+source changed. DB/port-sharing suites ran sequentially with one worker each.
+Task10 covers6 pure,51 transaction and7 UI/API/scheduler cases, including original
+Wallet RPC compatibility, both Family race patterns in never/active/paused,
+activation ordering, exact cutoffs, atomic participants/financial invariance,
+pricing/settings/Makeup/receipt/expiry/cancellation safeguards. Same representative
+ID models the real one-button UI; different-participant cases are direct-RPC tests.
+Booking includes actual Family unit/identity UI, canonical Wallet redemption,
+pricing, no occupancy ceiling, restored/stale drafts and Makeup error handling.
+History includes role boundaries, concurrent settings, mobile copy/total, whole-scope
+prepare/cancel/replay, MIME/magic bytes and shared Test Mode payment transition.
+
+### Disposable identity, environment and cleanup
+
+Only **http://127.0.0.1:54321**, container/volume
+**supabase_db_New-Athlete-Badminton-School**, exact root workdir/project labels,
+Postgres /postgres:5432 binding and existing Supabase network were used. Retained
+Auth/REST/Storage services were checked by their actual DB URI/network, not their
+historical temp labels. Read-only baseline users/bookings/Storage objects0;
+controls never_activated/revision0/allflagsfalse/effective_atNULL/artifactNULL;
+real clock_timestamp()/transaction_timestamp(); one inactive Task10 cron job.
+
+A generated launcher outside tracked paths bound build/test child environment to
+local Supabase keys and SLIPOK_TEST_MODE=true, without exposing keys or writing env
+files. The original Next config/scripts were used. CLI2.117.0 resolved by the
+existing npx helper was inspected with --help, including local db reset semantics.
+A preload guard verifies container/volume/services before every existing reset;
+Task10 helpers also verify before SQL and fixtures. No --linked/--db-url/remote
+fixture fallback. The guard does not change tests, assertions, RPCs or test results.
+
+Next16.3.3 dev can generate AGENTS.md when detecting an AI agent. Installed source
+confirmed this behavior. Agent-detection variables were omitted only from test
+child processes; direct detection returned isAgent:false and AGENTS.md SHA256
+remained5b2855111cea0c1e9de3fd42aca4b3348e2b6a385ec3716cc4859f0056e44c54.
+No persistent configuration/env change was made to suppress this behavior.
+
+After Task10, Booking and History, guarded read-only snapshots found users,
+bookings, sessions, payments, Wallet credits and Storage objects0. Final controls
+match baseline exactly; cron job remains one/inactive and clocks use real database
+time. Original progressive-payment-slips bucket remains private,5MiB,JPEG/PNG/WebP
+with all settings equal baseline; reset regenerated created_at/updated_at, so this
+is not a claim that full bucket timestamp bytes were identical. Test-created
+payment-slips bucket/objects did not remain. Browsers/servers closed;3000/3002 free.
+These resets/bootstrap/fixtures/activation/worker/payment writes were **disposable
+only**, not operations against the already migrated Production database.
+
+### Local build smoke, exploratory failures and log limitations
+
+Build ID **ubTHtIOPjHbaCMb86Q3hQ**. Browser used localhost3002 and the fresh build:
+landing/login;11 JS/CSS URLs200;3 image instances decoded48/128/48px; Super Admin
+both pricing routes and minimum2/reload; ordinary Admin/User restrictions; User
+History/reload; one Family Wallet credit,2 exact members, other hour2 scheduled,
+no orphan, Wallet–History navigation. Synthetic Family parent had no display name,
+and UI visibly reported incomplete self-name evidence; it did not substitute the
+child's identity. Booking's separate named-self/Family identity UI tests passed.
+Built smoke page/console/static failures0 and browser remote-Supabase requests0.
+
+Exploratory attempts are retained separately and are not acceptance passes:
+1. Initial launcher used backslashes in NODE_OPTIONS --require; Node rejected the
+   preload path before build/Wallet/mojibake commands started. One launcher-only
+   quoting correction to forward slashes fixed it; all actual commands reran/pass.
+2. Initial extra image probe checked before lazy images loaded. First probe
+   correction used scrollIntoViewIfNeeded, which waited for perpetual animation
+   stability and timed out. Second bounded correction scrolls the image with DOM
+   scrollIntoView and waits for the **same** complete/naturalWidth assertion.
+   Final full built smoke15 checks passed. No application or existing test edits.
+   Both unsuccessful fixture rounds completed guarded cleanup; a transient local
+   Auth ECONNRESET during reset readiness recovered in the existing wait helper.
+3. Automatic approval review rejected recursive .next deletion, reason
+   **blocked by policy**. Nothing was deleted by that rejected command. The safer
+   non-destructive action verified exact paths and archived generated .next before
+   starting fresh dev. The build was ultimately moved to the temporary evidence
+   directory, outside source scanning; no overwrite or source reset.
+
+Booking dev server emitted **3** errors, digest3299920112,
+**The destination stream closed early.**, immediately following the intentional
+500/network/malformed Makeup reconciliation cases. Assertions, no-auto-retry and
+residue checks all passed. Installed React renderer code emits this string from
+its destination close cancellation handler. The exact request/closure cause was
+not correlated, so it remains **Unknown**, not proven harmless or an established
+application regression. Task10/History logs had0 occurrences; normal built smoke
+had0 console/page errors. Do not label all runtime/error logs PASS.
+Other warnings retained: dev logo LCP/eager-loading suggestion (Task10 6, Booking23,
+History17), NO_COLOR/FORCE_COLOR, Wallet MODULE_TYPELESS_PACKAGE_JSON, deprecated
+Supabase inbucket config and missing optional seed.sql. No out-of-scope fixes.
+The version16.3 release notes describe native Node server streams; that is context,
+not evidence that a specific request error was caused or fixed by the upgrade.
+
+Evidence artifacts are local/generated at
+C:/Users/aacha/AppData/Local/Temp/task10-next1633-local-20260910:
+baseline/candidate hashes and original docs; audit-before/after full/production
+JSON; lock-diff.json; suite logs/results; identity-checks.jsonl; disposable snapshots;
+built-smoke screenshots/result and failed-probe records; archived build-artifact;
+protected-group-hashes.json and pre-doc-final-verification.json. No secrets were
+written to evidence output. Local artifacts are not deployments/UAT release assets.
+
+### Production separation, documentation consistency and stop
+
+This round performed **no remote mutation or Production web/data verification**.
+Step2 M1–M5 are already applied and Wallet corrective installed, even while Task10
+policies remain OFF at the last verified step2 state. Do not revert this record to
+migrations-not-applied. No remote activation/scheduler/allowlist/env/permissions or
+data repair. Existing Task9 web SHA99b70fe373bfaa14424e2163136719024e5f0b0b and
+Deployment dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa are step2's last verified evidence,
+not a fresh query or a16.3.3 deployment. /api/health remains **Unknown**; local
+passes do not resolve that Production limitation. No live customer/financial impact
+from this local change; earlier step2 DB installation effects remain separate.
+
+Documentation updated PROJECT_STATE → TODO-CODEX → this dated record. Full prior
+DEVELOPMENT_TODO bytes and historical suffixes in the two current docs preserved.
+Final documentation matrix, name-status/stat/full diff, five-path allowlist,
+empty index, git diff --check and mojibake are verified in closeout. Current local
+package state differs intentionally from pushed16.2.12. AGENTS.md's observed-stack
+paragraph still says16.2.12; this known documentation drift is outside the exact
+allowlist, retained explicitly rather than changed without authorization.
+
+Source local dependency/corrective complete; fresh required tests passed with
+log limits; new Commit No / Push No / Deploy No; local build Yes / staged Production
+artifact No; Owner/Production UAT No; Promotion No; Production checks not run;
+remote Migration already Applied from step2 / new action No; remote Activation No;
+Feature allowlist unchanged by task; Production data write/repair No this round;
+Customer/Financial impact None from local package work. Task10 DEVELOPING;
+READY FOR OWNER UAT No; Task Done No. No required suite remains failing; request-level
+stream-log attribution and later release/security/health review remain limitations.
+
+**Next action: Owner/PM reviews this local result, exact package diff and recorded
+limitations. Stop. Do not stage, commit, push, create any deployment, prepare UAT,
+Promote, activate or begin another step without a new Owner command.**
+
+
+<a id="task10-stream-investigation-local-2026-09-11"></a>
+## 2026-09-11 — Task10 LOCAL stream-close investigation and documentation correction
+
+**State observed at this closeout; timestamps below are UTC.** Owner authorized
+LOCAL investigation + documentation → stop. No publication or application fix.
+Task10 DEVELOPING; READY FOR OWNER UAT No; Task Done No. PROJECT_STATE.md owns
+subsequent mutable state. All earlier local history, including steps1–2 and the
+2026-09-10 package verification, is preserved byte-for-byte before this entry.
+
+### Scope, fresh Gate0 and frozen candidate
+
+Root C:/Users/aacha/Documents/Codex/CMS NASC/New-Athlete-Badminton-School.
+Branch spike/next-major-security-upgrade; HEAD/upstream/live remote all
+**c8613046370cfdc29c7e90a57e0ff025085d658b**, ahead0/behind0, index empty.
+Gate0 dirty5 paths were the prior package pair and three status docs. The complete
+Gate0 diff matched the previous final-full-diff.patch byte-for-byte. Worktrees,
+status, history, rules, relevant state/manifest/package closeout and sources read;
+no reset/stash/overwrite of tracked work. Generated artifacts were archived safely.
+
+This round tracked allowlist: **AGENTS.md, PROJECT_STATE.md, TODO-CODEX.md,
+DEVELOPMENT_TODO.md only**. Docs4 / Functional0 / Tests0 / Dependencies0 /
+Migrations0 / Config0. **Owner-approved expansion: AGENTS.md1 path**; prior approved
+package expansion2 is a separate historical authorization. Cumulative pending
+paths6 = four docs + two unchanged prior package files. Scope breach0.
+AGENTS.md changes only observed-stack Next.js16.2.12 →16.3.3; all other bytes,
+business rules, header date and guardrails preserved. No source/test/assertion/
+helper/package/node_modules/config change. No error suppression or filtering to
+claim PASS; original console behavior retained by the observation wrapper.
+
+Frozen exact16.3.3 dependency bytes, checked before and after diagnostics:
+
+| File | SHA256 |
+| --- | --- |
+| package.json |2a12036fce0797090976211273ca8543efa6644ba427d81b137ad1d9fe93227c |
+| package-lock.json |b98e5d67eb569e774021e8bb1702d7f3da00da2e3d394e7e941102a2d34cc2b7 |
+
+Installed next/eslint-config-next16.3.3 retained; Node24.16.0/npm11.13.0,
+React/react-dom18.3.1 retained. All485 tracked paths outside these four docs match
+this round's Gate0 hashes, including source/tests/migrations/config/packages.
+No new install, audit, TypeScript/lint or build was needed or claimed this round.
+Prior148 regressions,15 browser checks and technical/audit results remain dated,
+byte-bound evidence from the package round; they were not all rerun here.
+
+### Correction to the prior report and evidence identity
+
+**Documentation Drift: the previous report omitted one built-server error.**
+Actual old built-smoke-server.log contains one error with digest **3492797032**;
+booking.log contains three with digest **3299920112**. Thus the old checked logs
+contain **4 stream-close errors total**, even though15 browser checks and148
+regressions passed. The earlier claim of zero browser/page errors was specifically
+browser evidence; it did not establish clean server logs. Do not combine them.
+
+Old evidence remains at C:/Users/aacha/AppData/Local/Temp/task10-next1633-local-20260910.
+The actual archived directory is **built-artifact**. Verified Build ID
+**ubTHtIOPjHbaCMb86Q3hQ**, package bindings and three archived fingerprints:
+
+| Archived file | SHA256 |
+| --- | --- |
+| BUILD_ID |cf2e1f62c265bfc6972ef99fd02231edce5394ad3aa32bba10141b5f108a32fa |
+| build-manifest.json |454b63a57262aa2954ef869366b3284f649937f3571a35505052588e816b8a22 |
+| routes-manifest.json |b313a24e573e810bd6caf7d1f36ec9d5b0dfe7def9dfebcb9a0fd1d742f313e7 |
+
+required-server-files.json names the exact root/.next and localhost image binding;
+archived browser chunks contained no remote Supabase project hostname. Test child
+bindings use localhost54321 only. The archived build was copied for local use,
+never rebuilt or changed in the old evidence directory. Existing generated dev
+artifacts and the used copy were moved to distinct new evidence paths after exact
+source/destination checks; no recursive deletion or overwrite of earlier evidence.
+
+### Methods: observation, completion comparison and limits
+
+Two diagnostic approaches were used: (1) instrument the original flow/timing;
+(2) compare waiting for completion with closing/changing pages while work is pending.
+All new launchers, reporters, logs and screenshots are outside tracked paths at:
+**C:/Users/aacha/AppData/Local/Temp/task10-stream-investigation-local-20260911**.
+Old key logs/scripts/results and archived fingerprints were hashed and preserved.
+
+Temporary Node observation records UTC, method, sanitized route, RSC flag, response
+finish/close/aborted state and console errors. AsyncLocalStorage propagation across
+request/response events links the Booking errors to exact request IDs. It does not
+change response bytes, status, headers or application code. Browser observation
+records role, step, request/response/finished/failed, page errors and context close.
+No tokens, cookie/header values, request bodies or secrets are recorded.
+
+The existing Booking spec/config/assertions were used with a grep for only the
+500/network/malformed cases, one worker and unchanged120s/20s test/expect limits.
+Temporary launchers select output/reporters under the new evidence directory;
+working directory isolation preserves prior screenshots. Completion comparison
+adds a wait before navigation/context close, not a response change or weakened
+assertion. No test was edited or skipped inside the selected three cases.
+
+One intermediate browser-event waiter **failed** after20s: browser still listed
+Super Admin /admin?_rsc as pending, although server request8392-112 had already
+finished200 with writableFinished=true at02:06:42.075. The waiter failed at
+02:07:02.020; cleanup passed and the attempt's result remains passed:false with
+6 recorded checks, not an acceptance PASS. This showed that this browser event
+list was not sufficient as the sole completion signal. The comparison used
+observed server finish/close plus UI assertions, retaining the same20s bound and
+500ms quiet window. Server finish means completion to the transport, not proof
+that the browser parsed every byte; that distinction remains explicit.
+An initial temporary observer syntax error occurred before any fixture/test run;
+it was corrected in the diagnostic file only and its launcher log retained.
+
+### Fresh results, separated by evidence type
+
+| Run / condition | Browser assertions | Server stream-close errors | Request attribution / DB evidence |
+| --- | --- | --- | --- |
+| Built original timing |15/15, exit0 |1, digest3492797032 |Ordinary Admin context close while /admin?_rsc pending; timing correlation below. Synthetic Family snapshot1 credit/2 members, identities true, other hour2 scheduled, orphan0; cleanup0 |
+| Built completion-wait comparison |15/15, exit0 |0 |Observed server completion before ordinary navigation/close; additional fast-close probe was not a successful in-flight HTML cancellation; cleanup0 |
+| Booking original timing,500/network/malformed |3/3, exit0 |3, digest3299920112 |All3 exact request IDs link unfinished refresh → context close → request abort → renderer error; fixture residue0 |
+| Booking server-completion wait, same cases |3/3, exit0 |0 |Refresh responses finish before actual close; same selections/error/no-retry assertions; exact fixture residue0 |
+| Intermediate browser-event-only wait |Aborted diagnostic, not PASS |0 before stop |20s measurement failure despite server finish, described above; cleanup passed |
+
+Built runs completed at02:04:46.210 and02:11:16.234 UTC. Booking runs completed at
+02:13:57.907 and02:16:43.172 UTC. The two complete built runs had no browser page/
+console errors and no completed server5xx. Booking had no page errors; each run
+retained the two **expected injected** browser console errors:500 and net::ERR_FAILED.
+The malformed response is also intentionally injected. No application business
+API POST reached the web server during these negative cases; they are not real
+customer failures. Test output confirms one intercepted POST, automatic retries0,
+and unchanged selection/no false-success behavior for each case. Do not label all
+console/server output clean. Existing LCP and Supabase CLI warnings remain recorded.
+
+Built reproduction timeline (new occurrence, not a timestamp for the old log):
+
+- 02:03:52.215 ordinary Admin settings denial completed307, assertion passed.
+- 02:03:52.216 context close began with /admin?_rsc still pending.
+- Request2584-347 aborted at02:03:52.230 and closed at02:03:52.231 with
+  status200 headers but writableEnded=false/writableFinished=false.
+- Renderer logged3492797032 at02:03:52.233. The first observer did not preserve
+  an exact async request ID on this error; this is strong timing correlation,
+  not an exact error-to-request linkage or proof of the historical event.
+
+The additional fast-close probe on the completion-wait run did **not** catch the
+HTML stream in flight: /admin finished at02:10:17.791 and closed normally. Browser
+close began02:10:17.793. A later CSS request aborted, but no stream error resulted.
+This probe is inconclusive for in-flight HTML cancellation and was not looped
+until an error appeared. The original timing reproduction remains separate.
+
+Booking new-occurrence request evidence:
+
+| Case | Request / route | Context close begins | Aborted/unfinished server close | Error time / digest |
+| --- | --- | --- | --- | --- |
+|500 |16084-39 /admin/makeup?_rsc |02:12:56.547 |02:12:56.593 |02:12:56.596 /3299920112 |
+|network |16084-74 /admin/makeup?_rsc |02:13:03.454 |02:13:03.539 |02:13:03.541 /3299920112 |
+|malformed |16084-109 /admin/makeup?_rsc |02:13:09.944 |02:13:10.020 |02:13:10.022 /3299920112 |
+
+Each error carries the same exact request ID as its aborted response. All had
+writableFinished=false; a200 status field alone is not a completed response.
+The existing test clicks 'ตรวจสอบสถานะล่าสุด', which calls router.refresh() at
+src/components/admin/makeup-client.tsx:3027, then completes assertions and fixture
+cleanup without awaiting that refresh. Context teardown cancels the in-flight GET.
+Completion-wait diagnostics preserve every existing assertion; only page/context
+lifetime differs. Assertions occur at the same points in the original tests;
+waiting at teardown is not additional business UAT after fixture removal.
+
+### Fact / Inference / Unknown and whether a fix is needed
+
+**Fact:** installed renderer creates the message in its destination close cancel
+handler, which calls abort. The actual captured stack uses the installed bundled
+app-page.runtime.prod.js/dev.js; corresponding React renderer and Next
+pipe-readable.js code was read and hashed. Next's Node pipe path destroys its
+readable when the HTTP response closes. A normal response also emits close, so
+close alone is insufficient; aborted/unfinished evidence was checked explicitly.
+Primary semantic reference: [Node HTTP response finish/close documentation](https://nodejs.org/docs/latest-v24.x/api/http.html).
+
+**Fact for new Booking occurrences:** exact request association plus the wait/close
+comparison demonstrates test teardown cancellation of unfinished refreshes, while
+all original UI assertions and DB residue checks pass. This is not evidence of a
+failed normal business mutation or a Production customer incident.
+
+**Inference:** the old Booking pattern and the old built digest are consistent
+with the reproduced cancellation mechanism. Built original-timing correlation
+supports the same explanation, but is weaker than the exact new Booking linkage.
+
+**Unknown:** the four old log occurrences have no timestamps/request IDs to prove
+which historical request each belonged to. No16.2.12 comparison was run, so the
+upgrade is not established as the cause. Not finding an error in the wait run
+alone would not establish root cause; the positive cancellation evidence matters.
+The browser's missing completion event for one server-finished RSC request remains
+a measurement limitation. Production behavior/health was not inspected this round.
+
+No normal-page failure requiring an application/package/config fix was reproduced
+in the bounded checked flows. **No application fix is justified by this evidence
+alone and none was made.** A future test-harness synchronization change would need
+separate authorization; this round neither changes tests nor suppresses logs.
+This is not an assurance that all possible navigation errors are harmless.
+
+### Disposable safety, cleanup and closeout boundary
+
+Before fixture/reset/teardown runs, verified exact root/workdir/project labels,
+container and volume supabase_db_New-Athlete-Badminton-School, running local API
+http://127.0.0.1:54321, and Auth/REST/Storage DB URI/network bindings to that DB.
+The existing helpers verify local targets; a copied guard checks identity before
+each reset, and the focused reporter verifies identity before each test's fixtures.
+Only existing local fixture/setup/teardown behavior ran. No remote fallback,
+activation/pause/expiry worker, exploit, persisted environment or permission change.
+
+Final guarded snapshot matches baseline excluding reset-generated Storage bucket
+timestamps: users/bookings/sessions/payments/Wallet credits/Storage objects0;
+real clock_timestamp()/transaction_timestamp(); controls never_activated,
+effective_atNULL/artifactNULL/revision0/all three flagsfalse; one correctly named
+Task10 cron job inactive. Original private progressive-payment-slips bucket retains
+5MiB/JPEG/PNG/WebP settings and no objects. No extra bucket/orphan/partial fixture
+residue. Browsers and servers stopped; ports3000/3002 have no listener.
+
+Evidence includes diagnostic-summary.json, per-mode event JSONL/server/launcher
+logs/results, isolated screenshots, renderer-hashes.json, old-evidence-hashes.json,
+Gate0/full/final hash/diff checks, identity-checks.jsonl, baseline/after/final DB
+snapshots and cleanup-verification.json in the new temporary directory. The old
+148-test/15-check evidence remains untouched; this record corrects its incomplete
+server-log reporting rather than changing its actual test outcomes.
+
+Updated AGENTS observed stack, then PROJECT_STATE → TODO-CODEX → this record.
+Final consistency matrix, full diff/name-status/stat/allowlist, unchanged frozen
+hashes, empty index, git diff --check and mojibake are checked at closeout.
+New Source/Test/Dependency/SQL/Config edits0; Docs4; cumulative pending6 paths.
+No new stage/Commit/Push/Build/Deploy/Owner UAT/Promotion/Production check.
+Remote M1–M5 remain applied from step2, Wallet corrective installed, Task10 policies
+OFF at last verified remote state; no new remote SQL/control/allowlist operation.
+Production has not received the local Next patch; /api/health remains Unknown.
+No Production operational write/data repair or live customer/financial effect.
+All-family Store, Reschedule >=12h, Wallet >48h and same-month/ten-month policies
+remain unchanged. Task10 DEVELOPING; READY No; Task Done No.
+
+**Next action: Owner/PM reviews this investigation and documentation correction.
+Stop before stage/commit/push/deploy or any next release step.**
+
+
+<a id="task10-next1633-publication-2026-09-11"></a>
+## 2026-09-11 — Task10 reviewed Next16.3.3 publication authorization and pre-commit audit
+
+**State observed before publication; timestamps UTC.** Owner explicitly authorizes
+one normal six-path commit/push and its automatic Preview, read-only verification,
+then local-only result documentation and stop. This authorization supersedes the
+prior LOCAL-only publication restriction for this round only. Commit/push/Preview
+are pending at this recorded checkpoint; do not interpret this containing commit
+as proof of deployment success. PROJECT_STATE.md owns subsequent mutable state.
+
+Exact publication allowlist: package.json, package-lock.json, AGENTS.md,
+PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md. Dependencies2/Docs4/
+Functional0/Tests0/Migrations0/Other config0. Only three status documents receive
+new edits; both package files and AGENTS remain frozen. Prior approved expansions
+were package2 and AGENTS1; no further expansion or business change. No manual
+deployment, staged Production, Promotion, domain/environment/secret/protection/
+permission/allowlist change, migration, activation, scheduler run, repair or write UAT.
+
+Fresh Gate0: exact approved repository, spike/next-major-security-upgrade,
+HEAD/upstream/live remote c8613046370cfdc29c7e90a57e0ff025085d658b,
+ahead0/behind0, staged empty and exactly six dirty allowed files. Worktrees and
+full diff inspected; prior investigation's final diff and all six working hashes
+match. No reset/stash/overwrite. Evidence directory:
+C:/Users/aacha/AppData/Local/Temp/task10-next1633-publish-preview-20260911.
+
+| Package | Frozen working-file SHA256 | Expected normalized Git-blob SHA256 |
+| --- | --- | --- |
+| package.json |2a12036fce0797090976211273ca8543efa6644ba427d81b137ad1d9fe93227c |fd58146cb6a693e6c3c5f662df4cbc3e6aa81da7e83211873baa679656bd59ac |
+| package-lock.json |b98e5d67eb569e774021e8bb1702d7f3da00da2e3d394e7e941102a2d34cc2b7 |c8580754ed202293f7f1b9fdb037aaa930d729754dd7997e4fdb929f58a15b30 |
+
+core.autocrlf=true from system Git config, no explicit attributes; package working
+files have CRLF/mixed EOL and tracked index uses LF. Exact CRLF→LF normalization
+and parsed JSON equality proven. Raw working and normalized blob bytes are **not
+identical**. Actual staged and final commit blobs require the same verification.
+No Git configuration or formatting sweep. AGENTS working SHA256 remains
+4d42e4775544f72ac598e97ffad41e23b93daa096ac688ed7469fe6c8445893d,
+only observed-stack16.2.12→16.3.3 versus HEAD; no rule change.
+
+Retained dated local evidence, **not rerun this publication**: Task10 64/64,
+Booking23/23, Wallet45/45, History16/16; TypeScript/lint/build;15 built browser checks;
+full/production npm audit0 on16.3.3. Frozen candidate and protected file hashes
+bind those results. Dependency diff is the already reviewed13 existing package
+nodes, no added/removed nodes; scripts/overrides/categories unchanged. The preceding
+stream record preserves original errors4, new cancellation attribution and old
+request/upgrade-causality Unknowns. Browser assertions do not establish clean logs.
+
+Fresh Vercel project prj_v034HOI6AjaMpBezWvuvT0W24pTp,
+team_gw8Y6CPd602WAKRsVFobPGCL; exact GitHub repo aachanin1/
+New-Athlete-Badminton-School. Actual project link productionBranch=main,
+createDeployments=enabled; empty deployHooks; root/build/install/ignored-step
+overrides null. npm ci and next build --webpack are selected by unchanged
+vercel.json/package scripts. No root lifecycle migration/seed, active Git hook,
+custom hooksPath or instrumentation entry. GitHub webhook list empty and Pages
+workflow only main/manual, not this branch. Build config image hosts/cache only.
+No remote mutation hook found on this push/install/build path. CLI58.7.1 was
+already cached (not upgraded); its api --help was inspected before GET metadata.
+
+Fresh03:25:40 UTC Production target and03:25:58–03:26:03 aliases:
+dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa, READY/PROMOTED,
+SHA99b70fe373bfaa14424e2163136719024e5f0b0b. All three aliases
+www.newathleteschool.com, new-athlete-badminton-school.vercel.app and
+new-athlete-badminton-school-aachanin1s-projects.vercel.app map to that exact ID.
+Protection all_except_custom_domains retained. Post-push comparison is pending.
+
+Landing/login/proxy/layout/navigation source read: smoke will use public GET and
+navigation only, no login/signup/resend/form actions. No fixtures against Preview
+or Production. Preview must be the new Git SHA, with READY/build/runtime/browser
+evidence scoped to its deployment and interval. Access/log failures remain Unknown;
+no settings changes or manual deployment to force a pass.
+
+M1–M5 remain applied from step2; Wallet corrective installed; Task10 policies OFF
+at last verified remote controls. No new DB/activation/scheduler operation. Local
+fixture cleanup remains the preceding investigation's dated evidence, not rerun.
+Production is not patched by publishing Preview. /api/health remains Unknown.
+After authorized verification, record actual commit/Preview/log/domain results in
+three status docs **locally/uncommitted**, without a second commit/push. Task10
+DEVELOPING; READY No; Task Done No. Send result to Owner/PM and stop before UAT preparation.
