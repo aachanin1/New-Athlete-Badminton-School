@@ -1,67 +1,60 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-11 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-13 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task10 approved package publication; commit/push and automatic Preview pending
+## Current State — Task10 A passed; publication and complete UAT preparation in progress
 
-PROJECT_STATE.md owns current mutable state. Owner now authorizes one commit/push
-of the six reviewed paths and its automatic Preview, followed by read-only smoke,
-local-only result documentation and stop. This supersedes the prior LOCAL-only
-publication prohibition for this bounded round. The containing commit records
-authorization and pre-publication facts; it does not claim its future push or
-Preview result. Those results will remain in local, uncommitted status documents.
+A1 read-only PM reconciliation and A2 Owner manual native picker passed.
+The existing candidate is frozen; B–C proceed under the Owner continuation.
+**Task10 DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task | **Task10 — publish reviewed Next16.3.3 package/docs and inspect automatic Preview** |
-| Task Status | **DEVELOPING**; READY FOR OWNER UAT **No**; Task Done **No** |
-| Actor / Scope | Developer; publication exactly **Dependencies2 / Docs4 / Functional0 / Tests0 / Migrations0 / Other config0**. package.json, package-lock.json, AGENTS.md and three status docs only. New edits this round limited to PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md |
-| Owner Decision | Audit → one normal commit/push of six paths → automatic Preview → read-only landing/login/assets/navigation/logs → local result docs → stop. No manual deployment, staged Production, Owner UAT, Promotion, activation or remote data operation |
-| Protected Policy | One all-family Store button; Reschedule >=12h including exact12; Wallet >48h excluding exact48; same-month/ten-month, price, entitlement and financial policies unchanged |
-| Commercial Record | Approved48,000 บาท; automatic cancellation included; customer payment Unknown / no evidence supplied |
-| Branch | spike/next-major-security-upgrade |
-| Upstream / Remote | origin/spike/next-major-security-upgrade / https://github.com/aachanin1/New-Athlete-Badminton-School.git |
-| Local HEAD / Remote HEAD | Gate0 **c8613046370cfdc29c7e90a57e0ff025085d658b / same**, freshly verified live; containing publication commit is pending at this recorded checkpoint |
-| Ahead / Behind | Gate0 **0 / 0** |
-| Worktree / Staged | Gate0 **6 modified allowed paths / staged empty**. Prior work preserved; one six-path publication commit authorized, not yet completed at this checkpoint |
-| Current Source | c861304 application plus exact local16.3.3 package pair. src tree55a1cd39886dcebc44d5a649b8070264b91afcee unchanged; Gate0 full diff and all six working hashes match the preceding investigation closeout |
-| Pushed Source | c861304 corrective with next/eslint-config-next16.2.12;16.3.3 publication pending |
-| Source Complete | Reviewed corrective and dependency candidate complete; no new application correction. No normal-page failure requiring an application fix was established by the bounded local investigation |
-| Installed Dependencies | next/eslint-config-next16.3.3; React/react-dom18.3.1, Node24.16.0/npm11.13.0 retained. Scripts, categories and overrides unchanged |
-| Package Working SHA256 | package.json **2a12036fce0797090976211273ca8543efa6644ba427d81b137ad1d9fe93227c**; package-lock.json **b98e5d67eb569e774021e8bb1702d7f3da00da2e3d394e7e941102a2d34cc2b7** |
-| Package Git EOL / Blob Identity | core.autocrlf=true unchanged; no explicit attributes. Working package files contain CRLF; index is LF. Expected normalized SHA256: package.json **fd58146cb6a693e6c3c5f662df4cbc3e6aa81da7e83211873baa679656bd59ac**; lock **c8580754ed202293f7f1b9fdb037aaa930d729754dd7997e4fdb929f58a15b30**. CRLF→LF-only normalization and JSON equality proved; actual staged/commit blobs must be checked before publication completes |
-| Dependency Delta |13 existing nodes changed: Next/config/env/plugin and eight optional SWC packages to16.3.3; @swc/helpers0.5.15→0.5.23. No package nodes added/removed; existing eslint-utils edge and postcss8.5.28/sharp0.35.4 overrides retained |
-| Tests Passed | **Retained, not rerun this round:** Task10 64/64, Booking23/23, Wallet45/45, History16/16 and15 built browser checks on the frozen package candidate. Investigation retained: built15/15 original and wait; Booking3/3 original and wait; separate failed diagnostic waiter is not PASS |
-| Technical Checks | Prior TypeScript/lint/Production build and package audits retained on equivalent normalized content. Fresh publication checks: hashes/EOL, complete staged diff/allowlist/check, documentation matrix/mojibake and new automatic Preview smoke/logs; final results pending |
-| Security Audit | Prior local full/omit-dev audit0 findings on16.3.3; not a new audit or whole-system security PASS. Production has not received this patch |
-| Committed / Pushed | Existing corrective Yes/Yes at c861304; new six-path publication **pending/pending** at this checkpoint. Post-Preview result docs will remain uncommitted/unpushed |
-| Local Artifact / Stream Evidence | Archived local build ubTHtIOPjHbaCMb86Q3hQ retained, no rebuild. Old logs: built1 digest3492797032 plus Booking3 digest3299920112. New Booking events exactly link unfinished refresh/context teardown; built timing correlation is weaker. Wait comparisons0 errors; four historical request identities and upgrade causality remain Unknown. Browser PASS never implied server-log PASS |
-| Local Dev / Cleanup | Previous investigation final snapshot: fixture/residue0, real clock, never_activated/revision0/NULL effective_at/artifact/flagsfalse, one inactive cron, Storage baseline retained, ports3000/3002 released. No fixtures or DB/test servers run this publication round |
-| Deployed / Preview | New automatic Preview **pending**. Old dpl_3H5Wp6TULoERTG7rhd9Ks6gC2DYV/c861304 is historical, not evidence for the new candidate |
-| Vercel Git / Build Gate | Fresh exact project prj_v034HOI6AjaMpBezWvuvT0W24pTp/team_gw8Y6CPd602WAKRsVFobPGCL: GitHub aachanin1/New-Athlete-Badminton-School; productionBranch **main**; createDeployments enabled; deployHooks empty; build/install/root/ignore overrides null. vercel.json npm ci → npm run build → next build --webpack. No migration/seed lifecycle or instrumentation hook; GitHub webhooks0, Pages workflow main/manual only. No settings changed |
-| Production Web Source / Deployment ID | Fresh pre-push Task9 **99b70fe373bfaa14424e2163136719024e5f0b0b / dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa**, READY/PROMOTED; no Production deployment authorized |
-| Production Domains | Fresh03:25:58–03:26:03 UTC: www.newathleteschool.com, new-athlete-badminton-school.vercel.app and new-athlete-badminton-school-aachanin1s-projects.vercel.app all map to exact Task9 deployment. Post-push comparison pending; protection remains all_except_custom_domains |
-| Production Checks / Health | Fresh metadata/domain baseline only. No new Production web/operational-data health audit; **/api/health remains Unknown**. A new Preview will not establish Production patch installation |
-| Staged Artifact / Owner UAT | **No Task10 staged Production artifact; Owner/Production UAT not run**. Automatic Preview is not a Production Promotion artifact |
-| Promotion | **Not performed / not authorized this round** |
-| Migration Source / Applied | **M1–M5 applied remotely from step2**, exact approved versions20260909000100–20260909000500/history40. No migration source change or remote SQL/query/apply/reset/repair this round |
-| Production DB Schema / Bootstrap | Step2 installed evidence/control/catalog, minimum2/catalogrevision1 and inactive scheduler. No new remote DB operation in this publication |
-| Wallet Corrective | **Installed/effective since step2 M3**, including never_activated; preserved routing and booking-before-participant Family lock unchanged |
-| Feature Enabled / Activation | Task10 policies **OFF at last remote step2 verification**; no activation/pause/control operation this round; not freshly queried |
-| Scheduler | One inactive Task10 job at step2; no enable, worker execution or query this round |
-| Feature Allowlist / Environment / Permissions | No changes authorized or performed. Existing Vercel access/protection retained; no new secret or deployment bypass configuration |
-| Production Active | Task10 policies No at last verified step2; Wallet corrective installed. Next16.3.3 is **not Production-active** |
-| Controlled Write UAT | **None this round**; no Preview/Production fixtures or form submissions. Prior disposable evidence remains historical |
-| Production Data / Data Repair | **No task-directed remote write or repair this round**. Step2 schema/bootstrap/history/job changes remain recorded; unrelated live traffic not audited or assumed unchanged |
-| Customer / Financial Impact | No business behavior or live customer/financial data mutation authorized by this publication. Preview visibility only; no Production package patch or financial change |
-| Scope Expansion / Scope Breach | Publishing exactly the existing approved six paths. Prior Owner-approved expansions: package files2 and AGENTS.md1; no further expansion this round. Scope breach0 at Gate0; final compliance pending |
-| Documentation Drift | Prior omitted built error and observed-stack version corrected and preserved. Current approval/next gate updated; historical LOCAL-only restrictions remain dated history. Pre-publication record intentionally does not claim future Preview success |
-| Blocker / Limits | No blocking mismatch found at Gate0. Publication/new Preview verification pending. Historical stream attribution, npm engine/install warning context and /api/health Unknown remain explicit; new Preview errors require their own context |
-| Remaining Work | Complete authorized one commit/push, exact-SHA automatic Preview and read-only checks, compare Production mapping, record results locally and submit to Owner/PM |
-| Next Gate / Next Action | **Finish this bounded publication then stop for Owner/PM review before any UAT preparation. No additional result-doc push, staged Production, Promotion or activation** |
-| Parking Lot Authorization State |1–8 unselected;9 completed;10 DEVELOPING; no other task selected |
+| Active Task / Intended Behavior | Task10 — publish the verified Family Schedule and monthly Admin Makeup candidate, then prepare all seven Task10 Owner UAT flows. |
+| Task Status / READY / Task Done | DEVELOPING / No / No. A1 DB reconciliation and A2 manual native picker passed. B publication is authorized and in progress; C complete UAT preparation remains outstanding. |
+| Owner Decision / Scope | 2026-09-13 continuation authorizes A1 → A2 → B normal commit/push, automatic Preview and staged Production without domain routing → C seven-step UAT preparation. Publish only pending Functional3/Tests4/Docs3=10 paths. Functional/tests frozen; only Docs3 edited now. No Promotion, activation or remote business writes. |
+| Scope Expansion / Scope Breach | New tracked paths0; breach0. Earlier Owner-approved expansions remain historical. Temporary helpers/evidence outside repository are inventoried separately; no helper/fixture/credential enters deployment. |
+| Protected Policy | Family one atomic unit/all-family Store/exact identities; Reschedule>=12h including exact12, Wallet>48h excluding exact48; same-month/ten-month; M/D/quota/source-month/actual-child/OFF-active-paused; canonical assignment/attendance/pricing/payment/entitlement/payroll/finance unchanged. |
+| Commercial Record | Approved48,000บาท; automatic cancellation included. Customer payment Unknown; no new payment evidence. |
+| Branch / Upstream | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade |
+| Local HEAD / Remote HEAD / Ahead-Behind | 001f610deb54390f704dfa1e3e130e6f1a291ce4 / same / 0/0 before publication, fresh at 2026-09-13T07:41:22.392Z. The containing source commit will identify the published candidate; this pre-publication record does not claim a future SHA. |
+| Index / Worktree | Before staging: index empty,10authorized modified paths. All489tracked working hashes matched September12 final.json; only Docs3 change now. Frozen486other paths and runtime/build provenance remain verified. core.autocrlf=true unchanged; working and normalized commit-blob hashes are recorded separately. |
+| Current Source / Pushed Source | Pending local Family/monthly Makeup correction and approved Booking navigation patch on001f610. Pushed source currently001f610 until publication completes; no frozen source/test edits this round. |
+| Source Complete | Local corrective source complete from prior verification. Publication and full Owner UAT preparation still in progress; no overall feature/release PASS. |
+| Family Preserve-only | SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf9380bf147e unchanged. Wallet header/member projection retains own source/target and legacy header-only behavior. Prior parent/child UI and DB evidence retained. |
+| Booking Patch / EOL | Exact approved+6/-4 navigation patch remains SHA25616ec9ef952aeb2cb817e46dd36502d70c66afbfa6eb4c654901dd5780bf26f84. No assertions/timeout/mock/fixture-date or Git-config edits in this continuation. |
+| Fresh Verification | A1:9offline assertion categories on read-only repeatable-read snapshot, including120exact session/student/type IDs and atomic audit before/after. A2:Owner manual Chrome native popup/year/month/empty/reload/Back–Forward PASS. Local login/static assets16HTTP bodies completed; anonymous Makeup redirects to login. These are not fresh regression suites. |
+| Retained Evidence | Matching-byte Booking23/23; monthly5 and guards2 with overlap (not additive totals); Task10UI7/protected32/Wallet45/Adminstate39/retrospective38; TypeScript/lint/build. Historical148 tests and stream investigations remain dated, not rerun. Candidate build balY_tF-xkxmTWP_fJXK4/Next16.3.3/Node24.16.0; no rebuild yet. |
+| Performance / Refresh Retained | Selected month1691rows complete versus2422all-month main rows (-30.18%); cross-month references2 preserved. Same-dataset first+5warm: browser1116.03→857.95ms; server982.04→715.81ms; queries61→62, rows7164→5611, RESTbytes3713807→2710269. Paired120/10/10refresh browserEOF/currentUI/exact140DB identities passed. No cold-cache, Production speed or DOM-reduction claim. |
+| A1 PM Reconciliation | Fresh 2026-09-13T07:43:07.075353+00:00:exact120identities, group0ea79c85…, slot291783e6…, branch69795126…, Local Review Coach8313a226…. Single audit1cbad47f-923f-498c-8aa8-116515dc8be7 at2026-09-12T16:15:13.765849Z, actor146e6a77… synthetic Makeup Admin, exact PM reason. Canonical DB equals after snapshot; memberships/attendance/statuses equal before. No partial/orphan/duplicate target assignment or resend. One expected local coach notification. |
+| A1 Baseline Limits | Target attendance0; global60 existing fixture rows is separate. Three fixture bookings still verified, entitlement basis500each, price0, original timestamps. Baseline9users/42bookings/2476sessions/0payments/0credits/0uses matches. No complete raw pre-PM financial/coupon snapshot: no global byte-identity claim. PM coach-visible-after-reload is retained manual evidence, not a new Dev browser reload. |
+| A2 Manual / Safety | Owner confirmed Chrome popup actually opened; August2026→2027→2026, month navigation, emptyAugust2027, this-month/reload/Back–Forward and input/heading/URL/rows all match. Browser version Unknown (not supplied). Manual A2 only, not full Owner UAT PASS. No computer-control retry/reset/alternate-channel bypass; historical picker cause remains Unknown. |
+| Logs / Limitations | Historical ERR_ABORTED/stream-close individual causes remain Unknown, not blanket harmless. Fresh local HTTP-only preflight has no browser/native/privileged/staged PASS implication. npm fetched CLI59.16.0 only for help into external npx cache; deployment work uses existing59.11.2. Repository packages/lockfile remain unchanged. |
+| Technical Checks | Frozen source/test/package/config/build hashes fresh. Diff and documentation checks run before commit. Prior TypeScript/lint/build retained on matching content; post-publication build and exact-artifact smoke still required. |
+| Committed / Pushed | Not yet at this pre-publication snapshot. A1/A2 passed and normal staging/commit/push is now authorized. No force/amend/rebase/merge. |
+| Artifact / Deployed | No new artifact yet. Existing staged dpl_EXz6yCCit6jmFMttN3FPsr2k5pAT/SHA001f610 lacks the candidate. B must create new automatic Preview and distinct exact staged Production; Preview cannot substitute no-rebuild Production-artifact UAT. |
+| Production Source / Checks | Fresh 2026-09-13T07:59:19.988Z:dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa/SHA99b70fe373bfaa14424e2163136719024e5f0b0b remains READY/PROMOTED; registered customer domains and aliases recorded. Prior3selectedaliases still map here; current full project inventory includes4aliases on this artifact. GET landing/login200 and actual /api/health JSON200 statusok at 2026-09-13T08:01:12.757Z; auth.connected=false is anonymous context, not authenticated UAT. No all-system health claim. |
+| Vercel Publication Gate | Projectprj_v034HOI6AjaMpBezWvuvT0W24pTp/team_gw8Y6CPd602WAKRsVFobPGCL; productionBranch=main, Git createDeployments enabled, deployHooks0. Branchspike/next-major-security-upgrade produces Preview. vercel.json npmci/npmrunbuild; no migration/seed lifecycle hook. Existing Production artifact is available rollback candidate; web rollback does not undo DB wrappers. Existing protection/config retained. |
+| Owner UAT / Production UAT / Controlled Write UAT | Not ready / not performed / no new Developer business mutation. PM previous local review and A2 manual verification are not Owner PASS for Task10. C must preflight all seven flows and reserve fresh separate Owner fixtures. |
+| Promotion | No; customer domain routing/protection/environment remain untouched. |
+| Migration Source / Applied | Source unchanged; fresh remote read confirms40history entries includingM1–M5applied from step2; Wallet corrective installed. No apply/repair or remote SQL write this round. |
+| Feature Enabled / Activation / Scheduler | Fresh remote 2026-09-13T07:54:35.654662+00:00:never_activated/revision0/flagsfalse/effective_at-artifactNULL; one inactive task10-expire-unpaid-bookings-v1; activation0/worker0. Local55321alsoOFF/nativeclock/inactive, freshly SELECT-verified. No activation/pause/worker execution. |
+| Allowlisted / Permissions | No feature allowlist, Auth, permissions, secrets, saved environment or dependency changes. Only verified existing local test-process bindings and read-only remote metadata used. |
+| Production Active / Data Changed / Data Repaired | No task-directed Production business/financial write or repair. Earlier step2 schema/bootstrap remains installed. Unrelated customer traffic is not audited or assumed unchanged. |
+| Customer / Financial Impact | No new customer-facing release yet. A1 verifies PM synthetic target and available financial/entitlement invariants with explicit baseline limits. No Production payment/attendance/finance/data repair in this continuation. |
+| Cleanup / Preserved UAT | No reset/reseed/fixture cleanup. PM55321 and oldUAT54321 preserved. Local unchanged build restarted on127.0.0.1:3020, PID8280/launcher15392, nativeDate; intentionally left available. Existing Owner scenarios may be consumed; C must use separate fresh fixtures. |
+| Local Review / URL | http://127.0.0.1:3020/admin/makeup; existing private local credentials remain outside repository. This Makeup review is not complete seven-step functional UAT. BackendA1passed; manualA2passed. |
+| Documentation Drift | Corrected A1/A2 pending state and old alternate-control-channel next action; fresh remote/health facts replace retained Unknown only within actual scope. Historical failures retained. PROJECT_STATE owns current state; dated record is pre-publication evidence. |
+| Blocker / Remaining Work | No remaining A1/A2 blocker. Complete B publication/exact artifacts/smoke/domain checks, then C seven-step preflight with fresh local scenarios and acceptance manifest. Stop on a material new failure, not an already-authorized checkpoint. |
+| Next Gate / Next Action | Normal commit/push of exact10paths after staged diff/consistency gates; automaticPreview, distinct stagedProduction, then C. Stop for Owner UAT when fully ready; no Promotion or activation. |
+| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. No other task selected. |
+
+Evidence: C:\Users\aacha\AppData\Local\Temp\task10-publish-uat-20260913 (gate0.json, pm-reconcile-result.json, a2-manual-result.json,
+prepublication-remote-read.json, vercel-before.json, production-health-before.json).
+[Dated A1/A2 publication gate](DEVELOPMENT_TODO.md#task10-a1-a2-passed-publication-gate-2026-09-13).
+Prior verification remains in task10-makeup-monthly-local-20260911/booking-verification-20260912.
 
 ## Historical / Completed — Task 9 released / TASK DONE
 

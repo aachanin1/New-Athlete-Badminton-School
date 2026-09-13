@@ -54,6 +54,12 @@ interface WalletCreditRow {
   expired_at: string | null
 }
 
+interface WalletMemberRow {
+  original_session_id: string
+  redeemed_session_id: string | null
+  lesson_wallet_credits: WalletCreditRow | null
+}
+
 interface RedeemedSessionRow {
   id: string
   date: string
@@ -237,16 +243,39 @@ export default async function SchedulePage() {
 
   const walletOriginalIds = Array.from(new Set([...sessionIds, ...fromIds]))
   if (walletOriginalIds.length > 0) {
-    const { data: walletCredits } = await adminSupabase
-      .from('lesson_wallet_credits')
-      .select('original_session_id, redeemed_session_id, status, redeemed_at, expired_at')
-      .in('original_session_id', walletOriginalIds) as unknown as { data: WalletCreditRow[] | null }
+    const [headers, members] = await Promise.all([
+      adminSupabase
+        .from('lesson_wallet_credits')
+        .select('original_session_id, redeemed_session_id, status, redeemed_at, expired_at')
+        .eq('user_id', user.id)
+        .in('original_session_id', walletOriginalIds),
+      adminSupabase
+        .from('lesson_wallet_credit_members')
+        .select('original_session_id, redeemed_session_id, lesson_wallet_credits!inner(original_session_id, redeemed_session_id, status, redeemed_at, expired_at)')
+        .eq('lesson_wallet_credits.user_id', user.id)
+        .in('original_session_id', walletOriginalIds),
+    ]) as unknown as [
+      { data: WalletCreditRow[] | null; error: { message: string } | null },
+      { data: WalletMemberRow[] | null; error: { message: string } | null },
+    ]
+    if (headers.error || members.error) throw new Error('ไม่สามารถตรวจสอบสถานะกระเป๋าวันเรียนได้ กรุณาลองใหม่')
 
-    ;(walletCredits || []).forEach((credit) => {
+    // Keep legacy header-only credits; Family members inherit the credit state
+    // but retain their own source and redeemed target, including non-representatives.
+    ;(headers.data || []).forEach((credit) => {
       walletCreditByOriginalSessionId[credit.original_session_id] = credit
     })
+    ;(members.data || []).forEach((member) => {
+      const credit = member.lesson_wallet_credits
+      if (!credit) return
+      walletCreditByOriginalSessionId[member.original_session_id] = {
+        ...credit,
+        original_session_id: member.original_session_id,
+        redeemed_session_id: member.redeemed_session_id,
+      }
+    })
 
-    const redeemedSessionIds = Array.from(new Set((walletCredits || [])
+    const redeemedSessionIds = Array.from(new Set(Object.values(walletCreditByOriginalSessionId)
       .map((credit) => credit.redeemed_session_id)
       .filter(Boolean))) as string[]
 

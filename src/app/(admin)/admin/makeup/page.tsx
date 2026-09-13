@@ -142,11 +142,14 @@ function getSingleSearchParam(value: string | string[] | undefined) {
   return value || null
 }
 
-function toDateInput(value: Date) {
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+function isMonthInput(value: string | null): value is string {
+  return Boolean(value && /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(value) && value.slice(0, 4) < '9999')
+}
+
+function isDateInput(value: string | null): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !isMonthInput(value.slice(0, 7))) return false
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
 }
 
 function getBangkokTodayInput() {
@@ -204,17 +207,21 @@ async function readChunkedRangePages<T>(
   label: string,
   values: string[],
   buildPage: (chunk: string[], start: number, end: number) => PromiseLike<QueryRowsResult<T>>,
+  chunkSize = IN_FILTER_CHUNK_SIZE,
 ) {
   const rows: T[] = []
-  const chunks = chunkArray(Array.from(new Set(values.filter(Boolean))), IN_FILTER_CHUNK_SIZE)
+  const chunks = chunkArray(Array.from(new Set(values.filter(Boolean))), chunkSize)
 
-  for (let index = 0; index < chunks.length; index += 1) {
-    const chunk = chunks[index]
-    const chunkRows = await readAllRangePages<T>(
-      `${label} chunk ${index + 1}/${chunks.length}`,
-      (start, end) => buildPage(chunk, start, end),
-    )
-    rows.push(...chunkRows)
+  // Two chunks per independent read; four related reads below cap fan-out at
+  // eight requests per page. Promise.all preserves chunk order; each chunk still
+  // reads every deterministic range, including a short final page.
+  for (let index = 0; index < chunks.length; index += 2) {
+    const batch = await Promise.all(chunks.slice(index, index + 2).map((chunk, offset) =>
+      readAllRangePages<T>(
+        `${label} chunk ${index + offset + 1}/${chunks.length}`,
+        (start, end) => buildPage(chunk, start, end),
+      )))
+    batch.forEach((chunkRows) => rows.push(...chunkRows))
   }
 
   return rows
@@ -230,9 +237,24 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
     date: getSingleSearchParam(resolvedSearchParams.date),
   }
   const todayInput = getBangkokTodayInput()
-  const [todayYear, todayMonth, todayDay] = todayInput.split('-').map(Number)
-  const historyStartInput = toDateInput(new Date(todayYear, todayMonth - 1 - 6, todayDay))
-  const nextMonthEndInput = toDateInput(new Date(todayYear, todayMonth + 1, 0))
+  const currentMonth = todayInput.slice(0, 7)
+  const requestedMonth = getSingleSearchParam(resolvedSearchParams.month)
+  const invalidMonth = resolvedSearchParams.month !== undefined
+    && (Array.isArray(resolvedSearchParams.month) || !isMonthInput(requestedMonth))
+  let selectedMonth = !invalidMonth && isMonthInput(requestedMonth) ? requestedMonth : currentMonth
+  if (resolvedSearchParams.month === undefined) {
+    // Legacy deep links resolve at most one authorized session; never scan history.
+    if (reviewTarget.sessionId && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(reviewTarget.sessionId)) {
+      const { data, error } = await supabase.from('booking_sessions')
+        .select('date, bookings!inner(status)').eq('id', reviewTarget.sessionId)
+        .eq('bookings.status', 'verified').maybeSingle() as unknown as { data: { date: string } | null; error: QueryError | null }
+      if (error) throw new Error(`Admin makeup target query failed: ${error.message}`)
+      if (data && isDateInput(data.date)) selectedMonth = data.date.slice(0, 7)
+    } else if (isDateInput(reviewTarget.date)) selectedMonth = reviewTarget.date.slice(0, 7)
+  }
+  const monthStart = `${selectedMonth}-01`
+  const [year, month] = selectedMonth.split('-').map(Number)
+  const nextMonthStart = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10)
   const makeupSessionSelect = `
     id, booking_id, date, start_time, end_time, status, is_makeup, child_id, branch_id, schedule_slot_id, rescheduled_from_id,
     branches(name),
@@ -260,7 +282,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
         .eq('bookings.status', 'verified')
         .in('status', familyPolicy.effectiveAt ? ['absent', 'scheduled', 'completed', 'walleted'] : ['absent', 'scheduled', 'completed'])
         .lte('date', todayInput)
-        .gte('date', historyStartInput)
+        .gte('date', monthStart).lt('date', nextMonthStart)
         .order('date', { ascending: false })
         .order('id', { ascending: true })
         .range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
@@ -270,8 +292,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
         .select(makeupSessionSelect)
         .eq('bookings.status', 'verified')
         .not('rescheduled_from_id', 'is', null)
-        .gte('date', historyStartInput)
-        .lte('date', nextMonthEndInput)
+        .gte('date', monthStart).lt('date', nextMonthStart)
         .order('date', { ascending: false })
         .order('id', { ascending: true })
         .range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
@@ -281,6 +302,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
           .select(makeupSessionSelect.replace('course_types(name)', 'course_types!inner(name)'))
           .eq('bookings.status', 'verified').eq('bookings.course_types.name', 'kids_group')
           .eq('status', 'walleted').eq('is_makeup', false).gt('date', todayInput)
+          .gte('date', monthStart).lt('date', nextMonthStart)
           .order('date').order('id').range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>)
       : Promise.resolve([] as MakeupSessionRow[]),
     supabase
@@ -315,17 +337,35 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   futureKidsWalletSessions.forEach((session) => sessionById.set(session.id, session))
   const sessions = Array.from(sessionById.values())
 
+  // Cross-month evidence is selected by exact links, not another broad date scan.
+  // Keep it separate: it confirms usage/reconciliation without entering queues or totals.
+  const [linkedDestinations, linkedSources] = await Promise.all([
+    readChunkedRangePages<MakeupSessionRow>('linked destinations by source', sessions.map((session) => session.id),
+      (chunk, start, end) => supabase.from('booking_sessions').select(makeupSessionSelect)
+        .eq('bookings.status', 'verified').in('rescheduled_from_id', chunk)
+        .order('id').range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
+    readChunkedRangePages<MakeupSessionRow>('linked source evidence', sessions.flatMap((session) =>
+      session.rescheduled_from_id && !sessionById.has(session.rescheduled_from_id) ? [session.rescheduled_from_id] : []),
+      (chunk, start, end) => supabase.from('booking_sessions').select(makeupSessionSelect)
+        .eq('bookings.status', 'verified').in('id', chunk)
+        .order('id').range(start, end) as unknown as PromiseLike<QueryRowsResult<MakeupSessionRow>>),
+  ])
+  const linkedEvidence = dedupeRowsById([...linkedDestinations, ...linkedSources])
+    .filter((session) => !sessionById.has(session.id))
+
   const visibleSessionIds = new Set(sessions.map((session) => session.id))
   const slotIds = Array.from(new Set(sessions.map((session) => session.schedule_slot_id).filter(Boolean) as string[]))
   const groupContextBySessionId: Record<string, { groupId: string; groupName: string | null; coachId: string | null; coachName: string | null }> = {}
-  let groups: GroupRow[] = []
-  let slotSessionsForScope: SlotSessionRow[] = []
   const slotSessionById = new Map<string, SlotSessionRow>()
   const checkinsBySlotCoachKey: Record<string, CoachCheckinRow> = {}
-
-  if (slotIds.length > 0) {
-    // Large slot sets can exceed URL/request limits, so related reads are chunked by slot id.
-    groups = dedupeRowsById(await readChunkedRangePages<GroupRow>(
+  const sessionIds = sessions.map((session) => session.id)
+  const logActions = [
+    'attendance_gap_request_coach_review',
+    'attendance_gap_request_coach_evidence',
+    'attendance_gap_closed_no_action',
+  ]
+  const [groupRows, checkins, slotRows, reviewLogs] = await Promise.all([
+    readChunkedRangePages<GroupRow>(
       'assignment groups by slot',
       slotIds,
       (chunk, start, end) =>
@@ -339,22 +379,8 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
           .in('schedule_slot_id', chunk)
           .order('id', { ascending: true })
           .range(start, end) as unknown as PromiseLike<QueryRowsResult<GroupRow>>,
-    ))
-    groups.forEach((group) => {
-      const groupSessionIds = (group.coach_assignment_group_students || []).map((student) => student.booking_session_id)
-      groupSessionIds.forEach((sessionId) => {
-        if (visibleSessionIds.has(sessionId)) {
-          groupContextBySessionId[sessionId] = {
-            groupId: group.id,
-            groupName: group.name,
-            coachId: group.coach_id,
-            coachName: group.profiles?.full_name || group.profiles?.email || null,
-          }
-        }
-      })
-    })
-
-    const checkins = await readChunkedRangePages<CoachCheckinRow>(
+    ),
+    readChunkedRangePages<CoachCheckinRow>(
       'coach checkins by slot',
       slotIds,
       (chunk, start, end) =>
@@ -363,15 +389,10 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
           .select('schedule_slot_id, coach_id, checkin_time, photo_url, location_lat, location_lng')
           .in('schedule_slot_id', chunk)
           .order('checkin_time', { ascending: false })
+          .order('id', { ascending: true })
           .range(start, end) as unknown as PromiseLike<QueryRowsResult<CoachCheckinRow>>,
-    )
-
-    checkins.forEach((checkin) => {
-      const coachKey = `${checkin.schedule_slot_id}:${checkin.coach_id}`
-      if (!checkinsBySlotCoachKey[coachKey]) checkinsBySlotCoachKey[coachKey] = checkin
-    })
-
-    slotSessionsForScope = dedupeRowsById(await readChunkedRangePages<SlotSessionRow>(
+    ),
+    readChunkedRangePages<SlotSessionRow>(
       'slot sessions for attendance scope',
       slotIds,
       (chunk, start, end) =>
@@ -384,11 +405,36 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
           .neq('status', 'walleted')
           .order('id', { ascending: true })
           .range(start, end) as unknown as PromiseLike<QueryRowsResult<SlotSessionRow>>,
-    ))
-    slotSessionsForScope.forEach((slotSession) => {
-      slotSessionById.set(slotSession.id, slotSession)
+    ),
+    readChunkedRangePages<ActivityLogRow>('review logs by session', sessionIds, (chunk, start, end) =>
+      adminSupabase.from('activity_logs')
+        .select('action, entity_id, created_at, details')
+        .eq('entity_type', 'booking_sessions')
+        .in('entity_id', chunk)
+        .in('action', logActions)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(start, end) as unknown as PromiseLike<QueryRowsResult<ActivityLogRow>>, 200),
+  ])
+  const groups = dedupeRowsById(groupRows)
+  const slotSessionsForScope = dedupeRowsById(slotRows)
+  groups.forEach((group) => {
+    ;(group.coach_assignment_group_students || []).forEach(({ booking_session_id: sessionId }) => {
+      if (visibleSessionIds.has(sessionId)) {
+        groupContextBySessionId[sessionId] = {
+          groupId: group.id,
+          groupName: group.name,
+          coachId: group.coach_id,
+          coachName: group.profiles?.full_name || group.profiles?.email || null,
+        }
+      }
     })
-  }
+  })
+  checkins.forEach((checkin) => {
+    const coachKey = `${checkin.schedule_slot_id}:${checkin.coach_id}`
+    if (!checkinsBySlotCoachKey[coachKey]) checkinsBySlotCoachKey[coachKey] = checkin
+  })
+  slotSessionsForScope.forEach((slotSession) => slotSessionById.set(slotSession.id, slotSession))
 
   const attendanceScopeSessionIds = getAdminAttendanceScopeSessionIds(sessions, groups, slotSessionsForScope)
   let attendanceRows: AttendanceRow[] = []
@@ -415,30 +461,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   })
 
   const reviewMetaBySessionId = new Map<string, ReviewMeta>()
-  const sessionIds = sessions.map((session) => session.id)
-
-  if (sessionIds.length > 0) {
-    const reviewLogs: ActivityLogRow[] = []
-    const logActions = [
-      'attendance_gap_request_coach_review',
-      'attendance_gap_request_coach_evidence',
-      'attendance_gap_closed_no_action',
-    ]
-
-    for (let i = 0; i < sessionIds.length; i += 200) {
-      const sessionIdChunk = sessionIds.slice(i, i + 200)
-      const { data } = await adminSupabase
-        .from('activity_logs')
-        .select('action, entity_id, created_at, details')
-        .eq('entity_type', 'booking_sessions')
-        .in('entity_id', sessionIdChunk)
-        .in('action', logActions)
-        .order('created_at', { ascending: false }) as unknown as { data: ActivityLogRow[] | null }
-
-      if (data) reviewLogs.push(...data)
-    }
-
-    reviewLogs.forEach((log) => {
+  reviewLogs.forEach((log) => {
       if (!log.entity_id) return
       const meta = reviewMetaBySessionId.get(log.entity_id) || {
         coachReviewRequestedCount: 0,
@@ -471,8 +494,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       }
 
       reviewMetaBySessionId.set(log.entity_id, meta)
-    })
-  }
+  })
 
   const getSameSlotCoachGroupOptions = (
     session: MakeupSessionRow,
@@ -517,7 +539,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       .sort((a, b) => a.coachName.localeCompare(b.coachName, 'th') || a.groupName.localeCompare(b.groupName, 'th') || a.groupId.localeCompare(b.groupId))
   }
 
-  const sessionList = sessions.map((session) => {
+  const toSessionPayload = (session: MakeupSessionRow) => {
     const learnerName = session.child_id
       ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
       : (session.bookings?.profiles?.full_name || 'ไม่ทราบ')
@@ -562,12 +584,17 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       coach_evidence_requested_count: reviewMeta?.coachEvidenceRequestedCount || 0,
       coach_evidence_requested_at: reviewMeta?.coachEvidenceRequestedAt || null,
     }
-  })
+  }
+  const sessionList = sessions.map(toSessionPayload)
 
   return (
     <MakeupClient
       familyPolicy={familyPolicy}
       sessions={sessionList}
+      linkedSessions={linkedEvidence.map(toSessionPayload)}
+      selectedSourceMonth={selectedMonth}
+      currentMonth={currentMonth}
+      invalidMonth={invalidMonth}
       branches={branches || []}
       scheduleTemplates={(scheduleTemplates || []).map((template) => ({
         id: template.id,

@@ -1,7 +1,109 @@
 import { expect, test, type Page } from '@playwright/test'
 import { TEST_ADMIN_ACCOUNT, TEST_ACCOUNT } from '../booking-regression/local-supabase'
 import { createHash, randomUUID } from 'node:crypto'
-import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, setDisposableClock, trackTask10Storage, TASK10_ADMIN_EMAIL, TASK10_PASSWORD } from './local-supabase'
+import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, seedFamilyScheduleFixture, seedLegacyHeaderWalletFixture, setDisposableClock, trackTask10Storage, TASK10_ADMIN_EMAIL, TASK10_PASSWORD } from './local-supabase'
+
+async function openFamilyScheduleMonth(page: Page, date: string) {
+  await page.goto('/dashboard/schedule')
+  const current = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit' }).formatToParts(new Date())
+  const parts = Object.fromEntries(current.map((part) => [part.type, part.value]))
+  const [year, month] = date.split('-').map(Number)
+  const distance = (year - Number(parts.year)) * 12 + month - Number(parts.month)
+  expect(Math.abs(distance)).toBeLessThanOrEqual(12)
+  for (let index = 0; index < Math.abs(distance); index++) {
+    await page.getByRole('button', { name: distance > 0 ? 'เดือนถัดไป' : 'เดือนก่อนหน้า', exact: true }).click()
+  }
+  await expect(page.getByRole('button', { name: `ดูตารางวันที่ ${date}`, exact: true })).toBeVisible()
+}
+
+for (const childRepresentative of [false, true]) {
+  test(`Family Schedule UI Store/Redeem keeps one complete unit with ${childRepresentative ? 'child' : 'parent'} representative`, async ({ page }, testInfo) => {
+    test.setTimeout(180_000)
+    const c = await seedFamilyScheduleFixture(childRepresentative)
+    const financialBefore = localSql(c.invariants)
+    await page.goto('/auth/login')
+    await page.locator('#email').fill(c.email)
+    await page.locator('#password').fill(TASK10_PASSWORD)
+    await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+    await page.waitForURL(/\/dashboard(?:\/|$)/)
+    await openFamilyScheduleMonth(page, c.dates.source)
+    await expect(page.getByText('รวม 2 ครั้ง', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.source}`, exact: true }).click()
+    const store = page.getByRole('button', { name: 'เก็บทั้งครอบครัวเข้ากระเป๋า', exact: true })
+    await expect(store).toHaveCount(1)
+    await store.click()
+    const stored = page.waitForResponse(r => r.url().includes('/api/lesson-wallet') && r.request().method() === 'POST')
+    await page.getByRole('button', { name: 'ยืนยันเก็บทั้งครอบครัว', exact: true }).click()
+    const storeResponse = await stored
+    const storeResult = await storeResponse.json()
+    expect(storeResponse.status(), JSON.stringify(storeResult)).toBe(200)
+    expect(storeResult.participantCount).toBe(2)
+    // The button sorts by participant identity; SQL independently selects the
+    // lowest source UUID for its header. Prove both, without conflating them.
+    const buttonSource = c.extraChild && c.extraChild.localeCompare(c.childId) > 0 ? c.sources[1] : c.sources[0]
+    expect(storeResponse.request().postDataJSON()).toMatchObject({ action: 'store', sessionId: buttonSource })
+    expect(localSql(`SELECT original_session_id FROM lesson_wallet_credits WHERE id='${storeResult.creditId}';`)).toBe(c.sources[0])
+    expect(JSON.parse(localSql(c.snapshot))).toMatchObject({ credits: 1, members: 2, walleted: 2, otherScheduled: 2, memberIdentity: true })
+    await openFamilyScheduleMonth(page, c.dates.source)
+    await expect(page.getByText('รวม 2 ครั้ง', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.source}`, exact: true }).click()
+    await expect(page.getByText('Family Private · 1 ชั่วโมง · 2 คน', { exact: true })).toBeVisible()
+    await page.goto('/dashboard/lesson-wallet')
+    await expect(page.getByRole('button', { name: 'ใช้วันเรียน', exact: true })).toHaveCount(1)
+    await page.getByRole('button', { name: 'ใช้วันเรียน', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: String(Number(c.dates.target.slice(-2))), exact: true }).click()
+    await dialog.getByText(c.branchName, { exact: true }).locator('..').getByRole('button', { name: `${c.start.slice(0, 5)}-${c.end.slice(0, 5)}`, exact: true }).click()
+    const redeemed = page.waitForResponse(r => r.url().includes('/api/lesson-wallet') && r.request().method() === 'POST')
+    await dialog.getByRole('button', { name: 'ยืนยันใช้วันเรียน', exact: true }).click()
+    const redeemResponse = await redeemed
+    expect(redeemResponse.status(), await redeemResponse.text()).toBe(200)
+    expect(JSON.parse(localSql(c.snapshot))).toMatchObject({ credits: 1, members: 2, memberIdentity: true, walleted: 2, otherScheduled: 2, descendants: 2, childIdentity: true, targetSlots: 1, orphanCredits: 0 })
+    expect(localSql(c.invariants)).toBe(financialBefore)
+    await openFamilyScheduleMonth(page, c.dates.source)
+    await testInfo.attach('family-after-redeem-desktop', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+    await expect(page.getByText('รวม 2 ครั้ง', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.source}`, exact: true })).not.toContainText('1 รอบ')
+    await page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.target}`, exact: true }).click()
+    await expect(page.getByText('Family Private · 1 ชั่วโมง · 2 คน', { exact: true })).toBeVisible()
+    await expect(page.getByText('Z Family participant', { exact: true }).last()).toBeVisible()
+    await expect(page.getByText(childRepresentative ? 'A Family participant' : 'Schedule Family parent', { exact: true }).last()).toBeVisible()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByText('รวม 2 ครั้ง', { exact: true })).toBeVisible()
+    await testInfo.attach('family-after-redeem-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+  })
+}
+
+test('Legacy header-only Wallet stays visible while active and shows only the redeemed target in Schedule', async ({ page }) => {
+  test.setTimeout(180_000)
+  const c = await seedLegacyHeaderWalletFixture()
+  const financialBefore = localSql(c.invariants)
+  expect(localSql(`SELECT count(*) FROM lesson_wallet_credit_members WHERE credit_id='${c.creditId}';`)).toBe('0')
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(c.email)
+  await page.locator('#password').fill(TASK10_PASSWORD)
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+  await page.waitForURL(/\/dashboard(?:\/|$)/)
+  await openFamilyScheduleMonth(page, c.dates.source)
+  await expect(page.getByText('รวม 1 ครั้ง', { exact: true })).toBeVisible()
+  await page.goto('/dashboard/lesson-wallet')
+  await expect(page.getByRole('button', { name: 'ใช้วันเรียน', exact: true })).toHaveCount(1)
+  await page.getByRole('button', { name: 'ใช้วันเรียน', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: String(Number(c.dates.target.slice(-2))), exact: true }).click()
+  await dialog.getByText(c.branchName, { exact: true }).locator('..').getByRole('button', { name: `${c.start.slice(0, 5)}-${c.end.slice(0, 5)}`, exact: true }).click()
+  const redeemed = page.waitForResponse(r => r.url().includes('/api/lesson-wallet') && r.request().method() === 'POST')
+  await dialog.getByRole('button', { name: 'ยืนยันใช้วันเรียน', exact: true }).click()
+  const response = await redeemed
+  expect(response.status(), await response.text()).toBe(200)
+  expect(localSql(c.invariants)).toBe(financialBefore)
+  expect(JSON.parse(localSql(`SELECT jsonb_build_object('credits',(SELECT count(*) FROM lesson_wallet_credits WHERE booking_id='${c.booking}'), 'redeemed',(SELECT status='redeemed' AND redeemed_session_id IS NOT NULL FROM lesson_wallet_credits WHERE id='${c.creditId}'), 'targets',(SELECT count(*) FROM booking_sessions WHERE rescheduled_from_id='${c.sources[0]}' AND child_id IS NULL));`))).toEqual({ credits: 1, redeemed: true, targets: 1 })
+  await openFamilyScheduleMonth(page, c.dates.source)
+  await expect(page.getByText('รวม 1 ครั้ง', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.source}`, exact: true })).not.toContainText('1 รอบ')
+  await page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.target}`, exact: true }).click()
+  await expect(page.getByText('Legacy Wallet learner', { exact: true }).last()).toBeVisible()
+})
 
 async function login(page: Page, email=TEST_ADMIN_ACCOUNT.email, password=TEST_ADMIN_ACCOUNT.password) {
   await page.goto('/auth/login')
@@ -10,6 +112,63 @@ async function login(page: Page, email=TEST_ADMIN_ACCOUNT.email, password=TEST_A
   await page.getByRole('button',{name:'เข้าสู่ระบบ',exact:true}).click()
   await page.waitForURL(/\/admin(?:\/|$)/)
 }
+
+test('Makeup keeps linked next-month lessons and future Kids Wallet scopes across never-activated, active and paused reads', async ({ page }) => {
+  test.setTimeout(180_000)
+  const family = await seedTask10Family(), f = readTask10Fixture()
+  const booking = randomUUID(), source = randomUUID(), target = randomUUID()
+  const slots = [randomUUID(), randomUUID()]
+  const dates = JSON.parse(localSql(`SELECT jsonb_build_object('source',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')-interval '1 month'+interval '19 days')::date,'target',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '24 days')::date);`)) as { source: string; target: string }
+  const controls = localSql('SELECT row_to_json(p) FROM task10_policy_activation p;')
+  const restore = `UPDATE task10_policy_activation p SET state=b.state,effective_at=b.effective_at,revision=b.revision,pricing_enabled=b.pricing_enabled,makeup_enabled=b.makeup_enabled,expiry_enabled=b.expiry_enabled,artifact=b.artifact FROM json_populate_record(NULL::task10_policy_activation,'${controls.replace(/'/g, "''")}'::json) b;`
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1);
+    UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,revision=0,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
+    UPDATE profiles SET full_name='Read Scope Family' WHERE id='${family.parentId}';
+    INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)
+      VALUES('${booking}','${family.parentId}','self','${f.branchId}','${f.adultCourseId}',extract(month FROM date '${dates.source}'),extract(year FROM date '${dates.source}'),1,500,'verified');
+    INSERT INTO schedule_slots(id,branch_id,course_type_id,date,start_time,end_time,status) VALUES
+      ('${slots[0]}','${f.branchId}','${f.adultCourseId}','${dates.source}','04:13','05:13','open'),
+      ('${slots[1]}','${f.branchId}','${f.adultCourseId}','${dates.target}','04:13','05:13','open');
+    INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,branch_id,date,start_time,end_time,status,is_makeup,rescheduled_from_id) VALUES
+      ('${source}','${booking}','${slots[0]}','${f.branchId}','${dates.source}','04:13','05:13','absent',false,NULL),
+      ('${target}','${booking}','${slots[1]}','${f.branchId}','${dates.target}','04:13','05:13','scheduled',true,'${source}');
+    INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${source}','${family.parentId}','adult','${f.adminUserId}','absent');
+    ${restore} COMMIT;`)
+  const invariant = `SELECT md5(jsonb_build_object('sessions',(SELECT jsonb_agg(to_jsonb(s) ORDER BY s.id) FROM booking_sessions s JOIN bookings b ON b.id=s.booking_id WHERE b.user_id='${family.parentId}'),'uses',(SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id='${family.parentId}'),'payments',(SELECT count(*) FROM payments),'coupons',(SELECT count(*) FROM coupon_usages))::text);`
+  const before = localSql(invariant), errors: string[] = [], writes: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await login(page)
+  page.on('request', request => { if (!['GET', 'HEAD'].includes(request.method())) writes.push(new URL(request.url()).pathname) })
+  try {
+    for (const state of ['never_activated', 'active', 'paused'] as const) {
+      localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${restore}
+        UPDATE task10_policy_activation SET state='${state}',makeup_enabled=${state === 'active'},pricing_enabled=false,expiry_enabled=false
+        ${state === 'never_activated' ? ',effective_at=NULL,revision=0' : ''}; COMMIT;`)
+      await page.goto(`/admin/makeup?month=${dates.source.slice(0, 7)}`)
+      await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+      const panel = page.getByRole('tabpanel', { name: /เลือกวันชดเชย/ })
+      await panel.getByRole('textbox').fill('Read Scope Family')
+      const learner = panel.locator('[data-makeup-learner]').filter({ hasText: 'Read Scope Family' })
+      await expect(learner).toHaveCount(1)
+      await expect(learner.getByText('ใช้สิทธิ์แล้ว', { exact: true })).toBeVisible()
+      await expect(learner.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true })).toHaveCount(0)
+      const scopes = page.getByRole('combobox', { name: 'ครอบครัวและเดือนต้นทาง', exact: true })
+      if (state === 'never_activated') await expect(scopes).toHaveCount(0)
+      else {
+        // Select the future source month; linked references never enter its totals.
+        await page.getByLabel('เดือนและปีของรายการ').fill('2031-07')
+        await expect(page.getByLabel('เดือนและปีของรายการ')).toHaveValue('2031-07')
+        await scopes.click()
+        await page.getByRole('option', { name: 'Read Scope Family · 2031-07', exact: true }).click()
+        await expect(page.getByText('เดือนต้นทาง 2031-07 → เดือนปลายทาง 2031-08', { exact: true })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'จัดชดเชยร่วมครอบครัว', exact: true })).toBeDisabled()
+      }
+      expect(localSql(invariant)).toBe(before)
+    }
+    expect(errors).toEqual([])
+    expect(writes).toEqual([])
+  } finally { localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${restore} COMMIT;`) }
+})
 
 test('Super Admin minimum save, loading, reload, errors and id/key mismatch', async ({page}) => {
   await login(page)
@@ -98,7 +257,7 @@ test('Ordinary Makeup Admin cannot save minimum through the API',async ({page})=
 test('Makeup Admin uses the family UI to select a source child separately from the actual attendee after verified D is sufficient',async({page})=>{
   const family=await seedTask10Family();const f=readTask10Fixture()
   localSql(`UPDATE profiles SET full_name='Task10 UI Family' WHERE id='${family.parentId}';`)
-  await login(page,TASK10_ADMIN_EMAIL,TASK10_PASSWORD);await page.goto('/admin/makeup')
+  await login(page,TASK10_ADMIN_EMAIL,TASK10_PASSWORD);await page.goto('/admin/makeup?month=2031-07')
   await page.getByRole('combobox',{name:'ครอบครัวและเดือนต้นทาง',exact:true}).click()
   await page.getByRole('option',{name:'Task10 UI Family · 2031-07',exact:true}).click()
   await expect(page.getByText('ซื้อเดือนปลายทางยืนยันแล้ว 0 ครั้ง · ขั้นต่ำ 2 ครั้ง',{exact:true})).toBeVisible()

@@ -5,7 +5,16 @@ import { randomUUID, createHash } from 'node:crypto'
 import { createLocalAdmin, getLocalSupabaseEnv, resetLocalDatabase, seedBookingFixture, waitForLocalSupabaseAuth, type BookingFixture } from '../booking-regression/local-supabase'
 
 export const ROOT = resolve(__dirname, '../..')
-export const DB_CONTAINER = 'supabase_db_New-Athlete-Badminton-School'
+// An explicit local target allows an isolated suite to preserve an existing UAT
+// disposable. The caller must bind the CLI to this same target; verification
+// below checks the actual API, container, volume and all service DB bindings.
+const disposableTarget = process.env.TASK10_DISPOSABLE_TARGET
+  ? JSON.parse(readFileSync(process.env.TASK10_DISPOSABLE_TARGET, 'utf8')) as { project: string; workdir: string; api: string }
+  : { project: 'New-Athlete-Badminton-School', workdir: ROOT, api: 'http://127.0.0.1:54321' }
+if (!/^[A-Za-z0-9_-]+$/.test(disposableTarget.project)
+  || new URL(disposableTarget.api).hostname !== '127.0.0.1'
+  || new URL(disposableTarget.api).protocol !== 'http:') throw new Error('Task10 refuses non-local disposable target')
+export const DB_CONTAINER = `supabase_db_${disposableTarget.project}`
 export const FIXTURE_PATH = resolve(ROOT, '.playwright/task10-fixture.json')
 export const TASK10_PASSWORD = 'LocalTask10!2026'
 export const TASK10_ADMIN_EMAIL = 'task10-makeup-admin@example.com'
@@ -19,24 +28,26 @@ export interface Task10Fixture extends BookingFixture {
 
 export function verifyDisposableIdentity() {
   const local = getLocalSupabaseEnv()
-  if (new URL(local.apiUrl).origin !== 'http://127.0.0.1:54321') throw new Error('Task10 refuses unexpected API origin')
+  if (new URL(local.apiUrl).origin !== disposableTarget.api) throw new Error('Task10 refuses unexpected API origin')
   const inspect = (name: string) => JSON.parse(execFileSync('docker', ['inspect', name], { encoding: 'utf8' }))[0]
   const db = inspect(DB_CONTAINER)
-  if (db.Config.Labels['com.supabase.cli.workdir'] !== ROOT
-    || db.Config.Labels['com.supabase.cli.project'] !== 'New-Athlete-Badminton-School'
-    || !db.Mounts.some((m: { Name: string; Destination: string }) => m.Name === 'supabase_db_New-Athlete-Badminton-School' && m.Destination === '/var/lib/postgresql/data')) {
+  if (resolve(db.Config.Labels['com.supabase.cli.workdir']) !== resolve(disposableTarget.workdir)
+    || db.Config.Labels['com.supabase.cli.project'] !== disposableTarget.project
+    || !db.State.Running
+    || !db.Mounts.some((m: { Name: string; Destination: string }) => m.Name === DB_CONTAINER && m.Destination === '/var/lib/postgresql/data')) {
     throw new Error('Task10 refuses unverified DB/container/workdir')
   }
   // Retained API services have their historical temp workdir label. Verify their
   // actual DB target and network, rather than changing/recreating infrastructure.
   for (const [suffix, key] of [['rest','PGRST_DB_URI'],['auth','GOTRUE_DB_DATABASE_URL'],['storage','DATABASE_URL']]) {
-    const service = inspect(`supabase_${suffix}_New-Athlete-Badminton-School`)
+    const service = inspect(`supabase_${suffix}_${disposableTarget.project}`)
     const raw = (service.Config.Env as string[]).find((v) => v.startsWith(`${key}=`))?.slice(key.length + 1)
     if (!raw) throw new Error('Task10 service DB binding missing')
     const url = new URL(raw)
     if (url.hostname !== DB_CONTAINER || url.port !== '5432' || url.pathname !== '/postgres'
-      || !service.NetworkSettings.Networks.supabase_network_NewAthleteBadmintonSchool
-        && !service.NetworkSettings.Networks['supabase_network_New-Athlete-Badminton-School']) {
+      || !service.NetworkSettings.Networks[`supabase_network_${disposableTarget.project}`]
+        && !(disposableTarget.project === 'New-Athlete-Badminton-School'
+          && service.NetworkSettings.Networks.supabase_network_NewAthleteBadmintonSchool)) {
       throw new Error('Task10 refuses service with unexpected DB binding')
     }
   }
@@ -250,7 +261,7 @@ export { createLocalAdmin, getLocalSupabaseEnv }
 // Each parent is isolated; different participant IDs below are direct-RPC probes,
 // not separate buttons in the customer UI (which sends one representative ID).
 let protectedWalletMinute = 0
-export async function protectedWalletFixture(f: BookingFixture, privateLesson = true, quantity = 2) {
+export async function protectedWalletFixture(f: BookingFixture, privateLesson = true, quantity = 2, orderedSourceIds = false) {
   verifyDisposableIdentity()
   const parent = await createLocalAdmin().auth.admin.createUser({
     email: `wallet-lock-${randomUUID()}@example.com`, password: TASK10_PASSWORD, email_confirm: true,
@@ -267,6 +278,7 @@ export async function protectedWalletFixture(f: BookingFixture, privateLesson = 
     'target',(date_trunc('month',transaction_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 11 days')::date);`)) as { source: string; other: string; target: string }
   const children = privateLesson ? [null, childId] : [null]
   const sources = children.map(() => randomUUID()); const others = quantity > 1 ? children.map(() => randomUUID()) : []
+  if (orderedSourceIds) sources.sort()
   const targetTemplate = randomUUID(); const slots = [randomUUID(), randomUUID(), randomUUID()]
   const statements = [`INSERT INTO children(id,parent_id,full_name,date_of_birth) VALUES('${childId}','${userId}','Protected Wallet child','2016-01-01');
     INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)
@@ -307,6 +319,111 @@ export async function protectedWalletFixture(f: BookingFixture, privateLesson = 
 }
 
 export type ProtectedWalletFixture = Awaited<ReturnType<typeof protectedWalletFixture>>
+
+export async function seedFamilyScheduleFixture(childRepresentative: boolean) {
+  verifyDisposableIdentity()
+  const branchId = randomUUID()
+  const branchName = `Family Schedule ${branchId.slice(0, 8)}`
+  const branch = await createLocalAdmin().from('branches').insert({
+    id: branchId, name: branchName, slug: `family-schedule-${branchId}`, is_active: true,
+  })
+  if (branch.error) throw branch.error
+  // A distinct branch keeps independent cases/restarted test workers from
+  // colliding on the same native-clock date/time slot.
+  const fixture = await protectedWalletFixture({ ...readTask10Fixture(), branchId }, true, 2, true)
+  const extraChild = childRepresentative ? randomUUID() : null
+  const before = localSql('SELECT row_to_json(p) FROM task10_policy_activation p;')
+  const additional = extraChild ? `
+    INSERT INTO children(id,parent_id,full_name,date_of_birth)
+      VALUES('${extraChild}','${fixture.userId}','A Family participant','2015-01-01');
+    UPDATE booking_sessions SET child_id='${extraChild}' WHERE id IN ('${fixture.sources[0]}','${fixture.others[0]}');
+    UPDATE bookings SET learner_type='child',child_id='${extraChild}' WHERE id='${fixture.booking}';` : ''
+  // Only this synthetic fixture is written. Restore the complete prior control
+  // state before commit; native Wallet/Auth clocks are never replaced.
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1);
+    UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,revision=0,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
+    ${fixture.seed} ${additional}
+    UPDATE profiles SET full_name='Schedule Family parent' WHERE id='${fixture.userId}';
+    UPDATE children SET full_name='Z Family participant' WHERE id='${fixture.childId}';
+    UPDATE task10_policy_activation p SET state=b.state,effective_at=b.effective_at,revision=b.revision,
+      pricing_enabled=b.pricing_enabled,makeup_enabled=b.makeup_enabled,expiry_enabled=b.expiry_enabled,artifact=b.artifact
+      FROM json_populate_record(NULL::task10_policy_activation,${sqlLiteral(before)}::json) b;
+    COMMIT;`)
+  const account = await createLocalAdmin().auth.admin.getUserById(fixture.userId)
+  if (account.error || !account.data.user.email) throw new Error('Missing Family Schedule fixture account')
+  return { ...fixture, extraChild, branchName, email: account.data.user.email }
+}
+
+export async function seedMakeupReadFixture(f: BookingFixture, options: { singleMonth?: boolean } = {}) {
+  verifyDisposableIdentity()
+  const admin = createLocalAdmin()
+  const parent = await admin.auth.admin.createUser({ email: `makeup-read-${randomUUID()}@example.com`, password: TASK10_PASSWORD, email_confirm: true })
+  if (parent.error || !parent.data.user) throw new Error(parent.error?.message || 'Missing Makeup fixture parent')
+  const parentId = parent.data.user.id, branch = randomUUID()
+  const branchName = `Makeup read fixture ${branch.slice(0, 8)}`
+  const parentName = `Makeup Read ${parentId.slice(0, 8)}`
+  const children = Array.from({ length: 120 }, () => randomUUID())
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date())
+  const [year, month] = today.split('-').map(Number)
+  const months = [1, 2, 3].map(back => new Date(Date.UTC(year, month - 1 - back, 1)).toISOString().slice(0, 7))
+  const bookings = months.map(() => randomUUID())
+  const rounds: Array<{ date: string; slot: string; sessions: string[]; children: string[] }> = []
+  const statements = [
+    `UPDATE profiles SET full_name=${sqlLiteral(parentName)} WHERE id='${parentId}';
+      INSERT INTO branches(id,name,slug,is_active) VALUES('${branch}',${sqlLiteral(branchName)},'makeup-read-${branch}',true);`,
+    ...children.map((id, i) => `INSERT INTO children(id,parent_id,full_name,date_of_birth) VALUES('${id}','${parentId}',${sqlLiteral(`Read learner ${String(i + 1).padStart(3, '0')} ชื่อและนามสกุลยาวสำหรับตรวจมือถือโดยไม่ปิดบังตัวตน`)},'2016-01-01');`),
+    ...bookings.map((id, i) => `INSERT INTO bookings(id,user_id,learner_type,child_id,branch_id,course_type_id,month,year,total_sessions,total_price,status) VALUES('${id}','${parentId}','child','${children[0]}','${branch}','${f.kidsCourseId}',${Number(months[i].slice(5))},${Number(months[i].slice(0, 4))},500,0,'verified');`),
+  ]
+  for (let index = 0; index < 110; index++) {
+    const monthIndex = options.singleMonth ? 0 : index % 3
+    const date = `${months[monthIndex]}-${String(1 + (options.singleMonth ? index : Math.floor(index / 3)) % 28).padStart(2, '0')}`
+    const hour = options.singleMonth ? 10 + 2 * Math.floor(index / 28) : index < 84 ? 10 : 12
+    const start = `${hour}:00`, end = `${hour + 2}:00`
+    const slot = randomUUID(), group = randomUUID(), count = index === 0 ? 120 : 10
+    const round = { date, slot, sessions: [] as string[], children: [] as string[] }
+    rounds.push(round)
+    statements.push(`INSERT INTO schedule_slots(id,branch_id,course_type_id,date,start_time,end_time,status) VALUES('${slot}','${branch}','${f.kidsCourseId}','${date}','${start}','${end}','open');
+      INSERT INTO coach_assignment_groups(id,schedule_slot_id,name,created_by) VALUES('${group}','${slot}','Read round ${index + 1}','${f.adminUserId}');`)
+    for (let member = 0; member < count; member++) {
+      const session = randomUUID(), child = children[(index * 10 + member) % children.length]
+      round.sessions.push(session); round.children.push(child)
+      const absent = index >= 107
+      statements.push(`INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup) VALUES('${session}','${bookings[monthIndex]}','${slot}','${date}','${start}','${end}','${branch}','${child}','${absent ? 'absent' : 'scheduled'}',false);
+        INSERT INTO coach_assignment_group_students(group_id,booking_session_id,student_id,student_type) VALUES('${group}','${session}','${child}','child');`)
+      if (absent) statements.push(`INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${session}','${child}','child','${f.adminUserId}','absent');`)
+    }
+  }
+  // More than one PostgREST page for one source: no review-log truncation.
+  statements.push(`INSERT INTO activity_logs(user_id,action,entity_type,entity_id,details)
+    SELECT '${f.adminUserId}','attendance_gap_request_coach_review','booking_sessions','${rounds[0].sessions[0]}','{"fixture":"makeup-read"}'::jsonb FROM generate_series(1,1005);`)
+  localSql(`BEGIN; ${statements.join('\n')} COMMIT;`)
+  return { parentId, parentName, branch, branchName, children, bookings, rounds, months, sessionCount: rounds.reduce((n, r) => n + r.sessions.length, 0) }
+}
+
+export async function seedLegacyHeaderWalletFixture() {
+  verifyDisposableIdentity()
+  const branchId = randomUUID(), branchName = `Legacy Wallet ${branchId.slice(0, 8)}`
+  const branch = await createLocalAdmin().from('branches').insert({ id: branchId, name: branchName, slug: `legacy-wallet-${branchId}`, is_active: true })
+  if (branch.error) throw branch.error
+  const c = await protectedWalletFixture({ ...readTask10Fixture(), branchId }, false, 1)
+  const creditId = randomUUID(), before = localSql('SELECT row_to_json(p) FROM task10_policy_activation p;')
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1);
+    UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,revision=0,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
+    ${c.seed}
+    UPDATE profiles SET full_name='Legacy Wallet learner' WHERE id='${c.userId}';
+    UPDATE booking_sessions SET status='walleted' WHERE id='${c.sources[0]}';
+    INSERT INTO lesson_wallet_credits(id,user_id,booking_id,original_session_id,branch_id,course_type_id,original_schedule_slot_id,original_date,original_start_time,original_end_time,status,expires_at)
+      SELECT '${creditId}','${c.userId}',booking_id,id,branch_id,'${readTask10Fixture().adultCourseId}',schedule_slot_id,date,start_time,end_time,'active',
+        ((date_trunc('month',date::timestamp)+interval '1 month'-interval '1 millisecond') AT TIME ZONE 'Asia/Bangkok')
+      FROM booking_sessions WHERE id='${c.sources[0]}';
+    UPDATE task10_policy_activation p SET state=b.state,effective_at=b.effective_at,revision=b.revision,
+      pricing_enabled=b.pricing_enabled,makeup_enabled=b.makeup_enabled,expiry_enabled=b.expiry_enabled,artifact=b.artifact
+      FROM json_populate_record(NULL::task10_policy_activation,${sqlLiteral(before)}::json) b;
+    COMMIT;`)
+  const account = await createLocalAdmin().auth.admin.getUserById(c.userId)
+  if (account.error || !account.data.user.email) throw new Error('Missing legacy Wallet fixture account')
+  return { ...c, creditId, branchName, email: account.data.user.email }
+}
 
 // Delay both real original-name calls at the same booking row without modifying
 // any function body. Capture results AND committed DB state even when one fails.

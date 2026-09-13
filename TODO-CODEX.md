@@ -1,29 +1,22 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-11
+Last updated: 2026-09-13
 
-Read AGENTS.md, PROJECT_STATE.md and this file first. PROJECT_STATE.md owns all
-current Source/Git/deployment/controls/data values; DEVELOPMENT_TODO.md owns dated evidence.
+PROJECT_STATE.md owns current mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-**Task10 — DEVELOPING; reviewed six-path publication and automatic Preview authorized.**
-READY FOR OWNER UAT **No**; Task Done **No**.
-
-- Owner authorizes audit → one commit/push → automatic Preview → read-only checks → stop.
-  Keep the tested packages and AGENTS version edit; only three status docs receive new edits.
-- PROJECT_STATE.md is authoritative for actual Git/deployment/controls and pending results.
-  See [current matrix](PROJECT_STATE.md#current-project-matrix) and
-  [publication authorization](DEVELOPMENT_TODO.md#task10-next1633-publication-2026-09-11).
-- Retain the [148-test/15-check package evidence](DEVELOPMENT_TODO.md#task10-next1633-local-2026-09-10),
-  [stream investigation and limits](DEVELOPMENT_TODO.md#task10-stream-investigation-local-2026-09-11),
-  [step1](DEVELOPMENT_TODO.md#task10-step1-exact-push-preview-2026-09-10),
-  [step2 applied M1–M5](DEVELOPMENT_TODO.md#task10-step2-exact-migrations-off-2026-09-10)
-  and [manifest](DEVELOPMENT_TODO.md#task10-family-wallet-migration-manifest-2026-09-10).
-- After new Preview checks, leave result updates local/uncommitted and submit to Owner/PM.
-  No second push, manual deployment, staged Production, UAT, Promotion or activation.
-  Preview does not patch Production; preserve historical stream uncertainty and /api/health Unknown.
-- Parking Lot1–8 unselected;9 completed;10 DEVELOPING.
+- **Task10 — DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
+- A1 PM assignment reconciliation passed with documented baseline limits.
+  A2 native picker passed by actual Owner manual Chrome verification.
+- Continue authorized B publication/exact staged artifact checks, then complete
+  all seven C functional/staged UAT preflights and reserve fresh Owner scenarios.
+- No repeat A–C approval. No Promotion, remote activation or business writes.
+- Frozen10-path candidate; only Docs3 edited in this continuation. Preserve PM55321
+  and originalUAT54321 data; do not reset/reseed or reuse consumed scenarios as fresh.
+- See [current matrix](PROJECT_STATE.md#current-project-matrix) for exact source,
+  Git/artifact/remote states, fresh/retained results, limitations and next gate.
+- Parking Lot:1–8unselected;9completed;10DEVELOPING.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

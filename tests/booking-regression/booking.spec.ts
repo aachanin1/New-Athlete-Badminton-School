@@ -1126,9 +1126,10 @@ async function withMakeupUiFixture(run: (data: {
   }
 }
 
-async function openMakeupUi(page: Page, name: string) {
+async function openMakeupUi(page: Page, name: string, monthKey: string) {
   await loginAs(page, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.password)
   await page.goto('/admin/makeup')
+  await page.getByLabel('เดือนและปีของรายการ').fill(monthKey)
   await page.getByRole('tab', { name: /^เลือกวันชดเชย/ }).click()
   await page.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน...').fill(name)
 }
@@ -1145,7 +1146,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
   test(`Admin Makeup UI delayed single-submit and confirmed exact-target success ${viewport.name}`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport)
     await withMakeupUiFixture(async (data) => {
-      await openMakeupUi(page, data.name)
+      await openMakeupUi(page, data.name, data.monthKey)
       // Before correction the same-name sources collapse, but this still clicks
       // the real create controls so the pending regression independently fails.
       await page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true }).first().click()
@@ -1236,7 +1237,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
 
 test('Admin Makeup UI exact identity separates same names and retains one monthly group across bookings', async ({ page }, testInfo) => {
   await withMakeupUiFixture(async (data) => {
-    await openMakeupUi(page, data.name)
+    await openMakeupUi(page, data.name, data.monthKey)
     await expect(page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true })).toHaveCount(5)
     for (const identity of [...data.childIds.map((id) => `child:${id}`), ...data.userIds.map((id) => `self:${id}`)]) {
       await expect(page.locator(`[data-makeup-learner="${identity}"]`)).toHaveCount(1)
@@ -1253,7 +1254,7 @@ for (const outcome of ['400', '409', '500', 'network', 'malformed'] as const) {
   test(`Admin Makeup UI truthful ${outcome} outcome preserves selection without automatic retry`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await withMakeupUiFixture(async (data) => {
-      await openMakeupUi(page, data.name)
+      await openMakeupUi(page, data.name, data.monthKey)
       await page.getByRole('button', { name: 'เลือกรอบชดเชย', exact: true }).first().click()
       const dialog = page.getByRole('dialog')
       await dialog.getByRole('button', { name: '16:00-18:00', exact: true }).first().click()
@@ -1316,6 +1317,7 @@ test('Admin Makeup UI missing identity fails visibly without a display-name fall
     try {
       await loginAs(page, TEST_ADMIN_ACCOUNT.email, TEST_ADMIN_ACCOUNT.password)
       await page.locator('a[href="/admin/makeup"]').first().click()
+      await page.getByLabel('เดือนและปีของรายการ').fill(data.monthKey)
       await page.getByRole('tab', { name: /^เลือกวันชดเชย/ }).click()
       await page.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน...').fill(data.name)
       await expect.poll(() => injected).toBeGreaterThan(0)

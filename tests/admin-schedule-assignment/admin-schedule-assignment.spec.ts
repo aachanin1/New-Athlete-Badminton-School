@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { localSql, seedMakeupReadFixture, verifyDisposableIdentity } from '../task10-regression/local-supabase'
 import {
   TEST_ADMIN_ACCOUNT,
   TEST_ACCOUNT,
@@ -118,6 +119,276 @@ const STANDARD_ADMIN = {
   email: 'admin-schedule-standard@example.com',
   password: TEST_ADMIN_ACCOUNT.password,
 }
+
+test('Makeup Review paginates complete rounds across more than 1000 sessions in one month with scoped search, deep links and independent tabs', async ({ page }, testInfo) => {
+  test.setTimeout(180_000)
+  verifyDisposableIdentity()
+  const f = await seedMakeupReadFixture(readBookingFixture(), { singleMonth: true })
+  expect(f.sessionCount).toBeGreaterThan(1000)
+  const before = localSql(`SELECT md5(jsonb_build_object(
+    'bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b),
+    'sessions',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),
+    'payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p),
+    'attendance',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM attendance a),
+    'logs',(SELECT count(*) FROM activity_logs))::text);`)
+  const browserErrors: string[] = [], writes: string[] = []
+  page.on('pageerror', error => browserErrors.push(error.message))
+  await loginAsAdmin(page)
+  page.on('request', request => { if (!['GET', 'HEAD'].includes(request.method())) writes.push(new URL(request.url()).pathname) })
+  await page.goto(`/admin/makeup?session=${f.rounds[0].sessions[0]}`)
+  await expect(page.getByLabel('เดือนและปีของรายการ')).toHaveValue(f.months[0])
+  const review = page.getByRole('tabpanel', { name: /ต้องตรวจสอบ/ })
+  await review.getByRole('combobox').nth(0).click()
+  await page.getByRole('option', { name: f.branchName, exact: true }).click()
+  const navigation = page.getByLabel('แบ่งหน้ารอบที่ต้องตรวจสอบ')
+  await expect(navigation.getByText('แสดง 1-15 จาก 107 รายการ', { exact: true })).toBeVisible()
+  const cards = page.getByTestId('makeup-review-group')
+  await expect(cards).toHaveCount(15)
+  const target = cards.first()
+  await expect(target.locator('[data-testid^="review-session-"]')).toHaveCount(120)
+  expect((await target.locator('[data-testid^="review-session-"]').evaluateAll(elements => elements.map(e => e.getAttribute('data-testid')!.replace('review-session-', '')))).sort()).toEqual([...f.rounds[0].sessions].sort())
+  await expect(target.getByText('ส่งให้โค้ชแล้ว 1005 ครั้ง', { exact: true })).toBeVisible()
+  await target.getByRole('button', { name: 'บันทึกโค้ชและเช็คชื่อย้อนหลัง', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  // The group action still receives all 120 IDs, including members below the viewport.
+  await expect(dialog.getByText(/Read learner 120/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'ยกเลิก', exact: true }).click()
+  await navigation.getByRole('button', { name: 'ถัดไป', exact: true }).click()
+  await expect(navigation.getByText('แสดง 16-30 จาก 107 รายการ', { exact: true })).toBeVisible()
+  await expect(page.getByTestId(`review-session-${f.rounds[0].sessions[0]}`)).toHaveCount(0)
+  await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+  const makeup = page.getByRole('tabpanel', { name: /เลือกวันชดเชย/ })
+  await makeup.getByRole('textbox').fill(f.parentName)
+  await expect(makeup.getByText('แสดง 1-15 จาก 30 รายการ', { exact: true })).toBeVisible()
+  await makeup.getByRole('button', { name: 'ถัดไป', exact: true }).click()
+  await expect(makeup.getByText('แสดง 16-30 จาก 30 รายการ', { exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: /ต้องตรวจสอบ/ }).click()
+  await expect(navigation.getByText('แสดง 16-30 จาก 107 รายการ', { exact: true })).toBeVisible()
+  const search = review.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, โค้ช, สาขา...')
+  await search.fill('Read learner 120')
+  await expect(page.getByTestId(`review-session-${f.rounds[0].sessions[119]}`)).toBeVisible()
+  const searchedRound = page.getByTestId('makeup-review-group').first()
+  await expect(searchedRound.locator('[data-testid^="review-session-"]')).toHaveCount(120)
+  await searchedRound.getByRole('button', { name: 'บันทึกโค้ชและเช็คชื่อย้อนหลัง', exact: true }).click()
+  expect((await page.getByRole('dialog').locator('[data-testid^="unassigned-session-"]').evaluateAll(elements => elements.map(e => e.getAttribute('data-testid')!.replace('unassigned-session-', '')))).sort()).toEqual([...f.rounds[0].sessions].sort())
+  await page.getByRole('dialog').getByRole('button', { name: 'ยกเลิก', exact: true }).click()
+  await search.fill('ไม่มีผู้เรียนชื่อนี้ในข้อมูล')
+  await expect(page.getByText('ไม่พบเคสต้องตรวจสอบตามเงื่อนไขที่เลือก', { exact: true })).toBeVisible()
+  await search.fill('')
+  await expect(navigation.getByText('แสดง 1-15 จาก 107 รายการ', { exact: true })).toBeVisible()
+  await review.getByRole('combobox').nth(2).click()
+  await page.getByRole('option', { name: 'ส่งให้โค้ชแล้ว', exact: true }).click()
+  await expect(page.getByTestId('makeup-review-group')).toHaveCount(1)
+  await expect(page.getByTestId('makeup-review-group').locator('[data-testid^="review-session-"]')).toHaveCount(120)
+  await review.getByRole('combobox').nth(2).click()
+  await page.getByRole('option', { name: 'ทั้งหมด', exact: true }).click()
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await testInfo.attach('makeup-paginated-desktop-long-names', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await navigation.getByRole('button', { name: 'ถัดไป', exact: true }).focus()
+  await expect(navigation.getByRole('button', { name: 'ถัดไป', exact: true })).toBeFocused()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await testInfo.attach('makeup-paginated-mobile-long-names', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+  await page.goto(`/admin/makeup?date=${f.rounds[75].date}`)
+  await expect(page.getByTestId(`review-session-${f.rounds[75].sessions[0]}`)).toBeVisible()
+  await page.reload()
+  await expect(page.getByTestId(`review-session-${f.rounds[75].sessions[0]}`)).toBeVisible()
+  const after = localSql(`SELECT md5(jsonb_build_object(
+    'bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b),
+    'sessions',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),
+    'payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p),
+    'attendance',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM attendance a),
+    'logs',(SELECT count(*) FROM activity_logs))::text);`)
+  expect(after).toBe(before)
+  expect(writes).toEqual([])
+  expect(browserErrors).toEqual([])
+})
+
+test('Makeup month navigation scopes both tabs, preserves full groups and supports history, invalid URLs and rapid changes', async ({ page }, testInfo) => {
+  test.setTimeout(180_000)
+  const f = await seedMakeupReadFixture(readBookingFixture())
+  const currentMonth = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit' }).format(new Date()).slice(0, 7)
+  const invariant = `SELECT md5(jsonb_build_object('sessions',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),'members',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM coach_assignment_group_students m),'attendance',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM attendance a),'payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p),'logs',(SELECT count(*) FROM activity_logs))::text);`
+  const before = localSql(invariant), writes: string[] = [], errors: string[] = []
+  await loginAsAdmin(page)
+  page.on('request', request => { if (!['GET', 'HEAD'].includes(request.method())) writes.push(new URL(request.url()).pathname) })
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    await page.goto('/admin/makeup')
+    const month = page.getByLabel('เดือนและปีของรายการ')
+    await expect(month).toHaveValue(currentMonth)
+    const review = page.getByRole('tabpanel', { name: /ต้องตรวจสอบ/ })
+    await review.getByRole('combobox').nth(0).click()
+    await page.getByRole('option', { name: f.branchName, exact: true }).click()
+    await expect(page.getByText('ไม่พบเคสต้องตรวจสอบตามเงื่อนไขที่เลือก', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'เดือนก่อนหน้า', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`month=${f.months[0]}$`))
+    const count = f.rounds.slice(0, 107).filter(round => round.date.startsWith(f.months[0])).length
+    await expect(page.getByLabel('แบ่งหน้ารอบที่ต้องตรวจสอบ').getByText(`แสดง 1-15 จาก ${count} รายการ`, { exact: true })).toBeVisible()
+    await review.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, โค้ช, สาขา...').fill('Read learner 120')
+    await expect(page.getByTestId(`review-session-${f.rounds[0].sessions[119]}`).locator('..').locator('..').locator('[data-testid^="review-session-"]')).toHaveCount(120)
+    await review.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, โค้ช, สาขา...').fill('')
+    await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+    await page.getByRole('tabpanel', { name: /เลือกวันชดเชย/ }).getByRole('textbox').fill(f.parentName)
+    await expect(page.locator('[data-makeup-learner]')).toHaveCount(10)
+    await month.fill(f.months[1])
+    await expect(page).toHaveURL(new RegExp(`month=${f.months[1]}$`))
+    await expect(page.locator('[data-makeup-learner]')).toHaveCount(10)
+    await page.reload(); await expect(month).toHaveValue(f.months[1])
+    await page.goBack(); await expect(month).toHaveValue(f.months[0])
+    await page.goForward(); await expect(month).toHaveValue(f.months[1])
+    await page.goto(`/admin/makeup?session=${f.rounds[2].sessions[0]}`)
+    await expect(month).toHaveValue(f.months[2])
+    await expect(page.getByTestId(`review-session-${f.rounds[2].sessions[0]}`)).toBeVisible()
+    await month.fill(f.months[0]); await expect(page).toHaveURL(new RegExp(`month=${f.months[0]}$`))
+    expect(new URL(page.url()).searchParams.has('session')).toBe(false)
+    await month.fill('2025-12')
+    await page.getByRole('button', { name: 'เดือนถัดไป', exact: true }).click()
+    await expect(month).toHaveValue('2026-01')
+    await expect(page).toHaveURL(/month=2026-01$/)
+    await month.fill(f.months[2]); await month.fill(f.months[0])
+    await expect(page).toHaveURL(new RegExp(`month=${f.months[0]}$`))
+    await expect(month).toHaveValue(f.months[0])
+    await page.getByRole('button', { name: 'เดือนนี้', exact: true }).click()
+    await expect(month).toHaveValue(currentMonth)
+    await page.goto('/admin/makeup?month=2031-99')
+    await expect(month).toHaveValue(currentMonth)
+    await expect(page.getByRole('alert').filter({ hasText: 'เดือนใน URL ไม่ถูกต้อง' })).toBeVisible()
+    await page.goto('/admin/makeup?month=2026-01&month=2031-07')
+    await expect(month).toHaveValue(currentMonth)
+    await expect(page.getByRole('alert').filter({ hasText: 'เดือนใน URL ไม่ถูกต้อง' })).toBeVisible()
+    await page.goto('/admin/makeup?month=2040-01')
+    await expect(month).toHaveValue('2040-01')
+    await expect(page.getByText('ไม่พบเคสต้องตรวจสอบตามเงื่อนไขที่เลือก', { exact: true })).toBeVisible()
+    await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+    await expect(page.locator('[data-makeup-learner]')).toHaveCount(0)
+    await testInfo.attach('monthly-empty-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+    expect(writes).toEqual([]); expect(errors).toEqual([])
+  } finally {
+    expect(localSql(invariant)).toBe(before)
+    await testInfo.attach('monthly-read-only-evidence', { body: Buffer.from(JSON.stringify({ months: f.months, currentMonth, writes, errors })), contentType: 'application/json' })
+  }
+})
+
+async function observeMakeupResponseConsumption(page: Page) {
+  await page.addInitScript(() => {
+    type Consumption = { done: boolean; bytes: number; error: string | null }
+    const observations: Record<string, Consumption> = {}
+    ;(window as unknown as { makeupResponseConsumption: typeof observations }).makeupResponseConsumption = observations
+    const streams = new WeakMap<ReadableStream, Consumption>(), readers = new WeakMap<object, Consumption>()
+    const nativeFetch = window.fetch, nativeGetReader = ReadableStream.prototype.getReader
+    const nativeRead = ReadableStreamDefaultReader.prototype.read
+    // Observe the actual decoder's reads. Return the same Response/reader/promise;
+    // do not clone, drain, replace or change the application's response.
+    window.fetch = async (...args) => {
+      const response = await nativeFetch(...args)
+      if (new URL(response.url).pathname === '/admin/makeup' && response.body) {
+        const observation = { done: false, bytes: 0, error: null }
+        observations[response.url] = observation
+        streams.set(response.body, observation)
+      }
+      return response
+    }
+    ReadableStream.prototype.getReader = function (this: ReadableStream, ...args: Parameters<typeof nativeGetReader>) {
+      const reader = nativeGetReader.apply(this, args), observation = streams.get(this)
+      if (observation) readers.set(reader, observation)
+      return reader
+    } as typeof nativeGetReader
+    ReadableStreamDefaultReader.prototype.read = function (...args: Parameters<typeof nativeRead>) {
+      const result = nativeRead.apply(this, args), observation = readers.get(this)
+      if (observation) void result.then(value => {
+        observation.bytes += value.value?.byteLength || 0
+        if (value.done) observation.done = true
+      }, error => { observation.error = String(error) })
+      return result
+    }
+  })
+}
+
+test('Makeup real assignment keeps complete IDs through mutation and measured canonical refresh', async ({ page }, testInfo) => {
+  test.setTimeout(240_000)
+  verifyDisposableIdentity()
+  const f = await seedMakeupReadFixture(readBookingFixture()), admin = createLocalAdmin()
+  const coach = await admin.auth.admin.createUser({ email: `makeup-refresh-${randomUUID()}@example.com`, password: TEST_ADMIN_ACCOUNT.password, email_confirm: true })
+  assertNoError(coach.error, 'create refresh fixture coach')
+  const coachId = coach.data.user!.id
+  assertNoError((await admin.from('profiles').update({ role: 'coach', full_name: 'Measured Refresh Coach' }).eq('id', coachId)).error, 'refresh coach profile')
+  assertNoError((await admin.from('coach_branches').insert({ coach_id: coachId, branch_id: f.branch })).error, 'refresh coach branch')
+  const financial = `SELECT md5(jsonb_build_object('bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b WHERE user_id='${f.parentId}'),'payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p),'coupons',(SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM coupon_usages c),'finance',(SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM finance_expenses e))::text);`
+  const before = localSql(financial), measurements: object[] = [], errors: string[] = []
+  const committedRounds: typeof f.rounds = []
+  const terminal = new Map<import('@playwright/test').Request, Promise<string | null>>()
+  const resolveTerminal = new Map<import('@playwright/test').Request, (failure: string | null) => void>()
+  page.on('request', request => {
+    if (new URL(request.url()).pathname !== '/admin/makeup' || request.headers().rsc !== '1') return
+    terminal.set(request, new Promise(resolve => resolveTerminal.set(request, resolve)))
+  })
+  page.on('requestfinished', request => resolveTerminal.get(request)?.(null))
+  page.on('requestfailed', request => resolveTerminal.get(request)?.(request.failure()?.errorText || 'Unknown request failure'))
+  await observeMakeupResponseConsumption(page)
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+  await loginAsAdmin(page)
+  for (const [sample, round] of f.rounds.slice(0, 3).entries()) {
+    await page.goto(`/admin/makeup?session=${round.sessions[0]}`)
+    const group = page.getByTestId(`review-session-${round.sessions[0]}`).locator('..').locator('..')
+    await group.getByRole('button', { name: 'มอบหมายโค้ชใหม่', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('combobox').nth(1).click()
+    await page.getByRole('option', { name: /Measured Refresh Coach/ }).click()
+    await dialog.getByPlaceholder(/หัวหน้าโค้ชลืมมอบหมาย/).fill('ข้อมูลทดลองสำหรับตรวจรายชื่อครบและการโหลดหลังบันทึก')
+    const mutation = page.waitForResponse(response => response.request().method() === 'PATCH' && response.url().includes('/api/admin/makeup'))
+    // The sidebar also prefetches /admin/makeup. Correlate the actual refresh to
+    // this exact session/month; a different GET is not transaction confirmation.
+    const refresh = page.waitForResponse(response => {
+      const url = new URL(response.url()), current = new URL(page.url())
+      const headers = response.request().headers()
+      return response.request().method() === 'GET' && url.pathname === '/admin/makeup'
+        && url.searchParams.get('session') === round.sessions[0]
+        && url.searchParams.get('month') === current.searchParams.get('month')
+        && headers.rsc === '1' && headers['next-router-prefetch'] !== '1'
+    })
+    const started = performance.now()
+    await dialog.getByRole('button', { name: 'มอบหมายโค้ชให้รอบนี้', exact: true }).click()
+    const response = await mutation, mutationMs = performance.now() - started, body = await response.json()
+    expect(response.status(), JSON.stringify(body)).toBe(200)
+    expect(body).toMatchObject({ success: true, changed: true })
+    expect([...response.request().postDataJSON().session_ids].sort()).toEqual([...round.sessions].sort())
+    committedRounds.push(round)
+    await expect(page.getByText('มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ', { exact: true }).first()).toBeVisible()
+    const refreshed = await refresh
+    // Playwright 1.61.1 Response.finished() never resolves after requestfailed,
+    // even when Chrome reports ERR_ABORTED after the actual reader reached EOF.
+    // A terminal event alone is insufficient: require browser EOF + current UI + DB.
+    expect(terminal.has(refreshed.request())).toBe(true)
+    const networkFailure = await terminal.get(refreshed.request())
+    expect([null, 'net::ERR_ABORTED']).toContain(networkFailure)
+    await expect.poll(() => page.evaluate(url => {
+      const records = (window as unknown as { makeupResponseConsumption: Record<string, { done: boolean; bytes: number; error: string | null }> }).makeupResponseConsumption
+      return records[url]?.done === true && records[url]?.error === null
+    }, refreshed.url())).toBe(true)
+    const consumption = await page.evaluate(url => (window as unknown as { makeupResponseConsumption: Record<string, { done: boolean; bytes: number; error: string | null }> }).makeupResponseConsumption[url], refreshed.url())
+    expect(consumption.bytes).toBeGreaterThan(0)
+    const refreshCompleteMs = performance.now() - started
+    expect(refreshed.status()).toBe(200)
+    await expect(group.getByText('Measured Refresh Coach', { exact: true })).toBeVisible()
+    await expect(group.getByRole('button', { name: 'เปลี่ยนโค้ชย้อนหลัง', exact: true })).toBeEnabled()
+    measurements.push({ sample, members: round.sessions.length, mutationMs, refreshCompleteMs, interactiveMs: performance.now() - started, rscBytes: consumption.bytes, browserConsumed: consumption.done, networkFailure, refreshUrl: refreshed.url() })
+    const ids = round.sessions.map(id => `'${id}'`).join(',')
+    expect(JSON.parse(localSql(`SELECT jsonb_build_object('members',(SELECT count(*) FROM coach_assignment_group_students m JOIN coach_assignment_groups g ON g.id=m.group_id WHERE g.schedule_slot_id='${round.slot}' AND g.coach_id='${coachId}' AND m.booking_session_id IN (${ids})),'identity',(SELECT bool_and(m.student_id=s.child_id) FROM coach_assignment_group_students m JOIN booking_sessions s ON s.id=m.booking_session_id WHERE s.id IN (${ids})),'attendance',(SELECT count(*) FROM attendance WHERE booking_session_id IN (${ids})));`))).toEqual({ members: round.sessions.length, identity: true, attendance: 0 })
+    expect(localSql(financial)).toBe(before)
+  }
+  expect(errors).toEqual([])
+  } finally {
+    // Preserve committed DB evidence even when a browser refresh does not finish.
+    const ids = f.rounds.slice(0, 3).flatMap(round => round.sessions).map(id => `'${id}'`).join(',')
+    const reconciliation = JSON.parse(localSql(`SELECT jsonb_build_object('assigned',(SELECT count(*) FROM coach_assignment_group_students m JOIN coach_assignment_groups g ON g.id=m.group_id WHERE g.coach_id='${coachId}' AND m.booking_session_id IN (${ids})),'identity',(SELECT bool_and(m.student_id=s.child_id) FROM coach_assignment_group_students m JOIN booking_sessions s ON s.id=m.booking_session_id WHERE s.id IN (${ids})),'attendance',(SELECT count(*) FROM attendance WHERE booking_session_id IN (${ids})));`))
+    const financialUnchanged = localSql(financial) === before
+    await testInfo.attach('real-assignment-refresh-measurements', { body: Buffer.from(JSON.stringify({ measurements, errors, committedRounds: committedRounds.length, reconciliation, financialUnchanged }, null, 2)), contentType: 'application/json' })
+    expect.soft(reconciliation).toEqual({ assigned: committedRounds.reduce((count, round) => count + round.sessions.length, 0), identity: true, attendance: 0 })
+    expect.soft(financialUnchanged).toBe(true)
+  }
+})
 
 function assertNoError(error: { message?: string } | null, label: string) {
   if (error) throw new Error(`${label}: ${error.message || JSON.stringify(error)}`)
@@ -769,6 +1040,10 @@ test('Admin Makeup retrospective completion is guarded, visible, canonical, and 
     })
     await expect(page.getByText('กำลังบันทึกข้อมูล กรุณารอสักครู่', { exact: true })).toBeVisible()
     await expect(controls.submit).toBeDisabled()
+    await expect(page.getByLabel('เดือนและปีของรายการ')).toBeDisabled()
+    // Radix hides the background from the accessibility tree while this dialog
+    // is open; inspect the existing background control without interacting with it.
+    await expect(page.getByRole('button', { name: 'เดือนถัดไป', exact: true, includeHidden: true })).toBeDisabled()
     expect(phasePatchCount).toBe(1)
     await testInfo.attach('admin-makeup-desktop-pending', {
       body: await page.screenshot({ fullPage: true }),
@@ -779,6 +1054,7 @@ test('Admin Makeup retrospective completion is guarded, visible, canonical, and 
     await expect(page.getByText('มอบหมายโค้ชให้รอบเรียนย้อนหลังสำเร็จ', { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Feedback Fixture Coach', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'เปลี่ยนโค้ชย้อนหลัง', exact: true }).first()).toBeDisabled()
+    await expect(page.getByLabel('เดือนและปีของรายการ')).toBeDisabled()
     await expect.poll(() => refreshBlocked).toBe(true)
     await testInfo.attach('admin-makeup-desktop-success-before-refresh', {
       body: await page.screenshot({ fullPage: true }),

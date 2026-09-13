@@ -30,6 +30,8 @@ import {
   Calendar,
   CalendarCheck,
   CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Clock,
   Loader2,
@@ -143,6 +145,10 @@ interface CoachOption {
 interface MakeupClientProps {
   familyPolicy: Task10Policy
   sessions: BookingSessionData[]
+  linkedSessions: BookingSessionData[]
+  selectedSourceMonth: string
+  currentMonth: string
+  invalidMonth: boolean
   branches: BranchOption[]
   scheduleTemplates: ScheduleTemplateOption[]
   coaches: CoachOption[]
@@ -312,6 +318,11 @@ function isUnassignedAttendanceRound(group: ReviewSessionGroup) {
   return !group.coachName && group.sessions.some(isAttendanceReviewSession)
 }
 
+function getReviewGroupKey(session: BookingSessionData) {
+  return [session.date, session.start_time, session.end_time, session.branch_name,
+    session.course_type || 'course', session.coach_name || 'no-coach'].join('|')
+}
+
 function getMonthKey(date: string) {
   return date.slice(0, 7)
 }
@@ -426,7 +437,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
     .filter((day) => day.slotsByBranch.length > 0)
 }
 
-function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<MakeupClientProps, 'sessions' | 'scheduleTemplates' | 'branches'>) {
+function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches, onSavingChange }: Pick<MakeupClientProps, 'sessions' | 'scheduleTemplates' | 'branches'> & { onSavingChange: (saving: boolean) => void }) {
   const scopes = Array.from(new Map(sessions.filter((s) => s.course_type === 'kids_group' && s.user_id && !s.is_makeup).map((s) => [
     `${s.user_id}:${s.date.slice(0, 7)}`, { parentId: s.user_id!, sourceMonth: s.date.slice(0, 7), name: s.user_name },
   ])).entries())
@@ -443,8 +454,10 @@ function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<M
   const [reload, setReload] = useState(0)
   const inFlight = useRef(false)
   const request = useRef<{ fingerprint: string; id: string } | null>(null)
+  const validScopeKey = scopes.some(([key]) => key === scopeKey) ? scopeKey : scopes[0]?.[0] || ''
+  useEffect(() => { if (!inFlight.current && scopeKey !== validScopeKey) setScopeKey(validScopeKey) }, [scopeKey, validScopeKey])
   useEffect(() => {
-    if (!scopeKey) return
+    if (!scopeKey) { setState(null); setError(null); setSourceId(''); setChildId(''); return }
     const controller = new AbortController()
     const split = scopeKey.lastIndexOf(':')
     setLoading(true); setState(null); setError(null); setSourceId(''); setChildId('')
@@ -464,7 +477,7 @@ function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<M
       branch_id: template.branch_id, makeup_date: date, start_time: template.start_time, end_time: template.end_time }
     const fingerprint = JSON.stringify(body)
     if (request.current?.fingerprint !== fingerprint) request.current = { fingerprint, id: crypto.randomUUID() }
-    inFlight.current = true; setSaving(true); setError(null); setSuccess(null)
+    inFlight.current = true; setSaving(true); onSavingChange(true); setError(null); setSuccess(null)
     try {
       const response = await fetch('/api/admin/makeup/kids-family', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...body, request_id: request.current.id }) })
@@ -473,7 +486,7 @@ function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<M
       setSuccess(`จัดชดเชยสำเร็จ โควตาเหลือ ${data.remaining} ครั้ง`)
       request.current = null; setReload((n) => n + 1)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'จัดชดเชยไม่สำเร็จ') }
-    finally { inFlight.current = false; setSaving(false) }
+    finally { inFlight.current = false; setSaving(false); onSavingChange(false) }
   }
   return <Card><CardContent className="space-y-4 p-4">
     <h2 className="text-lg font-bold text-[#153c85]">ชดเชยคอร์สเด็ก — สิทธิ์ร่วมครอบครัว</h2>
@@ -483,7 +496,7 @@ function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<M
     {loading ? <p role="status">กำลังอ่านสิทธิ์ซื้อและรายการต้นทาง...</p> : null}
     {error ? <p role="alert" className="text-red-600">{error}</p> : null}
     {success ? <p role="status" className="text-emerald-700">{success}</p> : null}
-    {state?.sourceMonth ? <>
+    {state?.sourceMonth && scopeKey === validScopeKey ? <>
       <p>เดือนต้นทาง {state.sourceMonth} → เดือนปลายทาง {state.destinationMonth}</p>
       <p>โควตา {state.quota} · ใช้แล้ว {state.used} · เหลือ {state.remaining} · ต้นทางที่ใช้ได้ {state.sources.length}</p>
       <p>ซื้อเดือนปลายทางยืนยันแล้ว {state.destinationPurchase.quantity} ครั้ง · ขั้นต่ำ {state.minimum.minimum} ครั้ง</p>
@@ -506,8 +519,12 @@ function KidsFamilyMakeupPanel({ sessions, scheduleTemplates, branches }: Pick<M
   </CardContent></Card>
 }
 
-export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, reviewTarget, familyPolicy }: MakeupClientProps) {
+export function MakeupClient({ sessions, linkedSessions, selectedSourceMonth, currentMonth, invalidMonth, branches, scheduleTemplates, coaches, reviewTarget, familyPolicy }: MakeupClientProps) {
   const router = useRouter()
+  const [isMonthPending, startMonthTransition] = useTransition()
+  const [requestedMonth, setRequestedMonth] = useState(selectedSourceMonth)
+  const requestedMonthRef = useRef(selectedSourceMonth)
+  const [familySaving, setFamilySaving] = useState(false)
   const [isRefreshPending, startRefreshTransition] = useTransition()
   const inFlightTargetKeysRef = useRef(new Set<string>())
   const inFlightSessionIdsRef = useRef(new Set<string>())
@@ -528,6 +545,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const [makeupBranch, setMakeupBranch] = useState('all')
   const [makeupCourse, setMakeupCourse] = useState('all')
   const [makeupStatus, setMakeupStatus] = useState<MakeupStatusFilter>('all')
+  const [reviewPage, setReviewPage] = useState(1)
+  const [reviewPageSize, setReviewPageSize] = useState(15)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -785,8 +804,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   }, [projectedSessions])
 
   const makeupSourceIds = useMemo(
-    () => new Set(projectedSessions.map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
-    [projectedSessions]
+    () => new Set([...projectedSessions, ...linkedSessions].map((session) => session.rescheduled_from_id).filter(Boolean) as string[]),
+    [projectedSessions, linkedSessions]
   )
   const courseOptions = useMemo(
     () => Array.from(new Set(projectedSessions.map((session) => session.course_type).filter(Boolean))).sort(compareTextTh),
@@ -901,11 +920,16 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const reviewSessions = useMemo(() => {
     const q = reviewSearch.trim().toLowerCase()
 
-    return projectedSessions
+    const scopedSessions = projectedSessions
       .filter(isReviewOrEvidenceSession)
       .filter((session) => {
         if (reviewBranch !== 'all' && session.branch_id !== reviewBranch) return false
         if (reviewCourse !== 'all' && session.course_type !== reviewCourse) return false
+        return true
+      })
+    // Search/status select complete Review rounds. Filtering member rows first
+    // would hand a partial roster to the unchanged round-level actions.
+    const matchingGroups = new Set(scopedSessions.filter((session) => {
         if (reviewStatus === 'no_coach' && session.coach_name) return false
         if (reviewStatus === 'waiting_attendance' && !isAttendanceReviewSession(session)) return false
         if (reviewStatus === 'coach_evidence' && !isCoachEvidenceReviewSession(session)) return false
@@ -920,7 +944,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           session.course_type,
           formatDate(session.date),
         ].some((value) => value.toLowerCase().includes(q))
-      })
+      }).map(getReviewGroupKey))
+    return scopedSessions
+      .filter((session) => matchingGroups.has(getReviewGroupKey(session)))
       .sort((a, b) => {
         const aTarget = isReviewTargetSession(a)
         const bTarget = isReviewTargetSession(b)
@@ -933,14 +959,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     const groups = new Map<string, ReviewSessionGroup>()
 
     reviewSessions.forEach((session) => {
-      const key = [
-        session.date,
-        session.start_time,
-        session.end_time,
-        session.branch_name,
-        session.course_type || 'course',
-        session.coach_name || 'no-coach',
-      ].join('|')
+      const key = getReviewGroupKey(session)
 
       if (!groups.has(key)) {
         groups.set(key, {
@@ -1009,6 +1028,24 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   const totalPages = Math.max(1, Math.ceil(learnerGroups.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedLearnerGroups = learnerGroups.slice((safePage - 1) * pageSize, safePage * pageSize)
+
+  const reviewTotalPages = Math.max(1, Math.ceil(reviewSessionGroups.length / reviewPageSize))
+  const safeReviewPage = Math.min(reviewPage, reviewTotalPages)
+  const pagedReviewGroups = reviewSessionGroups.slice((safeReviewPage - 1) * reviewPageSize, safeReviewPage * reviewPageSize)
+
+  useEffect(() => {
+    // Existing target ordering puts the complete targeted round first. Reset only
+    // navigation state; mutation locks, entered form values and projections stay intact.
+    setReviewPage(1)
+    if (reviewTargetSessionId || reviewTargetDate) setActiveTab('review')
+  }, [reviewTargetSessionId, reviewTargetDate, selectedSourceMonth])
+
+  useEffect(() => {
+    if (!isMonthPending) {
+      requestedMonthRef.current = selectedSourceMonth
+      setRequestedMonth(selectedSourceMonth)
+    }
+  }, [isMonthPending, selectedSourceMonth])
 
   const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates), [branches, scheduleTemplates, selectedMonth])
   const selectedDay = useMemo(
@@ -1115,7 +1152,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
   // never unlock it or erase a previously confirmed result.
   useEffect(() => {
     const confirmed = Object.entries(createResults).filter(([, result]) => result.status === 'uncertain'
-      && sessions.some((session) => getMakeupLearnerIdentity(session) === getMakeupLearnerIdentity(result.source)
+      && [...sessions, ...linkedSessions].some((session) => getMakeupLearnerIdentity(session) === getMakeupLearnerIdentity(result.source)
         && isConfirmedMakeup(session, result.source, result.slot)))
     if (!confirmed.length) return
     setCreateResults((current) => {
@@ -1130,7 +1167,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
       setError(null)
       setDialogOpen(false)
     }
-  }, [createResults, selectedMonth, sessions])
+  }, [createResults, selectedMonth, sessions, linkedSessions])
 
   const sendReviewGroupToCoach = async (group: ReviewSessionGroup) => {
     const targetSessions = group.sessions.filter(isAttendanceReviewSession)
@@ -1668,10 +1705,45 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
     !selectedMoveTargetGroup ||
     !moveReason.trim()
   const reviewTargetBusy = reviewSession ? isTargetBusy([reviewSession.id]) : false
+  const monthSelectionBlocked = pendingSessionIds.size > 0 || reconcilingSessionIds.size > 0
+    || loading || familySaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
+    || moveSubmitting || roundAttendanceSubmitting || Boolean(reviewGroupLoadingKey)
+  const navigateMonth = (month: string) => {
+    if (monthSelectionBlocked || inFlightTargetKeysRef.current.size || refreshTargetKeysRef.current.size
+      || createInFlightRef.current || !/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month) || month.slice(0, 4) >= '9999') return
+    requestedMonthRef.current = month
+    setRequestedMonth(month)
+    // Keep this component and its mutation evidence mounted; clear only navigation targets.
+    setReviewPage(1); setPage(1)
+    setDialogOpen(false); setReviewSession(null); setUnassignedGroup(null)
+    setReplacementGroup(null); setMoveGroup(null); setRoundAttendanceGroup(null)
+    startMonthTransition(() => router.push(`/admin/makeup?month=${month}`, { scroll: false }))
+  }
+  const moveMonth = (delta: number) => {
+    const [year, month] = requestedMonthRef.current.split('-').map(Number)
+    navigateMonth(new Date(Date.UTC(year, month - 1 + delta, 1)).toISOString().slice(0, 7))
+  }
 
   return (
     <div className="space-y-5">
-      {familyPolicy.effectiveAt ? <KidsFamilyMakeupPanel sessions={sessions} scheduleTemplates={scheduleTemplates} branches={branches} /> : null}
+      <section className="rounded-xl border border-blue-100 bg-white p-4" aria-label="เดือนของรายการ Makeup">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-[#153c85]">รายการเดือน {formatThaiMonthYear(`${selectedSourceMonth}-01`)}</h2>
+            <p className="mt-1 text-xs text-gray-600">ยอดรวมและการค้นหาเฉพาะเดือนนี้ · ตรวจรอบเรียนตามวันเรียน · เลือกวันชดเชยตามเดือนต้นทาง</p>
+          </div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <Button variant="outline" size="icon" aria-label="เดือนก่อนหน้า" disabled={monthSelectionBlocked || requestedMonth === '1000-01'} onClick={() => moveMonth(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Input type="month" aria-label="เดือนและปีของรายการ" className="w-44 flex-1 sm:flex-none" min="1000-01" max="9998-12" value={requestedMonth} disabled={monthSelectionBlocked} onChange={(event) => navigateMonth(event.target.value)} />
+            <Button variant="outline" size="icon" aria-label="เดือนถัดไป" disabled={monthSelectionBlocked || requestedMonth === '9998-12'} onClick={() => moveMonth(1)}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="outline" disabled={monthSelectionBlocked || requestedMonth === currentMonth} onClick={() => navigateMonth(currentMonth)}>เดือนนี้</Button>
+          </div>
+        </div>
+        {invalidMonth ? <p role="alert" className="mt-2 text-sm text-amber-700">เดือนใน URL ไม่ถูกต้อง ระบบแสดงเดือนปัจจุบันตามเวลาไทย</p> : null}
+        {isMonthPending ? <p role="status" className="mt-2 flex items-center gap-2 text-sm text-blue-700"><Loader2 className="h-4 w-4 animate-spin" />กำลังโหลดรายการเดือน {requestedMonth}...</p> : null}
+      </section>
+      <fieldset disabled={isMonthPending} aria-busy={isMonthPending} className="min-w-0 space-y-5">
+      {familyPolicy.effectiveAt ? <KidsFamilyMakeupPanel sessions={sessions} scheduleTemplates={scheduleTemplates} branches={branches} onSavingChange={setFamilySaving} /> : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
@@ -1762,7 +1834,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
             <CalendarCheck className="h-5 w-5 text-emerald-500" />
           </CardContent>
         </Card>
-        <Card className="border-gray-200 max-xl:col-span-2">
+        <Card className="border-gray-200">
           <CardContent className="flex items-center justify-between p-3 sm:p-4">
             <div>
               <p className="text-xs text-gray-500">ผู้เรียน</p>
@@ -1787,17 +1859,17 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
 
         <TabsContent value="review" className="space-y-4">
           <Card className="border-gray-200">
-            <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_220px_220px_220px_auto] 2xl:items-center">
-              <div className="relative">
+            <CardContent className="grid gap-3 p-4 grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_150px_180px] xl:items-center">
+              <div className="relative col-span-2 xl:col-span-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   className="pl-10"
                   placeholder="ค้นหานักเรียน, ผู้ปกครอง, โค้ช, สาขา..."
                   value={reviewSearch}
-                  onChange={(event) => setReviewSearch(event.target.value)}
+                  onChange={(event) => { setReviewSearch(event.target.value); setReviewPage(1) }}
                 />
               </div>
-              <Select value={reviewBranch} onValueChange={setReviewBranch}>
+              <Select value={reviewBranch} onValueChange={(value) => { setReviewBranch(value); setReviewPage(1) }}>
                 <SelectTrigger>
                   <SelectValue placeholder="ทุกสาขา" />
                 </SelectTrigger>
@@ -1808,7 +1880,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={reviewCourse} onValueChange={setReviewCourse}>
+              <Select value={reviewCourse} onValueChange={(value) => { setReviewCourse(value); setReviewPage(1) }}>
                 <SelectTrigger>
                   <SelectValue placeholder="ทุกคอร์ส" />
                 </SelectTrigger>
@@ -1819,8 +1891,8 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={reviewStatus} onValueChange={(value) => setReviewStatus(value as ReviewStatusFilter)}>
-                <SelectTrigger>
+              <Select value={reviewStatus} onValueChange={(value) => { setReviewStatus(value as ReviewStatusFilter); setReviewPage(1) }}>
+                <SelectTrigger className="col-span-2 xl:col-span-1">
                   <SelectValue placeholder="สถานะเคส" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1831,7 +1903,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                   <SelectItem value="coach_requested">ส่งให้โค้ชแล้ว</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="whitespace-nowrap text-sm text-gray-500">
+              <p className="col-span-2 text-sm text-gray-500 xl:col-span-4">
                 แสดง {reviewSessionGroups.length} รอบ / {reviewSessions.length} รายการ
               </p>
             </CardContent>
@@ -1854,8 +1926,18 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 {reviewSessionGroups.length} รอบ / {reviewSessions.length} รายการ
               </Badge>
             </div>
-            <div className="mt-4 max-h-[28rem] space-y-3 overflow-y-auto pr-1">
-              {reviewSessionGroups.map((group) => {
+            <div className="my-3 overflow-hidden rounded-lg border border-gray-200" aria-label="แบ่งหน้ารอบที่ต้องตรวจสอบ">
+              <ListPagination
+                page={safeReviewPage}
+                pageSize={reviewPageSize}
+                total={reviewSessionGroups.length}
+                onPageChange={setReviewPage}
+                onPageSizeChange={(value) => { setReviewPageSize(value); setReviewPage(1) }}
+              />
+              <p className="border-t bg-white px-4 py-2 text-xs text-gray-500">ค้นหาและแบ่งหน้าตามรอบเรียน สมาชิกในรอบแสดงครบ · ยอดรวมครอบคลุมทุกหน้า</p>
+            </div>
+            <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1" aria-label="รอบที่ต้องตรวจสอบในหน้านี้">
+              {pagedReviewGroups.map((group) => {
                 const isTargetGroup = group.sessions.some(isReviewTargetSession)
                 const groupNeedsAttendanceReview = group.sessions.some(isAttendanceReviewSession)
                 const groupNeedsCoachEvidence = group.sessions.some(isCoachEvidenceReviewSession)
@@ -1870,14 +1952,14 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                 return (
                   <div
                     key={group.key}
+                    data-testid="makeup-review-group"
                     className={`overflow-hidden rounded-xl border bg-white shadow-sm ${
                       isTargetGroup ? 'border-orange-300 ring-2 ring-orange-200' : 'border-orange-100'
                     }`}
                   >
-                  <div className="flex flex-col gap-3 border-b border-orange-100 bg-orange-50/50 p-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="flex flex-col gap-3 border-b border-gray-100 bg-gray-50 p-3 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="border-orange-200 bg-white text-orange-700">รอบสอน</Badge>
                         <span className="font-semibold text-[#153c85]">
                           {formatDate(group.date)} {formatTime(group.startTime, group.endTime)}
                         </span>
@@ -1908,7 +1990,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                           </Badge>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
                         <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{group.branchName}</span>
                         <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{group.courseType}</span>
                         <span className="inline-flex items-center gap-1"><User className="h-3.5 w-3.5" />{group.coachName || 'ยังไม่พบโค้ชในกลุ่ม'}</span>
@@ -2040,12 +2122,22 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                     </div>
                   </div>
 
+                  <div className="px-3 pt-3">
+                    {isUnassignedRound ? (
+                      <p className="text-xs text-amber-800">รอบนี้ยังไม่มีโค้ชในกลุ่ม ให้จัดการจากปุ่มทั้งรอบด้านบนเท่านั้น เพื่อไม่ให้ผลรายคนหลุดจากรอบเดียวกัน</p>
+                    ) : (
+                      <div className="space-y-1 text-xs text-blue-800">
+                        {groupNeedsAttendanceReview && <p>ให้บันทึกหรือส่งตรวจสอบจากปุ่มระดับรอบด้านบนเท่านั้น เพื่อให้ผลทั้งรอบไปทางเดียวกัน</p>}
+                        {groupNeedsCoachEvidence && <p>บันทึก attendance แล้ว แต่ยังต้องติดตามหลักฐานโค้ชจากปุ่มระดับรอบด้านบน</p>}
+                      </div>
+                    )}
+                  </div>
                   <div className="divide-y divide-gray-100">
                     {group.sessions.map((session) => (
-                      <div key={session.id} data-testid={`review-session-${session.id}`} className="grid gap-3 p-3 text-sm xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                      <div key={session.id} data-testid={`review-session-${session.id}`} className="p-3 text-sm">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-gray-950">{session.learner_name}</span>
+                            <span className="min-w-0 break-words font-semibold text-gray-950">{session.learner_name}</span>
                             {isCoachEvidenceReviewSession(session) ? (
                               <>
                                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700">บันทึก attendance แล้ว</Badge>
@@ -2065,21 +2157,9 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
                           </div>
                           <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500">
                             <span>ผู้ปกครอง/ผู้ใช้: {session.user_name}</span>
-                            <span>{session.branch_name}</span>
-                            <span>{session.course_type || 'คอร์สเรียน'}</span>
                           </div>
                         </div>
-                        {isUnassignedRound ? (
-                          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                            รอบนี้ยังไม่มีโค้ชในกลุ่ม ให้จัดการจากปุ่มทั้งรอบด้านบนเท่านั้น เพื่อไม่ให้ผลรายคนหลุดจากรอบเดียวกัน
-                          </div>
-                        ) : (
-                          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                            {isCoachEvidenceReviewSession(session)
-                              ? 'บันทึก attendance แล้ว แต่ยังต้องติดตามหลักฐานโค้ชจากปุ่มระดับรอบด้านบน'
-                              : 'ให้บันทึกหรือส่งตรวจสอบจากปุ่มระดับรอบด้านบนเท่านั้น เพื่อให้ผลทั้งรอบไปทางเดียวกัน'}
-                          </div>
-                        )}
+
                       </div>
                     ))}
                   </div>
@@ -3157,6 +3237,7 @@ export function MakeupClient({ sessions, branches, scheduleTemplates, coaches, r
           )}
         </DialogContent>
       </Dialog>
+      </fieldset>
     </div>
   )
 }
