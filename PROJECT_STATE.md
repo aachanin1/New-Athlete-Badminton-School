@@ -2,54 +2,54 @@
 
 Last updated: 2026-09-13 (Asia/Bangkok; evidence UTC)
 
-## Current State — Task10 exact build attestation verified locally; publication gates next
+## Current State — Task10 short build command verified locally; publication gates next
 
-Owner approved the exact v2 buildCommand in addition to the existing ignore patch.
-The full Linux shell command passes a real filtered Next build, tolerates empty
-directories and rejects forbidden files before Next starts. Application and tests
-remain frozen. New Git Preview/staged and live Owner UAT are not yet verified.
+Owner approved moving the unchanged guard into one root build helper.
+The exact 50-character command and filtered package pass local verification.
+Actual Git worker, new staged artifact and live UAT still require verification.
 **Task10 DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task / Intended Behavior | Task10 only: compliant packaging of the verified Family Schedule/monthly Makeup candidate and complete seven-step Owner UAT. |
-| Task Status / READY / Task Done | DEVELOPING / No / No. Local config/build gates passed; new Git Preview worker proof, staged smoke and live UAT remain required. |
-| Owner Decision / Scope | Latest continuation approves exact vercel.json v2 buildCommand +1/-1. Prior .vercelignore +6/-0 and normal commit/push/automatic Preview/new staged/UAT B–C authorization remain valid. No repeat approval required. No Promotion or remote activation. |
-| Scope Expansion / Breach | Owner-approved Config2 (.vercelignore plus newly added vercel.json), Docs3; Functional0/Tests0/Dependencies0/Migrations0. All484 other tracked files frozen. No new scope breach; historical rejected staged packaging breach retained. |
-| Protected Policy / Blast Radius | Deployment inputs and diagnostic build only. Family atomicity/exact identity; Reschedule>=12h including exact12; Wallet>48h excluding exact48; same-month/ten-month; M/D/quota/source-month/actual-child; OFF/active/paused; assignment/attendance/pricing/payments/entitlement/payroll/finance unchanged. No /admin/schedules edit. |
-| Commercial Record | Approved48,000บาท; automatic cancellation included. Customer payment Unknown; no new payment evidence. |
+| Active Task / Intended Behavior | Task10 only: verified deployment packaging of Family Schedule/monthly Makeup and complete seven-step Owner UAT. |
+| Task Status / READY / Task Done | DEVELOPING / No / No. Local packaging verification complete; actual Git Preview, new staged and live UAT gates remain. |
+| Owner Decision / Scope | Latest Owner approval authorizes exact short buildCommand +1/-1 and one new root vercel-build-attestation.cjs containing unchanged guard. Existing B–C normal commit/push, automatic Preview, staged --prod --skip-domain and UAT authorization remains valid. No repeated approval; no Promotion/activation. |
+| Scope Expansion / Breach | Approved Config1 / new Build helper1 / Docs3 =5paths. Functional0/Tests0/Dependencies0/Migrations0. All485 existing files outside scope frozen, including published .vercelignore. No new breach; historical rejected packaging breach retained. |
+| Protected Policy / Blast Radius | Build entry point and input attestation only. Family atomicity/identity, Reschedule>=12h inclusive, Wallet>48h exclusive, same-month/ten-month, M/D/quota/source-month/actual-child, OFF/active/paused, assignment/attendance/pricing/payment/entitlement/payroll/finance unchanged; /admin/schedules untouched. |
+| Commercial Record | Approved48,000บาท including automatic cancellation; customer payment Unknown, no new evidence. |
 | Branch / Upstream | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade. |
-| Local HEAD / Remote HEAD / Ahead-Behind | 9352c4a7941d9f03412931dd5a7d632324bafeee / same / 0/0 at fresh13:29:39UTC Gate0; recheck before publication. |
-| Index / Worktree | Index empty before publication; exact Config2 and Docs3 are local/uncommitted. Existing deferred assignment documentation preserved. |
-| Source Complete / Current Source / Pushed Source | Application candidate complete and frozen at9352c4a, already pushed. Packaging configuration complete locally. Current source is that commit plus exact Config2 and Docs3; publication/readiness still pending. |
-| Config Hashes | vercel.json normalizedLF/build SHA256 fd0ecbd0ea3c5b12089159cab1cb0e0851e7cbb081c0f4117b2fa0ca707e5e0b; approved patch1d508ea920aa86436d104b6b958ec77f399d405876528f6cc3c8750d3b718512. Ignore working64b8af3b24f3cfb6e2b559b6243276d6ab8858b3348a57a35feb1b90b7491e1a / normalizedLF00100dce9643e87dcb498d132ca1221c8e48efeb2208cf1ddf46d4179bb0e214. Git autocrlftrue unchanged; raw and Git bytes distinguished. |
-| Fresh Local Checks | Exact patches and frozen hashes; CLI59.11.2 dry manifest359files; all runtime/public inputs retained; known-value scan0hits. Full buildCommand read from actual vercel.json executed through Linux /bin/sh -c, Node24.16.0: forbidden file exit1 before Next; same command with clean package and empty excluded directories passes real Next16.3.3 build and TypeScript. Fresh repository TypeScript/lint/mojibake pass. |
-| Local Build Identity | Linux packaging build N1sF7y4Rkaw4tae1impZN; input/config/command SHA256 and complete worker-style manifest in linux-v2-build-proof.json. npmci/audit0; build completed 2026-09-13T13:42:07.468Z. This local environment is not a deployed artifact. Docs closeout differs from the earlier local build snapshot and is separately hashed. |
-| Retained Evidence | Matching-byte A1 exact120 PM reconciliation; A2 Owner manual Chrome native popup/year/month/navigation PASS (versionUnknown). Seven prior local functional preflight categories; Booking23, monthly5/overlappingguards2, Task10UI7/protected32, Wallet45, Adminstate39/retrospective38. Historical148 is not fresh. Stream-close/ERR_ABORTED and incomplete pre-PM raw financial baseline remain bounded Unknown. |
-| Committed / Pushed | Application9352c4a Yes/Yes; Config2/Docs3 correction not yet committed/pushed at this pre-publication checkpoint. |
-| Preview Artifact | Existing dpl_6RfsFxFScCrGC1arcjybqaFuUmwD /9352c4a/READY remains prior evidence. New exact-commit Git Preview and actual filtered worker manifest are the next gate; CLI dry proof does not substitute for Git proof. |
-| Staged Artifact / Deployed Source | Existing dpl_G6fFPHKbvkPCBgaSzNk3Rjg2GysC /9352c4a remains REJECTED for Owner acceptance due to prior426-file upload. No new staged deployment yet; do not delete or reuse rejected package. |
-| Staged Smoke / Privileged Check | Prior landing/login/assets/healthJSON retained only. Required new staged smoke, deployment-scoped logs and authenticated school Makeup remain pending; anonymous redirect is not privileged PASS. Synthetic credentials are local only. |
-| Production / Rollback / Checks | Fresh13:34:41UTC: dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa /99b70fe373bfaa14424e2163136719024e5f0b0b READY; all4customer aliases unchanged. Actual /api/health JSON200ok. Production branchmain, protection unchanged, deployhooks0. Bounded read-only evidence, not all-system Production PASS. |
-| Owner UAT / Production UAT / Controlled Write UAT | Owner Pending, no OwnerPASS. No Production write UAT. Earlier Developer local synthetic preflights retained, no new fixture/business write in this packaging verification. |
-| Promotion / Routing / Deploy | None this continuation before publication. Authorized next deployments are automatic Preview and staged Production --prod --skip-domain only; no customer alias changes. |
-| Migration Source / Applied | M1–M5 frozen and applied in prior step2; Wallet corrective installed. Fresh remote SELECT13:33:54UTC confirms history40 includingM1–M5. No apply/repair/remoteSQLwrite. |
-| Remote Feature / Activation / Scheduler | Fresh named-project read13:33:54UTC: never_activated/revision0/effective_at-artifactNULL/pricing-makeup-expiryfalse; one inactive task10-expire-unpaid-bookings-v1; activationevents0/workerruns0. |
-| Local Controls / Clock / Fixtures | Fresh13:38:28UTC API56321/DB56322 physical DB/Auth/REST/Storage binding valid; paused/rev1/flagsfalse/nativeclock/croninactive. Counts25profiles90bookings2570sessions10payments15credits5uses80attendance1object unchanged; Owner credits/deadlines/assignment cases unconsumed. PM55321/3020 and original54321 preserved. |
-| Local URL / Handoff | http://127.0.0.1:3030/__uat remains offline pending publication gates. Private local accounts/old seven-step runbook preserved outside repository. Fresh live restart/preflight on the new source commit is still required. |
-| Allowlisted / Permissions / Environment | No allowlist, Auth, permission, protection, secret, visibility or saved environment changes. Linux build used only verified disposable process bindings and SlipOK test mode; no global Date override. |
-| Production Active / Data Changed / Data Repaired | Task10 policiesOFF; no Developer Production business/financial write or data repair. Prior DB schema/bootstrap remains installed. No claim about unrelated customer traffic. |
-| Customer / Financial Impact | Customer artifact/routing unchanged; no task-directed entitlement or monetary changes. Config not yet deployed. Public historical source exposure and Production credential validity limits remain below. |
-| Exposure / Security Limits | Prior fresh audit confirmed anonymous GitHub200/exact hashes for9known files at9352c4a. Current package scans those known values only:0hits. Seven helpers have local guards; two historical scripts were environment-targeted, with dated remote use/cleanup. Current Production credential validity Unknown; no synthetic Production login or new Auth-table audit. Current Doc literal redacted; old Git/deployments/evidence remain. No general security PASS. |
-| Failed Attempts / Cleanup | Preserved temporary setup failures: missing local project link prevented first dry manifest; premature empty package could not open vercel.json; copied runner had a stale inner-script filename. Corrected only temporary launcher paths/identity; no application/config weakening. Owned negative sentinel removed after verification; failed copies/logs preserved. No reset/reseed, fixture0 claim, or old deployment removal. |
-| Documentation Drift | Latest vercel.json approval replaces old waiting-for-config-scope claim; dated evidence/failures and deferred assignment registration preserved. Current facts owned here; post-artifact docs must be separated from artifact/source SHA. |
-| Blocker / Remaining Work / Next Gate | Prior scope blocker resolved by Owner approval. Required Git worker manifest, new Preview/staged exact identity/smoke, authenticated school Makeup and fresh live seven-step UAT readiness are not yet complete. Continue authorized B–C after full staged diff/compliance; no Promotion/activation. |
-| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. Task10 sole Active Task; deferred assignment registration is not implementation authorization. |
+| Local HEAD / Remote HEAD / Ahead-Behind | ee8e16b81a7b20ea647eb282f2643a397a1a9e85 / same /0/0 at fresh Gate0; publication not yet performed at this checkpoint. |
+| Index / Worktree | Index empty before staging; exact config/helper and Docs3 local changes. Earlier Docs3 failures/history preserved. |
+| Source Complete / Current Source / Pushed Source | Application complete and unchanged from9352c4a. Current candidate is ee8e16b plus exact approved short-command patch and Docs3. Packaging verified locally; pushed source still ee8e16b until authorized publication. |
+| Config Hashes | vercel.json LF/build SHA256 0a3d7fbc1aad7aa124538236e10683fddf6ccf252960f1b829bdeaf81ce0d301; helper LF005e3768c0a1d763f85bb9cc0c99b6812e433675bce55a55997e6748e4e6f894 / workingCRLF56bb8e0b8af76d1b2ca6b5ff53d422bb613a49d88bab955c5540fb7004711357. Exact patch b2836c140d630811294ac679eae380e160d70cd8a7614953c5bba836c5565c28; autocrlftrue unchanged. |
+| Fresh Local Checks | Actual full official schema instance validation and invalid-length/type/additional-property controls pass; root node--check; CLI59.11.2 filtered360files includes helper/all runtime/public files, known literal hits0. All four forbidden categories stop whole Linux command before Next; clean package with empty excluded directories passes real Next16.3.3/TypeScript. Repository tsc/lint/mojibake pass. |
+| Schema Verification Limitation | Official schema declares draft04 but contains numeric exclusiveMinimum in unrelated experimentalTriggers. Initial meta-schema self-validation failed. Unmodified full official schema instance validation passed with meta-schema self-validation disabled; no config constraints removed, four negative controls passed. Actual Vercel schema/build validation still mandatory. |
+| Local Build Identity | NXRMUlbkSVx4zv3ISbmDd; Linux Node24.16.0 /bin/sh -c executes full actual config command. Manifest360 exact hashes in linux-build-proof.json. Existing exact-lock Linux npmci retained, mounted read-only; not rerun. Docs updated after local build are separately hashed, no runtime/config differences. |
+| Retained Evidence | A1 exact120 PM reconciliation; A2 Owner manual Chrome native picker/month/year/navigation PASS (versionUnknown). Seven previous local functional preflights; Booking23, monthly5/overlappingguards2, Task10UI7/protected32, Wallet45, Admin39/retrospective38. Historical148 not fresh. Historical stream-close/ERR_ABORTED and incomplete pre-PM raw financial baseline remain Unknown. |
+| Committed / Pushed | Prior ee8e16b Yes/Yes. This exact config/helper plus Docs3 not yet committed/pushed at pre-publication checkpoint. |
+| Preview Artifact | Prior dpl_A7j7MuQwTn8SUCqgd6MdC4nYGQvD /ee8e16b ERROR due667-character command against256limit, before worker. New actual Git worker manifest/schema/build/smoke required; CLI dry is not Git evidence. |
+| Staged Artifact / Deployed Source | No new staged yet. Old dpl_G6fFPHKbvkPCBgaSzNk3Rjg2GysC /9352c4a remains REJECTED and retained. New accepted staged must follow new Preview gate. |
+| Staged Smoke / Privileged Check | New healthJSON/landing/login/assets/navigation/logs and school-authenticated Makeup read-only pending; anonymous redirect is not privileged PASS. Synthetic accounts local only. |
+| Production / Rollback / Checks | Fresh14:22:51UTC: dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa /99b70fe373bfaa14424e2163136719024e5f0b0b READY, four customer aliases unchanged, actual healthJSON200ok. Productionbranchmain/deployhooks0/protection unchanged. Bounded read only, not all-system PASS. |
+| Owner UAT / Production UAT / Controlled Write UAT | OwnerPending, no OwnerPASS. No Production write UAT. Old Developer local synthetic preflight retained; no new business write during packaging tests. |
+| Promotion / Routing / Deploy | No new deployment yet; authorized next automatic Preview and stagedProduction without domains. No Promotion or alias operation. |
+| Migration Source / Applied | M1–M5 frozen/already applied in prior step2; Wallet corrective installed. Fresh14:22:55UTC SELECT history40 with all5versions. No migration/apply/repair/remoteSQLwrite. |
+| Remote Feature / Activation / Scheduler | Fresh14:22:55UTC named-project SELECT: never_activated/rev0/effective_at-artifactNULL/flagsfalse; one inactive task10-expire-unpaid-bookings-v1; activationevents0/workerruns0. |
+| Local Controls / Clock / Fixtures | Fresh14:22:44UTC physical56321/56322 DB/Auth/REST/Storage bindings valid. Paused/rev1/flagsfalse/nativeclock/croninactive;25profiles90bookings2570sessions10payments15credits5uses80attendance1object. Owner cases unconsumed; no reset/reseed; PM55321 and original54321 preserved. |
+| Local URL / Handoff | http://127.0.0.1:3030/__uat offline pending publication gates and new-source restart/preflight. Private accounts/Owner fixtures retained outside repository. PM3020 separate from full Task10 UAT. |
+| Allowlisted / Permissions / Environment | No changes to remote allowlist/Auth/permissions/protection/secret/visibility/saved environment. Linux local process uses verified disposable only, SlipOKtest and real system/Auth time. |
+| Production Active / Data Changed / Data Repaired | Task10 policiesOFF. No Developer Production business/financial write or datarepair. Prior installed schema/bootstrap remains; no inference about unrelated traffic. |
+| Customer / Financial Impact | Customer routing/artifact unchanged; no task-directed entitlement/monetary changes. Production credential validity Unknown; no synthetic remote login or blanket security claim. |
+| Exposure / Security Limits | Historical GitHub anonymous200/exact9knownfile hashes and rejected426-file staged input remain retained. New360-file package known-value scan0hits. Prior Git/deployments/evidence not removed. Seven local-guarded and two environment-targeted historical helper findings retained; no new credential validity conclusion. |
+| Failed Attempts / Cleanup | This turn: rawhelper LF hash assertion failed because gitapply created CRLF; exact normalized bytes proven without editing content. Official meta-schema validator issue preserved; CLI help exit2 with valid help content handled. Four expected guard failures and positive real build kept. Negative sentinel files removed only from owned new export. No fixture reset or old evidence deletion. |
+| Documentation Drift | Latest Owner approval replaces obsolete helper-not-authorized claim; historical schema/packaging failures, literal redaction and Parking Lot retained. PROJECT owns current facts; post-deployment closeout must not relabel artifact SHA. |
+| Blocker / Remaining Work / Next Gate | Local gate complete. Continue authorized exact-five-path staged review/commit/push, actual Git worker manifest/Preview, new exact staged and authenticated school Makeup, then new-source local live seven-step UAT. Required pending checks are not PASS. |
+| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. No automatic assignment work; item8/unresolveditem5 linked for later separate selection. |
 
-Evidence: C:/Users/aacha/AppData/Local/Temp/task10-attestation-v2-20260913 .
-[Dated exact-attestation verification](DEVELOPMENT_TODO.md#task10-exact-build-attestation-2026-09-13).
+Evidence: C:\Users\aacha\AppData\Local\Temp\task10-short-attestation-20260913 .
+[Dated short-command verification](DEVELOPMENT_TODO.md#task10-short-build-command-2026-09-13).
 Frozen Family raw SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf9380bf147e.
 
 <a id="coach-assignment-owner-decision-2026-09-13"></a>

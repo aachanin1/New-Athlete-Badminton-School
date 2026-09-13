@@ -7,14 +7,12 @@ PROJECT_STATE.md owns current mutable facts; DEVELOPMENT_TODO.md owns dated evid
 ## Current Active Work
 
 - **Task10 — DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
-- Owner approved exact vercel.json v2 +1/-1; existing .vercelignore and B–C approval remain valid.
-- Full Linux buildCommand, forbidden-input rejection, empty-directory acceptance, known-value scan and technical checks passed locally.
-- Next: exact Config2/Docs3 staged diff, normal commit/push, actual Git worker manifest and Preview, then new staged and live seven-step UAT.
-- Authenticated staged Makeup and fresh local handoff remain required. Synthetic accounts stay local; no Promotion/activation.
-- Use the [current matrix](PROJECT_STATE.md#current-project-matrix) for source/config/build identity, fresh/retained/Unknown and actual publication state.
-- Historical source exposure/rejected packaging and stream-close/ERR_ABORTED evidence remain preserved. New filtering does not delete old copies or certify all-system security.
-- Parking Lot1–8unselected;9completed;10DEVELOPING. Deferred assignment registration remains documentation only; no automatic implementation.
-- Item8 and unresolved HTTP500 item5 remain linked for future assessment; Family Wallet/history revalidation follows Task10.
+- Owner approved exact short buildCommand plus new build helper; .vercelignore stays frozen. Local schema/guard/filtered build and technical checks pass.
+- Continue authorized five-path review/commit/push, actual Git Preview worker proof, then exact staged and live seven-step UAT. No repeat approval requested.
+- Authenticated school Makeup and fresh local handoff are required; synthetic accounts remain local. No Promotion/activation.
+- See [current matrix](PROJECT_STATE.md#current-project-matrix) for Git/config/build/artifact and fresh/retained/Unknown details.
+- Preserve historical packaging/schema failures, source exposure and stream-close/ERR_ABORTED limits; filtering does not remove older copies.
+- Parking Lot1–8unselected;9completed;10DEVELOPING. Assignment item8/unresolveditem5 remain linked; Family Wallet/history revalidation follows Task10.
   [Preserved Owner decision](PROJECT_STATE.md#coach-assignment-owner-decision-2026-09-13).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
