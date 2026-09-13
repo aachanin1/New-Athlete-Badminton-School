@@ -7,16 +7,15 @@ PROJECT_STATE.md owns current mutable facts; DEVELOPMENT_TODO.md owns dated evid
 ## Current Active Work
 
 - **Task10 — DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
-- A1 PM assignment reconciliation passed with documented baseline limits.
-  A2 native picker passed by actual Owner manual Chrome verification.
-- Continue authorized B publication/exact staged artifact checks, then complete
-  all seven C functional/staged UAT preflights and reserve fresh Owner scenarios.
-- No repeat A–C approval. No Promotion, remote activation or business writes.
-- Frozen10-path candidate; only Docs3 edited in this continuation. Preserve PM55321
-  and originalUAT54321 data; do not reset/reseed or reuse consumed scenarios as fresh.
-- See [current matrix](PROJECT_STATE.md#current-project-matrix) for exact source,
-  Git/artifact/remote states, fresh/retained results, limitations and next gate.
-- Parking Lot:1–8unselected;9completed;10DEVELOPING.
+- Owner approved exact vercel.json v2 +1/-1; existing .vercelignore and B–C approval remain valid.
+- Full Linux buildCommand, forbidden-input rejection, empty-directory acceptance, known-value scan and technical checks passed locally.
+- Next: exact Config2/Docs3 staged diff, normal commit/push, actual Git worker manifest and Preview, then new staged and live seven-step UAT.
+- Authenticated staged Makeup and fresh local handoff remain required. Synthetic accounts stay local; no Promotion/activation.
+- Use the [current matrix](PROJECT_STATE.md#current-project-matrix) for source/config/build identity, fresh/retained/Unknown and actual publication state.
+- Historical source exposure/rejected packaging and stream-close/ERR_ABORTED evidence remain preserved. New filtering does not delete old copies or certify all-system security.
+- Parking Lot1–8unselected;9completed;10DEVELOPING. Deferred assignment registration remains documentation only; no automatic implementation.
+- Item8 and unresolved HTTP500 item5 remain linked for future assessment; Family Wallet/history revalidation follows Task10.
+  [Preserved Owner decision](PROJECT_STATE.md#coach-assignment-owner-decision-2026-09-13).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
@@ -1136,9 +1135,10 @@ short closeout is in **Recently Completed** above; detailed historical evidence 
 in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
-Exactly nine candidates (original items 1–8 plus item 10) await implementation
-selection/authorization. Item 10 is selected for decision/audit only. Original item 9 is completed; retain its original
-position as history. PROJECT_STATE.md is authoritative. Original order:
+Exactly eight candidates (original items 1–8) await separate Owner implementation
+selection/authorization. Item 9 is completed; Task10 is DEVELOPING and the sole
+Active Product Task. Complete Task10 within its own scope/gates first; no other
+item starts automatically. PROJECT_STATE.md is authoritative. Original order:
 `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;
 `3.` **LINE EXTERNAL-BROWSER HANDOFF AUDIT**; `4.` **THAI UI TERMINOLOGY & SHARED
@@ -1147,9 +1147,8 @@ HELPER**; `5.` **EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**; `6.`
 ALERTS, CHRONOLOGICAL ORDER & READ-ONLY DETAIL MODAL**; `8.` **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
 Historical `9.` **BRANCH PAYMENT ACCOUNTS — BOOKING-RELEVANT DISPLAY & COPY — COMPLETED**.
 `10.` **ปรับเรทราคาคอร์สเด็กตามวันจอง + ชดเชยร่วมครอบครัว + ยกเลิกบิลไม่มีสลิปอัตโนมัติ**
-has the additional destination minimum recorded and revised Scope ready for approval;
-development remains unauthorized.
-See the short entry below and authoritative PROJECT_STATE.md.
+remains authorized within its existing Task10 scope; this documentation command
+does not expand or execute it. See the short entry and authoritative PROJECT_STATE.md.
 Historical item 8 **LV 0 — SHARED LEARNER LABEL & RED VISIBILITY ACROSS PORTALS** is
 completed and remains closed; use names to distinguish it from the new item 8.
 PROJECT_STATE.md is authoritative. Private Self + Child Identity Integrity /
@@ -1357,6 +1356,10 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
   returned HTTP `500`.
 - The bounded attribution audit intentionally did not diagnose cause, inspect
   request bodies, retry, repair data, or change Source/config/deployment state.
+- Position **5** remains **unresolved**. Assess together with
+  [item 8 — assignment correctness](#coach-assignment-parking-lot-8) after Task10
+  and separate Owner selection/Scope approval. No shared root cause, attribution
+  to coach Belle or resolution is confirmed; original evidence above is retained.
 - Await explicit Owner selection before any diagnosis or fix.
 
 ### Homepage LV Copy Audit/Fix
@@ -1440,25 +1443,53 @@ Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 - Next Action: **Owner separately selects item `7` and approves a future Product
   implementation Scope Contract**. Do not audit or implement automatically.
 
-### สถานะมอบหมายโค้ชตรงกับข้อมูลจริง
+<a id="coach-assignment-parking-lot-8"></a>
+### ความถูกต้องของการมอบหมายโค้ช — สถานะ ผู้รับผิดชอบ ประวัติ และการบันทึก
 
 Canonical: **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
 Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
 
-- Position **8**, registered **2026-09-07** after unchanged items 1–7; documentation
-  registration only. Owner decision: **บันทึกกลุ่มที่ยังไม่มีโค้ชได้ แต่ห้ามแสดงว่ามอบหมายครบแล้ว**.
-- Future scope separates saved groups from complete coach coverage; show waiting
-  group/learner counts, reconcile persisted groups with current learners, align
-  calendar/totals/slot cards/filters/post-save messages and distinguish unsaved
-  edits. Retain duplicate-coach and overlapping-time checks.
-- “โค้ชติดสอนหมด” remains unverified, for audit only after Owner selection.
-  Future dependency audit must define the exact functional-file allowlist.
-- Separate from HTTP 500 and Admin Recommendations; completed LV 0 and earlier
-  assignment fixes remain closed. No implementation or retrospective repair.
-- Future acceptance: all/some missing coaches, fill all, remove coach, new learners,
-  failed Save, refresh, mobile/desktop. Product UAT/fixtures **not run/created**.
-- PROJECT_STATE.md owns current status; DEVELOPMENT_TODO.md retains the dated
-  registration contract. Next action: **รอ Owner เลือกเริ่มพัฒนางานนี้**.
+- Position **8**, originally registered **2026-09-07**, expanded by Owner decision
+  **2026-09-13**. Task10 is the sole Active Product Task and must finish first.
+  Withdraw the earlier Task10-pause/hotfix-first proposal; no automatic start after
+  Task10. Separate Owner selection and a newly audited development Scope are required.
+- Assess together with [item 5 — external Save HTTP 500](#external-head-coach-assignment-save-http-500-attempts).
+  Keep item 5's number, original evidence and **unresolved** status; common cause,
+  relation to coach Belle and a fix are unconfirmed. Item 7 remains separate.
+- Owner future design: distinguish effective saved assignment, responsible-coach
+  coverage, unsaved edits and current Level. Save without coaches remains allowed,
+  with truthful waiting group/learner counts across calendar, totals, filters,
+  cards and Save feedback. Preserve duplicate-coach/overlap guards.
+  The original “โค้ชติดสอนหมด” report remains unverified; retain it for the future audit.
+- History must explain evidence-backed learner/group/coach before and after, actor
+  and change; mark unavailable evidence unknown and never invent historical events.
+  Save feedback separates failure, success and unconfirmed outcome; audit safe retry
+  and concurrent edits under the future Scope.
+- PM's 2026-09-13 findings for coach Belle / NA เทพารักษ์ are time-bounded supplied
+  evidence, **not new queries/tests this round**: four yellow rounds retained saved
+  assignments matching the latest snapshot; Level changes affected the comparison,
+  without proving responsible coaches were deleted. Whole-slot roster history
+  incompletely explains within-slot group/coach moves. No saved-group evidence was
+  found for 14:00; this is not proof that a previous assignment was deleted.
+  Actual Coach-screen disappearance and financial damage remain unconfirmed.
+- Family Wallet/history: **pending revalidation after Task10**. Recheck then-current
+  Source, tests, schema and actual runtime; cite fixed portions and verify integration,
+  and scope only remaining proven defects. Do not assume the old reader finding
+  persists or that Task10 resolves it completely.
+- Preserve the completed Status/Save Feedback (2026-07-24), History/Lifecycle
+  (2026-08-07), LV 0 and other assignment closeouts. New regression relationships,
+  PM evidence limits, design and future acceptance are in the
+  [2026-09-13 decision](DEVELOPMENT_TODO.md#coach-assignment-correctness-plan-2026-09-13).
+- Future acceptance only: Save → Level change → refresh/new login without false
+  changed; no/partial/full coach coverage; learner/group/coach moves explained in
+  history; completed/absent, reschedule, single/Family Wallet; failure/network
+  uncertainty/retry/concurrent edits; Head Coach/Coach/Admin desktop/mobile.
+  Require before-fix reproduction and browser/API/DB evidence as actually affected;
+  protect overlap, retrospective, Attendance and financial behavior.
+- Product implementation/tests/UAT/fixtures **not started/not run/not run/not created**.
+  [PROJECT_STATE.md](PROJECT_STATE.md#coach-assignment-owner-decision-2026-09-13)
+  owns status. Next: finish Task10 within its own scope, then await Owner selection
+  and approval of the revalidated exact development file allowlist.
 
 ### บัญชีรับเงินตามสาขา — แสดงตามการจอง แยกสี และคัดลอก
 

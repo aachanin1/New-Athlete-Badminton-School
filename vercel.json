@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build",
+  "buildCommand": "node -e \"const f=require('node:fs'),p=require('node:path'),c=require('node:crypto');const bad=s=>/^(tests(?:\\\\/|$)|scripts(?:\\\\/|$)|playwright\\\\..*\\\\.config\\\\.ts$|supabase\\\\/config\\\\.toml$)/.test(s);function scan(d=''){for(const e of f.readdirSync(d||'.',{withFileTypes:true})){const s=p.posix.join(d,e.name);if(e.isFile()&&bad(s))throw Error('Forbidden deployment input: '+s);if(['node_modules','.next','.git','.vercel'].includes(e.name)||e.name.startsWith('.env'))continue;if(e.isDirectory())scan(s);else if(e.isFile())console.log(JSON.stringify({deploymentInput:s,sha256:c.createHash('sha256').update(f.readFileSync(s)).digest('hex')}));}}scan();\" && npm run build",
   "regions": ["icn1"]
 }

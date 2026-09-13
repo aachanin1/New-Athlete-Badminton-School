@@ -1,60 +1,88 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-13 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-13 (Asia/Bangkok; evidence UTC)
 
-## Current State — Task10 A passed; publication and complete UAT preparation in progress
+## Current State — Task10 exact build attestation verified locally; publication gates next
 
-A1 read-only PM reconciliation and A2 Owner manual native picker passed.
-The existing candidate is frozen; B–C proceed under the Owner continuation.
+Owner approved the exact v2 buildCommand in addition to the existing ignore patch.
+The full Linux shell command passes a real filtered Next build, tolerates empty
+directories and rejects forbidden files before Next starts. Application and tests
+remain frozen. New Git Preview/staged and live Owner UAT are not yet verified.
 **Task10 DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task / Intended Behavior | Task10 — publish the verified Family Schedule and monthly Admin Makeup candidate, then prepare all seven Task10 Owner UAT flows. |
-| Task Status / READY / Task Done | DEVELOPING / No / No. A1 DB reconciliation and A2 manual native picker passed. B publication is authorized and in progress; C complete UAT preparation remains outstanding. |
-| Owner Decision / Scope | 2026-09-13 continuation authorizes A1 → A2 → B normal commit/push, automatic Preview and staged Production without domain routing → C seven-step UAT preparation. Publish only pending Functional3/Tests4/Docs3=10 paths. Functional/tests frozen; only Docs3 edited now. No Promotion, activation or remote business writes. |
-| Scope Expansion / Scope Breach | New tracked paths0; breach0. Earlier Owner-approved expansions remain historical. Temporary helpers/evidence outside repository are inventoried separately; no helper/fixture/credential enters deployment. |
-| Protected Policy | Family one atomic unit/all-family Store/exact identities; Reschedule>=12h including exact12, Wallet>48h excluding exact48; same-month/ten-month; M/D/quota/source-month/actual-child/OFF-active-paused; canonical assignment/attendance/pricing/payment/entitlement/payroll/finance unchanged. |
+| Active Task / Intended Behavior | Task10 only: compliant packaging of the verified Family Schedule/monthly Makeup candidate and complete seven-step Owner UAT. |
+| Task Status / READY / Task Done | DEVELOPING / No / No. Local config/build gates passed; new Git Preview worker proof, staged smoke and live UAT remain required. |
+| Owner Decision / Scope | Latest continuation approves exact vercel.json v2 buildCommand +1/-1. Prior .vercelignore +6/-0 and normal commit/push/automatic Preview/new staged/UAT B–C authorization remain valid. No repeat approval required. No Promotion or remote activation. |
+| Scope Expansion / Breach | Owner-approved Config2 (.vercelignore plus newly added vercel.json), Docs3; Functional0/Tests0/Dependencies0/Migrations0. All484 other tracked files frozen. No new scope breach; historical rejected staged packaging breach retained. |
+| Protected Policy / Blast Radius | Deployment inputs and diagnostic build only. Family atomicity/exact identity; Reschedule>=12h including exact12; Wallet>48h excluding exact48; same-month/ten-month; M/D/quota/source-month/actual-child; OFF/active/paused; assignment/attendance/pricing/payments/entitlement/payroll/finance unchanged. No /admin/schedules edit. |
 | Commercial Record | Approved48,000บาท; automatic cancellation included. Customer payment Unknown; no new payment evidence. |
-| Branch / Upstream | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade |
-| Local HEAD / Remote HEAD / Ahead-Behind | 001f610deb54390f704dfa1e3e130e6f1a291ce4 / same / 0/0 before publication, fresh at 2026-09-13T07:41:22.392Z. The containing source commit will identify the published candidate; this pre-publication record does not claim a future SHA. |
-| Index / Worktree | Before staging: index empty,10authorized modified paths. All489tracked working hashes matched September12 final.json; only Docs3 change now. Frozen486other paths and runtime/build provenance remain verified. core.autocrlf=true unchanged; working and normalized commit-blob hashes are recorded separately. |
-| Current Source / Pushed Source | Pending local Family/monthly Makeup correction and approved Booking navigation patch on001f610. Pushed source currently001f610 until publication completes; no frozen source/test edits this round. |
-| Source Complete | Local corrective source complete from prior verification. Publication and full Owner UAT preparation still in progress; no overall feature/release PASS. |
-| Family Preserve-only | SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf9380bf147e unchanged. Wallet header/member projection retains own source/target and legacy header-only behavior. Prior parent/child UI and DB evidence retained. |
-| Booking Patch / EOL | Exact approved+6/-4 navigation patch remains SHA25616ec9ef952aeb2cb817e46dd36502d70c66afbfa6eb4c654901dd5780bf26f84. No assertions/timeout/mock/fixture-date or Git-config edits in this continuation. |
-| Fresh Verification | A1:9offline assertion categories on read-only repeatable-read snapshot, including120exact session/student/type IDs and atomic audit before/after. A2:Owner manual Chrome native popup/year/month/empty/reload/Back–Forward PASS. Local login/static assets16HTTP bodies completed; anonymous Makeup redirects to login. These are not fresh regression suites. |
-| Retained Evidence | Matching-byte Booking23/23; monthly5 and guards2 with overlap (not additive totals); Task10UI7/protected32/Wallet45/Adminstate39/retrospective38; TypeScript/lint/build. Historical148 tests and stream investigations remain dated, not rerun. Candidate build balY_tF-xkxmTWP_fJXK4/Next16.3.3/Node24.16.0; no rebuild yet. |
-| Performance / Refresh Retained | Selected month1691rows complete versus2422all-month main rows (-30.18%); cross-month references2 preserved. Same-dataset first+5warm: browser1116.03→857.95ms; server982.04→715.81ms; queries61→62, rows7164→5611, RESTbytes3713807→2710269. Paired120/10/10refresh browserEOF/currentUI/exact140DB identities passed. No cold-cache, Production speed or DOM-reduction claim. |
-| A1 PM Reconciliation | Fresh 2026-09-13T07:43:07.075353+00:00:exact120identities, group0ea79c85…, slot291783e6…, branch69795126…, Local Review Coach8313a226…. Single audit1cbad47f-923f-498c-8aa8-116515dc8be7 at2026-09-12T16:15:13.765849Z, actor146e6a77… synthetic Makeup Admin, exact PM reason. Canonical DB equals after snapshot; memberships/attendance/statuses equal before. No partial/orphan/duplicate target assignment or resend. One expected local coach notification. |
-| A1 Baseline Limits | Target attendance0; global60 existing fixture rows is separate. Three fixture bookings still verified, entitlement basis500each, price0, original timestamps. Baseline9users/42bookings/2476sessions/0payments/0credits/0uses matches. No complete raw pre-PM financial/coupon snapshot: no global byte-identity claim. PM coach-visible-after-reload is retained manual evidence, not a new Dev browser reload. |
-| A2 Manual / Safety | Owner confirmed Chrome popup actually opened; August2026→2027→2026, month navigation, emptyAugust2027, this-month/reload/Back–Forward and input/heading/URL/rows all match. Browser version Unknown (not supplied). Manual A2 only, not full Owner UAT PASS. No computer-control retry/reset/alternate-channel bypass; historical picker cause remains Unknown. |
-| Logs / Limitations | Historical ERR_ABORTED/stream-close individual causes remain Unknown, not blanket harmless. Fresh local HTTP-only preflight has no browser/native/privileged/staged PASS implication. npm fetched CLI59.16.0 only for help into external npx cache; deployment work uses existing59.11.2. Repository packages/lockfile remain unchanged. |
-| Technical Checks | Frozen source/test/package/config/build hashes fresh. Diff and documentation checks run before commit. Prior TypeScript/lint/build retained on matching content; post-publication build and exact-artifact smoke still required. |
-| Committed / Pushed | Not yet at this pre-publication snapshot. A1/A2 passed and normal staging/commit/push is now authorized. No force/amend/rebase/merge. |
-| Artifact / Deployed | No new artifact yet. Existing staged dpl_EXz6yCCit6jmFMttN3FPsr2k5pAT/SHA001f610 lacks the candidate. B must create new automatic Preview and distinct exact staged Production; Preview cannot substitute no-rebuild Production-artifact UAT. |
-| Production Source / Checks | Fresh 2026-09-13T07:59:19.988Z:dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa/SHA99b70fe373bfaa14424e2163136719024e5f0b0b remains READY/PROMOTED; registered customer domains and aliases recorded. Prior3selectedaliases still map here; current full project inventory includes4aliases on this artifact. GET landing/login200 and actual /api/health JSON200 statusok at 2026-09-13T08:01:12.757Z; auth.connected=false is anonymous context, not authenticated UAT. No all-system health claim. |
-| Vercel Publication Gate | Projectprj_v034HOI6AjaMpBezWvuvT0W24pTp/team_gw8Y6CPd602WAKRsVFobPGCL; productionBranch=main, Git createDeployments enabled, deployHooks0. Branchspike/next-major-security-upgrade produces Preview. vercel.json npmci/npmrunbuild; no migration/seed lifecycle hook. Existing Production artifact is available rollback candidate; web rollback does not undo DB wrappers. Existing protection/config retained. |
-| Owner UAT / Production UAT / Controlled Write UAT | Not ready / not performed / no new Developer business mutation. PM previous local review and A2 manual verification are not Owner PASS for Task10. C must preflight all seven flows and reserve fresh separate Owner fixtures. |
-| Promotion | No; customer domain routing/protection/environment remain untouched. |
-| Migration Source / Applied | Source unchanged; fresh remote read confirms40history entries includingM1–M5applied from step2; Wallet corrective installed. No apply/repair or remote SQL write this round. |
-| Feature Enabled / Activation / Scheduler | Fresh remote 2026-09-13T07:54:35.654662+00:00:never_activated/revision0/flagsfalse/effective_at-artifactNULL; one inactive task10-expire-unpaid-bookings-v1; activation0/worker0. Local55321alsoOFF/nativeclock/inactive, freshly SELECT-verified. No activation/pause/worker execution. |
-| Allowlisted / Permissions | No feature allowlist, Auth, permissions, secrets, saved environment or dependency changes. Only verified existing local test-process bindings and read-only remote metadata used. |
-| Production Active / Data Changed / Data Repaired | No task-directed Production business/financial write or repair. Earlier step2 schema/bootstrap remains installed. Unrelated customer traffic is not audited or assumed unchanged. |
-| Customer / Financial Impact | No new customer-facing release yet. A1 verifies PM synthetic target and available financial/entitlement invariants with explicit baseline limits. No Production payment/attendance/finance/data repair in this continuation. |
-| Cleanup / Preserved UAT | No reset/reseed/fixture cleanup. PM55321 and oldUAT54321 preserved. Local unchanged build restarted on127.0.0.1:3020, PID8280/launcher15392, nativeDate; intentionally left available. Existing Owner scenarios may be consumed; C must use separate fresh fixtures. |
-| Local Review / URL | http://127.0.0.1:3020/admin/makeup; existing private local credentials remain outside repository. This Makeup review is not complete seven-step functional UAT. BackendA1passed; manualA2passed. |
-| Documentation Drift | Corrected A1/A2 pending state and old alternate-control-channel next action; fresh remote/health facts replace retained Unknown only within actual scope. Historical failures retained. PROJECT_STATE owns current state; dated record is pre-publication evidence. |
-| Blocker / Remaining Work | No remaining A1/A2 blocker. Complete B publication/exact artifacts/smoke/domain checks, then C seven-step preflight with fresh local scenarios and acceptance manifest. Stop on a material new failure, not an already-authorized checkpoint. |
-| Next Gate / Next Action | Normal commit/push of exact10paths after staged diff/consistency gates; automaticPreview, distinct stagedProduction, then C. Stop for Owner UAT when fully ready; no Promotion or activation. |
-| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. No other task selected. |
+| Branch / Upstream | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade. |
+| Local HEAD / Remote HEAD / Ahead-Behind | 9352c4a7941d9f03412931dd5a7d632324bafeee / same / 0/0 at fresh13:29:39UTC Gate0; recheck before publication. |
+| Index / Worktree | Index empty before publication; exact Config2 and Docs3 are local/uncommitted. Existing deferred assignment documentation preserved. |
+| Source Complete / Current Source / Pushed Source | Application candidate complete and frozen at9352c4a, already pushed. Packaging configuration complete locally. Current source is that commit plus exact Config2 and Docs3; publication/readiness still pending. |
+| Config Hashes | vercel.json normalizedLF/build SHA256 fd0ecbd0ea3c5b12089159cab1cb0e0851e7cbb081c0f4117b2fa0ca707e5e0b; approved patch1d508ea920aa86436d104b6b958ec77f399d405876528f6cc3c8750d3b718512. Ignore working64b8af3b24f3cfb6e2b559b6243276d6ab8858b3348a57a35feb1b90b7491e1a / normalizedLF00100dce9643e87dcb498d132ca1221c8e48efeb2208cf1ddf46d4179bb0e214. Git autocrlftrue unchanged; raw and Git bytes distinguished. |
+| Fresh Local Checks | Exact patches and frozen hashes; CLI59.11.2 dry manifest359files; all runtime/public inputs retained; known-value scan0hits. Full buildCommand read from actual vercel.json executed through Linux /bin/sh -c, Node24.16.0: forbidden file exit1 before Next; same command with clean package and empty excluded directories passes real Next16.3.3 build and TypeScript. Fresh repository TypeScript/lint/mojibake pass. |
+| Local Build Identity | Linux packaging build N1sF7y4Rkaw4tae1impZN; input/config/command SHA256 and complete worker-style manifest in linux-v2-build-proof.json. npmci/audit0; build completed 2026-09-13T13:42:07.468Z. This local environment is not a deployed artifact. Docs closeout differs from the earlier local build snapshot and is separately hashed. |
+| Retained Evidence | Matching-byte A1 exact120 PM reconciliation; A2 Owner manual Chrome native popup/year/month/navigation PASS (versionUnknown). Seven prior local functional preflight categories; Booking23, monthly5/overlappingguards2, Task10UI7/protected32, Wallet45, Adminstate39/retrospective38. Historical148 is not fresh. Stream-close/ERR_ABORTED and incomplete pre-PM raw financial baseline remain bounded Unknown. |
+| Committed / Pushed | Application9352c4a Yes/Yes; Config2/Docs3 correction not yet committed/pushed at this pre-publication checkpoint. |
+| Preview Artifact | Existing dpl_6RfsFxFScCrGC1arcjybqaFuUmwD /9352c4a/READY remains prior evidence. New exact-commit Git Preview and actual filtered worker manifest are the next gate; CLI dry proof does not substitute for Git proof. |
+| Staged Artifact / Deployed Source | Existing dpl_G6fFPHKbvkPCBgaSzNk3Rjg2GysC /9352c4a remains REJECTED for Owner acceptance due to prior426-file upload. No new staged deployment yet; do not delete or reuse rejected package. |
+| Staged Smoke / Privileged Check | Prior landing/login/assets/healthJSON retained only. Required new staged smoke, deployment-scoped logs and authenticated school Makeup remain pending; anonymous redirect is not privileged PASS. Synthetic credentials are local only. |
+| Production / Rollback / Checks | Fresh13:34:41UTC: dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa /99b70fe373bfaa14424e2163136719024e5f0b0b READY; all4customer aliases unchanged. Actual /api/health JSON200ok. Production branchmain, protection unchanged, deployhooks0. Bounded read-only evidence, not all-system Production PASS. |
+| Owner UAT / Production UAT / Controlled Write UAT | Owner Pending, no OwnerPASS. No Production write UAT. Earlier Developer local synthetic preflights retained, no new fixture/business write in this packaging verification. |
+| Promotion / Routing / Deploy | None this continuation before publication. Authorized next deployments are automatic Preview and staged Production --prod --skip-domain only; no customer alias changes. |
+| Migration Source / Applied | M1–M5 frozen and applied in prior step2; Wallet corrective installed. Fresh remote SELECT13:33:54UTC confirms history40 includingM1–M5. No apply/repair/remoteSQLwrite. |
+| Remote Feature / Activation / Scheduler | Fresh named-project read13:33:54UTC: never_activated/revision0/effective_at-artifactNULL/pricing-makeup-expiryfalse; one inactive task10-expire-unpaid-bookings-v1; activationevents0/workerruns0. |
+| Local Controls / Clock / Fixtures | Fresh13:38:28UTC API56321/DB56322 physical DB/Auth/REST/Storage binding valid; paused/rev1/flagsfalse/nativeclock/croninactive. Counts25profiles90bookings2570sessions10payments15credits5uses80attendance1object unchanged; Owner credits/deadlines/assignment cases unconsumed. PM55321/3020 and original54321 preserved. |
+| Local URL / Handoff | http://127.0.0.1:3030/__uat remains offline pending publication gates. Private local accounts/old seven-step runbook preserved outside repository. Fresh live restart/preflight on the new source commit is still required. |
+| Allowlisted / Permissions / Environment | No allowlist, Auth, permission, protection, secret, visibility or saved environment changes. Linux build used only verified disposable process bindings and SlipOK test mode; no global Date override. |
+| Production Active / Data Changed / Data Repaired | Task10 policiesOFF; no Developer Production business/financial write or data repair. Prior DB schema/bootstrap remains installed. No claim about unrelated customer traffic. |
+| Customer / Financial Impact | Customer artifact/routing unchanged; no task-directed entitlement or monetary changes. Config not yet deployed. Public historical source exposure and Production credential validity limits remain below. |
+| Exposure / Security Limits | Prior fresh audit confirmed anonymous GitHub200/exact hashes for9known files at9352c4a. Current package scans those known values only:0hits. Seven helpers have local guards; two historical scripts were environment-targeted, with dated remote use/cleanup. Current Production credential validity Unknown; no synthetic Production login or new Auth-table audit. Current Doc literal redacted; old Git/deployments/evidence remain. No general security PASS. |
+| Failed Attempts / Cleanup | Preserved temporary setup failures: missing local project link prevented first dry manifest; premature empty package could not open vercel.json; copied runner had a stale inner-script filename. Corrected only temporary launcher paths/identity; no application/config weakening. Owned negative sentinel removed after verification; failed copies/logs preserved. No reset/reseed, fixture0 claim, or old deployment removal. |
+| Documentation Drift | Latest vercel.json approval replaces old waiting-for-config-scope claim; dated evidence/failures and deferred assignment registration preserved. Current facts owned here; post-artifact docs must be separated from artifact/source SHA. |
+| Blocker / Remaining Work / Next Gate | Prior scope blocker resolved by Owner approval. Required Git worker manifest, new Preview/staged exact identity/smoke, authenticated school Makeup and fresh live seven-step UAT readiness are not yet complete. Continue authorized B–C after full staged diff/compliance; no Promotion/activation. |
+| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. Task10 sole Active Task; deferred assignment registration is not implementation authorization. |
 
-Evidence: C:\Users\aacha\AppData\Local\Temp\task10-publish-uat-20260913 (gate0.json, pm-reconcile-result.json, a2-manual-result.json,
-prepublication-remote-read.json, vercel-before.json, production-health-before.json).
-[Dated A1/A2 publication gate](DEVELOPMENT_TODO.md#task10-a1-a2-passed-publication-gate-2026-09-13).
-Prior verification remains in task10-makeup-monthly-local-20260911/booking-verification-20260912.
+Evidence: C:/Users/aacha/AppData/Local/Temp/task10-attestation-v2-20260913 .
+[Dated exact-attestation verification](DEVELOPMENT_TODO.md#task10-exact-build-attestation-2026-09-13).
+Frozen Family raw SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf9380bf147e.
+
+<a id="coach-assignment-owner-decision-2026-09-13"></a>
+### Owner decision — 2026-09-13 assignment plan registration only
+
+- **Task10-first:** Task10 is the sole Active Product Task. Complete it under its
+  own scope and existing gates first; its packaging blocker, DEVELOPING status,
+  READY FOR OWNER UAT No and Task Done No remain as recorded in the matrix.
+- Expand Parking Lot **8 — ความถูกต้องของการมอบหมายโค้ช — สถานะ ผู้รับผิดชอบ ประวัติ และการบันทึก**,
+  canonical **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
+  assess together with item **5 — EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**.
+  Keep both numbers; item 5 remains **unresolved**, with no common-cause or fix claim.
+- Assignment status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+  Withdraw the earlier proposal to pause Task10 or start an assignment hotfix first.
+  Task10 completion does not automatically start assignment work: separate Owner
+  selection and a newly audited development Scope Contract are required.
+- Family Wallet/history finding: **pending revalidation after Task10** against
+  then-current Source, tests, schema and actual enabled/deployed state. Neither
+  a continuing defect nor a complete Task10 fix is assumed without evidence.
+- [Dated plan, PM evidence limits and future acceptance](DEVELOPMENT_TODO.md#coach-assignment-correctness-plan-2026-09-13);
+  [queue item 8](TODO-CODEX.md#coach-assignment-parking-lot-8).
+  PM's 2026-09-13 coach Belle / NA เทพารักษ์ findings are supplied historical
+  evidence, not new queries or Product tests in this documentation round.
+- This approval is **local documentation update only**, exact
+  Functional/Test/Documentation/Config/Migration **0/0/3/0/0**. No stage, commit,
+  push, deploy, promote, implementation, fixtures, Product tests/UAT, controls,
+  environment or data operations. Existing Task10 work remains intact.
+- Documentation Drift corrected in the live TODO queue: item 10 was incorrectly
+  called decision/audit-only and development unauthorized. Items 1–8 remain
+  unselected; 9 remains completed; 10 remains DEVELOPING. The matrix's technical,
+  runtime and data evidence is retained from the preceding Task10 closeout, not
+  re-queried by this registration. Fresh Git/document checks are recorded in the
+  dated decision; this registration adds no Product PASS or release claim.
 
 ## Historical / Completed — Task 9 released / TASK DONE
 

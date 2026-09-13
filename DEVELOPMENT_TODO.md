@@ -6603,7 +6603,7 @@ Notes:
   - Coach: schedule, check-in, attendance, level/ranking, teaching program, hours.
   - User: booking, coupon, slip upload, history, schedule, reschedule, notifications.
   - Completed 2026-05-20:
-    - Verified seed auth users exist and reset seed passwords to `NascSeed@2026` for repeatable UAT.
+    - Verified seed auth users exist and reset seed passwords to `[REDACTED — historical synthetic password; see 2026-09-13 packaging audit]` for repeatable UAT.
     - Verified seed data counts via `npm run seed:verify`.
     - Real session route smoke tested by role with Supabase SSR cookies:
       - Super Admin: `/admin`, `/admin/settings`, `/admin/payments`, `/admin/ranking`, `/admin/teaching-programs`, `/admin/payroll`, `/admin/finance` returned `200`.
@@ -26283,3 +26283,484 @@ it is retained as a superseded draft after the actual Owner response arrived.
 Evidence: C:\Users\aacha\AppData\Local\Temp\task10-publish-uat-20260913. Fresh/retained
 results and limitations in the current matrix derive from these observations.
 No customer/financial write, data repair, activation or Promotion occurred.
+
+
+<a id="task10-published-local-preflight-packaging-stop-2026-09-13"></a>
+## Task10 A1/A2 passed, published artifacts and local preflight; packaging safety stop — 2026-09-13
+
+State observed at this closeout; PROJECT_STATE owns current mutable facts.
+The Owner A→B→C continuation and subsequent manual answers were followed. No new
+functional/test/package/migration/config edits were authorized or performed.
+This record supersedes the prepublication claim that no helper/credential would
+enter deployment: the final actual-upload inspection found the exclusion failure.
+
+### A — Fresh reconciliation and manual native picker
+
+A1 SELECT-only transaction at07:43:07.075353UTC checked PM representative
+b9b284ea-e59e-408a-b918-d34728a43225, slot291783e6-d392-4220-9e8c-7d7535624cfa,
+branch69795126-54fb-48cb-82fb-2404f898c851,2026-08-01 10:00–12:00.
+Exact120 learner identity sets matched canonical group0ea79c85-7c21-4275-a9d2-1bff40b87f90,
+coach8313a226-5e49-4a9f-aa65-245296682cd3(Local Review Coach), actor
+146e6a77-d4b9-478a-a0f7-9076bad32237 and audit1cbad47f-923f-498c-8aa8-116515dc8be7
+at2026-09-12T16:15:13.765849Z. Exact reason:
+“PM ตรวจ local ตามคู่มือ 6 ขั้น — ข้อมูลสังเคราะห์เท่านั้น”. Nine assertion categories
+passed: no missing/duplicate/partial target member assignment, exact type/student/session/
+slot/branch/group/coach correspondence and available protected invariants. No resend.
+Target attendance0; global60belongs to other synthetic fixtures. No complete pre-PM
+raw coupon/financial snapshot, so no all-table historical byte-identity claim.
+PM environment before:9users/42bookings/2476sessions/payments0/credits0/uses0/Storage0/history40.
+
+A2 manual Owner answers explicitly confirmed Chrome, actual native popup, August2026→
+2027→2026, normal2026month movement, emptyAugust2027 and final input/heading/URL/rows
+plus month-this/reload/back-forward all matching. Chrome version Unknown. This is
+manual A2 PASS only; no automated native-picker bypass after the prior Computer Use
+stop, no conclusion that the old tool crash was an application failure, no Owner UAT PASS.
+
+### B — Source publication and exact artifacts
+
+Normal commit 9352c4a7941d9f03412931dd5a7d632324bafeee at08:12:50UTC; push08:13 to the same spike branch,
+live remote equal/0ahead0behind. Published10paths,1803insertions/229deletions:
+Functional3(Family Schedule, server Makeup loader, Makeup client), Tests4(Admin
+retrospective spec, Booking spec, Task10 local helper/UI spec), Docs3. The tests
+and functional content were frozen carry-over work. No new dependency/config/migration.
+Complete staged/export diff SHA2569ed1c2eff296b09c11821d1cf07dfe52a2440ff53462670238f167ff4287f77c.
+Git EOL normalization was proved; working-file hashes are distinct from GitLF bytes.
+Family working SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf9380bf147e.
+Git package fd58146cb6a693e6c3c5f662df4cbc3e6aa81da7e83211873baa679656bd59ac;
+lock c8580754ed202293f7f1b9fdb037aaa930d729754dd7997e4fdb929f58a15b30.
+
+Project prj_v034HOI6AjaMpBezWvuvT0W24pTp/team_gw8Y6CPd602WAKRsVFobPGCL;
+production branch main; Git auto enabled; deploy hooks0; npmci/npmrunbuild had no
+migration/seed/business-mutation lifecycle. Existing protection/environment unchanged.
+Automatic Preview dpl_6RfsFxFScCrGC1arcjybqaFuUmwD, exact9352,READY08:13:57:
+https://new-athlete-badminton-school-dgqx2pn91-aachanin1s-projects.vercel.app .
+Staged Production dpl_G6fFPHKbvkPCBgaSzNk3Rjg2GysC,targetproduction,sourcecli,
+READY08:22:12.734,alias[],exact9352:
+https://new-athlete-badminton-school-jy6onxqrw-aachanin1s-projects.vercel.app .
+Created from489-file clean export via installedVercel59.11.2 --prod --skip-domain;
+actual426uploaded source hashes equal Git, independently of metadata. No Promotion.
+Builds Next16.3.3,TypeScript successful; install audit0. Existing engine-range and
+unrs-resolver postinstall-policy warnings retained. No broad security PASS.
+
+Read-only health JSON200ok: Production08:01:12,Preview08:15:36,staged08:23:39.721UTC;
+branches12/courses3/levels70/tiers11; anonymous auth.connectedfalse expected, not
+privileged end-to-end proof. Preview65GET200; staged61GET with60completed200 and
+one background /auth/register?_rsc prefetch completion Unknown. Landing/login/navigation/
+CSS/JS/fonts/images passed, browser errors/console empty in captured windows.
+Preview08:13–08:19 and staged08:21–08:27UTC deployment-scoped error/warn/fatal/5xx
+queries returned no entries. School-privileged Makeup remains Unknown (anonymous307
+only). Full remote secret binding inventory unavailable: clean-exportCLI env-run
+refused five protected secret values; metadata and actual health are scoped evidence.
+An earlier R-env-run mixed local .env and is not pure Production binding proof.
+
+Customer domains latest10:38:35.934UTC remained on
+Gwx4XuRureXfQh4vhCUxPEtHECBa/99b70fe373bfaa14424e2163136719024e5f0b0b:
+www.newathleteschool.com, shortvercel, projectteamvercel and ownerteamvercel aliases.
+Rollback candidate still READY/available; no route switch. Spike branch alias alone
+advanced to Preview as expected. Old stagedEXz6/001f610 is historical, not newUATsource.
+
+### C — Fresh functional UAT preparation and preflight
+
+Separate owned Task10OwnerUAT20260913:API56321/DB56322, workdir under evidence directory;
+physical DBcontainer981d7d08e3771402f7735c5bb0a9bbba1e38db76a68686225e87ed824e215235,
+volume/network exact project; API/Auth/REST/Storage database bindings verified before
+writes/reset. Existing40migrations bootstrapped this newDB only; Postgres17.6.1.158.
+PM55321 and UAT54321 were never reset/reseeded. Browser/Auth/Node real clocks throughout;
+only disposable business-clock helpers used. SlipOK test mode; no live SlipOK request.
+New build jtGBRNTamErUJ_QlQaqeX,489Gitfilesexact9352,Next16.3.3/Node24.16.0,
+local npmci/build passed. BUILD_ID hashc0c4396c75490930dada25a8ac42f9fa0b573108dc336178781244d29f3aaba8;
+compiledMakeup2716e1142f58e499e9c9e65f5d2cc0302f512a86732d4a4d63824577bee2ffd0;
+compiledFamilydf0c3e5f97e49a2022849480c1652096095452cb09101ca1d345d93cbf1aa8f4.
+This local environment/build is not the stagedartifact even though source matches.
+
+Fresh results (do not add overlapping checks as a new full-suite count):
+- M UI2→3→reload3→invalid0→restore2→reload2, actual request completion/audited DB;
+  restricted role denial unchanged. Real Auth session refresh/login/reload/logout,
+  isolated roles and cookies passed; no Date wrapper/security relaxation.
+- D0/D1deny,D2pass; five actual UI uses including twoWalletsources for one child;
+  source/attending identities exact; sixth actual409TASK10_MAKEUP_INELIGIBLE; Owneruses0.
+- WholeFamilyStore/Redeem from parent and child representatives, legacyheaderonly,
+  Schedule counts/members correct and otherhour/finance unchanged. NewKidsStore and
+  UI same-monthRedeem, exactchild/root and financialfingerprints unchanged.
+- Pricing early4=2500, late1=500, nextmonth1=700; both pricing settings early/late,
+  invalid/save/reload and priorbillcatalog preservation. Correct actualPUT edit:
+  4→3=1875 happened during first observerfailure; fresh3→2=1250 thenUIcancel.
+  Remaininglatebill repriced700fromownlatecatalog. No create replay/app change.
+- Actual UI on-timeSlipOKtest receipt protects exact500bill; earlier no-slip due
+  bill/session cancelled by exactlocalRPC only, otherbills/coupons/financial state
+  reconciled. Owner2deadlinebillspending/fresh. No worker-all-bills execution.
+- Monthly107reviewgroups/15perpage, full120roster aftersearch, current/emptyyear/
+  navigation; linkedAdultAug→Sepused/noaction; futureKidsOctWallet source shown in
+  original month with nextmonthAdmin context; exact self/child identity.
+- ActualDeveloperassignment120/10/10: exactnonprefetchRSCrequest, unmodifiedreaderEOF,
+  terminal/UI/currentDB and usablecontrols. TwoERR_ABORTED request terminals still
+  had actualEOFdone/errornull and currentUI/DB. Do not generalize to historical errors.
+  Ownerfirst3roundsunassigned. Desktop/mobile390nohorizontaloverflow.
+- Owner-only controller5checks passed10:44:48UTC, scenarioforms/downloadslip/runbook/
+  login; isolatedOwneraccounts, M2/D0/used0, clocknative/expiryfalse/croninactive.
+
+Retained matching-byte Sept12 evidence: Booking23/23; monthly5 + overlappingguards2;
+Task10UI7; protectedtransactions32; Wallet45; Adminstate39; retrospective38;
+TypeScript/lint/build. Historical148 was not rerun. Retained paired benchmark:
+main2422→1691(-30.18%),totalrows7164→5611,queries61→62,RESTbytes3713807→2710269,
+HTML3565943→2622204,browserwarm1116.025→857.946ms(-23.12%),server982.038→715.809,
+DOM2859→2874. Both variants already parallel/Review15; no separateDOMgain claim.
+Pairedrefresh120/10/10:1552.65/1471.55/1496.8→669.28/631.87/496.75ms.
+FreshUATrefresh2035.65/1900.67/2195.00ms is separateenvironment, not pairedperformance.
+No first-load cold-cache or Production speed claim.
+
+Failed attempts preserved, not silently removed: initial temporary fixture quote
+SyntaxError; guarded historical fixture insert while localactive (fix OFF-seed-order
+only, labelled partialv1 retained); post-successful-build hash collector omitted
+routegroup (correctedread, no rebuild); pricing observer waitedPATCH but appPUT;
+deadline groupedLegacyUI fixture and then missingnewpayment-slipsbucket caused real
+500SLIP_UPLOAD_FAILED (reconciled0receipt/payment before localbucket provision);
+crossmonth collector usedRPCfield insteadDBentitlement_policy, then adult vs self
+selector (business write not replayed); safe-stop path regex failed before mutation,
+then normalizedCIMpaths/parent check passed. No frozen source/test modification.
+Historical uninstrumented stream-close/ERR_ABORTED remains Unknown. Earlier HTML&amp;
+image collector400 and browserwrapperpipe timeout remain diagnostic failures, not
+proof required actual browser images failed. All failed evidence files retained.
+
+### Final packaging gate — material stop, not READY
+
+At10:54:01UTC packaging-audit-result.json proved16trackedtestfiles in staged426-file
+source upload. Nine files contain literal synthetic passwords: six scripts
+(check-admin-retrospective-assignment-integrity,check-coach-assignment-conflicts,
+check-coach-assignment-lifecycle,seed-realistic-data,uat-attendance-gap,uat-lesson-wallet)
+and three tests/*/local-supabase.ts helpers. Some literals match local test accounts.
+Supabase localconfig also uploaded. Generatedprivatehandoff, newfixturefiles and
+newlocaltargetbindings were not uploaded. No Production credential or publicly
+accessible source exposure is established; access/execution beyond checked build
+is Unknown. No migration/seed hook executed. Exactsourcehash verification before
+upload failed to enforce the separate no-test-helper/credential-upload condition.
+This is a deployment packaging breach; trackedpublishallowlist itself passed.
+
+Minimal proposal only: .vercelignore+6/-0 excludes /tests/, /playwright.*.config.ts,
+/scripts/, /supabase/config.toml. Playwrightconfig imports tests so both must be
+excluded together. No src dependency on those folders found, npm build invokes
+Next directly. Proposal hash57256e69a1b5c01e7c326b3893f2bbce55ea135dee17c35957a5a65b27fb9dbf;
+git apply --check passed without application. Filteredupload/build not yet tested.
+One newconfigpath and replacementartifact require a new Owner decision; no additional
+stage/commit/push/deploy/config change/deletion/credential rotation was performed.
+Previewsource-exclusion contents were not separately inventoried; stagedfinding is
+sufficient to block acceptance, not an assertion of public credential leakage.
+
+Newlocal safe stop10:56:31UTC: ownedcontroller30084/Next17216stopped,3030/3031offline;
+Task10OwnerUAT20260913paused/revision1/allflagsfalse, preservedlocalactivationevidence,
+nativeclockdelta-0.000034s, oneinactivecron. Allcountsunchanged:
+profiles25/bookings90/sessions2570/payments10/credits15/uses5/attendance80/Storage1.
+Two buckets:progressive-payment-slipsprivate andpayment-slipspublic as frozenfixture
+contract. Ownerfresh cases preserved alongside usedDeveloper and partialv1 evidence;
+notfixture0. OldPM3020/55321 and oldUAT54321 preserved. No destructivecleanup.
+
+FreshremoteSELECT10:38:12.049413UTC: namedprojecttvnhholicwjtxdhlxfqs,history40/M1–M5
+appliedearlierstep2,never_activated/rev0/effective_at-artifactNULL/allflagsfalse,
+oneinactivecron,activation0/worker0. No remoteSQLwrite/activation/scheduler/repair;
+noProductionfinancial/customerwrite; nofeatureallowlist/permission/secretenvchanges.
+Currentmatrix now corrects prepublication documentationdrift; postartifactDocs3 stay
+local/uncommitted, artifact/source9352 not changed to reflect documentation recursively.
+
+Private evidence directory: C:/Users/aacha/AppData/Local/Temp/task10-publish-uat-20260913.
+SAFE-HANDOFF.md, acceptance-manifest.json (READYfalse, seven rows), UAT-HANDOFF.md
+(markedoffline/blocked), ACCOUNTS-LOCAL-ONLY.txt (do not publish), CLEANUP-AFTER-UAT.md,
+helper-inventory.json and final-compliance.json contain resumption details.
+Task10 DEVELOPING / READY No / OwnerUAT Pending / TaskDoneNo. Next: Owner/PM review
+exactpackagingproposal; no request to approve A1/A2 again; no Promotion/activation.
+
+<a id="coach-assignment-correctness-plan-2026-09-13"></a>
+## 2026-09-13 — Owner decision: coach assignment correctness plan; Task10 first
+
+State observed at this local documentation registration. PROJECT_STATE.md owns
+current mutable state; this record preserves the Owner decision, supplied PM
+evidence and future design. It does not diagnose or fix the Production incident.
+
+### Decision and documentation Scope Contract
+
+- Actor: Developer Codex. Owner requests a clear deferred plan after the reported
+  coach Belle / NA เทพารักษ์ incident on 2026-09-13, incorporating earlier work
+  and existing Parking Lot candidates without starting Product development.
+- **Task10-first:** Task10 is the sole Active Product Task; finish under its own
+  approved scope and gates first. Withdraw the earlier recommendation to pause
+  Task10 or start an assignment hotfix first. This registration does not expand
+  Task10 or authorize action on its packaging proposal.
+- Extend existing position **8**, display name **ความถูกต้องของการมอบหมายโค้ช — สถานะ ผู้รับผิดชอบ ประวัติ และการบันทึก**;
+  retain canonical **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**.
+  Status: **PARKING LOT — OWNER SELECTION REQUIRED; NOT AUTHORIZED TO START**.
+- Link position **5 — EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS** for
+  joint future assessment. Preserve its three external Head Coach Save POST HTTP
+  500 attempts, original attribution limits and **unresolved** status. Do not merge
+  queue numbers, infer a shared root cause, attribute those attempts to Belle or
+  claim that they are fixed. Item 7 Admin Recommendations remains separate.
+- Expected result/completion: aligned three-document plan and authorization,
+  original queue numbers/history and pre-existing Task10 edits preserved, explicit
+  post-Task10 revalidation and future acceptance, checked local documentation.
+- Exact root: C:\Users\aacha\Documents\Codex\CMS NASC\New-Athlete-Badminton-School.
+  Exact write allowlist relative to that root: PROJECT_STATE.md, TODO-CODEX.md,
+  DEVELOPMENT_TODO.md. Functional/Test/Documentation/Config/Migration **0/0/3/0/0**.
+  Blast radius: plan and queue documentation only.
+- Authorized actions: read-only Git/document audit; edit/check these three files;
+  stop at **local documentation update**. No stage/commit/push/deploy/promote.
+  Source, Tests, API, SQL, Migration, Config, AGENTS.md, environment, permissions,
+  feature controls/allowlists, fixtures, Product UAT and retrospective repairs
+  are outside scope. Pricing, payment, entitlement, Wallet policy, Attendance,
+  Payroll, Finance and customer data remain protected. Owner Product UAT is N/A
+  for this round; the future acceptance cases below are recorded, not executed.
+
+### Fresh documentation/Git audit and isolated delta
+
+Fresh root/branch/HEAD/upstream/index/diff audit found branch
+spike/next-major-security-upgrade, HEAD and tracking upstream
+9352c4a7941d9f03412931dd5a7d632324bafeee, ahead/behind0/0 and an empty index.
+A read-only live ls-remote independently returned that same branch SHA.
+All three allowed docs were already dirty with Task10 closeout work. The starting
+diff was **242 insertions / 54 deletions**: DEVELOPMENT_TODO.md +184, PROJECT_STATE.md
+90 changed lines, TODO-CODEX.md 22 changed lines. Those are baseline evidence,
+not this registration's delta. No reset, restore, stash, stage or overwrite.
+
+This delta adds the Owner note in PROJECT_STATE, revises only the queue/assignment
+registration portions in TODO, and appends this dated record. Task10 matrix,
+packaging blocker, existing release/test/data evidence and the prior dated
+closeout are preserved. The live TODO Parking Lot introduction incorrectly said
+nine candidates awaited implementation selection and Task10 was audit-only/
+unauthorized; **DOCUMENTATION DRIFT** is corrected to eight unselected candidates
+1–8, item9 completed and Task10 DEVELOPING. No Product state is advanced.
+Runtime/schema/controls/UAT details remain retained Task10 evidence, not fresh
+remote checks. The historical 2026-09-07 separation from HTTP 500 and older
+registration permissions remain dated history, superseded only for this plan
+relationship and this local-only authorization.
+
+### PM evidence supplied by Owner — observed 2026-09-13, not re-queried here
+
+| Supplied PM observation | Limit / permissible conclusion |
+| --- | --- |
+| Four yellow rounds still had saved assignments matching the latest snapshot; a Level change made the comparison show changed | Does not prove a responsible coach was deleted; effective assignment and present Level need separate interpretation |
+| Save history compared the combined roster for the whole round | It did not fully explain group moves or coach changes within that round; exact before/after evidence needs future audit |
+| No saved-group evidence was found for the 14:00 round | Do not combine this with a claim that previously assigned work was deleted |
+| The multi-person Wallet history reader was an earlier finding | **pending revalidation after Task10**; neither a still-existing defect nor complete resolution by Task10 is established |
+| HTTP 500 attempts exist in item5 | Cause and attribution to Belle remain unconfirmed; no common-cause or repair claim |
+| Reported disappearance from the actual Coach screen and financial damage | Verification incomplete; loss amount Unknown / Need verification |
+
+These statements are the Owner-supplied PM findings at that inspection period.
+No new Product query, browser/API/DB audit, incident reproduction or test was run
+in this documentation round. A yellow status or missing historical evidence alone
+is not a deletion diagnosis, and no monetary loss is established here.
+
+### Relationship to completed work and Task10
+
+- [2026-07-24 — Assignment Status Communication / Save Feedback](#2026-07-24--coach-assignment-status-communication--save-feedback-sourcelocal-gate)
+  addressed exclusive status/count buckets and truthful HTTP success/failure/
+  refresh-gap feedback. Its published PASS/Completed result is retained. Future
+  regression adds Level-only changes and responsibility completeness, without
+  assuming that prior fixed behavior has regressed.
+- [2026-08-07 — Assignment History Evidence Clarity](#2026-08-07--assignment-history-evidence-clarity--ready-for-owner-uat)
+  retained actor/time uncertainty when no causal audit existed.
+  [Lifecycle Production closeout](#2026-08-07--assignment-group-lifecycle-integrity--production-closeout)
+  remains completed. New history cases must explain within-round learner/group/
+  coach movement only where real evidence supports it; preserve unknowns,
+  on-demand history behavior and existing lifecycle protection.
+- [2026-09-07 — coverage registration](#2026-09-07--coach-assignment-coverage-parking-lot-registration)
+  established saveable no-coach groups and waiting counts. This is its expansion,
+  not a duplicate task. Completed LV 0, Admin no-coach classification, overlap,
+  reschedule and retrospective assignment work remain closed and protected.
+- [2026-09-10 — Task10 Wallet / Family concurrency corrective](#2026-09-10--task10-wallet-compatibility-and-bounded-family-private-concurrency-corrective)
+  records compatibility routing, booking-before-participant locking and scoped
+  regression results. [2026-09-11 — Family Schedule correction](#2026-09-11--task10-family-schedule--admin-makeup-local-correction-required-refresh-hard-stop)
+  records header/member projection and single-unit Store/Redeem UI evidence.
+  [Latest 2026-09-13 Task10 closeout](#task10-published-local-preflight-packaging-stop-2026-09-13)
+  records publication/local preflights and the unresolved packaging gate.
+  These histories do not prove the assignment-history reader is correct.
+- Before assignment development, re-audit then-current Source, tests, schema,
+  deployed SHA and actual enabled/Production state after Task10. Map each old
+  finding to fixed-with-evidence, still-reproducible or Unknown. For fixed portions,
+  cite the actual correction/results and verify assignment integration. Only
+  remaining proven defects enter a separately Owner-approved development Scope
+  with exact functional/test/documentation file allowlists and dependency analysis.
+  Do not treat Task10 Done alone as technical proof or start work automatically.
+
+### Future design — registered only, no implementation authorization
+
+1. Separate effective persisted assignment, completeness of responsible-coach
+   coverage, unsaved edits and current Level. Level updates alone must not create
+   a false unsaved assignment or imply responsibility was removed.
+2. Allow groups without coaches to be saved, but show waiting group/learner
+   counts. Calendar, totals, filters, cards and Save feedback must agree with
+   persisted groups and the current eligible roster; saved is not complete coverage.
+3. History explains who changed what, with learner/group/coach before and after
+   from actual evidence. Unknown actor/time/cause remains unknown. Never create
+   or backfill historical events to make the display look complete.
+4. Save outcomes distinguish failure, success and outcome not yet confirmed.
+   Audit retry safety, response uncertainty and simultaneous edits against actual
+   persisted results, idempotency and conflict safeguards before designing a fix.
+5. Revalidate Task10 integration first as above; scope only remaining justified
+   changes under fresh Owner selection/approval. This plan does not change Wallet,
+   eligibility, Attendance, payroll, money, overlap guards or retrospective rules.
+
+### Future development acceptance — NOT RUN in this registration
+
+| Future case / role | Required visible and technical evidence |
+| --- | --- |
+| Save → change Level only → refresh → new login | Effective assignment retained; current Level shown; no false changed/unsaved state |
+| No coaches / some coaches / every coach assigned | Saveable groups; truthful waiting group/learner counts and consistent calendar/totals/filter/card/feedback; add/remove coach and new learner cases |
+| Move a learner between groups or change a coach within one round | History explains actual learner/group/coach before/after and actor where evidenced; unknown gaps remain explicit |
+| Completed/absent, reschedule, single-person and Family Wallet Store/Redeem | Correct lifecycle/identity/history and responsible-coach visibility; no duplicate or lost Family participants; Task10 integration backed by then-current evidence |
+| Save failure, network uncertainty, safe retry, concurrent edits | Failure/success/unconfirmed clearly distinguished; persisted outcome reconciled; conflict and retry do not silently lose edits or duplicate effects |
+| Head Coach / Coach / Admin on desktop and mobile | Matching statuses/counts/history and usable controls; verify the actual Coach-visible result after reload/login |
+| Protected overlap and retrospective flows; financial/Attendance evidence | Existing overlap/duplicate and retrospective guards pass; no unintended entitlement, Attendance, payroll or financial changes |
+
+Require a case demonstrating each proven defect before its fix, then focused
+regression and browser/API/DB verification according to the actual impact.
+Screenshots alone do not prove backend, Attendance or financial integrity.
+Fixtures, Product tests/build and Product/Controlled Write UAT were not run here.
+
+### Documentation closeout and next gate
+
+Document checks cover Task10-first and separate authorization in all three files;
+item5/item8 uniqueness, original ordering and Completed history; explicit Wallet
+pending revalidation; Markdown links/anchors, strict UTF-8/mojibake, diff allowlist,
+git diff --check and preservation of pre-existing Task10 work. The mandatory
+consistency matrix retains all existing Task10 Git/Source/test/deployment/migration/
+control/UAT/data/impact/blocker values in PROJECT_STATE; TODO derives its short
+index from that authority. No combined Product PASS is asserted.
+
+Assignment Source Complete **N/A / implementation not started**; Product tests,
+build, Production UAT and Controlled Write UAT **not run**; registration remains
+**local/uncommitted/unpushed**. Deploy/Promote **not performed**; Feature Enabled/
+Allowlisted/Environment/Permission changes **none**; no new assignment behavior
+Production active; Data Repaired/Production Data Changed **No/No**;
+Customer/Financial Impact from this round **None/None**. Task10 Done **No**;
+assignment Product Task Done **No**. Registration approval is not development approval.
+
+Verification result for this registration: **documentation checks passed**.
+Strict UTF-8 and mojibake scans passed for all three allowed docs; repository
+mojibake guard passed across275 files. All14 new Markdown links/anchors resolved.
+Items5/8 have one live entry each and the original1–10 order is preserved.
+Reversing only this registration's edits in memory reproduced each starting
+document's exact SHA-256, confirming the pre-existing Task10/Completed history
+was retained without filesystem rollback. Full diff scope and git diff --check
+passed; index remains empty, HEAD unchanged and ahead/behind0/0.
+Product tests/UAT were not substituted by these documentation results.
+
+Next action: **ทำ Task10 ตามขอบเขตของงานนั้นให้เสร็จก่อน แล้วรอ Owner เลือกงานมอบหมายและอนุมัติ Scope ที่ตรวจใหม่**.
+Do not auto-start assignment audit/development on Task10 completion.
+
+
+<a id="task10-packaging-corrective-evidence-stop-2026-09-13"></a>
+## 2026-09-13 — Task10 packaging corrective; Git input evidence safe stop
+
+State observed at this closeout; PROJECT_STATE.md owns current mutable facts.
+
+- Owner authorized exact .vercelignore +6/-0 plus Docs3, filtered verification,
+  normal commit/push/automatic Preview/new staged and local UAT restart when gates pass.
+  This superseded the preceding waiting-for-config-approval status. The only new
+  tracked expansion approved here was .vercelignore; no application/tests/packages edits.
+- Fresh Gate0 at12:17:25UTC: branch spike/next-major-security-upgrade; HEAD/live remote
+  9352c4a7941d9f03412931dd5a7d632324bafeee;0/0,indexempty. Existing Docs3 included a later local-only deferred assignment
+  registration; saved whole baseline and retained that work. All486 initially frozen
+  files matched prior compliance; after approved config edit the other485 still match.
+- Exact patch hash57256e69a1b5c01e7c326b3893f2bbce55ea135dee17c35957a5a65b27fb9dbf applied
+  once; +6/-0. Raw .vercelignore64b8af3b24f3cfb6e2b559b6243276d6ab8858b3348a57a35feb1b90b7491e1a;
+  normalizedLF00100dce9643e87dcb498d132ca1221c8e48efeb2208cf1ddf46d4179bb0e214. No Git config change.
+- Installed Vercel59.11.2 supports deploy --dry --json. Clean489-file9352export plus
+  exact config overlay yielded362entries:359files/3directories. Copying only hashed
+  files produced the actual filtered build directory; tests/scripts/Playwright/local
+  Supabase config and all9known findings absent;275runtime/assets/build inputs retained.
+- Fresh npmci12:29:01–12:29:29UTC exit0/audit0; npmrunbuild12:29:29–12:31:01UTC exit0,
+  Next16.3.3/Node24.16.0/TypeScript. BuildIDG5RSOarzwXex_sdHWyTff;107nft traces have no forbidden
+  source references. This is local packaging verification, not a fresh148-test run.
+- Git behavior checked independently: existing GitPreview build log cloned9352 then
+  removed61ignoredfiles including /.agents/.gitignore. Chrome's Vercel Source tab still
+  displayed that exact file's content and GitHub9352link. This proves Source view is
+  not an inventory of filtered build inputs; it does not prove the ignored file was
+  included in runtime output. Gitv6files API404 is documented unsupported for Git source.
+  v11builds returned219output resources with no forbidden route/path, but no complete
+  worker-input hashes or every internal bundle file. CLI dryrun is not substituted.
+- Material evidence gate: with only .vercelignore editable, actual per-file Git input
+  exclusion cannot be independently established using these available interfaces.
+  Stopped BEFORE stage/commit/push/new Preview/staged. No claim that Git ignores fail,
+  no publication made solely to experiment, and no assertion that older files vanished.
+- Exact proposed additional path vercel.json, buildCommand +1/-1 only: read-only
+  per-file SHA256 reporting and forbidden-path assertion, followed by unchanged
+  npmrunbuild. Proposal hash3bcba864f73e9eb69fae6fa8e3519cd4f59824877b3b69d3af1a5d234a197faa. NOT APPLIED. Guard test rejects
+  full export exit1 and accepts filtered copy exit0; gitapply--check passed. It avoids
+  app/test/package/tsconfig changes and does not print file contents or environment.
+- Narrow credential audit: anonymous GitHub metadata confirms public and all9known
+  raw9352paths return200/exact old-upload hashes. Seven helper paths have local target
+  guards. seed-realistic-data.js and uat-attendance-gap.js have environment-selected
+  target/no loopback guard; current repository URL points to named remote. Historical
+  May20remote seed51 and May21cleanup0/0 preserved. Current Production account/password
+  validity Unknown; no remoteAuthquery, password/login attempt, rotation or cleanup.
+  Existing staged known-path HTTP returned302SSO or307schoollogin; no sourcebody served
+  in those reads. Do not combine Git public access, Vercel source access or HTTP serving.
+- Fresh remote SELECT12:32:26UTC: history40/M1–M5 installed from priorstep2,
+  never_activated/rev0/effective_at-artifactNULL/allflagsfalse, oneinactiveTask10job,
+  activationevents0/workerruns0. No remoteSQLwrite, activation or scheduler operation.
+- Fresh platform12:38:19UTC:4customeraliases stillGwx/99b70fe READY; healthJSON200ok
+ 12:38:17.256UTC. Existing Preview6Rfs and rejectedstagedG6f unchanged. Production
+  branchmain/protection unchanged; no deployment/delete/alias/permission/env mutation.
+- Fresh physical local readback12:35:26UTC: owned56321/56322 Auth/REST/Storage bindings
+  valid; pausedrev1/flagsfalse/nativeclock/inactivecron. Counts unchanged from safe stop:
+ 25profiles/90bookings/2570sessions/10payments/15credits/5uses/80attendance/1Storageobject.
+  New3030/3031offline; PM3020listener and55321/old54321preserved. No fixturewrites/reset.
+- Failed helper attempts retained: initial export used Git quoted Unicode paths;
+  NUL-separated v2 fixed it. Initial Gitfiles collector hit documented404; v2 separated
+  CLI-source and Git evidence. Readback inherited wrong task10_makeup_uses relation;
+  schema-correct task10_family_makeup_uses v2 passed. No application/config guard weakened.
+- Retained A1/A2/seven localpreflights, Sept12Booking23/monthly5-overlapguards2/UI7/
+  transactions32/Wallet45/Admin39/retrospective38/technical checks remain dated;
+  old148 not fresh. Historical stream-close/ERR_ABORTED and earlier missing snapshots
+  remain Unknown. Staged authenticated Makeup and fresh live UAT not checked in this stop.
+- Publication this round No/No; source/config edit counts0/1, tests0,docs3. New scope
+  breach0; earlier deployment packaging breach retained. No customer/business/financial
+  mutation or repair. Task10DEVELOPING/READYNo/OwnerPending/TaskDoneNo. Specific next
+  decision is new vercel.json diagnostic-build scope; originalpatch and B–C remain authorized.
+- Evidence: C:\Users\aacha\AppData\Local\Temp\task10-packaging-corrective-20260913. Detailed final manifests, helper inventory, raw logs,
+  known-source hashes, proposed diff and private-safe handoff are outside repository.
+- Supplemental check12:42:45UTC searched only the already-known values from the
+  nine findings. It FAILED on one historical seed-password occurrence in
+  DEVELOPMENT_TODO.md:6606, also present in the first filtered copy. This is an
+  additional location of the same known literal, not a broader credential audit.
+  The May20event explicitly records seed-password reset; later May21remote cleanup
+  remains historical. No current Production credential-validity claim follows.
+- Redacted that one literal within the approved Docs3 scope at12:45:33UTC, retaining
+  the event and old hashes in private evidence. No script password, account, Git
+  history, old deployment or visibility was changed. The original failed build/copy
+  and scan remain archived; a compile PASS was not treated as packaging PASS.
+- Built a fresh physically filtered359-file copy with sanitized Docs3; all356non-Doc
+  hashes matched the first package, known10literal occurrences checked with0hits.
+  npmci12:46:29–12:46:45UTC/audit0 and npmrunbuild12:46:45–12:48:22UTC/TypeScript passed.
+  New local buildTYNG0DILkoHtzzEFmiNAK, Next16.3.3/Node24.16.0/API56321. Full file hashes
+  and bound identity in sanitized-package-proof.json; post-build closeout documentation
+  remains local and separately hashed. No replacement Preview/staged or UAT restart.
+- Git per-file worker evidence remains the material gate; the unapplied diagnostic
+  vercel.json proposal is not a general secret scanner and does not remove old Git
+  source accessibility. Required actual deployed-source/output checks still pending.
+- Final proposal v2 at12:53:48UTC supersedes the earlier diagnostic proposal only;
+  the approved .vercelignore patch is unchanged. v2 tolerates empty excluded
+  directories while rejecting actual forbidden files, avoiding a false failure if
+  the Git worker removes files but leaves directories. Full-export rejection,
+  filtered-copy acceptance and separate empty-directory/sentinel cases passed.
+  PROPOSED-git-build-attestation-v2.patch SHA256
+  1d508ea920aa86436d104b6b958ec77f399d405876528f6cc3c8750d3b718512; still NOT APPLIED.
+- Final post-build physical readback12:54:43UTC again confirms unchanged25/90/2570/
+  10/15/5/80/1 local counts, pausedflagsfalse/nativeclock/inactivecron and offline3030/3031.
+  No fixture or business writes occurred in this correction. All485other frozen hashes
+  still match. Complete diff reviewed with the removed historical credential masked
+  in the display; the exact diff is private evidence, never a public attachment.
+
+
+<a id="task10-exact-build-attestation-2026-09-13"></a>
+## 2026-09-13 — Task10 exact v2 shell attestation; pre-publication verification
+
+State observed at this checkpoint; PROJECT_STATE owns current mutable facts.
+
+- Latest Owner authorization adds vercel.json only, exact v2 +1/-1 buildCommand, patchSHA2561d508ea920aa86436d104b6b958ec77f399d405876528f6cc3c8750d3b718512. Existing ignore +6/-0 and B–C remain authorized. Config2/Docs3; all484 other files frozen. No new business/source/test/dependency/migration edits.
+- Fresh Gate0 2026-09-13T13:29:39.476Z: 9352c4a local/live remote, spike branch,0/0,indexempty,4prior dirty paths. After exact patch5paths. Existing documents/redaction/deferred assignment registration preserved. EOL/autocrlf unchanged.
+- CLI59.11.2 dry manifest physically copied359files, runtime/public set complete, known literals from prior9findingfiles checked in memory with0hits. No private helpers/accounts/bindings in package. Prior failed package remains rejected.
+- Full buildCommand is read from actual vercel.json and passed unchanged to Linux /bin/sh -c through a temporary Node24.16.0 container. Entire quoting and && chain tested; no extraction-only substitution. Forbidden tests/sentinel exits1 before npm/Next. Then npmci exit0/audit0 and clean package with empty excluded directories passes Next16.3.3/TypeScript; build N1sF7y4Rkaw4tae1impZN, finish 2026-09-13T13:42:07.468Z. Every359manifest SHA matches the filtered input snapshot. ConfigSHA256fd0ecbd0ea3c5b12089159cab1cb0e0851e7cbb081c0f4117b2fa0ca707e5e0b; commandSHA256ecd3e660bc2ec25173195d1aedc8c3ff52e2d4b6b9d1b878cad1acf1b487390d.
+- Fresh repository tsc/lint/mojibake passed. Business tests and A1/A2 are matching-byte retained, not fresh148. Prior stream-close/ERR_ABORTED and missing pre-PM complete financial baseline Unknown retained.
+- Temporary setup failures retained: first dry run lacked local project linkage; early launch used an empty failed-copy directory and never reached the command; a copied runner path referred to missing inner script. Bounded launcher fixes supplied existing project identity and corrected local file paths only. No assertions, timeouts, source or approved config changed to make results pass.
+- Fresh remote SELECT13:33:54UTC history40/M1–M5, never_activated/rev0/nullcutover-artifact/allflagsfalse/inactivejob/0events/0runs. No SQLwrite. Freshplatform13:34:41UTC Gwx/99b70feREADY and4customeraliases unchanged, realhealthJSON200ok; branchmain/protection unchanged.
+- Fresh local13:38:28UTC physical56321/56322 Auth/REST/Storage/volume/network valid; paused/native/inactive and25/90/2570/10/15/5/80/1counts unchanged. Owner Family sources/credits, two500deadlinebills and monthlyassignment cases unconsumed. No reset/reseed or new businesswrite; PM55321/original54321 preserved.
+- At this checkpoint new commit/push/Preview/staged not yet executed; local3030/3031 remain stopped. Next: complete staged diff and authorized B–C with actual Gitworker manifest, exact staged/upload/output, privileged school Makeup and live seven-step UAT. READYNo/OwnerPending/TaskDoneNo; noPromotion/activation.
+- Evidence and temporary helper path/purpose/hash/target inventory: C:\Users\aacha\AppData\Local\Temp\task10-attestation-v2-20260913. Public docs contain no passwords/private account contents. Prior Git/olddeployment copies remain; credential validity Unknown and no general security claim.

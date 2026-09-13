@@ -16,3 +16,9 @@ backups/
 # Generated locally; Next/TypeScript recreate these during build.
 /tsconfig.tsbuildinfo
 /next-env.d.ts
+
+# Deployment excludes local verification tools, fixtures and their bindings.
+/tests/
+/playwright.*.config.ts
+/scripts/
+/supabase/config.toml
