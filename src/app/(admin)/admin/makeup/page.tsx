@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { MakeupClient } from '@/components/admin/makeup-client'
-import { getServiceRoleClient } from '@/lib/auth/admin'
+import { getCurrentUserWithRole, getServiceRoleClient } from '@/lib/auth/admin'
+import type { KidsFamilyMakeupCard } from '@/lib/kids-family-makeup'
+import { readKidsFamilyMakeupWithDestinations } from '@/lib/kids-family-makeup-server'
 import {
   buildAdminAttendanceState,
   getAdminAttendanceScopeSessionIds,
@@ -587,8 +589,40 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   }
   const sessionList = sessions.map(toSessionPayload)
 
+  const familyCards: KidsFamilyMakeupCard[] = []
+  if (familyPolicy.effectiveAt) {
+    // Month-bounded purchases retain families with no eligible source. Never
+    // derive purchased entitlement or quota from the visible session roster.
+    const purchases = await readAllRangePages<{
+      id: string; user_id: string; branch_id: string
+      profiles: { full_name: string | null } | null; branches: { name: string | null } | null
+    }>('Kids family month purchases', (start, end) => supabase.from('bookings')
+      .select('id,user_id,branch_id,profiles!bookings_user_id_fkey(full_name),branches(name),course_types!inner(name)')
+      .eq('year', year).eq('month', month).eq('course_types.name', 'kids_group')
+      .eq('status', 'verified').order('id').range(start, end))
+    const families = new Map<string, { name: string; branches: Map<string, string> }>()
+    const add = (id: string, name: string, branchId: string, branchName: string) => {
+      if (!families.has(id)) families.set(id, { name, branches: new Map() })
+      families.get(id)!.branches.set(branchId, branchName)
+    }
+    purchases.forEach(p => add(p.user_id, p.profiles?.full_name || 'ไม่ทราบผู้ปกครอง', p.branch_id, p.branches?.name || 'ไม่ทราบสาขา'))
+    sessionList.filter(s => s.course_type === 'kids_group' && s.user_id && !s.is_makeup)
+      .forEach(s => add(s.user_id!, s.user_name, s.branch_id, s.branch_name))
+    const { user } = await getCurrentUserWithRole()
+    if (!user) throw new Error('Admin makeup requires authenticated user')
+    const scopes = [...families.entries()].sort(([a], [b]) => a.localeCompare(b))
+    for (let i = 0; i < scopes.length; i += 2) {
+      const batch = await Promise.all(scopes.slice(i, i + 2).map(async ([parentId, family]) => ({
+        parentName: family.name, branchIds: [...family.branches.keys()], branchNames: [...family.branches.values()],
+        state: await readKidsFamilyMakeupWithDestinations(adminSupabase, user.id, parentId, selectedMonth),
+      })))
+      familyCards.push(...batch.filter(card => card.state.sourceMonth))
+    }
+  }
+
   return (
     <MakeupClient
+      familyCards={familyCards}
       familyPolicy={familyPolicy}
       sessions={sessionList}
       linkedSessions={linkedEvidence.map(toSessionPayload)}

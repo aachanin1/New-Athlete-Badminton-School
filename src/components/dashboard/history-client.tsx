@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
-import { bookingPaymentLifecycleMessage, type BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
+import { bookingPaymentLifecycleMessage, bookingSessionLifecycle, type BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { formatThaiDateTimeWithWeekday, formatThaiDateWithWeekday } from '@/lib/date-format'
@@ -96,6 +96,7 @@ interface SessionDetail {
   child_id: string | null
   status: string
   display_status: string
+  cancelled_at: string | null
   is_makeup: boolean
   children?: { full_name: string; nickname: string | null } | null
   branches?: { name: string } | null
@@ -282,7 +283,6 @@ const COURSE_LABELS: Record<string, string> = {
 
 const MONTH_NAMES = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const BOOKINGS_PREVIEW_PER_MONTH = 4
-const ACTIVE_SESSION_STATUSES = new Set(['scheduled', 'completed', 'absent'])
 
 const PAYMENT_UPLOAD_STEP_TEXT: Record<PaymentUploadStep, { title: string; description: string }> = {
   idle: {
@@ -307,10 +307,6 @@ const PAYMENT_UPLOAD_STEP_TEXT: Record<PaymentUploadStep, { title: string; descr
   },
 }
 
-function isActiveSession(session: SessionDetail) {
-  return ACTIVE_SESSION_STATUSES.has(session.status)
-}
-
 function getLearnerName(session: SessionDetail) {
   return session.children?.nickname || session.children?.full_name || 'ตัวเอง'
 }
@@ -319,7 +315,11 @@ function getSessionDateLabel(session: SessionDetail) {
   return formatThaiDateWithWeekday(session.date)
 }
 
-function getSessionStatusConfig(session: SessionDetail) {
+function getSessionStatusConfig(session: SessionDetail, booking?: BookingWithRelations) {
+  if (booking) {
+    const state = bookingSessionLifecycle(session, booking)
+    if (state.label) return { label: state.label, className: 'bg-red-50 text-red-700' }
+  }
   return SESSION_STATUS_MAP[session.display_status] || SESSION_STATUS_MAP[session.status]
 }
 
@@ -355,8 +355,8 @@ function getWalletCreditStatusConfig(session: SessionDetail) {
   }
 }
 
-function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: string[], fallbackTotal: number) {
-  const activeSessions = sessions.filter(isActiveSession)
+function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: string[], fallbackTotal: number, booking: BookingWithRelations) {
+  const activeSessions = sessions.filter(session => bookingSessionLifecycle(session, booking).active)
 
   if (activeSessions.length > 0) {
     const childCounts: Record<string, number> = {}
@@ -371,7 +371,8 @@ function getLearnerSessionCounts(sessions: SessionDetail[], fallbackNames: strin
     return []
   }
 
-  return fallbackNames.map((name) => ({ name, count: fallbackTotal }))
+  return bookingSessionLifecycle({ status: 'scheduled' }, booking).active
+    ? fallbackNames.map((name) => ({ name, count: fallbackTotal })) : []
 }
 
 export function HistoryClient({
@@ -1075,7 +1076,8 @@ export function HistoryClient({
   const progressiveUploadEligible = paymentMode === 'progressive'
     && hasCurrentProgressiveUploadEvidence(progressiveLifecycle)
   const selectedBookingSessions = selectedBooking ? bookingSessionsMap[selectedBooking.id] || [] : []
-  const selectedActiveSessions = selectedBookingSessions.filter(isActiveSession)
+  const selectedActiveSessions = selectedBookingSessions.filter(session => selectedBooking && bookingSessionLifecycle(session, selectedBooking).active)
+  const selectedDisplaySessions = selectedBookingSessions.filter(session => !['rescheduled', 'walleted'].includes(session.status))
   const selectedRescheduledSessions = selectedBookingSessions.filter((session) => session.status === 'rescheduled')
   const selectedWalletedSessions = selectedBookingSessions.filter((session) => session.status === 'walleted')
   const selectedActiveWalletedSessions = selectedWalletedSessions.filter((session) => !session.wallet_credit_status || session.wallet_credit_status === 'active')
@@ -1088,7 +1090,7 @@ export function HistoryClient({
     ? bookingChildNamesMap[selectedBooking.id] || [selectedBooking.children?.full_name || 'ตัวเอง']
     : []
   const selectedLearnerCounts = selectedBooking
-    ? getLearnerSessionCounts(selectedBookingSessions, selectedFallbackNames, selectedBooking.total_sessions)
+    ? getLearnerSessionCounts(selectedBookingSessions, selectedFallbackNames, selectedBooking.total_sessions, selectedBooking)
     : []
 
   return (
@@ -1196,7 +1198,7 @@ export function HistoryClient({
                     const counts = getLearnerSessionCounts(
                       sessions,
                       bookingChildNamesMap[b.id] || [b.children?.full_name || 'ตัวเอง'],
-                      b.total_sessions
+                      b.total_sessions, b
                     )
                     counts.forEach(({ name, count }) => {
                       nameCountMap[name] = (nameCountMap[name] || 0) + count
@@ -1244,7 +1246,7 @@ export function HistoryClient({
                 const bookingSessionCounts = getLearnerSessionCounts(
                   bookingSessionsMap[booking.id] || [],
                   bookingChildNamesMap[booking.id] || [booking.children?.full_name || 'ตัวเอง'],
-                  booking.total_sessions
+                  booking.total_sessions, booking
                 )
 
                 return (
@@ -1587,7 +1589,7 @@ export function HistoryClient({
                 <div className="text-sm text-gray-600">
                   <p>จำนวนที่ชำระ: <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
                   <p className="mt-0.5">
-                    รอบเรียนที่มีวันเรียนแล้ว: <strong>{selectedActiveSessions.length}/{selectedBooking.total_sessions} ครั้ง</strong>
+                    รอบเรียนที่ยังใช้งานได้: <strong>{selectedActiveSessions.length}/{selectedBooking.total_sessions} ครั้ง</strong>
                   </p>
                   {selectedActiveWalletedSessions.length > 0 && (
                     <p className="mt-0.5">
@@ -1637,14 +1639,14 @@ export function HistoryClient({
               )}
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">รอบเรียนที่มีวันเรียนแล้ว:</p>
-                {selectedActiveSessions.length === 0 ? (
+                <p className="text-sm font-medium text-gray-700">รอบเรียนและประวัติการยกเลิก:</p>
+                {selectedDisplaySessions.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-4">ยังไม่มีวันเรียน</p>
                 ) : (
-                  selectedActiveSessions.map((session) => {
+                  selectedDisplaySessions.map((session) => {
                     const dayLabel = getSessionDateLabel(session)
-                    const isPending = selectedBooking.status === 'pending_payment' && !selectedBooking.lifecycle?.due
-                    const sessionStatus = getSessionStatusConfig(session)
+                    const isPending = selectedBooking.status === 'pending_payment' && bookingSessionLifecycle(session, selectedBooking).active
+                    const sessionStatus = getSessionStatusConfig(session, selectedBooking)
 
                     return (
                       <div key={session.id} className="flex flex-col gap-2 p-2.5 bg-white border rounded-lg sm:flex-row sm:items-center sm:justify-between">
@@ -1721,7 +1723,7 @@ export function HistoryClient({
                     {selectedRescheduledSessions.map((session) => {
                       const dayLabel = getSessionDateLabel(session)
                       const targetSession = selectedRescheduleTargetsBySourceId.get(session.id)
-                      const targetStatus = targetSession ? getSessionStatusConfig(targetSession) : null
+                      const targetStatus = targetSession ? getSessionStatusConfig(targetSession, selectedBooking) : null
 
                       return (
                         <div key={session.id} className="rounded-lg border border-orange-200 bg-orange-50/60 p-2.5 text-sm">

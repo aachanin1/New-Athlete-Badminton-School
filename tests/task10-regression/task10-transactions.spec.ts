@@ -3,6 +3,33 @@ import { randomUUID } from 'node:crypto'
 import { INITIAL_LATE_KIDS_TIERS } from '../../src/lib/booking-pricing-policy'
 import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, uploadTask10Slip, protectedWalletFixture, raceFamilyWalletStore, type ProtectedWalletFixture, type FamilyFixture } from './local-supabase'
 
+test.describe('Isolated Kids Wallet sibling evidence', () => {
+test.afterAll(async () => { await setupTask10() })
+test('Kids sibling A Wallet storage leaves B scheduled; same-month redemption cannot also become next-month Makeup', async () => {
+  const family=await seedTask10Family(), f=readTask10Fixture(), sibling=randomUUID(), source=family.cutoffSources[0]
+  localSql(`BEGIN; SELECT set_config('task10.source_write','authorized',true);
+    INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
+      SELECT '${sibling}',booking_id,schedule_slot_id,date,start_time,end_time,branch_id,'${family.children[1]}','scheduled',false FROM booking_sessions WHERE id='${source}'; COMMIT;`)
+  const siblingBefore=localSql(`SELECT row_to_json(s) FROM booking_sessions s WHERE id='${sibling}';`)
+  const financial=`SELECT md5(jsonb_build_object('payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p),'coupons',(SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM coupon_usages c),'bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b WHERE user_id='${family.parentId}'),'attendance',(SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM attendance a))::text);`
+  const before=localSql(financial)
+  setDisposableClock('2031-09-01T10:00:00+07:00')
+  const client=createLocalAdmin(), stored=await client.rpc('lesson_wallet_store_v2',{p_user_id:family.parentId,p_session_id:source,p_actor_id:family.parentId})
+  expect(stored.error).toBeNull()
+  expect(localSql(`SELECT row_to_json(s) FROM booking_sessions s WHERE id='${sibling}';`)).toBe(siblingBefore)
+  const credit=stored.data.credit_id
+  expect(localSql(`SELECT child_id FROM lesson_wallet_credits WHERE id='${credit}';`)).toBe(family.children[0])
+  const template=localSql(`SELECT id FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM date '2031-09-26') AND start_time='17:00' AND end_time='19:00' AND is_active;`)
+  const redeemed=await client.rpc('lesson_wallet_redeem_v2',{p_user_id:family.parentId,p_credit_id:credit,p_target_date:'2031-09-26',p_start_time:'17:00',p_end_time:'19:00',p_branch_id:f.branchId,p_schedule_template_id:template})
+  expect(redeemed.error).toBeNull()
+  expect(localSql(`SELECT row_to_json(s) FROM booking_sessions s WHERE id='${sibling}';`)).toBe(siblingBefore)
+  expect(localSql(`SELECT count(*) FROM booking_sessions WHERE rescheduled_from_id='${source}' AND child_id='${family.children[0]}';`)).toBe('1')
+  const state=await client.rpc('task10_family_makeup_state_v1',{p_actor_id:f.makeupAdminId,p_parent_id:family.parentId,p_source_month:'2031-09-01'})
+  expect(state.error).toBeNull();expect(state.data.sources.some((s:{sourceSessionId:string})=>s.sourceSessionId===source)).toBe(false)
+  expect(localSql(financial)).toBe(before)
+})
+})
+
 test.describe('Wallet corrective compatibility',()=>{
   // Only synthetic local rows. The reset verifies the disposable identity and
   // restores the original suite's inert controls, real clocks and inactive cron.

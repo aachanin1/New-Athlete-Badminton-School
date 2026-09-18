@@ -1,63 +1,57 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-13 (Asia/Bangkok; evidence UTC)
+Last updated: 2026-09-18 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task10 short build command verified locally; publication gates next
+## Current State — Task10 first Owner UAT corrective
 
-Owner approved moving the unchanged guard into one root build helper.
-The exact 50-character command and filtered package pass local verification.
-Actual Git worker, new staged artifact and live UAT still require verification.
-**Task10 DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
+Owner first-round results belong to34321/9ap. The A–D corrections have passed local verification; publication and fresh retest preparation remain separate gates.
 
 ### Current Project Matrix
 
 | Field | Current value |
 | --- | --- |
-| Active Task / Intended Behavior | Task10 only: verified deployment packaging of Family Schedule/monthly Makeup and complete seven-step Owner UAT. |
-| Task Status / READY / Task Done | DEVELOPING / No / No. Local packaging verification complete; actual Git Preview, new staged and live UAT gates remain. |
-| Owner Decision / Scope | Latest Owner approval authorizes exact short buildCommand +1/-1 and one new root vercel-build-attestation.cjs containing unchanged guard. Existing B–C normal commit/push, automatic Preview, staged --prod --skip-domain and UAT authorization remains valid. No repeated approval; no Promotion/activation. |
-| Scope Expansion / Breach | Approved Config1 / new Build helper1 / Docs3 =5paths. Functional0/Tests0/Dependencies0/Migrations0. All485 existing files outside scope frozen, including published .vercelignore. No new breach; historical rejected packaging breach retained. |
-| Protected Policy / Blast Radius | Build entry point and input attestation only. Family atomicity/identity, Reschedule>=12h inclusive, Wallet>48h exclusive, same-month/ten-month, M/D/quota/source-month/actual-child, OFF/active/paused, assignment/attendance/pricing/payment/entitlement/payroll/finance unchanged; /admin/schedules untouched. |
+| Active Task / Intended Behavior | Task10: first Owner UAT corrections A–D — family/child-first Makeup cards, internal source selection, Thai dates/linked destination details, History lifecycle labels and counts. |
+| Task Status / READY / Task Done | DEVELOPING / No, publication and exact-artifact retest preparation still pending / No. |
+| Owner Decision / Scope | 18 September 2026 approval authorizes audit, bounded implementation, verification, normal commit/push, automatic Preview, staged Production without customer domains, and fresh local retest handoff. No Promotion/remote activation/business writes. Supersedes restart-only scope. |
+| Changed Paths / Scope Expansion / Breach | Functional8 (including planned new src/lib/kids-family-makeup-server.ts), Tests4, Docs3; Config/Dependencies/Migrations0. No paths beyond the approved15. Historical packaging breach retained; no new scope breach. |
+| Protected Policy / Blast Radius | Makeup read/presentation and server source selection; History presentation/count. Existing atomic RPC remains transaction authority. Family atomicity, exact identity, Reschedule>=12h, Wallet>48h, same-month/ten-month, N/M/D/quota, pricing/payment/entitlement/attendance/payroll preserved. /admin/schedules untouched. |
 | Commercial Record | Approved48,000บาท including automatic cancellation; customer payment Unknown, no new evidence. |
 | Branch / Upstream | spike/next-major-security-upgrade / origin/spike/next-major-security-upgrade. |
-| Local HEAD / Remote HEAD / Ahead-Behind | ee8e16b81a7b20ea647eb282f2643a397a1a9e85 / same /0/0 at fresh Gate0; publication not yet performed at this checkpoint. |
-| Index / Worktree | Index empty before staging; exact config/helper and Docs3 local changes. Earlier Docs3 failures/history preserved. |
-| Source Complete / Current Source / Pushed Source | Application complete and unchanged from9352c4a. Current candidate is ee8e16b plus exact approved short-command patch and Docs3. Packaging verified locally; pushed source still ee8e16b until authorized publication. |
-| Config Hashes | vercel.json LF/build SHA256 0a3d7fbc1aad7aa124538236e10683fddf6ccf252960f1b829bdeaf81ce0d301; helper LF005e3768c0a1d763f85bb9cc0c99b6812e433675bce55a55997e6748e4e6f894 / workingCRLF56bb8e0b8af76d1b2ca6b5ff53d422bb613a49d88bab955c5540fb7004711357. Exact patch b2836c140d630811294ac679eae380e160d70cd8a7614953c5bba836c5565c28; autocrlftrue unchanged. |
-| Fresh Local Checks | Actual full official schema instance validation and invalid-length/type/additional-property controls pass; root node--check; CLI59.11.2 filtered360files includes helper/all runtime/public files, known literal hits0. All four forbidden categories stop whole Linux command before Next; clean package with empty excluded directories passes real Next16.3.3/TypeScript. Repository tsc/lint/mojibake pass. |
-| Schema Verification Limitation | Official schema declares draft04 but contains numeric exclusiveMinimum in unrelated experimentalTriggers. Initial meta-schema self-validation failed. Unmodified full official schema instance validation passed with meta-schema self-validation disabled; no config constraints removed, four negative controls passed. Actual Vercel schema/build validation still mandatory. |
-| Local Build Identity | NXRMUlbkSVx4zv3ISbmDd; Linux Node24.16.0 /bin/sh -c executes full actual config command. Manifest360 exact hashes in linux-build-proof.json. Existing exact-lock Linux npmci retained, mounted read-only; not rerun. Docs updated after local build are separately hashed, no runtime/config differences. |
-| Retained Evidence | A1 exact120 PM reconciliation; A2 Owner manual Chrome native picker/month/year/navigation PASS (versionUnknown). Seven previous local functional preflights; Booking23, monthly5/overlappingguards2, Task10UI7/protected32, Wallet45, Admin39/retrospective38. Historical148 not fresh. Historical stream-close/ERR_ABORTED and incomplete pre-PM raw financial baseline remain Unknown. |
-| Committed / Pushed | Prior ee8e16b Yes/Yes. This exact config/helper plus Docs3 not yet committed/pushed at pre-publication checkpoint. |
-| Preview Artifact | Prior dpl_A7j7MuQwTn8SUCqgd6MdC4nYGQvD /ee8e16b ERROR due667-character command against256limit, before worker. New actual Git worker manifest/schema/build/smoke required; CLI dry is not Git evidence. |
-| Staged Artifact / Deployed Source | No new staged yet. Old dpl_G6fFPHKbvkPCBgaSzNk3Rjg2GysC /9352c4a remains REJECTED and retained. New accepted staged must follow new Preview gate. |
-| Staged Smoke / Privileged Check | New healthJSON/landing/login/assets/navigation/logs and school-authenticated Makeup read-only pending; anonymous redirect is not privileged PASS. Synthetic accounts local only. |
-| Production / Rollback / Checks | Fresh14:22:51UTC: dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa /99b70fe373bfaa14424e2163136719024e5f0b0b READY, four customer aliases unchanged, actual healthJSON200ok. Productionbranchmain/deployhooks0/protection unchanged. Bounded read only, not all-system PASS. |
-| Owner UAT / Production UAT / Controlled Write UAT | OwnerPending, no OwnerPASS. No Production write UAT. Old Developer local synthetic preflight retained; no new business write during packaging tests. |
-| Promotion / Routing / Deploy | No new deployment yet; authorized next automatic Preview and stagedProduction without domains. No Promotion or alias operation. |
-| Migration Source / Applied | M1–M5 frozen/already applied in prior step2; Wallet corrective installed. Fresh14:22:55UTC SELECT history40 with all5versions. No migration/apply/repair/remoteSQLwrite. |
-| Remote Feature / Activation / Scheduler | Fresh14:22:55UTC named-project SELECT: never_activated/rev0/effective_at-artifactNULL/flagsfalse; one inactive task10-expire-unpaid-bookings-v1; activationevents0/workerruns0. |
-| Local Controls / Clock / Fixtures | Fresh14:22:44UTC physical56321/56322 DB/Auth/REST/Storage bindings valid. Paused/rev1/flagsfalse/nativeclock/croninactive;25profiles90bookings2570sessions10payments15credits5uses80attendance1object. Owner cases unconsumed; no reset/reseed; PM55321 and original54321 preserved. |
-| Local URL / Handoff | http://127.0.0.1:3030/__uat offline pending publication gates and new-source restart/preflight. Private accounts/Owner fixtures retained outside repository. PM3020 separate from full Task10 UAT. |
-| Allowlisted / Permissions / Environment | No changes to remote allowlist/Auth/permissions/protection/secret/visibility/saved environment. Linux local process uses verified disposable only, SlipOKtest and real system/Auth time. |
-| Production Active / Data Changed / Data Repaired | Task10 policiesOFF. No Developer Production business/financial write or datarepair. Prior installed schema/bootstrap remains; no inference about unrelated traffic. |
-| Customer / Financial Impact | Customer routing/artifact unchanged; no task-directed entitlement/monetary changes. Production credential validity Unknown; no synthetic remote login or blanket security claim. |
-| Exposure / Security Limits | Historical GitHub anonymous200/exact9knownfile hashes and rejected426-file staged input remain retained. New360-file package known-value scan0hits. Prior Git/deployments/evidence not removed. Seven local-guarded and two environment-targeted historical helper findings retained; no new credential validity conclusion. |
-| Failed Attempts / Cleanup | This turn: rawhelper LF hash assertion failed because gitapply created CRLF; exact normalized bytes proven without editing content. Official meta-schema validator issue preserved; CLI help exit2 with valid help content handled. Four expected guard failures and positive real build kept. Negative sentinel files removed only from owned new export. No fixture reset or old evidence deletion. |
-| Documentation Drift | Latest Owner approval replaces obsolete helper-not-authorized claim; historical schema/packaging failures, literal redaction and Parking Lot retained. PROJECT owns current facts; post-deployment closeout must not relabel artifact SHA. |
-| Blocker / Remaining Work / Next Gate | Local gate complete. Continue authorized exact-five-path staged review/commit/push, actual Git worker manifest/Preview, new exact staged and authenticated school Makeup, then new-source local live seven-step UAT. Required pending checks are not PASS. |
-| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. No automatic assignment work; item8/unresolveditem5 linked for later separate selection. |
+| Local HEAD / Remote HEAD / Ahead-Behind | 34321e98fdb27e323ed83003ab6ffd54f7eb18ec / same at fresh gate /0/0 before this source commit. |
+| Index / Worktree | Empty before publication; approved15 paths comprise preserved Docs3 and new corrective source/tests. Exact staged review required before commit. |
+| Source Complete / Current Source / Pushed Source | Corrective source complete locally; working bytes recorded in candidate-proof.json / pushed source still 34321e98fdb27e323ed83003ab6ffd54f7eb18ec until publication. |
+| Local Build / Inputs | Filtered candidate Next16.3.3 build xioxnk0WLYKLY45B8DqVd passed;361 inputs with known audited literals absent, tests/scripts/local Supabase config excluded. Local API57321 only. Final committed-source UAT build is a later separate artifact. |
+| Config / EOL | Package/lock, deploy config/attester, AGENTS and protected files match Gate0 hashes. core.autocrlf unchanged; working/index normalized-content hashes recorded separately before publication. |
+| Fresh Tests / Checks | Task10 full75 before final summary-label adjustment; focused5 UI rerun on final labels; Booking23; Makeup focused5; Wallet45; Admin state39; retrospective38. Counts are separate suites with overlapping protected coverage, not added to historical148. TypeScript/lint/mojibake/filtered Production build and scope checks passed. Detailed logs and failed attempts in dated evidence. |
+| Retained Evidence / Owner First UAT | Owner reported local M/roles/D/quota, Wallet/Family/legacy, pricing/edit/cancel, slip/deadline, monthly Makeup/search/pagination/assignment/mobile passed on prior34321 source; staged first-round read-only PASS16 September for9ap artifact. These do not accept this corrective candidate. Prior A1/A2 remain retained only. |
+| Owner Data Reconciliation | Fresh18September14:59UTC SELECT-only original56321:5 uses/5 roots, exact source/destination/attending child,2 cross-sibling uses;22 selected bookings1256sessions7credits4payments1receipt1cancellation. Cancelled_at with scheduled cache confirms History finding. No full pre-Owner financial baseline or independent click attribution assumed. |
+| Committed / Pushed | Not yet for these corrections at this prepublication checkpoint. Normal commit/push authorized after complete staged review. |
+| Preview / Staged Artifact / Deployed Source | No new corrective artifact yet. Prior staged dpl_9apG5cbSStT8q6aKX21wDFDmtQyV /34321e98fdb27e323ed83003ab6ffd54f7eb18ec was Owner-tested first round, not corrective acceptance. |
+| Production / Rollback / Checks | Fresh18September16:35UTC Vercel project/team verified; current READY dpl_Gwx4XuRureXfQh4vhCUxPEtHECBa /99b70fe373bfaa14424e2163136719024e5f0b0b exists as rollback. Four customer aliases unchanged; health JSON200. Branch integration produces Preview; Production branchmain, hooks0. |
+| Owner UAT / Production UAT / Controlled Write UAT | First-round findings received; corrective Owner retest Pending / no Production write UAT / Developer synthetic tests only on new verified disposable57321. |
+| Promotion / Deploy | No Promotion/activation. Corrective Preview and staged deployment pending. |
+| Migration Source / Applied | M1–M5 already applied at earlier step2 and Wallet corrective installed; frozen SQL unchanged. Fresh18September16:35:22UTC SELECT confirms all5versions. New local disposable alone received existing40migrations for tests. No remote migration or repair. |
+| Remote Feature / Activation / Scheduler | Fresh18September16:35:22UTC tvnhholicwjtxdhlxfqs: never_activated/revision0/effective_at and artifactNULL, all3flagsfalse, one inactive task10-expire-unpaid-bookings-v1, activationevents/workerruns0. No control write. |
+| Local Physical Identity / Preservation | New Task10Corrective20260918 API57321/DB57322; physical container/volume/workdir/network and Auth/REST/Storage bindings verified before test operations. Original54321, PM55321, Owner56321 preserved; no reset/reseed of old projects. |
+| Local UAT / Fixture State | Fresh corrective retest preparation pending after regression cleanup; old Owner cases already consumed are retained as evidence and are not presented as fresh. Planned local3040/3041 with separate Developer/Owner cases, native Auth/browser/Node and disposable-only business clock. |
+| Allowlisted / Permissions / Environment | No remote allowlist/permission/Auth/protection/environment/secret changes. Existing local test process bindings only; new isolated disposable has synthetic accounts. |
+| Production Active / Data Changed / Data Repaired | Task10 policiesOFF at fresh remote read. No Developer Production business/financial write or repair; earlier schema/bootstrap remains installed. Unrelated traffic not audited. |
+| Customer / Financial Impact | No customer routing or financial action commanded. Synthetic transaction effects verified with identity, quota, receipts/coupon/financial invariants; old Owner data preserved. |
+| Exposure / Security / Logs Limits | Historical public Git/uploaded-source exposure, credential-validity Unknown and uninstrumented stream-close/ERR_ABORTED remain. Filtering is not erasure/security-all-PASS. Local controlled-response cases recorded separately. Makeup dev suite logged four stream-close events (digest3299920112) around intercepted feedback tests; exact request attribution Unknown, not claimed harmless or server-log PASS. Real120/10/10 assignment separately requires readerEOF/currentUI/DB. |
+| Cleanup | Regression cleanup limited to owned57321; preserve old fixtures/volumes and evidence. Retest data will be explicitly identified and kept serving at final handoff. |
+| Documentation Drift | Corrected obsolete restart-only/Owner Pending claim using18September authorization and first-round findings. PROJECT owns actual mutable state; TODO next action; DEV dated evidence. Post-artifact closeout remains separate from source/artifact SHA. |
+| Blocker / Remaining Work / Next Gate | No source/test blocker at this checkpoint. Complete staged diff/commit/push, actual Preview worker evidence and smoke, staged exact-artifact read-only smoke, fresh local retest preflight/handoff. Do not announce READY until all pass. |
+| Parking Lot Authorization | 1–8unselected;9completed;10DEVELOPING. Item8/unresolveditem5 not authorized. No automatic next task. |
 
-Evidence: C:\Users\aacha\AppData\Local\Temp\task10-short-attestation-20260913 .
-[Dated short-command verification](DEVELOPMENT_TODO.md#task10-short-build-command-2026-09-13).
-Frozen Family raw SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf9380bf147e.
+Evidence: C:\Users\aacha\AppData\Local\Temp\task10-owner-uat-corrective-20260918 . Private accounts/helpers stay outside repository.
+[Dated corrective evidence](DEVELOPMENT_TODO.md#task10-owner-uat-corrective-2026-09-18).
 
 <a id="coach-assignment-owner-decision-2026-09-13"></a>
 ### Owner decision — 2026-09-13 assignment plan registration only
 
 - **Task10-first:** Task10 is the sole Active Product Task. Complete it under its
-  own scope and existing gates first; its packaging blocker, DEVELOPING status,
-  READY FOR OWNER UAT No and Task Done No remain as recorded in the matrix.
+  own scope and existing gates first. At this registration Task10 was DEVELOPING
+  with a packaging blocker; the current matrix above supersedes that gate status.
 - Expand Parking Lot **8 — ความถูกต้องของการมอบหมายโค้ช — สถานะ ผู้รับผิดชอบ ประวัติ และการบันทึก**,
   canonical **COACH ASSIGNMENT — SAVED GROUPS VS COMPLETE COACH COVERAGE**;
   assess together with item **5 — EXTERNAL HEAD COACH ASSIGNMENT SAVE HTTP 500 ATTEMPTS**.
@@ -79,7 +73,7 @@ Frozen Family raw SHA2560dbb22e2611ccbf99cc4d9491668284a67867aed0bd3662edacddf93
   environment or data operations. Existing Task10 work remains intact.
 - Documentation Drift corrected in the live TODO queue: item 10 was incorrectly
   called decision/audit-only and development unauthorized. Items 1–8 remain
-  unselected; 9 remains completed; 10 remains DEVELOPING. The matrix's technical,
+  unselected; 9 remained completed; 10 was DEVELOPING at this registration. The matrix's technical,
   runtime and data evidence is retained from the preceding Task10 closeout, not
   re-queried by this registration. Fresh Git/document checks are recorded in the
   dated decision; this registration adds no Product PASS or release claim.

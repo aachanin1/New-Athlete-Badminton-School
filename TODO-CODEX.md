@@ -1,19 +1,17 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-13
+Last updated: 2026-09-18
 
 PROJECT_STATE.md owns current mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — DEVELOPING; READY FOR OWNER UAT No; Task Done No.**
-- Owner approved exact short buildCommand plus new build helper; .vercelignore stays frozen. Local schema/guard/filtered build and technical checks pass.
-- Continue authorized five-path review/commit/push, actual Git Preview worker proof, then exact staged and live seven-step UAT. No repeat approval requested.
-- Authenticated school Makeup and fresh local handoff are required; synthetic accounts remain local. No Promotion/activation.
-- See [current matrix](PROJECT_STATE.md#current-project-matrix) for Git/config/build/artifact and fresh/retained/Unknown details.
-- Preserve historical packaging/schema failures, source exposure and stream-close/ERR_ABORTED limits; filtering does not remove older copies.
-- Parking Lot1–8unselected;9completed;10DEVELOPING. Assignment item8/unresolveditem5 remain linked; Family Wallet/history revalidation follows Task10.
-  [Preserved Owner decision](PROJECT_STATE.md#coach-assignment-owner-decision-2026-09-13).
+- **Task10 — DEVELOPING; corrective retest Pending; Task Done No.**
+- Owner first-round results and four findings received; child-first Makeup/internal source selection/Thai destination details/History lifecycle corrections pass local verification.
+- **Next action:** publish the approved candidate, verify exact Preview/staged inputs and read-only smoke, prepare fresh isolated local retest cases; then hand off and wait Owner PASS/FAIL. No Promotion/activation.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix) owns all source, artifact, controls/data and fresh/retained evidence.
+- Preserve old Owner/PM fixtures and historical packaging/schema/stream errors. No Parking Lot work authorized.
+- [Dated corrective evidence](DEVELOPMENT_TODO.md#task10-owner-uat-corrective-2026-09-18).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
@@ -1134,8 +1132,8 @@ in the dated `DEVELOPMENT_TODO.md` closeout. Current mutable state remains
 authoritative only in `PROJECT_STATE.md`.
 
 Exactly eight candidates (original items 1–8) await separate Owner implementation
-selection/authorization. Item 9 is completed; Task10 is DEVELOPING and the sole
-Active Product Task. Complete Task10 within its own scope/gates first; no other
+selection/authorization. Item 9 is completed; Task10 is the sole Active Product Task.
+Its current readiness is recorded only in PROJECT_STATE.md. Complete its scope/gates first; no other
 item starts automatically. PROJECT_STATE.md is authoritative. Original order:
 `1.` **END-TO-END SCHEDULE LIFECYCLE & LEGACY SLOT
 PROVENANCE HARDENING**; `2.` **HEAD COACH VERIFIED-BOOKING ASSIGNMENT ALERT**;

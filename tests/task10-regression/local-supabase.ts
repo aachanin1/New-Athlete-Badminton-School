@@ -221,6 +221,15 @@ export async function setupTask10() {
   await waitForLocalSupabaseAuth()
   const booking = await seedBookingFixture()
   const admin = createLocalAdmin()
+  // API upload tests also need the fixture bucket on a newly isolated target.
+  // Match uploadTask10Slip; never change an existing bucket's settings.
+  verifyDisposableIdentity()
+  const buckets = await admin.storage.listBuckets()
+  if (buckets.error) throw buckets.error
+  if (!buckets.data.some(bucket => bucket.id === 'payment-slips')) {
+    const created = await admin.storage.createBucket('payment-slips', { public: true })
+    if (created.error) throw created.error
+  }
   const createAdmin = async (email: string) => {
     const { data, error } = await admin.auth.admin.createUser({ email, password: TASK10_PASSWORD, email_confirm: true })
     if (error || !data.user) throw new Error(error?.message || 'Missing test user')

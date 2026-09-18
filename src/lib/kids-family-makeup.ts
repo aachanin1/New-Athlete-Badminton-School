@@ -27,6 +27,22 @@ export interface KidsFamilyMakeupState {
   children: Array<{ id: string; name: string }>
   eligible: boolean
   reason: string | null
+  destinations?: Array<{
+    id: string; childId: string; childName: string; date: string
+    startTime: string; endTime: string; branchName: string
+  }>
+}
+
+export interface KidsFamilyMakeupCard {
+  parentName: string
+  branchIds: string[]
+  branchNames: string[]
+  state: KidsFamilyMakeupState
+}
+
+/** The quota is shared, but only currently eligible concrete sources can be used. */
+export function availableFamilyMakeupCount(state: KidsFamilyMakeupState) {
+  return state.eligible ? Math.min(state.remaining, state.sources.length) : 0
 }
 
 export function readKidsFamilyMakeup(client: Task10RpcClient, actorId: string, parentId: string, sourceMonth: string) {

@@ -14,7 +14,7 @@ import {
   type DisplaySessionStatus,
 } from '@/lib/session-attendance-status'
 import { isProgressivePaymentDrainAvailable } from '@/lib/progressive-pricing-feature'
-import { loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
+import { bookingSessionLifecycle, loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 
 interface HistoryBookingRow {
   id: string
@@ -71,6 +71,7 @@ interface SessionRow {
   child_id: string | null
   status: string
   display_status: DisplaySessionStatus | 'rescheduled'
+  cancelled_at: string | null
   is_makeup: boolean
   children?: { full_name: string; nickname: string | null } | null
   branches?: { name: string } | null
@@ -375,7 +376,7 @@ export default async function HistoryPage() {
       bookingIds,
       (chunk, start, end) => supabase
         .from('booking_sessions')
-        .select('id, booking_id, rescheduled_from_id, date, start_time, end_time, branch_id, child_id, status, is_makeup, children(full_name, nickname), branches(name)')
+        .select('id, booking_id, rescheduled_from_id, date, start_time, end_time, branch_id, child_id, status, cancelled_at, is_makeup, children(full_name, nickname), branches(name)')
         .in('booking_id', chunk)
         .order('date', { ascending: true })
         .order('id', { ascending: true })
@@ -425,12 +426,13 @@ export default async function HistoryPage() {
     }
   })
 
-  const activeSessionStatuses = new Set(['scheduled', 'completed', 'absent'])
+  const lifecycle = await loadBookingPaymentLifecycle(adminSupabase, bookings.map((booking) => booking.id))
   const sessionCountMap: Record<string, number> = {}
   const bookingChildNamesMap: Record<string, string[]> = {}
   const bookingSessionsMap: Record<string, SessionRow[]> = {}
   sessionRows.forEach((s) => {
-    if (activeSessionStatuses.has(s.status)) {
+    const booking = bookingById.get(s.booking_id)
+    if (booking && bookingSessionLifecycle(s, { status: booking.status, lifecycle: lifecycle.get(s.booking_id) }).active) {
       sessionCountMap[s.booking_id] = (sessionCountMap[s.booking_id] || 0) + 1
     }
     if (s.children?.full_name && !bookingChildNamesMap[s.booking_id]?.includes(s.children.full_name)) {
@@ -441,7 +443,6 @@ export default async function HistoryPage() {
     bookingSessionsMap[s.booking_id].push(s)
   })
 
-  const lifecycle = await loadBookingPaymentLifecycle(adminSupabase, bookings.map((booking) => booking.id))
   return (
     <div className="space-y-6">
       <div>

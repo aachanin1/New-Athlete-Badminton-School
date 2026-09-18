@@ -31,6 +31,19 @@ export function bookingPaymentLifecycleMessage(lifecycle?: BookingPaymentLifecyc
   return null
 }
 
+/** Presentation only: cancellation evidence takes precedence over cached status. */
+export function bookingSessionLifecycle(session: { status: string; cancelled_at?: string | null; display_status?: string },
+  booking: { status: string; lifecycle?: BookingPaymentLifecycle }) {
+  const cancelled = Boolean(session.cancelled_at || session.status === 'cancelled'
+    || booking.status === 'cancelled' || booking.lifecycle?.cancelledAt || booking.lifecycle?.status === 'cancelled')
+  const due = !cancelled && Boolean(booking.lifecycle?.due)
+  return {
+    status: cancelled ? 'cancelled' : due ? 'payment_due' : session.display_status || session.status,
+    active: !cancelled && !due && ['scheduled', 'completed', 'absent'].includes(session.status),
+    label: cancelled ? 'ยกเลิกแล้ว' : due ? 'หมดกำหนดรับสลิป — รอยกเลิก' : null,
+  }
+}
+
 export function acceptLegacySlip(client: Task10RpcClient, input: {
   userId: string; bookingIds: string[]; storagePath: string; publicUrl: string; sha256: string; expectedAmount: number; requestId: string
 }) {

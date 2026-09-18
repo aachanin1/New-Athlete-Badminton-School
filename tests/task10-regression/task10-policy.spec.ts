@@ -3,6 +3,27 @@ import { bangkokDate, callTask10, familyMakeupQuota, kidsPricingRegime, nextLess
 import { parseKidsMakeupMinimum } from '../../src/lib/kids-makeup-settings'
 import { INITIAL_LATE_KIDS_TIERS, validateKidsTierSet } from '../../src/lib/booking-pricing-policy'
 import { calculateProgressiveBookingPrice } from '../../src/lib/progressive-booking-pricing'
+import { bookingSessionLifecycle, type BookingPaymentLifecycle } from '../../src/lib/booking-payment-lifecycle'
+import { formatThaiDateWithWeekday, formatThaiDateTimeWithWeekday, formatThaiMonthYear } from '../../src/lib/date-format'
+
+test('History lifecycle labels and active counts share cancellation and deadline evidence', () => {
+  const session = { status: 'scheduled', display_status: 'upcoming', cancelled_at: null as string | null }
+  const lifecycle: BookingPaymentLifecycle = { bookingId: 'fixture', status: 'pending_payment', inCohort: true, deadline: '2031-08-01T00:00:00Z', acceptedReceipt: false, due: false, cancelledAt: null, cancellationReason: null, originalExpiresAt: null }
+  expect(bookingSessionLifecycle(session, { status: 'pending_payment', lifecycle })).toEqual({ status: 'upcoming', active: true, label: null })
+  expect(bookingSessionLifecycle(session, { status: 'pending_payment', lifecycle: { ...lifecycle, due: true } })).toEqual({ status: 'payment_due', active: false, label: 'หมดกำหนดรับสลิป — รอยกเลิก' })
+  for (const status of ['scheduled', 'cancelled', 'completed']) {
+    expect(bookingSessionLifecycle({ ...session, status, cancelled_at: '2031-08-01T00:00:00Z' }, { status: 'verified' })).toMatchObject({ status: 'cancelled', active: false, label: 'ยกเลิกแล้ว' })
+  }
+  expect(bookingSessionLifecycle(session, { status: 'cancelled', lifecycle: { ...lifecycle, due: true } })).toMatchObject({ status: 'cancelled', active: false })
+  for (const status of ['paid', 'verified']) expect(bookingSessionLifecycle(session, { status, lifecycle: { ...lifecycle, status, acceptedReceipt: true } })).toMatchObject({ active: true, label: null })
+  expect(bookingSessionLifecycle({ status: 'walleted' }, { status: 'verified' }).active).toBe(false)
+})
+
+test('Corrective Thai presentation uses the shared Bangkok date standard', () => {
+  expect(formatThaiDateWithWeekday('2026-06-29')).toBe('จันทร์ 29 มิ.ย. 69')
+  expect(formatThaiDateTimeWithWeekday('2026-06-29T07:33:00Z')).toBe('จันทร์ 29 มิ.ย. 69 14:33')
+  expect(formatThaiMonthYear('2026-10-01')).toBe('ตุลาคม 2569')
+})
 
 test('Owner quota boundary examples', () => {
   for (const [n, expected] of [[0,0],[3,0],[4,1],[7,1],[8,2],[11,2],[12,3],[15,3],[16,4],[19,4],[20,5],[24,5]]) expect(familyMakeupQuota(n)).toBe(expected)
