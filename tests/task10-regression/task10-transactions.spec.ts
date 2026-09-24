@@ -1,7 +1,109 @@
 import { expect, test } from '@playwright/test'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { INITIAL_LATE_KIDS_TIERS } from '../../src/lib/booking-pricing-policy'
 import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, uploadTask10Slip, protectedWalletFixture, raceFamilyWalletStore, type ProtectedWalletFixture, type FamilyFixture } from './local-supabase'
+
+test('Rewallet corrective migration is loaded with unchanged signature and execution security', () => {
+  const migration = readFileSync(resolve(__dirname, '../../supabase/migrations/20260924133852_task10_rewallet_source_eligibility.sql'), 'utf8')
+  const body = migration.split('AS $$')[1].split('$$;')[0].replaceAll('\r', '').trim()
+  const actual = JSON.parse(localSql(`SELECT json_build_object('body',p.prosrc,'args',pg_get_function_identity_arguments(p.oid),
+    'owner',pg_get_userbyid(p.proowner),'security',p.prosecdef,'config',p.proconfig,'acl',p.proacl,'language',l.lanname,'volatility',p.provolatile)
+    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang
+    WHERE n.nspname='public' AND p.proname='task10_family_makeup_state_v1';`))
+  const digest = (value:string) => createHash('sha256').update(value).digest('hex')
+  expect(digest(actual.body.replaceAll('\r', '').trim())).toBe(digest(body))
+  expect(actual).toMatchObject({args:'p_actor_id uuid, p_parent_id uuid, p_source_month date',owner:'postgres',
+    security:true,config:['search_path=public, pg_temp'],acl:['postgres=X/postgres','service_role=X/postgres'],language:'plpgsql',volatility:'v'})
+  expect(localSql("SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version='20260924133852';")).toBe('1')
+  expect(task10MigrationHashes()).toHaveLength(5) // Original activation contract stays M1–M5; corrective evidence is separate.
+})
+
+test.describe('Rewallet canonical source eligibility', () => {
+  test.afterAll(async () => { await setupTask10() })
+
+  async function chain(descendantFirst: boolean) {
+    const family = await seedTask10Family(), f = readTask10Fixture()
+    const root = family.sources[6]
+    const descendant = (descendantFirst ? '00000000' : 'ffffffff') + randomUUID().slice(8)
+    const credit = randomUUID()
+    expect(descendant < root).toBe(descendantFirst)
+    // Exact synthetic store/redeem/store history. Only the new credit is unused;
+    // both session rows remain walleted, as in the existing Wallet transaction.
+    localSql(`BEGIN; SELECT set_config('task10.source_write','authorized',true);
+      SELECT public.task10_lock_pricing_scope_v1('${family.parentId}','${f.kidsCourseId}',2031,8);
+      UPDATE bookings SET status='verified' WHERE id IN ('${family.bookings[2]}','${family.bookings[3]}');
+      INSERT INTO schedule_slots(template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
+        SELECT id,branch_id,course_type_id,'2031-07-10',start_time,end_time,6,0,'open' FROM schedule_templates
+        WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM '2031-07-10'::date)
+          AND start_time='17:00' AND end_time='19:00' AND is_active ON CONFLICT(branch_id,course_type_id,date,start_time) DO NOTHING;
+      INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup,rescheduled_from_id)
+        SELECT '${descendant}',s.booking_id,t.id,t.date,t.start_time,t.end_time,t.branch_id,s.child_id,'walleted',false,s.id
+        FROM booking_sessions s JOIN schedule_slots t ON t.branch_id=s.branch_id AND t.course_type_id='${f.kidsCourseId}'
+          AND t.date='2031-07-10' AND t.start_time='17:00' WHERE s.id='${root}';
+      UPDATE lesson_wallet_credits SET status='redeemed',redeemed_session_id='${descendant}' WHERE id='${family.credits[0]}';
+      INSERT INTO lesson_wallet_credits(id,user_id,booking_id,original_session_id,child_id,branch_id,course_type_id,
+        original_schedule_slot_id,original_date,original_start_time,original_end_time,status,stored_at,expires_at)
+        SELECT '${credit}','${family.parentId}',booking_id,id,child_id,branch_id,'${f.kidsCourseId}',schedule_slot_id,date,start_time,end_time,
+          'active','2031-07-10T00:00:00Z','2031-07-31T23:59:59.999+07:00' FROM booking_sessions WHERE id='${descendant}';
+      INSERT INTO task10_wallet_transition_evidence(credit_id,source_month,source_root_id,effective_at,original_expires_at,evidence)
+        SELECT w.id,'2031-07-01','${root}',a.effective_at,w.expires_at,'{"disposableFixture":true}'
+        FROM lesson_wallet_credits w CROSS JOIN task10_policy_activation a WHERE w.id='${credit}'; COMMIT;`)
+    return { family, f, root, descendant, credit }
+  }
+
+  for (const descendantFirst of [true, false]) {
+    test(`Valid rewallet history reads Paused/Active and consumes once: descendant sorts ${descendantFirst ? 'before' : 'after'} root`, async () => {
+      const c = await chain(descendantFirst), client = createLocalAdmin()
+      const args = { p_actor_id:c.f.makeupAdminId, p_parent_id:c.family.parentId, p_source_month:'2031-07-01' }
+      const financial = `SELECT md5(jsonb_build_object('bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b WHERE user_id='${c.family.parentId}'),
+        'payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p),'coupons',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM coupon_usages p),
+        'attendance',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM attendance p))::text);`
+      const before = localSql(financial)
+      for (const paused of [true, false]) {
+        localSql(`UPDATE task10_policy_activation SET state='${paused ? 'paused' : 'active'}',pricing_enabled=${!paused},makeup_enabled=${!paused},expiry_enabled=false;`)
+        const state = await client.rpc('task10_family_makeup_state_v1', args)
+        expect(state.error).toBeNull()
+        expect(state.data).toMatchObject({ active:!paused, quota:5, used:0, remaining:5,
+          sourcePurchase:{quantity:20}, destinationPurchase:{quantity:2}, eligible:!paused })
+        expect(state.data.sources.filter((s:{rootId:string}) => s.rootId === c.root))
+          .toEqual([expect.objectContaining({sourceSessionId:c.descendant, rootId:c.root, creditId:c.credit, sourceChildId:c.family.children[0]})])
+      }
+      const template = localSql(`SELECT id FROM schedule_templates WHERE branch_id='${c.f.branchId}' AND course_type_id='${c.f.kidsCourseId}'
+        AND day_of_week=extract(dow FROM '2031-08-20'::date) AND start_time='17:00' AND end_time='19:00' AND is_active;`)
+      const consume = { p_actor_id:c.f.makeupAdminId, p_source_session_id:c.descendant, p_attending_child_id:c.family.children[1],
+        p_template_id:template, p_branch_id:c.f.branchId, p_target_date:'2031-08-20', p_start_time:'17:00', p_end_time:'19:00', p_request_id:randomUUID() }
+      const results = await Promise.all([client.rpc('task10_consume_family_makeup_v1',consume), client.rpc('task10_consume_family_makeup_v1',consume)])
+      expect(results.map(r => r.error)).toEqual([null,null])
+      expect(results[1].data).toEqual(results[0].data)
+      expect(results[0].data).toMatchObject({remaining:4,data:{child_id:c.family.children[1],rescheduled_from_id:c.descendant,
+        date:'2031-08-20',start_time:'17:00:00',end_time:'19:00:00',branch_id:c.f.branchId}})
+      expect(localSql(`SELECT count(*) FROM task10_family_makeup_uses WHERE source_root_id='${c.root}' AND source_child_id='${c.family.children[0]}'
+        AND attending_child_id='${c.family.children[1]}' AND credit_id='${c.credit}';`)).toBe('1')
+      const state = await client.rpc('task10_family_makeup_state_v1', args)
+      expect(state.error).toBeNull(); expect(state.data).toMatchObject({used:1,remaining:4})
+      expect(state.data.sources.some((s:{rootId:string}) => s.rootId === c.root)).toBe(false)
+      const stale = await client.rpc('task10_consume_family_makeup_v1',{...consume,p_request_id:randomUUID()})
+      expect(stale.error?.message).toContain('TASK10_SOURCE_CONFLICT')
+      localSql("UPDATE task10_policy_activation SET state='paused',pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;")
+      expect((await client.rpc('task10_consume_family_makeup_v1',consume)).data).toEqual(results[0].data)
+      expect((await client.rpc('task10_consume_family_makeup_v1',{...consume,p_attending_child_id:c.family.children[0]})).error?.message)
+        .toContain('TASK10_IDEMPOTENCY_CONFLICT')
+      expect(localSql(financial)).toBe(before)
+      expect(localSql(`SELECT status FROM lesson_wallet_credits WHERE id='${c.family.credits[0]}';`)).toBe('redeemed')
+    })
+
+    test(`True eligible duplicate root remains rejected: descendant sorts ${descendantFirst ? 'before' : 'after'} root`, async () => {
+      const c = await chain(descendantFirst), client = createLocalAdmin()
+      localSql(`BEGIN; SELECT set_config('task10.source_write','authorized',true);
+        UPDATE lesson_wallet_credits SET status='active',redeemed_session_id=NULL WHERE id='${c.family.credits[0]}'; COMMIT;`)
+      const state = await client.rpc('task10_family_makeup_state_v1',{p_actor_id:c.f.makeupAdminId,p_parent_id:c.family.parentId,p_source_month:'2031-07-01'})
+      expect(state.error?.message).toContain('TASK10_AMBIGUOUS_SOURCE')
+      expect(localSql(`SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id='${c.family.parentId}';`)).toBe('0')
+    })
+  }
+})
 
 test.describe('Isolated Kids Wallet sibling evidence', () => {
 test.afterAll(async () => { await setupTask10() })

@@ -376,7 +376,8 @@ test('Open Kids calendar expires a selected real-time slot without sending a new
   const account=await client.auth.admin.createUser({email:`calendar-clock-${randomUUID()}@example.com`,password:TASK10_PASSWORD,email_confirm:true})
   expect(account.error).toBeNull(); const parent=account.data.user!.id
   await login(page,TASK10_ADMIN_EMAIL,TASK10_PASSWORD)
-  const now=new Date(), target=new Date(now.getTime()+60_000), end=new Date(target.getTime()+3_600_000)
+  // Match the HH:mm template API; leave 30–90 real seconds to select before the exact minute starts.
+  const now=new Date(), target=new Date(Math.ceil((now.getTime()+30_000)/60_000)*60_000), end=new Date(target.getTime()+3_600_000)
   const today=getBangkokDateKey(now), month=today.slice(0,7), [year,number]=month.split('-').map(Number)
   const previous=new Date(Date.UTC(year,number-2,1)).toISOString().slice(0,7)
   const time=(date:Date)=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(date)

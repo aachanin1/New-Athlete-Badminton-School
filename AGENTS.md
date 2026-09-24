@@ -514,6 +514,29 @@ Main portals:
   verified corrected behavior and current revision/evidence. Actual execution,
   pause, readiness and next-gate state belong only in PROJECT_STATE.md.
 
+<a id="task10-rewallet-corrective-decision-2026-09-24"></a>
+### Task10 — Re-wallet reader correction and conditional Resume (Owner, 2026-09-24)
+
+- Owner authorized one additive migration replacing only
+  `task10_family_makeup_state_v1`: duplicate canonical roots are rejected among
+  eligible sources, after eligibility is established. A redeemed historical
+  Wallet source must not invalidate its legitimate re-walleted descendant.
+  Preserve structural lineage, child identity, transition evidence, spent-source
+  exclusion, quota, N/D/M, expiry and genuine duplicate-source guards.
+- Apply only the tested and published migration while Paused. Keep the accepted
+  web artifact; no rebuild, redeploy, data repair, repeat cutover cancellation or
+  initial activation. Production application and migration identities are separate.
+- After fresh local regressions and authenticated Production read-only checks
+  pass, Owner authorizes the existing `task10_pause_v1(p_pause=false)` with the
+  fresh revision and release evidence. Resume restores all three controls and the
+  existing cron, retaining actual effective_at and history. Check at least two
+  naturally scheduled worker runs; do not trigger a worker or customer test write.
+- An attributable regression after Resume requires immediate safety Pause and
+  evidence preservation. Pause does not undo committed transactions; no repair or
+  automatic second Resume is authorized. This is task-specific Developer authority,
+  not a standing permission; PM remains read-only. PROJECT_STATE.md owns the
+  actual deployment/control state.
+
 ## Technical Guardrails
 
 - Route protection is split across `src/proxy.ts`, layout guards, and API guards. Inspect the actual route/API before changing auth.
