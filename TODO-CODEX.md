@@ -6,11 +6,11 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — Owner acceptance PASS for the tested corrective scope; Task Done No.**
-- PM QA under the temporary Owner exception and Developer SELECT-only reconciliation are complete. The prior Owner-retest-pending item is closed; used local cases must not be replayed/reset.
-- **Next decision:** separately authorize exact accepted-artifact Promotion and post-Promotion checks with controls OFF; activation needs its own fresh cutover manifest and explicit data/control/scheduler scope. Neither is executed by this documentation closeout.
-- Preserve running local UAT, all used/unused fixtures, PM snapshots and Unknowns. No additional transactions or Parking Lot work.
-- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [post-UAT evidence and next-gate proposal](DEVELOPMENT_TODO.md#task10-post-uat-reconciliation-2026-09-24).
+- **Task10 — exact accepted-artifact Promotion with controls OFF Complete; Task Done No.**
+- Owner acceptance PASS and prior PM/Developer reconciliation remain valid. Fresh release postchecks passed; no activation or Production business UAT/write.
+- **Next decision:** separately authorize preparing/reviewing a fresh exact-row activation manifest and its data/control/scheduler effects and pause/rollback plan before any activation approval. No activation work starts automatically.
+- Preserve local UAT, all used/unused fixtures and evidence. No additional transactions, cleanup or Parking Lot work.
+- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [Promotion evidence and next gate](DEVELOPMENT_TODO.md#task10-promotion-off-2026-09-24).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
