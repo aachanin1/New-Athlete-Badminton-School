@@ -1,11 +1,11 @@
 import { defineConfig } from '@playwright/test'
-import { getLocalSupabaseEnv } from './tests/booking-regression/local-supabase'
+import { verifyDisposableIdentity } from './tests/task10-regression/local-supabase'
 
-const local = getLocalSupabaseEnv()
+const local = verifyDisposableIdentity()
 
 export default defineConfig({
   testDir: './tests/history-payment-regression',
-  testMatch: 'history-payment.spec.ts',
+  testMatch: '*.spec.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,
@@ -25,7 +25,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm.cmd run dev -- --hostname 127.0.0.1 --port 3000',
+    // An explicitly supplied disposable runner may bind HTTP local Storage
+    // images without changing the repository's HTTPS deployment configuration.
+    command: process.env.TASK10_HISTORY_WEB_COMMAND || 'npm.cmd run dev -- --hostname 127.0.0.1 --port 3000',
     url: 'http://127.0.0.1:3000',
     timeout: 180_000,
     reuseExistingServer: false,

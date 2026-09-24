@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createHash } from 'node:crypto'
-import { verifyDisposableIdentity } from '../task10-regression/local-supabase'
+import { createHash, randomUUID } from 'node:crypto'
+import { localSql, verifyDisposableIdentity } from '../task10-regression/local-supabase'
 import { PAYMENT_TRANSFER_DEFAULT_ACCOUNTS } from '../../src/lib/payment-transfer-defaults'
 import { PAYMENT_TRANSFER_INSTRUCTION, PAYMENT_TRANSFER_SETTING_KEY, transferAccountNumber } from '../../src/lib/payment-settings'
 import {
@@ -10,7 +10,6 @@ import {
   PAYMENT_SETTINGS_STANDARD_ADMIN,
   createLocalAdmin,
   readHistoryPaymentFixture,
-  verifyLocalLegacyLedgerAbsent,
   type HistoryPaymentFixture,
 } from './local-supabase'
 
@@ -25,6 +24,12 @@ const WEBP_BYTES = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]
 const GIF_BYTES = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0, 0, 0, 0, 0, 0]
 const HEIC_BYTES = [0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63]
 const READ_OPERATION_TIMEOUT_MS = 10_000
+
+function verifyLocalLegacyLedgerAbsent() {
+  // The same physical-target guard as the Task10 suite protects this SELECT.
+  expect(localSql(`BEGIN READ ONLY; SELECT to_regclass('public."Ledger"') IS NULL; COMMIT;`)).toBe('t')
+  return 'absent-verified-by-postgres-catalog'
+}
 
 test.beforeAll(async () => {
   fixture = readHistoryPaymentFixture()
@@ -1346,4 +1351,107 @@ test('valid image/jpg completes the existing shared Test Mode approval transitio
   expect(financialAfter.ledger).toBe(financialBefore.ledger)
   expect(financialAfter.ledgerAllocations - financialBefore.ledgerAllocations).toBe(2)
   expect(financialAfter.finance).toBe(financialBefore.finance)
+})
+
+test('monthly Payment renders 621 real batches, complete members, lesson-month navigation and existing roles', async ({ page }, testInfo) => {
+  test.setTimeout(240_000)
+  verifyDisposableIdentity()
+  const scopeId = randomUUID(), first = randomUUID(), second = randomUUID(), legacy = randomUUID(), incomplete = randomUUID()
+  const path = `${fixture.userId}/monthly-page-read.png`
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR1cAAAAASUVORK5CYII=', 'base64')
+  const uploaded = await localAdmin.storage.from('progressive-payment-slips').upload(path, bytes, { contentType: 'image/png' })
+  expect(uploaded.error).toBeNull()
+  localSql(`BEGIN;
+    INSERT INTO booking_pricing_scopes SELECT (jsonb_populate_record(NULL::booking_pricing_scopes,to_jsonb(s)||jsonb_build_object('id','${scopeId}','lesson_month',10,'lesson_year',2032,'locked_by_payment_batch_id',NULL,'locked_at',NULL))).*
+      FROM booking_pricing_scopes s WHERE id='${fixture.scopeId}';
+    INSERT INTO bookings SELECT (jsonb_populate_record(NULL::bookings,to_jsonb(b)||jsonb_build_object('id',i.id,'pricing_scope_id','${scopeId}','pricing_sequence',i.seq,'year',2032,'month',10,'total_sessions',1,'entitlement_sessions',1,'total_price',700,'status','verified','created_at','2032-09-25T00:00:00Z'))).*
+      FROM bookings b CROSS JOIN (VALUES('${first}',1),('${second}',2)) i(id,seq) WHERE b.id='${fixture.bookingIds[0]}';
+    INSERT INTO bookings SELECT (jsonb_populate_record(NULL::bookings,to_jsonb(b)||jsonb_build_object('id','${legacy}','year',2032,'month',10,'status','verified','created_at','2032-09-25T00:00:00Z'))).*
+      FROM bookings b WHERE b.id='${fixture.legacyBookingIds[0]}';
+    INSERT INTO bookings SELECT (jsonb_populate_record(NULL::bookings,to_jsonb(b)||jsonb_build_object('id','${incomplete}','year',2032,'month',10,'status','pending_payment','expires_at','2032-10-31T16:59:59Z','created_at','2032-09-25T00:00:00Z'))).*
+      FROM bookings b WHERE b.id='${fixture.legacyBookingIds[0]}';
+    INSERT INTO payments(booking_id,user_id,amount,method,status,created_at) VALUES('${legacy}','${fixture.userId}',700,'bank_transfer','approved','2032-09-25T00:00:00Z');
+    WITH batches AS (
+      INSERT INTO progressive_payment_batches(pricing_scope_id,user_id,status,currency,total_amount,member_count,member_set_fingerprint,pricing_scope_revision,prepare_idempotency_key,prepare_request_fingerprint,
+        slip_storage_bucket,slip_storage_path,submitted_at,rejected_at,rejected_by,rejection_reason)
+      SELECT '${scopeId}','${fixture.userId}','rejected','THB',1400,2,repeat('a',64),2,gen_random_uuid(),repeat('b',64),
+        'progressive-payment-slips','${path}','2032-09-25T00:00:00Z','2032-09-25T00:00:01Z','${fixture.settingsAdminId}','Monthly read fixture' FROM generate_series(1,621) RETURNING id)
+    INSERT INTO progressive_payment_batch_bookings(payment_batch_id,booking_id,sequence_snapshot,amount_snapshot,member_fingerprint,active)
+      SELECT b.id,i.id::uuid,i.seq,700,repeat('c',64),false FROM batches b CROSS JOIN(VALUES('${first}',1),('${second}',2))i(id,seq); COMMIT;`)
+  expect(localSql(`SELECT count(*) FROM progressive_payment_batch_bookings m JOIN progressive_payment_batches b ON b.id=m.payment_batch_id WHERE b.pricing_scope_id='${scopeId}';`)).toBe('1242')
+  const completeMonthlyRows = `BEGIN TRANSACTION READ ONLY; SELECT md5(jsonb_build_object(
+    'batches',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM progressive_payment_batches b WHERE pricing_scope_id='${scopeId}'),
+    'members',(SELECT jsonb_agg(to_jsonb(m) ORDER BY payment_batch_id,booking_id) FROM progressive_payment_batch_bookings m JOIN progressive_payment_batches b ON b.id=m.payment_batch_id WHERE b.pricing_scope_id='${scopeId}'),
+    'bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b WHERE id IN ('${first}','${second}','${legacy}','${incomplete}')))::text); COMMIT;`
+  const completeMonthlyBefore = localSql(completeMonthlyRows)
+  const before = await transferProtectedFingerprint()
+  await loginSettings(page)
+  await page.goto('/admin/payments?month=2032-10')
+  await expect(page.getByRole('heading', { name: 'เดือนเรียน ตุลาคม 2575', exact: true })).toBeVisible()
+  await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toBeVisible()
+  await expect.poll(() => page.getByAltText('Payment slip', { exact: true }).first()
+    .evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true)
+  await expect(page.getByText(/ต.ค. 2032 · 2 ครั้ง/).first()).toBeVisible()
+  await page.getByRole('button', { name: 'ถัดไป', exact: true }).last().click()
+  await expect(page.getByText('2 / 42', { exact: true })).toBeVisible()
+  const status = page.getByRole('combobox').filter({ hasText: 'ทุกสถานะ' })
+  await status.click()
+  await page.getByRole('option', { name: 'ยืนยันแล้ว', exact: true }).click()
+  await expect(page.getByText('แสดง 1 จาก 622 รายการ', { exact: true })).toBeVisible()
+  await page.getByRole('combobox').filter({ hasText: 'ยืนยันแล้ว' }).click()
+  await page.getByRole('option', { name: 'ไม่ผ่าน', exact: true }).click()
+  await expect(page.getByText('แสดง 621 จาก 622 รายการ', { exact: true })).toBeVisible()
+  await page.getByRole('combobox').filter({ hasText: 'ไม่ผ่าน' }).click()
+  await page.getByRole('option', { name: 'ทุกสถานะ', exact: true }).click()
+  const search = page.getByPlaceholder(/ค้นหา/)
+  await search.fill(legacy)
+  await expect(page.getByText(/จาก 1 รายการ/).last()).toBeVisible()
+  await search.fill('')
+  await page.getByRole('button', { name: 'รายละเอียด', exact: true }).first().click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'เดือนเรียนก่อนหน้า' }).click()
+  await expect(page).toHaveURL(/month=2032-09/)
+  await expect(page.getByRole('heading', { name: 'เดือนเรียน กันยายน 2575', exact: true })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'เดือนเรียนถัดไป' }).click()
+  await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toBeVisible()
+  await page.reload(); await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toBeVisible()
+  await page.getByLabel('เดือนเรียน', { exact: true }).fill('2032-12')
+  await expect(page).toHaveURL(/month=2032-12/)
+  await page.getByRole('button', { name: 'เดือนเรียนถัดไป' }).click()
+  await expect(page).toHaveURL(/month=2033-01/)
+  await page.getByRole('button', { name: 'เดือนนี้', exact: true }).click()
+  await expect(page.getByLabel('เดือนเรียน', { exact: true })).toHaveValue(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit' }).format(new Date()).slice(0, 7))
+  await page.context().clearCookies()
+  await loginSettings(page, PAYMENT_SETTINGS_STANDARD_ADMIN)
+  await page.goto('/admin/payments?month=2032-10')
+  await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toBeVisible()
+  await expect(page.getByText('฿1,400', { exact: true })).toHaveCount(0)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await testInfo.attach('payment-monthly-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+  const permissions = await localAdmin.from('system_settings').select('*').eq('key', 'admin_menu_permissions').maybeSingle()
+  expect(permissions.error).toBeNull()
+  expect((await localAdmin.from('system_settings').upsert({ key: 'admin_menu_permissions', value: { adminAllowedMenuKeys: ['dashboard'] } }, { onConflict: 'key' })).error).toBeNull()
+  try {
+    await page.goto('/admin/payments?month=2032-10')
+    await expect(page).not.toHaveURL(/\/admin\/payments/)
+    await expect(page.getByRole('button', { name: 'สลิป', exact: true })).toHaveCount(0)
+  } finally {
+    const restored = permissions.data ? await localAdmin.from('system_settings').upsert(permissions.data, { onConflict: 'key' })
+      : await localAdmin.from('system_settings').delete().eq('key', 'admin_menu_permissions')
+    expect(restored.error).toBeNull()
+  }
+  await page.context().clearCookies()
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(HISTORY_ACCOUNT.email)
+  await page.locator('#password').fill(HISTORY_ACCOUNT.password)
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click()
+  await page.waitForURL(/\/dashboard(?:\/|$)/)
+  await page.goto('/admin/payments?month=2032-10')
+  await expect(page).not.toHaveURL(/\/admin\/payments/)
+  await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toHaveCount(0)
+  expect(await transferProtectedFingerprint()).toBe(before)
+  expect(localSql(completeMonthlyRows)).toBe(completeMonthlyBefore)
 })

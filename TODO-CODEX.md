@@ -1,16 +1,16 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — DEVELOPING / Blocked / Task Done No.** Makeup migration passed and applied; required Payment postcheck failed after conditional Resume, then safety Pause completed.
-- [PROJECT_STATE current matrix](PROJECT_STATE.md#current-project-matrix) owns exact controls, artifact, migration, data and Git state. Keep Paused; no automatic second Resume or cancellation/activation replay.
-- **Next Owner decision:** approve the proposed narrow Admin Payment slip-signing concurrency correction, focused tests and new artifact acceptance/release gates. It is outside this round's UI0/no-rebuild contract and has not been implemented.
-- [Corrective authority](AGENTS.md#task10-rewallet-corrective-decision-2026-09-24); [apply and material-stop evidence](DEVELOPMENT_TODO.md#task10-rewallet-payment-stop-2026-09-24).
-- Preserve all Owner/cutover/disposable evidence. Prior PM/Owner acceptance stays historical; no Parking Lot work starts automatically.
+- **Task10 — DEVELOPING / Task Done No.** Approved monthly Payment reader/signing and Makeup child naming are implemented; complete evidence and staged delivery.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix) owns Source/Git, tests, artifact, migration, controls and data state.
+- **Next gate:** exact new staged Production artifact and authenticated school-role read-only verification, then Owner acceptance plus separate Promotion + Resume authorization. Neither action is automatic in this round.
+- [Latest Owner scope](AGENTS.md#task10-payment-monthly-naming-decision-2026-09-25); [verification/history](DEVELOPMENT_TODO.md#task10-payment-monthly-naming-2026-09-25).
+- Preserve Owner/cutover evidence and prior28-bill cancellation. No repair/replay/reset or Parking Lot work.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

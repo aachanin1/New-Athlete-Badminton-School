@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
@@ -12,13 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { PaymentSettingsClient } from '@/components/admin/payment-settings-client'
-import { formatThaiDateTimeWithWeekday } from '@/lib/date-format'
+import { formatThaiDateTimeWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import type { PaymentBranch, PaymentTransferSettings } from '@/lib/payment-settings'
 import {
   AlertTriangle,
   Banknote,
   Building2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Copy,
   CreditCard,
@@ -82,6 +84,8 @@ interface IncompleteBookingData {
 }
 
 interface PaymentsClientProps {
+  selectedMonth: string
+  currentMonth: string
   payments: PaymentData[]
   incompleteBookings: IncompleteBookingData[]
   paymentTransferSettings: PaymentTransferSettings
@@ -173,6 +177,8 @@ function getShortId(id: string) {
 }
 
 export function PaymentsClient({
+  selectedMonth,
+  currentMonth,
   payments,
   incompleteBookings,
   paymentTransferSettings,
@@ -181,6 +187,7 @@ export function PaymentsClient({
   canViewFinancialAmounts,
 }: PaymentsClientProps) {
   const router = useRouter()
+  const [monthPending, startMonthTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [detailPayment, setDetailPayment] = useState<PaymentData | null>(null)
@@ -199,6 +206,22 @@ export function PaymentsClient({
   const [pageSize, setPageSize] = useState(15)
   const [incompletePage, setIncompletePage] = useState(1)
   const [incompletePageSize, setIncompletePageSize] = useState(10)
+
+  const changeMonth = (month: string) => {
+    if (monthPending || reviewSubmitting || !/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month)
+      || month.slice(0, 4) >= '9999' || month === selectedMonth) return
+    setDetailPayment(null)
+    setDetailOpen(false)
+    setSlipOpen(false)
+    setSlipUrl('')
+    setReviewPayment(null)
+    setPaymentSettingsOpen(false)
+    startMonthTransition(() => router.push(`/admin/payments?month=${encodeURIComponent(month)}`))
+  }
+  const adjacentMonth = (offset: number) => {
+    const [year, month] = selectedMonth.split('-').map(Number)
+    return new Date(Date.UTC(year, month - 1 + offset, 1)).toISOString().slice(0, 7)
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -330,6 +353,19 @@ export function PaymentsClient({
 
   return (
     <div className="space-y-5">
+      <Card>
+        <CardContent className="space-y-2 pt-4">
+          <h2 className="font-semibold text-[#153c85]">เดือนเรียน {formatThaiMonthYear(`${selectedMonth}-01`)}</h2>
+          <p className="text-sm text-gray-500">รายการ ยอดรวม การค้นหา และสถานะเฉพาะเดือนเรียนที่เลือก ไม่ใช่เดือนสร้างบิลหรือส่งสลิป</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="icon" aria-label="เดือนเรียนก่อนหน้า" disabled={monthPending || reviewSubmitting || selectedMonth === '1000-01'} onClick={() => changeMonth(adjacentMonth(-1))}><ChevronLeft className="h-4 w-4" /></Button>
+            <Input type="month" aria-label="เดือนเรียน" value={selectedMonth} min="1000-01" max="9998-12" disabled={monthPending || reviewSubmitting} onChange={event => changeMonth(event.target.value)} className="w-44" />
+            <Button variant="outline" size="icon" aria-label="เดือนเรียนถัดไป" disabled={monthPending || reviewSubmitting || selectedMonth === '9998-12'} onClick={() => changeMonth(adjacentMonth(1))}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="outline" disabled={monthPending || reviewSubmitting || selectedMonth === currentMonth} onClick={() => changeMonth(currentMonth)}>เดือนนี้</Button>
+          </div>
+        </CardContent>
+      </Card>
+      {monthPending ? <p role="status">กำลังโหลดรายการเดือนเรียน…</p> : <>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium text-[#2748bf]">
@@ -935,6 +971,7 @@ export function PaymentsClient({
           )}
         </DialogContent>
       </Dialog>
+      </>}
     </div>
   )
 }

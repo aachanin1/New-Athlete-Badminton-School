@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -536,6 +536,36 @@ Main portals:
   automatic second Resume is authorized. This is task-specific Developer authority,
   not a standing permission; PM remains read-only. PROJECT_STATE.md owns the
   actual deployment/control state.
+
+
+<a id="task10-payment-monthly-naming-decision-2026-09-25"></a>
+### Task10 — Payment lesson-month reads, learner names and explicit release gate (Owner, 2026-09-25)
+
+- Admin Payment uses the booking's lesson month, not bill/slip creation month.
+  Filter Legacy payments, incomplete bookings and Progressive review rows in
+  the database before hydration and signing. Preserve complete batch membership,
+  stable range reads, existing role/amount visibility and payment mutations.
+- Default to the Bangkok current month; expose previous/next/direct month and
+  URL/reload semantics. Counts, totals, search, status and pagination belong to
+  that selected lesson month. Do not retain a previous month's detail or slip.
+- This page signs at most four private slip URLs concurrently per page load.
+  Preserve Storage access/TTL and surface signing failures; never hide payments
+  to claim success. Do not change shared payment mutations or pool settings.
+- Makeup uses the existing shared learner formatter: nickname - full name when
+  different, one value when equal or only one exists, and its neutral fallback
+  when neither exists. Keep exact child identity and whole rosters; self uses the
+  profile name. Hydrate only authorized family/list children through bounded reads.
+- Verify the accepted Task10 rules with all three controls and real worker
+  together only in a physically verified disposable target. Production and staged
+  real-database checks remain read-only, including scrutiny of GET side effects.
+- This task authorizes normal source/test/docs publication and a new staged
+  Production artifact without customer aliases. **Owner must accept that exact
+  artifact and explicitly approve Promotion + Resume before either action.**
+  This supersedes unexecuted conditional Resume authority from the earlier round.
+- No new migration, business-rule change, paid/slip data change, repeat cancellation,
+  repair, environment/secret/pool/permission/allowlist change or old incompatible
+  artifact rollback. Pause blocks Kids service; it does not undo committed data.
+  Current actual states belong only in PROJECT_STATE.md.
 
 ## Technical Guardrails
 

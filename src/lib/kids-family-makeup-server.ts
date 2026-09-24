@@ -3,11 +3,23 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { consumeKidsFamilyMakeup, readKidsFamilyMakeup } from '@/lib/kids-family-makeup'
 import { Task10Error, task10RpcError } from '@/lib/task10-policy'
+import { formatLearnerDisplayName } from '@/lib/learner-display-name'
 
 const uuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
 
 export async function readKidsFamilyMakeupWithDestinations(client: SupabaseClient, actorId: string, parentId: string, sourceMonth: string) {
   const state = await readKidsFamilyMakeup(client, actorId, parentId, sourceMonth)
+  // The authorized state owns child identity. Hydrate only those children in
+  // that same family; display enrichment cannot add a learner or entitlement.
+  const childNames = new Map<string, string>()
+  const childIds = [...new Set((state.children || []).map(child => child.id))]
+  for (let offset = 0; offset < childIds.length; offset += 100) {
+    const { data, error } = await client.from('children').select('id,full_name,nickname')
+      .eq('parent_id', parentId).in('id', childIds.slice(offset, offset + 100)).order('id')
+    if (error) throw task10RpcError()
+    for (const child of data || []) childNames.set(child.id, formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }))
+  }
+  const children = (state.children || []).map(child => ({ id: child.id, name: childNames.get(child.id) || formatLearnerDisplayName({}) }))
   const ids: string[] = []
   // Exact family/source-month evidence, not a destination-month history scan.
   for (let offset = 0; ; offset += 1000) {
@@ -44,15 +56,15 @@ export async function readKidsFamilyMakeupWithDestinations(client: SupabaseClien
   const destinations: NonNullable<typeof state.destinations> = []
   for (let offset = 0; offset < uniqueIds.length; offset += 100) {
     const { data, error } = await client.from('booking_sessions')
-      .select('id,child_id,date,start_time,end_time,branches(name),children(full_name)')
+      .select('id,child_id,date,start_time,end_time,branches(name),children(full_name,nickname)')
       .in('id', uniqueIds.slice(offset, offset + 100)).order('date').order('id')
     if (error || data?.length !== uniqueIds.slice(offset, offset + 100).length) throw task10RpcError()
-    for (const row of data as unknown as Array<{ id: string; child_id: string; date: string; start_time: string; end_time: string; branches: { name: string } | null; children: { full_name: string } | null }>) {
-      destinations.push({ id: row.id, childId: row.child_id, childName: row.children?.full_name || 'ไม่พบข้อมูลเด็กที่มาเรียน',
+    for (const row of data as unknown as Array<{ id: string; child_id: string; date: string; start_time: string; end_time: string; branches: { name: string } | null; children: { full_name: string | null; nickname: string | null } | null }>) {
+      destinations.push({ id: row.id, childId: row.child_id, childName: formatLearnerDisplayName({ fullName: row.children?.full_name, nickname: row.children?.nickname }),
         date: row.date, startTime: row.start_time, endTime: row.end_time, branchName: row.branches?.name || 'ไม่พบข้อมูลสาขา' })
     }
   }
-  return { ...state, destinations }
+  return { ...state, children, destinations }
 }
 
 /** Selects a source, never writes entitlement itself. The RPC owns locks and replay. */

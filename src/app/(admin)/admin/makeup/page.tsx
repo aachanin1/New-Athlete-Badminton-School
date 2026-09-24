@@ -14,6 +14,7 @@ import {
 } from '@/lib/session-attendance-status'
 import type { CourseTypeName } from '@/types/database'
 import { loadTask10Policy } from '@/lib/task10-policy'
+import { formatLearnerDisplayName } from '@/lib/learner-display-name'
 
 interface MakeupSessionRow {
   id: string
@@ -543,7 +544,7 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
 
   const toSessionPayload = (session: MakeupSessionRow) => {
     const learnerName = session.child_id
-      ? (session.children?.nickname || session.children?.full_name || 'ไม่ทราบ')
+      ? formatLearnerDisplayName({ nickname: session.children?.nickname, fullName: session.children?.full_name })
       : (session.bookings?.profiles?.full_name || 'ไม่ทราบ')
 
     const groupContext = groupContextBySessionId[session.id] || null

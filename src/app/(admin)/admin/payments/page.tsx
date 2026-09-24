@@ -1,6 +1,8 @@
 import { PaymentsClient } from '@/components/admin/payments-client'
 import { getServiceRoleClient, requireAdminPageAccess } from '@/lib/auth/admin'
 import { createProgressiveSlipSignedUrl } from '@/lib/progressive-payment-integration'
+import { signAdminPaymentSlips } from '@/lib/admin-payment-slip-signing'
+import { getBangkokDateKey } from '@/lib/date-format'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
 import { bookingPaymentLifecycleMessage, loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import type { PaymentReviewQueueRow } from '@/types/database'
@@ -290,8 +292,17 @@ async function fetchSessionLearnerNameMap(supabase: AdminPageSupabase, bookingId
   return learnerNameMap
 }
 
-export default async function PaymentsPage() {
+export default async function PaymentsPage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   const { supabase, role } = await requireAdminPageAccess()
+  const params = await searchParams
+  const currentMonth = getBangkokDateKey().slice(0, 7)
+  const requestedMonth = params?.month
+  const selectedMonth = typeof requestedMonth === 'string'
+    && /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(requestedMonth) && requestedMonth.slice(0, 4) < '9999'
+    ? requestedMonth : currentMonth
+  const [year, month] = selectedMonth.split('-').map(Number)
   const canViewFinancialAmounts = role === 'super_admin'
   const service = getServiceRoleClient()
   const legacyPaymentsPromise = readAllRangePages<PaymentRow>('payments', (start, end) => supabase
@@ -299,11 +310,13 @@ export default async function PaymentsPage() {
     .select(`
       id, booking_id, user_id, ${canViewFinancialAmounts ? 'amount,' : ''} method, slip_image_url,
       status, verified_by, verified_at, notes, created_at,
-      bookings(month, year, status, total_sessions, branch_id, course_type_id, child_id, learner_type,
+      bookings!inner(month, year, status, total_sessions, branch_id, course_type_id, child_id, learner_type,
         branches(name), course_types(name), children(full_name, nickname)
       ),
       profiles!payments_user_id_fkey(full_name, email)
     `)
+    .eq('bookings.year', year)
+    .eq('bookings.month', month)
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
     .range(start, end) as unknown as Promise<QueryRowsResult<PaymentRow>>)
@@ -317,6 +330,8 @@ export default async function PaymentsPage() {
       payments(id, status, slip_image_url, created_at)
     `)
     .in('status', ['pending_payment', 'paid'])
+    .eq('year', year)
+    .eq('month', month)
     .order('created_at', { ascending: false })
     .order('id', { ascending: true })
     .range(start, end) as unknown as Promise<QueryRowsResult<IncompleteBookingRow>>)
@@ -326,34 +341,31 @@ export default async function PaymentsPage() {
         .from('payment_review_queue_v1')
         .select('*')
         .eq('source_kind', 'progressive')
+        .eq('lesson_year', year)
+        .eq('lesson_month', month)
         .in('status', ['submitted', 'under_review', 'approved', 'rejected'])
         .order('submitted_at', { ascending: false })
+        .order('source_id', { ascending: true })
         .range(start, end) as unknown as Promise<QueryRowsResult<PaymentReviewQueueRow>>)
     : []
 
   const progressiveUserIds = Array.from(new Set(progressiveQueue.map((row) => row.user_id)))
   const progressiveCourseIds = Array.from(new Set(progressiveQueue.map((row) => row.course_type_id)))
   const progressiveBatchIds = progressiveQueue.map((row) => row.source_id)
-  const [progressiveProfilesResult, progressiveCoursesResult, progressiveMembersResult] = await Promise.all([
-    progressiveUserIds.length > 0
-      ? service.from('profiles').select('id, full_name, email').in('id', progressiveUserIds)
-      : Promise.resolve({ data: [] as ProgressiveProfileRow[], error: null }),
-    progressiveCourseIds.length > 0
-      ? service.from('course_types').select('id, name').in('id', progressiveCourseIds)
-      : Promise.resolve({ data: [] as ProgressiveCourseRow[], error: null }),
-    progressiveBatchIds.length > 0
-      ? service.from('progressive_payment_batch_bookings').select(`
+  const [progressiveProfiles, progressiveCourses, progressiveMembers] = await Promise.all([
+    readChunkedRangePages<ProgressiveProfileRow>('progressive profiles', progressiveUserIds,
+      (chunk, start, end) => service.from('profiles').select('id, full_name, email')
+        .in('id', chunk).order('id').range(start, end) as unknown as Promise<QueryRowsResult<ProgressiveProfileRow>>),
+    readChunkedRangePages<ProgressiveCourseRow>('progressive courses', progressiveCourseIds,
+      (chunk, start, end) => service.from('course_types').select('id, name')
+        .in('id', chunk).order('id').range(start, end) as unknown as Promise<QueryRowsResult<ProgressiveCourseRow>>),
+    readChunkedRangePages<ProgressiveMemberRow>('progressive batch members', progressiveBatchIds,
+      (chunk, start, end) => service.from('progressive_payment_batch_bookings').select(`
           payment_batch_id, booking_id,
           bookings(learner_type, total_sessions, branches(name), children(full_name, nickname))
-        `).in('payment_batch_id', progressiveBatchIds)
-      : Promise.resolve({ data: [] as ProgressiveMemberRow[], error: null }),
+        `).in('payment_batch_id', chunk).order('payment_batch_id').order('booking_id')
+        .range(start, end) as unknown as Promise<QueryRowsResult<ProgressiveMemberRow>>),
   ])
-  if (progressiveProfilesResult.error || progressiveCoursesResult.error || progressiveMembersResult.error) {
-    throw new Error('[admin/payments] progressive queue detail read failed')
-  }
-  const progressiveProfiles = (progressiveProfilesResult.data || []) as unknown as ProgressiveProfileRow[]
-  const progressiveCourses = (progressiveCoursesResult.data || []) as unknown as ProgressiveCourseRow[]
-  const progressiveMembers = (progressiveMembersResult.data || []) as unknown as ProgressiveMemberRow[]
   const progressiveProfileMap = new Map(progressiveProfiles.map((row) => [row.id, row]))
   const progressiveCourseMap = new Map(progressiveCourses.map((row) => [row.id, row.name || '']))
   const progressiveMembersMap = new Map<string, ProgressiveMemberRow[]>()
@@ -444,7 +456,8 @@ export default async function PaymentsPage() {
     verified_by_name: p.verified_by ? (verifierMap[p.verified_by] || null) : null,
   }))
 
-  const progressivePaymentList = await Promise.all(progressiveQueue.map(async (row) => {
+  const progressiveSlipUrls = await signAdminPaymentSlips(progressiveQueue, createProgressiveSlipSignedUrl)
+  const progressivePaymentList = progressiveQueue.map((row, index) => {
     const profile = progressiveProfileMap.get(row.user_id)
     const members = progressiveMembersMap.get(row.source_id) || []
     const branchNames = Array.from(new Set(members.map((member) => member.bookings?.branches?.name).filter(Boolean))) as string[]
@@ -464,7 +477,7 @@ export default async function PaymentsPage() {
       user_id: row.user_id,
       ...(canViewFinancialAmounts ? { amount: Number(row.total_amount) } : {}),
       method: 'progressive_batch',
-      slip_image_url: await createProgressiveSlipSignedUrl(row.slip_storage_path),
+      slip_image_url: progressiveSlipUrls[index],
       status: mappedStatus,
       verified_by: null,
       verified_at: row.decided_at,
@@ -481,7 +494,7 @@ export default async function PaymentsPage() {
       learner_name: learnerNames.length > 0 ? learnerNames.join(', ') : `${row.booking_count} bookings`,
       verified_by_name: row.status === 'approved' || row.status === 'rejected' ? 'Progressive review' : null,
     }
-  }))
+  })
 
   const incompleteBookingList = incompleteBookings.filter((booking) => !lifecycle.get(booking.id)?.due && lifecycle.get(booking.id)?.status !== 'cancelled').map((booking) => {
     const latestPayment = [...(booking.payments || [])].sort((a, b) => {
@@ -517,8 +530,11 @@ export default async function PaymentsPage() {
 
   return (
     <PaymentsClient
+      key={selectedMonth}
+      selectedMonth={selectedMonth}
+      currentMonth={currentMonth}
       payments={[...progressivePaymentList, ...paymentList].sort((a, b) => (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime() || a.id.localeCompare(b.id)
       ))}
       incompleteBookings={incompleteBookingList}
       paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value, paymentBranches || [])}

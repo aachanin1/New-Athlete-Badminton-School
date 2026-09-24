@@ -128,6 +128,86 @@ async function login(page: Page, email=TEST_ADMIN_ACCOUNT.email, password=TEST_A
   await page.waitForURL(/\/admin(?:\/|$)/)
 }
 
+test('Makeup renders shared nickname-full-name labels, keeps child identities and searches either name', async ({ page }, testInfo) => {
+  const family = await seedTask10Family(), f = readTask10Fixture()
+  const extras = [randomUUID(), randomUUID(), randomUUID()]
+  localSql(`BEGIN; SELECT task10_lock_pricing_scope_v1('${family.parentId}','${f.kidsCourseId}',2031,8);
+    UPDATE bookings SET status='verified' WHERE id IN ('${family.bookings[2]}','${family.bookings[3]}');
+    UPDATE children SET full_name='เมย์ ใจดี',nickname='น้องเมย์' WHERE id='${family.children[0]}';
+    UPDATE children SET full_name='มิน ใจดี',nickname=NULL WHERE id='${family.children[1]}';
+    INSERT INTO children(id,parent_id,full_name,nickname,date_of_birth) VALUES
+      ('${extras[0]}','${family.parentId}','ชื่อเดียว','ชื่อเดียว','2016-01-01'),
+      ('${extras[1]}','${family.parentId}','','เล่นอย่างเดียว','2016-01-01'),
+      ('${extras[2]}','${family.parentId}','','','2016-01-01'); COMMIT;`)
+  const template = localSql(`SELECT id FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}'
+    AND day_of_week=extract(dow FROM date '2031-08-20') AND start_time='17:00' AND end_time='19:00' AND is_active;`)
+  const consumed = await createLocalAdmin().rpc('task10_consume_family_makeup_v1', { p_actor_id: f.makeupAdminId,
+    p_source_session_id: family.sources[1], p_attending_child_id: family.children[0], p_template_id: template,
+    p_branch_id: f.branchId, p_target_date: '2031-08-20', p_start_time: '17:00', p_end_time: '19:00', p_request_id: randomUUID() })
+  expect(consumed.error).toBeNull()
+  // A separate past, unmarked round exercises the Review roster with the same
+  // authorized child IDs; Auth/browser clocks remain real.
+  const reviewDate = getBangkokDateKey(new Date(Date.now() - 86_400_000)), reviewBooking = randomUUID()
+  const [reviewYear, reviewMonth] = reviewDate.split('-').map(Number)
+  const reviewControls = localSql('SELECT row_to_json(p) FROM task10_policy_activation p;')
+  // Seed this historical review round using the existing disposable fixture
+  // convention; restore every activation field in the same locked transaction.
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1);
+    UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
+    SELECT set_config('task10.source_write','authorized',true);
+    INSERT INTO bookings(id,user_id,learner_type,child_id,branch_id,course_type_id,month,year,total_sessions,entitlement_sessions,total_price,status,created_at)
+      VALUES('${reviewBooking}','${family.parentId}','child','${family.children[0]}','${f.branchId}','${f.kidsCourseId}',${reviewMonth},${reviewYear},5,5,3500,'verified','${reviewDate}T00:00:00Z');
+    INSERT INTO schedule_slots(template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
+      SELECT id,branch_id,course_type_id,'${reviewDate}',start_time,end_time,6,0,'open' FROM schedule_templates
+      WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM date '${reviewDate}') AND start_time='17:00' AND end_time='19:00' AND is_active
+      ON CONFLICT(branch_id,course_type_id,date,start_time) DO NOTHING;
+    INSERT INTO booking_sessions(booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
+      SELECT '${reviewBooking}',s.id,s.date,s.start_time,s.end_time,s.branch_id,c,'scheduled',false FROM schedule_slots s
+      CROSS JOIN unnest(ARRAY[${[...family.children, ...extras].map(id => `'${id}'::uuid`).join(',')}]) c
+      WHERE s.branch_id='${f.branchId}' AND s.course_type_id='${f.kidsCourseId}' AND s.date='${reviewDate}' AND s.start_time='17:00';
+    UPDATE task10_policy_activation p SET state=b.state,effective_at=b.effective_at,revision=b.revision,
+      pricing_enabled=b.pricing_enabled,makeup_enabled=b.makeup_enabled,expiry_enabled=b.expiry_enabled,artifact=b.artifact
+      FROM json_populate_record(NULL::task10_policy_activation,'${reviewControls.replace(/'/g, "''")}'::json) b; COMMIT;`)
+  expect(localSql('SELECT row_to_json(p) FROM task10_policy_activation p;')).toBe(reviewControls)
+  const before = localSql(`SELECT md5(jsonb_build_object('uses',(SELECT jsonb_agg(to_jsonb(u) ORDER BY id) FROM task10_family_makeup_uses u),
+    'credits',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM lesson_wallet_credits w),'bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b))::text);`)
+  await login(page)
+  for (const reload of [false, true]) {
+    if (reload) await page.reload(); else await page.goto('/admin/makeup?month=2031-07')
+    await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+    const card = page.getByTestId(`kids-family-${family.parentId}:2031-07`)
+    for (const name of ['น้องเมย์ - เมย์ ใจดี', 'มิน ใจดี', 'ชื่อเดียว', 'เล่นอย่างเดียว', 'ไม่ระบุชื่อผู้เรียน']) await expect(card).toContainText(name)
+    await expect(card).not.toContainText('ชื่อเดียว - ชื่อเดียว')
+    await expect(card).toContainText('จองชดเชยแล้ว · น้องเมย์ - เมย์ ใจดี')
+    await expect(card).toContainText('เหลือ 4')
+  }
+  const search = page.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน...')
+  for (const query of ['น้องเมย์', 'เมย์ ใจดี']) {
+    await search.fill(query)
+    await expect(page.getByTestId(`kids-family-${family.parentId}:2031-07`)).toContainText('มิน ใจดี')
+  }
+  await search.fill('')
+  await page.getByTestId(`kids-family-${family.parentId}:2031-07`).getByRole('button', { name: 'เลือกเด็กและรอบชดเชย' }).click()
+  await page.getByRole('combobox', { name: 'เด็กที่มาเรียนจริง' }).click()
+  await expect(page.getByRole('option', { name: 'น้องเมย์ - เมย์ ใจดี', exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await testInfo.attach('makeup-names-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+  await page.goto(`/admin/makeup?month=${reviewDate.slice(0, 7)}`)
+  const reviewSearch = page.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, โค้ช, สาขา...')
+  for (const query of ['น้องเมย์', 'เมย์ ใจดี']) {
+    await reviewSearch.fill(query)
+    for (const name of ['น้องเมย์ - เมย์ ใจดี', 'มิน ใจดี', 'ชื่อเดียว', 'เล่นอย่างเดียว', 'ไม่ระบุชื่อผู้เรียน']) await expect(page.getByRole('tabpanel')).toContainText(name)
+  }
+  await page.reload()
+  await reviewSearch.fill('น้องเมย์')
+  await expect(page.getByRole('tabpanel')).toContainText('น้องเมย์ - เมย์ ใจดี')
+  expect(localSql(`SELECT md5(jsonb_build_object('uses',(SELECT jsonb_agg(to_jsonb(u) ORDER BY id) FROM task10_family_makeup_uses u),
+    'credits',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM lesson_wallet_credits w),'bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b))::text);`)).toBe(before)
+})
+
 test('Owner corrective: Kids entitlement is one family card inside the Makeup tab without source selection', async ({ page }) => {
   const family = await seedTask10Family()
   setDisposableClock('2031-08-01T10:00:00+07:00')
