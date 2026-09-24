@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { TEST_ADMIN_ACCOUNT, TEST_ACCOUNT } from '../booking-regression/local-supabase'
 import { createHash, randomUUID } from 'node:crypto'
+import { getBangkokDateKey } from '../../src/lib/date-format'
 import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, seedFamilyScheduleFixture, seedLegacyHeaderWalletFixture, setDisposableClock, trackTask10Storage, TASK10_ADMIN_EMAIL, TASK10_PASSWORD } from './local-supabase'
 
 test.afterEach(async ({}, testInfo) => {
@@ -61,6 +62,7 @@ for (const childRepresentative of [false, true]) {
     await expect(page.getByText('รวม 2 ครั้ง', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: `ดูตารางวันที่ ${c.dates.source}`, exact: true }).click()
     await expect(page.getByText('Family Private · 1 ชั่วโมง · 2 คน', { exact: true })).toBeVisible()
+    await expect(page.getByText('รอบครอบครัวนี้ยังไม่พร้อมเก็บทั้งหน่วย โปรดตรวจสถานะผู้เรียนทุกคน', { exact: true })).toHaveCount(0)
     await page.goto('/dashboard/lesson-wallet')
     await expect(page.getByRole('button', { name: 'ใช้วันเรียน', exact: true })).toHaveCount(1)
     await page.getByRole('button', { name: 'ใช้วันเรียน', exact: true }).click()
@@ -145,6 +147,10 @@ test('Owner corrective: Kids entitlement is one family card inside the Makeup ta
   await expect(page.getByText('ยังชดเชยได้ (ผู้ใหญ่/Private)', { exact: true })).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'รายการต้นทาง', exact: true })).toHaveCount(0)
   await expect(page.getByRole('combobox', { name: 'ครอบครัวและเดือนต้นทาง', exact: true })).toHaveCount(0)
+  await expect(tab.getByText('แสดง 0-0 จาก 0 รายการ', { exact: true })).toHaveCount(0)
+  await tab.getByPlaceholder('ค้นหานักเรียน, ผู้ปกครอง, สาขา, เดือน...').fill('no-such-family-calendar')
+  await expect(tab.getByText('ไม่มีครอบครัวที่ตรงกับเดือนและตัวกรองนี้', { exact: true })).toBeVisible()
+  await expect(tab.getByText('แสดง 0-0 จาก 0 รายการ', { exact: true })).toHaveCount(0)
   expect(localSql(`SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id='${family.parentId}';`)).toBe('0')
 })
 
@@ -308,12 +314,13 @@ test('Makeup Admin chooses the attendee once and server selects an exact source 
   await card.getByRole('button',{name:'เลือกเด็กและรอบชดเชย',exact:true}).click()
   await page.getByRole('combobox',{name:'เด็กที่มาเรียนจริง',exact:true}).click()
   await page.getByRole('option',{name:`Task10 Family ${family.children.indexOf(attendee)+1}`,exact:true}).click()
-  await page.getByLabel('วันชดเชยร่วมครอบครัว',{exact:true}).fill('2031-08-20')
-  await page.getByRole('combobox',{name:'รอบชดเชยร่วมครอบครัว',exact:true}).click()
-  await page.getByRole('option',{name:'สาขาทดสอบ Localhost · 17:00–19:00',exact:true}).click()
+  await expect(page.getByTestId('makeup-calendar')).toContainText('สิงหาคม 2574')
+  await page.getByTestId('makeup-day-2031-08-20').click()
+  await page.getByRole('dialog').getByText('สาขาทดสอบ Localhost',{exact:true}).locator('..').getByRole('button',{name:'17:00-19:00',exact:true}).click()
   const response=page.waitForResponse(r=>r.url().includes('/api/admin/makeup/kids-family') && r.request().method()==='POST')
   await page.getByRole('button',{name:'จัดชดเชยร่วมครอบครัว',exact:true}).click()
   const saved=await response;const body=await saved.json();expect(saved.status(),JSON.stringify(body)).toBe(200)
+  expect(saved.request().postDataJSON().schedule_template_id).toBe(localSql(`SELECT id FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM date '2031-08-20') AND start_time='17:00' AND end_time='19:00' AND is_active;`))
   await expect(page.getByRole('status').filter({hasText:'จัดชดเชยสำเร็จ โควตาเหลือ 4 ครั้ง'})).toBeVisible()
   expect(saved.request().postDataJSON()).not.toHaveProperty('original_session_id')
   expect(localSql(`SELECT child_id FROM booking_sessions WHERE id='${body.data.id}';`)).toBe(attendee)
@@ -326,6 +333,85 @@ test('Makeup Admin chooses the attendee once and server selects an exact source 
   await expect(card.locator(`[data-makeup-destination="${body.data.id}"]`)).toContainText('สาขาทดสอบ Localhost')
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   await page.screenshot({path:'test-results/task10-regression/family-makeup-mobile.png',fullPage:true})
+  await page.reload()
+  await page.getByRole('tab',{name:/เลือกวันชดเชย/}).click()
+  await expect(card.locator(`[data-makeup-destination="${body.data.id}"]`)).toContainText(`Task10 Family ${family.children.indexOf(attendee)+1}`)
+  await expect(card.getByText('โควตา 5 · ใช้แล้ว 1 · เหลือ 4 · ต้นทางที่ใช้ได้ 7',{exact:true})).toBeVisible()
+})
+
+test('Single child family enters the Thai calendar immediately; calendar works on desktop and 390px without consuming quota', async ({ page }, testInfo) => {
+  const family=await seedTask10Family(), f=readTask10Fixture()
+  // Convert only this new owned synthetic family into a one-child household,
+  // preserving all purchased quantities and exact learner references together.
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); SELECT set_config('task10.source_write','authorized',true);
+    SELECT task10_lock_pricing_scope_v1('${family.parentId}','${f.kidsCourseId}',2031,8);
+    UPDATE bookings SET child_id='${family.children[0]}' WHERE user_id='${family.parentId}' AND child_id='${family.children[1]}';
+    UPDATE booking_sessions SET child_id='${family.children[0]}' WHERE booking_id IN (SELECT id FROM bookings WHERE user_id='${family.parentId}') AND child_id='${family.children[1]}';
+    UPDATE attendance SET student_id='${family.children[0]}' WHERE student_id='${family.children[1]}';
+    UPDATE lesson_wallet_credits SET child_id='${family.children[0]}' WHERE user_id='${family.parentId}' AND child_id='${family.children[1]}';
+    DELETE FROM children WHERE id='${family.children[1]}' AND parent_id='${family.parentId}';
+    UPDATE bookings SET status='verified' WHERE id IN ('${family.bookings[2]}','${family.bookings[3]}'); COMMIT;`)
+  await login(page,TASK10_ADMIN_EMAIL,TASK10_PASSWORD)
+  await page.goto('/admin/makeup?month=2031-07'); await page.getByRole('tab',{name:/เลือกวันชดเชย/}).click()
+  const card=page.getByTestId(`kids-family-${family.parentId}:2031-07`)
+  await card.getByRole('button',{name:'เลือกเด็กและรอบชดเชย',exact:true}).click()
+  const dialog=page.getByRole('dialog')
+  await expect(dialog.getByRole('combobox',{name:'เด็กที่มาเรียนจริง',exact:true})).toHaveCount(0)
+  await expect(dialog).toContainText('เด็กที่มาเรียนจริง: Task10 Family 1')
+  await expect(dialog.getByTestId('makeup-calendar')).toBeVisible()
+  await dialog.getByTestId('makeup-day-2031-08-20').click()
+  await dialog.getByText('สาขาทดสอบ Localhost',{exact:true}).locator('..').getByRole('button',{name:'17:00-19:00',exact:true}).click()
+  await expect(dialog.getByRole('button',{name:'จัดชดเชยร่วมครอบครัว',exact:true})).toBeEnabled()
+  await testInfo.attach('single-child-calendar-desktop',{body:await page.screenshot({fullPage:true}),contentType:'image/png'})
+  await page.setViewportSize({width:390,height:844})
+  await expect(dialog.getByTestId('makeup-day-2031-08-20')).toBeVisible()
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await testInfo.attach('single-child-calendar-mobile',{body:await page.screenshot({fullPage:true}),contentType:'image/png'})
+  expect(localSql(`SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id='${family.parentId}';`)).toBe('0')
+  expect(localSql(`SELECT count(*) FROM booking_sessions s JOIN bookings b ON b.id=s.booking_id WHERE b.user_id='${family.parentId}' AND s.child_id<>'${family.children[0]}';`)).toBe('0')
+})
+
+test('Open Kids calendar expires a selected real-time slot without sending a new transaction', async ({ page }) => {
+  const f=readTask10Fixture(), client=createLocalAdmin(), child=randomUUID(), booking=randomUUID(), purchase=randomUUID(), source=randomUUID(), template=randomUUID(), slot=randomUUID()
+  const account=await client.auth.admin.createUser({email:`calendar-clock-${randomUUID()}@example.com`,password:TASK10_PASSWORD,email_confirm:true})
+  expect(account.error).toBeNull(); const parent=account.data.user!.id
+  await login(page,TASK10_ADMIN_EMAIL,TASK10_PASSWORD)
+  const now=new Date(), target=new Date(now.getTime()+60_000), end=new Date(target.getTime()+3_600_000)
+  const today=getBangkokDateKey(now), month=today.slice(0,7), [year,number]=month.split('-').map(Number)
+  const previous=new Date(Date.UTC(year,number-2,1)).toISOString().slice(0,7)
+  const time=(date:Date)=>new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(date)
+  const startTime=time(target), endTime=time(end)
+  expect(getBangkokDateKey(end),'Run this real-time fixture before the final hour of the Bangkok day').toBe(today)
+  setDisposableClock(now.toISOString())
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); SELECT set_config('task10.source_write','authorized',true);
+    UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
+    INSERT INTO children(id,parent_id,full_name,date_of_birth) VALUES('${child}','${parent}','Calendar real-time child','2016-01-01');
+    INSERT INTO bookings(id,user_id,learner_type,child_id,branch_id,course_type_id,month,year,total_sessions,entitlement_sessions,total_price,status) VALUES
+      ('${booking}','${parent}','child','${child}','${f.branchId}','${f.kidsCourseId}',${Number(previous.slice(5))},${Number(previous.slice(0,4))},20,20,10000,'verified'),
+      ('${purchase}','${parent}','child','${child}','${f.branchId}','${f.kidsCourseId}',${number},${year},2,2,1400,'verified');
+    INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
+      VALUES('${template}','${f.branchId}','${f.kidsCourseId}',extract(dow FROM date '${today}'),'${startTime}','${endTime}',true);
+    INSERT INTO schedule_slots(id,branch_id,course_type_id,date,start_time,end_time,status)
+      VALUES('${slot}','${f.branchId}','${f.kidsCourseId}','${previous}-01','17:00','19:00','open');
+    INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
+      VALUES('${source}','${booking}','${slot}','${previous}-01','17:00','19:00','${f.branchId}','${child}','absent',false);
+    INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${source}','${child}','child','${f.adminUserId}','absent');
+    UPDATE task10_policy_activation SET state='active',effective_at='${month}-01T00:00:00+07:00',makeup_enabled=true; COMMIT;`)
+  let posts=0
+  page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/admin/makeup/kids-family')posts++})
+  await page.goto(`/admin/makeup?month=${previous}`); await page.getByRole('tab',{name:/เลือกวันชดเชย/}).click()
+  await page.getByTestId(`kids-family-${parent}:${previous}`).getByRole('button',{name:'เลือกเด็กและรอบชดเชย',exact:true}).click()
+  const dialog=page.getByRole('dialog')
+  await dialog.getByTestId(`makeup-day-${today}`).click()
+  await dialog.locator(`[data-template-id="${template}"]`).click()
+  await expect(dialog.getByRole('button',{name:'จัดชดเชยร่วมครอบครัว',exact:true})).toBeEnabled()
+  // Wait for this fixture's actual wall-clock boundary; Auth and browser Date stay real.
+  await page.waitForTimeout(Math.max(0,target.getTime()-Date.now())+1200)
+  await expect(dialog.locator(`[data-template-id="${template}"]`)).toHaveCount(0)
+  await expect(dialog.getByRole('button',{name:'จัดชดเชยร่วมครอบครัว',exact:true})).toBeDisabled()
+  expect(posts).toBe(0)
+  expect(localSql(`SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id='${parent}';`)).toBe('0')
+  expect(localSql(`SELECT count(*) FROM booking_sessions WHERE booking_id='${booking}' AND is_makeup;`)).toBe('0')
 })
 
 test('Automatic family source API preserves D, request replay after pause, changed-payload rejection and concurrent last quota', async ({ page }) => {
@@ -370,8 +456,8 @@ test(`Family ${failure} retains the exact request across tabs and blocks month c
   const card=page.getByTestId(`kids-family-${family.parentId}:2031-07`)
   await card.getByRole('button',{name:'เลือกเด็กและรอบชดเชย',exact:true}).click()
   await page.getByRole('combobox',{name:'เด็กที่มาเรียนจริง',exact:true}).click();await page.getByRole('option',{name:'Task10 Family 1',exact:true}).click()
-  await page.getByLabel('วันชดเชยร่วมครอบครัว',{exact:true}).fill('2031-08-20')
-  await page.getByRole('combobox',{name:'รอบชดเชยร่วมครอบครัว',exact:true}).click();await page.getByRole('option',{name:'สาขาทดสอบ Localhost · 17:00–19:00',exact:true}).click()
+  await page.getByTestId('makeup-day-2031-08-20').click()
+  await page.getByRole('dialog').getByText('สาขาทดสอบ Localhost',{exact:true}).locator('..').getByRole('button',{name:'17:00-19:00',exact:true}).click()
   const requests:unknown[]=[]
   page.on('request',r=>{if(r.method()==='POST'&&new URL(r.url()).pathname==='/api/admin/makeup/kids-family')requests.push(r.postDataJSON())})
   if (failure === 'lost response') {

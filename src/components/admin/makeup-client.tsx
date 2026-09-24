@@ -12,19 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { MakeupCalendarPicker, useMakeupCalendarNow } from '@/components/admin/makeup-calendar-picker'
+import { findKidsMakeupSlot, kidsMakeupCalendarDays } from '@/lib/makeup-calendar'
 import {
   formatThaiDateTimeWithWeekday,
   formatThaiDateWithWeekday,
   formatThaiMonthYear,
   formatThaiShortMonthYear,
-  getBangkokDateKey,
 } from '@/lib/date-format'
 import { isAttendanceGapReviewSession, isMakeupEligibleMissedSession } from '@/lib/session-attendance-status'
 import { getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import type { AttendanceStatus } from '@/types/database'
 import type { Task10Policy } from '@/lib/task10-policy'
 import { availableFamilyMakeupCount, familyMakeupReason, type KidsFamilyMakeupCard, type KidsFamilyMakeupState } from '@/lib/kids-family-makeup'
-import { getBangkokDayOfWeek } from '@/lib/schedule-template-utils'
 import {
   AlertCircle,
   Building2,
@@ -203,6 +203,7 @@ interface ReviewSessionGroup {
 }
 
 interface PickedSlot {
+  templateId?: string
   date: string
   dayOfWeek: number
   start: string
@@ -448,6 +449,7 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
   const [childId, setChildId] = useState('')
   const [date, setDate] = useState('')
   const [templateId, setTemplateId] = useState('')
+  const now = useMakeupCalendarNow(Boolean(selected))
   const [saving, setSaving] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
@@ -462,6 +464,19 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
   useEffect(() => { setPage(1) }, [search, branch, course, status])
   const state = selected ? overrides[keyOf(selected.state)] || selected.state : null
   const locked = saving || uncertain
+  const calendarDays = useMemo(() => kidsMakeupCalendarDays(state?.destinationMonth || '', branches, scheduleTemplates, now), [state?.destinationMonth, branches, scheduleTemplates, now])
+  const pickedSlot = state ? findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, now) : null
+  useEffect(() => {
+    // An uncertain transaction must retain its exact payload even after a slot starts.
+    if (locked || inFlight.current || request.current || !date || !state) return
+    if (!calendarDays.some(day => day.dateInput === date)) {
+      setDate(''); setTemplateId(''); setError('วันที่เลือกไม่มีรอบที่ยังไม่เริ่ม กรุณาเลือกวันใหม่'); return
+    }
+    if (!templateId) return
+    if (!findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, now)) {
+      setTemplateId(''); setError('รอบที่เลือกเริ่มแล้วหรือเลือกไม่ได้ กรุณาเลือกวันและรอบใหม่')
+    }
+  }, [locked, templateId, state, date, branches, scheduleTemplates, now, calendarDays])
   const filtered = cards.map(card => ({ ...card, state: overrides[keyOf(card.state)] || card.state })).filter(card => {
     const s = card.state
     if (course !== 'all' && course !== 'kids_group') return false
@@ -487,14 +502,16 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
   }
   function open(card: KidsFamilyMakeupCard) {
     if (inFlight.current || request.current) return
-    setSelected(card); setChildId(''); setDate(`${card.state.destinationMonth}-01`); setTemplateId(''); setError(null); setSuccess(null)
+    const current = overrides[keyOf(card.state)] || card.state
+    setSelected(card); setChildId(current.children.length === 1 ? current.children[0].id : ''); setDate(''); setTemplateId(''); setError(null); setSuccess(null)
   }
-  const templates = scheduleTemplates.filter(t => t.course_type_name === 'kids_group' && t.is_active && t.day_of_week === getBangkokDayOfWeek(date))
   async function consume() {
     if (inFlight.current || !state || !selected) return
     if (!request.current) {
-      const template = templates.find(t => t.id === templateId)
-      if (!state.eligible || !childId || !template) return
+      const slot = findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, new Date())
+      const template = slot && scheduleTemplates.find(t => t.id === slot.templateId)
+      if (!state.eligible || !state.children.some(child => child.id === childId)) return
+      if (!template) { setTemplateId(''); setError('รอบที่เลือกเริ่มแล้วหรือเลือกไม่ได้ กรุณาเลือกวันและรอบใหม่'); return }
       request.current = { parent_id: state.parentId, source_month: state.sourceMonth, attending_child_id: childId,
         schedule_template_id: template.id, branch_id: template.branch_id, makeup_date: date,
         start_time: template.start_time, end_time: template.end_time, request_id: crypto.randomUUID() }
@@ -551,15 +568,18 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
     })}
     {filtered.length > 15 ? <ListPagination page={safePage} pageSize={15} pageSizeOptions={[15]} total={filtered.length} onPageChange={setPage} onPageSizeChange={() => {}} /> : null}
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open && !inFlight.current && !request.current) setSelected(null) }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>เลือกเด็กและรอบชดเชย</DialogTitle><DialogDescription>สิทธิ์ร่วมครอบครัว {selected?.parentName} — ระบบผูกต้นทางที่ใช้ได้และเก็บหลักฐานให้อัตโนมัติ</DialogDescription></DialogHeader>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto"><DialogHeader><DialogTitle>เลือกเด็กและรอบชดเชย</DialogTitle><DialogDescription>สิทธิ์ร่วมครอบครัว {selected?.parentName} — ระบบผูกต้นทางที่ใช้ได้และเก็บหลักฐานให้อัตโนมัติ</DialogDescription></DialogHeader>
         {state ? <div className="space-y-4">
-          <Select value={childId} onValueChange={setChildId} disabled={locked}><SelectTrigger aria-label="เด็กที่มาเรียนจริง"><SelectValue placeholder="เลือกเด็กที่จะมาเรียน" /></SelectTrigger><SelectContent>{state.children.map(child => <SelectItem key={child.id} value={child.id}>{child.name}</SelectItem>)}</SelectContent></Select>
-          <Input aria-label="วันชดเชยร่วมครอบครัว" type="date" value={date} min={`${state.destinationMonth}-01`} max={getBangkokDateKey(new Date(Date.parse(state.expiresAt) - 1))} disabled={locked} onChange={event => { setDate(event.target.value); setTemplateId('') }} />
-          <p className="text-sm">วันที่เลือก: {formatThaiDateWithWeekday(date)}</p>
-          <Select value={templateId} onValueChange={setTemplateId} disabled={locked}><SelectTrigger aria-label="รอบชดเชยร่วมครอบครัว"><SelectValue placeholder="เลือกสาขาและรอบเรียน" /></SelectTrigger><SelectContent>{templates.map(template => <SelectItem key={template.id} value={template.id}>{branches.find(b => b.id === template.branch_id)?.name} · {template.start_time}–{template.end_time}</SelectItem>)}</SelectContent></Select>
+          {state.children.length === 1 ? <p className="font-medium">เด็กที่มาเรียนจริง: {state.children[0].name}</p> : <Select value={childId} onValueChange={setChildId} disabled={locked}><SelectTrigger aria-label="เด็กที่มาเรียนจริง"><SelectValue placeholder="เลือกเด็กที่จะมาเรียน" /></SelectTrigger><SelectContent>{state.children.map(child => <SelectItem key={child.id} value={child.id}>{child.name}</SelectItem>)}</SelectContent></Select>}
+          {childId ? <>
+            <p className="text-sm text-gray-600">เลือกได้ตั้งแต่วันนี้ เฉพาะเดือนสิทธิ์ {formatThaiMonthYear(`${state.destinationMonth}-01`)} และรอบที่ยังไม่เริ่ม (เวลาไทย)</p>
+            <MakeupCalendarPicker month={state.destinationMonth} days={calendarDays} selectedDate={date} selectedSlot={pickedSlot} disabled={locked}
+              onDateChange={value => { if (!inFlight.current && !request.current) { setDate(value); setTemplateId('') } }}
+              onSlotChange={slot => { if (!inFlight.current && !request.current) setTemplateId(slot.templateId || '') }} />
+          </> : <p className="text-sm text-gray-500">เลือกเด็กที่จะมาเรียนเพื่อเปิดปฏิทิน</p>}
           {error ? <p role="alert" className="text-red-700">{error}</p> : null}
           {uncertain ? <p className="text-amber-800">ยังยืนยันผลไม่ได้ ข้อมูลเดิมถูกเก็บไว้ การตรวจซ้ำใช้รหัสคำขอเดิมและไม่เลือกสิทธิ์เพิ่ม</p> : null}
-          <Button disabled={saving || (!uncertain && (!state.eligible || !childId || !templateId))} onClick={() => void consume()}>{saving ? 'กำลังจัดชดเชย...' : uncertain ? 'ตรวจสอบคำขอเดิม' : 'จัดชดเชยร่วมครอบครัว'}</Button>
+          <Button disabled={saving || (!uncertain && (!state.eligible || !childId || !pickedSlot))} onClick={() => void consume()}>{saving ? 'กำลังจัดชดเชย...' : uncertain ? 'ตรวจสอบคำขอเดิม' : 'จัดชดเชยร่วมครอบครัว'}</Button>
         </div> : null}
       </DialogContent>
     </Dialog>
@@ -1104,29 +1124,6 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
   }, [isMonthPending, selectedSourceMonth])
 
   const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates), [branches, scheduleTemplates, selectedMonth])
-  const selectedDay = useMemo(
-    () => availableDays.find((day) => day.dateInput === selectedDate) || null,
-    [availableDays, selectedDate]
-  )
-  const calendarCells = useMemo(() => {
-    if (!selectedMonth) return []
-    const range = getMonthRange(selectedMonth.sourceSession.date)
-    const start = new Date(`${range.nextMonthStart}T00:00:00`)
-    const end = new Date(`${range.nextMonthEnd}T00:00:00`)
-    const cells: ({ date: Date; dateInput: string; availableDay: AvailableDay | null } | null)[] = []
-    for (let i = 0; i < start.getDay(); i++) cells.push(null)
-    for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
-      const date = new Date(cursor)
-      const dateInput = toDateInput(date)
-      cells.push({
-        date,
-        dateInput,
-        availableDay: availableDays.find((day) => day.dateInput === dateInput) || null,
-      })
-    }
-    return cells
-  }, [availableDays, selectedMonth])
-
   const openMakeupDialog = (month: MonthGroup) => {
     if (createInFlightRef.current || createBlockedKeysRef.current.has(month.key) || !month.canCreate) return
     const days = buildAvailableDays(month, branches, scheduleTemplates)
@@ -2382,7 +2379,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
                 </SelectContent>
               </Select>
               <p className="whitespace-nowrap text-sm text-gray-500">
-                แสดง {filteredMonthGroups.length} เดือน จาก {monthGroups.length} เดือน
+                {familyPolicy.effectiveAt ? 'ผู้ใหญ่/Private · ' : ''}แสดง {filteredMonthGroups.length} เดือน จาก {monthGroups.length} เดือน
               </p>
             </CardContent>
           </Card>
@@ -2490,7 +2487,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
               </CardContent>
             </Card>
           ))}
-          <ListPagination
+          {learnerGroups.length > 0 && <ListPagination
             page={safePage}
             pageSize={pageSize}
             total={learnerGroups.length}
@@ -2499,7 +2496,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
               setPageSize(value)
               setPage(1)
             }}
-          />
+          />}
         </div>
       )}
         </TabsContent>
@@ -3179,112 +3176,9 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                {availableDays.length === 0 ? (
-                  <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">
-                    ไม่มีรอบเรียนที่เปิดในเดือนนี้สำหรับคอร์สนี้
-                  </div>
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,.95fr)]">
-                    <div className="rounded-lg border border-gray-200 p-3">
-                      <div className="mb-3 flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-950">{selectedMonth.nextMonthLabel}</p>
-                          <p className="text-xs text-gray-500">เลือกวันที่มีรอบเรียนเพื่อดูเวลา</p>
-                        </div>
-                        <Badge variant="outline" className="bg-white">{availableDays.length} วัน</Badge>
-                      </div>
-                      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-400">
-                        {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((day) => (
-                          <span key={day}>{day}</span>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                        {calendarCells.map((cell, index) => {
-                          if (!cell) return <div key={`empty-${index}`} className="aspect-square" />
-                          const isAvailable = Boolean(cell.availableDay)
-                          const isSelected = selectedDate === cell.dateInput
-                          const slotCount = cell.availableDay?.slotsByBranch.reduce((sum, item) => sum + item.slots.length, 0) || 0
-
-                          return (
-                            <button
-                              key={cell.dateInput}
-                              type="button"
-                              disabled={loading || !isAvailable}
-                              className={`flex aspect-square min-h-11 flex-col items-center justify-center rounded-lg border text-xs transition sm:min-h-14 ${
-                                isSelected
-                                  ? 'border-[#2748bf] bg-[#2748bf] text-white shadow-sm'
-                                  : isAvailable
-                                    ? 'border-blue-100 bg-blue-50 text-[#153c85] hover:border-[#2748bf]'
-                                    : 'border-gray-100 bg-gray-50 text-gray-300'
-                              }`}
-                              onClick={() => {
-                                if (createInFlightRef.current || !cell.availableDay) return
-                                setSelectedDate(cell.dateInput)
-                                setPickedSlot(null)
-                              }}
-                            >
-                              <span className="font-semibold">{cell.date.getDate()}</span>
-                              {isAvailable && (
-                                <span className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-white text-blue-600'}`}>
-                                  {slotCount} รอบ
-                                </span>
-                              )}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-gray-200 p-3">
-                      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
-                        <Calendar className="h-4 w-4 text-[#2748bf]" />
-                        {selectedDay ? formatDate(selectedDay.dateInput) : 'เลือกรอบเรียน'}
-                      </div>
-                      {!selectedDay ? (
-                        <div className="rounded-lg border border-dashed py-10 text-center text-sm text-gray-400">
-                          เลือกวันที่ในปฏิทินก่อน
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {selectedDay.slotsByBranch.map(({ branch, slots }) => (
-                            <div key={branch.id}>
-                              <p className="mb-2 flex items-center gap-1 text-xs text-gray-500">
-                                <Building2 className="h-3.5 w-3.5" />
-                                {branch.name}
-                              </p>
-                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                {slots.map((slot) => {
-                                  const isPicked = pickedSlot?.date === selectedDay.dateInput && pickedSlot.start === slot.start && pickedSlot.branchId === branch.id
-                                  return (
-                                    <Button
-                                      key={`${branch.id}-${selectedDay.dateInput}-${slot.start}`}
-                                      type="button"
-                                      size="sm"
-                                      disabled={loading}
-                                      variant={isPicked ? 'default' : 'outline'}
-                                      className={`justify-start ${isPicked ? 'bg-[#2748bf] hover:bg-[#153c85]' : ''}`}
-                                      onClick={() => { if (!createInFlightRef.current) setPickedSlot({
-                                        date: selectedDay.dateInput,
-                                        dayOfWeek: selectedDay.dayOfWeek,
-                                        start: slot.start,
-                                        end: slot.end,
-                                        branchId: branch.id,
-                                        branchName: branch.name,
-                                      }) }}
-                                    >
-                                      <Clock className="mr-1 h-3.5 w-3.5" />
-                                      {formatTime(slot.start, slot.end)}
-                                    </Button>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                <MakeupCalendarPicker month={getMonthRange(selectedMonth.sourceSession.date).nextMonthStart.slice(0, 7)} days={availableDays} selectedDate={selectedDate} selectedSlot={pickedSlot} disabled={loading}
+                  onDateChange={date => { if (!createInFlightRef.current) { setSelectedDate(date); setPickedSlot(null) } }}
+                  onSlotChange={slot => { if (!createInFlightRef.current) setPickedSlot(slot) }} />
               </div>
 
               {pickedSlot && (

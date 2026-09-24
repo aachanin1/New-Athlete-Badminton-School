@@ -5,6 +5,33 @@ import { INITIAL_LATE_KIDS_TIERS, validateKidsTierSet } from '../../src/lib/book
 import { calculateProgressiveBookingPrice } from '../../src/lib/progressive-booking-pricing'
 import { bookingSessionLifecycle, type BookingPaymentLifecycle } from '../../src/lib/booking-payment-lifecycle'
 import { formatThaiDateWithWeekday, formatThaiDateTimeWithWeekday, formatThaiMonthYear } from '../../src/lib/date-format'
+import { findKidsMakeupSlot, kidsMakeupCalendarDays, makeupCalendarCells, makeupMonthDates } from '../../src/lib/makeup-calendar'
+import type { ScheduleTemplateOption } from '../../src/lib/schedule-template-utils'
+
+test('Makeup calendar restricts entitlement month, Bangkok today and exact start while retaining template identity', () => {
+  const branches = [{ id: 'branch', slug: 'branch', name: 'สาขาทดลอง' }]
+  const templates: ScheduleTemplateOption[] = Array.from({ length: 7 }, (_, day) => ({ id: `template-${day}`, branch_id: 'branch', branch_slug: 'branch', course_type_id: 'kids', course_type_name: 'kids_group', day_of_week: day, start_time: '17:00:00', end_time: '19:00:00', is_active: true, notes: null }))
+  const before = new Date('2026-09-22T16:59:59.999+07:00')
+  const days = kidsMakeupCalendarDays('2026-09', branches, templates, before)
+  expect(days.map(day => day.dateInput)).toEqual(Array.from({ length: 9 }, (_, i) => `2026-09-${22 + i}`))
+  expect(makeupCalendarCells('2026-09', days).filter(Boolean)).toHaveLength(30)
+  expect(makeupCalendarCells('2026-09', days).find(cell => cell?.dateInput === '2026-09-21')?.availableDay).toBeNull()
+  expect(findKidsMakeupSlot('2026-09', '2026-09-22', 'template-2', branches, templates, before)).toMatchObject({ date: '2026-09-22', branchId: 'branch', templateId: 'template-2' })
+  for (const now of ['2026-09-22T17:00:00+07:00', '2026-09-22T17:00:00.001+07:00', '2026-09-23T00:00:00+07:00']) {
+    expect(findKidsMakeupSlot('2026-09', '2026-09-22', 'template-2', branches, templates, new Date(now))).toBeNull()
+  }
+  expect(findKidsMakeupSlot('2026-09', '2026-10-06', 'template-2', branches, templates, before)).toBeNull()
+  expect(kidsMakeupCalendarDays('2026-10', branches, templates, before)).toHaveLength(31)
+  expect(kidsMakeupCalendarDays('2026-08', branches, templates, before)).toEqual([])
+  expect(kidsMakeupCalendarDays('2026-09', branches, templates, new Date('2026-09-21T17:00:00Z'))[0].dateInput).toBe('2026-09-22')
+  expect(kidsMakeupCalendarDays('2026-09', branches, templates.map(t => ({ ...t, is_active: false })), before)).toEqual([])
+  for (const patch of [{ branch_id: 'other' }, { branch_slug: 'other' }, { course_type_name: 'adult_group' as const }]) {
+    expect(kidsMakeupCalendarDays('2026-09', branches, templates.map(t => ({ ...t, ...patch })), before)).toEqual([])
+  }
+  expect(findKidsMakeupSlot('2026-09', '2026-09-22', 'same-time-wrong-template', branches, templates, before)).toBeNull()
+  expect(makeupMonthDates('2026-13')).toEqual([])
+  expect(makeupMonthDates('2028-02')).toHaveLength(29)
+})
 
 test('History lifecycle labels and active counts share cancellation and deadline evidence', () => {
   const session = { status: 'scheduled', display_status: 'upcoming', cancelled_at: null as string | null }

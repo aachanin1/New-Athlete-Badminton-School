@@ -485,6 +485,27 @@ test('Legacy zero-charge monthly true-up stays verified without a slip or cancel
   expect(localSql(`SELECT status FROM bookings WHERE id='${id}';`)).toBe('verified')
 })
 
+test('Calendar bypass cannot consume a started or out-of-month target; rejection leaves exact family and financial evidence unchanged', async () => {
+  const family=await seedTask10Family(), f=readTask10Fixture(), client=createLocalAdmin()
+  localSql(`BEGIN; SELECT task10_lock_pricing_scope_v1('${family.parentId}','${f.kidsCourseId}',2031,8); UPDATE bookings SET status='verified' WHERE id IN ('${family.bookings[2]}','${family.bookings[3]}'); COMMIT;`)
+  const snapshot=`SELECT jsonb_build_object('uses',(SELECT jsonb_agg(to_jsonb(u) ORDER BY id) FROM task10_family_makeup_uses u WHERE parent_id='${family.parentId}'),
+    'sessions',(SELECT jsonb_agg(to_jsonb(s) ORDER BY s.id) FROM booking_sessions s JOIN bookings b ON b.id=s.booking_id WHERE b.user_id='${family.parentId}'),
+    'credits',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM lesson_wallet_credits w WHERE user_id='${family.parentId}'),
+    'payments',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p WHERE user_id='${family.parentId}'),
+    'slots',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM schedule_slots s));`
+  const before=localSql(snapshot)
+  for (const [clock,date] of [['2031-08-20T17:00:00+07:00','2031-08-20'],['2031-08-20T17:00:00.001+07:00','2031-08-20'],['2031-08-21T00:00:00+07:00','2031-08-20'],['2031-08-01T00:00:00+07:00','2031-09-20']]) {
+    setDisposableClock(clock)
+    const template=localSql(`SELECT id FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM date '${date}') AND start_time='17:00' AND end_time='19:00' AND is_active;`)
+    const result=await client.rpc('task10_consume_family_makeup_v1',{p_actor_id:f.makeupAdminId,p_source_session_id:family.sources[0],p_attending_child_id:family.children[0],p_template_id:template,
+      p_branch_id:f.branchId,p_target_date:date,p_start_time:'17:00',p_end_time:'19:00',p_request_id:randomUUID()})
+    expect(result.error,`${clock} -> ${date}`).not.toBeNull()
+    expect(result.error?.message).toMatch(/TASK10_TARGET_(STARTED|MONTH)/)
+    expect(localSql(snapshot)).toBe(before)
+  }
+  setDisposableClock('2031-08-01T00:00:00+07:00')
+})
+
 test.describe('Task10 family source transactions', () => {
   let family:FamilyFixture
   test.beforeAll(async()=>{ family=await seedTask10Family() })

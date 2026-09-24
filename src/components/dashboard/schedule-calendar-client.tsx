@@ -524,6 +524,10 @@ export function ScheduleCalendarClient({
               {selectedUnits.map((unit) => {
                 const representative = unit.representative
                 const wholeUnitEligible = canStoreUnitInWallet(unit)
+                const wholeUnitStored = unit.isConsistent
+                  && unit.sessions.every((session) => hasCompleteIdentity(session) && session.status === 'walleted'
+                    && !session.is_makeup && !session.attendance_status && Boolean(session.wallet_credit_status))
+                  && new Set(unit.sessions.map((session) => session.wallet_credit_status)).size === 1
 
                 return (
                   <div key={unit.key} className={cn(
@@ -682,7 +686,7 @@ export function ScheduleCalendarClient({
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-                      {unit.isFamilyPrivate && !wholeUnitEligible && (
+                      {unit.isFamilyPrivate && !wholeUnitEligible && !wholeUnitStored && (
                         <span className="mr-auto inline-flex items-center gap-1 text-xs text-amber-700">
                           <AlertTriangle className="h-3.5 w-3.5" />
                           รอบครอบครัวนี้ยังไม่พร้อมเก็บทั้งหน่วย โปรดตรวจสถานะผู้เรียนทุกคน
