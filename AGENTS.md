@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-08-26
+Last updated: 2026-09-24
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -482,6 +482,37 @@ Main portals:
   set effective_at or cancel bills. Pause preserves activation/history, stops new
   Kids consumption without falling back to a bypass, and retains compatible
   pricing/payment reads. No quota refill, Wallet revival, uncancellation or refund.
+
+
+<a id="task10-one-time-cutover-decision-2026-09-24"></a>
+### Task10 — One-time pre-activation cancellation decision (Owner, 2026-09-24)
+
+- Owner authorized a single exact-row cutover cancellation of pre-cutover
+  `pending_payment` bills with no payment or submitted-slip evidence, including
+  overdue and not-yet-due bills in Legacy/Progressive Kids/Adult/Private.
+  Booking status alone is insufficient. Paid/verified bills and any bill with
+  payment, accepted/uploaded/submitted/review evidence must be protected;
+  ambiguous evidence must stop the dependent write.
+- This is an exception for that Owner-directed cutover only. It does not change
+  future no-slip deadline, receipt, pricing, coupon, entitlement or expiry rules,
+  and grants no standing bulk-cancellation authority.
+- Freeze exact rows/effects/fingerprint, prove the existing flow-specific
+  transactions in an independently owned disposable target, and recheck payment
+  evidence under locks. Cancellation and activation must have no old-policy
+  booking gap and roll back together if preconditions fail. Never rehearse
+  Production writes even with an intended rollback.
+- Preserve history, exact Family identities, coupon/capacity consistency and paid
+  Legacy/Progressive baselines. Record the real operator and Owner direction;
+  never attribute the operation to customer cancellation. Customers rebook
+  themselves after a successful transition; do not message or book for them.
+- No refund, quota refill, credit revival, attendance/payroll change, deletion,
+  or data repair is authorized by this exception. If an attributable regression
+  occurs after activation, pause the current compatible artifact and report it.
+  Pause does not reverse committed cancellation or financial/entitlement history.
+  Never substitute an older artifact that cannot handle established Task10 data.
+- Source/schema corrections require a new explicit scope; any resume must use
+  verified corrected behavior and current revision/evidence. Actual execution,
+  pause, readiness and next-gate state belong only in PROJECT_STATE.md.
 
 ## Technical Guardrails
 

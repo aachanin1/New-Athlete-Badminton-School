@@ -6,11 +6,12 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — post-UAT reconciliation/docs recheck Complete; Task Done No.** Owner acceptance PASS remains PM-operated QA certified by Owner. Fresh Developer reads match preserved PM results; no transaction replay.
-- Prior exact-artifact Promotion and read-only activation assessment remain complete. Policies remain OFF on retained Production evidence; activation NOT AUTHORIZED. This round changes no runtime/business behavior.
-- Local DB is available after Owner opened Docker; local web is not serving. Preserve used fixtures/evidence; no runtime restart, cleanup or new business transaction in this read-only round.
-- **Next decision:** review exact-row activation effects and pause/recovery plan. Agree a compatible recovery strategy, refresh the manifest, review material changes, then separately authorize exact activation effects. No automatic activation or repeat Promotion.
-- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [Fresh post-UAT recheck](DEVELOPMENT_TODO.md#task10-post-uat-recheck-2026-09-24); [Retained assessment](DEVELOPMENT_TODO.md#task10-activation-assessment-2026-09-24).
+- **Task10 — cutover cancellation Complete; activation readiness Blocked; Task Done No.** Owner-authorized cancellation and activation committed, then required Production Makeup smoke failed and the authorized safety pause was applied.
+- The authoritative state is paused with controls OFF and scheduler inactive. Cancelled bills remain cancelled; no replay, refund, repair, old-artifact rollback or automatic resume.
+- **Next decision:** approve the narrow state-reader migration and re-wallet regression described in the safe handoff. After proof and exact deployed-definition review, separately gate resume; no new application change or data repair is authorized by this closeout.
+- Preserve all Owner UAT and new Developer disposable evidence. Prior PM-operated QA/Owner acceptance stays historical PASS, while the new Production failure remains explicit.
+- [Current matrix and customer impact](PROJECT_STATE.md#current-project-matrix); [One-time Owner policy](AGENTS.md#task10-one-time-cutover-decision-2026-09-24); [Cutover/pause record](DEVELOPMENT_TODO.md#task10-owner-cutover-paused-2026-09-24).
+- No Parking Lot work starts automatically.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
