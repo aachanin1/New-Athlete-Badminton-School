@@ -6,11 +6,11 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — DEVELOPING; local corrective verification complete; READY No; Task Done No.**
-- Owner22September baseline UAT completed with three findings. Calendar, family/legacy footer and post-Store Family warning corrected within the approved scope.
-- **Next action:** complete authorized normal publication, exact staged verification and fresh local Owner retest handoff. New Owner PASS is pending; no Promotion/activation or Parking Lot work.
-- Preserve original Owner/PM fixtures and all failed/Unknown evidence. Private accounts stay outside Git and deployment.
-- [Current matrix](PROJECT_STATE.md#current-project-matrix); [dated evidence](DEVELOPMENT_TODO.md#task10-calendar-owner-uat-2026-09-22).
+- **Task10 — READY FOR OWNER UAT; Owner retest Pending; Task Done No.**
+- Three Owner findings are corrected and published; exact staged read-only smoke and separate local functional handoff are complete.
+- **Next action:** Owner follows the private5-step calendar/Family retest and reports PASS/FAIL; Developer then reconciles Owner transactions. No automatic Promotion, activation or Parking Lot work.
+- Preserve original Owner/PM data, fresh retest fixtures and all failed/Unknown evidence. Keep local UAT serving; accounts stay outside Git/deployment.
+- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [dated delivery](DEVELOPMENT_TODO.md#task10-calendar-delivery-2026-09-24).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
