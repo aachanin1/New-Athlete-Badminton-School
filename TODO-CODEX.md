@@ -6,11 +6,11 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — exact accepted-artifact Promotion with controls OFF Complete; Task Done No.**
-- Owner acceptance PASS and prior PM/Developer reconciliation remain valid. Fresh release postchecks passed; no activation or Production business UAT/write.
-- **Next decision:** separately authorize preparing/reviewing a fresh exact-row activation manifest and its data/control/scheduler effects and pause/rollback plan before any activation approval. No activation work starts automatically.
-- Preserve local UAT, all used/unused fixtures and evidence. No additional transactions, cleanup or Parking Lot work.
-- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [Promotion evidence and next gate](DEVELOPMENT_TODO.md#task10-promotion-off-2026-09-24).
+- **Task10 — read-only activation impact assessment Complete; Task Done No.** Owner decision package is ready for review; policies remain OFF and activation NOT AUTHORIZED.
+- Corrective Owner acceptance and Promotion remain complete for the accepted artifact; no new business UAT, activation rehearsal or Production write.
+- **Next decision:** review exact-row effects and pause/recovery plan. The old rollback is not compatible with established Task10 guards. Agree a recovery strategy or separately verify a compatible candidate, then refresh the manifest and approve exact activation effects in a separate round; material changes require review. No automatic activation.
+- Preserve local UAT/used fixtures and evidence. No transactions, cleanup or Parking Lot work.
+- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [Read-only assessment evidence](DEVELOPMENT_TODO.md#task10-activation-assessment-2026-09-24).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
