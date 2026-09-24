@@ -6,11 +6,11 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — read-only activation impact assessment Complete; Task Done No.** Owner decision package is ready for review; policies remain OFF and activation NOT AUTHORIZED.
-- Corrective Owner acceptance and Promotion remain complete for the accepted artifact; no new business UAT, activation rehearsal or Production write.
-- **Next decision:** review exact-row effects and pause/recovery plan. The old rollback is not compatible with established Task10 guards. Agree a recovery strategy or separately verify a compatible candidate, then refresh the manifest and approve exact activation effects in a separate round; material changes require review. No automatic activation.
-- Preserve local UAT/used fixtures and evidence. No transactions, cleanup or Parking Lot work.
-- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [Read-only assessment evidence](DEVELOPMENT_TODO.md#task10-activation-assessment-2026-09-24).
+- **Task10 — post-UAT reconciliation/docs recheck Complete; Task Done No.** Owner acceptance PASS remains PM-operated QA certified by Owner. Fresh Developer reads match preserved PM results; no transaction replay.
+- Prior exact-artifact Promotion and read-only activation assessment remain complete. Policies remain OFF on retained Production evidence; activation NOT AUTHORIZED. This round changes no runtime/business behavior.
+- Local DB is available after Owner opened Docker; local web is not serving. Preserve used fixtures/evidence; no runtime restart, cleanup or new business transaction in this read-only round.
+- **Next decision:** review exact-row activation effects and pause/recovery plan. Agree a compatible recovery strategy, refresh the manifest, review material changes, then separately authorize exact activation effects. No automatic activation or repeat Promotion.
+- [Authoritative current matrix](PROJECT_STATE.md#current-project-matrix); [Fresh post-UAT recheck](DEVELOPMENT_TODO.md#task10-post-uat-recheck-2026-09-24); [Retained assessment](DEVELOPMENT_TODO.md#task10-activation-assessment-2026-09-24).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
