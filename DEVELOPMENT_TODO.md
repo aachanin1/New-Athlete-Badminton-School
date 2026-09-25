@@ -27410,3 +27410,97 @@ previous delivery at its own observed times and does not describe current readin
 | Parking Lot | Not authorized; no other task started. |
 
 Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-calendar-uat-20260922/payment-monthly-readiness-20260924T163500Z; latest authenticated-smoke-20260925T015453Z contains current OWNER-REVIEW-PACKAGE.md, acceptance-manifest.json, read-only reconciliation and publication. Prior files remain historical. OWNER-REVIEW-PACKAGE.md, verification-delivery-summary.json, worker/input/output manifests, final-read-summary.json, private attribution proof and release plan hold the details. Accounts/customer rows/slip tokens/screenshots/logs stay outside Git/deployment. [Owner scope](AGENTS.md#task10-payment-monthly-naming-decision-2026-09-25), [source verification](DEVELOPMENT_TODO.md#task10-payment-monthly-naming-2026-09-25), [delivery handoff](DEVELOPMENT_TODO.md#task10-payment-staged-session-handoff-2026-09-25), [authenticated closeout](DEVELOPMENT_TODO.md#task10-payment-authenticated-ready-2026-09-25).
+
+<a id="task10-final-staged-readiness-closeout-2026-09-25"></a>
+### 2026-09-25 — Task10 final production-mode / exact staged READY handoff
+
+This closes preparation, not release. Owner school login enables read-only smoke;
+it is not acceptance. No Promotion/Resume/Production business UAT is inferred.
+Earlier PM QA and Owner acceptance remain scoped to their recorded artifact.
+
+- Application1c1e3935cb8415b79e436266b3dab71b5b75edfd normally committed/pushed;
+  live match,0/0,clean. Actual13paths:Functional3/Tests4/TestConfig2/Docs4,
+  protected484files unchanged. Functional paths:AdminPayment page/client and
+  Makeup client. Four tests/two Playwright configs add display regressions and
+  guarded production-build execution. Docs4 record Owner decision; this closeout
+  only edits PROJECT_STATE/TODO-CODEX/DEVELOPMENT_TODO. No tracked additions.
+- Final A:wLOWweh3LJkyvN3FHlyxN,Next16.3.3/Node24.16.0/Nextstart,independent
+  Task10Final20260925 API62321/DB62322. Fresh fullTask10 87/87,
+  History/Payment25/25,Booking23/23,Makeup5/5; Walletstatic45,Adminstatic39,
+  retrospective38;TypeScript/lint/mojibake/build passed. Seven-function case/backend
+  matrix includes UI→API→DB,all3flags,naturalcron,races,Pause/Resume.
+- Preserve failed86/87 fixture-state attempt, corrected/interrupted rerun and
+  older85/86/22/23. Guarded independent disposable setup and immediate awaiting
+  of the new policy reader were bounded corrections. Final full runs passed;
+  no guard/assertion/business-rule relaxation. September22/M6/old Owner evidence
+  retained only and not added to fresh totals.
+- Git Preview dpl_Gdxid3ueJgN2WD246CroaMF1v6PD READY at1c1e3935. Worker
+  regular-file differences exactly2committed symlinks+2source.gitignore files;
+  explained separately. Preview is not the release candidate.
+- Exact B:dpl_DH2PhExq8NYn5Ds3v57BoRy5ThVs,
+  https://new-athlete-badminton-school-8mn64f4ba-aachanin1s-projects.vercel.app,
+  source1c1e3935,targetproduction,READY,--prod --skip-domain,zero customeraliases.
+ 365uploaded/workerinputs,missing0/extra0/forbidden0,219outputs. Provider config
+  name/version additions and serialization hash verified without altering original
+  keys. Output SHA256:
+ 366513fa6c9921e2599c03174f77721dd280c4cc27c43880f6f129f6aad4f50e.
+  Created/build/ready timestamps remained unchanged after smoke.
+- A/B differ: A export-only HTTP localhost Storage optimizer allowance and local
+  DB business clock;B Linux Node24.x/realDB/realclock/HTTPS. Exact B patch Node
+  version not exposed.509installed dependencies match lockfile,57optional-platform
+  absences,no required missing/version mismatches. B publicSupabaseorigin matches
+  target. Legacy828x1090 andProgressive828x1834 full HTTPS slipimages loaded.
+  Approved shared SlipOKtestmode is notliveproviderPASS.621DBbatchUI fixture shares
+  one synthetic image;621distinct-path/concurrency4 stress mocks transport.
+- SchoolSuperAdmin CUA09:49–10:02UTC:PaymentSeptember303/August387/October18,
+  January2027empty→December;search/status/page/Legacy+Progressive details/
+  repeatedreload/Thai deadline/Paused copy. No save/businessPOST/expiryGET.
+  Makeupreview29rounds/63rows,family217cards separatelypaginated,August50rounds/
+ 87rows. Both tabs,whole sibling/reviewroster,fullnames,month/reload;all15firstpage
+  source sums match0+0,4+2=6,2+0=2,0+1=1;purpleWallet/orangeAbsent and separate
+  quota. Two prior re-wallet families reconcile to canonical SELECT andrefresh.
+  Desktop/390px screenshots show text/cards without horizontal overflow.
+  Early/late catalogs andM2 read only.
+- Native month popup deliberately notused afterhistoricalcrash. CUAfill changed
+  month DOMvalue withoutcommittingroute;B URL/buttons andA directinteraction
+  provide stated evidence. Emptyfill requiredkeyboardclear; initial no-match
+  pagination retained before succeeding withclearedsearch. IABcontentexport
+  unsupported;DOM/screenshots in toolhistory plusprivatecuratedobservations.
+- Bscopedlogs09:46:00–10:02:56UTC:error/fatal/5xx0,finite100rows,no truncation.
+ 44GET/40assets/health checked separately fromauthenticatedrender. Browser only
+  earlierVercelFedCMlogin messages. FourlocalTask10fetch-reset chunks nearfixture
+  setup retained;timing isnotproof historicalstream-closefixed.
+- PostSELECT10:02:55UTC:Paused4/flagsOFF/onecroninactive,4events/7runs,
+  effective_at2026-09-24T12:45:14.241075Z preserved. M1–M6/66functionbodies
+  matched atfreshGate0;apply0;M6SHA256:
+ a9904c31e96e27e8fd40b61f803da271ecea0f87ca01b2ddf52293a5c4c92990.
+ 28cancelledbills/104sessions and inspectedpayment/receipt/Wallet/Makeup/financial/
+  control evidence unchanged09:38→10:02. Attendance4rows changed withmatching
+  bookingSessionId/coachactoraudit,differentfromsmokeactor. Earlierpayment1/
+  receipt1/Walletredeem2/attendance2 predatecandidatecreation;boundedactivity
+  evidence retained. No wholeDatabaseFrozen/fullAccountingAudit claim.
+- FreshResumeimpactsnapshot10:02:57UTC:4pendingbills/21sessions/17600THB,
+  due-if-worker-runs0/missingdeadline0/outsidecohort0/acceptedreceipt0.
+  These arebillvalues,notrefunds/lostrevenue;refreshbeforeanyfutureResume.
+- All4customeraliases remained oldProductiondpl_5bJmN6piCPmThycQEBSr9Rvqj2MF
+  /1fba7bab at10:03:07UTC,health200ok,protection/branchunchanged. Kidsnewbooking
+  stillPaused;Productionbusinesswrites/repair/refund/replay/migration/env/
+  permissions/allowlistchanges0.
+- Expansion0/businessbreach0. Evidence-handlingdeviation1:existing synthetic
+  localfixtureliteral appearedonce intooloutput;notrepublished. Credentialvalidity,
+  exposure,stream-close/ERR_ABORTED/nativepopupcauseUnknown;noglobalsecurityPASS.
+- Owner reviewpackage gives5read-onlyUATsteps and7functiontestmatrix. Future
+  release requires exactID/SHAacceptance +explicitPromotion/Resume/safetyPause:
+  freshidentity/M6/revision/impact→exactPromotionwithoutrebuild→PausedSmoke→
+  existingResumepreservingeffective_at→2naturalworkerticks/exactreconciliation.
+  PauseblocksnewKidswork,doesnotrestoreserviceorundocommitteddata. Noincompatible
+  oldartifact/dataRollback. Conditional30–45minutesafterapprovalifgatesstable.
+- Privateevidenceroot final-production-readiness-20260925T065600Z under established
+  task10-calendar-uat-20260922 Temp contains acceptance-manifest,seven-function
+  matrix/caseindexes/backendproof,staged-school-smoke,closeout-readonly-reconciliation,
+  OWNER-REVIEW-PACKAGE andRELEASE-RECOVERY-PLAN. Customer/account/receipt data stay
+  outsideGit/deploy. Sourcecomplete/TestsPassed/CommitPush/StagedReady separated
+  fromOwnerAcceptancePending/PromotionNo/ResumeNo/TaskDoneNo.
+- PROJECT_STATE/TODO currentdriftclosed. ActualDocs successor/live/cleanproof in
+  publication-docs.json;automaticDocsPreview not B,no repeatedstaged. Docschecks/
+  complete stageddiff requiredbeforepublication;no businesssuitererun forDocs-only.

@@ -2,44 +2,49 @@
 
 Last updated: 2026-09-25 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task10 final production-mode readiness; DEVELOPING
+## Current State — Task10 final production-mode readiness; READY FOR OWNER UAT
 
-**DEVELOPING / READY No / Owner acceptance of the new candidate Pending / Task Done No.**
-Owner expanded the25September scope to Payment deadline/receipt display, Makeup
-Wallet/absence counts and complete production-mode readiness. Prior staged acceptance
-does not certify these new bytes. No Promotion or Resume is authorized before Owner
-accepts the new exact artifact and explicitly approves release.
+**READY FOR OWNER UAT / Owner acceptance of this exact candidate Pending / Task Done No.**
+Final production-mode disposable verification and exact staged read-only verification
+passed. Owner must accept the new artifact and explicitly authorize Promotion + Resume.
+Production Kids booking is still Paused.
 
 ### Current Project Matrix
 
 | Field | Current verified state |
 | --- | --- |
-| Scope / Actor | Developer; Payment read/display, Makeup eligible-source summary and production-mode test infrastructure. Planned Functional3 / Tests4 / TestConfig2 / Docs4 =13 paths; no new business rules or tracked dependency. |
-| Git baseline | Branch spike/next-major-security-upgrade; fresh Gate0 HEAD and live remote3191034afbe791ae7e588d92d858c3fdab55e18d,0/0,clean. This round is uncommitted at this checkpoint; publication evidence must record the successor separately. |
-| Source behavior | Incomplete bookings carry authoritative lifecycle; Thai deadline, receipt protection and Paused/outside-cohort truth. Makeup eligible Wallet/absent counts share the backend source list, preserve quota and names. |
-| Source / Tests / Commit / Push | Source complete; all required final-source disposable suites passed. Source publication is the next authorized checkpoint; exact commit/push and new staged identity are recorded separately after execution. READY remains No until new staged authenticated verification. |
-| Local build A | Final production build wLOWweh3LJkyvN3FHlyxN passed25September08:32:31–08:32:50UTC. Next16.3.3 / Node24.16.0 / Next start / NODE_ENV production. Inputs and lockfile recorded privately. |
-| Disposable binding | Task10Final20260925 API62321/DB62322; physical DB/Auth/REST/Storage/container/volume/workdir/network checked before harness actions. Older Owner, PM and cutover databases preserved. |
-| Environment boundary | A has an explicit export-only local HTTP Storage image origin and local-IP optimizer permission; repository deployment config unchanged. DB business clock is disposable-only; Auth/browser/Node use real time. Approved shared SlipOK test mode is not live-provider verification. B must separately pass real HTTPS image/render checks while Paused. |
-| New focused evidence | New payload/policy tests demonstrated failure before correction. Final full suites on wLOWweh3LJkyvN3FHlyxN: Task10 87/87; History/Payment 25/25 (including 8 server-page transport cases); Booking 23/23; focused Makeup 5/5. No failures/skips in those completed invocations. Counts overlap in requirements and are not added together. |
-| Failed / superseded runs | First full Task10 failed86/87 because the new deadline test assumed never-activated state after an earlier Paused fixture. Added physically guarded independent setup. Its corrected full rerun was later interrupted for the proven policy-read source correction; it is not a completed PASS. Prior85/86 and22/23 failures remain historical. |
-| Bounded source correction | New policy promise could reject before late awaiting after signing. Red regression demonstrated unhandled rejection; await policy before starting page queues now owns the error. No fallback OFF value, guard relaxation or payment mutation. Final source was rebuilt and complete suites restarted. |
-| Protected-adjacent / retained | Fresh Wallet static45, Admin assignment static39 and retrospective38 passed, plus TypeScript/src+changed-test lint/mojibake and production build. Earlier September22 and M6 results remain retained history; superseded focused passes are not substituted for final full suites. |
-| Previous candidate only | dpl_ixD9BmqppJaXKxCy4L6DwqiyD5QD / application5bb79f2fed569184903170e85cb547984ab49a73 is historical. Owner's Payment month-change confirmation is limited to that observed case; it does not prove all flows or fix the IAB native-popup crash. |
-| Production artifact / routing | Gate0 all four customer aliases still point to dpl_5bJmN6piCPmThycQEBSr9Rvqj2MF / application1fba7bab987e8455824889563604063813e08855. Fresh health passed. No routing, deployment replacement or Promotion in this checkpoint. |
-| Migration / definition | No migration change/apply. M1–M6 present;66 Task10 function bodies matched source, including preserved Wallet entry points. M6 file SHA256 a9904c31e96e27e8fd40b61f803da271ecea0f87ca01b2ddf52293a5c4c92990. |
-| Controls / scheduler | Observed25September07:38:11UTC: Paused revision4, pricing/makeup/expiry false; one minute cron inactive;4activation events/7worker runs. effective_at2026-09-24T12:45:14.241075Z retained. No control or worker invocation on Production. |
-| Data / financial impact | SELECT-only evidence preserves28cancelledbills/104sessions; no Developer Production business transaction, refund, repair or cancellation replay. At07:38:11UTC,3pending/paid candidate bills,11sessions,total bill9600THB had0due-if-expiry-runs; this is a snapshot to refresh before release, not a freeze or financial audit. |
-| Customer availability | Production Kids new booking remains Paused; preparation/build success does not restore service. No claim of new Production business UAT. |
-| Scope / privacy | No tracked technical addition or business scope expansion. One evidence-handling deviation: an existing synthetic local fixture literal appeared once in a tool output; value is not repeated in docs, new Git diff or deployment. Private note retained; no claim of global credential safety. |
-| Blocker / next gate | Final production-mode functional verification passed. Required new filtered staged Production creation and exact authenticated read-only smoke are still Pending; no READY or release claim. After those gates pass, submit exact artifact and prepared Promotion/Resume/recovery plan for Owner acceptance. Conditional execution estimate30–45minutes after explicit release approval if fresh gates remain stable. |
-| Unknowns | Prior stream-close/ERR_ABORTED, native-popup crash root cause, credential validity and historical exposure remain Unknown. A fresh stream-close log during the superseded full run is preserved for attribution; successful assertions are not an all-logs-clean claim. Public Supabase environment value is unavailable through the selected-record API; actual runtime binding requires independent proof. |
-| Documentation Drift | Current state records final-source full results while new staged/publication gates remain Pending. Failed/interrupted and prior Owner acceptance history preserved. Final exact artifact and docs publication closeout required; Parking Lot unauthorized. |
+| Scope / Actor | Developer; Payment read/display, Makeup source summary and production-mode tests. Actual Functional3 / Tests4 / TestConfig2 / Docs4 =13 unique paths; no tracked technical/dependency addition. |
+| Application Source / publication | 1c1e3935cb8415b79e436266b3dab71b5b75edfd committed/pushed on spike/next-major-security-upgrade; live match,0/0,clean at source publication. Gate0 baseline3191034afbe791ae7e588d92d858c3fdab55e18d. |
+| Documentation publication | This Docs3 closeout is separate from application/deployment. Its successor commit/live/clean proof is recorded in private publication-docs.json after normal push. No repeat staged deployment for docs-only publication. |
+| Source behavior | Incomplete bookings carry authoritative deadline/cohort/receipt; Thai date and truthful Paused/protected/outside-cohort copy. Makeup Wallet purple/absent orange counts sum to backend sources, independently of quota; names/identity unchanged. |
+| Local build A | wLOWweh3LJkyvN3FHlyxN; build exit0 at25September08:32:50UTC. Next16.3.3 / Node24.16.0 / Windows / Next start / NODE_ENV production. Locked inputs recorded. |
+| Disposable binding | Task10Final20260925 API62321/DB62322; DB/Auth/REST/Storage/container/volume/workdir/network guards passed. Older Owner/PM/cutover databases preserved. A transactions did not run on B. |
+| Fresh functional checks | Full final-source Task10 87/87; History/Payment25/25; Booking23/23; focused Makeup5/5. Includes UI→API→DB Booking→slip→sibling Makeup with all3flags, real natural cron and Pause/Resume. Overlapping coverage counts are not added. |
+| Fresh technical / adjacent | TypeScript, src+changed-test/config lint, mojibake and production build passed. Walletstatic45, Adminstatic39 and retrospective38 passed. Seven requirements map to exact cases/backend evidence privately. |
+| Failed / retained | Preserve first86/87 fixture-state failure, its interrupted rerun, prior85/86 and22/23. Bounded fixes: guarded independent fixture setup and immediately awaiting new policy read before queues. Final full invocations passed after corrections. Earlier September22/M6/Owner results are retained only. |
+| New staged Production B | dpl_DH2PhExq8NYn5Ds3v57BoRy5ThVs; https://new-athlete-badminton-school-8mn64f4ba-aachanin1s-projects.vercel.app ; source1c1e3935, READY, target production, --prod --skip-domain, zero customer aliases. |
+| Artifact chain | 365uploaded/worker inputs, missing0/extra0/forbidden0,219outputs. Provider vercel.json name/version additions accounted for, original keys unchanged. Output SHA256 366513fa6c9921e2599c03174f77721dd280c4cc27c43880f6f129f6aad4f50e. Build timestamps unchanged after smoke. |
+| Preview only | Git Preview dpl_Gdxid3ueJgN2WD246CroaMF1v6PD, source1c1e3935, READY. Worker regular-file differences are2committed symlinks and2source.gitignore files, fully accounted for. Preview and later Docs Preview are not release artifacts. |
+| A / B boundary | A export-only HTTP localhost image allowance and disposable DB business clock; deployment config unchanged. B Linux Node24.x uses real HTTPS Storage; Legacy/Progressive full images loaded. Public client origin matches tvnhholicwjtxdhlxfqs. Shared approved SlipOK test mode is not live-provider verification. |
+| Authenticated B smoke | School Super Admin25September09:49–10:02UTC: Payment months/search/status/page/details/reload/images; Makeup both tabs/month/search/page/whole roster/nickname-full-name/reload, two re-wallet families, counts and390px; pricing/M2 read. No save/business transaction/expiry-side-effect GET. |
+| Logs / health | B error/fatal/5xx0 for09:46:00–10:02:56UTC; finite100row queries, no truncation. Health/assets/auth redirect and actual authenticated render passed separately. Browser only earlier Vercel login FedCM messages. Local Task10 fetch-reset chunks are retained, correlated with disposable setup only. |
+| Production routing | At10:03:07UTC all4customer aliases still point to dpl_5bJmN6piCPmThycQEBSr9Rvqj2MF /1fba7bab987e8455824889563604063813e08855. Health200ok; protection/production branch unchanged. No Promotion/routing change. |
+| Migration / definition | New/apply0. M1–M6 present;66Task10 bodies matched source. M6 file SHA256 a9904c31e96e27e8fd40b61f803da271ecea0f87ca01b2ddf52293a5c4c92990; normalized body d85f879d754e0ffe81f8d2c5490f590b93f7082a505bf22c568d089c3dd1f591. |
+| Controls / scheduler | At10:02:55UTC Paused4, pricing/makeup/expiry false, one minute cron inactive,4events/7runs unchanged. effective_at2026-09-24T12:45:14.241075Z retained. No initial activation/Resume/Production worker invocation. |
+| Data / finance | SELECT-only09:38→10:02UTC:28cancelledbills/104sessions and checked payment/receipt/Wallet/Makeup/financial/control evidence unchanged. Attendance4rows changed with exact booking-session/coach audit linkage, different from smoke actor. Earlier customer payment/receipt/Wallet changes predate candidate creation; no whole-database-frozen claim. |
+| Resume impact snapshot | At10:02:57UTC:4pendingbills/21sessions/17600THB; missingdeadline0/outsidecohort0/acceptedreceipt0/due-if-expiry-runs0. Bill value is not refund/lost revenue; refresh exact rows before future authorized Resume. |
+| Scope / privacy | Expansion0/business breach0; protected484files unchanged. Evidence-handling deviation1:existing synthetic local fixture literal appeared once in tool output, not repeated in new Git/deployment/report. No Production repair/refund/cancellation replay/environment/secret/permission/allowlist change. |
+| Unknown / limitations | Historical stream-close/ERR_ABORTED, credential validity and historical exposure remain Unknown. Native-popup crash not claimed fixed; B used month buttons/URL, A covers direct interaction. IAB empty fill required keyboard clear; content export unsupported, observed screenshots/DOM stay in task tool history with private curated evidence. No blocking app error in final scoped checks. |
+| Next gate / ETA | Technical readiness passed; release authorization Pending. Owner reviews exact B/seven-function evidence and explicitly authorizes Promotion+Resume+safetyPause. Prepared: fresh gates→exact Promotion→Paused smoke→fresh-revision Resume→at least2natural worker ticks/reconciliation. Conditional30–45minutes after approval if gates stay stable. |
+| Customer / completion | Kids new booking remains Paused. Readiness is not Production business UAT or restored service. Owner acceptance Pending for this candidate; PromotionNo/ResumeNo/Task Done No. |
+| Documentation Drift | Current DEVELOPING/publication/staged-pending claims corrected to verified READY; failed/interrupted runs, old acceptances, packaging exposure and Parking Lot history preserved. Docs successor proof remains separate from application artifact. |
 
 Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-calendar-uat-20260922/final-production-readiness-20260925T065600Z.
-Requirement matrix, build manifests, red/green history, physical bindings and prepared
-release/recovery plan remain outside Git/deployment. [Owner decision](AGENTS.md#task10-final-production-readiness-decision-2026-09-25),
-[round evidence](DEVELOPMENT_TODO.md#task10-final-production-readiness-2026-09-25).
+See OWNER-REVIEW-PACKAGE.md, acceptance-manifest.json, requirement-verification-closeout.json,
+staged-school-smoke.json, closeout-readonly-reconciliation.json and RELEASE-RECOVERY-PLAN.md.
+[Owner decision](AGENTS.md#task10-final-production-readiness-decision-2026-09-25);
+[round evidence](DEVELOPMENT_TODO.md#task10-final-production-readiness-2026-09-25);
+[final closeout](DEVELOPMENT_TODO.md#task10-final-staged-readiness-closeout-2026-09-25).
 
 <a id="coach-assignment-owner-decision-2026-09-13"></a>
 ### Owner decision — 2026-09-13 assignment plan registration only
