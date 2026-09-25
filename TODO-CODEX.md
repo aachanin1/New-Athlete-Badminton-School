@@ -6,10 +6,10 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — DEVELOPING / READY No / Task Done No.** Monthly Payment and Makeup names are published with local verification and a new READY staged artifact. Required school-role render verification awaits the existing school account session.
+- **Task10 — READY FOR OWNER UAT / Owner acceptance Pending / Task Done No.** Exact new staged Payment/Makeup/pricing passed school-role read-only smoke; local Active tests are separate. IABnative-month-popup crash remains a disclosed limitation; Owner restored same HTTPS and the permitted checks completed.
 - [Current matrix](PROJECT_STATE.md#current-project-matrix) owns exact Source/Git/artifact, tests, migration, controls and data state.
-- **Next action:** Owner signs into the prepared staged tab; Developer verifies Payment/Makeup/pricing read-only and closes scoped evidence. Then Owner accepts the exact artifact and explicitly approves Promotion + Resume. Neither action is automatic.
-- [Latest scope](AGENTS.md#task10-payment-monthly-naming-decision-2026-09-25); [source tests](DEVELOPMENT_TODO.md#task10-payment-monthly-naming-2026-09-25); [delivery handoff](DEVELOPMENT_TODO.md#task10-payment-staged-session-handoff-2026-09-25).
+- **Next action:** Owner reviews exact staged artifact and accepts its SHA/ID, then explicitly authorizes Promotion + Resume. Both remain unauthorized now; Production remains Paused4 and new Kids booking is not restored. Prepared release/recovery plan requires fresh revision/data checks.
+- [Latest scope](AGENTS.md#task10-payment-monthly-naming-decision-2026-09-25); [source tests](DEVELOPMENT_TODO.md#task10-payment-monthly-naming-2026-09-25); [delivery handoff](DEVELOPMENT_TODO.md#task10-payment-staged-session-handoff-2026-09-25); [authenticated closeout](DEVELOPMENT_TODO.md#task10-payment-authenticated-ready-2026-09-25).
 - Preserve Owner/cutover evidence and prior28-bill cancellation. No repair/replay/reset or Parking Lot work.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
