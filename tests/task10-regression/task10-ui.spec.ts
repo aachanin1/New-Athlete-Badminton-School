@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Locator } from '@playwright/test'
 import { TEST_ADMIN_ACCOUNT, TEST_ACCOUNT } from '../booking-regression/local-supabase'
 import { createHash, randomUUID } from 'node:crypto'
 import { getBangkokDateKey } from '../../src/lib/date-format'
-import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, seedFamilyScheduleFixture, seedLegacyHeaderWalletFixture, setDisposableClock, trackTask10Storage, TASK10_ADMIN_EMAIL, TASK10_PASSWORD } from './local-supabase'
+import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, seedFamilyScheduleFixture, seedLegacyHeaderWalletFixture, setDisposableClock, trackTask10Storage, setupTask10, task10MigrationHashes, sqlLiteral, uploadTask10Slip, TASK10_ADMIN_EMAIL, TASK10_PASSWORD } from './local-supabase'
 
 test.afterEach(async ({}, testInfo) => {
   // Preserve backend evidence even when a browser assertion fails, before teardown.
@@ -29,6 +29,60 @@ async function openFamilyScheduleMonth(page: Page, date: string) {
   }
   await expect(page.getByRole('button', { name: `ดูตารางวันที่ ${date}`, exact: true })).toBeVisible()
 }
+
+async function expectSourceBreakdown(page: Page, card: Locator, parentId: string, month = '2031-07') {
+  const response = await page.request.get(`/api/admin/makeup/kids-family?parentId=${parentId}&sourceMonth=${month}`)
+  expect(response.status()).toBe(200)
+  const state = await response.json()
+  const wallet = state.sources.filter((source: { kind: string }) => source.kind === 'wallet').length
+  const absent = state.sources.filter((source: { kind: string }) => source.kind === 'absent').length
+  expect(wallet + absent).toBe(state.sources.length)
+  await expect(card).toContainText(`ต้นทางที่ใช้ได้ ${wallet + absent}`)
+  await expect(card.getByText(`กระเป๋า ${wallet}`, { exact: true })).toHaveClass(/text-purple-800/)
+  await expect(card.getByText(`ขาดเรียน ${absent}`, { exact: true })).toHaveClass(/text-orange-800/)
+  return { wallet, absent }
+}
+
+test('Incomplete Payment shows canonical Thai deadline, accepted receipt and Paused truth without changing bookings', async ({ page }, testInfo) => {
+  test.setTimeout(240_000) // Independent setup and restoration both verify physical bindings.
+  // The preceding transaction suite can end Paused after real activation.
+  // Own a fresh, physically guarded disposable fixture for this activation case.
+  await setupTask10()
+  const f = readTask10Fixture(), ids = f.lifecycle!, client = createLocalAdmin()
+  setDisposableClock('2031-07-31T18:00:00+07:00')
+  const artifact = { sourceSha: 'a'.repeat(40), deploymentId: 'dpl_local_deadline_ui', targetProjectRef: 'verified-local-disposable',
+    migrationHashes: task10MigrationHashes(), productionPromotionConfirmed: true, healthChecksPassed: true }
+  localSql(`SELECT task10_activate_v1('${f.adminUserId}',task10_activation_manifest_v1('${f.adminUserId}',${sqlLiteral(JSON.stringify(artifact))}::jsonb));`)
+  try {
+    const slip = await uploadTask10Slip(f.otherUserId)
+    const accepted = await client.rpc('task10_accept_legacy_slip_v1', { p_user_id: f.otherUserId, p_booking_ids: [ids.onTime],
+      p_storage_path: slip.storagePath, p_public_url: slip.publicUrl, p_sha256: slip.sha256, p_expected_amount: 500, p_request_id: randomUUID() })
+    expect(accepted.error).toBeNull()
+    const snapshot = () => localSql(`SELECT md5(jsonb_build_object('bookings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b),
+      'sessions',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),'receipts',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM task10_accepted_receipts r))::text);`)
+    const before = snapshot()
+    await login(page)
+    await page.goto('/admin/payments?month=2031-08')
+    const due = page.getByTestId(`incomplete-deadline-${ids.adultDue}`)
+    await expect(due).toContainText('ส่งสลิปก่อน เสาร์ 2 ส.ค. 74 09:00')
+    await expect(due).toContainText('บิลและรอบเรียนในบิลจะถูกยกเลิกอัตโนมัติ')
+    await expect(page.getByTestId(`incomplete-deadline-${ids.onTime}`)).toContainText('ระบบรับสลิปทันกำหนดแล้ว')
+    await expect(page.getByTestId(`incomplete-deadline-${ids.verified}`)).toHaveCount(0)
+    const revision = Number(localSql('SELECT revision FROM task10_policy_activation;'))
+    localSql(`SELECT task10_pause_v1('${f.adminUserId}',${revision},true,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
+    await page.reload()
+    await expect(due).toContainText('การยกเลิกอัตโนมัติหยุดชั่วคราว')
+    await expect(due).not.toContainText('ระบบกำลังดำเนินการยกเลิก')
+    await expect(page.getByTestId(`incomplete-deadline-${ids.onTime}`)).toContainText('ระบบรับสลิปทันกำหนดแล้ว')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(due).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await testInfo.attach('payment-deadline-paused-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+    await page.goto('/admin/payments?month=2031-07')
+    await expect(page.getByTestId(`incomplete-deadline-${ids.oldOverdue}`)).toContainText('อยู่นอกกลุ่มยกเลิกอัตโนมัติ')
+    expect(snapshot()).toBe(before)
+  } finally { await setupTask10() }
+})
 
 for (const childRepresentative of [false, true]) {
   test(`Family Schedule UI Store/Redeem keeps one complete unit with ${childRepresentative ? 'child' : 'parent'} representative`, async ({ page }, testInfo) => {
@@ -223,6 +277,7 @@ test('Owner corrective: Kids entitlement is one family card inside the Makeup ta
   await expect(card).toContainText('Owner corrective family')
   await expect(card).toContainText('กรกฎาคม 2574')
   await expect(card).toContainText('โควตา 5')
+  expect(await expectSourceBreakdown(page, card, family.parentId)).toEqual({ wallet: 2, absent: 6 })
   await expect(page.getByRole('tab', { name: 'เลือกวันชดเชย', exact: true })).toBeVisible()
   await expect(page.getByText('ยังชดเชยได้ (ผู้ใหญ่/Private)', { exact: true })).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'รายการต้นทาง', exact: true })).toHaveCount(0)
@@ -382,6 +437,7 @@ test('Makeup Admin chooses the attendee once and server selects an exact source 
   await page.getByRole('tab',{name:/เลือกวันชดเชย/}).click()
   const card=page.getByTestId(`kids-family-${family.parentId}:2031-07`)
   await expect(card.getByText('ซื้อเดือนปลายทางยืนยันแล้ว 0 ครั้ง · ขั้นต่ำ 2 ครั้ง',{exact:true})).toBeVisible()
+  await expectSourceBreakdown(page, card, family.parentId)
   await expect(card.getByText('รอชำระ 1 ครั้ง · รอตรวจยืนยัน 1 ครั้ง — ยังไม่นับเป็นยอดยืนยัน',{exact:true})).toBeVisible()
   await expect(page.getByRole('combobox',{name:'รายการต้นทาง',exact:true})).toHaveCount(0)
   await expect(card.getByRole('button',{name:'เลือกเด็กและรอบชดเชย',exact:true})).toBeDisabled()
@@ -409,6 +465,7 @@ test('Makeup Admin chooses the attendee once and server selects an exact source 
   expect(localSql(`SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id='${family.parentId}';`)).toBe('1')
   await page.setViewportSize({width:390,height:844})
   await expect(card.getByText('โควตา 5 · ใช้แล้ว 1 · เหลือ 4 · ต้นทางที่ใช้ได้ 7',{exact:true})).toBeVisible()
+  await expectSourceBreakdown(page, card, family.parentId)
   await expect(card.locator(`[data-makeup-destination="${body.data.id}"]`)).toContainText('20 ส.ค. 74')
   await expect(card.locator(`[data-makeup-destination="${body.data.id}"]`)).toContainText('สาขาทดสอบ Localhost')
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -416,6 +473,7 @@ test('Makeup Admin chooses the attendee once and server selects an exact source 
   await page.reload()
   await page.getByRole('tab',{name:/เลือกวันชดเชย/}).click()
   await expect(card.locator(`[data-makeup-destination="${body.data.id}"]`)).toContainText(`Task10 Family ${family.children.indexOf(attendee)+1}`)
+  await expectSourceBreakdown(page, card, family.parentId)
   await expect(card.getByText('โควตา 5 · ใช้แล้ว 1 · เหลือ 4 · ต้นทางที่ใช้ได้ 7',{exact:true})).toBeVisible()
 })
 

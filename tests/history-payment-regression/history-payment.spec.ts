@@ -1368,7 +1368,7 @@ test('monthly Payment renders 621 real batches, complete members, lesson-month n
       FROM bookings b CROSS JOIN (VALUES('${first}',1),('${second}',2)) i(id,seq) WHERE b.id='${fixture.bookingIds[0]}';
     INSERT INTO bookings SELECT (jsonb_populate_record(NULL::bookings,to_jsonb(b)||jsonb_build_object('id','${legacy}','year',2032,'month',10,'status','verified','created_at','2032-09-25T00:00:00Z'))).*
       FROM bookings b WHERE b.id='${fixture.legacyBookingIds[0]}';
-    INSERT INTO bookings SELECT (jsonb_populate_record(NULL::bookings,to_jsonb(b)||jsonb_build_object('id','${incomplete}','year',2032,'month',10,'status','pending_payment','expires_at','2032-10-31T16:59:59Z','created_at','2032-09-25T00:00:00Z'))).*
+    INSERT INTO bookings SELECT (jsonb_populate_record(NULL::bookings,to_jsonb(b)||jsonb_build_object('id','${incomplete}','year',2032,'month',10,'status','pending_payment','expires_at',NULL,'created_at','2032-09-25T00:00:00Z'))).*
       FROM bookings b WHERE b.id='${fixture.legacyBookingIds[0]}';
     INSERT INTO payments(booking_id,user_id,amount,method,status,created_at) VALUES('${legacy}','${fixture.userId}',700,'bank_transfer','approved','2032-09-25T00:00:00Z');
     WITH batches AS (
@@ -1389,6 +1389,10 @@ test('monthly Payment renders 621 real batches, complete members, lesson-month n
   await page.goto('/admin/payments?month=2032-10')
   await expect(page.getByRole('heading', { name: 'เดือนเรียน ตุลาคม 2575', exact: true })).toBeVisible()
   await expect(page.getByText('แสดง 622 จาก 622 รายการ', { exact: true })).toBeVisible()
+  // This incomplete fixture has neither a lesson session nor expires_at and is
+  // outside Task10's cohort. The page must not invent a deadline or cancellation.
+  await expect(page.getByTestId(`incomplete-deadline-${incomplete}`)).toContainText('อยู่นอกกลุ่มยกเลิกอัตโนมัติ')
+  await expect(page.getByTestId(`incomplete-deadline-${incomplete}`)).not.toContainText('ส่งสลิปก่อน')
   await expect.poll(() => page.getByAltText('Payment slip', { exact: true }).first()
     .evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true)
   await expect(page.getByText(/ต.ค. 2032 · 2 ครั้ง/).first()).toBeVisible()

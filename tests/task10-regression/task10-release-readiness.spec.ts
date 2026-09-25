@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
-import { TEST_ACCOUNT } from '../booking-regression/local-supabase'
-import { concurrentLocalSql, createLocalAdmin, localSql, readTask10Fixture, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, uploadTask10Slip } from './local-supabase'
+import { TEST_ACCOUNT, TEST_ADMIN_ACCOUNT } from '../booking-regression/local-supabase'
+import { concurrentLocalSql, createLocalAdmin, localSql, readTask10Fixture, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, trackTask10Storage } from './local-supabase'
 
 test.afterAll(async () => { await setupTask10() })
 
-test('all controls Active: September25 server booking for October, payment, sibling Makeup and real expiry worker coexist', async ({ page }, testInfo) => {
-  test.setTimeout(240_000)
+test('all controls Active: UI Booking → slip Payment → sibling Makeup with natural cron and Pause/Resume recovery', async ({ page }, testInfo) => {
+  test.setTimeout(420_000)
   const f = readTask10Fixture(), client = createLocalAdmin(), sibling = randomUUID(), sourceBooking = randomUUID(), source = randomUUID()
   setDisposableClock('2026-09-25T10:00:00+07:00')
   // Synthetic historical purchase, before local cutover only. Every write uses
@@ -32,6 +32,8 @@ test('all controls Active: September25 server booking for October, payment, sibl
   const controls = () => JSON.parse(localSql(`SELECT jsonb_build_object('pricing',pricing_enabled,'makeup',makeup_enabled,'expiry',expiry_enabled,'cron',
     (SELECT active FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1')) FROM task10_policy_activation;`))
   expect(controls()).toEqual({ pricing: true, makeup: true, expiry: true, cron: true })
+  const cronBoundary = localSql('SELECT clock_timestamp();')
+  const naturalRuns = () => Number(localSql(`SELECT count(*) FROM cron.job_run_details WHERE jobid=(SELECT jobid FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1') AND start_time>'${cronBoundary}'::timestamptz AND status='succeeded';`))
   const worker = async () => {
     const result = JSON.parse(await concurrentLocalSql('SELECT task10_run_expiry_v1(50);'))
     expect(result.failures || []).toEqual([])
@@ -46,46 +48,81 @@ test('all controls Active: September25 server booking for October, payment, sibl
     // Preserve real creation order instead of collapsing both bills onto the
     // same synthetic instant and allowing random UUID order to reverse them.
     setDisposableClock(`2026-09-25T10:00:0${index}+07:00`)
-    const previewResponse = await page.request.post('/api/bookings/preview', { data: { courseTypeId: f.kidsCourseId, month: 10, year: 2026, totalSessions: 1 } })
-    const quote = await previewResponse.json(); expect(previewResponse.status(), JSON.stringify(quote)).toBe(200)
-    expect(quote.policy.catalog.regime).toBe('late')
-    expect(quote.totalPrice).toBe(index === 0 ? 700 : 625)
-    const template = localSql(`SELECT id FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM date '2026-10-${10 + index}') AND start_time='17:00' AND end_time='19:00' AND is_active;`)
-    const [response] = await Promise.all([page.request.post('/api/bookings', { data: {
-      learnerType: 'child', childId: child, branchId: f.branchId, courseTypeId: f.kidsCourseId, month: 10, year: 2026,
-      totalSessions: 1, totalAmount: quote.totalPrice, expectedTotalPrice: quote.totalPrice, clientRequestId: randomUUID(),
-      expectedPolicyFingerprint: quote.policy.fingerprint, expectedScopeRevision: quote.expectedScopeRevision,
-      expectedLegacyBaselineSessions: quote.legacyBaselineSessions, expectedLegacyBaselineFingerprint: quote.legacyBaselineFingerprint,
-      sessions: [{ date: `2026-10-${10 + index}`, startTime: '17:00', endTime: '19:00', branchId: f.branchId, childId: child, scheduleTemplateId: template }],
-    } }), worker()])
+    await page.goto('/dashboard/booking')
+    await page.getByText('เด็ก (กลุ่ม)', { exact: true }).click()
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    await page.getByText(index === 0 ? `${TEST_ACCOUNT.childNickname} - ${TEST_ACCOUNT.childName}` : 'Sibling - Readiness Sibling', { exact: true }).click()
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    await page.getByText('สาขาทดสอบ Localhost', { exact: true }).click()
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    await page.getByText('กันยายน 2569', { exact: true }).locator('..').getByRole('button').last().click()
+    await page.getByTestId(`booking-date-2026-10-${10 + index}`).click()
+    await page.getByTestId(`booking-slot-2026-10-${10 + index}-${f.branchId}-17:00`).click()
+    await expect(page.getByTestId('booking-step4-total')).toHaveText(index === 0 ? '฿700' : '฿625')
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    await expect(page.getByTestId('booking-step5-total')).toHaveText(index === 0 ? '฿700' : '฿625')
+    const responsePromise = page.waitForResponse(r => new URL(r.url()).pathname === '/api/bookings' && r.request().method() === 'POST')
+    await Promise.all([page.getByTestId('booking-confirm').click(), worker()])
+    const response = await responsePromise
     const body = await response.json(); expect(response.status(), JSON.stringify(body)).toBe(200)
     ids.push(body.bookingId || body.data?.bookingId)
     expect(ids[index]).toMatch(/^[a-f0-9-]{36}$/)
+    await page.waitForURL(/\/dashboard\/history/)
+    expect(localSql(`SELECT child_id FROM booking_sessions WHERE booking_id='${ids[index]}';`)).toBe(child)
   }
   const stored = await client.from('bookings').select('id,total_price,pricing_scope_id,status').in('id', ids).order('created_at').order('id')
   expect(stored.error).toBeNull(); expect(stored.data!.map(b => Number(b.total_price))).toEqual([700, 625])
   expect(localSql(`SELECT count(*) FROM task10_booking_pricing_evidence WHERE booking_id IN (${ids.map(sqlLiteral)}) AND bangkok_date='2026-09-25' AND lesson_month='2026-10-01' AND formula='progressive';`)).toBe('2')
   const scopeId = stored.data![0].pricing_scope_id
-  const scope = await client.from('booking_pricing_scopes').select('revision').eq('id', scopeId).single()
-  const prepared = await client.rpc('prepare_progressive_payment_batch_v2', { p_user_id: f.userId, p_pricing_scope_id: scopeId, p_booking_ids: ids,
-    p_expected_scope_revision: scope.data!.revision, p_expected_total: 1325, p_idempotency_key: randomUUID() })
-  expect(prepared.error).toBeNull(); const batch = prepared.data.batchId
-  const slip = await uploadTask10Slip(f.userId, batch)
-  const metadata = { storageBucket: 'progressive-payment-slips', storagePath: slip.storagePath, mimeType: 'image/png', sizeBytes: 104, sha256: slip.sha256 }
-  expect((await client.rpc('record_progressive_payment_upload_v1', { p_batch_id: batch, p_user_id: f.userId, p_storage_bucket: metadata.storageBucket,
-    p_storage_path: slip.storagePath, p_mime_type: 'image/png', p_size_bytes: 104, p_sha256: slip.sha256 })).error).toBeNull()
-  const [submitted] = await Promise.all([client.rpc('submit_progressive_payment_batch_v1', { p_batch_id: batch, p_user_id: f.userId, p_slip_metadata: metadata, p_idempotency_key: randomUUID() }), worker()])
-  expect(submitted.error).toBeNull()
-  const [approved] = await Promise.all([client.rpc('approve_progressive_payment_batch_v1', { p_batch_id: batch, p_actor_id: f.adminUserId, p_idempotency_key: randomUUID() }), worker()])
-  expect(approved.error).toBeNull()
+  await page.getByTestId(`progressive-payment-prepare-${scopeId}`).click()
+  await expect(page.getByTestId('payment-slip-modal')).toBeVisible()
+  await page.locator('#slip-upload').setInputFiles({ name: 'local-readiness.png', mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR1cAAAAASUVORK5CYII=', 'base64') })
+  const submittedPromise = page.waitForResponse(r => new URL(r.url()).pathname === '/api/progressive-payments/submit' && r.request().method() === 'POST')
+  await Promise.all([page.getByRole('button', { name: 'ส่งสลิปชำระเงิน', exact: true }).click(), worker()])
+  const submitted = await submittedPromise
+  expect(submitted.status(), await submitted.text()).toBe(200)
+  const storedSlip = JSON.parse(localSql(`SELECT jsonb_build_object('bucket',slip_storage_bucket,'path',slip_storage_path) FROM progressive_payment_batches WHERE pricing_scope_id='${scopeId}' AND status='approved';`))
+  trackTask10Storage(storedSlip.bucket, storedSlip.path)
+  await expect(page.getByTestId('payment-slip-modal')).toHaveCount(0)
+  expect(localSql(`SELECT count(*) FROM task10_accepted_receipts WHERE booking_id IN (${ids.map(sqlLiteral)});`)).toBe('2')
   const state = await client.rpc('task10_family_makeup_state_v1', { p_actor_id: f.makeupAdminId, p_parent_id: f.userId, p_source_month: '2026-09-01' })
   expect(state.error).toBeNull(); expect(state.data).toMatchObject({ quota: 5, used: 0, remaining: 5, destinationPurchase: { quantity: 2 }, eligible: true })
-  const template = localSql(`SELECT id FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=extract(dow FROM date '2026-10-20') AND start_time='17:00' AND end_time='19:00' AND is_active;`)
-  const consumeArgs = { p_actor_id: f.makeupAdminId, p_source_session_id: source, p_attending_child_id: sibling, p_template_id: template,
-    p_branch_id: f.branchId, p_target_date: '2026-10-20', p_start_time: '17:00', p_end_time: '19:00', p_request_id: randomUUID() }
-  const [used] = await Promise.all([client.rpc('task10_consume_family_makeup_v1', consumeArgs), worker()])
-  expect(used.error).toBeNull(); expect(used.data).toMatchObject({ remaining: 4, data: { child_id: sibling, rescheduled_from_id: source } })
-  expect((await client.rpc('task10_consume_family_makeup_v1', consumeArgs)).data).toEqual(used.data)
+  await page.context().clearCookies()
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(TEST_ADMIN_ACCOUNT.email); await page.locator('#password').fill(TEST_ADMIN_ACCOUNT.password)
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click(); await page.waitForURL(/\/admin(?:\/|$)/)
+  await page.goto('/admin/makeup?month=2026-09')
+  await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+  const card = page.getByTestId(`kids-family-${f.userId}:2026-09`)
+  await expect(card.getByText('กระเป๋า 0', { exact: true })).toBeVisible()
+  await expect(card.getByText('ขาดเรียน 1', { exact: true })).toBeVisible()
+  await card.getByRole('button', { name: 'เลือกเด็กและรอบชดเชย', exact: true }).click()
+  await page.getByRole('combobox', { name: 'เด็กที่มาเรียนจริง', exact: true }).click()
+  await page.getByRole('option', { name: 'Sibling - Readiness Sibling', exact: true }).click()
+  await page.getByTestId('makeup-day-2026-10-20').click()
+  await page.getByRole('dialog').getByText('สาขาทดสอบ Localhost', { exact: true }).locator('..').getByRole('button', { name: '17:00-19:00', exact: true }).click()
+  const consumedPromise = page.waitForResponse(r => new URL(r.url()).pathname === '/api/admin/makeup/kids-family' && r.request().method() === 'POST')
+  await Promise.all([page.getByRole('button', { name: 'จัดชดเชยร่วมครอบครัว', exact: true }).click(), worker()])
+  const consumed = await consumedPromise, used = await consumed.json()
+  expect(consumed.status(), JSON.stringify(used)).toBe(200)
+  expect(used).toMatchObject({ remaining: 4, data: { child_id: sibling, rescheduled_from_id: source } })
+  const replay = await page.request.post('/api/admin/makeup/kids-family', { data: consumed.request().postDataJSON() })
+  expect(await replay.json()).toEqual(used)
+  await page.reload(); await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+  await expect(card).toContainText('ใช้แล้ว 1 · เหลือ 4 · ต้นทางที่ใช้ได้ 0')
+  await expect(card.getByText('กระเป๋า 0', { exact: true })).toBeVisible()
+  await expect(card.getByText('ขาดเรียน 0', { exact: true })).toBeVisible()
+  await expect.poll(naturalRuns, { timeout: 75_000, intervals: [1000, 2000] }).toBeGreaterThanOrEqual(1)
+  const original = JSON.parse(localSql('SELECT to_jsonb(a) FROM task10_policy_activation a;'))
+  localSql(`SELECT task10_pause_v1('${f.adminUserId}',${original.revision},true,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
+  expect(controls()).toEqual({ pricing: false, makeup: false, expiry: false, cron: false })
+  const blockedQuote = await client.rpc('task10_booking_policy_quote_v1', { p_user_id: f.userId, p_course_type_id: f.kidsCourseId, p_lesson_month: '2026-10-01', p_formula: 'progressive', p_booking_id: null })
+  expect(blockedQuote.error?.message).toContain('TASK10_PRICING_PAUSED')
+  localSql(`SELECT task10_pause_v1('${f.adminUserId}',${original.revision + 1},false,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
+  expect(controls()).toEqual({ pricing: true, makeup: true, expiry: true, cron: true })
+  expect(localSql('SELECT effective_at FROM task10_policy_activation;')).toBe(localSql(`SELECT '${original.effective_at}'::timestamptz;`))
+  expect(localSql('SELECT count(*) FROM task10_activation_events;')).toBe('3')
   localSql(`INSERT INTO schedule_templates(branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
     SELECT '${f.branchId}','${f.adultCourseId}',extract(dow FROM date '2026-10-22'),'10:00','11:00',true
     WHERE NOT EXISTS(SELECT 1 FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.adultCourseId}'
@@ -95,7 +132,8 @@ test('all controls Active: September25 server booking for October, payment, sibl
       totalSessions: 1, totalAmount: 500, expectedTotalPrice: 500, sessions: [{ date: '2026-10-22', startTime: '10:00', endTime: '11:00', branchId: f.branchId, childId: null }] } })
   expect(unpaid.error).toBeNull()
   setDisposableClock('2026-10-23T10:00:00+07:00')
-  await worker()
+  const beforeExpiryTicks = naturalRuns()
+  await expect.poll(naturalRuns, { timeout: 75_000, intervals: [1000, 2000] }).toBeGreaterThan(beforeExpiryTicks)
   expect(localSql(`SELECT status FROM bookings WHERE id='${unpaid.data.bookingId}';`)).toBe('cancelled')
   expect(localSql(`SELECT count(*) FROM task10_booking_cancellations WHERE booking_id='${unpaid.data.bookingId}';`)).toBe('1')
   expect(localSql(`SELECT status||':'||total_price FROM bookings WHERE id='${sourceBooking}';`)).toBe('verified:10000.00')

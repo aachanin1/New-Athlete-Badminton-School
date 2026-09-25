@@ -6,11 +6,11 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — READY FOR OWNER UAT / Owner acceptance Pending / Task Done No.** Exact new staged Payment/Makeup/pricing passed school-role read-only smoke; local Active tests are separate. IABnative-month-popup crash remains a disclosed limitation; Owner restored same HTTPS and the permitted checks completed.
-- [Current matrix](PROJECT_STATE.md#current-project-matrix) owns exact Source/Git/artifact, tests, migration, controls and data state.
-- **Next action:** Owner reviews exact staged artifact and accepts its SHA/ID, then explicitly authorizes Promotion + Resume. Both remain unauthorized now; Production remains Paused4 and new Kids booking is not restored. Prepared release/recovery plan requires fresh revision/data checks.
-- [Latest scope](AGENTS.md#task10-payment-monthly-naming-decision-2026-09-25); [source tests](DEVELOPMENT_TODO.md#task10-payment-monthly-naming-2026-09-25); [delivery handoff](DEVELOPMENT_TODO.md#task10-payment-staged-session-handoff-2026-09-25); [authenticated closeout](DEVELOPMENT_TODO.md#task10-payment-authenticated-ready-2026-09-25).
-- Preserve Owner/cutover evidence and prior28-bill cancellation. No repair/replay/reset or Parking Lot work.
+- **Task10 — DEVELOPING / READY No / Task Done No.** Latest Owner scope adds Payment deadline/receipt display, Makeup source breakdown and complete production-mode readiness. The previous candidate's READY does not certify new source.
+- [PROJECT_STATE current matrix](PROJECT_STATE.md#current-project-matrix) owns Source/Git/build/artifact, fresh/retained/failed checks, controls and data state.
+- **Next action:** publish the fully verified production-mode source, create a filtered staged Production artifact without customer aliases, then complete authenticated read-only checks. Submit that exact artifact for Owner acceptance and explicit Promotion + Resume authorization.
+- [Owner decision](AGENTS.md#task10-final-production-readiness-decision-2026-09-25); [round evidence and corrections](DEVELOPMENT_TODO.md#task10-final-production-readiness-2026-09-25).
+- Preserve all Owner/cutover evidence and28cancelledbills/104sessions. No Production test transactions, migration, repair, environment/control changes, Promotion, Resume or Parking Lot work in this preparation scope.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

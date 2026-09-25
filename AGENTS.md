@@ -567,6 +567,33 @@ Main portals:
   artifact rollback. Pause blocks Kids service; it does not undo committed data.
   Current actual states belong only in PROJECT_STATE.md.
 
+<a id="task10-final-production-readiness-decision-2026-09-25"></a>
+### Task10 — Deadline display, source breakdown and final production-mode readiness (Owner, 2026-09-25)
+
+- Incomplete Admin Payment bookings display the existing authoritative lifecycle
+  projection's deadline, cohort and accepted-receipt evidence using shared Bangkok
+  Thai date formatting. Never infer accepted receipt from pending status or an
+  image URL, invent a missing deadline, or claim an inactive worker is running.
+  This presentation approval does not change payment or expiry rules.
+- Family Makeup shows eligible Wallet sources in purple and absent sources in
+  orange with readable text and counts. Their sum equals the same backend source
+  list used by the total; do not cap source counts by quota or alter N/D/M,
+  canonical identity, nickname - full-name formatting or source selection.
+- Final readiness requires production-build disposable verification of Booking,
+  Payment, Expiry, Kids Makeup, Wallet/Family, Settings/permissions and an integrated
+  all-controls-Active UI/API/DB flow with real local cron and Pause/Resume recovery.
+  Verify physical bindings before fixtures/writes. Explicitly distinguish local
+  clocks, image configuration and mocks from the exact real-DB staged artifact.
+- Developer may perform bounded implementation/tests, normal commit/push and
+  create a new staged Production artifact without customer aliases. Production
+  and real-DB staged business access remain read-only; no new migration, repair,
+  environment/control changes or repeat of the28-bill cutover is authorized here.
+- Owner must accept the new exact artifact and explicitly authorize Promotion +
+  Resume and its recovery plan before either action. Target dates never waive
+  required gates. Safety Pause does not restore Kids booking availability or
+  reverse committed bills, credits, quota or money. Do not use an incompatible
+  pre-activation artifact for rollback. PROJECT_STATE.md owns actual state.
+
 ## Technical Guardrails
 
 - Route protection is split across `src/proxy.ts`, layout guards, and API guards. Inspect the actual route/API before changing auth.

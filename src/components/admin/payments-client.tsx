@@ -14,6 +14,7 @@ import { ListPagination } from '@/components/admin/list-pagination'
 import { PaymentSettingsClient } from '@/components/admin/payment-settings-client'
 import { formatThaiDateTimeWithWeekday, formatThaiMonthYear } from '@/lib/date-format'
 import type { PaymentBranch, PaymentTransferSettings } from '@/lib/payment-settings'
+import type { BookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
 import {
   AlertTriangle,
   Banknote,
@@ -64,6 +65,7 @@ interface PaymentData {
 }
 
 interface IncompleteBookingData {
+  lifecycle?: BookingPaymentLifecycle
   id: string
   user_id: string
   user_name: string
@@ -84,6 +86,7 @@ interface IncompleteBookingData {
 }
 
 interface PaymentsClientProps {
+  expiryEnabled: boolean
   selectedMonth: string
   currentMonth: string
   payments: PaymentData[]
@@ -177,6 +180,7 @@ function getShortId(id: string) {
 }
 
 export function PaymentsClient({
+  expiryEnabled,
   selectedMonth,
   currentMonth,
   payments,
@@ -519,6 +523,26 @@ export function PaymentsClient({
                         {MONTH_NAMES[booking.month]} {booking.year} · {booking.total_sessions} ครั้ง
                       </p>
                       <p className="mt-1 text-xs text-gray-400">สร้าง {formatDate(booking.created_at)}</p>
+                    </div>
+
+                    <div className="min-w-0 rounded-md bg-slate-50 p-3 text-sm lg:col-span-full" data-testid={`incomplete-deadline-${booking.id}`}>
+                      {booking.lifecycle?.acceptedReceipt ? (
+                        <p className="text-emerald-800">ระบบรับสลิปทันกำหนดแล้ว — ไม่ยกเลิกอัตโนมัติด้วยเหตุไม่มีสลิป</p>
+                      ) : ['paid', 'verified'].includes(booking.lifecycle?.status || booking.status) ? (
+                        <p className="text-blue-800">มีสถานะชำระเงินแล้ว — ตรวจสอบหลักฐานและสถานะการยืนยัน</p>
+                      ) : booking.lifecycle?.inCohort && booking.lifecycle.deadline ? (
+                        <>
+                          <p className="font-medium text-amber-900">ส่งสลิปก่อน {formatThaiDateTimeWithWeekday(booking.lifecycle.deadline)}</p>
+                          <p className="mt-1 text-gray-600">{expiryEnabled
+                            ? 'หากระบบไม่ได้รับสลิปก่อนกำหนด บิลและรอบเรียนในบิลจะถูกยกเลิกอัตโนมัติ'
+                            : 'การยกเลิกอัตโนมัติหยุดชั่วคราว กำหนดรับสลิปเดิมยังคงอยู่ เมื่อเปิดระบบอีกครั้ง บิลที่ไม่มีหลักฐานรับสลิปทันกำหนดจะเข้าสู่การตรวจยกเลิก'}</p>
+                        </>
+                      ) : (
+                        <p className="text-gray-600">{booking.lifecycle?.inCohort
+                          ? 'ยังไม่มีข้อมูลกำหนดรับสลิปที่ยืนยันได้'
+                          : booking.lifecycle ? 'รายการนี้อยู่นอกกลุ่มยกเลิกอัตโนมัติของ Task10 — ตรวจสอบตามเงื่อนไขเดิม'
+                            : 'ยังตรวจสอบข้อมูลกำหนดรับสลิปไม่ได้'}</p>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2 lg:justify-end">

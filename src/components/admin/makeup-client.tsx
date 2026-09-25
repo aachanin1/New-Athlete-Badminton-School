@@ -553,6 +553,10 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
           <p className="text-sm text-gray-600">ผู้ปกครอง {card.parentName}</p>
         </div><Badge variant="outline">{formatThaiMonthYear(`${s.sourceMonth}-01`)}</Badge></div>
         <p>โควตา {s.quota} · ใช้แล้ว {s.used} · เหลือ {s.remaining} · ต้นทางที่ใช้ได้ {s.sources.length}</p>
+        <div className="flex flex-wrap gap-2 text-sm" aria-label="ประเภทต้นทางที่ใช้ได้">
+          <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-800">กระเป๋า {s.sources.filter(source => source.kind === 'wallet').length}</Badge>
+          <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">ขาดเรียน {s.sources.filter(source => source.kind === 'absent').length}</Badge>
+        </div>
         <p className="font-medium">ใช้ได้ตอนนี้ {availableFamilyMakeupCount(s)} ครั้ง <span className="text-sm font-normal text-gray-500">สิทธิ์ร่วมทั้งครอบครัว ไม่แยกเพิ่มต่อเด็ก</span></p>
         <p className="text-sm">ซื้อเดือนปลายทางยืนยันแล้ว {s.destinationPurchase.quantity} ครั้ง · ขั้นต่ำ {s.minimum.minimum} ครั้ง</p>
         <p className="text-sm text-gray-500">รอชำระ {s.destinationPurchase.pendingQuantity} ครั้ง · รอตรวจยืนยัน {s.destinationPurchase.awaitingReviewQuantity} ครั้ง — ยังไม่นับเป็นยอดยืนยัน</p>

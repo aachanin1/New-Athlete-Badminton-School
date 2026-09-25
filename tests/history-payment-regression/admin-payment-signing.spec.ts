@@ -11,7 +11,7 @@ type Row = Record<string, unknown>
 
 // Execute the actual server page. The fake transport models PostgREST's default
 // nested-null filtering and 1000-row cap; it records every query and sign call.
-async function renderPayments(month = '2031-10', failPath?: string, sameMonthCount = 621, role = 'super_admin') {
+async function renderPayments(month = '2031-10', failPath?: string, sameMonthCount = 621, role = 'super_admin', lifecycleRows: Row[] = [], failPolicy = false) {
   const queries: Array<{ table: string; select: string; filters: Array<[string, unknown]>; range?: number[] }> = []
   let concurrent = 0; let peak = 0
   const signed: string[] = []
@@ -57,7 +57,11 @@ async function renderPayments(month = '2031-10', failPath?: string, sameMonthCou
     '@/lib/auth/admin': { requireAdminPageAccess: async () => ({ supabase: db, role }), getServiceRoleClient: () => db },
     '@/lib/progressive-payment-integration': { createProgressiveSlipSignedUrl: sign },
     '@/lib/progressive-pricing-feature': { isProgressivePaymentReviewEnabled: () => true },
-    '@/lib/booking-payment-lifecycle': { loadBookingPaymentLifecycle: async () => new Map(), bookingPaymentLifecycleMessage: () => null },
+    '@/lib/booking-payment-lifecycle': { loadBookingPaymentLifecycle: async () => new Map(lifecycleRows.map(row => [row.bookingId, row])), bookingPaymentLifecycleMessage: () => null },
+    '@/lib/task10-policy': { loadTask10Policy: async () => {
+      if (failPolicy) throw new Error('Policy read failed')
+      return { state: 'paused', expiryEnabled: false }
+    } },
     '@/lib/payment-settings': { PAYMENT_TRANSFER_SETTING_KEY: 'payment_transfer_settings', normalizePaymentTransferSettings: () => ({}) },
   }
   const moduleCache = new Map<string, { exports: Record<string, unknown> }>()
@@ -72,7 +76,7 @@ async function renderPayments(month = '2031-10', failPath?: string, sameMonthCou
     } }, { filename: path })
     return compiled.exports
   }
-  const page = load(resolve(__dirname, '../../src/app/(admin)/admin/payments/page.tsx')).default as (props: unknown) => Promise<{ props: { payments: Array<Row>; incompleteBookings: Array<Row>; selectedMonth: string } }>
+  const page = load(resolve(__dirname, '../../src/app/(admin)/admin/payments/page.tsx')).default as (props: unknown) => Promise<{ props: { payments: Array<Row>; incompleteBookings: Array<Row>; selectedMonth: string; expiryEnabled: boolean } }>
   const result = await page({ searchParams: Promise.resolve({ month }) })
   return { props: result.props, queries, signed, peak }
 }
@@ -88,6 +92,18 @@ test('selected lesson month filters all three queues before hydration and signs 
   expect(peak).toBeGreaterThan(0)
   expect(props.payments.filter(row => row.source_kind === 'progressive').every(row => row.total_sessions === 2)).toBe(true)
   expect(queries.find(q => q.table === 'payments')?.select).toContain('bookings!inner(')
+})
+
+test('incomplete booking carries the exact authoritative deadline and receipt, with expiry OFF kept separate', async () => {
+  const lifecycle = { bookingId: 'incomplete-10', status: 'pending_payment', inCohort: true,
+    deadline: '2031-10-01T10:00:00+07:00', acceptedReceipt: true, due: false, cancelledAt: null }
+  const result = await renderPayments('2031-10', undefined, 1, 'super_admin', [lifecycle])
+  expect(result.props.incompleteBookings[0].lifecycle).toEqual(lifecycle)
+  expect(result.props.expiryEnabled).toBe(false)
+  for (const override of [{ due: true }, { status: 'cancelled' }]) {
+    const filtered = await renderPayments('2031-10', undefined, 1, 'super_admin', [{ ...lifecycle, ...override }])
+    expect(filtered.props.incompleteBookings).toEqual([])
+  }
 })
 
 test('more than one page of batches keeps every member and stable payment identity', async () => {
@@ -117,6 +133,10 @@ test('invalid month defaults to the Bangkok month without signing unrelated hist
 
 test('signing failure rejects the page instead of hiding a payment or claiming success', async () => {
   await expect(renderPayments('2031-10', 'private/5')).rejects.toThrow('Storage signing failed')
+})
+
+test('policy read failure belongs to the page promise without an unhandled rejection during signing', async () => {
+  await expect(renderPayments('2031-10', undefined, 1, 'super_admin', [], true)).rejects.toThrow('Policy read failed')
 })
 
 test('permitted standard Admin receives no financial amount in serialized page props', async () => {

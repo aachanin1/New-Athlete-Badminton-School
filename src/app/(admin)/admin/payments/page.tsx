@@ -5,6 +5,7 @@ import { signAdminPaymentSlips } from '@/lib/admin-payment-slip-signing'
 import { getBangkokDateKey } from '@/lib/date-format'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
 import { bookingPaymentLifecycleMessage, loadBookingPaymentLifecycle } from '@/lib/booking-payment-lifecycle'
+import { loadTask10Policy } from '@/lib/task10-policy'
 import type { PaymentReviewQueueRow } from '@/types/database'
 import {
   PAYMENT_TRANSFER_SETTING_KEY,
@@ -305,6 +306,7 @@ export default async function PaymentsPage({ searchParams }: {
   const [year, month] = selectedMonth.split('-').map(Number)
   const canViewFinancialAmounts = role === 'super_admin'
   const service = getServiceRoleClient()
+  const policy = await loadTask10Policy(service)
   const legacyPaymentsPromise = readAllRangePages<PaymentRow>('payments', (start, end) => supabase
     .from('payments')
     .select(`
@@ -525,6 +527,7 @@ export default async function PaymentsPage({ searchParams }: {
       latest_payment_id: latestPayment?.id || null,
       latest_payment_status: latestPayment?.status || null,
       has_slip: Boolean(latestPayment?.slip_image_url),
+      lifecycle: lifecycle.get(booking.id),
     }
   })
 
@@ -537,6 +540,7 @@ export default async function PaymentsPage({ searchParams }: {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime() || a.id.localeCompare(b.id)
       ))}
       incompleteBookings={incompleteBookingList}
+      expiryEnabled={policy.expiryEnabled}
       paymentTransferSettings={normalizePaymentTransferSettings(paymentSetting?.value, paymentBranches || [])}
       paymentBranches={paymentBranches || []}
       slipOkMode={process.env.SLIPOK_TEST_MODE === 'true' ? 'test' : 'live'}
