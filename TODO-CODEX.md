@@ -6,10 +6,10 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — READY FOR OWNER UAT / Task Done No.** Final source 7150731ce65ca600a78223441c5a0383c9be61f5; exact staged dpl_vMJHmj1zzXys2KnfrnUbbpTALipe. [Current matrix](PROJECT_STATE.md#current-project-matrix) owns builds/tests/artifact/control/impact evidence.
-- **Next:** Owner functional UAT on Active local3060 and acceptance of exact staged B read-only plus fresh Resume impact/recovery. No Promotion or Resume before that acceptance and release authorization. Prior five-case PASS does not accept this candidate.
-- Production remains Paused4/flagsOFF/croninactive; Kids customer booking is not restored. Preserve28/104 and all Owner evidence. Release uses existing Resume, no initial activation/rebuild/data repair/incompatible rollback.
-- Private handoff: OWNER-DECISION-PACKAGE.md in the current evidence root. Source checkpoint and failure history remain in [Task10 history](DEVELOPMENT_TODO.md#task10-booking-policy-source-readiness-2026-09-25).
+- **Task10 — TASK DONE.** Owner-approved exact Promotion, existing Resume and required Production verification completed. [Current matrix](PROJECT_STATE.md#current-project-matrix) is the sole authority for Git/artifact/controls/data and limitations.
+- **Next:** await explicit Owner selection and a fresh Scope Contract for another task. No automatic start of Parking Lot1–8.
+- PM performed QA under the Owner exception; Owner approved release. Preserve A and PM transaction evidence, the fixture branch warning, incomplete PM mobile verification and all previous failures. Read-only Production smoke is not transaction UAT.
+- [Release closeout](DEVELOPMENT_TODO.md#task10-exact-promotion-resume-2026-09-26) records exact Promotion, Resume, natural workers, actual bill effects and recovery boundaries.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

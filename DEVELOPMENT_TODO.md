@@ -27583,3 +27583,133 @@ requirement-verification.json, RESUME-IMPACT-MANIFEST.private.json,
 BUILD-ENVIRONMENT-BOUNDARY.md and RELEASE-AND-RECOVERY-PLAN.md.
 [Owner decision](AGENTS.md#task10-booking-policy-source-readiness-decision-2026-09-25);
 [source checkpoint](DEVELOPMENT_TODO.md#task10-booking-policy-source-readiness-2026-09-25).
+
+
+<a id="task10-exact-promotion-resume-2026-09-26"></a>
+## Task10 exact Promotion + Resume + Production verification — 2026-09-26
+
+State observed at this closeout. Owner's FINAL CODEX COMMAND explicitly accepted
+the release after PM QA and limitations, authorizing continuous execution through
+fresh gates, one exact Promotion while OFF, Paused smoke, existing Resume, natural
+workers and Docs3 publication. PM performed QA under the exception; Owner approved
+release. This superseded the earlier acceptance-Pending gate without relabeling
+older failures or claiming Production business-transaction UAT.
+
+Scope Contract: actor Developer Codex; before, Production Paused and customers
+unable to create Kids bookings; expected, the approved artifact serves all4
+customer aliases with Task10 pricing/makeup/expiry and existing cron Active.
+Completion required fresh identity/config/M1–M6/compatibility and PM/account/impact
+reconciliation, Paused authenticated smoke before Resume, successful Active reads,
+at least2natural workers and exact bill effects, then Docs3 checks/commit/push.
+Exact allowlist: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md.
+Functional0/Tests0/Config0/Migration0/Docs3. Authorized infrastructure/data actions
+were exact Promotion, revision-guarded existing Resume and conditional Safety
+Pause only; no rebuild, replacement, migration, environment/permission/allowlist
+change, receiving-account save, Production customer test, worker invocation,
+repair/refund, repeat28/104 cancellation, initial activation or incompatible
+rollback. Private evidence lives outside Git in task10-release-20260926.
+
+Release facts:
+
+- Fresh Git clean, application7150731ce65ca600a78223441c5a0383c9be61f5 unchanged;
+  local/live upstream42a43f2d4371cbe4fced2848203ab4ef18e4a2b3 at0/0. Only the
+  earlier Docs3 successor differed from application source. Retained final-source
+  suites91/25/23/5 and technical checks reused; no broad suite/build rerun.
+- Candidate dpl_vMJHmj1zzXys2KnfrnUbbpTALipe remained READY/targetproduction;
+  source, timestamps,219outputs and provider build configuration matched retained
+  exact evidence. M1–M6 hashes/66definitions/ACL/owner and Wallet compatibility
+  matched; environment unchanged/predatesbuild, allowlist absent, global
+  SLIPOK_TEST_MODE=true retained.
+- Promote once07:44:43.608–07:44:49.295UTC, while revision4/OFF/croninactive.
+  All4existing aliases mapped to that exact ID; no rebuild/replacement.
+  Fourhealth200/ok, landing/login200 and24assets200; identity/health also passed
+  after Resume. Customer alias needed normal Owner login because the old refresh
+  token was invalid. Scoped07:45refresh-token errors retained; after07:46:30
+  error/fatal0, full post-Promotion5xx0 through07:50:01.
+- Paused authenticated customer checks07:47–07:49UTC: Kids typedPaused,
+  no rates and Nextdisabled; Payment Sept/Oct navigation/deadline/Pausedcopy;
+  Makeup review/choose/source counts and all Kids use buttons disabled.
+  Initial click/selector waits did not always show the transition immediately;
+  inspected actual state and used keyboard navigation successfully. A Makeup
+  reload after Resume exceeded a locator wait but subsequently rendered with
+  console errors0; no application correction or hidden test retry PASS.
+- Fresh pre-Resume07:50:05.138306UTC controls and every exact impact row remained
+  unchanged:4bills/3families/21sessions/17600THB, due0, acceptedreceipt0,
+  missingdeadline0/outsidecohort0.1260paid/verified bills due0;5accepted-receipt
+  verified bills protected. Bill value is neither a refund nor a claim every bill
+  will be cancelled. Real super_admin actor freshly checked.
+- task10_pause_v1(p_pause=false) once with fresh revision4 committed event5 at
+  07:50:43.297148UTC. All3flagsON/stateactive/revision5; original effective_at
+  2026-09-24T12:45:14.241075Z unchanged. New actual release evidence is in event5;
+  initial cutover artifact row/history unchanged. No initialactivation.
+  Existing cron1 remains everyminute/limit50 and is active.
+- Natural worker starts07:51:00.133342 and07:52:00.181725UTC both complete;
+  cron succeeded, attempted0/cancelled0/skipped0/failures0. No manual worker.
+  A SELECT-only helper initially used a nonexistent cancellation timestamp
+  column; inspected schema and corrected to cancelled_at. It caused no writes.
+- Booking07:54:35UTC: Paused absent, Nextenabled; late rates700/625/500/433/
+  406/350 at1/2–3/4–5/6–7/8–9/10+ sessions. Read-only authoritative DB quote
+  agrees on26SepBangkok,Octoberlessonmonth,progressive,revision5 and cataloghash.
+  No booking submitted.
+- Makeup07:53UTC:15rendered cards reconciled to DB using namehashes and exact
+  child identity; quota/used/remaining, Wallet/absent counts, D/M, eligibility and
+  canonical-root uniqueness matched. Eligible action enabled, ineligible disabled.
+  No source selection/consumption write.
+- Payment07:54:53UTC: October lesson-month/deadline read, Pausedcopy gone.
+  Receiving settings07:56:21UTC:8cards/12branches/defaults/no draft edit/error;
+  no save, slip, approval or financial operation.
+- Post-Resume error/fatal/5xx0 through07:55:45UTC, a bounded deployment-scoped
+  observation. No critical task-attributable regression; SafetyPause not needed.
+  No incompatible rollback or automatic second Resume.
+
+PM and branch warning reconciliation:
+
+- Physically verified A API64321/DB64322; SELECT-only07:40:38UTC. PM created one
+  verified Progressive Kids bill1250 with2sessions/exact2children1Oct/2Oct;
+  October original purchases2.20Oct17:00–19:00 Makeup consumes1/remaining4/
+  quota5 with exact source/attending child/canonical destination. Singleused0.
+  Family Private one redeemed credit/two members preserves self/child identity,
+  both source11Octwalleted and target12Oct05:00–06:00scheduled inone slot;
+  otherhour preserved and duplicate0. No reset/replay/fixture change by Developer.
+- A has3synthetic branch IDs, none of12real default branch IDs. Running the exact
+  application normalizer against A reproduces missing-branch error. Production
+  SELECT has12actual branches,8valid defaultaccounts; every branch has one
+  unambiguous card. All4pending bills resolve actual relevant session-branch
+  accounts without warnings. Exact B and customer settings render the same data.
+  Thus A warning is an isolated fixture-data mismatch; no real-account fix or
+  warning suppression. It remains a recorded limitation of PMA.
+- PM mobile did not complete; earlier Developer390px evidence is separate.
+  A/B are different builds/OS/Storage/clocks, and approved SlipOK test mode is not
+  live-bank verification. Read-only Production smoke is not transaction UAT.
+  Previous failed runs/privacy deviations/credential and tool Unknowns remain
+  preserved in the preceding dated preparation records.
+
+Actual bill effects at07:55:16UTC (opaque IDs retained only in private manifest):
+
+| Bill reference | Course / lesson month | Value THB / sessions | Deadline Bangkok | Verified result |
+| --- | --- | --- | --- | --- |
+| 3ae247bd… | Adult / Sep2026 | 600 /1 | 26Sep18:00 | pending, not due, unchanged |
+| 12983e85… | Private / Sep2026 | 900 /1 | 30Sep16:00 | pending, not due, unchanged |
+| b8055a5c… | Private / Oct2026 | 8100 /9 | 3Oct16:00 | pending, not due, unchanged |
+| aa2b4b37… | Adult / Oct2026 | 8000 /10 | 14Oct14:00 | pending, not due, unchanged |
+
+No bill was actually cancelled by the checked workers. No refund, credit return
+or repair occurred. Future workers apply the original deadline/accepted-receipt/
+paid safeguards and do not freeze this snapshot against customer activity.
+Old28cancelledbills/104sessions hashes unchanged. Compared07:42:24–07:55:15UTC
+payments625,allocations637,paid/verified1260,receipts5,Wallet323/members182,
+attendance4886,payroll13,expenses7,usage0,transition45 and coupon/cohort evidence
+were unchanged. Control/event changed by authorized Developer Resume; worker run
+audits changed naturally. No whole-database immutability or absence-of-traffic
+claim. Developer Production business test transactions0/repair0/refund0.
+
+Closeout: only Docs3 changed; inspect complete staged diff/name-status/stat,
+allowlist, encoding/mojibake and diff-check, then normal commit/push. Final commit/
+live equality and clean proof are recorded privately after publication. Automatic
+Docs Preview is separate and must never replace the exact promoted application.
+SourceCompleteYes/TestsPassedretained+release/CommittedPushedYes/
+DeployedYes/EnabledYes/Allowlistabsent/ProductionActiveYes/
+ProductionbusinessUATnotclaimed/ControlledWriteUATlocalPM+retainedDeveloper/
+DataRepairedNo/ProductionDataChangedauthorizedcontrols+workeraudit/
+ComparedBusinessEvidenceUnchanged/TaskDoneYes.
+Next action: await separate Owner task selection; preserve Parking Lot1–8.
