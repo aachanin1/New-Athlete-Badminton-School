@@ -479,6 +479,9 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
   }, [locked, templateId, state, date, branches, scheduleTemplates, now, calendarDays])
   const filtered = cards.map(card => ({ ...card, state: overrides[keyOf(card.state)] || card.state })).filter(card => {
     const s = card.state
+    // Quota alone is not a source. Keep spent history and source-bearing
+    // families (including Paused / D<M) without offering empty entitlement.
+    if (!s.sources.length && !s.used && !s.destinations?.length) return false
     if (course !== 'all' && course !== 'kids_group') return false
     if (branch !== 'all' && !card.branchIds.includes(branch)) return false
     if (status === 'actionable' && !s.eligible || status === 'makeup' && !s.used && !s.destinations?.length || status === 'expired' && s.reason !== 'expired') return false
@@ -566,7 +569,7 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
           <p className="font-medium">จองชดเชยแล้ว · {destination.childName}</p>
           <p>{formatThaiDateWithWeekday(destination.date)} · {formatTime(destination.startTime, destination.endTime)} · {destination.branchName}</p>
         </div>)}
-        <div className="flex flex-wrap gap-2"><Button disabled={locked || !s.eligible || loading !== null} onClick={() => open(card)}>เลือกเด็กและรอบชดเชย</Button>
+        <div className="flex flex-wrap gap-2">{s.sources.length > 0 ? <Button disabled={locked || !s.eligible || loading !== null} onClick={() => open(card)}>เลือกเด็กและรอบชดเชย</Button> : <p className="text-sm text-gray-600">แสดงประวัติชดเชย · ไม่มีต้นทางสำหรับใช้สิทธิ์ใหม่</p>}
           <Button variant="outline" disabled={locked || loading !== null} onClick={() => void reload(card)}>{loading === key ? 'กำลังอ่านสิทธิ์...' : 'โหลดสิทธิ์ใหม่'}</Button></div>
       </CardContent></Card>
     })}

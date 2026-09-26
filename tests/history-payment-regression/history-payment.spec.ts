@@ -421,6 +421,12 @@ async function verifyPaymentDialogLayout(page: Page) {
   await expect(submit).toBeVisible()
   await expect(submit).toBeDisabled()
 
+  // Visibility can precede the dialog's entrance transform finishing.
+  // Measure the stationary footer after that transform, keeping the same bounds.
+  await expect.poll(() => modal.evaluate((element) => (
+    element.getAnimations().every((animation) => animation.playState === 'finished')
+  ))).toBe(true)
+
   const initialMobileLayout = await modal.evaluate((element) => {
     const action = element.querySelector<HTMLElement>('[data-testid="payment-slip-action-area"]')
     const scroller = element.querySelector<HTMLElement>('[data-testid="payment-slip-scroll-region"]')

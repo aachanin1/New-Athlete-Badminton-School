@@ -182,6 +182,44 @@ async function login(page: Page, email=TEST_ADMIN_ACCOUNT.email, password=TEST_A
   await page.waitForURL(/\/admin(?:\/|$)/)
 }
 
+test('Makeup excludes quota-only families and reconciles source-empty reload while keeping D/M and Paused explanations', async ({ page }, testInfo) => {
+  const family = await seedTask10Family()
+  const f = readTask10Fixture()
+  setDisposableClock('2031-08-01T10:00:00+07:00')
+  const client = createLocalAdmin()
+  const empty = await client.rpc('task10_family_makeup_state_v1', { p_actor_id: f.makeupAdminId, p_parent_id: family.parentId, p_source_month: '2031-09-01' })
+  expect(empty.error).toBeNull()
+  expect(empty.data).toMatchObject({ quota: 1, used: 0, sources: [] })
+  await login(page)
+  await page.goto('/admin/makeup?month=2031-09')
+  await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+  await expect(page.getByTestId(`kids-family-${family.parentId}:2031-09`)).toHaveCount(0)
+  await page.reload(); await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+  await expect(page.getByTestId(`kids-family-${family.parentId}:2031-09`)).toHaveCount(0)
+  await page.goto('/admin/makeup?month=2031-07')
+  await page.getByRole('tab', { name: /เลือกวันชดเชย/ }).click()
+  const card = page.getByTestId(`kids-family-${family.parentId}:2031-07`)
+  await expect(card).toContainText('เดือนปลายทางยืนยันชำระแล้ว 0 ครั้ง')
+  await expect(card.getByRole('button', { name: 'เลือกเด็กและรอบชดเชย', exact: true })).toBeDisabled()
+  expect(await expectSourceBreakdown(page, card, family.parentId)).toEqual({ wallet: 2, absent: 6 })
+  localSql("UPDATE task10_policy_activation SET state='paused',makeup_enabled=false,pricing_enabled=false;")
+  await card.getByRole('button', { name: 'โหลดสิทธิ์ใหม่', exact: true }).click()
+  await expect(card).toContainText('ระบบชดเชยคอร์สเด็กหยุดรับรายการใหม่ชั่วคราว')
+  // A controlled transport response checks the client override path; real DB
+  // zero-source reads are proved above, and real last-source consumption in
+  // the integrated Active case preserves its destination history.
+  const state = await (await page.request.get(`/api/admin/makeup/kids-family?parentId=${family.parentId}&sourceMonth=2031-07`)).json()
+  await page.route('**/api/admin/makeup/kids-family?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ...state, sources: [], used: 0, destinations: [], eligible: false, reason: 'no_source' }),
+  }))
+  await card.getByRole('button', { name: 'โหลดสิทธิ์ใหม่', exact: true }).click()
+  await expect(card).toHaveCount(0)
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await testInfo.attach('makeup-source-empty-mobile', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+  await page.unroute('**/api/admin/makeup/kids-family?**')
+})
+
 test('Makeup renders shared nickname-full-name labels, keeps child identities and searches either name', async ({ page }, testInfo) => {
   const family = await seedTask10Family(), f = readTask10Fixture()
   const extras = [randomUUID(), randomUUID(), randomUUID()]

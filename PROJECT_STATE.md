@@ -1,50 +1,41 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-25 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-26 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task10 final production-mode readiness; READY FOR OWNER UAT
+## Current State — Task10 Booking policy / source-backed Makeup corrective; DEVELOPING
 
-**READY FOR OWNER UAT / Owner acceptance of this exact candidate Pending / Task Done No.**
-Final production-mode disposable verification and exact staged read-only verification
-passed. Owner must accept the new artifact and explicitly authorize Promotion + Resume.
-Production Kids booking is still Paused.
+**DEVELOPING / new Owner acceptance Pending / Task Done No.**
+Owner passed the earlier five read-only checks but did not accept release.
+The latest correction supersedes the old candidate's READY status.
 
 ### Current Project Matrix
 
 | Field | Current verified state |
 | --- | --- |
-| Scope / Actor | Developer; Payment read/display, Makeup source summary and production-mode tests. Actual Functional3 / Tests4 / TestConfig2 / Docs4 =13 unique paths; no tracked technical/dependency addition. |
-| Application Source / publication | 1c1e3935cb8415b79e436266b3dab71b5b75edfd committed/pushed on spike/next-major-security-upgrade; live match,0/0,clean at source publication. Gate0 baseline3191034afbe791ae7e588d92d858c3fdab55e18d. |
-| Documentation publication | This Docs3 closeout is separate from application/deployment. Its successor commit/live/clean proof is recorded in private publication-docs.json after normal push. No repeat staged deployment for docs-only publication. |
-| Source behavior | Incomplete bookings carry authoritative deadline/cohort/receipt; Thai date and truthful Paused/protected/outside-cohort copy. Makeup Wallet purple/absent orange counts sum to backend sources, independently of quota; names/identity unchanged. |
-| Local build A | wLOWweh3LJkyvN3FHlyxN; build exit0 at25September08:32:50UTC. Next16.3.3 / Node24.16.0 / Windows / Next start / NODE_ENV production. Locked inputs recorded. |
-| Disposable binding | Task10Final20260925 API62321/DB62322; DB/Auth/REST/Storage/container/volume/workdir/network guards passed. Older Owner/PM/cutover databases preserved. A transactions did not run on B. |
-| Fresh functional checks | Full final-source Task10 87/87; History/Payment25/25; Booking23/23; focused Makeup5/5. Includes UI→API→DB Booking→slip→sibling Makeup with all3flags, real natural cron and Pause/Resume. Overlapping coverage counts are not added. |
-| Fresh technical / adjacent | TypeScript, src+changed-test/config lint, mojibake and production build passed. Walletstatic45, Adminstatic39 and retrospective38 passed. Seven requirements map to exact cases/backend evidence privately. |
-| Failed / retained | Preserve first86/87 fixture-state failure, its interrupted rerun, prior85/86 and22/23. Bounded fixes: guarded independent fixture setup and immediately awaiting new policy read before queues. Final full invocations passed after corrections. Earlier September22/M6/Owner results are retained only. |
-| New staged Production B | dpl_DH2PhExq8NYn5Ds3v57BoRy5ThVs; https://new-athlete-badminton-school-8mn64f4ba-aachanin1s-projects.vercel.app ; source1c1e3935, READY, target production, --prod --skip-domain, zero customer aliases. |
-| Artifact chain | 365uploaded/worker inputs, missing0/extra0/forbidden0,219outputs. Provider vercel.json name/version additions accounted for, original keys unchanged. Output SHA256 366513fa6c9921e2599c03174f77721dd280c4cc27c43880f6f129f6aad4f50e. Build timestamps unchanged after smoke. |
-| Preview only | Git Preview dpl_Gdxid3ueJgN2WD246CroaMF1v6PD, source1c1e3935, READY. Worker regular-file differences are2committed symlinks and2source.gitignore files, fully accounted for. Preview and later Docs Preview are not release artifacts. |
-| A / B boundary | A export-only HTTP localhost image allowance and disposable DB business clock; deployment config unchanged. B Linux Node24.x uses real HTTPS Storage; Legacy/Progressive full images loaded. Public client origin matches tvnhholicwjtxdhlxfqs. Shared approved SlipOK test mode is not live-provider verification. |
-| Authenticated B smoke | School Super Admin25September09:49–10:02UTC: Payment months/search/status/page/details/reload/images; Makeup both tabs/month/search/page/whole roster/nickname-full-name/reload, two re-wallet families, counts and390px; pricing/M2 read. No save/business transaction/expiry-side-effect GET. |
-| Logs / health | B error/fatal/5xx0 for09:46:00–10:02:56UTC; finite100row queries, no truncation. Health/assets/auth redirect and actual authenticated render passed separately. Browser only earlier Vercel login FedCM messages. Local Task10 fetch-reset chunks are retained, correlated with disposable setup only. |
-| Production routing | At10:03:07UTC all4customer aliases still point to dpl_5bJmN6piCPmThycQEBSr9Rvqj2MF /1fba7bab987e8455824889563604063813e08855. Health200ok; protection/production branch unchanged. No Promotion/routing change. |
-| Migration / definition | New/apply0. M1–M6 present;66Task10 bodies matched source. M6 file SHA256 a9904c31e96e27e8fd40b61f803da271ecea0f87ca01b2ddf52293a5c4c92990; normalized body d85f879d754e0ffe81f8d2c5490f590b93f7082a505bf22c568d089c3dd1f591. |
-| Controls / scheduler | At10:02:55UTC Paused4, pricing/makeup/expiry false, one minute cron inactive,4events/7runs unchanged. effective_at2026-09-24T12:45:14.241075Z retained. No initial activation/Resume/Production worker invocation. |
-| Data / finance | SELECT-only09:38→10:02UTC:28cancelledbills/104sessions and checked payment/receipt/Wallet/Makeup/financial/control evidence unchanged. Attendance4rows changed with exact booking-session/coach audit linkage, different from smoke actor. Earlier customer payment/receipt/Wallet changes predate candidate creation; no whole-database-frozen claim. |
-| Resume impact snapshot | At10:02:57UTC:4pendingbills/21sessions/17600THB; missingdeadline0/outsidecohort0/acceptedreceipt0/due-if-expiry-runs0. Bill value is not refund/lost revenue; refresh exact rows before future authorized Resume. |
-| Scope / privacy | Expansion0/business breach0; protected484files unchanged. Evidence-handling deviation1:existing synthetic local fixture literal appeared once in tool output, not repeated in new Git/deployment/report. No Production repair/refund/cancellation replay/environment/secret/permission/allowlist change. |
-| Unknown / limitations | Historical stream-close/ERR_ABORTED, credential validity and historical exposure remain Unknown. Native-popup crash not claimed fixed; B used month buttons/URL, A covers direct interaction. IAB empty fill required keyboard clear; content export unsupported, observed screenshots/DOM stay in task tool history with private curated evidence. No blocking app error in final scoped checks. |
-| Next gate / ETA | Technical readiness passed; release authorization Pending. Owner reviews exact B/seven-function evidence and explicitly authorizes Promotion+Resume+safetyPause. Prepared: fresh gates→exact Promotion→Paused smoke→fresh-revision Resume→at least2natural worker ticks/reconciliation. Conditional30–45minutes after approval if gates stay stable. |
-| Customer / completion | Kids new booking remains Paused. Readiness is not Production business UAT or restored service. Owner acceptance Pending for this candidate; PromotionNo/ResumeNo/Task Done No. |
-| Documentation Drift | Current DEVELOPING/publication/staged-pending claims corrected to verified READY; failed/interrupted runs, old acceptances, packaging exposure and Parking Lot history preserved. Docs successor proof remains separate from application artifact. |
+| Scope / Actor | Developer; Kids Booking policy presentation/recovery and Makeup source/history filtering. Actual Functional3 / Tests4 / TestConfig1 / Docs4 =12 paths. Makeup server page unchanged: central post-override client filtering owns visible counts and reload. One justified technical test dependency: history-payment.spec.ts waits for the existing modal entrance animation before unchanged footer geometry assertions; reason recorded before edit. |
+| Git / Source publication | Baseline145a99d2510e6f6662fb15e58a6188f9694d6790, branch spike/next-major-security-upgrade, fresh live remote0/0 and clean at Gate0. New source complete and full checks passed; the containing application commit/live/clean proof will be recorded after normal publication. No new staged artifact yet. |
+| Behavior | Typed Paused differs from unavailable, no authoritative policy means no Kids price fallback or confirmation; explicit retry/month reads refresh. Source0/no-history families disappear; source-bearing D<M/Paused and consumed destination history remain. Equivalent server arrays no longer re-restore the draft during policy refresh, preserving the open calendar day; meaningful allowed-identity changes still use the original sanitizer. No formula/quota/eligibility/transaction change. |
+| Automated production build | sSmUy-Qlt6ewfwJG7C5AE, Next16.3.3/Node24.16.0/Windows/production start; Task10Policy20260925 API63321/DB63322, DB/Auth/REST/Storage/container/volume/workdir/network verified. |
+| Fresh functional suites | task10-awake-final-production: 91/91; history-final-confirmed-production: 25/25; booking-final-production: 23/23; makeup-final-confirmed-production: 5/5. Each complete invocation passed independently; no overlapping totals added. Seven functions mapped to exact case/backend evidence, including all-controls Active UI Booking→slip→sibling Makeup, natural cron and Pause/Resume. |
+| Fresh technical / adjacent | TypeScript/src+test-config lint/mojibake/build; Walletstatic45, Adminstatic39, retrospective38 passed. Build/lock/input and migration-body evidence recorded privately. |
+| Failed / retained | Final complete suites above passed. Preserve the two same-build Sleep-interrupted full runs (90/91 and89/91) with Windows power-event/trace attribution; Owner then confirmed an awake host and the unchanged build passed91/91. Earlier transport, draft-refresh, non-Kids preview-latch and History modal-animation failures/corrections are retained in the dated history. No assertion was relaxed for Sleep; prior September22/M6/Owner PASS is not substituted for new evidence. |
+| Persistent Owner Active A | http://127.0.0.1:3060/__uat → Next3061; buildwgmPUvMuWkY_J1HseSVgA, separate Task10PolicyOwner20260925 API64321/DB64322, native clocks. Active3flags/naturalcron; Owner cases unused at26Sep04:52UTC handoff SELECT proof. Separate Family/single-child/FamilyPrivate fixtures and accounts stay private and outside suite teardown. |
+| Owner A checks / boundary | Read-only User/Admin render, D0 explanation, single-child calendar, mobile and actual server policy-read failure/recovery passed; controlled fault injection declared. Real-clock read-only proof and new-build render/fault-recovery checks passed; two natural cron successes/cancellations0 at earlier proof, refresh at final handoff. Local image optimizer loopback allowance is private-export-only, no repository config change. A is not exact B. |
+| New staged B / acceptance | Creation/authenticated smoke Pending. Prior dpl_DH2PhExq8NYn5Ds3v57BoRy5ThVs /1c1e3935 is historical, not this correction's accepted candidate. Owner A and exact B acceptance plus release/impact approval remain required. |
+| Production routing | Fresh Gate0 four customer aliases remain dpl_5bJmN6piCPmThycQEBSr9Rvqj2MF /1fba7bab987e8455824889563604063813e08855, health200ok. No Promotion/routing change. |
+| Migration / controls | New/apply0; M1–M6 and66Task10 bodies plus preserved Wallet compatibility verified. M6 SHA256 a9904c31e96e27e8fd40b61f803da271ecea0f87ca01b2ddf52293a5c4c92990. At26Sep05:01:57UTC Paused4/flagsOFF/onecroninactive/4events/7runs; effective_at2026-09-24T12:45:14.241075Z retained. |
+| Data / impact | Production SELECT-only.28cancelledbills/104sessions hashes unchanged at fresh read. Since Gate0,8Wallet credits/9members and28Attendance rows changed through linked customer/coach activity; all matched activity/session evidence, distinct from Developer read-only work. Fresh26Sep01:57:21UTC impact4bills/3families/21sessions/17600THB, due0/within24h1/acceptedreceipt0/missingdeadline0/outsidecohort0. Bill value is not refund; refresh exact rows before acceptance/release. Customer traffic may change data separately. |
+| Authorization / effects | Production business writes0, repair/refund/replay0, migration/config/dependency/environment/permission/allowlist changes0; PromotionNo/ResumeNo. Local controlled fixtures/transactions only in independently verified disposable targets; old Owner databases retained. |
+| Scope / privacy | Business expansion0/breach0; protected484files unchanged; one justified test dependency disclosed above. Evidence-handling deviations: local connection credentials and an existing synthetic fixture literal appeared in diagnostic tool output; excluded from new Git/deploy/reports. No blanket privacy/security PASS. A resumed-context raw attribution trace repeated the existing synthetic local login; exact cutover IDs had also appeared in an earlier SQL diagnostic. Both procedural deviations are documented privately, absent from new Git/deployment. Selected allowlisted summaries are required afterward. No Production secret change. |
+| Unknown / limitations | Historical stream-close/ERR_ABORTED, native-popup crash, credential validity and historical exposure remain Unknown. SlipOK shared approved test mode is not live-provider PASS. Local/staged build, OS, Storage and clock differences explicitly recorded. No whole-system security/accounting PASS. |
+| Next gate / completion | Create/verify new exact staged B, refresh read-only impact/controls and hand off A+B for Owner acceptance. No claim restored Kids booking while Paused. Conditional release30–45minutes after full acceptance if fresh gates stable; Task Done No. |
+| Documentation Drift | Old READY superseded by corrective DEVELOPING; earlier five-case Owner acceptance preserved for old candidate only. Current evidence and exact publication/artifact identities remain separate. Parking Lot not started. |
 
-Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-calendar-uat-20260922/final-production-readiness-20260925T065600Z.
-See OWNER-REVIEW-PACKAGE.md, acceptance-manifest.json, requirement-verification-closeout.json,
-staged-school-smoke.json, closeout-readonly-reconciliation.json and RELEASE-RECOVERY-PLAN.md.
-[Owner decision](AGENTS.md#task10-final-production-readiness-decision-2026-09-25);
-[round evidence](DEVELOPMENT_TODO.md#task10-final-production-readiness-2026-09-25);
-[final closeout](DEVELOPMENT_TODO.md#task10-final-staged-readiness-closeout-2026-09-25).
+Private evidence: C:\Users\aacha\AppData\Local\Temp\task10-calendar-uat-20260922\booking-policy-active-uat-20260925T110100Z.
+See REQUIREMENT-TEST-MATRIX.md, requirement-verification.json, BUILD-ENVIRONMENT-BOUNDARY.md,
+owner-active/OWNER-UAT-DRAFT.md and RELEASE-AND-RECOVERY-PLAN.md.
+[Owner decision](AGENTS.md#task10-booking-policy-source-readiness-decision-2026-09-25);
+[round evidence](DEVELOPMENT_TODO.md#task10-booking-policy-source-readiness-2026-09-25).
 
 <a id="coach-assignment-owner-decision-2026-09-13"></a>
 ### Owner decision — 2026-09-13 assignment plan registration only

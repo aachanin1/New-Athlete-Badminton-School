@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Child, Branch, CourseTypeName } from '@/types/database'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import { formatThaiCompactDateWithWeekday, formatThaiDateWithWeekday, formatThai
 import { getTemplateSlots, hasTemplateSlots, type ScheduleTemplateOption, type TimeSlot } from '@/lib/schedule-template-utils'
 import { getKidsGroupIncremental, getAdultGroupTotal, getPrivateTotal, getSessionStatusLabel, getKidsGroupTiers, getAdultGroupTiers, getPrivateTiers, formatPricingTierRange, type CourseCategory, type PricingTierInput, type SelectedPricingTierEvidence } from '@/lib/pricing'
 import { legacyTiersFromPolicy, type BookingPricingPolicyQuote } from '@/lib/booking-pricing-policy'
+import { task10RpcError } from '@/lib/task10-policy'
 import { formatLearnerDisplayName, joinLearnerDisplayNames } from '@/lib/learner-display-name'
 import { fmtTime } from '@/lib/utils'
 import {
@@ -124,6 +125,8 @@ interface BookingClientProps {
   pricingTiers?: PricingTierData[]
   initialKidsPricingPolicy?: BookingPricingPolicyQuote | null
   initialKidsPricingError?: string | null
+  initialKidsPricingErrorCode?: string | null
+  initialKidsPricingMonth?: string
 }
 
 type Step = 'type' | 'learner' | 'branch' | 'calendar' | 'summary'
@@ -445,8 +448,10 @@ function sanitizeBookingDraft(
   return { ...draft, step: getSafeStep(value.step, draft) }
 }
 
-export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError }: BookingClientProps) {
+export function BookingClient({ userId, userName, learnerChildren, branches, courseTypes, scheduleTemplates, existingBookings, existingBookingSessions = [], editBooking, pricingTiers = [], initialKidsPricingPolicy, initialKidsPricingError, initialKidsPricingErrorCode, initialKidsPricingMonth }: BookingClientProps) {
   const router = useRouter()
+  const [policyRefreshing, refreshPolicy] = useTransition()
+  const [previewFailure, setPreviewFailure] = useState<{ fingerprint: string; code: string; message: string } | null>(null)
   const isEditMode = !!editBooking
   const editSelectedBranchIds = useMemo(
     () => getEditSelectedBranchIds(editBooking, branches),
@@ -479,8 +484,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
 
   // Calendar state — per-child sessions map
   const now = new Date()
-  const [calMonth, setCalMonth] = useState(isEditMode ? (editBooking.month - 1) : now.getMonth())
-  const [calYear, setCalYear] = useState(isEditMode ? editBooking.year : now.getFullYear())
+  const [calMonth, setCalMonth] = useState(isEditMode ? (editBooking.month - 1) : initialKidsPricingMonth ? Number(initialKidsPricingMonth.slice(5, 7)) - 1 : now.getMonth())
+  const [calYear, setCalYear] = useState(isEditMode ? editBooking.year : initialKidsPricingMonth ? Number(initialKidsPricingMonth.slice(0, 4)) : now.getFullYear())
   const calendarMonthDisplay = formatThaiMonthYear(getMonthDisplayDateKey(calYear, calMonth))
 
   // Build initial sessionsMap from editBooking sessions
@@ -527,6 +532,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const validCourseTypes = useMemo(() => new Set(courseTypes.map((ct) => ct.name)), [courseTypes])
   const validChildIds = useMemo(() => new Set(learnerChildren.map((child) => child.id)), [learnerChildren])
   const validBranchIds = useMemo(() => new Set(branches.map((branch) => branch.id)), [branches])
+  const restoredDraftIdentityRef = useRef<string | null>(null)
 
   useEffect(() => {
     const previousDraftStorageKey = previousDraftStorageKeyRef.current
@@ -543,6 +549,18 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   }, [draftStorageKey])
 
   useEffect(() => {
+    const identity = JSON.stringify({
+      key: draftStorageKey,
+      isEditMode,
+      editBranches: [...editSelectedBranchIds].sort(),
+      courses: [...validCourseTypes].sort(),
+      children: [...validChildIds].sort(),
+      branches: [...validBranchIds].sort(),
+    })
+    // A policy refresh returns equivalent server arrays. Restore only when
+    // the draft or its allowed identities change, preserving in-flight UI state.
+    if (restoredDraftIdentityRef.current === identity) return
+    restoredDraftIdentityRef.current = identity
     setDraftReady(false)
     setDraftRestored(false)
 
@@ -761,6 +779,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   )
   const previewFingerprint = useMemo(() => JSON.stringify({
     bookingId: editBooking?.id || null,
+    policyRead: courseType === 'kids_group' ? [initialKidsPricingPolicy?.fingerprint, initialKidsPricingErrorCode, initialKidsPricingMonth] : null,
     courseType,
     learnerType,
     selectedChildIds: [...selectedChildIds].sort(),
@@ -786,6 +805,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     calYear,
     courseType,
     editBooking?.id,
+    initialKidsPricingPolicy?.fingerprint,
+    initialKidsPricingErrorCode,
+    initialKidsPricingMonth,
     learnerType,
     privateSelfAttend,
     selectedBranchIds,
@@ -842,7 +864,10 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         }),
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'คำนวณราคาไม่สำเร็จ')
+      if (!response.ok) {
+        if (selectedCourseType.name === 'kids_group') throw task10RpcError(result.code || 'TASK10_UNAVAILABLE')
+        throw new Error(result.error || 'คำนวณราคาไม่สำเร็จ')
+      }
       let preview = result as AuthoritativeBookingPreview
       if (preview.mode === 'legacy' && couponOverride) {
         preview = {
@@ -855,7 +880,16 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         throw new DOMException('Stale preview response', 'AbortError')
       }
       setPreviewRecord({ fingerprint, preview })
+      setPreviewFailure(null)
       return preview
+    } catch (cause) {
+      if (selectedCourseType.name === 'kids_group' && !controller.signal.aborted && previewFingerprintRef.current === fingerprint) {
+        setPreviewRecord(null)
+        const failure = task10RpcError(cause instanceof Error && 'code' in cause ? String(cause.code) : 'TASK10_UNAVAILABLE')
+        setPreviewFailure({ fingerprint, code: failure.code, message: failure.message })
+        throw new Error(failure.message)
+      }
+      throw cause
     } finally {
       if (previewAbortRef.current === controller) {
         previewAbortRef.current = null
@@ -909,6 +943,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     if (!draftReady || !courseType || bookingSessionCount <= 0
       || (step !== 'calendar' && step !== 'summary')
       || previewRecord?.fingerprint === previewFingerprint
+      || previewFailure?.fingerprint === previewFingerprint
       || previewLoadingFingerprint === previewFingerprint) return
 
     void fetchAuthoritativePreview(previewFingerprint, appliedCoupon).catch((previewError) => {
@@ -923,6 +958,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     draftReady,
     fetchAuthoritativePreview,
     previewFingerprint,
+    previewFailure?.fingerprint,
     previewLoadingFingerprint,
     previewRecord?.fingerprint,
     step,
@@ -996,8 +1032,38 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     ? authoritativePreview
     : null
   const selectedTier = authoritativePreview?.selectedTier || null
-  const pricingPreviewPending = Boolean(courseType && allSelectedSessions.length > 0 && !selectedTier)
+  const selectedPricingMonth = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`
+  const policyMonthPending = initialKidsPricingMonth !== selectedPricingMonth
+  const currentPreviewFailure = previewFailure?.fingerprint === previewFingerprint ? previewFailure : null
+  const kidsPolicy = policyMonthPending || policyRefreshing || currentPreviewFailure
+    ? null : authoritativePreview?.policy || initialKidsPricingPolicy
+  const kidsPolicyBlocked = courseType === 'kids_group' && !kidsPolicy
+  const kidsPolicyError = currentPreviewFailure?.message || initialKidsPricingError || task10RpcError('TASK10_UNAVAILABLE').message
+  const kidsPolicyErrorCode = currentPreviewFailure?.code || initialKidsPricingErrorCode || 'TASK10_UNAVAILABLE'
+  const pricingPreviewPending = Boolean(courseType && allSelectedSessions.length > 0 && (!selectedTier || kidsPolicyBlocked))
+  const pricingWaitMessage = currentPreviewFailure || (kidsPolicyBlocked && !policyRefreshing && !policyMonthPending)
+    ? 'ยังยืนยันราคาไม่ได้ กรุณาอ่านสถานะและราคาใหม่'
+    : 'กำลังคำนวณราคา...'
   const isZeroCharge = Boolean(authoritativePreview && finalPrice === 0)
+
+  useEffect(() => {
+    if (!draftReady || courseType !== 'kids_group' || !policyMonthPending) return
+    const url = new URL(window.location.href)
+    url.searchParams.set('month', selectedPricingMonth)
+    refreshPolicy(() => router.replace(url.pathname + url.search, { scroll: false }))
+  }, [courseType, draftReady, policyMonthPending, router, selectedPricingMonth])
+
+  useEffect(() => {
+    setPreviewRecord(null)
+    setPreviewFailure(null)
+  }, [initialKidsPricingPolicy, initialKidsPricingError, initialKidsPricingMonth])
+
+  const retryKidsPolicy = () => {
+    setError(null)
+    setPreviewRecord(null)
+    setPreviewFailure(null)
+    refreshPolicy(() => router.refresh())
+  }
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return
@@ -1228,6 +1294,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   }
 
   const goNext = async () => {
+    if (kidsPolicyBlocked) return
     const nextIndex = currentStepIndex + 1
     if (nextIndex < STEPS.length) {
       if (step === 'calendar' && STEPS[nextIndex].key === 'summary') {
@@ -1277,6 +1344,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
     if (prevIndex >= 0) setStep(STEPS[prevIndex].key)
   }
   const canGoNext = () => {
+    if (kidsPolicyBlocked) return false
     switch (step) {
       case 'type': return !!courseType
       case 'learner':
@@ -1290,6 +1358,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   }
 
   const handleSubmitBooking = async () => {
+    if (kidsPolicyBlocked) return
     setLoading(true)
     setError(null)
 
@@ -1511,6 +1580,13 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         </div>
       )}
 
+      {kidsPolicyBlocked && (
+        <div data-testid="kids-pricing-status" data-policy-code={policyMonthPending || policyRefreshing ? 'LOADING' : kidsPolicyErrorCode} role="alert" className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p>{policyMonthPending || policyRefreshing ? 'กำลังอ่านสถานะและชุดราคาคอร์สเด็ก...' : kidsPolicyError}</p>
+          <Button className="mt-2" variant="outline" onClick={retryKidsPolicy} disabled={policyRefreshing || policyMonthPending}>อ่านสถานะและราคาใหม่</Button>
+        </div>
+      )}
+
       {/* Step 1: Course Type */}
       {step === 'type' && (
         <div className="space-y-6">
@@ -1533,7 +1609,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             <Card>
               <CardContent className="p-4">
                 <h4 className="font-bold text-[#153c85] mb-3">ตารางราคา — {COURSE_TYPES.find((c) => c.value === courseType)?.label}</h4>
-                {courseType === 'kids_group' && (
+                {courseType === 'kids_group' && kidsPolicy && (
                   <>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -1545,8 +1621,8 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                           </tr>
                         </thead>
                         <tbody>
-                          {getKidsGroupTiers((authoritativePreview?.policy?.catalog || initialKidsPricingPolicy?.catalog)
-                            ? legacyTiersFromPolicy((authoritativePreview?.policy?.catalog || initialKidsPricingPolicy?.catalog)!)
+                          {getKidsGroupTiers(kidsPolicy.catalog
+                            ? legacyTiersFromPolicy(kidsPolicy.catalog)
                             : pricingTiers as PricingTierInput[]).map((t) => (
                             <tr key={t.min} className="border-b last:border-0">
                               <td className="py-2 pr-4 font-medium">{t.label}</td>
@@ -1560,10 +1636,9 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                       </table>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">* ผู้เรียนพี่น้องนับจำนวนครั้งรวมกันเพื่อเลือกช่วงราคา</p>
-                    {(authoritativePreview?.policy || initialKidsPricingPolicy)?.catalog ? <p className="text-xs text-gray-500 mt-2">
-                      ชุดราคาวันจองช่วง {(authoritativePreview?.policy || initialKidsPricingPolicy)?.catalog?.regime === 'early' ? '1–15' : '16–สิ้นเดือน'} · ระบบตรวจราคาก่อนยืนยันการจอง
+                    {kidsPolicy.catalog ? <p className="text-xs text-gray-500 mt-2">
+                      ชุดราคาวันจองช่วง {kidsPolicy.catalog.regime === 'early' ? '1–15' : '16–สิ้นเดือน'} · ระบบตรวจราคาก่อนยืนยันการจอง
                     </p> : null}
-                    {initialKidsPricingError && !authoritativePreview?.policy ? <p role="alert" className="text-sm text-red-600">{initialKidsPricingError}</p> : null}
                   </>
                 )}
                 {courseType === 'adult_group' && (
@@ -2003,7 +2078,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                 {/* Pricing */}
                 {pricingPreviewPending && (
                   <div className="flex items-center justify-end gap-2 border-t pt-3 text-sm font-medium text-blue-700">
-                    <Loader2 className="h-4 w-4 animate-spin" />กำลังคำนวณราคา...
+                    {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{pricingWaitMessage}
                   </div>
                 )}
                 {pricing && selectedTier && !pricingPreviewPending && (
@@ -2044,7 +2119,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
             <CardContent className="p-6 space-y-4">
               {pricingPreviewPending && (
                 <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-700">
-                  <Loader2 className="h-4 w-4 animate-spin" />กำลังคำนวณราคา...
+                  {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{pricingWaitMessage}
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -2064,7 +2139,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                   <div>
                     <p className="text-gray-500">ช่วงราคา</p>
                     {pricingPreviewPending ? (
-                      <p className="font-medium text-blue-700">กำลังคำนวณราคา...</p>
+                      <p className="font-medium text-blue-700">{pricingWaitMessage}</p>
                     ) : selectedTier && (
                       <div>
                         <p className="font-medium">{formatPricingTierRange(selectedTier)} • {selectedTier.pricePerSession.toLocaleString()} บาท/{selectedTier.unit === 'hour' ? 'ชั่วโมง' : 'ครั้ง'}</p>
@@ -2089,7 +2164,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                         <div className="flex justify-between items-center mb-1">
                           <p className="text-sm font-medium">{child ? formatLearnerDisplayName({ fullName: child.full_name, nickname: child.nickname }) : 'ไม่ระบุชื่อผู้เรียน'} — {childSess.length} ครั้ง</p>
                           {pricingPreviewPending ? (
-                            <span className="text-xs font-medium text-blue-700">กำลังคำนวณราคา...</span>
+                            <span className="text-xs font-medium text-blue-700">{pricingWaitMessage}</span>
                           ) : (
                             <p className="text-sm font-bold text-[#2748bf]">฿{childPrice.toLocaleString()}</p>
                           )}
@@ -2208,7 +2283,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                   <p className="text-lg font-medium">{appliedCoupon ? 'ยอดชำระหลังหักส่วนลด' : 'ยอดชำระครั้งนี้'}</p>
                   {pricingPreviewPending ? (
                     <span className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                      <Loader2 className="h-4 w-4 animate-spin" />กำลังคำนวณราคา...
+                      {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{pricingWaitMessage}
                     </span>
                   ) : (
                     <p data-testid="booking-step5-total" className="text-3xl font-bold text-[#2748bf]">฿{finalPrice.toLocaleString()}</p>
@@ -2246,11 +2321,11 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
         )}
         {step === 'summary' ? (
           <Button data-testid="booking-confirm" className="bg-[#f57e3b] hover:bg-[#e06a2a] text-white" onClick={handleSubmitBooking} disabled={loading || previewLoading || availabilityLoading || pricingPreviewPending || selectedAvailabilityIssues.length > 0}>
-            {loading || previewLoading || availabilityLoading || pricingPreviewPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
+            {loading || previewLoading || availabilityLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{isEditMode ? 'กำลังบันทึก...' : 'กำลังตรวจสอบ...'}</> : <><CheckCircle2 className="mr-2 h-4 w-4" />{isEditMode ? 'บันทึกการแก้ไข' : isZeroCharge ? 'ใช้สิทธิ์เรียนรอบนี้' : 'ยืนยันการจอง'}</>}
           </Button>
         ) : (
-          <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && (availabilityLoading || !authoritativeAvailability || selectedAvailabilityIssues.length > 0))))}>
-            {previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && availabilityLoading))) ? <Loader2 className="h-4 w-4 animate-spin" /> : <>ถัดไป<ArrowRight className="ml-2 h-4 w-4" /></>}
+          <Button data-testid="booking-next" className="bg-[#2748bf] hover:bg-[#153c85]" onClick={goNext} disabled={!canGoNext() || previewLoading || (step === 'calendar' && (pricingPreviewPending || (courseType === 'kids_group' && (availabilityLoading || !authoritativeAvailability || selectedAvailabilityIssues.length > 0))))}>
+            {previewLoading || (courseType === 'kids_group' && availabilityLoading) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}ถัดไป<ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>

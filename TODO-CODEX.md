@@ -1,17 +1,16 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — READY FOR OWNER UAT / Task Done No.** Final production-mode disposable and exact staged read-only gates passed; Owner acceptance of this candidate Pending.
-- Application1c1e3935cb8415b79e436266b3dab71b5b75edfd committed/pushed. Staged Production dpl_DH2PhExq8NYn5Ds3v57BoRy5ThVs / https://new-athlete-badminton-school-8mn64f4ba-aachanin1s-projects.vercel.app . Docs closeout and automatic Docs Preview are separate.
-- [PROJECT_STATE current matrix](PROJECT_STATE.md#current-project-matrix) owns source/build/artifact, seven-function evidence, fresh/retained/failed checks, controls/data and limitations.
-- **Next action:** Owner reviews exact artifact and private OWNER-REVIEW-PACKAGE.md, then explicitly accepts and authorizes Promotion + Resume + safety Pause. Readiness/login confirmation does not authorize release.
-- Production remains Paused4/OFF/cron inactive. Kids booking is not restored; preserve28cancelledbills/104sessions and all Owner evidence. Future release: fresh artifact/M6/revision/deadline/receipt→exact Promotion→Paused smoke→existing Resume→at least2natural worker runs and reconciliation.
-- [Owner decision](AGENTS.md#task10-final-production-readiness-decision-2026-09-25); [round evidence](DEVELOPMENT_TODO.md#task10-final-production-readiness-2026-09-25); [staged closeout](DEVELOPMENT_TODO.md#task10-final-staged-readiness-closeout-2026-09-25). No Production test transactions, migration, repair, environment/control changes or Parking Lot work in this preparation scope.
+- **Task10 — DEVELOPING / Task Done No.** Booking policy/source-backed Makeup corrections passed full final-source production-mode disposable verification. New staged authenticated gate and Owner A+B acceptance remain Pending.
+- [PROJECT_STATE current matrix](PROJECT_STATE.md#current-project-matrix) owns exact Git/build/artifact/controls/data and seven-function evidence. Prior Owner five-case PASS is retained for the earlier candidate only.
+- **Next action:** publish tested source, create and verify exact staged Production B without customer aliases, then submit persistent Active A and real-DB read-only B with fresh Resume impact/recovery plan.
+- Production remains Paused; Kids booking is not restored. No Promotion or Resume until Owner accepts the final A/B package and authorizes release. Preserve28cancelledbills/104sessions and every old Owner database/evidence.
+- [Owner decision](AGENTS.md#task10-booking-policy-source-readiness-decision-2026-09-25); [round history](DEVELOPMENT_TODO.md#task10-booking-policy-source-readiness-2026-09-25). No migration/repair/remote configuration or Parking Lot work.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

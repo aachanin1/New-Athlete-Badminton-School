@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -593,6 +593,40 @@ Main portals:
   required gates. Safety Pause does not restore Kids booking availability or
   reverse committed bills, credits, quota or money. Do not use an incompatible
   pre-activation artifact for rollback. PROJECT_STATE.md owns actual state.
+
+<a id="task10-booking-policy-source-readiness-decision-2026-09-25"></a>
+### Task10 — Authoritative Booking reads, source-backed Makeup and separate Active UAT (Owner, 2026-09-25)
+
+- Kids Booking must distinguish the existing typed Paused condition from an
+  unavailable policy/network read. Without a valid authoritative policy, show no
+  old/stale Kids price table or usable confirmation fallback. Retry/reload and
+  lesson-month changes reread server policy. Preserve server/Bangkok creation-date
+  catalog selection, both existing formulas, stale-preview guards and old-bill
+  snapshots; no Adult/Private price change.
+- A family quota alone is not a usable Makeup source. Hide source-empty cards
+  without relevant usage/destination history, including authoritative reload
+  overrides. Retain spent history without offering it as a new right. Keep real
+  source-bearing families visible with truthful D<M/Paused explanations and keep
+  full sibling identity, nickname - full-name display and shared family quota.
+- Counts/search/month/filter/pagination must use the same visible state; purple
+  Wallet plus orange absent counts remain the exact backend source-list total.
+  Do not change source eligibility, source selection, N/D/M, receipt/deadline
+  protection, Family atomicity or any financial/entitlement rule.
+- Before final release acceptance, provide both A: a persistent Active UAT on a
+  physically verified isolated disposable production build, and B: a new exact
+  staged Production artifact with real-DB read-only school-role verification
+  while Paused. Automated tests must not reset Owner A. Describe build/OS/Storage/
+  clock/mocks explicitly; A is not execution on artifact B.
+- Prior five-case Owner PASS belongs only to the prior candidate. Owner must
+  accept A and exact B plus a fresh Resume impact manifest/recovery plan before
+  Promotion or Resume. After that approval, execute the already scoped exact
+  Promotion while OFF, Paused smoke, revision-guarded existing Resume preserving
+  effective_at, and at least two natural worker runs with reconciliation.
+  Material drift returns for review; do not initial-activate or repeat cutover.
+- No new migration, remote configuration/secret/permission change, real-DB test
+  transactions, data repair or incompatible rollback is authorized by this
+  correction. Safety Pause is not restored Kids booking service and does not undo
+  committed bills, credits, quota or money. PROJECT_STATE.md owns actual state.
 
 ## Technical Guardrails
 

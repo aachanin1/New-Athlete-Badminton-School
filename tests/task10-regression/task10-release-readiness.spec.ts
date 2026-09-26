@@ -5,6 +5,123 @@ import { concurrentLocalSql, createLocalAdmin, localSql, readTask10Fixture, setD
 
 test.afterAll(async () => { await setupTask10() })
 
+test('Adult and Private retain preview recovery after a transient read failure without the Kids policy latch', async ({ page }, testInfo) => {
+  test.setTimeout(180_000)
+  await setupTask10()
+  const f = readTask10Fixture()
+  const client = createLocalAdmin()
+  const date = '2031-07-20'
+  const courses = [{ id: f.adultCourseId, label: 'ผู้ใหญ่ (กลุ่ม)' }, { id: f.privateCourseId, label: 'Private' }]
+  const templates = await client.from('schedule_templates').insert(courses.map(course => ({
+    id: randomUUID(), branch_id: f.branchId, course_type_id: course.id,
+    day_of_week: new Date(`${date}T00:00:00Z`).getUTCDay(), start_time: '09:00', end_time: '10:00', is_active: true,
+  })))
+  expect(templates.error).toBeNull()
+  const invariant = () => localSql(`SELECT md5(jsonb_build_object('b',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b),
+    's',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),'p',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p))::text);`)
+  const before = invariant()
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(TEST_ACCOUNT.email); await page.locator('#password').fill(TEST_ACCOUNT.password)
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click(); await page.waitForURL(/\/dashboard(?:\/|$)/)
+  const evidence: { course: string; requests: number; mode: string }[] = []
+  for (const course of courses) {
+    // Unmount the prior draft saver before clearing storage for the next course.
+    await page.goto('/dashboard')
+    await page.evaluate(() => sessionStorage.clear())
+    await page.goto('/dashboard/booking?month=2031-07')
+    await page.getByText(course.label, { exact: true }).click()
+    await page.getByTestId('booking-next').click()
+    if (course.label === 'Private') await page.getByText('ตัวเอง', { exact: true }).click()
+    await page.getByTestId('booking-next').click()
+    await page.getByText('สาขาทดสอบ Localhost', { exact: true }).click()
+    await page.getByTestId('booking-next').click()
+    let requests = 0
+    await page.route('**/api/bookings/preview', async route => {
+      requests++
+      if (requests === 1) await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'จำลองการอ่านขัดข้องชั่วคราว' }) })
+      else await route.continue()
+    })
+    const recovered = page.waitForResponse(r => r.url().includes('/api/bookings/preview') && r.status() === 200, { timeout: 15_000 })
+    await page.getByTestId(`booking-date-${date}`).click()
+    await page.getByTestId(`booking-slot-${date}-${f.branchId}-09:00`).click()
+    const quote = await (await recovered).json()
+    expect(quote.mode).toBe('legacy')
+    expect(requests).toBe(2)
+    await expect(page.getByTestId('booking-step4-total')).toHaveText(`฿${quote.totalPrice.toLocaleString()}`)
+    await expect(page.getByTestId('booking-next')).toBeEnabled()
+    evidence.push({ course: course.label, requests, mode: quote.mode })
+    await page.unroute('**/api/bookings/preview')
+  }
+  expect(invariant()).toBe(before)
+  await testInfo.attach('non-kids-preview-recovery', { body: Buffer.from(JSON.stringify({ evidence, businessRowsUnchanged: true })), contentType: 'application/json' })
+})
+
+test('Booking pricing fails closed for Paused and unavailable, retries and refreshes month without stale tables', async ({ page }, testInfo) => {
+  test.setTimeout(300_000)
+  await setupTask10()
+  const f = readTask10Fixture()
+  setDisposableClock('2026-09-15T23:59:59+07:00')
+  const artifact = { sourceSha: 'a'.repeat(40), deploymentId: 'dpl_local_policy_ui', targetProjectRef: 'verified-local-disposable',
+    migrationHashes: task10MigrationHashes(), productionPromotionConfirmed: true, healthChecksPassed: true }
+  localSql(`SELECT task10_activate_v1('${f.adminUserId}',task10_activation_manifest_v1('${f.adminUserId}',${sqlLiteral(JSON.stringify(artifact))}::jsonb));`)
+  const invariant = () => localSql(`SELECT md5(jsonb_build_object('b',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b),
+    's',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),'p',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM payments p))::text);`)
+  const before = invariant()
+  try {
+    await page.goto('/auth/login')
+    await page.locator('#email').fill(TEST_ACCOUNT.email); await page.locator('#password').fill(TEST_ACCOUNT.password)
+    await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click(); await page.waitForURL(/\/dashboard(?:\/|$)/)
+    await page.goto('/dashboard/booking?month=2026-10')
+    await page.getByText('เด็ก (กลุ่ม)', { exact: true }).click()
+    await expect(page.getByText('ชุดราคาวันจองช่วง 1–15', { exact: false })).toBeVisible()
+    localSql(`SELECT task10_pause_v1('${f.adminUserId}',1,true,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
+    await page.reload(); await page.getByText('เด็ก (กลุ่ม)', { exact: true }).click()
+    const status = page.getByTestId('kids-pricing-status')
+    await expect(status).toHaveAttribute('data-policy-code', 'TASK10_PRICING_PAUSED')
+    await expect(status).toContainText('หยุดชั่วคราว')
+    await expect(page.locator('table')).toHaveCount(0)
+    await expect(page.getByTestId('booking-next')).toBeDisabled()
+    setDisposableClock('2026-09-16T00:00:00+07:00')
+    localSql(`SELECT task10_pause_v1('${f.adminUserId}',2,false,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
+    await page.getByRole('button', { name: 'อ่านสถานะและราคาใหม่', exact: true }).click()
+    await expect(status).toHaveCount(0)
+    await expect(page.getByText('ชุดราคาวันจองช่วง 16–สิ้นเดือน', { exact: false })).toBeVisible()
+    await expect(page.getByText('700 บาท', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    await page.getByText(`${TEST_ACCOUNT.childNickname} - ${TEST_ACCOUNT.childName}`, { exact: true }).click()
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    await page.getByText('สาขาทดสอบ Localhost', { exact: true }).click()
+    await page.getByRole('button', { name: /ถัดไป/ }).click()
+    let failures = 0
+    await page.route('**/api/bookings/preview', async route => {
+      failures++
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'TASK10_UNAVAILABLE', error: 'private SQL diagnostic' }) })
+    })
+    const date = page.locator('[data-testid^="booking-date-2026-10-"]:enabled').first()
+    await date.click()
+    const openedSlot = page.locator('[data-testid^="booking-slot-2026-10-"]').first()
+    const openedSlotId = await openedSlot.getAttribute('data-testid')
+    expect(openedSlotId).toBeTruthy()
+    await openedSlot.click()
+    await expect(status).toHaveAttribute('data-policy-code', 'TASK10_UNAVAILABLE')
+    await expect(status).not.toContainText('หยุดชั่วคราว')
+    await expect(page.getByText('private SQL diagnostic', { exact: false })).toHaveCount(0)
+    await expect(page.getByTestId('booking-step4-total')).toHaveCount(0)
+    await expect(page.getByTestId('booking-next')).toBeDisabled()
+    expect(failures).toBe(1) // One failed request; explicit retry owns recovery.
+    await page.unroute('**/api/bookings/preview')
+    await page.getByRole('button', { name: 'อ่านสถานะและราคาใหม่', exact: true }).click()
+    await expect(status).toHaveCount(0)
+    await expect(page.getByTestId('booking-step4-total')).toHaveText('฿700')
+    await expect(page.getByTestId(openedSlotId!)).toBeVisible()
+    await page.getByText('ตุลาคม 2569', { exact: true }).locator('..').getByRole('button').last().click()
+    await expect(page).toHaveURL(/month=2026-11/)
+    await expect(status).toHaveCount(0)
+    await testInfo.attach('booking-policy-recovery', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+    expect(invariant()).toBe(before)
+  } finally { await setupTask10() }
+})
+
 test('all controls Active: UI Booking → slip Payment → sibling Makeup with natural cron and Pause/Resume recovery', async ({ page }, testInfo) => {
   test.setTimeout(420_000)
   const f = readTask10Fixture(), client = createLocalAdmin(), sibling = randomUUID(), sourceBooking = randomUUID(), source = randomUUID()
@@ -113,6 +230,9 @@ test('all controls Active: UI Booking → slip Payment → sibling Makeup with n
   await expect(card).toContainText('ใช้แล้ว 1 · เหลือ 4 · ต้นทางที่ใช้ได้ 0')
   await expect(card.getByText('กระเป๋า 0', { exact: true })).toBeVisible()
   await expect(card.getByText('ขาดเรียน 0', { exact: true })).toBeVisible()
+  await expect(card.getByRole('button', { name: 'เลือกเด็กและรอบชดเชย', exact: true })).toHaveCount(0)
+  await expect(card).toContainText('แสดงประวัติชดเชย · ไม่มีต้นทางสำหรับใช้สิทธิ์ใหม่')
+  await expect(card.locator('[data-makeup-destination]')).toHaveCount(1)
   await expect.poll(naturalRuns, { timeout: 75_000, intervals: [1000, 2000] }).toBeGreaterThanOrEqual(1)
   const original = JSON.parse(localSql('SELECT to_jsonb(a) FROM task10_policy_activation a;'))
   localSql(`SELECT task10_pause_v1('${f.adminUserId}',${original.revision},true,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)

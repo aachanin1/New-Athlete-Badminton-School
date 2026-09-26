@@ -7,6 +7,46 @@ import { bookingSessionLifecycle, type BookingPaymentLifecycle } from '../../src
 import { formatThaiDateWithWeekday, formatThaiDateTimeWithWeekday, formatThaiMonthYear } from '../../src/lib/date-format'
 import { findKidsMakeupSlot, kidsMakeupCalendarDays, makeupCalendarCells, makeupMonthDates } from '../../src/lib/makeup-calendar'
 import type { ScheduleTemplateOption } from '../../src/lib/schedule-template-utils'
+import { Task10Error } from '../../src/lib/task10-policy'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { createRequire } from 'node:module'
+import { runInNewContext } from 'node:vm'
+import ts from 'typescript'
+
+test('Booking server preserves typed Paused versus unavailable without internal diagnostics', async () => {
+  const requireLocal = createRequire(__filename)
+  for (const cause of [task10RpcError('TASK10_PRICING_PAUSED'), new Error('private SQL/network diagnostic')]) {
+    const db = { auth: { getUser: async () => ({ data: { user: { id: 'parent' } } }) }, from(table: string) {
+      const result = { data: table === 'course_types' ? [{ id: 'kids', name: 'kids_group' }] : table === 'profiles' ? { full_name: 'Parent' } : [] }
+      const query = { select: () => query, eq: () => query, order: () => query, in: () => query,
+        single: () => query, then: (done: (value: unknown) => unknown) => Promise.resolve(result).then(done) }
+      return query
+    } }
+    const mocks: Record<string, unknown> = {
+      'next/navigation': { redirect: () => { throw new Error('Unexpected redirect') } },
+      '@/lib/supabase/server': { createClient: async () => db },
+      '@/lib/auth/admin': { getServiceRoleClient: () => db },
+      '@/components/dashboard/booking-client': { BookingClient: 'BookingClient' },
+      '@/lib/booking-pricing-policy': { loadBookingPricingPolicy: async () => { throw cause } },
+      '@/lib/task10-policy': { bangkokDate, Task10Error, task10RpcError },
+      '@/lib/progressive-pricing-feature': { decideProgressiveBookingEntry: () => ({ mode: 'progressive' }) },
+    }
+    const compiled = ts.transpileModule(readFileSync(resolve('src/app/(dashboard)/dashboard/booking/page.tsx'), 'utf8'), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
+    }).outputText
+    const mod = { exports: {} as { default: (props: unknown) => Promise<{ props: { children: Array<{ props: Record<string, unknown> }> } }> } }
+    runInNewContext(compiled, { exports: mod.exports, module: mod, require: (name: string) => mocks[name] || requireLocal(name) })
+    const rendered = await mod.exports.default({ searchParams: Promise.resolve({ month: '2026-10' }) })
+    const props = rendered.props.children[1].props
+    const code = cause instanceof Task10Error ? cause.code : 'TASK10_UNAVAILABLE'
+    expect(props.initialKidsPricingPolicy).toBeNull()
+    expect(props.initialKidsPricingErrorCode).toBe(code)
+    expect(props.initialKidsPricingError).toBe(task10RpcError(code).message)
+    expect(props.initialKidsPricingError).not.toContain('private')
+    expect(props.initialKidsPricingMonth).toBe('2026-10')
+  }
+})
 
 test('Makeup calendar restricts entitlement month, Bangkok today and exact start while retaining template identity', () => {
   const branches = [{ id: 'branch', slug: 'branch', name: 'สาขาทดลอง' }]

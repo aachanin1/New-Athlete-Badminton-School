@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BookingClient } from '@/components/dashboard/booking-client'
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { loadBookingPricingPolicy } from '@/lib/booking-pricing-policy'
-import { bangkokDate } from '@/lib/task10-policy'
+import { bangkokDate, Task10Error, task10RpcError } from '@/lib/task10-policy'
 import { decideProgressiveBookingEntry } from '@/lib/progressive-pricing-feature'
 import type { Branch, Child, CourseType, CourseTypeName, LearnerType } from '@/types/database'
 
@@ -86,7 +86,7 @@ interface EditBookingData extends EditBookingRow {
   childIds: string[]
 }
 
-export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string }> }) {
+export default async function BookingPage({ searchParams }: { searchParams: Promise<{ editBookingId?: string; month?: string }> }) {
   const resolvedSearchParams = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -182,13 +182,19 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
 
   const kidsCourse = (courseTypes || []).find((course) => course.name === 'kids_group')
   const todayBangkok = bangkokDate(new Date().toISOString())
+  const pricingMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(resolvedSearchParams.month || '')
+    ? resolvedSearchParams.month!
+    : editBookingData ? `${editBookingData.year}-${String(editBookingData.month).padStart(2, '0')}` : todayBangkok.slice(0, 7)
   const kidsPolicyResult = kidsCourse && (!editBookingData || editBookingData.course_type_id === kidsCourse.id)
     ? await loadBookingPricingPolicy(getServiceRoleClient(), {
       userId: user.id, courseTypeId: kidsCourse.id, bookingId: editBookingData?.id,
-      month: editBookingData?.month || Number(todayBangkok.slice(5, 7)), year: editBookingData?.year || Number(todayBangkok.slice(0, 4)),
+      month: editBookingData?.month || Number(pricingMonth.slice(5, 7)), year: editBookingData?.year || Number(pricingMonth.slice(0, 4)),
       formula: editBookingData ? (editBookingData.pricing_scope_id ? 'progressive' : 'legacy') : decideProgressiveBookingEntry('kids_group').mode,
-    }).then((policy) => ({ policy, error: null })).catch(() => ({ policy: null, error: 'อ่านชุดราคาคอร์สเด็กไม่สำเร็จ กรุณาโหลดหน้าใหม่' }))
-    : { policy: null, error: null }
+    }).then((policy) => ({ policy, error: null, code: null })).catch((cause: unknown) => {
+      const error = task10RpcError(cause instanceof Task10Error ? cause.code : 'TASK10_UNAVAILABLE')
+      return { policy: null, error: error.message, code: error.code }
+    })
+    : { policy: null, error: null, code: null }
 
   return (
     <div className="space-y-6">
@@ -203,6 +209,8 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
       <BookingClient
         initialKidsPricingPolicy={kidsPolicyResult.policy}
         initialKidsPricingError={kidsPolicyResult.error}
+        initialKidsPricingErrorCode={kidsPolicyResult.code}
+        initialKidsPricingMonth={pricingMonth}
         userId={user.id}
         userName={profile?.full_name || ''}
         learnerChildren={children || []}
