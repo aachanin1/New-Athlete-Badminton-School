@@ -6,11 +6,10 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — DEVELOPING / Task Done No.** Booking policy/source-backed Makeup corrections passed full final-source production-mode disposable verification. New staged authenticated gate and Owner A+B acceptance remain Pending.
-- [PROJECT_STATE current matrix](PROJECT_STATE.md#current-project-matrix) owns exact Git/build/artifact/controls/data and seven-function evidence. Prior Owner five-case PASS is retained for the earlier candidate only.
-- **Next action:** publish tested source, create and verify exact staged Production B without customer aliases, then submit persistent Active A and real-DB read-only B with fresh Resume impact/recovery plan.
-- Production remains Paused; Kids booking is not restored. No Promotion or Resume until Owner accepts the final A/B package and authorizes release. Preserve28cancelledbills/104sessions and every old Owner database/evidence.
-- [Owner decision](AGENTS.md#task10-booking-policy-source-readiness-decision-2026-09-25); [round history](DEVELOPMENT_TODO.md#task10-booking-policy-source-readiness-2026-09-25). No migration/repair/remote configuration or Parking Lot work.
+- **Task10 — READY FOR OWNER UAT / Task Done No.** Final source 7150731ce65ca600a78223441c5a0383c9be61f5; exact staged dpl_vMJHmj1zzXys2KnfrnUbbpTALipe. [Current matrix](PROJECT_STATE.md#current-project-matrix) owns builds/tests/artifact/control/impact evidence.
+- **Next:** Owner functional UAT on Active local3060 and acceptance of exact staged B read-only plus fresh Resume impact/recovery. No Promotion or Resume before that acceptance and release authorization. Prior five-case PASS does not accept this candidate.
+- Production remains Paused4/flagsOFF/croninactive; Kids customer booking is not restored. Preserve28/104 and all Owner evidence. Release uses existing Resume, no initial activation/rebuild/data repair/incompatible rollback.
+- Private handoff: OWNER-DECISION-PACKAGE.md in the current evidence root. Source checkpoint and failure history remain in [Task10 history](DEVELOPMENT_TODO.md#task10-booking-policy-source-readiness-2026-09-25).
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 
