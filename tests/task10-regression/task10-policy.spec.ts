@@ -98,8 +98,16 @@ test('Owner quota boundary examples', () => {
 })
 
 test('Bangkok midnight, UTC and December boundaries', () => {
-  expect(kidsPricingRegime('2026-09-15T16:59:59.999Z')).toBe('early')
-  expect(kidsPricingRegime('2026-09-15T17:00:00.000Z')).toBe('late')
+  expect(kidsPricingRegime('2026-09-15T16:59:59.999Z', '2026-09')).toBe('early')
+  expect(kidsPricingRegime('2026-09-15T17:00:00.000Z', '2026-09')).toBe('late')
+  expect(kidsPricingRegime('2026-09-15T17:00:00.000Z', '2026-10')).toBe('early')
+  expect(kidsPricingRegime('2026-09-17T10:00:00+07:00', '2026-11')).toBe('early')
+  expect(kidsPricingRegime('2026-10-17T10:00:00+07:00', '2026-10')).toBe('late')
+  expect(kidsPricingRegime('2026-12-31T16:59:59.999Z', '2027-01')).toBe('early')
+  expect(kidsPricingRegime('2026-12-31T17:00:00Z', '2027-01')).toBe('early')
+  expect(kidsPricingRegime('2026-09-30T17:00:00Z', '2026-10')).toBe('early')
+  expect(() => kidsPricingRegime('2026-09-17T10:00:00+07:00', '2026-13')).toThrow()
+  expect(() => kidsPricingRegime('2026-09-17T10:00:00', '2026-09')).toThrow()
   expect(bangkokDate('2026-12-31T17:00:00Z')).toBe('2027-01-01')
   expect(nextLessonMonth('2026-12')).toBe('2027-01')
   expect(nextLessonMonth('2026-09')).toBe('2026-10')

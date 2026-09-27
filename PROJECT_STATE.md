@@ -1,8 +1,46 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-26 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-27 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Task10 released and Active / TASK DONE
+## Current State — Kids same-month pricing / DEVELOPING — automated acceptance passed
+
+**Task Done No; release pending.** The latest Owner command resumed the prior
+Hard Stop with a new correction round and retained continuous delivery authority.
+The SQL blocker is corrected and automated acceptance has passed. No new
+Production migration, cancellation or Promotion has occurred at this checkpoint.
+
+### Current Project Matrix
+
+| Field | Current verified state |
+| --- | --- |
+| Active Task / Status | Kids same-month late pricing + one-time unpaid Kids cancellation / DEVELOPING; Source and automated acceptance complete, authorized staged delivery next. |
+| Owner authorization | Latest FINAL resume command on2026-09-27 supersedes only waiting for Owner. Automated acceptance replaces manual UAT for this task. Commit/push, staged Production artifact, atomic Kids-only cancellation/migration, exact Promotion and read-only verification remain authorized. No Pause/Resume/control/cron/environment change. |
+| Scope / blast radius | Functional4 / Tests-support5 / Docs4 / Migration1 / Operation1 =15paths. New Kids catalog selection/evidence/UI and the one-time Kids operation; Config/Dependency/Environment0. Protected formulas, old bills, payment, Adult/Private, Wallet/Makeup, Attendance/Payroll and Finance retain existing behavior. |
+| Fresh Git gate / ownership | Exact requested root and spike/next-major-security-upgrade; initial HEAD/live origin7b18961224c6deeb445f2f96f72373231dd38111,0/0. All15pending paths belong to this task and were preserved. This containing Source commit and private publication proof identify the tested changes; final publication is verified separately. |
+| Source Complete | Yes. Successful post-lock Bangkok day16+ AND equal lesson year/month selects actual late catalog; otherwise actual early catalog. New selectionRuleVersion=kids_same_month_v2 participates in evidence/fingerprint. Old evidence, catalog and fingerprint retained without backfill. |
+| Correction | Cancellation audit uses to_jsonb(v_bill); valid table aliases b remain unchanged. Complete generated SQL inspected. Empty pending list bypasses the existing nonempty-only booking-lock helper; no guard weakened. |
+| Tests Passed | Yes:95unique Task10 tests across full90/91, final focused9/9 and cutover3/3. The full-run UI fixture failure was corrected by settling the first actual UI bill before clock advancement; original expiry/assertions retained. Wallet adjacent45/45. TypeScript/lint passed. Production-mode build r-cwO647aa1FxXGjD6ns4 retained with275identical app/public/dependency/config inputs. |
+| Atomicity / concurrency | Disposable rollback reaches intended injected failure; real successful Legacy/Progressive cancellation+definition+history commit, replay rejection, zero-candidate cutover, Storage/receipt/create races, exact operator, coupon release/rebooking, capacity and Legacy baseline delta passed. |
+| Disposable / UAT | Task10SameMonth20260927 API65321/DB65322, physical container/volume/network/Auth/REST/Storage binding checked before writes/resets. OwnerUAT64321 preserved. Manual Owner UAT not performed; automated acceptance authorized. |
+| Recovery | Authenticated HTTP preview/booking/history compatibility of candidate and current deployed Source7150731ce65ca600a78223441c5a0383c9be61f5 proved on isolated production-mode builds with predecessor/new DB and immutable old/new evidence. Recovery does not uncancel, refund or revert customer data. |
+| Migration Source / Applied | supabase/migrations/20260927090306_task10_kids_same_month_late_pricing.sql; SHA256 cc35e35ab3378e0a7e276b7ce55922e6f46d548bd06b7f36d63d733beecc43e7. Not applied remotely. Fresh read lists41prior migrations including Task10M1–M6. |
+| Deployed Source / Artifact | Prior Production7150731ce65ca600a78223441c5a0383c9be61f5 / dpl_vMJHmj1zzXys2KnfrnUbbpTALipe. New staged artifact, Source SHA/attestation and Promotion remain next gates. |
+| Feature Enabled / Production Active / Allowlisted | Existing Task10 active revision5, pricing/makeup/expiryON and cronactive. Original effective_at2026-09-24T12:45:14.241075Z retained. Same-month rule not yet active. Fresh environment read:5Progressive flags+shared SLIPOK_TEST_MODE true; payment allowlist absent. No controls/environment writes. |
+| Cancellation / Production Data Changed / Data Repaired | Operation0bills/0sessions/0billvalue at this checkpoint; Production Data Changed No by this task; Data Repaired No. A fresh exact private manifest and under-lock checks are still required. Preflight candidates are not execution counts. |
+| Customer / financial impact | No task-caused Production financial/data change yet. Paid/verified or payment/upload/review-evidenced bills protected. No collection of differences, refund, credit, backfill or customer contact/booking. |
+| Scope Expansion / Breach | None / None. No extra repository technical path. Private release helpers/evidence remain outside Git/artifact. |
+| Next / remaining gates | Full staged diff compliance, commit/push, exact staged Production artifact and health/identity, fresh definitions+manifest, one atomic cutover, exact no-rebuild Promotion, authenticated read-only quotes/history/payment, financial/capacity/coupon/baseline reconciliation, bounded logs and2natural workers, dated closeout. |
+| Evidence limitations | Prior failures and historical privacy deviations retained. Provider hides sensitive environment values; actual visible flags and deployed bundle/runtime checks are separate. No manual Owner UAT or Production business-test write claimed. |
+
+Checkpoint 2026-09-27T13:03:20.848Z. Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927.
+See [resumed acceptance](DEVELOPMENT_TODO.md#kids-same-month-resume-2026-09-27)
+and [preserved prior Hard Stop](DEVELOPMENT_TODO.md#kids-same-month-hard-stop-2026-09-27).
+
+## Historical — Task10 released and Active / TASK DONE (2026-09-26)
+
+The following matrix records that release closeout. The current task and local
+worktree state are owned only by the first matrix above; historical release facts
+and legitimate acceptance remain preserved.
 
 **TASK DONE / exact Promotion and existing Resume completed.**
 PM performed QA under the Owner-authorized exception; Owner explicitly approved

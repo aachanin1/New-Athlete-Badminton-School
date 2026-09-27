@@ -419,11 +419,11 @@ test('Both pricing settings entries save independent catalogs with loading, erro
   try {
     for(const url of ['/admin/settings/pricing','/admin/settings?section=pricing']) {
       await page.goto(url)
-      await expect(page.getByRole('heading',{name:'เด็ก — จองวันที่ 1–15',exact:true})).toBeVisible()
-      await expect(page.getByRole('heading',{name:'เด็ก — จองวันที่ 16–สิ้นเดือน',exact:true})).toBeVisible()
+      await expect(page.getByRole('heading',{name:'เด็ก — ราคาปกติ',exact:true})).toBeVisible()
+      await expect(page.getByRole('heading',{name:'เด็ก — ราคาครึ่งเดือน',exact:true})).toBeVisible()
       await expect(page.getByText('ชุดราคาสองช่วงยังไม่เปิดใช้กับการจอง')).toBeVisible()
       for(const regime of ['early','late'] as const) {
-        const card=page.getByRole('heading',{name:regime==='early'?'เด็ก — จองวันที่ 1–15':'เด็ก — จองวันที่ 16–สิ้นเดือน',exact:true}).locator('..')
+        const card=page.getByRole('heading',{name:regime==='early'?'เด็ก — ราคาปกติ':'เด็ก — ราคาครึ่งเดือน',exact:true}).locator('..')
         const inputs=card.getByRole('spinbutton');const rateInput=inputs.last();const rate=Number(await rateInput.inputValue())
         const lowestSummary=page.getByText('เด็ก ต่ำสุด/ครั้ง',{exact:true}).locator('..')
         const client=createLocalAdmin();const actor=readTask10Fixture().adminUserId

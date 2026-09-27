@@ -3,7 +3,156 @@ import { createHash, randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { INITIAL_LATE_KIDS_TIERS } from '../../src/lib/booking-pricing-policy'
+import { buildCutoverSql, captureSql, createPlan } from '../../scripts/task10-kids-pricing-cutover.mjs'
+import { installPreviousKidsPricingForTest, sameMonthPricingMigration } from './local-supabase'
 import { concurrentLocalSql, holdLocalTransaction, createLocalAdmin, localSql, readTask10Fixture, seedTask10Family, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, uploadTask10Slip, protectedWalletFixture, raceFamilyWalletStore, type ProtectedWalletFixture, type FamilyFixture } from './local-supabase'
+
+test('Same-month pricing cutover rolls back atomically, protects upload races and commits only once without controls changes', async () => {
+  test.setTimeout(300_000)
+  await setupTask10()
+  const legacyFixture=readTask10Fixture(), legacyIds=[randomUUID(),randomUUID()]
+  // Pre-activation Legacy fixtures: one is the Progressive baseline, one another lesson month.
+  for (const [index,month] of [10,11].entries()) localSql(`
+    INSERT INTO schedule_templates(branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
+      SELECT '${legacyFixture.branchId}','${legacyFixture.kidsCourseId}',d,'17:00','19:00',true FROM generate_series(0,6) d
+      WHERE NOT EXISTS(SELECT 1 FROM schedule_templates WHERE branch_id='${legacyFixture.branchId}' AND course_type_id='${legacyFixture.kidsCourseId}' AND day_of_week=d AND start_time='17:00' AND end_time='19:00' AND is_active);
+    INSERT INTO bookings(id,user_id,learner_type,child_id,branch_id,course_type_id,month,year,total_sessions,total_price,status,created_at)
+      VALUES('${legacyIds[index]}','${legacyFixture.userId}','child','${legacyFixture.mainChildId}','${legacyFixture.branchId}','${legacyFixture.kidsCourseId}',${month},2031,1,700,'pending_payment','2031-07-01T01:00:00Z');
+    INSERT INTO schedule_slots(template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
+      SELECT id,branch_id,course_type_id,'2031-${month}-19',start_time,end_time,6,0,'open' FROM schedule_templates
+      WHERE branch_id='${legacyFixture.branchId}' AND course_type_id='${legacyFixture.kidsCourseId}' AND day_of_week=extract(dow FROM '2031-${month}-19'::date) AND start_time='17:00' AND end_time='19:00' AND is_active;
+    INSERT INTO booking_sessions(booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
+      SELECT '${legacyIds[index]}',id,date,start_time,end_time,branch_id,'${legacyFixture.mainChildId}','scheduled',false FROM schedule_slots
+      WHERE branch_id='${legacyFixture.branchId}' AND course_type_id='${legacyFixture.kidsCourseId}' AND date='2031-${month}-19' AND start_time='17:00';`)
+  await seedTask10Family()
+  installPreviousKidsPricingForTest()
+  const f=readTask10Fixture(), client=createLocalAdmin(), sql=sameMonthPricingMigration()
+  setDisposableClock('2031-09-17T10:00:00+07:00')
+  const quote=async(month:number,user=f.userId,bookingId:string|null=null)=>{
+    const q=await client.rpc('task10_booking_policy_quote_v1',{p_user_id:user,p_course_type_id:f.kidsCourseId,p_lesson_month:`2031-${String(month).padStart(2,'0')}-01`,p_formula:'progressive',p_booking_id:bookingId})
+    expect(q.error).toBeNull();return q.data
+  }
+  const make=async(user:string,child:string,count:number,fingerprint?:string,coupon:string|null=null)=>{
+    const policy=await quote(10,user)
+    const baseline=await client.rpc('progressive_legacy_baseline_v1',{p_user_id:user,p_course_type_id:f.kidsCourseId,p_lesson_year:2031,p_lesson_month:10})
+    const scope=await client.from('booking_pricing_scopes').select('revision').eq('user_id',user).eq('course_type_id',f.kidsCourseId).eq('lesson_year',2031).eq('lesson_month',10).maybeSingle()
+    const request=randomUUID()
+    const result=await client.rpc('task10_create_progressive_booking_v1',{p_user_id:user,p_learner_type:'child',p_child_id:child,p_branch_id:f.branchId,p_course_type_id:f.kidsCourseId,
+      p_sessions:Array.from({length:count},(_,i)=>({date:`2031-10-${20+i}`,start_time:'17:00',end_time:'19:00',branch_id:f.branchId,child_id:child})),p_coupon_id:coupon,p_client_request_id:request,
+      p_expected_scope_revision:scope.data?.revision||0,p_expected_legacy_baseline_sessions:baseline.data[0].baseline_sessions,p_expected_legacy_baseline_fingerprint:baseline.data[0].baseline_fingerprint,p_expected_policy_fingerprint:fingerprint??policy.fingerprint})
+    return {result,request,policy}
+  }
+  const coupon=randomUUID()
+  localSql(`INSERT INTO coupons(id,code,discount_type,discount_value,max_uses,current_uses,is_active,created_by) VALUES('${coupon}','CUTOVER-${coupon}','fixed',100,10,0,true,'${f.adminUserId}');`)
+  const unpaid=await make(f.userId,f.mainChildId,4,undefined,coupon);expect(unpaid.result.error).toBeNull();expect(unpaid.result.data.totalPrice).toBe(1900)
+  const protectedBill=await make(f.multiBranchUserId,f.multiBranchChildId,10);expect(protectedBill.result.error).toBeNull();expect(protectedBill.result.data.totalPrice).toBe(3500)
+  const id=unpaid.result.data.bookingId, protectedId=protectedBill.result.data.bookingId
+  const originalQuote=await quote(10,f.multiBranchUserId,protectedId)
+  const originalEvidence=localSql(`SELECT to_jsonb(e) FROM task10_booking_pricing_evidence e WHERE booking_id='${protectedId}';`)
+  setDisposableClock('2031-09-17T10:01:00+07:00')
+  const captured=()=>JSON.parse(localSql(`BEGIN READ ONLY; ${captureSql()}; COMMIT;`))
+  // Active worker configuration is retained throughout the actual operation.
+  localSql("UPDATE task10_policy_activation SET expiry_enabled=true; SELECT cron.alter_job((SELECT jobid FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1'),active:=true);")
+  const snapshot=captured()
+  const plan=createPlan(snapshot,{actorId:f.adminUserId,sourceSha:'a'.repeat(40),deploymentId:'dpl_local_same_month',projectRef:'verified-local-disposable',migrationHash:createHash('sha256').update(sql).digest('hex')})
+  const unchanged=()=>localSql(`SELECT jsonb_build_object('b',(SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b),'s',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s),'q',(SELECT md5(prosrc) FROM pg_proc WHERE oid='task10_booking_policy_quote_v1(uuid,uuid,date,text,uuid)'::regprocedure),'a',(SELECT to_jsonb(a) FROM task10_policy_activation a),'m',(SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version='20260927090306'));`)
+  const before=unchanged()
+  expect(()=>localSql(buildCutoverSql(plan,sql,{failBeforeCommit:true}))).toThrow('KIDS_CUTOVER_INJECTED_PRECOMMIT_FAILURE')
+  expect(unchanged()).toBe(before)
+  const storageLock=await holdLocalTransaction('LOCK TABLE storage.objects IN ROW EXCLUSIVE MODE;',`kids-storage-${randomUUID()}`)
+  try { expect(()=>localSql(buildCutoverSql(plan,sql))).toThrow('could not obtain lock') } finally { await storageLock.finish() }
+  expect(unchanged()).toBe(before)
+  // A real Storage receipt appears after manifest freeze: this bill must be skipped.
+  const prepared=await client.rpc('prepare_progressive_payment_batch_v2',{p_user_id:f.multiBranchUserId,p_pricing_scope_id:protectedBill.result.data.scopeId,p_booking_ids:[protectedId],p_expected_scope_revision:protectedBill.result.data.scopeRevision,p_expected_total:3500,p_idempotency_key:randomUUID()})
+  expect(prepared.error).toBeNull()
+  const upload=await uploadTask10Slip(f.multiBranchUserId,prepared.data.batchId)
+  const metadata={storageBucket:'progressive-payment-slips',storagePath:upload.storagePath,mimeType:'image/png',sizeBytes:104,sha256:upload.sha256}
+  expect((await client.rpc('record_progressive_payment_upload_v1',{p_batch_id:prepared.data.batchId,p_user_id:f.multiBranchUserId,p_storage_bucket:metadata.storageBucket,p_storage_path:metadata.storagePath,p_mime_type:metadata.mimeType,p_size_bytes:metadata.sizeBytes,p_sha256:metadata.sha256})).error).toBeNull()
+  const oldPreview=await quote(10)
+  const racingQuote=await quote(10,f.otherUserId)
+  const racingBaseline=await client.rpc('progressive_legacy_baseline_v1',{p_user_id:f.otherUserId,p_course_type_id:f.kidsCourseId,p_lesson_year:2031,p_lesson_month:10})
+  expect(racingBaseline.error).toBeNull()
+  const racingChild=await client.from('children').select('id').eq('parent_id',f.otherUserId).limit(1).single()
+  expect(racingChild.error).toBeNull()
+  const racingRequest=randomUUID()
+  const cutover=await holdLocalTransaction(buildCutoverSql(plan,sql).replace(/COMMIT;$/,''),`kids-cutover-${randomUUID()}`)
+  try {
+    const createWaiting=client.rpc('task10_create_progressive_booking_v1',{p_user_id:f.otherUserId,p_learner_type:'child',p_child_id:racingChild.data!.id,p_branch_id:f.branchId,p_course_type_id:f.kidsCourseId,
+      p_sessions:[{date:'2031-10-30',start_time:'17:00',end_time:'19:00',branch_id:f.branchId,child_id:racingChild.data!.id}],p_coupon_id:null,p_client_request_id:racingRequest,
+      p_expected_scope_revision:0,p_expected_legacy_baseline_sessions:racingBaseline.data[0].baseline_sessions,p_expected_legacy_baseline_fingerprint:racingBaseline.data[0].baseline_fingerprint,p_expected_policy_fingerprint:racingQuote.fingerprint}).then(result=>result)
+    const uploadWaiting=client.rpc('record_progressive_payment_upload_v1',{p_batch_id:prepared.data.batchId,p_user_id:f.multiBranchUserId,p_storage_bucket:metadata.storageBucket,p_storage_path:metadata.storagePath,p_mime_type:metadata.mimeType,p_size_bytes:metadata.sizeBytes,p_sha256:metadata.sha256}).then(result=>result)
+    await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND (query LIKE '%task10_create_progressive_booking_v1%' OR query LIKE '%record_progressive_payment_upload_v1%');")).toBe('2')
+    await cutover.finish()
+    expect((await createWaiting).error?.message).toContain('TASK10_PREVIEW_CONFLICT')
+    expect((await uploadWaiting).error).toBeNull()
+  } finally { await cutover.finish() }
+  expect(localSql(`SELECT count(*) FROM bookings WHERE client_request_id='${racingRequest}';`)).toBe('0')
+  const event=JSON.parse(localSql(`SELECT details FROM activity_logs WHERE id='${plan.operationId}';`))
+  expect(event.cancelledBookings).toContain(id)
+  for (const legacyId of legacyIds) {
+    expect(event.cancelledBookings).toContain(legacyId)
+    expect(localSql(`SELECT evidence->>'actorId' FROM task10_booking_cancellations WHERE booking_id='${legacyId}';`)).toBe(f.adminUserId)
+  }
+  expect(localSql(`SELECT entitlement_delta FROM task10_legacy_baseline_deltas WHERE booking_id='${legacyIds[0]}';`)).toBe('-1')
+  expect(event.cancelledBookings).not.toContain(protectedId)
+  expect(event.skipped).toContainEqual({bookingId:protectedId,reason:'payment_or_receipt'})
+  expect(localSql(`SELECT status FROM bookings WHERE id='${id}';`)).toBe('cancelled')
+  expect(localSql(`SELECT status FROM progressive_coupon_reservations WHERE booking_id='${id}';`)).toBe('released')
+  expect(localSql(`SELECT count(*) FROM booking_sessions WHERE booking_id='${id}' AND cancelled_at IS NOT NULL;`)).toBe('4')
+  expect(JSON.parse(localSql('SELECT to_jsonb(a) FROM task10_policy_activation a;'))).toEqual(snapshot.controls)
+  expect(localSql("SELECT active FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1';")).toBe('t')
+  expect(()=>localSql(buildCutoverSql(plan,sql))).toThrow('KIDS_CUTOVER_ALREADY_RECORDED_NO_REPLAY')
+  expect(localSql(`SELECT to_jsonb(e) FROM task10_booking_pricing_evidence e WHERE booking_id='${protectedId}';`)).toBe(originalEvidence)
+  expect((await quote(10,f.multiBranchUserId,protectedId)).fingerprint).toBe(originalQuote.fingerprint)
+  expect((await quote(10)).catalog.regime).toBe('early')
+  expect((await quote(9)).catalog.regime).toBe('late')
+  const stale=await make(f.userId,f.mainChildId,4,oldPreview.fingerprint)
+  expect(stale.result.error?.message).toContain('TASK10_PREVIEW_CONFLICT')
+  expect(localSql(`SELECT count(*) FROM bookings WHERE client_request_id='${stale.request}';`)).toBe('0')
+  const rebook=await make(f.userId,f.mainChildId,4,undefined,coupon);expect(rebook.result.error).toBeNull();expect(rebook.result.data.totalPrice).toBe(2400)
+  expect(rebook.policy.selectionRuleVersion).toBe('kids_same_month_v2')
+  expect((await client.rpc('submit_progressive_payment_batch_v1',{p_batch_id:prepared.data.batchId,p_user_id:f.multiBranchUserId,p_slip_metadata:metadata,p_idempotency_key:randomUUID()})).error).toBeNull()
+  expect((await client.rpc('approve_progressive_payment_batch_v1',{p_batch_id:prepared.data.batchId,p_actor_id:f.adminUserId,p_idempotency_key:randomUUID()})).error).toBeNull()
+  expect(localSql(`SELECT total_price FROM bookings WHERE id='${protectedId}' AND status='verified';`)).toBe('3500.00')
+  expect(localSql(`SELECT to_jsonb(e) FROM task10_booking_pricing_evidence e WHERE booking_id='${protectedId}';`)).toBe(originalEvidence)
+  await setupTask10()
+})
+
+test('Same-month pricing cutover with zero pending Kids preserves data and uses Bangkok month/year boundaries', async () => {
+  test.setTimeout(300_000)
+  await setupTask10()
+  const f=readTask10Fixture(), client=createLocalAdmin(), sql=sameMonthPricingMigration()
+  // Arrange a no-pending-Kids fixture before policy activation; this is never a Production operation.
+  localSql(`UPDATE bookings SET status='cancelled' WHERE course_type_id='${f.kidsCourseId}' AND status='pending_payment';
+    UPDATE task10_policy_activation SET state='active',revision=1,effective_at='2031-07-31T11:00:00Z',pricing_enabled=true,makeup_enabled=true,expiry_enabled=true WHERE singleton;
+    SELECT cron.alter_job((SELECT jobid FROM cron.job WHERE jobname='task10-expire-unpaid-bookings-v1'),active:=true);`)
+  installPreviousKidsPricingForTest()
+  setDisposableClock('2031-09-17T10:00:00+07:00')
+  const capture=JSON.parse(localSql(`BEGIN READ ONLY; ${captureSql()}; COMMIT;`))
+  expect(capture.rows).toEqual([])
+  const plan=createPlan(capture,{actorId:f.adminUserId,sourceSha:'a'.repeat(40),deploymentId:'dpl_local_zero',migrationHash:createHash('sha256').update(sql).digest('hex')})
+  const books=localSql('SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b;')
+  expect(()=>localSql(buildCutoverSql(plan,sql,{failBeforeCommit:true}))).toThrow('KIDS_CUTOVER_INJECTED_PRECOMMIT_FAILURE')
+  localSql(buildCutoverSql(plan,sql))
+  expect(JSON.parse(localSql(`SELECT details FROM activity_logs WHERE id='${plan.operationId}';`))).toMatchObject({billCount:0,sessionCount:0,billValue:0,skipped:[]})
+  expect(localSql('SELECT jsonb_agg(to_jsonb(b) ORDER BY id) FROM bookings b;')).toBe(books)
+  for (const [clock,month,regime] of [
+    ['2031-09-10T03:00:00Z','2031-09','early'],['2031-09-17T03:00:00Z','2031-09','late'],
+    ['2031-09-17T03:00:00Z','2031-10','early'],['2031-09-17T03:00:00Z','2031-11','early'],
+    ['2031-10-17T03:00:00Z','2031-10','late'],['2031-09-15T16:59:59.999Z','2031-09','early'],
+    ['2031-09-15T17:00:00Z','2031-09','late'],['2031-09-30T16:59:59.999Z','2031-10','early'],
+    ['2031-09-30T17:00:00Z','2031-10','early'],['2031-12-31T16:59:59.999Z','2032-01','early'],
+    ['2031-12-31T17:00:00Z','2032-01','early'],['2032-01-15T17:00:00Z','2032-01','late'],
+  ]) {
+    setDisposableClock(clock)
+    const quote=await client.rpc('task10_booking_policy_quote_v1',{p_user_id:f.userId,p_course_type_id:f.kidsCourseId,p_lesson_month:month+'-01',p_formula:'progressive'})
+    expect(quote.error).toBeNull()
+    expect(quote.data).toMatchObject({selectionRuleVersion:'kids_same_month_v2',catalog:{regime}})
+    const catalog=JSON.parse(localSql(`SELECT to_jsonb(v) FROM task10_pricing_catalog_heads h JOIN task10_pricing_catalog_versions v ON v.id=h.version_id WHERE h.regime='${regime}';`))
+    expect(quote.data.catalog).toMatchObject({versionId:catalog.id,hash:catalog.fingerprint,tiers:catalog.tiers})
+  }
+  await setupTask10()
+})
 
 test('Rewallet corrective migration is loaded with unchanged signature and execution security', () => {
   const migration = readFileSync(resolve(__dirname, '../../supabase/migrations/20260924133852_task10_rewallet_source_eligibility.sql'), 'utf8')
@@ -790,7 +939,7 @@ test.describe('Task10 retained pricing catalogs',()=>{
     return {result,requestId,policy:policy.data}
   }
 
-  test('Late creation uses approved split/month examples and persists complete origin evidence',async()=>{
+  test('Same-month late and future-month early creation persist complete origin evidence',async()=>{
     setDisposableClock('2031-09-17T10:00:00+07:00')
     const first=await create(9,20,4);expect(first.result.error).toBeNull();expect(first.result.data.totalPrice).toBe(2000)
     created.push({id:first.result.data.bookingId,quote:first.policy,expiresAt:first.result.data.expiresAt})
@@ -798,9 +947,9 @@ test.describe('Task10 retained pricing catalogs',()=>{
     const second=await create(9,24,6);expect(second.result.error).toBeNull();expect(second.result.data.totalPrice).toBe(2100)
     created.push({id:second.result.data.bookingId,quote:second.policy,expiresAt:second.result.data.expiresAt})
     setDisposableClock('2031-09-17T10:00:02+07:00')
-    const october=await create(10,20,10);expect(october.result.error).toBeNull();expect(october.result.data.totalPrice).toBe(3500)
+    const october=await create(10,20,10);expect(october.result.error).toBeNull();expect(october.result.data.totalPrice).toBe(5000)
     const f=readTask10Fixture();const separate=await create(10,20,6,undefined,f.multiBranchUserId,f.multiBranchChildId)
-    expect(separate.result.error).toBeNull();expect(separate.result.data.totalPrice).toBe(2598)
+    expect(separate.result.error).toBeNull();expect(separate.result.data.totalPrice).toBe(3750)
     const evidence=await createLocalAdmin().from('task10_booking_pricing_evidence').select('*').eq('booking_id',created[0].id).single()
     expect(evidence.error).toBeNull()
     expect(evidence.data).toMatchObject({bangkok_date:'2031-09-17',lesson_month:'2031-09-01',formula:'progressive',successful_created_at:'2031-09-17T03:00:00+00:00'})
@@ -811,11 +960,15 @@ test.describe('Task10 retained pricing catalogs',()=>{
   test('Catalog edits keep each old bill set; quantity edit reprices downstream from its own set without extending expiry',async()=>{
     const f=readTask10Fixture();const client=createLocalAdmin()
     const before=await client.from('task10_booking_pricing_evidence').select('*').eq('booking_id',created[1].id).single()
+    const staleCatalog=await quote(9);expect(staleCatalog.error).toBeNull()
     const catalogs=await client.rpc('task10_read_pricing_catalogs_v1',{p_actor_id:f.adminUserId})
     const saved=await client.rpc('task10_save_pricing_catalog_v1',{p_actor_id:f.adminUserId,p_regime:'late',p_expected_revision:catalogs.data.late.revision,
       p_tiers:[{minSessions:1,maxSessions:9,ratePerSession:800},{minSessions:10,maxSessions:null,ratePerSession:100}]})
     expect(saved.error).toBeNull()
     setDisposableClock('2031-09-17T10:00:03+07:00')
+    const stale=await create(9,30,1,staleCatalog.data.fingerprint)
+    expect(stale.result.error?.message).toContain('TASK10_PREVIEW_CONFLICT')
+    expect(localSql(`SELECT count(*) FROM bookings WHERE client_request_id='${stale.requestId}';`)).toBe('0')
     const downstream=await create(9,30,1);expect(downstream.result.error).toBeNull();expect(downstream.result.data.totalPrice).toBe(100)
     const retained=await quote(9,created[1].id);expect(retained.error).toBeNull()
     expect(retained.data.catalog.versionId).toBe(before.data.catalog_version_id)
@@ -966,6 +1119,32 @@ test.describe('Task10 retained pricing catalogs',()=>{
     const primary=await client.from('pricing_tiers').update({price_per_session:1}).eq('course_type_id',f.kidsCourseId)
     expect(primary.error?.message).toContain('TASK10_VERSIONED_CATALOG_REQUIRED')
     setDisposableClock('2031-08-01T00:00:00+07:00')
+  })
+
+  test('Month-end and year-end stale previews reject creation without booking or scope residue',async()=>{
+    const f=readTask10Fixture(),client=createLocalAdmin()
+    try {
+      for (const [beforeClock,afterClock,lesson] of [
+        ['2031-09-30T16:59:59.999Z','2031-09-30T17:00:00Z','2031-11'],
+        ['2031-12-31T16:59:59.999Z','2031-12-31T17:00:00Z','2032-01'],
+      ]) {
+        const [year,month]=lesson.split('-').map(Number)
+        setDisposableClock(beforeClock)
+        const q=await client.rpc('task10_booking_policy_quote_v1',{p_user_id:f.multiBranchUserId,p_course_type_id:f.kidsCourseId,p_lesson_month:lesson+'-01',p_formula:'progressive'})
+        expect(q.error).toBeNull()
+        const baseline=await client.rpc('progressive_legacy_baseline_v1',{p_user_id:f.multiBranchUserId,p_course_type_id:f.kidsCourseId,p_lesson_year:year,p_lesson_month:month})
+        expect(baseline.error).toBeNull()
+        const scopeCount=()=>localSql(`SELECT count(*) FROM booking_pricing_scopes WHERE user_id='${f.multiBranchUserId}' AND course_type_id='${f.kidsCourseId}' AND lesson_year=${year} AND lesson_month=${month};`)
+        const beforeScope=scopeCount(),request=randomUUID()
+        setDisposableClock(afterClock)
+        const result=await client.rpc('task10_create_progressive_booking_v1',{p_user_id:f.multiBranchUserId,p_learner_type:'child',p_child_id:f.multiBranchChildId,p_branch_id:f.branchId,p_course_type_id:f.kidsCourseId,
+          p_sessions:[{date:lesson+'-20',start_time:'17:00',end_time:'19:00',branch_id:f.branchId,child_id:f.multiBranchChildId}],p_coupon_id:null,p_client_request_id:request,p_expected_scope_revision:0,
+          p_expected_legacy_baseline_sessions:baseline.data[0].baseline_sessions,p_expected_legacy_baseline_fingerprint:baseline.data[0].baseline_fingerprint,p_expected_policy_fingerprint:q.data.fingerprint})
+        expect(result.error?.message).toContain('TASK10_PREVIEW_CONFLICT')
+        expect(localSql(`SELECT count(*) FROM bookings WHERE client_request_id='${request}';`)).toBe('0')
+        expect(scopeCount()).toBe(beforeScope)
+      }
+    } finally { setDisposableClock('2031-08-01T00:00:00+07:00') }
   })
 })
 

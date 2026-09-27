@@ -87,8 +87,8 @@ function KidsCatalogEditor({ catalog, onSaved }: { catalog: KidsRateCatalog; onS
     finally { setLoading(false) }
   }
   return <Card><CardContent className="space-y-4 p-4">
-    <h2 className="font-semibold text-[#153c85]">เด็ก — {catalog.regime === 'early' ? 'จองวันที่ 1–15' : 'จองวันที่ 16–สิ้นเดือน'}</h2>
-    <p className="text-sm text-gray-500">บันทึกแยกชุด บิลเดิมยังใช้ชุดราคาที่เก็บไว้เมื่อจอง</p>
+    <h2 className="font-semibold text-[#153c85]">เด็ก — {catalog.regime === 'early' ? 'ราคาปกติ' : 'ราคาครึ่งเดือน'}</h2>
+    <p className="text-sm text-gray-500">กฎใหม่สำหรับบิลใหม่: ราคาครึ่งเดือนใช้เมื่อจองวันที่ 16–สิ้นเดือนเพื่อเรียนในเดือนและปีเดียวกัน กรณีอื่นใช้ราคาปกติ ระบบเลือกชุดราคาจากกฎที่เปิดใช้บนเซิร์ฟเวอร์ บันทึกแยกชุด บิลเดิมยังใช้ชุดราคาที่เก็บไว้เมื่อจอง</p>
     {rows.map((row, index) => <div key={index} className="grid grid-cols-3 gap-3">
       {(['minSessions', 'maxSessions', 'ratePerSession'] as const).map((field) => <Label key={field} className="space-y-2">
         <span>{field === 'minSessions' ? 'เริ่มที่' : field === 'maxSessions' ? 'ถึง (ว่าง = ไม่จำกัด)' : 'ราคา/ครั้ง'}</span>
@@ -101,7 +101,7 @@ function KidsCatalogEditor({ catalog, onSaved }: { catalog: KidsRateCatalog; onS
     </div>)}
     {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
     {success ? <p role="status" className="text-sm text-emerald-700">บันทึกสำเร็จ</p> : null}
-    <Button disabled={loading} onClick={save}>{loading ? 'กำลังบันทึก...' : `บันทึกราคาช่วง${catalog.regime === 'early' ? 'วันที่ 1–15' : 'วันที่ 16–สิ้นเดือน'}`}</Button>
+    <Button disabled={loading} onClick={save}>{loading ? 'กำลังบันทึก...' : `บันทึก${catalog.regime === 'early' ? 'ราคาปกติ' : 'ราคาครึ่งเดือน'}`}</Button>
   </CardContent></Card>
 }
 

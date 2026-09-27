@@ -1637,7 +1637,11 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
                     </div>
                     <p className="text-xs text-gray-500 mt-2">* ผู้เรียนพี่น้องนับจำนวนครั้งรวมกันเพื่อเลือกช่วงราคา</p>
                     {kidsPolicy.catalog ? <p className="text-xs text-gray-500 mt-2">
-                      ชุดราคาวันจองช่วง {kidsPolicy.catalog.regime === 'early' ? '1–15' : '16–สิ้นเดือน'} · ระบบตรวจราคาก่อนยืนยันการจอง
+                      {kidsPolicy.catalog.regime === 'early' ? 'ชุดราคาปกติ' : 'ชุดราคาครึ่งเดือน'}
+                      {editBooking ? ' · ใช้ชุดราคาที่บันทึกไว้ของบิลเดิม' : kidsPolicy.selectionRuleVersion === 'kids_same_month_v2'
+                        ? ' · ราคาครึ่งเดือนใช้เมื่อจองวันที่ 16–สิ้นเดือนเพื่อเรียนในเดือนและปีเดียวกัน จองล่วงหน้าเดือนอื่นใช้ราคาปกติ'
+                        : ' · ชุดราคาตามวันที่จองที่ระบบยืนยัน'}
+                      {' · ระบบตรวจราคาก่อนยืนยันการจอง'}
                     </p> : null}
                   </>
                 )}

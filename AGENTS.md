@@ -1,6 +1,6 @@
 # AGENTS.md - Operating Rules for Codex Agents
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 This file is the short, mandatory operating guide. The previous long agent
 document was archived at `context-archive/AGENTS.legacy-2026-06-04.md`.
@@ -513,6 +513,41 @@ Main portals:
 - Source/schema corrections require a new explicit scope; any resume must use
   verified corrected behavior and current revision/evidence. Actual execution,
   pause, readiness and next-gate state belong only in PROJECT_STATE.md.
+
+<a id="kids-same-month-pricing-decision-2026-09-27"></a>
+### Kids same-month late pricing and one-time unpaid cancellation (Owner, 2026-09-27)
+
+- Owner selected a new forward-only policy: a new Kids bill uses the late catalog
+  only when successful post-lock DB creation is on Bangkok day16+ and its lesson
+  year/month equals that Bangkok creation year/month. All other new Kids bills
+  use the configured early catalog. Preserve actual catalogs, Progressive/Legacy
+  formulas, sibling accumulation and separate lesson-month baselines.
+- This supersedes only the earlier creation-day-only selection after the new
+  authorized atomic cutover. Earlier October late examples remain legitimate
+  history under the former policy; do not relabel old bills as pricing errors.
+  New evidence/fingerprints include selectionRuleVersion; old evidence without
+  it remains readable and retains its own catalog. No evidence backfill.
+- Owner authorizes continuous implementation, focused/protected verification,
+  commit/push, exact staged Production artifact, atomic migration/cancellation,
+  exact Promotion without rebuild and Production checks. Automated acceptance
+  replaces manual Owner UAT for this task only; never claim manual UAT PASS.
+  Do not call Task10 Pause/Resume or change controls, cron or Production environment.
+- The one-time cancellation covers only pre-cutover pending_payment Kids Group
+  bills, Legacy/Progressive and all lesson months, with no payment, receipt,
+  allocation, batch/upload/submission/review or in-flight evidence. Freeze exact
+  booking/session effects privately, recheck under locks, and skip newly protected
+  or ambiguous bills/dependencies. Never bypass Attendance/Wallet/financial guards.
+  Use existing flow-specific cancellation, preserve history and identify the real
+  operator and Owner direction rather than attributing it to the customer.
+- Cancellation, the new quote definition and accurate migration history must
+  commit or roll back together, without an old-policy booking gap. No Production
+  rehearsal writes. Require tested recovery reading both bill versions before
+  any Production mutation. After commit, no automatic uncancel/refund/data reversal.
+- Paid/verified and payment-evidenced bills remain protected; any manual collection
+  of differences belongs to Admin outside this task, not to an automated system.
+  Do not contact/book for customers, repeat the September24 operation, initial-
+  activate, change original effective_at, or extend this authority to Adult/Private.
+  PROJECT_STATE.md owns actual implementation/release/cancellation state.
 
 <a id="task10-rewallet-corrective-decision-2026-09-24"></a>
 ### Task10 — Re-wallet reader correction and conditional Resume (Owner, 2026-09-24)

@@ -18,6 +18,7 @@ export interface KidsRateCatalog {
 }
 
 export interface BookingPricingPolicyEvidence {
+  selectionRuleVersion?: 'kids_same_month_v2'
   activationRevision: number
   createdAt: string
   bangkokDate: string
@@ -29,6 +30,7 @@ export interface BookingPricingPolicyEvidence {
 }
 
 export interface BookingPricingPolicyQuote {
+  selectionRuleVersion?: 'kids_same_month_v2'
   kind: 'booking_catalog' | 'legacy_compatibility'
   activationRevision: number
   serverTime: string

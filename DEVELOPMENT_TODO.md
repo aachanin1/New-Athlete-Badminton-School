@@ -27713,3 +27713,138 @@ ProductionbusinessUATnotclaimed/ControlledWriteUATlocalPM+retainedDeveloper/
 DataRepairedNo/ProductionDataChangedauthorizedcontrols+workeraudit/
 ComparedBusinessEvidenceUnchanged/TaskDoneYes.
 Next action: await separate Owner task selection; preserve Parking Lot1–8.
+
+<a id="kids-same-month-hard-stop-2026-09-27"></a>
+## Kids same-month pricing and unpaid Kids cutover — safe handoff, 2026-09-27
+
+State observed at this handoff: **DEVELOPING / material Hard Stop / Task Done No**.
+Owner's FINAL command authorizes continuous delivery, automated acceptance in
+place of manual Owner UAT, no Pause/Resume/control/cron/environment changes, and
+one atomic unpaid Kids-only cancellation plus forward-only pricing migration.
+The September24 operation is historical reference only; it was not replayed.
+
+Fresh Gate0 found target root/branch correct, HEAD/live origin
+7b18961224c6deeb445f2f96f72373231dd38111,0/0,clean/stagedempty. Fresh Vercel read
+confirmed dpl_vMJHmj1zzXys2KnfrnUbbpTALipe/7150731ce65ca600a78223441c5a0383c9be61f5,
+production READY. Supabase project tvnhholicwjtxdhlxfqs is the bound school project;
+M1–M6 history retained.75 normalized current function bodies matched local Source.
+Renamed previous-Wallet wrappers were excluded from this comparison, not claimed
+as freshly matched. Initial body comparison used an incorrect whitespace trim;
+corrected normalization resolved it without Source/DB change.
+
+Local scope contains the exact authorized Functional4/Tests-support5/Docs4/
+Migration1/Operation1=15paths. CLI generated
+supabase/migrations/20260927090306_task10_kids_same_month_late_pricing.sql before
+content edits; SHA256cc35e35ab3378e0a7e276b7ce55922e6f46d548bd06b7f36d63d733beecc43e7.
+The new quote changes only new-bill catalog selection to Bangkokday16+ AND equal
+lesson year/month; evidence/fingerprint gets kids_same_month_v2. Old evidence
+without this field keeps its original fingerprint contract/catalog. UI renders
+server catalog and retained-bill wording; admin catalog labels describe the new
+scope. Prior policy/examples remain historically valid and were not reclassified
+as old-bill pricing defects. No paid difference collection was implemented.
+
+Operation builder scripts/task10-kids-pricing-cutover.mjs is unfinished and MUST
+NOT be executed in Production. It generates a bounded SQL transaction with
+existing activation/scope locks, Storage/dependency locks, fresh classification,
+protected-scope skipping, existing Legacy/Progressive cancellation, actual actor
+audits, evidence/capacity/baseline checks, exact migration bytes/history and a
+one-time operation record. That design is not yet a passed transaction contract.
+
+Only newly owned Task10SameMonth20260927 API65321/DB65322 was reset/written.
+Container/volume/workdir/network and actual Auth/REST/Storage DB bindings were
+checked; earlier targets, including Owner64321, were preserved. Actual pre-change
+RPC quotes at17September returned late for September/October/November. Boundary
+pure test passed. The first focused attempt hit a test-transformer import.meta
+problem; the CLI entry guard was corrected. Subsequent operation tests exposed
+unassigned b, then ambiguous p aliases. Two variable-collision correction attempts
+left to_jsonb(b) in the cancellation audit INSERT after renaming the record v_bill.
+The latest disposable rollback probe fails **column b does not exist**, before
+the intended injected-precommit exception. Preserve this failure; bounded
+corrections require a Hard Stop. An additional fixture issue had fixed creation
+and cutover to the same instant; advancing only the synthetic cutover clock
+preserved the strict pre-cutover guard. No assertion was removed to obtain PASS.
+
+TypeScript and src lint passed at the recorded checkpoint. Disposable production-
+mode build passed09:58:24–09:59:21UTC with BUILD_IDr-cwO647aa1FxXGjD6ns4 and declared
+localhost-Storage-only overlay, distinct from a Vercel artifact. This excludes the
+operation script from application-build proof. Full/protected regressions, UI
+acceptance, complete atomic rollback, payment/create concurrency and recovery are
+unfinished. No automated acceptance or Owner manual UAT PASS is claimed.
+
+Closing SELECT at10:01:59UTC confirmed Active revision5/all3ON/cronactive,
+effective_at2026-09-24T12:45:14.241075Z unchanged, new migration history0,
+new operation records0 and new quote rule absent. Actual Production cancellation
+0bills/0sessions/0billvalue, no repair/refund/credit/historical repricing. The fresh
+candidate observation of1eligible Kids bill/4sessions/2000THB is time-bounded,
+not a final execution manifest. No commit/push/staged deployment/Promotion or
+Production mutation occurred. Normal customer/worker traffic is not frozen.
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927.
+Retain before-change.json, definition-proof.json, focused1/2/3 logs, probe.private.log,
+physical identity records and build input/result hashes. Diagnostic output
+included generated local disposable credentials from a startup-log tail; they
+remain excluded from new Git/deployment, with no Production secret change. No
+blanket security/privacy PASS. No PM commercial notes were copied into Source.
+
+Next gate: Owner direction to resume the known correction after the bounded
+failure, then finish required tests and tested recovery before publication or
+Production cutover. Preserve local work; no automatic Parking Lot work. Current
+mutable status is authoritative only in PROJECT_STATE.md.
+
+
+<a id="kids-same-month-resume-2026-09-27"></a>
+## Kids same-month pricing — Owner-resumed correction and automated acceptance, 2026-09-27
+
+Observed checkpoint 2026-09-27T13:03:20.848Z: Source Complete Yes / Tests Passed Yes / Task Done No;
+Production release not yet performed. This supersedes the prior wait-for-Owner
+state only. The previous Hard Stop and failed evidence above remain historical.
+
+Owner explicitly authorized a fresh bounded correction round for the known audit
+record failure, preserving all15pending paths on baseline7b18961224c6deeb445f2f96f72373231dd38111
+and the existing spike/next-major-security-upgrade branch. Fresh live origin was
+equal,0/0; staged initially empty. No reset, replacement implementation or extra
+business scope. Correction changes to_jsonb(b) to to_jsonb(v_bill) in the exact
+cancellation audit INSERT; legitimate SQL table aliases b are retained. Full
+generated branches/record aliases/qualified revisions inspected. The empty-plan
+branch skips task10_lock_booking_set_v1 only because that existing helper rejects
+empty input; all actual rows still acquire the same locks.
+
+Before/after proof: the original column-b failure is retained. The corrected
+transaction reaches KIDS_CUTOVER_INJECTED_PRECOMMIT_FAILURE and rolls back bills,
+sessions, quote definition, migration history and controls. The final cutover
+regression3/3 proves Legacy/Progressive across months, uploaded receipt after
+freeze, Storage lock contention, actual waiting create/upload calls, preserved
+old evidence/fingerprint and payment amount, Legacy baseline delta, one coupon
+release and customer rebooking, zero-candidate operation, and replay refusal.
+
+Final automated acceptance covers95unique Task10 cases. Full production-mode
+run90/91 exposed one fixture issue: advancing a month while its first UI-created
+bill remained pending correctly hit the unchanged no-slip expiry guard. The
+fixture now settles that bill through existing prepare/upload/submit/approve
+before clock advancement. Focused9/9 retains every original assertion and adds
+catalog-revision and month/year stale-preview no-residue checks. The full run is
+not relabeled as a clean run. Bangkok day15/16, same/future month, month/year
+boundary, catalog/preview/confirmation/created evidence, both pricing-setting
+entries and protected Legacy/Adult/Private/Wallet/Makeup/payment flows pass.
+Additional Wallet regression45/45; TypeScript and src lint pass. Original
+production build r-cwO647aa1FxXGjD6ns4 is reused only after275relevant input hashes
+match, and actual browser/API tests run against that production-mode build.
+
+Recovery Source7150731ce65ca600a78223441c5a0383c9be61f5 was built separately as
+zWTXIp0PXTJgnMcow7gtZ. Authenticated read-only HTTP compatibility with old/new DB,
+old/new bill evidence and candidate/recovery applications passes on the physically
+verified disposable65321/65322. It does not authorize reversing committed
+cancellation, refunds, customer data or controls. Owner64321 remains untouched.
+
+Migration20260927090306 SHA256 cc35e35ab3378e0a7e276b7ce55922e6f46d548bd06b7f36d63d733beecc43e7; exactly one replaced quote
+function, same signature/security. Product changes remain Functional4+SQL1;
+operation separate1, tests5, docs4, total15. Config/dependency/Production
+environment/control/cron changes0. Existing Production flags5+SlipOK test mode
+read true, allowlist absent; sensitive bindings require deployed bundle checks.
+
+No commit/push/staged artifact/Production cutover is claimed at this checkpoint.
+Those identities, exact execution manifest/counts/skips and actual DB-clock rule
+start belong in the subsequent release closeout. Private evidence directory:
+C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927. No private manifest,
+secret or PM commercial notes copied to Git. Manual Owner UAT not done; PM is not
+the database/deployment operator. Scope Expansion0/Breach0; no Parking Lot work.

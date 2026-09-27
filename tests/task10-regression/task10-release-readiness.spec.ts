@@ -1,9 +1,71 @@
 import { expect, test } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { TEST_ACCOUNT, TEST_ADMIN_ACCOUNT } from '../booking-regression/local-supabase'
-import { concurrentLocalSql, createLocalAdmin, localSql, readTask10Fixture, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, trackTask10Storage } from './local-supabase'
+import { concurrentLocalSql, createLocalAdmin, localSql, readTask10Fixture, setDisposableClock, setupTask10, sqlLiteral, task10MigrationHashes, trackTask10Storage, uploadTask10Slip } from './local-supabase'
 
 test.afterAll(async () => { await setupTask10() })
+
+test('Kids same-month rule keeps catalog, preview, confirmation and created bill consistent across lesson months', async ({ page }, testInfo) => {
+  test.setTimeout(300_000)
+  await setupTask10()
+  const f=readTask10Fixture(), client=createLocalAdmin()
+  setDisposableClock('2026-09-17T10:00:00+07:00')
+  localSql(`INSERT INTO schedule_templates(branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
+    SELECT '${f.branchId}','${f.kidsCourseId}',d,'17:00','19:00',true FROM generate_series(0,6) d
+    WHERE NOT EXISTS(SELECT 1 FROM schedule_templates WHERE branch_id='${f.branchId}' AND course_type_id='${f.kidsCourseId}' AND day_of_week=d AND start_time='17:00' AND end_time='19:00' AND is_active);`)
+  const artifact={sourceSha:'a'.repeat(40),deploymentId:'dpl_local_same_month_ui',targetProjectRef:'verified-local-disposable',
+    migrationHashes:task10MigrationHashes(),productionPromotionConfirmed:true,healthChecksPassed:true}
+  localSql(`SELECT task10_activate_v1('${f.adminUserId}',task10_activation_manifest_v1('${f.adminUserId}',${sqlLiteral(JSON.stringify(artifact))}::jsonb));`)
+  const catalogs=await client.rpc('task10_read_pricing_catalogs_v1',{p_actor_id:f.adminUserId})
+  expect(catalogs.error).toBeNull()
+  await page.goto('/auth/login')
+  await page.locator('#email').fill(TEST_ACCOUNT.email); await page.locator('#password').fill(TEST_ACCOUNT.password)
+  await page.getByRole('button',{name:'เข้าสู่ระบบ',exact:true}).click(); await page.waitForURL(/\/dashboard(?:\/|$)/)
+  try {
+    for (const [index,regime] of ['early','late'].entries()) {
+      setDisposableClock(index===0?'2026-09-17T10:00:00+07:00':'2026-10-17T10:00:00+07:00')
+      const cumulative=(index+1)*4
+      const tier=catalogs.data[regime].tiers.find((t:{minSessions:number;maxSessions:number|null})=>t.minSessions<=cumulative&&(t.maxSessions===null||t.maxSessions>=cumulative))
+      expect(tier).toBeTruthy()
+      const expected=4*tier.ratePerSession, formatted='฿'+expected.toLocaleString('en-US')
+      await page.goto('/dashboard/booking?month=2026-10')
+      await page.getByText('เด็ก (กลุ่ม)',{exact:true}).click()
+      await expect(page.getByText(regime==='early'?'ชุดราคาปกติ':'ชุดราคาครึ่งเดือน',{exact:false})).toBeVisible()
+      await page.getByRole('button',{name:/ถัดไป/}).click()
+      await page.getByText(`${TEST_ACCOUNT.childNickname} - ${TEST_ACCOUNT.childName}`,{exact:true}).click()
+      await page.getByRole('button',{name:/ถัดไป/}).click()
+      await page.getByText('สาขาทดสอบ Localhost',{exact:true}).click()
+      await page.getByRole('button',{name:/ถัดไป/}).click()
+      for (let day=20+index*4;day<24+index*4;day++) {
+        await page.getByTestId(`booking-date-2026-10-${day}`).click()
+        await page.getByTestId(`booking-slot-2026-10-${day}-${f.branchId}-17:00`).click()
+      }
+      await expect(page.getByTestId('booking-step4-total')).toHaveText(formatted)
+      await page.getByRole('button',{name:/ถัดไป/}).click()
+      await expect(page.getByTestId('booking-step5-total')).toHaveText(formatted)
+      const responsePromise=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/bookings'&&r.request().method()==='POST')
+      await page.getByTestId('booking-confirm').click()
+      const response=await responsePromise, body=await response.json()
+      expect(response.status(),JSON.stringify(body)).toBe(200)
+      const id=body.bookingId||body.data?.bookingId
+      await page.waitForURL(/\/dashboard\/history/)
+      const stored=JSON.parse(localSql(`SELECT jsonb_build_object('total',b.total_price,'evidence',e.evidence,'scopeId',b.pricing_scope_id,'scopeRevision',sc.revision) FROM bookings b JOIN task10_booking_pricing_evidence e ON e.booking_id=b.id JOIN booking_pricing_scopes sc ON sc.id=b.pricing_scope_id WHERE b.id='${id}';`))
+      expect(stored).toMatchObject({total:expected,evidence:{selectionRuleVersion:'kids_same_month_v2',lessonMonth:'2026-10',catalog:{regime,versionId:catalogs.data[regime].versionId}}})
+      await testInfo.attach(`catalog-preview-bill-${regime}`,{body:Buffer.from(JSON.stringify(stored)),contentType:'application/json'})
+      if (index===0) {
+        // Settle the first bill before advancing a month; do not extend its original no-slip deadline.
+        const prepared=await client.rpc('prepare_progressive_payment_batch_v2',{p_user_id:f.userId,p_pricing_scope_id:stored.scopeId,p_booking_ids:[id],p_expected_scope_revision:stored.scopeRevision,p_expected_total:expected,p_idempotency_key:randomUUID()})
+        expect(prepared.error).toBeNull()
+        const upload=await uploadTask10Slip(f.userId,prepared.data.batchId)
+        const metadata={storageBucket:'progressive-payment-slips',storagePath:upload.storagePath,mimeType:'image/png',sizeBytes:104,sha256:upload.sha256}
+        expect((await client.rpc('record_progressive_payment_upload_v1',{p_batch_id:prepared.data.batchId,p_user_id:f.userId,p_storage_bucket:metadata.storageBucket,p_storage_path:metadata.storagePath,p_mime_type:metadata.mimeType,p_size_bytes:metadata.sizeBytes,p_sha256:metadata.sha256})).error).toBeNull()
+        expect((await client.rpc('submit_progressive_payment_batch_v1',{p_batch_id:prepared.data.batchId,p_user_id:f.userId,p_slip_metadata:metadata,p_idempotency_key:randomUUID()})).error).toBeNull()
+        expect((await client.rpc('approve_progressive_payment_batch_v1',{p_batch_id:prepared.data.batchId,p_actor_id:f.adminUserId,p_idempotency_key:randomUUID()})).error).toBeNull()
+        expect(localSql(`SELECT status FROM bookings WHERE id='${id}';`)).toBe('verified')
+      }
+    }
+  } finally { await setupTask10() }
+})
 
 test('Adult and Private retain preview recovery after a transient read failure without the Kids policy latch', async ({ page }, testInfo) => {
   test.setTimeout(180_000)
@@ -73,7 +135,7 @@ test('Booking pricing fails closed for Paused and unavailable, retries and refre
     await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click(); await page.waitForURL(/\/dashboard(?:\/|$)/)
     await page.goto('/dashboard/booking?month=2026-10')
     await page.getByText('เด็ก (กลุ่ม)', { exact: true }).click()
-    await expect(page.getByText('ชุดราคาวันจองช่วง 1–15', { exact: false })).toBeVisible()
+    await expect(page.getByText('ชุดราคาปกติ', { exact: false })).toBeVisible()
     localSql(`SELECT task10_pause_v1('${f.adminUserId}',1,true,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
     await page.reload(); await page.getByText('เด็ก (กลุ่ม)', { exact: true }).click()
     const status = page.getByTestId('kids-pricing-status')
@@ -85,7 +147,7 @@ test('Booking pricing fails closed for Paused and unavailable, retries and refre
     localSql(`SELECT task10_pause_v1('${f.adminUserId}',2,false,${sqlLiteral(JSON.stringify(artifact))}::jsonb);`)
     await page.getByRole('button', { name: 'อ่านสถานะและราคาใหม่', exact: true }).click()
     await expect(status).toHaveCount(0)
-    await expect(page.getByText('ชุดราคาวันจองช่วง 16–สิ้นเดือน', { exact: false })).toBeVisible()
+    await expect(page.getByText('ชุดราคาปกติ', { exact: false })).toBeVisible()
     await expect(page.getByText('700 บาท', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: /ถัดไป/ }).click()
     await page.getByText(`${TEST_ACCOUNT.childNickname} - ${TEST_ACCOUNT.childName}`, { exact: true }).click()

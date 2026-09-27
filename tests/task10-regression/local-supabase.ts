@@ -114,6 +114,22 @@ export function task10MigrationHashes() {
     '20260909000500_task10_activation_and_inactive_scheduler.sql'].map((name) => createHash('sha256').update(readFileSync(resolve(ROOT,'supabase/migrations',name))).digest('hex'))
 }
 
+// Only the physically verified disposable can install the predecessor quote for
+// before/after cutover tests. Never change original migration files or bill evidence.
+export function sameMonthPricingMigration() {
+  return readFileSync(resolve(ROOT, 'supabase/migrations/20260927090306_task10_kids_same_month_late_pricing.sql'), 'utf8')
+}
+
+export function installPreviousKidsPricingForTest() {
+  verifyDisposableIdentity()
+  const source = readFileSync(resolve(ROOT, 'supabase/migrations/20260909000200_task10_booking_pricing_policy_transactions.sql'), 'utf8')
+  const start = source.indexOf('CREATE FUNCTION public.task10_booking_policy_quote_v1(')
+  const end = source.indexOf('END $$;', start) + 'END $$;'.length
+  if (start < 0 || end < start) throw new Error('Original quote definition unavailable')
+  localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1); ${source.slice(start, end).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')}
+    DELETE FROM supabase_migrations.schema_migrations WHERE version='20260927090306'; COMMIT;`)
+}
+
 export async function uploadTask10Slip(userId: string, batchId?: string) {
   verifyDisposableIdentity()
   const client = createLocalAdmin()

@@ -1,15 +1,15 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Task10 — TASK DONE.** Owner-approved exact Promotion, existing Resume and required Production verification completed. [Current matrix](PROJECT_STATE.md#current-project-matrix) is the sole authority for Git/artifact/controls/data and limitations.
-- **Next:** await explicit Owner selection and a fresh Scope Contract for another task. No automatic start of Parking Lot1–8.
-- PM performed QA under the Owner exception; Owner approved release. Preserve A and PM transaction evidence, the fixture branch warning, incomplete PM mobile verification and all previous failures. Read-only Production smoke is not transaction UAT.
-- [Release closeout](DEVELOPMENT_TODO.md#task10-exact-promotion-resume-2026-09-26) records exact Promotion, Resume, natural workers, actual bill effects and recovery boundaries.
+- **Kids same-month late pricing + one-time unpaid Kids cancellation — DEVELOPING; automated acceptance passed, release pending.** Latest Owner resume authorization resets the prior correction stop; no new Owner checkpoint is required within this scope.
+- **Next:** complete diff/publication, exact staged Production artifact, fresh private manifest, atomic cancellation+new quote+migration history, exact Promotion and Production reconciliation. No Pause/Resume or controls/cron/environment change.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix) owns release/data facts; [resumed acceptance](DEVELOPMENT_TODO.md#kids-same-month-resume-2026-09-27) and [prior Hard Stop](DEVELOPMENT_TODO.md#kids-same-month-hard-stop-2026-09-27) preserve both outcomes.
+- All15authorized paths retained. OwnerUAT64321 preserved. No Parking Lot work selected. Manual Owner UAT not performed; automated acceptance used under this task-specific Owner exception.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

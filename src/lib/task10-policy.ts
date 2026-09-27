@@ -68,8 +68,12 @@ export function bangkokDate(instant: string): string {
   return new Date(Date.parse(instant) + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
 }
 
-export function kidsPricingRegime(instant: string): KidsPricingRegime {
-  return Number(bangkokDate(instant).slice(8, 10)) <= 15 ? 'early' : 'late'
+export function kidsPricingRegime(instant: string, lessonMonth: string): KidsPricingRegime {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(lessonMonth)) {
+    throw new Task10Error('TASK10_INVALID_REQUEST', 'เดือนเรียนไม่ถูกต้อง', 400)
+  }
+  const createdDate = bangkokDate(instant)
+  return Number(createdDate.slice(8, 10)) >= 16 && createdDate.slice(0, 7) === lessonMonth ? 'late' : 'early'
 }
 
 export function nextLessonMonth(sourceMonth: string): string {
