@@ -6,10 +6,10 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Kids same-month late pricing + one-time unpaid Kids cancellation — DEVELOPING; automated acceptance passed, release pending.** Latest Owner resume authorization resets the prior correction stop; no new Owner checkpoint is required within this scope.
-- **Next:** complete diff/publication, exact staged Production artifact, fresh private manifest, atomic cancellation+new quote+migration history, exact Promotion and Production reconciliation. No Pause/Resume or controls/cron/environment change.
-- [Current matrix](PROJECT_STATE.md#current-project-matrix) owns release/data facts; [resumed acceptance](DEVELOPMENT_TODO.md#kids-same-month-resume-2026-09-27) and [prior Hard Stop](DEVELOPMENT_TODO.md#kids-same-month-hard-stop-2026-09-27) preserve both outcomes.
-- All15authorized paths retained. OwnerUAT64321 preserved. No Parking Lot work selected. Manual Owner UAT not performed; automated acceptance used under this task-specific Owner exception.
+- **Kids same-month late pricing + one-time unpaid Kids cancellation — TASK DONE.** Automated acceptance passed; exact Production artifact promoted, atomic migration/cancellation and post-release reconciliation completed. Manual Owner UAT was not performed.
+- **Actual operation:**1bill/4sessions/2000THB cancelled;1bill skipped for batch/in-flight payment evidence. Controls/cron/effective_at/environment retained; no repair/refund/difference collection.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix) owns Source/artifact/migration/data facts; [release closeout](DEVELOPMENT_TODO.md#kids-same-month-release-2026-09-27) records identities, tests, natural workers and limitations. Prior Hard Stop and resumed correction remain preserved.
+- **Next:** await explicit Owner selection and a new Scope Contract. No repeat sweep, Pause/Resume or automatic Parking Lot work. OwnerUAT64321 remains preserved.
 
 ## Historical / Completed — 2026-09-05 LV 0 Parking Lot registration
 

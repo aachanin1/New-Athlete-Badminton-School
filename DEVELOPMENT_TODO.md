@@ -27848,3 +27848,87 @@ start belong in the subsequent release closeout. Private evidence directory:
 C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927. No private manifest,
 secret or PM commercial notes copied to Git. Manual Owner UAT not done; PM is not
 the database/deployment operator. Scope Expansion0/Breach0; no Parking Lot work.
+
+
+<a id="kids-same-month-release-2026-09-27"></a>
+## Kids same-month pricing — exact Production release and one-time Kids cutover closeout, 2026-09-27
+
+State observed 2026-09-27T13:16:45.689Z: TASK DONE subject only to normal publication of this
+Docs3 closeout. Owner's resumed correction authority and automated-acceptance
+exception were used; no manual Owner UAT PASS or PM deployment/data write claimed.
+Source commit/pushe361e47af3ffae54062bae2462b6713a722ffe58 contains exactly15authorized paths: Functional4,
+Tests5, Docs4, Migration1, Operation1. Full staged diff, paths/counts, UTF-8,
+mojibake279files, secret-pattern checks and exact tested inputs passed.
+No additional technical path, protected business behavior or Scope Expansion/Breach.
+
+Published canonical export366files built staged Production artifactdpl_GbtDjNimNG51V1D6Ad8VVnooZ7w6,
+https://new-athlete-badminton-school-drjyq9cd5-aachanin1s-projects.vercel.app.
+Worker attestation matched366inputs and219outputs; provider-only vercel.json
+name/version normalization was verified, original config keys unchanged. Forbidden
+test/script/local-environment inputs and outputs0. Staged health/assets/auth
+boundary28requests and actual Supabase public binding passed. Recovery had
+already proved predecessor7150731ce65ca600a78223441c5a0383c9be61f5 and candidate
+with both DB policies, old/new bill evidence and authenticated HTTP reads locally.
+
+Fresh runtime gate matched75Source function bodies/signatures/ACL/security and
+41existing migrations. Production remained Active revision5, original effective_at
+2026-09-24T12:45:14.241075Z, all3controlsON and existing cronactive. Visible
+5Progressive flags and shared SLIPOK_TEST_MODE=true, payment allowlist absent.
+No controls/cron/environment/config/permission changes. A read-helper initially
+expected a plaintext public URL although Vercel redacted it and checked an unused
+booking-entry variable; Source review corrected the read claims. Actual entry uses
+PROGRESSIVE_PAYMENT_ENTRY_ENABLED; deployed public binding was independently checked.
+
+Private manifest956a2de7927510bc886bd75e1b5af9719fa0200a14421133f58b1c7839766e89, operation634045ab-02fe-4a64-8924-7ee2535c2240, froze all
+pending Kids candidate IDs/session IDs/effects before the write. Eligible1bill,
+4sessions,2000THB; separately protected1bill with batch_or_inflight_payment.
+The exact tested committed operation executed once, without Production rehearsal.
+DB fence2026-09-27T13:09:23.889713+00:00; cancellation, new quote definition and migration
+history committed together, confirmed by authoritative operation read-back.
+Migration20260927090306 SHA256cc35e35ab3378e0a7e276b7ce55922e6f46d548bd06b7f36d63d733beecc43e7; schema_migrations statements[1]
+has that exact hash. No old-policy creation gap, initial activation, original
+effective_at change or replay of September24 occurred.
+
+Actual cancelled1bill/4sessions/2000THB; actual skipped1 for batch_or_inflight_payment.
+The skipped pending bill remained protected, without indirect reprice. Exact
+sessions and4slot caches reconcile to0occupancy; this actual bill had no coupon
+reservation, so coupon release count0. Effective Legacy baseline matches its
+source and old catalog evidence remains retained. Operation guards compared
+every nonselected booking and protected payment/receipt/allocation/batch/price
+evidence/Wallet/Attendance/Finance table within the transaction. This is scoped
+transaction protection, not a claim that unrelated customer activity stopped.
+
+Exact Promotion2026-09-27T13:09:41.453Z–2026-09-27T13:09:53.691Z moved all4customer aliases to the same accepted
+artifact/Source, preserving build timestamps and environment/protection metadata.
+No rebuild or replacement artifact. Public health and33request/asset/auth-boundary
+checks passed. Two Vercel-owned branch/project aliases require the existing
+automation bypass; a first health reader tried parsing their redirect as JSON,
+then verified the actual protection redirect and retried with existing platform
+authorization. The public school domain remained200; no application correction,
+protection change or recovery deployment was required.
+
+Authenticated service-role PostgREST read-only quote returns September late and
+October early with kids_same_month_v2. Booking/history/payment reads include
+4sample bookings,12sessions,7batches and2allocations; that parent's Legacy payments
+and accepted receipts are0, while database-wide reads confirm existing history.
+Post-cutover42migration versions and75definitions/security match. Natural worker
+runs13:10 and13:11UTC both completed and cron succeeded: attempted0,cancelled0,
+skipped0,failures0. No manual worker call. Error/fatal0 and5xx0 for this deployment
+from2026-09-27T13:09:41Z through2026-09-27T13:14:00Z; broader unrelated traffic is not attributed here.
+
+SourceCompleteYes/TestsPassedYes/CommittedYes/PushedYes/DeployedYes/
+MigrationAppliedYes/FeatureEnabledYes/Allowlistedabsent-unchanged/
+ProductionActiveYes/ProductionDataChangedYes/DataRepairedNo/
+ScopeExpansionNone/BreachNone/TaskDoneYes. ManualOwnerUATnotperformed;
+automatedacceptance95uniqueTask10+Wallet45, with original failures preserved.
+Cancelled bill value is not a refund. No paid amount/evidence rewrite, collection
+of differences, refund, credit, uncancel, backfill, new cron or recurring sweep.
+Admin manually handles paid-bill differences outside this scope.
+
+Private manifests, SQL request/read-back, IDs, protected snapshots, build/source
+proofs and logs remain at C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927.
+No private manifest, secret or PM commercial notes enter Git. This Docs3 successor
+records the release; its SHA/live equality/clean proof is separate from deployed
+applicatione361e47af3ffae54062bae2462b6713a722ffe58. No build/test suite repeated for documentation-only closeout.
+OwnerUAT64321 and prior failure/privacy history retained; no blanket security PASS.
+Next: await new Owner scope, preserving Parking Lot order.

@@ -2,39 +2,41 @@
 
 Last updated: 2026-09-27 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Kids same-month pricing / DEVELOPING — automated acceptance passed
+## Current State — Kids same-month pricing / Production Active / TASK DONE
 
-**Task Done No; release pending.** The latest Owner command resumed the prior
-Hard Stop with a new correction round and retained continuous delivery authority.
-The SQL blocker is corrected and automated acceptance has passed. No new
-Production migration, cancellation or Promotion has occurred at this checkpoint.
+**TASK DONE.** The resumed SQL correction, automated acceptance, exact artifact
+Promotion and one-time atomic Kids cancellation/migration are complete. Manual
+Owner UAT was not performed; this task used the explicitly approved automated
+acceptance exception. No Pause/Resume, controls, cron or environment change.
 
 ### Current Project Matrix
 
 | Field | Current verified state |
 | --- | --- |
-| Active Task / Status | Kids same-month late pricing + one-time unpaid Kids cancellation / DEVELOPING; Source and automated acceptance complete, authorized staged delivery next. |
-| Owner authorization | Latest FINAL resume command on2026-09-27 supersedes only waiting for Owner. Automated acceptance replaces manual UAT for this task. Commit/push, staged Production artifact, atomic Kids-only cancellation/migration, exact Promotion and read-only verification remain authorized. No Pause/Resume/control/cron/environment change. |
-| Scope / blast radius | Functional4 / Tests-support5 / Docs4 / Migration1 / Operation1 =15paths. New Kids catalog selection/evidence/UI and the one-time Kids operation; Config/Dependency/Environment0. Protected formulas, old bills, payment, Adult/Private, Wallet/Makeup, Attendance/Payroll and Finance retain existing behavior. |
-| Fresh Git gate / ownership | Exact requested root and spike/next-major-security-upgrade; initial HEAD/live origin7b18961224c6deeb445f2f96f72373231dd38111,0/0. All15pending paths belong to this task and were preserved. This containing Source commit and private publication proof identify the tested changes; final publication is verified separately. |
-| Source Complete | Yes. Successful post-lock Bangkok day16+ AND equal lesson year/month selects actual late catalog; otherwise actual early catalog. New selectionRuleVersion=kids_same_month_v2 participates in evidence/fingerprint. Old evidence, catalog and fingerprint retained without backfill. |
-| Correction | Cancellation audit uses to_jsonb(v_bill); valid table aliases b remain unchanged. Complete generated SQL inspected. Empty pending list bypasses the existing nonempty-only booking-lock helper; no guard weakened. |
-| Tests Passed | Yes:95unique Task10 tests across full90/91, final focused9/9 and cutover3/3. The full-run UI fixture failure was corrected by settling the first actual UI bill before clock advancement; original expiry/assertions retained. Wallet adjacent45/45. TypeScript/lint passed. Production-mode build r-cwO647aa1FxXGjD6ns4 retained with275identical app/public/dependency/config inputs. |
-| Atomicity / concurrency | Disposable rollback reaches intended injected failure; real successful Legacy/Progressive cancellation+definition+history commit, replay rejection, zero-candidate cutover, Storage/receipt/create races, exact operator, coupon release/rebooking, capacity and Legacy baseline delta passed. |
-| Disposable / UAT | Task10SameMonth20260927 API65321/DB65322, physical container/volume/network/Auth/REST/Storage binding checked before writes/resets. OwnerUAT64321 preserved. Manual Owner UAT not performed; automated acceptance authorized. |
-| Recovery | Authenticated HTTP preview/booking/history compatibility of candidate and current deployed Source7150731ce65ca600a78223441c5a0383c9be61f5 proved on isolated production-mode builds with predecessor/new DB and immutable old/new evidence. Recovery does not uncancel, refund or revert customer data. |
-| Migration Source / Applied | supabase/migrations/20260927090306_task10_kids_same_month_late_pricing.sql; SHA256 cc35e35ab3378e0a7e276b7ce55922e6f46d548bd06b7f36d63d733beecc43e7. Not applied remotely. Fresh read lists41prior migrations including Task10M1–M6. |
-| Deployed Source / Artifact | Prior Production7150731ce65ca600a78223441c5a0383c9be61f5 / dpl_vMJHmj1zzXys2KnfrnUbbpTALipe. New staged artifact, Source SHA/attestation and Promotion remain next gates. |
-| Feature Enabled / Production Active / Allowlisted | Existing Task10 active revision5, pricing/makeup/expiryON and cronactive. Original effective_at2026-09-24T12:45:14.241075Z retained. Same-month rule not yet active. Fresh environment read:5Progressive flags+shared SLIPOK_TEST_MODE true; payment allowlist absent. No controls/environment writes. |
-| Cancellation / Production Data Changed / Data Repaired | Operation0bills/0sessions/0billvalue at this checkpoint; Production Data Changed No by this task; Data Repaired No. A fresh exact private manifest and under-lock checks are still required. Preflight candidates are not execution counts. |
-| Customer / financial impact | No task-caused Production financial/data change yet. Paid/verified or payment/upload/review-evidenced bills protected. No collection of differences, refund, credit, backfill or customer contact/booking. |
-| Scope Expansion / Breach | None / None. No extra repository technical path. Private release helpers/evidence remain outside Git/artifact. |
-| Next / remaining gates | Full staged diff compliance, commit/push, exact staged Production artifact and health/identity, fresh definitions+manifest, one atomic cutover, exact no-rebuild Promotion, authenticated read-only quotes/history/payment, financial/capacity/coupon/baseline reconciliation, bounded logs and2natural workers, dated closeout. |
-| Evidence limitations | Prior failures and historical privacy deviations retained. Provider hides sensitive environment values; actual visible flags and deployed bundle/runtime checks are separate. No manual Owner UAT or Production business-test write claimed. |
+| Active Task / Task Done | Kids same-month late pricing + one-time unpaid Kids cancellation / TASK DONE / Yes. No Parking Lot task started. |
+| Owner authorization | Latest FINAL resume command2026-09-27 authorized a fresh correction round and continuous Git/staged Production/atomic operation/exact Promotion. Automated acceptance substitutes for manual UAT for this task only. Prior Hard Stop remains historical. |
+| Source Complete / Tests Passed | Yes / Yes:95unique Task10 cases; full90/91 plus corrected focused9/9 and cutover3/3. Wallet adjacent45/45; TypeScript/lint/mojibake/diff passed. Production-mode build reused with275unchanged relevant inputs; staged Production build/attestation passed. No failed run was relabeled PASS. |
+| Rule / customer behavior | New Kids bills select late only on successful post-lock DB Bangkok day16+ AND equal creation/lesson year-month; otherwise actual early catalog. selectionRuleVersion=kids_same_month_v2. Progressive/Legacy formulas, sibling/month baselines and each older bill's own evidence/catalog retained. |
+| Source SHA / Committed / Pushed | Application e361e47af3ffae54062bae2462b6713a722ffe58 / Yes / Yes on spike/next-major-security-upgrade. This containing Docs3 closeout is a separate successor; its final SHA/live equality/clean state are recorded in private publication proof. |
+| Changed files / Scope | Functional4 / Tests-support5 / Docs4 / Migration1 / Operation1 =15unique paths, exactly approved. Product behavior Functional4+SQL1; operation separately counted. Config/Dependency/Production Environment0. Scope Expansion None / Breach None. |
+| Deployed / Staged artifact / Promotion | Yes: dpl_GbtDjNimNG51V1D6Ad8VVnooZ7w6, targetproduction READY, Sourcee361e47af3ffae54062bae2462b6713a722ffe58.366build-worker input hashes and219outputs verified; staged28requests passed. Exact Promotion2026-09-27T13:09:41.453Z–2026-09-27T13:09:53.691Z; same ID/build timestamps,4aliases, no rebuild. |
+| Migration Applied | Yes,20260927090306_task10_kids_same_month_late_pricing; SHA256 cc35e35ab3378e0a7e276b7ce55922e6f46d548bd06b7f36d63d733beecc43e7. Exact SQL bytes stored in schema_migrations within the cancellation transaction.42migration versions and75relevant current function bodies/signatures/security match Source after cutover. |
+| Actual rule cutover / operation | DB fence 2026-09-27T13:09:23.889713+00:00 (20:09:23.889713 Bangkok), commit confirmed by authoritative read-back. Operation634045ab-02fe-4a64-8924-7ee2535c2240; manifestSHA256956a2de7927510bc886bd75e1b5af9719fa0200a14421133f58b1c7839766e89. One attempt/one confirmed operation; no replay of September24. |
+| Production Data Changed / actual cancellation | Yes:1Kids Progressive bill,4sessions,2000THB stored bill value cancelled under locks. This is a cancellation of an unpaid bill, not a refund. Fresh preflight eligible1/4/2000 matched actual1/4/2000. One protected pending bill was skipped for batch_or_inflight_payment; preflight protected1 and actual skipped1 are separately recorded. |
+| Protected evidence / actual effects | Transaction compares all nonselected booking rows and protected payment/receipt/allocation/batch/price-evidence/Wallet/attendance/Finance tables before/after and fails atomically on drift. Post-check confirms exact cancelled sessions,4slot caches equal actual occupancy0, coupon releases0 for this manifest, retained original prices/evidence and correct effective Legacy baseline. Skipped bill was not cancelled or indirectly repriced by this operation. |
+| Feature Enabled / Allowlisted / Production Active | Yes / no payment allowlist present, unchanged / Yes. Task10 remains active revision5; pricing/makeup/expiryON; original effective_at2026-09-24T12:45:14.241075Z unchanged.5Progressive flags+SLIPOK_TEST_MODE=true read back, environment metadata/protection unchanged. No initial activation. |
+| Production quotes / booking/payment/history reads | Authenticated service-role PostgREST and database-owner READ ONLY checks passed. September quote late; October early; both kids_same_month_v2 and actual catalogs. Sample reads:4bookings/12sessions/7payment batches/2allocations; zero Legacy payments/accepted receipts for that sampled parent, not a system-wide zero. Stored old bill catalog reads passed. Developer Production test writes0. |
+| Production health / logs |4aliases reach health200/ok;33checks including public landing/login, assets and auth boundary.2Vercel project/branch aliases retain platform-protection redirects and are checked with the existing automation bypass; public school domain is healthy without it. Exact artifact identity unchanged. Scoped error/fatal0 and5xx0 during2026-09-27T13:09:41Z–2026-09-27T13:14:00Z. |
+| Natural worker / controls | Existing every-minute cron observed naturally at13:10 and13:11UTC: both complete/succeeded, attempted0/cancelled0/skipped0/failures0. No worker invocation, Pause/Resume, control or cron write by this task. Customer/worker activity remains separate from the one-time release operation. |
+| Recovery / data repair | Compatible current-deployed predecessor and candidate builds were proved with old/new DB/evidence on independent65321/65322. Recovery not needed. Data Repaired No; no uncancel, refund, difference collection, financial adjustment, evidence backfill or customer contact/booking. Paid-bill difference collection remains Admin work outside scope. |
+| Manual UAT / operator | Manual Owner UAT not performed. Automated acceptance used under Owner approval. Developer Codex performed Git/deploy/database operation through authenticated tooling with explicit operator/Owner-direction audit; PM did not deploy or write Production data. |
+| Limitations | Production verification is read-only plus the authorized exact operation; no Production customer transaction UAT. Shared SlipOK test mode remains, not live-bank verification. Prior local fixture/tool failures and historical credential-output deviation retained in history; no blanket privacy/security/accounting PASS. OwnerUAT64321 preserved. |
+| Remaining / next gate | None for this task after normal Docs3 closeout publication. Await a new explicit Owner scope; no automatic Parking Lot work or repeat sweep. |
 
-Checkpoint 2026-09-27T13:03:20.848Z. Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927.
-See [resumed acceptance](DEVELOPMENT_TODO.md#kids-same-month-resume-2026-09-27)
-and [preserved prior Hard Stop](DEVELOPMENT_TODO.md#kids-same-month-hard-stop-2026-09-27).
+Closeout checkpoint 2026-09-27T13:16:45.689Z. Private evidence: C:/Users/aacha/AppData/Local/Temp/task10-same-month-20260927.
+[Release closeout](DEVELOPMENT_TODO.md#kids-same-month-release-2026-09-27),
+[resumed acceptance](DEVELOPMENT_TODO.md#kids-same-month-resume-2026-09-27),
+[preserved prior Hard Stop](DEVELOPMENT_TODO.md#kids-same-month-hard-stop-2026-09-27).
 
 ## Historical — Task10 released and Active / TASK DONE (2026-09-26)
 
