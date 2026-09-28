@@ -1,7 +1,11 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { runInNewContext } from 'node:vm'
+import { execFileSync } from 'node:child_process'
+import ts from 'typescript'
+import { DB_CONTAINER, verifyDisposableIdentity } from '../task10-regression/local-supabase'
 import {
   BOOKING_DATES,
   BOOKING_MONTH,
@@ -616,6 +620,173 @@ test('Family Private Schedule groups four self-child rows into two exact hour un
     await admin.from('schedule_slots').delete().in('id', slotIds)
     await admin.from('schedule_templates').delete().in('id', templateIds)
   }
+})
+
+test('reschedule cancellation filtering preserves exact learner overlap through API and DB', async ({ page }, testInfo) => {
+  test.setTimeout(300_000)
+  verifyDisposableIdentity()
+  await login(page)
+  const admin = createLocalAdmin()
+  const sourceDate = '2031-07-28'
+  const targetDate = '2031-07-29'
+  const siblingId = randomUUID()
+  const must = async (query: PromiseLike<{ error: { message: string } | null }>) => {
+    const { error } = await query
+    if (error) throw new Error(error.message)
+  }
+  await must(admin.from('children').insert({ id: siblingId, parent_id: fixture.userId, full_name: 'Synthetic overlap sibling', date_of_birth: '2016-01-01' }))
+  const localSql = (sql: string) => execFileSync('docker', ['exec', '-i', DB_CONTAINER,
+    'psql', '-U', 'postgres', '-d', 'postgres', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'],
+  { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
+  // Read whole protected tables in one snapshot; no financial fixture is required.
+  const snapshot = () => localSql(`SELECT jsonb_build_object(
+    'bookings',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.bookings t),
+    'payments',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.payments t),
+    'attendance',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.attendance t),
+    'wallet',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.lesson_wallet_credits t),
+    'coupons',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.coupons t),
+    'pricing',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.pricing_tiers t),
+    'allocations',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.progressive_payment_allocations t),
+    'finance',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.finance_expenses t),
+    'payroll',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM public.coach_weekly_teaching_summaries t)
+  )::text`)
+  const cases = [
+    { name: 'A cancelled booking / scheduled session', bookingStatus: 'cancelled', allowed: true },
+    { name: 'B session cancellation only', cancelled: true, allowed: true },
+    { name: 'C incident both cancellation levels', bookingStatus: 'cancelled', cancelled: true, allowed: true },
+    { name: 'D active exact overlap', allowed: false },
+    { name: 'D active partial overlap', start: '15:30', end: '16:30', allowed: false },
+    { name: 'E sibling under same parent', sibling: true, allowed: true },
+    { name: 'F child source versus self', blockerSelf: true, allowed: true },
+    { name: 'F self source versus child', sourceSelf: true, allowed: true },
+    { name: 'F active self overlap', sourceSelf: true, blockerSelf: true, allowed: false },
+    { name: 'G previous end equals target start', start: '15:00', end: '16:00', allowed: true },
+    { name: 'G next start equals target end', start: '17:00', end: '18:00', allowed: true },
+    { name: 'H rescheduled', sessionStatus: 'rescheduled', allowed: true },
+    { name: 'H walleted', sessionStatus: 'walleted', allowed: true },
+    { name: 'I cross branch and course overlap', crossBranch: true, allowed: false },
+  ]
+  const results: object[] = []
+  for (const courseId of [fixture.adultCourseId, fixture.privateCourseId]) {
+    const templateIds = [randomUUID(), randomUUID()]
+    const slotIds = [randomUUID(), randomUUID()]
+    await must(admin.from('schedule_templates').insert([sourceDate, targetDate].map((date, i) => ({
+      id: templateIds[i], branch_id: fixture.branchId, course_type_id: courseId,
+      day_of_week: new Date(`${date}T00:00:00Z`).getUTCDay(), start_time: '16:00', end_time: '17:00', is_active: true,
+    }))))
+    await must(admin.from('schedule_slots').insert([sourceDate, targetDate].map((date, i) => ({
+      id: slotIds[i], template_id: templateIds[i], branch_id: fixture.branchId, course_type_id: courseId,
+      date, start_time: '16:00', end_time: '17:00', status: 'open', current_students: 0,
+    }))))
+    for (const scenario of cases) {
+      const bookingIds = [randomUUID(), randomUUID()]
+      const sourceId = randomUUID()
+      const blockerId = randomUUID()
+      const sourceChild = scenario.sourceSelf ? null : fixture.mainChildId
+      const blockerChild = scenario.blockerSelf ? null : scenario.sibling ? siblingId : fixture.mainChildId
+      await must(admin.from('bookings').insert(bookingIds.map((id, i) => ({
+        id, user_id: fixture.userId, learner_type: (i ? blockerChild : sourceChild) ? 'child' : 'self',
+        child_id: i ? blockerChild : sourceChild, branch_id: i && scenario.crossBranch ? fixture.secondBranchId : fixture.branchId,
+        course_type_id: i && scenario.crossBranch ? fixture.kidsCourseId : courseId,
+        month: 7, year: 2031, total_sessions: 1, entitlement_sessions: 1, total_price: 700,
+        status: i ? scenario.bookingStatus || 'verified' : 'verified',
+      }))))
+      await must(admin.from('booking_sessions').insert([
+        { id: sourceId, booking_id: bookingIds[0], schedule_slot_id: slotIds[0], date: sourceDate,
+          start_time: '16:00', end_time: '17:00', branch_id: fixture.branchId, child_id: sourceChild, status: 'scheduled' },
+        { id: blockerId, booking_id: bookingIds[1], date: targetDate,
+          start_time: scenario.start || '16:00', end_time: scenario.end || '17:00',
+          branch_id: scenario.crossBranch ? fixture.secondBranchId : fixture.branchId, child_id: blockerChild,
+          status: scenario.sessionStatus || 'scheduled', cancelled_at: scenario.cancelled ? '2026-09-27T03:23:00Z' : null },
+      ]))
+      const groupId = randomUUID()
+      await must(admin.from('coach_assignment_groups').insert({ id: groupId, schedule_slot_id: slotIds[0], name: 'Synthetic reschedule source' }))
+      await must(admin.from('coach_assignment_group_students').insert({ group_id: groupId, booking_session_id: sourceId,
+        student_id: sourceChild || fixture.userId, student_type: sourceChild ? 'child' : 'adult' }))
+      const before = snapshot()
+      const { data: sessionsBefore, error: beforeError } = await admin.from('booking_sessions').select('*').in('booking_id', bookingIds).order('id')
+      if (beforeError) throw new Error(beforeError.message)
+      const response = await page.request.post('/api/reschedule', { data: {
+        sessionId: sourceId, targetDate, startTime: '16:00', endTime: '17:00',
+        branchId: fixture.branchId, scheduleTemplateId: templateIds[1],
+      } })
+      const body = await response.json()
+      results.push({ courseId, scenario: scenario.name, status: response.status(), body })
+      expect.soft(response.status(), `${scenario.name}: ${JSON.stringify(body)}`).toBe(scenario.allowed ? 200 : 500)
+      expect(snapshot(), `${scenario.name}: protected deltas`).toBe(before)
+      const { data: sessionsAfter, error: afterError } = await admin.from('booking_sessions').select('*').in('booking_id', bookingIds).order('id')
+      if (afterError) throw new Error(afterError.message)
+      if (response.status() === 200) {
+        expect(sessionsAfter?.find(row => row.id === sourceId)?.status).toBe('rescheduled')
+        const descendants = sessionsAfter?.filter(row => row.rescheduled_from_id === sourceId) || []
+        expect(descendants).toHaveLength(1)
+        expect(descendants[0]).toMatchObject({ booking_id: bookingIds[0], child_id: sourceChild,
+          date: targetDate, schedule_slot_id: slotIds[1], status: 'scheduled', is_makeup: false })
+        expect(sessionsAfter?.find(row => row.id === blockerId)).toEqual(sessionsBefore?.find(row => row.id === blockerId))
+        const membership = await admin.from('coach_assignment_group_students').select('id').in('booking_session_id', [sourceId, descendants[0].id])
+        expect(membership.error).toBeNull()
+        expect(membership.data).toEqual([])
+        const replay = await page.request.post('/api/reschedule', { data: {
+          sessionId: sourceId, targetDate, startTime: '16:00', endTime: '17:00', branchId: fixture.branchId, scheduleTemplateId: templateIds[1],
+        } })
+        expect(replay.status()).toBe(400)
+      } else {
+        expect(body.error).toContain('ซ้ำหรือซ้อน')
+        expect(sessionsAfter).toEqual(sessionsBefore)
+        const retained = await admin.from('coach_assignment_group_students').select('booking_session_id').eq('group_id', groupId)
+        expect(retained.error).toBeNull()
+        expect(retained.data).toEqual([{ booking_session_id: sourceId }])
+        if (!scenario.allowed) {
+          const concurrent = await Promise.all([1, 2].map(() => page.request.post('/api/reschedule', { data: {
+            sessionId: sourceId, targetDate, startTime: '16:00', endTime: '17:00',
+            branchId: fixture.branchId, scheduleTemplateId: templateIds[1],
+          } })))
+          expect(concurrent.map(item => item.status())).toEqual([500, 500])
+          const afterRace = await admin.from('booking_sessions').select('*').in('booking_id', bookingIds).order('id')
+          expect(afterRace.error).toBeNull()
+          expect(afterRace.data).toEqual(sessionsBefore)
+        }
+      }
+      await must(admin.from('coach_assignment_groups').delete().eq('id', groupId))
+      await must(admin.from('booking_sessions').delete().in('booking_id', bookingIds))
+      await must(admin.from('bookings').delete().in('id', bookingIds))
+    }
+    await must(admin.from('schedule_slots').delete().in('id', slotIds))
+    await must(admin.from('schedule_templates').delete().in('id', templateIds))
+  }
+  await must(admin.from('children').delete().eq('id', siblingId))
+  await testInfo.attach('cancellation-api-db-results', { body: JSON.stringify(results, null, 2), contentType: 'application/json' })
+})
+
+test('reschedule overlap read failure fails closed before any mutation', async () => {
+  // Execute the actual source helper, including its query and error branch.
+  const source = ts.createSourceFile('route.ts', readFileSync(resolve('src/app/api/reschedule/route.ts'), 'utf8'), ts.ScriptTarget.Latest, true)
+  const names = ['normalizeTime', 'ensureLearnerHasNoDuplicateSlot']
+  const functions = source.statements.filter((node) => ts.isFunctionDeclaration(node) && names.includes(node.name?.text || ''))
+  expect(functions).toHaveLength(2)
+  const code = ts.transpileModule(functions.map(node => node.getText(source)).join('\n'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText
+  const check = runInNewContext(`${code}; ensureLearnerHasNoDuplicateSlot`)
+  let reads = 0
+  const query = new Proxy({}, { get: (_target, key) => {
+    if (key === 'then') return (done: (value: unknown) => unknown) => {
+      reads += 1
+      return Promise.resolve({ data: null, error: { message: 'synthetic DB read failure' } }).then(done)
+    }
+    if (['select', 'eq', 'lt', 'gt', 'neq', 'is'].includes(String(key))) return () => query
+    throw new Error(`Unexpected query or mutation: ${String(key)}`)
+  } })
+  let failure = ''
+  try {
+    await check({ from: () => query }, { id: randomUUID(), child_id: null }, {
+      targetDate: '2031-07-29', startTime: '16:00', endTime: '17:00', branchId: randomUUID(),
+    }, randomUUID())
+  } catch (error) {
+    failure = String(error)
+  }
+  expect(failure).toContain('synthetic DB read failure')
+  expect(reads).toBe(1)
 })
 
 test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page }) => {

@@ -166,6 +166,8 @@ async function ensureLearnerHasNoDuplicateSlot(
     .lt('start_time', normalizeTime(target.endTime))
     .gt('end_time', normalizeTime(target.startTime))
     .eq('bookings.user_id', userId)
+    .neq('bookings.status', 'cancelled')
+    .is('cancelled_at', null)
     .neq('status', 'rescheduled')
     .neq('status', 'walleted')
     .neq('id', session.id)
