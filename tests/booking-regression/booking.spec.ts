@@ -623,7 +623,7 @@ test('Family Private Schedule groups four self-child rows into two exact hour un
 })
 
 test('reschedule cancellation filtering preserves exact learner overlap through API and DB', async ({ page }, testInfo) => {
-  test.setTimeout(300_000)
+  test.setTimeout(600_000) // 28 cases, with physical disposable verification before every SQL write.
   verifyDisposableIdentity()
   await login(page)
   const admin = createLocalAdmin()
@@ -635,9 +635,19 @@ test('reschedule cancellation filtering preserves exact learner overlap through 
     if (error) throw new Error(error.message)
   }
   await must(admin.from('children').insert({ id: siblingId, parent_id: fixture.userId, full_name: 'Synthetic overlap sibling', date_of_birth: '2016-01-01' }))
-  const localSql = (sql: string) => execFileSync('docker', ['exec', '-i', DB_CONTAINER,
-    'psql', '-U', 'postgres', '-d', 'postgres', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'],
-  { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
+  const localSql = (sql: string) => {
+    verifyDisposableIdentity()
+    return execFileSync('docker', ['exec','-i',DB_CONTAINER,'psql','-U','postgres','-d','postgres','-X','-qAt','-v','ON_ERROR_STOP=1'],
+      {input:sql,encoding:'utf8',stdio:['pipe','pipe','pipe']}).trim()
+  }
+  const insertSyntheticSessions = (rows: Record<string, unknown>[]) => {
+    const columns=Array.from(new Set(rows.flatMap(row=>Object.keys(row))))
+    if(columns.some(column=>!/^[a-z_]+$/.test(column))) throw new Error('Invalid fixture column')
+    const json=JSON.stringify(rows).replaceAll("'","''")
+    localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true);
+      INSERT INTO booking_sessions(${columns.join(',')}) SELECT ${columns.join(',')}
+      FROM jsonb_populate_recordset(NULL::booking_sessions,'${json}'::jsonb); COMMIT;`)
+  }
   // Read whole protected tables in one snapshot; no financial fixture is required.
   const snapshot = () => localSql(`SELECT jsonb_build_object(
     'bookings',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM public.bookings t),
@@ -691,14 +701,14 @@ test('reschedule cancellation filtering preserves exact learner overlap through 
         month: 7, year: 2031, total_sessions: 1, entitlement_sessions: 1, total_price: 700,
         status: i ? scenario.bookingStatus || 'verified' : 'verified',
       }))))
-      await must(admin.from('booking_sessions').insert([
+      insertSyntheticSessions([
         { id: sourceId, booking_id: bookingIds[0], schedule_slot_id: slotIds[0], date: sourceDate,
           start_time: '16:00', end_time: '17:00', branch_id: fixture.branchId, child_id: sourceChild, status: 'scheduled' },
         { id: blockerId, booking_id: bookingIds[1], date: targetDate,
           start_time: scenario.start || '16:00', end_time: scenario.end || '17:00',
           branch_id: scenario.crossBranch ? fixture.secondBranchId : fixture.branchId, child_id: blockerChild,
           status: scenario.sessionStatus || 'scheduled', cancelled_at: scenario.cancelled ? '2026-09-27T03:23:00Z' : null },
-      ]))
+      ])
       const groupId = randomUUID()
       await must(admin.from('coach_assignment_groups').insert({ id: groupId, schedule_slot_id: slotIds[0], name: 'Synthetic reschedule source' }))
       await must(admin.from('coach_assignment_group_students').insert({ group_id: groupId, booking_session_id: sourceId,
@@ -712,7 +722,7 @@ test('reschedule cancellation filtering preserves exact learner overlap through 
       } })
       const body = await response.json()
       results.push({ courseId, scenario: scenario.name, status: response.status(), body })
-      expect.soft(response.status(), `${scenario.name}: ${JSON.stringify(body)}`).toBe(scenario.allowed ? 200 : 500)
+      expect.soft(response.status(), `${scenario.name}: ${JSON.stringify(body)}`).toBe(scenario.allowed ? 200 : 409)
       expect(snapshot(), `${scenario.name}: protected deltas`).toBe(before)
       const { data: sessionsAfter, error: afterError } = await admin.from('booking_sessions').select('*').in('booking_id', bookingIds).order('id')
       if (afterError) throw new Error(afterError.message)
@@ -729,9 +739,10 @@ test('reschedule cancellation filtering preserves exact learner overlap through 
         const replay = await page.request.post('/api/reschedule', { data: {
           sessionId: sourceId, targetDate, startTime: '16:00', endTime: '17:00', branchId: fixture.branchId, scheduleTemplateId: templateIds[1],
         } })
-        expect(replay.status()).toBe(400)
+        expect(replay.status()).toBe(200)
+        expect(await replay.json()).toEqual(body)
       } else {
-        expect(body.error).toContain('ซ้ำหรือซ้อน')
+        expect(body.code).toBe('LESSON_SOURCE_TARGET_CONFLICT')
         expect(sessionsAfter).toEqual(sessionsBefore)
         const retained = await admin.from('coach_assignment_group_students').select('booking_session_id').eq('group_id', groupId)
         expect(retained.error).toBeNull()
@@ -741,14 +752,14 @@ test('reschedule cancellation filtering preserves exact learner overlap through 
             sessionId: sourceId, targetDate, startTime: '16:00', endTime: '17:00',
             branchId: fixture.branchId, scheduleTemplateId: templateIds[1],
           } })))
-          expect(concurrent.map(item => item.status())).toEqual([500, 500])
+          expect(concurrent.map(item => item.status())).toEqual([409, 409])
           const afterRace = await admin.from('booking_sessions').select('*').in('booking_id', bookingIds).order('id')
           expect(afterRace.error).toBeNull()
           expect(afterRace.data).toEqual(sessionsBefore)
         }
       }
       await must(admin.from('coach_assignment_groups').delete().eq('id', groupId))
-      await must(admin.from('booking_sessions').delete().in('booking_id', bookingIds))
+      localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true); DELETE FROM booking_sessions WHERE booking_id IN ('${bookingIds.join("','")}'); COMMIT;`)
       await must(admin.from('bookings').delete().in('id', bookingIds))
     }
     await must(admin.from('schedule_slots').delete().in('id', slotIds))
@@ -873,35 +884,26 @@ test('reschedule cancellation selector allows real UI confirmation and preserves
   await testInfo.attach('selector-ui-db-results', { body: JSON.stringify(results, null, 2), contentType: 'application/json' })
 })
 
-test('reschedule overlap read failure fails closed before any mutation', async () => {
-  // Execute the actual source helper, including its query and error branch.
-  const source = ts.createSourceFile('route.ts', readFileSync(resolve('src/app/api/reschedule/route.ts'), 'utf8'), ts.ScriptTarget.Latest, true)
-  const names = ['normalizeTime', 'ensureLearnerHasNoDuplicateSlot']
-  const functions = source.statements.filter((node) => ts.isFunctionDeclaration(node) && names.includes(node.name?.text || ''))
-  expect(functions).toHaveLength(2)
-  const code = ts.transpileModule(functions.map(node => node.getText(source)).join('\n'), {
-    compilerOptions: { target: ts.ScriptTarget.ES2022 },
-  }).outputText
-  const check = runInNewContext(`${code}; ensureLearnerHasNoDuplicateSlot`)
-  let reads = 0
-  const query = new Proxy({}, { get: (_target, key) => {
-    if (key === 'then') return (done: (value: unknown) => unknown) => {
-      reads += 1
-      return Promise.resolve({ data: null, error: { message: 'synthetic DB read failure' } }).then(done)
-    }
-    if (['select', 'eq', 'lt', 'gt', 'neq', 'is'].includes(String(key))) return () => query
-    throw new Error(`Unexpected query or mutation: ${String(key)}`)
-  } })
-  let failure = ''
+test('reschedule RPC read failure propagates before returning success and is not retried as another write', async () => {
+  const source=ts.createSourceFile('transition.ts',readFileSync(resolve('src/lib/lesson-source-transition.ts'),'utf8'),ts.ScriptTarget.Latest,true)
+  const names=['walletMessages','LessonSourceTransitionError','transitionLessonSource']
+  const declarations=source.statements.filter(node=>ts.isClassDeclaration(node)||ts.isFunctionDeclaration(node)
+    ? names.includes(node.name?.text||'') : ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>names.includes(d.name.getText(source))))
+  expect(declarations).toHaveLength(3)
+  const code=ts.transpileModule(declarations.map(node=>node.getText(source)).join('\n'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText
+  const context={exports:{} as {transitionLessonSource:(...args:unknown[])=>Promise<unknown>}}
+  runInNewContext(code,context)
+  let calls=0
+  let failure: {code?:string;status?:number}|null=null
   try {
-    await check({ from: () => query }, { id: randomUUID(), child_id: null }, {
-      targetDate: '2031-07-29', startTime: '16:00', endTime: '17:00', branchId: randomUUID(),
-    }, randomUUID())
-  } catch (error) {
-    failure = String(error)
+    await context.exports.transitionLessonSource({rpc:async()=>{calls++;return {data:null,error:{code:'XX000',message:'synthetic DB read failure'}}}},randomUUID(),'reschedule',randomUUID(),{})
+  }catch(error){
+    // Extract primitives from the VM realm before passing them to Playwright.
+    const caught=error as {code?:string;status?:number}
+    failure={code:caught.code,status:caught.status}
   }
-  expect(failure).toContain('synthetic DB read failure')
-  expect(reads).toBe(1)
+  expect(failure).toEqual({code:'LESSON_SOURCE_FAILED',status:500})
+  expect(calls).toBe(1)
 })
 
 test('reschedule 20+1 and Lesson Wallet 6+1 stay non-blocking', async ({ page }) => {

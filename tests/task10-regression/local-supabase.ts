@@ -153,7 +153,7 @@ function seedLifecycleFixtures() {
   const f = readTask10Fixture(); const child = randomUUID(); const q = sqlLiteral
   const cases = ['kidsDue','adultDue','privateDue','onTime','storageOnly','late','verified','oldOverdue','earlierExpiry','sendBack','kidsStatusProof']
   const ids = Object.fromEntries(cases.map((name) => [name, randomUUID()]))
-  const sql = [`BEGIN; INSERT INTO public.children(id,parent_id,full_name,date_of_birth) VALUES('${child}','${f.otherUserId}','Task10 Lifecycle Child','2015-01-01');`]
+  const sql = [`BEGIN; SELECT set_config('lesson_source.write','authorized',true); INSERT INTO public.children(id,parent_id,full_name,date_of_birth) VALUES('${child}','${f.otherUserId}','Task10 Lifecycle Child','2015-01-01');`]
   for (const name of cases) {
     const kids = name==='kidsDue' || name==='kidsStatusProof'
     const course = kids ? f.kidsCourseId : name==='privateDue' ? f.privateCourseId : f.adultCourseId
@@ -195,7 +195,7 @@ export async function seedTask10Family(): Promise<FamilyFixture> {
     // These are synthetic pre-cutover purchases. Seed under the exclusive
     // activation lock, with cutover restored before this single transaction
     // commits. verifyDisposableIdentity runs before executing any statement.
-    `BEGIN; SELECT pg_advisory_xact_lock(10,1); UPDATE public.task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false; SELECT set_config('task10.source_write','authorized',true);`,
+    `BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT pg_advisory_xact_lock(10,1); UPDATE public.task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false; SELECT set_config('task10.source_write','authorized',true);`,
     `UPDATE public.profiles SET full_name='Task10 Family Parent' WHERE id=${q(family.parentId)};`,
     ...family.children.map((id,i)=>`INSERT INTO public.children(id,parent_id,full_name,date_of_birth) VALUES(${q(id)},${q(family.parentId)},'Task10 Family ${i+1}','2016-01-01');`),
     `INSERT INTO public.schedule_templates(branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
@@ -340,7 +340,7 @@ export async function protectedWalletFixture(f: BookingFixture, privateLesson = 
     'finance',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY to_jsonb(e)::text),'[]') FROM finance_expenses e))::text)`
   const invariants = financialInvariants.replace("'booking',", `'otherHour',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s WHERE id IN (${otherIds})), 'booking',`)
   return { userId, childId, booking, payment, sources, others, children, quantity, privateLesson, dates, start, end,
-    targetTemplate, branch: f.branchId, seed: statements.join('\n'), storeArgs, redeemArgs, snapshot, invariants, financialInvariants }
+    targetTemplate, branch: f.branchId, seed: "SELECT set_config('lesson_source.write','authorized',true);\n"+statements.join('\n'), storeArgs, redeemArgs, snapshot, invariants, financialInvariants }
 }
 
 export type ProtectedWalletFixture = Awaited<ReturnType<typeof protectedWalletFixture>>

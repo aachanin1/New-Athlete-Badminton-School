@@ -6,6 +6,36 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 export const ROOT = resolve(__dirname, '../..')
 export const FIXTURE_PATH = resolve(ROOT, '.playwright/booking-fixture.json')
 
+// Bind every CLI read/reset to the same explicitly selected disposable. Never
+// infer ownership from a port or from two checkouts sharing a directory name.
+function localTarget() {
+  const target = process.env.TASK10_DISPOSABLE_TARGET
+    ? JSON.parse(readFileSync(process.env.TASK10_DISPOSABLE_TARGET, 'utf8')) as { project: string; workdir: string; api: string }
+    : { project: basename(ROOT), workdir: ROOT, api: 'http://127.0.0.1:54321' }
+  if (!/^[A-Za-z0-9_-]+$/.test(target.project) || new URL(target.api).hostname !== '127.0.0.1'
+    || new URL(target.api).protocol !== 'http:') throw new Error('Refusing non-local test target')
+  const inspect = (name: string) => JSON.parse(execFileSync('docker', ['inspect', name], { encoding: 'utf8' }))[0]
+  const name = `supabase_db_${target.project}`, db = inspect(name)
+  if (!db.State.Running || db.Config.Labels['com.supabase.cli.project'] !== target.project
+    || resolve(db.Config.Labels['com.supabase.cli.workdir']) !== resolve(target.workdir)
+    || !db.Mounts.some((m: { Name: string; Destination: string }) => m.Name === name && m.Destination === '/var/lib/postgresql/data')) {
+    throw new Error('Refusing unverified test DB ownership')
+  }
+  for (const [service, key] of [['rest', 'PGRST_DB_URI'], ['auth', 'GOTRUE_DB_DATABASE_URL'], ['storage', 'DATABASE_URL']]) {
+    const container = inspect(`supabase_${service}_${target.project}`)
+    const raw = (container.Config.Env as string[]).find(value => value.startsWith(`${key}=`))?.slice(key.length + 1)
+    const url = raw ? new URL(raw) : null
+    if (!url || url.hostname !== name || url.port !== '5432' || url.pathname !== '/postgres') {
+      throw new Error('Refusing unverified test service binding')
+    }
+  }
+  const kong = inspect(`supabase_kong_${target.project}`)
+  if (!kong.NetworkSettings.Ports['8000/tcp']?.some((p: { HostPort: string }) => p.HostPort === new URL(target.api).port)) {
+    throw new Error('Refusing unverified test API binding')
+  }
+  return target
+}
+
 export const IDS = {
   branch: '11000000-0000-4000-8000-000000000001',
   secondBranch: '11000000-0000-4000-8000-000000000002',
@@ -97,11 +127,15 @@ function requireLocalUrl(value: string) {
 }
 
 export function getLocalSupabaseEnv(): LocalSupabaseEnv {
-  const output = execSync('npx.cmd supabase status -o env', {
-    cwd: ROOT,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
+  const target = localTarget()
+  const options = {
+    cwd: target.workdir,
+    encoding: 'utf8' as const,
+    stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'],
+  }
+  const output = process.env.SUPABASE_TEST_CLI
+    ? execFileSync(process.env.SUPABASE_TEST_CLI, ['status', '-o', 'env'], options)
+    : execSync('npx.cmd supabase status -o env', options)
   const values = new Map<string, string>()
   for (const line of output.split(/\r?\n/)) {
     const match = line.match(/^([A-Z_]+)="?(.*?)"?$/)
@@ -113,6 +147,7 @@ export function getLocalSupabaseEnv(): LocalSupabaseEnv {
   if (!apiUrl || !publishableKey || !serviceRoleKey) {
     throw new Error('Local Supabase status did not return API_URL, publishable/anon key, and service role key.')
   }
+  if (new URL(apiUrl).origin !== target.api) throw new Error('CLI and verified test target differ')
   return { apiUrl: requireLocalUrl(apiUrl), publishableKey, serviceRoleKey }
 }
 
@@ -121,6 +156,22 @@ export function createLocalAdmin(): SupabaseClient {
   return createClient(env.apiUrl, env.serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+}
+
+// Only synthetic fixture construction uses the physical disposable owner. The
+// application-role client remains unchanged for authorization/bypass assertions.
+function seedSourceRows(rows: Record<string, unknown> | Record<string, unknown>[]) {
+  const target=localTarget(), records=Array.isArray(rows)?rows:[rows]
+  const columns=Array.from(new Set(records.flatMap(row=>Object.keys(row))))
+  if(columns.some(column=>!/^[a-z_]+$/.test(column))) throw new Error('Invalid fixture column')
+  const json=JSON.stringify(records).replaceAll("'","''")
+  execFileSync('docker',['exec','-i',`supabase_db_${target.project}`,'psql','-U','postgres','-d','postgres','-X','-qAt','-v','ON_ERROR_STOP=1'],{
+    input:`BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.source_write','authorized',true);
+      INSERT INTO booking_sessions(${columns.join(',')}) SELECT ${columns.join(',')}
+      FROM jsonb_populate_recordset(NULL::booking_sessions,'${json}'::jsonb); COMMIT;`,
+    encoding:'utf8',stdio:['pipe','pipe','pipe'],
+  })
+  return {error:null}
 }
 
 function assertNoError(error: { message?: string } | null, label: string) {
@@ -150,9 +201,14 @@ function fixedUuid(prefix: string, index: number) {
 }
 
 export function resetLocalDatabase() {
-  execSync('npx.cmd supabase db reset', { cwd: ROOT, stdio: 'inherit' })
-  execFileSync('docker', ['restart', `supabase_kong_${basename(ROOT)}`], {
-    cwd: ROOT,
+  const target = localTarget()
+  if (process.env.SUPABASE_TEST_CLI) {
+    execFileSync(process.env.SUPABASE_TEST_CLI, ['db','reset','--local'], { cwd: target.workdir, stdio: 'inherit' })
+  } else {
+    execSync('npx.cmd supabase db reset --local', { cwd: target.workdir, stdio: 'inherit' })
+  }
+  execFileSync('docker', ['restart', `supabase_kong_${target.project}`], {
+    cwd: target.workdir,
     stdio: 'ignore',
   })
 }
@@ -333,7 +389,7 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
     entitlement_sessions: 4,
     created_at: '2026-07-01T01:00:00Z',
   })).error, 'insert legacy baseline booking')
-  assertNoError((await admin.from('booking_sessions').insert(LEGACY_BASELINE_DATES.map((date, index) => ({
+  assertNoError((await seedSourceRows(LEGACY_BASELINE_DATES.map((date, index) => ({
     id: fixedUuid('aa00000', index + 1),
     booking_id: IDS.legacyBooking,
     schedule_slot_id: slots[date],
@@ -365,7 +421,7 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
       entitlement_sessions: occupiedDates.length,
       created_at: new Date(Date.UTC(2026, 6, 10, 0, index, 0)).toISOString(),
     })).error, `insert occupancy booking ${index + 1}`)
-    assertNoError((await admin.from('booking_sessions').insert(occupiedDates.map((date, sessionIndex) => ({
+    assertNoError((await seedSourceRows(occupiedDates.map((date, sessionIndex) => ({
       id: fixedUuid('cc', index * 10 + sessionIndex + 1),
       booking_id: bookingId,
       schedule_slot_id: slots[date],
@@ -401,7 +457,7 @@ export async function seedBookingFixture(): Promise<BookingFixture> {
       expires_at: item.expires_at,
       created_at: `2026-07-11T0${index}:00:00Z`,
     })).error, `insert excluded booking ${index + 1}`)
-    assertNoError((await admin.from('booking_sessions').insert({
+    assertNoError((await seedSourceRows({
       id: fixedUuid('cd', index + 1),
       booking_id: item.id,
       schedule_slot_id: slots[BOOKING_DATES[1]],

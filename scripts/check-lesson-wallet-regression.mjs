@@ -18,6 +18,10 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
 const route = read('src/app/api/lesson-wallet/route.ts')
+const transition = read('supabase/migrations/20260928171257_lesson_source_transition_atomic_v1.sql')
+const transitionHelper = read('src/lib/lesson-source-transition.ts')
+const redeemSql = integrityMigrationText()
+function integrityMigrationText() { const sql=read('supabase/migrations/20260828020022_permanent_schedule_slot_template_integrity.sql'); return sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.lesson_wallet_redeem_v2')) }
 const slotResolver = read('src/lib/schedule-slot-utils.ts')
 const migration = read('supabase/migrations/20260823090000_adult_private_ten_month_lesson_wallet.sql')
 const correctiveMigration = read('supabase/migrations/20260824002134_correct_adult_private_wallet_tier_range.sql')
@@ -250,19 +254,18 @@ check('course type validation never defaults missing data to Kids Group', () => 
   assert.equal(route.includes("|| 'kids_group'"), false)
 })
 check('supplied template id remains a hint while exact active canonical matching must be unique', () => {
-  assert.match(route, /const exactMatches = await loadTemplates\(\)/)
-  assert.match(route, /exactMatches\.length !== 1[\s\S]*LESSON_WALLET_TEMPLATE_AMBIGUOUS/)
-  assert.match(route, /payload\.scheduleTemplateId === canonicalTemplate\.id[\s\S]*return canonicalTemplate/)
+  assert.match(transition, /v_template IS NULL OR p_operation='redeem'/)
+  assert.match(transition, /v_count=0[\s\S]*LESSON_WALLET_TEMPLATE_NOT_FOUND/)
+  assert.match(transition, /v_count<>1[\s\S]*LESSON_WALLET_TEMPLATE_AMBIGUOUS/)
 })
 check('template lookup requires canonical branch, authoritative course, Bangkok weekday and active state', () => {
-  for (const predicate of [".eq('branch_id', payload.branchId)", ".eq('course_type_id', courseTypeId)", ".eq('day_of_week', bangkokDayOfWeek)", ".eq('is_active', true)"]) {
-    assert.equal(route.includes(predicate), true, predicate)
-  }
-  assert.equal(route.includes('credit.course_type_id'), true)
+  for (const predicate of ['course_type_id=s.course_type_id','branch_id=v_branch','day_of_week=extract(dow FROM v_date)','AND is_active']) assert.ok(transition.includes(predicate), predicate)
+  assert.ok(transition.includes('v_credit.course_type_id IS DISTINCT FROM s.course_type_id'))
 })
 check('template time matching uses normalized exact start and end', () => {
-  assert.match(route, /normalizeScheduleTime\(template\.start_time[\s\S]*=== normalizeScheduleTime\(payload\.startTime/)
-  assert.match(route, /normalizeScheduleTime\(template\.end_time[\s\S]*=== normalizeScheduleTime\(payload\.endTime/)
+  assert.ok(transition.includes("v_start:=(p_payload->>'startTime')::time"))
+  assert.ok(transition.includes("v_end:=(p_payload->>'endTime')::time"))
+  assert.ok(transition.includes('start_time=v_start AND end_time=v_end'))
 })
 check('real slot resolution persists and revalidates canonical template and exact interval atomically', () => {
   assert.equal(slotResolver.includes('template_id: effectiveTemplateId,'), true)
@@ -319,19 +322,19 @@ check('coach assignment fallback resolves one canonical template and never creat
   assert.doesNotMatch(coachAssignmentsRoute, /ensureScheduleSlot\(\{[\s\S]{0,240}templateId:\s*null/)
 })
 check('missing canonical template and invalid course data return distinct typed Thai errors', () => {
-  for (const code of ['LESSON_WALLET_TEMPLATE_NOT_FOUND', 'LESSON_WALLET_TEMPLATE_AMBIGUOUS', 'LESSON_WALLET_COURSE_INVALID']) assert.equal(route.includes(code), true)
-  assert.equal(route.includes('ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก'), true)
-  assert.equal(route.includes('ข้อมูลคอร์สของสิทธิ์ไม่ถูกต้อง'), true)
+  for (const code of ['LESSON_WALLET_TEMPLATE_NOT_FOUND','LESSON_WALLET_TEMPLATE_AMBIGUOUS','LESSON_WALLET_COURSE_INVALID']) assert.ok(transition.includes(code))
+  assert.ok(transitionHelper.includes('ไม่พบรอบเรียนประจำที่เปิดใช้งานตรงกับสาขา คอร์ส วัน และเวลาที่เลือก'))
+  assert.ok(transitionHelper.includes('ข้อมูลคอร์สของสิทธิ์ไม่ถูกต้อง'))
 })
 check('duplicate or overlap and stale credit return distinct typed conflicts', () => {
-  for (const code of ['LESSON_WALLET_TARGET_CONFLICT', 'LESSON_WALLET_CREDIT_STALE']) assert.equal(route.includes(code), true)
-  assert.equal(migration.includes('existing_session.start_time < p_end_time'), true)
-  assert.equal(migration.includes('existing_session.end_time > p_start_time'), true)
+  for (const code of ['LESSON_WALLET_TARGET_CONFLICT','LESSON_WALLET_CREDIT_STALE']) assert.ok(transitionHelper.includes(code))
+  assert.ok(redeemSql.includes('existing_session.start_time < p_end_time'))
+  assert.ok(redeemSql.includes('existing_session.end_time > p_start_time'))
 })
 check('future and same-month guards remain before redemption', () => {
-  assert.equal(route.includes('!isFutureSlot(targetDate, startTime)'), true)
-  assert.equal(migration.includes("coalesce(v_credit.entitlement_policy, 'same_month') = 'same_month'"), true)
-  assert.equal(migration.includes('LESSON_WALLET_TARGET_AFTER_EXPIRY'), true)
+  assert.ok(redeemSql.includes('LESSON_WALLET_TARGET_STARTED'))
+  assert.ok(redeemSql.includes("coalesce(v_credit.entitlement_policy, 'same_month') = 'same_month'"))
+  assert.ok(redeemSql.includes('LESSON_WALLET_TARGET_AFTER_EXPIRY'))
 })
 check('full remains non-blocking while cancelled remains blocked', () => {
   assert.equal(migration.includes("v_schedule_slot.status::text NOT IN ('open', 'full')"), true)
@@ -339,17 +342,17 @@ check('full remains non-blocking while cancelled remains blocked', () => {
   assert.equal(migration.includes('current_students >= max_students'), false)
 })
 check('store and redeem use service-role-only atomic RPCs with pinned search_path', () => {
-  assert.equal(route.includes("rpc('lesson_wallet_store_v2'"), true)
-  assert.equal(route.includes("rpc('lesson_wallet_redeem_v2'"), true)
-  assert.equal((migration.match(/SECURITY DEFINER/g) || []).length, 2)
-  assert.equal((migration.match(/SET search_path = public, pg_temp/g) || []).length, 2)
-  assert.equal((migration.match(/FROM PUBLIC, anon, authenticated/g) || []).length >= 3, true)
+  assert.ok(route.includes('transitionLessonSource<WalletResult>(getServiceRoleClient()'))
+  assert.ok(transitionHelper.includes("rpc('lesson_source_transition_v1'"))
+  assert.match(transition,/REVOKE ALL ON FUNCTION public.lesson_source_transition_v1[\s\S]*FROM PUBLIC,anon,authenticated,service_role/)
+  assert.match(transition,/GRANT EXECUTE ON FUNCTION public.lesson_source_transition_v1[^;]+TO service_role/)
+  assert.match(transition,/SECURITY DEFINER SET search_path=public,pg_temp/)
+  assert.ok(transition.includes('lesson_source_previous_store_v1(p_actor_id'))
+  assert.ok(transition.includes('lesson_source_previous_redeem_v1(p_actor_id'))
 })
 check('redeem path creates no payment, coupon, Ledger or Finance record', () => {
-  const redeemPath = route.slice(route.indexOf('async function redeemWalletCredit'))
-  for (const forbidden of ["from('payments')", "from('coupon_usages')", "from('payment_ledger')", "from('finance_expenses')"]) {
-    assert.equal(redeemPath.includes(forbidden), false, forbidden)
-  }
+  assert.ok(redeemSql.length>1000)
+  for (const sql of [route,transition,redeemSql]) assert.doesNotMatch(sql,/(?:INSERT INTO|UPDATE|DELETE FROM)\s+(?:public\.)?(?:payments|coupon_usages|payment_ledger|finance_expenses)\b/i)
 })
 check('Wallet store retires only the source membership through the atomic lifecycle RPC', () => {
   assert.equal(migration.includes('public.retire_coach_assignment_membership_v1('), true)
@@ -357,10 +360,12 @@ check('Wallet store retires only the source membership through the atomic lifecy
   assert.equal(migration.includes('DELETE FROM public.coach_assignment_groups'), false)
 })
 check('Wallet redemption destination remains unassigned until Head Coach Save', () => {
-  const redeemPath = route.slice(route.indexOf('async function redeemWalletCredit'))
-  assert.equal(redeemPath.includes("from('coach_assignment_group_students').insert"), false)
-  assert.equal(redeemPath.includes("rpc('create_exact_coach_assignment_group_v1'"), false)
-  assert.match(migration, /'scheduled',\s+member\.original_session_id/)
+  assert.ok(redeemSql.length>1000)
+  for (const sql of [route,transition,redeemSql]) {
+    assert.doesNotMatch(sql,/INSERT INTO (?:public\.)?coach_assignment_group_students/i)
+    assert.doesNotMatch(sql,/create_exact_coach_assignment_group_v1/)
+  }
+  assert.match(redeemSql, /'scheduled',\s+member\.original_session_id/)
 })
 check('Wallet page read is side-effect-free and members are loaded in one nested query', () => {
   assert.equal(walletPage.includes(".update({ status: 'expired'"), false)
@@ -368,12 +373,14 @@ check('Wallet page read is side-effect-free and members are loaded in one nested
   assert.equal(walletClient.includes('lesson_wallet_credit_members'), true)
 })
 check('notifications and activity are emitted once per entitlement unit, not once per participant', () => {
-  const storePath = route.slice(route.indexOf('async function storeInWallet'), route.indexOf('async function redeemWalletCredit'))
-  assert.equal((storePath.match(/notifyRoles\(/g) || []).length, 1)
-  assert.equal((storePath.match(/logActivity\(/g) || []).length, 1)
-  assert.equal(storePath.includes('entityId: data.credit_id'), true)
-  assert.equal(storePath.includes('participantCount: data.participant_count'), true)
-  assert.equal(storePath.includes('participantSessionIds: data.participant_session_ids'), true)
+  const replay=transition.indexOf('IF FOUND THEN RETURN v_result; END IF;')
+  const effects=transition.indexOf('v_result:=public.lesson_source_effects_v1(')
+  assert.ok(replay>0 && effects>replay)
+  assert.equal((transition.match(/v_result:=public\.lesson_source_effects_v1\(/g)||[]).length,1)
+  assert.match(transition,/v_entity:=c.id/)
+  assert.ok(transition.includes("'participantCount',c.participant_count"))
+  assert.ok(transition.includes("'participantSessionIds',p_result->'participant_session_ids'"))
+  assert.doesNotMatch(route,/notifyRoles|logActivity/)
 })
 check('the prior corrective RPC remains the frozen inclusive-containment baseline', () => {
   assert.equal((correctiveMigration.match(/tier\.min_sessions <= v_selected\.total_sessions/g) || []).length, 2)
@@ -418,15 +425,14 @@ check('Progressive Kids branches before Legacy Payment evidence while preserving
   const beforeStoreFunction = progressiveKidsMigration.slice(0, progressiveKidsMigration.indexOf('CREATE OR REPLACE FUNCTION'))
   assert.doesNotMatch(beforeStoreFunction, /(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+public\./i)
 
-  const inheritedLookup = route.indexOf('const priorCredit = priorById.values().next().value')
-  const routeKidsBranch = route.indexOf("if (courseType === 'kids_group')")
-  const routePaymentLookup = route.indexOf(".from('payments')", routeKidsBranch)
-  assert.ok(inheritedLookup > 0 && routeKidsBranch > inheritedLookup && routePaymentLookup > routeKidsBranch)
+  const inheritedLookup=progressiveKidsMigration.indexOf('IF v_prior_credit_count = 1 THEN')
+  assert.ok(inheritedLookup>0 && kidsBranch>inheritedLookup && paymentLookup>kidsBranch)
+  assert.ok(transition.includes('lesson_source_previous_store_v1(p_actor_id'))
 })
 check('the API uses typed code forwarding and retains the exact Thai evidence messages', () => {
-  assert.equal(route.includes('resolveLessonWalletErrorCode(error)'), true)
-  assert.equal(route.includes("LESSON_WALLET_TIER_EVIDENCE_MISSING: 'ไม่พบ pricing tier ที่ตรงกับแพ็กเกจ ณ วันที่อนุมัติ Payment'"), true)
-  assert.equal(route.includes("LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS: 'พบ pricing tier ที่มีผลทับซ้อนกัน จึงยังเก็บสิทธิ์ไม่ได้'"), true)
+  assert.ok(route.includes('code: error instanceof LessonSourceTransitionError ? error.code'))
+  assert.ok(transitionHelper.includes("LESSON_WALLET_TIER_EVIDENCE_MISSING: 'ไม่พบ pricing tier ที่ตรงกับแพ็กเกจ ณ วันที่อนุมัติ Payment'"))
+  assert.ok(transitionHelper.includes("LESSON_WALLET_TIER_EVIDENCE_AMBIGUOUS: 'พบ pricing tier ที่มีผลทับซ้อนกัน จึงยังเก็บสิทธิ์ไม่ได้'"))
 })
 check('the additive migration has no apply-time wallet-row backfill', () => {
   const beforeFunctions = migration.slice(0, migration.indexOf('CREATE OR REPLACE FUNCTION'))
