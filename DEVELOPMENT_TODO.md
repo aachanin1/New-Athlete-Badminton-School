@@ -28106,3 +28106,248 @@ re-wallet local-only work via separately derived index content. This containing
 docs commit/push is not an application SHA and requires no rebuild/deploy. TASK
 DONE Yes after closeout publication verification; no further release blocker.
 Private release proof: C:/Users/aacha/AppData/Local/Temp/reschedule-cancellation-20260928/selector/promotion.
+
+
+<a id="lesson-source-hard-stop-2026-09-29"></a>
+## 2026-09-29 — Source transition set1 / Owner rule / protected Attendance Hard Stop
+
+State observed at this handoff; PROJECT_STATE.md owns current mutable state.
+
+Owner authorized continuous implementation to isolated test UAT only, including
+draft migrations, safe branch publication and a separate-database web artifact.
+Production migration/Promotion/activation/data writes/repair explicitly excluded.
+Owner subsequently confirmed this searchable decision: Adult Admin Return requires
+no attendance; Family Return requires every exact unit member to qualify. Any
+attendance, including absent, cancellation or consumed source rejects the unit.
+Absent follows existing Makeup policy. Exact committed replay returns the original
+result; no extra credit/member/notification, no stored-expiry extension.
+
+Gate0 matched b312cdaacff28318d352f92a19370392c9ca2e89 and live origin branch.
+Original3local-only re-wallet docs were privately copied/hash-verified, never staged,
+edited or copied into the new checkout. Managed worktree codex/lesson-source-atomic
+starts from committed base. Prior concurrency JSON reports 200/200 and2descendants;
+Reschedule API, slot helper and coach notification helper Git blobs match4f3d51a.
+This supports reuse of historical failure, not acceptance of new draft source.
+Read-only Vercel check retained exact active cancellation artifact/SHA, main as
+Production branch; GitHub Pages workflow only main. Full external push/deploy safety
+audit remains incomplete, with no push performed.
+
+Before SQL editing, private scope.md recorded13exact allowed paths, writer table,
+identity/locks/tests and exact dependency objects. CLI2.116.0 created:
+- 20260928171257_lesson_source_transition_atomic_v1.sql SHA256 4f65e3ff3f1a811a63fa497345f0cf6af8e4c787a90e3eba7932191c040f6758
+- 20260928171258_lesson_source_transition_guards_v1.sql SHA256 3040bd51f0bb516ac808ccee184b86e707292cc3e02fbdfb27430f97428e2a54
+
+Draft Functional5, Migration2, Docs3 changed; Tests3 not yet changed;10/13paths,
+no extra tracked dependency. Three routes delegate lifecycle mutation to a draft
+shared typed RPC helper; SQL wraps old Wallet/Kids bodies, records per-step replay,
+drafts atomic Adult/Private Reschedule/Makeup/whole-unit Return and side effects,
+guards session/credit/member application-role writes. History migrations untouched.
+This is incomplete code, not Source Complete; do not publish or apply elsewhere.
+
+New disposable LessonSource20260929 started with42baseline migrations. API127.0.0.1:65401,
+DB65402; container 77d297f488c926cd3790147129a2a43caf1e79822eb42480c2c9ae0b958e1329, volume
+supabase_db_LessonSource20260929. Private verifier checks workdir/project/ports/network,
+volume and Auth/REST/Storage connection host/database before SQL or API fixture writes.
+No old disposable reset. Draft SQL installed; edited function bodies replaced only
+in that disposable. Final clean-install/upgrade acceptance is not complete.
+
+At 2026-09-28T17:28:08.754Z, a synthetic Adult source was scheduled with0attendance/0credits.
+The unchanged Admin upsertRetrospectiveAttendance/getStudentContext and unchanged
+attendance-write-through/status helper were extracted/transpiled and executed against
+real local PostgREST. Return ran its actual draft DB transaction and held commit.
+Attendance INSERT was observably waiting for a lock (blocked1) before Return committed.
+Then attendance committed successfully, while the separate session sync failed with
+LESSON_SOURCE_GUARDED_WRITE. Reconciliation: source walleted, active credit1,
+member1, operation1, exact-learner absent attendance1, payments0. The protected
+invariant is FALSE. Script exit0 means the expected diagnostic was reproduced;
+it is NOT a passing regression or full endpoint/browser test.
+
+The original API source explicitly calls attendance upsert then status sync in
+separate database requests. PostgreSQL source-row locks delay a referencing INSERT
+but do not reject it after commit merely because source status changed. There is
+no existing attendance-table lifecycle trigger in the inspected baseline. A guard
+only on booking_sessions catches the second request too late. No claim is made
+that real customers encountered this ordering. Production was not used to test it.
+
+Hard Stop: preventing this requires coordinating Attendance writes themselves,
+which the Owner scope explicitly protects. Proposed minimal addendum: allow an
+attendance BEFORE INSERT/UPDATE source-state guard with shared lifecycle locks,
+reject stale writes for cancelled/rescheduled/walleted sources before their commit,
+and prove both race orders/mixed Family/valid retrospective and Coach writes retain
+their semantics. No attendance rewrite, payroll change or data repair is proposed.
+No such guard or other Attendance/Admin behavior change was implemented.
+
+Known draft check: tsc failed once with TS2367 at the now-unreachable
+return_entitlement action-label comparison. No correction after the material stop.
+Lint, production-mode build, focused suites, comprehensive fault/replay/bypass/
+protected evidence, fresh/upgrade final migration tests and rollback rehearsal
+remain outstanding. No test assertion lowered and no blanket PASS.
+
+Future release discussion only: stage migrations/app/guards with incompatible old
+writers fenced, test in-flight requests in both orders, and retain source guards
+and committed operation history during rollback. No destructive rollback/removal
+of committed transactions. That plan has not been rehearsed and needs the scoped
+Attendance decision before claiming safe compatibility.
+
+CommitNo; PushNo; DeployNo; artifactNo; SourceCompleteNo; TestsPassedNo;
+ReadyForOwnerUATNo; OwnerUATNo; ProductionActiveForTaskNo; DataRepairedNo;
+Production deployment/schema/data/controlsChangedNo; FinancialImpact0; TaskDoneNo.
+Task2 not started, Admin target-overlap cancellation filtering remains unchanged.
+Private evidence/harness: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929.
+Next gate is the Owner's narrow protected-domain scope decision, not Production UAT
+or release approval. All requested original release restrictions remain in force.
+
+
+<a id="lesson-source-attendance-resume-2026-09-29"></a>
+### ชุดที่ 1 — Attendance guard/lock addendum approved / resume (2026-09-29)
+
+Owner explicitly approved narrow attendance INSERT/UPDATE admission/locking and regressions. Resume DEVELOPING in codex/lesson-source-atomic; retain previous Hard Stop and attendance-race.json FAIL unchanged. No Production authority; Task2 unstarted.
+
+Lock audit: source now takes exclusive transaction admission before activation locks, sorted family months, parent, booking/session/credit/member/attendance rows. Attendance BEFORE STATEMENT takes shared admission before executor UPDATE tuple/speculative upsert locks; it uses try-lock because retrospective RPC already holds slot/session/booking locks. Failed admission raises 55P03 and rolls back the statement/RPC rather than forming a wait cycle. The row guard locks booking then exact session FOR SHARE NOWAIT, then reads current lifecycle and exact learner. FK key-share checks follow BEFORE row admission. Family Return's exclusive gate excludes attendance for every member. Attendance DELETE unchanged.
+
+Objects added in draft guards migration: lesson_source_attendance_admission_v1(), lesson_source_attendance_guard_v1(), statement and row triggers on attendance. ACL remains deny direct function execution; SECURITY DEFINER row guard reads exact evidence, does not grant table writes or bypass caller RLS. No historical migration edit. Coarse global admission serializes source transactions; concurrent attendance transactions share admission. Contended attendance returns retryable conflict; throughput/latency and actual API error propagation remain acceptance items.
+
+Original TS2367 action-label branch removed. Final static/runtime acceptance pending; not READY FOR OWNER UAT.
+
+
+<a id="lesson-source-uat-2026-09-29"></a>
+## 2026-09-29 — ชุดที่ 1 / isolated READY FOR OWNER UAT
+
+This dated closeout supersedes the mutable draft status above, not its historical
+failure. Owner approved continuous set1 and the narrow Attendance addendum; no
+additional business domain or Production operation was authorized. Confirmed Return
+decision remains searchable in the original record: whole exact Family unit, one
+credit/all members; any attendance including absent, cancellation or consumed member
+rejects all, with exact committed replay and original stored expiry retained.
+
+Source/tests/migrations: f0782ae612d5354d6bb1b9679edf7f32157b16c5, codex/lesson-source-atomic, committed
+and pushed. Application build I2ikm5srw0niMWGGurzke, created 2026-09-28T20:50:12.886Z,
+281 tracked inputs SHA256 68df6b0257d79d2928fa1c6f3fcfa08de07807a1ef2ed2514dbff591c35f05f8. Local production-mode build only;
+not the active Production artifact and not a Vercel staged Production deployment.
+This Docs3 successor does not change/rebuild the tested application.
+
+Final migrations (unpublished drafts became branch source; never applied Production):
+- 20260928171257_lesson_source_transition_atomic_v1.sql — SHA256 c55154c994266c558e033f988baa0f40673988cc5c69dc4f00e475b4f3445e6a
+- 20260928171258_lesson_source_transition_guards_v1.sql — SHA256 b705b866b63aa88a4dbf91bc81b94989ee3aaee4cc98a9b4542dbeee6b9ac98b
+
+Actual files were CLI-installed baseline42-to44 and fresh44; synthetic pre-existing
+booking/session/credit hashes stayed exact, definitions/ACLs matched, no public
+execution or application-role operation-table writes. Aggregate function definition
+MD5 b495a35c07f2c7b5d05086e67868127e; migration-install-upgrade.json retains details.
+
+DB change inventory: lesson_source_operations table/unique replay key/RLS/denied
+direct ACLs; lesson_source_transition_v1, effects, notification and slot-label helpers;
+five prior bodies renamed/revoked and five public compatibility wrappers; guarded
+booking_sessions/lesson_wallet_credits/lesson_wallet_credit_members lifecycle writes;
+active-only Family tuple index; Attendance statement admission/row-state triggers and
+functions. Existing canonical-slot, capacity, assignment-retirement/reservation,
+Task10 source/quota and audit/notification objects are called transactionally under
+their original rules. No migration rewrites/backfills, financial schema, new roles,
+Attendance DELETE, payroll or Production controls.
+
+Root cause: earlier Adult/Private API checked and wrote in independent transactions;
+both requests could create descendants. New current-step contract locks/rechecks and
+commits every required effect once, with actor/operation/unit/normalized payload
+replay evidence. Same request replays; changed payload or competing consumed right
+conflicts. Current-step identity permits Store/Redeem/Re-wallet, not lifetime root
+uniqueness. Original Attendance FAIL demonstrated that a referencing INSERT could
+commit after Return and only its later status-sync fail. Shared statement admission
+plus current-row guard prevents the attendance commit itself; source exclusive
+admission, sorted policy/family/parent/booking/session/credit/member locks and NOWAIT
+row checks avoid waiting with retrospective locks. The detailed lock audit above is
+retained. New descendants remain attendable; old walleted/rescheduled/cancelled
+sources do not revive.
+
+Final acceptance:32 source/Attendance tests on the final build,9 distinct protected
+Wallet tests across all3policy states,14 focused Booking/Task10 tests (one contains
+28 cancellation API/DB cases), plus45 Wallet static assertions. 55 distinct tests passed across two executions:23 protected passes on89c062a and32 source passes on the test-fixture-only successor, with identical281application inputs, migrations, helper dependencies and protected Task10 test prefix. The earlier combined run retains its overall FAIL for the synthetic fixture admission; it is not relabeled PASS. Deterministic barriers and observed
+pg_stat_activity waits cover same-source Adult/Private same/different targets,
+cross-operation and quota races, Family members, both Return/Attendance orders with
+INSERT/UPDATE/upsert, actual API/RPC and guarded application writes. Exact replay,
+concurrent replay and deliberately lost HTTP response after commit create no extra
+effects. Family identity, other-family same-slot isolation, other-hour preservation,
+stored expiry, valid Wallet cycle, Coach present/late/absent and Admin retrospective
+writes pass. Fault injection covers credit/member/session/assignment/audit/notification/
+operation and slot/descendant/redeem write stages; rollback snapshots and real timeout
+pass. Serialization/deadlock/timeout SQLSTATE propagation is injected; no claim that
+a natural deadlock was deliberately produced. Protected Booking, Kids quotas/cutoffs,
+receipt/payment expiry, cancellation and financial/attendance snapshots pass.
+
+Final DB reconciliation: {"openTransactions":0,"operationsByKind":{"store":3,"makeup":10,"redeem":2,"reschedule":6,"return_entitlement":13},"staleAssignments":0,"faultTriggersLeft":0,"crossBookingLineage":0,"rewalletExpiryDrift":0,"incorrectMemberIdentity":0,"missingCommittedResults":0,"returnedSourceAttendance":0,"duplicateDescendantSources":0,"incorrectDescendantIdentity":0,"walletedOrRescheduledAttendance":0}.
+No partial credit/member/descendant, wrong identity, expiry drift, stale assignments,
+cross-booking lineage, missing committed result, fault trigger or held transaction.
+Original attendance-race.json remains FAIL, unchanged. Earlier test-harness timeout
+(28-case test300s) and cross-VM matcher failure remain in their original reports;
+timeout increased to600s for physical verification and matcher extracts primitives,
+without changing business assertions. Corrected Booking28 pass and remaining13pass
+remain separate historical evidence, not relabeled failed runs. A later final run
+was intentionally interrupted after source review found that the draft rejected a
+completed cache without Attendance. The narrow correction retains original Admin
+eligibility and Attendance as source of truth; actual present/late/absent still deny
+whole-Family Return. All55 distinct passing checks use the corrected application and final schema,
+including slot-counter fault rollback and cache-versus-Attendance regression.
+A combined run then passed23protected tests before synthetic fixture booking creation hit the active Task10 payment guard. Test-only correction seeds pre-cutover rights under the exclusive policy lock, restores and asserts the entire policy before commit, restores real test clock semantics, and uses owner-only payment fixture markers. API/direct-role assertions keep all guards. The32source tests were rerun on the retained active-policy database. TS2367 fixed; TypeScript/lint/build/
+mojibake280/diff checks pass. This is focused acceptance, not a full-repository audit.
+
+Changed publication paths15: original Functional5/Migration2/Tests3/Docs3 plus
+tests/booking-regression/local-supabase.ts and tests/task10-regression/local-supabase.ts.
+These direct test dependencies were justified before editing to verify physical
+disposable ownership and seed synthetic fixtures as owner while leaving application
+clients guarded. Next dev auto-generated10lines in AGENTS.md, verified against its
+generator; preserved unstaged/excluded, no cleanup of user work. Main re-wallet
+Docs3 hashes remain exact and are neither copied nor published.
+
+Isolation: LessonSource20260929, local API65401/DB65402, its own CLI workdir/network/
+named volume and verified Auth/REST/Storage connections. Before each write the
+physical target is checked; no reliance on port alone and no other UAT reset.
+Persistent URL http://127.0.0.1:3129 on this computer. Synthetic User/Admin credentials,
+fixtures, screenshots, reports and DB dumps stay in the private evidence directory.
+Actual login and User schedule/reschedule/wallet plus Admin makeup smoke4pages passed;
+only local data origins, no page/5xx failures and unchanged lifecycle snapshot.
+
+Publication gate: GitHub no webhooks and main-only Pages workflow; Vercel main
+Production branch, default build/no migration command, codex Preview has no Supabase
+credentials. User-opened authenticated Supabase Settings/Integrations shows no linked
+GitHub repository/Vercel integration. Read-only evidence retained; no setting changed. Git push automatically generated Preview dpl_FY1kh2gGoqs1Z1FB6DVEzPnWdYSq; branch-deployments.json records its status. That Preview has no branch Supabase credentials and is not the tested artifact; Owner uses the isolated loopback build.
+
+Rollout proposal, requiring later explicit Production approval: fence admission and
+drain old source/Attendance requests, install atomic then guards with writers stopped,
+switch to approved new app, validate and reopen. Old/new mutation apps cannot overlap
+because old app has post-RPC notification effects. Rehearsal passed fresh/upgrade,
+retained-guard rollback and in-flight Return/Attendance both orders: revoke6service-role
+entry ACLs, let admitted transactions finish, deny new calls, retain committed rows,
+restore ACLs with new app and replay unchanged. Fallback must keep all guards/history
+and source mutations unavailable; never downgrade to baseline42 or delete committed
+records. No zero-downtime or full-availability rollback claim. Global admission
+serializes source transitions and makes contended Attendance retry; load/capacity
+has not been certified. No old-duplicate repair or historical-data certification.
+
+Owner UAT (synthetic accounts only; required backend evidence already Developer-owned):
+1. User: login at http://127.0.0.1:3129; choose สาขาทดสอบชุดที่ 1 and the future-month
+   Adult session, change date. Expected one new round, original shown as moved.
+2. User: use two windows for the same original request/retry. Expected same result
+   or typed conflict for a different target; no second entitlement/round.
+3. User: store the Family future hour, redeem it to another eligible future hour,
+   then store again. Expected one credit per current step, all3names/identities
+   together, the original stored expiry unchanged; other purchased hour unchanged.
+4. Admin: in Makeup attendance-gap review, open the unassigned Family round on
+   2026-09-28 at10:00 using บันทึกโค้ชและเช็กชื่อย้อนหลัง, choose คืนสิทธิ์ทั้งรอบ
+   and enter a reason. Expected one credit with all3members; the UI sends one
+   request per member but subsequent requests replay the same whole-unit result.
+5. Admin: try the same Return action on the separate12:00 Family unit with an absent member. Expected
+   whole-unit rejection/no credit; valid retrospective attendance on the separate
+   Adult fixture remains available. Owner UI PASS never replaces DB reconciliation.
+
+Owner UAT not performed. Production deployment/schema/data/controls changed: No.
+Data repaired: No. Financial impact0. Scope breach: No unexplained path. Blocker:
+None for isolated UAT. Documentation drift corrected in task checkout; historical
+failure preserved. Task2 not started; Admin target-overlap cancellation limitation
+unchanged. Production still serves cancellation app bb5bf128662ea58bbfb6613df73e5dfec14c6aaa,
+artifact dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV; set1 is not active there.
+READY FOR OWNER UAT in isolated test; TASK DONE: No. Wait for Owner UAT, then a
+separate explicit Production command. A UAT PASS alone does not authorize release.
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929.
+Primary files: focused-acceptance-evidence.json, final23-pass-fixture-guard-fail.json, source-final-acceptance.json, final-test-inputs.json,
+source-reconciliation.json, migration-install-upgrade.json, owner-uat-artifact.json,
+owner-uat-smoke.json, source-publication.json, rollout-rollback-plan.md.

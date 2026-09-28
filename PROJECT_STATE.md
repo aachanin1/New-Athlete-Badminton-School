@@ -1,15 +1,52 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-28 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-29 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — User Reschedule cancellation fix / Production Active / TASK DONE
+## Current State — ชุดที่ 1 Source lifecycle / READY FOR OWNER UAT — isolated test only
+
+ชุดที่ 1 พร้อม Owner UAT เฉพาะเว็บทดสอบในเครื่องนี้ที่ http://127.0.0.1:3129.
+Source/tests/migrations committed and pushed; Developer acceptance and DB reconciliation
+passed. Production has no set1 changes. Owner UAT is not yet performed and a future
+PASS does not authorize Production release. TASK DONE: No.
+
+### Current Project Matrix
+
+| Field | Current verified state |
+| --- | --- |
+| Active task / status / task done | ชุดที่ 1 — ป้องกันสิทธิ์ต้นทางสร้างรอบหรือเครดิตซ้ำ / READY FOR OWNER UAT in isolated test / No |
+| Owner decision | 2026-09-29 continuous delivery to separate test only, plus Attendance INSERT/UPDATE guard/lock addendum. Adult Return requires no attendance; every exact Family member must qualify, including no absent attendance/cancellation/consumed source. Whole Family returns one credit with all members. Exact successful replay retains original result; no stored-expiry extension. |
+| Actors / scope | Customer owner and existing authorized Makeup Admin; User Reschedule, Wallet Store/Redeem, Admin Makeup POST and PATCH return_entitlement; Attendance admission coordination only. Existing authorization, Coach/Admin retrospective semantics, Kids/quota/cutoff/cancellation and financial rules retained. |
+| Branch / application-test source | codex/lesson-source-atomic; f0782ae612d5354d6bb1b9679edf7f32157b16c5, committed and pushed. Base b312cdaacff28318d352f92a19370392c9ca2e89. This Docs3 closeout is a separate successor; it is not a rebuilt application. |
+| Source complete / tests | Yes within approved test scope. 32 source/Attendance acceptance tests on exact final build; 9 protected Wallet tests across never activated/active/paused; 14 focused Booking/Task10 tests including 28 cancellation API/DB cases. 55 unique focused tests passed across two executions with unchanged application/schema/protected dependencies verified, plus45 Wallet static checks. No full-repository PASS claim. |
+| Race / DB evidence | Observed held transactions and pg_stat_activity lock waiters, not Promise.all timing alone. Return first leaves Attendance0 and whole credit/members; Attendance first retains exact attendance and creates no credit/member. Same-source/cross-operation/quota, replay/lost response, faults, direct-write/RPC bypass, Wallet cycle and valid new-descendant attendance covered. Final reconciliation violations0. |
+| Static / build | TypeScript, lint, production-mode isolated build, mojibake280files and diff checks passed. Original TS2367 fixed. Final build I2ikm5srw0niMWGGurzke;281 tracked application inputs, SHA256 68df6b0257d79d2928fa1c6f3fcfa08de07807a1ef2ed2514dbff591c35f05f8. |
+| Migration | New CLI-named 20260928171257_lesson_source_transition_atomic_v1.sql and 20260928171258_lesson_source_transition_guards_v1.sql. Actual final files passed fresh44 and baseline42-to44 upgrade; existing synthetic rows preserved; definitions/ACL parity. Hashes in dated closeout. Historical migrations unchanged. Production applied No. |
+| Changed paths / dependencies | 15 published paths: Functional5/Migration2/Tests3/Docs3 plus2 direct test dependencies, tests/booking-regression/local-supabase.ts and tests/task10-regression/local-supabase.ts, for physical target verification and owner-only synthetic fixture seeding. Reasons recorded before edits. Next dev generated10lines in AGENTS.md; preserved unstaged and excluded from publication. No unexplained path. |
+| Commit / push / artifact / promotion | Source committed and pushed; Docs3 successor publication verified separately at closeout. Local isolated artifact prepared and smoke passed; no manual Vercel deployment, Production Promotion, alias or activation. Git push generated Preview dpl_FY1kh2gGoqs1Z1FB6DVEzPnWdYSq without branch Supabase credentials; it is not the UAT artifact and its build status is recorded separately. |
+| Test isolation / URL | http://127.0.0.1:3129 on this Owner computer, API127.0.0.1:65401/DB65402, project LessonSource20260929. Container project/workdir/named volume/network plus Auth/REST/Storage actual DB targets verified before writes. Synthetic accounts only; other UATs preserved. Credentials remain private outside Git. |
+| Owner UAT / runtime smoke | Owner UAT not performed. Actual User/Admin login and4pages smoke passed with only local data origins and unchanged lifecycle snapshot. Test build is not the Production artifact. |
+| Push safety | GitHub hooks empty; Pages workflow main-only; Vercel Production branch main with default build/no migration command; no codex-branch Supabase Preview credentials. Authenticated Supabase Dashboard shows no linked GitHub repository or Vercel integration. Read-only evidence retained. |
+| Production active / task activation | Prior cancellation app bb5bf128662ea58bbfb6613df73e5dfec14c6aaa / dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV retained. Set1 is not Production active. No Production environment/flags/allowlist/Task10 controls/cron change. |
+| Production deployment/schema/data/controls changed / repair / financial impact | No / No / No / No; Data repaired No; financial impact from this task0. No customer transaction, message, historical repair/backfill or repeated re-wallet exception. |
+| Rollout / rollback | Disposable fresh/upgrade, retained-guard rollback/recovery and in-flight Attendance/Return both orders passed. Future release requires new approval, admission fence and drain before migration1 then2 then new app. Never run mixed old/new mutation writers; fallback keeps guards/history and disables source mutation RPCs. No committed-record deletion or unsafe schema downgrade. |
+| Known limitations / Task2 | Global DB admission serializes source transitions; contended Attendance retries, no load/capacity certification. Old-app fallback loses source-mutation availability. Admin target-overlap cancellation limitation and overlap centralization remain unmodified Task2. Existing ambiguous historical duplicates are not repaired or certified. |
+| Scope breach / blocker / documentation drift | No unexplained scope breach; no remaining UAT-readiness blocker. Current-task docs reconciled in isolated worktree; historical Hard Stop and FAIL evidence preserved. Main local-only re-wallet Docs3 hashes unchanged, never copied/published. |
+| Next | Owner performs5UAT steps in dated handoff and returns PASS/FAIL. Do not release Production automatically; send separately approved activation/rollback/DB-change plan afterward. |
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929.
+[Final test handoff](DEVELOPMENT_TODO.md#lesson-source-uat-2026-09-29).
+[Preserved original failure](DEVELOPMENT_TODO.md#lesson-source-hard-stop-2026-09-29).
+
+## Historical — User Reschedule cancellation fix / Production Active / TASK DONE
+
+The following is the 2026-09-28 release closeout, not the current task status.
 
 Owner PASS ของ exact artifact/SHA ได้รับแล้ว และ Promote artifact เดิมสำเร็จ
 โดยไม่ rebuild. Cancellation fix เปิดใช้กับ customer domains แล้ว; Production
 read-only postchecks ผ่าน. TASK DONE สำหรับ cancellation scope นี้ ไม่ใช่การ
 รับรอง concurrency ทั้งระบบหรือการแก้ Admin Makeup.
 
-### Current Project Matrix
+### Historical Cancellation Project Matrix
 
 | Field | Current verified state |
 | --- | --- |

@@ -1,14 +1,16 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **User Reschedule cancellation fix — TASK DONE / Production Active.** Owner PASS for dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128662ea58bbfb6613df73e5dfec14c6aaa; promoted that same Production artifact without rebuild at 2026-09-28T14:31:59.370Z. Customer aliases, health/assets/protection and scoped error logs pass. [Current matrix](PROJECT_STATE.md#current-project-matrix).
-- Source/tests/config/migrations unchanged in this round; only Docs3 closeout published. Previous re-wallet Docs3 remain local-only and must not be published or repeated.
-- **Next:** No further cancellation release action. Adult/Private simultaneous-success known FAIL and Admin Makeup remain Parking Lot; no automatic adjacent fix. The closeout docs SHA is not an application artifact.
+- **ชุดที่ 1 — READY FOR OWNER UAT เฉพาะระบบทดสอบแยก; TASK DONE: No.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns exact source/build/tests and Production boundary.
+- Source f0782ae612d5354d6bb1b9679edf7f32157b16c5 committed/pushed; final build I2ikm5srw0niMWGGurzke at http://127.0.0.1:3129. Developer focused55tests, Wallet static45, migration fresh/upgrade, reconciliation and browser smoke passed. Owner UAT not yet performed.
+- **Next:** Owner completes5steps in [UAT handoff](DEVELOPMENT_TODO.md#lesson-source-uat-2026-09-29). PASS is not Production authority; await separate release approval.
+- Whole-Family one-credit Return and no-attendance/all-member eligibility confirmed; exact replay and stored expiry preserved. Attendance addendum implemented; prior Hard Stop/FAIL retained.
+- Production unchanged; cancellation fix retained. Task2/Admin target-overlap limitation unmodified. Main re-wallet local-only Docs3 byte-preserved and excluded. Next-generated AGENTS.md block remains unstaged.
 
 ## Preserved prior work — Historical
 
