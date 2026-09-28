@@ -1,15 +1,70 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-27 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-28 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Kids same-month pricing / Production Active / TASK DONE
+## Current State — Reschedule cancellation filtering / READY FOR OWNER UAT
+
+The scoped cancellation correction is ready for Owner UAT. This is not TASK DONE
+or a global concurrency PASS. An independently reproduced, pre-existing
+Adult/Private simultaneous-success race remains outside this patch and is
+explicitly disclosed below. No Promotion is authorized before Owner PASS of the
+exact staged artifact.
+
+### Current Project Matrix
+
+| Field | Current verified state |
+| --- | --- |
+| Active Task / Task Status / Task Done | User Reschedule cancelled-overlap correction / READY FOR OWNER UAT for the scoped correction, with the existing concurrency failure disclosed / No. |
+| Actor / authorization / intended behavior | Owner-authorized Developer delivery for a customer managing their exact self/child learner. Cancelled parent bookings or sessions with cancelled_at must not block the API overlap check; active exact/partial overlap stays rejected. |
+| Branch / Local HEAD / Remote HEAD / Ahead-Behind | spike/next-major-security-upgrade. Application commit 4f3d51ad3903913a5538d2c764016d5b06201f5b was pushed and verified0/0. This containing Docs3 handoff is the documentation-only successor; its local/live-remote equality and final SHA are retained in private publication proof. |
+| Source Complete / application Source | Yes for the approved API correction; 4f3d51ad3903913a5538d2c764016d5b06201f5b. Only two predicates were added to ensureLearnerHasNoDuplicateSlot. Current customer-deployed source remains e361e47af3ffae54062bae2462b6713a722ffe58. |
+| Files / scope / blast radius | Functional1: src/app/api/reschedule/route.ts; Test1: tests/booking-regression/booking.spec.ts; Docs3: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md. Total5. Config/Dependency/Migration0. No functional scope expansion or unexplained path. Only Adult/Private reach this helper; Kids uses its existing Task10 RPC. |
+| Tests Passed | Scoped tests PASS:28actual API/DB scenarios within focused Booking4/4; DB-read error executes the real source helper with a faulting query; Kids/Wallet transaction checks2/2; Wallet checks45/45; TypeScript, full source lint, Production build, mojibake279 and diff checks. Not a blanket PASS: the separate simultaneous-success characterization fails one-winner on both old and corrected routes. |
+| Before / after regression | A parent-cancelled, B session-cancelled, C both levels failed with500 before correction for both Adult/Private (6failures). All6return200 after correction; active exact/partial, self, cross-branch/course overlap remain rejected. Sibling/self-child separation, both touching-time boundaries, rescheduled/walleted exclusions pass. |
+| Mutation / protected evidence | Success retains exact learner and canonical target slot, changes source to rescheduled, creates one descendant in each sequential case, retires the exact old assignment membership and does not auto-assign target. Denied and concurrent-blocked requests preserve booking/session/membership data. Compared booking entitlements, payments, attendance, Wallet credits, coupons, pricing, allocations, Finance and weekly teaching summaries stay unchanged. |
+| Concurrency evidence and limitation | Concurrent requests against an existing active overlap both reject; sequential source replay rejects; Wallet Redeem race retains one winner; Kids shared-source races pass. Separate lock-synchronized Adult/Private requests against an initially free target both succeed and create2descendants. Reproduced on both baseline a433ac5 route and corrected route on the same disposable DB. This unchanged non-atomic success path was not repaired; no claim of atomic Adult/Private rescheduling. |
+| Committed / Pushed | Application Yes / Yes. Only source and test were in the application commit. The containing Docs3 handoff publishes only this task; previous re-wallet closeout remains unstaged/local-only. |
+| Deployed / staged artifact | Yes, staged Production only: dpl_CwMvXZn7efzMnYEUR7oCZu2WshAG; READY; exact application SHA4f3d51ad3903913a5538d2c764016d5b06201f5b. https://new-athlete-badminton-school-oi5se5wv4-aachanin1s-projects.vercel.app.366worker inputs and219outputs verified;28read-only health/assets/auth-boundary requests passed. |
+| Exact artifact / recovery | Customer aliases remain on compatible current artifact dpl_GbtDjNimNG51V1D6Ad8VVnooZ7w6. Candidate versus deployed application differs only in the two cancellation predicates; schema and existing Task10/Wallet compatibility remain unchanged. No rollback or alias action taken. |
+| Owner functional UAT / Controlled Write UAT | Owner not yet performed. Disposable production build at http://127.0.0.1:3101, BUILD_ID RDOjSV4r7Vgi3wQuJUiO8, matches the candidate application inputs. Synthetic owner fixture is ready and unconsumed. Separate automated account passed actual UI cancellation reschedule plus active-overlap rejection, sibling and boundary API checks. This local build is not execution on the Vercel artifact. |
+| Real-DB verification / GET side effects | Staged landing/login/static assets, health reads and unauthenticated reschedule-page redirect only; reviewed health/proxy/page/layout paths for business writes. No authenticated customer transaction or real-DB test write. No claim of real-customer functional UAT. |
+| Promotion / Production UAT / post-Promotion health | No / not performed / not applicable yet. Staged scoped error and5xx queries returned0events; this is not a post-Promotion Production-log PASS. Owner PASS must identify exact dpl_CwMvXZn7efzMnYEUR7oCZu2WshAG/4f3d51ad3903913a5538d2c764016d5b06201f5b; promote that same staged Production artifact without rebuilding, then recheck identity/aliases/health/logs. |
+| Feature Enabled / Allowlisted / Production Active | No changes. Fresh read-only Production check retained Task10 Active revision5, pricing/makeup/expiryON, original effective_at2026-09-24T12:45:14.241075Z and active every-minute cron. Cancellation correction is NOT customer-Production-active before Promotion. |
+| Environment / Migration Source / Applied / controls | Environment, flags, allowlist, secrets, permissions, schema/shared functions, migration source/applications, cron and Task10 controls:0changes in real environments. Existing migrations were reset only in physically verified disposable54321/54322 for tests; Owner UAT64321 and other existing UAT targets were not reset. |
+| Production Data Changed / Data Repaired / financial impact | No / No / No Production financial effect. No customer data used as fixtures, repair, backfill, history deletion, repeat re-wallet operation, customer booking or messaging. |
+| Customer Impact | After exact Promotion, cancelled records cease blocking the scoped API overlap check. Until then customer runtime remains unchanged.12h/48h, month/expiry, Family entitlement, payment, pricing, coupon, attendance, payroll, Ledger/Finance and notification behavior remain unchanged. |
+| Separate observations / limitations | Admin Makeup fallback query at src/app/api/admin/makeup/route.ts also lacks both cancellation predicates; not changed. Reschedule page/client do not carry session cancelled_at, so session-only-cancelled rows may still appear/block exact choices in the selector (source observation; no client/page repair in this API scope). Synthetic fixtures without staff recipients preserve existing notification warnings; no notification-delivery PASS is claimed. |
+| Documentation / preserved work | Prior re-wallet Docs3 baseline was saved byte-for-byte before edits. Publication uses separate index content derived from committed docs plus this task, excluding the prior local-only closeout. next dev generated an AGENTS.md block; origin verified, exact generated block recorded privately and removed, leaving no AGENTS diff. No customer identifiers or private operation evidence added to published task docs. |
+| Blocker / Remaining / Next Action | No implementation blocker for the scoped cancellation correction. Await Owner UAT/acceptance of this exact candidate with the disclosed existing limitations; no automatic Promotion or concurrency/Admin Makeup/client repair. Exact Promotion and postchecks remain required before TASK DONE. Parking Lot remains unauthorized. |
+
+### Owner UAT handoff — disposable transactions, exact staged acceptance
+
+1. Open http://127.0.0.1:3101/auth/login using the supplied synthetic User account.
+2. Open Reschedule, select the6October2026 Private16:00–17:00 session for UAT1,
+   and move it to7October16:00–17:00 at UAT Reschedule A. Expect success despite
+   the cancelled booking/session at the target.
+3. Try moving the resulting session to8October16:00–17:00 at branchA. Expect
+   overlap rejection because the same learner has an active cross-course/branchB
+   lesson. The source must remain on7October.
+4. Move it to9October16:00–17:00 at branchA. Expect success: UAT2's session must
+   not block UAT1.
+5. Move it to10October16:00–17:00. Expect success next to UAT1's17:00–18:00 lesson.
+6. Check the exact staged URL read-only (school User role for protected pages;
+   normal Vercel access may be required). Do not submit a real-DB test transaction.
+   Return PASS/FAIL identifying artifactdpl_CwMvXZn7efzMnYEUR7oCZu2WshAG and Source4f3d51ad3903913a5538d2c764016d5b06201f5b, with awareness
+   that local functional UAT and exact staged real-DB read-only checks are separate.
+
+Private evidence and local credentials: C:/Users/aacha/AppData/Local/Temp/reschedule-cancellation-20260928.
+[Dated evidence](DEVELOPMENT_TODO.md#reschedule-cancellation-2026-09-28).
+
+## Historical state before reschedule handoff — Kids same-month pricing / Production Active / TASK DONE
 
 **TASK DONE.** The resumed SQL correction, automated acceptance, exact artifact
 Promotion and one-time atomic Kids cancellation/migration are complete. Manual
 Owner UAT was not performed; this task used the explicitly approved automated
 acceptance exception. No Pause/Resume, controls, cron or environment change.
 
-### Current Project Matrix
+### Historical Project Matrix
 
 | Field | Current verified state |
 | --- | --- |

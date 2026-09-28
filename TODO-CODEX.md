@@ -1,10 +1,16 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
+
+- **User Reschedule cancellation filtering — READY FOR OWNER UAT for the scoped API correction.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns Source, tests, artifact and all mutable states.
+- Scoped cancellation regressions pass. The independent, pre-existing Adult/Private simultaneous-success race fails on both baseline and corrected source; it is disclosed, not repaired or relabeled PASS. Admin Makeup and selector observations remain separate.
+- **Next:** Owner tests the supplied disposable fixture and accepts/rejects the exact staged artifact with documented limitations. No Promotion before exact Owner PASS; TASK DONE requires Promotion and postchecks. Prior local-only re-wallet documentation remains local; no automatic adjacent work.
+
+## Preserved prior work — Historical
 
 - **Kids same-month late pricing + one-time unpaid Kids cancellation — TASK DONE.** Automated acceptance passed; exact Production artifact promoted, atomic migration/cancellation and post-release reconciliation completed. Manual Owner UAT was not performed.
 - **Actual operation:**1bill/4sessions/2000THB cancelled;1bill skipped for batch/in-flight payment evidence. Controls/cron/effective_at/environment retained; no repair/refund/difference collection.

@@ -27932,3 +27932,76 @@ records the release; its SHA/live equality/clean proof is separate from deployed
 applicatione361e47af3ffae54062bae2462b6713a722ffe58. No build/test suite repeated for documentation-only closeout.
 OwnerUAT64321 and prior failure/privacy history retained; no blanket security PASS.
 Next: await new Owner scope, preserving Parking Lot order.
+
+<a id="reschedule-cancellation-2026-09-28"></a>
+## 2026-09-28 — User Reschedule cancellation filtering: staged UAT handoff
+
+State observed at this handoff; PROJECT_STATE.md owns current state.
+
+- Owner authorized continuous audit, regression-first correction, tests, Git and
+  skip-domain staged Production delivery, with Promotion gated on exact Owner PASS.
+  Gate0 matched spike/next-major-security-upgrade/a433ac5, live upstream0/0 and
+  three pre-existing unstaged re-wallet documents. Their raw bytes and patch were
+  preserved privately; none of that previous local-only closeout was published.
+- Existing helper ignored only rescheduled/walleted. The minimal correction adds
+  bookings.status != cancelled and booking_sessions.cancelled_at IS NULL to its
+  existing PostgREST query. Parent status and session tombstone are independent.
+  Session status enum has no cancelled value; no invented enum condition was added.
+  Preserve exact child versus self, ownership, cross-branch/course intervals,
+  strict start<end/end>start boundaries and source exclusion. No presentation or
+  occupancy helper was reused. Actual callers are Adult/Private; Kids Task10 and
+  Wallet have their own cancellation-aware DB paths.
+- Planned and actual paths: Functional1 route; Test1 booking.spec.ts; Docs3.
+  Total5, Config/Dependency/Migration0. No functional scope expansion.
+- Regression-first actual API/DB: A parent only, B session only, C both cancellation
+  levels each returned500 on both Adult/Private before correction (6expected
+  failures). After correction all28cases passed. Active exact/partial overlap,
+  self identity and cross-branch/course overlap still reject; sibling, self/child,
+  touching-time boundaries and rescheduled/walleted exclusions pass. Success and
+  rejection effects include source/descendant/slot identity, old assignment
+  retirement/preservation and unchanged protected financial/attendance/entitlement
+  snapshots. A faulting query executes the source helper and throws; it is a
+  runtime fault-injection test, not a static string assertion.
+- Focused Production-mode Booking4/4, adjacent Kids/Wallet transactions2/2,
+  Wallet checks45/45, TypeScript, lint, build, mojibake279 and diff checks passed.
+  Tests physically verified loopback API, service DB connections, container,
+  project/workdir and owned volume before fixtures; transactions used synthetic
+  accounts. Existing Owner UAT targets were preserved. Earlier test setup used a
+  nonexistent child fixture column, then corrected it; a cross-VM matcher failure
+  was corrected in the test only. These failed harness runs remain private evidence.
+  The Kids suite also logged a transient ECONNRESET during reset/retry but completed
+  both tests and teardown successfully. No such failed run was renamed PASS.
+- Concurrency must stay separated: concurrent blocked-overlap and sequential
+  replay checks pass, as do Wallet one-winner and Kids shared-source races.
+  Additional lock-synchronized actual Adult/Private API success-race characterization
+  produced200/200 and2descendants both on the corrected artifact's disposable
+  build and on a separate production build using the pre-fix a433ac5 route.
+  Single-winner expectation FAIL is a pre-existing, unchanged mutation-path
+  defect. It was not repaired, concealed or included in a blanket concurrency PASS.
+- Separate source findings: Admin Makeup's fallback overlap query lacks booking
+  and session cancellation filters. Reschedule page/client omit cancelled_at and
+  may still block a session-only-cancelled exact choice in the selector. Neither
+  was changed by this approved helper-query correction. No adjacent fix began.
+- Application committed/pushed as4f3d51ad3903913a5538d2c764016d5b06201f5b; the staged Production artifact is
+  dpl_CwMvXZn7efzMnYEUR7oCZu2WshAG, https://new-athlete-badminton-school-oi5se5wv4-aachanin1s-projects.vercel.app. Build worker366inputs/219outputs match the committed source,
+  with only Vercel's verified config normalization.28read-only staged requests
+  and scoped error/5xx queries passed. Customer aliases, environment and controls
+  remained unchanged. Compatible recovery candidate is the current customer
+  artifact dpl_GbtDjNimNG51V1D6Ad8VVnooZ7w6/e361e47.
+- Disposable Owner UAT on3101 uses the same application source, real Node clock,
+  local Supabase54321 and Production BUILD_ID RDOjSV4r7Vgi3wQuJUiO8. It is not the
+  Vercel artifact or Production transaction evidence. A separate synthetic account
+  passed the real UI cancellation case plus active overlap, sibling and boundary
+  checks; the Owner account remains unconsumed. No real customer impersonation,
+  fixture, booking, notification or data repair occurred.
+- At this handoff: scoped Source complete/committed/pushed/staged; Owner UAT not
+  performed; Promotion not performed; correction not customer-Production-active;
+  post-Promotion health/log checks not performed; TASK DONE No. No real Environment,
+  flag, allowlist, migration, control, cron, data or financial operation.
+- next dev generated a managed AGENTS.md block. Its source generator and local
+  bundled Route Handler guidance were inspected; exact generated-only content was
+  recorded then removed. No AGENTS.md change is committed. Private temporary test,
+  deployment, screenshots and manifests stay outside the repository.
+- Next: exact Owner acceptance with disclosed limitations, then authorized exact
+  Promotion without rebuild and Production identity/health/log postchecks. Prior
+  re-wallet history remains preserved locally; no automatic adjacent repair.
