@@ -1381,7 +1381,12 @@ test.describe('Lesson source attendance admission', () => {
     const children = course === 'private' ? [null, randomUUID(), randomUUID()] : course === 'kids_group' ? [randomUUID()] : [null]
     const ids = children.map(()=>randomUUID())
     const date = localSql(`SELECT ${future ? "(date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 9 days')::date" : "((clock_timestamp() AT TIME ZONE 'Asia/Bangkok')::date-1)"}::text;`)
-    localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.source_write','authorized',true);
+    // Synthetic pre-cutover rights, using the same isolation as seedTask10Family.
+    // Restore the exact policy before commit; every API assertion uses the guards.
+    localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1);
+      CREATE TEMP TABLE lesson_source_fixture_policy ON COMMIT DROP AS SELECT * FROM task10_policy_activation;
+      UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
+      SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.source_write','authorized',true);
       INSERT INTO branches(id,name,slug) VALUES('${branch}','Synthetic lesson source','synthetic-${branch}');
       INSERT INTO course_types(id,name,max_students,duration_hours) VALUES('${courseId}','${course}',1,1) ON CONFLICT(name) DO NOTHING;
       ${children.filter(Boolean).map(child=>`INSERT INTO children(id,parent_id,full_name) VALUES('${child}','${parent}','Synthetic exact learner');`).join('\n')}
@@ -1392,10 +1397,17 @@ test.describe('Lesson source attendance admission', () => {
       INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
       VALUES('${slot}','${template}','${branch}','${courseId}','${date}','10:00','11:00',1,${ids.length},'open');
       ${ids.map((id,i)=>`INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
-      VALUES('${id}','${booking}','${slot}','${date}','10:00','11:00','${branch}',${children[i]?`'${children[i]}'`:'NULL'},'scheduled',false);`).join('\n')} COMMIT;`)
+      VALUES('${id}','${booking}','${slot}','${date}','10:00','11:00','${branch}',${children[i]?`'${children[i]}'`:'NULL'},'scheduled',false);`).join('\n')}
+      UPDATE task10_policy_activation a SET state=p.state,effective_at=p.effective_at,pricing_enabled=p.pricing_enabled,makeup_enabled=p.makeup_enabled,expiry_enabled=p.expiry_enabled FROM lesson_source_fixture_policy p;
+      DO $fixture$ BEGIN IF (SELECT to_jsonb(a) FROM task10_policy_activation a) IS DISTINCT FROM (SELECT to_jsonb(p) FROM lesson_source_fixture_policy p) THEN RAISE EXCEPTION 'FIXTURE_POLICY_DRIFT'; END IF; END $fixture$;
+      COMMIT;`)
     return { branch, courseId, booking, template, slot, ids, children, date }
   }
   test.beforeAll(async ({playwright, baseURL}) => {
+    // Other focused groups mock Task10's clock to 2031. These API fixtures use
+    // real Bangkok dates, so restore real clock semantics without changing policy.
+    localSql(`CREATE OR REPLACE FUNCTION public.task10_clock_v1() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path=pg_catalog AS $clock$ SELECT clock_timestamp() $clock$;
+      CREATE OR REPLACE FUNCTION public.task10_transaction_start_v1() RETURNS timestamptz LANGUAGE sql STABLE SET search_path=pg_catalog AS $clock$ SELECT transaction_timestamp() $clock$;`)
     const {createServerClient} = await import('@supabase/ssr')
     const {getLocalSupabaseEnv} = await import('../booking-regression/local-supabase')
     const env = getLocalSupabaseEnv()
@@ -1502,7 +1514,7 @@ test.describe('Lesson source attendance admission', () => {
       await expect(concurrentLocalSql(`SET lock_timeout='150ms'; ${returnSql(f.ids[0])}`)).rejects.toThrow('lock timeout')
     }finally{await held.finish()}
     expect(sourceState(f.booking)).toEqual(before)
-    localSql(`UPDATE bookings SET status='cancelled' WHERE id='${f.booking}';`)
+    localSql(`BEGIN; SELECT set_config('task10.payment_write','authorized',true); UPDATE bookings SET status='cancelled' WHERE id='${f.booking}'; COMMIT;`)
     expect((await db().from('attendance').insert(attendance(f.ids[1],f.children[1]))).error?.message).toContain('STALE')
     expect(sourceState(f.booking).attendance).toBe(0)
   })
@@ -1513,10 +1525,10 @@ test.describe('Lesson source attendance admission', () => {
       ON CONFLICT DO NOTHING;`)
     return {targetDate,startTime:'12:00',endTime:'13:00',branchId:f.branch,scheduleTemplateId:template}
   }
-  const paidEvidence = (f: Awaited<ReturnType<typeof fixture>>) => localSql(`
+  const paidEvidence = (f: Awaited<ReturnType<typeof fixture>>) => localSql(`BEGIN; SELECT set_config('task10.payment_write','authorized',true);
     INSERT INTO payments(booking_id,user_id,amount,status,verified_at) VALUES('${f.booking}','${parent}',500,'approved',clock_timestamp());
     INSERT INTO pricing_tiers(course_type_id,min_sessions,max_sessions,price_per_session,package_price,valid_from)
-    SELECT '${f.courseId}',1,1,500,500,'2020-01-01' WHERE NOT EXISTS(SELECT 1 FROM pricing_tiers WHERE course_type_id='${f.courseId}');`)
+    SELECT '${f.courseId}',1,1,500,500,'2020-01-01' WHERE NOT EXISTS(SELECT 1 FROM pricing_tiers WHERE course_type_id='${f.courseId}'); COMMIT;`)
   for(const [course,day] of [['adult_group',2],['private',5]] as const) for(const same of [true,false]) {
     test(`${course}: same-source reschedule ${same?'replay':'conflict'} race commits one descendant`,async()=>{
       const f=await fixture(course,true), to=target(f,day+(same?0:1)), other=same?to:target(f,day+2)
@@ -1548,7 +1560,7 @@ test.describe('Lesson source attendance admission', () => {
   test('Family Store/Redeem/Re-wallet preserves every identity, stored expiry and one effect per replay',async()=>{
     const f=await fixture('private',true);paidEvidence(f)
     const otherSlot=randomUUID(), otherTemplate=randomUUID(), otherDate=f.date.slice(0,8)+'11', otherIds=f.children.map(()=>randomUUID())
-    localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true);
+    localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.payment_write','authorized',true);
       UPDATE bookings SET total_sessions=2,total_price=1000 WHERE id='${f.booking}';
       UPDATE payments SET amount=1000 WHERE booking_id='${f.booking}';
       INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
@@ -1559,7 +1571,7 @@ test.describe('Lesson source attendance admission', () => {
         VALUES('${id}','${f.booking}','${otherSlot}','${otherDate}','10:00','11:00','${f.branch}',${f.children[i]?`'${f.children[i]}'`:'NULL'},'scheduled',false);`).join('\n')} COMMIT;`)
     const otherUnit=()=>localSql(`SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM booking_sessions s WHERE schedule_slot_id='${otherSlot}';`), beforeUnit=otherUnit()
     const untouched=await fixture('private',true), otherParent=readTask10Fixture().otherUserId
-    localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true);
+    localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.payment_write','authorized',true);
       UPDATE bookings SET user_id='${otherParent}',branch_id='${f.branch}' WHERE id='${untouched.booking}';
       UPDATE children SET parent_id='${otherParent}' WHERE id IN (${untouched.children.filter(Boolean).map(value=>sqlLiteral(value!)).join(',')});
       UPDATE booking_sessions SET branch_id='${f.branch}',schedule_slot_id='${f.slot}' WHERE booking_id='${untouched.booking}'; COMMIT;`)
