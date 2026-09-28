@@ -758,6 +758,121 @@ test('reschedule cancellation filtering preserves exact learner overlap through 
   await testInfo.attach('cancellation-api-db-results', { body: JSON.stringify(results, null, 2), contentType: 'application/json' })
 })
 
+test('reschedule cancellation selector allows real UI confirmation and preserves active conflicts', async ({ page }, testInfo) => {
+  test.setTimeout(300_000)
+  verifyDisposableIdentity()
+  const admin = createLocalAdmin()
+  const must = async (query: PromiseLike<{ error: { message: string } | null }>) => {
+    const { error } = await query
+    if (error) throw new Error(error.message)
+  }
+  const email = `reschedule-ui-${randomUUID()}@example.com`
+  const password = 'SyntheticReschedule!2031'
+  const auth = await admin.auth.admin.createUser({ email, password, email_confirm: true })
+  if (auth.error) throw auth.error
+  const userId = auth.data.user.id
+  const children = [randomUUID(), randomUUID()]
+  const branchId = randomUUID()
+  await must(admin.from('profiles').update({ role: 'user', full_name: 'Synthetic selector parent' }).eq('id', userId))
+  await must(admin.from('children').insert(children.map((id, i) => ({ id, parent_id: userId,
+    full_name: `Synthetic selector child ${i + 1}`, nickname: `Selector ${i + 1}`, date_of_birth: '2016-01-01' }))))
+  await must(admin.from('branches').insert({ id: branchId, name: 'Selector regression branch', slug: `selector-${branchId}`, is_active: true }))
+  await loginAs(page, email, password)
+  const sql = (query: string) => execFileSync('docker', ['exec', '-i', DB_CONTAINER,
+    'psql', '-U', 'postgres', '-d', 'postgres', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'],
+  { input: query, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
+  const protectedSnapshot = () => sql(`SELECT jsonb_build_object(${[
+    'bookings', 'payments', 'attendance', 'lesson_wallet_credits', 'coupons', 'pricing_tiers',
+    'progressive_payment_allocations', 'finance_expenses', 'coach_weekly_teaching_summaries',
+  ].map(table => `'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]') FROM public.${table} t)`).join(',')})::text`)
+  const cases = [
+    { name: 'A parent cancellation', parentCancelled: true },
+    { name: 'B session-only cancellation', sessionCancelled: true },
+    { name: 'C both cancellations', parentCancelled: true, sessionCancelled: true },
+    { name: 'active exact conflict', blocked: true },
+    { name: 'active cross-course conflict', rejected: true },
+    { name: 'sibling', sibling: true },
+    { name: 'touching boundary', boundary: true },
+    { name: 'Adult session-only cancellation', sessionCancelled: true, course: fixture.adultCourseId },
+    { name: 'Kids shared-page session-only cancellation', sessionCancelled: true, course: fixture.kidsCourseId },
+  ]
+  const results: object[] = []
+  for (const scenario of cases) {
+    const courseId = scenario.course || fixture.privateCourseId
+    const dates = ['2031-07-28', '2031-07-29']
+    const templates = [randomUUID(), randomUUID()]
+    const slots = [randomUUID(), randomUUID()]
+    const bookings = [randomUUID(), randomUUID()]
+    const sessions = [randomUUID(), randomUUID()]
+    const cancelled = !!(scenario.parentCancelled || scenario.sessionCancelled)
+    await must(admin.from('schedule_templates').insert(dates.map((date, i) => ({ id: templates[i],
+      branch_id: branchId, course_type_id: courseId, day_of_week: new Date(`${date}T00:00:00Z`).getUTCDay(),
+      start_time: '16:00', end_time: '17:00', is_active: true }))))
+    await must(admin.from('schedule_slots').insert(dates.map((date, i) => ({ id: slots[i], template_id: templates[i],
+      branch_id: branchId, course_type_id: courseId, date, start_time: '16:00', end_time: '17:00', status: 'open', current_students: 0 }))))
+    await must(admin.from('bookings').insert(bookings.map((id, i) => ({ id, user_id: userId, learner_type: 'child',
+      child_id: children[i && scenario.sibling ? 1 : 0], branch_id: branchId,
+      course_type_id: i && scenario.rejected ? fixture.adultCourseId : courseId,
+      month: 7, year: 2031, total_sessions: 1, entitlement_sessions: 1, total_price: 700,
+      status: i && scenario.parentCancelled ? 'cancelled' : 'verified' }))))
+    await must(admin.from('booking_sessions').insert(dates.map((date, i) => ({ id: sessions[i], booking_id: bookings[i],
+      schedule_slot_id: slots[i], date, branch_id: branchId, child_id: children[i && scenario.sibling ? 1 : 0],
+      start_time: i && scenario.boundary ? '17:00' : '16:00', end_time: i && scenario.boundary ? '18:00' : '17:00',
+      status: 'scheduled', cancelled_at: i && scenario.sessionCancelled ? '2026-09-27T03:23:00Z' : null }))))
+    const before = protectedSnapshot()
+    const original = await admin.from('booking_sessions').select('*').in('booking_id', bookings).order('id')
+    expect(original.error).toBeNull()
+    await page.goto('/dashboard/reschedule')
+    // Both the source list and selector must receive only eligible sessions.
+    const sourceButtons = page.getByRole('button', { name: 'เปลี่ยน', exact: true })
+    await expect.soft(sourceButtons, `${scenario.name}: cancelled source hidden`).toHaveCount(cancelled ? 1 : 2)
+    const sourceCount = await sourceButtons.count()
+    await page.getByRole('button', { name: 'เปลี่ยน', exact: true }).first().click()
+    const dialog = page.getByRole('dialog')
+    const day = dialog.getByRole('button', { name: '29', exact: true })
+    const dayDisabled = await day.isDisabled()
+    if (!dayDisabled) await day.click()
+    const branch = dialog.locator('div').filter({ has: page.locator('p', { hasText: /^Selector regression branch$/ }) }).filter({ has: page.getByRole('button', { name: /16:00-17:00/ }) }).last()
+    const slot = branch.getByRole('button', { name: /16:00-17:00/ })
+    const disabled = dayDisabled || await slot.isDisabled()
+    expect.soft(disabled, `${scenario.name}: target selection`).toBe(!!scenario.blocked)
+    let status: number | null = null
+    if (!disabled) {
+      await slot.click()
+      const pending = page.waitForResponse(response => new URL(response.url()).pathname === '/api/reschedule' && response.request().method() === 'POST')
+      await dialog.getByRole('button', { name: 'ยืนยันการเปลี่ยน', exact: true }).click()
+      const response = await pending
+      status = response.status()
+      expect(status, `${scenario.name}: ${await response.text()}`).toBe(scenario.rejected ? 500 : 200)
+      if (scenario.rejected) await expect(dialog.getByText(/ซ้ำหรือซ้อน/)).toBeVisible()
+      else await expect(dialog.getByRole('heading', { name: 'เปลี่ยนวันสำเร็จ' })).toBeVisible()
+    }
+    const after = await admin.from('booking_sessions').select('*').in('booking_id', bookings).order('id')
+    expect(after.error).toBeNull()
+    expect(after.data?.find(row => row.id === sessions[1])).toEqual(original.data?.find(row => row.id === sessions[1]))
+    if (status === 200) {
+      expect(after.data?.find(row => row.id === sessions[0])?.status).toBe('rescheduled')
+      const descendants = after.data?.filter(row => row.rescheduled_from_id === sessions[0]) || []
+      expect(descendants).toHaveLength(1)
+      expect(descendants[0]).toMatchObject({ booking_id: bookings[0], child_id: children[0],
+        date: dates[1], start_time: '16:00:00', end_time: '17:00:00', schedule_slot_id: slots[1], status: 'scheduled' })
+    } else expect(after.data).toEqual(original.data)
+    expect(protectedSnapshot(), `${scenario.name}: protected data`).toBe(before)
+    await page.reload()
+    await expect.soft(sourceButtons, `${scenario.name}: reload`).toHaveCount(cancelled ? 1 : 2)
+    results.push({ scenario: scenario.name, sourceCount, disabled, status, protectedDelta: 0 })
+    await testInfo.attach(`selector-${results.length}`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+    // Kids retains an audited source-mutation FK. The suite's disposable reset
+    // removes that final scenario without bypassing its history safeguards.
+    if (courseId === fixture.kidsCourseId) continue
+    await must(admin.from('booking_sessions').delete().in('booking_id', bookings))
+    await must(admin.from('bookings').delete().in('id', bookings))
+    await must(admin.from('schedule_slots').delete().in('id', slots))
+    await must(admin.from('schedule_templates').delete().in('id', templates))
+  }
+  await testInfo.attach('selector-ui-db-results', { body: JSON.stringify(results, null, 2), contentType: 'application/json' })
+})
+
 test('reschedule overlap read failure fails closed before any mutation', async () => {
   // Execute the actual source helper, including its query and error branch.
   const source = ts.createSourceFile('route.ts', readFileSync(resolve('src/app/api/reschedule/route.ts'), 'utf8'), ts.ScriptTarget.Latest, true)

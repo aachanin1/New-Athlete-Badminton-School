@@ -61,6 +61,7 @@ export default async function ReschedulePage() {
       .eq('bookings.user_id', user.id)
       .eq('bookings.status', 'verified')
       .eq('status', 'scheduled')
+      .is('cancelled_at', null)
       .gte('date', today)
       .order('date', { ascending: true }) as unknown as PromiseLike<{ data: RescheduleSessionRow[] | null }>,
     supabase
