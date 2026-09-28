@@ -6,9 +6,9 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **User Reschedule cancellation through selector and confirmation — READY FOR OWNER UAT.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns exact source/artifact and all mutable states. UI9cases, API/DB28 and focused/protected checks pass.
-- Existing Adult/Private simultaneous-success concurrency FAIL and Admin Makeup remain Parking Lot. Selector dependency is now corrected; client/API mutation paths unchanged this round.
-- **Next:** Owner uses the preserved synthetic fixture and performs exact staged read-only acceptance, returning PASS/FAIL for dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128662ea58bbfb6613df73e5dfec14c6aaa. No Promotion yet; TASK DONE No. Preserve prior re-wallet local-only documentation.
+- **User Reschedule cancellation fix — TASK DONE / Production Active.** Owner PASS for dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128662ea58bbfb6613df73e5dfec14c6aaa; promoted that same Production artifact without rebuild at 2026-09-28T14:31:59.370Z. Customer aliases, health/assets/protection and scoped error logs pass. [Current matrix](PROJECT_STATE.md#current-project-matrix).
+- Source/tests/config/migrations unchanged in this round; only Docs3 closeout published. Previous re-wallet Docs3 remain local-only and must not be published or repeated.
+- **Next:** No further cancellation release action. Adult/Private simultaneous-success known FAIL and Admin Makeup remain Parking Lot; no automatic adjacent fix. The closeout docs SHA is not an application artifact.
 
 ## Preserved prior work — Historical
 

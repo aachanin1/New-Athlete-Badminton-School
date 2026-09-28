@@ -28053,3 +28053,56 @@ Promotion No; customer fix active No; post-Promotion checks not yet applicable;
 TASK DONE No. Exact Owner PASS must name the new artifact/SHA, then promote it
 without rebuild and verify identity/aliases/health/logs. Published Docs3 exclude
 prior local-only re-wallet work; private credentials/evidence are not committed.
+
+<a id="reschedule-cancellation-promotion-2026-09-28"></a>
+## 2026-09-28 — Exact Owner PASS, no-rebuild Promotion and Production closeout
+
+Owner explicitly relayed: "Pass, artifact dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV and SHA bb5bf128662ea58bbfb6613df73e5dfec14c6aaa".
+That acceptance authorizes this exact existing staged Production artifact only.
+Gate0 confirmed ea4acb6/live remote0/0, only prior re-wallet Docs3 local-only diff,
+and no source/tests/config changes since the tested application. Baseline bytes and
+patch preserved privately before edits. This round Functional0/Test0/Config0/
+Migration0/Docs3, with no scope breach or business-flow expansion.
+
+Fresh Vercel audit verified project prj_v034HOI6AjaMpBezWvuvT0W24pTp/team
+team_gw8Y6CPd602WAKRsVFobPGCL, approved READY Production deployment and SHA,
+366worker input/219output evidence, unchanged build records and bound test results.
+Customer aliases still pointed to dpl_GbtDjNimNG51V1D6Ad8VVnooZ7w6/e361e47 before action;
+its READY state and health200 were rechecked. Same schema/config/Task10/Wallet
+compatibility; only3functional cancellation predicates differ. No newer customer
+release was overwritten. Inspected installed CLI requestPromote: Production target
+uses existing deployment Promotion, whereas a Preview would create another build.
+
+Executed only vercel promote dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV; requested 2026-09-28T14:31:53.670Z,
+completed 2026-09-28T14:31:59.370Z, exit0 (21:31:59 Bangkok). Post-read confirms exact
+deployment ID/SHA and createdAt/buildingAt/ready/build records unchanged. No build,
+deploy, redeploy, alternative candidate or rollback. All4customer aliases now
+point to the approved deployment, including www.newathleteschool.com.
+
+Production read-only postchecks: 44requests on /, /auth/login, /api/health,
+/dashboard/reschedule auth redirect across the exact URL and4aliases, plus24
+static/image assets at customer domain. Health200/ok and protection pass. GET
+semantics checked. No authorized Production customer credentials were supplied;
+authenticated Reschedule view and business transactions were not performed.
+Exact-deployment/all-route error and5xx logs:0/0, UTC 2026-09-28T14:31:53.670Z
+through 2026-09-28T14:35:01.732Z. No observed task-attributable regression; absence of
+errors is not presented as proof of a real customer transaction.
+
+Existing source-bound evidence reused without unnecessary full rerun: UI9,
+API/DB28, Booking5/5, adjacent Kids/Wallet2/2, Wallet45, read-failure guard,
+TypeScript/lint/build/mojibake/diff and synthetic backend reconciliation. Owner
+PASS is separate from these automated checks. Adult/Private success race remains
+known FAIL; Admin Makeup remains unmodified Parking Lot.
+
+Pre/post environment/protection unchanged; read-only DB checks retain Task10
+active revision5/original effective_at and enabled pricing/makeup/expiry plus
+active every-minute cron. Feature flags/allowlists/permissions/controls/migrations
+unchanged. Production Data Changed by task No, Data Repaired No, financial
+operation0. No customer write/test/repair/backfill/re-wallet repeat or messaging.
+
+Cancellation fix now customer-Production-active. Docs3 closeout replaces current
+pending UAT/Promotion statements, preserves dated history and excludes all prior
+re-wallet local-only work via separately derived index content. This containing
+docs commit/push is not an application SHA and requires no rebuild/deploy. TASK
+DONE Yes after closeout publication verification; no further release blocker.
+Private release proof: C:/Users/aacha/AppData/Local/Temp/reschedule-cancellation-20260928/selector/promotion.
