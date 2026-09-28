@@ -152,7 +152,7 @@ BEGIN
       v_template,v_branch,v_date,v_start,v_end,(p_payload->>'requestId')::uuid);
   ELSIF p_operation='return_entitlement' THEN
     IF EXISTS(SELECT 1 FROM public.booking_sessions WHERE id=ANY(v_ids) AND
-      (status::text NOT IN ('scheduled','absent') OR is_makeup OR schedule_slot_id IS NULL
+      (status::text IN ('walleted','rescheduled','cancelled') OR is_makeup OR schedule_slot_id IS NULL
        OR (date+end_time) AT TIME ZONE 'Asia/Bangkok'>=v_now))
       OR EXISTS(SELECT 1 FROM public.attendance WHERE booking_session_id=ANY(v_ids)) THEN RAISE EXCEPTION 'LESSON_SOURCE_RETURN_INELIGIBLE'; END IF;
     -- Admin's original same-month expiry is not the customer Store package policy.

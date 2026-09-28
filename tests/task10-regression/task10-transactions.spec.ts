@@ -1662,13 +1662,14 @@ test.describe('Lesson source attendance admission', () => {
     expect(sources.map(f=>sourceState(f.booking).credits)).toEqual([0,0])
   })
   test('Return faults after every business write roll back source, members, assignments, audit and notifications',async()=>{
-    const stages=[['lesson_wallet_credits','INSERT'],['lesson_wallet_credit_members','INSERT'],['booking_sessions','UPDATE'],['coach_assignment_group_students','DELETE'],['activity_logs','INSERT'],['notifications','INSERT'],['lesson_source_operations','INSERT']] as const
+    const stages=[['lesson_wallet_credits','INSERT'],['lesson_wallet_credit_members','INSERT'],['booking_sessions','UPDATE'],['coach_assignment_group_students','DELETE'],['schedule_slots','UPDATE'],['activity_logs','INSERT'],['notifications','INSERT'],['lesson_source_operations','INSERT']] as const
     const f=await fixture('private'), group=randomUUID()
     localSql(`INSERT INTO coach_assignment_groups(id,schedule_slot_id,name) VALUES('${group}','${f.slot}','Synthetic fault roster');
       INSERT INTO coach_assignment_group_students(group_id,booking_session_id,student_id,student_type)
       VALUES('${group}','${f.ids[0]}','${parent}','adult');`)
     const snapshot=()=>localSql(`SELECT md5(jsonb_build_object(
       'sessions',(SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM booking_sessions t WHERE booking_id='${f.booking}'),
+      'slots',(SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM schedule_slots t WHERE id='${f.slot}'),
       'credits',(SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM lesson_wallet_credits t WHERE booking_id='${f.booking}'),
       'members',(SELECT jsonb_agg(to_jsonb(t) ORDER BY credit_id,original_session_id) FROM lesson_wallet_credit_members t),
       'assignments',(SELECT jsonb_agg(to_jsonb(t) ORDER BY id) FROM coach_assignment_group_students t),
@@ -1835,6 +1836,22 @@ test.describe('Lesson source attendance admission', () => {
     expect(localSql(`SELECT count(*) FROM booking_sessions WHERE booking_id='${f.booking}' AND is_makeup;`)).toBe('2')
     expect(localSql(`SELECT count(*) FROM notifications WHERE user_id='${parent}' AND title='ได้รับวันชดเชยแล้ว'
       AND message='Admin จัดวันชดเชยให้วันที่ ${to.targetDate} เวลา ${to.startTime}-${to.endTime} เรียบร้อยแล้ว' AND link_url='/dashboard/schedule';`)).toBe('1')
+  })
+  test('Adult and Family Return use Attendance evidence rather than a completed status cache',async()=>{
+    for(const course of ['adult_group','private'] as const){
+      const f=await fixture(course)
+      localSql(`UPDATE booking_sessions SET status='completed' WHERE booking_id='${f.booking}';`)
+      const response=await adminApi.patch('/api/admin/makeup',{data:{session_id:f.ids[0],action:'return_entitlement',reason:'Synthetic completed cache without attendance'}})
+      expect(response.status()).toBe(200)
+      expect(sourceState(f.booking)).toMatchObject({attendance:0,credits:1,members:f.ids.length})
+    }
+    for(const status of ['present','late','absent']){
+      const f=await fixture('private'), member=2
+      expect((await db().from('attendance').insert(attendance(f.ids[member],f.children[member],status))).error).toBeNull()
+      const before=sourceState(f.booking)
+      const response=await adminApi.patch('/api/admin/makeup',{data:{session_id:f.ids[0],action:'return_entitlement',reason:'Synthetic exact attendance is authoritative'}})
+      expect(response.status()).toBe(409);expect(sourceState(f.booking)).toEqual(before)
+    }
   })
   test('Actual Kids Makeup API retains default source child, exact replay and family quota evidence',async()=>{
     const family=await seedTask10Family(), f=readTask10Fixture()
