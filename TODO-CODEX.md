@@ -6,9 +6,9 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **User Reschedule cancellation filtering — READY FOR OWNER UAT for the scoped API correction.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns Source, tests, artifact and all mutable states.
-- Scoped cancellation regressions pass. The independent, pre-existing Adult/Private simultaneous-success race fails on both baseline and corrected source; it is disclosed, not repaired or relabeled PASS. Admin Makeup and selector observations remain separate.
-- **Next:** Owner tests the supplied disposable fixture and accepts/rejects the exact staged artifact with documented limitations. No Promotion before exact Owner PASS; TASK DONE requires Promotion and postchecks. Prior local-only re-wallet documentation remains local; no automatic adjacent work.
+- **User Reschedule cancellation through selector and confirmation — READY FOR OWNER UAT.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns exact source/artifact and all mutable states. UI9cases, API/DB28 and focused/protected checks pass.
+- Existing Adult/Private simultaneous-success concurrency FAIL and Admin Makeup remain Parking Lot. Selector dependency is now corrected; client/API mutation paths unchanged this round.
+- **Next:** Owner uses the preserved synthetic fixture and performs exact staged read-only acceptance, returning PASS/FAIL for dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128662ea58bbfb6613df73e5dfec14c6aaa. No Promotion yet; TASK DONE No. Preserve prior re-wallet local-only documentation.
 
 ## Preserved prior work — Historical
 

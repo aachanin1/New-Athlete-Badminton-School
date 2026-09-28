@@ -28005,3 +28005,51 @@ State observed at this handoff; PROJECT_STATE.md owns current state.
 - Next: exact Owner acceptance with disclosed limitations, then authorized exact
   Promotion without rebuild and Production identity/health/log postchecks. Prior
   re-wallet history remains preserved locally; no automatic adjacent repair.
+
+<a id="reschedule-cancellation-selector-2026-09-28"></a>
+## 2026-09-28 — Owner-authorized selector dependency completes cancellation UI behavior
+
+This supersedes the previous API-only readiness handoff; that record remains historical.
+Owner approved the shared User Reschedule page dependency, including Kids reads,
+without approving Kids RPC, Wallet, Admin Makeup or concurrency changes.
+Gate0 verified d7e02d0/live remote0/0 and preserved exactly the prior Docs3 local-only
+re-wallet baseline. No new customer log investigation was performed.
+
+The query feeds both source cards and client slot blockers. Retaining verified-only
+bookings already excludes parent cancellations; adding cancelled_at IS NULL removes
+session-only tombstones from both uses. Minimal functional change:1line/page1;
+client and existing4f3d51a API correction unchanged. Test1, Docs3;5paths this round,
+6unique paths across both rounds. No scope breach or extra technical dependency.
+
+Before-fix browser evidence shows B as2sources instead of1 and day29 disabled while
+the booking remained verified and session scheduled. The first test timed out on
+that disabled button; a separate reload-count assertion initially raced streamed
+rendering. The test now observes disabled-day state and waits for rendered counts.
+A subsequent green run completed9UI assertions but cleanup hit the Kids source-audit FK; the final scenario now relies on suite disposable reset. None of these failed harness runs was relabeled PASS. After-fix9UI cases cover A/B/C real
+confirmation, active exact block, cross-course API rejection from UI, siblings,
+touching boundary, Adult and Kids B, reload and cancelled-source exclusion.
+28API/DB cases retained; faulted read stays fail-closed. Protected snapshots and
+cancelled originals unchanged; success/rejection source, descendant, learner,
+assignment and canonical slot evidence verified. Booking5/5, Kids/Wallet2/2,
+Wallet45/45, tsc/lint/Production build/mojibake279/diff checks pass. Adjacent setup logged transient ECONNRESET while waiting for Auth after reset, recovered via its existing retry, and completed.
+
+Existing Adult/Private success-race FAIL characterization is reused because mutation
+source is unchanged; it remains200/200 and2descendants on both baselines. No blanket
+concurrency PASS. Admin Makeup fallback filtering remains unmodified Parking Lot.
+
+Application committed/pushed bb5bf128662ea58bbfb6613df73e5dfec14c6aaa; staged Production dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV, https://new-athlete-badminton-school-rnfh3xbig-aachanin1s-projects.vercel.app.
+Verified366worker inputs/219outputs and28read-only requests;
+scoped staged error/5xx logs0events. Fresh recovery candidate dpl_GbtDjNimNG51V1D6Ad8VVnooZ7w6
+remains on customer aliases/e361e47. No promotion, aliases/environment/controls/data
+change. Older dpl_CwMvXZn7efzMnYEUR7oCZu2WshAG is superseded for this task.
+Disposable localhost3101 uses the same application source with separate build
+AtHy5j53XgvNoqwqB4vfd; automated User completed6button-driven submissions and DB checks;
+Owner synthetic fixture is unconsumed. Physical API/Auth/REST/Storage DB binding,
+container/workdir/owned volume verified before writes. Real DB staged reads only;
+GET paths checked for business side effects. No customer write/repair/backfill.
+
+Source complete, committed, pushed, staged and READY FOR OWNER UAT. Owner UAT No;
+Promotion No; customer fix active No; post-Promotion checks not yet applicable;
+TASK DONE No. Exact Owner PASS must name the new artifact/SHA, then promote it
+without rebuild and verify identity/aliases/health/logs. Published Docs3 exclude
+prior local-only re-wallet work; private credentials/evidence are not committed.
