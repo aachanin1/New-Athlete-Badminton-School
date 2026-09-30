@@ -1,8 +1,34 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-30 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-10-01 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — ชุดที่ 1 / READY FOR OWNER UAT — local disposable only
+## Current State — ชุดที่ 1 / DEVELOPING — HARD STOP after Dev UAT
+
+Owner requested step-by-step Developer UI UAT with screenshots. All six steps were
+executed on the exact existing local artifact and owned disposable: **5 PASS / 1 FAIL**.
+Return expiry violates the protected Bangkok month-end rule. **NOT READY FOR OWNER
+UAT; full UAT FAIL; TASK DONE No.** No Source correction or Production action in this round.
+
+### Current Project Matrix
+
+| Field | Current verified state |
+| --- | --- |
+| Task / actor / status | Set1 Developer-assisted User/SA UAT; DEVELOPING / HARD STOP — NOT READY FOR OWNER UAT. Dev UAT5PASS/1FAIL; manual Owner UAT pending; TASK DONE No. |
+| Scope / paths / blast radius | Existing six UI flows on existing isolated artifact plus read-only DB reconciliation; only Docs4 updated: PROJECT_STATE, TODO-CODEX, DEVELOPMENT_TODO, docs/lesson-source-admission-v2-20260930. Functional/test/config/migration edits0. No expiry correction, historical-credit repair, pricing, settled-bill rewrite, Task2 or Production action. |
+| Source / Git / artifact | Application/test f6dc2c4d0da6b0ea930b335b7a24ebc4890b45da already committed/pushed. BuildID OivHfQVq4WVKnWXD3GZyF, tree0c320ca61ac9347bddae397c6445f2314c984e54, compiled hash aacb51b5c10d4a1878ed45eb9a8ae8925d1ac712b048271f8b8a35d1a4eb6d52;512inputs/721outputs verified before UAT. No rebuild or application Source change. Documentation-only successor publication recorded in private publication.json. |
+| UAT results / backend |1Reschedule PASS (Oct12; Oct5 correctly blocked by retained overlap);2Family Store/Redeem PASS;3Return/Makeup FAIL overall (unit/makeup pass, expiry fail);4two-tab same-source PASS one effect;5independent Attendance/Family Redeem PASS;6Finance PASS month/year/reload. Exact DB identities/effects and4canonical active templates/8descendants reconciled. UI timing does not prove precise lock overlap; retained barrier tests provide separate evidence. |
+| New confirmed failure / root cause | Return credit d3a78da4-0b8b-4c19-bc85-79d3e36f4954 stored expiry2026-10-01 13:59:59.999 Bangkok; expected2026-09-30 23:59:59.999 Bangkok,14hours late. SQL implicit date_trunc(date) timestamptz overload then AT TIME ZONE/cast under UTC causes offset. Same expression in Set1 published v1 line163 and v2 line142; not a Production-active Set1 finding. No fix/data repair made. |
+| Tests / acceptance limits | Previous exact-artifact runtime/UI76/76 and retrospective38/38 plus target/protected/TypeScript/lint/build passed their existing coverage; missing independent expected Return-expiry assertion means they do not certify full expiry-policy compliance. New UI+DB Dev UAT FAIL5/6 overrides prior READY handoff. No Source tests/build rerun this documentation-only round. |
+| Isolated schema / data / controls | Only owned LessonSourceResume20260930/API64601/DB64602. UAT business writes through UI; SQL read-only with physical-target guard each invocation.45migrations and definition/ACL/RLS/policy signatures unchanged;0idle transactions. No new fixture reset/deletion/expiry extension; fixtures now consumed. Task10 controls unchanged. |
+| Finance / financial effects | All checkpoint financialHash6d821e54f20d15707cd5cbc60d2de5f3 unchanged across bookings/payments/allocations/expenses/payroll/coupons; exact booking rows unchanged. SQL/UI Sep revenue/net364000THB, year373500THB, Oct9500THB, costs0 — synthetic disposable amounts. Released Finance Source preserved. |
+| URL / evidence / UAT state | http://admission.localhost:3131 and separate-SA-origin http://127.0.0.1:3131 on same artifact; local services retained. Private DEV-UAT.md, originals*.jpg, reconciliation/expiry-finance-audit/canonical-targets/snapshot JSON in C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930/dev-uat-20260930-1625. Old OWNER-UAT.md is historical fixture preparation; do not reuse consumed fixtures or extend credits. |
+| Production / Promotion / enablement | Set1 not deployed/enabled/allowlisted/Production active; PromotionNo; post-Promotion checks n/a. No Production migration/data/env/control/cron/permission/allowlist/deploy/Promotion, no real-customer write or repair. Previously verified Finance artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu / d4aff85 remains last release record; not re-queried during this local UAT. |
+| Preservation / Git boundaries | Main/Finance work and9protected hashes checked; pre-existing worktree AGENTS remains unstaged. Source/migrations unchanged from f6dc2c4; published v1/guards frozen. Docs4 only commit/push permitted; existing branch-only Git deployment guard retained, no hosted deployment operation. Prior failures and snapshots preserved. |
+| Next / hard stop / rollout | Recommend new explicit forward-only Return-expiry correction scope: new migration without rewriting published v1/v2, UTC/Bangkok month-end/leap/December tests and protected regression, new artifact/retest. Historical-credit repair, Production rollout/backup/fence/drain/rollback and Task2 need separate authorization; not executed. |
+
+Details: [Dev UAT follow-up](docs/lesson-source-admission-v2-20260930.md#dev-assisted-uat--2026-09-30--hard-stop).
+
+## Historical handoff — 2026-09-30 before Dev UAT / READY status superseded
 
 Owner approved the exact 2026-09-30 resume contract. Technical correction and
 verification are complete and committed/pushed; the exact local Production-mode
@@ -10,7 +36,7 @@ artifact is running for Owner review. Manual Owner UAT is PENDING. This is not
 Production readiness, Promotion authority, or TASK DONE. Historical failures and
 the 29Sep safety deviation remain preserved below; they are not relabeled PASS.
 
-### Current Project Matrix
+### Historical Resume Handoff Matrix
 
 | Field | Current verified state |
 | --- | --- |
@@ -32,6 +58,9 @@ the 29Sep safety deviation remain preserved below; they are not relabeled PASS.
 
 Full evidence and changed-path details: [Set1 resume report](docs/lesson-source-admission-v2-20260930.md).
 Private handoff/evidence root: C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930.
+
+
+The preceding handoff is historical: its Return expiry was a policy expectation, not an observed DB expiry. Subsequent Dev UAT above invalidates READY and corrects that documentation drift.
 
 ## Historical — 2026-09-29 admission correction / HARD STOP — NOT READY FOR OWNER UAT
 

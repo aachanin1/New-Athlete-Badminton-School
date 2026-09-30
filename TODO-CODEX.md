@@ -1,17 +1,17 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-30
+Last updated: 2026-10-01
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **ชุดที่ 1 — READY FOR OWNER UAT, local disposable only; TASK DONE No.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns verified states.
-- Application/test Source f6dc2c4 committed/pushed. Exact local Production-mode build OivHfQVq4WVKnWXD3GZyF runs at http://admission.localhost:3131/auth/login; no hosted deployment.
-- Final76/76 runtime/UI, retrospective38/38, fresh/upgrade parity, target guard, protected regression and TypeScript/lint/build/diff checks passed. Historical failures/safety deviation retained; no manual Owner PASS or Production readiness claim.
-- **Next:** Owner follows six-step private OWNER-UAT.md in C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930 and returns PASS/FAIL, then Developer reconciles DB/financial evidence. Sep Return fixture expires under existing month-end policy; prepare a fresh synthetic fixture if review crosses the month.
-- Finance Production artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu / d4aff85 is retained. No Production migration/write/env/controls/cron/allowlist/Promotion or Task2. Production rollout needs a separate explicit scope after local UAT.
-- Main/Finance pending work and admission AGENTS preserved. Branch-only auto-deploy guard is the disclosed direct technical dependency. [Detailed report](docs/lesson-source-admission-v2-20260930.md); [dated closeout](DEVELOPMENT_TODO.md#lesson-source-admission-v2-resume-2026-09-30).
+- **ชุดที่1 — DEVELOPING / HARD STOP, NOT READY FOR OWNER UAT; TASK DONE No.** Developer six-step UI UAT completed5PASS/1FAIL; manual Owner UAT pending. [Current matrix](PROJECT_STATE.md#current-project-matrix).
+- **Blocker:** Return expiry14hours past Bangkok month-end (1Oct13:59 instead of30Sep23:59). Confirmed SQL implicit time-type conversion in Set1 v1/v2; no expiry fix/credit repair made. Unit atomicity and Makeup passed; full step3 FAIL.
+- Reschedule, whole-Family Store/Redeem, two-tab same-source, independent Attendance/Redeem and Finance month/year/reload passed with exact DB reconciliation and original screenshots. Finance/financial rows/hash and controls unchanged.
+- Source/build remains f6dc2c4 / OivHfQVq4WVKnWXD3GZyF at local3131, owned disposable64601 only; no rebuild. Prior76/38 tests passed narrower coverage and missed independent expected expiry assertion; no full policy PASS claim.
+- **Next recommendation:** obtain a new exact forward-only Return-expiry correction scope (new migration, month-end/timezone tests, protected regression and new artifact/retest). No automatic correction, published migration rewrite, historical-credit repair, Task2 or Production operation. UAT fixtures consumed; preserve evidence, do not extend/revive/reset them.
+- Only Docs4 updated/published for this UAT closeout. Main/Finance/AGENTS pending work preserved; branch deploy guard retained. [Detailed report](docs/lesson-source-admission-v2-20260930.md#dev-assisted-uat--2026-09-30--hard-stop); [dated evidence](DEVELOPMENT_TODO.md#lesson-source-dev-uat-hard-stop-2026-09-30). Private images/report: C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930/dev-uat-20260930-1625/DEV-UAT.md.
 
 ## Preserved prior work — Historical
 

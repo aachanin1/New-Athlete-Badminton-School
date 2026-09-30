@@ -1,5 +1,7 @@
 # Set1 admission resume — 2026-09-30
 
+**Current follow-up: Dev-assisted UAT5PASS/1FAIL; Return expiry14hours late. DEVELOPING / HARD STOP — NOT READY FOR OWNER UAT.** Historical READY handoff below is superseded; Source/build unchanged. See the final Dev UAT section.
+
 Owner approved the exact proposed Scope Contract on 2026-09-30: continuous isolated audit/correction/verification/commit/push/local staged artifact through READY FOR OWNER UAT only. Production migration/deploy/promotion/data/settings/control changes and Task2 are excluded. Private approved contract and preservation evidence: `C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930`.
 
 ## Scope and protected behavior
@@ -20,7 +22,7 @@ Official configuration semantics: [Vercel Git configuration](https://vercel.com/
 
 Results, exact application SHA, build identity, local URL, acceptance steps and limitations will be recorded at closeout after required checks. Owner UAT is pending; no Production readiness or TASK DONE claim is made here.
 
-## Final technical evidence — READY FOR OWNER UAT on local disposable only
+## Historical technical handoff — prior READY status superseded by Dev UAT
 
 **Source complete / committed / pushed: Yes. Manual Owner UAT: pending. Production active for Set1 / Production ready / TASK DONE: No.** No hosted deployment, Production migration/write/config/control/cron/allowlist/Promotion was authorized or performed.
 
@@ -70,7 +72,7 @@ Local artifact directory: C:/Users/aacha/AppData/Local/Temp/lesson-source-resume
 
 Private **OWNER-UAT.md** in the evidence root contains the synthetic User/Super Admin/Coach credentials and six steps: Reschedule; whole-Family Store/Redeem; Admin Return/Makeup; two-session same-source contention before Store; exact Attendance; Finance month/year/reload. Expected one unit/effect, preserved exact participants, replay/conflict without residue and unchanged financial snapshot. Credentials are outside Git. Owner reports PASS/FAIL, then Developer reconciles actual fixture IDs, DB effects and financial hash; screenshots alone do not substitute that reconciliation.
 
-Final local Finance snapshot after preparing Owner fixtures: Sep2026 revenue/net **364000THB**; year2026 revenue/net **373500THB**; costs0. These are synthetic amounts, not the prior Production Finance snapshot. Sep Return fixture expires at **30Sep2026 23:59:59.999 Bangkok** under unchanged policy. If review crosses month-end, create new synthetic fixtures in this same owned disposable with the same artifact; never extend existing expiry or revive old credits.
+Final local Finance snapshot after preparing Owner fixtures: Sep2026 revenue/net **364000THB**; year2026 revenue/net **373500THB**; costs0. These are synthetic amounts, not the prior Production Finance snapshot. The handoff expected Sep Return expiry **30Sep2026 23:59:59.999 Bangkok** under policy; this was not an observed DB expiry. Subsequent Dev UAT found actual1Oct13:59:59.999,14hours late. If review crosses month-end, create new synthetic fixtures in this same owned disposable with the same artifact; never extend existing expiry or revive old credits.
 
 ### Production boundary, preservation and next gate
 
@@ -92,3 +94,20 @@ Evidence root: C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930.
 - production-readonly-schema-end.json; project-after-source-push.private.json; deployments-after-source-push-v2.private.json: Production read-only and branch push checks. Complete project JSON is private because it may include sensitive fields.
 
 The closeout records12states separately: policy unchanged; Source changed; commit/push yes; local artifact yes; Owner UAT pending; Promotion no; post-Promotion checks n/a/local health passed; Production controls/allowlist unchanged; Production writes/data repair no; no customer change; limitations above; next local Owner review. Documentation-only successor Git identity and last health/Production readbacks are saved in the private closeout publication record.
+
+
+## Dev-assisted UAT — 2026-09-30 — HARD STOP
+
+Owner authorized Developer UAT with step-by-step screenshots on the exact existing local artifact. All6steps executed:1Reschedule PASS (Oct12, retained Oct5 overlap correctly rejected);2Family Store/Redeem PASS3members/1credit;3Return/Makeup FAIL overall — atomic unit and Makeup PASS, Return expiry FAIL;4two-tab same-source PASS1effect;5separate-authenticated-origin independent Attendance/Family Redeem PASS;6Finance month/year/reload PASS. Dev UAT5PASS/1FAIL, manual Owner UAT pending; NOT READY / TASK DONE No.
+
+Confirmed returned credit d3a78da4-0b8b-4c19-bc85-79d3e36f4954 stores2026-10-01T06:59:59.999Z (Bangkok1Oct13:59) instead of2026-09-30T16:59:59.999Z (30Sep23:59),14hours late. Read-only SQL proves implicit date_trunc(date) resolves timestamptz, AT TIME ZONE returns timestamp, assignment recasts under UTC. Expression present in published Set1 v1 line163 and corrective v2 line142. Explicit timestamp input produces expected policy expiry. Released d4aff85's old getMonthEndIso uses +07:00; Set1 not Production active, so no Production-incident inference. Prior handoff expiry was an expectation incorrectly presented as observed; documentation drift corrected, old handoff retained as historical.
+
+No Source/test/config/migration edit or rebuild. f6dc2c4d0da6b0ea930b335b7a24ebc4890b45da / BuildID OivHfQVq4WVKnWXD3GZyF / hash aacb51b5c10d4a1878ed45eb9a8ae8925d1ac712b048271f8b8a35d1a4eb6d52 unchanged;512inputs/721outputs verified. Previous76runtime/UI and38retrospective PASS remain coverage-scoped; missing independent expected Return-expiry check does not excuse new FAIL. UAT business writes only through UI in physically guarded LessonSourceResume20260930/API64601/DB64602; SQL read-only. Fixtures consumed, no reset/delete/expiry extension/data repair.
+
+Backend assertions: exact source/descendant/child mapping,1targetslot/Family, member redeemed references, one-effect Store, source absent retained for Makeup, exact present Attendance and completed session;4canonical targetslots/8descendants each1active exact template. Final selected fixtures7source operations (preexisting1+new6),3credits,2attendance. All checkpoints financialHash6d821e54f20d15707cd5cbc60d2de5f3 unchanged (whole bookings/payments/progressive allocations/expenses/payroll/coupon usage); exact booking rows/controls unchanged;45migrations, definition/ACL/RLS/policy signatures unchanged,0idle transactions. UI+SQL FinanceSep364000/year373500/Oct9500 costs0 synthetic values. Two User tabs share auth profile; independent SA/User origins separate sessions. Concurrent UI dispatch is bounded evidence, not precise DB lock overlap; previous barrier1/2/5/10 remains separately retained.
+
+Evidence C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930/dev-uat-20260930-1625: DEV-UAT.md with original images, reconciliation.json, expiry-finance-audit.json, canonical-targets.json, before/after/final snapshots, UI race timing, protected/doc-diff/publication records. Initial read-only snapshot failed nonexistent member.id before mutations and was corrected; early operations projection omitted Redeem credit unit IDs, final includes all7. Original failed evidence retained; no business rewrite.
+
+Docs4 only: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md, docs/lesson-source-admission-v2-20260930.md. Nine protected main/Finance/AGENTS hashes retained, existing AGENTS unstaged. Git/source/push, localartifact, DevUATFAIL, OwnerUATpending, Productiondeployment/enablement/allowlist/PromotionNo, datarepairNo, controlschangedNo kept separate. No hosted deployment/Production migration/write/env/permission/controls/cron/allowlist/Promotion or Task2. Local services retained; no Production query this UAT round.
+
+Hard Stop: Material Root Cause change/protected expiry boundary. Recommend separately approved forward-only expiry correction via new migration (never rewrite published v1/v2), independent UTC/Bangkok month-end/leap/December tests, protected regression and new artifact/retest; no historical-credit repair or Production authority inferred. Remaining Production fence/drain/backup/rollback unknown as before.
