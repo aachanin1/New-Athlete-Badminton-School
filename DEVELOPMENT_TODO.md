@@ -28351,3 +28351,149 @@ Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-2026092
 Primary files: focused-acceptance-evidence.json, final23-pass-fixture-guard-fail.json, source-final-acceptance.json, final-test-inputs.json,
 source-reconciliation.json, migration-install-upgrade.json, owner-uat-artifact.json,
 owner-uat-smoke.json, source-publication.json, rollout-rollback-plan.md.
+
+
+<a id="lesson-source-admission-v2-hard-stop-2026-09-29"></a>
+## 2026-09-29 — ชุดที่ 1 admission correction / safety Hard Stop
+
+State observed at08:43UTC handoff; PROJECT_STATE.md owns current mutable state.
+Owner approved continuous corrective delivery only to verified disposable systems,
+with7planned paths and3conditionally allowed direct dependencies. Two dependencies
+were proven and recorded before editing: attendance-write-errors.ts provides one
+SQLSTATE/commit-phase contract for both APIs; attendance-write-through.ts previously
+stripped structured SQL errors and now preserves code/details/hint only. Exact9paths:
+
+- src/app/api/coach/attendance/route.ts
+- src/app/api/admin/makeup/route.ts
+- src/lib/attendance-write-errors.ts
+- src/lib/attendance-write-through.ts
+- supabase/migrations/20260929082617_lesson_source_attendance_lock_scope_v2.sql
+- tests/task10-regression/task10-transactions.spec.ts
+- PROJECT_STATE.md
+- TODO-CODEX.md
+- DEVELOPMENT_TODO.md
+
+Gate0 verified branch codex/lesson-source-atomic and local/live-remote e43e29c,
+predecessor source f0782ae/build I2ikm5srw0niMWGGurzke/281inputs, both published
+migration hashes,44installed migrations and original function/ACL parity. Main
+local-only Docs3 and worktree AGENTS changes were preserved. LessonSource20260929
+is container5fef043ba8713d0e65d9a7643a24a730fbb90a0191644cc12e8ddc201db7c0cf,
+API65401/DB65402; project/workdir/volume/network/Auth/REST/Storage checked before
+intended test writes. A new physically verified LessonSourceV220260929 uses
+API65501/DB65502 for independent fresh/upgrade proof; other UATs were not reset.
+
+Root cause: global exclusive source admission rejects unrelated shared Attendance
+admission; retrospective holds slot/session/booking rows before Attendance. Draft
+replaces global admission with parent UUID admission, preserving sibling quota and
+Family unit; source retains sorted family-month and parent rows. Attendance admits
+OLD+NEW parents with TRY and sorted booking/session SHARE NOWAIT, then rechecks
+identity and latest source state. Retrospective takes the same parent admission
+before existing slot/session/booking locks and rechecks identity. Source preclaims
+existing source/target slot rows in sorted order with NOWAIT before nested helpers,
+to prevent slot/session reversal with retrospective or opposite-slot sources.
+Final unverified runtime refinement makes parent admission exclusive for Attendance
+too, preventing same-family multi-row tuple-order cycles; it still uses TRY after
+executor tuple locks. DELETE/policies/permissions/quota/expiry/assignment meanings
+are unchanged by the intended diff. This is design evidence, not complete proof.
+
+New CLI migration SHA256 4184286af1c106922dfa6b70b56e78daee83d2019ecd31988f1994f7aedc4bd6.
+Old migrations unchanged:20260928171257 SHA256 c55154c994266c558e033f988baa0f40673988cc5c69dc4f00e475b4f3445e6a;
+20260928171258 SHA256 b705b866b63aa88a4dbf91bc81b94989ee3aaee4cc98a9b4542dbeee6b9ac98b.
+Fresh45 vs upgrade44->45 definitions/ACL/RLS/policies matched; seeded old lifecycle,
+Attendance and replay rows preserved. Existing65401 UAT received draft1 definitions
+without ledger45;65501 contains latest exclusive-parent SQL with ledger45. No
+Production migration. These states must be reconciled before any new acceptance.
+
+Before-fix regression: held Return A with actual Coach B/Admin C produced500/500.
+Draft1 produced200/200;12same-source cases also passed (Adult/Family/Kids, Return
+wins vs Attendance INSERT/UPDATE/upsert wins). Fourteenth retrospective test failed
+409vs200; cause not conclusively reconciled. A possible overlapping synthetic coach
+fixture was separated in the later unverified test edit, not claimed fixed. Runner
+was interrupted at safety stop; no full-suite PASS. No new mixed1/2/5/10 performance
+run or new UI UAT. Prior309normal/4first-attempt500s,418reconciliation assertions,
+Dev-assisted5/5 and original attendance-race failure remain historical evidence.
+
+Application tsc/lint/build passed; Wallet45 and mojibake281 passed. Draft build
+h7NTlIMGMzCE-Isg64dtG was dirty and its tracked-input manifest omitted the new
+untracked helper, so it is not exact Source/artifact proof. Independent regression
+build also succeeded but no final acceptance used it. Old .next was rebuilt and
+3129server stopped; do not offer the old URL as READY. No source commit/push, final
+push-safety audit or Production artifact was created.
+
+Safety deviation (agent error): npm test:admin-retrospective-assignment-integrity
+was invoked without inspecting its environment selection. It selects default
+local API54321/project New-Athlete-Badminton-School, outside the approved disposable.
+Four static assertions passed; it created5synthetic Auth users/profiles and2branches,
+then failed its atomic course insert on duplicate course name, before any round or
+Attendance transaction. Its finally cleanup deleted its new IDs automatically.
+Read-only follow-up verified local physical bindings, Auth audit5user_signedup and
+5user_deleted events, and0matching remaining users/profiles/branches/courses.
+No pre-run snapshot exists, so broad unchanged-data proof is Unknown; retained Auth
+audit is itself a side effect. No extra cleanup/repair/restore was issued. Production
+was not targeted. This is not a successful test or an authorized-target claim.
+
+Evidence deviation: private runner built a path containing /../ for string
+replacement; it did not match the old reporter path, so before-fix output overwrote
+root attendance-acceptance.json. New contents were copied to corrective evidence;
+original recoverability Unknown. Requested delivery-manifest, Dev-assisted UAT
+report/screenshots and release-readiness FAIL/proposal were not modified. Preserve
+this disclosure; do not manufacture an original report or relabel old failure.
+
+At handoff all task runners stopped,3129stopped; both task databases and default
+local DB had0idle-in-transaction sessions;65401 had0test-fault functions. Main Docs3
+and AGENTS byte hashes match Gate0. Functional4/Migration1/Tests1/Docs3; pre-existing
+worktree AGENTS remains unstaged and outside those9paths. No other tracked source
+edit. Hard Stop requires Owner review of this safe handoff before resumed writes.
+Smallest continuation: inspect all test entrypoints; exact physical-target and
+new-output assertions; isolate failed fixture; finish exclusive-parent SQL/API,
+multiple-reference/multi-row/shared-slot/typed partial-commit tests, complete
+protected regression and actual mixed load with recipients, then final UAT/Git gates.
+No Production or Task2 authority is implied. Production fence/backup/PITR/restore
+elapsed time/downtime/artifact remain Unknown and unexecuted.
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929/admission-v2-20260929.
+Credentials and default-local Auth details remain in private files only. Source
+Complete/TestsPassed/Committed/Pushed/READY/OwnerUAT/TaskDone: No; Production
+Deployment/Schema/Data/ControlsChanged: No; data repair No. Draft local testing and
+safety deviations remain separate from that Production statement.
+
+
+<a id="lesson-source-admission-v2-resume-2026-09-30"></a>
+## Set1 admission resume — 2026-09-30 — READY FOR OWNER UAT, local only
+
+Owner approved the exact resume Scope Contract, continuous correction/verification/
+commit/push and local staged artifact only. Final Source f6dc2c4d0da6b0ea930b335b7a24ebc4890b45da
+is committed/pushed. Final76runtime/UI and38retrospective cases passed; fresh45 and
+upgrade42->44->45 preserve history/replay and corrective ACL/RLS/policies.
+TypeScript/lint/build/mojibake, target14 and scoped diff checks passed. Historical
+failed runs and29Sep safety deviation above remain disclosed and preserved.
+
+Exact local build OivHfQVq4WVKnWXD3GZyF / tree0c320ca61ac9347bddae397c6445f2314c984e54;
+compiled hash aacb51b5c10d4a1878ed45eb9a8ae8925d1ac712b048271f8b8a35d1a4eb6d52.
+Owner URL http://admission.localhost:3131/auth/login; private six-step OWNER-UAT.md
+contains synthetic accounts and expected results. Manual Owner UAT pending;
+backend/financial reconciliation follows Owner actions. Sep Return fixture expires
+at unchanged30Sep23:59:59.999 Bangkok; crossing month-end needs a new synthetic fixture,
+not an extended expiry. Local Finance Sep364000/year373500 revenue and net, costs0.
+
+This round22distinct scoped paths: functional6, migration1, test/tool/config11,
+Docs4; Finance4paths exactly released d4aff85. One prereasoned direct dependency
+vercel.json disables Git auto-deploy only for codex/lesson-source-atomic, preserving
+all other configuration. Protected9file hashes match Gate0; pending main/Finance/
+AGENTS preserved. Two existing Set1 test baselines and divergent Finance report
+history are disclosed in the detailed report; not edited/deleted this round.
+
+Production Finance target dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/d4aff85 remains active;
+read-only catalog42, Set1 absent, Task10 control/cron signatures stable. No Production
+schema/data/env/control/cron/allowlist/hosted deploy/Promotion and no Task2.
+
+Session closeout12states: policy unchanged; Source changed; committed/pushed yes;
+local artifact yes; Owner UAT pending; Promotion no; post-Promotion n/a/local health
+passed; Production enabled/allowlist unchanged; Production writes/data repair no;
+no customer change; fence/backup/PITR/restore/downtime/compatible release prerequisites
+unproved; next Owner local UAT and DB reconciliation, then separate Production scope.
+READY applies only to local review; Production ready and TASK DONE No.
+
+[Complete report](docs/lesson-source-admission-v2-20260930.md); private evidence root
+C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930. Docs-only successor
+identity/readbacks are in private closeout publication evidence; no rebuild.

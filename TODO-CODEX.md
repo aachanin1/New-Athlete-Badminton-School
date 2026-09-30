@@ -1,16 +1,17 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **ชุดที่ 1 — READY FOR OWNER UAT เฉพาะระบบทดสอบแยก; TASK DONE: No.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns exact source/build/tests and Production boundary.
-- Source f0782ae612d5354d6bb1b9679edf7f32157b16c5 committed/pushed; final build I2ikm5srw0niMWGGurzke at http://127.0.0.1:3129. Developer focused55tests, Wallet static45, migration fresh/upgrade, reconciliation and browser smoke passed. Owner UAT not yet performed.
-- **Next:** Owner completes5steps in [UAT handoff](DEVELOPMENT_TODO.md#lesson-source-uat-2026-09-29). PASS is not Production authority; await separate release approval.
-- Whole-Family one-credit Return and no-attendance/all-member eligibility confirmed; exact replay and stored expiry preserved. Attendance addendum implemented; prior Hard Stop/FAIL retained.
-- Production unchanged; cancellation fix retained. Task2/Admin target-overlap limitation unmodified. Main re-wallet local-only Docs3 byte-preserved and excluded. Next-generated AGENTS.md block remains unstaged.
+- **ชุดที่ 1 — READY FOR OWNER UAT, local disposable only; TASK DONE No.** [Current matrix](PROJECT_STATE.md#current-project-matrix) owns verified states.
+- Application/test Source f6dc2c4 committed/pushed. Exact local Production-mode build OivHfQVq4WVKnWXD3GZyF runs at http://admission.localhost:3131/auth/login; no hosted deployment.
+- Final76/76 runtime/UI, retrospective38/38, fresh/upgrade parity, target guard, protected regression and TypeScript/lint/build/diff checks passed. Historical failures/safety deviation retained; no manual Owner PASS or Production readiness claim.
+- **Next:** Owner follows six-step private OWNER-UAT.md in C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930 and returns PASS/FAIL, then Developer reconciles DB/financial evidence. Sep Return fixture expires under existing month-end policy; prepare a fresh synthetic fixture if review crosses the month.
+- Finance Production artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu / d4aff85 is retained. No Production migration/write/env/controls/cron/allowlist/Promotion or Task2. Production rollout needs a separate explicit scope after local UAT.
+- Main/Finance pending work and admission AGENTS preserved. Branch-only auto-deploy guard is the disclosed direct technical dependency. [Detailed report](docs/lesson-source-admission-v2-20260930.md); [dated closeout](DEVELOPMENT_TODO.md#lesson-source-admission-v2-resume-2026-09-30).
 
 ## Preserved prior work — Historical
 

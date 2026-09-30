@@ -1,41 +1,74 @@
 # PROJECT_STATE.md - Current Project Snapshot
 
-Last updated: 2026-09-29 (Asia/Bangkok; evidence timestamps UTC)
+Last updated: 2026-09-30 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — ชุดที่ 1 Source lifecycle / READY FOR OWNER UAT — isolated test only
+## Current State — ชุดที่ 1 / READY FOR OWNER UAT — local disposable only
 
-ชุดที่ 1 พร้อม Owner UAT เฉพาะเว็บทดสอบในเครื่องนี้ที่ http://127.0.0.1:3129.
-Source/tests/migrations committed and pushed; Developer acceptance and DB reconciliation
-passed. Production has no set1 changes. Owner UAT is not yet performed and a future
-PASS does not authorize Production release. TASK DONE: No.
+Owner approved the exact 2026-09-30 resume contract. Technical correction and
+verification are complete and committed/pushed; the exact local Production-mode
+artifact is running for Owner review. Manual Owner UAT is PENDING. This is not
+Production readiness, Promotion authority, or TASK DONE. Historical failures and
+the 29Sep safety deviation remain preserved below; they are not relabeled PASS.
 
 ### Current Project Matrix
 
 | Field | Current verified state |
 | --- | --- |
-| Active task / status / task done | ชุดที่ 1 — ป้องกันสิทธิ์ต้นทางสร้างรอบหรือเครดิตซ้ำ / READY FOR OWNER UAT in isolated test / No |
-| Owner decision | 2026-09-29 continuous delivery to separate test only, plus Attendance INSERT/UPDATE guard/lock addendum. Adult Return requires no attendance; every exact Family member must qualify, including no absent attendance/cancellation/consumed source. Whole Family returns one credit with all members. Exact successful replay retains original result; no stored-expiry extension. |
-| Actors / scope | Customer owner and existing authorized Makeup Admin; User Reschedule, Wallet Store/Redeem, Admin Makeup POST and PATCH return_entitlement; Attendance admission coordination only. Existing authorization, Coach/Admin retrospective semantics, Kids/quota/cutoff/cancellation and financial rules retained. |
-| Branch / application-test source | codex/lesson-source-atomic; f0782ae612d5354d6bb1b9679edf7f32157b16c5, committed and pushed. Base b312cdaacff28318d352f92a19370392c9ca2e89. This Docs3 closeout is a separate successor; it is not a rebuilt application. |
-| Source complete / tests | Yes within approved test scope. 32 source/Attendance acceptance tests on exact final build; 9 protected Wallet tests across never activated/active/paused; 14 focused Booking/Task10 tests including 28 cancellation API/DB cases. 55 unique focused tests passed across two executions with unchanged application/schema/protected dependencies verified, plus45 Wallet static checks. No full-repository PASS claim. |
-| Race / DB evidence | Observed held transactions and pg_stat_activity lock waiters, not Promise.all timing alone. Return first leaves Attendance0 and whole credit/members; Attendance first retains exact attendance and creates no credit/member. Same-source/cross-operation/quota, replay/lost response, faults, direct-write/RPC bypass, Wallet cycle and valid new-descendant attendance covered. Final reconciliation violations0. |
-| Static / build | TypeScript, lint, production-mode isolated build, mojibake280files and diff checks passed. Original TS2367 fixed. Final build I2ikm5srw0niMWGGurzke;281 tracked application inputs, SHA256 68df6b0257d79d2928fa1c6f3fcfa08de07807a1ef2ed2514dbff591c35f05f8. |
-| Migration | New CLI-named 20260928171257_lesson_source_transition_atomic_v1.sql and 20260928171258_lesson_source_transition_guards_v1.sql. Actual final files passed fresh44 and baseline42-to44 upgrade; existing synthetic rows preserved; definitions/ACL parity. Hashes in dated closeout. Historical migrations unchanged. Production applied No. |
-| Changed paths / dependencies | 15 published paths: Functional5/Migration2/Tests3/Docs3 plus2 direct test dependencies, tests/booking-regression/local-supabase.ts and tests/task10-regression/local-supabase.ts, for physical target verification and owner-only synthetic fixture seeding. Reasons recorded before edits. Next dev generated10lines in AGENTS.md; preserved unstaged and excluded from publication. No unexplained path. |
-| Commit / push / artifact / promotion | Source committed and pushed; Docs3 successor publication verified separately at closeout. Local isolated artifact prepared and smoke passed; no manual Vercel deployment, Production Promotion, alias or activation. Git push generated Preview dpl_FY1kh2gGoqs1Z1FB6DVEzPnWdYSq without branch Supabase credentials; it is not the UAT artifact and its build status is recorded separately. |
-| Test isolation / URL | http://127.0.0.1:3129 on this Owner computer, API127.0.0.1:65401/DB65402, project LessonSource20260929. Container project/workdir/named volume/network plus Auth/REST/Storage actual DB targets verified before writes. Synthetic accounts only; other UATs preserved. Credentials remain private outside Git. |
-| Owner UAT / runtime smoke | Owner UAT not performed. Actual User/Admin login and4pages smoke passed with only local data origins and unchanged lifecycle snapshot. Test build is not the Production artifact. |
-| Push safety | GitHub hooks empty; Pages workflow main-only; Vercel Production branch main with default build/no migration command; no codex-branch Supabase Preview credentials. Authenticated Supabase Dashboard shows no linked GitHub repository or Vercel integration. Read-only evidence retained. |
-| Production active / task activation | Prior cancellation app bb5bf128662ea58bbfb6613df73e5dfec14c6aaa / dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV retained. Set1 is not Production active. No Production environment/flags/allowlist/Task10 controls/cron change. |
-| Production deployment/schema/data/controls changed / repair / financial impact | No / No / No / No; Data repaired No; financial impact from this task0. No customer transaction, message, historical repair/backfill or repeated re-wallet exception. |
-| Rollout / rollback | Disposable fresh/upgrade, retained-guard rollback/recovery and in-flight Attendance/Return both orders passed. Future release requires new approval, admission fence and drain before migration1 then2 then new app. Never run mixed old/new mutation writers; fallback keeps guards/history and disables source mutation RPCs. No committed-record deletion or unsafe schema downgrade. |
-| Known limitations / Task2 | Global DB admission serializes source transitions; contended Attendance retries, no load/capacity certification. Old-app fallback loses source-mutation availability. Admin target-overlap cancellation limitation and overlap centralization remain unmodified Task2. Existing ambiguous historical duplicates are not repaired or certified. |
-| Scope breach / blocker / documentation drift | No unexplained scope breach; no remaining UAT-readiness blocker. Current-task docs reconciled in isolated worktree; historical Hard Stop and FAIL evidence preserved. Main local-only re-wallet Docs3 hashes unchanged, never copied/published. |
-| Next | Owner performs5UAT steps in dated handoff and returns PASS/FAIL. Do not release Production automatically; send separately approved activation/rollback/DB-change plan afterward. |
+| Task / actor / status | Set1 source/Attendance admission correction; existing User/parent, Coach, Admin, Super Admin; READY FOR OWNER UAT on new disposable only. TASK DONE No. |
+| Scope / protected domains | Reschedule, Wallet Store/Redeem, Return, Makeup and interacting Attendance/retrospective writes only. Preserve identity, Family atomic unit, quota/cutoffs/expiry, coach evidence, role authorization, prices and financial formulas. Task2, pricing changes, settled-bill rewrite and Production operations excluded. |
+| Source / Git | Source complete Yes; application/test SHA f6dc2c4d0da6b0ea930b335b7a24ebc4890b45da, branch codex/lesson-source-atomic, committed/pushed and remote verified. This Docs4 closeout is a documentation-only successor, not a new application artifact. |
+| Files / blast radius | This round22distinct paths: functional6 (Set1 structured-error4 + exact released Finance2), migration1, test/tool/config11, Docs4. Existing committed Set1 source paths remain in approved8-file application allowlist; no new business flow. One direct technical dependency vercel.json disables auto-deployment only for this branch, recorded before editing. Exact paths/report below. |
+| Root cause / correction | Old global admission blocked unrelated families and reproduced Coach/Admin500/500 while Return held. Exclusive per-parent admission, sorted slot/parent locks, Attendance OLD+NEW identity recheck and NOWAIT conflict handling permit unrelated progress while excluding conflicting consumption. Structured error evidence distinguishes rollback from already-committed attendance/follow-up failure. |
+| Required checks | Final exact-artifact runtime/UI76/76 (no retries/skips/flaky); retrospective38/38; target guard14; Wallet45, assignment39, Finance helper17; TypeScript/lint/mojibake/Production build and diff compliance passed. Failed preliminary fixture/expectation runs retained. Mixed1/2/5/10 is bounded acceptance, not an SLO or universal concurrency claim. |
+| Migration / isolated data | New owned fresh LessonSourceResume20260930/API64601/DB64602 and upgrade LessonSourceUpgrade20260930/API64701/DB64702 only. Fresh45 and upgrade42->44->45 parity; history/replay and corrective44->45 ACL/RLS/policies preserved. Published v1/guards byte-frozen; corrective v2 SHA2564184286af1c106922dfa6b70b56e78daee83d2019ecd31988f1994f7aedc4bd6. Local synthetic migrations/writes authorized; existing targets untouched this round. |
+| Artifact | Source f6dc2c4; tree0c320ca61ac9347bddae397c6445f2314c984e54; BuildID OivHfQVq4WVKnWXD3GZyF; compiled hash aacb51b5c10d4a1878ed45eb9a8ae8925d1ac712b048271f8b8a35d1a4eb6d52. All512tracked inputs/721compiled outputs bound and verified; no Production env copied. Local artifact is not a Vercel release artifact. |
+| URL / Owner UAT | http://admission.localhost:3131/auth/login on this machine; six-step private OWNER-UAT.md with synthetic User/SA/Coach accounts. Automated API/UI passed; manual Owner PASS pending and subsequent DB reconciliation required. Sep Return fixture expires at existing30Sep23:59:59.999 Bangkok; after month-end prepare new synthetic fixtures without extending expiry. |
+| Finance protected / local snapshot | Finance4paths equal released d4aff85 bytes;690-bill hydration/month/year/net/reload reconciled to SQL. Local Owner fixture snapshot Sep revenue/net364000THB; year revenue/net373500THB; costs0. These are disposable amounts, not real Production totals. |
+| Production / enabled / allowlisted | Finance remains active artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu / Source d4aff85b5cdff468a101464106b5b323c97a26c6. Set1 not deployed/enabled/allowlisted/Production active. Catalog read-only confirms42migrations and absent Set1 source transition; Task10 controls and cron signatures unchanged. |
+| Production actions / financial impact | Hosted deploy, Promotion, Production schema/data write, env/control/cron/permission/allowlist change: No. Data repaired No. No real-customer transaction. Normal customer traffic is not a zero-delta whole-database proof. Branch-local auto-deploy guard is the only config addition; no live-project settings write. |
+| Work preservation / cleanup evidence | Main Docs3/main AGENTS, Finance worktree and admission AGENTS retained:9protected file hashes match Gate0. Pre-existing worktree AGENTS remains unstaged. Historical drafts/failures and old databases retained. Post-test definitions/ACL/RLS/policy signatures match upgrade proof;0idle transactions/0fault functions. |
+| Rollout / rollback / limitation | Production writer fence/drain, compatible exact artifact, backup/PITR/restore time/downtime remain unproved and require a separate explicit Production Scope Contract. No downgrade, restore or rollback performed. Local services must remain running for review. |
+| Next gate | Owner reviews six local UAT steps and returns PASS/FAIL; Developer reconciles exact DB/financial evidence. Production plan follows separately after PASS. No automatic Promotion or Task2. |
 
-Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929.
-[Final test handoff](DEVELOPMENT_TODO.md#lesson-source-uat-2026-09-29).
-[Preserved original failure](DEVELOPMENT_TODO.md#lesson-source-hard-stop-2026-09-29).
+Full evidence and changed-path details: [Set1 resume report](docs/lesson-source-admission-v2-20260930.md).
+Private handoff/evidence root: C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930.
+
+## Historical — 2026-09-29 admission correction / HARD STOP — NOT READY FOR OWNER UAT
+
+Owner approved continuous correction on 2026-09-29, restricted to verified disposable
+targets. Execution stopped after an unreviewed historical verification script selected
+the default local Supabase project outside that boundary. Draft work and all failures
+are retained; no commit/push or Production operation. TASK DONE: No.
+
+### Historical Admission Project Matrix — 2026-09-29
+
+| Field | Current verified state |
+| --- | --- |
+| Active task / status / task done | ชุดที่ 1 admission lock correction / DEVELOPING, HARD STOP; NOT READY FOR OWNER UAT / No |
+| Owner scope | User/Coach/Admin, same-source exclusion with independent-family concurrency. Functional2, new migration1, test1, Docs3; authorized direct helpers2 added with pre-edit reasons. Production migration/deploy/promotion/data/control changes and Task2 excluded. |
+| Branch / HEAD / upstream | codex/lesson-source-atomic; local and upstream e43e29c612f0ce089b6c285d7ee21740cb7218ee at Gate0. Application predecessor f0782ae612d5354d6bb1b9679edf7f32157b16c5. Corrective edits uncommitted/unpushed; no new Source SHA. |
+| Source Complete / Tests Passed | No / No. Parent admission, slot lock coordination, retrospective pre-admission and typed error drafts exist; final exclusive-parent refinement lacks complete runtime acceptance. No claim of resolved concurrency. |
+| Before / after evidence | Before-fix permanent regression: unrelated Coach/Admin500/500 while Return held. Historical natural run retained309requests/4first-attempt500s. Draft1: unrelated200/200 and12same-source tests passed; next retrospective test failed409vs200; run interrupted. Final refined SQL not covered by those13passes. New mixed1/2/5/10 measurements not run. |
+| Changed paths / blast radius | Corrective9paths: functional4 (two APIs, new attendance-write-errors helper, structured-error-only attendance-write-through edit), migration1, tests1, Docs3. Lock/helper changes only; latest migration replaces source/Attendance/retrospective definitions and admission trigger. AGENTS.md pre-existing Next block remains separate and unchanged. |
+| Migration / isolated schema state | CLI-created20260929082617_lesson_source_attendance_lock_scope_v2.sql; SHA256 4184286af1c106922dfa6b70b56e78daee83d2019ecd31988f1994f7aedc4bd6. Both published migrations byte-preserved. LessonSource20260929/API65401/DB65402 has draft1 definitions without new migration-ledger entry (44). Independent LessonSourceV220260929/API65501/DB65502 has latest refined migration45; fresh45 and upgrade44-to45 parity, ACL/RLS/policies and seeded history/replay preservation passed. Neither is Production. |
+| Build / artifact | Draft h7NTlIMGMzCE-Isg64dtG from dirty worktree; not a committed artifact. Build manifest enumerated281tracked inputs and omitted the new untracked helper, so exact complete input binding is NOT certified. Separate regression build also draft-only. Old I2ikm5srw0niMWGGurzke evidence retained but worktree .next was rebuilt. |
+| URL / test service | Prior URL http://127.0.0.1:3129 deliberately stopped at safety handoff. No current Owner UAT service/artifact offered. Independent65501 database services retained; no regression UI server started. Private credential references remain outside Git. |
+| Technical checks | TypeScript and lint passed for application draft; build passed; Wallet45 and mojibake281 passed. Retrospective script architecture4passed, then fixture initialization failed on duplicate course in the WRONG local target. It is a FAILED verification, not a regression PASS. Latest added tests and complete corrected SQL/API flow remain unverified. |
+| Safety deviation / local data | Historical npm test selected default New-Athlete-Badminton-School/API54321 instead of approved disposables. Auth audit confirms5synthetic signups and5deletions; source shows2synthetic branch inserts before duplicate course failure, then its own finally cleanup. No matching synthetic users/profiles/branches/courses remain. No pre-run snapshot, so global unchanged-data claim is Unknown. No additional repair/restore/cleanup issued. |
+| Evidence integrity deviation | Regression reporter path replacement failed: before-fix run overwrote prior root attendance-acceptance.json. New result copied into corrective evidence; original recoverability Unknown. Named delivery manifest, original attendance-race FAIL, Dev-assisted UAT report/screenshots and release-readiness FAIL retained. Never relabel old failures PASS. |
+| Commit / push / deployment / promotion | Corrective No / No / No / No. No automation-settings changes. Push safety not freshly completed because delivery stopped before that gate. |
+| Dev-assisted UAT / Owner UAT / Controlled Write UAT | New-build Dev-assisted UI not run; Owner UAT not run; controlled disposable API/DB tests partial. Prior Dev-assisted5/5 remains historical evidence only. |
+| Production active / enabled / allowlisted | Set1 corrective not Production active; no feature flag, allowlist, environment, Task10 control or cron change. Prior Production cancellation release remains last verified state, not re-queried this round. |
+| Production deployment/schema/data/controls changed / Data repaired | No / No / No / No; Data repaired No. No real-customer transaction or financial operation. Local out-of-target synthetic writes above must not be hidden by this Production statement. |
+| Customer / financial impact | No Production customer change from this task. Default local test side effects disclosed above; whole-local-database equivalence not proven. No real-money change performed. |
+| Work preservation / current transactions | Main local-only Docs3 plus main AGENTS hashes match Gate0; worktree AGENTS unchanged. At08:43UTC both task disposables and default local database have0idle-in-transaction sessions; task disposable has0test-fault functions. Draft runner and3129server stopped. |
+| Blocker / known limitations | Test target boundary violated; one draft runtime test failed; latest SQL/API/error phases/multi-row/lock-order/mixed load/UI/diff compliance incomplete. Source/schema/build identities differ as stated. No Production readiness claim. |
+| Rollout / rollback | Proposal only: migration1->2->v2 plus compatible exact artifact under separately approved writer fence/drain. All-writer fence, actual Production artifact, backup/PITR, restore duration and downtime remain Unknown/unproved; none executed. Preserve guards/replay/history; no schema downgrade or automatic restore. |
+| Next gate | Owner reviews safety handoff and decides Resume. Smallest continuation: review every test entrypoint, enforce exact physical target and unique evidence output before execution, resolve failed fixture/test with evidence, finish final SQL/API coverage and new performance/UI checks, then scoped diff/commit/push/build. No automatic Production release or Task2. |
+
+Private corrective evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929/admission-v2-20260929.
+[Dated safety handoff](DEVELOPMENT_TODO.md#lesson-source-admission-v2-hard-stop-2026-09-29).
+[Historical isolated handoff](DEVELOPMENT_TODO.md#lesson-source-uat-2026-09-29).
 
 ## Historical — User Reschedule cancellation fix / Production Active / TASK DONE
 
