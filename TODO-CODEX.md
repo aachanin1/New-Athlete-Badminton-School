@@ -1,10 +1,16 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-28
+Last updated: 2026-09-30
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
+
+- **Finance load correction — READY FOR OWNER UAT, isolated only.** Complete bounded Progressive booking reads; formulas/totals/permissions preserved. [Authoritative state](PROJECT_STATE.md#current-finance-project-matrix), [evidence and5steps](docs/finance-read-fix-20260930.md).
+- **Next:** Owner checks monthly/yearly totals, reload/month switching and mobile in dedicated local UAT. No Production release/write/activation authorized this round.
+- Main dirty docs and separate admission draft/HARD STOP preserved. Adult pricing/old bills/other Parking Lot work remain outside scope. PROJECT_STATE owns Git/artifact/verification facts.
+
+## Historical — previous cancellation closeout
 
 - **User Reschedule cancellation fix — TASK DONE / Production Active.** Owner PASS for dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128662ea58bbfb6613df73e5dfec14c6aaa; promoted that same Production artifact without rebuild at 2026-09-28T14:31:59.370Z. Customer aliases, health/assets/protection and scoped error logs pass. [Current matrix](PROJECT_STATE.md#current-project-matrix).
 - Source/tests/config/migrations unchanged in this round; only Docs3 closeout published. Previous re-wallet Docs3 remain local-only and must not be published or repeated.

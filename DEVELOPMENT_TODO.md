@@ -28106,3 +28106,31 @@ re-wallet local-only work via separately derived index content. This containing
 docs commit/push is not an application SHA and requires no rebuild/deploy. TASK
 DONE Yes after closeout publication verification; no further release blocker.
 Private release proof: C:/Users/aacha/AppData/Local/Temp/reschedule-cancellation-20260928/selector/promotion.
+
+
+<a id="finance-read-fix-2026-09-30"></a>
+### 2026-09-30 — Finance isolated UAT handoff
+
+State observed at this closeout: direct Owner Dev/adviser scope, Finance only,
+financial formulas/totals/permissions and pending work protected. Functional2,
+tests2, docs4; source5a81d66624253717aa5c10f55217088e85acddfd.
+
+Independent live SELECT reproduction:690IDs/~25.7KB original400;7bounded200
+responses/690rows/missing0. Actual Vercel cluster15occurrences/4users agrees;
+local original414 URI too long. New reader100IDs/concurrency4/completeness guards.
+Financial client byte-identical; all serialized props equal original page with
+transport-only substitution.17deterministic+5actual-data+10browser checks passed,
+plus tsc/lint/mojibake/build/diff. Selected financial fingerprint unchanged.
+
+New checked FinanceRead20260930/API54121/DB54122 with synthetic fixtures only.
+Persistent Windows production build finance-local-yBZxPOUAhg7MyPnUVHSyw;271runtime
+inputs/722outputs hashed. No Production write/activation/migration/deploy/Promotion
+or Adult-price/old-bill repair. Existing source limits retained; no unlimited
+history/write-flow certification. Bounded fixture/selector corrections and
+original failure logs retained. Main Docs3/AGENTS and separate admission preserved.
+
+Normal Git publication is separate from Production release; any automatic Git
+Preview is not the isolated UAT artifact. Owner manual UAT pending; Task Done No.
+[Evidence/Owner steps](docs/finance-read-fix-20260930.md). Current mutable facts
+belong only to PROJECT_STATE; TODO-CODEX owns next action. Private evidence:
+C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930.
