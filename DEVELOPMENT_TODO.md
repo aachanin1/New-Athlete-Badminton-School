@@ -28134,3 +28134,21 @@ Preview is not the isolated UAT artifact. Owner manual UAT pending; Task Done No
 [Evidence/Owner steps](docs/finance-read-fix-20260930.md). Current mutable facts
 belong only to PROJECT_STATE; TODO-CODEX owns next action. Private evidence:
 C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930.
+
+
+### 2026-09-30 — Owner isolated Finance acceptance and release proposal
+
+State observed at this checkpoint: Owner reported testing complete and confirmed
+Sep2026 revenue301600/net297600 on the isolated Finance artifact. Acceptance
+binds finance-local-yBZxPOUAhg7MyPnUVHSyw and application
+5a81d66624253717aa5c10f55217088e85acddfd. Runtime inputs/BUILD_ID unchanged;
+this is not Owner acceptance of a real-DB/Vercel artifact. No separate manual
+annual/reload/mobile detail was supplied; automated evidence remains separate.
+Documentation4 only, no application/config/build change, no deploy/Promotion,
+Production write/control/env/migration or data repair. Prior pending-UAT wording
+above is historical and superseded by this acceptance record. Recommended next
+scope: fresh live-source/Finance-only diff/rollback audit, exact staged Production
+artifact without customer aliases and real-data read-only reconciliation, then
+Owner exact-artifact acceptance/authorized no-rebuild Promotion and health/logs.
+No release action authorized by the Owner's status/plan question. PROJECT_STATE
+owns current acceptance/next gate; main/admission work remains preserved.

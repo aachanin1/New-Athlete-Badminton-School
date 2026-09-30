@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-30 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Finance load correction / READY FOR OWNER UAT / isolated only
+## Current State — Finance load correction / isolated Owner UAT accepted / release scope pending
 
 Owner authorized direct Dev/technical-adviser repair of Super Admin Finance,
 preserving financial formulas/totals/permissions and all pending work. No PM relay,
@@ -12,7 +12,7 @@ Production writes/deployment/activation, Adult-price change or old-bill repair.
 
 | Field | Current verified state |
 | --- | --- |
-| Active Task / Task Status / Task Done | Finance Progressive booking-detail read correction / READY FOR OWNER UAT locally / No; manual Owner UAT pending |
+| Active Task / Task Status / Task Done | Finance Progressive booking-detail read correction / isolated Owner UAT accepted; exact real-DB release artifact not staged / No Production completion; release scope pending |
 | Source Complete / Tests Passed | Yes / Yes:17deterministic,5actual-data/prop-equivalence,10browser checks; tsc/lint/mojibake281/build95/95/diff compliance |
 | Planned/actual files / blast radius | Functional2: Finance page, admin-finance-read.ts. Tests2: check-admin-finance-read.mjs, check-admin-finance-isolated.cjs. Docs4: this file, TODO-CODEX, DEVELOPMENT_TODO, docs/finance-read-fix-20260930.md. Config0/new migrations0. Finance SELECT transport only |
 | Root cause / Fact / Unknown | Live original690-ID/~25.7KB query400 Bad Request; bounded7x200/690rows/missing0. Vercel cluster15occurrences/4users corroborates progressive booking read error, digest2443997597. Local original414 URI too long. Exact remote rejecting component/threshold Unknown |
@@ -25,12 +25,12 @@ Production writes/deployment/activation, Adult-price change or old-bill repair.
 | Feature Enabled / Allowlisted / Production Active |No new flag/allowlist/permission. Correction active locally only; Production Active No for this fix. Local review=true with only dedicated local credentials. Production controls/cron/environment unchanged |
 | Deployed Production Source / prior release |Last confirmed customer release bb5bf128662ea58bbfb6613df73e5dfec14c6aaa/dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV; logs corroborate its Finance error. No fresh global Production-health certification |
 | Migration Source / Applied / Environment |No new schema/migration; published migrations applied only to new empty disposable. No Production migration/env/secret/Task10/cron action |
-| Owner UAT Passed / Production UAT Passed |No / No; automated isolated acceptance only |
+| Owner UAT Passed / Production UAT Passed |Yes for reported isolated acceptance / No. Owner reported testing complete on2026-09-30 and explicitly confirmed Sep2026 revenue301600/net297600 at the isolated URL. Acceptance binds finance-local-yBZxPOUAhg7MyPnUVHSyw/application5a81d66624253717aa5c10f55217088e85acddfd only; annual/reload/mobile were not individually described in the Owner reply. Automated checks retain their separate evidence |
 | Controlled Write UAT / Data Repaired |No Finance write UAT; synthetic disposable fixture initialization only. Browser business writes0; selected financial fingerprint unchanged. Data Repaired No |
 | Production Data Changed / Customer Impact / Financial Impact |Task-attributable Production writes0 / no customer release /0. Real-DB reads only; no historical bill/price/payment/coupon/Wallet/attendance/payroll mutation or messaging |
 | Work preservation / other task |Main pending Docs3 plus main/other AGENTS/docs hashes match Gate0. Admission remains its separate9-path draft/HARD STOP in its own worktree/state file. No reset/stash/overwrite or admission source/schema used here |
 | Blocker / limitations |No scoped local blocker. Existing2,000 source limits/API caps and current-year expense/summary scope retained; unlimited historical completeness/write flows outside scope. Anonymous/User/deniedAdmin verified, not broad domain certification. Individual log query timed out; grouped evidence and independent reproduction available |
-| Remaining Work / Next Action / Parking Lot |Owner5-step isolated UAT. Production release requires separate explicit scope. Admission and Adult pricing remain separate; Task Done No |
+| Remaining Work / Next Action / Parking Lot |Propose a separate Finance-only release scope: fresh live-source/diff/rollback audit, exact staged Production artifact without customer aliases, read-only real-data Finance/SQL reconciliation and role checks, Owner acceptance of that artifact, then explicitly authorized exact Promotion/no rebuild and health/log checks. None executed by this UAT-record round. No migration/data repair/control/env change proposed; admission/Adult pricing remain separate |
 
 [Scope, changes, reconciliation and Owner UAT](docs/finance-read-fix-20260930.md).
 Private evidence: C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930.

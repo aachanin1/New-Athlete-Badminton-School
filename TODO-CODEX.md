@@ -6,8 +6,8 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Finance load correction — READY FOR OWNER UAT, isolated only.** Complete bounded Progressive booking reads; formulas/totals/permissions preserved. [Authoritative state](PROJECT_STATE.md#current-finance-project-matrix), [evidence and5steps](docs/finance-read-fix-20260930.md).
-- **Next:** Owner checks monthly/yearly totals, reload/month switching and mobile in dedicated local UAT. No Production release/write/activation authorized this round.
+- **Finance load correction — isolated Owner UAT accepted.** Owner reported testing complete and confirmed September revenue/net; exact acceptance limits and artifact belong to [authoritative state](PROJECT_STATE.md#current-finance-project-matrix). Source/formulas unchanged. [Evidence](docs/finance-read-fix-20260930.md).
+- **Next:** Agree separate Finance-only release scope, then stage an exact artifact with real-data read-only reconciliation before Owner acceptance/authorized Promotion. Local acceptance alone does not certify a new Vercel artifact. No release/write/activation authorized by the UAT reply.
 - Main dirty docs and separate admission draft/HARD STOP preserved. Adult pricing/old bills/other Parking Lot work remain outside scope. PROJECT_STATE owns Git/artifact/verification facts.
 
 ## Historical — previous cancellation closeout

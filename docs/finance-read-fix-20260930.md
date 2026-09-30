@@ -102,8 +102,21 @@ Owner URL: http://finance.localhost:3130/admin/finance (this computer only).
 Role: isolated Super Admin, email `finance-super_admin@example.test`, password
 `Finance-Only-UAT-2026!`. These credentials belong only to the disposable target.
 Dedicated hostname separates its cookies from existing localhost UAT sessions.
-Follow the5steps in the Scope Contract; expected totals are above. Owner manual
-UAT is pending. No Production UAT, data repair, activation or release is claimed.
+Owner reported testing complete on2026-09-30 and explicitly confirmed September
+revenue301600/net297600. This is accepted isolated UAT for
+finance-local-yBZxPOUAhg7MyPnUVHSyw/application5a81d66624253717aa5c10f55217088e85acddfd.
+The Owner reply did not individually describe annual/reload/mobile checks; their
+automated evidence remains separate. Source/config/build unchanged after acceptance.
+No Production UAT, data repair, activation or release is claimed.
+
+Recommended next scope: verify current Production source and the Finance-only
+diff/rollback candidate; create an exact staged Production artifact without
+customer aliases; verify its Finance amounts/counts against independent real-DB
+SELECTs and existing role guards. Real-data figures differ from these fixtures.
+After Owner accepts that exact artifact and authorizes release, Promote it without
+rebuild and check health/errors. The local Windows/disposable acceptance cannot
+certify that new Vercel artifact. This plan authorizes no release action by itself;
+no migration, data repair, pricing change or environment/control change is proposed.
 
 Application/build identity and current Git/publication status are authoritative
 in this worktree's PROJECT_STATE.md. Detailed private JSON/logs/screenshots:
