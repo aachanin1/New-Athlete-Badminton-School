@@ -39,6 +39,7 @@ function seed(family = false, future = false, parent = owner): Fixture {
   const children = family ? [null, randomUUID(), randomUUID()] : [null]
   const ids = children.map(() => randomUUID())
   localSql(`BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.source_write','authorized',true);
+    SELECT set_config('task10.payment_write','authorized',true);
     INSERT INTO branches(id,name,slug) VALUES('${branch}','Set1 isolated ${branch}','set1-${branch}');
     ${children.filter(Boolean).map((id, index) => `INSERT INTO children(id,parent_id,full_name) VALUES('${id}','${parent.id}','Set1 participant ${index + 1}');`).join('\n')}
     INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)
@@ -249,13 +250,21 @@ test('Finance retained baseline: 690 exact Progressive bills reconcile and month
   const month = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', month: 'numeric' }).format(new Date())
   const year = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', year: 'numeric' }).format(new Date())
   localSql(`BEGIN; SELECT set_config('task10.booking_write','authorized',true); SELECT set_config('task10.payment_write','authorized',true); SELECT set_config('task10.source_write','authorized',true);
+    -- Synthetic historical approved bills have no invented Task10 origin evidence.
+    -- Preserve and restore the exact disposable policy within this transaction.
+    SELECT pg_advisory_xact_lock(10,1);
+    CREATE TEMP TABLE lesson_source_finance_fixture_policy ON COMMIT DROP AS SELECT * FROM task10_policy_activation;
+    UPDATE task10_policy_activation SET state='never_activated',effective_at=NULL,pricing_enabled=false,makeup_enabled=false,expiry_enabled=false;
     INSERT INTO branches(id,name,slug) VALUES('${branch}','Set1 Finance fixture','set1-finance-${branch}');
     INSERT INTO booking_pricing_scopes(id,user_id,course_type_id,lesson_year,lesson_month,currency) VALUES('${scope}','${payer.id}','${course}',${year},${month},'THB');
     INSERT INTO bookings(id,user_id,branch_id,course_type_id,month,year,total_sessions,total_price,status,pricing_scope_id,entitlement_sessions,pricing_sequence,cumulative_sessions_before,cumulative_sessions_after,pricing_rate_snapshot,gross_price_snapshot,coupon_discount_snapshot,final_price_snapshot,pricing_revision)
       SELECT gen_random_uuid(),'${payer.id}','${branch}','${course}',${month},${year},1,500,'verified','${scope}',1,i,i-1,i,500,500,0,500,1 FROM generate_series(1,690) i;
     INSERT INTO progressive_payment_batches(id,pricing_scope_id,user_id,status,currency,total_amount,member_count,member_set_fingerprint,pricing_scope_revision,prepare_idempotency_key,prepare_request_fingerprint,approved_at,approved_by)
       VALUES('${batch}','${scope}','${payer.id}','approved','THB',345000,690,'set1-finance-fixture',1,gen_random_uuid(),'set1-finance-fixture',now(),'${actor.id}');
-    INSERT INTO progressive_payment_allocations(payment_batch_id,booking_id,amount) SELECT '${batch}',id,500 FROM bookings WHERE pricing_scope_id='${scope}'; COMMIT;`)
+    INSERT INTO progressive_payment_allocations(payment_batch_id,booking_id,amount) SELECT '${batch}',id,500 FROM bookings WHERE pricing_scope_id='${scope}';
+    UPDATE task10_policy_activation a SET state=p.state,effective_at=p.effective_at,pricing_enabled=p.pricing_enabled,makeup_enabled=p.makeup_enabled,expiry_enabled=p.expiry_enabled FROM lesson_source_finance_fixture_policy p;
+    DO $fixture$ BEGIN IF (SELECT to_jsonb(a) FROM task10_policy_activation a) IS DISTINCT FROM (SELECT to_jsonb(p) FROM lesson_source_finance_fixture_policy p) THEN RAISE EXCEPTION 'FIXTURE_POLICY_DRIFT'; END IF; END $fixture$;
+    COMMIT;`)
   const ledger = await db().from('payment_ledger_allocations_v1').select('booking_id,allocated_amount').eq('source_kind', 'progressive').eq('status', 'approved').eq('user_id', payer.id)
   expect(ledger.error).toBeNull(); expect(ledger.data).toHaveLength(690)
   const hydrated = await loadProgressiveFinanceBookings(db(), ledger.data!.map(r => r.booking_id))
