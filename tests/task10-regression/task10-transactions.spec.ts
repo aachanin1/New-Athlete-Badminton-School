@@ -455,7 +455,7 @@ test.describe('Family Wallet lock correction', () => {
     targetSlots:redeemed ? 1 : 0, orphanCredits:0 })
 
   for (const state of ['never_activated', 'active', 'paused']) {
-    for (const different of [false, true]) test(`${state}: ${different ? 'different-participant direct RPC' : 'same representative button duplicate'} Store race is atomic with typed loser`, async () => {
+    for (const different of [false, true]) test(`${state}: ${different ? 'different-participant direct RPC' : 'same representative button duplicate'} Store race commits one unit with its schema replay contract`, async () => {
       const c = await protectedWalletFixture(readTask10Fixture()); prepare(c, state)
       const evidenceBefore = localSql('SELECT to_jsonb(a) FROM task10_policy_activation a; SELECT count(*) FROM task10_source_mutations;')
       const proof = await raceFamilyWalletStore(c, different)
@@ -464,8 +464,17 @@ test.describe('Family Wallet lock correction', () => {
       // Assert committed state and finance even if the error contract is wrong.
       expect(proof.snapshot).toEqual(expected(c))
       expect(proof.invariantsUnchanged).toBe(true)
-      expect(proof.results.filter(r => !r.error)).toHaveLength(1)
-      expect(proof.results.find(r => r.error)?.error).toContain('LESSON_WALLET_UNIT_NOT_STORABLE')
+      const sourceAtomic = localSql("SELECT to_regprocedure('public.lesson_source_transition_v1(uuid,text,uuid,jsonb)') IS NOT NULL;") === 't'
+      if (sourceAtomic) {
+        // Set1 normalizes all Family representatives into the same stored result.
+        // Two identical successes are a replay, never two entitlement writes.
+        expect(proof.results.filter(r => !r.error)).toHaveLength(2)
+        expect(JSON.parse(proof.results[0].output)).toEqual(JSON.parse(proof.results[1].output))
+        expect(localSql(`SELECT count(*) FROM lesson_source_operations WHERE operation='store' AND unit_id=ANY(ARRAY[${c.sources.map(sqlLiteral).join(',')}]::uuid[]);`)).toBe('1')
+      } else {
+        expect(proof.results.filter(r => !r.error)).toHaveLength(1)
+        expect(proof.results.find(r => r.error)?.error).toContain('LESSON_WALLET_UNIT_NOT_STORABLE')
+      }
       expect(proof.results.some(r => /deadlock detected|lock timeout|statement timeout/.test(r.error))).toBe(false)
       expect(localSql('SELECT to_jsonb(a) FROM task10_policy_activation a; SELECT count(*) FROM task10_source_mutations;')).toBe(evidenceBefore)
 
@@ -476,8 +485,14 @@ test.describe('Family Wallet lock correction', () => {
       const replays = await Promise.all([createLocalAdmin().rpc('lesson_wallet_redeem_v2', args), createLocalAdmin().rpc('lesson_wallet_redeem_v2', args)])
       expect(JSON.parse(localSql(c.snapshot))).toEqual(expected(c, true))
       expect(localSql(c.invariants)).toBe(before)
-      expect(replays.filter(r => !r.error)).toHaveLength(1)
-      expect(replays.find(r => r.error)?.error?.message).toBe('LESSON_WALLET_CREDIT_STALE')
+      if (sourceAtomic) {
+        expect(replays.filter(r => !r.error)).toHaveLength(2)
+        expect(replays[0].data).toEqual(replays[1].data)
+        expect(localSql(`SELECT count(*) FROM lesson_source_operations WHERE operation='redeem' AND unit_id='${credit}';`)).toBe('1')
+      } else {
+        expect(replays.filter(r => !r.error)).toHaveLength(1)
+        expect(replays.find(r => r.error)?.error?.message).toBe('LESSON_WALLET_CREDIT_STALE')
+      }
     })
 
     test(`${state}: original Adult/Private Store and Redeem retain single/package expiry and participant identity`, async () => {
@@ -853,7 +868,7 @@ test.describe('Task10 family source transactions', () => {
     const invalid=await client.rpc('task10_consume_family_makeup_v1',args(family.sources[0],'2031-08-10',f.mainChildId))
     expect(invalid.error?.message).toContain('TASK10_CHILD_NOT_IN_FAMILY')
     const requests=[args(family.sources[0],'2031-08-10'),args(family.sources[0],'2031-08-11')]
-    const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`kids-source-${randomUUID()}`)
+    const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${family.parentId}',0));`,`kids-source-${randomUUID()}`)
     const pending=requests.map((a)=>client.rpc('task10_consume_family_makeup_v1',a).then(r=>r))
     try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%task10_consume_family_makeup_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
     finally{await barrier.finish()}
@@ -880,7 +895,7 @@ test.describe('Task10 family source transactions', () => {
       const result=await client.rpc('task10_consume_family_makeup_v1',args(source,date))
       expect(result.error).toBeNull()
     }
-    const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`kids-quota-${randomUUID()}`)
+    const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${family.parentId}',0));`,`kids-quota-${randomUUID()}`)
     const pending=[client.rpc('task10_consume_family_makeup_v1',args(family.sources[3],'2031-08-16')).then(r=>r),
       client.rpc('task10_consume_family_makeup_v1',args(family.sources[4],'2031-08-17')).then(r=>r)]
     try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%task10_consume_family_makeup_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
@@ -1243,7 +1258,7 @@ test('Concurrent Wallet Redeem, Return and Reschedule cannot double-consume a fa
   expect(()=>localSql(`BEGIN; INSERT INTO system_settings(key,value) VALUES('admin_menu_permissions','{"adminAllowedMenuKeys":[]}')
     ON CONFLICT(key) DO UPDATE SET value=excluded.value;
     SELECT public.task10_family_makeup_state_v1('${f.deniedAdminId}','${family.parentId}','2031-07-01'); ROLLBACK;`)).toThrow('TASK10_UNAUTHORIZED')
-  const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`kids-cross-${randomUUID()}`)
+  const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${family.parentId}',0));`,`kids-cross-${randomUUID()}`)
   const pending=[
     client.rpc('task10_consume_family_makeup_v1',{p_actor_id:f.makeupAdminId,p_source_session_id:family.sources[6],p_attending_child_id:family.children[0],
       p_template_id:template,p_branch_id:f.branchId,p_target_date:'2031-08-20',p_start_time:'17:00',p_end_time:'19:00',p_request_id:randomUUID()}),
@@ -1375,7 +1390,7 @@ test.describe('Lesson source attendance admission', () => {
     'members',(SELECT count(*) FROM lesson_wallet_credit_members m JOIN lesson_wallet_credits c ON c.id=m.credit_id WHERE c.booking_id='${booking}'),
     'payments',(SELECT count(*) FROM payments WHERE booking_id='${booking}'),
     'assignments',(SELECT count(*) FROM coach_assignment_group_students g JOIN booking_sessions s ON s.id=g.booking_session_id WHERE s.booking_id='${booking}'));`))
-  async function fixture(course: 'adult_group' | 'private' | 'kids_group', future = false) {
+  async function fixture(course: 'adult_group' | 'private' | 'kids_group', future = false, owner = parent) {
     const [branch, booking, template, slot] = Array.from({length:4},()=>randomUUID())
     const courseId = localSql(`SELECT id FROM course_types WHERE name='${course}';`) || randomUUID()
     const children = course === 'private' ? [null, randomUUID(), randomUUID()] : course === 'kids_group' ? [randomUUID()] : [null]
@@ -1389,9 +1404,9 @@ test.describe('Lesson source attendance admission', () => {
       SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.source_write','authorized',true);
       INSERT INTO branches(id,name,slug) VALUES('${branch}','Synthetic lesson source','synthetic-${branch}');
       INSERT INTO course_types(id,name,max_students,duration_hours) VALUES('${courseId}','${course}',1,1) ON CONFLICT(name) DO NOTHING;
-      ${children.filter(Boolean).map(child=>`INSERT INTO children(id,parent_id,full_name) VALUES('${child}','${parent}','Synthetic exact learner');`).join('\n')}
+      ${children.filter(Boolean).map(child=>`INSERT INTO children(id,parent_id,full_name) VALUES('${child}','${owner}','Synthetic exact learner');`).join('\n')}
       INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)
-      VALUES('${booking}','${parent}','${course==='kids_group'?'child':'self'}','${branch}','${courseId}',extract(month FROM date '${date}'),extract(year FROM date '${date}'),1,500,'verified');
+      VALUES('${booking}','${owner}','${course==='kids_group'?'child':'self'}','${branch}','${courseId}',extract(month FROM date '${date}'),extract(year FROM date '${date}'),1,500,'verified');
       INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
       VALUES('${template}','${branch}','${courseId}',extract(dow FROM date '${date}'),'10:00','11:00',true);
       INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
@@ -1432,6 +1447,119 @@ test.describe('Lesson source attendance admission', () => {
   })
   test.afterAll(async()=>{await adminApi?.dispose(); await userApi?.dispose(); await coachApi?.dispose()})
 
+  test('unrelated admission: held source A allows Coach B and retrospective C first attempt', async()=>{
+    const makeOther = async()=>{
+      const created=await db().auth.admin.createUser({email:`admission-other-${randomUUID()}@example.com`,password,email_confirm:true})
+      expect(created.error).toBeNull()
+      return {owner:created.data.user!.id,f:await fixture('adult_group',false,created.data.user!.id)}
+    }
+    const a=await fixture('private'), b=await makeOther(), c=await makeOther()
+    const retroCoach=await db().auth.admin.createUser({email:`other-coach-${randomUUID()}@example.com`,password,email_confirm:true})
+    expect(retroCoach.error).toBeNull()
+    expect((await db().from('profiles').update({role:'coach'}).eq('id',retroCoach.data.user!.id)).error).toBeNull()
+    localSql(`INSERT INTO coach_assignments(coach_id,schedule_slot_id,assigned_by) VALUES('${coach}','${b.f.slot}','${actor}');
+      INSERT INTO coach_checkins(coach_id,schedule_slot_id,branch_id,photo_url,location_lat,location_lng)
+      VALUES('${coach}','${b.f.slot}','${b.f.branch}','http://127.0.0.1/synthetic-checkin.png',13,100);`)
+    const held=await holdLocalTransaction(returnSql(a.ids[0]),`unrelated-source-A-${randomUUID()}`)
+    let results: number[]=[]
+    try {
+      expect(localSql(`SELECT count(*) FROM pg_stat_activity WHERE application_name LIKE 'unrelated-source-A-%' AND state='idle in transaction';`)).toBe('1')
+      const responses=await Promise.all([
+        coachApi.post('/api/coach/attendance',{data:{bookingSessionId:b.f.ids[0],studentId:b.owner,studentType:'adult',status:'present'}}),
+        adminApi.patch('/api/admin/makeup',{data:{session_id:c.f.ids[0],action:'mark_attendance',coach_id:retroCoach.data.user!.id,attendance_status:'late',reason:'Unrelated family admission regression'}}),
+      ])
+      results=responses.map(r=>r.status())
+      await test.info().attach('unrelated-first-attempts',{body:JSON.stringify(await Promise.all(responses.map(async r=>({status:r.status(),body:await r.json()})))) ,contentType:'application/json'})
+    } finally {await held.finish()}
+    expect(results).toEqual([200,200])
+    expect(sourceState(a.booking)).toMatchObject({attendance:0,credits:1,members:3})
+    expect(sourceState(b.f.booking)).toMatchObject({attendance:1,credits:0})
+    expect(sourceState(c.f.booking)).toMatchObject({attendance:1,credits:0})
+  })
+
+  test('parent admission: queued source A cannot reject unrelated B; OLD/NEW and multi-row writes retain atomicity',async()=>{
+    const other=await db().auth.admin.createUser({email:`parent-v2-${randomUUID()}@example.com`,password,email_confirm:true})
+    expect(other.error).toBeNull();const owner=other.data.user!.id
+    const a=await fixture('adult_group'),b=await fixture('adult_group',false,owner),c=await fixture('adult_group',false,owner)
+    const held=await holdLocalTransaction(`INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${a.ids[0]}','${parent}','adult','${actor}','absent');`,`v2-attendance-A-${randomUUID()}`)
+    let pending:ReturnType<typeof adminApi.patch>|undefined
+    try{
+      pending=adminApi.patch('/api/admin/makeup',{data:{session_id:a.ids[0],action:'return_entitlement',reason:'Queued parent source'}})
+      await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%lesson_source_transition_v1%' AND pid<>pg_backend_pid();")).toBe('1')
+      const response=await adminApi.post('/api/coach/attendance',{data:{bookingSessionId:b.ids[0],studentId:owner,studentType:'adult',status:'present'}})
+      expect(response.status()).toBe(200)
+    }finally{await held.finish();if(pending)expect((await pending).status()).toBe(409)}
+    expect(sourceState(a.booking)).toMatchObject({attendance:1,credits:0})
+    const id=localSql(`SELECT id FROM attendance WHERE booking_session_id='${b.ids[0]}';`)
+    const block=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${owner}',0));`,`v2-old-parent-${randomUUID()}`)
+    try{
+      // OLD parent must be admitted too; NEW points to the otherwise free A.
+      const moved=await db().from('attendance').update(attendance(a.ids[0],null)).eq('id',id)
+      expect(moved.error?.code).toBe('55P03')
+      const batch=await db().from('attendance').insert([attendance(a.ids[0],null),{...attendance(c.ids[0],null),student_id:owner}])
+      expect(batch.error?.code).toBe('55P03')
+      expect(()=>localSql(`BEGIN; SET LOCAL ROLE service_role; INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${c.ids[0]}','${owner}','adult','${actor}','absent'); COMMIT;`)).toThrow('LESSON_SOURCE_ATTENDANCE_RETRY')
+    }finally{await block.finish()}
+    expect(sourceState(a.booking).attendance).toBe(1);expect(sourceState(b.booking).attendance).toBe(1);expect(sourceState(c.booking).attendance).toBe(0)
+    const valid=await db().from('attendance').upsert([{id,...attendance(b.ids[0],null),student_id:owner,status:'late'},{id:randomUUID(),...attendance(c.ids[0],null),student_id:owner}])
+    expect(valid.error).toBeNull()
+    expect(localSql(`SELECT count(*) FROM attendance WHERE booking_session_id IN ('${b.ids[0]}','${c.ids[0]}');`)).toBe('2')
+  })
+
+  test('Attendance error phases: typed rollback, real errors, and committed Attendance with failed sync',async()=>{
+    const f=await fixture('adult_group'),g=await fixture('adult_group'),r=await fixture('adult_group')
+    const retroCoach=await db().auth.admin.createUser({email:`retro-v2-${randomUUID()}@example.com`,password,email_confirm:true})
+    expect(retroCoach.error).toBeNull();const coachId=retroCoach.data.user!.id
+    expect((await db().from('profiles').update({role:'coach'}).eq('id',coachId)).error).toBeNull()
+    const coachRequest=()=>adminApi.post('/api/coach/attendance',{data:{bookingSessionId:f.ids[0],studentId:parent,studentType:'adult',status:'present'}})
+    const directRequest=()=>adminApi.patch('/api/admin/makeup',{data:{session_id:g.ids[0],action:'confirm_absent',reason:'Typed direct error'}})
+    const retroRequest=()=>adminApi.patch('/api/admin/makeup',{data:{session_id:r.ids[0],action:'mark_attendance',coach_id:coachId,attendance_status:'late',reason:'Typed RPC error'}})
+    for(const code of ['55P03','40001','40P01','57014','22000']){
+      localSql(`CREATE FUNCTION public.attendance_v2_test_fault() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION USING ERRCODE='${code}',MESSAGE='TEST_ATTENDANCE_FAULT'; END $f$;
+        REVOKE ALL ON FUNCTION public.attendance_v2_test_fault() FROM PUBLIC,anon,authenticated,service_role;
+        CREATE TRIGGER attendance_v2_test_fault AFTER INSERT OR UPDATE ON public.attendance FOR EACH ROW EXECUTE FUNCTION public.attendance_v2_test_fault();`)
+      try{
+        for(const request of [coachRequest,directRequest,retroRequest]){
+          const response=await request();expect(response.status()).toBe(code==='22000'?500:409)
+          expect(await response.json()).toMatchObject({databaseCode:code,attendanceRecorded:false,retryable:code!=='22000'})
+        }
+        for(const x of [f,g,r])expect(sourceState(x.booking)).toMatchObject({attendance:0,credits:0,assignments:0})
+      }finally{localSql('DROP TRIGGER attendance_v2_test_fault ON public.attendance; DROP FUNCTION public.attendance_v2_test_fault();')}
+    }
+    localSql(`CREATE FUNCTION public.attendance_v2_sync_fault() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN IF NEW.id IN ('${f.ids[0]}','${g.ids[0]}','${r.ids[0]}') THEN RAISE EXCEPTION USING ERRCODE='55P03',MESSAGE='TEST_SYNC_FAULT'; END IF; RETURN NEW; END $f$;
+      REVOKE ALL ON FUNCTION public.attendance_v2_sync_fault() FROM PUBLIC,anon,authenticated,service_role;
+      CREATE TRIGGER attendance_v2_sync_fault BEFORE UPDATE ON public.booking_sessions FOR EACH ROW EXECUTE FUNCTION public.attendance_v2_sync_fault();`)
+    try{
+      for(const request of [coachRequest,directRequest]){
+        const response=await request();expect(response.status()).toBe(409)
+        expect(await response.json()).toMatchObject({code:'ATTENDANCE_FOLLOWUP_FAILED',databaseCode:'55P03',attendanceRecorded:true,retryable:false,requiresReload:true})
+      }
+      const atomic=await retroRequest();expect(atomic.status()).toBe(409)
+      expect(await atomic.json()).toMatchObject({attendanceRecorded:false,retryable:true})
+      expect(sourceState(f.booking).attendance).toBe(1);expect(sourceState(g.booking).attendance).toBe(1)
+      expect(sourceState(r.booking)).toMatchObject({attendance:0,assignments:0})
+    }finally{localSql('DROP TRIGGER attendance_v2_sync_fault ON public.booking_sessions; DROP FUNCTION public.attendance_v2_sync_fault();')}
+    const returnAfter=await adminApi.patch('/api/admin/makeup',{data:{session_id:f.ids[0],action:'return_entitlement',reason:'Attendance already committed'}})
+    expect(returnAfter.status()).toBe(409);expect(sourceState(f.booking).credits).toBe(0)
+    expect((await coachRequest()).status()).toBe(200);expect((await directRequest()).status()).toBe(200)
+    expect((await retroRequest()).status()).toBe(200)
+    for(const x of [f,g,r])expect(sourceState(x.booking).attendance).toBe(1)
+  })
+
+  test('Coach assignment/check-in and exact learner authorization remain enforced',async()=>{
+    const f=await fixture('adult_group')
+    const data={bookingSessionId:f.ids[0],studentId:parent,studentType:'adult',status:'present'}
+    expect((await userApi.post('/api/coach/attendance',{data})).status()).toBe(401)
+    expect((await coachApi.post('/api/coach/attendance',{data})).status()).toBe(403)
+    localSql(`INSERT INTO coach_assignments(coach_id,schedule_slot_id,assigned_by) VALUES('${coach}','${f.slot}','${actor}');`)
+    expect((await coachApi.post('/api/coach/attendance',{data})).status()).toBe(403)
+    expect(sourceState(f.booking).attendance).toBe(0)
+    localSql(`INSERT INTO coach_checkins(coach_id,schedule_slot_id,branch_id,photo_url,location_lat,location_lng) VALUES('${coach}','${f.slot}','${f.branch}','http://127.0.0.1/synthetic-checkin.png',13,100);`)
+    expect((await coachApi.post('/api/coach/attendance',{data:{...data,studentId:randomUUID()}})).status()).toBe(403)
+    expect((await coachApi.post('/api/coach/attendance',{data})).status()).toBe(200)
+    expect(sourceState(f.booking).attendance).toBe(1)
+  })
+
   for (const course of ['adult_group','private','kids_group'] as const) {
     test(`${course}: Return commit excludes INSERT/upsert; API retry replays one whole unit`, async () => {
       const f=await fixture(course), member=f.ids.length-1
@@ -1439,7 +1567,7 @@ test.describe('Lesson source attendance admission', () => {
       expect((await db().from('attendance').insert({id:donorAttendance,...attendance(donor.ids[0],null)})).error).toBeNull()
       const held=await holdLocalTransaction(returnSql(f.ids[0]),`source-return-${randomUUID()}`)
       try {
-        // BEFORE STATEMENT uses non-waiting admission: neither the API nor direct
+        // Parent row admission is non-waiting: neither the API nor direct
         // upsert may leave a row while the winning Return owns its transaction.
         const inserted=await db().from('attendance').insert(attendance(f.ids[member],f.children[member]))
         expect(inserted.error?.code).toBe('55P03')
@@ -1448,7 +1576,7 @@ test.describe('Lesson source attendance admission', () => {
         const updated=await db().from('attendance').update(attendance(f.ids[member],f.children[member])).eq('id',donorAttendance)
         expect(updated.error?.code).toBe('55P03')
         const api=await adminApi.post('/api/coach/attendance',{data:{bookingSessionId:f.ids[member],studentId:f.children[member]||parent,studentType:f.children[member]?'child':'adult',status:'absent'}})
-        expect(api.ok()).toBe(false);expect((await api.json()).error).toContain('LESSON_SOURCE_ATTENDANCE_RETRY')
+        expect(api.status()).toBe(409);expect(await api.json()).toMatchObject({code:'ATTENDANCE_WRITE_RETRY',databaseCode:'55P03',retryable:true,attendanceRecorded:false})
       } finally { await held.finish() }
       const stale=await db().from('attendance').insert(attendance(f.ids[member],f.children[member]))
       expect(stale.error?.message).toContain('LESSON_SOURCE_ATTENDANCE_STALE')
@@ -1494,7 +1622,13 @@ test.describe('Lesson source attendance admission', () => {
       expect(localSql(`SELECT status FROM booking_sessions WHERE id='${f.ids[0]}';`)).toBe(status==='absent'?'absent':'completed')
     }
     const g=await fixture('adult_group')
-    const retro=await adminApi.patch('/api/admin/makeup',{data:{session_id:g.ids[0],action:'mark_attendance',coach_id:coach,attendance_status:'late',reason:'Synthetic valid retrospective'}})
+    // f and g intentionally share the same time. A second coach keeps this
+    // valid-correction test independent of the protected coach-overlap rule.
+    const gCoach=await db().auth.admin.createUser({email:`valid-retro-${randomUUID()}@example.com`,password,email_confirm:true})
+    expect(gCoach.error).toBeNull()
+    expect((await db().from('profiles').update({role:'coach'}).eq('id',gCoach.data.user!.id)).error).toBeNull()
+    const retro=await adminApi.patch('/api/admin/makeup',{data:{session_id:g.ids[0],action:'mark_attendance',coach_id:gCoach.data.user!.id,attendance_status:'late',reason:'Synthetic valid retrospective'}})
+    await test.info().attach('valid-retrospective-result',{body:JSON.stringify({status:retro.status(),body:await retro.json()}),contentType:'application/json'})
     expect(retro.status()).toBe(200)
     expect(localSql(`SELECT status FROM attendance WHERE booking_session_id='${g.ids[0]}';`)).toBe('late')
     const r=await fixture('adult_group')
@@ -1509,7 +1643,7 @@ test.describe('Lesson source attendance admission', () => {
     expect((await db().from('attendance').insert(attendance(f.ids[1],null))).error?.message).toContain('IDENTITY_CONFLICT')
     expect(()=>localSql(`BEGIN; INSERT INTO attendance(booking_session_id,student_id,student_type,coach_id,status) VALUES('${f.ids[1]}','${f.children[1]}','child','${actor}','absent'); SELECT 1/0; COMMIT;`)).toThrow()
     expect(sourceState(f.booking)).toEqual(before)
-    const held=await holdLocalTransaction(`SELECT pg_advisory_xact_lock_shared(hashtextextended('lesson-source-attendance-admission-v1',0));`,`timeout-${randomUUID()}`)
+    const held=await holdLocalTransaction(`SELECT pg_advisory_xact_lock_shared(hashtextextended('lesson-source-attendance-parent-v2|${parent}',0));`,`timeout-${randomUUID()}`)
     try {
       await expect(concurrentLocalSql(`SET lock_timeout='150ms'; ${returnSql(f.ids[0])}`)).rejects.toThrow('lock timeout')
     }finally{await held.finish()}
@@ -1532,7 +1666,7 @@ test.describe('Lesson source attendance admission', () => {
   for(const [course,day] of [['adult_group',2],['private',5]] as const) for(const same of [true,false]) {
     test(`${course}: same-source reschedule ${same?'replay':'conflict'} race commits one descendant`,async()=>{
       const f=await fixture(course,true), to=target(f,day+(same?0:1)), other=same?to:target(f,day+2)
-      const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`reschedule-barrier-${randomUUID()}`)
+      const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${parent}',0));`,`reschedule-barrier-${randomUUID()}`)
       const left=userApi.post('/api/reschedule',{data:{sessionId:f.ids[0],...to}})
       const right=userApi.post('/api/reschedule',{data:{sessionId:f.ids[0],...other}})
       try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%lesson_source_transition_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
@@ -1576,7 +1710,7 @@ test.describe('Lesson source attendance admission', () => {
       UPDATE children SET parent_id='${otherParent}' WHERE id IN (${untouched.children.filter(Boolean).map(value=>sqlLiteral(value!)).join(',')});
       UPDATE booking_sessions SET branch_id='${f.branch}',schedule_slot_id='${f.slot}' WHERE booking_id='${untouched.booking}'; COMMIT;`)
     const beforeOther=sourceState(untouched.booking), to=target(f,25)
-    const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`wallet-barrier-${randomUUID()}`)
+    const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${parent}',0));`,`wallet-barrier-${randomUUID()}`)
     const pending=f.ids.slice(0,2).map(sessionId=>userApi.post('/api/lesson-wallet',{data:{action:'store',sessionId}}))
     try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%lesson_source_transition_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
     finally{await barrier.finish()}
@@ -1631,7 +1765,7 @@ test.describe('Lesson source attendance admission', () => {
   })
   test('Reschedule versus Store shares source exclusion; incompatible Return/Makeup reject future source',async()=>{
     const f=await fixture('adult_group',true);paidEvidence(f);const to=target(f,27)
-    const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`cross-barrier-${randomUUID()}`)
+    const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${parent}',0));`,`cross-barrier-${randomUUID()}`)
     const a=userApi.post('/api/reschedule',{data:{sessionId:f.ids[0],...to}})
     const b=userApi.post('/api/lesson-wallet',{data:{action:'store',sessionId:f.ids[0]}})
     try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%lesson_source_transition_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
@@ -1647,7 +1781,7 @@ test.describe('Lesson source attendance admission', () => {
     const f=await fixture('private'), future=localSql("SELECT (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month')::date;")
     const to=target({...f,date:future},18)
     const body={booking_id:f.booking,original_session_id:f.ids[1],makeup_date:to.targetDate,start_time:to.startTime,end_time:to.endTime,branch_id:f.branch}
-    const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`makeup-return-${randomUUID()}`)
+    const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${parent}',0));`,`makeup-return-${randomUUID()}`)
     const a=adminApi.post('/api/admin/makeup',{data:body})
     const b=adminApi.patch('/api/admin/makeup',{data:{session_id:f.ids[2],action:'return_entitlement',reason:'Synthetic whole Family race'}})
     try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%lesson_source_transition_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
@@ -1664,7 +1798,7 @@ test.describe('Lesson source attendance admission', () => {
     const sources=[await fixture('adult_group'),await fixture('adult_group')]
     const future=localSql("SELECT (date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month')::date;")
     const bodies=sources.map((f,i)=>{const to=target({...f,date:future},20+i);return {booking_id:f.booking,original_session_id:f.ids[0],makeup_date:to.targetDate,start_time:to.startTime,end_time:to.endTime,branch_id:f.branch}})
-    const barrier=await holdLocalTransaction("SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-admission-v1',0));",`quota-${randomUUID()}`)
+    const barrier=await holdLocalTransaction(`SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${parent}',0));`,`quota-${randomUUID()}`)
     const pending=bodies.map(data=>adminApi.post('/api/admin/makeup',{data}))
     try{await expect.poll(()=>localSql("SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%lesson_source_transition_v1%' AND pid<>pg_backend_pid();")).toBe('2')}
     finally{await barrier.finish()}

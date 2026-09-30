@@ -2,13 +2,16 @@ import { execFileSync, execSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, resolve } from 'node:path'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { lessonSourceRun, verifyLessonSourceTarget, lessonSourceEnvironment, lessonSourceFetch, completeLessonSourceReset } from '../../scripts/verify-lesson-source-test-target.mjs'
 
 export const ROOT = resolve(__dirname, '../..')
-export const FIXTURE_PATH = resolve(ROOT, '.playwright/booking-fixture.json')
+export const FIXTURE_PATH = process.env.LESSON_SOURCE_RUN_MANIFEST
+  ? resolve(lessonSourceRun().outputDir, 'booking-fixture.json') : resolve(ROOT, '.playwright/booking-fixture.json')
 
 // Bind every CLI read/reset to the same explicitly selected disposable. Never
 // infer ownership from a port or from two checkouts sharing a directory name.
 function localTarget() {
+  if (process.env.LESSON_SOURCE_RUN_MANIFEST) return verifyLessonSourceTarget().target
   const target = process.env.TASK10_DISPOSABLE_TARGET
     ? JSON.parse(readFileSync(process.env.TASK10_DISPOSABLE_TARGET, 'utf8')) as { project: string; workdir: string; api: string }
     : { project: basename(ROOT), workdir: ROOT, api: 'http://127.0.0.1:54321' }
@@ -127,6 +130,7 @@ function requireLocalUrl(value: string) {
 }
 
 export function getLocalSupabaseEnv(): LocalSupabaseEnv {
+  if (process.env.LESSON_SOURCE_RUN_MANIFEST) return lessonSourceEnvironment()
   const target = localTarget()
   const options = {
     cwd: target.workdir,
@@ -155,6 +159,7 @@ export function createLocalAdmin(): SupabaseClient {
   const env = getLocalSupabaseEnv()
   return createClient(env.apiUrl, env.serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    ...(process.env.LESSON_SOURCE_RUN_MANIFEST ? { global: { fetch: lessonSourceFetch } } : {}),
   })
 }
 
@@ -201,12 +206,15 @@ function fixedUuid(prefix: string, index: number) {
 }
 
 export function resetLocalDatabase() {
+  const lessonRun = process.env.LESSON_SOURCE_RUN_MANIFEST ? verifyLessonSourceTarget() : null
+  const resetStartedAt = Date.now()
   const target = localTarget()
   if (process.env.SUPABASE_TEST_CLI) {
     execFileSync(process.env.SUPABASE_TEST_CLI, ['db','reset','--local'], { cwd: target.workdir, stdio: 'inherit' })
   } else {
     execSync('npx.cmd supabase db reset --local', { cwd: target.workdir, stdio: 'inherit' })
   }
+  if (lessonRun) completeLessonSourceReset(lessonRun, resetStartedAt)
   execFileSync('docker', ['restart', `supabase_kong_${target.project}`], {
     cwd: target.workdir,
     stdio: 'ignore',

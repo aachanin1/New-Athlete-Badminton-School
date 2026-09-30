@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
+import { attendanceWriteFailure, type AttendanceDbError } from '@/lib/attendance-write-errors'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
@@ -217,7 +218,8 @@ async function applyAdminRetrospectiveTransition({
   if (error) {
     const conflict = getAdminRetrospectiveAssignmentConflict(error.message)
     if (conflict) return NextResponse.json(conflict, { status: 409 })
-    return NextResponse.json({ error: getErrorMessage(new Error(error.message)) }, { status: 500 })
+    const failure = attendanceWriteFailure(error)
+    return NextResponse.json(failure.body, { status: failure.status })
   }
 
   const result = data as unknown as AdminRetrospectiveTransitionResult
@@ -402,14 +404,14 @@ async function upsertRetrospectiveAttendance({
         eq: (column: string, value: string) => {
           order: (column: string, options: { ascending: boolean }) => {
             limit: (count: number) => {
-              maybeSingle: () => Promise<{ data: ExistingAttendanceRow | null; error: { message: string } | null }>
+              maybeSingle: () => Promise<{ data: ExistingAttendanceRow | null; error: AttendanceDbError | null }>
             }
           }
         }
       }
     }
     update: (values: { coach_id: string; status: AttendanceStatus; checked_at: string }) => {
-      eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>
+      eq: (column: string, value: string) => Promise<{ error: AttendanceDbError | null }>
     }
     insert: (values: {
       booking_session_id: string
@@ -418,7 +420,7 @@ async function upsertRetrospectiveAttendance({
       coach_id: string
       status: AttendanceStatus
       checked_at: string
-    }) => Promise<{ error: { message: string } | null }>
+    }) => Promise<{ error: AttendanceDbError | null }>
   }
 
   const checkedAt = new Date().toISOString()
@@ -431,7 +433,7 @@ async function upsertRetrospectiveAttendance({
     .maybeSingle()
 
   if (existingAttendanceError) {
-    throw new Error(existingAttendanceError.message)
+    throw existingAttendanceError
   }
 
   if (existingAttendance) {
@@ -443,7 +445,7 @@ async function upsertRetrospectiveAttendance({
       })
       .eq('id', existingAttendance.id)
 
-    if (error) throw new Error(error.message)
+    if (error) throw error
   } else {
     const { error } = await attendanceTable.insert({
       booking_session_id: session.id,
@@ -454,7 +456,7 @@ async function upsertRetrospectiveAttendance({
       checked_at: checkedAt,
     })
 
-    if (error) throw new Error(error.message)
+    if (error) throw error
   }
 }
 
@@ -478,6 +480,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  let attendanceRecorded = false
   const access = await requireAdminMenuAccess('makeup')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
@@ -718,12 +721,18 @@ export async function PATCH(req: NextRequest) {
       attendanceCoachId = access.ctx.user.id
     }
 
-    await upsertRetrospectiveAttendance({
-      supabaseAdmin,
-      session,
-      status: finalAttendanceStatus,
-      coachId: attendanceCoachId,
-    })
+    try {
+      await upsertRetrospectiveAttendance({
+        supabaseAdmin,
+        session,
+        status: finalAttendanceStatus,
+        coachId: attendanceCoachId,
+      })
+      attendanceRecorded = true
+    } catch (error) {
+      const failure = attendanceWriteFailure(error)
+      return NextResponse.json(failure.body, { status: failure.status })
+    }
 
     let sessionStatus: 'absent' | 'completed'
     try {
@@ -734,7 +743,8 @@ export async function PATCH(req: NextRequest) {
       })
       sessionStatus = syncResult.sessionStatus
     } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'Sync booking session status failed' }, { status: 500 })
+      const failure = attendanceWriteFailure(error, true)
+      return NextResponse.json(failure.body, { status: failure.status })
     }
 
     await logActivity({
@@ -772,6 +782,10 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, warnings: assignmentWarning })
   } catch (error) {
+    if (attendanceRecorded) {
+      const failure = attendanceWriteFailure(error, true)
+      return NextResponse.json(failure.body, { status: failure.status })
+    }
     return NextResponse.json({ error: getErrorMessage(error), ...(error instanceof LessonSourceTransitionError ? { code: error.code } : {}) }, { status: error instanceof LessonSourceTransitionError ? error.status : 500 })
   }
 }

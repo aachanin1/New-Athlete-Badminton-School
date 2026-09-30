@@ -2,7 +2,7 @@ import { expectedBookingStatusFromAttendanceStatus } from '@/lib/session-attenda
 import type { AttendanceStatus, SessionStatus } from '@/types/database'
 
 type WritableSessionStatus = Extract<SessionStatus, 'completed' | 'absent'>
-type SyncError = { message: string }
+type SyncError = { message: string; code?: string; details?: string; hint?: string }
 type SyncedSessionRow = { id: string; status: SessionStatus }
 type SupabaseMaybeSingleResult = {
   data: SyncedSessionRow | null
@@ -46,7 +46,9 @@ export async function syncBookingSessionStatusFromAttendance({
     .maybeSingle()
 
   if (error) {
-    throw new Error(`Sync booking session status failed: ${error.message}`)
+    throw Object.assign(new Error(`Sync booking session status failed: ${error.message}`), {
+      code: error.code, details: error.details, hint: error.hint,
+    })
   }
 
   if (!data) {

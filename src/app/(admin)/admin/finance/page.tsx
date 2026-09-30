@@ -3,6 +3,7 @@ import { getServiceRoleClient } from '@/lib/auth/admin'
 import { isProgressivePaymentReviewEnabled } from '@/lib/progressive-pricing-feature'
 import type { PaymentLedgerAllocationRow } from '@/types/database'
 import { FinanceClient } from '@/components/admin/finance-client'
+import { loadProgressiveFinanceBookings } from '@/lib/admin-finance-read'
 
 interface PaymentRow {
   id: string
@@ -20,17 +21,6 @@ interface PaymentRow {
     branches?: { name: string | null } | null
     course_types?: { name: string | null } | null
   } | null
-  profiles?: { full_name: string | null; email: string | null } | null
-}
-
-interface ProgressiveFinanceBookingRow {
-  id: string
-  total_price: number | string
-  month: number
-  year: number
-  total_sessions: number
-  branches?: { name: string | null } | null
-  course_types?: { name: string | null } | null
   profiles?: { full_name: string | null; email: string | null } | null
 }
 
@@ -154,15 +144,9 @@ export default async function FinancePage() {
   if (progressiveAllocationError) throw new Error(`[admin/finance] progressive ledger read failed: ${progressiveAllocationError.message}`)
 
   const progressiveBookingIds = Array.from(new Set((progressiveAllocations || []).map((row) => row.booking_id)))
-  const { data: progressiveBookings, error: progressiveBookingError } = progressiveBookingIds.length > 0
-    ? await service.from('bookings').select(`
-        id, total_price, month, year, total_sessions,
-        branches(name), course_types(name), profiles!bookings_user_id_fkey(full_name, email)
-      `).in('id', progressiveBookingIds)
-    : { data: [] as ProgressiveFinanceBookingRow[], error: null }
-  if (progressiveBookingError) throw new Error(`[admin/finance] progressive booking read failed: ${progressiveBookingError.message}`)
+  const progressiveBookings = await loadProgressiveFinanceBookings(service, progressiveBookingIds)
   const progressiveBookingMap = new Map(
-    ((progressiveBookings || []) as unknown as ProgressiveFinanceBookingRow[]).map((booking) => [booking.id, booking]),
+    progressiveBookings.map((booking) => [booking.id, booking]),
   )
 
   const paymentList = (payments || []).map((payment) => ({

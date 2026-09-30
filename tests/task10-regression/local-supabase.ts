@@ -2,6 +2,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { randomUUID, createHash } from 'node:crypto'
+import { lessonSourceRun } from '../../scripts/verify-lesson-source-test-target.mjs'
 import { createLocalAdmin, getLocalSupabaseEnv, resetLocalDatabase, seedBookingFixture, waitForLocalSupabaseAuth, type BookingFixture } from '../booking-regression/local-supabase'
 
 export const ROOT = resolve(__dirname, '../..')
@@ -15,7 +16,8 @@ if (!/^[A-Za-z0-9_-]+$/.test(disposableTarget.project)
   || new URL(disposableTarget.api).hostname !== '127.0.0.1'
   || new URL(disposableTarget.api).protocol !== 'http:') throw new Error('Task10 refuses non-local disposable target')
 export const DB_CONTAINER = `supabase_db_${disposableTarget.project}`
-export const FIXTURE_PATH = resolve(ROOT, '.playwright/task10-fixture.json')
+export const FIXTURE_PATH = process.env.LESSON_SOURCE_RUN_MANIFEST
+  ? resolve(lessonSourceRun().outputDir, 'task10-fixture.json') : resolve(ROOT, '.playwright/task10-fixture.json')
 export const TASK10_PASSWORD = 'LocalTask10!2026'
 export const TASK10_ADMIN_EMAIL = 'task10-makeup-admin@example.com'
 export const TASK10_DENIED_EMAIL = 'task10-denied-admin@example.com'
@@ -27,6 +29,7 @@ export interface Task10Fixture extends BookingFixture {
 }
 
 export function verifyDisposableIdentity() {
+  if (process.env.LESSON_SOURCE_RUN_MANIFEST) return getLocalSupabaseEnv()
   const local = getLocalSupabaseEnv()
   if (new URL(local.apiUrl).origin !== disposableTarget.api) throw new Error('Task10 refuses unexpected API origin')
   const inspect = (name: string) => JSON.parse(execFileSync('docker', ['inspect', name], { encoding: 'utf8' }))[0]

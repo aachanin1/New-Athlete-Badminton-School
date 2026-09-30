@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
+import { lessonSourceEnvironment, lessonSourceFetch, verifyLessonSourceTarget } from './verify-lesson-source-test-target.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
@@ -92,24 +93,10 @@ if (process.argv.includes('--architecture-only')) {
   process.exit(0)
 }
 
-function localEnvironment() {
-  const output = execSync('npx.cmd supabase status -o env', { encoding: 'utf8' })
-  const values = new Map()
-  for (const line of output.split(/\r?\n/)) {
-    const match = line.match(/^([A-Z_]+)="?(.*?)"?$/)
-    if (match) values.set(match[1], match[2])
-  }
-  const apiUrl = values.get('API_URL')
-  const serviceRoleKey = values.get('SERVICE_ROLE_KEY')
-  if (!apiUrl || !serviceRoleKey || !/^http:\/\/(127\.0\.0\.1|localhost):/.test(apiUrl)) {
-    throw new Error('Retrospective integrity tests refuse to run unless Supabase is local.')
-  }
-  return { apiUrl, serviceRoleKey }
-}
-
-const env = localEnvironment()
+const env = lessonSourceEnvironment()
 const admin = createClient(env.apiUrl, env.serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
+  global: { fetch: lessonSourceFetch },
 })
 const prefix = `admin-retro-${Date.now()}`
 const password = 'LocalOnly!2026'
@@ -118,6 +105,21 @@ const ids = {
   branchB: randomUUID(),
   courseA: randomUUID(),
   courseB: randomUUID(),
+}
+// Fixture-only owner SQL; application RPCs continue to execute as service_role.
+function fixtureSql(sql) {
+  const run = verifyLessonSourceTarget()
+  return execFileSync('docker', ['exec', '-i', `supabase_db_${run.target.project}`, 'psql', '-U', 'postgres', '-d', 'postgres', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'], {
+    input: `BEGIN; SELECT set_config('lesson_source.write','authorized',true); SELECT set_config('task10.source_write','authorized',true); ${sql}; COMMIT;`,
+    encoding: 'utf8', windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
+  }).trim()
+}
+function fixtureRows(table, records) {
+  if (!['booking_sessions'].includes(table)) throw new Error('Unapproved fixture table')
+  const columns = Object.keys(records[0])
+  const json = JSON.stringify(records).replaceAll("'", "''")
+  fixtureSql(`INSERT INTO ${table}(${columns.join(',')}) SELECT ${columns.join(',')} FROM jsonb_populate_recordset(NULL::${table},'${json}'::jsonb)`)
+  return { error: null }
 }
 const userIds = []
 const bookingIds = []
@@ -200,7 +202,7 @@ async function createRound({
   }), 'insert slot')
   const sessions = Array.from({ length: sessionCount }, () => randomUUID())
   sessionIds.push(...sessions)
-  noError(await admin.from('booking_sessions').insert(sessions.map((id) => ({
+  noError(fixtureRows('booking_sessions', sessions.map((id) => ({
     id,
     booking_id: bookingId,
     schedule_slot_id: slotId,
@@ -322,10 +324,9 @@ async function cleanup() {
     await admin.from('coach_assignments').delete().in('schedule_slot_id', slotIds)
   }
   if (sessionIds.length) await admin.from('attendance').delete().in('booking_session_id', sessionIds)
-  if (sessionIds.length) await admin.from('booking_sessions').delete().in('id', sessionIds)
+  if (sessionIds.length) fixtureSql(`DELETE FROM booking_sessions WHERE id IN (${sessionIds.map(id => `'${id}'`).join(',')})`)
   if (slotIds.length) await admin.from('schedule_slots').delete().in('id', slotIds)
   if (bookingIds.length) await admin.from('bookings').delete().in('id', bookingIds)
-  await admin.from('course_types').delete().in('id', [ids.courseA, ids.courseB])
   await admin.from('branches').delete().in('id', [ids.branchA, ids.branchB])
   for (const id of userIds.reverse()) await admin.auth.admin.deleteUser(id)
 }
@@ -340,10 +341,10 @@ try {
     { id: ids.branchA, name: `${prefix} A`, slug: `${prefix}-a`, address: 'local', is_active: true },
     { id: ids.branchB, name: `${prefix} B`, slug: `${prefix}-b`, address: 'local', is_active: true },
   ]), 'insert branches')
-  noError(await admin.from('course_types').insert([
-    { id: ids.courseA, name: 'kids_group', description: prefix, max_students: 6, duration_hours: 2 },
-    { id: ids.courseB, name: 'adult_group', description: prefix, max_students: 6, duration_hours: 2 },
-  ]), 'insert courses')
+  const courses = noError(await admin.from('course_types').select('id,name').in('name', ['kids_group', 'adult_group']), 'canonical fixture courses')
+  assert.equal(courses.length, 2, 'Fresh disposable must have exactly two required canonical course rows')
+  ids.courseA = courses.find(c => c.name === 'kids_group').id
+  ids.courseB = courses.find(c => c.name === 'adult_group').id
   const protectedBaseline = await globalProtectedFingerprint()
 
   const noGroup = await createRound({ sessionCount: 2 })
@@ -503,19 +504,32 @@ try {
 
   const identicalRace = await createRound({ sessionCount: 2 })
   const identicalResults = await Promise.all([rpc(identicalRace), rpc(identicalRace)])
-  assert.equal(identicalResults.filter((result) => !result.error).length, 2)
-  assert.deepEqual(identicalResults.map((result) => result.data.changed).sort(), [false, true])
+  assert.ok(identicalResults.some(result => !result.error && result.data.changed))
+  for (const result of identicalResults.filter(result => result.error)) {
+    assert.equal(result.error.code, '55P03')
+    assert.equal(result.error.message, 'LESSON_SOURCE_ATTENDANCE_RETRY')
+  }
+  const identicalRetry = noError(await rpc(identicalRace), 'identical race replay after parent admission')
+  assert.equal(identicalRetry.changed, false)
+  assert.equal(identicalRetry.idempotentReplay, true)
   const identicalAfter = await fingerprint(identicalRace)
   assert.equal(identicalAfter.groups.length, 1)
   assert.equal(identicalAfter.memberships.length, 2)
   assert.equal(identicalAfter.activity.length, 1)
-  check('two simultaneous identical requests serialize to one change and one replay')
+  check('two simultaneous identical requests commit once; any typed admission retry replays without another effect')
 
   const coachRace = await createRound({ sessionCount: 2 })
   const coachRaceResults = await Promise.all([rpc(coachRace, { coachId: coachA }), rpc(coachRace, { coachId: coachB })])
   assert.equal(coachRaceResults.filter((result) => !result.error).length, 1)
   assert.equal(coachRaceResults.filter((result) => result.error).length, 1)
-  assert.match(coachRaceResults.find((result) => result.error).error.message, /ADMIN_RETRO_ASSIGNMENT_LIFECYCLE_CONFLICT/)
+  const losingIndex = coachRaceResults.findIndex(result => result.error)
+  const losingError = coachRaceResults[losingIndex].error
+  if (losingError.code === '55P03') {
+    assert.equal(losingError.message, 'LESSON_SOURCE_ATTENDANCE_RETRY')
+    const retry = await rpc(coachRace, { coachId: losingIndex === 0 ? coachA : coachB })
+    assert.ok(retry.error)
+    assert.match(retry.error.message, /ADMIN_RETRO_ASSIGNMENT_LIFECYCLE_CONFLICT/)
+  } else assert.match(losingError.message, /ADMIN_RETRO_ASSIGNMENT_LIFECYCLE_CONFLICT/)
   const coachRaceAfter = await fingerprint(coachRace)
   assert.equal(coachRaceAfter.groups.length, 1)
   assert.equal(coachRaceAfter.memberships.length, 2)
