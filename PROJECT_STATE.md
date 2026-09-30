@@ -2,38 +2,39 @@
 
 Last updated: 2026-09-30 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Finance load correction / READY FOR OWNER UAT / exact staged artifact
+## Current State — Finance load correction / Production Active / TASK DONE
 
-Owner authorized Finance-only staging and read-only verification on2026-09-30;
-Promotion is reserved until Owner acceptance of the exact staged artifact.
-Direct Dev/technical adviser; no PM relay. This round Source/Test/Config edits0,
-Docs4 only. Prior isolated acceptance remains historical evidence.
+Owner accepted the referenced exact staged Finance artifact and explicitly authorized
+Promotion on2026-09-30. Same Production artifact promoted without rebuild; focused
+read-only postchecks passed. This round Source/Test/Config edits0, Docs4 only.
+Finance task complete; other business flows/admission work remain separate.
 
 ### Current Finance Project Matrix
 
 | Field | Current verified state |
 | --- | --- |
-| Active Task / Task Status / Task Done | Finance Progressive booking-detail read correction / READY FOR OWNER UAT / No customer-Production completion; exact Owner acceptance and Promotion pending |
-| Actor / current / expected | Super Admin; customer artifact still has oversized-booking-read failure; staged Finance renders complete original financial data through bounded SELECTs |
+| Active Task / Task Status / Task Done | Finance Progressive booking-detail read correction / TASK DONE / Yes for Finance correction only, not broader financial/other-flow certification |
+| Actor / current / expected | Super Admin; customer Finance now uses complete bounded booking SELECTs and renders original financial data without the oversized-read error |
 | Scope / planned and actual files | Functional2 already committed: src/app/(admin)/admin/finance/page.tsx, src/lib/admin-finance-read.ts. Tests2 already committed: scripts/check-admin-finance-read.mjs, scripts/check-admin-finance-isolated.cjs. Round edits0functional/0tests/0config/0migration; Docs4: PROJECT_STATE, TODO-CODEX, DEVELOPMENT_TODO, docs/finance-read-fix-20260930.md |
 | Root cause / preservation | Original live690-ID/~25.7KB request400; Vercel15occurrences/4users corroborated progressive booking read error/digest2443997597. Local414. Exact rejecting component/threshold Unknown.100IDs/request/max4in flight, exact completeness; no partial totals. Client/formulas/status/date/permissions unchanged |
 | Application / staged Source / Git | Application5a81d66624253717aa5c10f55217088e85acddfd; exact staged committed/pushed Source d4aff85b5cdff468a101464106b5b323c97a26c6, branch codex/finance-read-fix-20260930. Containing Docs4 closeout is a docs-only successor; it is not another artifact/build. Remote/clean verification recorded privately at publication |
-| Fresh Production comparison / blast radius | Staged d4aff85 versus live bb5bf128662ea58bbfb6613df73e5dfec14c6aaa: runtime/config/public/schema/package diff ONLY Finance page/helper2; no protected-flow/config/schema changes |
-| Deployed / exact artifact | Staged Production target via --prod --skip-domain; READY dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu; URL https://new-athlete-badminton-school-i53mdksec-aachanin1s-projects.vercel.app/admin/finance; alias[]; not customer-active. Linux/Vercel build succeeded; no subsequent rebuild |
+| Promotion preflight comparison / blast radius | Accepted d4aff85 versus previous live bb5bf128662ea58bbfb6613df73e5dfec14c6aaa: runtime/config/public/schema/package diff ONLY Finance page/helper2; no protected-flow/config/schema changes |
+| Deployed / exact artifact | Customer Production Active: same READY dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu, exact Source d4aff85b5cdff468a101464106b5b323c97a26c6, application5a81d666. Owner referenced/accepted this artifact and instructed Promotion. All4customer aliases/project Production target now match. ID/URL/createdAt/buildingAt/ready/builds/projectSettings/meta unchanged; no rebuild/new deployment |
 | Artifact binding |368uploaded source files SHA1 equal committed Git bytes;368remote build-input hashes verified. Two .gitignore files omitted by platform. Uploaded vercel.json equals Git; remote build representation differs from raw-byte hash but equals existing live artifact's build hash exactly. Functional input hashes equal Git. Details in private uploaded-source-proof/build-attestation JSON |
-| Technical checks |17deterministic current rerun; prior5isolated actual-data/prop-equivalence/10browser, tsc/zero-warning lint/mojibake281/build95/95 retained with unchanged Source. Staged health200/ok; anonymous Finance307to login; Owner-authenticated staged Finance Sep/year/Oct/reload verified by Developer; browser errors/warnings0; deployment-scoped error/fatal grouped logs empty at12:56UTC |
-| Real-DB reconciliation |SELECT-only actual committed page;697Progressive allocations/697exact bookings plus633Legacy rows; all serialized props equal live baseline with only original oversized transport shim; all12monthly amount/count outputs match independent read-only SQL. No Production synthetic Auth/account/booking/payment/expense fixtures |
-| Real Owner-visible snapshot |At2026-09-30T12:45:47Z SQL/12:47:44Z page read: Sep2026 revenue743235/coach0/manual0/net743235/318approved transactions; Oct234698/0/0/234698/69; annual3152284/25500/4200/net3122584/1312. Browser matches. Natural customer activity may change later totals |
-| Owner UAT / current gate |Owner entered existing Super Admin login and allowed read-only Developer continuation. This is NOT Owner artifact PASS. Owner must accept exact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/Source d4aff85 after UAT steps in report. Isolated previous acceptance binds local artifact only |
-| Production Active / aliases / rollback |Finance fix Production Active No; all4customer aliases and project Production target remain dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/live bb5bf128. Existing live artifact READY and health200; rollback candidate includes its existing Finance bug. No rollback or Promote action executed |
-| Enabled / allowlisted / permissions / Environment |No flag/allowlist/permission/security-setting changes. Production env metadata before/after equal; no local .env uploaded. Existing Production env supplied by Vercel; staged access uses temporary deployment share link and unchanged school Auth |
+| Technical checks | Prior Source tests/build retained; current preflight/identity/scope/rollback PASS. Post-Promotion canonical health200/ok, anonymous Finance307to login, login/favicon200 + source asset hash; authenticated exact-artifact Finance Sep/year/reload and independent all12monthly SQL/props checks PASS. Browser errors/warnings0; exact-artifact error/fatal counts0 and Finance runtime-error clusters0 in13:12:59–13:19:29UTC check window |
+| Real-DB reconciliation | Post-Promotion SELECT-only697Progressive allocations/697exact bookings plus633Legacy rows. Full props still equal baseline with original transport shim; all12monthly amounts/counts match independent SQL. propsHash unchanged from staged acceptance; no Production synthetic/test writes |
+| Real Owner-visible snapshot | Post-Promotion SQL2026-09-30T13:18:05Z/page13:18:10Z: Sep revenue/net743235/approved318/costs0; annual revenue3152284/coach25500/manual4200/net3122584/approved1312. Authenticated exact-artifact UI matches. Natural customer activity can change future totals |
+| Owner UAT / current gate | Owner exact-artifact acceptance recorded from annotation-referenced request “Promote เฉพาะส่วนนี้ได้เลยครับ”. Same dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/Source d4aff85. No Source/config change after acceptance. Separate canonical-host manual authenticated Production UAT not performed or required; Developer authenticated exact promoted artifact and verified canonical alias/health/auth/assets |
+| Production Active / aliases / rollback | Yes for Finance fix.4customer aliases/project target point to dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu; canonical URL https://www.newathleteschool.com/admin/finance. Preflight recovery dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128 READY/health200; no rollback. CLI promote exceeded60s deadline; GET alias/target proofs and promote status confirmed completion/no pending. No repeat Promotion issued |
+| Enabled / allowlisted / permissions / Environment | No new flags/allowlists/permissions/security settings. Production env metadata before/after equal. Existing Production env and school Auth unchanged; no .env/credentials uploaded. Promotion changed customer artifact routing only |
 | Migration / data / financial effects |New migrations0/applied0; Production business-write actions0, Data Repaired No. Reads and normal Owner sign-in only; no historical bill/pricing/payment/coupon/Wallet/attendance/payroll/Task10/control/cron mutations |
 | Work preservation |Main pending Docs3 and main/other AGENTS/docs all8hashes equal Gate0. Admission remains its separate9-path draft/HARD STOP; no reset/stash/overwrite, source/schema reuse or Adult-price change |
-| Limits / remaining |Existing2000read limits/API caps and current-year expense/summary scope retained; current real counts below caps. Staged role-denial substitutes existing source equality + isolated role tests; real Owner session successful, no other Production test accounts. Broader completeness/writes/other portals excluded |
-| Next action |Owner checks exact staged URL, Sep/annual/Oct/reload and accepts that artifact; then separately execute reserved exact Promotion without rebuild plus fresh live-source/alias/rollback/health/log rechecks. Do not Promote before Owner PASS or if newer live release/source invalidates scope |
+| Limits / remaining | Existing2000read limits/API caps and current-year expense/summary scope retained; current data below caps. Error evidence is bounded post-release window, not ongoing monitoring. Other protected flows not newly exercised/certified. No required Finance blocker |
+| Next action | Finance scope closed. Recommend a separately selected admission Set1 continuation: retain current released Finance fix in the next artifact's Source baseline, review/enforce exact disposable test target and unique evidence outputs, finish latest SQL/API concurrency/protected regressions and UAT before release consideration. Finance branch is pushed; no main/admission merge performed. Advisory only; no admission edits/resume/Production rollout or Adult-price change authorized here |
 
 [Scope, changes, reconciliation and Owner UAT](docs/finance-read-fix-20260930.md).
-Private evidence: C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930/stage-20260930T1230Z.
+Private stage evidence: C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930/stage-20260930T1230Z.
+Promotion/postchecks: C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930/promotion-20260930.
 Mutable facts here refer to this Finance worktree; dated releases below are history.
 
 ## Historical — User Reschedule cancellation fix / Production Active / TASK DONE

@@ -1,7 +1,7 @@
 # Finance read failure — scope and evidence (2026-09-30)
 
-Current handoff: exact staged artifact READY FOR OWNER UAT; see the final dated
-section below. Customer Production remains unchanged; Promotion awaits Owner acceptance.
+Current handoff: Finance Production Active / TASK DONE; exact Owner-accepted
+artifact promoted without rebuild. See the final dated closeout below.
 
 ## Original isolated Scope Contract
 
@@ -214,3 +214,23 @@ Files: scope.md, source-binding.json, uploaded-source-proof.json, build-attestat
 deployment.log, sql-evidence.json, real-reconciliation.json, stage-final.json,
 staged-september.png/staged-annual.png and UI snapshots. Private environment and
 temporary-access material remain excluded from Git.
+
+## Exact Promotion closeout — 2026-09-30
+
+Owner referenced this exact staged handoff and explicitly requested “Promote เฉพาะส่วนนี้ได้เลยครับ”. That records exact-artifact acceptance and release authorization. Actor/current/expected behavior and original financial scope unchanged. Round functional/test/config edits0; exact existing artifact Promotion plus read-only postchecks and scoped Docs4 publication only.
+
+Artifact **dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu**, Source **d4aff85b5cdff468a101464106b5b323c97a26c6**, application **5a81d66624253717aa5c10f55217088e85acddfd** is now customer Production Active. URL: https://www.newathleteschool.com/admin/finance . All4customer aliases and project Production target match. ID, URL, createdAt, buildingAt, ready, build records, project settings and metadata match before Promotion exactly. No build/new deployment or Source/config change after acceptance.
+
+Fresh preflight confirmed only2runtime differences from live bb5bf128: Finance page/helper. Protected Source/config/schema/assets/packages unchanged. Old live artifact dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV was READY/health200 as recovery candidate. Scoped worktree clean/pushed; main/admission8preservation hashes matched.
+
+One vercel promote command was issued after13:12:59UTC preflight. CLI waited60s and exited on its deadline, so its exit code alone was not a successful-release assertion. Independent fresh GETs confirmed all4aliases and Production target had moved; vercel promote status then reported no pending promotion. No second mutation/retry was issued. Exact artifact identity remained unchanged; postflight proof finalized at13:23:47UTC (20:23:47 Asia/Bangkok).
+
+Canonical customer /api/health200/ok, /admin/finance307to school login, /auth/login200 and favicon200/source-hash equality passed. Using the Owner's existing authenticated session, Developer reloaded Finance and checked September/annual/reload on the exact promoted artifact hostname. Separate canonical-host authenticated manual UAT was not performed; canonical routing/auth/static checks plus identical Production artifact establish the same execution identity. No expense write/delete, new account, business write, migration, controls/cron/env/secret/allowlist/permission or Adult-price/historical-bill operation occurred.
+
+Fresh post-Promotion SQL read-only snapshot13:18:05UTC and actual committed page read13:18:10UTC agree for all12months.697Progressive allocations hydrate697exact bookings plus633Legacy rows. Full propsHash3a4c14e0af108fe99dd29b49e124a2cf308b3bb3f4df8990e350b5b99b0efc9c equals staged acceptance; formulas/client unchanged. September revenue/net743235/approved318; annual revenue3152284, coach25500, manual4200, net3122584/approved1312; authenticated artifact UI matches. Browser error/warning entries0. Deployment-scoped error/fatal counts0 and Finance grouped runtime errors0 for13:12:59–13:19:29UTC. This is a bounded postcheck, not continuous monitoring or global business certification.
+
+Production env metadata before/after identical. Main pending Docs3 and other worktree AGENTS/docs8hashes unchanged. Existing2000read limits/API caps and current-year expense/summary scope remain; no broader historical-completeness change. Finance task is **TASK DONE**; original money/pricing/permissions remain preserved. This Docs4 closeout is a documentation-only successor, not the Production artifact SHA.
+
+Recommended next task: separately resume admission Set1 only after reviewing its existing HARD STOP. Retain the now-released Finance fix in the next artifact's Source baseline; this Finance branch is pushed but no main/admission merge was performed. Enforce exact physically owned disposable targets and unique immutable evidence destinations before any test execution, then complete latest refined SQL/API concurrency/protected regression and UAT. Keep its preserved9-path draft and original failures. No admission implementation or rollout was performed/authorized by this Finance closeout.
+
+Promotion evidence: C:/Users/aacha/AppData/Local/Temp/finance-read-fix-20260930/promotion-20260930 . scope.md/preflight.json, promote.log/promotion-status.log, alias/project/artifact snapshots, postflight.json, sql-evidence.json/real-reconciliation.json, runtime-errors.json and post-finance.png/UI snapshots. Private raw/env material stays outside Git.

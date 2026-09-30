@@ -6,9 +6,9 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Finance load correction — READY FOR OWNER UAT.** Exact staged Production artifact created without customer aliases; read-only real-DB/UI/SQL reconciliation passed. [Authoritative matrix](PROJECT_STATE.md#current-finance-project-matrix), [handoff/evidence](docs/finance-read-fix-20260930.md#exact-staged-artifact-and-owner-handoff-2026-09-30).
-- **Next:** Owner accepts exact artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/Source d4aff85; Promotion reserved until that acceptance. No rebuild or source change; customer domains remain old release. Owner sign-in is not Owner PASS.
-- Main dirty docs and separate admission draft/HARD STOP preserved; Adult prices, old bills, migrations/controls/data repairs and other business flows remain outside scope. Current Source/Git/artifact states belong only to PROJECT_STATE.
+- **Finance load correction — TASK DONE / Production Active.** Owner accepted exact artifact and authorized Promotion. Same artifact/SHA promoted without rebuild; aliases, health/auth/assets, real-read/SQL/UI and bounded error postchecks passed. [Authoritative matrix](PROJECT_STATE.md#current-finance-project-matrix), [closeout/evidence](docs/finance-read-fix-20260930.md#exact-promotion-closeout-2026-09-30).
+- **Next recommendation:** separate admission Set1 correction continuation, retaining released Finance Source in the next artifact, beginning with exact disposable-target/evidence safeguards, then latest SQL/API concurrency/protected tests and UAT. This is advisory; await explicit task selection/resume. No main/admission merge or automatic migration/release/price/old-bill work.
+- Main dirty docs and separate admission9-path HARD STOP remain preserved. Current source/Git/artifact/data facts belong only to PROJECT_STATE.
 
 ## Historical — previous cancellation closeout
 
