@@ -28152,3 +28152,8 @@ artifact without customer aliases and real-data read-only reconciliation, then
 Owner exact-artifact acceptance/authorized no-rebuild Promotion and health/logs.
 No release action authorized by the Owner's status/plan question. PROJECT_STATE
 owns current acceptance/next gate; main/admission work remains preserved.
+
+<a id="finance-staged-readiness-2026-09-30"></a>
+## Finance exact staged artifact / read-only readiness — 2026-09-30
+
+Owner authorized Finance-only staging and explicitly reserved Promotion until acceptance. Functional/test/config edits0; Docs4 updated in dedicated Finance worktree only. Exact READY Production-target artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/Source d4aff85/app5a81d666 has no customer aliases. Uploaded/build Source identity verified; SELECT/SQL697Progressive+633Legacy reconciliation and Owner-authenticated Developer Sep/year/Oct/reload UI pass; health200, anonymous307, browser errors0, staged fatal/error counts empty. Owner login is not Owner artifact PASS. Customer aliases/live release/env unchanged and8preservation hashes match. Promotion/data writes/migrations/controls/cron/Adult prices/old bills/admission work untouched. Detailed scope, binding, limits and5Owner steps: [Finance evidence](docs/finance-read-fix-20260930.md#exact-staged-artifact-and-owner-handoff-2026-09-30). Mutable states and next acceptance gate belong only to PROJECT_STATE.md.

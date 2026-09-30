@@ -6,9 +6,9 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Finance load correction — isolated Owner UAT accepted.** Owner reported testing complete and confirmed September revenue/net; exact acceptance limits and artifact belong to [authoritative state](PROJECT_STATE.md#current-finance-project-matrix). Source/formulas unchanged. [Evidence](docs/finance-read-fix-20260930.md).
-- **Next:** Agree separate Finance-only release scope, then stage an exact artifact with real-data read-only reconciliation before Owner acceptance/authorized Promotion. Local acceptance alone does not certify a new Vercel artifact. No release/write/activation authorized by the UAT reply.
-- Main dirty docs and separate admission draft/HARD STOP preserved. Adult pricing/old bills/other Parking Lot work remain outside scope. PROJECT_STATE owns Git/artifact/verification facts.
+- **Finance load correction — READY FOR OWNER UAT.** Exact staged Production artifact created without customer aliases; read-only real-DB/UI/SQL reconciliation passed. [Authoritative matrix](PROJECT_STATE.md#current-finance-project-matrix), [handoff/evidence](docs/finance-read-fix-20260930.md#exact-staged-artifact-and-owner-handoff-2026-09-30).
+- **Next:** Owner accepts exact artifact dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/Source d4aff85; Promotion reserved until that acceptance. No rebuild or source change; customer domains remain old release. Owner sign-in is not Owner PASS.
+- Main dirty docs and separate admission draft/HARD STOP preserved; Adult prices, old bills, migrations/controls/data repairs and other business flows remain outside scope. Current Source/Git/artifact states belong only to PROJECT_STATE.
 
 ## Historical — previous cancellation closeout
 
