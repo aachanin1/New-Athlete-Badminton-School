@@ -7,7 +7,8 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 ## Current Active Work
 
 - **Set1 release approved; DEVELOPING / HARD STOP before Production; TASK DONE No.** Source8b1ca32 committed/pushed in isolated codex/lesson-source-release; composite local91/91 and retrospective38/38 passed. PROJECT_STATE.md owns mutable Source/Git/Production facts.
-- **Blocker:** old Source write actually fails against new guards; bounded fence/drain and schema-compatible recovery remain unproved. Approved plan step3 forbids improvising new project settings/Environment/product paths for the fence. Approval is already received; no repeat local Owner test requested.
+- **Resume progress:** Owner authorized continuing the remaining three steps within the same scope. Synthetic selected-schema recovery passed (66tables/47migrations, public catalog/effective privileges); original disposable and9pending hashes unchanged. This is not physical Production restore or a hosted fallback. No new application Source/build.
+- **Blocker:** old Source write fails against new guards; full fence/drain and hosted schema-compatible recovery remain unproved. Read-only grants/RLS show authorized direct Supabase paths, so Vercel-only fencing is insufficient as complete proof. Approved plan step3 forbids improvising new project settings/Environment/product paths. Approval is received; no repeat local Owner test requested.
 - **Next:** prepare the smallest release-safety scope only (affected four mutation APIs plus compatible recovery), then resolve that scope before hosted deployment/five migrations/Promotion. No Task2, price/history repair, broad outage or Task10 Pause.
 - [Authoritative matrix](PROJECT_STATE.md#current-project-matrix); [dated closeout](docs/lesson-source-admission-v2-20260930.md#set1-approved-release-hard-stop--2026-10-01); private RESULT-AND-NEXT-SCOPE.md in C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001.
 
