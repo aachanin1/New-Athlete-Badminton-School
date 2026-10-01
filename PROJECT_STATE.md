@@ -2,11 +2,51 @@
 
 Last updated: 2026-10-01 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Return expiry corrected / DEVELOPING — HARD STOP
+## Current State — Set1 minimal correction / READY FOR OWNER UAT
+
+Owner-approved four proven corrections are implemented in one existing DB function, committed/pushed as **841b527200607832afa42c3b25b6d4241e2c66d6**. **READY FOR OWNER UAT; Dev6/6PASS; Owner UAT pending; TASK DONE No.** Local isolated artifact only. App/API/UI/config unchanged; no Production action. Documentation-only publication follows tested Source.
+
+### Current Project Matrix
+
+| Field | Current verified state |
+| --- | --- |
+|Actor / behavior|Existing User/parent/Admin/SA: exact non-Kids Makeup source write; post-delegate current-clock Adult/Private Store48h and Redeem target-start rejection; explicit Bangkok non-Kids Makeup calendar.|
+|Scope / protected|Eight exact paths: migration1/function1/test1/guard2/Docs4; app/API/UI/config0. Guards are written-before-edit direct dependencies for new owned targets. Kids/quota/pricing/Finance/roles/Attendance/Family/Return/history/Task2/main pending work retained.|
+|Source / artifact|841b527 committed/pushed/remote verified. BuildID l_QsYrb4b6sMOYCvkI3T1; tree d6428be087697e04846bacf54eef3243c67fa2e5; compiled82d1010baa7c66228c8f9cb72297f5b9df5c963907f39b511cc4610f1e4d4a3b;514inputs/721outputs integrity passed. Docs-only successor does not rebuild.|
+|Verification|Final runtime/API/UI91/91 and upgraded retrospective38/38; TSC/lint/mojibake/build; target31,Wallet45,assignment39,Finance17 pass. Exact boundary/real lock wait/rollback/replay/timezone/Return evidence covered. Seven existing local security warnings unchanged; affected-function0.|
+|Fresh / upgrade / preservation|New owned65001/65002 and65101/65102 only; fresh47/upgrade46->47 parity with history/expiry/replay/owner/ACL/RLS/policies retained. Old two expiry targets all public rows/definitions unchanged. Four published migrations frozen; nine protected hashes and Finance released bytes unchanged; pre-existing AGENTS unstaged.|
+|Dev UAT / data|6/6PASS with original images/backend reconciliation: Reschedule,Family,Return/Makeup,same-source,independent Attendance,Finance. Eight descendants/four exact canonical slots; financial/bookings/controls unchanged through operations; no partial residue/identity split. Synthetic fixtures only.|
+|Owner review|New unused fixtures7 and separate synthetic accounts prepared, valid Family Store setup disclosed. User http://makeup.localhost:3132; SA http://127.0.0.1:3132. Private OWNER-UAT.md has six steps/credentials. Owner UAT pending; READY Yes. Current Owner Finance Oct384000/year386500/Nov2500,costs0; Dev prior380500/383000/2500 preserved as historical snapshot.|
+|Production / next|Set1 hosted deployed/enabled/allowlisted/Production activeNo; query/deploy/Promote/schema/data/env/control/cron/permission/allowlist0. No real-user writes/data repair. Next only Owner exact-local-artifact UAT+Developer reconciliation; Production needs separate scope.|
+
+Details: [Bounded correction closeout](docs/lesson-source-admission-v2-20260930.md#makeup-and-current-clock-correction--2026-10-01--ready-for-owner-uat). Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/dev-uat/DEV-UAT.md.
+
+## Historical — Set1 characterization complete / Correction approval pending
+
+Owner authorized proof of A1/B1/B2/B3 before any further implementation. All6characterization tests completed on the guarded disposable. These are reproduction tests, **not business acceptance PASS**. Confirmed Makeup status overreach, Adult/Private Store48h and Redeem target-start after real lock wait, and non-Kids Makeup early deadline under Auckland timezone. **DEVELOPING / HARD STOP; NOT READY FOR OWNER UAT; TASK DONE No.** Smallest consolidated correction proposed; not implemented.
+
+### Historical Characterization Matrix
+
+| Field | Current verified state |
+| --- | --- |
+| Actor / included flows | Existing User/parent/Admin/SA; investigative A1 sequential Reschedule+Family Store/Redeem→Makeup, B1/B2 real parent-lock boundary crossing Adult/Private, B3 non-Kids Makeup timezone/future-target matrix. Attendance/Finance protected. |
+| Source / Git | Business Source remains8ba61517e7c97c638a8d76bfa2cf3e22d56b310f; HEAD51e54832d31b5a8c6cf6c27b35f3683aa1a960c5. This round test1+Docs4 local/uncommitted/unpushed. Functional0/migration0/config0; pre-existing AGENTS unchanged. No new implementation commit/artifact. |
+| Proven behavior | A1 protected future descendants2 scheduled→absent, exact Attendance0; B1/B2 all4held-lock RPCs succeed after boundary while immediate late controls reject; B3 4zones×3times=12cases, Auckland30Nov20:00Bangkok incorrectly rejects eligible22:00target. UTC late target is rejected by future-target guard; no UTC late-grant or Production-incidence claim. |
+| Verification | Final private attempt3 characterization6/6completed, retries/skips/flaky0; TypeScript and diff check passed. Each business probe rolled back and per-probe financial snapshot unchanged. Existing81/38 and Dev3PASS/3FAIL retained, not rerun or superseded as acceptance. Initial no-test grep and3wrong-field harness failures preserved. |
+| Target / migration / preservation | Owned LessonSourceExpiry20261001/API64801/DB64802 only; physical guard each DB/API invocation; ledger46/functiondefinitions+ACL unchanged, idletransactions0. All old rows in17tables unchanged; 9protected hashes/3frozen migrations checked. No old target/reset/delete/history repair. |
+| Isolated data / Finance | Approved new synthetic setup only: bookings16/payments16×500=8000THB, credits4/members8/operations4, profiles27; includes failed-run setup. Old bookings871/sessions327/payments63/allocations690/Attendance57/credits65/members93 preserved. Current SQL Oct382500/year385000/Nov2500 synthetic; UI not reverified. Earlier374500 is historical pre-proof fixture snapshot. |
+| Artifact / UAT | Existing local BuildIDscXuhPxo4AuTkVots9MMN retained; no rebuild/new staged artifact. Owner UAT pending; correction SourceCompleteNo, READYNo. Characterization completion does not certify the artifact. |
+| Production / data actions | Hosted deploy/Promote/Production query/write/migration/environment/control/cron/permission/allowlist operation0. Set1 deployed/enabled/allowlisted/ProductionactiveNo; datarepairedNo; real-customer/financialimpact0. Finance release not re-queried. |
+| Proposed correction / next gate | Await one Owner approval for new migration1 replacing only lesson_source_transition_v1: exact Makeup source write; post-delegate current-clock Store48h/Redeem-start rejection Adult/Private; explicit Bangkok Makeup calendar input. Test1/Docs4; app/API/UI/config0. Preserve quota/Kids/identity/Family/Return/financial/roles/history; fresh+upgrade/regression/Dev6/exact local artifact before Owner UAT; no Production. |
+| Proposal identity / evidence | CLI-created empty private20261001054857_lesson_source_makeup_clock_boundary_v4.sql, not in repo/not applied. Result/contract: C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/outputs/fresh/characterization-1790833257796/RESULT-AND-MINIMAL-PLAN.md. Source/test/data/Git/Production states remain distinct. |
+
+Details: [Characterization and bounded correction proposal](docs/lesson-source-admission-v2-20260930.md#characterization-before-correction--2026-10-01).
+
+## Historical — Return expiry corrected / DEVELOPING — HARD STOP
 
 Return expiry correction is committed/pushed and verified on a new isolated artifact. Required integrated Dev UAT found an inherited non-Kids Makeup side effect. **Dev final3PASS/3FAIL; NOT READY FOR OWNER UAT; Owner UAT pending; TASK DONE No.** No unrelated Source correction or Production action.
 
-### Current Project Matrix
+### Historical Return Expiry Matrix
 
 | Field | Current verified state |
 | --- | --- |

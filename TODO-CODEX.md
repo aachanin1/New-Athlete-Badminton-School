@@ -6,11 +6,17 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Return expiry corrected; DEVELOPING / HARD STOP — NOT READY FOR OWNER UAT; TASK DONE No.** Source 8ba61517e7c97c638a8d76bfa2cf3e22d56b310f committed/pushed and exact local artifact verified. New Adult/Family expiry31Oct23:59:59.999 Bangkok PASS.
-- Technical81runtime/UI+38retrospective and protected/static/build checks passed. Integrated Dev UAT final3PASS/3FAIL: unchanged non-Kids Makeup monthly status sweep made future Reschedule/redeemed self rows absent without Attendance; steps1/2/3 final invalid. No unrelated fix or repair.
-- Finance/controls/identity/history preserved; NEW disposables64801/64901 only; old targets/pending work/3published migrations retained. Source migration1,test/tool4,Docs4; app/config0.
-- **Next:** Owner reviews a new exact-source-only non-Kids Makeup status correction plan. Preserve monthly quota and financial/identity/history rules; new artifact/full six-step retest required. No automatic correction, Production rollout or Task2. Owner UAT pending; new Owner fixtures not prepared after stop.
-- [Current matrix](PROJECT_STATE.md#current-project-matrix); [full correction report](docs/lesson-source-admission-v2-20260930.md#return-expiry-correction--2026-10-01--hard-stop); [dated evidence](DEVELOPMENT_TODO.md#lesson-source-return-expiry-20261001). Private original screenshots and failed reconciliation: C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/dev-uat/DEV-UAT.md.
+- **Set1 minimal correction — READY FOR OWNER UAT; Dev6/6PASS; Owner UAT pending; TASK DONE No.** Four proven changes in function1; exact eight paths migration1/test1/guard2/Docs4, app/API/UI/config0. Tested Source **841b527** committed/pushed; Docs-only closeout successor keeps the same local artifact.
+- Final runtime91/91, upgraded retrospective38/38, fresh47/upgrade46->47/history/preservation, TSC/lint/mojibake/build/protected checks passed. Original screenshots and backend reconciliation cover all six flows. No Production operation or historical repair; main/pending work/old targets retained.
+- **Next:** Owner follows private OWNER-UAT.md at http://makeup.localhost:3132 with separate SA origin127.0.0.1:3132, returns PASS/FAIL; Developer reconciles actual effects. No automatic Production/Task2 work.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [closeout](docs/lesson-source-admission-v2-20260930.md#makeup-and-current-clock-correction--2026-10-01--ready-for-owner-uat); private evidence C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/dev-uat/DEV-UAT.md and OWNER-UAT.md.
+
+## Historical — Characterization gate before approved correction
+
+- **Set1 characterization complete; DEVELOPING / HARD STOP — NOT READY; TASK DONE No.** PROJECT_STATE.md owns current mutable facts. Six reproduction tests completed; business failures confirmed in A1 Makeup status, B1/B2 Adult/Private Store/Redeem after real boundary wait, B3 Auckland early Makeup deadline. No correction implemented.
+- This round test1+Docs4 local/uncommitted/unpushed; business Source unchanged. TypeScript/diff/preservation passed; old81/38 and failed Dev3/6 remain scoped evidence, not new acceptance PASS. Approved synthetic setup adds8000THB to local fixture totals; old financial rows/controls/definitions/ledger preserved.
+- **Next:** Owner approves one bounded correction contract: new migration1/function1, test1/Docs4, four proven changes only; fresh/upgrade/protected tests, exact local artifact and Dev6 before Owner UAT. No API/UI/price/quota/role/history/Task2/Production operation.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [proof report](docs/lesson-source-admission-v2-20260930.md#characterization-before-correction--2026-10-01); [dated evidence](DEVELOPMENT_TODO.md#lesson-source-characterization-20261001). Private result/allowlist/Owner UAT plan: C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/outputs/fresh/characterization-1790833257796/RESULT-AND-MINIMAL-PLAN.md.
 
 ## Preserved prior work — Historical
 
