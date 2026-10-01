@@ -38,14 +38,19 @@ delete process.env.LESSON_SOURCE_RUN_MANIFEST
 assert.throws(() => lessonSourceRun(), /manifest is required/)
 if (previous) process.env.LESSON_SOURCE_RUN_MANIFEST = previous
 let addedValid = 0
-for (const [project, port] of [['LessonSourceExpiry20261001', '64801'], ['LessonSourceExpiryUpgrade20261001', '64901']]) {
+for (const [project, port, prefix] of [
+  ['LessonSourceExpiry20261001', '64801', 'lesson-source-return-expiry'],
+  ['LessonSourceExpiryUpgrade20261001', '64901', 'lesson-source-return-expiry'],
+  ['LessonSourceMakeup20261001', '65001', 'lesson-source-makeup-clock'],
+  ['LessonSourceMakeupUpgrade20261001', '65101', 'lesson-source-makeup-clock'],
+]) {
   const data = structuredClone({ run, target, containers, marker })
   const oldProject = data.target.project
   data.target.project = project
   data.target.api = `http://127.0.0.1:${port}`
   data.target.dbPort = String(Number(port) + 1)
   data.run.target = data.target
-  data.run.runId = 'lesson-source-return-expiry-20261001-11111111-1111-4111-8111-111111111111'
+  data.run.runId = `${prefix}-20261001-11111111-1111-4111-8111-111111111111`
   data.marker.project = project
   for (const c of data.containers) {
     c.Name = c.Name.replace(oldProject, project)
@@ -60,7 +65,7 @@ for (const [project, port] of [['LessonSourceExpiry20261001', '64801'], ['Lesson
   addedValid++
   for (const mutate of [
     d => { d.run.runId = run.runId },
-    d => { d.run.runId = 'lesson-source-return-expiry-20261002-11111111-1111-4111-8111-111111111111' },
+    d => { d.run.runId = `${prefix}-20261002-11111111-1111-4111-8111-111111111111` },
     d => { d.containers[0].Mounts[0].Name = `supabase_db_${target.project}` },
   ]) {
     const bad = structuredClone(data)

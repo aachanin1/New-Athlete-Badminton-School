@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createLocalAdmin, getLocalSupabaseEnv } from '../booking-regression/local-supabase'
-import { localSql, holdLocalTransaction, sqlLiteral } from '../task10-regression/local-supabase'
+import { localSql, concurrentLocalSql, holdLocalTransaction, sqlLiteral } from '../task10-regression/local-supabase'
 import { lessonSourceRun, verifyLessonSourceTarget, lessonSourceFetch } from '../../scripts/verify-lesson-source-test-target.mjs'
 import { loadProgressiveFinanceBookings } from '../../src/lib/admin-finance-read'
 
@@ -112,7 +112,7 @@ async function login(page: Page, a: Account) {
   await page.waitForURL(a.id === owner.id ? /\/dashboard/ : /\/admin/)
 }
 test.beforeAll(async ({ playwright, baseURL }) => {
-  localSql(`CREATE OR REPLACE FUNCTION public.task10_clock_v1() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path=pg_catalog AS $$ SELECT clock_timestamp() $$;
+  if (!process.env.LESSON_SOURCE_CHARACTERIZATION_ONLY) localSql(`CREATE OR REPLACE FUNCTION public.task10_clock_v1() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path=pg_catalog AS $$ SELECT clock_timestamp() $$;
     CREATE OR REPLACE FUNCTION public.task10_transaction_start_v1() RETURNS timestamptz LANGUAGE sql STABLE SET search_path=pg_catalog AS $$ SELECT transaction_timestamp() $$;`)
   actor = await account('super_admin', 'Set1 Super Admin')
   coach = await account('coach', 'Set1 Coach')
@@ -358,6 +358,196 @@ const returnCalendarCases = [
   ['2026-10-10', '2026-10-30T12:00:00+07:00', '2026-10-31T16:59:59.999Z'],
   ['2026-12-10', '2026-12-30T12:00:00+07:00', '2026-12-31T16:59:59.999Z'],
 ] as const
+
+// The approved correction turns prior characterization into strict business
+// acceptance. Real held-lock cases retain independent positive/negative controls.
+function proofStateSql(f: Fixture) {
+  return `jsonb_build_object('sessions',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM booking_sessions x WHERE booking_id=${q(f.booking)}),
+    'credits',(SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM lesson_wallet_credits c WHERE booking_id=${q(f.booking)}),
+    'members',(SELECT jsonb_agg(to_jsonb(m) ORDER BY m.original_session_id) FROM lesson_wallet_credit_members m JOIN lesson_wallet_credits c ON c.id=m.credit_id WHERE c.booking_id=${q(f.booking)}),
+    'slots',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM schedule_slots x WHERE branch_id=${q(f.branch)}),
+    'operations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM lesson_source_operations x WHERE actor_id=${q(f.owner.id)}),
+    'notifications',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM notifications x WHERE user_id=${q(f.owner.id)}),
+    'logs',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM activity_logs x WHERE user_id=${q(f.owner.id)}),
+    'attendance',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM attendance a JOIN booking_sessions x ON x.id=a.booking_session_id WHERE x.booking_id=${q(f.booking)}))`
+}
+function proofRpcSql(f: Fixture, operation: string, id: string, payload: object, applicationName: string) {
+  return `SET application_name=${q(applicationName)}; BEGIN; SET LOCAL statement_timeout='35s';
+    CREATE TEMP TABLE characterization_result(value jsonb) ON COMMIT DROP;
+    DO $proof$ DECLARE reply jsonb; problem text; code text; BEGIN
+      BEGIN reply:=public.lesson_source_transition_v1(${q(f.owner.id)},${q(operation)},${q(id)},${q(JSON.stringify(payload))}::jsonb);
+      EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS problem=MESSAGE_TEXT,code=RETURNED_SQLSTATE; END;
+      INSERT INTO characterization_result VALUES(jsonb_build_object('reply',reply,'error',problem,'code',code,
+        'transactionStart',transaction_timestamp(),'afterAdmission',clock_timestamp()));
+    END $proof$;
+    SELECT jsonb_build_object('result',(SELECT value FROM characterization_result),'state',${proofStateSql(f)});
+    ROLLBACK;`
+}
+const proofJson = (output: string) => JSON.parse(output.split('\n').findLast(line => line.startsWith('{'))!)
+function freezeBoundaryClock(instant: string) {
+  return `DO $clock$ DECLARE def text; BEGIN def:=pg_get_functiondef('public.lesson_source_transition_v1(uuid,text,uuid,jsonb)'::regprocedure);
+    IF (length(def)-length(replace(def,'clock_timestamp()','')))/length('clock_timestamp()')<>3 THEN RAISE EXCEPTION 'Unexpected boundary clock reads'; END IF;
+    EXECUTE replace(def,'clock_timestamp()',${q(`${q(instant)}::timestamptz`)}); END $clock$;`
+}
+
+for (const family of [false, true]) for (const operation of ['store', 'redeem'] as const) {
+  test(`Boundary acceptance exact cutoff and later replay ${operation}: ${family ? 'Family Private' : 'Adult'}`, async ({}, info) => {
+    const parent = await account('user', 'Exact boundary acceptance'), f = seed(family, true, parent)
+    let id = f.ids[0], payload: object = {}
+    const target = destination(f, false, 2)
+    if (operation === 'redeem') {
+      id = proofJson(localSql(`BEGIN; SELECT public.lesson_source_transition_v1(${q(parent.id)},'store',${q(id)},'{}'); COMMIT;`)).credit_id
+      payload = target
+    }
+    const boundary = operation === 'store' ? new Date(new Date(`${f.date}T00:00:00+07:00`).getTime() - 48 * 3_600_000)
+      : new Date(`${target.targetDate}T12:00:00+07:00`)
+    const baseline = JSON.parse(localSql(`SELECT ${proofStateSql(f)};`)), money = financial(), signature = transitionSignature(), evidence: unknown[] = []
+    for (const offset of [-1, 0, 1]) {
+      const instant = new Date(boundary.getTime() + offset).toISOString()
+      const query = proofRpcSql(f, operation, id, payload, `exact-${randomUUID()}`).replace("CREATE TEMP TABLE characterization_result", `${freezeBoundaryClock(instant)} CREATE TEMP TABLE characterization_result`)
+      const actual = proofJson(localSql(query))
+      const expectedError = offset < 0 ? null : operation === 'store' ? 'LESSON_WALLET_UNIT_NOT_STORABLE' : 'LESSON_WALLET_TARGET_STARTED'
+      evidence.push({ instant, offset, expectedError, actual })
+      expect(actual.result.error).toBe(expectedError)
+      if (expectedError) expect(actual.state).toEqual(baseline)
+      else expect(actual.state.members).toHaveLength(family ? 3 : 1)
+      expect(JSON.parse(localSql(`SELECT ${proofStateSql(f)};`))).toEqual(baseline)
+      expect(transitionSignature()).toBe(signature)
+      expect(financial()).toBe(money)
+    }
+    // Simulate a lost successful response followed by a retry beyond the original
+    // time boundary. Stored operation evidence must win, with no new effect.
+    const replay = proofJson(localSql(`BEGIN;
+      CREATE TEMP TABLE successful_result AS SELECT public.lesson_source_transition_v1(${q(parent.id)},${q(operation)},${q(id)},${q(JSON.stringify(payload))}::jsonb) value;
+      CREATE TEMP TABLE successful_state AS SELECT ${proofStateSql(f)} value;
+      ${freezeBoundaryClock(new Date(boundary.getTime() + 3_600_000).toISOString())}
+      SELECT jsonb_build_object('sameResult',(SELECT value FROM successful_result)=public.lesson_source_transition_v1(${q(parent.id)},${q(operation)},${q(id)},${q(JSON.stringify(payload))}::jsonb),
+        'sameState',(SELECT value FROM successful_state)=${proofStateSql(f)}); ROLLBACK;`))
+    expect(replay).toEqual({ sameResult: true, sameState: true })
+    expect(JSON.parse(localSql(`SELECT ${proofStateSql(f)};`))).toEqual(baseline)
+    expect(transitionSignature()).toBe(signature)
+    expect(financial()).toBe(money)
+    await info.attach('exact-boundary-and-late-replay', { body: JSON.stringify({ family, operation, boundary: boundary.toISOString(), evidence, replay, rolledBack: true }), contentType: 'application/json' })
+  })
+}
+
+for (const family of [false, true]) for (const operation of ['store', 'redeem'] as const) {
+  test(`Boundary acceptance held-lock ${operation}: ${family ? 'Family Private' : 'Adult'}`, async ({}, info) => {
+    test.setTimeout(90_000)
+    const parent = await account('user', 'Boundary characterization'), f = seed(family, true, parent)
+    let id = f.ids[0], payload: object = {}, baseline: unknown
+    if (operation === 'redeem') {
+      const output = localSql(`BEGIN; SELECT public.lesson_source_transition_v1(${q(parent.id)},'store',${q(id)},'{}'); COMMIT;`)
+      id = proofJson(output).credit_id
+    }
+    // Real DB clock; ten seconds gives target verification and the control RPC
+    // time to finish. Neither transaction_timestamp nor clock_timestamp is mocked.
+    const timing = JSON.parse(localSql(`SELECT jsonb_build_object('boundary',clock_timestamp()+interval '10 seconds',
+      'start',((clock_timestamp()+interval '${operation === 'store' ? '48 hours 10 seconds' : '10 seconds'}') AT TIME ZONE 'Asia/Bangkok')::time,
+      'end',((clock_timestamp()+interval '${operation === 'store' ? '49 hours 10 seconds' : '1 hour 10 seconds'}') AT TIME ZONE 'Asia/Bangkok')::time,
+      'date',((clock_timestamp()+interval '${operation === 'store' ? '48 hours 10 seconds' : '10 seconds'}') AT TIME ZONE 'Asia/Bangkok')::date);`))
+    if (operation === 'store') {
+      localSql(`BEGIN; DO $guard$ BEGIN PERFORM set_config('lesson_source.write','authorized',true); PERFORM set_config('task10.source_write','authorized',true); END $guard$;
+        UPDATE schedule_templates SET day_of_week=extract(dow FROM date ${q(timing.date)}),start_time=${q(timing.start)},end_time=${q(timing.end)} WHERE id=(SELECT template_id FROM schedule_slots WHERE id=${q(f.slot)});
+        UPDATE schedule_slots SET date=${q(timing.date)},start_time=${q(timing.start)},end_time=${q(timing.end)} WHERE id=${q(f.slot)};
+        UPDATE booking_sessions SET date=${q(timing.date)},start_time=${q(timing.start)},end_time=${q(timing.end)} WHERE booking_id=${q(f.booking)}; COMMIT;`)
+    } else {
+      const template = randomUUID()
+      localSql(`INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
+        VALUES(${q(template)},${q(f.branch)},${q(f.course)},extract(dow FROM date ${q(timing.date)}),${q(timing.start)},${q(timing.end)},true);`)
+      payload = { targetDate: timing.date, startTime: timing.start, endTime: timing.end, branchId: f.branch, templateId: template }
+    }
+    baseline = JSON.parse(localSql(`SELECT ${proofStateSql(f)};`))
+    const money = financial(), signature = transitionSignature()
+    const control = proofJson(localSql(proofRpcSql(f, operation, id, payload, `positive-${randomUUID()}`)))
+    expect(control.result.error).toBeNull()
+    expect(new Date(control.result.afterAdmission).getTime()).toBeLessThan(new Date(timing.boundary).getTime())
+    const name = `boundary-${randomUUID()}`, held = await holdLocalTransaction(
+      `SELECT pg_advisory_xact_lock(hashtextextended('lesson-source-attendance-parent-v2|${parent.id}',0));`, `holder-${randomUUID()}`)
+    const pending = concurrentLocalSql(proofRpcSql(f, operation, id, payload, name))
+    void pending.catch(() => {})
+    let observed: unknown
+    try {
+      await expect.poll(() => {
+        const rows = JSON.parse(localSql(`BEGIN READ ONLY; SELECT coalesce(jsonb_agg(jsonb_build_object('pid',pid,'transactionStart',xact_start,'wait',wait_event,'query',query)),'[]') FROM pg_stat_activity WHERE application_name=${q(name)} AND wait_event_type='Lock'; COMMIT;`))
+        observed = rows
+        return rows.length
+      }).toBe(1)
+      await expect.poll(() => localSql(`SELECT clock_timestamp()>${q(timing.boundary)}::timestamptz+interval '300 milliseconds';`)).toBe('t')
+    } finally { await held.finish(false) }
+    const actual = proofJson(await pending)
+    const negative = proofJson(localSql(proofRpcSql(f, operation, id, payload, `negative-${randomUUID()}`)))
+    expect(negative.result.error).toBe(operation === 'store' ? 'LESSON_WALLET_UNIT_NOT_STORABLE' : 'LESSON_WALLET_TARGET_STARTED')
+    expect(negative.state).toEqual(baseline)
+    expect(new Date(actual.result.transactionStart).getTime()).toBeLessThan(new Date(timing.boundary).getTime())
+    expect(new Date(actual.result.afterAdmission).getTime()).toBeGreaterThan(new Date(timing.boundary).getTime())
+    expect(JSON.parse(localSql(`SELECT ${proofStateSql(f)};`))).toEqual(baseline)
+    expect(financial()).toBe(money)
+    expect(transitionSignature()).toBe(signature)
+    const businessPass = actual.result.error === negative.result.error && JSON.stringify(actual.state) === JSON.stringify(baseline)
+    await info.attach('boundary-characterization', { body: JSON.stringify({ family, operation, timing, observed, baseline, control, actual, negative,
+      businessPass, businessExpected: 'Reject after real boundary with no effect', rolledBack: true, financialUnchanged: true }), contentType: 'application/json' })
+    expect(actual.result.error).toBe(negative.result.error)
+    expect(actual.state).toEqual(baseline)
+    expect(businessPass).toBe(true)
+  })
+}
+
+test('Boundary acceptance sequential Reschedule and Family Redeem then Makeup protects other sessions', async ({}, info) => {
+  const parent = await account('user', 'Sequential characterization'), a = seed(false, true, parent), b = seed(true, true, parent), source = seed(false, false, parent)
+  const reschedule = destination(a, false, 7), redeem = destination(b, false, 2), makeup = destination(source, true)
+  const money = financial(), signature = transitionSignature(), baseline = [a, b, source].map(f => JSON.parse(localSql(`SELECT ${proofStateSql(f)};`)))
+  const output = localSql(`BEGIN;
+    DO $moves$ DECLARE credit uuid; BEGIN
+      PERFORM public.lesson_source_transition_v1(${q(parent.id)},'reschedule',${q(a.ids[0])},${q(JSON.stringify(reschedule))}::jsonb);
+      credit:=(public.lesson_source_transition_v1(${q(parent.id)},'store',${q(b.ids[0])},'{}')->>'credit_id')::uuid;
+      PERFORM public.lesson_source_transition_v1(${q(parent.id)},'redeem',credit,${q(JSON.stringify(redeem))}::jsonb);
+    END $moves$;
+    CREATE TEMP TABLE protected_before AS SELECT to_jsonb(x) value,x.id FROM booking_sessions x WHERE booking_id IN (${q(a.booking)},${q(b.booking)});
+    DO $makeup$ BEGIN PERFORM public.lesson_source_transition_v1(${q(actor.id)},'makeup',${q(source.ids[0])},${q(JSON.stringify(makeup))}::jsonb); END $makeup$;
+    SELECT jsonb_build_object('changedProtected',(SELECT jsonb_agg(jsonb_build_object('before',p.value,'after',to_jsonb(x))) FROM protected_before p JOIN booking_sessions x ON x.id=p.id WHERE p.value<>to_jsonb(x)),
+      'protectedAttendance',(SELECT count(*) FROM attendance WHERE booking_session_id IN (SELECT id FROM protected_before)),
+      'family',${proofStateSql(b)},'source',${proofStateSql(source)},'reschedule',${proofStateSql(a)});
+    ROLLBACK;`)
+  const actual = proofJson(output)
+  await info.attach('sequential-makeup-characterization', { body: JSON.stringify({ actual, businessPass: !actual.changedProtected,
+    businessExpected: 'Only requested Makeup source changes; other sessions/Attendance unchanged', rolledBack: true }), contentType: 'application/json' })
+  expect(actual.changedProtected).toBeNull()
+  expect(actual.protectedAttendance).toBe(0)
+  expect([a, b, source].map(f => JSON.parse(localSql(`SELECT ${proofStateSql(f)};`)))).toEqual(baseline)
+  expect(financial()).toBe(money)
+  expect(transitionSignature()).toBe(signature)
+})
+
+test('Boundary acceptance Makeup deadline timezone and future-target guard', async ({}, info) => {
+  const parent = await account('user', 'Makeup timezone characterization'), f = seed(false, false, parent)
+  const signature = transitionSignature(), money = financial(), evidence: unknown[] = []
+  for (const zone of ['UTC', 'Asia/Bangkok', 'America/Los_Angeles', 'Pacific/Auckland']) {
+    for (const instant of ['2026-11-30T11:00:00+07:00', '2026-11-30T20:00:00+07:00', '2026-12-01T00:00:00+07:00']) {
+      const template = randomUUID(), payload = { targetDate: '2026-11-30', startTime: '22:00', endTime: '23:00', branchId: f.branch, templateId: template }
+      // Three clock reads including the new post-delegate guard; no predicate modified.
+      // DDL and the synthetic canonical template roll back with the transaction.
+      const freeze = freezeBoundaryClock(instant)
+      const actual = proofJson(localSql(`BEGIN; SET LOCAL TIME ZONE ${q(zone)}; ${moveReturnFixtureDate(f, '2026-10-01')} ${freeze}
+        INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active) VALUES(${q(template)},${q(f.branch)},${q(f.course)},1,'22:00','23:00',true);
+        CREATE TEMP TABLE characterization_result(value jsonb);
+        DO $proof$ DECLARE reply jsonb; problem text; BEGIN
+          BEGIN reply:=public.lesson_source_transition_v1(${q(actor.id)},'makeup',${q(f.ids[0])},${q(JSON.stringify(payload))}::jsonb);
+          EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS problem=MESSAGE_TEXT; END;
+          INSERT INTO characterization_result VALUES(jsonb_build_object('reply',reply,'error',problem)); END $proof$;
+        SELECT jsonb_build_object('result',(SELECT value FROM characterization_result),'state',${proofStateSql(f)}); ROLLBACK;`))
+      const expectedEligible = instant !== '2026-12-01T00:00:00+07:00'
+      evidence.push({ zone, instant, expectedEligible, actual, businessPass: expectedEligible === !actual.result.error })
+      if (!expectedEligible) expect(actual.result.error).toMatch(/LESSON_SOURCE_(MAKEUP_INELIGIBLE|TARGET_STARTED)/)
+      else expect(actual.result.error).toBeNull()
+      expect(transitionSignature()).toBe(signature)
+      expect(financial()).toBe(money)
+    }
+  }
+  await info.attach('makeup-timezone-characterization', { body: JSON.stringify({ evidence, controlledClock: true, rolledBack: true,
+    limitation: 'Timezone portability characterization, not a Production incidence or timezone configuration change' }), contentType: 'application/json' })
+})
+
 for (const family of [false, true]) test(`Return expiry calendar/timezone RPC matrix: ${family ? 'whole Family' : 'Adult'}`, async ({}, info) => {
   const f = seed(family), signature = transitionSignature(), before = financial(), evidence: unknown[] = []
   for (const zone of ['UTC', 'Asia/Bangkok', 'America/Los_Angeles', 'Pacific/Auckland']) {
