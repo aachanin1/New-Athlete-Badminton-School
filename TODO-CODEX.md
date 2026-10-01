@@ -1,12 +1,19 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-09-30
+Last updated: 2026-10-01
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Finance load correction — isolated Owner UAT accepted.** Owner reported testing complete and confirmed September revenue/net; exact acceptance limits and artifact belong to [authoritative state](PROJECT_STATE.md#current-finance-project-matrix). Source/formulas unchanged. [Evidence](docs/finance-read-fix-20260930.md).
+- **Set1 release approved; DEVELOPING / HARD STOP before Production; TASK DONE No.** Source8b1ca32 committed/pushed in isolated codex/lesson-source-release; composite local91/91 and retrospective38/38 passed. PROJECT_STATE.md owns mutable Source/Git/Production facts.
+- **Blocker:** old Source write actually fails against new guards; bounded fence/drain and schema-compatible recovery remain unproved. Approved plan step3 forbids improvising new project settings/Environment/product paths for the fence. Approval is already received; no repeat local Owner test requested.
+- **Next:** prepare the smallest release-safety scope only (affected four mutation APIs plus compatible recovery), then resolve that scope before hosted deployment/five migrations/Promotion. No Task2, price/history repair, broad outage or Task10 Pause.
+- [Authoritative matrix](PROJECT_STATE.md#current-project-matrix); [dated closeout](docs/lesson-source-admission-v2-20260930.md#set1-approved-release-hard-stop--2026-10-01); private RESULT-AND-NEXT-SCOPE.md in C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001.
+
+## Historical — Finance isolated acceptance at 2026-09-30
+
+- **Finance load correction — isolated Owner UAT accepted.** Owner reported testing complete and confirmed September revenue/net; exact acceptance limits and artifact belong to [authoritative state](PROJECT_STATE.md#historical-finance-project-matrix). Source/formulas unchanged. [Evidence](docs/finance-read-fix-20260930.md).
 - **Next:** Agree separate Finance-only release scope, then stage an exact artifact with real-data read-only reconciliation before Owner acceptance/authorized Promotion. Local acceptance alone does not certify a new Vercel artifact. No release/write/activation authorized by the UAT reply.
 - Main dirty docs and separate admission draft/HARD STOP preserved. Adult pricing/old bills/other Parking Lot work remain outside scope. PROJECT_STATE owns Git/artifact/verification facts.
 
@@ -15,6 +22,27 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 - **User Reschedule cancellation fix — TASK DONE / Production Active.** Owner PASS for dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV/bb5bf128662ea58bbfb6613df73e5dfec14c6aaa; promoted that same Production artifact without rebuild at 2026-09-28T14:31:59.370Z. Customer aliases, health/assets/protection and scoped error logs pass. [Current matrix](PROJECT_STATE.md#current-project-matrix).
 - Source/tests/config/migrations unchanged in this round; only Docs3 closeout published. Previous re-wallet Docs3 remain local-only and must not be published or repeated.
 - **Next:** No further cancellation release action. Adult/Private simultaneous-success known FAIL and Admin Makeup remain Parking Lot; no automatic adjacent fix. The closeout docs SHA is not an application artifact.
+
+
+## Historical — Release proposal before approval
+
+- **Set1 local Dev artifact accepted by Owner; DEVELOPING release preparation; TASK DONE No.** No duplicate personal six-step local test required; manual Owner UAT not claimed. PROJECT_STATE.md owns actual Source/Production/Git state.
+- **Next:** Owner approves the prepared release contract before any Production execution. Prove isolated live-based composition, consolidated upgrade, bounded writer fence/drain and compatible recovery before hosted acceptance/Promotion. No new business behavior, Task2, historical repair or protected-domain change.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [release preparation](docs/lesson-source-admission-v2-20260930.md#owner-local-dev-acceptance-and-release-preparation--2026-10-01). Private RELEASE-PLAN.md: C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/release-plan-20261001T080046Z.
+
+## Historical — Minimal correction local handoff
+
+- **Set1 minimal correction — READY FOR OWNER UAT; Dev6/6PASS; Owner UAT pending; TASK DONE No.** Four proven changes in function1; exact eight paths migration1/test1/guard2/Docs4, app/API/UI/config0. Tested Source **841b527** committed/pushed; Docs-only closeout successor keeps the same local artifact.
+- Final runtime91/91, upgraded retrospective38/38, fresh47/upgrade46->47/history/preservation, TSC/lint/mojibake/build/protected checks passed. Original screenshots and backend reconciliation cover all six flows. No Production operation or historical repair; main/pending work/old targets retained.
+- **Next:** Owner follows private OWNER-UAT.md at http://makeup.localhost:3132 with separate SA origin127.0.0.1:3132, returns PASS/FAIL; Developer reconciles actual effects. No automatic Production/Task2 work.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [closeout](docs/lesson-source-admission-v2-20260930.md#makeup-and-current-clock-correction--2026-10-01--ready-for-owner-uat); private evidence C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/dev-uat/DEV-UAT.md and OWNER-UAT.md.
+
+## Historical — Characterization gate before approved correction
+
+- **Set1 characterization complete; DEVELOPING / HARD STOP — NOT READY; TASK DONE No.** PROJECT_STATE.md owns current mutable facts. Six reproduction tests completed; business failures confirmed in A1 Makeup status, B1/B2 Adult/Private Store/Redeem after real boundary wait, B3 Auckland early Makeup deadline. No correction implemented.
+- This round test1+Docs4 local/uncommitted/unpushed; business Source unchanged. TypeScript/diff/preservation passed; old81/38 and failed Dev3/6 remain scoped evidence, not new acceptance PASS. Approved synthetic setup adds8000THB to local fixture totals; old financial rows/controls/definitions/ledger preserved.
+- **Next:** Owner approves one bounded correction contract: new migration1/function1, test1/Docs4, four proven changes only; fresh/upgrade/protected tests, exact local artifact and Dev6 before Owner UAT. No API/UI/price/quota/role/history/Task2/Production operation.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [proof report](docs/lesson-source-admission-v2-20260930.md#characterization-before-correction--2026-10-01); [dated evidence](DEVELOPMENT_TODO.md#lesson-source-characterization-20261001). Private result/allowlist/Owner UAT plan: C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/outputs/fresh/characterization-1790833257796/RESULT-AND-MINIMAL-PLAN.md.
 
 ## Preserved prior work — Historical
 

@@ -28108,6 +28108,532 @@ DONE Yes after closeout publication verification; no further release blocker.
 Private release proof: C:/Users/aacha/AppData/Local/Temp/reschedule-cancellation-20260928/selector/promotion.
 
 
+<a id="lesson-source-hard-stop-2026-09-29"></a>
+## 2026-09-29 — Source transition set1 / Owner rule / protected Attendance Hard Stop
+
+State observed at this handoff; PROJECT_STATE.md owns current mutable state.
+
+Owner authorized continuous implementation to isolated test UAT only, including
+draft migrations, safe branch publication and a separate-database web artifact.
+Production migration/Promotion/activation/data writes/repair explicitly excluded.
+Owner subsequently confirmed this searchable decision: Adult Admin Return requires
+no attendance; Family Return requires every exact unit member to qualify. Any
+attendance, including absent, cancellation or consumed source rejects the unit.
+Absent follows existing Makeup policy. Exact committed replay returns the original
+result; no extra credit/member/notification, no stored-expiry extension.
+
+Gate0 matched b312cdaacff28318d352f92a19370392c9ca2e89 and live origin branch.
+Original3local-only re-wallet docs were privately copied/hash-verified, never staged,
+edited or copied into the new checkout. Managed worktree codex/lesson-source-atomic
+starts from committed base. Prior concurrency JSON reports 200/200 and2descendants;
+Reschedule API, slot helper and coach notification helper Git blobs match4f3d51a.
+This supports reuse of historical failure, not acceptance of new draft source.
+Read-only Vercel check retained exact active cancellation artifact/SHA, main as
+Production branch; GitHub Pages workflow only main. Full external push/deploy safety
+audit remains incomplete, with no push performed.
+
+Before SQL editing, private scope.md recorded13exact allowed paths, writer table,
+identity/locks/tests and exact dependency objects. CLI2.116.0 created:
+- 20260928171257_lesson_source_transition_atomic_v1.sql SHA256 4f65e3ff3f1a811a63fa497345f0cf6af8e4c787a90e3eba7932191c040f6758
+- 20260928171258_lesson_source_transition_guards_v1.sql SHA256 3040bd51f0bb516ac808ccee184b86e707292cc3e02fbdfb27430f97428e2a54
+
+Draft Functional5, Migration2, Docs3 changed; Tests3 not yet changed;10/13paths,
+no extra tracked dependency. Three routes delegate lifecycle mutation to a draft
+shared typed RPC helper; SQL wraps old Wallet/Kids bodies, records per-step replay,
+drafts atomic Adult/Private Reschedule/Makeup/whole-unit Return and side effects,
+guards session/credit/member application-role writes. History migrations untouched.
+This is incomplete code, not Source Complete; do not publish or apply elsewhere.
+
+New disposable LessonSource20260929 started with42baseline migrations. API127.0.0.1:65401,
+DB65402; container 77d297f488c926cd3790147129a2a43caf1e79822eb42480c2c9ae0b958e1329, volume
+supabase_db_LessonSource20260929. Private verifier checks workdir/project/ports/network,
+volume and Auth/REST/Storage connection host/database before SQL or API fixture writes.
+No old disposable reset. Draft SQL installed; edited function bodies replaced only
+in that disposable. Final clean-install/upgrade acceptance is not complete.
+
+At 2026-09-28T17:28:08.754Z, a synthetic Adult source was scheduled with0attendance/0credits.
+The unchanged Admin upsertRetrospectiveAttendance/getStudentContext and unchanged
+attendance-write-through/status helper were extracted/transpiled and executed against
+real local PostgREST. Return ran its actual draft DB transaction and held commit.
+Attendance INSERT was observably waiting for a lock (blocked1) before Return committed.
+Then attendance committed successfully, while the separate session sync failed with
+LESSON_SOURCE_GUARDED_WRITE. Reconciliation: source walleted, active credit1,
+member1, operation1, exact-learner absent attendance1, payments0. The protected
+invariant is FALSE. Script exit0 means the expected diagnostic was reproduced;
+it is NOT a passing regression or full endpoint/browser test.
+
+The original API source explicitly calls attendance upsert then status sync in
+separate database requests. PostgreSQL source-row locks delay a referencing INSERT
+but do not reject it after commit merely because source status changed. There is
+no existing attendance-table lifecycle trigger in the inspected baseline. A guard
+only on booking_sessions catches the second request too late. No claim is made
+that real customers encountered this ordering. Production was not used to test it.
+
+Hard Stop: preventing this requires coordinating Attendance writes themselves,
+which the Owner scope explicitly protects. Proposed minimal addendum: allow an
+attendance BEFORE INSERT/UPDATE source-state guard with shared lifecycle locks,
+reject stale writes for cancelled/rescheduled/walleted sources before their commit,
+and prove both race orders/mixed Family/valid retrospective and Coach writes retain
+their semantics. No attendance rewrite, payroll change or data repair is proposed.
+No such guard or other Attendance/Admin behavior change was implemented.
+
+Known draft check: tsc failed once with TS2367 at the now-unreachable
+return_entitlement action-label comparison. No correction after the material stop.
+Lint, production-mode build, focused suites, comprehensive fault/replay/bypass/
+protected evidence, fresh/upgrade final migration tests and rollback rehearsal
+remain outstanding. No test assertion lowered and no blanket PASS.
+
+Future release discussion only: stage migrations/app/guards with incompatible old
+writers fenced, test in-flight requests in both orders, and retain source guards
+and committed operation history during rollback. No destructive rollback/removal
+of committed transactions. That plan has not been rehearsed and needs the scoped
+Attendance decision before claiming safe compatibility.
+
+CommitNo; PushNo; DeployNo; artifactNo; SourceCompleteNo; TestsPassedNo;
+ReadyForOwnerUATNo; OwnerUATNo; ProductionActiveForTaskNo; DataRepairedNo;
+Production deployment/schema/data/controlsChangedNo; FinancialImpact0; TaskDoneNo.
+Task2 not started, Admin target-overlap cancellation filtering remains unchanged.
+Private evidence/harness: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929.
+Next gate is the Owner's narrow protected-domain scope decision, not Production UAT
+or release approval. All requested original release restrictions remain in force.
+
+
+<a id="lesson-source-attendance-resume-2026-09-29"></a>
+### ชุดที่ 1 — Attendance guard/lock addendum approved / resume (2026-09-29)
+
+Owner explicitly approved narrow attendance INSERT/UPDATE admission/locking and regressions. Resume DEVELOPING in codex/lesson-source-atomic; retain previous Hard Stop and attendance-race.json FAIL unchanged. No Production authority; Task2 unstarted.
+
+Lock audit: source now takes exclusive transaction admission before activation locks, sorted family months, parent, booking/session/credit/member/attendance rows. Attendance BEFORE STATEMENT takes shared admission before executor UPDATE tuple/speculative upsert locks; it uses try-lock because retrospective RPC already holds slot/session/booking locks. Failed admission raises 55P03 and rolls back the statement/RPC rather than forming a wait cycle. The row guard locks booking then exact session FOR SHARE NOWAIT, then reads current lifecycle and exact learner. FK key-share checks follow BEFORE row admission. Family Return's exclusive gate excludes attendance for every member. Attendance DELETE unchanged.
+
+Objects added in draft guards migration: lesson_source_attendance_admission_v1(), lesson_source_attendance_guard_v1(), statement and row triggers on attendance. ACL remains deny direct function execution; SECURITY DEFINER row guard reads exact evidence, does not grant table writes or bypass caller RLS. No historical migration edit. Coarse global admission serializes source transactions; concurrent attendance transactions share admission. Contended attendance returns retryable conflict; throughput/latency and actual API error propagation remain acceptance items.
+
+Original TS2367 action-label branch removed. Final static/runtime acceptance pending; not READY FOR OWNER UAT.
+
+
+<a id="lesson-source-uat-2026-09-29"></a>
+## 2026-09-29 — ชุดที่ 1 / isolated READY FOR OWNER UAT
+
+This dated closeout supersedes the mutable draft status above, not its historical
+failure. Owner approved continuous set1 and the narrow Attendance addendum; no
+additional business domain or Production operation was authorized. Confirmed Return
+decision remains searchable in the original record: whole exact Family unit, one
+credit/all members; any attendance including absent, cancellation or consumed member
+rejects all, with exact committed replay and original stored expiry retained.
+
+Source/tests/migrations: f0782ae612d5354d6bb1b9679edf7f32157b16c5, codex/lesson-source-atomic, committed
+and pushed. Application build I2ikm5srw0niMWGGurzke, created 2026-09-28T20:50:12.886Z,
+281 tracked inputs SHA256 68df6b0257d79d2928fa1c6f3fcfa08de07807a1ef2ed2514dbff591c35f05f8. Local production-mode build only;
+not the active Production artifact and not a Vercel staged Production deployment.
+This Docs3 successor does not change/rebuild the tested application.
+
+Final migrations (unpublished drafts became branch source; never applied Production):
+- 20260928171257_lesson_source_transition_atomic_v1.sql — SHA256 c55154c994266c558e033f988baa0f40673988cc5c69dc4f00e475b4f3445e6a
+- 20260928171258_lesson_source_transition_guards_v1.sql — SHA256 b705b866b63aa88a4dbf91bc81b94989ee3aaee4cc98a9b4542dbeee6b9ac98b
+
+Actual files were CLI-installed baseline42-to44 and fresh44; synthetic pre-existing
+booking/session/credit hashes stayed exact, definitions/ACLs matched, no public
+execution or application-role operation-table writes. Aggregate function definition
+MD5 b495a35c07f2c7b5d05086e67868127e; migration-install-upgrade.json retains details.
+
+DB change inventory: lesson_source_operations table/unique replay key/RLS/denied
+direct ACLs; lesson_source_transition_v1, effects, notification and slot-label helpers;
+five prior bodies renamed/revoked and five public compatibility wrappers; guarded
+booking_sessions/lesson_wallet_credits/lesson_wallet_credit_members lifecycle writes;
+active-only Family tuple index; Attendance statement admission/row-state triggers and
+functions. Existing canonical-slot, capacity, assignment-retirement/reservation,
+Task10 source/quota and audit/notification objects are called transactionally under
+their original rules. No migration rewrites/backfills, financial schema, new roles,
+Attendance DELETE, payroll or Production controls.
+
+Root cause: earlier Adult/Private API checked and wrote in independent transactions;
+both requests could create descendants. New current-step contract locks/rechecks and
+commits every required effect once, with actor/operation/unit/normalized payload
+replay evidence. Same request replays; changed payload or competing consumed right
+conflicts. Current-step identity permits Store/Redeem/Re-wallet, not lifetime root
+uniqueness. Original Attendance FAIL demonstrated that a referencing INSERT could
+commit after Return and only its later status-sync fail. Shared statement admission
+plus current-row guard prevents the attendance commit itself; source exclusive
+admission, sorted policy/family/parent/booking/session/credit/member locks and NOWAIT
+row checks avoid waiting with retrospective locks. The detailed lock audit above is
+retained. New descendants remain attendable; old walleted/rescheduled/cancelled
+sources do not revive.
+
+Final acceptance:32 source/Attendance tests on the final build,9 distinct protected
+Wallet tests across all3policy states,14 focused Booking/Task10 tests (one contains
+28 cancellation API/DB cases), plus45 Wallet static assertions. 55 distinct tests passed across two executions:23 protected passes on89c062a and32 source passes on the test-fixture-only successor, with identical281application inputs, migrations, helper dependencies and protected Task10 test prefix. The earlier combined run retains its overall FAIL for the synthetic fixture admission; it is not relabeled PASS. Deterministic barriers and observed
+pg_stat_activity waits cover same-source Adult/Private same/different targets,
+cross-operation and quota races, Family members, both Return/Attendance orders with
+INSERT/UPDATE/upsert, actual API/RPC and guarded application writes. Exact replay,
+concurrent replay and deliberately lost HTTP response after commit create no extra
+effects. Family identity, other-family same-slot isolation, other-hour preservation,
+stored expiry, valid Wallet cycle, Coach present/late/absent and Admin retrospective
+writes pass. Fault injection covers credit/member/session/assignment/audit/notification/
+operation and slot/descendant/redeem write stages; rollback snapshots and real timeout
+pass. Serialization/deadlock/timeout SQLSTATE propagation is injected; no claim that
+a natural deadlock was deliberately produced. Protected Booking, Kids quotas/cutoffs,
+receipt/payment expiry, cancellation and financial/attendance snapshots pass.
+
+Final DB reconciliation: {"openTransactions":0,"operationsByKind":{"store":3,"makeup":10,"redeem":2,"reschedule":6,"return_entitlement":13},"staleAssignments":0,"faultTriggersLeft":0,"crossBookingLineage":0,"rewalletExpiryDrift":0,"incorrectMemberIdentity":0,"missingCommittedResults":0,"returnedSourceAttendance":0,"duplicateDescendantSources":0,"incorrectDescendantIdentity":0,"walletedOrRescheduledAttendance":0}.
+No partial credit/member/descendant, wrong identity, expiry drift, stale assignments,
+cross-booking lineage, missing committed result, fault trigger or held transaction.
+Original attendance-race.json remains FAIL, unchanged. Earlier test-harness timeout
+(28-case test300s) and cross-VM matcher failure remain in their original reports;
+timeout increased to600s for physical verification and matcher extracts primitives,
+without changing business assertions. Corrected Booking28 pass and remaining13pass
+remain separate historical evidence, not relabeled failed runs. A later final run
+was intentionally interrupted after source review found that the draft rejected a
+completed cache without Attendance. The narrow correction retains original Admin
+eligibility and Attendance as source of truth; actual present/late/absent still deny
+whole-Family Return. All55 distinct passing checks use the corrected application and final schema,
+including slot-counter fault rollback and cache-versus-Attendance regression.
+A combined run then passed23protected tests before synthetic fixture booking creation hit the active Task10 payment guard. Test-only correction seeds pre-cutover rights under the exclusive policy lock, restores and asserts the entire policy before commit, restores real test clock semantics, and uses owner-only payment fixture markers. API/direct-role assertions keep all guards. The32source tests were rerun on the retained active-policy database. TS2367 fixed; TypeScript/lint/build/
+mojibake280/diff checks pass. This is focused acceptance, not a full-repository audit.
+
+Changed publication paths15: original Functional5/Migration2/Tests3/Docs3 plus
+tests/booking-regression/local-supabase.ts and tests/task10-regression/local-supabase.ts.
+These direct test dependencies were justified before editing to verify physical
+disposable ownership and seed synthetic fixtures as owner while leaving application
+clients guarded. Next dev auto-generated10lines in AGENTS.md, verified against its
+generator; preserved unstaged/excluded, no cleanup of user work. Main re-wallet
+Docs3 hashes remain exact and are neither copied nor published.
+
+Isolation: LessonSource20260929, local API65401/DB65402, its own CLI workdir/network/
+named volume and verified Auth/REST/Storage connections. Before each write the
+physical target is checked; no reliance on port alone and no other UAT reset.
+Persistent URL http://127.0.0.1:3129 on this computer. Synthetic User/Admin credentials,
+fixtures, screenshots, reports and DB dumps stay in the private evidence directory.
+Actual login and User schedule/reschedule/wallet plus Admin makeup smoke4pages passed;
+only local data origins, no page/5xx failures and unchanged lifecycle snapshot.
+
+Publication gate: GitHub no webhooks and main-only Pages workflow; Vercel main
+Production branch, default build/no migration command, codex Preview has no Supabase
+credentials. User-opened authenticated Supabase Settings/Integrations shows no linked
+GitHub repository/Vercel integration. Read-only evidence retained; no setting changed. Git push automatically generated Preview dpl_FY1kh2gGoqs1Z1FB6DVEzPnWdYSq; branch-deployments.json records its status. That Preview has no branch Supabase credentials and is not the tested artifact; Owner uses the isolated loopback build.
+
+Rollout proposal, requiring later explicit Production approval: fence admission and
+drain old source/Attendance requests, install atomic then guards with writers stopped,
+switch to approved new app, validate and reopen. Old/new mutation apps cannot overlap
+because old app has post-RPC notification effects. Rehearsal passed fresh/upgrade,
+retained-guard rollback and in-flight Return/Attendance both orders: revoke6service-role
+entry ACLs, let admitted transactions finish, deny new calls, retain committed rows,
+restore ACLs with new app and replay unchanged. Fallback must keep all guards/history
+and source mutations unavailable; never downgrade to baseline42 or delete committed
+records. No zero-downtime or full-availability rollback claim. Global admission
+serializes source transitions and makes contended Attendance retry; load/capacity
+has not been certified. No old-duplicate repair or historical-data certification.
+
+Owner UAT (synthetic accounts only; required backend evidence already Developer-owned):
+1. User: login at http://127.0.0.1:3129; choose สาขาทดสอบชุดที่ 1 and the future-month
+   Adult session, change date. Expected one new round, original shown as moved.
+2. User: use two windows for the same original request/retry. Expected same result
+   or typed conflict for a different target; no second entitlement/round.
+3. User: store the Family future hour, redeem it to another eligible future hour,
+   then store again. Expected one credit per current step, all3names/identities
+   together, the original stored expiry unchanged; other purchased hour unchanged.
+4. Admin: in Makeup attendance-gap review, open the unassigned Family round on
+   2026-09-28 at10:00 using บันทึกโค้ชและเช็กชื่อย้อนหลัง, choose คืนสิทธิ์ทั้งรอบ
+   and enter a reason. Expected one credit with all3members; the UI sends one
+   request per member but subsequent requests replay the same whole-unit result.
+5. Admin: try the same Return action on the separate12:00 Family unit with an absent member. Expected
+   whole-unit rejection/no credit; valid retrospective attendance on the separate
+   Adult fixture remains available. Owner UI PASS never replaces DB reconciliation.
+
+Owner UAT not performed. Production deployment/schema/data/controls changed: No.
+Data repaired: No. Financial impact0. Scope breach: No unexplained path. Blocker:
+None for isolated UAT. Documentation drift corrected in task checkout; historical
+failure preserved. Task2 not started; Admin target-overlap cancellation limitation
+unchanged. Production still serves cancellation app bb5bf128662ea58bbfb6613df73e5dfec14c6aaa,
+artifact dpl_6jEceTi2iJ2UEgfpndeJ9zqnHJYV; set1 is not active there.
+READY FOR OWNER UAT in isolated test; TASK DONE: No. Wait for Owner UAT, then a
+separate explicit Production command. A UAT PASS alone does not authorize release.
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929.
+Primary files: focused-acceptance-evidence.json, final23-pass-fixture-guard-fail.json, source-final-acceptance.json, final-test-inputs.json,
+source-reconciliation.json, migration-install-upgrade.json, owner-uat-artifact.json,
+owner-uat-smoke.json, source-publication.json, rollout-rollback-plan.md.
+
+
+<a id="lesson-source-admission-v2-hard-stop-2026-09-29"></a>
+## 2026-09-29 — ชุดที่ 1 admission correction / safety Hard Stop
+
+State observed at08:43UTC handoff; PROJECT_STATE.md owns current mutable state.
+Owner approved continuous corrective delivery only to verified disposable systems,
+with7planned paths and3conditionally allowed direct dependencies. Two dependencies
+were proven and recorded before editing: attendance-write-errors.ts provides one
+SQLSTATE/commit-phase contract for both APIs; attendance-write-through.ts previously
+stripped structured SQL errors and now preserves code/details/hint only. Exact9paths:
+
+- src/app/api/coach/attendance/route.ts
+- src/app/api/admin/makeup/route.ts
+- src/lib/attendance-write-errors.ts
+- src/lib/attendance-write-through.ts
+- supabase/migrations/20260929082617_lesson_source_attendance_lock_scope_v2.sql
+- tests/task10-regression/task10-transactions.spec.ts
+- PROJECT_STATE.md
+- TODO-CODEX.md
+- DEVELOPMENT_TODO.md
+
+Gate0 verified branch codex/lesson-source-atomic and local/live-remote e43e29c,
+predecessor source f0782ae/build I2ikm5srw0niMWGGurzke/281inputs, both published
+migration hashes,44installed migrations and original function/ACL parity. Main
+local-only Docs3 and worktree AGENTS changes were preserved. LessonSource20260929
+is container5fef043ba8713d0e65d9a7643a24a730fbb90a0191644cc12e8ddc201db7c0cf,
+API65401/DB65402; project/workdir/volume/network/Auth/REST/Storage checked before
+intended test writes. A new physically verified LessonSourceV220260929 uses
+API65501/DB65502 for independent fresh/upgrade proof; other UATs were not reset.
+
+Root cause: global exclusive source admission rejects unrelated shared Attendance
+admission; retrospective holds slot/session/booking rows before Attendance. Draft
+replaces global admission with parent UUID admission, preserving sibling quota and
+Family unit; source retains sorted family-month and parent rows. Attendance admits
+OLD+NEW parents with TRY and sorted booking/session SHARE NOWAIT, then rechecks
+identity and latest source state. Retrospective takes the same parent admission
+before existing slot/session/booking locks and rechecks identity. Source preclaims
+existing source/target slot rows in sorted order with NOWAIT before nested helpers,
+to prevent slot/session reversal with retrospective or opposite-slot sources.
+Final unverified runtime refinement makes parent admission exclusive for Attendance
+too, preventing same-family multi-row tuple-order cycles; it still uses TRY after
+executor tuple locks. DELETE/policies/permissions/quota/expiry/assignment meanings
+are unchanged by the intended diff. This is design evidence, not complete proof.
+
+New CLI migration SHA256 4184286af1c106922dfa6b70b56e78daee83d2019ecd31988f1994f7aedc4bd6.
+Old migrations unchanged:20260928171257 SHA256 c55154c994266c558e033f988baa0f40673988cc5c69dc4f00e475b4f3445e6a;
+20260928171258 SHA256 b705b866b63aa88a4dbf91bc81b94989ee3aaee4cc98a9b4542dbeee6b9ac98b.
+Fresh45 vs upgrade44->45 definitions/ACL/RLS/policies matched; seeded old lifecycle,
+Attendance and replay rows preserved. Existing65401 UAT received draft1 definitions
+without ledger45;65501 contains latest exclusive-parent SQL with ledger45. No
+Production migration. These states must be reconciled before any new acceptance.
+
+Before-fix regression: held Return A with actual Coach B/Admin C produced500/500.
+Draft1 produced200/200;12same-source cases also passed (Adult/Family/Kids, Return
+wins vs Attendance INSERT/UPDATE/upsert wins). Fourteenth retrospective test failed
+409vs200; cause not conclusively reconciled. A possible overlapping synthetic coach
+fixture was separated in the later unverified test edit, not claimed fixed. Runner
+was interrupted at safety stop; no full-suite PASS. No new mixed1/2/5/10 performance
+run or new UI UAT. Prior309normal/4first-attempt500s,418reconciliation assertions,
+Dev-assisted5/5 and original attendance-race failure remain historical evidence.
+
+Application tsc/lint/build passed; Wallet45 and mojibake281 passed. Draft build
+h7NTlIMGMzCE-Isg64dtG was dirty and its tracked-input manifest omitted the new
+untracked helper, so it is not exact Source/artifact proof. Independent regression
+build also succeeded but no final acceptance used it. Old .next was rebuilt and
+3129server stopped; do not offer the old URL as READY. No source commit/push, final
+push-safety audit or Production artifact was created.
+
+Safety deviation (agent error): npm test:admin-retrospective-assignment-integrity
+was invoked without inspecting its environment selection. It selects default
+local API54321/project New-Athlete-Badminton-School, outside the approved disposable.
+Four static assertions passed; it created5synthetic Auth users/profiles and2branches,
+then failed its atomic course insert on duplicate course name, before any round or
+Attendance transaction. Its finally cleanup deleted its new IDs automatically.
+Read-only follow-up verified local physical bindings, Auth audit5user_signedup and
+5user_deleted events, and0matching remaining users/profiles/branches/courses.
+No pre-run snapshot exists, so broad unchanged-data proof is Unknown; retained Auth
+audit is itself a side effect. No extra cleanup/repair/restore was issued. Production
+was not targeted. This is not a successful test or an authorized-target claim.
+
+Evidence deviation: private runner built a path containing /../ for string
+replacement; it did not match the old reporter path, so before-fix output overwrote
+root attendance-acceptance.json. New contents were copied to corrective evidence;
+original recoverability Unknown. Requested delivery-manifest, Dev-assisted UAT
+report/screenshots and release-readiness FAIL/proposal were not modified. Preserve
+this disclosure; do not manufacture an original report or relabel old failure.
+
+At handoff all task runners stopped,3129stopped; both task databases and default
+local DB had0idle-in-transaction sessions;65401 had0test-fault functions. Main Docs3
+and AGENTS byte hashes match Gate0. Functional4/Migration1/Tests1/Docs3; pre-existing
+worktree AGENTS remains unstaged and outside those9paths. No other tracked source
+edit. Hard Stop requires Owner review of this safe handoff before resumed writes.
+Smallest continuation: inspect all test entrypoints; exact physical-target and
+new-output assertions; isolate failed fixture; finish exclusive-parent SQL/API,
+multiple-reference/multi-row/shared-slot/typed partial-commit tests, complete
+protected regression and actual mixed load with recipients, then final UAT/Git gates.
+No Production or Task2 authority is implied. Production fence/backup/PITR/restore
+elapsed time/downtime/artifact remain Unknown and unexecuted.
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-atomic-20260929/admission-v2-20260929.
+Credentials and default-local Auth details remain in private files only. Source
+Complete/TestsPassed/Committed/Pushed/READY/OwnerUAT/TaskDone: No; Production
+Deployment/Schema/Data/ControlsChanged: No; data repair No. Draft local testing and
+safety deviations remain separate from that Production statement.
+
+
+<a id="lesson-source-admission-v2-resume-2026-09-30"></a>
+## Set1 admission resume — 2026-09-30 — READY FOR OWNER UAT, local only
+
+Owner approved the exact resume Scope Contract, continuous correction/verification/
+commit/push and local staged artifact only. Final Source f6dc2c4d0da6b0ea930b335b7a24ebc4890b45da
+is committed/pushed. Final76runtime/UI and38retrospective cases passed; fresh45 and
+upgrade42->44->45 preserve history/replay and corrective ACL/RLS/policies.
+TypeScript/lint/build/mojibake, target14 and scoped diff checks passed. Historical
+failed runs and29Sep safety deviation above remain disclosed and preserved.
+
+Exact local build OivHfQVq4WVKnWXD3GZyF / tree0c320ca61ac9347bddae397c6445f2314c984e54;
+compiled hash aacb51b5c10d4a1878ed45eb9a8ae8925d1ac712b048271f8b8a35d1a4eb6d52.
+Owner URL http://admission.localhost:3131/auth/login; private six-step OWNER-UAT.md
+contains synthetic accounts and expected results. Manual Owner UAT pending;
+backend/financial reconciliation follows Owner actions. Sep Return fixture expires
+at unchanged30Sep23:59:59.999 Bangkok; crossing month-end needs a new synthetic fixture,
+not an extended expiry. Local Finance Sep364000/year373500 revenue and net, costs0.
+
+This round22distinct scoped paths: functional6, migration1, test/tool/config11,
+Docs4; Finance4paths exactly released d4aff85. One prereasoned direct dependency
+vercel.json disables Git auto-deploy only for codex/lesson-source-atomic, preserving
+all other configuration. Protected9file hashes match Gate0; pending main/Finance/
+AGENTS preserved. Two existing Set1 test baselines and divergent Finance report
+history are disclosed in the detailed report; not edited/deleted this round.
+
+Production Finance target dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/d4aff85 remains active;
+read-only catalog42, Set1 absent, Task10 control/cron signatures stable. No Production
+schema/data/env/control/cron/allowlist/hosted deploy/Promotion and no Task2.
+
+Session closeout12states: policy unchanged; Source changed; committed/pushed yes;
+local artifact yes; Owner UAT pending; Promotion no; post-Promotion n/a/local health
+passed; Production enabled/allowlist unchanged; Production writes/data repair no;
+no customer change; fence/backup/PITR/restore/downtime/compatible release prerequisites
+unproved; next Owner local UAT and DB reconciliation, then separate Production scope.
+READY applies only to local review; Production ready and TASK DONE No.
+
+[Complete report](docs/lesson-source-admission-v2-20260930.md); private evidence root
+C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930. Docs-only successor
+identity/readbacks are in private closeout publication evidence; no rebuild.
+
+
+<a id="lesson-source-dev-uat-hard-stop-2026-09-30"></a>
+## 2026-09-30 — Set1 Dev-assisted six-step UAT / HARD STOP
+
+Owner authorized Developer UAT with step-by-step screenshots on the exact existing local artifact. All6steps executed:1Reschedule PASS (Oct12, retained Oct5 overlap correctly rejected);2Family Store/Redeem PASS3members/1credit;3Return/Makeup FAIL overall — atomic unit and Makeup PASS, Return expiry FAIL;4two-tab same-source PASS1effect;5separate-authenticated-origin independent Attendance/Family Redeem PASS;6Finance month/year/reload PASS. Dev UAT5PASS/1FAIL, manual Owner UAT pending; NOT READY / TASK DONE No.
+
+Confirmed returned credit d3a78da4-0b8b-4c19-bc85-79d3e36f4954 stores2026-10-01T06:59:59.999Z (Bangkok1Oct13:59) instead of2026-09-30T16:59:59.999Z (30Sep23:59),14hours late. Read-only SQL proves implicit date_trunc(date) resolves timestamptz, AT TIME ZONE returns timestamp, assignment recasts under UTC. Expression present in published Set1 v1 line163 and corrective v2 line142. Explicit timestamp input produces expected policy expiry. Released d4aff85's old getMonthEndIso uses +07:00; Set1 not Production active, so no Production-incident inference. Prior handoff expiry was an expectation incorrectly presented as observed; documentation drift corrected, old handoff retained as historical.
+
+No Source/test/config/migration edit or rebuild. f6dc2c4d0da6b0ea930b335b7a24ebc4890b45da / BuildID OivHfQVq4WVKnWXD3GZyF / hash aacb51b5c10d4a1878ed45eb9a8ae8925d1ac712b048271f8b8a35d1a4eb6d52 unchanged;512inputs/721outputs verified. Previous76runtime/UI and38retrospective PASS remain coverage-scoped; missing independent expected Return-expiry check does not excuse new FAIL. UAT business writes only through UI in physically guarded LessonSourceResume20260930/API64601/DB64602; SQL read-only. Fixtures consumed, no reset/delete/expiry extension/data repair.
+
+Backend assertions: exact source/descendant/child mapping,1targetslot/Family, member redeemed references, one-effect Store, source absent retained for Makeup, exact present Attendance and completed session;4canonical targetslots/8descendants each1active exact template. Final selected fixtures7source operations (preexisting1+new6),3credits,2attendance. All checkpoints financialHash6d821e54f20d15707cd5cbc60d2de5f3 unchanged (whole bookings/payments/progressive allocations/expenses/payroll/coupon usage); exact booking rows/controls unchanged;45migrations, definition/ACL/RLS/policy signatures unchanged,0idle transactions. UI+SQL FinanceSep364000/year373500/Oct9500 costs0 synthetic values. Two User tabs share auth profile; independent SA/User origins separate sessions. Concurrent UI dispatch is bounded evidence, not precise DB lock overlap; previous barrier1/2/5/10 remains separately retained.
+
+Evidence C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930/dev-uat-20260930-1625: DEV-UAT.md with original images, reconciliation.json, expiry-finance-audit.json, canonical-targets.json, before/after/final snapshots, UI race timing, protected/doc-diff/publication records. Initial read-only snapshot failed nonexistent member.id before mutations and was corrected; early operations projection omitted Redeem credit unit IDs, final includes all7. Original failed evidence retained; no business rewrite.
+
+Docs4 only: PROJECT_STATE.md, TODO-CODEX.md, DEVELOPMENT_TODO.md, docs/lesson-source-admission-v2-20260930.md. Nine protected main/Finance/AGENTS hashes retained, existing AGENTS unstaged. Git/source/push, localartifact, DevUATFAIL, OwnerUATpending, Productiondeployment/enablement/allowlist/PromotionNo, datarepairNo, controlschangedNo kept separate. No hosted deployment/Production migration/write/env/permission/controls/cron/allowlist/Promotion or Task2. Local services retained; no Production query this UAT round.
+
+Hard Stop: Material Root Cause change/protected expiry boundary. Recommend separately approved forward-only expiry correction via new migration (never rewrite published v1/v2), independent UTC/Bangkok month-end/leap/December tests, protected regression and new artifact/retest; no historical-credit repair or Production authority inferred. Remaining Production fence/drain/backup/rollback unknown as before.
+
+Documentation closeout published after Bangkok date rollover on2026-10-01; all reported UI mutations and final DB snapshot occurred on2026-09-30. No post-month-end expiry extension or new UAT mutation.
+
+
+<a id="lesson-source-return-expiry-20261001"></a>
+## 2026-10-01 — Return expiry correction / integrated Dev UAT HARD STOP
+
+Owner approved **Return expiry correction only**. First Adult/Private Admin Return now ends at the source lesson month's last instant, 23:59:59.999 Asia/Bangkok, independent of database session timezone. Existing/redeemed credits retain stored expiry/evidence; Kids delegation is unchanged. No historical-credit repair, bill rewrite, pricing/formula/role change, Task2 or Production operation.
+
+New migration replaces the existing shared function with **one body difference**: the first non-Kids Return month-end input changes from date_trunc('month',s.date) to date_trunc('month',s.date::timestamp). Published v1/guards/v2 are byte-frozen. No DML, grant, policy, role or table change in the migration. Application/frontend/API/config edits0. Scope9paths: migration1, test/tool4, Docs4. Exact allowlist:
+
+- supabase/migrations/20261001014950_lesson_source_return_expiry_bangkok_v3.sql
+- tests/lesson-source-admission/lesson-source-acceptance.spec.ts
+- scripts/verify-lesson-source-test-target.mjs
+- scripts/check-lesson-source-test-target.mjs
+- tests/task10-regression/task10-transactions.spec.ts
+- PROJECT_STATE.md
+- TODO-CODEX.md
+- DEVELOPMENT_TODO.md
+- docs/lesson-source-admission-v2-20260930.md
+
+Three direct technical dependencies were recorded before editing under AGENTS.md: the two physical-target guards needed the exact independently owned Oct1 fresh/upgrade pair (64801/64901) rather than reusing Sep30 targets; the existing shared regression fixture needed a valid current-month past source because yesterday on Oct1 is Sep30 and legitimately expired after the fix. All business assertions retained; no generic localhost widening or new business behavior. Actual fresh46 and upgrade45->46 preserve history, existing wrong historical credit expiry, replay results, ACL, RLS and policies. No old target reset/deletion; only new owned disposables used for synthetic writes.
+
+**Source committed/pushed and remote verified 8ba61517e7c97c638a8d76bfa2cf3e22d56b310f.** Exact local Production-mode artifact tree cc0c2430272353d7b8bf2ca1c77748557a104abb, BuildID scXuhPxo4AuTkVots9MMN, compiled SHA256 5e8f9df656d0d456307f0146af7d3f3d784afcc025e7a2adee512edb8c6419eb; 513 tracked inputs/721 compiled outputs verified after UI UAT. Artifact C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/artifact-cc0c24302723-1790821200154. This is a local artifact, not a Vercel release. A documentation-only closeout successor does not rebuild or alter tested application/migration Source.
+
+Technical checks passed: before-fix actual API assertion reproduced +14hours; after-fix calendar oracle covers 28/29/30/31days, leap year and December across UTC/Bangkok/Los Angeles/Auckland, 48 installed RPC cases; new Adult and whole-Family API Return, replay, inherited existing expiry/evidence and exact expiry boundary rejection. Final exact-artifact runtime/UI81/81 (60 protected+21 admission; retries/skips/flaky0), independently guarded retrospective38/38, Wallet45, assignment39, Finance helper17, target guard23 (3valid+20reject), TypeScript, lint, mojibake and Production build passed. Fresh/upgrade parity and original data/ACL/RLS signatures preserved. Local security advisor:7pre-existing warnings,0affected function findings; no unrelated corrections. These checks do **not** override the subsequent Dev integration failure.
+
+**Dev six-step UAT executed; final result3PASS/3FAIL, NOT READY FOR OWNER UAT, TASK DONE No.** Step1 Reschedule and step2 whole-Family Store/Redeem initially produced correct targets/identities, then their final status failed after step3 Makeup. Step3 Return expiry PASS for new Adult1member and Family3members, both stored2026-10-31T16:59:59.999Z / Bangkok31Oct23:59:59.999. Makeup created its exact Nov4 target, but failed the protected non-interference check. Steps4 same-source two-tab one effect,5 independent Attendance/Family Redeem,6 Finance month/year/reload passed their exact backend checks. Original filenames containing pass record intermediate observations only; final failure images and reconciliation supersede them.
+
+New blocker attributed from source plus before/after DB: at the Makeup transaction timestamp 2026-10-01T09:45:02.195436+07:00, future rescheduled session fb7a5659-cc8f-427f-a69b-92ac272faa61 (Oct12) and redeemed self session e3ebc17e-bcd1-4586-8f4f-e608bfaa3756 (Oct7) became absent, with no exact Attendance rows. Existing non-Kids Makeup gathers the learner's whole source-month session set and updates every scheduled member to absent; two Family children stayed scheduled. The statement is identical in published v1/v2 and v3 (v2 line223/v3 line225); one-cast comparison proves expiry correction did not introduce it. This is an inherited behavior exposed by the integrated current-month fixture, not a new expiry root cause or proven Production incident. No status/data repair or Makeup change made. Required six-step integration gate fails regardless of81/38 earlier passes. Per AGENTS.md, materially changed root cause/protected-flow scope requires Hard Stop and a new Owner scope.
+
+Reconciled unit/source/descendant/child mapping, one credit/effect, member references, exact present/absent Attendance, canonical4active target slots/8descendants, controls unchanged, migrations46, fault functions0, idle transactions0. Whole bookings/payments/progressive allocations/expenses/payroll/coupon-usage financialHash fcb2fe294359cf9aff904d3e56d55a38 unchanged at every Dev checkpoint; selected booking rows unchanged. SQL and UI October revenue/net374500, annual377000, November2500THB, costs0: synthetic values only. No new Owner fixtures prepared after Hard Stop. UI dispatch timing does not prove precise lock overlap; deterministic barriers remain separate evidence. Admin retrospective fixtures intentionally lack real selfie/GPS and still show evidence-followup; existing legacy-coach overlap warnings were not suppressed. Free exact-group coach selected for the independent round.
+
+Evidence root C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001: upgrade-proof.json; fresh-upgrade-parity.json; source-publication.json; end-artifact-integrity.json; finance-source-preservation.json; security-summary.json; outputs/fresh/final-production-v2-1790821319590/report.json; outputs/upgrade/retrospective-1790820926323; dev-uat/DEV-UAT.md with all original images; reconciliation.json (FAIL); makeup-status-attribution.json; expiry-finance-audit.json; canonical-targets.json; before/after/final snapshots. Preserve before-fix failure, first final-production48pass/12fail/21skip (invalid Sep30 positive fixtures on Oct1), focused expiry passes and all old evidence. Private reconciliation helper first matched an audit JSON as a snapshot, then the real status assertion failed; corrected file selection and a separate collector retained explicit status failures, never weakened PASS requirements. Read-only coach helper first queried a nonexistent enum value; fixed cast, no mutation. Local auth refresh-token400 from stale pre-reset browser cookies is retained, so no all-error-logs-zero claim.
+
+Preservation:9main/Finance/AGENTS file hashes unchanged; published3migrations frozen; pre-existing worktree AGENTS remains unstaged. Released Finance4files equal d4aff85; all app src and branch-only deploy guard unchanged. Historical old disposables/drafts/failures retained. Branch codex/lesson-source-atomic auto-deploy remains disabled. Finance's last release record is dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu / d4aff85b5cdff468a101464106b5b323c97a26c6, not re-queried this round.
+
+Closeout12states: Owner policy unchanged; expiry Source changed; Source commit/push verified and Docs4-only successor publication recorded privately; new exact local artifact yes; Owner UAT not started/pending and gate blocked; Promotion no; post-Promotion health/log checks n/a; Production controls/environment/allowlist/permissions/cron changes0; Production schema/data changes0, Data repairedNo; real users/financial impact0 from this task; new Makeup blocker above with unchanged Production rollout fence/backup/restore unknowns; next action is Owner review of a new **exact-source-only non-Kids Makeup status correction** plan, preserving monthly quota, identity, pricing/Finance and history, then a new artifact plus six-step retest. No automatic new fix, repair, Production rollout or Task2. Local3131/64801 services retained for read-only evidence review; no shutdown action in this round.
+
+
+<a id="lesson-source-characterization-20261001"></a>
+## 2026-10-01 — Set1 characterization before consolidated correction approval
+
+Owner authorized proof of A1/B1/B2/B3 and the smallest correction proposal, not implementation. PROJECT_STATE.md owns mutable current facts. Only tests/lesson-source-admission/lesson-source-acceptance.spec.ts plus Docs4 changed locally/uncommitted/unpushed; business Source/migration/config0. Existing AGENTS and all pending work preserved.
+
+Final private attempt3 completed6characterization tests, retries/skips/flaky0; reproduction completion is not business acceptance PASS. A1 sequential Adult Reschedule + Family Store/Redeem then exact Makeup changes2future descendants scheduled→absent without Attendance, children unchanged. B1/B2 Adult/Family4real parent-lock waits start before cutoff/target-start and return successfully after it; observed wait_event=Lock and late release timestamps recorded. Positive pre-boundary controls succeed, immediate late controls reject with existing typed errors. RPC probes roll back. B3 installed core with2clock reads frozen in a rolled-back transaction runs4zones×3times; Auckland30Nov20:00Bangkok incorrectly rejects22:00target; other eligible cases and all post-month/past-target rejections match rules. No Production incidence inferred.
+
+Preservation before/after: all pre-existing rows in17tables retained byte-for-JSON, including bookings871/sessions327/credits65/members93/Attendance57/payments63/progressive allocations690; functiondefinitions+ACL and46migration ledger unchanged; targetphysicalguard each invocation; idletransactions0. New approved synthetic setup rows16bookings/16payments×500THB=8000,4credits/8members/4operations,27profiles include failed-run fixture setup. No reset/delete/history repair. Per-probe financial hashes unchanged; current local SQL October382500/year385000/November2500 synthetic, not prior Dev UAT374500 snapshot and not current UI verification. Main/Finance/AGENTS9hashes and3published migration hashes checked.
+
+Initial private harness grep anchor selected no tests; attempt2 had3failures reading RPC creditId instead of credit_id. Fix only the test field and preserve all reports/logs. Final6tests complete; TypeScript and diff checks pass. No app build, artifact creation,81/38rerun, new Owner UAT or business correction. Existing tested Source8ba61517/HEAD51e54832 and local BuildIDscXuhPxo4AuTkVots9MMN remain separate from new local test/docs edits. Integrated prior Dev3PASS/3FAIL still blocks READY/TASK DONE.
+
+Smallest proposed contract: new20261001054857_lesson_source_makeup_clock_boundary_v4.sql replaces only lesson_source_transition_v1, preserves signature/owner/ACL. Four edits: Makeup status exact s.id while quota set retained; Adult/Private Store post-delegate current-clock48h guard over every member; Adult/Private Redeem post-delegate current-clocktarget-start guard; explicit s.date::timestamp for non-Kids Makeup calendar deadline. Existing typed errors cause full transaction rollback; replay already committed preserves result. App/API/UI/config0, migration1/function1,test1,Docs4. CLI2.116.0 generated only an empty private proposal file, not repo/apply. Preserve Kids/quota/Return/Family/roles/Attendance/financial/history; Task2/cancellation/prices/Production excluded.
+
+Next gate: one Owner approval of exact6paths and4behaviors, then fresh/upgrade/protected verification, commit/push with existing branch deploy guard, exact new local artifact, Dev6screenshots+backend reconcile, READY FOR OWNER UAT. No hosted deployment or Production actions included. Evidence/contract: C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/outputs/fresh/characterization-1790833257796/RESULT-AND-MINIMAL-PLAN.md; observations.json; attempt3/report.json; preservation.json; closeout.json; original failed attempts retained.
+
+Closeout12states: policy unchanged; Source implementation0/tests1; current Git changes local/unpublished; new artifactNo; Owner UATpending/READYNo; PromoteNo/post-Promotionchecks n/a; controls/environment/allowlist/permissions/cron0; ProductionDB/data0/datarepairNo; realcustomer/financialimpact0; confirmed4scoped findings rather than old Unknown leads; nextaction Owner approval before correction. Characterization task complete, correction/Set1 TASK DONE No.
+
+
+<a id="lesson-source-makeup-clock-20261001"></a>
+## Makeup and current-clock correction — 2026-10-01 — READY FOR OWNER UAT
+
+Owner approved the consolidated minimal contract after complete A1/B1/B2/B3 characterization. Implemented four proven changes in one existing function lesson_source_transition_v1: non-Kids Makeup writes only the requested source while preserving monthly quota evidence; Adult/Private Store checks the current DB clock after the delegate and rejects <=48h; Adult/Private Redeem checks current clock after the delegate and rejects target-start <=now; non-Kids Makeup month-end casts date explicitly to timestamp before Bangkok conversion. SQL exceptions roll back the entire atomic unit. Successful committed idempotent replays retain their original result. Established Kids delegate and inactive Kids fallback are preserved. Return expiry, original/redeemed credit evidence, identities, Family units, pricing/quota/permissions/Attendance/coach evidence/canonical slots/overlap/financial safeguards remain protected.
+
+### Scope and publication
+
+- Source committed/pushed and remote verified: **841b527200607832afa42c3b25b6d4241e2c66d6**, branch codex/lesson-source-atomic. Documentation-only closeout is a successor of this tested Source; it does not rebuild the artifact.
+- Exact eight-path allowlist: supabase/migrations/20261001054857_lesson_source_makeup_clock_boundary_v4.sql; tests/lesson-source-admission/lesson-source-acceptance.spec.ts; scripts/verify-lesson-source-test-target.mjs; scripts/check-lesson-source-test-target.mjs; PROJECT_STATE.md; TODO-CODEX.md; DEVELOPMENT_TODO.md; docs/lesson-source-admission-v2-20260930.md. App/API/UI/config0; migration1/function1/test1/guard2/Docs4.
+- Guard pair added as proven direct technical dependencies, reason recorded before editing: suites reset disposable targets, so new exact owner/run/project/API/DB bindings are required to preserve old targets. No generic localhost widening or business/environment/permission change.
+- New owned targets: LessonSourceMakeup20261001 API65001/DB65002, LessonSourceMakeupUpgrade20261001 API65101/DB65102. Only these disposable targets received migrations or new synthetic fixtures. Old expiry fresh/upgrade targets, all public rows and definitions unchanged, including after Dev UAT. No repair/reset of old evidence or credits.
+- Four published migrations frozen; nine protected main/Finance/AGENTS hashes unchanged. Four Finance artifact files match released d4aff85 byte-for-byte. Pre-existing unstaged AGENTS.md remains untouched and excluded from all commits. Main checkout/pending work retained; Task2 not touched. Branch deploy guard retained; no hosted deployment.
+
+### Technical verification
+
+- Final production-mode runtime/API/UI **91/91**, expected91, retries/skips/flaky0: final-production-1790837263525/report.json. Includes ten new acceptance tests: four exact-boundary tests with twelve -1/0/+1ms cases and committed replay; four real observed parent-lock boundary crossings with complete rollback; sequential Reschedule+Family Redeem then Makeup non-interference; four timezone x three time Makeup matrix. Existing Return independent calendar/expiry cases retained.
+- Upgraded-target retrospective **38/38**, retrospective-1790837396575. Fresh47 and upgrade46->47 parity; historical data/expiry/replay, signature/owner/ACL/RLS/policies preserved. Final definitions5275b1303ab82b0f83db97c871162d56, ACL7c72e74879d1df1721f880d603257140, RLSea07204b3de6190aff08df69dd05713c, policies8358e004ae22ed8413027d7f8a6cf115. No fault functions/idle transactions at final audit.
+- TypeScript/lint/mojibake/Production build passed. Target guard5valid+26reject; Wallet45; assignment39; Finance helper17 passed. Local security audit retained seven existing warnings unchanged, affected-function findings0. Preliminary cacheKey/cache_key serializer mismatch is retained and normalized field/value comparison passed; no security Source change.
+- Initial migration CASE parse failure and bounded correction are retained. Final full fresh/upgrade/runtime runs own acceptance; preliminary failures never relabeled as PASS.
+- Exact local Production-mode artifact: BuildID **l_QsYrb4b6sMOYCvkI3T1**, tree d6428be087697e04846bacf54eef3243c67fa2e5, compiled SHA256 **82d1010baa7c66228c8f9cb72297f5b9df5c963907f39b511cc4610f1e4d4a3b**,514inputs/721outputs verified against tested/pushed Source. No rebuild after publication or UAT. Source hash and artifact identity recorded separately from Docs-only successor.
+
+### Dev UAT — six steps, screenshots and backend PASS
+
+| Step | Result and exact backend evidence |
+| --- | --- |
+|1 Reschedule|Adult Oct5 -> Oct12 12:00-13:00; same learner, one descendant/operation; target remains scheduled after Makeup, Attendance0.|
+|2 Family Store/Redeem|One credit/three exact self+children members; all move together to Oct7 12:00-13:00; all three scheduled after Makeup. Original expiry retained; no split.|
+|3 Return and Makeup|Adult Return1member/Family Return3members, two active credits expiry31Oct2026 23:59:59.999 Bangkok. Exact absent Makeup source -> Nov4 12:00-13:00; quota unchanged; six protected fixture booking-session sets byte-identical before/after Makeup.|
+|4 Same source|Two UI tabs dispatched the same Family Store; one persisted credit/operation/three members, no duplicate. UI dispatch does not prove precise lock overlap; deterministic DB barriers in91tests separately do.|
+|5 Independent flow|Different learner present -> completed, exact Attendance1, no wallet; separate prepared Family credit redeemed together to Oct8, inherited expiry unchanged. Makeup source has its exact absent Attendance1; total Attendance2/operations8.|
+|6 Finance|Read-only UI/SQL Oct380500,year383000,Nov2500THB, costs0; month/year/switch/back/reload pass. All six operations preserved entire financialHash161fc961e8a030a3d426d90243029be9 and booking/control rows. These are synthetic Dev snapshots.|
+
+Four exact active canonical target slots/eight descendants reconciled. Coach fixture guard correctly rejected a busy regression coach; two new dedicated synthetic Dev coaches and separate new Owner coaches prepared only in the new target. No bypass, old account/permission change or adjacent Source fix. Retrospective selfie/GPS follow-up remains visible; no claim of real teaching/payroll evidence. A stale intermediate screenshot is retained but excluded from final proof selection.
+
+### Owner handoff and remaining gate
+
+**READY FOR OWNER UAT; manual Owner PASS PENDING; TASK DONE No.** User http://makeup.localhost:3132/dashboard/schedule; SA http://127.0.0.1:3132/admin/makeup. New unused Owner fixtures7 (valid prepared Family Store explicitly disclosed), separate synthetic User and SA account, private OWNER-UAT.md supplies credentials and six visible steps. No credential in Git. Owner fixture setup adds3500THB synthetic booking/payment data after Dev reconciliation: current Owner SQL Oct384000/year386500/Nov2500, costs0; consumed Dev units/controls remain byte-identical. Never confuse these with Dev/Production amounts or extend expiry. Family Store future fixture Oct5 must remain >48h at actual review; if it expires, prepare a new fixture under the existing guarded local test contract, never revive old credits.
+
+State separation: policy unchanged; Source complete Yes; Pushed Yes; local staged artifact Yes; new disposable migration47 Yes; Dev UAT6/6 Yes; Owner UAT pending; Set1 hosted deployed/enabled/allowlisted/Production active No; Promotion No; post-Promotion checks n/a; controls/cron/environment/permissions/allowlists changed No; Production query/schema/data/deploy/actions0; real-user/financial impact0; historical data repair No. Next gate only Owner review on this exact local artifact, then Developer backend reconciliation. Production release requires a separately approved contract; local PASS does not authorize it.
+
+Private evidence root: C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001. Key files: approved-scope.md, source-publication.json, source-build-binding-841b527200607832afa42c3b25b6d4241e2c66d6.json, end-artifact-integrity.json, upgrade-proof-final.json, fresh-upgrade-parity-final.json, security-summary.json, finance-source-preservation.json, old-targets-final.json, dev-uat/reconciliation.json, dev-uat/protected-preservation.json, dev-uat/canonical-targets.json, dev-uat/DEV-UAT.md, OWNER-UAT.md. Earlier characterization and failed Dev artifacts remain historical and unaltered.
+
+<a id="lesson-source-owner-acceptance-release-plan-20261001"></a>
+
+## Owner local Dev acceptance and release preparation — 2026-10-01
+
+State observed at this closeout: Owner said “ครับ รับรองครับผม ดำเนินการแผนต่อไปได้เลยครับ”, accepting the existing local Dev6/6 artifact after Developer clarified no duplicate six-step personal retest was required. Manual Owner UAT was not performed. The preceding local review-pending handoff is historical; acceptance applies only to local Source841b527/BuildIDl_QsYrb4b6sMOYCvkI3T1, without Source/build changes.
+
+Read-only Production audit confirmed www.newathleteschool.com resolves to Finance release dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/d4aff85; DB42migrations/latest20260927090306, Set1 journal/core/guards absent, all five predecessor delegate signatures/ACL present and the old all-status Family index. No schema/data/environment/control/cron/deploy/alias writes. This was dependency/release preparation, not a controlled Production business-write UAT.
+
+Smallest proposed release composes the exact tested Set1 functional8+published migrations5 from the live base, with test/tool10/config1/Docs4. It retains Finance4bytes and the Finance report absent from the divergent branch. No copying whole branch or fixing another business flow. Current request changed Docs4 only, preserving pre-existing AGENTS and all pending work.
+
+Required release gates remain unproved: consolidated current42->47/legacy-fingerprint rehearsal, direct-writer/mixed-version/fence/drain, actual backup/PITR/restore-time evidence and a schema-compatible recovery artifact. Current Finance deployment is identified but is not certified rollback after new guards/data. Five SQL files contain their own transaction boundaries; no false single-transaction claim. New composite SHA/staged Production artifact not yet created. Exact hosted acceptance cannot be inferred from local PASS.
+
+The private RELEASE-PLAN.md defines actor, current/expected behavior, explicit28-path proposed allowlist, protected domains, gated execution, authorization matrix, recovery/stop rules and optional Owner read-only review. One future approval must explicitly authorize Production migration/Promotion and, if desired, Dev acceptance of the NEW hosted artifact in place of a personal retest. Existing AGENTS Scope Contract requires explicit authorization for Migration/Environment/Production-data operations; preparation does not grant it. No temporary broad outage/Task10 pause/environment change is authorized.
+
+SourceComplete/TestsPassed/Committed/Pushed Yes for existing tested local Source; Dev local controlled synthetic-writeUAT6/6; Owner local evidence accepted; personal/manual OwnerUAT not performed; Set1 hostedDeployed/Enabled/Allowlisted/ProductionActive No; hosted/ProductionUAT not performed; Production controlled writes0; DataRepairedNo; customer/financial effect from preparationNone; TASK DONE No. Active task release proposal; next Owner approves explicit contract before execution. PROJECT_STATE.md is authoritative for mutable facts and final publication metadata.
+
+Private evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/release-plan-20261001T080046Z/RELEASE-PLAN.md; production-read-only-evidence.json; source-delta-name-status.txt; preservation.json; documentation-publication.json. Existing Dev images, reconciliation, failed attempts and old isolated targets remain intact.
+
+
 <a id="finance-read-fix-2026-09-30"></a>
 ### 2026-09-30 — Finance isolated UAT handoff
 
@@ -28152,3 +28678,24 @@ artifact without customer aliases and real-data read-only reconciliation, then
 Owner exact-artifact acceptance/authorized no-rebuild Promotion and health/logs.
 No release action authorized by the Owner's status/plan question. PROJECT_STATE
 owns current acceptance/next gate; main/admission work remains preserved.
+
+
+<a id="lesson-source-release-hard-stop-20261001"></a>
+
+## Set1 approved release HARD STOP — 2026-10-01
+
+State observed at this closeout; PROJECT_STATE.md is authoritative for mutable facts. Owner approved the exact28-path release plan and explicitly delegated Dev acceptance of the NEW hosted artifact. No business rule changed. Published live-based composite Source **8b1ca32954e0b723d87b9763ea8b66e7d850c26f**, branch codex/lesson-source-release, app8/migrations5 exact accepted841b527; preserved Finance4/report on d4aff85 base. New target/port/branch guards are four documented technical adaptations only. Source24 committed/pushed; Docs4 closeout follows without rebuilding. Old worktrees, main pending Docs3 and unstaged AGENTS preserved.
+
+New local exact artifact runtime91/91 (no retries/skips/flaky), retrospective38/38, TSC/lint/mojibake/Production build/protected checks/diff/514input721output integrity passed. The first retrospective attempt failed during fixture booking insertion because the preceding full suite left synthetic Task10 established. Preserved failure; reran the historical inactive-policy fixture baseline on the owned disposable and restored every activation field exactly. Active Task10 already covered by the91 suite. No product fix was made for fixture preparation.
+
+Full live-baseline42->47 ordered migration rehearsal passed in owned LessonSourceRelease20261001/API65201/DB65202 only. Five predecessor function hashes matched Production. All65 pre-existing public-table hashes, active/expired synthetic credits and expiry retained. SQL apply elapsed3899ms is not a downtime or restore-time estimate; five files have separate transaction boundaries. Retained private fixture-harness failures and corrections; migrations/app bytes frozen.
+
+Actual mixed-version failure: the service_role direct booking_sessions status UPDATE used by live non-Kids Reschedule succeeded before schema upgrade in a rolled-back local transaction, then failed with LESSON_SOURCE_GUARDED_WRITE after47, preserving rows. Current route Source handles that failed update with500; no old HTTP write request was sent. This proves the existing Finance artifact is unsafe to certify as compatible rollback for that path after schema upgrade. New Source91 passing does not prove old-request drain/fencing.
+
+No existing proven fence: current proxy exempts APIs; active-firewall config read returned404; project reports skewProtectionMaxAge43200, which alone does not establish coverage for all API/direct writers. Approved plan step3 explicitly requires STOP if safe fence needs project settings, Environment or extra product files. No new WAF rule/flag/permission revocation/global advisory-lock blockage/Task10 Pause was introduced.
+
+Read-only actual Supabase dashboard confirmed daily physical backups (latest30Sep17:34:04UTC =1Oct00:34:04Bangkok) and PITR add-on not enabled. Restore duration/full recovery and compatible hosted recovery candidate remain unproved. No restore/purchase/download of customer data; PITR is not automatically required. Initial screenshot raced the UI transition and is retained but excluded; scheduled-backups-final.png is the verified daily-backup image.
+
+HARD STOP before hosted deployment/migrations/Promotion. Final read-only aliases4 remain dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu/d4aff85; Production DB42/latest20260927090306, no Set1 core; Task10 active revision5 and expiry cron unchanged. Task-caused Production schema/data/deploy/alias/environment/control/secret/permission operations0; data repair/customer/financial effects None. Hosted Dev acceptance/manual Owner UAT/Production controlled-write UAT not performed. SourceComplete/TestsPassed/Committed/Pushed Yes narrowly for composite local Source; release acceptance FAIL/NOT READY; hostedDeployed/Enabled/Allowlisted/ProductionActive No; TASK DONE No. Next only explicit bounded release-safety scope; no automatic task expansion.
+
+Evidence root C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001: RESULT-AND-NEXT-SCOPE.md, source-publication.json, source-build-binding.json, source-precommit.diff, source-precommit-review.json, upgrade-proof.json, old-writer-after-schema.stderr.log, release-gates.json, retrospective-fixture-baseline.json, retrospective-fixture-restored.json, final-post-retrospective-audit.json, final-production-readbacks.json, backup-read-only-evidence.json, scheduled-backups-final.png, pitr-not-enabled.png, closeout-publication.json. Prior accepted Dev images remain under lesson-source-makeup-clock-20261001/dev-uat; no new hosted six-step image PASS is claimed.
