@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { logActivity } from '@/lib/activity-log'
+import { attendanceWriteFailure, type AttendanceDbError } from '@/lib/attendance-write-errors'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import {
   classifyCoachAssignmentSessionProvenance,
@@ -21,9 +22,7 @@ interface ProfileRole {
   role: UserRole
 }
 
-interface DbError {
-  message: string
-}
+type DbError = AttendanceDbError
 
 interface AttendanceRecord {
   booking_session_id: string
@@ -232,6 +231,7 @@ async function hasCheckedInForSlot(
 }
 
 export async function POST(request: NextRequest) {
+  let attendanceRecorded = false
   const supabase = await createClient()
   const actor = await requireCoach(supabase)
   if (!actor) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -323,16 +323,19 @@ export async function POST(request: NextRequest) {
         .eq('id', existingAttendance.id)
 
       if (updateError) {
-        return NextResponse.json({ error: `อัปเดตรายการเช็คชื่อไม่สำเร็จ: ${updateError.message}` }, { status: 500 })
+        const failure = attendanceWriteFailure(updateError)
+        return NextResponse.json(failure.body, { status: failure.status })
       }
     } else {
       const { error: insertError } = await attendanceTable.insert(attendanceRecord)
 
       if (insertError) {
-        return NextResponse.json({ error: `บันทึกไม่สำเร็จ: ${insertError.message}` }, { status: 500 })
+        const failure = attendanceWriteFailure(insertError)
+        return NextResponse.json(failure.body, { status: failure.status })
       }
     }
 
+    attendanceRecorded = true
     let sessionStatus: 'absent' | 'completed'
     try {
       const syncResult = await syncBookingSessionStatusFromAttendance({
@@ -342,7 +345,8 @@ export async function POST(request: NextRequest) {
       })
       sessionStatus = syncResult.sessionStatus
     } catch (syncError) {
-      return NextResponse.json({ error: `อัปเดตสถานะรอบเรียนไม่สำเร็จ: ${getErrorMessage(syncError)}` }, { status: 500 })
+      const failure = attendanceWriteFailure(syncError, true)
+      return NextResponse.json(failure.body, { status: failure.status })
     }
 
     await logActivity({
@@ -378,6 +382,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Attendance error:', error)
+    if (attendanceRecorded) {
+      const failure = attendanceWriteFailure(error, true)
+      return NextResponse.json(failure.body, { status: failure.status })
+    }
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }
 }

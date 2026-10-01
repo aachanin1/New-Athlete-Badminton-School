@@ -318,6 +318,10 @@ export interface Database {
       }
     }
     Functions: {
+      lesson_source_transition_v1: {
+        Args: { p_actor_id: string; p_operation: string; p_id: string; p_payload?: Json }
+        Returns: Json
+      }
       admin_notification_follow_up_is_eligible_v1: {
         Args: { p_user_id: string }
         Returns: boolean

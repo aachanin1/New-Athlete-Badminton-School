@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
+import { attendanceWriteFailure, type AttendanceDbError } from '@/lib/attendance-write-errors'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
 import { logActivity } from '@/lib/activity-log'
-import { ensureScheduleSlot } from '@/lib/schedule-slot-utils'
-import { getBangkokDayOfWeek } from '@/lib/schedule-template-utils'
-import { consumeKidsFamilyMakeup } from '@/lib/kids-family-makeup'
-import { callTask10, loadTask10Policy, Task10Error } from '@/lib/task10-policy'
+import { LessonSourceTransitionError, transitionLessonSource } from '@/lib/lesson-source-transition'
 import {
   formatCoachAssignmentDatabaseError,
   formatLegacyCoachWarnings,
@@ -22,21 +20,6 @@ import {
 import type { AttendanceStatus, StudentType } from '@/types/database'
 
 type NotificationSupabase = Parameters<typeof notifyUserOnce>[0]
-
-interface OriginalSessionRow {
-  id: string
-  booking_id: string
-  date: string
-  end_time: string | null
-  status: string
-  child_id: string | null
-  bookings?: { user_id: string | null; course_type_id: string | null; course_types?: { name: string } | null } | null
-}
-
-interface SourceSessionRow {
-  id: string
-  status: string
-}
 
 interface ReviewSessionRow {
   id: string
@@ -235,7 +218,8 @@ async function applyAdminRetrospectiveTransition({
   if (error) {
     const conflict = getAdminRetrospectiveAssignmentConflict(error.message)
     if (conflict) return NextResponse.json(conflict, { status: 409 })
-    return NextResponse.json({ error: getErrorMessage(new Error(error.message)) }, { status: 500 })
+    const failure = attendanceWriteFailure(error)
+    return NextResponse.json(failure.body, { status: failure.status })
   }
 
   const result = data as unknown as AdminRetrospectiveTransitionResult
@@ -316,41 +300,6 @@ async function applyAdminRetrospectiveTransition({
   })
 }
 
-function getMonthBounds(date: string) {
-  const [yearText, monthText] = date.split('-')
-  const year = Number(yearText)
-  const monthIndex = Number(monthText) - 1
-  const start = new Date(year, monthIndex, 1)
-  const nextStart = new Date(year, monthIndex + 1, 1)
-  const followingStart = new Date(year, monthIndex + 2, 1)
-  const toInput = (value: Date) => {
-    const y = value.getFullYear()
-    const m = String(value.getMonth() + 1).padStart(2, '0')
-    const d = String(value.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  }
-
-  return {
-    start: toInput(start),
-    nextStart: toInput(nextStart),
-    followingStartInput: toInput(followingStart),
-    followingStart,
-  }
-}
-
-function getMonthEndIso(date: string) {
-  const [year, month] = date.split('-').map(Number)
-  const nextMonthStart = month === 12
-    ? new Date(`${year + 1}-01-01T00:00:00+07:00`)
-    : new Date(`${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00+07:00`)
-  return new Date(nextMonthStart.getTime() - 1).toISOString()
-}
-
-function isInNextCalendarMonth(originalDate: string, makeupDate: string) {
-  const bounds = getMonthBounds(originalDate)
-  return makeupDate >= bounds.nextStart && makeupDate < bounds.followingStartInput
-}
-
 function getBangkokSessionEnd(date: string, endTime: string | null) {
   const normalizedEndTime = (endTime || '23:59:59').trim()
   return new Date(`${date}T${normalizedEndTime}+07:00`)
@@ -358,14 +307,6 @@ function getBangkokSessionEnd(date: string, endTime: string | null) {
 
 function isPastSession(date: string, endTime: string | null) {
   return getBangkokSessionEnd(date, endTime).getTime() < Date.now()
-}
-
-function normalizeSlotTime(value: string) {
-  return value.length === 5 ? `${value}:00` : value
-}
-
-function isFutureMakeupTarget(date: string, startTime: string) {
-  return new Date(`${date}T${normalizeSlotTime(startTime)}+07:00`).getTime() > Date.now()
 }
 
 function normalizeReason(value: unknown) {
@@ -463,14 +404,14 @@ async function upsertRetrospectiveAttendance({
         eq: (column: string, value: string) => {
           order: (column: string, options: { ascending: boolean }) => {
             limit: (count: number) => {
-              maybeSingle: () => Promise<{ data: ExistingAttendanceRow | null; error: { message: string } | null }>
+              maybeSingle: () => Promise<{ data: ExistingAttendanceRow | null; error: AttendanceDbError | null }>
             }
           }
         }
       }
     }
     update: (values: { coach_id: string; status: AttendanceStatus; checked_at: string }) => {
-      eq: (column: string, value: string) => Promise<{ error: { message: string } | null }>
+      eq: (column: string, value: string) => Promise<{ error: AttendanceDbError | null }>
     }
     insert: (values: {
       booking_session_id: string
@@ -479,7 +420,7 @@ async function upsertRetrospectiveAttendance({
       coach_id: string
       status: AttendanceStatus
       checked_at: string
-    }) => Promise<{ error: { message: string } | null }>
+    }) => Promise<{ error: AttendanceDbError | null }>
   }
 
   const checkedAt = new Date().toISOString()
@@ -492,7 +433,7 @@ async function upsertRetrospectiveAttendance({
     .maybeSingle()
 
   if (existingAttendanceError) {
-    throw new Error(existingAttendanceError.message)
+    throw existingAttendanceError
   }
 
   if (existingAttendance) {
@@ -504,7 +445,7 @@ async function upsertRetrospectiveAttendance({
       })
       .eq('id', existingAttendance.id)
 
-    if (error) throw new Error(error.message)
+    if (error) throw error
   } else {
     const { error } = await attendanceTable.insert({
       booking_session_id: session.id,
@@ -515,226 +456,31 @@ async function upsertRetrospectiveAttendance({
       checked_at: checkedAt,
     })
 
-    if (error) throw new Error(error.message)
+    if (error) throw error
   }
 }
 
 export async function POST(req: NextRequest) {
   const access = await requireAdminMenuAccess('makeup')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
-
   try {
-    const supabaseAdmin = getServiceRoleClient()
     const body = await req.json()
-    const {
-      original_session_id: originalSessionId,
-      booking_id: bookingId,
-      makeup_date: makeupDate,
-      start_time: startTime,
-      end_time: endTime,
-      branch_id: branchId,
-    } = body as {
-      original_session_id?: string
-      booking_id?: string
-      makeup_date?: string
-      start_time?: string
-      end_time?: string
-      branch_id?: string
-    }
-
-    if (!originalSessionId || !bookingId || !makeupDate || !startTime || !endTime || !branchId) {
+    if (![body.original_session_id, body.booking_id, body.makeup_date, body.start_time, body.end_time, body.branch_id].every(value => typeof value === 'string' && value)) {
       return NextResponse.json({ error: 'กรุณาเลือกวัน รอบเรียน และสาขาให้ครบ' }, { status: 400 })
     }
-
-    const makeupDayOfWeek = getBangkokDayOfWeek(makeupDate)
-    if (makeupDayOfWeek === null) {
-      return NextResponse.json({ code: 'INVALID_MAKEUP_DATE', error: 'วันที่ชดเชยไม่ถูกต้อง' }, { status: 400 })
-    }
-
-    const { data: originalSession, error: originalError } = await supabaseAdmin
-      .from('booking_sessions')
-      .select('id, booking_id, date, end_time, status, child_id, bookings(user_id, course_type_id, course_types(name))')
-      .eq('id', originalSessionId)
-      .single<OriginalSessionRow>()
-
-    if (originalError) {
-      return NextResponse.json({ error: originalError.message }, { status: 500 })
-    }
-
-    if (originalSession?.bookings?.course_types?.name === 'kids_group') {
-      const policy = await loadTask10Policy(supabaseAdmin)
-      // effectiveAt persists during pause: never fall back to the former per-child
-      // POST after activation, including when the new gate is paused.
-      if (policy.effectiveAt) {
-        if (originalSession.booking_id !== bookingId) return NextResponse.json({ error: 'ข้อมูลการจองต้นทางไม่ตรงกัน' }, { status: 409 })
-        const { data: matches, error: matchError } = await supabaseAdmin.from('schedule_templates').select('id')
-          .eq('branch_id', branchId).eq('course_type_id', originalSession.bookings.course_type_id!)
-          .eq('day_of_week', makeupDayOfWeek).eq('start_time', startTime).eq('end_time', endTime).eq('is_active', true)
-        if (matchError) throw new Error(matchError.message)
-        if (matches?.length !== 1) return NextResponse.json({ error: 'รอบเรียนประจำขาดหรือกำกวม' }, { status: 409 })
-        const result = await consumeKidsFamilyMakeup(supabaseAdmin, access.ctx.user.id, {
-          ...body, schedule_template_id: matches[0].id,
-          attending_child_id: body.attending_child_id || originalSession.child_id,
-        })
-        return NextResponse.json(result)
-      }
-    }
-
-    if (!originalSession || (originalSession.status !== 'absent' && !(originalSession.status === 'scheduled' && isPastSession(originalSession.date, originalSession.end_time)))) {
-      return NextResponse.json({ error: 'สร้างวันชดเชยได้เฉพาะรอบที่ขาดเรียนหรือเลยวันเรียนแล้วเท่านั้น' }, { status: 400 })
-    }
-
-    if (originalSession.booking_id !== bookingId || !originalSession.bookings?.course_type_id) {
-      return NextResponse.json({ error: 'ข้อมูลการจองต้นทางไม่ตรงกับรอบเรียน' }, { status: 400 })
-    }
-
-    const bounds = getMonthBounds(originalSession.date)
-
-    if (Date.now() >= bounds.followingStart.getTime()) {
-      return NextResponse.json({ error: 'หมดเขตชดเชยแล้ว ต้องชดเชยภายในเดือนถัดไปเท่านั้น' }, { status: 400 })
-    }
-
-    if (!isInNextCalendarMonth(originalSession.date, makeupDate)) {
-      return NextResponse.json({ error: 'วันชดเชยต้องอยู่ในเดือนถัดไปของเดือนเรียนเดิมเท่านั้น' }, { status: 400 })
-    }
-
-    if (!isFutureMakeupTarget(makeupDate, startTime)) {
-      return NextResponse.json({ error: 'วันและเวลาชดเชยต้องเป็นรอบที่ยังไม่เริ่ม' }, { status: 400 })
-    }
-
-    const { data: targetTemplates, error: templateError } = await supabaseAdmin
-      .from('schedule_templates')
-      .select('id, start_time, end_time')
-      .eq('branch_id', branchId)
-      .eq('course_type_id', originalSession.bookings.course_type_id)
-      .eq('day_of_week', makeupDayOfWeek)
-      .eq('is_active', true)
-
-    if (templateError) return NextResponse.json({ error: templateError.message }, { status: 500 })
-    const normalizedStart = normalizeSlotTime(startTime)
-    const normalizedEnd = normalizeSlotTime(endTime)
-    const targetTemplate = (targetTemplates || []).find((template) => (
-      normalizeSlotTime(template.start_time) <= normalizedStart
-      && normalizeSlotTime(template.end_time) >= normalizedEnd
-    ))
-    if (!targetTemplate) {
-      return NextResponse.json({ error: 'รอบชดเชยไม่ตรงกับรอบเรียนประจำที่เปิดใช้งาน' }, { status: 400 })
-    }
-
-    const scheduleSlotId = await ensureScheduleSlot({
-      supabase: supabaseAdmin,
-      templateId: targetTemplate.id,
-      branchId,
-      courseTypeId: originalSession.bookings.course_type_id,
-      date: makeupDate,
-      startTime,
-      endTime,
-    })
-
-    let conflictQuery = supabaseAdmin
-      .from('booking_sessions')
-      .select('id, status, bookings!inner(user_id)')
-      .eq('date', makeupDate)
-      .lt('start_time', normalizedEnd)
-      .gt('end_time', normalizedStart)
-      .eq('bookings.user_id', originalSession.bookings.user_id || '')
-      .neq('status', 'rescheduled')
-      .neq('status', 'walleted')
-    conflictQuery = originalSession.child_id
-      ? conflictQuery.eq('child_id', originalSession.child_id)
-      : conflictQuery.is('child_id', null)
-    const { data: conflicts, error: conflictError } = await conflictQuery
-    if (conflictError) return NextResponse.json({ error: conflictError.message }, { status: 500 })
-    if ((conflicts || []).length > 0) {
-      return NextResponse.json({ error: 'ผู้เรียนคนนี้มีรอบเรียนในเวลาที่ซ้ำหรือซ้อนกันแล้ว' }, { status: 409 })
-    }
-
-    let sourceQuery = supabaseAdmin
-      .from('booking_sessions')
-      .select('id, status, bookings!inner(user_id)')
-      .gte('date', bounds.start)
-      .lt('date', bounds.nextStart)
-
-    if (originalSession.child_id) {
-      sourceQuery = sourceQuery.eq('child_id', originalSession.child_id)
-    } else {
-      sourceQuery = sourceQuery.is('child_id', null).eq('bookings.user_id', originalSession.bookings?.user_id || '')
-    }
-
-    const { data: sourceSessions, error: sourceError } = await sourceQuery as unknown as {
-      data: SourceSessionRow[] | null
-      error: { message: string } | null
-    }
-
-    if (sourceError) {
-      return NextResponse.json({ error: sourceError.message }, { status: 500 })
-    }
-
-    const sourceIds = (sourceSessions || []).map((session) => session.id)
-    if (sourceIds.length === 0) {
-      return NextResponse.json({ error: 'ไม่พบรายการเรียนในเดือนเดิมสำหรับผู้เรียนนี้' }, { status: 400 })
-    }
-
-    const { data: existingMakeup, error: existingError } = await supabaseAdmin
-      .from('booking_sessions')
-      .select('id')
-      .in('rescheduled_from_id', sourceIds)
-      .eq('is_makeup', true)
-      .limit(1)
-
-    if (existingError) {
-      return NextResponse.json({ error: existingError.message }, { status: 500 })
-    }
-
-    if (existingMakeup && existingMakeup.length > 0) {
-      return NextResponse.json({ error: 'ผู้เรียนนี้ใช้สิทธิ์ชดเชยของเดือนนี้แล้ว' }, { status: 400 })
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('booking_sessions')
-      .insert({
-        booking_id: bookingId,
-        schedule_slot_id: scheduleSlotId,
-        date: makeupDate,
-        start_time: startTime,
-        end_time: endTime,
-        branch_id: branchId,
-        child_id: originalSession.child_id,
-        status: 'scheduled',
-        is_makeup: true,
-        rescheduled_from_id: originalSessionId,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    if (originalSession.bookings?.user_id) {
-      await notifyUserOnce(supabaseAdmin as unknown as NotificationSupabase, {
-        user_id: originalSession.bookings.user_id,
-        title: 'ได้รับวันชดเชยแล้ว',
-        message: `Admin จัดวันชดเชยให้วันที่ ${makeupDate} เวลา ${startTime}-${endTime} เรียบร้อยแล้ว`,
-        type: 'schedule',
-        link_url: '/dashboard/schedule',
-      }).catch(() => null)
-    }
-
-    await supabaseAdmin
-      .from('booking_sessions')
-      .update({ status: 'absent' })
-      .in('id', sourceIds)
-      .eq('status', 'scheduled')
-
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json(await transitionLessonSource(getServiceRoleClient(), access.ctx.user.id, 'makeup', body.original_session_id, {
+      bookingId: body.booking_id, targetDate: body.makeup_date, startTime: body.start_time, endTime: body.end_time,
+      branchId: body.branch_id, templateId: body.schedule_template_id || null, attendingChildId: body.attending_child_id || null,
+      requestId: body.request_id || null, ipAddress: req.headers.get('x-forwarded-for'),
+    }))
   } catch (error) {
-    return NextResponse.json({ error: getErrorMessage(error), code: error instanceof Task10Error ? error.code : undefined },
-      { status: error instanceof Task10Error ? error.status : 500 })
+    return NextResponse.json({ error: getErrorMessage(error), code: error instanceof LessonSourceTransitionError ? error.code : undefined },
+      { status: error instanceof LessonSourceTransitionError ? error.status : 500 })
   }
 }
 
 export async function PATCH(req: NextRequest) {
+  let attendanceRecorded = false
   const access = await requireAdminMenuAccess('makeup')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
 
@@ -783,6 +529,12 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'กรุณาระบุเหตุผลเพื่อเก็บ audit log' }, { status: 400 })
     }
 
+    if (action === 'return_entitlement') {
+      return NextResponse.json(await transitionLessonSource(supabaseAdmin, access.ctx.user.id, 'return_entitlement', sessionId, {
+        reason, ipAddress: req.headers.get('x-forwarded-for'),
+      }))
+    }
+
     if (action === 'mark_attendance' && !attendanceStatus) {
       return NextResponse.json({ error: 'กรุณาเลือกสถานะ มาเรียน/สาย/ขาดเรียน' }, { status: 400 })
     }
@@ -811,9 +563,7 @@ export async function PATCH(req: NextRequest) {
         ? 'บันทึกเช็คชื่อย้อนหลัง'
         : action === 'close_review'
           ? 'ปิดเคส'
-          : action === 'return_entitlement'
-            ? 'คืนสิทธิ์'
-            : action === 'request_coach_review'
+          : action === 'request_coach_review'
               ? 'ส่งให้โค้ชตรวจสอบ'
               : action === 'request_coach_evidence'
                 ? 'ขอหลักฐานโค้ชย้อนหลัง'
@@ -950,85 +700,6 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    if (action === 'return_entitlement') {
-      if (session.bookings?.course_types?.name === 'kids_group') {
-        return NextResponse.json(await callTask10(supabaseAdmin, 'task10_return_kids_entitlement_v1', {
-          p_actor_id: access.ctx.user.id, p_session_id: session.id, p_reason: reason,
-        }))
-      }
-      if (!session.bookings?.user_id || !session.bookings?.course_type_id || !session.branch_id) {
-        return NextResponse.json({ error: 'ข้อมูล booking ไม่ครบสำหรับคืนสิทธิ์เข้ากระเป๋า' }, { status: 400 })
-      }
-
-      const { data: existingCredits, error: existingCreditError } = await supabaseAdmin
-        .from('lesson_wallet_credits')
-        .select('id, status')
-        .eq('original_session_id', session.id)
-        .neq('status', 'expired')
-        .limit(1) as unknown as { data: { id: string; status: string }[] | null; error: { message: string } | null }
-
-      if (existingCreditError) {
-        return NextResponse.json({ error: existingCreditError.message }, { status: 500 })
-      }
-
-      if ((existingCredits || []).length === 0) {
-        const { error: creditError } = await supabaseAdmin
-          .from('lesson_wallet_credits')
-          .insert({
-            user_id: session.bookings.user_id,
-            booking_id: session.booking_id,
-            original_session_id: session.id,
-            child_id: session.child_id,
-            branch_id: session.branch_id,
-            course_type_id: session.bookings.course_type_id,
-            original_schedule_slot_id: session.schedule_slot_id,
-            original_date: session.date,
-            original_start_time: session.start_time || '00:00:00',
-            original_end_time: session.end_time || '00:00:00',
-            status: 'active',
-            expires_at: getMonthEndIso(session.date),
-            notes: `Returned by Admin attendance-gap review: ${reason}`,
-          })
-
-        if (creditError) {
-          return NextResponse.json({ error: creditError.message }, { status: 500 })
-        }
-      }
-
-      const { error: walletError } = await supabaseAdmin
-        .from('booking_sessions')
-        .update({ status: 'walleted' })
-        .eq('id', sessionId)
-
-      if (walletError) {
-        return NextResponse.json({ error: walletError.message }, { status: 500 })
-      }
-
-      await logActivity({
-        userId: access.ctx.user.id,
-        action: 'attendance_gap_return_entitlement',
-        entityType: 'booking_sessions',
-        entityId: session.id,
-        details: {
-          reason,
-          scheduleSlotId: session.schedule_slot_id,
-          hadAssignedCoach: hasAssignedCoach,
-          existingCreditId: existingCredits?.[0]?.id || null,
-        },
-        ipAddress: req.headers.get('x-forwarded-for'),
-      })
-
-      await notifyUser(supabaseAdmin as unknown as NotificationSupabase, {
-        user_id: session.bookings.user_id,
-        title: 'คืนสิทธิ์วันเรียนเข้ากระเป๋าแล้ว',
-        message: `Admin คืนสิทธิ์รอบ ${session.date} ${session.start_time || ''}-${session.end_time || ''} เข้ากระเป๋าวันเรียนแล้ว เหตุผล: ${reason}`,
-        type: 'schedule',
-        link_url: '/dashboard/lesson-wallet',
-      }).catch(() => null)
-
-      return NextResponse.json({ success: true })
-    }
-
     const finalAttendanceStatus = action === 'confirm_absent' ? 'absent' : attendanceStatus
     if (!finalAttendanceStatus) {
       return NextResponse.json({ error: 'กรุณาเลือกสถานะเช็คชื่อ' }, { status: 400 })
@@ -1050,12 +721,18 @@ export async function PATCH(req: NextRequest) {
       attendanceCoachId = access.ctx.user.id
     }
 
-    await upsertRetrospectiveAttendance({
-      supabaseAdmin,
-      session,
-      status: finalAttendanceStatus,
-      coachId: attendanceCoachId,
-    })
+    try {
+      await upsertRetrospectiveAttendance({
+        supabaseAdmin,
+        session,
+        status: finalAttendanceStatus,
+        coachId: attendanceCoachId,
+      })
+      attendanceRecorded = true
+    } catch (error) {
+      const failure = attendanceWriteFailure(error)
+      return NextResponse.json(failure.body, { status: failure.status })
+    }
 
     let sessionStatus: 'absent' | 'completed'
     try {
@@ -1066,7 +743,8 @@ export async function PATCH(req: NextRequest) {
       })
       sessionStatus = syncResult.sessionStatus
     } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'Sync booking session status failed' }, { status: 500 })
+      const failure = attendanceWriteFailure(error, true)
+      return NextResponse.json(failure.body, { status: failure.status })
     }
 
     await logActivity({
@@ -1104,6 +782,10 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, warnings: assignmentWarning })
   } catch (error) {
-    return NextResponse.json({ error: getErrorMessage(error), ...(error instanceof Task10Error ? { code: error.code } : {}) }, { status: error instanceof Task10Error ? error.status : 500 })
+    if (attendanceRecorded) {
+      const failure = attendanceWriteFailure(error, true)
+      return NextResponse.json(failure.body, { status: failure.status })
+    }
+    return NextResponse.json({ error: getErrorMessage(error), ...(error instanceof LessonSourceTransitionError ? { code: error.code } : {}) }, { status: error instanceof LessonSourceTransitionError ? error.status : 500 })
   }
 }
