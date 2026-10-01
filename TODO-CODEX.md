@@ -6,6 +6,12 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
+- **Set1 local Dev artifact accepted by Owner; DEVELOPING release preparation; TASK DONE No.** No duplicate personal six-step local test required; manual Owner UAT not claimed. PROJECT_STATE.md owns actual Source/Production/Git state.
+- **Next:** Owner approves the prepared release contract before any Production execution. Prove isolated live-based composition, consolidated upgrade, bounded writer fence/drain and compatible recovery before hosted acceptance/Promotion. No new business behavior, Task2, historical repair or protected-domain change.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [release preparation](docs/lesson-source-admission-v2-20260930.md#owner-local-dev-acceptance-and-release-preparation--2026-10-01). Private RELEASE-PLAN.md: C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/release-plan-20261001T080046Z.
+
+## Historical — Minimal correction local handoff
+
 - **Set1 minimal correction — READY FOR OWNER UAT; Dev6/6PASS; Owner UAT pending; TASK DONE No.** Four proven changes in function1; exact eight paths migration1/test1/guard2/Docs4, app/API/UI/config0. Tested Source **841b527** committed/pushed; Docs-only closeout successor keeps the same local artifact.
 - Final runtime91/91, upgraded retrospective38/38, fresh47/upgrade46->47/history/preservation, TSC/lint/mojibake/build/protected checks passed. Original screenshots and backend reconciliation cover all six flows. No Production operation or historical repair; main/pending work/old targets retained.
 - **Next:** Owner follows private OWNER-UAT.md at http://makeup.localhost:3132 with separate SA origin127.0.0.1:3132, returns PASS/FAIL; Developer reconciles actual effects. No automatic Production/Task2 work.

@@ -2,11 +2,35 @@
 
 Last updated: 2026-10-01 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — Set1 minimal correction / READY FOR OWNER UAT
+## Current State — Set1 local Dev acceptance / release plan pending approval
+
+Owner accepted the existing local Dev6/6 evidence on2026-10-01 and requested the next plan. **Local Dev artifact accepted; personal/manual Owner UAT not performed; DEVELOPING release preparation; TASK DONE No.** No repeat local six-step Owner test is required. The acceptance does not certify a new hosted release artifact or authorize Production writes.
+
+### Current Project Matrix
+
+|Field|Verified state|
+|---|---|
+|Active task / status / next|Set1 Production release proposal prepared; DEVELOPING; next Owner approves the explicit release contract before execution. No Task2 or additional business fix.|
+|Actor / included|Existing User/parent, Coach, Admin/SA; Reschedule, Wallet Store/Redeem, Return/Makeup and interacting Attendance. All prices/formulas/Finance/permissions/identity/quota/history/Task10 controls and pending work protected.|
+|Source / Git|Tested functional Source841b527200607832afa42c3b25b6d4241e2c66d6 complete/committed/pushed; branch codex/lesson-source-atomic. Before this Docs4 closeout local/remote HEAD3d791a50e409649422c0c0ace634edbd11d82d2a, ahead/behind0/0. Published closeout is a Docs-only successor; exact final HEAD/readback in private documentation-publication.json. AGENTS pre-existing unstaged remains excluded.|
+|Tests / local artifact|Runtime91/91, upgraded retrospective38/38 and DevUI/backend6/6 with images retained; TSC/lint/mojibake/build/protected checks passed. BuildID l_QsYrb4b6sMOYCvkI3T1; compiled82d1010baa7c66228c8f9cb72297f5b9df5c963907f39b511cc4610f1e4d4a3b. No functional change/rebuild this turn.|
+|Owner acceptance / UAT|Existing exact local Dev artifact accepted by Owner. Personal/manual Owner UAT not performed, no repeated six-step local test requested. New hosted artifact acceptance still requires its own exact binding/authorization.|
+|Live released Source / artifact|Read-only www.newathleteschool.com deployment resolution confirms READY Production dpl_7XeXzXzHq8DYQewxSWqnv5oqfkiu / d4aff85b5cdff468a101464106b5b323c97a26c6. Finance4 protected files match tested Set1 bytes. Other three aliases require refreshed execution preflight.|
+|Migration Source / applied|Set1 five published files in tested Source; isolated fresh47/upgrade46->47 evidence retained. Production read-only42/latest20260927090306, Set1 journal/core/guards absent; five predecessor function signatures and ACL confirmed. No Production migration applied this turn.|
+|Set1 deployed / enabled / allowlisted / active|HostedDeployed No; Enabled No; Allowlisted No; ProductionActive No; Promotion No; hosted/Production UAT not performed. No new staged Production artifact. Existing Finance remains the released behavior.|
+|Controls / cron / environment|No write/change. Existing Task10 activation/control/cron values retained; no Pause/Resume or new flag. Branch-local automatic deployment guard retained.|
+|Production/data/customer/financial|Read-only catalog/project/deployment audit only. Controlled Production business-write UAT not performed; schema/data writes0; data repairedNo; no customer/financial change caused by preparation. Normal live traffic is not a zero-delta database assertion.|
+|Release delta / preservation|Proposed live-based composite: functional8/migration5/test-tool10/config1/Docs4. Latest four-change correction alone is insufficient because Production lacks original Set1. Divergent branch lacks Finance report; retain it on live-based composition. No application/config/SQL/test changes now. Main checkout/worktrees/old targets/pending work preserved.|
+|Blocker / remaining / recovery|Production-specific fence/drain, mixed-version42->47 rehearsal, actual backup/PITR/measured recovery and compatible recovery artifact remain unproved; new composite SHA/hosted artifact unknown. Old Finance deployment is identified, not a proven schema-compatible rollback after Set1. No Production execution until gates and explicit contract authorization.|
+|Owner scope / parking lot|This turn authorized preparation+read-only audit+Docs4 publication only. Proposed contract includes isolated rehearsal, exact staged Production, five named migrations and exact Promotion; requires explicit Owner authorization, including any delegated hosted acceptance. Task2/parking-lot not authorized.|
+
+Private proposal/evidence: C:/Users/aacha/AppData/Local/Temp/lesson-source-makeup-clock-20261001/release-plan-20261001T080046Z/RELEASE-PLAN.md. Read-only snapshot and publication evidence alongside. Details: [Owner acceptance and release preparation](docs/lesson-source-admission-v2-20260930.md#owner-local-dev-acceptance-and-release-preparation--2026-10-01).
+
+## Historical — Set1 minimal correction / local review handoff
 
 Owner-approved four proven corrections are implemented in one existing DB function, committed/pushed as **841b527200607832afa42c3b25b6d4241e2c66d6**. **READY FOR OWNER UAT; Dev6/6PASS; Owner UAT pending; TASK DONE No.** Local isolated artifact only. App/API/UI/config unchanged; no Production action. Documentation-only publication follows tested Source.
 
-### Current Project Matrix
+### Historical Minimal Correction Matrix
 
 | Field | Current verified state |
 | --- | --- |
