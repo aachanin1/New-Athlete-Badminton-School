@@ -2,14 +2,37 @@
 
 Last updated: 2026-10-01 (Asia/Bangkok; evidence timestamps UTC)
 
-## Current State — ชุดที่ 1 / DEVELOPING — HARD STOP after Dev UAT
+## Current State — Return expiry corrected / DEVELOPING — HARD STOP
+
+Return expiry correction is committed/pushed and verified on a new isolated artifact. Required integrated Dev UAT found an inherited non-Kids Makeup side effect. **Dev final3PASS/3FAIL; NOT READY FOR OWNER UAT; Owner UAT pending; TASK DONE No.** No unrelated Source correction or Production action.
+
+### Current Project Matrix
+
+| Field | Current verified state |
+| --- | --- |
+| Scope / actor | Existing User/parent/Admin/SA; first Adult/Private Return expiry only. One timestamp cast in1existing DB function; app/API/config0. Existing/redeemed expiry, Kids, finance/pricing/roles/locks/history protected. |
+| Source / Git | 8ba61517e7c97c638a8d76bfa2cf3e22d56b310f, codex/lesson-source-atomic, committed/pushed/remote verified. Docs4-only safe closeout successor; tested application/migration Source unchanged. |
+| Paths / dependencies |9allowlisted paths: migration1,test/tool4,Docs4. Exact guard pair and valid current-month regression fixtures are recorded direct technical dependencies; every business assertion retained. |
+| Artifact |Local Production-mode BuildID scXuhPxo4AuTkVots9MMN; tree cc0c2430272353d7b8bf2ca1c77748557a104abb; output5e8f9df656d0d456307f0146af7d3f3d784afcc025e7a2adee512edb8c6419eb;513inputs/721outputs integrity verified. No Vercel artifact/rebuild after Source publication. |
+| Technical checks |Runtime/UI81/81,retrospective38/38,Wallet45,assignment39,Finance17,target23,TSC/lint/mojibake/build passed. Independent calendar/timezone48RPC cases and actual API/replay/inheritance/boundary passed. Narrow technical passes do not certify integrated UAT. |
+| Dev UAT / expiry |All6steps executed; final3PASS/3FAIL. New Adult/Family Return exact31Oct2026 23:59:59.999 Bangkok PASS. Makeup then changes unrelated future Reschedule/redeemed self sessions to absent; steps1/2final and3non-interference FAIL. Steps4/5/6PASS. |
+| Blocker / attribution |Existing non-Kids monthly Makeup status sweep is unchanged in v1/v2/v3. Exact Makeup timestamp matches both future-row changes, with no exact Attendance. No repair/adjacent fix; Hard Stop under material-root-cause/protected-flow scope rule. |
+| Isolated schema / data |NEW owned fresh LessonSourceExpiry20261001/API64801/DB64802 and upgrade LessonSourceExpiryUpgrade20261001/API64901/DB64902;fresh46/upgrade45->46 preserve history/replay/ACL/RLS/policies. Old targets preserved;0fault functions/0idle transactions. |
+| Finance / controls |All Dev checkpoints financialHash fcb2fe294359cf9aff904d3e56d55a38 and bookings/controls unchanged. SQL/UI Oct374500/year377000/Nov2500,costs0 synthetic. Finance4released files retained. No Owner fixture preparation after stop. |
+| Preservation |9main/Finance/AGENTS hashes and3published migrations frozen; pre-existing AGENTS unstaged; app src/branch deploy guard unchanged; old failures/evidence/drafts/databases retained. |
+| Owner / Production states |Owner UAT pending/not started; READY No. Set1 deployed/enabled/allowlisted/Production activeNo; PromotionNo; post-Promotion checks n/a. No Production query/deploy/schema/data/env/controls/cron/permission/allowlist operation, real-user writes or historical repair. |
+| Evidence / next |C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/dev-uat/DEV-UAT.md; originals+FAIL reconciliation/attribution. http://expiry.localhost:3131 for read-only review. New exact-source-only Makeup correction scope recommended before Owner UAT; no automatic fix/Task2/Production action. |
+
+Details: [Return expiry correction and new Hard Stop](docs/lesson-source-admission-v2-20260930.md#return-expiry-correction--2026-10-01--hard-stop).
+
+## Historical — 2026-09-30 Dev UAT expiry HARD STOP
 
 Owner requested step-by-step Developer UI UAT with screenshots. All six steps were
 executed on the exact existing local artifact and owned disposable: **5 PASS / 1 FAIL**.
 Return expiry violates the protected Bangkok month-end rule. **NOT READY FOR OWNER
 UAT; full UAT FAIL; TASK DONE No.** No Source correction or Production action in this round.
 
-### Current Project Matrix
+### Historical Dev UAT Expiry Matrix
 
 | Field | Current verified state |
 | --- | --- |

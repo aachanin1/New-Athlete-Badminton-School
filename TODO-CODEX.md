@@ -6,12 +6,11 @@ PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **ชุดที่1 — DEVELOPING / HARD STOP, NOT READY FOR OWNER UAT; TASK DONE No.** Developer six-step UI UAT completed5PASS/1FAIL; manual Owner UAT pending. [Current matrix](PROJECT_STATE.md#current-project-matrix).
-- **Blocker:** Return expiry14hours past Bangkok month-end (1Oct13:59 instead of30Sep23:59). Confirmed SQL implicit time-type conversion in Set1 v1/v2; no expiry fix/credit repair made. Unit atomicity and Makeup passed; full step3 FAIL.
-- Reschedule, whole-Family Store/Redeem, two-tab same-source, independent Attendance/Redeem and Finance month/year/reload passed with exact DB reconciliation and original screenshots. Finance/financial rows/hash and controls unchanged.
-- Source/build remains f6dc2c4 / OivHfQVq4WVKnWXD3GZyF at local3131, owned disposable64601 only; no rebuild. Prior76/38 tests passed narrower coverage and missed independent expected expiry assertion; no full policy PASS claim.
-- **Next recommendation:** obtain a new exact forward-only Return-expiry correction scope (new migration, month-end/timezone tests, protected regression and new artifact/retest). No automatic correction, published migration rewrite, historical-credit repair, Task2 or Production operation. UAT fixtures consumed; preserve evidence, do not extend/revive/reset them.
-- Only Docs4 updated/published for this UAT closeout. Main/Finance/AGENTS pending work preserved; branch deploy guard retained. [Detailed report](docs/lesson-source-admission-v2-20260930.md#dev-assisted-uat--2026-09-30--hard-stop); [dated evidence](DEVELOPMENT_TODO.md#lesson-source-dev-uat-hard-stop-2026-09-30). Private images/report: C:/Users/aacha/AppData/Local/Temp/lesson-source-resume-20260930/dev-uat-20260930-1625/DEV-UAT.md.
+- **Return expiry corrected; DEVELOPING / HARD STOP — NOT READY FOR OWNER UAT; TASK DONE No.** Source 8ba61517e7c97c638a8d76bfa2cf3e22d56b310f committed/pushed and exact local artifact verified. New Adult/Family expiry31Oct23:59:59.999 Bangkok PASS.
+- Technical81runtime/UI+38retrospective and protected/static/build checks passed. Integrated Dev UAT final3PASS/3FAIL: unchanged non-Kids Makeup monthly status sweep made future Reschedule/redeemed self rows absent without Attendance; steps1/2/3 final invalid. No unrelated fix or repair.
+- Finance/controls/identity/history preserved; NEW disposables64801/64901 only; old targets/pending work/3published migrations retained. Source migration1,test/tool4,Docs4; app/config0.
+- **Next:** Owner reviews a new exact-source-only non-Kids Makeup status correction plan. Preserve monthly quota and financial/identity/history rules; new artifact/full six-step retest required. No automatic correction, Production rollout or Task2. Owner UAT pending; new Owner fixtures not prepared after stop.
+- [Current matrix](PROJECT_STATE.md#current-project-matrix); [full correction report](docs/lesson-source-admission-v2-20260930.md#return-expiry-correction--2026-10-01--hard-stop); [dated evidence](DEVELOPMENT_TODO.md#lesson-source-return-expiry-20261001). Private original screenshots and failed reconciliation: C:/Users/aacha/AppData/Local/Temp/lesson-source-return-expiry-20261001/dev-uat/DEV-UAT.md.
 
 ## Preserved prior work — Historical
 
