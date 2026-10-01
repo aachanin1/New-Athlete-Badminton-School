@@ -1395,7 +1395,11 @@ test.describe('Lesson source attendance admission', () => {
     const courseId = localSql(`SELECT id FROM course_types WHERE name='${course}';`) || randomUUID()
     const children = course === 'private' ? [null, randomUUID(), randomUUID()] : course === 'kids_group' ? [randomUUID()] : [null]
     const ids = children.map(()=>randomUUID())
-    const date = localSql(`SELECT ${future ? "(date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 9 days')::date" : "((clock_timestamp() AT TIME ZONE 'Asia/Bangkok')::date-1)"}::text;`)
+    // A valid Return source must remain in the current Bangkok month. Yesterday
+    // is already expired on day1; use today's already-ended first hour instead.
+    const date = localSql(`SELECT ${future ? "(date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')+interval '1 month 9 days')::date" : "greatest((clock_timestamp() AT TIME ZONE 'Asia/Bangkok')::date-1,date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Bangkok')::date)"}::text;`)
+    const firstDay = !future && localSql("SELECT extract(day FROM clock_timestamp() AT TIME ZONE 'Asia/Bangkok')=1;") === 't'
+    const start = firstDay ? '00:00' : '10:00', end = firstDay ? '01:00' : '11:00'
     // Synthetic pre-cutover rights, using the same isolation as seedTask10Family.
     // Restore the exact policy before commit; every API assertion uses the guards.
     localSql(`BEGIN; SELECT pg_advisory_xact_lock(10,1);
@@ -1408,11 +1412,11 @@ test.describe('Lesson source attendance admission', () => {
       INSERT INTO bookings(id,user_id,learner_type,branch_id,course_type_id,month,year,total_sessions,total_price,status)
       VALUES('${booking}','${owner}','${course==='kids_group'?'child':'self'}','${branch}','${courseId}',extract(month FROM date '${date}'),extract(year FROM date '${date}'),1,500,'verified');
       INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
-      VALUES('${template}','${branch}','${courseId}',extract(dow FROM date '${date}'),'10:00','11:00',true);
+      VALUES('${template}','${branch}','${courseId}',extract(dow FROM date '${date}'),'${start}','${end}',true);
       INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,max_students,current_students,status)
-      VALUES('${slot}','${template}','${branch}','${courseId}','${date}','10:00','11:00',1,${ids.length},'open');
+      VALUES('${slot}','${template}','${branch}','${courseId}','${date}','${start}','${end}',1,${ids.length},'open');
       ${ids.map((id,i)=>`INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup)
-      VALUES('${id}','${booking}','${slot}','${date}','10:00','11:00','${branch}',${children[i]?`'${children[i]}'`:'NULL'},'scheduled',false);`).join('\n')}
+      VALUES('${id}','${booking}','${slot}','${date}','${start}','${end}','${branch}',${children[i]?`'${children[i]}'`:'NULL'},'scheduled',false);`).join('\n')}
       UPDATE task10_policy_activation a SET state=p.state,effective_at=p.effective_at,pricing_enabled=p.pricing_enabled,makeup_enabled=p.makeup_enabled,expiry_enabled=p.expiry_enabled FROM lesson_source_fixture_policy p;
       DO $fixture$ BEGIN IF (SELECT to_jsonb(a) FROM task10_policy_activation a) IS DISTINCT FROM (SELECT to_jsonb(p) FROM lesson_source_fixture_policy p) THEN RAISE EXCEPTION 'FIXTURE_POLICY_DRIFT'; END IF; END $fixture$;
       COMMIT;`)

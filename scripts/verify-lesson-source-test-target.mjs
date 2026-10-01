@@ -4,19 +4,24 @@ import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { resolve, relative, isAbsolute } from 'node:path'
 
-// This guard authorizes only the two newly owned disposable targets of this
-// approved round. A local hostname alone is never evidence of ownership.
+// Each approved round has an exact run-bound pair of newly owned disposables.
+// A local hostname alone is never evidence of ownership.
 export function validateLessonSourceTarget(run, target, containers, marker) {
   assert.equal(run.version, 1, 'Missing approved run manifest')
-  assert.match(run.runId, /^lesson-source-resume-20260930-[a-f0-9-]{36}$/)
-  assert.ok(['LessonSourceResume20260930', 'LessonSourceUpgrade20260930'].includes(target.project), 'Target outside approved round')
+  const contracts = [
+    { id: /^lesson-source-resume-20260930-[a-f0-9-]{36}$/, ports: { LessonSourceResume20260930: '64601', LessonSourceUpgrade20260930: '64701' } },
+    { id: /^lesson-source-return-expiry-20261001-[a-f0-9-]{36}$/, ports: { LessonSourceExpiry20261001: '64801', LessonSourceExpiryUpgrade20261001: '64901' } },
+  ]
+  const contract = contracts.find(item => item.id.test(run.runId))
+  assert.ok(contract, 'Run outside approved rounds')
+  assert.ok(Object.hasOwn(contract.ports, target.project), 'Target outside approved round')
   assert.equal(run.target.project, target.project, 'CLI/API target mismatch')
   assert.equal(resolve(run.target.workdir), resolve(target.workdir), 'CLI workdir mismatch')
   assert.equal(run.target.api, target.api, 'API mismatch')
   const url = new URL(target.api)
   assert.equal(url.protocol, 'http:')
   assert.equal(url.hostname, '127.0.0.1')
-  const expected = target.project === 'LessonSourceResume20260930' ? '64601' : '64701'
+  const expected = contract.ports[target.project]
   assert.equal(url.port, expected, 'Unexpected API port')
   assert.equal(String(target.dbPort), String(Number(expected) + 1), 'Unexpected DB port')
   const within = (parent, child) => {

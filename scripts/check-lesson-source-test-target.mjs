@@ -37,4 +37,37 @@ const previous = process.env.LESSON_SOURCE_RUN_MANIFEST
 delete process.env.LESSON_SOURCE_RUN_MANIFEST
 assert.throws(() => lessonSourceRun(), /manifest is required/)
 if (previous) process.env.LESSON_SOURCE_RUN_MANIFEST = previous
-console.log(`Target guard PASS: valid ownership + ${rejected + 1} rejection cases; no network or database writes`)
+let addedValid = 0
+for (const [project, port] of [['LessonSourceExpiry20261001', '64801'], ['LessonSourceExpiryUpgrade20261001', '64901']]) {
+  const data = structuredClone({ run, target, containers, marker })
+  const oldProject = data.target.project
+  data.target.project = project
+  data.target.api = `http://127.0.0.1:${port}`
+  data.target.dbPort = String(Number(port) + 1)
+  data.run.target = data.target
+  data.run.runId = 'lesson-source-return-expiry-20261001-11111111-1111-4111-8111-111111111111'
+  data.marker.project = project
+  for (const c of data.containers) {
+    c.Name = c.Name.replace(oldProject, project)
+    c.Config.Labels['com.supabase.cli.project'] = project
+    c.Config.Env = c.Config.Env.map(value => value.replaceAll(oldProject, project))
+    c.Mounts[0].Name = `supabase_db_${project}`
+    c.NetworkSettings.Networks = { [`supabase_network_${project}`]: {} }
+    c.NetworkSettings.Ports['5432/tcp'][0].HostPort = data.target.dbPort
+    c.NetworkSettings.Ports['8000/tcp'][0].HostPort = port
+  }
+  assert.equal(validateLessonSourceTarget(data.run, data.target, data.containers, data.marker), data.target)
+  addedValid++
+  for (const mutate of [
+    d => { d.run.runId = run.runId },
+    d => { d.run.runId = 'lesson-source-return-expiry-20261002-11111111-1111-4111-8111-111111111111' },
+    d => { d.containers[0].Mounts[0].Name = `supabase_db_${target.project}` },
+  ]) {
+    const bad = structuredClone(data)
+    mutate(bad)
+    assert.throws(() => validateLessonSourceTarget(bad.run, bad.target, bad.containers, bad.marker))
+    rejected++
+  }
+}
+reject(d => { d.run.runId = 'lesson-source-return-expiry-20261001-11111111-1111-4111-8111-111111111111' })
+console.log(`Target guard PASS: ${1 + addedValid} valid ownership cases + ${rejected + 1} rejection cases; no network or database writes`)

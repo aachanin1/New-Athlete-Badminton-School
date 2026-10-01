@@ -15,6 +15,33 @@ let actor: Account, coach: Account, owner: Account, adminApi: APIRequestContext
 const contexts: APIRequestContext[] = []
 const q = sqlLiteral
 const db = () => createLocalAdmin()
+const transitionSignature = () => localSql("SELECT md5(pg_get_functiondef('public.lesson_source_transition_v1(uuid,text,uuid,jsonb)'::regprocedure));")
+
+// Exercise the installed RPC with a controlled clock in a rolled-back transaction.
+// Only its clock read is replaced; production Source never acquires a test clock.
+function freezeReturnClock(instant: string) {
+  return `DO $clock_fixture$ DECLARE definition text; token text:='ELSE clock_timestamp() END'; BEGIN
+    definition:=pg_get_functiondef('public.lesson_source_transition_v1(uuid,text,uuid,jsonb)'::regprocedure);
+    IF (length(definition)-length(replace(definition,token,''))) / length(token)<>1 THEN
+      RAISE EXCEPTION 'Unexpected Return clock fixture boundary'; END IF;
+    EXECUTE replace(definition,token,${q(`ELSE ${q(instant)}::timestamptz END`)});
+  END $clock_fixture$;`
+}
+
+function moveReturnFixtureDate(f: Fixture, date: string) {
+  return `DO $fixture_guard$ BEGIN PERFORM set_config('lesson_source.write','authorized',true);
+    PERFORM set_config('task10.source_write','authorized',true); PERFORM set_config('task10.payment_write','authorized',true); END $fixture_guard$;
+    UPDATE bookings SET year=extract(year FROM date ${q(date)}),month=extract(month FROM date ${q(date)}) WHERE id=${q(f.booking)};
+    UPDATE schedule_templates SET day_of_week=extract(dow FROM date ${q(date)}) WHERE id=(SELECT template_id FROM schedule_slots WHERE id=${q(f.slot)});
+    UPDATE schedule_slots SET date=${q(date)} WHERE id=${q(f.slot)};
+    UPDATE booking_sessions SET date=${q(date)} WHERE booking_id=${q(f.booking)};`
+}
+
+const returnCreditState = (f: Fixture) => JSON.parse(localSql(`SELECT jsonb_build_object(
+  'credits',(SELECT jsonb_agg(to_jsonb(c) ORDER BY id) FROM lesson_wallet_credits c WHERE booking_id=${q(f.booking)}),
+  'members',(SELECT count(*) FROM lesson_wallet_credit_members m JOIN lesson_wallet_credits c ON c.id=m.credit_id WHERE c.booking_id=${q(f.booking)}),
+  'walleted',(SELECT count(*) FROM booking_sessions WHERE booking_id=${q(f.booking)} AND status='walleted'),
+  'operations',(SELECT count(*) FROM lesson_source_operations WHERE operation='return_entitlement' AND unit_id=ANY(ARRAY[${f.ids.map(q).join(',')}]::uuid[])));`))
 async function account(role: 'user' | 'super_admin' | 'coach', label = 'Set1 isolated') {
   const email = `set1-${randomUUID()}@example.com`
   const created = await db().auth.admin.createUser({ email, password, email_confirm: true })
@@ -56,7 +83,7 @@ function seed(family = false, future = false, parent = owner): Fixture {
   return { owner: parent, booking, branch, course, slot, ids, children, date }
 }
 function destination(f: Fixture, makeup = false, offset = 1) {
-  if (![1, 2, 3].includes(offset)) throw new Error('Unexpected synthetic destination offset')
+  if (![1, 2, 3, 7].includes(offset)) throw new Error('Unexpected synthetic destination offset')
   const targetDate = makeup ? localSql(`SELECT (date_trunc('month',date '${f.date}')+interval '1 month 3 days')::date;`) : localSql(`SELECT ('${f.date}'::date+${offset})::date;`)
   const template = randomUUID()
   localSql(`INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
@@ -97,18 +124,18 @@ test.afterAll(async ({ playwright, baseURL }) => {
   if (process.env.LESSON_SOURCE_RETAIN_FIXTURE) {
     // Only the final owned disposable run retains fresh, unused Owner UAT rights.
     const reschedule = seed(false, true), familyStore = seed(true, true), familyRedeem = seed(true, true)
-    const returned = seed(true), makeup = seed(), attendance = seed(false, false, await account('user', 'Set1 independent learner'))
+    const returned = seed(true), returnedAdult = seed(), makeup = seed(), attendance = seed(false, false, await account('user', 'Set1 independent learner'))
     const userApi = await api(owner, playwright, baseURL!)
     const response = await userApi.post('/api/lesson-wallet', { data: { action: 'store', sessionId: familyRedeem.ids[0] } })
     expect(response.status()).toBe(200)
     const stored = await response.json()
     // Independent target dates preserve cross-course overlap protection during UAT.
-    const targets = { reschedule: destination(reschedule), familyStore: destination(familyStore, false, 2), familyRedeem: destination(familyRedeem, false, 3), makeup: destination(makeup, true) }
+    const targets = { reschedule: destination(reschedule, false, 7), familyStore: destination(familyStore, false, 2), familyRedeem: destination(familyRedeem, false, 3), makeup: destination(makeup, true) }
     const uatCoach = await account('coach', 'Set1 UAT Coach')
     localSql(`INSERT INTO coach_assignments(coach_id,schedule_slot_id,assigned_by) VALUES('${uatCoach.id}','${attendance.slot}','${actor.id}');
       INSERT INTO coach_checkins(coach_id,schedule_slot_id,branch_id,photo_url,location_lat,location_lng) VALUES('${uatCoach.id}','${attendance.slot}','${attendance.branch}','http://127.0.0.1/synthetic-checkin.png',13,100);`)
-    for (const [name, fixture] of Object.entries({ reschedule, familyStore, familyRedeem, returned, makeup, attendance })) localSql(`UPDATE branches SET name=${q('Set1 UAT ' + name)} WHERE id='${fixture.branch}';`)
-    writeFileSync(resolve(process.env.LESSON_SOURCE_OUTPUT_DIR!, 'owner-uat.private.json'), JSON.stringify({ at: new Date().toISOString(), actor, owner, coach: uatCoach, password, fixtures: { reschedule, familyStore, familyRedeem, returned, makeup, attendance }, targets, familyRedeemCredit: stored, financialHash: financial() }, null, 2), { flag: 'wx' })
+    for (const [name, fixture] of Object.entries({ reschedule, familyStore, familyRedeem, returned, returnedAdult, makeup, attendance })) localSql(`UPDATE branches SET name=${q('Set1 UAT ' + name)} WHERE id='${fixture.branch}';`)
+    writeFileSync(resolve(process.env.LESSON_SOURCE_OUTPUT_DIR!, 'owner-uat.private.json'), JSON.stringify({ at: new Date().toISOString(), actor, owner, coach: uatCoach, password, fixtures: { reschedule, familyStore, familyRedeem, returned, returnedAdult, makeup, attendance }, targets, familyRedeemCredit: stored, financialHash: financial() }, null, 2), { flag: 'wx' })
   }
   for (const context of contexts) await context.dispose()
 })
@@ -295,4 +322,120 @@ test('Finance retained baseline: 690 exact Progressive bills reconcile and month
   expect(financial()).toBe(before)
   await info.attach('finance-retained-baseline', { body: JSON.stringify({ progressiveBills: hydrated.length, isolatedProgressiveRevenue: 345000, expectedMonthRevenue, expectedYearRevenue, costs, browserErrors: errors }), contentType: 'application/json' })
   await info.attach('finance-ui', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+})
+
+test('Return expiry actual API: new Adult and whole Family end at the Bangkok source-month boundary with exact replay', async ({}, info) => {
+  const evidence: unknown[] = []
+  for (const family of [false, true]) {
+    const f = seed(family), before = financial()
+    const [year, month] = f.date.split('-').map(Number)
+    // Independent JS Gregorian calendar oracle, never the SQL expression under test.
+    const expected = new Date(Date.UTC(year, month, 0, 16, 59, 59, 999)).toISOString()
+    const body = { action: 'return_entitlement', session_id: f.ids[0], reason: 'Return expiry actual API regression' }
+    const returned = await adminApi.patch('/api/admin/makeup', { data: body })
+    expect(returned.status()).toBe(200)
+    const first = await returned.json(), actual = returnCreditState(f)
+    evidence.push({ family, expected, actual, result: first })
+    await info.attach(`return-expiry-api-${family ? 'family' : 'adult'}`, { body: JSON.stringify(evidence), contentType: 'application/json' })
+    expect(actual.credits).toHaveLength(1)
+    expect(new Date(actual.credits[0].expires_at).toISOString()).toBe(expected)
+    expect(actual).toMatchObject({ members: family ? 3 : 1, walleted: family ? 3 : 1, operations: 1 })
+    const replay = await adminApi.patch('/api/admin/makeup', { data: body })
+    expect(replay.status()).toBe(200)
+    expect(await replay.json()).toEqual(first)
+    expect(returnCreditState(f)).toEqual(actual)
+    expect(financial()).toBe(before)
+  }
+})
+
+// Literal calendar expectations catch the original overload bug without copying
+// the SQL calculation into the oracle. Leap/non-leap,30/31day and year rollover.
+const returnCalendarCases = [
+  ['2024-02-10', '2024-02-28T12:00:00+07:00', '2024-02-29T16:59:59.999Z'],
+  ['2025-02-10', '2025-02-27T12:00:00+07:00', '2025-02-28T16:59:59.999Z'],
+  ['2026-04-10', '2026-04-29T12:00:00+07:00', '2026-04-30T16:59:59.999Z'],
+  ['2026-09-29', '2026-09-30T12:00:00+07:00', '2026-09-30T16:59:59.999Z'],
+  ['2026-10-10', '2026-10-30T12:00:00+07:00', '2026-10-31T16:59:59.999Z'],
+  ['2026-12-10', '2026-12-30T12:00:00+07:00', '2026-12-31T16:59:59.999Z'],
+] as const
+for (const family of [false, true]) test(`Return expiry calendar/timezone RPC matrix: ${family ? 'whole Family' : 'Adult'}`, async ({}, info) => {
+  const f = seed(family), signature = transitionSignature(), before = financial(), evidence: unknown[] = []
+  for (const zone of ['UTC', 'Asia/Bangkok', 'America/Los_Angeles', 'Pacific/Auckland']) {
+    for (const [date, instant, expected] of returnCalendarCases) {
+      const output = localSql(`BEGIN; SET LOCAL TIME ZONE ${q(zone)};
+        ${moveReturnFixtureDate(f, date)} ${freezeReturnClock(instant)}
+        DO $return$ BEGIN PERFORM public.lesson_source_transition_v1(${q(actor.id)},'return_entitlement',${q(f.ids[0])},'{"reason":"Calendar oracle"}'); END $return$;
+        SELECT jsonb_build_object('expiresAt',(SELECT expires_at FROM lesson_wallet_credits WHERE booking_id=${q(f.booking)}),
+          'members',(SELECT count(*) FROM lesson_wallet_credit_members m JOIN lesson_wallet_credits c ON c.id=m.credit_id WHERE c.booking_id=${q(f.booking)}),
+          'walleted',(SELECT count(*) FROM booking_sessions WHERE booking_id=${q(f.booking)} AND status='walleted'));
+        ROLLBACK;`)
+      const actual = JSON.parse(output.split('\n').at(-1)!)
+      evidence.push({ zone, family, date, instant, expected, actual })
+      expect(transitionSignature()).toBe(signature)
+      expect(financial()).toBe(before)
+      expect(new Date(actual.expiresAt).toISOString()).toBe(expected)
+      expect(actual.members).toBe(family ? 3 : 1)
+      expect(actual.walleted).toBe(family ? 3 : 1)
+    }
+  }
+  await info.attach('return-expiry-calendar-timezone-oracle', { body: JSON.stringify(evidence), contentType: 'application/json' })
+})
+
+test('Return expiry: exact final millisecond remains eligible; one millisecond later rolls back without entitlement', async ({}, info) => {
+  const f = seed(), signature = transitionSignature(), before = financial(), evidence: unknown[] = []
+  for (const [instant, expires] of [['2026-09-30T16:59:59.999Z', false], ['2026-09-30T17:00:00.000Z', true]] as const) {
+    const output = localSql(`BEGIN; SET LOCAL TIME ZONE 'UTC'; ${moveReturnFixtureDate(f, '2026-09-29')} ${freezeReturnClock(instant)}
+      DO $boundary$ BEGIN
+        BEGIN
+          PERFORM public.lesson_source_transition_v1(${q(actor.id)},'return_entitlement',${q(f.ids[0])},'{"reason":"Expiry boundary"}');
+          ${expires ? "RAISE EXCEPTION 'Unexpected expired Return success';" : ''}
+        EXCEPTION WHEN OTHERS THEN
+          ${expires ? "IF SQLERRM<>'LESSON_SOURCE_ENTITLEMENT_EXPIRED' THEN RAISE; END IF;" : 'RAISE;'}
+        END;
+      END $boundary$;
+      SELECT jsonb_build_object('credits',(SELECT count(*) FROM lesson_wallet_credits WHERE booking_id=${q(f.booking)}),
+        'walleted',(SELECT count(*) FROM booking_sessions WHERE booking_id=${q(f.booking)} AND status='walleted'),
+        'operations',(SELECT count(*) FROM lesson_source_operations WHERE unit_id=${q(f.ids[0])})); ROLLBACK;`)
+    const actual = JSON.parse(output.split('\n').at(-1)!)
+    evidence.push({ instant, expires, actual })
+    expect(actual).toEqual({ credits: expires ? 0 : 1, walleted: expires ? 0 : 1, operations: expires ? 0 : 1 })
+    expect(transitionSignature()).toBe(signature)
+    expect(financial()).toBe(before)
+  }
+  await info.attach('return-expiry-exact-boundary', { body: JSON.stringify(evidence), contentType: 'application/json' })
+})
+
+test('Return expiry: previously Redeemed Family inherits declared historical expiry/evidence without rewriting the credit', async ({}, info) => {
+  const f = seed(true), prior = randomUUID(), slot = randomUUID(), template = randomUUID(), next = f.ids.map(() => randomUUID())
+  const signature = transitionSignature(), before = financial()
+  // Explicit synthetic historical rows test preservation, not package-price derivation.
+  // Everything, including fixture changes, rolls back; no old UAT credit is touched.
+  const expected = '2027-07-31T16:59:59.999Z'
+  const output = localSql(`BEGIN; SET LOCAL TIME ZONE 'UTC'; ${moveReturnFixtureDate(f, '2026-10-01')} ${freezeReturnClock('2026-10-02T12:00:00+07:00')}
+    UPDATE booking_sessions SET status='walleted' WHERE booking_id=${q(f.booking)};
+    INSERT INTO schedule_templates(id,branch_id,course_type_id,day_of_week,start_time,end_time,is_active)
+      VALUES(${q(template)},${q(f.branch)},${q(f.course)},4,'02:00','03:00',true);
+    INSERT INTO schedule_slots(id,template_id,branch_id,course_type_id,date,start_time,end_time,status)
+      VALUES(${q(slot)},${q(template)},${q(f.branch)},${q(f.course)},'2026-10-01','02:00','03:00','open');
+    ${next.map((id, index) => `INSERT INTO booking_sessions(id,booking_id,schedule_slot_id,date,start_time,end_time,branch_id,child_id,status,is_makeup,rescheduled_from_id)
+      VALUES(${q(id)},${q(f.booking)},${q(slot)},'2026-10-01','02:00','03:00',${q(f.branch)},${f.children[index] ? q(f.children[index]!) : 'NULL'},'scheduled',false,${q(f.ids[index])});`).join('\n')}
+    INSERT INTO lesson_wallet_credits(id,user_id,booking_id,original_session_id,branch_id,course_type_id,original_schedule_slot_id,original_date,original_start_time,original_end_time,status,expires_at,
+      redeemed_session_id,redeemed_at,entitlement_unit_type,participant_count,entitlement_policy,entitlement_started_at,entitlement_evidence)
+      VALUES(${q(prior)},${q(f.owner.id)},${q(f.booking)},${q(f.ids[0])},${q(f.branch)},${q(f.course)},${q(f.slot)},'2026-10-01','00:00','01:00','redeemed',${q(expected)},
+      ${q(next[0])},'2026-10-01T02:00:00+07:00','family_private',3,'ten_month_package','2026-10-01T00:00:00+07:00','{"fixture":"declared historical entitlement"}');
+    ${f.ids.map((id, index) => `INSERT INTO lesson_wallet_credit_members(credit_id,original_session_id,child_id,original_schedule_slot_id,original_date,original_start_time,original_end_time,branch_id,redeemed_session_id,redeemed_at)
+      VALUES(${q(prior)},${q(id)},${f.children[index] ? q(f.children[index]!) : 'NULL'},${q(f.slot)},'2026-10-01','00:00','01:00',${q(f.branch)},${q(next[index])},'2026-10-01T02:00:00+07:00');`).join('\n')}
+    DO $return$ BEGIN PERFORM public.lesson_source_transition_v1(${q(actor.id)},'return_entitlement',${q(next[0])},'{"reason":"Preserve original expiry"}'); END $return$;
+    SELECT jsonb_build_object('newExpiry',(SELECT expires_at FROM lesson_wallet_credits WHERE booking_id=${q(f.booking)} AND id<>${q(prior)}),
+      'originalExpiry',(SELECT expires_at FROM lesson_wallet_credits WHERE id=${q(prior)}),'originalStatus',(SELECT status FROM lesson_wallet_credits WHERE id=${q(prior)}),
+      'policy',(SELECT entitlement_policy FROM lesson_wallet_credits WHERE booking_id=${q(f.booking)} AND id<>${q(prior)}),
+      'evidence',(SELECT entitlement_evidence FROM lesson_wallet_credits WHERE booking_id=${q(f.booking)} AND id<>${q(prior)}),
+      'members',(SELECT count(*) FROM lesson_wallet_credit_members m JOIN lesson_wallet_credits c ON c.id=m.credit_id WHERE c.booking_id=${q(f.booking)} AND c.id<>${q(prior)})); ROLLBACK;`)
+  const actual = JSON.parse(output.split('\n').at(-1)!)
+  expect(new Date(actual.newExpiry).toISOString()).toBe(expected)
+  expect(new Date(actual.originalExpiry).toISOString()).toBe(expected)
+  expect(actual).toMatchObject({ originalStatus: 'redeemed', policy: 'ten_month_package', evidence: { fixture: 'declared historical entitlement' }, members: 3 })
+  expect(transitionSignature()).toBe(signature)
+  expect(financial()).toBe(before)
+  await info.attach('return-original-expiry-inheritance', { body: JSON.stringify({ expected, actual, clockAndFixturesRolledBack: true }), contentType: 'application/json' })
 })
