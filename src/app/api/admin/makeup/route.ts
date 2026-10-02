@@ -460,7 +460,7 @@ async function upsertRetrospectiveAttendance({
   }
 }
 
-export async function POST(req: NextRequest) {
+async function set1ReleaseOriginalPOST(req: NextRequest) {
   const access = await requireAdminMenuAccess('makeup')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
   try {
@@ -479,7 +479,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+async function set1ReleaseOriginalPATCH(req: NextRequest) {
   let attendanceRecorded = false
   const access = await requireAdminMenuAccess('makeup')
   if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status })
@@ -788,4 +788,20 @@ export async function PATCH(req: NextRequest) {
     }
     return NextResponse.json({ error: getErrorMessage(error), ...(error instanceof LessonSourceTransitionError ? { code: error.code } : {}) }, { status: error instanceof LessonSourceTransitionError ? error.status : 500 })
   }
+}
+
+
+// Immutable release fallback: fail closed without executing the business handler.
+export async function POST(request: NextRequest) {
+  void request
+  void set1ReleaseOriginalPOST
+  return NextResponse.json({ code: 'SET1_RELEASE_HOLD', error: 'ระบบกำลังปรับปรุงการจัดการสิทธิ์ กรุณาลองใหม่ภายหลัง' }, { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } })
+}
+
+
+// Immutable release fallback: fail closed without executing the business handler.
+export async function PATCH(request: NextRequest) {
+  void request
+  void set1ReleaseOriginalPATCH
+  return NextResponse.json({ code: 'SET1_RELEASE_HOLD', error: 'ระบบกำลังปรับปรุงการจัดการสิทธิ์ กรุณาลองใหม่ภายหลัง' }, { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } })
 }

@@ -230,7 +230,7 @@ async function hasCheckedInForSlot(
   return Boolean(checkin)
 }
 
-export async function POST(request: NextRequest) {
+async function set1ReleaseOriginalPOST(request: NextRequest) {
   let attendanceRecorded = false
   const supabase = await createClient()
   const actor = await requireCoach(supabase)
@@ -388,4 +388,12 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: `เกิดข้อผิดพลาด: ${getErrorMessage(error)}` }, { status: 500 })
   }
+}
+
+
+// Immutable release fallback: fail closed without executing the business handler.
+export async function POST(request: NextRequest) {
+  void request
+  void set1ReleaseOriginalPOST
+  return NextResponse.json({ code: 'SET1_RELEASE_HOLD', error: 'ระบบกำลังปรับปรุงการจัดการสิทธิ์ กรุณาลองใหม่ภายหลัง' }, { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } })
 }

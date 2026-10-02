@@ -11,7 +11,7 @@ interface WalletResult {
   schedule_slot_id: string
 }
 
-export async function POST(request: NextRequest) {
+async function set1ReleaseOriginalPOST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -40,4 +40,12 @@ export async function POST(request: NextRequest) {
       code: error instanceof LessonSourceTransitionError ? error.code : undefined },
     { status: error instanceof LessonSourceTransitionError ? error.status : 500 })
   }
+}
+
+
+// Immutable release fallback: fail closed without executing the business handler.
+export async function POST(request: NextRequest) {
+  void request
+  void set1ReleaseOriginalPOST
+  return NextResponse.json({ code: 'SET1_RELEASE_HOLD', error: 'ระบบกำลังปรับปรุงการจัดการสิทธิ์ กรุณาลองใหม่ภายหลัง' }, { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } })
 }
