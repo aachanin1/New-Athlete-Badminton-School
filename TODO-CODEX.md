@@ -1,16 +1,26 @@
 # TODO-CODEX.md - Active Execution Index
 
-Last updated: 2026-10-01
+Last updated: 2026-10-02
 
 PROJECT_STATE.md owns mutable facts; DEVELOPMENT_TODO.md owns dated evidence.
 
 ## Current Active Work
 
-- **Set1 release approved; DEVELOPING / HARD STOP before Production; TASK DONE No.** Source8b1ca32 committed/pushed in isolated codex/lesson-source-release; composite local91/91 and retrospective38/38 passed. PROJECT_STATE.md owns mutable Source/Git/Production facts.
-- **Resume progress:** Owner authorized continuing the remaining three steps within the same scope. Synthetic selected-schema recovery passed (66tables/47migrations, public catalog/effective privileges); original disposable and9pending hashes unchanged. This is not physical Production restore or a hosted fallback. No new application Source/build.
-- **Blocker:** old Source write fails against new guards; full fence/drain and hosted schema-compatible recovery remain unproved. Read-only grants/RLS show authorized direct Supabase paths, so Vercel-only fencing is insufficient as complete proof. Approved plan step3 forbids improvising new project settings/Environment/product paths. Approval is received; no repeat local Owner test requested.
-- **Next:** prepare the smallest release-safety scope only (affected four mutation APIs plus compatible recovery), then resolve that scope before hosted deployment/five migrations/Promotion. No Task2, price/history repair, broad outage or Task10 Pause.
-- [Authoritative matrix](PROJECT_STATE.md#current-project-matrix); [dated closeout](docs/lesson-source-admission-v2-20260930.md#set1-approved-release-hard-stop--2026-10-01); private RESULT-AND-NEXT-SCOPE.md in C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001.
+- **Set1 — TASK DONE / Production Active.** Primary8b1ca32 / dpl_HYomP6jD5koozHdYni5U1L8gQ8BK; schema47/frozen5 applied; exact accepted staged Production Promoted without rebuild.
+- **Acceptance / verification:** delegated Dev hosted read/rejected acceptance, matching local write evidence, final52HTTPchecks and protected/backend/Finance reconciliation pass. Manual Owner hosted UAT and customer-write tests not claimed.
+- **Recovery / lasting control:** accepted maintenance fallback642e377 / dpl_HpQTDtGEs6oBnPMfAs9KY8nuDgw6 retained; one approved16groupWAF rule active. Temporary DB fence removed. Old query/header pins proved safe by actual accepted target; old cookie/immutable URLs denied.
+- **Impact:** cutover window49m37s exceeded36min target; conservative fallback/retry diagnosis retained. Prices/financial history/Family/Task10/protected pending work unchanged by Dev; no data repair. Exact timing/limits in detailed closeout.
+- **Next:** Owner selects one new Scope Contract. Future normal Source starts from primary8b1, preserves Finance/Set1, refreshes WAF accepted IDs, and excludes the maintenance fallback. No Task2 initiated.
+- [Authoritative matrix](PROJECT_STATE.md#current-project-matrix); [release evidence](docs/lesson-source-admission-v2-20260930.md#set1-production-release-closeout--2026-10-02); C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001/execution-20261002T015300Z/RESULT.md.
+
+## Historical — Release-mechanism proposal before approval
+
+- **Set1 — DEVELOPING / release mechanism proposal prepared; NOT READY FOR OWNER UAT; TASK DONE No.** Preparation-only authority; no hosted action, commit/push or Production writes this round. App8b1/frozen5 unchanged; releaseDocs4 unstaged only.
+- **Proposed one method:** project-wide affected4API WAF + durable DB admission/drain + per-file atomic pre-ledger envelopes + compatible4API maintenance fallback; all exact files/objects/JSON and execution budgets prepared privately.
+- **Local proof:** corrected admission/protected6, recovery13, HTTP52, atomic16+timeout16, pooled4/rendered5, directmulti-step4; actual protected Legacy/Progressive/Payment/Kids-family/expiry flows pass while closed; fallback compile checks pass. Initial/abandoned failures retained. Hosted WAF/artifacts/acceptance Unknown.
+- **Protected:** Finance/source/report, prices/formulas/quota/permissions/Family/history/Task10 controls+cron;9pendinghashes and oldtargets unchanged. Shared-table DDL shortqueue2s and affectedpause36min are proposed allowances, not current impact or ProductionRTO.
+- **Next:** Owner approve/reject C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001/preparation-20261001T155500Z/NEXT-OWNER-COMMAND.md against scope-amendment.md; existing release/delegated acceptance does not implicitly authorize new mechanism. No repeated local OwnerUAT, no Task2.
+- [Authoritative matrix](PROJECT_STATE.md#current-project-matrix); [dated technical closeout](docs/lesson-source-admission-v2-20260930.md#set1-release-mechanism-preparation--2026-10-02); C:/Users/aacha/AppData/Local/Temp/lesson-source-release-20261001/preparation-20261001T155500Z/proposal.md.
 
 ## Historical — Finance isolated acceptance at 2026-09-30
 
