@@ -264,6 +264,12 @@ const STATUS_HELP: Record<string, string> = {
   cancelled: 'รายการนี้ถูกยกเลิกแล้ว',
 }
 
+function isVerifiedZeroCharge(booking: BookingWithRelations) {
+  return booking.status === 'verified' && booking.total_price === 0
+    && !booking.lifecycle?.due && !booking.lifecycle?.cancelledAt
+    && (!booking.lifecycle || booking.lifecycle.status === 'verified')
+}
+
 const SESSION_STATUS_MAP: Record<string, { label: string; className: string }> = {
   scheduled: { label: 'นัดหมาย', className: 'bg-blue-50 text-blue-700' },
   upcoming: { label: 'รอเรียน', className: 'bg-slate-50 text-slate-700' },
@@ -1239,6 +1245,7 @@ export function HistoryClient({
             <div className="space-y-3">
               {visibleBookings.map((booking) => {
                 const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_payment
+                const verifiedZeroCharge = isVerifiedZeroCharge(booking)
                 const bookingPayments = getBookingPayments(booking.id)
                 const latestRejectedPayment = getLatestRejectedPayment(booking.id)
                 const couponUsages = couponUsageMap[booking.id] || []
@@ -1255,11 +1262,11 @@ export function HistoryClient({
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={status.color}>{booking.lifecycle?.due ? 'หมดกำหนดรับสลิป' : status.label}</Badge>
+                            <Badge className={status.color}>{booking.lifecycle?.due ? 'หมดกำหนดรับสลิป' : verifiedZeroCharge ? 'ยืนยันแล้ว — ไม่ต้องชำระเงิน' : status.label}</Badge>
                             <Badge variant="outline">{booking.course_types ? COURSE_LABELS[booking.course_types.name] || booking.course_types.name : '-'}</Badge>
                           </div>
-                          <p className="text-xs text-gray-500">{bookingPaymentLifecycleMessage(booking.lifecycle) || STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
-                          {booking.lifecycle?.inCohort && booking.lifecycle.deadline && <p className="text-xs text-gray-500">กำหนดรับสลิป {new Date(booking.lifecycle.deadline).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>}
+                          <p className="text-xs text-gray-500">{verifiedZeroCharge ? 'ยอดสุทธิ 0 บาท ไม่ต้องแนบสลิป ตารางเรียนพร้อมใช้งาน' : bookingPaymentLifecycleMessage(booking.lifecycle) || STATUS_HELP[booking.status] || STATUS_HELP.pending_payment}</p>
+                          {!verifiedZeroCharge && booking.lifecycle?.inCohort && booking.lifecycle.deadline && <p className="text-xs text-gray-500">กำหนดรับสลิป {new Date(booking.lifecycle.deadline).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>}
                           {!isAdmin && booking.status === 'pending_payment' && !booking.lifecycle?.due && latestRejectedPayment?.notes && (
                             <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                               <p className="font-medium">สลิปก่อนหน้าไม่ผ่าน กรุณาแนบสลิปใหม่</p>
@@ -1584,10 +1591,11 @@ export function HistoryClient({
               )}
 
               {/* Summary */}
+              {isVerifiedZeroCharge(selectedBooking) && <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">ยืนยันแล้ว — ไม่ต้องชำระเงิน ยอดสุทธิ 0 บาท ไม่ต้องแนบสลิป</p>}
               {bookingPaymentLifecycleMessage(selectedBooking.lifecycle) && <p className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{bookingPaymentLifecycleMessage(selectedBooking.lifecycle)}</p>}
               <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-gray-600">
-                  <p>จำนวนที่ชำระ: <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
+                  <p>{isVerifiedZeroCharge(selectedBooking) ? 'จำนวนครั้งที่ยืนยัน:' : 'จำนวนที่ชำระ:'} <strong>{selectedBooking.total_sessions} ครั้ง</strong></p>
                   <p className="mt-0.5">
                     รอบเรียนที่ยังใช้งานได้: <strong>{selectedActiveSessions.length}/{selectedBooking.total_sessions} ครั้ง</strong>
                   </p>

@@ -87,6 +87,7 @@ export interface ProgressiveBookingMutationResult {
   scopeId: string
   scopeRevision: number
   totalPrice: number
+  status?: 'pending_payment' | 'verified'
   expiresAt: string | null
   idempotentReplay: boolean
   changedBookings: Array<{
@@ -198,6 +199,7 @@ function parseMutationResult(data: unknown): ProgressiveBookingMutationResult {
     || !result.scopeId
     || !Number.isInteger(result.scopeRevision)
     || typeof result.totalPrice !== 'number'
+    || (result.status !== undefined && result.status !== 'pending_payment' && result.status !== 'verified')
     || !Array.isArray(result.changedBookings)
   ) {
     throw new ProgressiveBookingWriteError(

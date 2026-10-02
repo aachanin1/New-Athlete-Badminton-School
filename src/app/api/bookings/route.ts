@@ -291,7 +291,7 @@ function serializeProgressiveResult(result: Awaited<ReturnType<typeof createProg
   return {
     bookingId: result.bookingId,
     totalPrice: result.totalPrice,
-    status: 'pending_payment',
+    status: result.status || 'pending_payment',
     pricingScopeId: result.scopeId,
     pricingRevision: result.scopeRevision,
     sourceKind: 'progressive_kids_group_v1',
