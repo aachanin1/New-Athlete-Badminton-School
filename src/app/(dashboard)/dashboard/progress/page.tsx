@@ -48,7 +48,8 @@ export default async function ProgressPage() {
     .from('student_levels')
     .select('student_id, level, notes, created_at')
     .in('student_id', studentIds)
-    .order('created_at', { ascending: false }) as { data: StudentLevelRow[] | null }
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false }) as { data: StudentLevelRow[] | null }
 
   const latestLevels: Record<string, StudentLevelRow> = {}
   for (const level of levels || []) {

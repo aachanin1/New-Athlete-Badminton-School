@@ -17,6 +17,18 @@ export interface CanonicalAssignmentGroup extends AssignmentGroupComparisonShape
   sortOrder: number
 }
 
+export function getAssignmentCoverage(sessionIds: readonly string[], groups: readonly AssignmentGroupComparisonShape[], validCoachIds?: ReadonlySet<string>) {
+  const active = new Set(sessionIds), coached = new Set<string>()
+  let waitingGroups = 0
+  for (const group of groups) {
+    const members = group.studentSessionIds.filter(id => active.has(id))
+    if (!members.length) continue
+    if (group.name !== 'ยังไม่จัดกลุ่ม' && group.coachId && (!validCoachIds || validCoachIds.has(group.coachId))) members.forEach(id => coached.add(id))
+    else waitingGroups += 1
+  }
+  return { total: active.size, coached: coached.size, waiting: active.size - coached.size, waitingGroups }
+}
+
 export function normalizeAssignmentGroupsForComparison(
   groups: readonly AssignmentGroupComparisonShape[],
 ) {

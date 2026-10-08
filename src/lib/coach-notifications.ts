@@ -109,7 +109,7 @@ export async function notifyAssignedCoachesForSlot(
   const linkUrl = `/coach/today?date=${input.slot.date}`
   const slotLabel = getSlotLabel(input.slot)
 
-  await Promise.all(coachIds.map((coachId) => notifyCoachOnce(supabase, {
+  return Promise.all(coachIds.map((coachId) => notifyCoachOnce(supabase, {
     userId: coachId,
     title: 'ได้รับมอบหมายรอบสอน',
     message: `คุณได้รับมอบหมายให้สอน ${slotLabel} จำนวน ${input.groupCount} กลุ่ม ผู้เรียน ${input.studentCount} คน กรุณาเช็คอินก่อนสอนและเช็คชื่อให้ครบ`,

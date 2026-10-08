@@ -2,8 +2,12 @@ import { LevelsClient } from '@/components/coach/levels-client'
 import { getCoachVisibleStudents } from '@/lib/coach-student-access'
 import { createClient } from '@/lib/supabase/server'
 import type { LevelCategory } from '@/types/database'
+import { createCompleteCoachStudentReadClient } from '@/lib/coach-student-reads'
+import { toLevelAssessment, type AssessmentRow } from '@/lib/student-level-history'
+import type { LevelAssessment } from '@/types/level-assessment'
 
 interface StudentLevelRow {
+  id: string
   student_id: string
   student_type: 'adult' | 'child'
   level: number
@@ -40,18 +44,21 @@ export default async function LevelsPage() {
   if (!user) return null
 
   const studentList = await getCoachVisibleStudents(supabase, user)
+  const readClient = createCompleteCoachStudentReadClient(supabase)
   const allStudentIds = studentList.map((student) => student.id)
-  const levelMap: Record<string, { level: number; created_at: string }> = {}
+  const levelMap: Record<string, StudentLevelRow> = {}
+  const assessmentMap: Record<string, LevelAssessment> = {}
   const achievementMap: Record<string, StudentAchievementRow[]> = {}
 
   if (allStudentIds.length > 0) {
     const [{ data: levels }, { data: achievements }] = await Promise.all([
-      supabase
+      readClient
         .from('student_levels')
-        .select('student_id, student_type, level, created_at')
+        .select('id, student_id, student_type, level, created_at')
         .in('student_id', allStudentIds)
-        .order('created_at', { ascending: false }) as unknown as PromiseLike<{ data: StudentLevelRow[] | null }>,
-      supabase
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }) as unknown as PromiseLike<{ data: StudentLevelRow[] | null }>,
+      readClient
         .from('student_achievements')
         .select('id, student_id, student_type, emoji, title, description, awarded_at, is_active')
         .in('student_id', allStudentIds)
@@ -63,9 +70,18 @@ export default async function LevelsPage() {
     ;(levels || []).forEach((level) => {
       const key = getStudentKey(level.student_type, level.student_id)
       if (!levelMap[key]) {
-        levelMap[key] = { level: level.level, created_at: level.created_at }
+        levelMap[key] = level
       }
     })
+
+    const latestIds = Object.values(levelMap).map((assessment) => assessment.id)
+    if (latestIds.length > 0) {
+      const { data: latest } = await readClient.from('student_levels')
+        .select('id, level, notes, created_at, profiles!student_levels_updated_by_fkey(full_name)')
+        .in('id', latestIds) as unknown as { data: AssessmentRow[] | null }
+      for (const assessment of latest || []) assessmentMap[assessment.id] = toLevelAssessment(assessment)
+      if (latestIds.some((id) => !assessmentMap[id])) throw new Error('Latest assessment details unavailable')
+    }
 
     ;(achievements || []).forEach((achievement) => {
       const key = getStudentKey(achievement.student_type, achievement.student_id)
@@ -74,7 +90,7 @@ export default async function LevelsPage() {
     })
   }
 
-  const { data: levels } = await supabase
+  const { data: levels } = await readClient
     .from('levels')
     .select('id, name, description, category, program_name, requirements, is_active')
     .eq('is_active', true)
@@ -86,6 +102,7 @@ export default async function LevelsPage() {
       ...student,
       currentLevel: levelMap[key]?.level ?? 0,
       lastUpdated: levelMap[key]?.created_at || null,
+      latestAssessment: levelMap[key] ? assessmentMap[levelMap[key].id] || null : null,
       achievements: (achievementMap[key] || []).map((achievement) => ({
         id: achievement.id,
         emoji: achievement.emoji,

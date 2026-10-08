@@ -46,6 +46,10 @@ export async function GET(request: NextRequest) {
   if (!UUID_PATTERN.test(scheduleSlotId)) {
     return typedError('HISTORY_INVALID_SLOT', 'ข้อมูลรอบสอนไม่ถูกต้อง', 400)
   }
+  const before = request.nextUrl.searchParams.get('before')
+  if (before && (before.length > 240 || !/^\d{4}-\d{2}-\d{2}T[^|]+\|[a-z0-9_]+:[a-zA-Z0-9,:_-]+$/.test(before))) {
+    return typedError('HISTORY_INVALID_CURSOR', 'ข้อมูลหน้าประวัติไม่ถูกต้อง', 400)
+  }
 
   try {
     const { data: slot, error: slotError } = await supabase
@@ -101,12 +105,13 @@ export async function GET(request: NextRequest) {
     }
 
     const serviceRoleClient = getServiceRoleClient()
-    const events = await getCoachAssignmentHistory(serviceRoleClient, {
+    const page = await getCoachAssignmentHistory(serviceRoleClient, {
       scheduleSlotId: slot.id,
       branchId: slot.branch_id,
+      before,
     })
 
-    return NextResponse.json({ events }, { headers: PRIVATE_NO_STORE_HEADERS })
+    return NextResponse.json(page, { headers: PRIVATE_NO_STORE_HEADERS })
   } catch (error) {
     if (error instanceof CoachAssignmentDataUnavailableError) {
       return typedError('HISTORY_DATA_UNAVAILABLE', 'โหลดประวัติการเปลี่ยนแปลงไม่ครบ กรุณาลองใหม่', 503)

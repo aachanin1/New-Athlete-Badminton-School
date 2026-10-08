@@ -46,6 +46,7 @@ import {
 } from '@/lib/coach-assignment-group-naming'
 import {
   getAssignmentGroupsSignature,
+  getAssignmentCoverage,
   parseCanonicalAssignmentGroups,
   reconcileAssignmentDraft,
 } from '@/lib/coach-assignment-lifecycle'
@@ -128,12 +129,13 @@ interface GroupDraft {
   studentSessionIds: string[]
 }
 
-type SlotDraftState = 'empty' | 'saved' | 'unassigned' | 'changed'
+type SlotDraftState = 'empty' | 'saved' | 'waiting' | 'unassigned' | 'changed'
 type AssignmentStatusFilter = 'needs_assignment' | 'saved' | 'all'
 
 interface SavedSlotSnapshot {
   draftSignature: string
   serverSignatureAtSave: string
+  coverage: ReturnType<typeof getAssignmentCoverage>
 }
 
 interface AssignGroupsClientProps {
@@ -161,6 +163,7 @@ interface AssignmentMemoryResponse {
 
 interface AssignmentHistoryResponse {
   events?: CoachAssignmentHistoryEvent[]
+  nextCursor?: string | null
   code?: string
   error?: string
 }
@@ -311,19 +314,16 @@ function createAutoGroups(slot: AssignmentSlot): GroupDraft[] {
 function createInitialDrafts(slot: AssignmentSlot): GroupDraft[] {
   if (slot.assignmentGroups.length > 0) {
     const assignedIds = new Set(slot.assignmentGroups.flatMap((group) => group.studentSessionIds))
-    const drafts: GroupDraft[] = slot.assignmentGroups
+    const drafts: GroupDraft[] = [...slot.assignmentGroups]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((group, index) => {
-        const groupSessionIds = new Set(group.studentSessionIds)
-        const groupStudents = slot.students.filter((student) => groupSessionIds.has(student.bookingSessionId))
-        const resolvedName = resolveCoachAssignmentGroupName({ currentName: group.name, students: groupStudents })
         return {
           localId: group.id,
           persistedId: group.id,
-          name: resolvedName.name || group.name,
+          name: group.name,
           coachId: group.coachId,
-          levelMin: resolvedName.levelMin,
-          levelMax: resolvedName.levelMax,
+          levelMin: group.levelMin,
+          levelMax: group.levelMax,
           sortOrder: index,
           studentSessionIds: group.studentSessionIds,
         }
@@ -444,18 +444,26 @@ function getUsedCoachMap(groups: GroupDraft[]) {
   }, {} as Record<string, { groupId: string; name: string }[]>)
 }
 
-function getGroupsSignature(groups: Array<Pick<GroupDraft, 'name' | 'coachId' | 'levelMin' | 'levelMax' | 'studentSessionIds'>>) {
+function getGroupsSignature(groups: Parameters<typeof getAssignmentGroupsSignature>[0]) {
   return getAssignmentGroupsSignature(groups)
 }
 
+function getPersistedCoverage(slot: AssignmentSlot) {
+  return getAssignmentCoverage(slot.students.map(s => s.bookingSessionId), slot.assignmentGroups,
+    new Set(slot.assignmentGroups.filter(g => g.coachName).map(g => g.coachId).filter((id): id is string => Boolean(id))))
+}
+
 function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[], savedSnapshot?: SavedSlotSnapshot) {
+  if (slot.students.length === 0) return 'empty'
   const nonEmptyGroups = groups.filter((group) => group.studentSessionIds.length > 0)
   if (nonEmptyGroups.length === 0) return 'empty'
   const draftSignature = getGroupsSignature(groups)
   const serverSignature = getGroupsSignature(slot.assignmentGroups)
-  if (slot.assignmentGroups.length > 0 && draftSignature === serverSignature) return 'saved'
+  const coverage = getPersistedCoverage(slot)
+  const savedState = coverage.waiting > 0 ? 'waiting' : 'saved'
+  if (slot.assignmentGroups.length > 0 && draftSignature === serverSignature) return savedState
   if (savedSnapshot && savedSnapshot.serverSignatureAtSave === serverSignature) {
-    if (savedSnapshot.draftSignature === draftSignature) return 'saved'
+    if (savedSnapshot.draftSignature === draftSignature) return savedSnapshot.coverage.waiting > 0 ? 'waiting' : 'saved'
     return 'changed'
   }
   if (hasRosterDelta(slot)) return 'changed'
@@ -463,12 +471,15 @@ function getSlotDraftState(slot: AssignmentSlot, groups: GroupDraft[], savedSnap
 }
 
 function getStateLabel(state: SlotDraftState) {
-  if (state === 'saved') return 'มอบหมายแล้ว'
+  if (state === 'empty') return 'ไม่มีผู้เรียนในรอบนี้'
+  if (state === 'waiting') return 'บันทึกกลุ่มแล้ว — รอมอบหมายโค้ช'
+  if (state === 'saved') return 'มีโค้ชรับผิดชอบครบแล้ว'
   if (state === 'changed') return 'มีการเปลี่ยนแปลง รอตรวจและบันทึก'
   return 'ยังไม่ได้มอบหมาย'
 }
 
 function getStateBadgeClass(state: SlotDraftState) {
+  if (state === 'waiting') return 'bg-amber-100 text-amber-800'
   if (state === 'saved') return 'bg-emerald-100 text-emerald-700'
   if (state === 'changed') return 'bg-amber-100 text-amber-800'
   return 'bg-red-100 text-red-700'
@@ -549,6 +560,7 @@ export function AssignGroupsClient({
   const [coachMemoryLoadingBySlot, setCoachMemoryLoadingBySlot] = useState<Record<string, boolean>>({})
   const [coachMemoryErrorsBySlot, setCoachMemoryErrorsBySlot] = useState<Record<string, string>>({})
   const [assignmentHistoryBySlot, setAssignmentHistoryBySlot] = useState<Record<string, CoachAssignmentHistoryEvent[]>>({})
+  const [historyCursorBySlot, setHistoryCursorBySlot] = useState<Record<string, string | null>>({})
   const [assignmentHistoryLoadingBySlot, setAssignmentHistoryLoadingBySlot] = useState<Record<string, boolean>>({})
   const [assignmentHistoryErrorsBySlot, setAssignmentHistoryErrorsBySlot] = useState<Record<string, string>>({})
   const [expandedAssignmentHistoryBySlot, setExpandedAssignmentHistoryBySlot] = useState<Record<string, boolean>>({})
@@ -562,6 +574,7 @@ export function AssignGroupsClient({
   const coachMemoryCacheRef = useRef(new Map<string, AssignmentMemoryResponse>())
   const assignmentHistoryRequestsRef = useRef(new Map<string, Promise<CoachAssignmentHistoryEvent[] | null>>())
   const assignmentHistoryCacheRef = useRef(new Map<string, CoachAssignmentHistoryEvent[]>())
+  const assignmentHistoryGenerationsRef = useRef(new Map<string, number>())
   const isMonthNavigationActive = Boolean(pendingTargetMonth) || isMonthNavigationPending
   const isCurrentMonth = selectedMonth === currentBangkokMonth
 
@@ -593,6 +606,7 @@ export function AssignGroupsClient({
     const nextBaselines: Record<string, GroupDraft[]> = {}
     const nextPersistedGroups: Record<string, ExistingAssignmentGroup[]> = {}
     const nextServerChanges: Record<string, boolean> = {}
+    const changedHistoryKeys = new Set<string>()
 
     slots.forEach((slot) => {
       const incomingDraft = createInitialDrafts(slot)
@@ -617,6 +631,13 @@ export function AssignGroupsClient({
         return
       }
 
+      if (getGroupsSignature(previousPersistedGroups) !== incomingServerSignature
+        || getGroupsSignature(previousBaseline) !== getGroupsSignature(incomingDraft)) {
+        changedHistoryKeys.add(slot.key)
+        assignmentHistoryGenerationsRef.current.set(slot.key, (assignmentHistoryGenerationsRef.current.get(slot.key) || 0) + 1)
+        assignmentHistoryCacheRef.current.delete(slot.key)
+      }
+
       const reconciliation = reconcileAssignmentDraft({
         currentDraft,
         previousServerDerivedDraft: previousBaseline,
@@ -635,6 +656,13 @@ export function AssignGroupsClient({
     draftsBySlotRef.current = nextDrafts
     setDraftsBySlot(nextDrafts)
     setServerChangesBySlot(nextServerChanges)
+    if (changedHistoryKeys.size) {
+      setAssignmentHistoryBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
+      setHistoryCursorBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
+      setAssignmentHistoryErrorsBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
+      setAssignmentHistoryLoadingBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
+      setExpandedAssignmentHistoryBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
+    }
   }, [slots])
 
   const stats = useMemo(() => {
@@ -796,16 +824,18 @@ export function AssignGroupsClient({
     return request
   }
 
-  const ensureAssignmentHistory = (slot: AssignmentSlot): Promise<CoachAssignmentHistoryEvent[] | null> => {
+  const ensureAssignmentHistory = (slot: AssignmentSlot, before?: string): Promise<CoachAssignmentHistoryEvent[] | null> => {
     if (!slot.scheduleSlotId) return Promise.resolve(null)
 
     const cached = assignmentHistoryCacheRef.current.get(slot.key)
-    if (cached) {
+    if (cached && !before && !assignmentHistoryErrorsBySlot[slot.key]) {
       setAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: cached }))
       return Promise.resolve(cached)
     }
 
-    const inFlight = assignmentHistoryRequestsRef.current.get(slot.key)
+    const generation = assignmentHistoryGenerationsRef.current.get(slot.key) || 0
+    const requestKey = `${slot.key}:${generation}:${before || ''}`
+    const inFlight = assignmentHistoryRequestsRef.current.get(requestKey)
     if (inFlight) return inFlight
 
     const request = (async () => {
@@ -813,7 +843,7 @@ export function AssignGroupsClient({
       setAssignmentHistoryErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
 
       try {
-        const response = await fetch(`/api/coach/assignment-history?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId || '')}`, {
+        const response = await fetch(`/api/coach/assignment-history?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId || '')}${before ? `&before=${encodeURIComponent(before)}` : ''}`, {
           method: 'GET',
           headers: { Accept: 'application/json' },
           cache: 'no-store',
@@ -822,21 +852,25 @@ export function AssignGroupsClient({
         if (!response.ok || !Array.isArray(json.events)) {
           throw new Error(json.error || 'โหลดประวัติการเปลี่ยนแปลงไม่สำเร็จ')
         }
+        if (generation !== (assignmentHistoryGenerationsRef.current.get(slot.key) || 0)) return null
 
-        assignmentHistoryCacheRef.current.set(slot.key, json.events)
-        setAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: json.events || [] }))
-        return json.events
+        const events = before ? [...(assignmentHistoryCacheRef.current.get(slot.key) || []), ...json.events] : json.events
+        assignmentHistoryCacheRef.current.set(slot.key, events)
+        setAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: events }))
+        setHistoryCursorBySlot((prev) => ({ ...prev, [slot.key]: json.nextCursor || null }))
+        return events
       } catch (error) {
+        if (generation !== (assignmentHistoryGenerationsRef.current.get(slot.key) || 0)) return null
         const message = error instanceof Error ? error.message : 'โหลดประวัติการเปลี่ยนแปลงไม่สำเร็จ'
         setAssignmentHistoryErrorsBySlot((prev) => ({ ...prev, [slot.key]: message }))
         return null
       } finally {
-        assignmentHistoryRequestsRef.current.delete(slot.key)
-        setAssignmentHistoryLoadingBySlot((prev) => ({ ...prev, [slot.key]: false }))
+        assignmentHistoryRequestsRef.current.delete(requestKey)
+        if (generation === (assignmentHistoryGenerationsRef.current.get(slot.key) || 0)) setAssignmentHistoryLoadingBySlot((prev) => ({ ...prev, [slot.key]: false }))
       }
     })()
 
-    assignmentHistoryRequestsRef.current.set(slot.key, request)
+    assignmentHistoryRequestsRef.current.set(requestKey, request)
     return request
   }
 
@@ -1000,6 +1034,10 @@ export function AssignGroupsClient({
           scheduleSlotId: slot.scheduleSlotId,
           branchId: slot.branchId,
           groups: submittedGroups,
+          expectedGroups: (persistedGroupsBySlotRef.current[slot.key] || slot.assignmentGroups).map(group => ({
+            name: group.name, coachId: group.coachId, levelMin: group.levelMin, levelMax: group.levelMax,
+            studentSessionIds: group.studentSessionIds,
+          })),
         }),
       })
 
@@ -1008,6 +1046,7 @@ export function AssignGroupsClient({
         const lifecycleConflict = [
           'COACH_ASSIGNMENT_ROSTER_CONFLICT',
           'COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP',
+          'COACH_ASSIGNMENT_BASELINE_CONFLICT',
         ].includes(json?.code)
         setErrorsBySlot((prev) => ({
           ...prev,
@@ -1047,6 +1086,7 @@ export function AssignGroupsClient({
         studentSessionIds: [...group.studentSessionIds],
       }))
       const savedDraftSignature = getGroupsSignature(canonicalDrafts)
+      const savedCoverage = getAssignmentCoverage(slot.students.map(s => s.bookingSessionId), canonicalDrafts)
       draftBaselinesBySlotRef.current = {
         ...draftBaselinesBySlotRef.current,
         [slot.key]: canonicalDrafts,
@@ -1060,6 +1100,7 @@ export function AssignGroupsClient({
         [slot.key]: {
           draftSignature: savedDraftSignature,
           serverSignatureAtSave,
+          coverage: savedCoverage,
         },
       }))
       setDraftsBySlot((prev) => ({
@@ -1070,6 +1111,10 @@ export function AssignGroupsClient({
       }))
       setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: false }))
       assignmentHistoryCacheRef.current.delete(slot.key)
+      assignmentHistoryGenerationsRef.current.set(slot.key, (assignmentHistoryGenerationsRef.current.get(slot.key) || 0) + 1)
+      setHistoryCursorBySlot(prev => ({ ...prev, [slot.key]: null }))
+      setAssignmentHistoryErrorsBySlot(prev => ({ ...prev, [slot.key]: '' }))
+      setAssignmentHistoryLoadingBySlot(prev => ({ ...prev, [slot.key]: false }))
       setAssignmentHistoryBySlot((prev) => {
         const next = { ...prev }
         delete next[slot.key]
@@ -1077,10 +1122,24 @@ export function AssignGroupsClient({
       })
       setExpandedAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: false }))
       if (json?.warnings) toast.warning(json.warnings)
-      toast.success('บันทึกการมอบหมายสำเร็จ')
+      toast.success(savedCoverage.waiting > 0 ? `บันทึกกลุ่มแล้ว — รอมอบหมายโค้ช ${savedCoverage.waiting} คน / ${savedCoverage.waitingGroups} กลุ่ม` : 'บันทึกกลุ่มแล้ว — มีโค้ชรับผิดชอบครบ')
       router.refresh()
     } catch {
-      setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }))
+      setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'ยังยืนยันผลบันทึกไม่ได้ กำลังตรวจข้อมูลบน Server' }))
+      try {
+        const response = await fetch(`/api/coach/assignment-groups?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId)}&branchId=${encodeURIComponent(slot.branchId)}`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!response.ok) throw new Error('readback failed')
+        const canonical = parseCanonicalAssignmentGroups(result.canonicalGroups)
+        const confirmed = getGroupsSignature(canonical) === getGroupsSignature(submittedGroups)
+        setErrorsBySlot((prev) => ({ ...prev, [slot.key]: confirmed
+          ? 'ตรวจพบผลที่บันทึกแล้วบน Server กรุณาตรวจข้อมูลล่าสุดก่อนทำรายการต่อ'
+          : 'ผลบน Server ยังไม่ตรงกับที่ส่ง กรุณาตรวจข้อมูลล่าสุดก่อนบันทึกอีกครั้ง' }))
+      } catch {
+        setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'ยังยืนยันผลบันทึกไม่ได้ กรุณารีเฟรชและตรวจผลก่อนลองบันทึกอีกครั้ง' }))
+      }
+      setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: true }))
+      router.refresh()
     } finally {
       setSavingKey(null)
     }
@@ -1108,7 +1167,7 @@ export function AssignGroupsClient({
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-3">
-            <p className="text-xs text-gray-500">ยังไม่ได้มอบหมาย</p>
+            <p className="text-xs text-gray-500">รอมอบหมายโค้ช</p>
             <p className="mt-1 text-2xl font-bold text-red-600">{stats.unassignedSlots}</p>
           </CardContent>
         </Card>
@@ -1126,7 +1185,7 @@ export function AssignGroupsClient({
         </Card>
         <Card className="shadow-sm">
           <CardContent className="p-3">
-            <p className="text-xs text-gray-500">มอบหมายแล้ว</p>
+            <p className="text-xs text-gray-500">มีโค้ชครบแล้ว</p>
             <p className="mt-1 text-2xl font-bold text-[#153c85]">{stats.savedSlots}/{slots.length}</p>
           </CardContent>
         </Card>
@@ -1147,14 +1206,14 @@ export function AssignGroupsClient({
         aria-busy={isMonthNavigationActive}
       >
           <CardContent className="space-y-4 p-4">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
               <div>
                 <p className="text-sm font-semibold text-[#153c85]">เลือกวันสอนก่อนจัดกลุ่ม</p>
                 <p className="text-xs text-gray-500">
-                  เลือกเดือนและสถานะเพื่อเห็นทันทีว่าวันไหนหรือรอบไหนยังไม่ได้มอบหมาย ไม่ต้องเปิดหาทีละรอบ
+                  เลือกเดือนและสถานะเพื่อเห็นทันทีว่าวันไหนหรือรอบไหนยังรอมอบหมายโค้ช ไม่ต้องเปิดหาทีละรอบ
                 </p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <div className="flex items-center gap-1 rounded-lg border bg-white p-1">
                   <Button
                     type="button"
@@ -1180,10 +1239,10 @@ export function AssignGroupsClient({
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-1 rounded-lg border bg-white p-1 text-xs">
+                <div className="grid shrink-0 grid-cols-3 gap-1 rounded-lg border bg-white p-1 text-xs">
                   {[
                     { key: 'needs_assignment' as const, label: 'ต้องดำเนินการ' },
-                    { key: 'saved' as const, label: 'มอบหมายแล้ว' },
+                    { key: 'saved' as const, label: 'มีโค้ชครบแล้ว' },
                     { key: 'all' as const, label: 'ทั้งหมด' },
                   ].map((filter) => (
                     <button
@@ -1195,7 +1254,7 @@ export function AssignGroupsClient({
                         setSelectedSlotKey('')
                       }}
                       className={cn(
-                        'rounded-md px-2 py-1.5 font-medium text-gray-500 transition',
+                        'whitespace-nowrap rounded-md px-2 py-1.5 font-medium text-gray-500 transition',
                         statusFilter === filter.key && 'bg-[#2748bf] text-white',
                       )}
                     >
@@ -1208,9 +1267,9 @@ export function AssignGroupsClient({
                 <div className="flex flex-wrap gap-2 text-xs">
                   <Badge variant="outline" className="bg-white">{activeDateSummary.slots} รอบ</Badge>
                   <Badge variant="outline" className="bg-white">{activeDateSummary.totalStudents} คน</Badge>
-                  <Badge className="bg-emerald-100 text-emerald-700">{activeDateSummary.savedSlots} มอบหมายแล้ว</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-700">{activeDateSummary.savedSlots} มีโค้ชครบแล้ว</Badge>
                   {activeDateSummary.unassignedSlots > 0 && (
-                    <Badge className="bg-red-100 text-red-700">{activeDateSummary.unassignedSlots} ยังไม่ได้มอบหมาย</Badge>
+                    <Badge className="bg-red-100 text-red-700">{activeDateSummary.unassignedSlots} รอมอบหมายโค้ช</Badge>
                   )}
                   {activeDateSummary.changedSlots > 0 && (
                     <Badge className="bg-amber-100 text-amber-800">{activeDateSummary.changedSlots} รอตรวจและบันทึก</Badge>
@@ -1278,10 +1337,10 @@ export function AssignGroupsClient({
                       <Badge variant="outline" className="bg-white text-[10px]">{summary.slots} รอบ</Badge>
                       <Badge variant="outline" className="bg-white text-[10px]">{summary.totalStudents} คน</Badge>
                       {summary.savedSlots > 0 && (
-                        <Badge className="bg-emerald-100 text-[10px] text-emerald-700">{summary.savedSlots} มอบหมายแล้ว</Badge>
+                        <Badge className="bg-emerald-100 text-[10px] text-emerald-700">{summary.savedSlots} มีโค้ชครบแล้ว</Badge>
                       )}
                       {summary.unassignedSlots > 0 && (
-                        <Badge className="bg-red-100 text-[10px] text-red-700">{summary.unassignedSlots} ยังไม่ได้มอบหมาย</Badge>
+                        <Badge className="bg-red-100 text-[10px] text-red-700">{summary.unassignedSlots} รอมอบหมายโค้ช</Badge>
                       )}
                       {summary.changedSlots > 0 && (
                         <Badge className="bg-amber-100 text-[10px] text-amber-800">{summary.changedSlots} รอตรวจและบันทึก</Badge>
@@ -1479,7 +1538,7 @@ export function AssignGroupsClient({
                             type="button"
                             size="sm"
                             onClick={() => saveSlot(slot)}
-                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved' || isAssignmentLocked || hasServerLifecycleChange}
+                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved' || slotDraftState === 'waiting' || slotDraftState === 'empty' || isAssignmentLocked || hasServerLifecycleChange}
                             className="bg-[#2748bf] hover:bg-[#153c85]"
                           >
                             {savingKey === slot.key ? (
@@ -1490,7 +1549,7 @@ export function AssignGroupsClient({
                             ) : (
                               <>
                                 <Save className="mr-2 h-4 w-4" />
-                                {slotDraftState === 'saved' ? 'มอบหมายแล้ว' : 'บันทึก/ยืนยันการมอบหมาย'}
+                                {slotDraftState === 'waiting' ? 'บันทึกกลุ่มแล้ว' : slotDraftState === 'saved' ? 'มีโค้ชครบแล้ว' : 'บันทึก/ยืนยันการมอบหมาย'}
                               </>
                             )}
                           </Button>
@@ -1542,8 +1601,10 @@ export function AssignGroupsClient({
                             ? 'border-amber-200 bg-amber-50 text-amber-800'
                             : 'border-red-200 bg-red-50 text-red-700',
                       )}>
-                        {slotDraftState === 'saved'
-                          ? 'รอบนี้มอบหมายแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง'
+                        {slotDraftState === 'empty' ? 'ไม่มีผู้เรียนในรอบนี้' : slotDraftState === 'waiting'
+                          ? (() => { const coverage = getPersistedCoverage(slot); return `บันทึกกลุ่มแล้ว — รอมอบหมายโค้ช ${coverage.waiting} คน / ${coverage.waitingGroups} กลุ่ม`; })()
+                          : slotDraftState === 'saved'
+                          ? 'รอบนี้มีโค้ชครบแล้ว โค้ชผู้สอนจะเห็นรอบนี้ในตารางสอนของตัวเอง'
                           : slotDraftState === 'changed'
                             ? 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การมอบหมายที่บันทึกไว้เดิมยังมีผล และการเปลี่ยนแปลงนี้จะยังไม่ส่งให้โค้ชจนกว่าจะกดบันทึกอีกครั้ง'
                             : 'รอบนี้ยังไม่ได้มอบหมายให้โค้ชผู้สอน ระบบแนะนำกลุ่มไว้เบื้องต้นเท่านั้น ต้องกดบันทึก/ยืนยันการมอบหมายก่อนโค้ชจึงจะเห็นงานนี้'}
@@ -1557,8 +1618,9 @@ export function AssignGroupsClient({
                         >
                           <div className="flex items-center gap-2 text-sm font-semibold text-[#153c85]">
                             <History className="h-4 w-4" />
-                            ประวัติการเปลี่ยนแปลงล่าสุด
+                            ประวัติการเปลี่ยนแปลง
                           </div>
+                          <p className="text-xs text-gray-500">ชื่อบุคคลแสดงตามข้อมูลปัจจุบัน ส่วนรายการและเวลายึดหลักฐานการทำรายการ</p>
                           {isAssignmentHistoryLoading && (
                             <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-[#2748bf]">
                               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -1568,7 +1630,7 @@ export function AssignGroupsClient({
                           {assignmentHistoryError && !isAssignmentHistoryLoading && (
                             <div className="flex flex-col gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
                               <span>{assignmentHistoryError}</span>
-                              <Button type="button" variant="outline" size="sm" onClick={() => void ensureAssignmentHistory(slot)}>
+                              <Button type="button" variant="outline" size="sm" onClick={() => void ensureAssignmentHistory(slot, historyCursorBySlot[slot.key] || undefined)}>
                                 ลองอีกครั้ง
                               </Button>
                             </div>
@@ -1606,18 +1668,24 @@ export function AssignGroupsClient({
                                       <time dateTime={event.occurredAt}>
                                         {formatHistoryDateTime(event.occurredAt)}
                                       </time>
-                                      {event.actorName && (
-                                        <>{' '}· โดย {event.actorName}</>
-                                      )}
+                                      {' '}· โดย {event.actorName || 'ไม่ทราบผู้ทำรายการจากหลักฐาน'}
                                       {' '}· ผู้เรียน {event.learnerNames.length > 0 ? event.learnerNames.join(', ') : 'ไม่ทราบจากหลักฐานเดิม'}
                                     </p>
                                     {event.reason && (
                                       <p className="mt-1 break-words text-xs text-gray-500">{event.reason}</p>
                                     )}
+                                    {event.contextLines?.map((line, lineIndex) => (
+                                      <p key={lineIndex} className="mt-1 break-words text-xs text-gray-600">{line}</p>
+                                    ))}
                                   </li>
                                 )
                               })}
                             </ol>
+                          )}
+                          {historyCursorBySlot[slot.key] && !isAssignmentHistoryLoading && !assignmentHistoryError && (
+                            <Button type="button" variant="outline" size="sm" onClick={() => void ensureAssignmentHistory(slot, historyCursorBySlot[slot.key] || undefined)}>
+                              ดูประวัติก่อนหน้า
+                            </Button>
                           )}
                         </div>
                       )}
@@ -1641,8 +1709,9 @@ export function AssignGroupsClient({
                             >
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0 flex-1 space-y-2">
-                                  <Label className="text-xs text-gray-500">ชื่อกลุ่ม</Label>
+                                  <Label htmlFor={`assignment-group-name-${group.localId}`} className="text-xs text-gray-500">ชื่อกลุ่ม</Label>
                                   <Input
+                                    id={`assignment-group-name-${group.localId}`}
                                     value={group.name}
                                     onChange={(event) => updateGroup(slot.key, group.localId, { name: event.target.value })}
                                     className="font-semibold"

@@ -19,6 +19,7 @@ import {
 import { LEVEL_RANGES, formatLevelRange, getLevelDisplay } from '@/constants/levels'
 import { formatThaiDateWithWeekday } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
+import { AssessmentNotePreview } from '@/components/shared/assessment-note-preview'
 
 export interface RankingBranch {
   id: string
@@ -165,7 +166,7 @@ function RankingList({
         const levelLabel = student.levelName || levelInfo.label
 
         return (
-          <div key={student.id} className="grid gap-3 rounded-lg border bg-white p-3 shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_112px] sm:items-center">
+          <div key={student.id} data-ranking-student-key={`${student.type}:${student.id}`} className="grid gap-3 rounded-lg border bg-white p-3 shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_112px] sm:items-center">
             <div className="flex items-center gap-3">
               <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold', getRankClass(primaryRank))}>
                 #{primaryRank}
@@ -194,7 +195,7 @@ function RankingList({
                 <span>ประเมินล่าสุด: {formatDate(student.levelUpdatedAt)}</span>
                 {student.evaluatedBy && <span>โดย {student.evaluatedBy}</span>}
               </div>
-              {student.notes && <p className="mt-1 line-clamp-1 text-xs text-gray-400">{student.notes}</p>}
+              {student.notes && <AssessmentNotePreview notes={student.notes} studentName={student.name} level={student.level} evaluatedAt={student.levelUpdatedAt} evaluatedBy={student.evaluatedBy} />}
             </div>
 
             <div className="rounded-lg bg-gray-50 px-3 py-2 text-center sm:py-3">

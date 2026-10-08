@@ -22,6 +22,8 @@ import {
 import { LEVEL_RANGES, MIN_LEVEL, formatLevelRange, getLevelDisplay, getLevelRange } from '@/constants/levels'
 import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import type { LevelCategory } from '@/types/database'
+import type { LevelAssessment } from '@/types/level-assessment'
+import { LevelAssessmentDetails, LevelAssessmentHistory } from '@/components/coach/level-assessment-history'
 
 interface LevelOption {
   id: number
@@ -40,6 +42,7 @@ interface StudentData {
   parentName: string | null
   currentLevel: number | null
   lastUpdated: string | null
+  latestAssessment: LevelAssessment | null
   achievements: ManagedStudentAchievement[]
 }
 
@@ -73,6 +76,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const filtered = useMemo(() => {
     if (!search.trim()) return students
@@ -99,6 +103,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
     setNotes('')
     setError(null)
     setSuccess(null)
+    setHistoryOpen(false)
     setEditOpen(true)
   }
 
@@ -112,6 +117,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
   }
 
   const handleSubmit = async () => {
+    if (loading || success) return
     if (!editStudent || !newLevel) {
       setError('กรุณาเลือก Level')
       return
@@ -211,7 +217,7 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
             const levelName = getLevelName(levels, student.currentLevel)
 
             return (
-              <Card key={`${student.id}-${student.type}`} className="transition-shadow hover:shadow-sm">
+              <Card key={`${student.id}-${student.type}`} data-student-key={`${student.type}:${student.id}`} className="transition-shadow hover:shadow-sm">
                 <CardContent className="grid gap-3 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
                   <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${levelInfo.color}`}>
                     <span className="text-sm font-bold">{levelInfo.level}</span>
@@ -227,7 +233,14 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
                       {student.parentName && <span>ผู้ปกครอง: {student.parentName}</span>}
                       <LearnerLevelBadge level={student.currentLevel} className={`${levelInfo.color} text-[10px]`}>{levelName || levelInfo.label}</LearnerLevelBadge>
                       {updatedText && <span>อัปเดต: {updatedText}</span>}
+                      {student.latestAssessment?.evaluatedBy && <span>โดย {student.latestAssessment.evaluatedBy}</span>}
                     </div>
+                    {student.latestAssessment?.notes && (
+                      <div className="mt-1 flex items-start gap-2 text-xs">
+                        <p className="line-clamp-2 min-w-0 flex-1 text-gray-500">{student.latestAssessment.notes}</p>
+                        <button type="button" className="shrink-0 text-[#2748bf] hover:underline" onClick={() => openEdit(student)}>อ่านหมายเหตุ / ประวัติ</button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
@@ -264,9 +277,9 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
       <Dialog open={editOpen} onOpenChange={(open) => { if (!loading) setEditOpen(open) }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-[#153c85]">อัปเดต Level</DialogTitle>
+            <DialogTitle className="text-[#153c85]">ประเมิน Level นักเรียน</DialogTitle>
             <DialogDescription>
-              เลือก Level ใหม่จากค่าที่เปิดใช้งานในระบบ พร้อมบันทึกหมายเหตุการประเมินของผู้เรียน
+              อ่านการประเมินเดิม แล้วเลือก Level ที่เปิดใช้งานพร้อมบันทึกหมายเหตุสำหรับครั้งนี้
             </DialogDescription>
           </DialogHeader>
           {editStudent && (
@@ -284,8 +297,17 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
                 </div>
               </div>
 
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="text-sm font-semibold text-[#153c85]">การประเมินล่าสุด</p>
+                {editStudent.latestAssessment ? <LevelAssessmentDetails assessment={editStudent.latestAssessment} /> : <p className="text-sm text-gray-500">ยังไม่มีการประเมิน</p>}
+              </div>
+              <details open={historyOpen} onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
+                <summary className="cursor-pointer py-2 text-sm font-medium text-[#2748bf]">ดูประวัติการประเมิน</summary>
+                {historyOpen && <LevelAssessmentHistory key={`${editStudent.type}:${editStudent.id}`} studentId={editStudent.id} studentType={editStudent.type} />}
+              </details>
+
               <div className="space-y-2">
-                <Label>Level ใหม่</Label>
+                <Label>Level สำหรับครั้งนี้</Label>
                 <Select value={newLevel} onValueChange={setNewLevel} disabled={levels.length === 0}>
                   <SelectTrigger>
                     <SelectValue placeholder={levels.length === 0 ? 'ยังไม่มี Level ที่เปิดใช้งาน' : 'เลือก Level'} />
@@ -316,20 +338,22 @@ export function LevelsClient({ students, levels }: LevelsClientProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>หมายเหตุ (ไม่บังคับ)</Label>
+                <Label htmlFor="assessment-notes">หมายเหตุสำหรับการประเมินครั้งนี้</Label>
                 <Textarea
+                  id="assessment-notes"
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   placeholder="เช่น พัฒนาดี, ต้องฝึก backhand เพิ่ม"
                   rows={3}
                 />
+                <p className="text-xs text-gray-500">ไม่บังคับกรอก · เพิ่มการประเมินใหม่ทุกครั้ง โดยเก็บประวัติเดิมไว้<br />หมายเหตุครั้งนี้แสดงในหน้าอันดับตามเดิม</p>
               </div>
 
               <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row">
                 <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)} disabled={loading}>ยกเลิก</Button>
-                <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" onClick={handleSubmit} disabled={loading || !newLevel}>
+                <Button className="flex-1 bg-[#2748bf] hover:bg-[#153c85]" onClick={handleSubmit} disabled={loading || Boolean(success) || !newLevel}>
                   {loading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
-                  บันทึก Level
+                  บันทึกการประเมิน
                 </Button>
               </div>
             </div>

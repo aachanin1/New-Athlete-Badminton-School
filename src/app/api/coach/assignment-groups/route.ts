@@ -80,6 +80,10 @@ function isAssignmentLocked(date: string, startTime: string, now = new Date()) {
 }
 
 function getLifecycleConflict(errorMessage: string) {
+  if (errorMessage.includes('COACH_ASSIGNMENT_BASELINE_CONFLICT')) return {
+    code: 'COACH_ASSIGNMENT_BASELINE_CONFLICT',
+    error: 'การมอบหมายบน Server เปลี่ยนแล้ว กรุณารีเฟรชและตรวจกลุ่มก่อนบันทึกอีกครั้ง',
+  }
   if (errorMessage.includes('COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP')) {
     return {
       code: 'COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP',
@@ -113,6 +117,7 @@ export async function POST(request: NextRequest) {
       scheduleSlotId?: string
       branchId?: string
       groups?: GroupPayload[]
+      expectedGroups?: unknown[]
     }
 
     const { scheduleSlotId, branchId } = body
@@ -250,10 +255,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { data: saveResult, error: saveError } = await adminSupabase.rpc('save_coach_assignment_groups_v2', {
+    if (!Array.isArray(body.expectedGroups)) return NextResponse.json({ code: 'COACH_ASSIGNMENT_BASELINE_REQUIRED', error: 'กรุณาโหลดข้อมูลการมอบหมายล่าสุดก่อนบันทึก' }, { status: 409 })
+    const { data: saveResult, error: saveError } = await adminSupabase.rpc('save_coach_assignment_groups_v3', {
       p_schedule_slot_id: scheduleSlotId,
       p_actor_id: manager.user.id,
       p_groups: normalizedGroups,
+      p_expected_groups: body.expectedGroups,
     })
 
     if (saveError) {
@@ -267,8 +274,8 @@ export async function POST(request: NextRequest) {
       }, { status: conflictMessage ? 409 : 500 })
     }
 
-    const assignedCoachIds = coachIds
-    await Promise.all(assignedCoachIds.map((coachId) => {
+    const assignedCoachIds = (saveResult as { no_change?: boolean } | null)?.no_change ? [] : coachIds
+    const delivery = await Promise.allSettled(assignedCoachIds.map((coachId) => {
       const coachGroups = groups.filter((group) => group.coachId === coachId)
       const coachStudentCount = coachGroups.reduce((sum, group) => sum + (group.studentSessionIds?.length || 0), 0)
 
@@ -279,11 +286,12 @@ export async function POST(request: NextRequest) {
         studentCount: coachStudentCount,
       })
     }))
+    const deliveryIncomplete = delivery.some(result => result.status === 'rejected' || result.value.some(recipient => !recipient.success))
 
     return NextResponse.json({
       success: true,
       scheduleSlotId,
-      warnings: formatLegacyCoachWarnings(legacyWarnings),
+      warnings: [formatLegacyCoachWarnings(legacyWarnings), deliveryIncomplete ? 'บันทึกกลุ่มสำเร็จ แต่การแจ้งโค้ชยังยืนยันไม่ครบ กรุณาตรวจแจ้งเตือน' : null].filter(Boolean).join(' · ') || null,
       canonicalGroups: getCanonicalGroups(saveResult),
       result: saveResult,
     })
@@ -292,4 +300,25 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
     return NextResponse.json({ error: message }, { status: 500 })
   }
+}
+
+// Readback after an uncertain Save is read-only and uses the same manager/branch gate.
+export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const manager = await requireAssignmentManager(supabase)
+  if (!manager) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const id = request.nextUrl.searchParams.get('scheduleSlotId') || ''
+  const branchId = request.nextUrl.searchParams.get('branchId') || ''
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'ข้อมูลรอบสอนไม่ถูกต้อง' }, { status: 400 })
+  const { data: slot, error } = await supabase.from('schedule_slots').select('id, branch_id').eq('id', id).maybeSingle() as unknown as { data: { id: string; branch_id: string } | null; error: { message: string } | null }
+  if (error) return NextResponse.json({ error: 'อ่านข้อมูลรอบสอนไม่สำเร็จ' }, { status: 503 })
+  if (!slot || slot.branch_id !== branchId) return NextResponse.json({ error: 'ไม่พบรอบสอน' }, { status: 404 })
+  if (manager.role === 'head_coach') {
+    const own = await supabase.from('coach_branches').select('branch_id').eq('coach_id', manager.user.id).eq('branch_id', branchId).maybeSingle()
+    if (own.error) return NextResponse.json({ error: 'ตรวจสิทธิ์สาขาไม่สำเร็จ' }, { status: 503 })
+    if (!own.data) return NextResponse.json({ error: 'ไม่มีสิทธิ์ในสาขานี้' }, { status: 403 })
+  }
+  const snapshot = await getServiceRoleClient().rpc('coach_assignment_slot_snapshot_v2', { p_schedule_slot_id: id })
+  if (snapshot.error) return NextResponse.json({ error: 'ยังยืนยันผลบันทึกไม่ได้' }, { status: 503 })
+  return NextResponse.json({ canonicalGroups: getCanonicalGroups({ snapshot: snapshot.data }) }, { headers: { 'Cache-Control': 'private, no-store' } })
 }

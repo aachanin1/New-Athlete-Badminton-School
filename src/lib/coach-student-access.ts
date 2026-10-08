@@ -7,6 +7,7 @@ import {
   requireCoachAssignmentQueryData,
 } from '@/lib/coach-assignment-resolution'
 import type { StudentType, UserRole } from '@/types/database'
+import { createCompleteCoachStudentReadClient } from '@/lib/coach-student-reads'
 
 type SupabaseQuery = PromiseLike<unknown> & {
   eq: (column: string, value: unknown) => SupabaseQuery
@@ -294,7 +295,7 @@ export async function getCoachVisibleStudents(
   supabaseClient: unknown,
   user: Pick<User, 'id'>,
 ): Promise<CoachVisibleStudent[]> {
-  const supabase = supabaseClient as SupabaseLike
+  const supabase = createCompleteCoachStudentReadClient(supabaseClient) as SupabaseLike
   const role = await getCoachRole(supabase, user.id)
   if (!role || (!isCoachRole(role) && !isStaffAllAccess(role))) return []
 

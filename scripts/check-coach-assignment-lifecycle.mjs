@@ -58,6 +58,8 @@ const legacyAssignmentRoute = read('src/app/api/coach/assignments/route.ts')
 const scheduleSlotResolver = read('src/lib/schedule-slot-utils.ts')
 const rescheduleRoute = read('src/app/api/reschedule/route.ts')
 const walletRoute = read('src/app/api/lesson-wallet/route.ts')
+const transitionSql = read('supabase/migrations/20260928171257_lesson_source_transition_atomic_v1.sql')
+const effectsSql = read('supabase/migrations/20261007073831_assignment_wallet_history_notifications.sql')
 const teachingHours = read('src/lib/coach-teaching-hours.ts')
 const migration = read('supabase/migrations/20260804000000_assignment_group_lifecycle_integrity.sql')
 const v1Migration = read('supabase/migrations/20260717070225_coach_assignment_conflict_guards.sql')
@@ -163,10 +165,11 @@ await check('assignment history GET is authenticated, role- and branch-scoped be
 
 await check('history reconstruction is bounded, stable, batched, evidence-only, and sanitizes raw audit details', () => {
   assert.match(assignmentHistoryLib, /const ASSIGNMENT_HISTORY_LIMIT = 5/)
-  assert.match(assignmentHistoryLib, /const HISTORY_ACTIVITY_SCAN_LIMIT = 50/)
-  assert.match(assignmentHistoryLib, /\.contains\('details', \{ scheduleSlotId \}\)/)
+  assert.match(assignmentHistoryLib, /HISTORY_SESSION_MAX_PAGES = 10/)
+  assert.match(assignmentHistoryLib, /\.contains\('details', \{ scheduleSlotId: input\.scheduleSlotId \}\)/)
   assert.match(assignmentHistoryLib, /\.order\('created_at', \{ ascending: false \}\)[\s\S]*\.order\('id', \{ ascending: false \}\)/)
-  assert.match(assignmentHistoryLib, /\.limit\(HISTORY_ACTIVITY_SCAN_LIMIT\)/)
+  assert.match(assignmentHistoryLib, /count: 'exact'/)
+  assert.match(assignmentHistoryLib, /nextCursor:/)
   assert.match(assignmentHistoryLib, /HISTORY_SUPPORTING_BATCH_SIZE/)
   assert.match(assignmentHistoryLib, /ต้องให้ Admin ตรวจสอบ/)
   assert.match(assignmentHistoryLib, /ระบบไม่พบหลักฐานเดิมที่ระบุว่าเกิดจากการย้ายวันหรือเก็บเข้ากระเป๋า/)
@@ -274,7 +277,7 @@ await check('history semantics ignore recreated group IDs, remove meaningless re
 await check('history is loaded only after click with per-slot single-flight, cache, accessible localized states, and retry', () => {
   assert.match(assignmentClient, /const assignmentHistoryRequestsRef = useRef\(new Map/)
   assert.match(assignmentClient, /const assignmentHistoryCacheRef = useRef\(new Map/)
-  assert.match(assignmentClient, /assignmentHistoryRequestsRef\.current\.get\(slot\.key\)/)
+  assert.match(assignmentClient, /assignmentHistoryRequestsRef\.current\.get\(requestKey\)/)
   assert.match(assignmentClient, /assignmentHistoryCacheRef\.current\.get\(slot\.key\)/)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-history\?scheduleSlotId=/)
   assert.match(assignmentClient, /กำลังโหลดประวัติการเปลี่ยนแปลง\.\.\./)
@@ -284,8 +287,7 @@ await check('history is loaded only after click with per-slot single-flight, cac
   assert.match(assignmentClient, /event\.type === 'unknown'/)
   assert.match(assignmentClient, /border-amber-300 bg-amber-50/)
   assert.match(assignmentClient, /ผู้เรียน \{event\.learnerNames\.length > 0 \? event\.learnerNames\.join\(', '\) : 'ไม่ทราบชื่อจากหลักฐานเดิม'\} ไม่อยู่ในรายชื่อรอบนี้แล้ว/)
-  assert.match(assignmentClient, /event\.actorName &&/)
-  assert.match(assignmentClient, /โดย \{event\.actorName\}/)
+  assert.match(assignmentClient, /โดย \{event\.actorName \|\| 'ไม่ทราบผู้ทำรายการจากหลักฐาน'\}/)
   assert.doesNotMatch(`${assignmentHistoryLib}\n${assignmentClient}`, /ไม่ทราบผู้ดำเนินการ/)
   assert.doesNotMatch(`${assignmentHistoryLib}\n${assignmentClient}`, /การเปลี่ยนแปลงของรายชื่อที่ไม่มีหลักฐานยืนยัน/)
   assert.doesNotMatch(`${assignmentHistoryLib}\n${assignmentClient}`, /ไม่พบสาเหตุที่ยืนยันได้/)
@@ -440,9 +442,10 @@ await check('month navigation uses a synchronous re-entry guard and resets after
   assert.match(assignmentClient, /monthNavigationLockRef\.current = false/)
 })
 
-await check('client adds no Supabase read or prefetch and only the scoped memory/history GETs plus Save', () => {
+await check('client adds no Supabase read or prefetch and only scoped memory/history/readback GETs plus Save', () => {
   assert.doesNotMatch(assignmentClient, /createClient\(|\.from\('booking_sessions'\)|prefetch\(/)
-  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 3)
+  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 4)
+  assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-groups\?scheduleSlotId=/)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-memory\?scheduleSlotId=/)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-history\?scheduleSlotId=/)
 })
@@ -454,8 +457,10 @@ await check('started assignment slots retain the existing read-only lock and Adm
 })
 
 await check('Reschedule and Wallet notifications keep canonical assignment-month links', () => {
-  assert.match(rescheduleRoute, /\/coach\/assign-groups\?month=\$\{targetDate\.slice\(0, 7\)\}/)
-  assert.match(walletRoute, /\/coach\/assign-groups\?month=\$\{monthKey\((?:session\.date|targetDate)\)\}/)
+  assert.match(rescheduleRoute, /transitionLessonSource/)
+  assert.match(walletRoute, /transitionLessonSource/)
+  assert.match(effectsSql, /'\/coach\/assign-groups\?month='\|\|left\(n\.date::text,7\)/)
+  assert.match(effectsSql, /'\/coach\/assign-groups\?month='\|\|left\(p_result->>'target_date',7\)/)
 })
 
 await check('assignment roster retains absent learners', () => {
@@ -523,10 +528,12 @@ await check('client uses canonical persisted response as the post-Save baseline'
   assert.match(assignmentClient, /รายชื่อรอบเรียนบน Server เปลี่ยนระหว่างที่กำลังแก้ฉบับร่าง/)
 })
 
-await check('v2 Save and both retirement call sites are wired while v1 remains intact', () => {
-  assert.match(assignmentRoute, /rpc\('save_coach_assignment_groups_v2'/)
-  assert.match(rescheduleRoute, /rpc\('retire_coach_assignment_membership_v1'[\s\S]*p_reason: 'reschedule_out'/)
-  assert.match(walletRoute, /rpc\('retire_coach_assignment_membership_v1'[\s\S]*p_reason: 'wallet_store'/)
+await check('baseline-checked v3 Save delegates to intact v2 and both retirement call sites remain wired', () => {
+  assert.match(assignmentRoute, /rpc\('save_coach_assignment_groups_v3'/)
+  assert.match(assignmentRoute, /p_expected_groups: body\.expectedGroups/)
+  assert.match(read('supabase/migrations/20261007073831_assignment_wallet_history_notifications.sql'), /public\.save_coach_assignment_groups_v2\(p_schedule_slot_id,p_actor_id,p_groups\)/)
+  assert.match(transitionSql, /retire_coach_assignment_membership_v1\(s.id,p_actor_id,'reschedule_out'\)/)
+  assert.match(read('supabase/migrations/20260826021944_separate_progressive_kids_wallet_entitlement.sql'), /retire_coach_assignment_membership_v1\([\s\S]*'wallet_store'/)
   assert.match(v1Migration, /create or replace function public\.save_coach_assignment_groups_v1/)
 })
 

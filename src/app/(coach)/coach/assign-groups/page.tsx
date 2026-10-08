@@ -79,7 +79,7 @@ interface ExistingGroupRow {
   level_min: number | null
   level_max: number | null
   sort_order: number
-  profiles?: { full_name: string | null } | null
+  profiles?: { full_name: string | null; role: string | null } | null
   coach_assignment_group_students?: {
     booking_session_id: string
     student_id: string
@@ -438,7 +438,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         .from('coach_assignment_groups')
         .select(`
           id, schedule_slot_id, coach_id, name, level_min, level_max, sort_order,
-          profiles!coach_assignment_groups_coach_id_fkey(full_name),
+          profiles!coach_assignment_groups_coach_id_fkey(full_name, role),
           coach_assignment_group_students(booking_session_id, student_id, student_type)
         `, { count: 'exact' })
         .in('schedule_slot_id', batchSlotIds)
@@ -495,7 +495,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
       id: group.id,
       name: group.name,
       coachId: group.coach_id,
-      coachName: group.profiles?.full_name || null,
+      coachName: ['coach', 'head_coach'].includes(group.profiles?.role || '') ? group.profiles?.full_name || 'Coach' : null,
       levelMin: group.level_min,
       levelMax: group.level_max,
       sortOrder: group.sort_order,

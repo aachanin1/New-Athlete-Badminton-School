@@ -438,6 +438,7 @@ export async function RankingContent({ mode = 'public', enableSearch = false }: 
           .select('id, student_id, student_type, level, notes, created_at, profiles!student_levels_updated_by_fkey(full_name)')
           .in('student_id', idChunk)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .range(from, to) as unknown as PromiseLike<QueryRowsResult<StudentLevelRow>>,
       ),
       readChunkedRangePages<StudentAchievementRow>(
