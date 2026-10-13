@@ -14,6 +14,7 @@ import {
   resolveCoachAssignmentGroupName,
 } from '@/lib/coach-assignment-group-naming'
 import { loadAssignmentGroupNamingStudents } from '@/lib/coach-assignment-group-naming-server'
+import { COACH_ASSIGNMENT_ELIGIBLE_SESSION_STATUSES } from '@/lib/coach-assignment-lifecycle'
 import { createClient } from '@/lib/supabase/server'
 
 type AssignmentManagerRole = 'head_coach' | 'admin' | 'super_admin'
@@ -320,5 +321,26 @@ export async function GET(request: NextRequest) {
   }
   const snapshot = await getServiceRoleClient().rpc('coach_assignment_slot_snapshot_v2', { p_schedule_slot_id: id })
   if (snapshot.error) return NextResponse.json({ error: 'ยังยืนยันผลบันทึกไม่ได้' }, { status: 503 })
-  return NextResponse.json({ canonicalGroups: getCanonicalGroups({ snapshot: snapshot.data }) }, { headers: { 'Cache-Control': 'private, no-store' } })
+  // Read the complete current eligible roster, rather than inferring it from
+  // saved memberships. The client verifies both this read and refreshed props.
+  const rosterSessionIds: string[] = []
+  let expectedCount: number | null = null
+  const adminSupabase = getServiceRoleClient()
+  for (let start = 0; start < 10_000; start += 500) {
+    const roster = await adminSupabase.from('booking_sessions')
+      .select('id, bookings!inner(status)', { count: 'exact' })
+      .eq('schedule_slot_id', id).in('status', [...COACH_ASSIGNMENT_ELIGIBLE_SESSION_STATUSES])
+      .eq('bookings.status', 'verified').order('id').range(start, start + 499)
+    if (roster.error || !Array.isArray(roster.data) || roster.count === null
+      || (expectedCount !== null && expectedCount !== roster.count)) {
+      return NextResponse.json({ error: 'อ่านรายชื่อปัจจุบันไม่ครบ กรุณาลองอีกครั้ง' }, { status: 503 })
+    }
+    expectedCount = roster.count
+    rosterSessionIds.push(...roster.data.map(row => row.id))
+    if (roster.data.length < 500) break
+  }
+  if (rosterSessionIds.length !== expectedCount || new Set(rosterSessionIds).size !== rosterSessionIds.length) {
+    return NextResponse.json({ error: 'อ่านรายชื่อปัจจุบันไม่ครบ กรุณาลองอีกครั้ง' }, { status: 503 })
+  }
+  return NextResponse.json({ canonicalGroups: getCanonicalGroups({ snapshot: snapshot.data }), rosterSessionIds }, { headers: { 'Cache-Control': 'private, no-store' } })
 }

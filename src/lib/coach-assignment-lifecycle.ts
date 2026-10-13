@@ -54,6 +54,28 @@ export function getAssignmentGroupsSignature(
   return JSON.stringify(normalizeAssignmentGroupsForComparison(groups))
 }
 
+// Persisted concurrency evidence includes empty groups and inactive memberships.
+// Draft/coverage comparisons above intentionally describe the visible roster.
+export function getPersistedAssignmentGroupsSignature(groups: readonly AssignmentGroupComparisonShape[]) {
+  const normalized = groups.map(group => ({
+    name: group.name.trim(), coachId: group.coachId || null,
+    levelMin: group.levelMin, levelMax: group.levelMax,
+    studentSessionIds: [...group.studentSessionIds].sort(),
+  }))
+  normalized.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+  return JSON.stringify(normalized)
+}
+
+export function projectActiveAssignmentGroups<T extends AssignmentGroupComparisonShape>(groups: readonly T[], sessionIds: readonly string[]) {
+  const active = new Set(sessionIds)
+  return groups.map(group => ({ ...group, studentSessionIds: group.studentSessionIds.filter(id => active.has(id)) }))
+    .filter(group => group.studentSessionIds.length > 0)
+}
+
+export function getAssignmentRosterSignature(sessionIds: readonly string[]) {
+  return JSON.stringify([...sessionIds].sort())
+}
+
 export function reconcileAssignmentDraft<T extends AssignmentGroupComparisonShape>(input: {
   currentDraft: readonly T[]
   previousServerDerivedDraft: readonly T[]
@@ -63,10 +85,11 @@ export function reconcileAssignmentDraft<T extends AssignmentGroupComparisonShap
 }) {
   const currentDraftSignature = getAssignmentGroupsSignature(input.currentDraft)
   const previousDraftSignature = getAssignmentGroupsSignature(input.previousServerDerivedDraft)
-  const previousServerSignature = getAssignmentGroupsSignature(input.previousPersistedGroups)
-  const nextServerSignature = getAssignmentGroupsSignature(input.nextPersistedGroups)
+  const previousServerSignature = getPersistedAssignmentGroupsSignature(input.previousPersistedGroups)
+  const nextServerSignature = getPersistedAssignmentGroupsSignature(input.nextPersistedGroups)
   const userEdited = currentDraftSignature !== previousDraftSignature
   const serverChanged = previousServerSignature !== nextServerSignature
+    || previousDraftSignature !== getAssignmentGroupsSignature(input.nextServerDerivedDraft)
 
   if (!userEdited) {
     return {

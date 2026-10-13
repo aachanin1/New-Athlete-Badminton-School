@@ -46,6 +46,8 @@ import {
 } from '@/lib/coach-assignment-group-naming'
 import {
   getAssignmentGroupsSignature,
+  getPersistedAssignmentGroupsSignature,
+  getAssignmentRosterSignature,
   getAssignmentCoverage,
   parseCanonicalAssignmentGroups,
   reconcileAssignmentDraft,
@@ -115,7 +117,17 @@ interface AssignmentSlot {
   assignmentLockReason: string | null
   students: AssignmentStudent[]
   assignmentGroups: ExistingAssignmentGroup[]
+  persistedAssignmentGroups: ExistingAssignmentGroup[]
   rosterDelta: AssignmentRosterDelta
+}
+
+interface RosterRequest {
+  slotKey: string
+  sourceSlots: AssignmentSlot[]
+  persistedSignature?: string
+  rosterSignature?: string
+  timeout?: ReturnType<typeof setTimeout>
+  controller: AbortController
 }
 
 interface GroupDraft {
@@ -135,6 +147,7 @@ type AssignmentStatusFilter = 'needs_assignment' | 'saved' | 'all'
 interface SavedSlotSnapshot {
   draftSignature: string
   serverSignatureAtSave: string
+  persistedSignatureAtSave: string
   coverage: ReturnType<typeof getAssignmentCoverage>
 }
 
@@ -361,7 +374,7 @@ function createInitialDraftMap(slots: AssignmentSlot[]) {
 
 function createPersistedGroupMap(slots: AssignmentSlot[]) {
   return slots.reduce((map, slot) => {
-    map[slot.key] = slot.assignmentGroups
+    map[slot.key] = slot.persistedAssignmentGroups
     return map
   }, {} as Record<string, ExistingAssignmentGroup[]>)
 }
@@ -550,6 +563,7 @@ export function AssignGroupsClient({
   const [initialPersistedGroups] = useState(() => createPersistedGroupMap(slots))
   const [savedSnapshotsBySlot, setSavedSnapshotsBySlot] = useState<Record<string, SavedSlotSnapshot>>({})
   const [serverChangesBySlot, setServerChangesBySlot] = useState<Record<string, boolean>>({})
+  const [acceptingRosterKey, setAcceptingRosterKey] = useState<string | null>(null)
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [errorsBySlot, setErrorsBySlot] = useState<Record<string, string>>({})
   const [selectedDate, setSelectedDate] = useState(() => slots[0]?.date || '')
@@ -568,6 +582,8 @@ export function AssignGroupsClient({
   const draftBaselinesBySlotRef = useRef(draftsBySlot)
   const persistedGroupsBySlotRef = useRef(initialPersistedGroups)
   const savedSnapshotsBySlotRef = useRef(savedSnapshotsBySlot)
+  const serverChangesBySlotRef = useRef(serverChangesBySlot)
+  const rosterRequestRef = useRef<RosterRequest | null>(null)
   const monthNavigationLockRef = useRef(false)
   const monthNavigationSourceMonthRef = useRef<string | null>(null)
   const coachMemoryRequestsRef = useRef(new Map<string, Promise<AssignmentSlot | null>>())
@@ -592,6 +608,17 @@ export function AssignGroupsClient({
   }, [savedSnapshotsBySlot])
 
   useEffect(() => {
+    serverChangesBySlotRef.current = serverChangesBySlot
+  }, [serverChangesBySlot])
+
+  useEffect(() => () => {
+    const request = rosterRequestRef.current
+    request?.controller.abort()
+    if (request?.timeout) clearTimeout(request.timeout)
+    rosterRequestRef.current = null
+  }, [])
+
+  useEffect(() => {
     if (!pendingTargetMonth) return
     if (selectedMonth !== monthNavigationSourceMonthRef.current || !isMonthNavigationPending) {
       monthNavigationLockRef.current = false
@@ -607,6 +634,10 @@ export function AssignGroupsClient({
     const nextPersistedGroups: Record<string, ExistingAssignmentGroup[]> = {}
     const nextServerChanges: Record<string, boolean> = {}
     const changedHistoryKeys = new Set<string>()
+    const rosterRequest = rosterRequestRef.current
+    const canReviewRosterRequest = Boolean(rosterRequest?.persistedSignature && slots !== rosterRequest.sourceSlots)
+    let acceptedRosterKey: string | null = null
+    let rosterReviewFailed = false
 
     slots.forEach((slot) => {
       const incomingDraft = createInitialDrafts(slot)
@@ -614,24 +645,40 @@ export function AssignGroupsClient({
       const previousBaseline = draftBaselinesBySlotRef.current[slot.key] || currentDraft
       const previousPersistedGroups = persistedGroupsBySlotRef.current[slot.key] || []
       const savedSnapshot = savedSnapshotsBySlotRef.current[slot.key]
-      const incomingServerSignature = getGroupsSignature(slot.assignmentGroups)
+      const incomingServerSignature = getPersistedAssignmentGroupsSignature(slot.persistedAssignmentGroups)
       const currentDraftSignature = getGroupsSignature(currentDraft)
+      if (canReviewRosterRequest && rosterRequest?.slotKey === slot.key) {
+        const matches = incomingServerSignature === rosterRequest.persistedSignature
+          && getAssignmentRosterSignature(slot.students.map(student => student.bookingSessionId)) === rosterRequest.rosterSignature
+        if (matches) {
+          nextDrafts[slot.key] = incomingDraft
+          nextBaselines[slot.key] = incomingDraft
+          nextPersistedGroups[slot.key] = slot.persistedAssignmentGroups
+          nextServerChanges[slot.key] = false
+          acceptedRosterKey = slot.key
+          changedHistoryKeys.add(slot.key)
+          assignmentHistoryGenerationsRef.current.set(slot.key, (assignmentHistoryGenerationsRef.current.get(slot.key) || 0) + 1)
+          assignmentHistoryCacheRef.current.delete(slot.key)
+          return
+        }
+        rosterReviewFailed = true
+      }
       const isStaleRefreshImmediatelyAfterSave = Boolean(
         savedSnapshot
-        && incomingServerSignature === savedSnapshot.serverSignatureAtSave
+        && incomingServerSignature === savedSnapshot.persistedSignatureAtSave
         && currentDraftSignature === savedSnapshot.draftSignature
-        && incomingServerSignature !== savedSnapshot.draftSignature,
+        && getGroupsSignature(slot.assignmentGroups) !== savedSnapshot.draftSignature,
       )
 
       if (isStaleRefreshImmediatelyAfterSave) {
         nextDrafts[slot.key] = currentDraft
         nextBaselines[slot.key] = previousBaseline
         nextPersistedGroups[slot.key] = previousPersistedGroups
-        nextServerChanges[slot.key] = false
+        nextServerChanges[slot.key] = Boolean(serverChangesBySlotRef.current[slot.key]) || (rosterReviewFailed && rosterRequest?.slotKey === slot.key)
         return
       }
 
-      if (getGroupsSignature(previousPersistedGroups) !== incomingServerSignature
+      if (getPersistedAssignmentGroupsSignature(previousPersistedGroups) !== incomingServerSignature
         || getGroupsSignature(previousBaseline) !== getGroupsSignature(incomingDraft)) {
         changedHistoryKeys.add(slot.key)
         assignmentHistoryGenerationsRef.current.set(slot.key, (assignmentHistoryGenerationsRef.current.get(slot.key) || 0) + 1)
@@ -643,19 +690,36 @@ export function AssignGroupsClient({
         previousServerDerivedDraft: previousBaseline,
         nextServerDerivedDraft: incomingDraft,
         previousPersistedGroups,
-        nextPersistedGroups: slot.assignmentGroups,
+        nextPersistedGroups: slot.persistedAssignmentGroups,
       })
       nextDrafts[slot.key] = reconciliation.draft
       nextBaselines[slot.key] = reconciliation.baseline
-      nextPersistedGroups[slot.key] = slot.assignmentGroups
-      nextServerChanges[slot.key] = reconciliation.needsRefreshReview
+      nextPersistedGroups[slot.key] = slot.persistedAssignmentGroups
+      nextServerChanges[slot.key] = Boolean(serverChangesBySlotRef.current[slot.key]) || reconciliation.needsRefreshReview || (rosterReviewFailed && rosterRequest?.slotKey === slot.key)
     })
 
     draftBaselinesBySlotRef.current = nextBaselines
     persistedGroupsBySlotRef.current = nextPersistedGroups
     draftsBySlotRef.current = nextDrafts
     setDraftsBySlot(nextDrafts)
+    serverChangesBySlotRef.current = nextServerChanges
     setServerChangesBySlot(nextServerChanges)
+    if (canReviewRosterRequest && rosterRequest) {
+      if (rosterRequest.timeout) clearTimeout(rosterRequest.timeout)
+      rosterRequestRef.current = null
+      setAcceptingRosterKey(null)
+      const acceptedKey = acceptedRosterKey
+      if (acceptedKey) {
+        setSavedSnapshotsBySlot(prev => {
+          const next = { ...prev }; delete next[acceptedKey]; return next
+        })
+        setErrorsBySlot(prev => ({ ...prev, [acceptedKey]: '' }))
+        toast.success('ใช้รายชื่อปัจจุบันแล้ว กรุณาตรวจกลุ่มก่อนบันทึก')
+      } else {
+        setServerChangesBySlot(prev => ({ ...prev, [rosterRequest.slotKey]: true }))
+        setErrorsBySlot(prev => ({ ...prev, [rosterRequest.slotKey]: 'ข้อมูลเปลี่ยนระหว่างโหลด กรุณาใช้รายชื่อปัจจุบันอีกครั้ง' }))
+      }
+    }
     if (changedHistoryKeys.size) {
       setAssignmentHistoryBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
       setHistoryCursorBySlot(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !changedHistoryKeys.has(key))))
@@ -729,7 +793,7 @@ export function AssignGroupsClient({
   const activeDateSummary = dateSummaries.find((date) => date.date === activeDate)
 
   const navigateMonth = (direction: -1 | 1) => {
-    if (monthNavigationLockRef.current || isMonthNavigationPending) return
+    if (monthNavigationLockRef.current || isMonthNavigationPending || rosterRequestRef.current) return
     if (direction === -1 && isCurrentMonth) return
     if (savingKey) {
       toast.warning('กำลังบันทึกการมอบหมาย กรุณารอให้บันทึกเสร็จก่อนเปลี่ยนเดือน')
@@ -756,6 +820,7 @@ export function AssignGroupsClient({
   }
 
   const updateSlotGroups = (slotKey: string, updater: (groups: GroupDraft[]) => GroupDraft[]) => {
+    if (rosterRequestRef.current?.slotKey === slotKey) return
     setDraftsBySlot((prev) => ({
       ...prev,
       [slotKey]: updater(prev[slotKey] || []),
@@ -930,6 +995,7 @@ export function AssignGroupsClient({
   }
 
   const resetAutoGroups = async (slot: AssignmentSlot) => {
+    if (rosterRequestRef.current?.slotKey === slot.key) return
     const slotWithMemory = await ensureCoachMemory(slot)
     if (!slotWithMemory) return
     setDraftsBySlot((prev) => ({
@@ -939,32 +1005,52 @@ export function AssignGroupsClient({
     setErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
   }
 
-  const acceptCurrentServerRoster = (slot: AssignmentSlot) => {
-    const nextDraft = createInitialDrafts(slot)
-    draftBaselinesBySlotRef.current = {
-      ...draftBaselinesBySlotRef.current,
-      [slot.key]: nextDraft,
-    }
-    persistedGroupsBySlotRef.current = {
-      ...persistedGroupsBySlotRef.current,
-      [slot.key]: slot.assignmentGroups,
-    }
-    setDraftsBySlot((prev) => ({ ...prev, [slot.key]: nextDraft }))
-    setSavedSnapshotsBySlot((prev) => {
-      const next = { ...prev }
-      delete next[slot.key]
-      return next
-    })
-    setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: false }))
+  const acceptCurrentServerRoster = async (slot: AssignmentSlot) => {
+    if (!slot.scheduleSlotId || rosterRequestRef.current || savingKey) return
+    const request: RosterRequest = { slotKey: slot.key, sourceSlots: slots, controller: new AbortController() }
+    rosterRequestRef.current = request
+    setAcceptingRosterKey(slot.key)
+    setServerChangesBySlot(prev => ({ ...prev, [slot.key]: true }))
     setErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
+    request.timeout = setTimeout(() => {
+      if (rosterRequestRef.current !== request) return
+      request.controller.abort()
+      rosterRequestRef.current = null
+      setAcceptingRosterKey(null)
+      setErrorsBySlot(prev => ({ ...prev, [slot.key]: 'โหลดรายชื่อปัจจุบันไม่สำเร็จ กรุณาลองอีกครั้ง' }))
+    }, 30_000)
+    try {
+      const response = await fetch(`/api/coach/assignment-groups?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId)}&branchId=${encodeURIComponent(slot.branchId)}`, { cache: 'no-store', signal: request.controller.signal })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result?.error || 'โหลดรายชื่อปัจจุบันไม่สำเร็จ')
+      const canonical = parseCanonicalAssignmentGroups(result.canonicalGroups)
+      if (!Array.isArray(result.canonicalGroups) || canonical.length !== result.canonicalGroups.length
+        || !Array.isArray(result.rosterSessionIds) || result.rosterSessionIds.some((id: unknown) => typeof id !== 'string')
+        || new Set(result.rosterSessionIds).size !== result.rosterSessionIds.length) throw new Error('อ่านรายชื่อปัจจุบันไม่ครบ กรุณาลองอีกครั้ง')
+      if (rosterRequestRef.current !== request) return
+      request.persistedSignature = getPersistedAssignmentGroupsSignature(canonical)
+      request.rosterSignature = getAssignmentRosterSignature(result.rosterSessionIds)
+      // Only an incoming page whose full baseline AND eligible roster match this
+      // authenticated read can replace the draft. Old props cannot clear a conflict.
+      request.sourceSlots = slots
+      router.refresh()
+    } catch (cause) {
+      if (rosterRequestRef.current !== request) return
+      if (request.timeout) clearTimeout(request.timeout)
+      rosterRequestRef.current = null
+      setAcceptingRosterKey(null)
+      setErrorsBySlot(prev => ({ ...prev, [slot.key]: cause instanceof Error ? cause.message : 'โหลดรายชื่อปัจจุบันไม่สำเร็จ กรุณาลองอีกครั้ง' }))
+    }
   }
 
   const saveSlot = async (slot: AssignmentSlot) => {
+    if (rosterRequestRef.current || serverChangesBySlot[slot.key]) return
     const groups = draftsBySlot[slot.key] || []
     const requestDraftSignature = getGroupsSignature(groups)
     const serverSignatureAtSave = getGroupsSignature(
-      persistedGroupsBySlotRef.current[slot.key] || slot.assignmentGroups,
+      slot.assignmentGroups,
     )
+    const persistedSignatureAtSave = getPersistedAssignmentGroupsSignature(persistedGroupsBySlotRef.current[slot.key] || slot.persistedAssignmentGroups)
     if (slot.assignmentLocked) {
       setErrorsBySlot((prev) => ({ ...prev, [slot.key]: slot.assignmentLockReason || 'รอบเรียนนี้เริ่มหรือเลยเวลาเรียนแล้ว ไม่สามารถมอบหมายย้อนหลังได้' }))
       return
@@ -1034,7 +1120,7 @@ export function AssignGroupsClient({
           scheduleSlotId: slot.scheduleSlotId,
           branchId: slot.branchId,
           groups: submittedGroups,
-          expectedGroups: (persistedGroupsBySlotRef.current[slot.key] || slot.assignmentGroups).map(group => ({
+          expectedGroups: (persistedGroupsBySlotRef.current[slot.key] || slot.persistedAssignmentGroups).map(group => ({
             name: group.name, coachId: group.coachId, levelMin: group.levelMin, levelMax: group.levelMax,
             studentSessionIds: group.studentSessionIds,
           })),
@@ -1100,6 +1186,7 @@ export function AssignGroupsClient({
         [slot.key]: {
           draftSignature: savedDraftSignature,
           serverSignatureAtSave,
+          persistedSignatureAtSave,
           coverage: savedCoverage,
         },
       }))
@@ -1538,7 +1625,7 @@ export function AssignGroupsClient({
                             type="button"
                             size="sm"
                             onClick={() => saveSlot(slot)}
-                            disabled={savingKey === slot.key || hasDuplicateCoaches || slotDraftState === 'saved' || slotDraftState === 'waiting' || slotDraftState === 'empty' || isAssignmentLocked || hasServerLifecycleChange}
+                            disabled={savingKey === slot.key || Boolean(acceptingRosterKey) || hasDuplicateCoaches || slotDraftState === 'saved' || slotDraftState === 'waiting' || slotDraftState === 'empty' || isAssignmentLocked || hasServerLifecycleChange}
                             className="bg-[#2748bf] hover:bg-[#153c85]"
                           >
                             {savingKey === slot.key ? (
@@ -1565,9 +1652,9 @@ export function AssignGroupsClient({
                       {hasServerLifecycleChange && (
                         <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
                           <span>รายชื่อรอบเรียนบน Server เปลี่ยนระหว่างที่กำลังแก้ฉบับร่าง ระบบเก็บฉบับร่างไว้ กรุณาตรวจและเลือกรายชื่อปัจจุบันก่อนบันทึก</span>
-                          <Button type="button" variant="outline" size="sm" onClick={() => acceptCurrentServerRoster(slot)}>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            ใช้รายชื่อปัจจุบัน
+                          <Button type="button" variant="outline" size="sm" onClick={() => void acceptCurrentServerRoster(slot)} disabled={Boolean(acceptingRosterKey) || Boolean(savingKey)}>
+                            {acceptingRosterKey === slot.key ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            {acceptingRosterKey === slot.key ? 'กำลังโหลดรายชื่อปัจจุบัน' : 'ใช้รายชื่อปัจจุบัน'}
                           </Button>
                         </div>
                       )}

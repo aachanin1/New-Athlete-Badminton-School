@@ -436,7 +436,7 @@ await check('month navigation exposes an accessible pending status and disables 
 
 await check('month navigation uses a synchronous re-entry guard and resets after route commit or interruption', () => {
   assert.match(assignmentClient, /const monthNavigationLockRef = useRef\(false\)/)
-  assert.match(assignmentClient, /if \(monthNavigationLockRef\.current \|\| isMonthNavigationPending\) return/)
+  assert.match(assignmentClient, /if \(monthNavigationLockRef\.current \|\| isMonthNavigationPending \|\| rosterRequestRef\.current\) return/)
   assert.match(assignmentClient, /monthNavigationLockRef\.current = true[\s\S]*startMonthNavigation\(\(\) =>/)
   assert.match(assignmentClient, /selectedMonth !== monthNavigationSourceMonthRef\.current \|\| !isMonthNavigationPending/)
   assert.match(assignmentClient, /monthNavigationLockRef\.current = false/)
@@ -444,7 +444,7 @@ await check('month navigation uses a synchronous re-entry guard and resets after
 
 await check('client adds no Supabase read or prefetch and only scoped memory/history/readback GETs plus Save', () => {
   assert.doesNotMatch(assignmentClient, /createClient\(|\.from\('booking_sessions'\)|prefetch\(/)
-  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 4)
+  assert.equal((assignmentClient.match(/fetch\(/g) || []).length, 5)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-groups\?scheduleSlotId=/)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-memory\?scheduleSlotId=/)
   assert.match(assignmentClient, /fetch\(`\/api\/coach\/assignment-history\?scheduleSlotId=/)

@@ -6,6 +6,7 @@ import {
   requireCoachAssignmentQueryData,
 } from '@/lib/coach-assignment-resolution'
 import type { CoachMemoryEntry } from '@/lib/coach-student-memory'
+import { projectActiveAssignmentGroups } from '@/lib/coach-assignment-lifecycle'
 import { createClient } from '@/lib/supabase/server'
 import { getBangkokDateString } from '@/lib/utils'
 import type { LevelCategory, StudentType } from '@/types/database'
@@ -140,6 +141,7 @@ interface AssignmentSlotForClient {
   assignmentLockReason: string | null
   students: AssignmentStudentForClient[]
   assignmentGroups: ExistingAssignmentGroupForClient[]
+  persistedAssignmentGroups: ExistingAssignmentGroupForClient[]
   rosterDelta: AssignmentRosterDeltaForClient
 }
 
@@ -483,12 +485,9 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     return map
   }, {} as Record<string, Set<string>>)
 
-  const assignmentGroupsBySlot = (assignmentGroups || []).reduce((map, group) => {
-    const activeSessionIds = activeSessionIdsBySlot[group.schedule_slot_id] || new Set<string>()
+  const persistedAssignmentGroupsBySlot = (assignmentGroups || []).reduce((map, group) => {
     const studentSessionIds = (group.coach_assignment_group_students || [])
       .map((student) => student.booking_session_id)
-      .filter((sessionId) => activeSessionIds.has(sessionId))
-    if (studentSessionIds.length === 0) return map
 
     if (!map[group.schedule_slot_id]) map[group.schedule_slot_id] = []
     map[group.schedule_slot_id].push({
@@ -503,6 +502,10 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     })
     return map
   }, {} as Record<string, ExistingAssignmentGroupForClient[]>)
+
+  const assignmentGroupsBySlot = Object.fromEntries(Object.entries(persistedAssignmentGroupsBySlot).map(([slotId, groups]) => [
+    slotId, projectActiveAssignmentGroups(groups, [...(activeSessionIdsBySlot[slotId] || [])]),
+  ]))
 
   const assignmentRosterDeltaBySlot = slotIds.reduce((map, slotId) => {
     const persistedGroups = (assignmentGroups || []).filter((group) => group.schedule_slot_id === slotId)
@@ -562,6 +565,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         assignmentLockReason: getAssignmentLockReason(session.date, session.start_time, now),
         students: [],
         assignmentGroups: session.schedule_slot_id ? assignmentGroupsBySlot[session.schedule_slot_id] || [] : [],
+        persistedAssignmentGroups: session.schedule_slot_id ? persistedAssignmentGroupsBySlot[session.schedule_slot_id] || [] : [],
         rosterDelta: session.schedule_slot_id
           ? assignmentRosterDeltaBySlot[session.schedule_slot_id]
           : {
