@@ -38,7 +38,8 @@ delete process.env.LESSON_SOURCE_RUN_MANIFEST
 assert.throws(() => lessonSourceRun(), /manifest is required/)
 if (previous) process.env.LESSON_SOURCE_RUN_MANIFEST = previous
 let addedValid = 0
-for (const [project, port, prefix] of [
+for (const [project, port, prefix, date = '20261001'] of [
+  ['Assignment520261015', '61801', 'assignment5', '20261015'],
   ['LessonSourceExpiry20261001', '64801', 'lesson-source-return-expiry'],
   ['LessonSourceExpiryUpgrade20261001', '64901', 'lesson-source-return-expiry'],
   ['LessonSourceMakeup20261001', '65001', 'lesson-source-makeup-clock'],
@@ -51,7 +52,7 @@ for (const [project, port, prefix] of [
   data.target.api = `http://127.0.0.1:${port}`
   data.target.dbPort = String(Number(port) + 1)
   data.run.target = data.target
-  data.run.runId = `${prefix}-20261001-11111111-1111-4111-8111-111111111111`
+  data.run.runId = `${prefix}-${date}-11111111-1111-4111-8111-111111111111`
   data.marker.project = project
   for (const c of data.containers) {
     c.Name = c.Name.replace(oldProject, project)

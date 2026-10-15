@@ -174,7 +174,10 @@ test('committed Save returns success and warning when coach notice insert fails'
 test('mixed Store and Save never retain membership for a walleted learner',async()=>{
  const f=seed();await assign(f);const baseline=snapshot(f)
  const results=await Promise.all([db().rpc('save_coach_assignment_groups_v3',{p_schedule_slot_id:f.slot,p_actor_id:superAdmin.id,p_groups:groups(f,[otherCoach.id]),p_expected_groups:baseline}),db().rpc('lesson_source_transition_v1',{p_actor_id:owner.id,p_operation:'store',p_id:f.ids[0],p_payload:{}})])
- expect(results[1].error).toBeNull();if(results[0].error)expect(results[0].error.message).toMatch(/BASELINE_CONFLICT|ROSTER_CONFLICT|ATTENDANCE_RETRY|LOCK_CONFLICT/)
+ // Either aborted request may require a same-operation retry under NOWAIT.
+ // A deadlock is still a failure; never weaken this to accept 40P01.
+ if(results[1].error){expect(['55P03','40001']).toContain(results[1].error.code);expect((await db().rpc('lesson_source_transition_v1',{p_actor_id:owner.id,p_operation:'store',p_id:f.ids[0],p_payload:{}})).error).toBeNull()}
+ if(results[0].error){expect(results[0].error.code).not.toBe('40P01');if(results[0].error.code!=='55P03')expect(results[0].error.message).toMatch(/BASELINE_CONFLICT|ROSTER_CONFLICT|ATTENDANCE_RETRY|LOCK_CONFLICT/)}
  expect(localSql(`SELECT count(*) FROM coach_assignment_group_students WHERE booking_session_id=${q(f.ids[0])};`)).toBe('0');expect(localSql(`SELECT count(*) FROM lesson_wallet_credits WHERE booking_id=${q(f.booking)};`)).toBe('1')
 })
 

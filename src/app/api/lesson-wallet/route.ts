@@ -11,6 +11,26 @@ interface WalletResult {
   schedule_slot_id: string
 }
 
+// Read-only confirmation for an uncertain Store. Ownership is checked before
+// looking up the atomic operation ledger; session lifecycle status is not proof.
+export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const id = request.nextUrl.searchParams.get('sessionId') || ''
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return NextResponse.json({ error: 'ข้อมูลรอบเรียนไม่ถูกต้อง' }, { status: 400 })
+  }
+  const admin = getServiceRoleClient()
+  const source = await admin.from('booking_sessions').select('id,bookings!inner(user_id)')
+    .eq('id', id).eq('bookings.user_id', user.id).maybeSingle()
+  if (source.error) return NextResponse.json({ error: 'ยังตรวจผลการเก็บไม่ได้' }, { status: 503 })
+  if (!source.data) return NextResponse.json({ error: 'ไม่พบรอบเรียน' }, { status: 404 })
+  const operation = await admin.rpc('lesson_wallet_store_confirmation_v1', { p_actor_id: user.id, p_session_id: id })
+  if (operation.error) return NextResponse.json({ error: 'ยังตรวจผลการเก็บไม่ได้' }, { status: 503 })
+  return NextResponse.json({ confirmed: operation.data === true }, { headers: { 'Cache-Control': 'no-store' } })
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

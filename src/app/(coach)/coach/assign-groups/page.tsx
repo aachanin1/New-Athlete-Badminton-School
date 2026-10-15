@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { readAssignmentContext, type SignedAssignmentContext } from '@/lib/assignment-save-context'
 
 import { AssignGroupsClient } from '@/components/coach/assign-groups-client'
 import {
@@ -142,6 +143,7 @@ interface AssignmentSlotForClient {
   students: AssignmentStudentForClient[]
   assignmentGroups: ExistingAssignmentGroupForClient[]
   persistedAssignmentGroups: ExistingAssignmentGroupForClient[]
+  saveContext?: SignedAssignmentContext
   rosterDelta: AssignmentRosterDeltaForClient
 }
 
@@ -503,6 +505,10 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
     return map
   }, {} as Record<string, ExistingAssignmentGroupForClient[]>)
 
+  const saveContexts = Object.fromEntries(await Promise.all(slotIds.map(async slotId => {
+    const value = await readAssignmentContext(user.id, slotId)
+    return [slotId, value.signed] as const
+  })))
   const assignmentGroupsBySlot = Object.fromEntries(Object.entries(persistedAssignmentGroupsBySlot).map(([slotId, groups]) => [
     slotId, projectActiveAssignmentGroups(groups, [...(activeSessionIdsBySlot[slotId] || [])]),
   ]))
@@ -566,6 +572,7 @@ export default async function AssignGroupsPage({ searchParams }: AssignGroupsPag
         students: [],
         assignmentGroups: session.schedule_slot_id ? assignmentGroupsBySlot[session.schedule_slot_id] || [] : [],
         persistedAssignmentGroups: session.schedule_slot_id ? persistedAssignmentGroupsBySlot[session.schedule_slot_id] || [] : [],
+        saveContext: session.schedule_slot_id ? saveContexts[session.schedule_slot_id] : undefined,
         rosterDelta: session.schedule_slot_id
           ? assignmentRosterDeltaBySlot[session.schedule_slot_id]
           : {

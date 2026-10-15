@@ -9,6 +9,7 @@ import { resolve, relative, isAbsolute } from 'node:path'
 export function validateLessonSourceTarget(run, target, containers, marker) {
   assert.equal(run.version, 1, 'Missing approved run manifest')
   const contracts = [
+    { id: /^assignment5-20261015-[a-f0-9-]{36}$/, ports: { Assignment520261015: '61801' } },
     { id: /^assignment-roster-20261013-[a-f0-9-]{36}$/, ports: { AssignmentRoster20261013: '61701' } },
     { id: /^assignment8-20261007-[a-f0-9-]{36}$/, ports: { Assignment820261007: '61601' } },
     { id: /^lesson-source-resume-20260930-[a-f0-9-]{36}$/, ports: { LessonSourceResume20260930: '64601', LessonSourceUpgrade20260930: '64701' } },

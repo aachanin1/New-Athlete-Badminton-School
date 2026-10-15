@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isDeepStrictEqual } from 'node:util'
+import { readAssignmentContext, verifyAssignmentContext, type SignedAssignmentContext } from '@/lib/assignment-save-context'
 
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { notifyAssignedCoachesForSlot } from '@/lib/coach-notifications'
@@ -14,7 +16,7 @@ import {
   resolveCoachAssignmentGroupName,
 } from '@/lib/coach-assignment-group-naming'
 import { loadAssignmentGroupNamingStudents } from '@/lib/coach-assignment-group-naming-server'
-import { COACH_ASSIGNMENT_ELIGIBLE_SESSION_STATUSES } from '@/lib/coach-assignment-lifecycle'
+import { getCoachAssignmentRetry } from '@/lib/coach-assignment-write-errors'
 import { createClient } from '@/lib/supabase/server'
 
 type AssignmentManagerRole = 'head_coach' | 'admin' | 'super_admin'
@@ -119,6 +121,10 @@ export async function POST(request: NextRequest) {
       branchId?: string
       groups?: GroupPayload[]
       expectedGroups?: unknown[]
+      requestId?: string
+      deadline?: string
+      saveContext?: SignedAssignmentContext
+      prepare?: boolean
     }
 
     const { scheduleSlotId, branchId } = body
@@ -163,6 +169,27 @@ export async function POST(request: NextRequest) {
 
     if (!slot || slot.branch_id !== branchId) {
       return NextResponse.json({ error: 'ไม่พบรอบสอนที่ต้องการจัดกลุ่ม' }, { status: 404 })
+    }
+
+    const intent = { groups: body.groups, expectedGroups: body.expectedGroups, saveContext: body.saveContext, deadline: body.deadline }
+    let context
+    if (body.requestId || body.saveContext) {
+      if (!/^[0-9a-f-]{36}$/i.test(body.requestId || '') || !body.saveContext) return NextResponse.json({ error: 'ข้อมูลคำขอไม่ครบ' }, { status: 400 })
+      try { context = verifyAssignmentContext(body.saveContext, manager.user.id, scheduleSlotId) }
+      catch { return NextResponse.json({ error: 'กรุณาโหลดข้อมูลรอบเรียนล่าสุด' }, { status: 409 }) }
+      const receipt = await adminSupabase.from('assignment5_receipts').select('intent,result,slot_id').eq('actor_id', manager.user.id).eq('request_id', body.requestId!).maybeSingle()
+      if (receipt.error) return NextResponse.json({ error: 'ยังตรวจผลคำขอไม่ได้' }, { status: 503 })
+      if (receipt.data) {
+        if (receipt.data.slot_id !== scheduleSlotId || !isDeepStrictEqual(receipt.data.intent, intent)) return NextResponse.json({ code: 'COACH_ASSIGNMENT_REQUEST_MISMATCH', error: 'รหัสคำขอนี้ใช้กับรายการอื่นแล้ว' }, { status: 409 })
+        return assignmentResponse(manager.user.id, scheduleSlotId, { ...receipt.data.result, replayed: true })
+      }
+      const admitted = await adminSupabase.rpc('assignment5_admit_v1', { p_actor: manager.user.id, p_slot: scheduleSlotId,
+        p_request: body.requestId, p_intent: intent, p_attempt: body.prepare !== true })
+      if (admitted.error) {
+        const retry = getCoachAssignmentRetry(admitted.error)
+        return NextResponse.json(retry || { code: 'COACH_ASSIGNMENT_STOPPED', error: 'รายการนี้หมดเวลารอแล้ว งานของคุณยังอยู่ กรุณาลองอีกครั้ง' }, { status: 409 })
+      }
+      if (body.prepare) return NextResponse.json(admitted.data)
     }
 
     if (isAssignmentLocked(slot.date, slot.start_time)) {
@@ -257,7 +284,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!Array.isArray(body.expectedGroups)) return NextResponse.json({ code: 'COACH_ASSIGNMENT_BASELINE_REQUIRED', error: 'กรุณาโหลดข้อมูลการมอบหมายล่าสุดก่อนบันทึก' }, { status: 409 })
-    const { data: saveResult, error: saveError } = await adminSupabase.rpc('save_coach_assignment_groups_v3', {
+    const { data: saveResult, error: saveError } = context ? await adminSupabase.rpc('assignment5_save_v1', {
+      p_actor: manager.user.id, p_slot: scheduleSlotId, p_request: body.requestId,
+      p_intent: intent, p_groups: normalizedGroups, p_context: context,
+    }) : await adminSupabase.rpc('save_coach_assignment_groups_v3', {
       p_schedule_slot_id: scheduleSlotId,
       p_actor_id: manager.user.id,
       p_groups: normalizedGroups,
@@ -265,6 +295,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (saveError) {
+      const retry = getCoachAssignmentRetry(saveError)
+      if (retry) return NextResponse.json(retry, { status: 409 })
+      if (/COACH_ASSIGNMENT_(INTENT_EXPIRED|STARTED|FORBIDDEN|REQUEST_MISMATCH)/.test(saveError.message)) return NextResponse.json({ code: 'COACH_ASSIGNMENT_STOPPED', error: 'รายการนี้ไม่สามารถบันทึกต่อได้ กรุณาตรวจข้อมูลรอบเรียน' }, { status: 409 })
       const lifecycleConflict = getLifecycleConflict(saveError.message)
       if (lifecycleConflict) {
         return NextResponse.json(lifecycleConflict, { status: 409 })
@@ -274,6 +307,8 @@ export async function POST(request: NextRequest) {
         error: conflictMessage || `บันทึกกลุ่มไม่สำเร็จ: ${saveError.message}`,
       }, { status: conflictMessage ? 409 : 500 })
     }
+
+    if (context) return assignmentResponse(manager.user.id, scheduleSlotId, saveResult)
 
     const assignedCoachIds = (saveResult as { no_change?: boolean } | null)?.no_change ? [] : coachIds
     const delivery = await Promise.allSettled(assignedCoachIds.map((coachId) => {
@@ -303,6 +338,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function assignmentResponse(actor: string, slot: string, result: Record<string, unknown>) {
+  const latest = await readAssignmentContext(actor, slot)
+  return NextResponse.json({ success: true, confirmed: true, scheduleSlotId: slot,
+    canonicalGroups: latest.context.groups, rosterSessionIds: latest.context.rosterSessionIds,
+    saveContext: latest.signed, noAssignmentNeeded: latest.context.rosterSessionIds.length === 0,
+    result }, { headers: { 'Cache-Control': 'private, no-store' } })
+}
+
 // Readback after an uncertain Save is read-only and uses the same manager/branch gate.
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -319,28 +362,17 @@ export async function GET(request: NextRequest) {
     if (own.error) return NextResponse.json({ error: 'ตรวจสิทธิ์สาขาไม่สำเร็จ' }, { status: 503 })
     if (!own.data) return NextResponse.json({ error: 'ไม่มีสิทธิ์ในสาขานี้' }, { status: 403 })
   }
-  const snapshot = await getServiceRoleClient().rpc('coach_assignment_slot_snapshot_v2', { p_schedule_slot_id: id })
-  if (snapshot.error) return NextResponse.json({ error: 'ยังยืนยันผลบันทึกไม่ได้' }, { status: 503 })
-  // Read the complete current eligible roster, rather than inferring it from
-  // saved memberships. The client verifies both this read and refreshed props.
-  const rosterSessionIds: string[] = []
-  let expectedCount: number | null = null
-  const adminSupabase = getServiceRoleClient()
-  for (let start = 0; start < 10_000; start += 500) {
-    const roster = await adminSupabase.from('booking_sessions')
-      .select('id, bookings!inner(status)', { count: 'exact' })
-      .eq('schedule_slot_id', id).in('status', [...COACH_ASSIGNMENT_ELIGIBLE_SESSION_STATUSES])
-      .eq('bookings.status', 'verified').order('id').range(start, start + 499)
-    if (roster.error || !Array.isArray(roster.data) || roster.count === null
-      || (expectedCount !== null && expectedCount !== roster.count)) {
-      return NextResponse.json({ error: 'อ่านรายชื่อปัจจุบันไม่ครบ กรุณาลองอีกครั้ง' }, { status: 503 })
-    }
-    expectedCount = roster.count
-    rosterSessionIds.push(...roster.data.map(row => row.id))
-    if (roster.data.length < 500) break
+  const requestId = request.nextUrl.searchParams.get('requestId')
+  if (requestId) {
+    if (!/^[0-9a-f-]{36}$/i.test(requestId)) return NextResponse.json({ error: 'ข้อมูลคำขอไม่ถูกต้อง' }, { status: 400 })
+    const receipt = await getServiceRoleClient().rpc('assignment5_status_v1', { p_actor: manager.user.id, p_slot: id, p_request: requestId })
+    if (receipt.error) return NextResponse.json({ error: 'ยังยืนยันผลบันทึกไม่ได้' }, { status: 503 })
+    if (receipt.data?.confirmed) return assignmentResponse(manager.user.id, id, receipt.data.result)
+    return NextResponse.json(receipt.data, { headers: { 'Cache-Control': 'private, no-store' } })
   }
-  if (rosterSessionIds.length !== expectedCount || new Set(rosterSessionIds).size !== rosterSessionIds.length) {
-    return NextResponse.json({ error: 'อ่านรายชื่อปัจจุบันไม่ครบ กรุณาลองอีกครั้ง' }, { status: 503 })
-  }
-  return NextResponse.json({ canonicalGroups: getCanonicalGroups({ snapshot: snapshot.data }), rosterSessionIds }, { headers: { 'Cache-Control': 'private, no-store' } })
+  try {
+    const latest = await readAssignmentContext(manager.user.id, id)
+    return NextResponse.json({ canonicalGroups: latest.context.groups, rosterSessionIds: latest.context.rosterSessionIds,
+      saveContext: latest.signed }, { headers: { 'Cache-Control': 'private, no-store' } })
+  } catch { return NextResponse.json({ error: 'อ่านรายชื่อปัจจุบันไม่ครบ กรุณาลองอีกครั้ง' }, { status: 503 }) }
 }

@@ -563,6 +563,7 @@ export default async function SchedulePage() {
       )}
 
       <ScheduleCalendarClient
+        currentUserId={user.id}
         sessions={sessions}
         learnerChildren={children || []}
         userName={profile?.full_name || ''}

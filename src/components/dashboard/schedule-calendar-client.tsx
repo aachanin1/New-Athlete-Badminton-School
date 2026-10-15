@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { completeSourceRequest, pendingStorageKey, pendingEntries, storePending, readPending, clearPending } from '@/lib/complete-source-request'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, AlertTriangle, BookOpenCheck, CalendarDays, CheckCircle2, CircleDot, Clock, ClipboardCheck, Loader2, MapPin, RotateCcw, ShieldCheck, UserRound, WalletCards } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -83,6 +85,7 @@ interface ChildData {
 }
 
 interface ScheduleCalendarClientProps {
+  currentUserId: string
   sessions: SessionData[]
   learnerChildren: ChildData[]
   userName: string
@@ -223,6 +226,7 @@ function getCalendarStatusMarkerClass(session: SessionData) {
 }
 
 export function ScheduleCalendarClient({
+  currentUserId,
   sessions,
   learnerChildren,
   userName,
@@ -237,8 +241,49 @@ export function ScheduleCalendarClient({
   const [year, setYear] = useState(initialYear)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [walletUnit, setWalletUnit] = useState<FamilyPrivateScheduleUnit<SessionData> | null>(null)
+  const walletUnitRef = useRef(walletUnit)
+  useEffect(() => { walletUnitRef.current = walletUnit }, [walletUnit])
   const [walletLoadingId, setWalletLoadingId] = useState<string | null>(null)
+  const [uncertainWalletIds, setUncertainWalletIds] = useState<Record<string, boolean>>({})
+  const walletRequestInFlight = useRef(false)
+  const walletControllerRef = useRef<AbortController | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let running = false
+    const recover = async () => {
+      const entries = pendingEntries<{ sessionId: string }>(currentUserId, 'store')
+      if (!entries.length || running || walletRequestInFlight.current) return
+      running = true
+      try {
+        await Promise.all(entries.map(async ({ key, value: pending }) => {
+        setUncertainWalletIds(prev => ({ ...prev, [pending.sessionId]: true }))
+        const until = Date.now() + 20_000
+        while (Date.now() < until && !controller.signal.aborted) {
+          try {
+            const response = await fetch(`/api/lesson-wallet?sessionId=${pending.sessionId}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4000)]) })
+            const result = await response.json()
+            if (response.ok && result.confirmed) {
+              if (controller.signal.aborted) return
+              clearPending(key)
+              setUncertainWalletIds(prev => ({ ...prev, [pending.sessionId]: false }))
+              if (walletUnitRef.current?.representative.id === pending.sessionId) { setWalletUnit(null); setWalletError(null) }
+              toast.success('เก็บเข้ากระเป๋าแล้ว')
+              router.refresh()
+              break
+            }
+          } catch { /* Reconnect/focus can resume confirmation without a write. */ }
+          await new Promise(resolve => setTimeout(resolve, 600))
+        }
+        }))
+      } finally { running = false }
+    }
+    void recover()
+    window.addEventListener('online', recover)
+    window.addEventListener('focus', recover)
+    return () => { controller.abort(); walletControllerRef.current?.abort(); window.removeEventListener('online', recover); window.removeEventListener('focus', recover) }
+  }, [currentUserId, router])
   const [programSession, setProgramSession] = useState<SessionData | null>(null)
   const [programState, setProgramState] = useState<
     { status: 'idle' | 'loading' | 'ready' | 'error'; program: SafeScheduleProgram | null }
@@ -343,26 +388,38 @@ export function ScheduleCalendarClient({
   )
 
   const storeInWallet = async () => {
-    if (!walletUnit || !canStoreUnitInWallet(walletUnit)) return
-    setWalletLoadingId(walletUnit.representative.id)
+    if (!walletUnit || walletRequestInFlight.current) return
+    const sessionId = walletUnit.representative.id
+    if (!uncertainWalletIds[sessionId] && !canStoreUnitInWallet(walletUnit)) return
+    walletRequestInFlight.current = true
+    setWalletLoadingId(sessionId)
     setWalletError(null)
-
-    const response = await fetch('/api/lesson-wallet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'store', sessionId: walletUnit.representative.id }),
-    })
-    const result = await response.json() as { success?: boolean; error?: string }
-
-    if (!response.ok || !result.success) {
-      setWalletError(result.error || 'เก็บเข้ากระเป๋าไม่สำเร็จ กรุณาลองใหม่')
+    const controller = new AbortController()
+    walletControllerRef.current = controller
+    const key = pendingStorageKey(currentUserId, 'store', sessionId)
+    const needsRead = Boolean(uncertainWalletIds[sessionId] || readPending(key))
+    storePending(key, { sessionId })
+    try {
+      const result = await completeSourceRequest({ url: '/api/lesson-wallet', readUrl: `/api/lesson-wallet?sessionId=${sessionId}`,
+        body: { action: 'store', sessionId }, retryCode: 'LESSON_SOURCE_RETRY', deadline: Date.now() + 20_000, signal: controller.signal,
+        initialRead: needsRead })
+      clearPending(key)
+      if (!result.success) {
+        setWalletError(result.error || 'เก็บเข้ากระเป๋าไม่สำเร็จ กรุณาลองใหม่')
+        return
+      }
+      setUncertainWalletIds(prev => ({ ...prev, [sessionId]: false }))
+      setWalletUnit(null)
+      toast.success('เก็บเข้ากระเป๋าแล้ว')
+      router.refresh()
+    } catch {
+      setUncertainWalletIds(prev => ({ ...prev, [sessionId]: true }))
+      setWalletError('ยังเชื่อมต่อไม่ได้ งานของคุณยังอยู่ ระบบจะตรวจผลเมื่อกลับมาเชื่อมต่อ')
+    } finally {
+      walletControllerRef.current = null
+      walletRequestInFlight.current = false
       setWalletLoadingId(null)
-      return
     }
-
-    setWalletLoadingId(null)
-    setWalletUnit(null)
-    router.refresh()
   }
 
   const totalThisMonth = useMemo(() => {
@@ -763,7 +820,9 @@ export function ScheduleCalendarClient({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={Boolean(walletUnit)} onOpenChange={(open) => !open && setWalletUnit(null)}>
+      <AlertDialog open={Boolean(walletUnit)} onOpenChange={(open) => {
+        if (!open) { walletControllerRef.current?.abort(); setWalletUnit(null) }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{walletUnit?.isFamilyPrivate ? 'เก็บทั้งครอบครัวเข้ากระเป๋า?' : 'เก็บรอบเรียนเข้ากระเป๋า?'}</AlertDialogTitle>
@@ -798,7 +857,7 @@ export function ScheduleCalendarClient({
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={Boolean(walletLoadingId)}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogCancel disabled={Boolean(walletLoadingId)}>{walletUnit && uncertainWalletIds[walletUnit.representative.id] ? 'ปิดหน้าต่าง' : 'ยกเลิก'}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-[#2748bf] hover:bg-[#153c85]"
               disabled={Boolean(walletLoadingId)}
@@ -815,7 +874,7 @@ export function ScheduleCalendarClient({
               ) : (
                 <>
                   <WalletCards className="mr-2 h-4 w-4" />
-                  {walletUnit?.isFamilyPrivate ? 'ยืนยันเก็บทั้งครอบครัว' : 'ยืนยันเก็บเข้ากระเป๋า'}
+                  {walletUnit && uncertainWalletIds[walletUnit.representative.id] ? 'ลองอีกครั้ง' : walletUnit?.isFamilyPrivate ? 'ยืนยันเก็บทั้งครอบครัว' : 'ยืนยันเก็บเข้ากระเป๋า'}
                 </>
               )}
             </AlertDialogAction>

@@ -1,6 +1,8 @@
 'use client'
+import type { SignedAssignmentContext } from '@/lib/assignment-save-context'
+import { completeSourceRequest, pendingStorageKey, pendingEntries, storePending, readPending, clearPending, type SourceRequestResult } from '@/lib/complete-source-request'
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LearnerLevelBadge } from '@/components/shared/learner-level-badge'
 import { UNASSESSED_LEVEL_LABEL } from '@/constants/levels'
@@ -118,6 +120,7 @@ interface AssignmentSlot {
   students: AssignmentStudent[]
   assignmentGroups: ExistingAssignmentGroup[]
   persistedAssignmentGroups: ExistingAssignmentGroup[]
+  saveContext?: SignedAssignmentContext
   rosterDelta: AssignmentRosterDelta
 }
 
@@ -139,6 +142,13 @@ interface GroupDraft {
   levelMax: number | null
   sortOrder: number
   studentSessionIds: string[]
+}
+
+interface PendingAssignmentSave {
+  slotKey: string; scheduleSlotId: string; branchId: string; requestId: string
+  draft: GroupDraft[]; baseline: ExistingAssignmentGroup[]; baselineDraft: GroupDraft[]
+  context?: SignedAssignmentContext
+  serverSignatureAtSave: string; persistedSignatureAtSave: string
 }
 
 type SlotDraftState = 'empty' | 'saved' | 'waiting' | 'unassigned' | 'changed'
@@ -581,6 +591,9 @@ export function AssignGroupsClient({
   const draftsBySlotRef = useRef(draftsBySlot)
   const draftBaselinesBySlotRef = useRef(draftsBySlot)
   const persistedGroupsBySlotRef = useRef(initialPersistedGroups)
+  const saveContextsRef = useRef(Object.fromEntries(slots.map(slot => [slot.key, slot.saveContext])))
+  const saveControllerRef = useRef<{ controller: AbortController; key: string; signature: string } | null>(null)
+  const confirmationWatchesRef = useRef(new Map<string, AbortController>())
   const savedSnapshotsBySlotRef = useRef(savedSnapshotsBySlot)
   const serverChangesBySlotRef = useRef(serverChangesBySlot)
   const rosterRequestRef = useRef<RosterRequest | null>(null)
@@ -591,6 +604,68 @@ export function AssignGroupsClient({
   const assignmentHistoryRequestsRef = useRef(new Map<string, Promise<CoachAssignmentHistoryEvent[] | null>>())
   const assignmentHistoryCacheRef = useRef(new Map<string, CoachAssignmentHistoryEvent[]>())
   const assignmentHistoryGenerationsRef = useRef(new Map<string, number>())
+  const applyConfirmation = useCallback((pending: PendingAssignmentSave, result: SourceRequestResult) => {
+    const key = pendingStorageKey(currentUserId || '', 'save', pending.slotKey)
+    if (readPending<PendingAssignmentSave>(key)?.requestId !== pending.requestId) return
+    const canonical = parseCanonicalAssignmentGroups(result.canonicalGroups)
+    const drafts: GroupDraft[] = canonical.filter(g => g.studentSessionIds.length > 0).map(g => ({ ...g, localId: g.id, persistedId: g.id, studentSessionIds: [...g.studentSessionIds] }))
+    const newerEdit = getGroupsSignature(draftsBySlotRef.current[pending.slotKey] || []) !== getGroupsSignature(pending.draft)
+    clearPending(key)
+    if (newerEdit) {
+      setServerChangesBySlot(prev => ({ ...prev, [pending.slotKey]: true }))
+      setErrorsBySlot(prev => ({ ...prev, [pending.slotKey]: 'รายการก่อนหน้าบันทึกแล้ว ร่างที่แก้ต่อยังอยู่ กรุณาตรวจข้อมูลล่าสุดก่อนบันทึก' }))
+    } else {
+      draftsBySlotRef.current = { ...draftsBySlotRef.current, [pending.slotKey]: drafts }
+      draftBaselinesBySlotRef.current[pending.slotKey] = drafts
+      persistedGroupsBySlotRef.current[pending.slotKey] = canonical.map(g => ({ ...g, coachName: null, studentSessionIds: [...g.studentSessionIds] }))
+      saveContextsRef.current[pending.slotKey] = result.saveContext as SignedAssignmentContext
+      setDraftsBySlot(prev => ({ ...prev, [pending.slotKey]: drafts }))
+      setServerChangesBySlot(prev => ({ ...prev, [pending.slotKey]: false }))
+      setErrorsBySlot(prev => ({ ...prev, [pending.slotKey]: '' }))
+      setSavedSnapshotsBySlot(prev => ({ ...prev, [pending.slotKey]: { draftSignature: getGroupsSignature(drafts),
+        serverSignatureAtSave: pending.serverSignatureAtSave, persistedSignatureAtSave: pending.persistedSignatureAtSave,
+        coverage: getAssignmentCoverage(Array.isArray(result.rosterSessionIds) ? result.rosterSessionIds as string[] : [], drafts) } }))
+    }
+    assignmentHistoryCacheRef.current.delete(pending.slotKey)
+    assignmentHistoryGenerationsRef.current.set(pending.slotKey, (assignmentHistoryGenerationsRef.current.get(pending.slotKey) || 0) + 1)
+    setAssignmentHistoryBySlot(prev => { const next = { ...prev }; delete next[pending.slotKey]; return next })
+    toast.success(result.noAssignmentNeeded ? 'ไม่มีผู้เรียนเหลือที่ต้องมอบหมายแล้ว' : 'บันทึกกลุ่มแล้ว')
+    router.refresh()
+    // Store can commit just after this Save's response/refresh. Observe the short
+    // overlap window with reads only; the existing refresh reconciliation keeps
+    // any newer dirty draft and its original baseline for explicit review.
+    confirmationWatchesRef.current.get(pending.slotKey)?.abort()
+    const controller = new AbortController()
+    confirmationWatchesRef.current.set(pending.slotKey, controller)
+    void (async () => {
+      const until = Date.now() + 20_000
+      let observed = JSON.stringify([result.canonicalGroups, result.rosterSessionIds])
+      let delay = 600
+      try {
+        while (Date.now() < until && !controller.signal.aborted) {
+          await new Promise<void>(resolve => {
+            const finish = () => { clearTimeout(timer); controller.signal.removeEventListener('abort', finish); resolve() }
+            const timer = setTimeout(finish, Math.min(delay, Math.max(1, until - Date.now())))
+            controller.signal.addEventListener('abort', finish, { once: true })
+          })
+          if (controller.signal.aborted || Date.now() >= until) return
+          try {
+            const response = await fetch(`/api/coach/assignment-groups?scheduleSlotId=${pending.scheduleSlotId}&branchId=${pending.branchId}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(Math.min(4000, Math.max(1, until - Date.now())))]) })
+            if (response.status === 401 || response.status === 403) return
+            const latest = await response.json()
+            if (controller.signal.aborted) return
+            if (response.ok && Array.isArray(latest.canonicalGroups) && Array.isArray(latest.rosterSessionIds)) {
+              const signature = JSON.stringify([latest.canonicalGroups, latest.rosterSessionIds])
+              if (signature !== observed) { observed = signature; router.refresh() }
+            }
+          } catch { /* Confirmation already succeeded; never turn this read into a write. */ }
+          delay = Math.min(3000, delay + 600)
+        }
+      } finally {
+        if (confirmationWatchesRef.current.get(pending.slotKey) === controller) confirmationWatchesRef.current.delete(pending.slotKey)
+      }
+    })()
+  }, [currentUserId, router])
   const isMonthNavigationActive = Boolean(pendingTargetMonth) || isMonthNavigationPending
   const isCurrentMonth = selectedMonth === currentBangkokMonth
 
@@ -601,7 +676,62 @@ export function AssignGroupsClient({
 
   useEffect(() => {
     draftsBySlotRef.current = draftsBySlot
+    const active = saveControllerRef.current
+    if (active && getGroupsSignature(draftsBySlot[active.key] || []) !== active.signature) active.controller.abort()
   }, [draftsBySlot])
+
+  useEffect(() => {
+    const watches = confirmationWatchesRef.current
+    return () => { saveControllerRef.current?.controller.abort(); watches.forEach(controller => controller.abort()); watches.clear() }
+  }, [currentUserId])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    const controller = new AbortController()
+    let running = false
+    const recover = async () => {
+      const entries = pendingEntries<PendingAssignmentSave>(currentUserId, 'save')
+      if (!entries.length || running || saveControllerRef.current) return
+      running = true
+      try {
+        for (const { value: pending } of entries) {
+        const previous = draftsBySlotRef.current[pending.slotKey]
+        const restored = previous && getGroupsSignature(previous) !== getGroupsSignature(draftBaselinesBySlotRef.current[pending.slotKey] || []) ? previous : pending.draft
+        draftsBySlotRef.current = { ...draftsBySlotRef.current, [pending.slotKey]: restored }
+        if (pending.baseline && pending.context) {
+          persistedGroupsBySlotRef.current[pending.slotKey] = pending.baseline
+          saveContextsRef.current[pending.slotKey] = pending.context
+          draftBaselinesBySlotRef.current[pending.slotKey] = pending.baselineDraft
+        } else setServerChangesBySlot(prev => ({ ...prev, [pending.slotKey]: true }))
+        setDraftsBySlot(prev => ({ ...prev, [pending.slotKey]: restored }))
+        }
+        // Restore every draft before any network wait, then confirm each unit independently.
+        await Promise.all(entries.map(async ({ key, value: pending }) => {
+        let confirmed = false
+        const until = Date.now() + 20_000
+        while (Date.now() < until && !controller.signal.aborted) {
+          if (readPending<PendingAssignmentSave>(key)?.requestId !== pending.requestId) return
+          try {
+            const response = await fetch(`/api/coach/assignment-groups?scheduleSlotId=${pending.scheduleSlotId}&branchId=${pending.branchId}&requestId=${pending.requestId}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4000)]) })
+            const result = await response.json()
+            if (response.ok && result.confirmed) {
+              if (controller.signal.aborted) return
+              confirmed = true
+              applyConfirmation(pending, result)
+              break
+            }
+          } catch { /* Reconnect can resume read-only confirmation. */ }
+          await new Promise(resolve => setTimeout(resolve, 600))
+        }
+        if (!confirmed && !controller.signal.aborted && readPending<PendingAssignmentSave>(key)?.requestId === pending.requestId) setErrorsBySlot(prev => ({ ...prev, [pending.slotKey]: 'ยังยืนยันผลไม่ได้ งานของคุณยังอยู่ ระบบจะตรวจอีกครั้งเมื่อกลับมาเชื่อมต่อ' }))
+        }))
+      } finally { running = false }
+    }
+    void recover()
+    window.addEventListener('online', recover)
+    window.addEventListener('focus', recover)
+    return () => { controller.abort(); window.removeEventListener('online', recover); window.removeEventListener('focus', recover) }
+  }, [currentUserId, router, applyConfirmation])
 
   useEffect(() => {
     savedSnapshotsBySlotRef.current = savedSnapshotsBySlot
@@ -654,6 +784,7 @@ export function AssignGroupsClient({
           nextDrafts[slot.key] = incomingDraft
           nextBaselines[slot.key] = incomingDraft
           nextPersistedGroups[slot.key] = slot.persistedAssignmentGroups
+          saveContextsRef.current[slot.key] = slot.saveContext
           nextServerChanges[slot.key] = false
           acceptedRosterKey = slot.key
           changedHistoryKeys.add(slot.key)
@@ -693,8 +824,10 @@ export function AssignGroupsClient({
         nextPersistedGroups: slot.persistedAssignmentGroups,
       })
       nextDrafts[slot.key] = reconciliation.draft
-      nextBaselines[slot.key] = reconciliation.baseline
-      nextPersistedGroups[slot.key] = slot.persistedAssignmentGroups
+      const hasEditedDraft = currentDraftSignature !== getGroupsSignature(previousBaseline)
+      nextBaselines[slot.key] = hasEditedDraft ? previousBaseline : reconciliation.baseline
+      nextPersistedGroups[slot.key] = hasEditedDraft ? previousPersistedGroups : slot.persistedAssignmentGroups
+      if (!hasEditedDraft) saveContextsRef.current[slot.key] = slot.saveContext
       nextServerChanges[slot.key] = Boolean(serverChangesBySlotRef.current[slot.key]) || reconciliation.needsRefreshReview || (rosterReviewFailed && rosterRequest?.slotKey === slot.key)
     })
 
@@ -820,6 +953,7 @@ export function AssignGroupsClient({
   }
 
   const updateSlotGroups = (slotKey: string, updater: (groups: GroupDraft[]) => GroupDraft[]) => {
+    if (saveControllerRef.current) return
     if (rosterRequestRef.current?.slotKey === slotKey) return
     setDraftsBySlot((prev) => ({
       ...prev,
@@ -995,6 +1129,7 @@ export function AssignGroupsClient({
   }
 
   const resetAutoGroups = async (slot: AssignmentSlot) => {
+    if (saveControllerRef.current) return
     if (rosterRequestRef.current?.slotKey === slot.key) return
     const slotWithMemory = await ensureCoachMemory(slot)
     if (!slotWithMemory) return
@@ -1044,9 +1179,27 @@ export function AssignGroupsClient({
   }
 
   const saveSlot = async (slot: AssignmentSlot) => {
-    if (rosterRequestRef.current || serverChangesBySlot[slot.key]) return
+    if (saveControllerRef.current || rosterRequestRef.current || serverChangesBySlot[slot.key]) return
     const groups = draftsBySlot[slot.key] || []
     const requestDraftSignature = getGroupsSignature(groups)
+    const controller = new AbortController()
+    const deadline = Date.now() + 20_000
+    saveControllerRef.current = { controller, key: slot.key, signature: requestDraftSignature }
+    confirmationWatchesRef.current.get(slot.key)?.abort()
+    setSavingKey(slot.key)
+    try {
+    const storageKey = pendingStorageKey(currentUserId || '', 'save', slot.key)
+    const previous = readPending<PendingAssignmentSave>(storageKey)
+    if (previous) {
+      try {
+        const response = await fetch(`/api/coach/assignment-groups?scheduleSlotId=${slot.scheduleSlotId}&branchId=${slot.branchId}&requestId=${previous.requestId}`, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4000)]) })
+        const result = await response.json()
+        if (controller.signal.aborted) return
+        if (!response.ok || result.pending) throw new Error('pending')
+        if (result.confirmed) { applyConfirmation(previous, result); return }
+        if (readPending<PendingAssignmentSave>(storageKey)?.requestId === previous.requestId) clearPending(storageKey)
+      } catch { if (!controller.signal.aborted) setErrorsBySlot(prev => ({ ...prev, [slot.key]: 'กำลังตรวจผลรายการก่อนหน้า งานของคุณยังอยู่' })); return }
+    }
     const serverSignatureAtSave = getGroupsSignature(
       slot.assignmentGroups,
     )
@@ -1109,40 +1262,49 @@ export function AssignGroupsClient({
       return
     }
 
-    setSavingKey(slot.key)
+    const requestId = crypto.randomUUID()
+    const saveContext = saveContextsRef.current[slot.key]
+    const requestBody = {
+      scheduleSlotId: slot.scheduleSlotId, branchId: slot.branchId, groups: submittedGroups,
+      expectedGroups: (persistedGroupsBySlotRef.current[slot.key] || slot.persistedAssignmentGroups).map(group => ({
+        name: group.name, coachId: group.coachId, levelMin: group.levelMin, levelMax: group.levelMax, studentSessionIds: group.studentSessionIds,
+      })), requestId, deadline: new Date(deadline).toISOString(), saveContext,
+    }
+    const pending: PendingAssignmentSave = { slotKey: slot.key, scheduleSlotId: slot.scheduleSlotId, branchId: slot.branchId, requestId, draft: groups,
+      baseline: persistedGroupsBySlotRef.current[slot.key] || slot.persistedAssignmentGroups, baselineDraft: draftBaselinesBySlotRef.current[slot.key] || [],
+      context: saveContext, serverSignatureAtSave, persistedSignatureAtSave }
+    storePending(storageKey, pending)
     setErrorsBySlot((prev) => ({ ...prev, [slot.key]: '' }))
 
     try {
-      const res = await fetch('/api/coach/assignment-groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scheduleSlotId: slot.scheduleSlotId,
-          branchId: slot.branchId,
-          groups: submittedGroups,
-          expectedGroups: (persistedGroupsBySlotRef.current[slot.key] || slot.persistedAssignmentGroups).map(group => ({
-            name: group.name, coachId: group.coachId, levelMin: group.levelMin, levelMax: group.levelMax,
-            studentSessionIds: group.studentSessionIds,
-          })),
-        }),
-      })
-
-      const json = await res.json().catch(() => null)
-      if (!res.ok) {
+      const json = await completeSourceRequest({ url: '/api/coach/assignment-groups',
+        readUrl: `/api/coach/assignment-groups?scheduleSlotId=${slot.scheduleSlotId}&branchId=${slot.branchId}&requestId=${requestId}`,
+        body: requestBody, retryCode: 'COACH_ASSIGNMENT_RETRY', deadline, signal: controller.signal, prepare: true })
+      if (json.confirmed) { applyConfirmation(pending, json); return }
+      if (readPending<PendingAssignmentSave>(storageKey)?.requestId === requestId) clearPending(storageKey)
+      if (!json.success) {
         const lifecycleConflict = [
           'COACH_ASSIGNMENT_ROSTER_CONFLICT',
           'COACH_ASSIGNMENT_DUPLICATE_MEMBERSHIP',
           'COACH_ASSIGNMENT_BASELINE_CONFLICT',
-        ].includes(json?.code)
+        ].includes(json.code || '')
         setErrorsBySlot((prev) => ({
           ...prev,
-          [slot.key]: json?.error || 'บันทึกการแบ่งกลุ่มไม่สำเร็จ',
+          [slot.key]: json.error || 'บันทึกการแบ่งกลุ่มไม่สำเร็จ',
         }))
         if (lifecycleConflict) {
           setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: true }))
           toast.warning('รายชื่อรอบเรียนเปลี่ยนแล้ว ระบบกำลังรีเฟรช กรุณาตรวจกลุ่มอีกครั้ง')
           router.refresh()
         }
+        return
+      }
+
+      saveContextsRef.current[slot.key] = json.saveContext as SignedAssignmentContext
+      if (json.noAssignmentNeeded) {
+        setDraftsBySlot(prev => ({ ...prev, [slot.key]: [] }))
+        toast.success('ไม่มีผู้เรียนเหลือที่ต้องมอบหมายแล้ว')
+        router.refresh()
         return
       }
 
@@ -1172,7 +1334,7 @@ export function AssignGroupsClient({
         studentSessionIds: [...group.studentSessionIds],
       }))
       const savedDraftSignature = getGroupsSignature(canonicalDrafts)
-      const savedCoverage = getAssignmentCoverage(slot.students.map(s => s.bookingSessionId), canonicalDrafts)
+      const savedCoverage = getAssignmentCoverage(Array.isArray(json.rosterSessionIds) ? json.rosterSessionIds as string[] : slot.students.map(s => s.bookingSessionId), canonicalDrafts)
       draftBaselinesBySlotRef.current = {
         ...draftBaselinesBySlotRef.current,
         [slot.key]: canonicalDrafts,
@@ -1208,27 +1370,17 @@ export function AssignGroupsClient({
         return next
       })
       setExpandedAssignmentHistoryBySlot((prev) => ({ ...prev, [slot.key]: false }))
-      if (json?.warnings) toast.warning(json.warnings)
+      if (typeof json.warnings === 'string' && json.warnings) toast.warning(json.warnings)
       toast.success(savedCoverage.waiting > 0 ? `บันทึกกลุ่มแล้ว — รอมอบหมายโค้ช ${savedCoverage.waiting} คน / ${savedCoverage.waitingGroups} กลุ่ม` : 'บันทึกกลุ่มแล้ว — มีโค้ชรับผิดชอบครบ')
       router.refresh()
     } catch {
-      setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'ยังยืนยันผลบันทึกไม่ได้ กำลังตรวจข้อมูลบน Server' }))
-      try {
-        const response = await fetch(`/api/coach/assignment-groups?scheduleSlotId=${encodeURIComponent(slot.scheduleSlotId)}&branchId=${encodeURIComponent(slot.branchId)}`, { cache: 'no-store' })
-        const result = await response.json()
-        if (!response.ok) throw new Error('readback failed')
-        const canonical = parseCanonicalAssignmentGroups(result.canonicalGroups)
-        const confirmed = getGroupsSignature(canonical) === getGroupsSignature(submittedGroups)
-        setErrorsBySlot((prev) => ({ ...prev, [slot.key]: confirmed
-          ? 'ตรวจพบผลที่บันทึกแล้วบน Server กรุณาตรวจข้อมูลล่าสุดก่อนทำรายการต่อ'
-          : 'ผลบน Server ยังไม่ตรงกับที่ส่ง กรุณาตรวจข้อมูลล่าสุดก่อนบันทึกอีกครั้ง' }))
-      } catch {
-        setErrorsBySlot((prev) => ({ ...prev, [slot.key]: 'ยังยืนยันผลบันทึกไม่ได้ กรุณารีเฟรชและตรวจผลก่อนลองบันทึกอีกครั้ง' }))
-      }
-      setServerChangesBySlot((prev) => ({ ...prev, [slot.key]: true }))
-      router.refresh()
+      setErrorsBySlot(prev => ({ ...prev, [slot.key]: 'ยังยืนยันผลไม่ได้ งานของคุณยังอยู่ ระบบจะตรวจอีกครั้งเมื่อกลับมาเชื่อมต่อ' }))
+    }
     } finally {
-      setSavingKey(null)
+      if (saveControllerRef.current?.controller === controller) {
+        saveControllerRef.current = null
+        setSavingKey(null)
+      }
     }
   }
 
@@ -1610,14 +1762,14 @@ export function AssignGroupsClient({
                             variant="outline"
                             size="sm"
                             onClick={() => void resetAutoGroups(slot)}
-                            disabled={isAssignmentLocked || isCoachMemoryLoading}
+                            disabled={isAssignmentLocked || isCoachMemoryLoading || Boolean(savingKey)}
                           >
                             {isCoachMemoryLoading
                               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               : <RefreshCw className="mr-2 h-4 w-4" />}
                             จัดตาม Level (ยังไม่บันทึก)
                           </Button>
-                          <Button type="button" variant="outline" size="sm" onClick={() => addGroup(slot)} disabled={isAssignmentLocked}>
+                          <Button type="button" variant="outline" size="sm" onClick={() => addGroup(slot)} disabled={isAssignmentLocked || Boolean(savingKey)}>
                             <Plus className="mr-2 h-4 w-4" />
                             เพิ่มกลุ่ม
                           </Button>
@@ -1625,7 +1777,7 @@ export function AssignGroupsClient({
                             type="button"
                             size="sm"
                             onClick={() => saveSlot(slot)}
-                            disabled={savingKey === slot.key || Boolean(acceptingRosterKey) || hasDuplicateCoaches || slotDraftState === 'saved' || slotDraftState === 'waiting' || slotDraftState === 'empty' || isAssignmentLocked || hasServerLifecycleChange}
+                            disabled={Boolean(savingKey) || Boolean(acceptingRosterKey) || hasDuplicateCoaches || slotDraftState === 'saved' || slotDraftState === 'waiting' || slotDraftState === 'empty' || isAssignmentLocked || hasServerLifecycleChange}
                             className="bg-[#2748bf] hover:bg-[#153c85]"
                           >
                             {savingKey === slot.key ? (
@@ -1802,7 +1954,7 @@ export function AssignGroupsClient({
                                     value={group.name}
                                     onChange={(event) => updateGroup(slot.key, group.localId, { name: event.target.value })}
                                     className="font-semibold"
-                                    disabled={isAssignmentLocked}
+                                    disabled={isAssignmentLocked || Boolean(savingKey)}
                                   />
                                 </div>
                                 <Button
@@ -1811,7 +1963,7 @@ export function AssignGroupsClient({
                                   size="sm"
                                   className="text-red-600 hover:bg-red-50"
                                   onClick={() => removeGroup(slot, group.localId)}
-                                  disabled={slotGroups.length <= 1 || isAssignmentLocked}
+                                  disabled={slotGroups.length <= 1 || isAssignmentLocked || Boolean(savingKey)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   <span className="sr-only">ลบกลุ่ม</span>
@@ -1824,7 +1976,7 @@ export function AssignGroupsClient({
                                   <Select
                                     value={group.coachId || 'unassigned'}
                                     onValueChange={(value) => updateGroup(slot.key, group.localId, { coachId: value === 'unassigned' ? null : value })}
-                                    disabled={isAssignmentLocked}
+                                    disabled={isAssignmentLocked || Boolean(savingKey)}
                                   >
                                     <SelectTrigger><SelectValue placeholder="เลือกโค้ช" /></SelectTrigger>
                                     <SelectContent>
@@ -1863,6 +2015,7 @@ export function AssignGroupsClient({
                                     className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                                     disabled={
                                       isAssignmentLocked
+                                      || Boolean(savingKey)
                                       || Boolean(usedCoachMap[bestCoach.coachId]?.some((usedGroup) => usedGroup.groupId !== group.localId))
                                       && bestCoach.coachId !== group.coachId
                                     }
@@ -1904,7 +2057,7 @@ export function AssignGroupsClient({
                                       groups={slotGroups}
                                       selectedGroupId={group.localId}
                                       onMove={(nextGroupId) => moveStudent(slot.key, student.bookingSessionId, nextGroupId)}
-                                      disabled={isAssignmentLocked}
+                                      disabled={isAssignmentLocked || Boolean(savingKey)}
                                       showCoachMemory={shouldExposeCoachMemory}
                                     />
                                   ))
