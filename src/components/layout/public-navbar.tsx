@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, type MouseEvent } from 'react'
+import { useState, useEffect, type MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
@@ -60,6 +60,17 @@ const scrollWindowTo = (targetTop: number) => {
   }
 
   window.requestAnimationFrame(step)
+}
+
+const scrollToHomeSection = (id: string, updateHash = true) => {
+  const el = document.getElementById(id)
+  if (!el) return
+
+  const targetTop = Math.max(0, el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET)
+  scrollWindowTo(targetTop)
+  if (updateHash) {
+    window.history.replaceState(null, '', `#${id}`)
+  }
 }
 
 const NAV_SECTIONS = [
@@ -149,23 +160,13 @@ export function PublicNavbar() {
     router.push(getHomePathForRole(userRole))
   }
 
-  const scrollToSection = useCallback((id: string, options: { updateHash?: boolean } = {}) => {
-    const { updateHash = true } = options
+  const scrollToSection = (id: string) => {
     if (pathname !== '/') {
       router.push(`/#${id}`)
       setSheetOpen(false)
       return
     }
-    const scroll = () => {
-      const el = document.getElementById(id)
-      if (!el) return
-
-      const targetTop = Math.max(0, el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET)
-      scrollWindowTo(targetTop)
-      if (updateHash) {
-        window.history.replaceState(null, '', `#${id}`)
-      }
-    }
+    const scroll = () => scrollToHomeSection(id)
 
     if (sheetOpen) {
       setSheetOpen(false)
@@ -173,17 +174,19 @@ export function PublicNavbar() {
     } else {
       scroll()
     }
-  }, [pathname, router, sheetOpen])
+  }
 
   useEffect(() => {
     if (pathname !== '/') return
     const hash = window.location.hash.replace('#', '')
     if (!hash) return
 
-    window.requestAnimationFrame(() => {
-      scrollToSection(hash, { updateHash: false })
+    // Restore a section on arrival; opening the menu must not replay this effect.
+    const frame = window.requestAnimationFrame(() => {
+      scrollToHomeSection(hash, false)
     })
-  }, [pathname, scrollToSection])
+    return () => window.cancelAnimationFrame(frame)
+  }, [pathname])
 
   const getSectionHref = (id: string) => pathname === '/' ? `#${id}` : `/#${id}`
 
