@@ -39,9 +39,14 @@ export async function proxy(request: NextRequest) {
         .eq('id', user.id)
         .single()
 
-      const role = profile?.role || 'user'
-      const homeUrl = new URL(ROLE_HOME[role] || '/dashboard', request.url)
-      return NextResponse.redirect(homeUrl)
+      // A failed profile read is not evidence of the user role. Keep the public
+      // entry page available so its bounded identity reader can recover.
+      const role = profile?.role
+      if (!role || !Object.hasOwn(ROLE_HOME, role)) return supabaseResponse
+      const homeUrl = new URL(ROLE_HOME[role], request.url)
+      const response = NextResponse.redirect(homeUrl)
+      supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
+      return response
     }
     return supabaseResponse
   }

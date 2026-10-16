@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { getHomePathForRole } from '@/lib/auth/redirects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import type { UserRole } from '@/types/database'
 
 type AuthMode = 'login' | 'register'
 
@@ -24,6 +21,7 @@ interface AuthModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultMode?: AuthMode
+  onAuthenticated: () => void
 }
 
 const EMAIL_CONFIRMATION_ERROR =
@@ -38,16 +36,10 @@ function isEmailConfirmationError(message: string) {
   return normalized.includes('email not confirmed') || normalized.includes('email_not_confirmed')
 }
 
-export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthModalProps) {
-  const router = useRouter()
+export function AuthModal({ open, onOpenChange, defaultMode = 'login', onAuthenticated }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(defaultMode)
   const [email, setEmail] = useState('')
 
-  useEffect(() => {
-    if (open) {
-      setMode(defaultMode)
-    }
-  }, [open, defaultMode])
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -61,6 +53,12 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
   const [notice, setNotice] = useState<string | null>(null)
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
   const [success, setSuccess] = useState(false)
+  useEffect(() => {
+    if (open) {
+      setMode(defaultMode)
+      setRedirecting(false)
+    }
+  }, [open, defaultMode])
   const busy = loading || redirecting || resending
   const resendBusyLabel = 'กำลังส่งอีเมลยืนยัน...'
   const busyLabel = redirecting
@@ -99,7 +97,7 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
     setNeedsEmailConfirmation(false)
 
     const supabase = createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       if (isEmailConfirmationError(error.message)) {
@@ -113,16 +111,9 @@ export function AuthModal({ open, onOpenChange, defaultMode = 'login' }: AuthMod
       return
     }
 
-    const { data: profile } = (await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .maybeSingle()) as { data: { role: UserRole } | null }
-
     setLoading(false)
     setRedirecting(true)
-    router.replace(getHomePathForRole(profile?.role))
-    router.refresh()
+    onAuthenticated()
   }
 
   const handleRegister = async (e: React.FormEvent) => {

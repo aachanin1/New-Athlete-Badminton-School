@@ -1,17 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { getHomePathForRole } from '@/lib/auth/redirects'
+import { PublicAuthProvider, usePublicAuth } from '@/components/shared/public-auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import type { UserRole } from '@/types/database'
 
 const EMAIL_CONFIRMATION_ERROR =
   'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ หากใช้ Hotmail/Outlook ให้ตรวจสอบ Junk/Spam หรือกดส่งอีเมลยืนยันใหม่'
@@ -26,7 +24,11 @@ function isEmailConfirmationError(message: string) {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
+  return <PublicAuthProvider redirectAuthenticated><LoginForm /></PublicAuthProvider>
+}
+
+function LoginForm() {
+  const { loginSucceeded } = usePublicAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -68,7 +70,7 @@ export default function LoginPage() {
     setNeedsEmailConfirmation(false)
 
     const supabase = createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -85,16 +87,9 @@ export default function LoginPage() {
       return
     }
 
-    const { data: profile } = (await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .maybeSingle()) as { data: { role: UserRole } | null }
-
     setLoading(false)
     setRedirecting(true)
-    router.replace(getHomePathForRole(profile?.role))
-    router.refresh()
+    loginSucceeded()
   }
 
   const handleResendConfirmation = async () => {

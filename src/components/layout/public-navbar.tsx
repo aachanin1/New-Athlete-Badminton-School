@@ -4,7 +4,6 @@ import { useState, useEffect, type MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import {
@@ -14,12 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { AuthModal } from '@/components/shared/auth-modal'
+import { usePublicAuth } from '@/components/shared/public-auth-provider'
 import { Menu, LogIn, UserPlus, User, LogOut, LayoutDashboard, Loader2 } from 'lucide-react'
-import { getHomePathForRole } from '@/lib/auth/redirects'
-import type { UserRole } from '@/types/database'
-
-type AuthMode = 'login' | 'register'
 
 const HEADER_OFFSET = 80
 const SCROLL_DURATION_MS = 720
@@ -86,81 +81,14 @@ export function PublicNavbar() {
   const router = useRouter()
   const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [authOpen, setAuthOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<AuthMode>('login')
-  const [userName, setUserName] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [dashboardNavigating, setDashboardNavigating] = useState(false)
-
-  useEffect(() => {
-    const supabase = createClient()
-    let mounted = true
-
-    const loadProfile = async (userId?: string, fallbackEmail?: string | null) => {
-      if (!userId) {
-        if (mounted) {
-          setUserName(null)
-          setUserRole(null)
-          setDashboardNavigating(false)
-        }
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', userId)
-        .maybeSingle() as { data: { full_name: string | null; role: UserRole } | null }
-
-      if (!mounted) return
-
-      if (profile?.role) {
-        setUserName(profile.full_name || fallbackEmail || 'ผู้ใช้')
-        setUserRole(profile.role)
-      } else {
-        setUserName(null)
-        setUserRole(null)
-      }
-    }
-
-    const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser()
-      await loadProfile(error ? undefined : user?.id, user?.email)
-      if (mounted) setLoading(false)
-    }
-    getUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      void loadProfile(session?.user?.id, session?.user?.email)
-    })
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  const openAuth = (mode: AuthMode) => {
-    setAuthMode(mode)
-    setAuthOpen(true)
-  }
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    setUserName(null)
-    setUserRole(null)
-    setDashboardNavigating(false)
-    router.refresh()
-  }
-
-  const handleDashboardNavigation = () => {
-    if (!userRole || dashboardNavigating) return
-    setDashboardNavigating(true)
-    router.push(getHomePathForRole(userRole))
-  }
+  const { identity, status, navigating: dashboardNavigating, enter: openAuth, logout: handleLogout, cancelEntry } = usePublicAuth()
+  const userName = identity?.name
+  const userRole = identity?.role
+  const loading = status === 'checking' || (status === 'recovering' && !identity)
+  const handleDashboardNavigation = () => openAuth('login')
 
   const scrollToSection = (id: string) => {
+    cancelEntry(pathname === '/' ? `/#${id}` : undefined)
     if (pathname !== '/') {
       router.push(`/#${id}`)
       setSheetOpen(false)
@@ -251,7 +179,9 @@ export function PublicNavbar() {
             })}
 
             {loading ? (
-              <div className="w-24 h-9 bg-gray-100 rounded-md animate-pulse" />
+              <Button className="bg-[#2748bf] hover:bg-[#153c85]" onClick={() => openAuth('login')}>
+                เข้าใช้งาน
+              </Button>
             ) : userName && userRole ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -323,9 +253,7 @@ export function PublicNavbar() {
                       href={item.href}
                       onClick={() => {
                         setSheetOpen(false)
-                        if (userRole && item.href === getHomePathForRole(userRole)) {
-                          setDashboardNavigating(true)
-                        }
+                        cancelEntry()
                       }}
                       className="text-left text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2748bf] focus-visible:ring-offset-2"
                     >
@@ -350,11 +278,11 @@ export function PublicNavbar() {
                     <div className="px-3 py-2 text-sm text-gray-500">
                       สวัสดี, <span className="font-semibold text-[#153c85]">{userName}</span>
                     </div>
-                    <Link
-                      href={getHomePathForRole(userRole)}
+                    <button
+                      type="button"
                       onClick={() => {
                         setSheetOpen(false)
-                        setDashboardNavigating(true)
+                        handleDashboardNavigation()
                       }}
                       className="text-base font-medium text-gray-700 hover:text-[#2748bf] hover:bg-[#2748bf]/5 py-3 px-3 rounded-md transition-colors flex items-center gap-2"
                     >
@@ -364,7 +292,7 @@ export function PublicNavbar() {
                         <LayoutDashboard className="h-5 w-5" />
                       )}
                       แดชบอร์ด
-                    </Link>
+                    </button>
                     <button
                       onClick={() => { handleLogout(); setSheetOpen(false) }}
                       className="text-left text-base font-medium text-red-600 hover:bg-red-50 py-3 px-3 rounded-md transition-colors flex items-center gap-2"
@@ -373,6 +301,10 @@ export function PublicNavbar() {
                       ออกจากระบบ
                     </button>
                   </>
+                ) : loading ? (
+                  <Button className="mx-3 bg-[#2748bf] hover:bg-[#153c85]" onClick={() => { setSheetOpen(false); openAuth('login') }}>
+                    เข้าใช้งาน
+                  </Button>
                 ) : (
                   <div className="flex flex-col gap-2 px-3">
                     <Button
@@ -398,7 +330,6 @@ export function PublicNavbar() {
         </div>
       </header>
 
-      <AuthModal open={authOpen} onOpenChange={setAuthOpen} defaultMode={authMode} />
     </>
   )
 }

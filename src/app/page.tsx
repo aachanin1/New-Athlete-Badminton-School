@@ -4,6 +4,7 @@ import { PublicNavbar } from '@/components/layout/public-navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { RegisterButton } from '@/components/shared/register-button'
+import { PublicAuthProvider } from '@/components/shared/public-auth-provider'
 import {
   MapPin,
   Users,
@@ -59,6 +60,7 @@ const LEVEL_RANGES = [
 
 export default function LandingPage() {
   return (
+    <PublicAuthProvider>
     <div className="min-h-screen bg-white scroll-smooth">
       <PublicNavbar />
 
@@ -387,5 +389,6 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+    </PublicAuthProvider>
   )
 }
