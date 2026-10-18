@@ -10,7 +10,7 @@ import { account, fixture, target, source } from '../tests/branch-closure/fixtur
 const label=process.argv[2]||'candidate1',app=path.join(run.evidenceRoot,'app-'+label),binding=JSON.parse(fs.readFileSync(path.join(app,'.next/branch-closure-build.json')))
 assert.equal(binding.api,env.apiUrl);assert.equal(binding.buildId,fs.readFileSync(path.join(app,'.next/BUILD_ID'),'utf8').trim())
 const output=path.join(run.outputDir,'browser-'+Date.now());fs.mkdirSync(output,{recursive:true})
-const checks=[],errors=[],unexpectedNetwork=[],password='BranchClosureLocal!2026',baseURL='http://127.0.0.1:3134'
+const checks=[],errors=[],unexpectedNetwork=[],password='BranchClosureLocal!2026',baseURL='http://127.0.0.1:'+(process.argv[3]||'3134')
 const ownerLabel='ครอบครัวหน้าจอ '+randomUUID().slice(0,8)
 const sa=await account('super_admin','ผู้ดูแลหน้าจอ'),admin=await account('admin','แอดมินหน้าจอ'),owner=await account('user',ownerLabel)
 const f=fixture('kids_group',false,owner),moveTarget=target(f),makeupTarget=target(f,true)
@@ -64,7 +64,6 @@ try {
  check(sql(`SELECT status FROM booking_sessions WHERE id=${q(unaffected)}`)==='scheduled','Moving one source preserves the other booking')
  await page.screenshot({path:path.join(output,'move-success.png'),fullPage:true});await page.getByRole('button',{name:'กลับไปหน้ารายการ',exact:true}).click()
  await gotoLesson(moved);await page.getByRole('button',{name:'ยกเลิก',exact:true}).click()
- await page.getByRole('textbox',{name:'ค้นหารอบเรียน'}).fill(ownerLabel)
  const row=page.locator('[data-testid="admin-lesson-'+moved+'"]')
  await expect(row).toBeVisible({timeout:30000});await row.getByRole('button',{name:'เก็บเข้ากระเป๋า',exact:true}).click()
  await reason('ผู้เรียนป่วย / ลา');await page.getByRole('button',{name:'ยืนยันเก็บเข้ากระเป๋า',exact:true}).click()
@@ -82,12 +81,12 @@ try {
  check(use.source_session_id===moved,'Makeup UI consumes the exact continued source')
  check(sql(`SELECT count(*) FROM task10_family_makeup_uses WHERE parent_id=${q(owner.id)}`)==='1','Makeup UI consumes one shared quota at D0')
  check(use.decision_evidence.destinationPurchase.quantity===0,'D0 waiver is recorded with real decision evidence')
- const saPage=await s.newPage();saPage.on('pageerror',e=>errors.push(e.message));await saPage.goto(baseURL+'/admin/schedule-templates')
+ const saPage=await s.newPage();saPage.on('pageerror',e=>errors.push(e.message));await saPage.goto(baseURL+'/admin/schedule-templates?tab=closures');await saPage.getByRole('combobox',{name:'กรองสาขาที่ปิด'}).click();await saPage.getByRole('option',{name:branchName,exact:true}).click();await saPage.getByRole('button',{name:'เพิ่มวันปิดสาขา',exact:true}).click()
  await saPage.getByRole('combobox',{name:'สาขาที่ประกาศปิด'}).click();await saPage.getByRole('option',{name:branchName,exact:true}).click()
  await saPage.locator('#branch-closure-date').fill(closureTarget.date)
- await expect(saPage.getByRole('button',{name:'ประกาศปิดเฉพาะวันนี้',exact:true})).toBeEnabled({timeout:30000})
+ await expect(saPage.getByText(/รายการจองเดิม .* รายการยังอยู่ให้ Admin จัดการ/)).toBeVisible({timeout:30000})
  const before=sql(`SELECT md5(row_to_json(x)::text) FROM booking_sessions x WHERE id=${q(impacted)}`)
- await saPage.getByRole('button',{name:'ประกาศปิดเฉพาะวันนี้',exact:true}).click();await saPage.locator('#branch-closure-reason').fill('หยุดทำการเฉพาะวันทดสอบหน้าจอ')
+ await saPage.locator('#branch-closure-reason').fill('หยุดทำการเฉพาะวันทดสอบหน้าจอ')
  await saPage.getByRole('button',{name:'ยืนยันปิดเฉพาะวันนี้',exact:true}).click();await expect(saPage.getByText('ประกาศปิดเฉพาะวันที่แล้ว · รายการจองเดิมยังอยู่ให้จัดการต่อ',{exact:true})).toBeVisible({timeout:30000})
  check(sql(`SELECT md5(row_to_json(x)::text) FROM booking_sessions x WHERE id=${q(impacted)}`)===before,'Closing UI preserves the existing booked name and lifecycle')
  await saPage.getByText(/ดูรายการจองเดิม/).click();await expect(saPage.getByRole('link',{name:'จัดการวันเรียน',exact:true})).toBeVisible()
@@ -111,16 +110,17 @@ try {
  const closureColumns='id,branch_id,closure_date,reason,is_active,updated_at'
  try {
   sql(`REVOKE SELECT(${closureColumns}) ON public.branch_date_closures FROM authenticated;`)
-  for(const [client,route] of [[a,'/admin/makeup'],[u,'/dashboard/booking'],[u,'/dashboard/reschedule'],[u,'/dashboard/lesson-wallet']]){
+  for(const [client,route] of [[u,'/dashboard/booking'],[u,'/dashboard/reschedule'],[u,'/dashboard/lesson-wallet']]){
    const response=await client.request.get(baseURL+route),html=await response.text()
    check(response.ok()&&html.includes('ยังตรวจสอบวันเปิดสาขาไม่ได้')&&html.includes('รายการเดิมยังดูได้ตามปกติ'),'Closure read failure preserves existing page and blocks new-date choices at '+route)
   }
+  const deferred=await a.request.get(baseURL+'/admin/makeup?tab=manage');check(deferred.ok()&&(await deferred.text()).includes('ชดเชยและจัดการวันเรียน'),'Admin shell stays usable without a premature closure read')
   await page.setViewportSize({width:1280,height:1000});await gotoLesson(unaffected)
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('อ่านวันปิดสาขาไม่สำเร็จ')
   check(await page.getByRole('dialog').locator('button[data-testid^="makeup-day-"]:enabled').count()===0,'Unavailable closure policy disables every new target date without hiding the source')
-  await page.getByRole('button',{name:'ยกเลิก',exact:true}).click()
  } finally {sql(`GRANT SELECT(${closureColumns}) ON public.branch_date_closures TO authenticated;`)}
- await page.getByRole('button',{name:'ลองอ่านใหม่',exact:true}).click()
- await expect(page.getByRole('alert').filter({hasText:'ยังตรวจสอบวันเปิดสาขาไม่ได้'})).toBeHidden({timeout:30000})
+ await page.getByRole('dialog').getByRole('button',{name:'ลองใหม่',exact:true}).click()
+ await expect(page.getByRole('dialog').getByRole('alert')).toBeHidden({timeout:30000});await expect(page.getByRole('dialog').locator('button[data-testid^="makeup-day-"]:enabled').first()).toBeVisible();await page.getByRole('button',{name:'ยกเลิก',exact:true}).click()
  checks.push('Retry restores verified date selection after the closure policy read recovers')
  const anonymous=await browser.newContext();contexts.push(anonymous)
  for(const route of ['/admin/makeup','/dashboard/booking','/dashboard/reschedule','/dashboard/lesson-wallet']){

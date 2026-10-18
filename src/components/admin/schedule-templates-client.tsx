@@ -1,7 +1,7 @@
 'use client'
 
 import type { FormEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Building2, CalendarClock, CheckCircle2, Clock, Loader2, Plus, Power, Search, Trash2 } from 'lucide-react'
 
@@ -21,6 +21,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { BranchDateClosureManager } from '@/components/admin/branch-date-closure-manager'
+import { Tabs,TabsContent,TabsList,TabsTrigger } from '@/components/ui/tabs'
+import { Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle } from '@/components/ui/dialog'
+import { ListPagination } from '@/components/admin/list-pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
@@ -51,6 +54,7 @@ export interface ScheduleTemplateData {
 }
 
 interface ScheduleTemplatesClientProps {
+  initialTab?:string
   branches: BranchOption[]
   courseTypes: CourseTypeOption[]
   templates: ScheduleTemplateData[]
@@ -102,8 +106,13 @@ function formatSelectedDays(days: number[]) {
     .join(' ')
 }
 
-export function ScheduleTemplatesClient({ branches, courseTypes, templates }: ScheduleTemplatesClientProps) {
+export function ScheduleTemplatesClient({ branches, courseTypes, initialTab }: ScheduleTemplatesClientProps) {
   const router = useRouter()
+  const [activeTab,setActiveTab]=useState(initialTab==='closures'?'closures':'regular'),[closureBusy,setClosureBusy]=useState(false),[formOpen,setFormOpen]=useState(false)
+  const [page,setPage]=useState(1),[readEpoch,setReadEpoch]=useState(0),[listLoading,setListLoading]=useState(false),[listError,setListError]=useState('')
+  type ReadResult={key:string;items:ScheduleTemplateData[];total:number;stats:{total:number;active:number;inactive:number;branches:number;private:number}}
+  const [list,setList]=useState<ReadResult|null>(null)
+
   const [filterBranch, setFilterBranch] = useState('all')
   const [filterCourse, setFilterCourse] = useState('all')
   const [filterStatus, setFilterStatus] = useState('active')
@@ -122,6 +131,16 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  const readKey=JSON.stringify([search,filterBranch,filterCourse,filterStatus,page,readEpoch])
+  const current=list?.key===readKey?list:null
+  const templates=useMemo(()=>current?.items||[],[current])
+  useEffect(()=>{
+    if(activeTab!=='regular')return;const c=new AbortController();setListLoading(true);setListError('')
+    const q=new URLSearchParams({search,branch:filterBranch,course:filterCourse,status:filterStatus,page:String(page)})
+    const timer=setTimeout(()=>{void fetch('/api/admin/schedule-templates?'+q,{cache:'no-store',signal:c.signal}).then(async r=>{const data=await r.json();if(!r.ok||!Array.isArray(data.items))throw Error(data.error||'อ่านรอบเรียนไม่สำเร็จ');if(!c.signal.aborted)setList({...data,key:readKey})}).catch(e=>{if(!c.signal.aborted)setListError(e instanceof Error?e.message:'อ่านรอบเรียนไม่สำเร็จ')}).finally(()=>{if(!c.signal.aborted)setListLoading(false)})},150)
+    return()=>{clearTimeout(timer);c.abort()}
+  },[activeTab,readKey,search,filterBranch,filterCourse,filterStatus,page])
+  useEffect(()=>setPage(1),[search,filterBranch,filterCourse,filterStatus])
   const selectedBranch = branches.find((branch) => branch.id === form.branchId)
   const selectedCourse = courseTypes.find((course) => course.id === form.courseTypeId)
   const selectedCourseLabel = selectedCourse ? COURSE_CONFIG[selectedCourse.name].label : '-'
@@ -168,13 +187,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
     return Array.from(groups.entries()).map(([key, items]) => ({ key, items }))
   }, [filteredTemplates])
 
-  const stats = useMemo(() => ({
-    total: templates.length,
-    active: templates.filter((template) => template.is_active).length,
-    inactive: templates.filter((template) => !template.is_active).length,
-    branches: new Set(templates.map((template) => template.branch_id)).size,
-    private: templates.filter((template) => template.course_type_name === 'private').length,
-  }), [templates])
+  const stats=current?.stats
 
   const toggleDay = (dayValue: number) => {
     setForm((current) => {
@@ -219,7 +232,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
       const skippedCount = Array.isArray(result.skippedDays) ? result.skippedDays.length : 0
       setSuccess(`เพิ่มสำเร็จ ${createdCount} รอบ${skippedCount > 0 ? `, ข้ามรอบซ้ำ ${skippedCount} รอบ` : ''}`)
       setForm((current) => ({ ...current, notes: '' }))
-      router.refresh()
+      setReadEpoch(v=>v+1); router.refresh()
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'สร้างรอบเรียนไม่สำเร็จ')
     } finally {
@@ -240,7 +253,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'อัปเดตรอบเรียนไม่สำเร็จ')
-      router.refresh()
+      setReadEpoch(v=>v+1); router.refresh()
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'อัปเดตรอบเรียนไม่สำเร็จ')
     } finally {
@@ -258,7 +271,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'ลบรอบเรียนไม่สำเร็จ')
       setTemplateToDelete(null)
-      router.refresh()
+      setReadEpoch(v=>v+1); router.refresh()
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'ลบรอบเรียนไม่สำเร็จ')
     } finally {
@@ -268,55 +281,174 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
 
   return (
     <div className="space-y-5">
-      <BranchDateClosureManager branches={branches} />
+
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
             <CalendarClock className="h-4 w-4" />
             Schedule Master
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">รอบเรียนประจำ</h1>
+          <h1 className="mt-1 text-2xl font-bold text-[#153c85]">ตารางเรียนและวันปิดสาขา</h1>
           <p className="mt-1 max-w-3xl text-sm text-gray-500">
-            จัดการรอบเรียนมาตรฐานของทุกสาขาและทุกประเภทคอร์ส ข้อมูลนี้เป็นแหล่งหลักที่หน้า booking และวันชดเชยนำไปใช้
+            จัดการรอบประจำ และกำหนดวันที่สาขาหยุดทำการ
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">
+      <Tabs value={activeTab} onValueChange={v=>{if(!closureBusy&&!saving)setActiveTab(v)}} className="space-y-5">
+      <TabsList className="grid h-auto w-full grid-cols-2"><TabsTrigger value="regular">รอบเรียนประจำ</TabsTrigger><TabsTrigger value="closures">วันปิดสาขา</TabsTrigger></TabsList>
+      <TabsContent value="closures" forceMount className="data-[state=inactive]:hidden"><BranchDateClosureManager branches={branches} active={activeTab==='closures'} onSavingChange={setClosureBusy}/></TabsContent>
+      <TabsContent value="regular" forceMount className="space-y-4 data-[state=inactive]:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold text-[#153c85]">รอบเรียนประจำ</h2><p className="mt-1 text-sm text-gray-500">ทั้งหมด {stats?.total??'—'} · เปิดใช้งาน {stats?.active??'—'} · ปิดใช้งาน {stats?.inactive??'—'} · {stats?.branches??'—'} สาขา</p></div><Button onClick={()=>setFormOpen(true)} className="bg-[#2748bf] hover:bg-[#153c85]"><Plus className="mr-2 h-4 w-4"/>เพิ่มรอบเรียน</Button></div>
+      {listLoading?<p role="status" className="text-sm text-blue-700">กำลังอ่านรอบเรียน...</p>:null}{listError?<p role="alert" className="text-sm text-red-700">{listError} <Button variant="outline" onClick={()=>setReadEpoch(v=>v+1)}>ลองอ่านใหม่</Button></p>:null}
+      {success&&!formOpen?<p role="status" className="text-sm text-emerald-700">{success}</p>:null}
+      <div className="space-y-4">
         <Card className="border-gray-200">
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-gray-500">รอบทั้งหมด</p>
-            <p className="mt-1 text-xl font-bold text-[#2748bf] sm:text-2xl">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-gray-500">เปิดใช้งาน</p>
-            <p className="mt-1 text-xl font-bold text-emerald-600 sm:text-2xl">{stats.active}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-gray-500">ปิดใช้งาน</p>
-            <p className="mt-1 text-xl font-bold text-gray-600 sm:text-2xl">{stats.inactive}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-gray-500">สาขา</p>
-            <p className="mt-1 text-xl font-bold text-orange-500 sm:text-2xl">{stats.branches}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-xs text-gray-500">Private</p>
-            <p className="mt-1 text-xl font-bold text-violet-600 sm:text-2xl">{stats.private}</p>
+          <CardContent className="p-0">
+            <div className="border-b p-4">
+              <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_190px_170px_150px_auto] xl:items-center">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="ค้นหาสาขา คอร์ส วัน เวลา..."
+                    className="pl-10"
+                  />
+                </div>
+
+                <Select value={filterBranch} onValueChange={setFilterBranch}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="ทุกสาขา" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกสาขา</SelectItem>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterCourse} onValueChange={setFilterCourse}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="ทุกคอร์ส" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกคอร์ส</SelectItem>
+                    {courseTypes.map((course) => (
+                      <SelectItem key={course.id} value={course.name}>{COURSE_CONFIG[course.name].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="สถานะ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">เปิดใช้งาน</SelectItem>
+                    <SelectItem value="inactive">ปิดใช้งาน</SelectItem>
+                    <SelectItem value="all">ทั้งหมด</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <p className="text-sm text-gray-500 xl:text-right">{current?.total??'—'} รอบ</p>
+              </div>
+            </div>
+
+            {groupedTemplates.length === 0 ? current && !listLoading && !listError ? (
+              <div className="flex min-h-[26rem] items-center justify-center p-6 text-center text-sm text-gray-400">
+                ไม่พบรอบเรียนตามตัวกรองที่เลือก
+              </div>
+            ) : null : (
+              <div className="max-h-[48rem] overflow-y-auto p-4">
+                <div className="space-y-4">
+                  {groupedTemplates.map(({ key, items }) => {
+                    const first = items[0]
+                    const course = COURSE_CONFIG[first.course_type_name]
+
+                    return (
+                      <section key={key} className="rounded-lg border bg-white">
+                        <div className="flex flex-col gap-2 border-b bg-gray-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Building2 className="h-4 w-4 text-[#2748bf]" />
+                              <h3 className="font-semibold text-[#153c85]">{first.branch_name}</h3>
+                              <Badge className={course.badge}>{course.label}</Badge>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">{items.length} รอบในกลุ่มนี้</p>
+                          </div>
+                        </div>
+
+                        <div className="divide-y">
+                          {items.map((template) => (
+                            <div key={template.id} className={template.is_active ? 'p-3' : 'bg-gray-50 p-3 opacity-75'}>
+                              <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(160px,220px)_auto] md:items-center">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant="outline" className="border-blue-200 text-[#2748bf]">
+                                      {getDayLabel(template.day_of_week)}
+                                    </Badge>
+                                    <span className={`font-semibold ${course.text}`}>
+                                      {fmtTime(template.start_time)} - {fmtTime(template.end_time)}
+                                    </span>
+                                    {template.is_active ? (
+                                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                                        เปิดใช้งาน
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline">ปิดใช้งาน</Badge>
+                                    )}
+                                  </div>
+                                  {template.notes && <p className="mt-1 text-xs text-gray-500">{template.notes}</p>}
+                                </div>
+
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <Clock className="h-4 w-4" />
+                                  ใช้กับหน้า booking / วันชดเชย
+                                </div>
+
+                                <div className="flex items-center gap-2 md:justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => updateTemplate(template.id, { isActive: !template.is_active })}
+                                    disabled={updatingId === template.id}
+                                  >
+                                    {updatingId === template.id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Power className="mr-1 h-3.5 w-3.5" />}
+                                    {template.is_active ? 'ปิด' : 'เปิด'}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    onClick={() => setTemplateToDelete(template)}
+                                    disabled={updatingId === template.id}
+                                    aria-label="ลบรอบเรียน"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[440px_1fr]">
-        <Card className="border-gray-200">
+      {current&&!listLoading&&!listError?<ListPagination page={page} pageSize={50} pageSizeOptions={[50]} total={current?.total||0} onPageChange={setPage} onPageSizeChange={()=>{}}/>:null}
+      </TabsContent></Tabs>
+      <Dialog open={formOpen} onOpenChange={v=>{if(!saving)setFormOpen(v)}}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>เพิ่มรอบเรียนประจำ</DialogTitle><DialogDescription>เลือกสาขา เวลา และวันประจำสัปดาห์ได้หลายวัน</DialogDescription></DialogHeader>        <Card className="border-gray-200">
           <CardContent className="p-4">
             <div className="mb-4">
               <h2 className="font-bold text-[#153c85]">เพิ่มรอบเรียน</h2>
@@ -445,149 +577,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200">
-          <CardContent className="p-0">
-            <div className="border-b p-4">
-              <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_190px_170px_150px_auto] xl:items-center">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="ค้นหาสาขา คอร์ส วัน เวลา..."
-                    className="pl-10"
-                  />
-                </div>
-
-                <Select value={filterBranch} onValueChange={setFilterBranch}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="ทุกสาขา" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทุกสาขา</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={filterCourse} onValueChange={setFilterCourse}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="ทุกคอร์ส" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทุกคอร์ส</SelectItem>
-                    {courseTypes.map((course) => (
-                      <SelectItem key={course.id} value={course.name}>{COURSE_CONFIG[course.name].label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="สถานะ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">เปิดใช้งาน</SelectItem>
-                    <SelectItem value="inactive">ปิดใช้งาน</SelectItem>
-                    <SelectItem value="all">ทั้งหมด</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <p className="text-sm text-gray-500 xl:text-right">{filteredTemplates.length} รอบ</p>
-              </div>
-            </div>
-
-            {groupedTemplates.length === 0 ? (
-              <div className="flex min-h-[26rem] items-center justify-center p-6 text-center text-sm text-gray-400">
-                ไม่พบรอบเรียนตามตัวกรองที่เลือก
-              </div>
-            ) : (
-              <div className="max-h-[48rem] overflow-y-auto p-4">
-                <div className="space-y-4">
-                  {groupedTemplates.map(({ key, items }) => {
-                    const first = items[0]
-                    const course = COURSE_CONFIG[first.course_type_name]
-
-                    return (
-                      <section key={key} className="rounded-lg border bg-white">
-                        <div className="flex flex-col gap-2 border-b bg-gray-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Building2 className="h-4 w-4 text-[#2748bf]" />
-                              <h3 className="font-semibold text-[#153c85]">{first.branch_name}</h3>
-                              <Badge className={course.badge}>{course.label}</Badge>
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">{items.length} รอบในกลุ่มนี้</p>
-                          </div>
-                        </div>
-
-                        <div className="divide-y">
-                          {items.map((template) => (
-                            <div key={template.id} className={template.is_active ? 'p-3' : 'bg-gray-50 p-3 opacity-75'}>
-                              <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(160px,220px)_auto] md:items-center">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <Badge variant="outline" className="border-blue-200 text-[#2748bf]">
-                                      {getDayLabel(template.day_of_week)}
-                                    </Badge>
-                                    <span className={`font-semibold ${course.text}`}>
-                                      {fmtTime(template.start_time)} - {fmtTime(template.end_time)}
-                                    </span>
-                                    {template.is_active ? (
-                                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                                        เปิดใช้งาน
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline">ปิดใช้งาน</Badge>
-                                    )}
-                                  </div>
-                                  {template.notes && <p className="mt-1 text-xs text-gray-500">{template.notes}</p>}
-                                </div>
-
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                  <Clock className="h-4 w-4" />
-                                  ใช้กับหน้า booking / วันชดเชย
-                                </div>
-
-                                <div className="flex items-center gap-2 md:justify-end">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateTemplate(template.id, { isActive: !template.is_active })}
-                                    disabled={updatingId === template.id}
-                                  >
-                                    {updatingId === template.id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Power className="mr-1 h-3.5 w-3.5" />}
-                                    {template.is_active ? 'ปิด' : 'เปิด'}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-9 w-9 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                    onClick={() => setTemplateToDelete(template)}
-                                    disabled={updatingId === template.id}
-                                    aria-label="ลบรอบเรียน"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
+</DialogContent></Dialog>
       <AlertDialog open={Boolean(templateToDelete)} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
         <AlertDialogContent className="max-w-md rounded-xl">
           <AlertDialogHeader>

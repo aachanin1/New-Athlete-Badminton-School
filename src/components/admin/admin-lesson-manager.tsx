@@ -16,6 +16,8 @@ import { makeupMonthDates, type MakeupCalendarDay, type MakeupCalendarSlot } fro
 import { formatThaiDateWithWeekday, formatThaiDateTimeWithWeekday } from '@/lib/date-format'
 import { getBangkokDayOfWeek, getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
 import type { CourseTypeName } from '@/types/database'
+import { ADMIN_COURSES } from '@/components/admin/course-colors'
+import { useMakeupOptions } from '@/components/admin/use-makeup-options'
 import type { KidsFamilyMakeupState } from '@/lib/kids-family-makeup'
 
 interface Lesson {
@@ -24,19 +26,21 @@ interface Lesson {
   learner_name: string; parent_name: string; branch_name: string; has_attendance: boolean; branch_closed: boolean
   identity_valid: boolean
 }
-interface LessonList { items: Lesson[]; total: number; page: number; pageSize: number }
+interface Person {learner_key:string;user_id:string;child_id:string|null;booking_id:string|null;learner_name:string;parent_name:string;branch_ids:string[];branch_names:string[];course_type:CourseTypeName}
+interface LessonList { scope?:string; items: Lesson[]; total: number; page: number; pageSize: number }
 interface Branch { id: string; name: string; slug: string }
 export interface MakeupContinuation { parentId: string; sourceMonth: string; sourceSessionId: string; childId: string; reason: string; note: string; key: string }
 interface RequestPayload { session_id: string; operation: 'store' | 'reschedule'; request_id: string; reason: string; target_date?: string; start_time?: string; end_time?: string; branch_id?: string; template_id?: string }
 
-export function AdminLessonManager({ month, branches, scheduleTemplates, initialSessionId, onSavingChange, onMakeup }: {
-  month: string; branches: Branch[]; scheduleTemplates: ScheduleTemplateOption[]; initialSessionId?: string | null
+export function AdminLessonManager({ month, branches, active, initialSessionId, onSavingChange, onMakeup, onChanged }: {
+  month: string; branches: Branch[]; scheduleTemplates: ScheduleTemplateOption[]; active:boolean; initialSessionId?: string | null; onChanged?:()=>void
   onSavingChange: (saving: boolean) => void; onMakeup: (value: MakeupContinuation) => void
 }) {
   const router = useRouter()
-  const [search, setSearch] = useState(''), [debouncedSearch, setDebouncedSearch] = useState('')
-  const [branch, setBranch] = useState('all'), [course, setCourse] = useState('all'), [page, setPage] = useState(1)
-  const [list, setList] = useState<LessonList>({ items: [], total: 0, page: 1, pageSize: 40 })
+  const [search, setSearch] = useState(''), [committedSearch,setCommittedSearch]=useState('')
+  const [people,setPeople]=useState<{scope?:string;items:Person[];total:number}>({items:[],total:0}),[person,setPerson]=useState<Person|null>(null)
+  const [branch, setBranch] = useState('all'), [course, setCourse] = useState(''), [page, setPage] = useState(1)
+  const [list, setList] = useState<LessonList>({ items: [], total: 0, page: 1, pageSize: 20 })
   const [loading, setLoading] = useState(false), [listError, setListError] = useState('')
   const [selected, setSelected] = useState<Lesson | null>(null), [action, setAction] = useState<'store' | 'reschedule'>('reschedule')
   const [date, setDate] = useState(''), [slot, setSlot] = useState<MakeupCalendarSlot | null>(null)
@@ -45,29 +49,27 @@ export function AdminLessonManager({ month, branches, scheduleTemplates, initial
   const [result, setResult] = useState<Record<string, unknown> | null>(null), [family, setFamily] = useState<KidsFamilyMakeupState | null>(null)
   const pending = useRef<RequestPayload | null>(null), inFlight = useRef(false), revision = useRef(0), handledDeepLink = useRef('')
   const now = useMakeupCalendarNow(Boolean(selected)), locked = saving || uncertain
+  const options=useMakeupOptions(Boolean(selected)),scheduleTemplates=options.templates
+  const controller=useRef<AbortController|null>(null)
   const fullReason = adminActionReason(reason, note)
 
-  useEffect(() => { const timer = setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1) }, 250); return () => clearTimeout(timer) }, [search])
-  useEffect(() => { setPage(1) }, [month, branch, course])
-  const load = useCallback(async () => {
-    const current = ++revision.current
-    setLoading(true); setListError('')
-    const q = new URLSearchParams({ month, search: debouncedSearch, page: String(page) })
-    if (branch !== 'all') q.set('branch', branch)
-    if (course !== 'all') q.set('course', course)
-    try {
-      const response = await fetch(`/api/admin/makeup/lessons?${q}`, { cache: 'no-store' })
-      const data = await response.json()
-      if (!response.ok || !Array.isArray(data.items)) throw new Error(data.error || 'อ่านรายการเรียนไม่สำเร็จ')
-      if (revision.current === current) setList(data)
-      return true
-    } catch (cause) {
-      if (revision.current === current) { setList({ items: [], total: 0, page, pageSize: 40 }); setListError(cause instanceof Error ? cause.message : 'อ่านรายการเรียนไม่สำเร็จ') }
-      return false
-    } finally { if (revision.current === current) setLoading(false) }
-  }, [month, branch, course, page, debouncedSearch])
-  const invalidateLoad = useCallback(() => { revision.current++ }, [])
-  useEffect(() => { void load(); return invalidateLoad }, [load, invalidateLoad])
+  const resetScope=useCallback(()=>{revision.current++;controller.current?.abort();setPerson(null);setPeople({items:[],total:0});setList({items:[],total:0,page:1,pageSize:20});setCommittedSearch('');setPage(1);setListError('');setLoading(false)},[])
+  useEffect(resetScope,[month,resetScope])
+  const readScope=JSON.stringify([month,branch,course,page,person?.learner_key||committedSearch])
+  const listReady=list.scope===readScope,peopleReady=people.scope===readScope
+  const load=useCallback(async()=>{
+    if(!active||!course||!person&&committedSearch.length<2)return true
+    controller.current?.abort();const control=new AbortController();controller.current=control;const rev=++revision.current
+    setLoading(true);setListError('')
+    const q=new URLSearchParams({month,course,page:String(page),mode:person?'sessions':'learners',search:person?'':committedSearch})
+    if(branch!=='all')q.set('branch',branch)
+    if(person){q.set('user',person.user_id);if(person.child_id)q.set('child',person.child_id);if(person.booking_id)q.set('booking',person.booking_id)}
+    try{const r=await fetch('/api/admin/makeup/lookup?'+q,{cache:'no-store',signal:control.signal}),data=await r.json();if(!r.ok||!Array.isArray(data.items))throw Error(data.error||'อ่านรายการไม่สำเร็จ');if(rev===revision.current)(person?setList:setPeople)({...data,scope:readScope});return true}
+    catch(e){if(!control.signal.aborted&&rev===revision.current){setList({items:[],total:0,page,pageSize:20});setPeople({items:[],total:0});setListError(e instanceof Error?e.message:'อ่านรายการไม่สำเร็จ')}return false}
+    finally{if(!control.signal.aborted&&rev===revision.current)setLoading(false)}
+  },[active,month,branch,course,page,committedSearch,person,readScope])
+  const cancelLoad=useCallback(()=>{revision.current++;controller.current?.abort()},[])
+  useEffect(()=>{void load();return cancelLoad},[load,cancelLoad])
 
   const open = useCallback((lesson: Lesson, operation: 'store' | 'reschedule') => {
     if (pending.current || inFlight.current) return
@@ -75,7 +77,7 @@ export function AdminLessonManager({ month, branches, scheduleTemplates, initial
     setNote(''); setError(''); setResult(null); setFamily(null); setUncertain(false)
   }, [])
   useEffect(() => {
-    if (!initialSessionId || handledDeepLink.current === initialSessionId) return
+    if (!active || !initialSessionId || handledDeepLink.current === initialSessionId) return
     let cancelled = false
     void (async () => {
       try {
@@ -83,14 +85,15 @@ export function AdminLessonManager({ month, branches, scheduleTemplates, initial
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'อ่านรายการที่เลือกไม่สำเร็จ')
         if (cancelled) return
+        if(data.items?.[0]?.date?.slice(0,7)!==month&&data.items?.[0]?.date){router.replace(`/admin/makeup?month=${data.items[0].date.slice(0,7)}&tab=manage&session=${initialSessionId}`,{scroll:false});return}
         handledDeepLink.current = initialSessionId
         const lesson = data.items?.[0] as Lesson | undefined
-        if (lesson?.status === 'scheduled' && !lesson.has_attendance && lesson.identity_valid !== false) open(lesson, 'reschedule')
+        if (lesson?.status === 'scheduled' && !lesson.has_attendance && lesson.identity_valid !== false) {setCourse(lesson.course_type);setPerson({learner_key:lesson.id,user_id:lesson.user_id,child_id:lesson.child_id,booking_id:lesson.course_type==='private'?lesson.booking_id:null,learner_name:lesson.learner_name,parent_name:lesson.parent_name,branch_ids:[lesson.branch_id],branch_names:[lesson.branch_name],course_type:lesson.course_type});open(lesson, 'reschedule')}
         else setListError('รายการนี้ไม่พร้อมย้ายวัน/เก็บกระเป๋า กรุณาตรวจสถานะและประวัติการเช็คชื่อ')
       } catch (cause) { if (!cancelled) setListError(cause instanceof Error ? cause.message : 'อ่านรายการที่เลือกไม่สำเร็จ') }
     })()
     return () => { cancelled = true }
-  }, [initialSessionId, month, open])
+  }, [active, initialSessionId, month, open, router])
   useEffect(() => {
     if (!selected || selected.course_type !== 'kids_group') return
     let cancelled = false
@@ -129,7 +132,7 @@ export function AdminLessonManager({ month, branches, scheduleTemplates, initial
         throw new Error(data.error || 'ยังยืนยันผลไม่ได้ กรุณาตรวจสอบคำขอเดิม')
       }
       if (!await load()) throw new Error('บันทึกแล้วแต่ยังอ่านรายการล่าสุดไม่ได้ กรุณาตรวจสอบคำขอเดิม')
-      resolved = true; setResult(data.result); router.refresh()
+      resolved = true; setResult(data.result); if(onChanged)onChanged();else router.refresh()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'ยังยืนยันผลไม่ได้') }
     finally {
       inFlight.current = false; setSaving(false); setUncertain(!resolved)
@@ -138,25 +141,32 @@ export function AdminLessonManager({ month, branches, scheduleTemplates, initial
   }
 
   return <section className="space-y-4" aria-label="จัดการวันเรียน">
-    <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_150px]">
-      <Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ค้นหานักเรียน / ผู้ปกครอง" aria-label="ค้นหารอบเรียน" disabled={locked} maxLength={200} />
-      <Select value={branch} onValueChange={setBranch} disabled={locked}><SelectTrigger aria-label="สาขาของรอบเรียน"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทุกสาขา</SelectItem>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select>
-      <Select value={course} onValueChange={setCourse} disabled={locked}><SelectTrigger aria-label="คอร์สของรอบเรียน"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทุกคอร์ส</SelectItem><SelectItem value="kids_group">เด็กกลุ่ม</SelectItem><SelectItem value="adult_group">ผู้ใหญ่กลุ่ม</SelectItem><SelectItem value="private">Private</SelectItem></SelectContent></Select>
+    <Card><CardContent className="space-y-4 p-4">
+      <h2 className="font-semibold text-[#153c85]">1. เลือกประเภทคอร์ส</h2>
+      <div className="grid grid-cols-3 gap-2">{Object.entries(ADMIN_COURSES).map(([value,item])=><Button key={value} variant="outline" disabled={locked} aria-pressed={course===value} className={item.className+(course===value?' ring-2 ring-current ring-offset-1':'')} onClick={()=>{resetScope();setCourse(value)}}>{item.label}</Button>)}</div>
+      {course?<form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto] sm:items-end" onSubmit={e=>{e.preventDefault();if(search.trim().length>=2&&!locked){setPerson(null);setPeople({items:[],total:0});setCommittedSearch(search.trim());setPage(1);if(committedSearch===search.trim())void load()}}}>
+        <label className="space-y-2 text-sm"><span>2. ค้นหาผู้เรียน / ผู้ปกครอง</span><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="ชื่อเล่น ชื่อจริง หรือชื่อผู้ปกครอง" aria-label="ค้นหารอบเรียน" disabled={locked} minLength={2} maxLength={200}/></label>
+        <label className="space-y-2 text-sm"><span>สาขา</span><Select value={branch} onValueChange={value=>{resetScope();setBranch(value)}} disabled={locked}><SelectTrigger aria-label="สาขาของรอบเรียน"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">ทุกสาขา</SelectItem>{branches.map(b=><SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></label>
+        <Button type="submit" disabled={locked||search.trim().length<2}>ค้นหา</Button>
+      </form>:<p className="py-5 text-center text-sm text-gray-500">เลือกคอร์ส แล้วค้นหาคนที่ต้องการช่วยจัดการ</p>}
     </CardContent></Card>
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold text-[#153c85]">รอบปกติวันนี้และล่วงหน้า</h2><p className="text-sm text-gray-500">เลือกรายการเดิมเพื่อย้ายวัน/รอบ หรือเก็บเข้ากระเป๋า</p></div><Badge variant="outline">{list.total} รายการ</Badge></div>
+    {person?<div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold text-[#153c85]">3. เลือกรอบเรียน · {person.learner_name}</h2><p className="text-sm text-gray-500">ผู้ปกครอง / ผู้เรียน {person.parent_name}</p></div><Button variant="ghost" disabled={locked} onClick={()=>{setPerson(null);setPage(1)}}>เปลี่ยนผู้เรียน</Button></div>:null}
+    {!person&&committedSearch&&peopleReady&&!loading&&!listError?<Card><CardContent className="p-4"><h2 className="font-semibold text-[#153c85]">พบ {people.total} รายชื่อ</h2>{people.items.map(item=><Button variant="ghost" key={item.learner_key} disabled={locked} className="mt-2 h-auto w-full justify-between whitespace-normal py-3 text-left" onClick={()=>{setPerson(item);setPage(1)}}><span className="min-w-0 flex-1 break-words"><span className="block font-semibold text-[#153c85]">{item.learner_name}</span><span className="text-xs text-gray-500">{item.parent_name} · {item.branch_names.join(' · ')}</span></span><Badge className={ADMIN_COURSES[item.course_type].className} variant="outline">{ADMIN_COURSES[item.course_type].label}</Badge></Button>)}{people.total>10?<ListPagination page={page} pageSize={10} pageSizeOptions={[10]} total={people.total} onPageChange={setPage} onPageSizeChange={()=>{}}/>:null}</CardContent></Card>:null}
+    {course&&!person&&!committedSearch?<p className="py-6 text-center text-sm text-gray-500">พิมพ์อย่างน้อย 2 ตัวอักษร แล้วกดค้นหาหรือ Enter</p>:null}
     {listError ? <div role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">{listError}<Button variant="outline" className="ml-3" onClick={() => void load()}>ลองอ่านใหม่</Button></div> : null}
     {loading ? <p role="status" className="flex items-center gap-2 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" />กำลังอ่านรายการเรียน...</p> : null}
-    {!loading && !listError && !list.items.length ? <Card><CardContent className="py-10 text-center text-gray-500">ไม่มีรอบปกติวันนี้หรือล่วงหน้าในเดือนและตัวกรองนี้</CardContent></Card> : null}
-    {list.items.map(lesson => <Card key={lesson.id} data-testid={`admin-lesson-${lesson.id}`}><CardContent className="space-y-3 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-[#153c85]">{lesson.learner_name}</h3><p className="mt-1 text-sm">{formatThaiDateWithWeekday(lesson.date)} · {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}</p><p className="mt-1 text-sm text-gray-500">{lesson.branch_name} · ผู้ปกครอง {lesson.parent_name}</p></div><Badge variant="outline">{lesson.course_type === 'kids_group' ? 'เด็กกลุ่ม' : lesson.course_type === 'adult_group' ? 'ผู้ใหญ่กลุ่ม' : 'Private'}</Badge></div>
+    {person && listReady && !loading && !listError && !list.items.length ? <Card><CardContent className="py-10 text-center text-gray-500">ไม่มีรอบปกติวันนี้หรือล่วงหน้าในเดือนและตัวกรองนี้</CardContent></Card> : null}
+    {person && listReady ? list.items.map(lesson => <Card key={lesson.id} data-testid={`admin-lesson-${lesson.id}`}><CardContent className="space-y-3 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-[#153c85]">{lesson.learner_name}</h3><p className="mt-1 text-sm">{formatThaiDateWithWeekday(lesson.date)} · {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}</p><p className="mt-1 text-sm text-gray-500">{lesson.branch_name} · ผู้ปกครอง {lesson.parent_name}</p></div><Badge variant="outline" className={ADMIN_COURSES[lesson.course_type].className}>{ADMIN_COURSES[lesson.course_type].label}</Badge></div>
       <div className="flex flex-wrap gap-2"><Badge variant="outline" className="bg-emerald-50 text-emerald-700">ชำระแล้ว</Badge>{lesson.identity_valid === false ? <Badge variant="outline">ตรวจข้อมูลผู้เรียน</Badge> : null}{lesson.branch_closed ? <Badge variant="outline" className="bg-orange-50 text-orange-800">สาขาปิดเฉพาะวันนี้</Badge> : null}{lesson.has_attendance ? <Badge variant="outline">มีการเช็คชื่อแล้ว</Badge> : null}</div>
       <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={loading || locked || lesson.identity_valid === false || lesson.has_attendance || !lesson.schedule_slot_id} onClick={() => open(lesson, 'reschedule')}><ArrowLeftRight className="mr-2 h-4 w-4" />ย้ายวัน/รอบ</Button><Button variant="outline" disabled={loading || locked || lesson.identity_valid === false || lesson.has_attendance || !lesson.schedule_slot_id} onClick={() => open(lesson, 'store')}><Wallet className="mr-2 h-4 w-4" />เก็บเข้ากระเป๋า</Button></div>
-    </CardContent></Card>)}
-    {list.total > 40 ? <ListPagination page={page} pageSize={40} pageSizeOptions={[40]} total={list.total} onPageChange={setPage} onPageSizeChange={() => {}} /> : null}
+    </CardContent></Card>) : null}
+    {person && listReady && list.total > 20 ? <ListPagination page={page} pageSize={20} pageSizeOptions={[20]} total={list.total} onPageChange={setPage} onPageSizeChange={() => {}} /> : null}
     <Dialog open={Boolean(selected)} onOpenChange={value => { if (!value && !pending.current && !inFlight.current) { setSelected(null); setResult(null) } }}>
       <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto" onEscapeKeyDown={event => { if (locked) event.preventDefault() }} onInteractOutside={event => { if (locked) event.preventDefault() }}>
         <DialogHeader><DialogTitle>{result ? action === 'store' ? 'เก็บเข้ากระเป๋าสำเร็จ' : 'ย้ายวัน/รอบสำเร็จ' : action === 'store' ? 'เก็บรอบเรียนเข้ากระเป๋า' : 'ย้ายวัน / เปลี่ยนรอบเรียน'}</DialogTitle><DialogDescription>{selected?.learner_name} · ใช้สิทธิ์ Admin จัดการรายการเดิม</DialogDescription></DialogHeader>
         {selected ? <div className="space-y-4">
+          {options.loading?<p role="status">กำลังอ่านรอบเรียน...</p>:null}{options.error?<p role="alert">{options.error} <Button onClick={options.retry}>ลองใหม่</Button></p>:null}
           <div className="rounded-lg border bg-gray-50 p-3 text-sm"><p className="font-semibold">รอบเดิม · {formatThaiDateWithWeekday(selected.date)}</p><p>{selected.start_time.slice(0, 5)}–{selected.end_time.slice(0, 5)} · {selected.branch_name}</p></div>
           {error ? <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
           {result ? <>

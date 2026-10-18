@@ -324,6 +324,14 @@ export interface Database {
       }
     }
     Functions: {
+      admin_branch_closure_overview_v1: {
+        Args: { p_actor_id: string; p_month: string; p_branch?: string | null }
+        Returns: Json
+      }
+      admin_makeup_lookup_v1: {
+        Args: { p_actor_id: string; p_month: string; p_course: string; p_search?: string; p_branch?: string | null; p_page?: number; p_mode?: string; p_user?: string | null; p_child?: string | null; p_booking?: string | null }
+        Returns: Json
+      }
       admin_lesson_sessions_v1: {
         Args: { p_actor_id: string; p_month: string; p_search?: string; p_branch?: string | null; p_course?: string | null; p_page?: number; p_session?: string | null }
         Returns: Json

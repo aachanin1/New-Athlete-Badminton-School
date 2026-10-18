@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams
   const month = q.get('month') || '', branch = q.get('branch') || null, session = q.get('session') || null
   const search = q.get('search')?.trim() || '', course = q.get('course') || null, page = Number(q.get('page') || 1)
-  if (!/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month) || search.length > 200 || (branch && !uuid.test(branch))
+  if (!session || !/^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(month) || month.slice(0,4)>='9999' || search.length > 200 || (branch && !uuid.test(branch))
     || (session && !uuid.test(session)) || !Number.isInteger(page) || page < 1 || page > 100000
     || (course && !['kids_group', 'adult_group', 'private'].includes(course))) {
     return NextResponse.json({ error: 'ข้อมูลตัวกรองไม่ถูกต้อง' }, { status: 400 })

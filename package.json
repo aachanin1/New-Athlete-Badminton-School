@@ -40,7 +40,10 @@
     "prod:reset-operational-data": "node scripts/reset-production-operational-data.js",
     "prod:check": "node scripts/production-readiness-check.js",
     "start": "NODE_ENV=production node server.js",
-    "lint": "eslint src --max-warnings=0"
+    "lint": "eslint src --max-warnings=0",
+    "test:admin-makeup:browser": "node scripts/check-admin-makeup-refinement.mjs",
+    "test:admin-makeup:boundaries": "node scripts/check-admin-makeup-read-boundaries.mjs",
+    "test:admin-makeup:performance": "node scripts/check-admin-makeup-performance.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
