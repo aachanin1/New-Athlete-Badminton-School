@@ -1,3 +1,5 @@
+import { isBranchDateClosed, type BranchDateClosure } from '@/lib/branch-date-closures'
+
 export interface BookingAvailabilitySlotInput {
   date: string
   startTime: string
@@ -42,6 +44,7 @@ export interface BookingAvailabilitySessionRow {
 }
 
 export type BookingAvailabilityReason =
+  | 'branch_closed'
   | 'invalid_template'
   | 'cancelled_slot'
   | 'slot_mismatch'
@@ -120,6 +123,7 @@ export function buildBookingSlotAvailability({
   bookingSessions,
   nowMs,
   excludeBookingId,
+  closures = [],
 }: {
   courseTypeId: string
   candidates: BookingAvailabilitySlotInput[]
@@ -128,6 +132,7 @@ export function buildBookingSlotAvailability({
   bookingSessions: BookingAvailabilitySessionRow[]
   nowMs: number
   excludeBookingId?: string | null
+  closures?: BranchDateClosure[]
 }) {
   const occupancyBySlotId = new Map<string, number>()
   for (const session of bookingSessions) {
@@ -144,6 +149,12 @@ export function buildBookingSlotAvailability({
     const key = getBookingAvailabilitySlotKey(candidate)
     if (seen.has(key)) continue
     seen.add(key)
+    if (isBranchDateClosed(closures, candidate.branchId, candidate.date)) {
+      result.push({ key, date: candidate.date, startTime: normalizeTime(candidate.startTime), endTime: normalizeTime(candidate.endTime),
+        branchId: candidate.branchId, scheduleTemplateId: candidate.scheduleTemplateId || null, scheduleSlotId: null,
+        activeOccupancy: 0, valid: false, unavailableReason: 'branch_closed' })
+      continue
+    }
 
     const canonicalTemplate = selectCanonicalTemplate(candidate, courseTypeId, templates)
     if (!canonicalTemplate) {

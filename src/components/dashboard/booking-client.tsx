@@ -326,7 +326,7 @@ function buildAvailabilityCandidates({
     const date = new Date(calYear, calMonth, day)
     const dateString = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     for (const branch of selectedBranches) {
-      for (const slot of getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay())) {
+      for (const slot of getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay(), date)) {
         const [hour, minute] = slot.start.split(':').map(Number)
         if (new Date(calYear, calMonth, day, hour || 0, minute || 0).getTime() <= nowMs) continue
         const candidate = {
@@ -1166,7 +1166,7 @@ export function BookingClient({ userId, userName, learnerChildren, branches, cou
   const getBookableSlots = (branchSlug: string, day: number) => {
     if (!courseType) return []
     const date = new Date(calYear, calMonth, day)
-    const slots = getTemplateSlots(scheduleTemplates, branchSlug, courseType, date.getDay())
+    const slots = getTemplateSlots(scheduleTemplates, branchSlug, courseType, date.getDay(), date)
     return slots.filter((slot) => isSlotBookable(day, slot))
   }
 

@@ -4,7 +4,7 @@ import {
   isProgressivePricingWritesEnabled,
 } from '@/lib/progressive-pricing-feature'
 import type { LearnerType } from '@/types/database'
-import { Task10Error } from '@/lib/task10-policy'
+import { Task10Error, task10RpcError } from '@/lib/task10-policy'
 
 export type ProgressiveBookingWriteErrorCode =
   | 'PROGRESSIVE_BOOKING_CONFLICT'
@@ -160,6 +160,7 @@ function getRpcClient(): ProgressiveRpcClient {
 
 function mapRpcError(error: RpcErrorLike): ProgressiveBookingWriteError | Task10Error {
   const source = [error.message, error.details, error.hint].filter(Boolean).join(' ')
+  if (source.includes('BRANCH_DATE_CLOSED')) return task10RpcError('BRANCH_DATE_CLOSED')
   const task10Code = /TASK10_[A-Z_]+/.exec(source)?.[0]
   if (task10Code) return new Task10Error(task10Code, 'ข้อมูลราคา สถานะ หรือสิทธิ์เปลี่ยนแล้ว กรุณาโหลดข้อมูลใหม่', task10Code === 'TASK10_UNAUTHORIZED' ? 403 : 409)
   const matchedCode = Array.from(KNOWN_ERROR_CODES).find((code) => source.includes(code))

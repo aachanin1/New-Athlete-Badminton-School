@@ -1,3 +1,5 @@
+import { readFutureBranchDateClosureState } from '@/lib/branch-date-closures-server'
+import { BranchDateClosureReadNotice } from '@/components/branch-date-closure-read-notice'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { RescheduleClient } from '@/components/dashboard/reschedule-client'
@@ -52,6 +54,7 @@ export default async function ReschedulePage() {
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
+  const { available: branchClosuresAvailable, closures: branchClosures } = await readFutureBranchDateClosureState(supabase)
 
   const today = new Date().toISOString().split('T')[0]
   const [{ data: sessions }, { data: branches }, { data: scheduleTemplates }] = await Promise.all([
@@ -85,11 +88,13 @@ export default async function ReschedulePage() {
         <p className="mt-1 text-sm text-gray-500">เปลี่ยนรอบเรียนจากรอบจริงในระบบ โดยต้องล่วงหน้าอย่างน้อย {RESCHEDULE_CUTOFF_HOURS} ชั่วโมง</p>
       </div>
 
+      {!branchClosuresAvailable ? <BranchDateClosureReadNotice /> : null}
       <RescheduleClient
         sessions={sessions || []}
         branches={branches || []}
-        scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+        scheduleTemplates={(branchClosuresAvailable ? scheduleTemplates || [] : []).map((template) => ({
           id: template.id,
+          closed_dates: branchClosures.filter(row => row.branch_id === template.branch_id).map(row => row.closure_date),
           branch_id: template.branch_id,
           branch_slug: template.branches?.slug || '',
           course_type_id: template.course_type_id,

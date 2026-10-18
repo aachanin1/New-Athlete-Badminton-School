@@ -28,6 +28,8 @@ export class Task10Error extends Error {
 
 export function task10RpcError(code?: string): Task10Error {
   const messages: Record<string, string> = {
+      BRANCH_DATE_CLOSED: 'สาขาปิดในวันที่เลือก กรุณาเลือกวันหรือสาขาอื่น',
+      LESSON_SOURCE_REASON_REQUIRED: 'กรุณาระบุเหตุผลการจัดการ',
       TASK10_BOOKING_DEADLINE: 'หมดเวลารับสลิปของบิลนี้แล้ว กรุณารีเฟรชเพื่อตรวจสอบสถานะล่าสุด',
       TASK10_BOOKING_CANCELLED: 'บิลนี้ถูกยกเลิกแล้ว กรุณารีเฟรชเพื่อตรวจสอบรายการ',
       TASK10_BOOKING_STATE_CONFLICT: 'สถานะบิลเปลี่ยนแล้ว กรุณารีเฟรชก่อนทำรายการอีกครั้ง',
@@ -51,7 +53,7 @@ export function task10RpcError(code?: string): Task10Error {
 
 export async function callTask10<T>(client: Task10RpcClient, name: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await client.rpc(name, args)
-  if (error) throw task10RpcError(/(?:TASK10|PROGRESSIVE)_[A-Z_]+/.exec(error.message)?.[0])
+  if (error) throw task10RpcError(/(?:BRANCH_DATE|LESSON_SOURCE|TASK10|PROGRESSIVE)_[A-Z_]+/.exec(error.message)?.[0])
   if (data === null) throw new Task10Error('TASK10_UNAVAILABLE', 'ไม่สามารถอ่านข้อมูลกติกาได้', 503)
   return data as T
 }

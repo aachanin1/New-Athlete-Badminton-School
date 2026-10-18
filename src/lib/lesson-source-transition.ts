@@ -1,6 +1,6 @@
 import type { Json } from '@/types/database'
 
-export type LessonSourceOperation = 'reschedule' | 'store' | 'redeem' | 'makeup' | 'return_entitlement'
+export type LessonSourceOperation = 'reschedule' | 'store' | 'redeem' | 'makeup' | 'return_entitlement' | 'admin_store' | 'admin_reschedule'
 
 interface TransitionClient {
   rpc(name: 'lesson_source_transition_v1', args: {
@@ -9,6 +9,11 @@ interface TransitionClient {
 }
 
 const walletMessages: Record<string, string> = {
+  BRANCH_DATE_CLOSED: 'สาขาปิดในวันที่เลือก กรุณาเลือกวันหรือสาขาอื่น',
+  LESSON_SOURCE_REASON_REQUIRED: 'กรุณาระบุเหตุผลการจัดการ',
+  LESSON_SOURCE_ABSENCE_REQUIRED: 'ต้องมีผลเช็คขาดเรียนของผู้เรียนคนนี้ก่อนจัดชดเชย',
+  LESSON_SOURCE_PRIVATE_DURATION: 'รอบใหม่ต้องมีระยะเวลาเท่ากับสิทธิ์ Private เดิม',
+  LESSON_SOURCE_IDENTITY_CONFLICT: 'ข้อมูลผู้เรียนของสิทธิ์ไม่ตรงกัน กรุณาตรวจสอบรายการเดิม',
     LESSON_WALLET_COURSE_INVALID: 'ข้อมูลคอร์สของสิทธิ์ไม่ถูกต้อง',
   LESSON_WALLET_CREDIT_STALE: 'สิทธิ์นี้ถูกใช้ไปแล้วหรือไม่พร้อมใช้งาน กรุณารีเฟรชหน้า',
   LESSON_WALLET_UNIT_STALE: 'รอบเรียนนี้ถูกเก็บเข้ากระเป๋าแล้ว กรุณารีเฟรชหน้า',
@@ -44,7 +49,7 @@ export async function transitionLessonSource<T>(client: TransitionClient, actorI
   if (error) {
     const code = ['40P01', '40001', '55P03', '57014'].includes(error.code || '')
       ? 'LESSON_SOURCE_RETRY'
-      : /(?:LESSON_SOURCE|LESSON_WALLET|TASK10)_[A-Z_]+/.exec(error.message)?.[0] || 'LESSON_SOURCE_FAILED'
+      : /(?:BRANCH_DATE|LESSON_SOURCE|LESSON_WALLET|TASK10)_[A-Z_]+/.exec(error.message)?.[0] || 'LESSON_SOURCE_FAILED'
     const status = code.startsWith('LESSON_WALLET_')
       ? code.endsWith('_NOT_FOUND') ? 404 : /(STALE|CONFLICT|AMBIGUOUS|UNAVAILABLE)/.test(code) ? 409 : /(EVIDENCE|INVALID)/.test(code) ? 422 : 400
       : /UNAUTHORIZED|FORBIDDEN/.test(code) ? 403

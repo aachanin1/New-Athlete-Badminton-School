@@ -1,3 +1,5 @@
+import { readFutureBranchDateClosureState } from '@/lib/branch-date-closures-server'
+import { BranchDateClosureReadNotice } from '@/components/branch-date-closure-read-notice'
 import { redirect } from 'next/navigation'
 
 import { LessonWalletClient } from '@/components/dashboard/lesson-wallet-client'
@@ -82,6 +84,7 @@ export default async function LessonWalletPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
+  const { available: branchClosuresAvailable, closures: branchClosures } = await readFutureBranchDateClosureState(supabase)
 
   const adminSupabase = getServiceRoleClient()
   const nowIso = new Date().toISOString()
@@ -143,7 +146,7 @@ export default async function LessonWalletPage() {
   const familyUsedCreditIds = new Set((familyUses.data || []).map((row) => row.credit_id))
   const transitionCreditIds = new Set((transitions.data || []).map((row) => row.credit_id))
 
-  const walletScheduleTemplates = (scheduleTemplates || []).flatMap((template) => {
+  const walletScheduleTemplates = (branchClosuresAvailable ? scheduleTemplates || [] : []).flatMap((template) => {
     const courseTypeName = normalizeCourseTypeName(template.course_types?.name)
     const branchSlug = template.branches?.slug
 
@@ -151,6 +154,7 @@ export default async function LessonWalletPage() {
 
     return [{
       id: template.id,
+      closed_dates: branchClosures.filter(row => row.branch_id === template.branch_id).map(row => row.closure_date),
       branch_id: template.branch_id,
       branch_slug: branchSlug,
       course_type_id: template.course_type_id,
@@ -172,6 +176,7 @@ export default async function LessonWalletPage() {
         </p>
       </div>
 
+      {!branchClosuresAvailable ? <BranchDateClosureReadNotice /> : null}
       <LessonWalletClient
         credits={(credits || []).map((credit) => ({
           ...credit,

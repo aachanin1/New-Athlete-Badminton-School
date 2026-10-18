@@ -1,0 +1,182 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeftRight, Loader2, Wallet } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ListPagination } from '@/components/admin/list-pagination'
+import { AdminActionReason, adminActionReason } from '@/components/admin/admin-action-reason'
+import { MakeupCalendarPicker, useMakeupCalendarNow } from '@/components/admin/makeup-calendar-picker'
+import { makeupMonthDates, type MakeupCalendarDay, type MakeupCalendarSlot } from '@/lib/makeup-calendar'
+import { formatThaiDateWithWeekday, formatThaiDateTimeWithWeekday } from '@/lib/date-format'
+import { getBangkokDayOfWeek, getTemplateSlots, type ScheduleTemplateOption } from '@/lib/schedule-template-utils'
+import type { CourseTypeName } from '@/types/database'
+import type { KidsFamilyMakeupState } from '@/lib/kids-family-makeup'
+
+interface Lesson {
+  id: string; booking_id: string; child_id: string | null; user_id: string; branch_id: string; schedule_slot_id: string | null
+  date: string; start_time: string; end_time: string; status: string; is_makeup: boolean; course_type: CourseTypeName
+  learner_name: string; parent_name: string; branch_name: string; has_attendance: boolean; branch_closed: boolean
+  identity_valid: boolean
+}
+interface LessonList { items: Lesson[]; total: number; page: number; pageSize: number }
+interface Branch { id: string; name: string; slug: string }
+export interface MakeupContinuation { parentId: string; sourceMonth: string; sourceSessionId: string; childId: string; reason: string; note: string; key: string }
+interface RequestPayload { session_id: string; operation: 'store' | 'reschedule'; request_id: string; reason: string; target_date?: string; start_time?: string; end_time?: string; branch_id?: string; template_id?: string }
+
+export function AdminLessonManager({ month, branches, scheduleTemplates, initialSessionId, onSavingChange, onMakeup }: {
+  month: string; branches: Branch[]; scheduleTemplates: ScheduleTemplateOption[]; initialSessionId?: string | null
+  onSavingChange: (saving: boolean) => void; onMakeup: (value: MakeupContinuation) => void
+}) {
+  const router = useRouter()
+  const [search, setSearch] = useState(''), [debouncedSearch, setDebouncedSearch] = useState('')
+  const [branch, setBranch] = useState('all'), [course, setCourse] = useState('all'), [page, setPage] = useState(1)
+  const [list, setList] = useState<LessonList>({ items: [], total: 0, page: 1, pageSize: 40 })
+  const [loading, setLoading] = useState(false), [listError, setListError] = useState('')
+  const [selected, setSelected] = useState<Lesson | null>(null), [action, setAction] = useState<'store' | 'reschedule'>('reschedule')
+  const [date, setDate] = useState(''), [slot, setSlot] = useState<MakeupCalendarSlot | null>(null)
+  const [reason, setReason] = useState(''), [note, setNote] = useState(''), [error, setError] = useState('')
+  const [saving, setSaving] = useState(false), [uncertain, setUncertain] = useState(false)
+  const [result, setResult] = useState<Record<string, unknown> | null>(null), [family, setFamily] = useState<KidsFamilyMakeupState | null>(null)
+  const pending = useRef<RequestPayload | null>(null), inFlight = useRef(false), revision = useRef(0), handledDeepLink = useRef('')
+  const now = useMakeupCalendarNow(Boolean(selected)), locked = saving || uncertain
+  const fullReason = adminActionReason(reason, note)
+
+  useEffect(() => { const timer = setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1) }, 250); return () => clearTimeout(timer) }, [search])
+  useEffect(() => { setPage(1) }, [month, branch, course])
+  const load = useCallback(async () => {
+    const current = ++revision.current
+    setLoading(true); setListError('')
+    const q = new URLSearchParams({ month, search: debouncedSearch, page: String(page) })
+    if (branch !== 'all') q.set('branch', branch)
+    if (course !== 'all') q.set('course', course)
+    try {
+      const response = await fetch(`/api/admin/makeup/lessons?${q}`, { cache: 'no-store' })
+      const data = await response.json()
+      if (!response.ok || !Array.isArray(data.items)) throw new Error(data.error || 'อ่านรายการเรียนไม่สำเร็จ')
+      if (revision.current === current) setList(data)
+      return true
+    } catch (cause) {
+      if (revision.current === current) { setList({ items: [], total: 0, page, pageSize: 40 }); setListError(cause instanceof Error ? cause.message : 'อ่านรายการเรียนไม่สำเร็จ') }
+      return false
+    } finally { if (revision.current === current) setLoading(false) }
+  }, [month, branch, course, page, debouncedSearch])
+  const invalidateLoad = useCallback(() => { revision.current++ }, [])
+  useEffect(() => { void load(); return invalidateLoad }, [load, invalidateLoad])
+
+  const open = useCallback((lesson: Lesson, operation: 'store' | 'reschedule') => {
+    if (pending.current || inFlight.current) return
+    setSelected(lesson); setAction(operation); setDate(''); setSlot(null); setReason(lesson.branch_closed ? 'closure' : '')
+    setNote(''); setError(''); setResult(null); setFamily(null); setUncertain(false)
+  }, [])
+  useEffect(() => {
+    if (!initialSessionId || handledDeepLink.current === initialSessionId) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const response = await fetch(`/api/admin/makeup/lessons?${new URLSearchParams({ month, session: initialSessionId })}`, { cache: 'no-store' })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'อ่านรายการที่เลือกไม่สำเร็จ')
+        if (cancelled) return
+        handledDeepLink.current = initialSessionId
+        const lesson = data.items?.[0] as Lesson | undefined
+        if (lesson?.status === 'scheduled' && !lesson.has_attendance && lesson.identity_valid !== false) open(lesson, 'reschedule')
+        else setListError('รายการนี้ไม่พร้อมย้ายวัน/เก็บกระเป๋า กรุณาตรวจสถานะและประวัติการเช็คชื่อ')
+      } catch (cause) { if (!cancelled) setListError(cause instanceof Error ? cause.message : 'อ่านรายการที่เลือกไม่สำเร็จ') }
+    })()
+    return () => { cancelled = true }
+  }, [initialSessionId, month, open])
+  useEffect(() => {
+    if (!selected || selected.course_type !== 'kids_group') return
+    let cancelled = false
+    void fetch(`/api/admin/makeup/kids-family?${new URLSearchParams({ parentId: selected.user_id, sourceMonth: selected.date.slice(0, 7) })}`, { cache: 'no-store' })
+      .then(async response => { const data = await response.json(); if (response.ok && !cancelled) setFamily(data) }).catch(() => {})
+    return () => { cancelled = true }
+  }, [selected])
+
+  const days = useMemo<MakeupCalendarDay[]>(() => selected ? makeupMonthDates(selected.date.slice(0, 7)).flatMap(dateInput => {
+    const dayOfWeek = getBangkokDayOfWeek(dateInput)!
+    const slotsByBranch = branches.map(b => ({ branch: b, slots: getTemplateSlots(scheduleTemplates, b.slug, selected.course_type, dayOfWeek, dateInput)
+      .filter(s => selected.course_type !== 'private' || scheduleTemplates.some(t => t.id === s.templateId && t.start_time.slice(0, 5) === s.start && t.end_time.slice(0, 5) === s.end)
+        && Date.parse(`2000-01-01T${s.end}:00Z`) - Date.parse(`2000-01-01T${s.start}:00Z`) === Date.parse(`2000-01-01T${selected.end_time}Z`) - Date.parse(`2000-01-01T${selected.start_time}Z`))
+      .filter(s => Date.parse(`${dateInput}T${s.start}+07:00`) > now.getTime())
+      .filter(s => !(dateInput === selected.date && b.id === selected.branch_id && s.start === selected.start_time.slice(0, 5) && s.end === selected.end_time.slice(0, 5))) }))
+      .filter(item => item.slots.length)
+    return slotsByBranch.length ? [{ dateInput, dayOfWeek, slotsByBranch }] : []
+  }) : [], [selected, branches, scheduleTemplates, now])
+  const selectedSlotValid = !slot || days.some(day => day.dateInput === slot.date && day.slotsByBranch.some(b => b.branch.id === slot.branchId
+    && b.slots.some(s => s.templateId === slot.templateId && s.start === slot.start && s.end === slot.end)))
+
+  async function submit() {
+    if (inFlight.current || !selected) return
+    if (!pending.current) {
+      if (!fullReason || selected.identity_valid === false || selected.has_attendance || selected.status !== 'scheduled' || (action === 'reschedule' && (!slot || !selectedSlotValid))) return
+      pending.current = { session_id: selected.id, operation: action, request_id: crypto.randomUUID(), reason: fullReason,
+        ...(slot && action === 'reschedule' ? { target_date: slot.date, start_time: slot.start, end_time: slot.end, branch_id: slot.branchId, template_id: slot.templateId } : {}) }
+    }
+    inFlight.current = true; setSaving(true); setError(''); onSavingChange(true)
+    let resolved = false
+    try {
+      const response = await fetch('/api/admin/makeup/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pending.current) })
+      const data = await response.json()
+      if (!response.ok || !data.success || !data.result) {
+        if (response.status >= 400 && response.status < 500 && data.code && !['LESSON_SOURCE_RETRY', 'LESSON_SOURCE_FAILED'].includes(data.code)) resolved = true
+        throw new Error(data.error || 'ยังยืนยันผลไม่ได้ กรุณาตรวจสอบคำขอเดิม')
+      }
+      if (!await load()) throw new Error('บันทึกแล้วแต่ยังอ่านรายการล่าสุดไม่ได้ กรุณาตรวจสอบคำขอเดิม')
+      resolved = true; setResult(data.result); router.refresh()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'ยังยืนยันผลไม่ได้') }
+    finally {
+      inFlight.current = false; setSaving(false); setUncertain(!resolved)
+      if (resolved) { pending.current = null; onSavingChange(false) }
+    }
+  }
+
+  return <section className="space-y-4" aria-label="จัดการวันเรียน">
+    <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_150px]">
+      <Input value={search} onChange={event => setSearch(event.target.value)} placeholder="ค้นหานักเรียน / ผู้ปกครอง" aria-label="ค้นหารอบเรียน" disabled={locked} maxLength={200} />
+      <Select value={branch} onValueChange={setBranch} disabled={locked}><SelectTrigger aria-label="สาขาของรอบเรียน"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทุกสาขา</SelectItem>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select>
+      <Select value={course} onValueChange={setCourse} disabled={locked}><SelectTrigger aria-label="คอร์สของรอบเรียน"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">ทุกคอร์ส</SelectItem><SelectItem value="kids_group">เด็กกลุ่ม</SelectItem><SelectItem value="adult_group">ผู้ใหญ่กลุ่ม</SelectItem><SelectItem value="private">Private</SelectItem></SelectContent></Select>
+    </CardContent></Card>
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold text-[#153c85]">รอบปกติวันนี้และล่วงหน้า</h2><p className="text-sm text-gray-500">เลือกรายการเดิมเพื่อย้ายวัน/รอบ หรือเก็บเข้ากระเป๋า</p></div><Badge variant="outline">{list.total} รายการ</Badge></div>
+    {listError ? <div role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">{listError}<Button variant="outline" className="ml-3" onClick={() => void load()}>ลองอ่านใหม่</Button></div> : null}
+    {loading ? <p role="status" className="flex items-center gap-2 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" />กำลังอ่านรายการเรียน...</p> : null}
+    {!loading && !listError && !list.items.length ? <Card><CardContent className="py-10 text-center text-gray-500">ไม่มีรอบปกติวันนี้หรือล่วงหน้าในเดือนและตัวกรองนี้</CardContent></Card> : null}
+    {list.items.map(lesson => <Card key={lesson.id} data-testid={`admin-lesson-${lesson.id}`}><CardContent className="space-y-3 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-[#153c85]">{lesson.learner_name}</h3><p className="mt-1 text-sm">{formatThaiDateWithWeekday(lesson.date)} · {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}</p><p className="mt-1 text-sm text-gray-500">{lesson.branch_name} · ผู้ปกครอง {lesson.parent_name}</p></div><Badge variant="outline">{lesson.course_type === 'kids_group' ? 'เด็กกลุ่ม' : lesson.course_type === 'adult_group' ? 'ผู้ใหญ่กลุ่ม' : 'Private'}</Badge></div>
+      <div className="flex flex-wrap gap-2"><Badge variant="outline" className="bg-emerald-50 text-emerald-700">ชำระแล้ว</Badge>{lesson.identity_valid === false ? <Badge variant="outline">ตรวจข้อมูลผู้เรียน</Badge> : null}{lesson.branch_closed ? <Badge variant="outline" className="bg-orange-50 text-orange-800">สาขาปิดเฉพาะวันนี้</Badge> : null}{lesson.has_attendance ? <Badge variant="outline">มีการเช็คชื่อแล้ว</Badge> : null}</div>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={loading || locked || lesson.identity_valid === false || lesson.has_attendance || !lesson.schedule_slot_id} onClick={() => open(lesson, 'reschedule')}><ArrowLeftRight className="mr-2 h-4 w-4" />ย้ายวัน/รอบ</Button><Button variant="outline" disabled={loading || locked || lesson.identity_valid === false || lesson.has_attendance || !lesson.schedule_slot_id} onClick={() => open(lesson, 'store')}><Wallet className="mr-2 h-4 w-4" />เก็บเข้ากระเป๋า</Button></div>
+    </CardContent></Card>)}
+    {list.total > 40 ? <ListPagination page={page} pageSize={40} pageSizeOptions={[40]} total={list.total} onPageChange={setPage} onPageSizeChange={() => {}} /> : null}
+    <Dialog open={Boolean(selected)} onOpenChange={value => { if (!value && !pending.current && !inFlight.current) { setSelected(null); setResult(null) } }}>
+      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto" onEscapeKeyDown={event => { if (locked) event.preventDefault() }} onInteractOutside={event => { if (locked) event.preventDefault() }}>
+        <DialogHeader><DialogTitle>{result ? action === 'store' ? 'เก็บเข้ากระเป๋าสำเร็จ' : 'ย้ายวัน/รอบสำเร็จ' : action === 'store' ? 'เก็บรอบเรียนเข้ากระเป๋า' : 'ย้ายวัน / เปลี่ยนรอบเรียน'}</DialogTitle><DialogDescription>{selected?.learner_name} · ใช้สิทธิ์ Admin จัดการรายการเดิม</DialogDescription></DialogHeader>
+        {selected ? <div className="space-y-4">
+          <div className="rounded-lg border bg-gray-50 p-3 text-sm"><p className="font-semibold">รอบเดิม · {formatThaiDateWithWeekday(selected.date)}</p><p>{selected.start_time.slice(0, 5)}–{selected.end_time.slice(0, 5)} · {selected.branch_name}</p></div>
+          {error ? <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+          {result ? <>
+            <div role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{action === 'store' ? <><p>นำชื่อออกจากรอบเดิมและเพิ่มในกระเป๋า 1 หน่วยเรียนแล้ว{Number(result.participant_count || 1) > 1 ? ` · ผู้เรียน ${Number(result.participant_count)} คนร่วมกัน` : ''}</p><p>เก็บครั้งนี้ไม่หักโควตาชดเชย</p>{typeof result.expires_at === 'string' ? <p>หมดอายุกระเป๋าปกติ {formatThaiDateTimeWithWeekday(result.expires_at)}</p> : null}</> : <p>ย้ายไป {slot ? formatThaiDateWithWeekday(slot.date) : ''} · {slot?.start}–{slot?.end} · {slot?.branchName} โดยใช้สิทธิ์เดิม</p>}</div>
+            <p className="text-sm text-gray-500">เหตุผล: {fullReason}</p>
+            <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => { setSelected(null); setResult(null) }}>กลับไปหน้ารายการ</Button>{action === 'store' && selected.course_type === 'kids_group' ? <Button className="bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={() => { const next = { parentId: selected.user_id, sourceMonth: selected.date.slice(0, 7), sourceSessionId: selected.id, childId: selected.child_id!, reason, note, key: crypto.randomUUID() }; setSelected(null); setResult(null); onMakeup(next) }}>เลือกวันชดเชยต่อ</Button> : null}</div>
+          </> : <>
+            <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">{action === 'store' ? 'ใช้สิทธิ์ Admin เก็บเข้ากระเป๋าได้ แม้เหลือน้อยกว่า 48 ชั่วโมง' : 'ใช้สิทธิ์ Admin ย้ายวัน/รอบได้ แม้เหลือน้อยกว่า 12 ชั่วโมง'}</p>
+            {selected.has_attendance ? <p role="alert" className="text-red-700">มีการเช็คชื่อแล้ว กรุณาตรวจประวัติในแท็บต้องตรวจสอบ</p> : null}
+            {selected.identity_valid === false ? <p role="alert" className="text-red-700">ข้อมูลผู้เรียนไม่ครบ กรุณาตรวจสอบรายการเดิม</p> : null}
+            {action === 'store' ? <div className="rounded-lg border p-3 text-sm"><h3 className="font-semibold">หลังบันทึก</h3><p>นำชื่อออกจากรอบเดิม · เก็บสิทธิ์ตามอายุเดิมในกระเป๋า</p>{selected.course_type === 'private' ? <p>Family Private เก็บทั้งหน่วยและคงผู้เรียนทุกคนร่วมกัน</p> : null}<p className="mt-2 font-semibold">เก็บครั้งนี้ไม่หักโควตาชดเชย</p>{family?.sourceMonth ? <p>โควตาข้ามเดือนเหลือ {family.remaining} รอบ · ใช้ได้ตามต้นทางที่เข้าเกณฑ์ในเดือนถัดไป</p> : null}</div>
+              : <MakeupCalendarPicker month={selected.date.slice(0, 7)} days={days} selectedDate={date} selectedSlot={slot} disabled={locked} onDateChange={value => { setDate(value); setSlot(null) }} onSlotChange={setSlot} />}
+            <AdminActionReason value={reason} note={note} onValueChange={setReason} onNoteChange={setNote} disabled={locked} />
+            {slot && action === 'reschedule' ? <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">ย้ายไป {formatThaiDateWithWeekday(slot.date)} · {slot.start}–{slot.end} · {slot.branchName}<br />ใช้สิทธิ์เดิม · ไม่เพิ่มจำนวนรอบ</p> : null}
+            {!selectedSlotValid && !locked ? <p role="alert" className="text-sm text-red-700">รอบที่เลือกไม่พร้อมแล้ว กรุณาเลือกใหม่</p> : null}
+            {uncertain ? <p role="status" className="text-sm text-amber-800">ยังยืนยันผลไม่ได้ เก็บคำขอเดิมไว้แล้ว การตรวจซ้ำไม่สร้างรายการซ้ำ</p> : null}
+            <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={locked} onClick={() => setSelected(null)}>ยกเลิก</Button><Button className="bg-[#f57e3b] hover:bg-[#e06d2e]" disabled={saving || (!uncertain && (!fullReason || selected.identity_valid === false || selected.has_attendance || (action === 'reschedule' && (!slot || !selectedSlotValid))))} onClick={() => void submit()}>{saving ? 'กำลังบันทึก...' : uncertain ? 'ตรวจสอบคำขอเดิม' : action === 'store' ? 'ยืนยันเก็บเข้ากระเป๋า' : 'ยืนยันย้ายวัน/รอบ'}</Button></div>
+          </>}
+        </div> : null}
+      </DialogContent>
+    </Dialog>
+  </section>
+}

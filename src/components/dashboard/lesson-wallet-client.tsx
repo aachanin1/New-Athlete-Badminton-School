@@ -194,7 +194,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
     const expiresAt = new Date(selectedCredit.expires_at).getTime()
     return branches.some((branch) => {
       if (!hasTemplateSlots(scheduleTemplates, branch.slug, courseType, date)) return false
-      return getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay()).some((slot) => (
+      return getTemplateSlots(scheduleTemplates, branch.slug, courseType, date.getDay(), date).some((slot) => (
         isFutureSlot(dateStr, slot.start) &&
         new Date(`${dateStr}T${slot.start.slice(0, 5)}:00+07:00`).getTime() <= expiresAt &&
         !isSlotAlreadyBooked(selectedCredit, dateStr, slot.start, slot.end, branch.id)
@@ -506,7 +506,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                     </p>
 
                     {branches.map((branch) => {
-                      const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayIndex)
+                      const slots = getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayIndex, expandedDate)
                         .filter((slot) => isFutureSlot(expandedDate, slot.start))
                       if (slots.length === 0) return null
 

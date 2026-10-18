@@ -1,3 +1,5 @@
+import { readFutureBranchDateClosureState } from '@/lib/branch-date-closures-server'
+import { BranchDateClosureReadNotice } from '@/components/branch-date-closure-read-notice'
 import { createClient } from '@/lib/supabase/server'
 import { MakeupClient } from '@/components/admin/makeup-client'
 import { getCurrentUserWithRole, getServiceRoleClient } from '@/lib/auth/admin'
@@ -232,6 +234,7 @@ async function readChunkedRangePages<T>(
 
 export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   const supabase = await createClient()
+  const { available: branchClosuresAvailable, closures: branchClosures } = await readFutureBranchDateClosureState(supabase)
   const adminSupabase = getServiceRoleClient()
   const familyPolicy = await loadTask10Policy(adminSupabase)
   const resolvedSearchParams = await resolveSearchParams(searchParams)
@@ -622,7 +625,11 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
   }
 
   return (
+    <>
+    {!branchClosuresAvailable ? <BranchDateClosureReadNotice /> : null}
     <MakeupClient
+      initialTab={getSingleSearchParam(resolvedSearchParams.tab) === 'manage' ? 'manage' : undefined}
+      manageSessionId={getSingleSearchParam(resolvedSearchParams.tab) === 'manage' ? getSingleSearchParam(resolvedSearchParams.session) : null}
       familyCards={familyCards}
       familyPolicy={familyPolicy}
       sessions={sessionList}
@@ -631,8 +638,9 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       currentMonth={currentMonth}
       invalidMonth={invalidMonth}
       branches={branches || []}
-      scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+      scheduleTemplates={(branchClosuresAvailable ? scheduleTemplates || [] : []).map((template) => ({
         id: template.id,
+        closed_dates: branchClosures.filter(row => row.branch_id === template.branch_id).map(row => row.closure_date),
         branch_id: template.branch_id,
         branch_slug: template.branches?.slug || '',
         course_type_id: template.course_type_id,
@@ -650,5 +658,6 @@ export default async function MakeupPage({ searchParams }: MakeupPageProps) {
       }))}
       reviewTarget={reviewTarget}
     />
+    </>
   )
 }

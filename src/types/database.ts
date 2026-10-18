@@ -21,6 +21,12 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      branch_date_closures: {
+        Row: { id: string; branch_id: string; closure_date: string; reason: string; is_active: boolean; created_by: string; updated_by: string; created_at: string; updated_at: string }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       task10_family_makeup_uses: {
         Row: { id: string; parent_id: string; source_month: string; source_booking_id: string; source_root_id: string; source_session_id: string; source_child_id: string; attending_child_id: string; destination_session_id: string; credit_id: string | null; minimum_revision: number; decision_evidence: Json; actor_id: string; request_id: string; request_fingerprint: string; result: Json; created_at: string }
         Insert: never
@@ -318,6 +324,14 @@ export interface Database {
       }
     }
     Functions: {
+      admin_lesson_sessions_v1: {
+        Args: { p_actor_id: string; p_month: string; p_search?: string; p_branch?: string | null; p_course?: string | null; p_page?: number; p_session?: string | null }
+        Returns: Json
+      }
+      branch_date_closure_set_v1: {
+        Args: { p_actor_id: string; p_branch_id: string; p_date: string; p_closed: boolean; p_reason: string; p_request_id: string }
+        Returns: Json
+      }
       lesson_source_transition_v1: {
         Args: { p_actor_id: string; p_operation: string; p_id: string; p_payload?: Json }
         Returns: Json

@@ -471,7 +471,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(await transitionLessonSource(getServiceRoleClient(), access.ctx.user.id, 'makeup', body.original_session_id, {
       bookingId: body.booking_id, targetDate: body.makeup_date, startTime: body.start_time, endTime: body.end_time,
       branchId: body.branch_id, templateId: body.schedule_template_id || null, attendingChildId: body.attending_child_id || null,
-      requestId: body.request_id || null, ipAddress: req.headers.get('x-forwarded-for'),
+      requestId: body.request_id || null, reason: typeof body.reason === 'string' ? body.reason.trim() : null, ipAddress: req.headers.get('x-forwarded-for'),
     }))
   } catch (error) {
     return NextResponse.json({ error: getErrorMessage(error), code: error instanceof LessonSourceTransitionError ? error.code : undefined },

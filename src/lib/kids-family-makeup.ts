@@ -27,6 +27,9 @@ export interface KidsFamilyMakeupState {
   children: Array<{ id: string; name: string }>
   eligible: boolean
   reason: string | null
+  policyActor?: 'admin'
+  destinationPurchaseRequired?: boolean
+  policyVersion?: string
   destinations?: Array<{
     id: string; childId: string; childName: string; date: string
     startTime: string; endTime: string; branchName: string
@@ -52,11 +55,12 @@ export function readKidsFamilyMakeup(client: Task10RpcClient, actorId: string, p
 }
 
 export function consumeKidsFamilyMakeup(client: Task10RpcClient, actorId: string, body: Record<string, unknown>) {
-  return callTask10<{ success: true; data: { id: string }; remaining: number }>(client, 'task10_consume_family_makeup_v1', {
+  return callTask10<{ success: true; data: { id: string }; remaining: number }>(client, 'admin_consume_family_makeup_v1', {
     p_actor_id: actorId, p_source_session_id: body.original_session_id,
     p_attending_child_id: body.attending_child_id, p_template_id: body.schedule_template_id || null,
     p_branch_id: body.branch_id, p_target_date: body.makeup_date,
     p_start_time: body.start_time, p_end_time: body.end_time, p_request_id: body.request_id,
+    p_reason: body.reason,
   })
 }
 

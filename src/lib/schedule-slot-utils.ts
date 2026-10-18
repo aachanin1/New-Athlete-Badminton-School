@@ -1,9 +1,11 @@
 import { getServiceRoleClient } from '@/lib/auth/admin'
 import { getBangkokDayOfWeek, normalizeScheduleTime } from '@/lib/schedule-template-utils'
+import { readBranchDateClosures } from '@/lib/branch-date-closures-server'
 
 type AdminSupabase = ReturnType<typeof getServiceRoleClient>
 
 export type ScheduleSlotIntegrityErrorCode =
+  | 'BRANCH_DATE_CLOSED'
   | 'SCHEDULE_SLOT_TEMPLATE_NOT_FOUND'
   | 'SCHEDULE_SLOT_TEMPLATE_AMBIGUOUS'
   | 'SCHEDULE_SLOT_TEMPLATE_MISMATCH'
@@ -79,6 +81,10 @@ export async function resolveCanonicalScheduleTemplate({
   endTime,
 }: CanonicalTemplateInput) {
   const supabase = providedSupabase || getServiceRoleClient()
+  const closures = await readBranchDateClosures(supabase, date, date)
+  if (closures.some(row => row.branch_id === branchId)) {
+    throw new ScheduleSlotIntegrityError('BRANCH_DATE_CLOSED', 'สาขาปิดในวันที่เลือก กรุณาเลือกวันหรือสาขาอื่น')
+  }
   const dayOfWeek = getBangkokDayOfWeek(date)
   const { normalizedStartTime, normalizedEndTime } = normalizedInterval(date, startTime, endTime)
   if (dayOfWeek === null) {

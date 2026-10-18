@@ -13,6 +13,7 @@ import {
 } from '@/lib/progressive-pricing-feature'
 import { createClient } from '@/lib/supabase/server'
 import type { CourseTypeName } from '@/types/database'
+import { readBranchDateClosures } from '@/lib/branch-date-closures-server'
 
 interface AvailabilityPayload {
   bookingId?: string | null
@@ -112,13 +113,14 @@ export async function POST(request: NextRequest) {
     const firstDate = dates[0]
     const lastDate = dates[dates.length - 1]
 
-    const [templateResult, scheduleSlotResult] = await Promise.all([
+    const [templateResult, closures, scheduleSlotResult] = await Promise.all([
       client
         .from('schedule_templates')
         .select('id, branch_id, course_type_id, day_of_week, start_time, end_time, is_active')
         .eq('course_type_id', courseType.id)
         .eq('is_active', true)
         .in('branch_id', branchIds),
+      readBranchDateClosures(client, firstDate, lastDate),
       client
         .from('schedule_slots')
         .select('id, template_id, branch_id, course_type_id, date, start_time, end_time, status')
@@ -153,6 +155,7 @@ export async function POST(request: NextRequest) {
       bookingSessions,
       nowMs: now.getTime(),
       excludeBookingId: body.bookingId || null,
+      closures,
     })
 
     return NextResponse.json({ mode: 'progressive', checkedAt: now.toISOString(), slots })

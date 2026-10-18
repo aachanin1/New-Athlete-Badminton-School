@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { BranchDateClosureManager } from '@/components/admin/branch-date-closure-manager'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fmtTime } from '@/lib/utils'
 import type { CourseTypeName } from '@/types/database'
@@ -267,6 +268,7 @@ export function ScheduleTemplatesClient({ branches, courseTypes, templates }: Sc
 
   return (
     <div className="space-y-5">
+      <BranchDateClosureManager branches={branches} />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">

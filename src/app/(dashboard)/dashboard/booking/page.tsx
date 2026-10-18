@@ -1,3 +1,5 @@
+import { readFutureBranchDateClosureState } from '@/lib/branch-date-closures-server'
+import { BranchDateClosureReadNotice } from '@/components/branch-date-closure-read-notice'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookingClient } from '@/components/dashboard/booking-client'
@@ -92,6 +94,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
+  const { available: branchClosuresAvailable, closures: branchClosures } = await readFutureBranchDateClosureState(supabase)
 
   // Fetch children for this parent
   const { data: children } = await supabase
@@ -206,6 +209,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
           {editBookingData ? 'เลือกวันเรียนใหม่จากปฏิทิน' : 'เลือกประเภท สาขา วัน/เวลา และจองคอร์สเรียน'}
         </p>
       </div>
+      {!branchClosuresAvailable ? <BranchDateClosureReadNotice /> : null}
       <BookingClient
         initialKidsPricingPolicy={kidsPolicyResult.policy}
         initialKidsPricingError={kidsPolicyResult.error}
@@ -216,8 +220,9 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
         learnerChildren={children || []}
         branches={branches || []}
         courseTypes={courseTypes || []}
-        scheduleTemplates={(scheduleTemplates || []).map((template) => ({
+        scheduleTemplates={(branchClosuresAvailable ? scheduleTemplates || [] : []).map((template) => ({
           id: template.id,
+          closed_dates: branchClosures.filter(row => row.branch_id === template.branch_id).map(row => row.closure_date),
           branch_id: template.branch_id,
           branch_slug: template.branches?.slug || '',
           course_type_id: template.course_type_id,

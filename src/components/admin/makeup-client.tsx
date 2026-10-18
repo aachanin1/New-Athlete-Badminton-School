@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
+import { AdminActionReason, adminActionReason } from '@/components/admin/admin-action-reason'
+import { AdminLessonManager, type MakeupContinuation } from '@/components/admin/admin-lesson-manager'
 import { MakeupCalendarPicker, useMakeupCalendarNow } from '@/components/admin/makeup-calendar-picker'
 import { findKidsMakeupSlot, kidsMakeupCalendarDays } from '@/lib/makeup-calendar'
 import {
@@ -43,7 +45,7 @@ import {
 } from 'lucide-react'
 
 type CourseKey = 'kids_group' | 'adult_group' | 'private'
-type MakeupTab = 'review' | 'makeup'
+type MakeupTab = 'review' | 'makeup' | 'manage'
 type ReviewStatusFilter = 'all' | 'no_coach' | 'waiting_attendance' | 'coach_evidence' | 'coach_requested'
 type MakeupStatusFilter = 'all' | 'actionable' | 'makeup' | 'expired'
 type ReviewAction =
@@ -144,6 +146,8 @@ interface CoachOption {
 }
 
 interface MakeupClientProps {
+  initialTab?: MakeupTab
+  manageSessionId?: string | null
   familyCards: KidsFamilyMakeupCard[]
   familyPolicy: Task10Policy
   sessions: BookingSessionData[]
@@ -426,7 +430,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
       const slotsByBranch = branches
         .map((branch) => ({
           branch,
-          slots: getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayOfWeek),
+          slots: getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayOfWeek, date),
         }))
         .filter((item) => item.slots.length > 0)
 
@@ -440,15 +444,19 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
     .filter((day) => day.slotsByBranch.length > 0)
 }
 
-function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, branch, course, status, onSavingChange }: {
+function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, branch, course, status, onSavingChange, continuation, onContinuationHandled }: {
   cards: KidsFamilyMakeupCard[]; scheduleTemplates: ScheduleTemplateOption[]; branches: BranchOption[]
   search: string; branch: string; course: string; status: MakeupStatusFilter; onSavingChange: (saving: boolean) => void
+  continuation: MakeupContinuation | null; onContinuationHandled: () => void
 }) {
   const [overrides, setOverrides] = useState<Record<string, KidsFamilyMakeupState>>({})
   const [selected, setSelected] = useState<KidsFamilyMakeupCard | null>(null)
   const [childId, setChildId] = useState('')
   const [date, setDate] = useState('')
   const [templateId, setTemplateId] = useState('')
+  const [reason, setReason] = useState(''), [reasonNote, setReasonNote] = useState(''), [preferredSource, setPreferredSource] = useState('')
+  const fullReason = adminActionReason(reason, reasonNote)
+  const continuationHandled = useRef('')
   const now = useMakeupCalendarNow(Boolean(selected))
   const [saving, setSaving] = useState(false)
   const [uncertain, setUncertain] = useState(false)
@@ -507,17 +515,29 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
     if (inFlight.current || request.current) return
     const current = overrides[keyOf(card.state)] || card.state
     setSelected(card); setChildId(current.children.length === 1 ? current.children[0].id : ''); setDate(''); setTemplateId(''); setError(null); setSuccess(null)
+    setReason(''); setReasonNote(''); setPreferredSource('')
   }
+  useEffect(() => {
+    if (!continuation || continuationHandled.current === continuation.key || inFlight.current || request.current) return
+    const card = cards.find(item => item.state.parentId === continuation.parentId && item.state.sourceMonth === continuation.sourceMonth
+      && item.state.sources.some(source => source.sourceSessionId === continuation.sourceSessionId))
+    if (!card) return // Wait for authoritative refresh to include the newly stored source.
+    continuationHandled.current = continuation.key
+    setSelected(card); setChildId(continuation.childId); setDate(''); setTemplateId(''); setError(null); setSuccess(null)
+    setReason(continuation.reason); setReasonNote(continuation.note); setPreferredSource(continuation.sourceSessionId)
+    onContinuationHandled()
+  }, [cards, continuation, onContinuationHandled])
   async function consume() {
     if (inFlight.current || !state || !selected) return
     if (!request.current) {
       const slot = findKidsMakeupSlot(state.destinationMonth, date, templateId, branches, scheduleTemplates, new Date())
       const template = slot && scheduleTemplates.find(t => t.id === slot.templateId)
-      if (!state.eligible || !state.children.some(child => child.id === childId)) return
+      if (!state.eligible || !fullReason || !state.children.some(child => child.id === childId)) return
       if (!template) { setTemplateId(''); setError('รอบที่เลือกเริ่มแล้วหรือเลือกไม่ได้ กรุณาเลือกวันและรอบใหม่'); return }
       request.current = { parent_id: state.parentId, source_month: state.sourceMonth, attending_child_id: childId,
         schedule_template_id: template.id, branch_id: template.branch_id, makeup_date: date,
-        start_time: template.start_time, end_time: template.end_time, request_id: crypto.randomUUID() }
+        start_time: template.start_time, end_time: template.end_time, request_id: crypto.randomUUID(), reason: fullReason,
+        ...(preferredSource ? { original_session_id: preferredSource } : {}) }
     }
     inFlight.current = true; setSaving(true); onSavingChange(true); setError(null)
     let resolved = false
@@ -561,8 +581,12 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
           <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">ขาดเรียน {s.sources.filter(source => source.kind === 'absent').length}</Badge>
         </div>
         <p className="font-medium">ใช้ได้ตอนนี้ {availableFamilyMakeupCount(s)} ครั้ง <span className="text-sm font-normal text-gray-500">สิทธิ์ร่วมทั้งครอบครัว ไม่แยกเพิ่มต่อเด็ก</span></p>
-        <p className="text-sm">ซื้อเดือนปลายทางยืนยันแล้ว {s.destinationPurchase.quantity} ครั้ง · ขั้นต่ำ {s.minimum.minimum} ครั้ง</p>
-        <p className="text-sm text-gray-500">รอชำระ {s.destinationPurchase.pendingQuantity} ครั้ง · รอตรวจยืนยัน {s.destinationPurchase.awaitingReviewQuantity} ครั้ง — ยังไม่นับเป็นยอดยืนยัน</p>
+        <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Admin จัดชดเชยได้โดยไม่ต้องรอซื้อเดือนถัดไป · คงโควตา ต้นทาง และอายุสิทธิ์เดิม</p>
+        <details className="text-sm"><summary className="cursor-pointer text-[#2748bf]">ดูต้นทางและการคำนวณสิทธิ์</summary>
+          <p className="mt-2">ซื้อเดือนต้นทางยืนยันแล้ว {s.sourcePurchase.quantity} รอบ → โควตา {s.quota} รอบ</p>
+          <p>ซื้อเดือนปลายทางยืนยันแล้ว {s.destinationPurchase.quantity} รอบ · ยกเว้นเงื่อนไขซื้อเดือนถัดไปสำหรับ Admin</p>
+          {s.sources.map(source => <p key={source.sourceSessionId} className="mt-2 border-t pt-2">{source.kind === 'wallet' ? 'กระเป๋า' : 'ขาดเรียนจริง'} · {formatDate(source.sourceDate)} · {s.children.find(child => child.id === source.sourceChildId)?.name}</p>)}
+        </details>
         <p className="text-sm">ใช้ใน {formatThaiMonthYear(`${s.destinationMonth}-01`)} · ถึง {formatThaiDateTimeWithWeekday(new Date(Date.parse(s.expiresAt) - 1))}</p>
         {s.reason ? <p className="text-sm text-amber-800">{familyMakeupReason(s)}</p> : null}
         {(s.destinations || []).map(destination => <div key={destination.id} className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900" data-makeup-destination={destination.id}>
@@ -577,6 +601,7 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open && !inFlight.current && !request.current) setSelected(null) }}>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto"><DialogHeader><DialogTitle>เลือกเด็กและรอบชดเชย</DialogTitle><DialogDescription>สิทธิ์ร่วมครอบครัว {selected?.parentName} — ระบบผูกต้นทางที่ใช้ได้และเก็บหลักฐานให้อัตโนมัติ</DialogDescription></DialogHeader>
         {state ? <div className="space-y-4">
+          <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800"><p>โควตาคงเหลือ {state.remaining} รอบ · Admin ยกเว้นซื้อเดือนถัดไป</p><p>ต้นทาง: {(() => { const source = state.sources.find(item => item.sourceSessionId === preferredSource) || state.sources[0]; return source ? `${source.kind === 'wallet' ? 'กระเป๋า' : 'ขาดเรียนจริง'} · ${formatDate(source.sourceDate)}` : 'ไม่มีต้นทางที่ใช้ได้' })()}</p>{state.reason ? <p>{familyMakeupReason(state)}</p> : null}</div>
           {state.children.length === 1 ? <p className="font-medium">เด็กที่มาเรียนจริง: {state.children[0].name}</p> : <Select value={childId} onValueChange={setChildId} disabled={locked}><SelectTrigger aria-label="เด็กที่มาเรียนจริง"><SelectValue placeholder="เลือกเด็กที่จะมาเรียน" /></SelectTrigger><SelectContent>{state.children.map(child => <SelectItem key={child.id} value={child.id}>{child.name}</SelectItem>)}</SelectContent></Select>}
           {childId ? <>
             <p className="text-sm text-gray-600">เลือกได้ตั้งแต่วันนี้ เฉพาะเดือนสิทธิ์ {formatThaiMonthYear(`${state.destinationMonth}-01`)} และรอบที่ยังไม่เริ่ม (เวลาไทย)</p>
@@ -584,21 +609,24 @@ function KidsFamilyMakeupPanel({ cards, scheduleTemplates, branches, search, bra
               onDateChange={value => { if (!inFlight.current && !request.current) { setDate(value); setTemplateId('') } }}
               onSlotChange={slot => { if (!inFlight.current && !request.current) setTemplateId(slot.templateId || '') }} />
           </> : <p className="text-sm text-gray-500">เลือกเด็กที่จะมาเรียนเพื่อเปิดปฏิทิน</p>}
+          <AdminActionReason value={reason} note={reasonNote} onValueChange={setReason} onNoteChange={setReasonNote} disabled={locked} />
+          {pickedSlot ? <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">{formatDate(pickedSlot.date)} · {formatTime(pickedSlot.start, pickedSlot.end)} · {pickedSlot.branchName}<br />ใช้ต้นทาง 1 รอบ · โควตา {state.remaining} → {Math.max(0, state.remaining - 1)}</p> : null}
           {error ? <p role="alert" className="text-red-700">{error}</p> : null}
           {uncertain ? <p className="text-amber-800">ยังยืนยันผลไม่ได้ ข้อมูลเดิมถูกเก็บไว้ การตรวจซ้ำใช้รหัสคำขอเดิมและไม่เลือกสิทธิ์เพิ่ม</p> : null}
-          <Button disabled={saving || (!uncertain && (!state.eligible || !childId || !pickedSlot))} onClick={() => void consume()}>{saving ? 'กำลังจัดชดเชย...' : uncertain ? 'ตรวจสอบคำขอเดิม' : 'จัดชดเชยร่วมครอบครัว'}</Button>
+          <Button className="bg-[#f57e3b] hover:bg-[#e06d2e]" disabled={saving || (!uncertain && (!state.eligible || !childId || !pickedSlot || !fullReason))} onClick={() => void consume()}>{saving ? 'กำลังจัดชดเชย...' : uncertain ? 'ตรวจสอบคำขอเดิม' : 'สร้างวันชดเชย'}</Button>
         </div> : null}
       </DialogContent>
     </Dialog>
   </section>
 }
 
-export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSourceMonth, currentMonth, invalidMonth, branches, scheduleTemplates, coaches, reviewTarget, familyPolicy }: MakeupClientProps) {
+export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSourceMonth, currentMonth, invalidMonth, branches, scheduleTemplates, coaches, reviewTarget, familyPolicy, initialTab, manageSessionId }: MakeupClientProps) {
   const router = useRouter()
   const [isMonthPending, startMonthTransition] = useTransition()
   const [requestedMonth, setRequestedMonth] = useState(selectedSourceMonth)
   const requestedMonthRef = useRef(selectedSourceMonth)
   const [familySaving, setFamilySaving] = useState(false)
+  const [lessonSaving, setLessonSaving] = useState(false), [continuation, setContinuation] = useState<MakeupContinuation | null>(null)
   const [isRefreshPending, startRefreshTransition] = useTransition()
   const inFlightTargetKeysRef = useRef(new Set<string>())
   const inFlightSessionIdsRef = useRef(new Set<string>())
@@ -610,7 +638,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
   const [pendingSessionIds, setPendingSessionIds] = useState<Set<string>>(() => new Set())
   const [reconcilingSessionIds, setReconcilingSessionIds] = useState<Set<string>>(() => new Set())
   const [completionMessage, setCompletionMessage] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<MakeupTab>('review')
+  const [activeTab, setActiveTab] = useState<MakeupTab>(initialTab || 'review')
   const [reviewSearch, setReviewSearch] = useState('')
   const [reviewBranch, setReviewBranch] = useState('all')
   const [reviewCourse, setReviewCourse] = useState('all')
@@ -659,6 +687,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<MonthGroup | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
+  const [makeupReason, setMakeupReason] = useState(''), [makeupReasonNote, setMakeupReasonNote] = useState('')
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
   const reviewTargetSessionId = reviewTarget?.sessionId || null
   const reviewTargetDate = reviewTarget?.date || null
@@ -1120,8 +1149,8 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
     // Existing target ordering puts the complete targeted round first. Reset only
     // navigation state; mutation locks, entered form values and projections stay intact.
     setReviewPage(1)
-    if (reviewTargetSessionId || reviewTargetDate) setActiveTab('review')
-  }, [reviewTargetSessionId, reviewTargetDate, selectedSourceMonth])
+    if ((reviewTargetSessionId || reviewTargetDate) && initialTab !== 'manage') setActiveTab('review')
+  }, [reviewTargetSessionId, reviewTargetDate, selectedSourceMonth, initialTab])
 
   useEffect(() => {
     if (!isMonthPending) {
@@ -1135,6 +1164,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
     if (createInFlightRef.current || createBlockedKeysRef.current.has(month.key) || !month.canCreate) return
     const days = buildAvailableDays(month, branches, scheduleTemplates)
     setError(null)
+    setMakeupReason(''); setMakeupReasonNote('')
     setSelectedMonth(month)
     setSelectedDate(days[0]?.dateInput || '')
     setPickedSlot(null)
@@ -1143,6 +1173,8 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
 
   const createMakeup = async () => {
     if (createInFlightRef.current) return
+    const reason = adminActionReason(makeupReason, makeupReasonNote)
+    if (!reason) { setError('กรุณาระบุเหตุผลการจัดการ'); return }
     if (!selectedMonth || !pickedSlot) {
       setError('กรุณาเลือกวันและรอบเรียนสำหรับชดเชย')
       return
@@ -1157,6 +1189,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
       return
     }
     const payload = {
+      reason,
       original_session_id: source.id,
       booking_id: source.booking_id,
       makeup_date: slot.date,
@@ -1766,7 +1799,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
     !moveReason.trim()
   const reviewTargetBusy = reviewSession ? isTargetBusy([reviewSession.id]) : false
   const monthSelectionBlocked = pendingSessionIds.size > 0 || reconcilingSessionIds.size > 0
-    || loading || familySaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
+    || loading || familySaving || lessonSaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
     || moveSubmitting || roundAttendanceSubmitting || Boolean(reviewGroupLoadingKey)
   const navigateMonth = (month: string) => {
     if (monthSelectionBlocked || inFlightTargetKeysRef.current.size || refreshTargetKeysRef.current.size
@@ -1810,7 +1843,7 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
             Makeup Sessions
           </div>
           <h1 className="mt-1 text-2xl font-bold text-[#153c85]">วันชดเชย</h1>
-          <p className="mt-1 text-sm text-gray-500">{familyPolicy.effectiveAt ? 'คอร์สเด็กใช้โควตาร่วมครอบครัวและตรวจยอดซื้อยืนยันของเดือนถัดไป ส่วนคอร์สอื่นใช้เงื่อนไขเดิม' : 'สรุปสิทธิ์ชดเชยรายผู้เรียนและรายเดือน โดย 1 เดือนชดเชยได้สูงสุด 1 ครั้ง'}</p>
+          <p className="mt-1 text-sm text-gray-500">ตรวจสอบสิทธิ์ จัดชดเชย และดูแลวันเรียนของผู้เรียนในหน้าเดียว · Admin จัดการตามสิทธิ์พร้อมเหตุผล</p>
         </div>
         <Badge variant="outline" className="w-fit border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
           {familyPolicy.effectiveAt ? 'คอร์สเด็กตรวจสิทธิ์จากครอบครัวและเดือนต้นทาง' : 'ขาดหลายครั้งในเดือนเดียวกัน ชดเชยได้ 1 ครั้ง'}
@@ -1904,10 +1937,11 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as MakeupTab)} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[520px]">
-          <TabsTrigger value="review">ต้องตรวจสอบ ({stats.review})</TabsTrigger>
-          <TabsTrigger value="makeup">เลือกวันชดเชย{!familyPolicy.effectiveAt ? ` (${stats.total})` : ''}</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(value) => { if (!familySaving && !lessonSaving) setActiveTab(value as MakeupTab) }} className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-3 lg:max-w-[760px]">
+          <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="review">ต้องตรวจสอบ ({stats.review})</TabsTrigger>
+          <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="makeup">เลือกวันชดเชย{!familyPolicy.effectiveAt ? ` (${stats.total})` : ''}</TabsTrigger>
+          <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="manage">จัดการวันเรียน</TabsTrigger>
         </TabsList>
 
         {error && !dialogOpen && (
@@ -2392,7 +2426,8 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
           </Card>
 
       {familyPolicy.effectiveAt ? <KidsFamilyMakeupPanel cards={familyCards} scheduleTemplates={scheduleTemplates} branches={branches}
-        search={makeupSearch} branch={makeupBranch} course={makeupCourse} status={makeupStatus} onSavingChange={setFamilySaving} /> : null}
+        search={makeupSearch} branch={makeupBranch} course={makeupCourse} status={makeupStatus} onSavingChange={setFamilySaving}
+        continuation={continuation} onContinuationHandled={() => setContinuation(null)} /> : null}
       {missingMakeupIdentity.length > 0 && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           ไม่พบรหัสผู้เรียนที่จำเป็น จึงไม่สามารถจัดกลุ่มหรือสร้างวันชดเชยให้รายการเหล่านี้ได้:
@@ -2506,6 +2541,10 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
           />}
         </div>
       )}
+        </TabsContent>
+        <TabsContent value="manage" forceMount className="data-[state=inactive]:hidden">
+          <AdminLessonManager month={selectedSourceMonth} branches={branches} scheduleTemplates={scheduleTemplates} initialSessionId={manageSessionId}
+            onSavingChange={setLessonSaving} onMakeup={value => { setContinuation(value); setMakeupSearch(''); setMakeupBranch('all'); setMakeupCourse('all'); setMakeupStatus('all'); setActiveTab('makeup'); router.refresh() }} />
         </TabsContent>
       </Tabs>
 
@@ -3194,7 +3233,8 @@ export function MakeupClient({ familyCards, sessions, linkedSessions, selectedSo
                 </div>
               )}
 
-              <Button aria-label={loading ? 'กำลังบันทึกวันชดเชย...' : 'สร้างวันชดเชย'} className="h-10 w-full shrink-0 bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={createMakeup} disabled={loading || !pickedSlot || Boolean(createResults[selectedMonth.key])}>
+              <AdminActionReason value={makeupReason} note={makeupReasonNote} onValueChange={setMakeupReason} onNoteChange={setMakeupReasonNote} disabled={loading || Boolean(createResults[selectedMonth.key])} />
+              <Button aria-label={loading ? 'กำลังบันทึกวันชดเชย...' : 'สร้างวันชดเชย'} className="h-10 w-full shrink-0 bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={createMakeup} disabled={loading || !pickedSlot || !adminActionReason(makeupReason, makeupReasonNote) || Boolean(createResults[selectedMonth.key])}>
                 {loading ? <span role="status" className="inline-flex items-center gap-2"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />กำลังบันทึกวันชดเชย...</span> : 'สร้างวันชดเชย'}
               </Button>
             </div>

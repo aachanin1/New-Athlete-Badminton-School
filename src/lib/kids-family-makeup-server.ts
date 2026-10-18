@@ -81,6 +81,7 @@ export async function consumeNextKidsFamilyMakeup(client: SupabaseClient, actorI
     if (data && (data.parent_id !== (parentId as string).toLowerCase() || data.source_month !== `${sourceMonth}-01`)) {
       throw task10RpcError('TASK10_IDEMPOTENCY_CONFLICT')
     }
+    if (data && body.original_session_id && data.source_session_id !== body.original_session_id) throw task10RpcError('TASK10_IDEMPOTENCY_CONFLICT')
     return data as { source_session_id: string } | null
   }
   const consume = (source: string) => consumeKidsFamilyMakeup(client, actorId, { ...body, original_session_id: source })
@@ -95,7 +96,7 @@ export async function consumeNextKidsFamilyMakeup(client: SupabaseClient, actorI
     throw task10RpcError(!state.active ? 'TASK10_MAKEUP_PAUSED' : 'TASK10_MAKEUP_INELIGIBLE')
   }
   // Preserve the RPC's ORDER BY session id. Do not introduce source-kind priority.
-  const source = state.sources[0]
+  const source = body.original_session_id ? state.sources.find(item => item.sourceSessionId === body.original_session_id) : state.sources[0]
   if (!source) throw task10RpcError('TASK10_SOURCE_CONFLICT')
   try {
     return await consume(source.sourceSessionId)

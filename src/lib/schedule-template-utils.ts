@@ -72,6 +72,12 @@ export interface ScheduleTemplateOption {
   end_time: string
   is_active: boolean
   notes: string | null
+  closed_dates?: string[]
+}
+
+export function isTemplateClosedOnDate(template: Pick<ScheduleTemplateOption, 'closed_dates'>, date: Date | string) {
+  const key = typeof date === 'string' ? date : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return template.closed_dates?.includes(key) || false
 }
 
 function toShortTime(value: string) {
@@ -107,14 +113,16 @@ export function getTemplateSlots(
   templates: ScheduleTemplateOption[],
   branchSlug: string,
   courseType: CourseTypeName,
-  dayOfWeek: number
+  dayOfWeek: number,
+  date?: Date | string,
 ) {
   const matches = templates
     .filter((template) =>
       template.is_active &&
       template.branch_slug === branchSlug &&
       template.course_type_name === courseType &&
-      template.day_of_week === dayOfWeek
+      template.day_of_week === dayOfWeek &&
+      (!date || !isTemplateClosedOnDate(template, date))
     )
     .sort((a, b) => a.start_time.localeCompare(b.start_time))
 
@@ -131,5 +139,5 @@ export function hasTemplateSlots(
   date: Date
 ) {
   const dayOfWeek = date.getDay()
-  return getTemplateSlots(templates, branchSlug, courseType, dayOfWeek).length > 0
+  return getTemplateSlots(templates, branchSlug, courseType, dayOfWeek, date).length > 0
 }

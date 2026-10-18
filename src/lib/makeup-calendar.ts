@@ -1,5 +1,5 @@
 import { addCalendarDaysToDateKey, getBangkokDateKey, isValidDateKey, parseBangkokDate } from './date-format'
-import { getBangkokDayOfWeek, normalizeScheduleTime, type ScheduleTemplateOption, type TimeSlot } from './schedule-template-utils'
+import { getBangkokDayOfWeek, isTemplateClosedOnDate, normalizeScheduleTime, type ScheduleTemplateOption, type TimeSlot } from './schedule-template-utils'
 
 export interface MakeupCalendarBranch { id: string; name: string; slug: string }
 export interface MakeupCalendarDay {
@@ -37,7 +37,7 @@ export function kidsMakeupCalendarDays(month: string, branches: MakeupCalendarBr
     const dayOfWeek = getBangkokDayOfWeek(dateInput)!
     const slotsByBranch = branches.map(branch => ({ branch, slots: templates.flatMap(template => {
       if (!template.is_active || template.course_type_name !== 'kids_group' || template.branch_id !== branch.id
-        || template.branch_slug !== branch.slug || template.day_of_week !== dayOfWeek) return []
+        || template.branch_slug !== branch.slug || template.day_of_week !== dayOfWeek || isTemplateClosedOnDate(template, dateInput)) return []
       const start = normalizeScheduleTime(template.start_time, dateInput)
       const end = normalizeScheduleTime(template.end_time, dateInput)
       if (!start || !end || end <= start) return []
