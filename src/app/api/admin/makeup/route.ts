@@ -3,7 +3,7 @@ import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { attendanceWriteFailure, type AttendanceDbError } from '@/lib/attendance-write-errors'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
 import { notifyUser, notifyUserOnce } from '@/lib/notifications'
-import { logActivity } from '@/lib/activity-log'
+import { logActivity, recordReviewClosure } from '@/lib/activity-log'
 import { LessonSourceTransitionError, transitionLessonSource } from '@/lib/lesson-source-transition'
 import {
   formatCoachAssignmentDatabaseError,
@@ -685,19 +685,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (action === 'close_review') {
-      await logActivity({
-        userId: access.ctx.user.id,
-        action: 'attendance_gap_closed_no_action',
-        entityType: 'booking_sessions',
-        entityId: session.id,
-        details: {
-          reason,
-          scheduleSlotId: session.schedule_slot_id,
-        },
-        ipAddress: req.headers.get('x-forwarded-for'),
-      })
-
-      return NextResponse.json({ success: true })
+      const requestId = typeof body.request_id === 'string' ? body.request_id : crypto.randomUUID()
+      if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(requestId)) return NextResponse.json({ error: 'รหัสคำขอไม่ถูกต้อง' }, { status: 400 })
+      const result = await recordReviewClosure({ actor: access.ctx.user.id, session: session.id, reason: reason!, requestId, ip: req.headers.get('x-forwarded-for') })
+      if (!result.confirmed) throw new Error('ยังยืนยันผลการบันทึกปิดเคสไม่ได้')
+      return NextResponse.json({ success: true, ...result })
     }
 
     const finalAttendanceStatus = action === 'confirm_absent' ? 'absent' : attendanceStatus

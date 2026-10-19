@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 
 import {
   getBangkokDayOfWeek,
@@ -20,6 +21,13 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 const route = read('src/app/api/lesson-wallet/route.ts')
 const transition = read('supabase/migrations/20260928171257_lesson_source_transition_atomic_v1.sql')
 const transitionHelper = read('src/lib/lesson-source-transition.ts')
+const { transitionLessonSource } = await import('data:text/javascript;base64,' + Buffer.from(ts.transpileModule(transitionHelper, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+}).outputText).toString('base64'))
+const transitionCalls = []
+const transitionClient = { rpc: async (name, args) => { transitionCalls.push({ name, args }); return { data: { success: true }, error: null } } }
+for (const operation of ['store', 'redeem']) await transitionLessonSource(transitionClient, 'parent', operation, 'source', { request_id: 'original-request' })
+await transitionLessonSource(transitionClient, 'admin', 'admin_store', 'source', { request_id: 'admin-request', approve_credit: true }, 'admin_makeup_credit_store_v1')
 const redeemSql = integrityMigrationText()
 function integrityMigrationText() { const sql=read('supabase/migrations/20260828020022_permanent_schedule_slot_template_integrity.sql'); return sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION public.lesson_wallet_redeem_v2')) }
 const slotResolver = read('src/lib/schedule-slot-utils.ts')
@@ -343,7 +351,12 @@ check('full remains non-blocking while cancelled remains blocked', () => {
 })
 check('store and redeem use service-role-only atomic RPCs with pinned search_path', () => {
   assert.ok(route.includes('transitionLessonSource<WalletResult>(getServiceRoleClient()'))
-  assert.ok(transitionHelper.includes("rpc('lesson_source_transition_v1'"))
+  assert.deepEqual(transitionCalls.slice(0, 2), ['store', 'redeem'].map(operation => ({
+    name: 'lesson_source_transition_v1', args: { p_actor_id: 'parent', p_operation: operation, p_id: 'source', p_payload: { request_id: 'original-request' } },
+  })))
+  assert.deepEqual(transitionCalls[2], { name: 'admin_makeup_credit_store_v1', args: {
+    p_actor_id: 'admin', p_operation: 'admin_store', p_id: 'source', p_payload: { request_id: 'admin-request', approve_credit: true },
+  } })
   assert.match(transition,/REVOKE ALL ON FUNCTION public.lesson_source_transition_v1[\s\S]*FROM PUBLIC,anon,authenticated,service_role/)
   assert.match(transition,/GRANT EXECUTE ON FUNCTION public.lesson_source_transition_v1[^;]+TO service_role/)
   assert.match(transition,/SECURITY DEFINER SET search_path=public,pg_temp/)

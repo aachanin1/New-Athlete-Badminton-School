@@ -19,6 +19,7 @@ export interface BookingSessionData {
   branch_name: string
   course_type: string
   is_makeup: boolean
+  makeup_month_used?: boolean
   group_id?: string | null
   group_name?: string | null
   coach_id?: string | null

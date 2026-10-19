@@ -14,10 +14,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { ListPagination } from '@/components/admin/list-pagination'
 import { AdminActionReason, adminActionReason } from '@/components/admin/admin-action-reason'
 import { AdminLessonManager, type MakeupContinuation } from '@/components/admin/admin-lesson-manager'
-import { MakeupCalendarPicker } from '@/components/admin/makeup-calendar-picker'
+import { MakeupCalendarPicker, useMakeupCalendarNow } from '@/components/admin/makeup-calendar-picker'
 import { useMakeupOptions } from '@/components/admin/use-makeup-options'
 import { ADMIN_COURSES } from '@/components/admin/course-colors'
-import { KidsFamilyMakeupSearch } from '@/components/admin/kids-family-makeup-search'
+import { KidsFamilyMakeupBrowse } from '@/components/admin/kids-family-makeup-browse'
+import { MakeupHistoryDialog } from '@/components/admin/makeup-history-dialog'
+import type { MakeupHistorySubject } from '@/lib/admin-makeup-history'
+import { ReviewCloseDialog, ReviewCloseImpact, type ReviewCloseRequest } from '@/components/admin/review-close-dialog'
+import { MakeupOperationRecovery } from '@/components/admin/makeup-operation-recovery'
+import { adminMakeupStorePolicy } from '@/lib/admin-makeup-store-policy'
+import type { MakeupOperationResolution } from '@/lib/admin-makeup-operation-client'
 import {
   formatThaiDateTimeWithWeekday,
   formatThaiDateWithWeekday,
@@ -217,7 +223,7 @@ function getMonthRange(date: string) {
     nextMonthLabel: formatThaiMonthYear(toInput(nextStart)),
     nextMonthStart: toInput(nextStart),
     nextMonthEnd: toInput(nextEnd),
-    followingStart,
+    followingStart: new Date(`${toInput(followingStart)}T00:00:00+07:00`),
     deadlineLabel: formatThaiDateWithWeekday(toInput(nextEnd)),
   }
 }
@@ -282,7 +288,7 @@ function toDateInput(value: Date) {
   return `${y}-${m}-${d}`
 }
 
-function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], scheduleTemplates: ScheduleTemplateOption[]): AvailableDay[] {
+function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], scheduleTemplates: ScheduleTemplateOption[], now = new Date()): AvailableDay[] {
   if (!month) return []
   const range = getMonthRange(month.sourceSession.date)
   const courseType = normalizeCourseType(month.sourceSession.course_type)
@@ -293,7 +299,7 @@ function buildAvailableDays(month: MonthGroup | null, branches: BranchOption[], 
       const slotsByBranch = branches
         .map((branch) => ({
           branch,
-          slots: getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayOfWeek, date),
+          slots: getTemplateSlots(scheduleTemplates, branch.slug, courseType, dayOfWeek, date).filter(slot => Date.parse(`${toDateInput(date)}T${slot.start}+07:00`) > now.getTime()),
         }))
         .filter((item) => item.slots.length > 0)
 
@@ -321,6 +327,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   const [requestedMonth, setRequestedMonth] = useState(selectedSourceMonth)
   const requestedMonthRef = useRef(selectedSourceMonth)
   const [familySaving, setFamilySaving] = useState(false)
+  const [recoveryBlocked, setRecoveryBlocked] = useState(false)
+  const [recoveredSourceId, setRecoveredSourceId] = useState('')
   const [lessonSaving, setLessonSaving] = useState(false), [continuation, setContinuation] = useState<MakeupContinuation | null>(null)
   const [isRefreshPending, startRefreshTransition] = useTransition()
   const inFlightTargetKeysRef = useRef(new Set<string>())
@@ -340,13 +348,21 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   const [reviewStatus, setReviewStatus] = useState<ReviewStatusFilter>('all')
   const [makeupSearch, setMakeupSearch] = useState('')
   const [makeupBranch, setMakeupBranch] = useState('all')
-  const [makeupCourse, setMakeupCourse] = useState('all')
+  const [makeupCourse, setMakeupCourse] = useState('kids_group')
   const [makeupStatus, setMakeupStatus] = useState<MakeupStatusFilter>('all')
   const [reviewPage, setReviewPage] = useState(1)
   const [reviewPageSize, setReviewPageSize] = useState(15)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
+  const [pageSize, setPageSize] = useState(10)
+  const [historySubject, setHistorySubject] = useState<MakeupHistorySubject | null>(null)
+  const [closeRequest, setCloseRequest] = useState<ReviewCloseRequest | null>(null), [closeSaving, setCloseSaving] = useState(false), [closeBlockedIds, setCloseBlockedIds] = useState<string[]>([])
+  const onCloseBlocked = useCallback((ids: string[]) => setCloseBlockedIds(ids), [])
+  const onReviewClosed = useCallback((rows: Array<{ id: string; closedAt: string }>) => {
+    setSessionOverrides(current => ({ ...current, ...Object.fromEntries(rows.map(row => [row.id, { ...current[row.id], review_closed_at: row.closedAt }])) }))
+    refreshQueues()
+  }, [refreshQueues])
   const [dialogOpen, setDialogOpen] = useState(false)
+  const legacyNow = useMakeupCalendarNow(dialogOpen)
   const [loading, setLoading] = useState(false)
   // POST locks/results are independent of the retrospective PATCH lifecycle.
   const createInFlightRef = useRef<string | null>(null)
@@ -384,20 +400,26 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   const [selectedDate, setSelectedDate] = useState('')
   const [makeupReason, setMakeupReason] = useState(''), [makeupReasonNote, setMakeupReasonNote] = useState('')
   const [pickedSlot, setPickedSlot] = useState<PickedSlot | null>(null)
-  const options=useMakeupOptions(Boolean(selectedMonth)),scheduleTemplates=options.templates
+  const options=useMakeupOptions(dialogOpen&&Boolean(selectedMonth)),scheduleTemplates=options.templates
   const reviewKey=JSON.stringify([selectedSourceMonth,reviewSearch,reviewBranch,reviewCourse,reviewStatus,reviewPage,reviewPageSize,readEpoch])
   const legacyKey=JSON.stringify([selectedSourceMonth,makeupSearch,makeupBranch,makeupCourse,makeupStatus,page,pageSize,readEpoch])
   const currentQueue=activeTab==='review'?(reviewData?.key===reviewKey?reviewData:null):activeTab==='makeup'?(legacyData?.key===legacyKey?legacyData:null):null
+  useEffect(() => {
+    if (!currentQueue) return
+    const last = Math.max(1, Math.ceil(currentQueue.total / (activeTab === 'review' ? reviewPageSize : pageSize)))
+    if (activeTab === 'review' && reviewPage > last) setReviewPage(last)
+    if (activeTab === 'makeup' && page > last) setPage(last)
+  }, [currentQueue, activeTab, reviewPage, reviewPageSize, page, pageSize])
   const reviewRows=useMemo(()=>currentQueue?.sessions.flatMap(row=>reviewDetails[reviewKey+'|'+getReviewGroupKey(row)]||[row])||EMPTY_SESSIONS,[currentQueue,reviewDetails,reviewKey])
   const sessions=activeTab==='review'?reviewRows:currentQueue?.sessions||EMPTY_SESSIONS,linkedSessions=currentQueue?.linkedSessions||EMPTY_SESSIONS,coaches=currentQueue?.coaches||EMPTY_COACHES
   useEffect(()=>{
-    if(activeTab==='manage'||activeTab==='makeup'&&(makeupSearch.trim().length<2||familyPolicy.effectiveAt&&makeupCourse==='kids_group')){setQueueLoading(false);setQueueError('');return}
+    if(activeTab==='manage'||activeTab==='makeup'&&familyPolicy.effectiveAt&&makeupCourse==='kids_group'){setQueueLoading(false);setQueueError('');return}
     const controller=new AbortController(),mode=activeTab==='review'?'review':'legacy',key=mode==='review'?reviewKey:legacyKey
     const [search,branch,course,status,p,size]=mode==='review'?[reviewSearch,reviewBranch,reviewCourse,reviewStatus,reviewPage,reviewPageSize]:[makeupSearch,makeupBranch,makeupCourse,makeupStatus,page,pageSize]
     const q=new URLSearchParams({mode,month:selectedSourceMonth,search:String(search),branch:String(branch),course:String(course),status:String(status),page:String(p),pageSize:String(size)})
     if(reviewTarget?.sessionId)q.set('session',reviewTarget.sessionId);if(reviewTarget?.date)q.set('date',reviewTarget.date)
     setQueueLoading(true);setQueueError('')
-    const timer=setTimeout(()=>{void fetch('/api/admin/makeup/queue?'+q,{cache:'no-store',signal:controller.signal}).then(async r=>{const data=await r.json();if(!r.ok||!Array.isArray(data.sessions))throw Error(data.error||'อ่านรายการไม่สำเร็จ');if(!controller.signal.aborted)(mode==='review'?setReviewData:setLegacyData)({...data,key})}).catch(e=>{if(!controller.signal.aborted)setQueueError(e instanceof Error?e.message:'อ่านรายการไม่สำเร็จ')}).finally(()=>{if(!controller.signal.aborted)setQueueLoading(false)})},200)
+    const timer=setTimeout(()=>{void fetch((mode==='review'?'/api/admin/makeup/queue?':'/api/admin/makeup/browse?')+q,{cache:'no-store',signal:controller.signal}).then(async r=>{const data=await r.json();if(!r.ok||!Array.isArray(data.sessions))throw Error(data.error||'อ่านรายการไม่สำเร็จ');if(!controller.signal.aborted)(mode==='review'?setReviewData:setLegacyData)({...data,key})}).catch(e=>{if(!controller.signal.aborted)setQueueError(e instanceof Error?e.message:'อ่านรายการไม่สำเร็จ')}).finally(()=>{if(!controller.signal.aborted)setQueueLoading(false)})},200)
     return()=>{clearTimeout(timer);controller.abort()}
   },[activeTab,selectedSourceMonth,reviewKey,legacyKey,reviewSearch,reviewBranch,reviewCourse,reviewStatus,reviewPage,reviewPageSize,makeupSearch,makeupBranch,makeupCourse,makeupStatus,page,pageSize,familyPolicy.effectiveAt,reviewTarget?.sessionId,reviewTarget?.date])
 
@@ -432,7 +454,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       sessions.forEach((session) => {
         const override = current[session.id]
         if (!override) return
-        const reconciled = (['group_id', 'group_name', 'coach_id', 'coach_name', 'status', 'attendance_status'] as const)
+        const reconciled = (['group_id', 'group_name', 'coach_id', 'coach_name', 'status', 'attendance_status', 'review_closed_at'] as const)
           .every((field) => override[field] === undefined || override[field] === session[field])
         if (!reconciled) return
         delete next[session.id]
@@ -451,8 +473,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
   }, [])
 
   const isTargetBusy = useCallback((targetSessionIds: string[]) => (
-    targetSessionIds.some((sessionId) => pendingSessionIds.has(sessionId) || reconcilingSessionIds.has(sessionId))
-  ), [pendingSessionIds, reconcilingSessionIds])
+    closeSaving || targetSessionIds.some((sessionId) => pendingSessionIds.has(sessionId) || reconcilingSessionIds.has(sessionId) || closeBlockedIds.includes(sessionId))
+  ), [pendingSessionIds, reconcilingSessionIds, closeBlockedIds, closeSaving])
 
   useEffect(() => {
     if (isRefreshPending) {
@@ -687,7 +709,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       group.absentCount += 1
       if (isOverdueSession(session)) group.overdueCount += 1
       if (!group.branches.includes(session.branch_name)) group.branches.push(session.branch_name)
-      if (makeupSourceIds.has(session.id)) group.hasMakeup = true
+      if (makeupSourceIds.has(session.id) || session.makeup_month_used) group.hasMakeup = true
       group.sourceSession = group.sessions[0]
     })
 
@@ -824,6 +846,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     // Existing target ordering puts the complete targeted round first. Reset only
     // navigation state; mutation locks, entered form values and projections stay intact.
     setReviewPage(1)
+    setHistorySubject(null)
     if ((reviewTargetSessionId || reviewTargetDate) && initialTab !== 'manage') setActiveTab('review')
   }, [reviewTargetSessionId, reviewTargetDate, selectedSourceMonth, initialTab])
 
@@ -834,7 +857,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     }
   }, [isMonthPending, selectedSourceMonth])
 
-  const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates), [branches, scheduleTemplates, selectedMonth])
+  const availableDays = useMemo(() => buildAvailableDays(selectedMonth, branches, scheduleTemplates, legacyNow), [branches, scheduleTemplates, selectedMonth, legacyNow])
+  const legacySlotValid = Boolean(pickedSlot && availableDays.some(day => day.dateInput === pickedSlot.date && day.slotsByBranch.some(item => item.branch.id === pickedSlot.branchId && item.slots.some(slot => slot.start.slice(0,5) === pickedSlot.start.slice(0,5) && slot.end.slice(0,5) === pickedSlot.end.slice(0,5)))))
   const openMakeupDialog = (month: MonthGroup) => {
     if (createInFlightRef.current || createBlockedKeysRef.current.has(month.key) || !month.canCreate) return
     const days = buildAvailableDays(month, branches, scheduleTemplates)
@@ -850,7 +874,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     if (createInFlightRef.current) return
     const reason = adminActionReason(makeupReason, makeupReasonNote)
     if (!reason) { setError('กรุณาระบุเหตุผลการจัดการ'); return }
-    if (!selectedMonth || !pickedSlot) {
+    if (!selectedMonth || !pickedSlot || !legacySlotValid || !options.ready || options.loading || options.error) {
       setError('กรุณาเลือกวันและรอบเรียนสำหรับชดเชย')
       return
     }
@@ -1035,39 +1059,10 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     }
   }
 
-  const closeReviewGroup = async (group: ReviewSessionGroup) => {
+  const closeReviewGroup = (group: ReviewSessionGroup) => {
     const targetSessions = group.sessions.filter(isReviewOrEvidenceSession)
     if (targetSessions.length === 0) return
-
-    const loadingKey = `${group.key}:close`
-    setReviewGroupLoadingKey(loadingKey)
-    setError(null)
-
-    try {
-      for (const session of targetSessions) {
-        const response = await fetch('/api/admin/makeup', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: session.id,
-            action: 'close_review',
-            reason: `ปิดเคสทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} โดยไม่สร้างสิทธิ์ชดเชย (${targetSessions.length} คน)`,
-          }),
-        })
-
-        const result = await response.json().catch(() => null)
-        if (!response.ok) {
-          setError(result?.error || 'ปิดเคสทั้งรอบไม่สำเร็จ')
-          return
-        }
-      }
-
-      refreshQueues()
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setReviewGroupLoadingKey(null)
-    }
+    setCloseRequest({ key: crypto.randomUUID(), group, reason: `ปิดเคสทั้งรอบ ${formatDate(group.date)} ${formatTime(group.startTime, group.endTime)} โดยไม่สร้างสิทธิ์ชดเชย (${targetSessions.length} คน)` })
   }
 
   const openReviewDialog = (session: BookingSessionData, action: ReviewAction) => {
@@ -1432,8 +1427,12 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
         if (!succeeded) return
         setUnassignedGroup(null)
         return
+      } else if (unassignedMode === 'close_review') {
+        setCloseRequest({ key: crypto.randomUUID(), group: unassignedGroup, reason, confirmed: true })
+        setUnassignedGroup(null)
+        return
       } else {
-        const action = unassignedMode === 'return_entitlement' ? 'return_entitlement' : 'close_review'
+        const action = 'return_entitlement'
 
         for (const session of targetSessions) {
           const response = await fetch('/api/admin/makeup', {
@@ -1493,7 +1492,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     !moveReason.trim()
   const reviewTargetBusy = reviewSession ? isTargetBusy([reviewSession.id]) : false
   const monthSelectionBlocked = pendingSessionIds.size > 0 || reconcilingSessionIds.size > 0
-    || loading || familySaving || lessonSaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
+    || loading || familySaving || lessonSaving || recoveryBlocked || closeSaving || reviewSubmitting || unassignedSubmitting || replacementSubmitting
     || moveSubmitting || roundAttendanceSubmitting || Boolean(reviewGroupLoadingKey)
   const navigateMonth = (month: string) => {
     if (monthSelectionBlocked || inFlightTargetKeysRef.current.size || refreshTargetKeysRef.current.size
@@ -1511,6 +1510,21 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
     navigateMonth(new Date(Date.UTC(year, month - 1 + delta, 1)).toISOString().slice(0, 7))
   }
 
+  const onRecoveredOperation = useCallback((resolution?: MakeupOperationResolution) => {
+    if (resolution?.kind === 'store') setRecoveredSourceId(String(resolution.payload.session_id || ''))
+    refreshQueues()
+    if (!resolution) return
+    toast.success(resolution.kind === 'store' ? 'ตรวจพบผลเก็บเข้ากระเป๋าที่บันทึกแล้ว' : resolution.kind === 'use' ? 'ตรวจพบวันชดเชยที่บันทึกแล้ว กรุณาตรวจรายการล่าสุด' : 'ตรวจพบผลการดำเนินการเดิมที่บันทึกแล้ว')
+    if (resolution.kind === 'store' && resolution.payload.store_policy === adminMakeupStorePolicy) return
+    if (resolution.kind === 'store' && resolution.context) {
+      const scope = resolution.context
+      setContinuation({ ...scope, reason: 'other', note: String(resolution.payload.reason || ''), key: crypto.randomUUID() })
+      setMakeupSearch(''); setMakeupBranch('all'); setMakeupCourse('kids_group'); setMakeupStatus('all'); setActiveTab('makeup')
+      router.replace(`/admin/makeup?month=${scope.sourceMonth}&tab=makeup`, { scroll: false })
+    } else if (resolution.kind === 'store') {
+      setActiveTab('manage'); router.replace(`/admin/makeup?month=${selectedSourceMonth}&tab=manage`, { scroll: false })
+    }
+  }, [refreshQueues, router, selectedSourceMonth])
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-blue-100 bg-white p-4" aria-label="เดือนของรายการ Makeup">
@@ -1529,7 +1543,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
         {invalidMonth ? <p role="alert" className="mt-2 text-sm text-amber-700">เดือนใน URL ไม่ถูกต้อง ระบบแสดงเดือนปัจจุบันตามเวลาไทย</p> : null}
         {isMonthPending ? <p role="status" className="mt-2 flex items-center gap-2 text-sm text-blue-700"><Loader2 className="h-4 w-4 animate-spin" />กำลังโหลดรายการเดือน {requestedMonth}...</p> : null}
       </section>
-      <fieldset disabled={isMonthPending} aria-busy={isMonthPending} className="min-w-0 space-y-5">
+      <MakeupOperationRecovery onResolved={onRecoveredOperation} onBlockedChange={setRecoveryBlocked} />
+      <fieldset disabled={isMonthPending || recoveryBlocked} aria-busy={isMonthPending} className="min-w-0 space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2748bf]">
@@ -1577,7 +1592,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       {activeTab==='review' ? <div className="flex flex-wrap gap-3 text-sm text-gray-600" aria-live="polite"><span>ต้องตรวจสอบ {currentQueue?.stats?.review??'—'} รายการ</span><span>ไม่มีโค้ช {currentQueue?.stats?.reviewNoCoach??'—'}</span><span>ขาดหลักฐานโค้ช {currentQueue?.stats?.reviewCoachEvidence??'—'}</span></div>:null}
       {queueLoading?<p role="status" className="flex items-center gap-2 text-sm text-blue-700"><Loader2 className="h-4 w-4 animate-spin"/>กำลังอ่านรายการของแท็บนี้...</p>:null}
       {queueError?<p role="alert" className="text-sm text-red-700">{queueError} <Button variant="outline" onClick={()=>setReadEpoch(v=>v+1)}>ลองอ่านใหม่</Button></p>:null}
-      <Tabs value={activeTab} onValueChange={(value) => { if (!familySaving && !lessonSaving) setActiveTab(value as MakeupTab) }} className="space-y-4">
+      <ReviewCloseDialog request={closeRequest} onSavingChange={setCloseSaving} onClosed={onReviewClosed} onBlockedChange={onCloseBlocked} />
+      <Tabs value={activeTab} onValueChange={(value) => { if (!familySaving && !lessonSaving && !closeSaving) setActiveTab(value as MakeupTab) }} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-3 lg:max-w-[760px]">
           <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="review">ต้องตรวจสอบ {reviewData?.key===reviewKey&&reviewData.stats ? '('+reviewData.stats.review+')':''}</TabsTrigger>
           <TabsTrigger className="h-full whitespace-normal px-1 py-2 text-xs sm:text-sm" value="makeup">เลือกวันชดเชย</TabsTrigger>
@@ -1996,13 +2012,16 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
         </TabsContent>
 
         <TabsContent value="makeup" forceMount className="space-y-4 data-[state=inactive]:hidden">
-          <fieldset disabled={familySaving}><Card className="border-gray-200">
-            <CardContent className="grid gap-3 p-4 2xl:grid-cols-[minmax(260px,1fr)_220px_220px_220px_auto] 2xl:items-center">
+          <fieldset disabled={familySaving} className="space-y-4"><div className="grid grid-cols-1 gap-2 sm:grid-cols-3" aria-label="ประเภทคอร์สชดเชย">
+            {courseOptions.map(course => <Button key={course} variant="outline" aria-pressed={makeupCourse===course} className={`h-auto whitespace-normal py-3 ${ADMIN_COURSES[course].className} ${makeupCourse===course?'ring-2 ring-current ring-offset-1':''}`} onClick={()=>{setMakeupCourse(course);setMakeupSearch('');setPage(1)}}>{ADMIN_COURSES[course].label}</Button>)}
+          </div><Card className="border-gray-200">
+            <CardContent className="grid gap-3 p-4 xl:grid-cols-[minmax(240px,1fr)_180px_180px_auto] xl:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   className="pl-10"
-                  placeholder="ค้นหานักเรียน ผู้ปกครอง หรือสาขา..."
+                  aria-label="ค้นหาเพิ่มเติม"
+                  placeholder="ค้นหาผู้เรียน / ผู้ปกครอง / สาขา (ไม่จำเป็นต้องค้นหา)"
                   value={makeupSearch}
                   onChange={(event) => {
                     setMakeupSearch(event.target.value)
@@ -2028,23 +2047,6 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                 </SelectContent>
               </Select>
               <Select
-                value={makeupCourse}
-                onValueChange={(value) => {
-                  setMakeupCourse(value)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="ทุกคอร์ส" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกคอร์ส</SelectItem>
-                  {courseOptions.map((course) => (
-                    <SelectItem key={course} value={course}>{ADMIN_COURSES[course].label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
                 value={makeupStatus}
                 onValueChange={(value) => {
                   setMakeupStatus(value as MakeupStatusFilter)
@@ -2062,14 +2064,14 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                 </SelectContent>
               </Select>
               <p className="whitespace-nowrap text-sm text-gray-500">
-                {familyPolicy.effectiveAt ? 'ผู้ใหญ่/Private · ' : ''}{currentQueue ? `พบ ${currentQueue.total} ผู้เรียน` : 'ค้นหาเพื่อแสดงรายการ'}
+                {currentQueue ? `พบ ${currentQueue.total} ผู้เรียน` : makeupCourse==='kids_group'&&familyPolicy.effectiveAt?'เด็กกลุ่ม · สิทธิ์ร่วมครอบครัว':'กำลังอ่านรายการ'}
               </p>
             </CardContent>
           </Card>
 
       </fieldset>
-      {familyPolicy.effectiveAt ? <KidsFamilyMakeupSearch month={selectedSourceMonth} active={activeTab==='makeup'} branches={branches}
-        search={makeupSearch} branch={makeupBranch} course={makeupCourse} onSavingChange={setFamilySaving}
+      {familyPolicy.effectiveAt ? <KidsFamilyMakeupBrowse month={selectedSourceMonth} active={activeTab==='makeup'} branches={branches}
+        search={makeupSearch} branch={makeupBranch} course={makeupCourse} status={makeupStatus} onSavingChange={setFamilySaving}
         continuation={continuation} onContinuationHandled={() => setContinuation(null)} /> : null}
       {missingMakeupIdentity.length > 0 && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -2077,7 +2079,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
           {missingMakeupIdentity.map((session) => <p key={session.id}>{session.learner_name} • {formatDate(session.date)} • รายการ {session.id}</p>)}
         </div>
       )}
-      {!queueLoading && !queueError && currentQueue && learnerGroups.length === 0 && !familyPolicy.effectiveAt ? (
+      {!queueLoading && !queueError && currentQueue && learnerGroups.length === 0 && !(familyPolicy.effectiveAt&&makeupCourse==='kids_group') ? (
         <Card className="border-dashed">
           <CardContent className="py-14 text-center text-gray-400">
             <Calendar className="mx-auto mb-3 h-12 w-12 opacity-40" />
@@ -2088,7 +2090,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       ) : (
         <div className="space-y-3">
           {pagedLearnerGroups.map((group) => (
-            <Card key={group.key} data-makeup-learner={group.key} className="border-gray-200">
+            <Card key={group.key} data-makeup-learner={group.key} className={makeupCourse==='adult_group'?'border-emerald-200':makeupCourse==='private'?'border-orange-200':'border-blue-200'}>
               <CardContent className="p-4">
                 <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -2121,9 +2123,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             {month.isExpired && !month.hasMakeup && <Badge variant="outline" className="border-gray-200 bg-white text-gray-500">หมดเขต</Badge>}
                           </div>
                           <p className="mt-2 text-sm text-gray-600">
-                            ขาด/เลยวันเรียน {month.sessions.length} ครั้ง
-                            {month.absentCount > 0 && ` • ขาด ${month.absentCount}`}
-                            {month.overdueCount > 0 && ` • เลยวัน ${month.overdueCount}`}
+                            ขาดเรียนจริง {month.sessions.length} ครั้ง
                           </p>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {month.sessions.map((session) => (
@@ -2142,7 +2142,8 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                             </div>
                           ))}
                         </div>
-                        <div className="sm:shrink-0">
+                        <div className="flex flex-wrap gap-2 sm:shrink-0">
+                          <Button size="sm" variant="outline" onClick={()=>{const source=month.sourceSession;if(source.user_id)setHistorySubject({parentId:source.user_id,childId:source.child_id,course:source.course_type,month:month.monthKey,title:group.learnerName})}}>ดูประวัติ</Button>
                           {month.canCreate ? (
                             <Button size="sm" disabled={loading} className="h-9 bg-[#f57e3b] text-white hover:bg-[#e06d2e]" onClick={() => openMakeupDialog(month)}>
                               <CalendarPlus className="mr-2 h-4 w-4" />
@@ -2175,6 +2176,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
           {learnerGroups.length > 0 && <ListPagination
             page={safePage}
             pageSize={pageSize}
+            pageSizeOptions={[10]}
             total={currentQueue?.total||0}
             onPageChange={setPage}
             onPageSizeChange={(value) => {
@@ -2186,10 +2188,11 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
       )}
         </TabsContent>
         <TabsContent value="manage" forceMount className="data-[state=inactive]:hidden">
-          <AdminLessonManager month={selectedSourceMonth} branches={branches} scheduleTemplates={[]} active={activeTab==='manage'} initialSessionId={manageSessionId}
-            onChanged={refreshQueues} onSavingChange={setLessonSaving} onMakeup={value => { setContinuation(value); setMakeupSearch(''); setMakeupBranch('all'); setMakeupCourse('all'); setMakeupStatus('all'); setActiveTab('makeup'); refreshQueues() }} />
+          <AdminLessonManager key={recoveredSourceId || 'initial'} month={selectedSourceMonth} branches={branches} scheduleTemplates={[]} active={activeTab==='manage'} initialSessionId={manageSessionId === recoveredSourceId ? null : manageSessionId}
+            onChanged={refreshQueues} onSavingChange={setLessonSaving} onMakeup={value => { setContinuation(value); setMakeupSearch(''); setMakeupBranch('all'); setMakeupCourse('kids_group'); setMakeupStatus('all'); setActiveTab('makeup'); refreshQueues() }} />
         </TabsContent>
       </Tabs>
+      <MakeupHistoryDialog subject={historySubject} onClose={()=>setHistorySubject(null)} />
 
       <Dialog
         open={Boolean(replacementGroup)}
@@ -2789,9 +2792,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
               )}
 
               {unassignedMode === 'close_review' && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                  ระบบจะปิดเคสทั้งรอบโดยไม่สร้างสิทธิ์ชดเชย และไม่สร้างชั่วโมงสอนให้โค้ช
-                </div>
+                <ReviewCloseImpact sessions={unassignedTargetSessions} />
               )}
 
               <div>
@@ -2799,6 +2800,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                 <Textarea
                   className="mt-2 min-h-24"
                   value={unassignedReason}
+                  maxLength={1000}
                   onChange={(event) => setUnassignedReason(event.target.value)}
                   disabled={unassignedSubmitting || unassignedTargetBusy}
                   placeholder="เช่น หัวหน้าโค้ชลืมมอบหมาย แต่มีการสอนจริง / คืนสิทธิ์ทั้งรอบเพราะไม่ได้เปิดสอน / ปิดเคสตามการตรวจสอบของ Admin"
@@ -2827,7 +2829,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                       ? 'มอบหมายโค้ชให้รอบนี้'
                       : unassignedMode === 'taught'
                         ? 'บันทึกโค้ชและเช็คชื่อทั้งรอบ'
-                      : 'บันทึกผลทั้งรอบ'}
+                      : unassignedMode === 'close_review' ? `ยืนยันปิดเคส ${unassignedTargetSessions.length} คน` : 'บันทึกผลทั้งรอบ'}
                 </Button>
               </div>
             </div>
@@ -2847,7 +2849,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
             <DialogTitle className="text-[#153c85]">เลือกวันและรอบเรียนชดเชย</DialogTitle>
             <DialogDescription className="sr-only">เลือกวัน สาขา และรอบเรียนจริงจากตารางสำหรับสร้างรอบชดเชยให้ผู้เรียน</DialogDescription>
           </DialogHeader>
-          {options.loading?<p role="status">กำลังอ่านรอบเรียน...</p>:null}{options.error?<p role="alert">{options.error} <Button onClick={options.retry}>ลองใหม่</Button></p>:null}
+          {options.loading||!options.ready&&!options.error?<p role="status">กำลังอ่านรอบเรียน...</p>:null}{options.error?<p role="alert">{options.error} <Button onClick={options.retry}>ลองใหม่</Button></p>:null}
           {selectedMonth && (
             <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
               {error && (
@@ -2865,11 +2867,11 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
                 </p>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              {options.ready ? <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <MakeupCalendarPicker month={getMonthRange(selectedMonth.sourceSession.date).nextMonthStart.slice(0, 7)} days={availableDays} selectedDate={selectedDate} selectedSlot={pickedSlot} disabled={loading}
                   onDateChange={date => { if (!createInFlightRef.current) { setSelectedDate(date); setPickedSlot(null) } }}
                   onSlotChange={slot => { if (!createInFlightRef.current) setPickedSlot(slot) }} />
-              </div>
+              </div> : null}
 
               {pickedSlot && (
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
@@ -2878,7 +2880,7 @@ export function MakeupClient({ selectedSourceMonth, currentMonth, invalidMonth, 
               )}
 
               <AdminActionReason value={makeupReason} note={makeupReasonNote} onValueChange={setMakeupReason} onNoteChange={setMakeupReasonNote} disabled={loading || Boolean(createResults[selectedMonth.key])} />
-              <Button aria-label={loading ? 'กำลังบันทึกวันชดเชย...' : 'สร้างวันชดเชย'} className="h-10 w-full shrink-0 bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={createMakeup} disabled={loading || !pickedSlot || !adminActionReason(makeupReason, makeupReasonNote) || Boolean(createResults[selectedMonth.key])}>
+              <Button aria-label={loading ? 'กำลังบันทึกวันชดเชย...' : 'สร้างวันชดเชย'} className="h-10 w-full shrink-0 bg-[#f57e3b] hover:bg-[#e06d2e]" onClick={createMakeup} disabled={loading || !options.ready || options.loading || Boolean(options.error) || !legacySlotValid || !adminActionReason(makeupReason, makeupReasonNote) || Boolean(createResults[selectedMonth.key])}>
                 {loading ? <span role="status" className="inline-flex items-center gap-2"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />กำลังบันทึกวันชดเชย...</span> : 'สร้างวันชดเชย'}
               </Button>
             </div>

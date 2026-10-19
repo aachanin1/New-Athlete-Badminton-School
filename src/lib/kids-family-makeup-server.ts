@@ -96,7 +96,9 @@ export async function consumeNextKidsFamilyMakeup(client: SupabaseClient, actorI
     throw task10RpcError(!state.active ? 'TASK10_MAKEUP_PAUSED' : 'TASK10_MAKEUP_INELIGIBLE')
   }
   // Preserve the RPC's ORDER BY session id. Do not introduce source-kind priority.
-  const source = body.original_session_id ? state.sources.find(item => item.sourceSessionId === body.original_session_id) : state.sources[0]
+  // An exception always names the approved credit's exact source. Ordinary
+  // automatic selection retains the original source ordering.
+  const source = body.original_session_id ? state.sources.find(item => item.sourceSessionId === body.original_session_id) : state.remaining > 0 ? state.sources[0] : undefined
   if (!source) throw task10RpcError('TASK10_SOURCE_CONFLICT')
   try {
     return await consume(source.sourceSessionId)

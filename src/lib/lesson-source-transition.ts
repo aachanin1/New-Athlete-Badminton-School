@@ -3,7 +3,7 @@ import type { Json } from '@/types/database'
 export type LessonSourceOperation = 'reschedule' | 'store' | 'redeem' | 'makeup' | 'return_entitlement' | 'admin_store' | 'admin_reschedule'
 
 interface TransitionClient {
-  rpc(name: 'lesson_source_transition_v1', args: {
+  rpc(name: 'lesson_source_transition_v1' | 'admin_makeup_credit_store_v1', args: {
     p_actor_id: string; p_operation: string; p_id: string; p_payload: Json
   }): PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }>
 }
@@ -42,8 +42,8 @@ export class LessonSourceTransitionError extends Error {
 
 /** The database owns eligibility, locking, replay and every committed effect. */
 export async function transitionLessonSource<T>(client: TransitionClient, actorId: string,
-  operation: LessonSourceOperation, id: string, payload: Json = {}): Promise<T> {
-  const { data, error } = await client.rpc('lesson_source_transition_v1', {
+  operation: LessonSourceOperation, id: string, payload: Json = {}, entry: 'lesson_source_transition_v1' | 'admin_makeup_credit_store_v1' = 'lesson_source_transition_v1'): Promise<T> {
+  const { data, error } = await client.rpc(entry, {
     p_actor_id: actorId, p_operation: operation, p_id: id, p_payload: payload,
   })
   if (error) {

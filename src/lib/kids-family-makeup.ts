@@ -9,6 +9,8 @@ export interface KidsFamilyMakeupSource {
   sourceDate: string
   kind: 'absent' | 'wallet'
   creditId: string | null
+  approval?: { id: string; status: 'approved' | 'consumed' | 'revoked'; expiresAt: string } | null
+  approvalAvailable?: boolean
 }
 export interface KidsFamilyMakeupState {
   active: boolean
@@ -30,6 +32,11 @@ export interface KidsFamilyMakeupState {
   policyActor?: 'admin'
   destinationPurchaseRequired?: boolean
   policyVersion?: string
+  approvedSources?: number
+  storedReadySources?: number
+  storeOnceEnabled?: boolean
+  exceptionUsed?: number
+  creditApprovalsEnabled?: boolean
   destinations?: Array<{
     id: string; childId: string; childName: string; date: string
     startTime: string; endTime: string; branchName: string
@@ -45,7 +52,7 @@ export interface KidsFamilyMakeupCard {
 
 /** The quota is shared, but only currently eligible concrete sources can be used. */
 export function availableFamilyMakeupCount(state: KidsFamilyMakeupState) {
-  return state.eligible ? Math.min(state.remaining, state.sources.length) : 0
+  return state.eligible ? Math.min(state.remaining + (state.approvedSources || 0) + (state.storedReadySources || 0), state.sources.length) : 0
 }
 
 export function readKidsFamilyMakeup(client: Task10RpcClient, actorId: string, parentId: string, sourceMonth: string) {

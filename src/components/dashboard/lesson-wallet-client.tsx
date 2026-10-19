@@ -390,7 +390,7 @@ export function LessonWalletClient({ credits, branches, existingSessions, schedu
                 <div>
                   <p className="font-medium text-gray-900">{getLearnerName(credit, userName)} · {formatDateThai(credit.original_date)}</p>
                   <p className="text-gray-500">{fmtTime(credit.original_start_time)}-{fmtTime(credit.original_end_time)} · {credit.branches?.name || '-'}</p>
-                  {credit.familyMakeupMonth && <p className="mt-1 text-xs text-violet-700">ติดต่อผู้ดูแลเพื่อตรวจสิทธิ์ชดเชยร่วมครอบครัวในเดือน {credit.familyMakeupMonth} ต้องมีโควตาและสิทธิ์ซื้อที่ยืนยันแล้วตามเงื่อนไข ไม่สามารถกดใช้ข้ามเดือนจากกระเป๋าได้</p>}
+                  {credit.familyMakeupMonth && <p className="mt-1 text-xs text-violet-700">การจัดวันชดเชยเดือน {credit.familyMakeupMonth} ดำเนินการโดยผู้ดูแล</p>}
                 </div>
                 <Badge
                   variant="outline"

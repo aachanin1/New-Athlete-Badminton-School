@@ -96,7 +96,7 @@ export default async function LessonWalletPage() {
       .select(`
         id, user_id, booking_id, original_session_id, redeemed_session_id, child_id, branch_id, course_type_id,
         original_schedule_slot_id, original_date, original_start_time, original_end_time,
-        status, stored_at, expires_at, redeemed_at, expired_at, notes,
+        status, stored_at, expires_at, redeemed_at, expired_at,
         entitlement_unit_type, entitlement_policy, entitlement_started_at, participant_count,
         lesson_wallet_credit_members(child_id, children(full_name, nickname)),
         children(full_name, nickname),
@@ -179,7 +179,24 @@ export default async function LessonWalletPage() {
       {!branchClosuresAvailable ? <BranchDateClosureReadNotice /> : null}
       <LessonWalletClient
         credits={(credits || []).map((credit) => ({
-          ...credit,
+          id: credit.id,
+          original_date: credit.original_date,
+          original_start_time: credit.original_start_time,
+          original_end_time: credit.original_end_time,
+          stored_at: credit.stored_at,
+          expires_at: credit.expires_at,
+          redeemed_at: credit.redeemed_at,
+          expired_at: credit.expired_at,
+          child_id: credit.child_id,
+          course_type_id: credit.course_type_id,
+          entitlement_unit_type: credit.entitlement_unit_type,
+          entitlement_policy: credit.entitlement_policy,
+          entitlement_started_at: credit.entitlement_started_at,
+          participant_count: credit.participant_count,
+          lesson_wallet_credit_members: credit.lesson_wallet_credit_members,
+          children: credit.children,
+          branches: credit.branches,
+          course_types: credit.course_types,
           familyMakeupUsed: familyUsedCreditIds.has(credit.id),
           familyMakeupMonth: familyPolicy.effectiveAt && credit.course_types?.name === 'kids_group'
             && !familyUsedCreditIds.has(credit.id) && credit.status !== 'redeemed' && !credit.redeemed_session_id
