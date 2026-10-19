@@ -48,6 +48,16 @@ try {
     assert.equal(response.status(), 409); assert.equal((await response.json()).refreshRequired, true)
   }
   assert.deepEqual(scopedCounts(ids), initial); checks.push('Both legacy sends without deployment metadata reject before notification or audit')
+  const edgeRound = await round(3), edgeCard = await open(edgeRound)
+  await context.route('**/api/admin/makeup/review-request', route => route.fulfill({ status: 403, json: { error: { code: '403', message: 'Forbidden', id: 'synthetic-owned-local-edge-rejection' } } }))
+  await edgeCard.getByRole('button', { name: /^ส่งให้โค้ชตรวจสอบรอบนี้/ }).click()
+  await expect(edgeCard.getByTestId('review-round-result')).toContainText('ยังยืนยันผลไม่ได้', { timeout: 30000 })
+  assert.ok(await edgeCard.getByRole('button', { name: /^ส่งให้โค้ชตรวจสอบรอบนี้/ }).isDisabled())
+  await context.unroute('**/api/admin/makeup/review-request')
+  await edgeCard.getByRole('button', { name: 'ตรวจสอบผลเดิม', exact: true }).click()
+  await expect(edgeCard.getByTestId('review-round-result')).toContainText('ยังไม่พบการส่ง', { timeout: 30000 })
+  assert.deepEqual(scopedCounts([edgeRound.ids[0]]), { receipts: 0, audits: 0, notifications: 0 })
+  checks.push('Actual hosting-shaped structured 403 errors render a recoverable unknown state and read back without any write')
   // Lose a real successful response while retaining the browser request registry.
   let lose = true
   await context.route('**/api/admin/makeup/review-request', async route => {

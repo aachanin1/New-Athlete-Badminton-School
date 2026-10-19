@@ -60,7 +60,8 @@ export function useReviewRoundRequests(input: {
         const response = await fetch('/api/admin/makeup/review-request', { method: 'POST', headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(20000), body: JSON.stringify({ requestId: record.requestId, anchor: record.anchor, action: record.action,
             group: record.group?.key || '', members: record.group?.sessions.map(s => s.id) || [record.anchor], readOnly }) })
-        const result = await response.json() as ReviewRoundRequestResult & { error?: string; scopeChanged?: boolean }
+        const result = await response.json() as ReviewRoundRequestResult & { error?: unknown; scopeChanged?: boolean }
+        const errorMessage = typeof result.error === 'string' ? result.error : undefined
         const valid = response.ok && result.confirmed === true && result.requestId === record.requestId && result.anchorId === record.anchor && result.action === record.action
           && Array.isArray(result.targetSessionIds) && result.targetSessionIds.length > 0 && result.targetSessionIds.every(id => uuid.test(id))
           && result.targetCount === result.targetSessionIds.length && Number.isInteger(result.notificationCount) && result.notificationCount! > 0
@@ -73,9 +74,9 @@ export function useReviewRoundRequests(input: {
         } else if (readOnly && response.ok && result.confirmed === false && result.requestId === record.requestId && result.definitive === true && result.pending !== true) {
           next = { ...record, phase: 'failed', message: 'ยังไม่พบการส่งจากคำขอเดิม สามารถส่งคำขอเดิมอีกครั้งได้' }
         } else if (!readOnly && !response.ok && response.status >= 400 && response.status < 500 && result.definitive === true) {
-          next = { ...record, phase: 'failed', message: result.error || 'ยังส่งไม่สำเร็จ กรุณาลองคำขอเดิม' }
+          next = { ...record, phase: 'failed', message: errorMessage || 'ยังส่งไม่สำเร็จ กรุณาลองคำขอเดิม' }
           if (result.scopeChanged) await latest.current.onConfirmed(record.anchor, record.month)
-        } else next = { ...record, phase: 'unknown', message: result.error || 'ยังยืนยันผลไม่ได้ กรุณาตรวจสอบคำขอเดิมก่อนส่งอีกครั้ง' }
+        } else next = { ...record, phase: 'unknown', message: errorMessage || 'ยังยืนยันผลไม่ได้ กรุณาตรวจสอบคำขอเดิมก่อนส่งอีกครั้ง' }
       }
     } catch {
       next = { ...record, phase: record.confirmed ? 'reconcile' : 'unknown', message: record.confirmed ? 'ส่งสำเร็จแล้ว แต่ยังอ่านข้อมูลล่าสุดไม่ได้' : 'ยังยืนยันผลไม่ได้ กรุณาตรวจสอบคำขอเดิมก่อนส่งอีกครั้ง' }
