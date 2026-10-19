@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isLegacyReviewSend } from '@/lib/admin-makeup-review-release'
 import { getServiceRoleClient, requireAdminMenuAccess } from '@/lib/auth/admin'
 import { attendanceWriteFailure, type AttendanceDbError } from '@/lib/attendance-write-errors'
 import { syncBookingSessionStatusFromAttendance } from '@/lib/attendance-write-through'
@@ -490,6 +491,9 @@ export async function PATCH(req: NextRequest) {
     const { session_id: sessionId, action } = body as {
       session_id?: string
       action?: 'confirm_absent' | 'mark_attendance' | 'request_coach_review' | 'request_coach_evidence' | 'close_review' | 'return_entitlement' | 'resolve_unassigned_round' | 'assign_coach_to_round' | 'replace_coach_for_past_round' | 'move_learner_to_existing_coach_group'
+    }
+    if (isLegacyReviewSend(action)) {
+      return NextResponse.json({ error: 'หน้ารายการนี้เป็นรุ่นเก่า กรุณารีเฟรชแล้วส่งคำขอจากรอบล่าสุด', definitive: true, refreshRequired: true }, { status: 409 })
     }
     const reason = normalizeReason((body as { reason?: unknown }).reason)
     const attendanceStatus = normalizeAttendanceStatus((body as { attendance_status?: unknown }).attendance_status)

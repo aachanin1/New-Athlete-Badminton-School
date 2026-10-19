@@ -17,6 +17,32 @@ export interface ReviewClosureResult {
   closedAt?: string
 }
 
+export interface ReviewRoundRequestResult {
+  confirmed: boolean
+  requestId: string
+  anchorId?: string
+  action?: 'request_coach_review' | 'request_coach_evidence'
+  targetSessionIds?: string[]
+  targetCount?: number
+  notificationCount?: number
+  recordedAt?: string
+  pending?: boolean
+  definitive?: boolean
+}
+
+/** Audit and notification delivery commit atomically with the round receipt. */
+export async function recordReviewRoundRequest(input: {
+  actor: string; anchor: string; group: string; action: 'request_coach_review' | 'request_coach_evidence'
+  members: string[]; requestId: string; readOnly: boolean; ip?: string | null
+}) {
+  const { data, error } = await getServiceRoleClient().rpc('admin_makeup_request_review_round_v1', {
+    p_actor: input.actor, p_anchor: input.anchor, p_group: input.group, p_action: input.action,
+    p_members: input.members, p_request: input.requestId, p_read_only: input.readOnly, p_ip: input.ip || null,
+  })
+  if (error || !data) throw new Error(error?.message || 'ADMIN_REVIEW_REQUEST_UNAVAILABLE')
+  return data as ReviewRoundRequestResult
+}
+
 /** Close depends on this durable audit. Other logging keeps its existing contract. */
 export async function recordReviewClosure(input: { actor: string; session: string; reason: string; requestId: string; readOnly?: boolean; ip?: string | null }) {
   const { data, error } = await getServiceRoleClient().rpc('admin_close_makeup_review_v1', {

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getServiceRoleClient } from '@/lib/auth/admin'
+import { getCurrentUserWithRole, getServiceRoleClient } from '@/lib/auth/admin'
 import { loadTask10Policy } from '@/lib/task10-policy'
 import { MakeupClient } from '@/components/admin/makeup-client'
 import { isValidDateKey } from '@/lib/date-format'
@@ -21,5 +21,6 @@ export default async function MakeupPage({searchParams}:{searchParams?:Promise<R
  } else if(q.month===undefined&&isValidDateKey(text('date')||'')&&validMonth(text('date')!.slice(0,7)))month=text('date')!.slice(0,7)
  const [{data:branches,error},familyPolicy]=await Promise.all([supabase.from('branches').select('id,name,slug').eq('is_active',true).order('name'),loadTask10Policy(getServiceRoleClient())])
  if(error)throw new Error('อ่านสาขาไม่สำเร็จ')
- return <MakeupClient familyCards={[]} sessions={[]} linkedSessions={[]} coaches={[]} scheduleTemplates={[]} familyPolicy={familyPolicy} branches={branches||[]} selectedSourceMonth={month} currentMonth={currentMonth} invalidMonth={invalidMonth} initialTab={text('tab')==='manage'?'manage':text('tab')==='makeup'?'makeup':undefined} manageSessionId={text('tab')==='manage'?session:null} reviewTarget={{sessionId:text('tab')==='manage'?null:session,date:text('date')}} />
+ const {user}=await getCurrentUserWithRole()
+ return <MakeupClient reviewActorId={user?.id||''} familyCards={[]} sessions={[]} linkedSessions={[]} coaches={[]} scheduleTemplates={[]} familyPolicy={familyPolicy} branches={branches||[]} selectedSourceMonth={month} currentMonth={currentMonth} invalidMonth={invalidMonth} initialTab={text('tab')==='manage'?'manage':text('tab')==='makeup'?'makeup':undefined} manageSessionId={text('tab')==='manage'?session:null} reviewTarget={{sessionId:text('tab')==='manage'?null:session,date:text('date')}} />
 }
