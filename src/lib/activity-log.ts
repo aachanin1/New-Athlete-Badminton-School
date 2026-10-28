@@ -1,4 +1,19 @@
 import { getServiceRoleClient } from '@/lib/auth/admin'
+import type { AdminPricingSnapshot, AdminPricingTier } from '@/lib/admin-pricing-settings'
+
+/** Pricing changes and their before/after audit commit in one DB transaction. */
+export async function recordCurrentPricingUpdate(input: {
+  actor: string
+  expected: AdminPricingSnapshot
+  tiers: Array<Pick<AdminPricingTier, 'id' | 'min_sessions' | 'max_sessions' | 'price_per_session'>>
+}) {
+  const { data, error } = await getServiceRoleClient().rpc('admin_current_pricing_v1', {
+    p_actor: input.actor, p_as_of: input.expected.asOfDate,
+    p_expected: input.expected.tiers, p_tiers: input.tiers,
+  })
+  if (error || !data) throw new Error(error?.message || 'ADMIN_PRICING_UNAVAILABLE')
+  return data as AdminPricingSnapshot & { changed: number }
+}
 
 interface LogActivityInput {
   userId: string

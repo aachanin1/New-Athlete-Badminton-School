@@ -1,7 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useMemo, useRef, useState } from 'react'
 import { AlertCircle, CheckCircle2, Loader2, Save, ShieldCheck, Tags } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -9,24 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { buildPricingCatalog, type CourseCategory, type PricingTierInput } from '@/lib/pricing'
+import type { CourseCategory } from '@/lib/pricing'
+import type { AdminPricingSnapshot, AdminPricingTier } from '@/lib/admin-pricing-settings'
 import { validateKidsTierSet, type KidsRateCatalog } from '@/lib/booking-pricing-policy'
 
-interface PricingTierData {
-  id: string
-  course_type_id: string
-  course_type_name: CourseCategory
-  min_sessions: number
-  max_sessions: number | null
-  price_per_session: number
-  package_price: number
-  valid_from: string
-  valid_to: string | null
-  created_at: string | null
-}
-
 interface PricingSettingsClientProps {
-  tiers: PricingTierData[]
+  initialPricing: AdminPricingSnapshot | null
+  pricingLoadError?: string
   kidsCatalogs?: { early: KidsRateCatalog | null; late: KidsRateCatalog; active: boolean } | null
   kidsCatalogError?: string
 }
@@ -43,20 +31,20 @@ const COURSE_DESCRIPTIONS: Record<CourseCategory, string> = {
   private: 'รายชั่วโมงหรือเรทช่วงของคลาส Private',
 }
 
-const COURSE_ORDER: CourseCategory[] = ['kids_group', 'adult_group', 'private']
+const COURSE_ORDER = ['adult_group', 'private'] as const
 
 function formatMoney(value: number) {
   return `฿${Number(value || 0).toLocaleString('th-TH')}`
 }
 
-function tierLabel(tier: PricingTierData) {
+function tierLabel(tier: AdminPricingTier) {
   const unit = tier.course_type_name === 'private' ? 'ชม.' : 'ครั้ง'
   if (tier.max_sessions === null) return `${tier.min_sessions}+ ${unit}`
   if (tier.min_sessions === tier.max_sessions) return `${tier.min_sessions} ${unit}`
   return `${tier.min_sessions}-${tier.max_sessions} ${unit}`
 }
 
-function calculateAutoPackagePrice(tier: Pick<PricingTierData, 'min_sessions' | 'price_per_session'>) {
+function calculateAutoPackagePrice(tier: Pick<AdminPricingTier, 'min_sessions' | 'price_per_session'>) {
   return Math.round(Number(tier.min_sessions || 0) * Number(tier.price_per_session || 0))
 }
 
@@ -105,15 +93,15 @@ function KidsCatalogEditor({ catalog, onSaved }: { catalog: KidsRateCatalog; onS
   </CardContent></Card>
 }
 
-export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }: PricingSettingsClientProps) {
-  const router = useRouter()
-  const [rows, setRows] = useState<PricingTierData[]>(tiers)
+export function PricingSettingsClient({ initialPricing, pricingLoadError, kidsCatalogs, kidsCatalogError }: PricingSettingsClientProps) {
+  const [savedPricing, setSavedPricing] = useState(initialPricing)
+  const [rows, setRows] = useState<AdminPricingTier[]>(initialPricing?.tiers || [])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(pricingLoadError || null)
+  const [needsReload, setNeedsReload] = useState(!initialPricing)
+  const inFlight = useRef(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [catalogUpdates, setCatalogUpdates] = useState<Partial<Record<KidsRateCatalog['regime'], KidsRateCatalog>>>({})
-
-  const catalog = useMemo(() => buildPricingCatalog(rows as PricingTierInput[]), [rows])
 
   const stats = useMemo(() => {
     const kidsTiers = kidsCatalogs ? [kidsCatalogs.early, kidsCatalogs.late].flatMap((saved) => {
@@ -122,18 +110,18 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
       return (updated && updated.revision > saved.revision ? updated : saved).tiers
     }) : null
     return {
-      total: kidsTiers ? rows.filter((row) => row.course_type_name !== 'kids_group').length + kidsTiers.length : rows.length,
-      kidsLowest: Math.min(...(kidsTiers ? kidsTiers.map((tier) => tier.ratePerSession) : catalog.kids_group.map((tier) => tier.price_per_session))),
-      adultBase: catalog.adult_group[0]?.price_per_session || 0,
-      privateBase: catalog.private[0]?.price_per_session || 0,
+      total: savedPricing ? rows.length + (kidsTiers?.length || 0) : null,
+      kidsLowest: kidsTiers?.length ? Math.min(...kidsTiers.map((tier) => tier.ratePerSession)) : null,
+      adultBase: rows.find(row => row.course_type_name === 'adult_group' && row.min_sessions === 1)?.price_per_session,
+      privateBase: rows.find(row => row.course_type_name === 'private' && row.min_sessions === 1)?.price_per_session,
     }
-  }, [catalog, rows, kidsCatalogs, catalogUpdates])
+  }, [savedPricing, rows, kidsCatalogs, catalogUpdates])
 
   const onKidsCatalogSaved = (saved: KidsRateCatalog) => {
     setCatalogUpdates((current) => ({ ...current, [saved.regime]: saved }))
   }
 
-  const updateRow = (id: string, field: keyof Pick<PricingTierData, 'min_sessions' | 'max_sessions' | 'price_per_session'>, value: string) => {
+  const updateRow = (id: string, field: keyof Pick<AdminPricingTier, 'min_sessions' | 'max_sessions' | 'price_per_session'>, value: string) => {
     setError(null)
     setSuccess(null)
     setRows((current) => current.map((row) => {
@@ -147,6 +135,8 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
   }
 
   const savePricing = async () => {
+    if (inFlight.current || needsReload || !savedPricing) return
+    inFlight.current = true
     setLoading(true)
     setError(null)
     setSuccess(null)
@@ -155,8 +145,10 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
       const response = await fetch('/api/admin/pricing', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(15000),
         body: JSON.stringify({
-          tiers: rows.filter((row) => !kidsCatalogs || row.course_type_name !== 'kids_group').map((row) => ({
+          expected: savedPricing,
+          tiers: rows.map((row) => ({
             id: row.id,
             min_sessions: row.min_sessions,
             max_sessions: row.max_sessions,
@@ -166,19 +158,41 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
       })
 
       const result = await response.json().catch(() => null)
-      if (!response.ok) {
+      if (!response.ok || !result?.success || !result.data?.tiers) {
+        if (response.status !== 400) setNeedsReload(true)
         setError(result?.error || 'บันทึกราคาไม่สำเร็จ')
         return
       }
 
-      setSuccess('บันทึกราคาเรียบร้อยแล้ว')
-      router.refresh()
+      setSavedPricing({ asOfDate: result.data.asOfDate, tiers: result.data.tiers })
+      setRows(result.data.tiers)
+      setSuccess(result.data.changed ? 'บันทึกราคาเรียบร้อยแล้ว' : 'ข้อมูลราคายังเหมือนเดิม')
     } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      setNeedsReload(true)
+      setError('ยังยืนยันผลการบันทึกไม่ได้ กรุณาโหลดราคาล่าสุดก่อนทำต่อ')
     } finally {
+      inFlight.current = false
       setLoading(false)
     }
   }
+
+  const reloadPricing = async () => {
+    if (inFlight.current) return
+    inFlight.current = true
+    setLoading(true); setSuccess(null)
+    try {
+      const response = await fetch('/api/admin/pricing', { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      const result = await response.json()
+      if (!response.ok || !result.data?.tiers) throw new Error(result.error || 'อ่านราคาปัจจุบันไม่สำเร็จ')
+      setSavedPricing(result.data); setRows(result.data.tiers); setNeedsReload(false); setError(null)
+    } catch {
+      setNeedsReload(true); setError('อ่านราคาปัจจุบันไม่สำเร็จ กรุณาโหลดราคาล่าสุดก่อนแก้ไข')
+    } finally { inFlight.current = false; setLoading(false) }
+  }
+
+  const moneyOrMissing = (value: number | null | undefined) => value == null ? '—' : formatMoney(value)
+  const formatDate = (value: string) => new Date(value + 'T00:00:00Z').toLocaleDateString('th-TH', { timeZone: 'UTC' })
+  const editorDisabled = loading || needsReload || !savedPricing
 
   return (
     <div className="space-y-6">
@@ -200,10 +214,10 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">เรทรวม</p><p className="mt-1 text-2xl font-bold text-[#153c85]">{stats.total}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">เด็ก ต่ำสุด/ครั้ง</p><p className="mt-1 text-2xl font-bold text-emerald-600">{formatMoney(stats.kidsLowest)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">ผู้ใหญ่ รายครั้ง</p><p className="mt-1 text-2xl font-bold text-orange-600">{formatMoney(stats.adultBase)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Private รายชม.</p><p className="mt-1 text-2xl font-bold text-[#2748bf]">{formatMoney(stats.privateBase)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">เรทรวม</p><p className="mt-1 text-2xl font-bold text-[#153c85]">{stats.total ?? '—'}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">เด็ก ต่ำสุด/ครั้ง</p><p className="mt-1 text-2xl font-bold text-emerald-600">{moneyOrMissing(stats.kidsLowest)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">ผู้ใหญ่ รายครั้ง</p><p className="mt-1 text-2xl font-bold text-orange-600">{moneyOrMissing(stats.adultBase)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-gray-500">Private รายชม.</p><p className="mt-1 text-2xl font-bold text-[#2748bf]">{moneyOrMissing(stats.privateBase)}</p></CardContent></Card>
       </div>
 
       {error && (
@@ -220,13 +234,19 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
       )}
 
       <div className="space-y-4">
+        <div className="rounded-lg border bg-blue-50 p-4 text-sm text-blue-900">
+          <p>แสดงเฉพาะเรทที่มีผลปัจจุบัน ราคาเก่ายังคงเก็บไว้เป็นประวัติ</p>
+          <p>วันมีผลเปลี่ยนเวลา 07:00 น. (ไทย){savedPricing ? ` · ข้อมูลวันที่ ${formatDate(savedPricing.asOfDate)}` : ''}</p>
+          <Button className="mt-2" variant="outline" disabled={loading} onClick={reloadPricing}>โหลดราคาล่าสุด</Button>
+          {needsReload ? <p className="mt-2">ค่าที่กำลังแก้ยังอยู่ การโหลดใหม่จะแทนค่าด้วยข้อมูลล่าสุดก่อนบันทึก</p> : null}
+        </div>
         {kidsCatalogError ? <p role="alert" className="text-red-600">{kidsCatalogError}</p> : null}
         {kidsCatalogs ? <>
           {!kidsCatalogs.active ? <p className="text-sm text-amber-700">ชุดราคาสองช่วงยังไม่เปิดใช้กับการจอง</p> : null}
           {kidsCatalogs.early ? <KidsCatalogEditor key={kidsCatalogs.early.versionId} catalog={kidsCatalogs.early} onSaved={onKidsCatalogSaved} /> : <p role="alert">ยังไม่มีหลักฐานชุดราคาช่วงวันที่ 1–15 กรุณาตรวจสอบข้อมูลราคา</p>}
           <KidsCatalogEditor key={kidsCatalogs.late.versionId} catalog={kidsCatalogs.late} onSaved={onKidsCatalogSaved} />
         </> : null}
-        {COURSE_ORDER.filter((courseType) => !kidsCatalogs || courseType !== 'kids_group').map((courseType) => {
+        {savedPricing ? COURSE_ORDER.map((courseType) => {
           const courseRows = rows
             .filter((row) => row.course_type_name === courseType)
             .sort((a, b) => a.min_sessions - b.min_sessions)
@@ -243,18 +263,21 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
                 </div>
                 <div className="divide-y">
                   {courseRows.map((row) => (
-                    <div key={row.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[160px_repeat(4,minmax(130px,1fr))] lg:items-start">
+                    <div key={row.id} data-testid={'pricing-tier-' + row.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[160px_repeat(4,minmax(130px,1fr))] lg:items-start">
                       <div className="space-y-1.5">
                         <Label className="block min-h-4 text-xs text-gray-500">ช่วงราคา</Label>
                         <div className="flex h-10 items-center rounded-md border bg-gray-50 px-3 text-sm font-semibold text-[#153c85]">
                           {tierLabel(row)}
                         </div>
+                        <p className="text-xs text-gray-500">มีผล {formatDate(row.valid_from)} ถึง {row.valid_to ? formatDate(row.valid_to) : 'ไม่กำหนดวันสิ้นสุด'}</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="block min-h-4 text-xs">เริ่มที่</Label>
                         <Input
                           type="number"
                           min={1}
+                          disabled={editorDisabled}
+                          aria-label={`${courseType} ${row.id} เริ่มที่`}
                           value={row.min_sessions}
                           onChange={(event) => updateRow(row.id, 'min_sessions', event.target.value)}
                         />
@@ -264,6 +287,8 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
                         <Input
                           type="number"
                           min={row.min_sessions}
+                          disabled={editorDisabled}
+                          aria-label={`${courseType} ${row.id} ถึง`}
                           value={row.max_sessions ?? ''}
                           onChange={(event) => updateRow(row.id, 'max_sessions', event.target.value)}
                           placeholder="ไม่จำกัด"
@@ -274,6 +299,8 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
                         <Input
                           type="number"
                           min={0}
+                          disabled={editorDisabled}
+                          aria-label={`${courseType} ${row.id} ราคา`}
                           value={row.price_per_session}
                           onChange={(event) => updateRow(row.id, 'price_per_session', event.target.value)}
                         />
@@ -291,11 +318,11 @@ export function PricingSettingsClient({ tiers, kidsCatalogs, kidsCatalogError }:
               </CardContent>
             </Card>
           )
-        })}
+        }) : null}
       </div>
 
       <div className="sticky bottom-0 z-10 -mx-2 border-t bg-white/95 px-2 py-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0">
-        <Button className="w-full bg-[#2748bf] hover:bg-[#153c85] sm:w-auto" onClick={savePricing} disabled={loading}>
+        <Button className="w-full bg-[#2748bf] hover:bg-[#153c85] sm:w-auto" onClick={savePricing} disabled={editorDisabled}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           บันทึกราคาค่าเรียน
         </Button>
